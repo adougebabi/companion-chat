@@ -23,7 +23,7 @@ docker compose up -d --build
 
 容器中的 `localhost` 指向容器自身：LM Studio 位于局域网其他机器时填写该机器的局域网地址；ComfyUI 也在 Compose 网络中时使用服务名，例如 `http://comfyui:8188`。
 
-GitHub 推送到 `main` 或推送 `v*` 标签时，[`docker-publish.yml`](.github/workflows/docker-publish.yml) 会构建并发布 `companion-chat` 镜像。仓库需要设置两个 Actions Secrets：`DOCKERHUB_USERNAME` 和 `DOCKERHUB_TOKEN`。
+GitHub 推送到 `main`、`master` 或推送 `v*` 标签时，[`docker-publish.yml`](.github/workflows/docker-publish.yml) 会构建并发布 `companion-chat` 镜像。仓库需要设置两个 Actions Secrets：`DOCKER_HUB_USERNAME` 和 `DOCKER_HUB_ACCESS_TOKEN`。
 
 ## 长期记忆与人格演化
 
