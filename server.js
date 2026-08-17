@@ -422,6 +422,21 @@ app.delete('/api/console', (req, res) => {
     saveState(state);
     res.status(204).end();
 });
+app.delete('/api/personas/:personaId/memories', (req, res) => {
+    const state = readState();
+    const persona = state.personas.find(item => item.id === req.params.personaId && item.enabled);
+    if (!persona) return res.status(404).json({error: '人格不存在'});
+    const clearedAt = now();
+    let count = 0;
+    state.memories.forEach(memory => {
+        if (memory.personaId !== persona.id || memory.status !== 'active') return;
+        memory.status = 'cleared';
+        memory.updatedAt = clearedAt;
+        count += 1;
+    });
+    saveState(state);
+    res.json({count});
+});
 
 app.post('/api/chat', async (req, res) => {
     if (!req.body || typeof req.body !== 'object') return res.status(400).json({error: '请求体必须是 JSON'});
