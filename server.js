@@ -28,6 +28,7 @@ const now = () => new Date().toISOString();
 const defaultState = {
     settings: {
         lmStudioUrl: process.env.LM_STUDIO_URL || 'http://127.0.0.1:1234/v1',
+        lmStudioApiKey: process.env.LM_STUDIO_API_KEY || '',
         model: process.env.LM_STUDIO_MODEL || '',
         comfyUrl: process.env.COMFYUI_URL || 'http://127.0.0.1:8188',
         imageWorkflow: '',
@@ -146,7 +147,9 @@ const generationTools = [
 
 async function resolveModel(state) {
     if (state.settings.model) return state.settings.model;
-    const response = await fetch(`${cleanUrl(state.settings.lmStudioUrl)}/models`);
+    const headers = {'Content-Type': 'application/json'};
+    if (state.settings.lmStudioApiKey) headers['Authorization'] = `Bearer ${state.settings.lmStudioApiKey}`;
+    const response = await fetch(`${cleanUrl(state.settings.lmStudioUrl)}/models`, {headers});
     if (!response.ok) throw new Error(`LM Studio HTTP ${response.status}`);
     const models = (await response.json()).data || [];
     const model = models.find(item => !/embedding/i.test(item.id))?.id || models[0]?.id;
@@ -156,9 +159,11 @@ async function resolveModel(state) {
 
 async function lmJson(state, payload) {
     const url = `${cleanUrl(state.settings.lmStudioUrl)}/chat/completions`;
+    const headers = {'Content-Type': 'application/json'};
+    if (state.settings.lmStudioApiKey) headers['Authorization'] = `Bearer ${state.settings.lmStudioApiKey}`;
     const response = await fetch(url, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers,
         body: JSON.stringify({...payload, model: payload.model || await resolveModel(state)})
     });
     if (!response.ok) throw new Error(`LM Studio HTTP ${response.status}`);
@@ -346,7 +351,9 @@ app.delete('/api/personas/:personaId', (req, res) => {
 app.get('/api/models', async (req, res) => {
     try {
         const state = readState();
-        const response = await fetch(`${cleanUrl(state.settings.lmStudioUrl)}/models`);
+        const headers = {};
+        if (state.settings.lmStudioApiKey) headers['Authorization'] = `Bearer ${state.settings.lmStudioApiKey}`;
+        const response = await fetch(`${cleanUrl(state.settings.lmStudioUrl)}/models`, {headers});
         res.status(response.status).json(await response.json());
     } catch (error) {
         res.status(502).json({error: error.message});
