@@ -94,7 +94,18 @@ function renderMessages() {
 
 function renderPersonaList() {
     $('#personas').innerHTML = state.personas.filter(persona => persona.enabled).map(persona => `<div class="persona-row ${persona.id === activePersonaId ? 'selected' : ''}"><button class="persona" data-persona="${persona.id}">${avatar(persona, true)}<span><strong>${esc(persona.name)}</strong><small>${esc(persona.role)}</small></span><i></i></button><button class="persona-more" data-edit-persona="${persona.id}" aria-label="编辑 ${esc(persona.name)}">⋯</button></div>`).join('');
-    $('#personas').querySelectorAll('.persona').forEach(button => button.onclick = () => switchPersona(button.dataset.persona));
+    $('#personas').querySelectorAll('.persona').forEach(button => {
+        button.onclick = () => {
+            switchPersona(button.dataset.persona);
+            // 关闭移动端菜单
+            const rail = document.querySelector('.rail');
+            const people = document.querySelector('.people');
+            const overlay = document.querySelector('#mobile-overlay');
+            if (rail) rail.classList.remove('mobile-visible');
+            if (people) people.classList.remove('mobile-visible');
+            if (overlay) overlay.classList.remove('visible');
+        };
+    });
     $('#personas').querySelectorAll('.persona-more').forEach(button => button.onclick = () => openPersonaEditor(button.dataset.editPersona));
 }
 
@@ -118,8 +129,9 @@ function render() {
 }
 
 function build() {
-    document.querySelector('#app').innerHTML = `<main class="app-shell"><aside class="rail"><div class="logo">知</div><button class="rail-button active" aria-label="聊天" title="聊天">◌</button><button class="rail-button" id="memory-toggle" aria-label="共同记忆" title="共同记忆">◫</button><button class="rail-button" id="console-toggle" aria-label="运行控制台" title="运行控制台">⌘</button><span></span><button class="rail-button" id="settings-toggle" aria-label="设置" title="设置">⚙</button></aside><aside class="people"><header><div class="wordmark">知觉</div><button class="add-persona" id="add-persona" aria-label="添加人格" title="添加人格">＋</button></header><div class="section-label">联系人</div><nav id="personas"></nav><div class="evolution"><span class="spark">✦</span><div><strong>最近联系</strong><p>聊过的事会留在这里</p></div></div></aside><section class="chat"><header class="chat-header"><div class="identity" id="header-avatar"></div><div><h1 id="title"></h1><p id="subtitle"></p></div><button id="info-toggle" class="header-action">记忆 <b id="memory-count">0</b></button></header><div class="stream" id="stream"></div><section class="composer-zone"><div class="file-queue" id="file-queue"></div><div class="composer" id="drop-zone"><textarea id="input" placeholder="给 ${esc(activePersona().name)} 发消息..." rows="1"></textarea><div class="tool-row"><label title="添加图片、视频或文件" aria-label="添加图片、视频或文件" class="icon-tool">＋<input id="file-input" type="file" multiple accept="image/*,video/*,.pdf,.txt"></label><button id="emoji" class="icon-tool" aria-label="表情" title="表情">☺</button><div id="emoji-menu" class="emoji-menu">😀　🙂　💪　✨　🎨　🎬　❤️</div><span class="enter-hint">Enter 发送</span><button id="send" class="send" aria-label="发送">↑</button></div></div></section></section><aside class="memory-panel" id="memory-panel"><header><div><p>SHARED NOTES</p><h2>共同记忆</h2></div><button id="close-memory" class="close" aria-label="关闭记忆面板">×</button></header><p class="memory-explain">这里会保留你们聊过的重要偏好；新的、更具体的想法会自然更新旧记录。</p><ul id="memory-list"></ul><section class="prompt-origin"><span>基础人格</span><p id="personality-preview"></p></section></aside><aside class="console-panel" id="console-panel"><header><div><p>RUNTIME CONSOLE</p><h2>生成调用</h2></div><button id="close-console" class="close" aria-label="关闭控制台">×</button></header><div class="console-actions"><button id="refresh-console" class="quiet">刷新</button><button id="clear-console" class="quiet">清空</button></div><div id="console-log" class="console-log"></div></aside></main><dialog id="settings"><form method="dialog" id="settings-form"><header><div><p>LOCAL CONFIGURATION</p><h2>系统设置</h2></div><button class="close" value="cancel" aria-label="关闭设置">×</button></header><div class="settings-body"><section><h3>LM Studio</h3><label>服务地址<input name="lmStudioUrl"></label><label>模型 ID<input name="model" placeholder="点击下方按钮自动发现"></label><button type="button" id="detect-model" class="quiet">读取本地模型</button><small id="model-result">使用 OpenAI 兼容的本地服务。</small></section><section><h3>ComfyUI</h3><label>服务地址<input name="comfyUrl"></label><label>生图工作流 JSON<textarea name="imageWorkflow" rows="4" placeholder="粘贴 API 格式工作流 JSON"></textarea></label><label>生视频工作流 JSON<textarea name="videoWorkflow" rows="4" placeholder="粘贴 API 格式工作流 JSON"></textarea></label><small>在工作流的正向提示词节点使用 <code>{{prompt}}</code>。AI 会在需要画面说明时自行调用对应工作流，用户无需输入任何触发词。</small></section></div><footer><button value="cancel" class="quiet">取消</button><button class="save">保存设置</button></footer></form></dialog><dialog id="persona-dialog"><form method="dialog" id="persona-form"><header><div><p>NEW PERSONA</p><h2>添加人格</h2></div><button class="close" value="cancel" aria-label="关闭创建人格">×</button></header><label>名字<input name="name" required placeholder="例如：小燃"></label><label>角色<input name="role" required placeholder="例如：跑步教练"></label><label>基础人格<textarea name="basePrompt" rows="7" required placeholder="定义稳定身份、语气、专业边界与默认行为"></textarea></label><footer><button value="cancel" class="quiet">取消</button><button class="save">创建人格</button></footer></form></dialog>`;
+    document.querySelector('#app').innerHTML = `<button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="菜单">☰</button><div class="mobile-overlay" id="mobile-overlay"></div><main class="app-shell"><aside class="rail"><div class="logo">知</div><button class="rail-button active" aria-label="聊天" title="聊天">◌</button><button class="rail-button" id="memory-toggle" aria-label="共同记忆" title="共同记忆">◫</button><button class="rail-button" id="console-toggle" aria-label="运行控制台" title="运行控制台">⌘</button><span></span><button class="rail-button" id="settings-toggle" aria-label="设置" title="设置">⚙</button></aside><aside class="people"><header><div class="wordmark">知觉<small>COMPANION</small></div><button class="add-persona" id="add-persona" aria-label="添加人格" title="添加人格">＋</button></header><div class="section-label">联系人</div><nav id="personas"></nav><div class="evolution"><span class="spark">✦</span><div><strong>最近联系</strong><p>聊过的事会留在这里</p></div></div></aside><section class="chat"><header class="chat-header"><div class="identity" id="header-avatar"></div><div><h1 id="title"></h1><p id="subtitle"></p></div><button id="info-toggle" class="header-action">记忆 <b id="memory-count">0</b></button></header><div class="stream" id="stream"></div><section class="composer-zone"><div class="file-queue" id="file-queue"></div><div class="composer" id="drop-zone"><textarea id="input" placeholder="给 ${esc(activePersona().name)} 发消息..." rows="1"></textarea><div class="tool-row"><label title="添加图片、视频或文件" aria-label="添加图片、视频或文件" class="icon-tool">＋<input id="file-input" type="file" multiple accept="image/*,video/*,.pdf,.txt"></label><button id="emoji" class="icon-tool" aria-label="表情" title="表情">☺</button><div id="emoji-menu" class="emoji-menu">😀　🙂　💪　✨　🎨　🎬　❤️</div><span class="enter-hint">Enter 发送</span><button id="send" class="send" aria-label="发送">↑</button></div></div></section></section><aside class="memory-panel" id="memory-panel"><header><div><p>SHARED NOTES</p><h2>共同记忆</h2></div><button id="close-memory" class="close" aria-label="关闭记忆面板">×</button></header><p class="memory-explain">这里会保留你们聊过的重要偏好；新的、更具体的想法会自然更新旧记录。</p><ul id="memory-list"></ul><section class="prompt-origin"><span>基础人格</span><p id="personality-preview"></p></section></aside><aside class="console-panel" id="console-panel"><header><div><p>RUNTIME CONSOLE</p><h2>生成调用</h2></div><button id="close-console" class="close" aria-label="关闭控制台">×</button></header><div class="console-actions"><button id="refresh-console" class="quiet">刷新</button><button id="clear-console" class="quiet">清空</button></div><div id="console-log" class="console-log"></div></aside></main><dialog id="settings"><form method="dialog" id="settings-form"><header><div><p>LOCAL CONFIGURATION</p><h2>系统设置</h2></div><button class="close" value="cancel" aria-label="关闭设置">×</button></header><div class="settings-body"><section><h3>LM Studio</h3><label>服务地址<input name="lmStudioUrl"></label><label>模型 ID<input name="model" placeholder="点击下方按钮自动发现"></label><button type="button" id="detect-model" class="quiet">读取本地模型</button><small id="model-result">使用 OpenAI 兼容的本地服务。</small></section><section><h3>ComfyUI</h3><label>服务地址<input name="comfyUrl"></label><label>生图工作流 JSON<textarea name="imageWorkflow" rows="4" placeholder="粘贴 API 格式工作流 JSON"></textarea></label><label>生视频工作流 JSON<textarea name="videoWorkflow" rows="4" placeholder="粘贴 API 格式工作流 JSON"></textarea></label><small>在工作流的正向提示词节点使用 <code>{{prompt}}</code>。AI 会在需要画面说明时自行调用对应工作流，用户无需输入任何触发词。</small></section></div><footer><button value="cancel" class="quiet">取消</button><button class="save">保存设置</button></footer></form></dialog><dialog id="persona-dialog"><form method="dialog" id="persona-form"><header><div><p>NEW PERSONA</p><h2>添加人格</h2></div><button class="close" value="cancel" aria-label="关闭创建人格">×</button></header><label>名字<input name="name" required placeholder="例如：小燃"></label><label>角色<input name="role" required placeholder="例如：跑步教练"></label><label>基础人格<textarea name="basePrompt" rows="7" required placeholder="定义稳定身份、语气、专业边界与默认行为"></textarea></label><footer><button value="cancel" class="quiet">取消</button><button class="save">创建人格</button></footer></form></dialog>`;
     bind();
+    bindMobileMenu();
 }
 
 async function switchPersona(personaId) {
@@ -189,6 +201,35 @@ function bind() {
     $('#settings-form').onsubmit = saveSettings;
     $('#detect-model').onclick = detectModel;
     $('#persona-form').onsubmit = addPersona;
+}
+
+function bindMobileMenu() {
+    const toggle = $('#mobile-menu-toggle');
+    const overlay = $('#mobile-overlay');
+    const rail = $('.rail');
+    const people = $('.people');
+
+    if (!toggle || !overlay || !rail || !people) return;
+
+    const openMenu = () => {
+        rail.classList.add('mobile-visible');
+        people.classList.add('mobile-visible');
+        overlay.classList.add('visible');
+    };
+
+    const closeMenu = () => {
+        rail.classList.remove('mobile-visible');
+        people.classList.remove('mobile-visible');
+        overlay.classList.remove('visible');
+    };
+
+    toggle.onclick = openMenu;
+    overlay.onclick = closeMenu;
+
+    // 选择人格后自动关闭菜单
+    document.querySelectorAll('.persona').forEach(button => {
+        button.addEventListener('click', closeMenu);
+    });
 }
 
 async function toAttachments(files) {
