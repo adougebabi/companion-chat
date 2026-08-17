@@ -11,8 +11,10 @@ const legacyStatePath = join(dataDir, 'state.json');
 const databasePath = process.env.DATABASE_PATH || join(dataDir, 'companion.sqlite');
 const port = Number(process.env.PORT || 4178);
 const app = express();
+app.set('etag', false);
 app.use(express.json({ limit: '12mb' }));
-app.use(express.static(join(root, 'src')));
+app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store, max-age=0'); next(); });
+app.use(express.static(join(root, 'src'), { setHeaders: (res, filePath) => { if (filePath.endsWith('/index.html') || filePath.endsWith('/main.js') || filePath.endsWith('/style.css')) res.set('Cache-Control', 'no-store, max-age=0'); } }));
 app.use('/vendor/marked', express.static(join(root, 'node_modules', 'marked', 'lib')));
 
 const now = () => new Date().toISOString();
