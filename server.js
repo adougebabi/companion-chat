@@ -27,9 +27,9 @@ app.use('/vendor/marked', express.static(join(root, 'node_modules', 'marked', 'l
 const now = () => new Date().toISOString();
 const defaultState = {
     settings: {
-        lmStudioUrl: process.env.LM_STUDIO_URL || 'http://127.0.0.1:1234/v1',
-        lmStudioApiKey: process.env.LM_STUDIO_API_KEY || '',
-        model: process.env.LM_STUDIO_MODEL || '',
+        lmStudioUrl: process.env.MTPLX_URL || process.env.LM_STUDIO_URL || 'http://127.0.0.1:8000/v1',
+        lmStudioApiKey: process.env.MTPLX_API_KEY || process.env.LM_STUDIO_API_KEY || '',
+        model: process.env.MTPLX_MODEL || process.env.LM_STUDIO_MODEL || '',
         comfyUrl: process.env.COMFYUI_URL || 'http://127.0.0.1:8188',
         imageWorkflow: '',
         videoWorkflow: '',
@@ -96,6 +96,17 @@ function cleanUrl(url) {
     return String(url || '').replace(/\/$/, '');
 }
 
+async function providerError(response) {
+    const fallback = `MTPLX HTTP ${response.status}`;
+    try {
+        const body = await response.json();
+        const message = body?.error?.message || body?.message || body?.detail;
+        return message ? `${fallback}: ${message}` : fallback;
+    } catch {
+        return fallback;
+    }
+}
+
 function getPersona(state, personaId) {
     return state.personas.find(item => item.id === personaId && item.enabled) || state.personas[0];
 }
@@ -150,10 +161,10 @@ async function resolveModel(state) {
     const headers = {'Content-Type': 'application/json'};
     if (state.settings.lmStudioApiKey) headers['Authorization'] = `Bearer ${state.settings.lmStudioApiKey}`;
     const response = await fetch(`${cleanUrl(state.settings.lmStudioUrl)}/models`, {headers});
-    if (!response.ok) throw new Error(`LM Studio HTTP ${response.status}`);
+    if (!response.ok) throw new Error(await providerError(response));
     const models = (await response.json()).data || [];
     const model = models.find(item => !/embedding/i.test(item.id))?.id || models[0]?.id;
-    if (!model) throw new Error('LM Studio 没有可用模型');
+    if (!model) throw new Error('MTPLX 没有可用模型');
     return model;
 }
 
@@ -166,7 +177,7 @@ async function lmJson(state, payload) {
         headers,
         body: JSON.stringify({...payload, model: payload.model || await resolveModel(state)})
     });
-    if (!response.ok) throw new Error(`LM Studio HTTP ${response.status}`);
+    if (!response.ok) throw new Error(await providerError(response));
     return response;
 }
 
