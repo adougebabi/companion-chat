@@ -23,6 +23,7 @@
 - A user visual direction may fill only facts compatible with active state; parse it into the V3 `locked` capture contract instead of emitting the raw request as an unrestricted prompt prefix.
 - Authority for scene facts is ordered: active event/context (current location, outfit, action, posture, state) → compatible user request → persona/AI completion. A user clothing request is accepted only when the active context permits a change (for example, a clothing-store or try-on event); otherwise the current event outfit remains authoritative.
 - `locked.capture` owns `view`, `operator`, `device`, `cameraVisibility`, `orientation`, `framing`, and `subjectGaze`; `locked.subjects` owns visible names/count and exclusions; `locked.composition` owns action, required pose/expression, and prohibited compositions. These values never change during refinement.
+- `locked.capture` also owns `relativePosition`, `height`, `downwardAngle`, and `perspectiveType`. The provider prompt emits this camera geometry first and repeats it in a final hard camera-angle requirement; a prompt master may never rewrite it.
 - The compiler emits sections in this exact order: photography/gear → subject base → face/skin → environment/light → wardrobe/accessories → mood/temperament → color/parameters → negative constraints.
 - A capture device is out of frame unless the request explicitly says it must be visible (for example, a mirror shot or “手机入镜”). This is a generic capture rule, not a persona- or role-specific exception.
 - The most recent completed media intent is only a continuity fallback. It cannot override current event state or an allowed explicit change, and it is scoped by `persona_id`.
@@ -52,6 +53,7 @@
 - Assert a multi-subject self-capture includes both names and locks capture view/operator, device visibility, framing, pose, expression, and light.
 - Assert provider section order and absence of an unrestricted raw `userDirection` clause.
 - Assert photographer-POV requests exclude the photographer and incompatible extra photographers.
+- Assert a high-angle/POV request compiles camera relative position, height, downward angle, and perspective before subject prose, and malformed refinement falls back without changing them.
 - Assert malformed refiner output preserves the deterministic prompt.
 
 ### 7. Wrong vs Correct

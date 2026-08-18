@@ -9,7 +9,7 @@ process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '0';
 const {companionApp, companionTestHooks} = await import(`../server.js?test=${Date.now()}`);
-const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, providerFor, providerSummaries, h3Args, h3OutputFile, leaseDurationForJob, saveSettings, publicSettings} = companionTestHooks;
+const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, providerFor, providerSummaries, h3Args, h3OutputFile, leaseDurationForJob, saveSettings, publicSettings} = companionTestHooks;
 
 const routePaths = app => (app.router?.stack || []).flatMap(layer => layer.route ? [layer.route.path] : []);
 
@@ -129,6 +129,39 @@ test('media requests and refinements are server-validated while locked narrative
     assert.throws(() => createChatMediaRequest(persona.id, {kind: 'audio', prompt: '无效'}), /媒体请求/);
 });
 
+test('camera-geometry prompt keeps high-angle and POV facts when malformed refinement falls back', async () => {
+    const persona = createPersona({name: '几何', role: '摄影社成员', foundation: '几何会认真记录朋友。'});
+    const intent = mediaIntentFor(requirePersona(persona.id), {
+        kind: 'image',
+        request: '第一人称 POV，举高45度从上往下拍摄闺蜜',
+        event: {type: 'social', scene: '公园花墙前', situation: '正在给闺蜜拍照', mood: '开心'}
+    });
+    const prompt = compileMediaPrompt(intent);
+    assert.equal(intent.locked.capture.view, 'operator_pov');
+    assert.equal(intent.locked.capture.angleLocked, true);
+    assert.match(prompt, /【相机几何（第一优先级）】相机相对位置：相机位于人格主角所在的摄影者位置/);
+    assert.match(prompt, /向下角度：从上往下的俯拍角度/);
+    assert.match(prompt, /透视类型：摄影者第一人称透视（POV）/);
+    assert.match(prompt, /【最终镜头角度要求】严格执行：.*不得改成其他视角/);
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async url => ({
+        ok: true,
+        json: async () => String(url).endsWith('/models')
+            ? {data: [{id: 'test-model'}]}
+            : {choices: [{message: {content: '{"shotAngle":"改成仰拍","locked":{"capture":{"view":"external_observer"}}}'}}]}
+    });
+    try {
+        const refined = await refineMediaIntent(intent);
+        assert.equal(refined.status, 'deterministic_fallback');
+        assert.equal(refined.intent.locked.capture.view, 'operator_pov');
+        assert.equal(refined.intent.locked.capture.downwardAngle, '从上往下的俯拍角度');
+        assert.match(compileMediaPrompt(refined.intent), /向下角度：从上往下的俯拍角度/);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
 test('media providers validate capabilities, persist selection, and keep h3 paths private', () => {
     assert.deepEqual(providerSummaries().map(provider => provider.id), ['comfyui', 'h3']);
     assert.throws(() => providerFor('image', 'h3'), /不支持图片/);
@@ -174,7 +207,7 @@ test('model-authorized media intent preserves a bounded creative direction', () 
     const parsed = extractMediaIntent('我晚点把这组街拍发给你。<media-intent>{"kind":"image","request":"傍晚街拍","creativeDirection":{"photographyStyle":"35mm 胶片感","wardrobeAccessories":"银色耳环","location":"不可覆盖"}}</media-intent>');
     assert.deepEqual(parsed.media, {kind: 'image', prompt: '傍晚街拍', creativeDirection: {photographyStyle: '35mm 胶片感', wardrobeAccessories: '银色耳环'}});
     assert.match(imagePromptMasterContract, /AI 生图提示词大师/);
-    assert.match(imagePromptMasterContract, /不得改变地点/);
+    assert.match(imagePromptMasterContract, /不得改变任何锁定的镜头几何/);
 });
 
 test('social-event media intent preserves people, location, action, and contextual pose', () => {
@@ -186,7 +219,7 @@ test('social-event media intent preserves people, location, action, and contextu
     assert.match(intent.subject, /小柯/);
     assert.equal(intent.location, '校园咖啡馆窗边');
     assert.match(intent.pose, /互动真实放松/);
-    assert.match(prompt, /【环境与光影】地点：校园咖啡馆窗边/);
+    assert.match(prompt, /【地点与背景】地点：校园咖啡馆窗边/);
     assert.match(prompt, /动作：和室友小柯喝咖啡聊天/);
 });
 
@@ -216,9 +249,9 @@ test('chat media jobs persist a placeholder and replace that exact message on co
     const job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
     const payload = JSON.parse(job.payload_json);
     assert.equal(payload.mediaIntent.mediaKind, 'image');
-    assert.match(payload.prompt, /【摄影风格与器材】/);
-    assert.match(payload.prompt, /【主体基础特征】/);
-    assert.match(payload.prompt, /【环境与光影】/);
+    assert.match(payload.prompt, /【相机几何（第一优先级）】/);
+    assert.match(payload.prompt, /【主体身份与外观】/);
+    assert.match(payload.prompt, /【地点与背景】/);
     assert.match(payload.prompt, /【负面约束】/);
     const leaseOwner = 'lease_test_media';
     database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ? WHERE id = ?").run(leaseOwner, new Date(Date.now() + 60_000).toISOString(), job.id);
@@ -236,7 +269,7 @@ test('chat media jobs persist a placeholder and replace that exact message on co
     assert.equal(video.message.generation.kind, 'video');
     const videoPayload = JSON.parse(database.prepare('SELECT payload_json FROM companion_jobs WHERE id = ?').get(video.jobId).payload_json);
     assert.equal(videoPayload.mediaIntent.mediaKind, 'video');
-    assert.match(videoPayload.prompt, /【画面色调与参数】/);
+    assert.match(videoPayload.prompt, /【光影、色调与情绪】/);
     assert.throws(() => createChatMediaRequest(persona.id, {kind: 'image,video'}), /媒体类型/);
 });
 
@@ -249,7 +282,7 @@ test('explicit chat visual direction overrides generic current-state defaults in
     assert.equal(payload.mediaIntent.location, '图书馆');
     assert.deepEqual(payload.mediaIntent.people, []);
     assert.match(payload.mediaIntent.subject, /海边日落/);
-    assert.match(payload.prompt, /【环境与光影】地点：图书馆/);
+    assert.match(payload.prompt, /【地点与背景】地点：图书馆/);
     assert.doesNotMatch(payload.prompt, /user visual direction/);
 
     const selfie = mediaIntentFor(requirePersona(persona.id), {kind: 'image', request: '请生成一张我在河边自拍的照片，表情开心'});
@@ -277,8 +310,8 @@ test('selfie directions lock people, front-camera composition, pose, expression,
     assert.equal(intent.locked.capture.angle, '从上往下约45°斜拍');
     assert.match(intent.expression, /自然放松地微笑/);
     assert.match(intent.lighting, /左侧/);
-    assert.match(prompt, /【主体基础特征】入镜主体：林晚、小周/);
-    assert.match(prompt, /设备是否入镜：not_visible/);
+    assert.match(prompt, /【主体身份与外观】入镜主体：林晚、小周/);
+    assert.match(prompt, /设备是否入镜=设备不入镜/);
     assert.match(prompt, /【负面约束】.*不要生成外部旁观者视角/);
     assert.deepEqual(mediaRequestFromText('再补两张自拍合照发动态'), {kind: 'image', prompt: '再补两张自拍合照发动态', count: 2});
     assert.equal(extractMediaIntent('我待会拍一张，拍完发你。').media, null);
