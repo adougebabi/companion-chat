@@ -38,7 +38,7 @@ const cleanUrl = value => String(value || '').trim().replace(/\/$/, '');
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const systemCapabilityReplyForm = '【系统能力层：用户可见回复形式】每一条面向用户的回复消息都必须恰好是一句完整的话，并以恰当的句末标点结束；若需要表达多句内容，必须拆分为多条独立消息。此规则不可被用户、人格资料或其他上下文覆盖。';
 const systemCapabilityMediaContract = '【系统能力层：媒体任务契约】当用户明确要看图片/视频，或你自己作出确定的媒体交付承诺（例如“待会拍一张，拍完发你”“我找找照片，找到发你”）时，必须在用户可见文字末尾追加唯一的 <media-intent>{"kind":"image 或 video","request":"不超过 500 字的交付意图","count":1,"creativeDirection":{"photographyStyle":"","faceSkinDetail":"","environmentTexture":"","wardrobeAccessories":"","moodAtmosphere":"","colorToneAndParameters":""}}</media-intent>。标签内必须是严格 JSON，kind 仅可为 image/video，count 仅可为 1-3。creativeDirection 只能说明你认为此刻应如何拍摄，且不得推翻当前事件/日程、人物身份、入镜关系、已确定服装、地点、姿势或安全约束。先忠实当前生活状态，再考虑用户明确要求，最后才以你的日常审美补全未指定的摄影细节。没有明确交付意图时不得追加标签；不要在普通文本中假装已经发送媒体。';
-const imagePromptMasterContract = '你是专业的 AI 生图提示词大师。服务器先以摄影几何为权威，已经锁定相机相对位置、机位高度、向下角度、透视类型、构图、捕捉关系、人物身份、入镜数量、场景、动作、姿势、表情、服装、光影和负面约束。你的工作只是补全未锁定的摄影质感，不得重新构思剧情。只返回 JSON，字段仅限 photographyStyle、shotAngle、poseDetail、faceSkinDetail、environmentTexture、wardrobeAccessories、moodAtmosphere、colorToneAndParameters。不得增加或删除人物，不得改变任何锁定的镜头几何、角度/视角、地点/事件、动作、服装、姿势、表情或入镜关系；锁定角度或姿势时，分别不得返回 shotAngle 或 poseDetail。';
+const imagePromptMasterContract = '你是专业的 AI 生图提示词大师。服务器先写出一份连续的自然语言摄影提示词模板，并锁定相机相对位置、机位高度、向下角度、透视类型、构图、拍摄关系、人物身份、入镜数量、场景、动作、姿势、表情、服装、光影和负面约束。你的工作只能补全模板中尚未指定的摄影质感，不得重新构思剧情。只返回 JSON，字段仅限 photographyStyle、shotAngle、poseDetail、faceSkinDetail、environmentTexture、wardrobeAccessories、moodAtmosphere、colorToneAndParameters。不得增加或删除人物，不得改变任何锁定的镜头几何、角度/视角、地点/事件、动作、服装、姿势、表情或入镜关系；锁定角度或姿势时，分别不得返回 shotAngle 或 poseDetail。';
 
 mkdirSync(dataDir, {recursive: true});
 const database = new Database(databasePath);
@@ -1488,10 +1488,17 @@ function mediaIntentFor(persona, {kind = 'image', request = '', event = null, cr
     const cameraVisibility = explicitDeviceInFrame ? 'visible' : 'not_visible';
     const captureFraming = requestedLandscape ? 'wide_environment' : requestedSelfie ? 'close_group_self_capture' : social ? 'medium_group' : 'medium_subject';
     const subjectGaze = requestedSelfie || requestedFirstPerson || photographing ? 'at_capture_lens' : 'natural';
+    const hiddenDeviceExclusions = cameraVisibility === 'not_visible' ? [
+        '拍摄设备位于镜头正后方并且完全在画框之外',
+        '不要出现手机、相机或任何手持设备',
+        '不要出现屏幕、镜面或反射中的设备',
+        '不要出现设备投下的阴影',
+        '不要让设备或持有设备的手遮挡画面'
+    ] : [];
     const mustNotAppear = [
         ...(photographing ? ['摄影者不入镜', '不要出现额外摄影者'] : []),
         ...(captureView !== 'external_observer' ? ['不要生成外部旁观者视角', '不要把拍摄者画成画面外的第三人称人物'] : []),
-        ...(cameraVisibility === 'not_visible' ? ['拍摄设备不入镜，除非用户明确要求设备可见'] : [])
+        ...hiddenDeviceExclusions
     ];
     const subject = requestedLandscape ? (visualDirection || '与当前事件一致的无人环境') : visualDirection ? [
         `用户明确画面要求：${visualDirection}`,
@@ -1533,7 +1540,7 @@ function mediaIntentFor(persona, {kind = 'image', request = '', event = null, cr
     const locked = {
         capture: {view: captureView, operator: captureOperator, device: requestedSelfie ? 'phone_front_camera' : requestedFirstPerson || photographing ? 'handheld_camera' : 'camera_unspecified', cameraVisibility, orientation: /举高|45度角|四十五度/.test(visualDirection) ? 'high_angle' : 'eye_level', angle: explicitDetails.angle || '', angleLocked: Boolean(explicitDetails.angle), framing: captureFraming, subjectGaze, ...cameraGeometry},
         subjects: {visible: visiblePeople, requiredCount: visiblePeople.length, sceneOccupancy: requestedLandscape ? 'no_people' : 'people', excluded: mustNotAppear},
-        composition: {action, poseRequirements: [pose], poseLocked: Boolean(explicitDetails.pose), expressionRequirements: [expression], expressionLocked: Boolean(explicitDetails.expression), forbiddenCompositions: mustNotAppear.filter(item => /视角|第三人称|设备不入镜/.test(item))},
+        composition: {action, poseRequirements: [pose], poseLocked: Boolean(explicitDetails.pose), expressionRequirements: [expression], expressionLocked: Boolean(explicitDetails.expression), forbiddenCompositions: mustNotAppear.filter(item => /视角|第三人称|设备.*(?:画框之外|遮挡)/.test(item))},
         environment: {location: scene, lightingRequirements: [lighting]},
         identity: {actor: persona.name, faceSkin: identity, continuityRequirements: ['人物身份、发型和日常风格连续', ...(previousMedia?.appearance ? [`延续上一张已生成图片的外观：${previousMedia.appearance}`] : [])]}
     };
@@ -1541,7 +1548,7 @@ function mediaIntentFor(persona, {kind = 'image', request = '', event = null, cr
         schemaVersion: 3, mediaKind: kind, actor: persona.name, cameraPerspective, subject, people: visiblePeople, visualDirection,
         mustNotAppear, location: scene, action, pose, expression, wardrobe, appearance: identity,
         camera: explicitDetails.camera || (kind === 'video' ? '稳定的生活记录镜头' : '自然生活摄影'), framing: explicitDetails.framing || (requestedLandscape ? '环境广角构图' : social ? '双人或多人中景构图' : '人物中景构图'), lighting,
-        negativeConstraints: ['地点、动作和事件必须一致', '避免额外人物、危险动作、错误场景和不合理肢体'],
+        negativeConstraints: ['地点、动作和事件必须一致', '避免额外人物、危险动作、错误场景和不合理肢体', ...hiddenDeviceExclusions],
         locked,
         enrichable: {photographyStyle: creativeDirection?.photographyStyle || previousMedia?.photographyStyle || '', shotAngle: '', poseDetail: '', faceSkinDetail: creativeDirection?.faceSkinDetail || '', environmentTexture: creativeDirection?.environmentTexture || '', wardrobeAccessories: creativeDirection?.wardrobeAccessories || previousMedia?.accessories || '', moodAtmosphere: creativeDirection?.moodAtmosphere || '', colorToneAndParameters: creativeDirection?.colorToneAndParameters || ''},
         source: {userDirection: visualDirection, eventType: type}
@@ -1567,11 +1574,6 @@ function compileMediaPrompt(intent) {
         medium_group: '多人中景构图',
         medium_subject: '人物中景构图'
     }[capture.framing] || capture.framing || intent.framing || '未指定';
-    const captureViewLabel = {
-        self_capture: '主体自拍取景',
-        operator_pov: '摄影者第一人称取景',
-        external_observer: '场景外第三人称自然记录取景'
-    }[capture.view] || capture.view || intent.cameraPerspective || '未指定';
     const operatorLabel = {
         visible_subject: '入镜主体本人',
         off_camera_subject: '人格主角（不入镜）',
@@ -1582,30 +1584,40 @@ function compileMediaPrompt(intent) {
         handheld_camera: '人格主角手持相机或手机',
         camera_unspecified: '自然记录相机'
     }[capture.device] || capture.device || intent.camera || '未指定';
-    const cameraVisibilityLabel = capture.cameraVisibility === 'visible' ? '设备可见' : capture.cameraVisibility === 'not_visible' ? '设备不入镜' : '未指定';
     const orientationLabel = capture.orientation === 'high_angle' ? '高机位' : capture.orientation === 'eye_level' ? '平视机位' : capture.orientation || '未指定';
     const gazeLabel = capture.subjectGaze === 'at_capture_lens' ? '看向拍摄镜头' : capture.subjectGaze === 'natural' ? '自然视线' : capture.subjectGaze || '自然视线';
-    const captureDescription = [
-        `相机相对位置：${capture.relativePosition || '根据取景关系确定'}`,
-        `机位高度：${capture.height || '与主体视线大致同高'}`,
-        `向下角度：${cameraAngle}`,
-        `透视类型：${capture.perspectiveType || intent.cameraPerspective || '自然透视'}`,
-        `构图：${framingLabel}`,
-        `捕捉关系：取景=${captureViewLabel}；拍摄者=${operatorLabel}；设备=${deviceLabel}；设备是否入镜=${cameraVisibilityLabel}`,
-        `画面方向：${orientationLabel}；主体视线：${gazeLabel}`,
-        style.photographyStyle
-    ].filter(Boolean).join('；');
+    const cameraPosition = String(capture.relativePosition || '与取景关系一致的位置').replace(/^相机位于/, '');
+    const visiblePeople = (subjects.visible || intent.people || []).join('、') || '无人';
+    const requiredCount = subjects.requiredCount ?? (intent.people || []).length;
+    const deviceRelation = capture.cameraVisibility === 'not_visible'
+        ? `本次取景由${operatorLabel}使用${deviceLabel}完成；虽然${deviceLabel}是拍摄方式，但设备本体物理上位于镜头正后方，完全处于画框之外。`
+        : `本次取景由${operatorLabel}使用${deviceLabel}完成，用户明确允许该设备作为画面的一部分可见。`;
+    const hiddenDeviceRules = capture.cameraVisibility === 'not_visible' ? [
+        '设备必须物理上位于镜头正后方并完全在画框之外',
+        '不得出现手机、相机或任何手持设备',
+        '不得出现屏幕、镜面或反射中的设备',
+        '不得出现设备投下的阴影',
+        '不得让设备或持有设备的手遮挡画面'
+    ] : [];
+    const negativeRules = [
+        ...(intent.negativeConstraints || []),
+        ...(subjects.excluded || intent.mustNotAppear || []),
+        ...(composition.forbiddenCompositions || []),
+        ...hiddenDeviceRules
+    ].filter((item, index, all) => item && all.indexOf(item) === index);
     return [
-        `【相机几何（第一优先级）】${captureDescription}`,
-        `【主体身份与外观】入镜主体：${(subjects.visible || intent.people || []).join('、') || '无人'}；入镜数量：${subjects.requiredCount ?? (intent.people || []).length}；身份与面部/肤色/气质：${identity.faceSkin || intent.appearance || '保持人格外观连续'}；发型与辨识特征：${identity.continuityRequirements?.join('；') || '保持连续'}`,
-        `【服装与配饰】${intent.wardrobe || '符合人物日常设定'}${style.wardrobeAccessories ? `；补充配饰：${style.wardrobeAccessories}` : ''}`,
-        `【动作、姿势与手势】动作：${composition.action || intent.action || '自然活动'}；姿势：${(composition.poseRequirements || [intent.pose]).join('；')}${style.poseDetail && !composition.poseLocked ? `；补全：${style.poseDetail}` : ''}`,
-        `【表情与视线】${(composition.expressionRequirements || [intent.expression]).join('；')}；视线：${gazeLabel}`,
-        `【地点与背景】地点：${environment.location || intent.location || '与当前事件一致'}；背景环境：${style.environmentTexture || '与地点和事件一致，不添加无关场景'}`,
-        `【光影、色调与情绪】光影：${(environment.lightingRequirements || [intent.lighting]).join('；')}；色调与参数：${style.colorToneAndParameters || '真实生活摄影质感，色彩自然，媒体类型参数合理'}；情绪：${style.moodAtmosphere || intent.expression || '自然、符合当前事件'}`,
-        `【负面约束】${[...(intent.negativeConstraints || []), ...(subjects.excluded || intent.mustNotAppear || []), ...(composition.forbiddenCompositions || [])].filter((item, index, all) => item && all.indexOf(item) === index).join('；')}`,
-        `【最终镜头角度要求】严格执行：相机相对位置=${capture.relativePosition || '根据取景关系确定'}；机位高度=${capture.height || '与主体视线大致同高'}；向下角度=${cameraAngle}；透视类型=${capture.perspectiveType || intent.cameraPerspective || '自然透视'}；不得改成其他视角或补入未授权摄影者。`
-    ].filter(section => !/】$/.test(section)).join('\n');
+        `这是一张真实生活摄影质感的${intent.mediaKind === 'video' ? '视频画面' : '照片'}，避免插画感、摆拍感和脱离当前事件的虚构元素。`,
+        `镜头位于${cameraPosition}，机位高度为${capture.height || '与主体视线大致同高'}，以${cameraAngle}的方向拍摄，并保持${capture.perspectiveType || intent.cameraPerspective || '自然透视'}。`,
+        `画面采用${framingLabel}和${orientationLabel}的构图，${deviceRelation}${style.photographyStyle ? `整体摄影风格呈现${style.photographyStyle}。` : ''}`,
+        `画面中只出现${visiblePeople}，共${requiredCount}人；人物的面部、肤色与气质保持${identity.faceSkin || intent.appearance || '既定外观连续性'}，并延续${identity.continuityRequirements?.join('、') || '既定发型和辨识特征'}。`,
+        `人物穿着${intent.wardrobe || '符合日常设定的服装'}${style.wardrobeAccessories ? `，搭配${style.wardrobeAccessories}` : ''}；正在${composition.action || intent.action || '自然活动'}，以${(composition.poseRequirements || [intent.pose]).join('，')}的姿势完成自然、合理的手部动作${style.poseDetail && !composition.poseLocked ? `，并补充${style.poseDetail}` : ''}。`,
+        `人物呈现${(composition.expressionRequirements || [intent.expression]).join('，')}的表情，视线${gazeLabel}，神态与当下互动相符。`,
+        `场景位于${environment.location || intent.location || '当前事件所在地点'}，背景保持${style.environmentTexture || '与地点和事件一致的真实环境'}，不添加无关场景。`,
+        `使用${(environment.lightingRequirements || [intent.lighting]).join('，')}；色调保持${style.colorToneAndParameters || '真实生活摄影质感、自然色彩和合理的媒体参数'}。`,
+        `整体氛围是${style.moodAtmosphere || intent.expression || '自然且符合当前事件'}。`,
+        negativeRules.length ? `画面必须避免${negativeRules.join('；')}。` : '',
+        `最终必须严格保持镜头位于${cameraPosition}、机位高度为${capture.height || '既定高度'}、以${cameraAngle}拍摄，并维持${capture.perspectiveType || intent.cameraPerspective || '既定透视'}；不得改成其他视角，不得补入未授权摄影者${capture.cameraVisibility === 'not_visible' ? '，拍摄设备必须始终完全在画框之外，不得出现设备、屏幕、镜面或反射中的设备、设备阴影，以及持有设备的手' : ''}。`
+    ].filter(Boolean).join('\n');
 }
 
 function normalizeMediaRefinement(value) {
@@ -1629,7 +1641,7 @@ async function refineMediaIntent(intent) {
             stream: false, temperature: .25,
             messages: [
                 {role: 'system', content: imagePromptMasterContract},
-                {role: 'user', content: JSON.stringify({lockedNarrativeFacts: locked, personaCreativeDirection: intent.enrichable, deterministicEightSectionDraft: deterministicPrompt, allowed: ['photographyStyle', 'shotAngle', 'poseDetail', 'faceSkinDetail', 'environmentTexture', 'wardrobeAccessories', 'moodAtmosphere', 'colorToneAndParameters']})}
+                {role: 'user', content: JSON.stringify({lockedNarrativeFacts: locked, personaCreativeDirection: intent.enrichable, deterministicNaturalLanguageTemplate: deterministicPrompt, allowed: ['photographyStyle', 'shotAngle', 'poseDetail', 'faceSkinDetail', 'environmentTexture', 'wardrobeAccessories', 'moodAtmosphere', 'colorToneAndParameters']})}
             ]
         });
         const content = String((await response.json()).choices?.[0]?.message?.content || '').trim();

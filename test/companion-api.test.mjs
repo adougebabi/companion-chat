@@ -139,10 +139,11 @@ test('camera-geometry prompt keeps high-angle and POV facts when malformed refin
     const prompt = compileMediaPrompt(intent);
     assert.equal(intent.locked.capture.view, 'operator_pov');
     assert.equal(intent.locked.capture.angleLocked, true);
-    assert.match(prompt, /【相机几何（第一优先级）】相机相对位置：相机位于人格主角所在的摄影者位置/);
-    assert.match(prompt, /向下角度：从上往下的俯拍角度/);
-    assert.match(prompt, /透视类型：摄影者第一人称透视（POV）/);
-    assert.match(prompt, /【最终镜头角度要求】严格执行：.*不得改成其他视角/);
+    assert.match(prompt, /^这是一张真实生活摄影质感的照片/);
+    assert.match(prompt, /镜头位于人格主角所在的摄影者位置，正对被摄主体，机位高度为与被摄主体视线大致同高，以从上往下的俯拍角度的方向拍摄，并保持摄影者第一人称透视（POV）/);
+    assert.match(prompt, /最终必须严格保持镜头位于人格主角所在的摄影者位置/);
+    assert.match(prompt, /不得改成其他视角/);
+    assert.doesNotMatch(prompt, /(?:取景|拍摄者|设备)=/);
 
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async url => ({
@@ -156,7 +157,7 @@ test('camera-geometry prompt keeps high-angle and POV facts when malformed refin
         assert.equal(refined.status, 'deterministic_fallback');
         assert.equal(refined.intent.locked.capture.view, 'operator_pov');
         assert.equal(refined.intent.locked.capture.downwardAngle, '从上往下的俯拍角度');
-        assert.match(compileMediaPrompt(refined.intent), /向下角度：从上往下的俯拍角度/);
+        assert.match(compileMediaPrompt(refined.intent), /以从上往下的俯拍角度的方向拍摄/);
     } finally {
         globalThis.fetch = originalFetch;
     }
@@ -219,8 +220,8 @@ test('social-event media intent preserves people, location, action, and contextu
     assert.match(intent.subject, /小柯/);
     assert.equal(intent.location, '校园咖啡馆窗边');
     assert.match(intent.pose, /互动真实放松/);
-    assert.match(prompt, /【地点与背景】地点：校园咖啡馆窗边/);
-    assert.match(prompt, /动作：和室友小柯喝咖啡聊天/);
+    assert.match(prompt, /场景位于校园咖啡馆窗边/);
+    assert.match(prompt, /正在和室友小柯喝咖啡聊天/);
 });
 
 test('persona photographing her female friend uses photographer POV and excludes wrong photographers', () => {
@@ -235,8 +236,13 @@ test('persona photographing her female friend uses photographer POV and excludes
     assert.equal(intent.subject.includes('闺蜜'), true);
     assert.equal(intent.mustNotAppear.includes('摄影者不入镜'), true);
     assert.equal(intent.mustNotAppear.includes('不要出现额外摄影者'), true);
-    assert.match(prompt, /入镜主体：闺蜜/);
+    assert.match(prompt, /画面中只出现闺蜜，共1人/);
     assert.match(prompt, /不要生成外部旁观者视角/);
+    assert.match(prompt, /设备本体物理上位于镜头正后方，完全处于画框之外/);
+    assert.match(prompt, /不得出现手机、相机或任何手持设备/);
+    assert.match(prompt, /不得出现屏幕、镜面或反射中的设备/);
+    assert.match(prompt, /不得出现设备投下的阴影/);
+    assert.match(prompt, /不得让设备或持有设备的手遮挡画面/);
 });
 
 test('chat media jobs persist a placeholder and replace that exact message on completion', () => {
@@ -249,10 +255,10 @@ test('chat media jobs persist a placeholder and replace that exact message on co
     const job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
     const payload = JSON.parse(job.payload_json);
     assert.equal(payload.mediaIntent.mediaKind, 'image');
-    assert.match(payload.prompt, /【相机几何（第一优先级）】/);
-    assert.match(payload.prompt, /【主体身份与外观】/);
-    assert.match(payload.prompt, /【地点与背景】/);
-    assert.match(payload.prompt, /【负面约束】/);
+    assert.match(payload.prompt, /^这是一张真实生活摄影质感的照片/);
+    assert.match(payload.prompt, /画面中只出现/);
+    assert.match(payload.prompt, /场景位于/);
+    assert.match(payload.prompt, /画面必须避免/);
     const leaseOwner = 'lease_test_media';
     database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ? WHERE id = ?").run(leaseOwner, new Date(Date.now() + 60_000).toISOString(), job.id);
     const completed = completePolledMediaJob({...job, lease_owner: leaseOwner}, 'comfy_prompt_1', [{filename: 'campus.png', subfolder: '', type: 'output', format: 'png'}]);
@@ -269,7 +275,7 @@ test('chat media jobs persist a placeholder and replace that exact message on co
     assert.equal(video.message.generation.kind, 'video');
     const videoPayload = JSON.parse(database.prepare('SELECT payload_json FROM companion_jobs WHERE id = ?').get(video.jobId).payload_json);
     assert.equal(videoPayload.mediaIntent.mediaKind, 'video');
-    assert.match(videoPayload.prompt, /【光影、色调与情绪】/);
+    assert.match(videoPayload.prompt, /使用.*色调保持/);
     assert.throws(() => createChatMediaRequest(persona.id, {kind: 'image,video'}), /媒体类型/);
 });
 
@@ -282,7 +288,7 @@ test('explicit chat visual direction overrides generic current-state defaults in
     assert.equal(payload.mediaIntent.location, '图书馆');
     assert.deepEqual(payload.mediaIntent.people, []);
     assert.match(payload.mediaIntent.subject, /海边日落/);
-    assert.match(payload.prompt, /【地点与背景】地点：图书馆/);
+    assert.match(payload.prompt, /场景位于图书馆/);
     assert.doesNotMatch(payload.prompt, /user visual direction/);
 
     const selfie = mediaIntentFor(requirePersona(persona.id), {kind: 'image', request: '请生成一张我在河边自拍的照片，表情开心'});
@@ -310,11 +316,32 @@ test('selfie directions lock people, front-camera composition, pose, expression,
     assert.equal(intent.locked.capture.angle, '从上往下约45°斜拍');
     assert.match(intent.expression, /自然放松地微笑/);
     assert.match(intent.lighting, /左侧/);
-    assert.match(prompt, /【主体身份与外观】入镜主体：林晚、小周/);
-    assert.match(prompt, /设备是否入镜=设备不入镜/);
-    assert.match(prompt, /【负面约束】.*不要生成外部旁观者视角/);
+    assert.match(prompt, /画面中只出现林晚、小周，共2人/);
+    assert.match(prompt, /手机前置摄像头是拍摄方式，但设备本体物理上位于镜头正后方，完全处于画框之外/);
+    assert.match(prompt, /画面必须避免.*不要生成外部旁观者视角/);
+    assert.match(prompt, /不得出现手机、相机或任何手持设备/);
+    assert.match(prompt, /不得出现屏幕、镜面或反射中的设备/);
+    assert.match(prompt, /不得出现设备投下的阴影/);
+    assert.match(prompt, /不得让设备或持有设备的手遮挡画面/);
+    assert.doesNotMatch(prompt, /=/);
     assert.deepEqual(mediaRequestFromText('再补两张自拍合照发动态'), {kind: 'image', prompt: '再补两张自拍合照发动态', count: 2});
     assert.equal(extractMediaIntent('我待会拍一张，拍完发你。').media, null);
+});
+
+test('an explicitly visible capture device remains allowed and does not receive hidden-device prohibitions', () => {
+    const persona = createPersona({name: '可见设备', role: '学生', foundation: '可见设备喜欢记录日常。'});
+    const intent = mediaIntentFor(requirePersona(persona.id), {
+        kind: 'image',
+        request: '镜面自拍合照，手机入镜可见，和小周自然微笑'
+    });
+    const prompt = compileMediaPrompt(intent);
+    assert.equal(intent.locked.capture.cameraVisibility, 'visible');
+    assert.match(prompt, /用户明确允许该设备作为画面的一部分可见/);
+    assert.doesNotMatch(prompt, /设备本体物理上位于镜头正后方/);
+    assert.doesNotMatch(prompt, /不得出现手机、相机或任何手持设备/);
+    assert.doesNotMatch(prompt, /不得出现屏幕、镜面或反射中的设备/);
+    assert.doesNotMatch(prompt, /不得出现设备投下的阴影/);
+    assert.doesNotMatch(prompt, /不得让设备或持有设备的手遮挡画面/);
 });
 
 test('media context preserves the previous outfit while allowing explicit user changes', () => {
