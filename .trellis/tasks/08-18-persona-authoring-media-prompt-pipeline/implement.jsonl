@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"SQLite migration, persona isolation, durable job, cursor, and immutable-record requirements."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Provider/workflow, lease, validation, and cross-client contract requirements."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Requires one owner for shared prompt/media composition fields and provider behavior."}

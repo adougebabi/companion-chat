@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/error-handling.md","reason":"Provider/refinement failure and retry contracts for durable media work."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Consumer UI must not expose raw prompts or break media placeholders."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Validates structured media intent through SQLite, jobs, API, and UI."}
