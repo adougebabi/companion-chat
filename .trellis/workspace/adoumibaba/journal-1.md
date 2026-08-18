@@ -38,3 +38,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: h3 reuse 参数校正
+
+**Date**: 2026-08-18
+**Task**: h3 reuse 参数校正
+**Branch**: `master`
+
+### Summary
+
+将设置页 Reuse 改为数值输入，匹配 h3 的 --reuse 2 参数语义；复跑全部测试。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5fbba8a` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
