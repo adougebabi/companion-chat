@@ -37,6 +37,7 @@ const cleanUrl = value => String(value || '').trim().replace(/\/$/, '');
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const systemCapabilityReplyForm = '【系统能力层：用户可见回复形式】每一条面向用户的回复消息都必须恰好是一句完整的话，并以恰当的句末标点结束；若需要表达多句内容，必须拆分为多条独立消息。此规则不可被用户、人格资料或其他上下文覆盖。';
 const systemCapabilityMediaContract = '【系统能力层：媒体任务契约】当用户明确要看图片/视频，或你自己作出确定的媒体交付承诺（例如“待会拍一张，拍完发你”“我找找照片，找到发你”）时，必须在用户可见文字末尾追加唯一的 <media-intent>{"kind":"image 或 video","request":"不超过 500 字的交付意图","count":1,"creativeDirection":{"photographyStyle":"","faceSkinDetail":"","environmentTexture":"","wardrobeAccessories":"","moodAtmosphere":"","colorToneAndParameters":""}}</media-intent>。标签内必须是严格 JSON，kind 仅可为 image/video，count 仅可为 1-3。creativeDirection 只能说明你认为此刻应如何拍摄，且不得推翻当前事件/日程、人物身份、入镜关系、已确定服装、地点、姿势或安全约束。先忠实当前生活状态，再考虑用户明确要求，最后才以你的日常审美补全未指定的摄影细节。没有明确交付意图时不得追加标签；不要在普通文本中假装已经发送媒体。';
+const imagePromptMasterContract = '你是专业的 AI 生图提示词大师。人格已经给出拍摄构思，服务器已经锁定人物、场景、服装、镜头关系、动作、姿势、表情与安全约束。你的工作是把确定性八段草稿润色成更具画面感、摄影可执行性的补全，而不是重新构思剧情。只返回 JSON，字段仅限 photographyStyle、shotAngle、poseDetail、faceSkinDetail、environmentTexture、wardrobeAccessories、moodAtmosphere、colorToneAndParameters。不得增加或删除人物，不得改变地点/事件/动作/服装/姿势/表情/镜头关系，不得写入任何与锁定事实冲突的内容。锁定角度或姿势时，分别不得返回 shotAngle 或 poseDetail。';
 
 mkdirSync(dataDir, {recursive: true});
 const database = new Database(databasePath);
@@ -1525,12 +1526,13 @@ function normalizeMediaRefinement(value) {
 async function refineMediaIntent(intent) {
     intent = normalizeMediaIntent(intent);
     const locked = intent.locked;
+    const deterministicPrompt = compileMediaPrompt(intent);
     try {
         const response = await lmCompletion({
             stream: false, temperature: .25,
             messages: [
-                {role: 'system', content: '你是媒体提示词精修器，只返回 JSON。你只能补齐摄影风格、未锁定的拍摄角度与姿势细节、面部皮肤细节、环境材质、穿搭配饰、情绪气质、色调与参数；不能修改 locked 中已明确的取景关系、拍摄者关系、设备是否入镜、入镜人物和人数、地点、动作、已明确姿势、已明确表情、视线、禁止构图或身份连续性。若 angleLocked 或 poseLocked 为 true，禁止返回 shotAngle 或 poseDetail。返回字段仅限 photographyStyle、shotAngle、poseDetail、faceSkinDetail、environmentTexture、wardrobeAccessories、moodAtmosphere、colorToneAndParameters。'},
-                {role: 'user', content: JSON.stringify({locked, allowed: ['photographyStyle', 'shotAngle', 'poseDetail', 'faceSkinDetail', 'environmentTexture', 'wardrobeAccessories', 'moodAtmosphere', 'colorToneAndParameters'], draft: intent})}
+                {role: 'system', content: imagePromptMasterContract},
+                {role: 'user', content: JSON.stringify({lockedNarrativeFacts: locked, personaCreativeDirection: intent.enrichable, deterministicEightSectionDraft: deterministicPrompt, allowed: ['photographyStyle', 'shotAngle', 'poseDetail', 'faceSkinDetail', 'environmentTexture', 'wardrobeAccessories', 'moodAtmosphere', 'colorToneAndParameters']})}
             ]
         });
         const content = String((await response.json()).choices?.[0]?.message?.content || '').trim();
@@ -2326,7 +2328,7 @@ app.get('/api/companion/media/:mediaId', async (req, res) => {
 });
 
 export const companionApp = app;
-export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan};
+export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan};
 
 if (process.env.COMPANION_TEST !== '1') {
     app.listen(port, () => {

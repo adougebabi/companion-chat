@@ -9,7 +9,7 @@ process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '0';
 const {companionApp, companionTestHooks} = await import(`../server.js?test=${Date.now()}`);
-const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled} = companionTestHooks;
+const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled} = companionTestHooks;
 
 const routePaths = app => (app.router?.stack || []).flatMap(layer => layer.route ? [layer.route.path] : []);
 
@@ -160,6 +160,8 @@ test('four layers keep an active schedule coherent for chat and media, and persi
 test('model-authorized media intent preserves a bounded creative direction', () => {
     const parsed = extractMediaIntent('我晚点把这组街拍发给你。<media-intent>{"kind":"image","request":"傍晚街拍","creativeDirection":{"photographyStyle":"35mm 胶片感","wardrobeAccessories":"银色耳环","location":"不可覆盖"}}</media-intent>');
     assert.deepEqual(parsed.media, {kind: 'image', prompt: '傍晚街拍', creativeDirection: {photographyStyle: '35mm 胶片感', wardrobeAccessories: '银色耳环'}});
+    assert.match(imagePromptMasterContract, /AI 生图提示词大师/);
+    assert.match(imagePromptMasterContract, /不得改变地点/);
 });
 
 test('social-event media intent preserves people, location, action, and contextual pose', () => {
