@@ -1,7 +1,8 @@
 import express from 'express';
-import {mkdirSync} from 'node:fs';
-import {dirname, join} from 'node:path';
+import {mkdirSync, statSync} from 'node:fs';
+import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {spawn} from 'node:child_process';
 import Database from 'better-sqlite3';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -240,7 +241,10 @@ function defaultSettings() {
         lmStudioApiKey: process.env.MTPLX_API_KEY || process.env.LM_STUDIO_API_KEY || '',
         model: process.env.MTPLX_MODEL || process.env.LM_STUDIO_MODEL || '',
         comfyUrl: process.env.COMFYUI_URL || 'http://127.0.0.1:8188',
-        imageWorkflow: '', videoWorkflow: '', activityReadAt: null
+        imageWorkflow: '', videoWorkflow: '', imageProvider: 'comfyui', videoProvider: 'comfyui',
+        h3Executable: process.env.H3_EXECUTABLE || 'h3.c', h3ModelDir: process.env.H3_MODEL_DIR || '',
+        h3OutputDir: process.env.H3_OUTPUT_DIR || join(dataDir, 'media'), h3AllowedRoot: process.env.H3_ALLOWED_ROOT || '',
+        h3TimeoutMs: Number(process.env.H3_TIMEOUT_MS || 15 * 60_000), h3Defaults: {}, activityReadAt: null
     };
 }
 
@@ -264,13 +268,44 @@ function settings() {
 
 function publicSettings() {
     const value = settings();
-    const {lmStudioApiKey, ...safe} = value;
-    return {...safe, hasLmStudioApiKey: Boolean(lmStudioApiKey)};
+    const {lmStudioApiKey, h3Executable, h3ModelDir, h3OutputDir, h3AllowedRoot, h3Defaults, h3TimeoutMs, ...safe} = value;
+    const {profile, ...safeH3Defaults} = h3Defaults && typeof h3Defaults === 'object' ? h3Defaults : {};
+    return {...safe, h3Defaults: safeH3Defaults, h3TimeoutMs, hasH3Configuration: Boolean(h3Executable && h3ModelDir && h3OutputDir), hasLmStudioApiKey: Boolean(lmStudioApiKey), mediaProviders: providerSummaries()};
+}
+
+const mediaProviders = new Map();
+function registerMediaProvider(provider) {
+    mediaProviders.set(provider.id, provider);
+    return provider;
+}
+function providerSummaries() {
+    return [...mediaProviders.values()].map(provider => ({id: provider.id, label: provider.label, capabilities: provider.capabilities}));
+}
+function providerFor(kind, configured) {
+    const id = configured || 'comfyui';
+    const provider = mediaProviders.get(id);
+    if (!provider) throw new Error(`未注册媒体 provider: ${id}`);
+    if (!provider.capabilities.includes(kind)) throw new Error(`媒体 provider ${id} 不支持${kind === 'video' ? '视频' : '图片'}`);
+    return provider;
+}
+function validateMediaSettings(patch, current = settings()) {
+    if (patch.h3Profile !== undefined && patch.h3ModelDir === undefined) patch = {...patch, h3ModelDir: patch.h3Profile};
+    if (Object.hasOwn(patch, 'h3Profile')) {
+        patch = {...patch};
+        delete patch.h3Profile;
+    }
+    for (const kind of ['image', 'video']) {
+        const key = `${kind}Provider`;
+        if (patch[key] !== undefined) providerFor(kind, patch[key]);
+    }
+    const merged = {...current, ...patch};
+    if (merged.h3TimeoutMs !== undefined && (!Number.isFinite(Number(merged.h3TimeoutMs)) || Number(merged.h3TimeoutMs) < 1000 || Number(merged.h3TimeoutMs) > 24 * 60 * 60_000)) throw new Error('h3TimeoutMs 无效');
+    return merged;
 }
 
 function saveSettings(patch) {
     const current = settings();
-    const next = {...current, ...patch};
+    const next = validateMediaSettings(patch, current);
     if (patch.lmStudioApiKey === undefined || patch.lmStudioApiKey === '' || patch.lmStudioApiKey === 'configured') next.lmStudioApiKey = current.lmStudioApiKey;
     database.prepare('UPDATE companion_settings SET payload_json = ?, updated_at = ? WHERE id = 1').run(JSON.stringify(next), now());
     return publicSettings();
@@ -772,7 +807,8 @@ function createEvent(persona, event, options = {}) {
             if (participants.length) addSupportingComment(activityId, persona.id, participants[0], type);
             if (event.visual) {
                 const mediaIntent = mediaIntentFor(persona, {kind: 'image', event: {...payload, type, participants}});
-                enqueueJob({jobType: 'activity_image', personaId: persona.id, activityId, priority: 3, payload: {prompt: compileMediaPrompt(mediaIntent), mediaIntent, kind: 'image', eventId, trigger: 'activity_event'}});
+                const provider = providerFor('image', settings().imageProvider).id;
+                enqueueJob({jobType: 'activity_image', personaId: persona.id, activityId, priority: 3, payload: {prompt: compileMediaPrompt(mediaIntent), mediaIntent, kind: 'image', provider, eventId, trigger: 'activity_event'}});
             }
         }
         if (options.proactive) {
@@ -1383,9 +1419,11 @@ function debugContextFor(personaId) {
             status: row.status,
             createdAt: row.created_at,
             trigger: payload.trigger || 'unknown',
+            provider: payload.provider || result.provider || 'comfyui',
+            externalId: debugSummary(result.externalId || payload.externalId || result.promptId || payload.promptId || ''),
             inputIntent: debugSummary(payload.mediaIntent || {request: payload.request || '', kind}),
             promptSummary: debugSummary(result.finalPrompt || payload.prompt || ''),
-            workflowSummary: debugSummary({kind, configured: Boolean(kind === 'video' ? config.videoWorkflow : config.imageWorkflow), promptId: result.promptId || payload.promptId || '', promptLength: result.promptLength || 0, refinementStatus: result.refinementStatus || 'not_run', refinementError: result.refinementError || '', workflowError: result.workflowError || ''}),
+            workflowSummary: debugSummary({kind, provider: payload.provider || result.provider || 'comfyui', configured: Boolean(kind === 'video' ? config.videoWorkflow : config.imageWorkflow), externalId: result.externalId || payload.externalId || result.promptId || payload.promptId || '', promptLength: result.promptLength || 0, refinementStatus: result.refinementStatus || 'not_run', refinementError: result.refinementError || '', workflowError: result.workflowError || ''}),
             error: debugSummary(row.error || '')
         };
     });
@@ -1756,6 +1794,113 @@ function validComfyPromptId(value) {
     return typeof value === 'string' && value.length <= 160 && /^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(value);
 }
 
+function safeH3Path(value, rootPath) {
+    const candidate = resolve(String(value || ''));
+    if (!candidate || !rootPath) return false;
+    const root = resolve(String(rootPath));
+    return candidate === root || candidate.startsWith(`${root}/`);
+}
+
+function h3OutputFile(payload, config) {
+    const output = String(payload.outputPath || '').trim();
+    const directory = String(config.h3OutputDir || '').trim();
+    const allowedRoot = String(config.h3AllowedRoot || directory).trim();
+    if (!directory || !safeH3Path(directory, allowedRoot)) throw new Error('h3 输出目录不在允许范围内');
+    const file = output || join(directory, `${id('h3')}.mp4`);
+    if (!safeH3Path(file, allowedRoot) || !/\.mp4$/i.test(file)) throw new Error('h3 输出文件路径无效');
+    return file;
+}
+
+function h3Args(payload, config, outputPath) {
+    const options = {...(config.h3Defaults && typeof config.h3Defaults === 'object' ? config.h3Defaults : {}), ...(payload.h3 || {})};
+    const args = [];
+    const push = (flag, value) => { if (value !== undefined && value !== null && value !== '') args.push(flag, String(value)); };
+    push('-d', config.h3ModelDir || options.profile);
+    push('-p', payload.prompt);
+    for (const [key, flag] of [['width', '--width'], ['height', '--height'], ['frames', '--frames'], ['steps', '--steps'], ['layers', '--layers']]) {
+        const value = Number(options[key]);
+        if (Number.isFinite(value) && value > 0 && value <= 100000) push(flag, Math.trunc(value));
+    }
+    if (options.reuse === true) args.push('--reuse');
+    else if (Number.isFinite(Number(options.reuse)) && Number(options.reuse) >= 0) push('--reuse', Math.trunc(Number(options.reuse)));
+    if (options.ssdStreaming === true || options['ssd-streaming'] === true) args.push('--ssd-streaming');
+    push('-o', outputPath);
+    return args;
+}
+
+function runH3(executable, args, timeoutMs) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(executable, args, {stdio: ['ignore', 'ignore', 'pipe'], shell: false});
+        let stderr = '';
+        const timer = setTimeout(() => { child.kill('SIGTERM'); reject(new Error('h3 进程超时')); }, timeoutMs);
+        child.stderr.on('data', chunk => { stderr = `${stderr}${chunk}`.slice(-1000); });
+        child.once('error', error => { clearTimeout(timer); reject(new Error(`h3 启动失败: ${error.message}`)); });
+        child.once('exit', code => {
+            clearTimeout(timer);
+            if (code !== 0) reject(new Error(`h3 进程退出码 ${code}`));
+            else resolve({stderr});
+        });
+    });
+}
+
+registerMediaProvider({
+    id: 'comfyui', label: 'ComfyUI', capabilities: ['image', 'video'],
+    async submit({kind, prompt, payload, settings: config}) {
+        const workflowSource = kind === 'video' ? config.videoWorkflow : config.imageWorkflow;
+        if (!workflowSource) throw new Error(`尚未配置${kind === 'video' ? '视频' : '图片'}工作流`);
+        const workflow = JSON.parse(workflowSource);
+        let found = false;
+        for (const node of Object.values(workflow)) {
+            if (!node?.inputs || typeof node.inputs !== 'object') continue;
+            for (const [key, value] of Object.entries(node.inputs)) if (typeof value === 'string' && value.includes('{{prompt}}')) { node.inputs[key] = value.replaceAll('{{prompt}}', prompt); found = true; }
+        }
+        if (!found) throw new Error('工作流未包含 {{prompt}} 占位符');
+        const response = await fetch(`${cleanUrl(config.comfyUrl)}/prompt`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: workflow})});
+        if (!response.ok) throw new Error(`ComfyUI HTTP ${response.status}`);
+        const body = await response.json();
+        if (!validComfyPromptId(body?.prompt_id)) throw new Error('ComfyUI 未返回有效 prompt ID');
+        return {externalId: body.prompt_id, pending: true};
+    },
+    async poll({kind, externalId, settings: config}) {
+        if (!validComfyPromptId(externalId)) return {status: 'failed', error: '缺少有效的 ComfyUI prompt ID'};
+        const response = await fetch(`${cleanUrl(config.comfyUrl)}/history/${encodeURIComponent(externalId)}`);
+        if (!response.ok) throw new Error(`ComfyUI HTTP ${response.status}`);
+        const history = await response.json();
+        const files = comfyOutputFiles(history, externalId);
+        return files.length ? {status: 'complete', files} : {status: 'pending'};
+    },
+    async readAsset({asset, res, settings: config}) {
+        const params = new URLSearchParams({filename: asset.filename, subfolder: asset.subfolder || '', type: asset.file_type || 'output'});
+        const response = await fetch(`${cleanUrl(config.comfyUrl)}/view?${params}`);
+        if (!response.ok) throw new Error(`ComfyUI HTTP ${response.status}`);
+        res.set('Content-Type', response.headers.get('content-type') || 'application/octet-stream');
+        res.send(Buffer.from(await response.arrayBuffer()));
+    }
+});
+
+registerMediaProvider({
+    id: 'h3', label: 'h3.c', capabilities: ['video'],
+    async submit({prompt, payload, settings: config}) {
+        const outputPath = h3OutputFile(payload, config);
+        mkdirSync(dirname(outputPath), {recursive: true});
+        const args = h3Args(payload, {...config, h3Defaults: config.h3Defaults}, outputPath);
+        await runH3(config.h3Executable, args, Number(config.h3TimeoutMs) || 15 * 60_000);
+        let stat;
+        try { stat = statSync(outputPath); } catch { throw new Error('h3 未生成输出文件'); }
+        if (!stat.isFile() || stat.size <= 0) throw new Error('h3 输出文件为空');
+        return {externalId: outputPath, pending: false, files: [{filename: outputPath, type: 'h3', format: 'video', path: outputPath}]};
+    },
+    async poll({externalId}) {
+        if (typeof externalId !== 'string' || !/\.mp4$/i.test(externalId)) return {status: 'failed', error: 'h3 外部任务标识无效'};
+        try { const stat = statSync(externalId); return stat.isFile() && stat.size > 0 ? {status: 'complete', files: [{filename: externalId, type: 'h3', format: 'video', path: externalId}]} : {status: 'pending'}; } catch { return {status: 'pending'}; }
+    },
+    async readAsset({asset, res}) {
+        const path = asset.locator?.path || asset.filename;
+        if (!path || !safeH3Path(path, settings().h3AllowedRoot || settings().h3OutputDir)) throw new Error('h3 资产路径无效');
+        res.sendFile(path);
+    }
+});
+
 function mediaTargetGeneration(job, patch = {}) {
     if (!job.message_id) return null;
     const row = database.prepare(`
@@ -1768,7 +1913,7 @@ function mediaTargetGeneration(job, patch = {}) {
     return {...current, kind: current.kind || mediaKindForJob(job.job_type), ...patch};
 }
 
-function updateMediaTarget(job, {status, promptId, attachments, error} = {}) {
+function updateMediaTarget(job, {status, promptId, provider, externalId, attachments, error} = {}) {
     if (job.activity_id) {
         database.prepare('UPDATE companion_activities SET media_status = ? WHERE id = ? AND persona_id = ?').run(status, job.activity_id, job.persona_id);
         return;
@@ -1776,6 +1921,8 @@ function updateMediaTarget(job, {status, promptId, attachments, error} = {}) {
     const generation = mediaTargetGeneration(job, {
         ...(status ? {status} : {}),
         ...(promptId ? {promptId} : {}),
+        ...(provider ? {provider} : {}),
+        ...(externalId ? {externalId} : {}),
         ...(error ? {error: String(error).slice(0, 240)} : {})
     });
     if (!generation) return;
@@ -1792,29 +1939,29 @@ function updateMediaTarget(job, {status, promptId, attachments, error} = {}) {
     }
 }
 
-function mediaAssets(files) {
+function mediaAssets(files, provider = 'comfyui') {
     const assets = [];
     for (const file of files) {
-        const existing = database.prepare('SELECT id, media_kind FROM companion_media_assets WHERE provider = ? AND filename = ? AND subfolder = ? AND file_type = ?').get('comfyui', file.filename, file.subfolder || '', file.type || 'output');
+        const existing = database.prepare('SELECT id, media_kind FROM companion_media_assets WHERE provider = ? AND filename = ? AND subfolder = ? AND file_type = ?').get(provider, file.filename, file.subfolder || '', file.type || 'output');
         const assetId = existing?.id || id('asset');
         const kind = file.format === 'video' || /video|webm|mp4/i.test(file.filename || '') ? 'video' : 'image';
-        if (!existing) database.prepare('INSERT INTO companion_media_assets (id, provider, media_kind, filename, subfolder, file_type, locator_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(assetId, 'comfyui', kind, file.filename, file.subfolder || '', file.type || 'output', JSON.stringify(file), now());
+        if (!existing) database.prepare('INSERT INTO companion_media_assets (id, provider, media_kind, filename, subfolder, file_type, locator_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(assetId, provider, kind, file.filename, file.subfolder || '', file.type || 'output', JSON.stringify(file), now());
         assets.push({id: assetId, kind: existing?.media_kind || kind, url: `/api/companion/media/${assetId}`});
     }
     return assets;
 }
 
-function completePolledMediaJob(job, promptId, files) {
-    if (!validComfyPromptId(promptId)) return settleJob(job, {error: '缺少有效的 ComfyUI prompt ID'});
+function completePolledMediaJob(job, promptId, files, provider = 'comfyui') {
+    if (provider === 'comfyui' && !validComfyPromptId(promptId)) return settleJob(job, {error: '缺少有效的 ComfyUI prompt ID'});
     let assets = [];
     let completed = false;
     database.transaction(() => {
         const active = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
         if (!active) return;
-        assets = mediaAssets(files);
+        assets = mediaAssets(files, provider);
         if (job.activity_id) for (const [position, asset] of assets.entries()) database.prepare('INSERT OR IGNORE INTO companion_activity_media (activity_id, media_id, position) VALUES (?, ?, ?)').run(job.activity_id, asset.id, position);
-        updateMediaTarget(job, {status: 'ready', promptId, attachments: assets});
-        database.prepare(`UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?`).run(JSON.stringify({promptId, files}), now(), now(), job.id, job.lease_owner, now());
+        updateMediaTarget(job, {status: 'ready', promptId, provider, externalId: promptId, attachments: assets});
+        database.prepare(`UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?`).run(JSON.stringify({provider, externalId: promptId, promptId, files}), now(), now(), job.id, job.lease_owner, now());
         completed = true;
     })();
     return {completed, assets};
@@ -1838,11 +1985,12 @@ function createChatMediaRequest(personaId, input) {
     const messageId = id('message');
     const jobId = id('job');
     const thread = conversation(persona.id);
-    const generation = {status: 'queued', kind, request, mediaIntent};
+    const provider = providerFor(kind, settings()[`${kind}Provider`]).id;
+    const generation = {status: 'queued', kind, provider, request, mediaIntent};
     const jobType = kind === 'video' ? 'chat_video' : 'chat_image';
     database.transaction(() => {
-        database.prepare('INSERT INTO companion_messages (id, conversation_id, role, text, attachments_json, generation_json, jobs_json, created_at, read_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(messageId, thread.id, 'assistant', '', '[]', JSON.stringify(generation), JSON.stringify([{id: jobId, kind}]), createdAt, createdAt);
-        database.prepare(`INSERT INTO companion_jobs (id, job_type, status, priority, run_after, max_attempts, persona_id, message_id, payload_json, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?)`).run(jobId, jobType, 4, createdAt, 3, persona.id, messageId, JSON.stringify({prompt: composedPrompt, kind, request, mediaIntent, trigger: input.trigger === 'model_capability_contract' ? 'model_capability_contract' : 'explicit_user_request'}), createdAt, createdAt);
+        database.prepare('INSERT INTO companion_messages (id, conversation_id, role, text, attachments_json, generation_json, jobs_json, created_at, read_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(messageId, thread.id, 'assistant', '', '[]', JSON.stringify(generation), JSON.stringify([{id: jobId, kind, provider}]), createdAt, createdAt);
+        database.prepare(`INSERT INTO companion_jobs (id, job_type, status, priority, run_after, max_attempts, persona_id, message_id, payload_json, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?)`).run(jobId, jobType, 4, createdAt, 3, persona.id, messageId, JSON.stringify({prompt: composedPrompt, kind, provider, request, mediaIntent, trigger: input.trigger === 'model_capability_contract' ? 'model_capability_contract' : 'explicit_user_request'}), createdAt, createdAt);
         database.prepare('UPDATE companion_conversations SET updated_at = ? WHERE id = ?').run(createdAt, thread.id);
     })();
     return {jobId, message: messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(messageId))};
@@ -1855,10 +2003,18 @@ function claimJob() {
     database.transaction(() => {
         const candidate = database.prepare(`SELECT * FROM companion_jobs WHERE (status = 'queued' AND run_after <= ?) OR (status = 'leased' AND lease_expires_at < ?) ORDER BY run_after, priority DESC, created_at LIMIT 1`).get(time, time);
         if (!candidate) return;
-        const updated = database.prepare(`UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = attempt_count + 1, updated_at = ? WHERE id = ? AND ((status = 'queued' AND run_after <= ?) OR (status = 'leased' AND lease_expires_at < ?))`).run(owner, new Date(Date.now() + 90_000).toISOString(), time, candidate.id, time, time);
+        const leaseMs = leaseDurationForJob(candidate);
+        const updated = database.prepare(`UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = attempt_count + 1, updated_at = ? WHERE id = ? AND ((status = 'queued' AND run_after <= ?) OR (status = 'leased' AND lease_expires_at < ?))`).run(owner, new Date(Date.now() + leaseMs).toISOString(), time, candidate.id, time, time);
         if (updated.changes) job = {...candidate, lease_owner: owner};
     })();
     return job;
+}
+
+function leaseDurationForJob(job) {
+    const payload = json(job?.payload_json, {});
+    if (payload.provider !== 'h3') return 90_000;
+    const timeoutMs = Number(settings().h3TimeoutMs) || 15 * 60_000;
+    return clamp(timeoutMs + 30_000, 90_000, 24 * 60 * 60_000);
 }
 
 function settleJob(job, {result, error}) {
@@ -1980,38 +2136,21 @@ async function submitMediaJob(job) {
     const config = settings();
     const payload = json(job.payload_json, {});
     const kind = mediaKindForJob(job.job_type);
-    const workflowSource = kind === 'video' ? config.videoWorkflow : config.imageWorkflow;
-    if (!workflowSource) {
-        const settled = settleJob(job, {error: `尚未配置${kind === 'video' ? '视频' : '图片'}工作流`});
-        if (settled.changed && settled.status === 'failed') updateMediaTarget(job, {status: 'failed', error: `尚未配置${kind === 'video' ? '视频' : '图片'}工作流`});
-        return;
-    }
     try {
         // A persisted job is still untrusted input at the provider boundary: old or
         // malformed payloads fail retryably instead of becoming a free-form prompt.
         const refinement = await refineMediaIntent(normalizeMediaIntent(payload.mediaIntent));
         const finalPrompt = compileMediaPrompt(refinement.intent);
-        const workflow = JSON.parse(workflowSource);
-        let found = false;
-        for (const node of Object.values(workflow)) {
-            if (!node?.inputs || typeof node.inputs !== 'object') continue;
-            for (const [key, value] of Object.entries(node.inputs)) {
-                if (typeof value === 'string' && value.includes('{{prompt}}')) {
-                    node.inputs[key] = value.replaceAll('{{prompt}}', finalPrompt);
-                    found = true;
-                }
-            }
+        const provider = providerFor(kind, payload.provider || config[`${kind}Provider`]);
+        const submitted = await provider.submit({kind, prompt: finalPrompt, payload, settings: config});
+        if (typeof submitted?.externalId !== 'string' || submitted.externalId.length > 2048) throw new Error(`${provider.label} 未返回有效外部任务标识`);
+        if (!submitted.pending && Array.isArray(submitted.files)) {
+            return completePolledMediaJob(job, submitted.externalId, submitted.files, provider.id);
         }
-        if (!found) throw new Error('工作流未包含 {{prompt}} 占位符');
-        const queued = await fetch(`${cleanUrl(config.comfyUrl)}/prompt`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: workflow})});
-        if (!queued.ok) throw new Error(`ComfyUI HTTP ${queued.status}`);
-        const responseBody = await queued.json();
-        const promptId = responseBody?.prompt_id;
-        if (!validComfyPromptId(promptId)) throw new Error('ComfyUI 未返回有效 prompt ID');
-        const settled = settleJob(job, {result: {promptId, pending: true, finalPrompt, promptLength: finalPrompt.length, refinementStatus: refinement.status, refinementError: refinement.error || ''}});
+        const settled = settleJob(job, {result: {provider: provider.id, externalId: submitted.externalId, promptId: submitted.externalId, pending: true, finalPrompt, promptLength: finalPrompt.length, refinementStatus: refinement.status, refinementError: refinement.error || ''}});
         if (!settled.changed) return;
-        updateMediaTarget(job, {status: 'processing', promptId});
-        enqueueJob({jobType: job.activity_id ? 'activity_media_poll' : 'chat_media_poll', personaId: job.persona_id, activityId: job.activity_id, messageId: job.message_id, priority: 4, maxAttempts: 60, payload: {promptId, kind}});
+        updateMediaTarget(job, {status: 'processing', provider: provider.id, externalId: submitted.externalId, promptId: submitted.externalId});
+        enqueueJob({jobType: job.activity_id ? 'activity_media_poll' : 'chat_media_poll', personaId: job.persona_id, activityId: job.activity_id, messageId: job.message_id, priority: 4, maxAttempts: 60, payload: {provider: provider.id, externalId: submitted.externalId, promptId: submitted.externalId, kind}});
     } catch (error) {
         const settled = settleJob(job, {error: error.message});
         if (settled.changed && settled.status === 'failed') updateMediaTarget(job, {status: 'failed', error: error.message});
@@ -2068,14 +2207,15 @@ function comfyOutputFiles(history, promptId) {
 
 async function pollMedia(job) {
     const config = settings();
-    const promptId = json(job.payload_json, {}).promptId;
-    if (!validComfyPromptId(promptId)) return settleJob(job, {error: '缺少有效的 ComfyUI prompt ID'});
+    const payload = json(job.payload_json, {});
+    const externalId = payload.externalId || payload.promptId;
     try {
-        const response = await fetch(`${cleanUrl(config.comfyUrl)}/history/${encodeURIComponent(promptId)}`);
-        if (!response.ok) throw new Error(`ComfyUI HTTP ${response.status}`);
-        const files = comfyOutputFiles(await response.json(), promptId);
-        if (!files.length) throw new Error('ComfyUI 尚未返回媒体结果');
-        completePolledMediaJob(job, promptId, files);
+        const provider = providerFor(payload.kind || mediaKindForJob(job.job_type), payload.provider || 'comfyui');
+        const result = await provider.poll({kind: payload.kind, externalId, settings: config});
+        if (result.status === 'complete') return completePolledMediaJob(job, externalId, result.files || [], provider.id);
+        if (result.status === 'failed') throw new Error(result.error || `${provider.label} 媒体生成失败`);
+        const settled = settleJob(job, {error: `${provider.label} 尚未返回媒体结果`});
+        if (settled.changed && settled.status === 'failed') updateMediaTarget(job, {status: 'failed', provider: provider.id, error: settled.error});
     } catch (error) {
         const settled = settleJob(job, {error: error.message});
         if (settled.changed && settled.status === 'failed') updateMediaTarget(job, {status: 'failed', error: error.message});
@@ -2315,20 +2455,16 @@ app.get('/api/companion/media/:mediaId', async (req, res) => {
     const asset = database.prepare('SELECT * FROM companion_media_assets WHERE id = ?').get(req.params.mediaId);
     if (!asset) return res.status(404).json({error: '媒体不存在'});
     try {
-        const file = json(asset.locator_json, {});
-        const params = new URLSearchParams({filename: asset.filename, subfolder: asset.subfolder || '', type: asset.file_type || 'output'});
-        const response = await fetch(`${cleanUrl(settings().comfyUrl)}/view?${params}`);
-        if (!response.ok) return res.status(502).json({error: `ComfyUI HTTP ${response.status}`});
-        res.set('Content-Type', response.headers.get('content-type') || 'application/octet-stream');
-        const bytes = Buffer.from(await response.arrayBuffer());
-        res.send(bytes);
+        const provider = mediaProviders.get(asset.provider);
+        if (!provider?.readAsset) return res.status(502).json({error: '媒体 provider 不可用'});
+        await provider.readAsset({asset: {...asset, locator: json(asset.locator_json, {})}, res, settings: settings()});
     } catch (error) {
         res.status(502).json({error: error.message});
     }
 });
 
 export const companionApp = app;
-export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan};
+export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan, mediaProviders, providerFor, providerSummaries, validateMediaSettings, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
 
 if (process.env.COMPANION_TEST !== '1') {
     app.listen(port, () => {

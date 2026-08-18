@@ -9,7 +9,7 @@ process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '0';
 const {companionApp, companionTestHooks} = await import(`../server.js?test=${Date.now()}`);
-const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled} = companionTestHooks;
+const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, providerFor, providerSummaries, h3Args, h3OutputFile, leaseDurationForJob, saveSettings, publicSettings} = companionTestHooks;
 
 const routePaths = app => (app.router?.stack || []).flatMap(layer => layer.route ? [layer.route.path] : []);
 
@@ -127,6 +127,19 @@ test('media requests and refinements are server-validated while locked narrative
     assert.equal(lockedPatch.enrichable.shotAngle, undefined);
     assert.equal(lockedPatch.enrichable.poseDetail, undefined);
     assert.throws(() => createChatMediaRequest(persona.id, {kind: 'audio', prompt: '无效'}), /媒体请求/);
+});
+
+test('media providers validate capabilities, persist selection, and keep h3 paths private', () => {
+    assert.deepEqual(providerSummaries().map(provider => provider.id), ['comfyui', 'h3']);
+    assert.throws(() => providerFor('image', 'h3'), /不支持图片/);
+    saveSettings({videoProvider: 'h3', h3Executable: '/private/bin/h3.c', h3ModelDir: '/private/models', h3OutputDir: '/private/output', h3AllowedRoot: '/private', h3Defaults: {width: 720, reuse: 2}});
+    assert.equal(publicSettings().videoProvider, 'h3');
+    assert.equal(Object.hasOwn(publicSettings(), 'h3Executable'), false);
+    assert.equal(Object.hasOwn(publicSettings().h3Defaults, 'profile'), false);
+    assert.deepEqual(h3Args({prompt: '已编译提示词'}, {h3ModelDir: '/private/models', h3Defaults: {width: 720, reuse: 2}}, '/private/output/video.mp4'), ['-d', '/private/models', '-p', '已编译提示词', '--width', '720', '--reuse', '2', '-o', '/private/output/video.mp4']);
+    assert.equal(h3OutputFile({}, {h3OutputDir: '/private/output', h3AllowedRoot: '/private'}).startsWith('/private/output/'), true);
+    assert.throws(() => h3OutputFile({outputPath: '/outside/video.mp4'}, {h3OutputDir: '/private/output', h3AllowedRoot: '/private'}), /路径无效/);
+    assert.equal(leaseDurationForJob({payload_json: JSON.stringify({provider: 'h3'})}) > 90_000, true);
 });
 
 test('an active event overrides routine state consistently for UI and chat context', () => {

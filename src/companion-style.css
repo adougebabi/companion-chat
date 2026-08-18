@@ -38,6 +38,21 @@ dialog { width: min(620px, calc(100vw - 28px)); max-height: min(780px, calc(100d
 @media (max-width: 780px) { .wizard-footer { flex-direction: column-reverse; }.wizard-footer button { width: 100%; }.wizard-footer .quiet { margin-right: 0; }.mobile-nav { grid-template-columns: 1fr 1fr 1fr 58px 58px; } }
 @media (pointer: coarse) { .brand, .icon-button, .close-dialog, .text-icon, .refresh-button, .more-button, .schedule-cancel, .schedule-reschedule, .composer-media, .send-button, .activity-card footer button, .comment-form button { min-width: 44px; min-height: 44px; }.brand { width: 44px; height: 44px; }.icon-button { width: 44px; height: 44px; }.close-dialog { width: 44px; height: 44px; }.schedule-list li { min-height: 44px; }.comment-form { align-items: center; }.activity-card footer { gap: 2px; }.activity-card footer button { padding: 6px; }.composer-media { width: 44px; height: 44px; }.send-button { width: 44px; height: 44px; } }
 
+.settings-section { padding: 2px 0 18px; border-bottom: 1px solid #edf1f4; }
+.settings-section + .settings-section { padding-top: 18px; }
+.settings-section:last-child { border-bottom: 0; }
+.settings-section h3 { margin: 0; color: #314b60; font-size: 14px; }
+.settings-help { margin: 7px 0 0; color: #718596; font-size: 12px; line-height: 1.55; }
+.settings-sheet select { width: 100%; border: 1px solid #d5e1e9; border-radius: 6px; padding: 9px 10px; background: #fbfdff; color: #283b4c; font: inherit; }
+.provider-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 7px; margin-top: 13px; }
+.provider-chip { display: grid; gap: 2px; min-width: 0; padding: 8px 9px; border: 1px solid #dce8ef; border-radius: 6px; background: #f7fbfd; }
+.provider-chip b { overflow: hidden; color: #386987; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.provider-chip small { overflow: hidden; color: #7890a0; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 11px; }
+.settings-grid .settings-check { display: flex; align-items: center; gap: 8px; min-height: 40px; font-weight: 600; }
+.settings-grid .settings-check input { width: 16px; height: 16px; margin: 0; padding: 0; }
+@media (max-width: 520px) { .settings-grid { grid-template-columns: 1fr; }.provider-list { grid-template-columns: 1fr; } }
+
 .comment-form { align-items: end; }
 .comment-form label { display: grid; min-width: 0; flex: 1; gap: 3px; color: #718293; font-size: 11px; }
 .comment-form label input { width: 100%; }

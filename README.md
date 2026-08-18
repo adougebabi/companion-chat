@@ -41,6 +41,29 @@ GitHub 推送到 `main`、`master` 或推送 `v*` 标签时，[`docker-publish.y
 
 活动文字先持久化，再以耐久作业排队生成可选图片。第一版每条动态最多一张图片，界面会在原动态中保留骨架占位；图片失败不会删除文字事件。服务端一次只租约处理一个生成任务，以便为 MTPLX 与 ComfyUI 保留资源。
 
+### 媒体 Provider
+
+服务端内置 `comfyui`（图片、视频）与 `h3`（视频）provider。默认仍为 `comfyui`，现有 `COMFYUI_URL`、图片工作流和视频工作流配置不需要迁移。设置 API 使用 `imageProvider` 和 `videoProvider` 选择 provider，并只接受已注册且具备对应能力的 ID；任务创建时会保存选中的 provider，因此之后修改默认值不会影响已排队的任务。
+
+`h3` 只由服务端执行。配置 `H3_EXECUTABLE`、`H3_MODEL_DIR`、`H3_OUTPUT_DIR`，可选 `H3_ALLOWED_ROOT` 和 `H3_TIMEOUT_MS`；设置保存还可传入结构化 `h3Defaults`，例如：
+
+```json
+{
+  "videoProvider": "h3",
+  "h3Defaults": {
+    "width": 1280,
+    "height": 720,
+    "frames": 81,
+    "steps": 30,
+    "layers": 16,
+    "reuse": 2,
+    "ssdStreaming": true
+  }
+}
+```
+
+服务器将这些值映射为固定白名单参数（`-d`、`-p`、`--width`、`--height`、`--frames`、`--steps`、`--layers`、`--reuse`、`--ssd-streaming`、`-o`），使用参数数组启动进程，不会执行配置提供的 shell 字符串。可执行路径、模型路径和输出根不会出现在 bootstrap 响应；已完成 MP4 仍通过现有 `/api/companion/media/:mediaId` 代理读取。
+
 ## 资源策略
 
 - 服务使用单文件 SQLite 与版本化 `companion_*` 表，没有额外数据库守护进程、向量库或后台 embedding 任务。

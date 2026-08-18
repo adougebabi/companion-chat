@@ -74,6 +74,64 @@ const intent = {
 };
 ```
 
+## Scenario: Provider-selected durable media execution
+
+### 1. Scope / Trigger
+
+- Trigger: an image/video job must be sent to a built-in HTTP provider or a server-owned local command provider.
+- This crosses persisted settings, `companion_jobs`, the worker lease, media assets, the proxy route, and the Companion settings UI.
+
+### 2. Signatures
+
+- `providerFor(kind, providerId) -> MediaProvider`
+- `MediaProvider.submit({kind, prompt, payload, settings}) -> {externalId, pending, files?}`
+- `MediaProvider.poll({kind, externalId, settings}) -> {status, files?, error?}`
+- Settings: `imageProvider`, `videoProvider`, `h3Defaults`, and the `H3_*` environment defaults.
+
+### 3. Contracts
+
+- A job captures its provider ID at creation. Existing payloads without one resolve to `comfyui` for compatibility; changing the default later never retargets queued jobs.
+- The server, not the browser, owns submit, poll, and asset reads. `companion_media_assets.provider` selects the adapter for `/api/companion/media/:mediaId`.
+- A local `h3` adapter must call `spawn(executable, args, {shell:false})` with a fixed argument allowlist. It validates the model/output roots, `.mp4` extension, nonempty output, exit code, and timeout before completing the job.
+- An h3 job lease is at least the configured process timeout plus a small settle margin. A fixed short lease is invalid for an in-process video command because it can expire before the guarded completion write.
+- Public bootstrap exposes provider capabilities and non-sensitive h3 numeric defaults only. It never returns executable, model, output, or allowed-root paths.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Unknown provider or unsupported media kind | Reject settings/request before a job is created. |
+| Legacy job lacks provider | Use `comfyui`. |
+| h3 timeout, launch error, nonzero exit, absent/empty MP4 | Retry through the existing job policy, then mark the original placeholder failed. |
+| Asset provider is unavailable or locator leaves its allowed root | Return a safe provider/asset error; never read an arbitrary local path. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a queued video records `provider: 'h3'`, runs the configured executable with an argument array, and returns the MP4 through the existing media URL.
+- Base: ComfyUI continues to inject `{{prompt}}`, poll history, and proxy `/view` for old and new Comfy jobs.
+- Bad: start a long h3 process under the generic 90-second lease, build a shell command from user text, or have the browser fetch a provider directly.
+
+### 6. Tests Required
+
+- Assert capability validation rejects `h3` for image and persisted provider selection reaches a queued job.
+- Assert h3 arguments include only configured whitelist values, including numeric `--reuse` and `--ssd-streaming`.
+- Assert paths outside the allowed root are rejected, public settings omit local paths, and h3 leases outlast the configured timeout.
+- Preserve ComfyUI create/settle/asset compatibility tests.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+spawn(`/path/to/h3 -p ${prompt} -o ${output}`, {shell: true});
+```
+
+#### Correct
+
+```js
+spawn(executable, ['-p', prompt, '-o', output], {shell: false});
+```
+
 ## Scenario: AI daily plan and live state projection
 
 ### 1. Scope / Trigger

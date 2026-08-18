@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"验证新增 adapter、settings 和 worker 是否符合仓库质量规则。"}
+{"file":".trellis/spec/backend/debug-observability.md","reason":"验证 provider/debug DTO 的 persona scope、脱敏和上限。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"验证 migration、asset locator 和 job state 持久化。"}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"验证没有重复 provider/config/state owner。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"验证 API、SQLite、worker、前端设置和媒体 URL 全链路。"}

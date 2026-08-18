@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/index.md","reason":"单文件后端、路由、worker 和 provider 调用边界。"}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"lease、事务外 provider 调用、测试和兼容约束。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"provider、worker、媒体失败与重试错误语义。"}
+{"file":".trellis/spec/backend/media-prompt-contract.md","reason":"插件只能消费最终 typed media intent，不能改变提示词权威层。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"SQLite/API/provider/browser 跨层契约核对。"}
+{"file":".trellis/spec/frontend/index.md","reason":"vanilla frontend 设置、媒体渲染和 API consumer 约定。"}

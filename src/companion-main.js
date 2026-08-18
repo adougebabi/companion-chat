@@ -708,14 +708,43 @@ async function openInspector(personaId) {
 function openSettings() {
     const dialog = $('#settings-dialog');
     const config = appState.settings;
-    dialog.innerHTML = `<form id="settings-form" class="settings-sheet"><header><div><small>LOCAL CONFIGURATION</small><h2>模型与生成设置</h2></div><button type="button" class="close-dialog" id="close-settings" aria-label="关闭">×</button></header><div><label>模型服务地址<input name="lmStudioUrl" value="${esc(config.lmStudioUrl || '')}"></label><label>API Key<input name="lmStudioApiKey" type="password" placeholder="${config.hasLmStudioApiKey ? '已配置，留空保持不变' : '可选'}"></label><label>模型 ID<input name="model" value="${esc(config.model || '')}"></label><label>ComfyUI 地址<input name="comfyUrl" value="${esc(config.comfyUrl || '')}"></label><label>图片工作流 JSON<textarea name="imageWorkflow" rows="5">${esc(config.imageWorkflow || '')}</textarea></label><label>视频工作流 JSON<textarea name="videoWorkflow" rows="5">${esc(config.videoWorkflow || '')}</textarea></label></div><footer><button type="button" class="quiet" id="cancel-settings">取消</button><button type="submit" class="primary">保存</button></footer></form>`;
+    const providers = Array.isArray(config.mediaProviders) && config.mediaProviders.length
+        ? config.mediaProviders
+        : [{id: 'comfyui', label: 'ComfyUI', capabilities: ['image', 'video']}];
+    const providerOptions = (kind, selected) => {
+        const options = providers.filter(provider => Array.isArray(provider.capabilities) && provider.capabilities.includes(kind));
+        if (!options.length) return '<option value="">暂无可用提供方</option>';
+        return options.map(provider => `<option value="${esc(provider.id)}" ${provider.id === selected ? 'selected' : ''}>${esc(provider.label || provider.id)}</option>`).join('');
+    };
+    const h3 = config.h3Config && typeof config.h3Config === 'object' ? config.h3Config : config.h3Defaults && typeof config.h3Defaults === 'object' ? config.h3Defaults : config.h3 && typeof config.h3 === 'object' ? config.h3 : {};
+    const h3Value = (key, fallback = '') => h3[key] ?? config[`h3${key[0].toUpperCase()}${key.slice(1)}`] ?? fallback;
+    const h3Enabled = providers.some(provider => provider.id === 'h3' && Array.isArray(provider.capabilities) && provider.capabilities.includes('video'));
+    dialog.innerHTML = `<form id="settings-form" class="settings-sheet"><header><div><small>LOCAL CONFIGURATION</small><h2>模型与生成设置</h2></div><button type="button" class="close-dialog" id="close-settings" aria-label="关闭">×</button></header><div>
+        <section class="settings-section"><h3>语言模型</h3><label>模型服务地址<input name="lmStudioUrl" value="${esc(config.lmStudioUrl || '')}"></label><label>API Key<input name="lmStudioApiKey" type="password" placeholder="${config.hasLmStudioApiKey ? '已配置，留空保持不变' : '可选'}"></label><label>模型 ID<input name="model" value="${esc(config.model || '')}"></label></section>
+        <section class="settings-section"><h3>媒体提供方</h3><p class="settings-help">媒体任务由服务端执行，浏览器不会直接连接提供方。</p><label>图片提供方<select name="imageProvider">${providerOptions('image', config.imageProvider || 'comfyui')}</select></label><label>视频提供方<select name="videoProvider">${providerOptions('video', config.videoProvider || 'comfyui')}</select></label><div class="provider-list">${providers.length ? providers.map(provider => `<span class="provider-chip"><b>${esc(provider.label || provider.id)}</b><small>${esc(provider.id)} · ${Array.isArray(provider.capabilities) ? provider.capabilities.map(esc).join(' / ') : '未声明能力'}</small></span>`).join('') : '<p class="muted">暂无已注册的媒体提供方</p>'}</div></section>
+        <section class="settings-section"><h3>ComfyUI（兼容模式）</h3><label>ComfyUI 地址<input name="comfyUrl" value="${esc(config.comfyUrl || '')}"></label><label>图片工作流 JSON<textarea name="imageWorkflow" rows="5">${esc(config.imageWorkflow || '')}</textarea></label><label>视频工作流 JSON<textarea name="videoWorkflow" rows="5">${esc(config.videoWorkflow || '')}</textarea></label></section>
+        <section class="settings-section h3-settings"><h3>h3.c 视频配置</h3><p class="settings-help">仅在视频提供方选择 h3 时生效。路径和数值由服务端校验，命令通过参数数组启动。</p>${config.hasH3Configuration ? '<p class="settings-help">已存在本地 h3 路径配置；留空不会覆盖。</p>' : ''}${h3Enabled ? '' : '<p class="settings-help">当前服务端未注册 h3 提供方。</p>'}<div class="settings-grid"><label>可执行文件<input name="h3Executable" value="${esc(h3Value('executable'))}" placeholder="h3"></label><label>模型/Profile 目录<input name="h3Profile" value="${esc(h3Value('profile'))}"></label><label>输出目录<input name="h3OutputDir" value="${esc(h3Value('outputDir'))}"></label><label>超时（毫秒）<input name="h3TimeoutMs" type="number" min="1000" max="3600000" step="1000" value="${esc(h3Value('timeoutMs', 600000))}"></label><label>宽度<input name="h3Width" type="number" min="1" max="8192" step="1" value="${esc(h3Value('width', 512))}"></label><label>高度<input name="h3Height" type="number" min="1" max="8192" step="1" value="${esc(h3Value('height', 512))}"></label><label>帧数<input name="h3Frames" type="number" min="1" max="100000" step="1" value="${esc(h3Value('frames', 24))}"></label><label>步数<input name="h3Steps" type="number" min="1" max="10000" step="1" value="${esc(h3Value('steps', 20))}"></label><label>Layers<input name="h3Layers" type="number" min="1" max="1000" step="1" value="${esc(h3Value('layers', 1))}"></label><label class="settings-check"><input name="h3Reuse" type="checkbox" ${h3Value('reuse') ? 'checked' : ''}> Reuse</label><label class="settings-check"><input name="h3SsdStreaming" type="checkbox" ${h3Value('ssdStreaming') ? 'checked' : ''}> SSD streaming</label></div></section>
+    </div><footer><button type="button" class="quiet" id="cancel-settings">取消</button><button type="submit" class="primary">保存</button></footer></form>`;
     showDialog(dialog);
     $('#close-settings').onclick = () => closeDialog(dialog);
     $('#cancel-settings').onclick = () => closeDialog(dialog);
     $('#settings-form').onsubmit = async event => {
         event.preventDefault();
         try {
-            appState.settings = await api('/api/companion/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget)))});
+            const form = event.currentTarget;
+            const values = Object.fromEntries(new FormData(form));
+            const numberOrUndefined = value => value === '' || value === undefined ? undefined : Number(value);
+            const payload = {
+                ...values,
+                h3Width: numberOrUndefined(values.h3Width), h3Height: numberOrUndefined(values.h3Height), h3Frames: numberOrUndefined(values.h3Frames), h3Steps: numberOrUndefined(values.h3Steps), h3Layers: numberOrUndefined(values.h3Layers), h3TimeoutMs: numberOrUndefined(values.h3TimeoutMs),
+                h3Reuse: form.elements.h3Reuse.checked, h3SsdStreaming: form.elements.h3SsdStreaming.checked
+            };
+            payload.h3Defaults = {
+                profile: payload.h3Profile, width: payload.h3Width, height: payload.h3Height, frames: payload.h3Frames, steps: payload.h3Steps, layers: payload.h3Layers,
+                reuse: payload.h3Reuse, ssdStreaming: payload.h3SsdStreaming
+            };
+            for (const key of ['h3Executable', 'h3Profile', 'h3OutputDir']) if (!payload[key]) delete payload[key];
+            appState.settings = await api('/api/companion/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
             dialog.close('submitted');
         } catch (error) { window.alert(error.message); }
     };
