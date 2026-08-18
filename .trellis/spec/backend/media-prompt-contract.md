@@ -4,22 +4,22 @@
 
 ### 1. Scope / Trigger
 
-- Trigger: a user asks for an image/video, or an assistant explicitly commits to supplying one, while also giving scene or camera instructions.
+- Trigger: the final application-owned system-capability layer asks a persona to fulfil an image/video request or a definite media-delivery commitment.
 - This crosses chat SSE, durable SQLite jobs, the prompt refiner, ComfyUI, and the conversation renderer.
 
 ### 2. Signatures
 
-- `mediaRequestFromText(text, {assistant?}) -> {kind: 'image' | 'video', prompt, count?} | null`
-- `extractMediaIntent(modelText) -> {text, media}`
-- `mediaIntentFor(persona, {kind, request, event}) -> MediaIntentV3`
+- `extractMediaIntent(modelText) -> {text, media: {kind, prompt, count?, creativeDirection?} | null}`
+- `mediaIntentFor(persona, {kind, request, event, creativeDirection?}) -> MediaIntentV3`
 - `createChatMediaRequest(personaId, {kind, prompt}) -> {jobId, message}`
 - `POST /api/companion/chat` emits ordered `done.messages`, including any queued media placeholder messages.
 
 ### 3. Contracts
 
-- A direct request or a strong first-person commitment (for example, “我待会拍一张，拍完发你”) queues a `chat_image` or `chat_video` job without waiting for a second user message or a model marker.
-- Negative wording such as “不要生成图片” produces no job.
-- User visual direction has higher authority than active-state/default composition. Parse it into the V3 `locked` capture contract instead of emitting the raw request as an unrestricted prompt prefix.
+- Runtime media authorization comes only from a valid `<media-intent>` emitted under the final application-owned system-capability layer. `mediaRequestFromText()` is compatibility-only and must not be called by live chat dispatch.
+- The same system contract requires a marker both for explicit user requests and definite first-person commitments (for example, “我待会拍一张，拍完发你”). Free prose alone never creates a job.
+- `creativeDirection` accepts only photography style, face/skin, environment texture, accessories, mood, and color/parameter details. It cannot replace a live event's location, action, outfit, people, or safety constraints.
+- A user visual direction may fill only facts compatible with active state; parse it into the V3 `locked` capture contract instead of emitting the raw request as an unrestricted prompt prefix.
 - Authority for scene facts is ordered: active event/context (current location, outfit, action, posture, state) → compatible user request → persona/AI completion. A user clothing request is accepted only when the active context permits a change (for example, a clothing-store or try-on event); otherwise the current event outfit remains authoritative.
 - `locked.capture` owns `view`, `operator`, `device`, `cameraVisibility`, `orientation`, `framing`, and `subjectGaze`; `locked.subjects` owns visible names/count and exclusions; `locked.composition` owns action, required pose/expression, and prohibited compositions. These values never change during refinement.
 - The compiler emits sections in this exact order: photography/gear → subject base → face/skin → environment/light → wardrobe/accessories → mood/temperament → color/parameters → negative constraints.
@@ -32,22 +32,22 @@
 
 | Condition | Result |
 | --- | --- |
-| Explicit image/video request | Queue durable chat media job before model completion. |
-| Marker and direct request both exist | Queue only the direct-request jobs; do not duplicate them from the marker. |
-| “不要/不用/别生成图片” | Return `null` intent and create no job. |
+| Valid model marker | Queue one to three durable chat jobs after the model completion. |
+| Missing/invalid marker | Queue no job, including for free-text promises. |
+| Marker with unsupported creative fields | Ignore unsupported fields; preserve locked identity/state facts. |
 | Unknown/natural-language detail cannot be structured | Preserve it in `source.userDirection` for inspection; generic defaults fill only missing fields and raw wording is not made a provider-priority clause. |
 | Refiner returns invalid JSON or unauthorized fields | Keep deterministic intent and record `deterministic_fallback`. |
 
 ### 5. Good / Base / Bad Cases
 
 - Good: “A 和 B 手持手机前置自拍、一起比心、左侧自然光” produces a normalized two-subject self-capture contract, not an external-observer portrait; the same rule applies to any names, identities, and scenes.
-- Base: “来张照片” queues one image with the active event scene and persona appearance defaults.
-- Bad: replying “待会拍完发你” without a job, or allowing a generic scene/default camera to overwrite an explicit user camera instruction.
+- Base: a request with no valid model marker queues no job rather than being guessed by server text matching.
+- Bad: creating a job from a regular expression over either user or assistant prose, or allowing creativeDirection to overwrite current state.
 
 ### 6. Tests Required
 
-- Assert direct image and video requests queue the right durable job kind, and negative requests queue none.
-- Assert an assistant commitment without a marker yields a media intent.
+- Assert a valid model marker queues the right durable job kind and a commitment without a marker queues none.
+- Assert unknown creativeDirection keys are discarded while allowed photography fields persist.
 - Assert a multi-subject self-capture includes both names and locks capture view/operator, device visibility, framing, pose, expression, and light.
 - Assert provider section order and absence of an unrestricted raw `userDirection` clause.
 - Assert photographer-POV requests exclude the photographer and incompatible extra photographers.
@@ -58,8 +58,9 @@
 #### Wrong
 
 ```js
-const intent = {...defaultIntent, action: request};
-// leaves camera relation, device visibility, and subject count semantically ambiguous
+const requested = mediaRequestFromText(userText);
+if (requested) createChatMediaRequest(personaId, requested);
+// Server wording heuristics have become media authorization.
 ```
 
 #### Correct
@@ -70,4 +71,55 @@ const intent = {
   locked: {capture, subjects, composition, environment, identity},
   enrichable: emptyEnrichableFields
 };
+```
+
+## Scenario: AI daily plan and live state projection
+
+### 1. Scope / Trigger
+
+- Each persona receives one `daily_plan` durable job per local date; the local model returns 2-6 ordinary, reversible daily items.
+
+### 2. Signatures
+
+- `ensureDailyPlan(personaId, date?) -> {id, personaId, planDate, status}`
+- `companion_daily_plans` has unique `(persona_id, plan_date)` and stores the validated JSON plan.
+
+### 3. Contracts
+
+- Planner JSON is only `items[{title, scene, situation, startsAt, endsAt}]`; accepted items become `companion_schedule_items.source = 'ai_daily_plan'`.
+- `resolvedStateFor()` is the common read-time projection for UI, chat, and media: active event → active schedule → routine. Do not join a schedule scene with a stale persisted action.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Invalid planner JSON/range | Keep the job retryable; write no schedules. |
+| Existing plan for person/date | Reuse it; never enqueue a duplicate job. |
+| Persona deletion | Delete daily plans in the same persona transaction. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: an active library plan supplies both library scene and library action to chat/media.
+- Base: an unavailable model leaves a retryable planner job, not a static-routine substitute.
+- Bad: `scheduledState().scene` plus `stateFor().situation` in one media request.
+
+### 6. Tests Required
+
+- Assert persona creation creates one daily-plan record/job.
+- Assert active plan drives both context and media intent scene/action.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+const scene = scheduledState(persona).scene;
+const action = stateFor(persona.id).situation;
+```
+
+#### Correct
+
+```js
+const state = resolvedStateFor(persona.id);
+const event = {scene: state.resolved_scene, situation: state.situation};
 ```

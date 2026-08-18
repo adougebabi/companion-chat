@@ -138,6 +138,30 @@ test('an active event overrides routine state consistently for UI and chat conte
     assert.equal(resolvedStateFor(persona.id).situation, '正在图书馆整理笔记');
 });
 
+test('four layers keep an active schedule coherent for chat and media, and persist an AI daily-plan job', () => {
+    const persona = createPersona({name: '计划', role: '学生', foundation: '计划会按自己的当天安排生活。'});
+    const today = new Date();
+    const startsAt = new Date(today.getTime() - 10 * 60_000).toISOString();
+    const endsAt = new Date(today.getTime() + 50 * 60_000).toISOString();
+    database.prepare('INSERT INTO companion_schedule_items (id, persona_id, kind, title, starts_at, ends_at, status, source, details_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run('schedule_live_plan', persona.id, 'daily_plan', '整理课程笔记', startsAt, endsAt, 'active', 'ai_daily_plan', JSON.stringify({scene: '图书馆自习区', situation: '正在图书馆整理课程笔记'}), startsAt, startsAt);
+    const context = contextFor(persona.id);
+    assert.match(context.layers.immutableIdentity, /不可变身份层/);
+    assert.match(context.layers.lifeState, /正在图书馆整理课程笔记/);
+    assert.match(context.layers.relationship, /人格私有关系层/);
+    assert.match(context.layers.systemCapability, /系统能力层/);
+    const media = createChatMediaRequest(persona.id, {kind: 'image', prompt: '拍一张现在的自然照片'});
+    const intent = JSON.parse(database.prepare('SELECT payload_json FROM companion_jobs WHERE id = ?').get(media.jobId).payload_json).mediaIntent;
+    assert.equal(intent.location, '图书馆自习区');
+    assert.equal(intent.action, '正在图书馆整理课程笔记');
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_daily_plans WHERE persona_id = ? AND status = 'queued'").get(persona.id).count, 1);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'daily_plan'").get(persona.id).count, 1);
+});
+
+test('model-authorized media intent preserves a bounded creative direction', () => {
+    const parsed = extractMediaIntent('我晚点把这组街拍发给你。<media-intent>{"kind":"image","request":"傍晚街拍","creativeDirection":{"photographyStyle":"35mm 胶片感","wardrobeAccessories":"银色耳环","location":"不可覆盖"}}</media-intent>');
+    assert.deepEqual(parsed.media, {kind: 'image', prompt: '傍晚街拍', creativeDirection: {photographyStyle: '35mm 胶片感', wardrobeAccessories: '银色耳环'}});
+});
+
 test('social-event media intent preserves people, location, action, and contextual pose', () => {
     const persona = createPersona({name: '画面', role: '学生', foundation: '画面喜欢与朋友分享校园生活。', supportingCast: [{name: '小柯', relationshipKind: '室友'}]});
     const friend = database.prepare('SELECT id FROM companion_supporting_characters WHERE persona_id = ?').get(persona.id);
