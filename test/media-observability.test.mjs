@@ -12,9 +12,22 @@ const {companionTestHooks, mediaObservabilityTestHooks} = await import(`../serve
 const {database, createPersona, createChatMediaRequest, completePolledMediaJob, debugContextFor, saveSettings, publicSettings} = companionTestHooks;
 const {runH3, parseH3ProgressOutput, recordMediaJobProgress, createMediaProgressReporter, settleJob} = mediaObservabilityTestHooks;
 
+const mediaCall = (kind, request) => ({
+    schemaVersion: 2, kind, request, count: 1,
+    personaMediaConcept: {
+        schemaVersion: 1, mediaKind: kind, scene: '测试场景', action: '测试动作', mood: '平静', narrative: '测试媒体概念',
+        humanSubjects: [{label: '人格本人', role: '主体', inFrame: true}],
+        nonHumanObjects: [{label: '环境', kind: 'environment', inFrame: true}],
+        capture: {mode: 'external_capture', operator: '画外朋友', deviceVisibility: 'out_of_frame', framingIntent: '自然中景'},
+        compositionIntent: '保持概念中的主体与环境关系。'
+    },
+    currentEvent: null,
+    temporaryAppearance: {hair: '自然短发'}
+});
+
 test('h3 progress snapshots preserve the final prompt, redact output, and reject stale leases', () => {
     const persona = createPersona({name: '进度检查', role: '视频创作者', foundation: '进度检查会耐心等待本地视频生成完成。'});
-    const request = createChatMediaRequest(persona.id, {kind: 'video', prompt: '在林间行走的红狐'});
+    const request = createChatMediaRequest(persona.id, mediaCall('video', '在林间行走的红狐'));
     const leaseOwner = 'lease_h3_progress';
     const leaseExpiresAt = new Date(Date.now() + 60_000).toISOString();
     database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = 1 WHERE id = ?").run(leaseOwner, leaseExpiresAt, request.jobId);
@@ -64,7 +77,7 @@ test('h3 stream capture reports stdout and stderr while throttled progress keeps
     assert.equal(observed.some(item => item.stream === 'stderr' && item.output.includes('50%')), true);
 
     const persona = createPersona({name: '节流检查', role: '视频创作者', foundation: '节流检查会记录本地生成过程。'});
-    const request = createChatMediaRequest(persona.id, {kind: 'video', prompt: '夜色中的海面'});
+    const request = createChatMediaRequest(persona.id, mediaCall('video', '夜色中的海面'));
     const leaseOwner = 'lease_progress_throttle';
     database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = 1 WHERE id = ?").run(leaseOwner, new Date(Date.now() + 60_000).toISOString(), request.jobId);
     const job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
@@ -81,7 +94,7 @@ test('h3 stream capture reports stdout and stderr while throttled progress keeps
 
 test('a failed h3 attempt keeps its terminal snapshot and a retry starts a fresh attempt', () => {
     const persona = createPersona({name: '重试检查', role: '视频创作者', foundation: '重试检查会在失败后重新尝试本地视频生成。'});
-    const request = createChatMediaRequest(persona.id, {kind: 'video', prompt: '雨后的城市街道'});
+    const request = createChatMediaRequest(persona.id, mediaCall('video', '雨后的城市街道'));
     const firstLease = 'lease_progress_retry_first';
     database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = 1 WHERE id = ?").run(firstLease, new Date(Date.now() + 60_000).toISOString(), request.jobId);
     const firstJob = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
@@ -109,7 +122,7 @@ test('debug context merges a poll child into its source media task and persists 
     assert.equal(publicSettings().simplifiedMediaMode, true);
 
     const persona = createPersona({name: '聚合检查', role: '视频创作者', foundation: '聚合检查会通过本地检查器观察媒体任务。'});
-    const request = createChatMediaRequest(persona.id, {kind: 'video', prompt: '城市夜景延时视频'});
+    const request = createChatMediaRequest(persona.id, mediaCall('video', '城市夜景延时视频'));
     const source = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
     const createdAt = new Date().toISOString();
     database.prepare("UPDATE companion_jobs SET status = 'complete', result_json = ?, updated_at = ?, completed_at = ? WHERE id = ?").run(JSON.stringify({provider: 'comfyui', finalPrompt: '唯一应显示的最终 provider 提示词', externalId: 'prompt_source', pending: true}), createdAt, createdAt, source.id);

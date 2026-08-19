@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Requires npm test, syntax checks, temporary DATA_DIR integration verification, and a full worker/request/storage/UI review for the changed pipeline."}
+{"file":".trellis/spec/backend/media-prompt-contract.md","reason":"Quality review must prove no semantic keyword/default logic returns, all producers persist frozen A, and no fallback provider prompt is introduced."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Review acceptance verdicts, C infrastructure skip conditions, bounded retry exhaustion, old-job failure, and safe client diagnostics."}
+{"file":".trellis/spec/backend/debug-observability.md","reason":"Review persona scoping, bounded/redacted acceptance diagnostics, and absence of provider paths, data URLs, or credentials in debug output."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Review failure/retry messages for escaped rendering, existing status component reuse, accessible actions, and no unsafe interpolated diagnostic text."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Review desktop/mobile status rendering, refresh recovery, browser console behavior, and prohibition on browser-side provider calls."}

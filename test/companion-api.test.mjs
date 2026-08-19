@@ -9,7 +9,20 @@ process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '0';
 const {companionApp, companionTestHooks} = await import(`../server.js?test=${Date.now()}`);
-const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, mediaConceptEnvelopeFor, renderMediaPromptTemplate, mediaPromptTemplateSections, systemCapabilityReplyForm, systemCapabilityMediaContract, personaMediaConceptContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, normalizeDailyPlan, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, enqueueRelationshipEvolutionJob, providerFor, providerSummaries, mediaProviders, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, saveSettings, publicSettings} = companionTestHooks;
+const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, mediaConceptEnvelopeFor, renderMediaPromptTemplate, mediaPromptTemplateSections, systemCapabilityReplyForm, systemCapabilityMediaContract, personaMediaConceptContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, normalizeDailyPlan, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, enqueueRelationshipEvolutionJob, providerFor, providerSummaries, mediaProviders, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, saveSettings, publicSettings} = companionTestHooks;
+
+const mediaConcept = (kind, overrides = {}) => ({
+    schemaVersion: 1, mediaKind: kind, scene: '测试场景', action: '测试动作', mood: '平静', narrative: '测试媒体概念',
+    humanSubjects: [{label: '人格本人', role: '主体', inFrame: true}],
+    nonHumanObjects: [{label: '环境', kind: 'environment', inFrame: true}],
+    capture: {mode: 'external_capture', operator: '画外朋友', deviceVisibility: 'out_of_frame', framingIntent: '自然中景'},
+    compositionIntent: '保持概念中的主体与环境关系。', ...overrides
+});
+const mediaCall = (kind, request, overrides = {}) => ({
+    schemaVersion: 2, kind, request, count: 1, personaMediaConcept: mediaConcept(kind, overrides.personaMediaConcept),
+    currentEvent: null, temporaryAppearance: {hair: '自然短发'}, ...(overrides.trigger ? {trigger: overrides.trigger} : {}), ...overrides,
+    personaMediaConcept: overrides.personaMediaConcept || mediaConcept(kind)
+});
 
 const routePaths = app => (app.router?.stack || []).flatMap(layer => layer.route ? [layer.route.path] : []);
 
@@ -218,7 +231,12 @@ test('user-visible assistant replies are sentence-scoped, ordered, and isolated 
     assert.equal(prompt.endsWith(systemCapabilityReplyForm), true);
     assert.match(systemCapabilityReplyForm, /恰好是一句完整的话/);
     assert.match(systemCapabilityMediaContract, /<media-intent>/);
-    assert.deepEqual(extractMediaIntent('我来找一张图。<media-intent>{"kind":"image","request":"咖啡馆窗边的自然照片"}</media-intent>'), {text: '我来找一张图。', media: {kind: 'image', request: '咖啡馆窗边的自然照片'}});
+    const marker = mediaCall('image', '咖啡馆窗边的自然照片', {temporaryAppearance: {hair: '银灰短发'}});
+    const parsedMarker = extractMediaIntent(`我来找一张图。<media-intent>${JSON.stringify(marker)}</media-intent>`);
+    assert.equal(parsedMarker.text, '我来找一张图。');
+    assert.equal(parsedMarker.media.schemaVersion, 2);
+    assert.equal(parsedMarker.media.personaMediaConcept.capture.mode, 'external_capture');
+    assert.deepEqual(parsedMarker.media.temporaryAppearance, {hair: '银灰短发'});
     assert.equal(extractMediaIntent('好的，我这就给你生成一张海边日落的图片。').media, null);
     assert.equal(extractMediaIntent('<media-intent>{"kind":"audio","request":"不支持"}</media-intent>').media, null);
     assert.equal(mediaCommitmentFromText('我待会拍完发你。'), null);
@@ -240,7 +258,7 @@ test('media envelopes and model-owned schemas are structurally validated without
     assert.throws(() => normalizeMediaPromptTemplate({schemaVersion: 1, sections: {capture: 'x'}}), /缺少固定段落/);
     const masterOwnedLength = Object.fromEntries(mediaPromptTemplateSections.map(section => [section, 'x'.repeat(1_200)]));
     assert.equal(normalizeMediaPromptTemplate({schemaVersion: 1, sections: masterOwnedLength}).sections.capture.length, 1_200);
-    assert.throws(() => createChatMediaRequest(persona.id, {kind: 'audio'}), /媒体请求/);
+    assert.throws(() => createChatMediaRequest(persona.id, {kind: 'audio', schemaVersion: 2, personaMediaConcept: mediaConcept('audio'), currentEvent: null, temporaryAppearance: {}}), /媒体请求/);
 });
 
 test('fixed prompt templates preserve master-selected selfie, photographer POV, and non-human object separation', () => {
@@ -332,7 +350,7 @@ test('four layers keep an active schedule coherent for chat and media, and persi
     assert.match(context.layers.lifeState, /正在图书馆整理课程笔记/);
     assert.match(context.layers.relationship, /人格私有关系层/);
     assert.match(context.layers.systemCapability, /系统能力层/);
-    const media = createChatMediaRequest(persona.id, {kind: 'image', prompt: '拍一张现在的自然照片'});
+    const media = createChatMediaRequest(persona.id, mediaCall('image', '拍一张现在的自然照片'));
     const envelope = JSON.parse(database.prepare('SELECT payload_json FROM companion_jobs WHERE id = ?').get(media.jobId).payload_json).envelope;
     assert.equal(envelope.facts.currentState.location, '图书馆自习区');
     assert.equal(envelope.facts.currentState.situation, '正在图书馆整理课程笔记');
@@ -463,13 +481,14 @@ test('legacy blueprint reads receive an effective safe v2 room without a migrati
 });
 
 test('model-authorized media markers are transport-only and all producers persist a factual envelope', () => {
-    const parsed = extractMediaIntent('我晚点把这组街拍发给你。<media-intent>{"kind":"image","request":"傍晚街拍","count":2,"creativeDirection":{"photographyStyle":"35mm 胶片感"}}</media-intent>');
-    assert.deepEqual(parsed.media, {kind: 'image', request: '傍晚街拍', count: 2});
+    const parsed = extractMediaIntent(`我晚点把这组街拍发给你。<media-intent>${JSON.stringify(mediaCall('image', '傍晚街拍', {count: 2}))}</media-intent>`);
+    assert.equal(parsed.media.schemaVersion, 2);
+    assert.equal(parsed.media.count, 2);
     assert.match(imagePromptMasterContract, /固定的生图模板/);
     assert.doesNotMatch(systemCapabilityMediaContract, /creativeDirection/);
 
     const persona = createPersona({name: '画面', role: '学生', foundation: '画面喜欢与朋友分享校园生活。'});
-    const chat = createChatMediaRequest(persona.id, {kind: 'image', prompt: '河边自拍和两套衣服对比', trigger: 'test'});
+    const chat = createChatMediaRequest(persona.id, mediaCall('image', '河边自拍和两套衣服对比', {trigger: 'test'}));
     const chatPayload = JSON.parse(database.prepare('SELECT payload_json FROM companion_jobs WHERE id = ?').get(chat.jobId).payload_json);
     assert.equal(chatPayload.envelope.schemaVersion, 1);
     assert.equal(chatPayload.envelope.trigger, 'test');
@@ -477,7 +496,8 @@ test('model-authorized media markers are transport-only and all producers persis
     assert.equal(Object.hasOwn(chatPayload, 'mediaIntent'), false);
     assert.equal(Object.hasOwn(chat.message.generation, 'envelope'), false);
 
-    const activity = createEvent(requirePersona(persona.id), {type: 'social', situation: '和朋友在公园聊天', mood: '轻松', scene: '公园', visual: true}, {publish: true, source: 'test'});
+    const activityCall = mediaCall('image', '和朋友在公园聊天', {personaMediaConcept: mediaConcept('image', {scene: '公园', action: '和朋友聊天'})});
+    const activity = createEvent(requirePersona(persona.id), {type: 'social', situation: '和朋友在公园聊天', mood: '轻松', scene: '公园', visual: true, mediaCapabilityCall: activityCall}, {publish: true, source: 'test'});
     const activityPayload = JSON.parse(database.prepare("SELECT payload_json FROM companion_jobs WHERE activity_id = ? AND job_type = 'activity_image' ORDER BY created_at DESC LIMIT 1").get(activity.activityId).payload_json);
     assert.equal(activityPayload.envelope.schemaVersion, 1);
     assert.equal(activityPayload.envelope.trigger, 'activity_event');
@@ -486,7 +506,7 @@ test('model-authorized media markers are transport-only and all producers persis
 
 test('chat media jobs persist a placeholder and replace that exact message on completion', () => {
     const persona = createPersona({name: '沈青', role: '在读大学生', foundation: '沈青是摄影社成员，喜欢记录普通日常。'});
-    const request = createChatMediaRequest(persona.id, {kind: 'image', prompt: '今天在校园里的自然照片'});
+    const request = createChatMediaRequest(persona.id, mediaCall('image', '今天在校园里的自然照片'));
     assert.equal(request.message.generation.status, 'queued');
     assert.equal(request.message.generation.kind, 'image');
     assert.equal(request.message.attachments.length, 0);
@@ -507,20 +527,20 @@ test('chat media jobs persist a placeholder and replace that exact message on co
     assert.equal(message.attachments.length, 1);
     assert.match(message.attachments[0].url, /^\/api\/companion\/media\//);
     assert.equal(database.prepare('SELECT status FROM companion_jobs WHERE id = ?').get(job.id).status, 'complete');
-    assert.throws(() => createChatMediaRequest(persona.id, {kind: 'image,video'}), /媒体类型/);
+    assert.throws(() => createChatMediaRequest(persona.id, mediaCall('image,video', '非法媒体类型')), /媒体类型/);
 });
 
-test('persona concept and prompt master own capture, people, and object semantics before provider submission', async () => {
+test('frozen persona concept and prompt master preserve capture, people, and object semantics before provider submission', async () => {
     const persona = createPersona({name: '若岚', role: '摄影爱好者', foundation: '若岚是一位女性摄影爱好者，常带相机记录朋友。'});
-    const request = createChatMediaRequest(persona.id, {kind: 'image', prompt: '给闺蜜拍照，旁边有两套衣服和一只小狗'});
-    database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = 1 WHERE id = ?").run('lease_model_media', new Date(Date.now() + 60_000).toISOString(), request.jobId);
-    let job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
-    const concept = {
-        schemaVersion: 1, mediaKind: 'image', scene: '公园花墙前', action: '为闺蜜拍摄自然肖像', mood: '开心', narrative: '若岚在公园为闺蜜拍照。',
+    const request = createChatMediaRequest(persona.id, mediaCall('image', '给闺蜜拍照，旁边有两套衣服和一只小狗', {personaMediaConcept: {
+        ...mediaConcept('image'), scene: '公园花墙前', action: '为闺蜜拍摄自然肖像', mood: '开心', narrative: '若岚在公园为闺蜜拍照。',
         humanSubjects: [{label: '闺蜜', role: '被摄主体', inFrame: true}, {label: '若岚', role: '摄影者', inFrame: false}],
         nonHumanObjects: [{label: '两套待比较的服装', kind: 'clothing', inFrame: true}, {label: '一只小狗', kind: 'animal', inFrame: true}],
         capture: {mode: 'operator_pov', operator: '若岚（画外摄影者）', deviceVisibility: 'out_of_frame', framingIntent: '从若岚的取景位置拍摄闺蜜的中景'}, compositionIntent: '闺蜜自然面对镜头站立。'
-    };
+    }}));
+    database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = 1 WHERE id = ?").run('lease_model_media', new Date(Date.now() + 60_000).toISOString(), request.jobId);
+    let job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
+    const concept = JSON.parse(job.payload_json).personaMediaConcept;
     const template = {
         schemaVersion: 1,
         sections: {
@@ -543,7 +563,7 @@ test('persona concept and prompt master own capture, people, and object semantic
     const fixturePayload = {...JSON.parse(job.payload_json), provider: 'fixture-image'};
     database.prepare('UPDATE companion_jobs SET payload_json = ? WHERE id = ?').run(JSON.stringify(fixturePayload), job.id);
     job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
-    const responses = [JSON.stringify(concept), JSON.stringify(template)];
+    const responses = [JSON.stringify(template)];
     globalThis.fetch = async () => ({ok: true, json: async () => ({choices: [{message: {content: responses.shift()}}]})});
     try {
         await submitMediaJob(job);
@@ -565,38 +585,93 @@ test('persona concept and prompt master own capture, people, and object semantic
     assert.doesNotMatch(result.finalPrompt, /共\s*\d+\s*人/);
 });
 
-test('malformed concept output retries then fails only the media target without a fallback provider prompt', async () => {
+test('legacy job without frozen concept fails without concept LLM, B, or provider fallback', async () => {
     const persona = createPersona({name: '失败边界', role: '学生', foundation: '失败边界会如实处理生成失败。'});
-    const request = createChatMediaRequest(persona.id, {kind: 'image', prompt: '一张普通照片'});
+    const request = createChatMediaRequest(persona.id, mediaCall('image', '一张普通照片'));
     database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = 1, max_attempts = 2 WHERE id = ?").run('lease_bad_concept_one', new Date(Date.now() + 60_000).toISOString(), request.jobId);
     let job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
     const originalFetch = globalThis.fetch;
-    const previous = publicSettings();
     let providerCalls = 0;
     mediaProviders.set('never-submit', {id: 'never-submit', label: 'never', capabilities: ['image'], async submit() { providerCalls += 1; return {externalId: 'never', pending: true}; }});
-    saveSettings({imageProvider: 'never-submit', model: 'fixture-model'});
-    globalThis.fetch = async () => ({ok: true, json: async () => ({choices: [{message: {content: '{not-json'}}]})});
+    saveSettings({imageProvider: 'never-submit'});
+    const legacyPayload = JSON.parse(job.payload_json);
+    delete legacyPayload.personaMediaConcept;
+    database.prepare('UPDATE companion_jobs SET payload_json = ? WHERE id = ?').run(JSON.stringify(legacyPayload), request.jobId);
+    job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
+    globalThis.fetch = async () => { throw new Error('concept B must not be called'); };
     try {
-        await submitMediaJob(job);
-        const retry = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
-        assert.equal(retry.status, 'queued');
-        assert.equal(listMessages(persona.id, {markRead: false}).items.find(item => item.id === request.message.id).generation.status, 'queued');
-        database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = 2 WHERE id = ?").run('lease_bad_concept_two', new Date(Date.now() + 60_000).toISOString(), request.jobId);
-        job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
         await submitMediaJob(job);
     } finally {
         globalThis.fetch = originalFetch;
         mediaProviders.delete('never-submit');
-        saveSettings({imageProvider: previous.imageProvider || 'comfyui', model: previous.model || ''});
+        saveSettings({imageProvider: 'comfyui'});
     }
     const settled = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
     const result = JSON.parse(settled.result_json);
     const message = listMessages(persona.id, {markRead: false}).items.find(item => item.id === request.message.id);
     assert.equal(providerCalls, 0);
     assert.equal(settled.status, 'failed');
-    assert.equal(result.failedStage, 'persona_concept');
+    assert.equal(result.failedStage, 'missing_frozen_media_concept');
+    assert.equal(result.migrationFailure, 'missing_frozen_media_concept');
     assert.equal(message.generation.status, 'failed');
     assert.equal(Object.hasOwn(result, 'finalPrompt'), false);
+});
+
+test('C acceptance gates pass, one retry, reject, and infrastructure skip', async () => {
+    const previous = publicSettings();
+    const originalFetch = globalThis.fetch;
+    const fixtureId = 'fixture-acceptance';
+    const bytes = Buffer.from('fixture-image-bytes');
+    mediaProviders.set(fixtureId, {
+        id: fixtureId, label: 'fixture acceptance', capabilities: ['image'],
+        async readCandidate() { return {bytes, mimeType: 'image/png'}; }
+    });
+    saveSettings({imageProvider: fixtureId, model: 'fixture-acceptance-model'});
+    const lease = request => {
+        database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = 1 WHERE id = ?")
+            .run(`lease_${request.jobId}`, new Date(Date.now() + 60_000).toISOString(), request.jobId);
+        return database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
+    };
+    const verdict = (value, violations = []) => JSON.stringify({schemaVersion: 1, verdict: value, violations, observedFacts: {sceneMatches: value === 'pass'}, retryGuidance: value === 'retry' ? '保持冻结的场景与镜头关系。' : ''});
+    try {
+        const passPersona = createPersona({name: '验收通过', role: '学生', foundation: '验收通过。'});
+        const passRequest = createChatMediaRequest(passPersona.id, mediaCall('image', '通过图片'));
+        globalThis.fetch = async () => ({ok: true, json: async () => ({choices: [{message: {content: verdict('pass')}}]})});
+        await completeGeneratedMedia(lease(passRequest), 'pass-prompt', [{filename: 'pass.png', type: 'output'}], fixtureId);
+        assert.equal(database.prepare('SELECT status FROM companion_jobs WHERE id = ?').get(passRequest.jobId).status, 'complete');
+        assert.equal(listMessages(passPersona.id, {markRead: false}).items.find(item => item.id === passRequest.message.id).generation.status, 'ready');
+
+        const retryPersona = createPersona({name: '验收重试', role: '学生', foundation: '验收重试。'});
+        const retryRequest = createChatMediaRequest(retryPersona.id, mediaCall('image', '重试图片'));
+        globalThis.fetch = async () => ({ok: true, json: async () => ({choices: [{message: {content: verdict('retry', [{code: 'scene_mismatch', severity: 'hard', detail: '场景不符'}])}}]})});
+        await completeGeneratedMedia(lease(retryRequest), 'retry-prompt', [{filename: 'retry.png', type: 'output'}], fixtureId);
+        assert.equal(database.prepare('SELECT status FROM companion_jobs WHERE id = ?').get(retryRequest.jobId).status, 'complete');
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'chat_image' AND status = 'queued'").get(retryPersona.id).count, 1);
+        assert.equal(listMessages(retryPersona.id, {markRead: false}).items.find(item => item.id === retryRequest.message.id).generation.status, 'queued');
+
+        const rejectPersona = createPersona({name: '验收拒绝', role: '学生', foundation: '验收拒绝。'});
+        const rejectRequest = createChatMediaRequest(rejectPersona.id, mediaCall('image', '拒绝图片'));
+        globalThis.fetch = async () => ({ok: true, json: async () => ({choices: [{message: {content: verdict('reject', [{code: 'unsafe', severity: 'hard', detail: '安全问题'}])}}]})});
+        await completeGeneratedMedia(lease(rejectRequest), 'reject-prompt', [{filename: 'reject.png', type: 'output'}], fixtureId);
+        assert.equal(database.prepare('SELECT status FROM companion_jobs WHERE id = ?').get(rejectRequest.jobId).status, 'failed');
+        assert.equal(listMessages(rejectPersona.id, {markRead: false}).items.find(item => item.id === rejectRequest.message.id).generation.status, 'failed');
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_media_assets WHERE filename = ?').get('reject.png').count, 0);
+
+        const skippedPersona = createPersona({name: '验收降级', role: '学生', foundation: '验收降级。'});
+        const skippedRequest = createChatMediaRequest(skippedPersona.id, mediaCall('image', '降级图片'));
+        mediaProviders.get(fixtureId).readCandidate = async () => null;
+        let acceptanceCalls = 0;
+        globalThis.fetch = async () => { acceptanceCalls += 1; throw new Error('C must be skipped before model call'); };
+        await completeGeneratedMedia(lease(skippedRequest), 'skipped-prompt', [{filename: 'skipped.png', type: 'output'}], fixtureId);
+        assert.equal(acceptanceCalls, 0);
+        assert.equal(database.prepare('SELECT status FROM companion_jobs WHERE id = ?').get(skippedRequest.jobId).status, 'complete');
+        const skippedResult = JSON.parse(database.prepare('SELECT result_json FROM companion_jobs WHERE id = ?').get(skippedRequest.jobId).result_json);
+        assert.equal(skippedResult.acceptance.at(-1).verdict, 'skipped');
+    } finally {
+        globalThis.fetch = originalFetch;
+        mediaProviders.delete(fixtureId);
+        saveSettings({imageProvider: previous.imageProvider || 'comfyui', model: previous.model || ''});
+    }
 });
 
 test('debug context is redacted, bounded, and persona-scoped', () => {
@@ -605,8 +680,8 @@ test('debug context is redacted, bounded, and persona-scoped', () => {
     const second = createPersona({name: '调试二号', role: '编辑', foundation: '调试二号喜欢收集旧书。'});
     appendMessage(first.id, {role: 'user', text: `Bearer secret-token-${'x'.repeat(80)} ${'a'.repeat(2600)}`});
     appendMessage(second.id, {role: 'user', text: '这条内容不能泄露到另一人格。'});
-    const firstMedia = createChatMediaRequest(first.id, {kind: 'image', prompt: `apiKey=super-secret ${'p'.repeat(2600)}`});
-    const secondMedia = createChatMediaRequest(second.id, {kind: 'video', prompt: '只属于第二人格的媒体意图'});
+    const firstMedia = createChatMediaRequest(first.id, mediaCall('image', `apiKey=super-secret ${'p'.repeat(2600)}`));
+    const secondMedia = createChatMediaRequest(second.id, mediaCall('video', '只属于第二人格的媒体意图'));
 
     const context = debugContextFor(first.id);
     assert.equal(context.recentRequests.length <= 10, true);
@@ -664,7 +739,7 @@ test('debug routes are not registered unless the explicit local flag is enabled'
         assert.equal(JSON.stringify(preflight).includes(h3Root), false);
         assert.equal(debugModule.companionTestHooks.database.prepare('SELECT COUNT(*) AS count FROM companion_jobs').get().count, jobsBefore);
         assert.equal(debugModule.companionTestHooks.database.prepare('SELECT COUNT(*) AS count FROM companion_media_assets').get().count, assetsBefore);
-        const dispatch = debugModule.companionTestHooks.createChatMediaRequest(persona.id, {kind: 'image', prompt: '本地测试图片'});
+        const dispatch = debugModule.companionTestHooks.createChatMediaRequest(persona.id, mediaCall('image', '本地测试图片'));
         assert.equal(dispatch.message.generation.status, 'queued');
     } finally {
         if (originalDataDir === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = originalDataDir;
@@ -696,8 +771,8 @@ test('two personas keep activity, messages, state, and media jobs isolated', () 
     const secondEvent = createEvent(requirePersona(second.id), {
         type: 'shopping', situation: '在旧书店挑书', mood: '愉快', scene: '旧书店', content: '找到一本很喜欢的散文集。'
     }, {publish: true, source: 'test'});
-    const firstMedia = createChatMediaRequest(first.id, {kind: 'image', prompt: '图书馆里的自然照片'});
-    const secondMedia = createChatMediaRequest(second.id, {kind: 'video', prompt: '旧书店里翻书的短视频'});
+    const firstMedia = createChatMediaRequest(first.id, mediaCall('image', '图书馆里的自然照片'));
+    const secondMedia = createChatMediaRequest(second.id, mediaCall('video', '旧书店里翻书的短视频'));
 
     assert.deepEqual(listActivities({personaId: first.id, limit: 20}).items.map(item => item.id), [firstEvent.activityId]);
     assert.deepEqual(listActivities({personaId: second.id, limit: 20}).items.map(item => item.id), [secondEvent.activityId]);
@@ -714,7 +789,7 @@ test('permanently deleting a test persona removes its private rows without touch
     const survivor = createPersona({name: '保留', role: '测试人格', foundation: '这条人格必须保留。'});
     appendMessage(removable.id, {role: 'user', text: '需要清理这段测试对话。'});
     const event = createEvent(requirePersona(removable.id), {type: 'shopping', situation: '测试商店', mood: '平静', scene: '测试场景', content: '用于删除测试的动态。'}, {publish: true, source: 'test'});
-    const media = createChatMediaRequest(removable.id, {kind: 'image', prompt: '删除测试图片'});
+    const media = createChatMediaRequest(removable.id, mediaCall('image', '删除测试图片'));
     appendMessage(survivor.id, {role: 'user', text: '这段对话必须保留。'});
 
     const result = deletePersona(removable.id);
@@ -867,7 +942,7 @@ test('expired transient appearance is cleared when persona state recovers', () =
 
 test('media settlement only completes the leased placeholder once', () => {
     const persona = createPersona({name: '白露', role: '摄影爱好者', foundation: '白露喜欢拍城市里的光影。'});
-    const request = createChatMediaRequest(persona.id, {kind: 'image', prompt: '午后街角的自然照片'});
+    const request = createChatMediaRequest(persona.id, mediaCall('image', '午后街角的自然照片'));
     const job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
     const leaseOwner = 'lease_media_settlement';
     database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ? WHERE id = ?").run(leaseOwner, new Date(Date.now() + 60_000).toISOString(), job.id);

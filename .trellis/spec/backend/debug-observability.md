@@ -152,6 +152,7 @@ const record = item => {
 - Progress writes use the same `status = 'leased'`, `lease_owner`, and non-expired lease guard as settlement. They never renew a lease or alter status/attempt/retry scheduling.
 - Output is ANSI/control-character cleaned, recursively credential-redacted, path-redacted, and capped at 480 characters. Do not persist whole command lines, argument arrays, model/output paths, or stream history.
 - Completion and failure merge existing `result_json` so final prompts and h3 progress survive terminal settlement. A retry starts a new `attempt` snapshot.
+- Media diagnostics additionally preserve the bounded capability call/frozen persona concept, prompt-master template, and C-stage acceptance history. C `retry` is a separate one-time quality retry and must not be confused with provider transport/poll attempts; C infrastructure `skipped` is a successful delivery with a safe diagnostic.
 - `activity_media_poll` and `chat_media_poll` are internal worker children, not separate user-visible media tasks. Debug projection groups them by their shared `activity_id` or `message_id`, returns the source media job once, and overlays the newest poll child’s status/error/external ID.
 - `simplifiedMediaMode` is a persisted client-display setting. It may prevent chat `<img>`/`<video>` creation, but it must not stop queueing, provider execution, attachment persistence, or this local inspector.
 

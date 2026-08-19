@@ -1,0 +1,6 @@
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"A/B/C changes span streaming personality output, SQLite durable jobs, provider execution, asset publication, and browser state; this guide defines producer/consumer and visual-semantics authority rules."}
+{"file":".trellis/spec/backend/media-prompt-contract.md","reason":"Defines the typed media intent, server-fact versus model-semantic ownership, fixed prompt template boundary, and no-heuristic requirement that this task extends."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Source jobs, retry successors, acceptance records, lease-safe settlement, and legacy job handling are persisted SQLite state transitions."}
+{"file":".trellis/spec/backend/debug-observability.md","reason":"The new capability-call, template, acceptance, retry, and redacted diagnostics must remain persona-scoped and explicitly gated."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Distinguishes retryable provider/model errors, terminal content rejection, and user-approved C-stage fail-open skip behavior."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Media target status changes must survive refresh and not conflict with streaming/queued message state."}
