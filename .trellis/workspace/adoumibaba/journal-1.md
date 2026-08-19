@@ -210,3 +210,36 @@ Moved persona media concept generation to the AI capability-call boundary; persi
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Implement proactive persona messages
+
+**Date**: 2026-08-19
+**Task**: Implement proactive persona messages
+**Branch**: `master`
+
+### Summary
+
+Implemented life-event proactive messaging and chat-declared pending events with durable scheduling, strict marker validation/redaction, one-shot structured decision freezing, active-chat safeguards, provenance, diagnostics, migration v8, tests, and backend spec updates.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `311b235` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
