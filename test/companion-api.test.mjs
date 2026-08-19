@@ -9,7 +9,7 @@ process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '0';
 const {companionApp, companionTestHooks} = await import(`../server.js?test=${Date.now()}`);
-const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, providerFor, providerSummaries, h3Args, h3OutputFile, leaseDurationForJob, saveSettings, publicSettings} = companionTestHooks;
+const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, providerFor, providerSummaries, h3Args, h3OutputFile, leaseDurationForJob, saveSettings, publicSettings} = companionTestHooks;
 
 const routePaths = app => (app.router?.stack || []).flatMap(layer => layer.route ? [layer.route.path] : []);
 
@@ -38,6 +38,16 @@ test('life model v2 fallback supplies a default room, safe event templates, and 
     assert.equal(validation.ok, false);
     assert.match(validation.errors.join('；'), /负向事件/);
     assert.equal(finalizeLifeBlueprint(unsafe, fallback).generation.usedFallback, true);
+    const unsafePositive = structuredClone(fallback);
+    unsafePositive.randomPositiveEvents[0] = {...unsafePositive.randomPositiveEvents[0], title: '需要用户借钱处理债务'};
+    assert.equal(validateLifeBlueprint(normalizeLifeBlueprint(unsafePositive)).ok, false);
+});
+
+test('persona local-day bounds preserve an Asia/Shanghai morning that belongs to the prior UTC date', () => {
+    const instant = zonedPlanInstant('2026-08-19', '06:00', 'Asia/Shanghai');
+    assert.equal(instant.startsWith('2026-08-18T22:00:00'), true);
+    const bounds = localDayBounds('2026-08-19', 'Asia/Shanghai');
+    assert.equal(instant >= bounds.start && instant < bounds.end, true);
 });
 
 test('initial life-model generation falls back safely when the local model request fails', async () => {

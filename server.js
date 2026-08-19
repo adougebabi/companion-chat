@@ -516,6 +516,14 @@ function zonedPlanInstant(planDate, clock, timeZone = 'Asia/Shanghai') {
     return new Date(intendedUtc - (displayedUtc - intendedUtc)).toISOString();
 }
 
+function localDayBounds(planDate, timeZone = 'Asia/Shanghai') {
+    const start = zonedPlanInstant(planDate, '00:00', timeZone);
+    const next = new Date(`${planDate}T12:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    const nextDate = localPlanDate(next, 'UTC');
+    return {start, end: zonedPlanInstant(nextDate, '00:00', timeZone)};
+}
+
 function ensureDailyPlan(personaId, date = new Date()) {
     const planDate = localPlanDate(date, blueprint(personaId).timezone);
     const existing = database.prepare('SELECT id, status FROM companion_daily_plans WHERE persona_id = ? AND plan_date = ?').get(personaId, planDate);
@@ -550,7 +558,7 @@ function defaultRoutine(role) {
 
 const lifeModelSchemaVersion = 2;
 const lifeModelPromptVersion = 'life-model-v2-fallback';
-const lifeModelBlockedTerms = /死亡|自杀|重伤|住院|诊断|手术|犯罪|违法|逮捕|巨额|破产|借贷|失业|退学|分手|绝交|怀孕|威胁|勒索|death|suicide|severe injury|hospital|diagnosis|surgery|crime|illegal|arrest|bankrupt|debt|fired|expelled|breakup|blackmail/i;
+const lifeModelBlockedTerms = /死亡|自杀|重伤|住院|诊断|手术|犯罪|违法|逮捕|巨额|破产|借贷|借钱|欠款|债务|失业|退学|分手|绝交|怀孕|威胁|勒索|death|suicide|severe injury|hospital|diagnosis|surgery|crime|illegal|arrest|bankrupt|debt|fired|expelled|breakup|blackmail/i;
 const isRecord = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const blueprintText = (value, max = 240) => String(value || '').trim().slice(0, max);
 const blueprintTime = value => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ''));
@@ -650,7 +658,7 @@ function normalizeLifeBlueprint(value) {
         dailyFlexibleEvents: Array.isArray(value.dailyFlexibleEvents) ? value.dailyFlexibleEvents.slice(0, 12).map(item => normalizeLifeTemplate(item)).filter(Boolean) : [],
         randomPositiveEvents: Array.isArray(value.randomPositiveEvents) ? value.randomPositiveEvents.slice(0, 16).map(item => normalizeLifeTemplate(item)).filter(Boolean) : [],
         randomNegativeEvents: Array.isArray(value.randomNegativeEvents) ? value.randomNegativeEvents.slice(0, 12).map(item => normalizeLifeTemplate(item)).filter(Boolean) : [],
-        supportingCast: Array.isArray(value.supportingCast) ? value.supportingCast.slice(0, 6).map(raw => ({name: blueprintText(raw?.name || raw, 60), relationshipKind: blueprintText(raw?.relationshipKind || '朋友', 60)})).filter(raw => raw.name) : [],
+        supportingCast: Array.isArray(value.supportingCast) ? value.supportingCast.slice(0, 6).map(raw => ({name: blueprintText(raw?.name || raw, 60), relationshipKind: blueprintText(raw?.relationshipKind || '朋友', 60), provenance: ['user', 'generated', 'fallback'].includes(raw?.provenance) ? raw.provenance : '', profile: isRecord(raw?.profile) ? raw.profile : {}})).filter(raw => raw.name) : [],
         generation: isRecord(value.generation) ? {
             source: ['user', 'generated', 'fallback'].includes(value.generation.source) ? value.generation.source : 'generated',
             promptVersion: blueprintText(value.generation.promptVersion, 80), model: blueprintText(value.generation.model, 120), usedFallback: value.generation.usedFallback === true,
@@ -697,8 +705,9 @@ function validateLifeBlueprint(value) {
             if (!Array.isArray(template?.durationMinutes) || template.durationMinutes.length !== 2 || !template.durationMinutes.every(value => Number.isInteger(value) && value > 0) || template.durationMinutes[0] > template.durationMinutes[1]) errors.push('事件模板持续时间不合法');
             if (!Array.isArray(template?.sceneRefs) || !template.sceneRefs.length || template.sceneRefs.some(ref => !roomRefs.has(`${ref.locationId}:${ref.roomId}`))) errors.push('事件模板引用了不存在的地点或房间');
             if (!Number.isInteger(template?.priority) || template.priority < 0 || template.priority > 100 || !Number.isFinite(template?.cooldownHours) || template.cooldownHours < 0 || !Number.isInteger(template?.frequencyBudget?.daily) || !Number.isInteger(template?.frequencyBudget?.weekly)) errors.push('事件模板优先级或频率预算不合法');
+            const safetyText = [template.title, template.situation, ...(template.effects || []), template.recovery].join(' ');
+            if (lifeModelBlockedTerms.test(safetyText)) errors.push('事件模板不得包含高风险、不可逆或现实义务内容');
             if (kind === 'randomNegativeEvents') {
-                const safetyText = [template.title, template.situation, ...(template.effects || []), template.recovery].join(' ');
                 if (template.riskLevel !== 'mild' || template.reversible !== true || !blueprintText(template.recovery) || lifeModelBlockedTerms.test(safetyText)) errors.push('负向事件必须是 mild、可逆、具备恢复路径且不得包含高风险内容');
             }
             if (kind === 'fixedTimeEvents') fixedWindows.push({start: blueprintMinute(template.timeWindow.start), end: blueprintMinute(template.timeWindow.end)});
@@ -881,7 +890,7 @@ async function generateInitialLifeBlueprint(answers, baseline) {
         const patch = json(raw, null);
         if (!isRecord(patch)) throw new Error('初始化生活模型未返回 JSON 对象');
         const generatedCast = Array.isArray(patch.suggestedSupportingCast)
-            ? patch.suggestedSupportingCast.slice(0, 4).map(item => ({name: blueprintText(item?.name, 60), relationshipKind: blueprintText(item?.relationshipKind || '熟人', 60)})).filter(item => item.name && !baseline.supportingCast.some(existing => existing.name === item.name))
+            ? patch.suggestedSupportingCast.slice(0, 4).map(item => ({name: blueprintText(item?.name, 60), relationshipKind: blueprintText(item?.relationshipKind || '熟人', 60), provenance: 'generated', profile: {generation: 'life_model'}})).filter(item => item.name && !baseline.supportingCast.some(existing => existing.name === item.name))
             : [];
         const candidate = {
             ...baseline,
@@ -945,8 +954,8 @@ function createPersona(input) {
         for (const raw of value.blueprint.supportingCast) {
             const name = String(raw?.name || raw || '').trim();
             if (!name) continue;
-            const provenance = value.blueprint.provenance?.supportingCast === 'user' ? 'user' : value.blueprint.generation?.source || 'fallback';
-            database.prepare('INSERT INTO companion_supporting_characters (id, persona_id, name, relationship_kind, profile_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id('support'), value.id, name, String(raw?.relationshipKind || '朋友'), JSON.stringify({provenance, initializedAt: createdAt}), createdAt, createdAt);
+            const provenance = raw?.provenance || (value.blueprint.provenance?.supportingCast === 'user' ? 'user' : value.blueprint.generation?.source || 'fallback');
+            database.prepare('INSERT INTO companion_supporting_characters (id, persona_id, name, relationship_kind, profile_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id('support'), value.id, name, String(raw?.relationshipKind || '朋友'), JSON.stringify({...(isRecord(raw?.profile) ? raw.profile : {}), provenance, initializedAt: createdAt}), createdAt, createdAt);
         }
     })();
     reconcilePersona(value.id, {publish: false});
@@ -1086,8 +1095,8 @@ function timelineDecision(personaId, decisionKey, input = {}) {
         runAt: input.runAt || createdAt, expiresAt: input.expiresAt || null, priority: Number(input.priority) || 0,
         preemptionMode: input.preemptionMode || 'none', candidate: input.candidate || {}, rationale: input.rationale || {}
     };
-    database.prepare('INSERT INTO companion_event_decisions (id, persona_id, decision_key, decision_type, status, run_at, expires_at, priority, preemption_mode, candidate_json, rationale_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
-        decision.id, personaId, decision.decisionKey, decision.decisionType, decision.status, decision.runAt, decision.expiresAt, decision.priority,
+    database.prepare('INSERT INTO companion_event_decisions (id, persona_id, slot_id, decision_key, decision_type, status, run_at, expires_at, priority, preemption_mode, candidate_json, rationale_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+        decision.id, personaId, input.slotId || null, decision.decisionKey, decision.decisionType, decision.status, decision.runAt, decision.expiresAt, decision.priority,
         decision.preemptionMode, JSON.stringify(decision.candidate), JSON.stringify(decision.rationale), createdAt, createdAt
     );
     return database.prepare('SELECT * FROM companion_event_decisions WHERE id = ?').get(decision.id);
@@ -1106,7 +1115,8 @@ function lifeTemplateCandidates(persona, at = new Date()) {
         if (!template?.templateId || !Number.isFinite(start) || !Number.isFinite(end) || minute < start || minute >= end) return false;
         const recent = database.prepare("SELECT occurred_at FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.templateId') = ? ORDER BY occurred_at DESC LIMIT 1").get(persona.id, template.templateId);
         if (recent && Date.now() - Date.parse(recent.occurred_at) < Number(template.cooldownHours || 0) * 3_600_000) return false;
-        const daily = database.prepare("SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.templateId') = ? AND substr(occurred_at, 1, 10) = ?").get(persona.id, template.templateId, localPlanDate(at, life.timezone)).count;
+        const day = localDayBounds(localPlanDate(at, life.timezone), life.timezone);
+        const daily = database.prepare("SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.templateId') = ? AND occurred_at >= ? AND occurred_at < ?").get(persona.id, template.templateId, day.start, day.end).count;
         const weekAgo = new Date(at.getTime() - 7 * 24 * 60 * 60_000).toISOString();
         const weekly = database.prepare("SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.templateId') = ? AND occurred_at >= ?").get(persona.id, template.templateId, weekAgo).count;
         if (daily >= Number(template.frequencyBudget?.daily || 0) || weekly >= Number(template.frequencyBudget?.weekly || 0)) return false;
@@ -1129,7 +1139,8 @@ function chooseTimelineTemplate(persona, at = new Date()) {
 
 function instantiateTimelineEvent(persona, at = new Date()) {
     const chosen = chooseTimelineTemplate(persona, at);
-    const existing = timelineDecision(persona.id, chosen.decisionKey, {decisionType: chosen.template ? 'start_event' : 'no_event', status: chosen.template ? 'accepted' : 'suppressed', priority: chosen.template?.priority || 0, preemptionMode: chosen.template?.preemptionMode || 'none', candidate: chosen.template || {kind: 'no_event'}, rationale: chosen.rationale});
+    const slot = chosen.template ? database.prepare("SELECT * FROM companion_timeline_slots WHERE persona_id = ? AND source = 'life_model_opportunity' AND status IN ('confirmed', 'active') AND json_extract(constraints_json, '$.templateId') = ? AND starts_at <= ? AND ends_at > ? ORDER BY starts_at LIMIT 1").get(persona.id, chosen.template.templateId, at.toISOString(), at.toISOString()) : null;
+    const existing = timelineDecision(persona.id, chosen.decisionKey, {slotId: slot?.id || null, decisionType: chosen.template ? 'start_event' : 'no_event', status: chosen.template ? 'accepted' : 'suppressed', priority: chosen.template?.priority || 0, preemptionMode: chosen.template?.preemptionMode || 'none', candidate: chosen.template || {kind: 'no_event'}, rationale: {...chosen.rationale, slotId: slot?.id || null}});
     if (existing.status === 'executed' || existing.status === 'suppressed') return null;
     if (!chosen.template) return null;
     const sceneRef = chosen.template.sceneRefs?.[0] || blueprint(persona.id).world?.defaultSceneRef;
@@ -1139,9 +1150,10 @@ function instantiateTimelineEvent(persona, at = new Date()) {
     const output = createEvent(persona, {
         type, situation: chosen.template.situation, mood: type === 'mild_setback' ? '有点低落' : '轻松', scene,
         resolvesAt: new Date(at.getTime() + duration * 60_000).toISOString(), content: `${persona.name}${chosen.template.situation}。`,
-        templateId: chosen.template.templateId, eventFamily: chosen.template.family, sceneRef, priority: chosen.template.priority, preemptionMode: chosen.template.preemptionMode, reversible: chosen.template.reversible, recovery: chosen.template.recovery, decisionId: existing.id
+        templateId: chosen.template.templateId, eventFamily: chosen.template.family, sceneRef, priority: chosen.template.priority, preemptionMode: chosen.template.preemptionMode, reversible: chosen.template.reversible, recovery: chosen.template.recovery, decisionId: existing.id, slotId: slot?.id
     }, {publish: true, source: 'timeline', rationale: '人格生活模型候选经时间窗口、冷却和幂等决策后实例化'});
     database.prepare("UPDATE companion_event_decisions SET status = 'executed', event_id = ?, updated_at = ? WHERE id = ? AND status = 'accepted'").run(output.eventId, now(), existing.id);
+    if (slot) database.prepare("UPDATE companion_timeline_slots SET status = 'active', outcome_json = json_set(outcome_json, '$.eventId', ?, '$.decisionId', ?), updated_at = ? WHERE id = ?").run(output.eventId, existing.id, now(), slot.id);
     const previous = database.prepare('SELECT id FROM companion_life_events WHERE persona_id = ? AND id != ? ORDER BY occurred_at DESC LIMIT 1').get(persona.id, output.eventId);
     if (previous) database.prepare('INSERT OR IGNORE INTO companion_event_links (id, persona_id, from_event_id, to_event_id, link_type, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id('event_link'), persona.id, previous.id, output.eventId, 'follows', JSON.stringify({decisionId: existing.id, templateId: chosen.template.templateId}), now());
     return output;
@@ -1269,7 +1281,8 @@ function reconcilePersona(personaId, {publish = true} = {}) {
     if (next.source === 'event') return current || next;
     if (current?.situation === next.situation && Date.now() - Date.parse(current.updated_at) < 20 * 60 * 1000) return current;
     const focused = personaFocusTier(persona) !== 'idle';
-    const dailyActivities = database.prepare("SELECT COUNT(*) AS count FROM companion_activities WHERE persona_id = ? AND substr(created_at, 1, 10) = ?").get(persona.id, now().slice(0, 10)).count;
+    const day = localDayBounds(localPlanDate(new Date(), blueprint(persona.id).timezone), blueprint(persona.id).timezone);
+    const dailyActivities = database.prepare("SELECT COUNT(*) AS count FROM companion_activities WHERE persona_id = ? AND created_at >= ? AND created_at < ?").get(persona.id, day.start, day.end).count;
     createEvent(persona, {...next, type: next.source, content: `${persona.name} ${next.situation}。`, visual: false}, {publish: publish && focused && dailyActivities < 2, rationale: `由${next.source === 'schedule' ? '已确认安排' : '日常作息'}更新当前状态`});
     if (publish && focused) instantiateTimelineEvent(persona);
     return stateFor(persona.id);
@@ -2716,10 +2729,11 @@ async function runDailyPlanJob(job) {
     const plan = database.prepare("SELECT * FROM companion_daily_plans WHERE id = ? AND persona_id = ? AND status = 'queued'").get(payload.dailyPlanId, job.persona_id);
     if (!persona || !plan) return settleJob(job, {result: {skipped: 'plan_or_persona_missing'}});
     const context = contextFor(persona.id);
+    const day = localDayBounds(payload.planDate, blueprint(persona.id).timezone);
     try {
         const response = await lmCompletion({stream: false, temperature: .35, messages: [
             {role: 'system', content: `${context.layers.immutableIdentity}\n\n${context.layers.lifeState}\n\n你是人格的日程规划器。只输出 JSON：{"items":[{"title":"","scene":"","situation":"","startsAt":"HH:MM","endsAt":"HH:MM"}]}。为 ${payload.planDate} 规划 2-6 项普通、可逆、符合身份的当天安排。已存在的明确日程不可冲突；不能创建危险、违法、重大人生事件，也不能改变身份、关系或系统规则。`},
-            {role: 'user', content: JSON.stringify({date: payload.planDate, existingSchedules: database.prepare("SELECT title, starts_at, ends_at, details_json FROM companion_schedule_items WHERE persona_id = ? AND substr(starts_at, 1, 10) = ? AND status = 'active'").all(persona.id, payload.planDate)})}
+            {role: 'user', content: JSON.stringify({date: payload.planDate, existingSchedules: database.prepare("SELECT title, starts_at, ends_at, details_json FROM companion_schedule_items WHERE persona_id = ? AND starts_at >= ? AND starts_at < ? AND status = 'active'").all(persona.id, day.start, day.end)})}
         ]});
         const data = await response.json();
         const parsed = json(String(data.choices?.[0]?.message?.content || '').match(/\{[\s\S]*\}/)?.[0], {});
@@ -2729,8 +2743,8 @@ async function runDailyPlanJob(job) {
         database.transaction(() => {
             const leased = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND job_type = 'daily_plan' AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
             if (!leased) return;
-            database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'ai_daily_plan' AND substr(starts_at, 1, 10) = ?").run(persona.id, payload.planDate);
-            database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'life_model_fixed' AND substr(starts_at, 1, 10) = ?").run(persona.id, payload.planDate);
+            database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'ai_daily_plan' AND starts_at >= ? AND starts_at < ?").run(persona.id, day.start, day.end);
+            database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'life_model_fixed' AND starts_at >= ? AND starts_at < ?").run(persona.id, day.start, day.end);
             database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'ai_daily_plan'").run(persona.id, payload.planDate);
             database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'life_model_fixed'").run(persona.id, payload.planDate);
             database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'life_model_flexible'").run(persona.id, payload.planDate);
@@ -2753,7 +2767,7 @@ async function runDailyPlanJob(job) {
                 if (!blueprintTime(start) || !blueprintTime(end)) continue;
                 const sceneRef = template.sceneRefs?.[0] || blueprint(persona.id).world?.defaultSceneRef;
                 const scene = resolveSceneRef(blueprint(persona.id), sceneRef).scene;
-                insertTimelineSlot(persona, payload.planDate, {slotKey: `opportunity:${template.templateId}`, slotKind: 'opportunity', startsAt: zonedPlanInstant(payload.planDate, start, blueprint(persona.id).timezone), endsAt: zonedPlanInstant(payload.planDate, end, blueprint(persona.id).timezone), source: 'life_model_opportunity', priority: template.priority, title: template.title, situation: template.situation, scene, sceneRef, templateId: template.templateId, outcome: {reason: 'candidate_window'}}, updatedAt);
+                insertTimelineSlot(persona, payload.planDate, {slotKey: `opportunity:${template.templateId}`, slotKind: 'opportunity', startsAt: zonedPlanInstant(payload.planDate, start, blueprint(persona.id).timezone), endsAt: zonedPlanInstant(payload.planDate, end, blueprint(persona.id).timezone), source: 'life_model_opportunity', priority: template.priority, title: template.title, situation: template.situation, scene, sceneRef, templateId: template.templateId, constraints: {templateId: template.templateId, family: template.family}, outcome: {reason: 'candidate_window'}}, updatedAt);
             }
             for (const item of items) {
                 const startsAt = zonedPlanInstant(payload.planDate, item.startsAt, blueprint(persona.id).timezone);
@@ -3127,7 +3141,7 @@ app.get('/api/companion/media/:mediaId', async (req, res) => {
 });
 
 export const companionApp = app;
-export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan, mediaProviders, providerFor, providerSummaries, validateMediaSettings, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
+export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan, mediaProviders, providerFor, providerSummaries, validateMediaSettings, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
 
 if (process.env.COMPANION_TEST !== '1') {
     app.listen(port, () => {

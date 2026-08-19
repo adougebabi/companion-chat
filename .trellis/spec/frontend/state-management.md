@@ -21,6 +21,59 @@ Compute counts and labels from `state` during `renderMemory()`/`renderPersonaLis
 - Sending duplicate chat requests; `send()` guards with `isSending` and disables the send button.
 - Assuming localStorage contains server truth; it stores only the selected persona ID.
 
+## Scenario: Timeline and deferred-chat projection
+
+### 1. Scope / Trigger
+
+- Trigger: the companion API exposes current scene/location, timeline decisions, or deferred sleep-reply diagnostics.
+
+### 2. Signatures
+
+- Ordinary persona detail `state` includes `scene`, `location`, and `room` in addition to situation/mood/source.
+- Debug-only `GET /api/companion/personas/:personaId/lifecycle` additionally includes `timeline`, `decisions`, and `deferredBatches`.
+- A deferred chat response emits the normal SSE `done` shape with `messages: []`; it does not emit a synthetic assistant message or a new SSE event name.
+
+### 3. Contracts
+
+- Ordinary UI renders the user-facing scene/location only; it never renders batch delivery time, random draw, intimacy score, or decision rationale.
+- The debug inspector may render timeline and batch summaries only when `debugInspector` is true.
+- Treat an empty `done.messages` as a completed transport response, not an error or a typing entry that should remain on screen.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Deferred batch chosen | Remove transient typing state; render no fake assistant message. |
+| Poll later returns real assistant reply | Render it as an ordinary persisted message. |
+| Debug flag disabled | Never request lifecycle-only decision/batch fields. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a sleeping persona replies later with a normal message and no visible “queued” state.
+- Base: detail view shows `图书馆自习区 · 学校` as current scene/location.
+- Bad: displaying an internal `deliverAt`, probability, or raw deferred-batch JSON to the user.
+
+### 6. Tests Required
+
+- Verify the client safely handles `done.messages = []`.
+- Verify ordinary detail UI consumes scene/location fields and inspector-only fields remain gated.
+- Verify background polling does not manufacture a duplicate reply after a deferred batch settles.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+messages.push({role: 'assistant', text: '她正在睡觉，稍后回复'});
+```
+
+#### Correct
+
+```js
+// Keep the user message; wait for the later persisted assistant reply.
+activeMessages = activeMessages.filter(message => message !== typingEntry);
+```
+
 ## Scenario: Mobile composer and image-safe background refresh
 
 ### 1. Scope / Trigger
