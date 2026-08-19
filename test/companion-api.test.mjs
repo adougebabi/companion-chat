@@ -9,9 +9,53 @@ process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '0';
 const {companionApp, companionTestHooks} = await import(`../server.js?test=${Date.now()}`);
-const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, providerFor, providerSummaries, h3Args, h3OutputFile, leaseDurationForJob, saveSettings, publicSettings} = companionTestHooks;
+const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, providerFor, providerSummaries, h3Args, h3OutputFile, leaseDurationForJob, saveSettings, publicSettings} = companionTestHooks;
 
 const routePaths = app => (app.router?.stack || []).flatMap(layer => layer.route ? [layer.route.path] : []);
+
+test('life model v2 fallback supplies a default room, safe event templates, and v7 tables', () => {
+    const requiredTables = [
+        'companion_persona_life_blueprint_revisions', 'companion_timeline_slots', 'companion_event_decisions',
+        'companion_event_links', 'companion_chat_deferred_batches'
+    ];
+    for (const name of requiredTables) assert.equal(database.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = ?").get(name).count, 1);
+
+    const fallback = buildInitialBlueprint({name: '阿遥', role: '在读大学生', interests: '摄影、旧书店'});
+    assert.equal(fallback.schemaVersion, lifeModelSchemaVersion);
+    assert.equal(fallback.timezone, 'Asia/Shanghai');
+    assert.deepEqual(fallback.world.defaultSceneRef, {locationId: 'home', roomId: 'private_room'});
+    const defaultRoom = fallback.world.locations.find(location => location.id === 'home').rooms.find(room => room.id === 'private_room');
+    assert.match(defaultRoom.scene, /自己的宿舍房间/);
+    assert.equal(validateLifeBlueprint(fallback).ok, true);
+    assert.equal(fallback.fixedTimeEvents.length > 0, true);
+    assert.equal(fallback.dailyFlexibleEvents.length > 0, true);
+    assert.equal(fallback.randomPositiveEvents.length > 0, true);
+    assert.equal(fallback.randomNegativeEvents.length > 0, true);
+
+    const unsafe = structuredClone(fallback);
+    unsafe.randomNegativeEvents[0] = {...unsafe.randomNegativeEvents[0], situation: '遭遇严重伤害', recovery: ''};
+    const validation = validateLifeBlueprint(normalizeLifeBlueprint(unsafe));
+    assert.equal(validation.ok, false);
+    assert.match(validation.errors.join('；'), /负向事件/);
+    assert.equal(finalizeLifeBlueprint(unsafe, fallback).generation.usedFallback, true);
+});
+
+test('initial life-model generation falls back safely when the local model request fails', async () => {
+    const baseline = buildInitialBlueprint({name: '回退', role: '学生', foundation: '回退保持稳定的日常。'});
+    const originalFetch = globalThis.fetch;
+    const previous = publicSettings();
+    saveSettings({model: 'test-life-model'});
+    globalThis.fetch = async () => { throw new Error('mock timeout'); };
+    try {
+        const generated = await generateInitialLifeBlueprint({name: '回退', role: '学生', foundation: baseline.foundation}, baseline);
+        assert.equal(generated.generation.usedFallback, true);
+        assert.equal(validateLifeBlueprint(generated).ok, true);
+        assert.match(generated.generation.validationWarnings.join(' '), /mock timeout/);
+    } finally {
+        globalThis.fetch = originalFetch;
+        saveSettings({model: previous.model, lmStudioUrl: previous.lmStudioUrl});
+    }
+});
 
 test('clean-start companion flow isolates persona data and keeps reactions idempotent', () => {
     assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_personas').get().count, 0);
@@ -19,6 +63,8 @@ test('clean-start companion flow isolates persona data and keeps reactions idemp
 
     const persona = createPersona({name: '林晚', role: '在读大学生', foundation: '林晚学习视觉设计，性格开朗而有主见。', supportingCast: [{name: '小柯', relationshipKind: '室友'}]});
     assert.equal(Object.hasOwn(publicBlueprint(persona.id), 'foundation'), false);
+    assert.deepEqual(publicBlueprint(persona.id).world.defaultSceneRef, {locationId: 'home', roomId: 'private_room'});
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_persona_life_blueprint_revisions WHERE persona_id = ?').get(persona.id).count, 1);
     const source = requirePersona(persona.id);
     const result = createEvent(source, {
         type: 'shopping', situation: '在商场挑衣服', mood: '开心', scene: '商场',
@@ -72,6 +118,25 @@ test('clean-start companion flow isolates persona data and keeps reactions idemp
     database.prepare('UPDATE companion_persona_states SET checkpoint_at = ? WHERE persona_id = ?').run(new Date(Date.now() - 31 * 60 * 1000).toISOString(), persona.id);
     recoverPersona(persona.id);
     assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ? AND type = 'recovery'").get(persona.id).count, 1);
+});
+
+test('timeline decisions persist no-event outcomes and sleep batches merge without waking again', () => {
+    const persona = createPersona({name: '时间线', role: '学生', foundation: '时间线有自己的生活节奏。'});
+    const source = requirePersona(persona.id);
+    const at = new Date();
+    const first = chooseTimelineTemplate(source, at);
+    assert.equal(first.decisionKey, chooseTimelineTemplate(source, at).decisionKey);
+    instantiateTimelineEvent(source, at);
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_event_decisions WHERE persona_id = ? AND decision_key = ?').get(persona.id, first.decisionKey).count, 1);
+    const midnight = new Date();
+    midnight.setHours(0, 30, 0, 0);
+    assert.equal(sleepAvailability(source, midnight).sleeping, true);
+    const firstMessage = appendMessage(persona.id, {role: 'user', text: '睡了吗？'});
+    const firstBatch = deferredBatchForMessage(source, firstMessage.id, midnight);
+    const secondMessage = appendMessage(persona.id, {role: 'user', text: '明天再回也没关系。'});
+    const secondBatch = deferredBatchForMessage(source, secondMessage.id, midnight);
+    assert.equal(secondBatch.id, firstBatch.id);
+    assert.deepEqual(JSON.parse(secondBatch.message_ids_json), [firstMessage.id, secondMessage.id]);
 });
 
 test('adaptive interviews skip known facts and preserve inferred blueprint provenance', () => {
@@ -453,6 +518,9 @@ test('permanently deleting a test persona removes its private rows without touch
     assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_activities WHERE persona_id = ?').get(removable.id).count, 0);
     assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_conversations WHERE persona_id = ?').get(removable.id).count, 0);
     assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_persona_foundation_revisions WHERE persona_id = ?').get(removable.id).count, 0);
+    for (const table of ['companion_persona_life_blueprint_revisions', 'companion_timeline_slots', 'companion_event_decisions', 'companion_event_links', 'companion_chat_deferred_batches']) {
+        assert.equal(database.prepare(`SELECT COUNT(*) AS count FROM ${table} WHERE persona_id = ?`).get(removable.id).count, 0);
+    }
     assert.equal(listActivities({limit: 100}).items.some(item => item.id === event.activityId), false);
     assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_messages WHERE id = ?').get(media.message.id).count, 0);
     assert.deepEqual(listMessages(survivor.id, {markRead: false}).items.map(message => message.text), ['这段对话必须保留。']);

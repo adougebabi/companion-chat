@@ -1,0 +1,8 @@
+{"source":"test/companion-api.test.mjs:178-185","kind":"regression","summary":"活跃事件必须继续覆盖 routine，并一致进入 state/chat context。","check":"验证 active event > schedule > routine 的新优先级不会破坏现有契约。"}
+{"source":"test/companion-api.test.mjs:435-503","kind":"regression","summary":"screened/focus/daily budget/lease 规则必须继续阻止不应投递的 proactive message。","check":"验证事件事实、delivery intent 与实际消息分离后，屏蔽和预算仍然生效。"}
+{"source":"test/companion-api.test.mjs:505-521","kind":"regression","summary":"schedule_rescheduled 必须保留 causation/audit 语义。","check":"验证 timeline slot 与 schedule audit 同时存在时不会丢失原 schedule 关联。"}
+{"source":"test/companion-api.test.mjs:550-589","kind":"regression","summary":"recovery 和聊天媒体持久化/原位替换契约必须保持。","check":"验证离线不补发旧事件，媒体 job retry 不重复资产或消息。"}
+{"source":"design.md:3-22","kind":"design","summary":"生活模型、timeline slot、event decision、life event projection 四层边界。","check":"审查是否仍把 LLM、候选、决策和事实耦合进 createEvent。"}
+{"source":"design.md:130-166","kind":"design","summary":"睡眠 deferred batch 是不可打断、合并多消息、按 deliverAt 普通投递的独立持久化决策。","check":"测试亲密度概率、固定随机、追加消息、重启幂等和不展示内部状态。"}
+{"source":"design.md:187-204","kind":"security","summary":"LLM validator 与 createEvent 前 runtime guard 共同阻止不可逆风险。","check":"测试 identity lock、严重风险、无 recovery 的 negative event、无效 sceneRef 和超限输出。"}
+{"source":"src/companion-main.js:667-705","kind":"observability","summary":"Debug Inspector 仅开发环境展示生命周期和作业。","check":"验证 timeline/decision/batch 新字段只在 debug API 暴露且完成敏感字段脱敏。"}

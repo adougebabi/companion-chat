@@ -27,6 +27,62 @@ The companion domain starts clean. It does not read, import, migrate, or delete 
 - Returning a masked API key and then persisting the mask value. Expose `hasLmStudioApiKey`; treat an empty or sentinel key patch as unchanged.
 - Committing `data/`; it contains private local companion data and is intentionally ignored.
 
+## Scenario: Persona life-model timeline and deferred chat batches
+
+### 1. Scope / Trigger
+
+- Trigger: a persona needs a durable life model, daily time-line decisions, and sleep-time delayed replies without adding an external queue or a second database.
+
+### 2. Signatures
+
+- Migration v7 owns `companion_persona_life_blueprint_revisions`, `companion_timeline_slots`, `companion_event_decisions`, `companion_event_links`, and `companion_chat_deferred_batches`.
+- `companion_event_decisions` is unique on `(persona_id, decision_key)`.
+- `companion_chat_deferred_batches` is unique on `(persona_id, batch_key)` and owns `deliver_at`, `message_ids_json`, and `result_message_id`.
+
+### 3. Contracts
+
+- `companion_life_events` remains the immutable fact record; future slots and choices do not masquerade as facts.
+- A queued sleep batch accepts later message IDs into the same JSON array but cannot be replaced by a new immediate-reply decision.
+- A deferred-reply job rechecks its lease and batch status before creating its one assistant reply.
+- Delete a persona's deferred batches, links, decisions, slots, and blueprint revisions before deleting their referenced conversations, events, jobs, schedules, or persona.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Duplicate `decision_key` / `batch_key` | Reuse the existing durable record; do not create another fact or reply. |
+| Life-model candidate lacks a valid default room or safe four-template shape | Use the deterministic v2 fallback and record validation warnings. |
+| Negative template is not mild, reversible, and recoverable | Reject the generated candidate and fall back. |
+| Deferred batch no longer queued or its job lease is stale | Do not insert a reply. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a sleeping persona accumulates three messages in one batch and emits one ordinary reply at `deliver_at`.
+- Base: no opportunity candidate creates a suppressed `no_event` decision without producing a dynamic.
+- Bad: creating a new event on every tick, treating an event decision as an event fact, or allowing a second user message to wake an already deferred sleep batch.
+
+### 6. Tests Required
+
+- Assert v7 migration tables, life-model fallback, default room, and negative-event validation.
+- Assert one decision per `decision_key`, no-event persistence, and event priority state projection.
+- Assert one deferred batch collects multiple messages and cannot duplicate a reply after retry/restart.
+- Assert persona deletion removes all v7 rows atomically.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+createEvent(persona, generatedCandidate); // writes a fact before constraints/idempotency
+```
+
+#### Correct
+
+```js
+const decision = timelineDecision(persona.id, decisionKey, candidate);
+if (decision.status === 'accepted') instantiateTimelineEvent(persona);
+```
+
 ## Scenario: Permanent test-persona deletion
 
 ### 1. Scope / Trigger

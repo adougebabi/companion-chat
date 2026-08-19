@@ -232,6 +232,67 @@ const companionMigrations = [
                 CREATE INDEX companion_daily_plans_persona_date_idx ON companion_daily_plans(persona_id, plan_date DESC);
             `);
         }
+    },
+    {
+        version: 7,
+        name: 'persona-life-model-timeline',
+        apply() {
+            database.exec(`
+                CREATE TABLE companion_persona_life_blueprint_revisions (
+                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
+                    version INTEGER NOT NULL, blueprint_json TEXT NOT NULL, reason TEXT NOT NULL,
+                    schema_version INTEGER NOT NULL, source TEXT NOT NULL, prompt_version TEXT,
+                    model TEXT, used_fallback INTEGER NOT NULL DEFAULT 0,
+                    validation_warnings_json TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL,
+                    UNIQUE(persona_id, version)
+                );
+                CREATE INDEX companion_life_blueprint_revisions_persona_idx
+                    ON companion_persona_life_blueprint_revisions(persona_id, version DESC);
+                CREATE TABLE companion_timeline_slots (
+                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
+                    plan_date TEXT NOT NULL, slot_key TEXT NOT NULL, slot_kind TEXT NOT NULL,
+                    starts_at TEXT, ends_at TEXT, status TEXT NOT NULL, source TEXT NOT NULL,
+                    priority INTEGER NOT NULL DEFAULT 0, schedule_id TEXT REFERENCES companion_schedule_items(id),
+                    plan_revision INTEGER, constraints_json TEXT NOT NULL DEFAULT '{}',
+                    outcome_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                    UNIQUE(persona_id, plan_date, slot_key)
+                );
+                CREATE INDEX companion_timeline_slots_persona_date_idx
+                    ON companion_timeline_slots(persona_id, plan_date, starts_at);
+                CREATE TABLE companion_event_decisions (
+                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
+                    slot_id TEXT REFERENCES companion_timeline_slots(id), decision_key TEXT NOT NULL,
+                    decision_type TEXT NOT NULL, status TEXT NOT NULL, run_at TEXT, expires_at TEXT,
+                    priority INTEGER NOT NULL DEFAULT 0, preemption_mode TEXT NOT NULL DEFAULT 'none',
+                    candidate_json TEXT NOT NULL DEFAULT '{}', rationale_json TEXT NOT NULL DEFAULT '{}',
+                    event_id TEXT REFERENCES companion_life_events(id), job_id TEXT REFERENCES companion_jobs(id),
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(persona_id, decision_key)
+                );
+                CREATE INDEX companion_event_decisions_persona_status_idx
+                    ON companion_event_decisions(persona_id, status, run_at);
+                CREATE TABLE companion_event_links (
+                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
+                    from_event_id TEXT NOT NULL REFERENCES companion_life_events(id),
+                    to_event_id TEXT NOT NULL REFERENCES companion_life_events(id), link_type TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL,
+                    UNIQUE(from_event_id, to_event_id, link_type)
+                );
+                CREATE INDEX companion_event_links_persona_from_idx
+                    ON companion_event_links(persona_id, from_event_id, created_at);
+                CREATE TABLE companion_chat_deferred_batches (
+                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
+                    conversation_id TEXT NOT NULL REFERENCES companion_conversations(id), batch_key TEXT NOT NULL,
+                    status TEXT NOT NULL, deliver_at TEXT NOT NULL, decision_json TEXT NOT NULL DEFAULT '{}',
+                    message_ids_json TEXT NOT NULL DEFAULT '[]', result_message_id TEXT REFERENCES companion_messages(id),
+                    attempt_count INTEGER NOT NULL DEFAULT 0, error TEXT, created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL, completed_at TEXT, UNIQUE(persona_id, batch_key)
+                );
+                CREATE INDEX companion_chat_deferred_batches_due_idx
+                    ON companion_chat_deferred_batches(status, deliver_at);
+                CREATE INDEX companion_chat_deferred_batches_persona_idx
+                    ON companion_chat_deferred_batches(persona_id, status, created_at DESC);
+            `);
+        }
     }
 ];
 
@@ -342,6 +403,13 @@ function blueprint(personaId) {
     return json(database.prepare('SELECT blueprint_json FROM companion_persona_life_blueprints WHERE persona_id = ?').get(personaId)?.blueprint_json, {});
 }
 
+function resolveSceneRef(life, ref) {
+    const target = isRecord(ref) ? ref : life?.world?.defaultSceneRef;
+    const location = (life?.world?.locations || []).find(item => item.id === target?.locationId);
+    const room = location?.rooms?.find(item => item.id === target?.roomId);
+    return {locationId: location?.id || '', roomId: room?.id || '', scene: room?.scene || location?.name || '日常场景', location: location?.name || '', room: room?.name || ''};
+}
+
 function publicBlueprint(personaId) {
     const {foundation, ...safe} = blueprint(personaId);
     return safe;
@@ -386,8 +454,11 @@ function stateShape(personaId) {
         ? persistedSource
         : ['schedule', 'recovery'].includes(persistedSource?.type) ? persistedSource : null;
     const payload = json(sourceEvent?.payload_json, {});
+    const sceneRef = payload.sceneRef || scheduledState(requirePersona(personaId)).sceneRef || blueprint(personaId).world?.defaultSceneRef;
+    const resolvedScene = resolveSceneRef(blueprint(personaId), sceneRef);
     return {
         situation: state.situation, mood: state.mood, appearance: json(state.appearance_json, {}),
+        scene: state.resolved_scene || resolvedScene.scene, location: resolvedScene.location, room: resolvedScene.room,
         updatedAt: state.updated_at, checkpointAt: state.checkpoint_at, sourceEventId: state.source_event_id || null,
         source: sourceEvent ? {
             kind: sourceEvent.type, eventId: sourceEvent.id, occurredAt: sourceEvent.occurred_at,
@@ -420,16 +491,22 @@ function listPersonas() {
     return database.prepare('SELECT * FROM companion_personas WHERE enabled = 1 AND deleted_at IS NULL ORDER BY created_at').all().map(summary);
 }
 
-function localHour(date = new Date()) {
-    return Number(new Intl.DateTimeFormat('en-US', {hour: '2-digit', hour12: false}).format(date));
+function localHour(date = new Date(), timeZone) {
+    return Number(new Intl.DateTimeFormat('en-US', {hour: '2-digit', hour12: false, ...(timeZone ? {timeZone} : {})}).format(date));
 }
 
-function localPlanDate(date = new Date()) {
-    return new Intl.DateTimeFormat('en-CA', {year: 'numeric', month: '2-digit', day: '2-digit'}).format(date);
+function localMinute(date = new Date(), timeZone) {
+    const parts = new Intl.DateTimeFormat('en-US', {hour: '2-digit', minute: '2-digit', hour12: false, ...(timeZone ? {timeZone} : {})}).formatToParts(date);
+    const take = kind => Number(parts.find(part => part.type === kind)?.value || 0);
+    return take('hour') * 60 + take('minute');
+}
+
+function localPlanDate(date = new Date(), timeZone) {
+    return new Intl.DateTimeFormat('en-CA', {year: 'numeric', month: '2-digit', day: '2-digit', ...(timeZone ? {timeZone} : {})}).format(date);
 }
 
 function ensureDailyPlan(personaId, date = new Date()) {
-    const planDate = localPlanDate(date);
+    const planDate = localPlanDate(date, blueprint(personaId).timezone);
     const existing = database.prepare('SELECT id, status FROM companion_daily_plans WHERE persona_id = ? AND plan_date = ?').get(personaId, planDate);
     if (existing) return existing;
     const createdAt = now();
@@ -460,6 +537,177 @@ function defaultRoutine(role) {
     ];
 }
 
+const lifeModelSchemaVersion = 2;
+const lifeModelPromptVersion = 'life-model-v2-fallback';
+const lifeModelBlockedTerms = /死亡|自杀|重伤|住院|诊断|手术|犯罪|违法|逮捕|巨额|破产|借贷|失业|退学|分手|绝交|怀孕|威胁|勒索|death|suicide|severe injury|hospital|diagnosis|surgery|crime|illegal|arrest|bankrupt|debt|fired|expelled|breakup|blackmail/i;
+const isRecord = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+const blueprintText = (value, max = 240) => String(value || '').trim().slice(0, max);
+const blueprintTime = value => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ''));
+const blueprintMinute = value => {
+    const [hour, minute] = String(value || '').split(':').map(Number);
+    return hour * 60 + minute;
+};
+
+function defaultLifeWorld(name, role) {
+    const student = /学生|大学|高中|学院/i.test(role);
+    const homeName = student ? '住处' : '家中';
+    const roomName = student ? '自己的宿舍房间' : '自己的房间';
+    return {
+        defaultSceneRef: {locationId: 'home', roomId: 'private_room'},
+        locations: [{
+            id: 'home', kind: 'home', name: homeName, isDefault: true,
+            rooms: [{
+                id: 'private_room', kind: 'private_room', name: roomName,
+                scene: `${name}在${roomName}里，保持自然、私密而放松的日常状态。`,
+                activityTags: ['rest', 'study', 'chat']
+            }]
+        }]
+    };
+}
+
+function defaultLifeTemplates(role, interests, world) {
+    const sceneRefs = [world.defaultSceneRef];
+    const interest = interests[0] || '自己喜欢的小事';
+    const student = /学生|大学|高中|学院/i.test(role);
+    return {
+        fixedTimeEvents: [{
+            templateId: 'fixed_primary_commitment', family: student ? 'class' : 'work', title: student ? '固定课程或自习' : '固定工作安排',
+            situation: student ? '在教室或图书馆专注学习' : '在工作空间处理固定安排', timeMode: 'fixed',
+            timeWindow: {start: student ? '09:00' : '09:30', end: student ? '12:00' : '12:00'}, durationMinutes: [120, 180], sceneRefs,
+            prerequisites: [], priority: 70, preemptionMode: 'block', skippable: false, cooldownHours: 0,
+            frequencyBudget: {daily: 1, weekly: 5}, riskLevel: 'none', reversible: true, effects: ['日常进度'], recovery: '', provenance: 'fallback'
+        }],
+        dailyFlexibleEvents: [{
+            templateId: 'flexible_meal_rest', family: 'rest', title: '用餐和短暂休息', situation: '安排一顿饭并让自己短暂放松', timeMode: 'flexible',
+            timeWindow: {start: '12:00', end: '14:30'}, durationMinutes: [45, 90], sceneRefs, prerequisites: [], priority: 30,
+            preemptionMode: 'none', skippable: true, cooldownHours: 4, frequencyBudget: {daily: 1, weekly: 7},
+            riskLevel: 'none', reversible: true, effects: ['恢复注意力'], recovery: '', provenance: 'fallback'
+        }],
+        randomPositiveEvents: [{
+            templateId: 'positive_interest_window', family: 'interest', title: `投入${interest}`, situation: `在空闲时间做一点${interest}相关的小事`, timeMode: 'opportunity',
+            timeWindow: {start: '18:00', end: '21:30'}, durationMinutes: [30, 120], sceneRefs, prerequisites: [], priority: 20,
+            preemptionMode: 'overlay', skippable: true, cooldownHours: 24, frequencyBudget: {daily: 1, weekly: 3},
+            riskLevel: 'none', reversible: true, effects: ['愉悦', '生活感'], recovery: '', provenance: 'fallback'
+        }],
+        randomNegativeEvents: [{
+            templateId: 'negative_minor_inconvenience', family: 'mild_setback', title: '小小的不便', situation: '遇到一点短暂的小麻烦，调整后继续原本安排', timeMode: 'conditional',
+            timeWindow: {start: '10:00', end: '20:00'}, durationMinutes: [15, 45], sceneRefs, prerequisites: [], priority: 10,
+            preemptionMode: 'overlay', skippable: true, cooldownHours: 48, frequencyBudget: {daily: 1, weekly: 2},
+            riskLevel: 'mild', reversible: true, effects: ['短暂受挫'], recovery: '解决眼前的小问题后回到原本的日常安排。', provenance: 'fallback'
+        }]
+    };
+}
+
+function normalizeLifeTemplate(raw, fallbackProvenance = 'generated') {
+    if (!isRecord(raw)) return null;
+    const timeWindow = isRecord(raw.timeWindow) ? raw.timeWindow : {};
+    return {
+        templateId: blueprintText(raw.templateId, 80), family: blueprintText(raw.family, 48), title: blueprintText(raw.title, 100), situation: blueprintText(raw.situation, 240),
+        timeMode: ['fixed', 'flexible', 'opportunity', 'conditional'].includes(raw.timeMode) ? raw.timeMode : '',
+        timeWindow: {start: blueprintText(timeWindow.start, 5), end: blueprintText(timeWindow.end, 5)},
+        durationMinutes: Array.isArray(raw.durationMinutes) ? raw.durationMinutes.slice(0, 2).map(Number) : [],
+        sceneRefs: Array.isArray(raw.sceneRefs) ? raw.sceneRefs.slice(0, 3).map(ref => isRecord(ref) ? {locationId: blueprintText(ref.locationId, 48), roomId: blueprintText(ref.roomId, 48)} : null).filter(Boolean) : [],
+        prerequisites: Array.isArray(raw.prerequisites) ? raw.prerequisites.slice(0, 6).map(value => blueprintText(value, 100)).filter(Boolean) : [],
+        priority: Number(raw.priority), preemptionMode: ['none', 'overlay', 'replace', 'block'].includes(raw.preemptionMode) ? raw.preemptionMode : 'none',
+        skippable: Boolean(raw.skippable), cooldownHours: Number(raw.cooldownHours),
+        frequencyBudget: isRecord(raw.frequencyBudget) ? {daily: Number(raw.frequencyBudget.daily), weekly: Number(raw.frequencyBudget.weekly)} : {},
+        riskLevel: blueprintText(raw.riskLevel, 16), reversible: raw.reversible === true,
+        effects: Array.isArray(raw.effects) ? raw.effects.slice(0, 6).map(value => blueprintText(value, 80)).filter(Boolean) : [],
+        recovery: blueprintText(raw.recovery, 240), provenance: ['user', 'generated', 'fallback'].includes(raw.provenance) ? raw.provenance : fallbackProvenance
+    };
+}
+
+function normalizeLifeBlueprint(value) {
+    if (!isRecord(value)) return null;
+    const world = isRecord(value.world) ? value.world : {};
+    const locations = Array.isArray(world.locations) ? world.locations.slice(0, 8).map(location => {
+        if (!isRecord(location)) return null;
+        return {
+            id: blueprintText(location.id, 48), kind: blueprintText(location.kind, 48), name: blueprintText(location.name, 80), isDefault: location.isDefault === true,
+            rooms: Array.isArray(location.rooms) ? location.rooms.slice(0, 8).map(room => isRecord(room) ? {
+                id: blueprintText(room.id, 48), kind: blueprintText(room.kind, 48), name: blueprintText(room.name, 80), scene: blueprintText(room.scene, 320),
+                activityTags: Array.isArray(room.activityTags) ? room.activityTags.slice(0, 8).map(tag => blueprintText(tag, 40)).filter(Boolean) : []
+            } : null).filter(Boolean) : []
+        };
+    }).filter(Boolean) : [];
+    const refs = isRecord(world.defaultSceneRef) ? world.defaultSceneRef : {};
+    const normalized = {
+        ...value,
+        schemaVersion: Number(value.schemaVersion), timezone: blueprintText(value.timezone, 80),
+        world: {defaultSceneRef: {locationId: blueprintText(refs.locationId, 48), roomId: blueprintText(refs.roomId, 48)}, locations},
+        fixedTimeEvents: Array.isArray(value.fixedTimeEvents) ? value.fixedTimeEvents.slice(0, 12).map(item => normalizeLifeTemplate(item)).filter(Boolean) : [],
+        dailyFlexibleEvents: Array.isArray(value.dailyFlexibleEvents) ? value.dailyFlexibleEvents.slice(0, 12).map(item => normalizeLifeTemplate(item)).filter(Boolean) : [],
+        randomPositiveEvents: Array.isArray(value.randomPositiveEvents) ? value.randomPositiveEvents.slice(0, 16).map(item => normalizeLifeTemplate(item)).filter(Boolean) : [],
+        randomNegativeEvents: Array.isArray(value.randomNegativeEvents) ? value.randomNegativeEvents.slice(0, 12).map(item => normalizeLifeTemplate(item)).filter(Boolean) : [],
+        supportingCast: Array.isArray(value.supportingCast) ? value.supportingCast.slice(0, 6).map(raw => ({name: blueprintText(raw?.name || raw, 60), relationshipKind: blueprintText(raw?.relationshipKind || '朋友', 60)})).filter(raw => raw.name) : [],
+        generation: isRecord(value.generation) ? {
+            source: ['user', 'generated', 'fallback'].includes(value.generation.source) ? value.generation.source : 'generated',
+            promptVersion: blueprintText(value.generation.promptVersion, 80), model: blueprintText(value.generation.model, 120), usedFallback: value.generation.usedFallback === true,
+            validationWarnings: Array.isArray(value.generation.validationWarnings) ? value.generation.validationWarnings.slice(0, 12).map(item => blueprintText(item, 180)).filter(Boolean) : []
+        } : {source: 'generated', promptVersion: '', model: '', usedFallback: false, validationWarnings: []}
+    };
+    return normalized;
+}
+
+function validateLifeBlueprint(value) {
+    const errors = [];
+    if (!isRecord(value) || value.schemaVersion !== lifeModelSchemaVersion) return {ok: false, errors: ['life model schemaVersion 必须为 2']};
+    if (!blueprintText(value.timezone, 80)) errors.push('life model 必须包含 timezone');
+    const locations = value.world?.locations;
+    const defaultRef = value.world?.defaultSceneRef;
+    if (!Array.isArray(locations) || !locations.length || !blueprintText(defaultRef?.locationId) || !blueprintText(defaultRef?.roomId)) errors.push('life model 必须包含默认地点和房间');
+    const roomRefs = new Set();
+    for (const location of locations || []) {
+        if (!blueprintText(location?.id) || !blueprintText(location?.name) || !Array.isArray(location?.rooms) || !location.rooms.length) errors.push('每个地点必须有 ID、名称和房间');
+        for (const room of location?.rooms || []) {
+            if (!blueprintText(room?.id) || !blueprintText(room?.name) || !blueprintText(room?.scene)) errors.push('每个房间必须有 ID、名称和场景');
+            roomRefs.add(`${location.id}:${room.id}`);
+        }
+    }
+    if (!roomRefs.has(`${defaultRef?.locationId}:${defaultRef?.roomId}`)) errors.push('默认房间必须引用 world 中已有的地点和房间');
+    const collections = [
+        ['fixedTimeEvents', 'fixedTimeEvents'], ['dailyFlexibleEvents', 'dailyFlexibleEvents'],
+        ['randomPositiveEvents', 'randomPositiveEvents'], ['randomNegativeEvents', 'randomNegativeEvents']
+    ];
+    const templateIds = new Set();
+    const fixedWindows = [];
+    for (const [key, kind] of collections) {
+        const templates = value[key];
+        if (!Array.isArray(templates) || !templates.length) {
+            errors.push(`${key} 至少需要一个模板`);
+            continue;
+        }
+        for (const template of templates) {
+            if (!blueprintText(template?.templateId) || !blueprintText(template?.family) || !blueprintText(template?.title) || !blueprintText(template?.situation)) errors.push(`${key} 模板缺少基础字段`);
+            if (templateIds.has(template?.templateId)) errors.push('事件模板 ID 不可重复');
+            templateIds.add(template?.templateId);
+            if (!['fixed', 'flexible', 'opportunity', 'conditional'].includes(template?.timeMode)) errors.push('事件模板 timeMode 不合法');
+            if (!blueprintTime(template?.timeWindow?.start) || !blueprintTime(template?.timeWindow?.end) || blueprintMinute(template?.timeWindow?.start) >= blueprintMinute(template?.timeWindow?.end)) errors.push('事件模板时间窗口不合法');
+            if (!Array.isArray(template?.durationMinutes) || template.durationMinutes.length !== 2 || !template.durationMinutes.every(value => Number.isInteger(value) && value > 0) || template.durationMinutes[0] > template.durationMinutes[1]) errors.push('事件模板持续时间不合法');
+            if (!Array.isArray(template?.sceneRefs) || !template.sceneRefs.length || template.sceneRefs.some(ref => !roomRefs.has(`${ref.locationId}:${ref.roomId}`))) errors.push('事件模板引用了不存在的地点或房间');
+            if (!Number.isInteger(template?.priority) || template.priority < 0 || template.priority > 100 || !Number.isFinite(template?.cooldownHours) || template.cooldownHours < 0 || !Number.isInteger(template?.frequencyBudget?.daily) || !Number.isInteger(template?.frequencyBudget?.weekly)) errors.push('事件模板优先级或频率预算不合法');
+            if (kind === 'randomNegativeEvents') {
+                const safetyText = [template.title, template.situation, ...(template.effects || []), template.recovery].join(' ');
+                if (template.riskLevel !== 'mild' || template.reversible !== true || !blueprintText(template.recovery) || lifeModelBlockedTerms.test(safetyText)) errors.push('负向事件必须是 mild、可逆、具备恢复路径且不得包含高风险内容');
+            }
+            if (kind === 'fixedTimeEvents') fixedWindows.push({start: blueprintMinute(template.timeWindow.start), end: blueprintMinute(template.timeWindow.end)});
+        }
+    }
+    fixedWindows.sort((a, b) => a.start - b.start);
+    for (let index = 1; index < fixedWindows.length; index += 1) if (fixedWindows[index].start < fixedWindows[index - 1].end) errors.push('固定时间事件不可重叠');
+    return {ok: errors.length === 0, errors: [...new Set(errors)]};
+}
+
+function finalizeLifeBlueprint(candidate, fallback) {
+    const normalized = normalizeLifeBlueprint(candidate);
+    const validation = validateLifeBlueprint(normalized);
+    if (validation.ok) return normalized;
+    return {
+        ...fallback,
+        generation: {...fallback.generation, usedFallback: true, validationWarnings: validation.errors}
+    };
+}
+
 function buildInitialBlueprint(answers = {}) {
     const name = String(answers.name || '').trim() || '新朋友';
     const role = String(answers.role || answers.lifeStage || '').trim() || '陪伴者';
@@ -467,49 +715,29 @@ function buildInitialBlueprint(answers = {}) {
     const routine = Array.isArray(answers.routine) && answers.routine.length ? answers.routine : defaultRoutine(role);
     const supportingCast = Array.isArray(answers.supportingCast) ? answers.supportingCast.map(raw => typeof raw === 'string' ? {name: raw, relationshipKind: '朋友'} : raw).filter(raw => String(raw?.name || '').trim()).slice(0, 6) : [];
     const supplied = {
-        foundation: Boolean(String(answers.foundation || '').trim()),
-        routine: Array.isArray(answers.routine) && answers.routine.length > 0,
-        interests: interests.length > 0,
-        visualBaseline: Boolean(String(answers.visualBaseline || '').trim()),
-        supportingCast: supportingCast.length > 0
+        foundation: Boolean(String(answers.foundation || '').trim()), routine: Array.isArray(answers.routine) && answers.routine.length > 0,
+        interests: interests.length > 0, visualBaseline: Boolean(String(answers.visualBaseline || '').trim()), supportingCast: supportingCast.length > 0
     };
     const characterCard = {
-        roleCore: {
-            name, ageBand: String(answers.ageBand || '').trim(), occupation: String(answers.occupation || role).trim(),
-            socialIdentity: String(answers.socialIdentity || '').trim(), householdContext: String(answers.householdContext || '').trim(),
-            initialRelationships: String(answers.initialRelationships || answers.supportingCast || '').trim()
-        },
-        personalityCore: {
-            traits: String(answers.personalityTraits || '').trim(), socialAttitude: String(answers.socialAttitude || '').trim(),
-            languageStyle: String(answers.languageStyle || '').trim(), specialSetting: String(answers.specialSetting || '').trim()
-        },
-        appearanceCore: {
-            culturalPresentation: String(answers.culturalPresentation || '').trim(), faceBuild: String(answers.faceBuild || '').trim(),
-            complexionAura: String(answers.complexionAura || '').trim(), hair: String(answers.hair || '').trim(),
-            everydayWardrobe: String(answers.everydayWardrobe || answers.visualBaseline || '').trim(), distinguishingFeatures: String(answers.distinguishingFeatures || '').trim()
-        },
-        interactionRules: {
-            userIdentity: String(answers.userIdentity || '').trim(), communicationDistance: String(answers.communicationDistance || '').trim(),
-            boundaries: String(answers.interactionBoundaries || '').trim()
-        }
+        roleCore: {name, ageBand: blueprintText(answers.ageBand), occupation: blueprintText(answers.occupation || role), socialIdentity: blueprintText(answers.socialIdentity), householdContext: blueprintText(answers.householdContext), initialRelationships: blueprintText(answers.initialRelationships || answers.supportingCast)},
+        personalityCore: {traits: blueprintText(answers.personalityTraits), socialAttitude: blueprintText(answers.socialAttitude), languageStyle: blueprintText(answers.languageStyle), specialSetting: blueprintText(answers.specialSetting)},
+        appearanceCore: {culturalPresentation: blueprintText(answers.culturalPresentation), faceBuild: blueprintText(answers.faceBuild), complexionAura: blueprintText(answers.complexionAura), hair: blueprintText(answers.hair), everydayWardrobe: blueprintText(answers.everydayWardrobe || answers.visualBaseline), distinguishingFeatures: blueprintText(answers.distinguishingFeatures)},
+        interactionRules: {userIdentity: blueprintText(answers.userIdentity), communicationDistance: blueprintText(answers.communicationDistance), boundaries: blueprintText(answers.interactionBoundaries)}
     };
     const cardProvenance = Object.fromEntries(Object.entries(characterCard).flatMap(([section, fields]) => Object.entries(fields).map(([field, value]) => [`${section}.${field}`, value ? 'user' : 'inferred'])));
+    const world = defaultLifeWorld(name, role);
     return {
+        schemaVersion: lifeModelSchemaVersion, timezone: 'Asia/Shanghai', world, ...defaultLifeTemplates(role, interests, world),
         foundation: String(answers.foundation || `${name}是一位${role}。`).trim(),
-        inferred: {
-            routine: !supplied.routine,
-            interests: !supplied.interests,
-            visualBaseline: !supplied.visualBaseline,
-            supportingCast: !supplied.supportingCast
-        },
+        inferred: {routine: !supplied.routine, interests: !supplied.interests, visualBaseline: !supplied.visualBaseline, supportingCast: !supplied.supportingCast},
         provenance: {...Object.fromEntries(Object.entries(supplied).map(([key, provided]) => [key, provided ? 'user' : 'inferred'])), ...cardProvenance},
-        characterCard,
-        routine, interests,
+        characterCard, routine, interests,
+        supportingCastPolicy: {maxStableCharacters: 6, reuseExistingFirst: true},
         eventPolicy: {allowedFamilies: ['social', 'shopping', 'mild_setback'], allowMildNegativeEvents: true, allowHighRiskEvents: false, cooldownHours: 12},
         attentionBudget: {dailyActivities: [0, 2], dailyProactiveMessages: [0, 1]},
-        visualBaseline: String(answers.visualBaseline || '自然日常穿搭，真实光线，人物外观保持一致').trim(),
-        visualReferenceReserved: null,
-        supportingCast
+        visualBaseline: String(answers.visualBaseline || '自然日常穿搭，真实光线，人物外观保持一致').trim(), visualReferenceReserved: null,
+        supportingCast,
+        generation: {source: 'fallback', promptVersion: lifeModelPromptVersion, model: '', usedFallback: true, validationWarnings: []}
     };
 }
 
@@ -621,9 +849,70 @@ function activateInterview(interviewId, input = {}) {
     }
 }
 
+function lifeModelGenerationInput(answers, baseline) {
+    return {
+        schemaVersion: lifeModelSchemaVersion,
+        identityLocks: {
+            name: baseline.characterCard?.roleCore?.name, role: answers.role, foundation: baseline.foundation,
+            characterCard: baseline.characterCard, supportingCast: baseline.supportingCast
+        },
+        lifeHints: {interests: baseline.interests, householdContext: baseline.characterCard?.roleCore?.householdContext, specialSetting: baseline.characterCard?.personalityCore?.specialSetting},
+        required: ['timezone', 'world', 'fixedTimeEvents', 'dailyFlexibleEvents', 'randomPositiveEvents', 'randomNegativeEvents']
+    };
+}
+
+async function generateInitialLifeBlueprint(answers, baseline) {
+    const system = `你是陪伴人格生活模型生成器，只返回一个严格 JSON 对象，不得返回 Markdown 或解释。identityLocks 是不可修改的只读资料。只生成普通、稳定、可逆的生活模型：默认地点/房间、固定时间事件、每日可偏移事件、随机正向事件、随机 mild 负向事件，以及可选 suggestedSupportingCast（最多4名低信息、稳定的室友/同学/同事候选）。不得改写已有 supportingCast。负向事件必须可逆、有 recovery，不得包含死亡、严重伤害、医疗、违法、债务、重大财务、不可逆关系/身份变化或要求用户承担现实义务。`;
+    try {
+        const response = await lmCompletion({stream: false, temperature: .2, signal: AbortSignal.timeout(8_000), messages: [{role: 'system', content: system}, {role: 'user', content: JSON.stringify(lifeModelGenerationInput(answers, baseline))}]});
+        const content = String((await response.json()).choices?.[0]?.message?.content || '').trim();
+        const raw = content.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)?.[1] || content.match(/\{[\s\S]*\}/)?.[0];
+        const patch = json(raw, null);
+        if (!isRecord(patch)) throw new Error('初始化生活模型未返回 JSON 对象');
+        const generatedCast = Array.isArray(patch.suggestedSupportingCast)
+            ? patch.suggestedSupportingCast.slice(0, 4).map(item => ({name: blueprintText(item?.name, 60), relationshipKind: blueprintText(item?.relationshipKind || '熟人', 60)})).filter(item => item.name && !baseline.supportingCast.some(existing => existing.name === item.name))
+            : [];
+        const candidate = {
+            ...baseline,
+            schemaVersion: lifeModelSchemaVersion,
+            timezone: patch.timezone || baseline.timezone,
+            world: patch.world,
+            fixedTimeEvents: patch.fixedTimeEvents,
+            dailyFlexibleEvents: patch.dailyFlexibleEvents,
+            randomPositiveEvents: patch.randomPositiveEvents,
+            randomNegativeEvents: patch.randomNegativeEvents,
+            supportingCast: [...baseline.supportingCast, ...generatedCast].slice(0, baseline.supportingCastPolicy?.maxStableCharacters || 6),
+            generation: {source: 'generated', promptVersion: 'life-model-v2', model: settings().model || '', usedFallback: false, validationWarnings: []}
+        };
+        return finalizeLifeBlueprint(candidate, baseline);
+    } catch (error) {
+        return {...baseline, generation: {...baseline.generation, usedFallback: true, validationWarnings: [String(error.message || error).slice(0, 180)]}};
+    }
+}
+
+async function activateInterviewWithLifeModel(interviewId, input = {}) {
+    const claimed = database.prepare("UPDATE companion_interview_sessions SET status = 'activating', updated_at = ? WHERE id = ? AND status = 'ready'").run(now(), interviewId);
+    if (!claimed.changes) throw Object.assign(new Error('访谈尚未准备好激活'), {status: 409});
+    try {
+        const interview = database.prepare('SELECT * FROM companion_interview_sessions WHERE id = ?').get(interviewId);
+        const answers = {...normalizeInterviewAnswers(json(interview.answers_json, {})), ...normalizeInterviewAnswers(input.overrides || {})};
+        const preview = previewInterviewAnswers(answers);
+        const blueprint = await generateInitialLifeBlueprint(answers, preview.blueprint);
+        const persona = createPersona({name: answers.name, role: answers.role, foundation: preview.foundation, blueprint, color: input.color});
+        database.prepare("UPDATE companion_interview_sessions SET status = 'activated', updated_at = ?, completed_at = ? WHERE id = ? AND status = 'activating'").run(now(), now(), interview.id);
+        return persona;
+    } catch (error) {
+        database.prepare("UPDATE companion_interview_sessions SET status = 'ready', updated_at = ? WHERE id = ? AND status = 'activating'").run(now(), interviewId);
+        throw error;
+    }
+}
+
 function createPersona(input) {
     const createdAt = now();
-    const candidate = input.blueprint && typeof input.blueprint === 'object' ? input.blueprint : buildInitialBlueprint(input);
+    const fallbackBlueprint = buildInitialBlueprint(input);
+    const candidate = input.blueprint && typeof input.blueprint === 'object'
+        ? finalizeLifeBlueprint(input.blueprint, fallbackBlueprint)
+        : fallbackBlueprint;
     const value = {
         id: id('persona'), name: String(input.name || '').trim(), role: String(input.role || '').trim(),
         foundation: String(input.foundation || candidate.foundation || '').trim(),
@@ -634,17 +923,39 @@ function createPersona(input) {
         database.prepare('INSERT INTO companion_personas (id, name, role, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run(value.id, value.name, value.role, value.color, createdAt, createdAt);
         database.prepare('INSERT INTO companion_persona_foundation_revisions (id, persona_id, version, foundation, reason, created_at) VALUES (?, ?, 1, ?, ?, ?)').run(id('foundation'), value.id, value.foundation, '初始化人格', createdAt);
         database.prepare('INSERT INTO companion_persona_life_blueprints (persona_id, blueprint_json, created_at, updated_at) VALUES (?, ?, ?, ?)').run(value.id, JSON.stringify(value.blueprint), createdAt, createdAt);
+        database.prepare('INSERT INTO companion_persona_life_blueprint_revisions (id, persona_id, version, blueprint_json, reason, schema_version, source, prompt_version, model, used_fallback, validation_warnings_json, created_at) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+            id('life_blueprint'), value.id, JSON.stringify(value.blueprint), '初始化生活模型', value.blueprint.schemaVersion,
+            value.blueprint.generation?.source || 'fallback', value.blueprint.generation?.promptVersion || null,
+            value.blueprint.generation?.model || null, value.blueprint.generation?.usedFallback ? 1 : 0,
+            JSON.stringify(value.blueprint.generation?.validationWarnings || []), createdAt
+        );
         database.prepare('INSERT INTO companion_persona_states (persona_id, situation, mood, appearance_json, checkpoint_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run(value.id, '正在开始自己的日常', '平静', '{}', createdAt, createdAt);
         database.prepare('INSERT INTO companion_conversations (id, persona_id, created_at, updated_at) VALUES (?, ?, ?, ?)').run(id('conversation'), value.id, createdAt, createdAt);
         for (const raw of value.blueprint.supportingCast) {
             const name = String(raw?.name || raw || '').trim();
             if (!name) continue;
-            database.prepare('INSERT INTO companion_supporting_characters (id, persona_id, name, relationship_kind, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run(id('support'), value.id, name, String(raw?.relationshipKind || '朋友'), createdAt, createdAt);
+            const provenance = value.blueprint.provenance?.supportingCast === 'user' ? 'user' : value.blueprint.generation?.source || 'fallback';
+            database.prepare('INSERT INTO companion_supporting_characters (id, persona_id, name, relationship_kind, profile_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id('support'), value.id, name, String(raw?.relationshipKind || '朋友'), JSON.stringify({provenance, initializedAt: createdAt}), createdAt, createdAt);
         }
     })();
     reconcilePersona(value.id, {publish: false});
     ensureDailyPlan(value.id);
     return summary(requirePersona(value.id));
+}
+
+function saveLifeBlueprintRevision(personaId, blueprintValue, reason) {
+    const persona = requirePersona(personaId);
+    const current = blueprint(persona.id);
+    const fallback = buildInitialBlueprint({name: persona.name, role: persona.role, foundation: foundation(persona.id)?.foundation || current.foundation, interests: current.interests, supportingCast: current.supportingCast});
+    const next = finalizeLifeBlueprint(blueprintValue, fallback);
+    const version = Number(database.prepare('SELECT MAX(version) AS version FROM companion_persona_life_blueprint_revisions WHERE persona_id = ?').get(persona.id)?.version || 0) + 1;
+    const createdAt = now();
+    database.transaction(() => {
+        database.prepare('UPDATE companion_persona_life_blueprints SET blueprint_json = ?, updated_at = ? WHERE persona_id = ?').run(JSON.stringify(next), createdAt, persona.id);
+        database.prepare('INSERT INTO companion_persona_life_blueprint_revisions (id, persona_id, version, blueprint_json, reason, schema_version, source, prompt_version, model, used_fallback, validation_warnings_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(id('life_blueprint'), persona.id, version, JSON.stringify(next), String(reason || '生活模型重新规划').slice(0, 240), next.schemaVersion, next.generation?.source || 'fallback', next.generation?.promptVersion || null, next.generation?.model || null, next.generation?.usedFallback ? 1 : 0, JSON.stringify(next.generation?.validationWarnings || []), createdAt);
+        database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(createdAt, persona.id);
+    })();
+    return {version, blueprint: next, createdAt};
 }
 
 function restoreFoundationRevision(personaId, revisionId) {
@@ -673,7 +984,12 @@ function deletePersona(personaId) {
             WHERE activities.persona_id = ?
         `).all(persona.id).map(row => row.media_id);
 
-        // Jobs must go first because they may reference both a conversation message and
+        // New life-model metadata must go before its event/job/conversation references.
+        database.prepare('DELETE FROM companion_chat_deferred_batches WHERE persona_id = ?').run(persona.id);
+        database.prepare('DELETE FROM companion_event_links WHERE persona_id = ?').run(persona.id);
+        database.prepare('DELETE FROM companion_event_decisions WHERE persona_id = ?').run(persona.id);
+        database.prepare('DELETE FROM companion_timeline_slots WHERE persona_id = ?').run(persona.id);
+        // Jobs must go next because they may reference both a conversation message and
         // an activity. All following deletes are scoped by the selected persona.
         database.prepare('DELETE FROM companion_jobs WHERE persona_id = ?').run(persona.id);
         database.prepare(`DELETE FROM companion_activity_comments WHERE activity_id IN (SELECT id FROM companion_activities WHERE persona_id = ?)` ).run(persona.id);
@@ -690,6 +1006,7 @@ function deletePersona(personaId) {
         database.prepare('DELETE FROM companion_schedule_items WHERE persona_id = ?').run(persona.id);
         database.prepare('DELETE FROM companion_persona_states WHERE persona_id = ?').run(persona.id);
         database.prepare('DELETE FROM companion_persona_life_blueprints WHERE persona_id = ?').run(persona.id);
+        database.prepare('DELETE FROM companion_persona_life_blueprint_revisions WHERE persona_id = ?').run(persona.id);
         database.prepare('DELETE FROM companion_persona_foundation_revisions WHERE persona_id = ?').run(persona.id);
         database.prepare('DELETE FROM companion_life_events WHERE persona_id = ?').run(persona.id);
         database.prepare('DELETE FROM companion_personas WHERE id = ?').run(persona.id);
@@ -713,29 +1030,102 @@ function deletePersona(personaId) {
 
 function scheduledState(persona, at = new Date()) {
     const activeEvent = database.prepare(`
-        SELECT * FROM companion_life_events
+        SELECT *, COALESCE(CAST(json_extract(payload_json, '$.priority') AS INTEGER), 0) AS event_priority
+        FROM companion_life_events
         WHERE persona_id = ? AND type NOT IN ('routine', 'schedule')
           AND resolves_at IS NOT NULL AND resolves_at > ?
-        ORDER BY occurred_at DESC LIMIT 1
+        ORDER BY event_priority DESC, occurred_at DESC LIMIT 1
     `).get(persona.id, at.toISOString());
+    const plan = database.prepare(`SELECT * FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND starts_at <= ? AND (ends_at IS NULL OR ends_at > ?) ORDER BY starts_at DESC LIMIT 1`).get(persona.id, at.toISOString(), at.toISOString());
     if (activeEvent) {
         const event = json(activeEvent.payload_json, {});
-        return {situation: event.situation || '正在处理一件事', source: 'event', scene: event.scene || '日常场景', eventId: activeEvent.id, mood: event.mood, appearance: event.appearance};
+        const explicitPlan = plan && plan.source !== 'ai_daily_plan';
+        const mode = event.preemptionMode || 'replace';
+        if (plan && (mode === 'none' || mode === 'overlay' || (explicitPlan && mode !== 'block') || Number(event.priority || 0) < (explicitPlan ? 80 : 30))) {
+            const details = json(plan.details_json, {});
+            const scene = resolveSceneRef(blueprint(persona.id), details.sceneRef);
+            return {situation: details.situation || plan.title, source: 'schedule', scene: details.scene || scene.scene || '日常场景', sceneRef: details.sceneRef || null, scheduleId: plan.id};
+        }
+        const scene = resolveSceneRef(blueprint(persona.id), event.sceneRef);
+        return {situation: event.situation || '正在处理一件事', source: 'event', scene: event.scene || scene.scene || '日常场景', sceneRef: event.sceneRef || null, eventId: activeEvent.id, mood: event.mood, appearance: event.appearance};
     }
-    const plan = database.prepare(`SELECT * FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND starts_at <= ? AND (ends_at IS NULL OR ends_at > ?) ORDER BY starts_at DESC LIMIT 1`).get(persona.id, at.toISOString(), at.toISOString());
     if (plan) {
         const details = json(plan.details_json, {});
-        return {situation: details.situation || plan.title, source: 'schedule', scene: details.scene || '日常场景', scheduleId: plan.id};
+        const scene = resolveSceneRef(blueprint(persona.id), details.sceneRef);
+        return {situation: details.situation || plan.title, source: 'schedule', scene: details.scene || scene.scene || '日常场景', sceneRef: details.sceneRef || null, scheduleId: plan.id};
     }
     const routine = blueprint(persona.id).routine || defaultRoutine(persona.role);
-    const hour = localHour(at);
-    const match = routine.find(item => hour >= Number(item.from) && hour < Number(item.to)) || routine.at(-1);
-    return {situation: match?.label || '正在忙自己的事', source: 'routine', scene: match?.scene || '日常场景'};
+    const hour = localHour(at, blueprint(persona.id).timezone);
+    const match = routine.find(item => hour >= Number(item.from) && hour < Number(item.to));
+    const scene = resolveSceneRef(blueprint(persona.id), match?.sceneRef);
+    return {situation: match?.label || '正在自己的空间里休息', source: 'routine', scene: match?.scene || scene.scene || '日常场景', sceneRef: match?.sceneRef || null};
 }
 
 function dailyCount(personaId, table, column = 'created_at') {
     const date = now().slice(0, 10);
     return database.prepare(`SELECT COUNT(*) AS count FROM ${table} WHERE persona_id = ? AND substr(${column}, 1, 10) = ?`).get(personaId, date).count;
+}
+
+function timelineDecision(personaId, decisionKey, input = {}) {
+    const existing = database.prepare('SELECT * FROM companion_event_decisions WHERE persona_id = ? AND decision_key = ?').get(personaId, decisionKey);
+    if (existing) return existing;
+    const createdAt = now();
+    const decision = {
+        id: id('decision'), personaId, decisionKey, decisionType: input.decisionType || 'start_event', status: input.status || 'proposed',
+        runAt: input.runAt || createdAt, expiresAt: input.expiresAt || null, priority: Number(input.priority) || 0,
+        preemptionMode: input.preemptionMode || 'none', candidate: input.candidate || {}, rationale: input.rationale || {}
+    };
+    database.prepare('INSERT INTO companion_event_decisions (id, persona_id, decision_key, decision_type, status, run_at, expires_at, priority, preemption_mode, candidate_json, rationale_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+        decision.id, personaId, decision.decisionKey, decision.decisionType, decision.status, decision.runAt, decision.expiresAt, decision.priority,
+        decision.preemptionMode, JSON.stringify(decision.candidate), JSON.stringify(decision.rationale), createdAt, createdAt
+    );
+    return database.prepare('SELECT * FROM companion_event_decisions WHERE id = ?').get(decision.id);
+}
+
+function lifeTemplateCandidates(persona, at = new Date()) {
+    const life = blueprint(persona.id);
+    const minute = localMinute(at, life.timezone);
+    const templates = [
+        ...(Array.isArray(life.randomPositiveEvents) ? life.randomPositiveEvents : []),
+        ...(life.eventPolicy?.allowMildNegativeEvents !== false && Array.isArray(life.randomNegativeEvents) ? life.randomNegativeEvents : [])
+    ];
+    return templates.filter(template => {
+        const start = blueprintMinute(template?.timeWindow?.start);
+        const end = blueprintMinute(template?.timeWindow?.end);
+        if (!template?.templateId || !Number.isFinite(start) || !Number.isFinite(end) || minute < start || minute >= end) return false;
+        const recent = database.prepare("SELECT occurred_at FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.templateId') = ? ORDER BY occurred_at DESC LIMIT 1").get(persona.id, template.templateId);
+        return !recent || Date.now() - Date.parse(recent.occurred_at) >= Number(template.cooldownHours || 0) * 3_600_000;
+    });
+}
+
+function chooseTimelineTemplate(persona, at = new Date()) {
+    const candidates = lifeTemplateCandidates(persona, at);
+    const date = localPlanDate(at, blueprint(persona.id).timezone);
+    const hour = localHour(at, blueprint(persona.id).timezone);
+    const key = `${persona.id}:${date}:${hour}:opportunity`;
+    if (!candidates.length) return {decisionKey: key, template: null, rationale: {reason: 'no_eligible_candidate'}};
+    const seed = Array.from(key).reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7);
+    // A no-event outcome remains intentionally common; do not manufacture activity.
+    if (seed % 4 !== 0) return {decisionKey: key, template: null, rationale: {reason: 'no_event_selected', candidateCount: candidates.length}};
+    return {decisionKey: key, template: candidates[seed % candidates.length], rationale: {reason: 'eligible_template_selected', candidateCount: candidates.length}};
+}
+
+function instantiateTimelineEvent(persona, at = new Date()) {
+    const chosen = chooseTimelineTemplate(persona, at);
+    const existing = timelineDecision(persona.id, chosen.decisionKey, {decisionType: chosen.template ? 'start_event' : 'no_event', status: chosen.template ? 'accepted' : 'suppressed', priority: chosen.template?.priority || 0, preemptionMode: chosen.template?.preemptionMode || 'none', candidate: chosen.template || {kind: 'no_event'}, rationale: chosen.rationale});
+    if (existing.status === 'executed' || existing.status === 'suppressed') return null;
+    if (!chosen.template) return null;
+    const sceneRef = chosen.template.sceneRefs?.[0] || blueprint(persona.id).world?.defaultSceneRef;
+    const scene = resolveSceneRef(blueprint(persona.id), sceneRef).scene;
+    const duration = chosen.template.durationMinutes?.[0] || 30;
+    const type = chosen.template.family === 'mild_setback' ? 'mild_setback' : chosen.template.family === 'social' ? 'social' : 'personal_project';
+    const output = createEvent(persona, {
+        type, situation: chosen.template.situation, mood: type === 'mild_setback' ? '有点低落' : '轻松', scene,
+        resolvesAt: new Date(at.getTime() + duration * 60_000).toISOString(), content: `${persona.name}${chosen.template.situation}。`,
+        templateId: chosen.template.templateId, eventFamily: chosen.template.family, sceneRef, priority: chosen.template.priority, preemptionMode: chosen.template.preemptionMode, reversible: chosen.template.reversible, recovery: chosen.template.recovery, decisionId: existing.id
+    }, {publish: true, source: 'timeline', rationale: '人格生活模型候选经时间窗口、冷却和幂等决策后实例化'});
+    database.prepare("UPDATE companion_event_decisions SET status = 'executed', event_id = ?, updated_at = ? WHERE id = ? AND status = 'accepted'").run(output.eventId, now(), existing.id);
+    return output;
 }
 
 const maxEventDurationMs = 24 * 60 * 60 * 1000;
@@ -767,7 +1157,23 @@ function ownedParticipantIds(personaId, candidateIds) {
     return database.prepare(`SELECT id FROM companion_supporting_characters WHERE persona_id = ? AND id IN (${placeholders}) ORDER BY created_at`).all(personaId, ...ids).map(row => row.id);
 }
 
+function assertEventInstanceAllowed(persona, event, options = {}) {
+    const automatic = ['timeline', 'debug', 'engine'].includes(options.source || 'engine');
+    if (!automatic) return;
+    const text = [event.type, event.situation, event.scene, event.content, event.recovery, ...(Array.isArray(event.effects) ? event.effects : [])].join(' ');
+    if (lifeModelBlockedTerms.test(text)) throw new Error('自动事件包含不允许的高风险内容');
+    if (event.sceneRef) {
+        const scene = resolveSceneRef(blueprint(persona.id), event.sceneRef);
+        if (!scene.locationId || !scene.roomId) throw new Error('自动事件引用了无效地点或房间');
+    }
+    if (event.eventFamily === 'mild_setback' || event.type === 'mild_setback') {
+        if (event.reversible !== true || !blueprintText(event.recovery)) throw new Error('轻度负向事件必须可逆且具备恢复路径');
+    }
+    if (Number(event.priority || 0) < 0 || Number(event.priority || 0) > 100) throw new Error('自动事件优先级无效');
+}
+
 function createEvent(persona, event, options = {}) {
+    assertEventInstanceAllowed(persona, event, options);
     const createdAt = now();
     const type = String(event.type || 'routine').slice(0, 48);
     const participants = Array.isArray(event.participantIds) ? ownedParticipantIds(persona.id, event.participantIds) : type === 'social' ? database.prepare('SELECT id FROM companion_supporting_characters WHERE persona_id = ? ORDER BY created_at LIMIT 2').all(persona.id).map(row => row.id) : [];
@@ -777,7 +1183,12 @@ function createEvent(persona, event, options = {}) {
         mood: String(event.mood || '平静').slice(0, 40),
         scene: String(event.scene || '日常场景').slice(0, 120),
         appearance: boundedAppearance(event.appearance),
-        source: options.source || 'engine', simulated: Boolean(options.simulated), rationale: String(options.rationale || '').slice(0, 240), participants
+        source: options.source || 'engine', simulated: Boolean(options.simulated), rationale: String(options.rationale || '').slice(0, 240), participants,
+        templateId: blueprintText(event.templateId, 80), eventFamily: blueprintText(event.eventFamily, 48),
+        sceneRef: isRecord(event.sceneRef) ? {locationId: blueprintText(event.sceneRef.locationId, 48), roomId: blueprintText(event.sceneRef.roomId, 48)} : null,
+        priority: clamp(Number(event.priority) || 0, 0, 100), reversible: event.reversible !== false,
+        preemptionMode: ['none', 'overlay', 'replace', 'block'].includes(event.preemptionMode) ? event.preemptionMode : 'replace',
+        recovery: blueprintText(event.recovery, 240), decisionId: blueprintText(event.decisionId, 80), slotId: blueprintText(event.slotId, 80)
     };
     const defaultEventEnd = !['routine', 'schedule', 'recovery'].includes(type) && event.resolvesAt === undefined
         ? new Date(Date.parse(createdAt) + 2 * 60 * 60 * 1000).toISOString()
@@ -826,11 +1237,12 @@ function reconcilePersona(personaId, {publish = true} = {}) {
     if (!persona) return null;
     const next = scheduledState(persona);
     const current = stateFor(persona.id);
+    if (next.source === 'event') return current || next;
     if (current?.situation === next.situation && Date.now() - Date.parse(current.updated_at) < 20 * 60 * 1000) return current;
     const focused = personaFocusTier(persona) !== 'idle';
     const dailyActivities = database.prepare("SELECT COUNT(*) AS count FROM companion_activities WHERE persona_id = ? AND substr(created_at, 1, 10) = ?").get(persona.id, now().slice(0, 10)).count;
     createEvent(persona, {...next, type: next.source, content: `${persona.name} ${next.situation}。`, visual: false}, {publish: publish && focused && dailyActivities < 2, rationale: `由${next.source === 'schedule' ? '已确认安排' : '日常作息'}更新当前状态`});
-    if (publish && focused) maybeCreateLifeVariation(persona);
+    if (publish && focused) instantiateTimelineEvent(persona);
     return stateFor(persona.id);
 }
 
@@ -888,50 +1300,26 @@ function proactiveCountToday(personaId, day = now().slice(0, 10)) {
     `).get(personaId, day).count;
 }
 
-function isRestHour(at = new Date()) {
-    const hour = localHour(at);
+function isRestHour(at = new Date(), timeZone) {
+    const hour = localHour(at, timeZone);
     return hour >= 22 || hour < 8;
 }
 
 function proactiveEligibility(persona, {eventType} = {}) {
     if (persona.screened_at) return {allowed: false, reason: 'screened'};
     if (!['social', 'mild_setback', 'shopping', 'schedule'].includes(eventType)) return {allowed: false, reason: 'not_relevant'};
-    if (isRestHour()) return {allowed: false, reason: 'rest_hours'};
     const tier = personaFocusTier(persona);
     if (tier === 'idle') return {allowed: false, reason: 'not_recently_engaged'};
+    // A recently active conversation may legitimately receive one bounded response;
+    // otherwise quiet hours still suppress background proactive delivery.
+    if (isRestHour(new Date(), blueprint(persona.id).timezone) && tier !== 'active') return {allowed: false, reason: 'rest_hours'};
     const maximum = attentionLimit(blueprint(persona.id), 'dailyProactiveMessages', 1);
     if (maximum === 0 || proactiveCountToday(persona.id) >= maximum) return {allowed: false, reason: 'daily_budget'};
     return {allowed: true, tier};
 }
 
 function maybeCreateLifeVariation(persona) {
-    const life = blueprint(persona.id);
-    if (personaFocusTier(persona) === 'idle') return;
-    const activityLimit = attentionLimit(life, 'dailyActivities', 2);
-    const activityCount = database.prepare("SELECT COUNT(*) AS count FROM companion_activities WHERE persona_id = ? AND substr(created_at, 1, 10) = ?").get(persona.id, now().slice(0, 10)).count;
-    if (activityCount >= activityLimit) return;
-    const last = database.prepare('SELECT occurred_at FROM companion_life_events WHERE persona_id = ? AND type IN (\'shopping\', \'social\', \'mild_setback\') ORDER BY occurred_at DESC LIMIT 1').get(persona.id);
-    const cooldownHours = clamp(Number(life.eventPolicy?.cooldownHours) || 12, 1, 72);
-    if (last && Date.now() - Date.parse(last.occurred_at) < cooldownHours * 60 * 60 * 1000) return;
-    const hour = localHour();
-    if (hour < 12 || hour > 21) return;
-    const seed = Array.from(`${persona.id}:${now().slice(0, 10)}:${hour}`).reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7);
-    if (seed % 5 !== 0) return;
-    const allowedFamilies = eventFamiliesFor(life);
-    const variations = [
-        {type: 'social', situation: '正和朋友在附近散步聊天', mood: '轻松', scene: '傍晚的校园或街道', content: `${persona.name}和朋友散了一会儿步，晚风很舒服。`, proactiveText: '刚刚和朋友散步时想起你，今天过得怎么样？'},
-        {type: 'shopping', situation: '在逛一家刚发现的小店', mood: '开心', scene: '明亮的小店', content: `${persona.name}路过一家小店，停下来慢慢看了会儿。`, visual: true},
-        {type: 'mild_setback', situation: '因为一点小插曲有些不开心，正在调整', mood: '有点低落', scene: '安静的日常空间', content: `${persona.name}今天遇到一点小插曲，不过准备自己缓一缓。`, proactiveText: '今天有点小郁闷，但不是什么大事。和你说一声就好多了。'}
-    ].filter(event => allowedFamilies.includes(event.type) && (event.type !== 'mild_setback' || life.eventPolicy?.allowMildNegativeEvents !== false));
-    if (!variations.length) return;
-    const event = variations[seed % variations.length];
-    if (['social', 'shopping'].includes(event.type) && seed % 3 === 0) {
-        const names = ['许宁', '周澄', '宋言', '陈予', '方遥', '叶知'];
-        event.introducedCharacter = {name: names[seed % names.length], relationshipKind: event.type === 'social' ? '朋友带来的新朋友' : '偶然认识的同好'};
-        event.content = `${event.content} 还认识了${event.introducedCharacter.name}。`;
-    }
-    const proactive = event.type !== 'shopping' && proactiveEligibility(persona, {eventType: event.type}).allowed;
-    createEvent(persona, {...event, resolvesAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()}, {publish: true, proactive, rationale: '日常生活变体：符合蓝图、焦点、冷却和轻度风险规则'});
+    return instantiateTimelineEvent(persona);
 }
 
 function eventIsAllowed(kind) {
@@ -1172,10 +1560,11 @@ function immutableIdentityLayer(persona, foundationRow, life) {
     ].join('\n');
 }
 
-function lifeStateLayer(life, state, appearance) {
+function lifeStateLayer(life, state, appearance, interaction = {}) {
     return [
         `【生活状态层】稳定作息：${JSON.stringify(life.routine || [])}；兴趣：${(life.interests || []).join('、') || '未设定'}。`,
         `【生活状态层】【当前真实状态】${state?.situation || '暂无'}；当前场景：${state?.resolved_scene || '日常场景'}；心情：${state?.mood || '平静'}；外观变化：${Object.entries(appearance).map(([key, value]) => `${key}:${value}`).join('，') || '无'}。`,
+        `【生活状态层】【互动可用性】${interaction.sleeping ? '正在睡眠状态，系统会决定是否现在回应；若已决定延迟，不要解释或假装即时看到了消息。' : '可以在当前生活场景中自然聊天；聊天是叠加互动，不得声称因此改变日程或地点。'}`,
         '当前生活状态只能由日程和生活事件改变。若当前状态与其他请求冲突，先保持当前状态连续。'
     ].join('\n');
 }
@@ -1199,7 +1588,7 @@ function contextFor(personaId) {
     const appearance = json(currentState?.appearance_json, {});
     const layers = {
         immutableIdentity: immutableIdentityLayer(persona, foundationRow, life),
-        lifeState: lifeStateLayer(life, currentState, appearance),
+        lifeState: lifeStateLayer(life, currentState, appearance, sleepAvailability(persona)),
         relationship: relationshipLayer(memories, relationshipPatch),
         systemCapability: [systemCapabilityMediaContract, systemCapabilityReplyForm].join('\n')
     };
@@ -1683,13 +2072,46 @@ async function lmCompletion(payload) {
     const config = settings();
     const headers = {'Content-Type': 'application/json'};
     if (config.lmStudioApiKey) headers.Authorization = `Bearer ${config.lmStudioApiKey}`;
-    const response = await fetch(`${cleanUrl(config.lmStudioUrl)}/chat/completions`, {method: 'POST', headers, body: JSON.stringify({...payload, model: payload.model || await resolveModel(config)})});
+    const {signal, ...requestPayload} = payload;
+    const response = await fetch(`${cleanUrl(config.lmStudioUrl)}/chat/completions`, {method: 'POST', headers, signal, body: JSON.stringify({...requestPayload, model: requestPayload.model || await resolveModel(config)})});
     if (!response.ok) throw new Error(await providerError(response));
     return response;
 }
 
 function sendSse(res, payload) {
     res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+function sleepAvailability(persona, at = new Date()) {
+    const hour = localHour(at, blueprint(persona.id).timezone);
+    if (hour >= 8 && hour < 23) return {sleeping: false};
+    const messageCount = database.prepare(`SELECT COUNT(*) AS count FROM companion_messages messages JOIN companion_conversations conversations ON conversations.id = messages.conversation_id WHERE conversations.persona_id = ? AND messages.role = 'user'`).get(persona.id).count;
+    const relationship = activeRelationshipPatch(persona.id);
+    const intimacy = clamp((messageCount >= 30 ? 3 : messageCount >= 10 ? 2 : messageCount >= 3 ? 1 : 0) + (relationship.communicationStyle ? 1 : 0), 0, 4);
+    const key = `${persona.id}:${localPlanDate(at, blueprint(persona.id).timezone)}:${hour}:${messageCount}`;
+    const draw = Array.from(key).reduce((sum, char) => (sum * 33 + char.charCodeAt(0)) >>> 0, 17) % 100;
+    return {sleeping: true, intimacy, draw, immediate: draw < 8 + intimacy * 10};
+}
+
+function deferredBatchForMessage(persona, messageId, at = new Date()) {
+    const conversation = database.prepare('SELECT id FROM companion_conversations WHERE persona_id = ?').get(persona.id);
+    const existing = database.prepare("SELECT * FROM companion_chat_deferred_batches WHERE persona_id = ? AND status IN ('queued', 'leased') ORDER BY created_at DESC LIMIT 1").get(persona.id);
+    if (existing) {
+        const messageIds = json(existing.message_ids_json, []);
+        if (!messageIds.includes(messageId)) database.prepare('UPDATE companion_chat_deferred_batches SET message_ids_json = ?, updated_at = ? WHERE id = ?').run(JSON.stringify([...messageIds, messageId]), now(), existing.id);
+        return database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE id = ?').get(existing.id);
+    }
+    const sleep = sleepAvailability(persona, at);
+    const wakeAt = new Date(at);
+    wakeAt.setHours(8, 0, 0, 0);
+    if (wakeAt <= at) wakeAt.setDate(wakeAt.getDate() + 1);
+    const deliverAt = new Date(Math.min(wakeAt.getTime(), at.getTime() + (35 + sleep.draw % 85) * 60_000)).toISOString();
+    const batch = {id: id('deferred_chat'), batchKey: `${persona.id}:${at.toISOString().slice(0, 13)}:sleep`, deliverAt};
+    database.transaction(() => {
+        database.prepare('INSERT INTO companion_chat_deferred_batches (id, persona_id, conversation_id, batch_key, status, deliver_at, decision_json, message_ids_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(batch.id, persona.id, conversation.id, batch.batchKey, 'queued', batch.deliverAt, JSON.stringify({intimacy: sleep.intimacy, draw: sleep.draw, reason: 'sleep_deferred'}), JSON.stringify([messageId]), now(), now());
+        enqueueJob({jobType: 'deferred_chat_reply', personaId: persona.id, priority: 5, runAfter: batch.deliverAt, maxAttempts: 4, payload: {batchId: batch.id}});
+    })();
+    return database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE id = ?').get(batch.id);
 }
 
 async function streamPersonaChat(req, res) {
@@ -1708,6 +2130,18 @@ async function streamPersonaChat(req, res) {
     database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(now(), persona.id);
     res.status(200).set({'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', Connection: 'keep-alive'});
     res.flushHeaders();
+    const existingDeferred = database.prepare("SELECT id FROM companion_chat_deferred_batches WHERE persona_id = ? AND status IN ('queued', 'leased') ORDER BY created_at DESC LIMIT 1").get(persona.id);
+    if (existingDeferred) {
+        deferredBatchForMessage(persona, userMessage.id);
+        sendSse(res, {type: 'done', message: null, messages: [], learned: [], jobs: []});
+        return res.end();
+    }
+    const availability = sleepAvailability(persona);
+    if (availability.sleeping && !availability.immediate) {
+        deferredBatchForMessage(persona, userMessage.id);
+        sendSse(res, {type: 'done', message: null, messages: [], learned: [], jobs: []});
+        return res.end();
+    }
     const context = contextFor(persona.id);
     const recent = listMessages(persona.id, {limit: 18}).items.slice(-18).map(message => ({role: message.role === 'assistant' ? 'assistant' : 'user', content: message.text || '[用户发送了媒体附件]'}));
     let output = '';
@@ -2150,6 +2584,35 @@ async function runProactiveMessageJob(job) {
     }
 }
 
+async function runDeferredChatReplyJob(job) {
+    const payload = json(job.payload_json, {});
+    const batch = database.prepare("SELECT * FROM companion_chat_deferred_batches WHERE id = ? AND persona_id = ? AND status = 'queued' AND deliver_at <= ?").get(payload.batchId, job.persona_id, now());
+    const persona = personaRow(job.persona_id);
+    if (!batch || !persona) return settleJob(job, {result: {skipped: !persona ? 'persona_missing' : 'batch_not_due'}});
+    const ids = json(batch.message_ids_json, []).filter(Boolean);
+    const messages = ids.length ? database.prepare(`SELECT messages.* FROM companion_messages messages JOIN companion_conversations conversations ON conversations.id = messages.conversation_id WHERE conversations.persona_id = ? AND messages.id IN (${ids.map(() => '?').join(', ')}) ORDER BY messages.created_at, messages.id`).all(persona.id, ...ids).map(messageShape) : [];
+    try {
+        const response = await lmCompletion({stream: false, temperature: .72, messages: [
+            {role: 'system', content: userVisibleChatPrompt(persona.id, '现在是你自然醒来后看到用户此前发来的几条消息。合并理解它们，只回复一条自然、完整、不解释延迟机制的消息。')},
+            {role: 'user', content: JSON.stringify({pendingMessages: messages.map(message => ({text: message.text, attachments: message.attachments, createdAt: message.createdAt}))})}
+        ]});
+        const text = String((await response.json()).choices?.[0]?.message?.content || '').trim();
+        let result;
+        database.transaction(() => {
+            const live = database.prepare("SELECT * FROM companion_chat_deferred_batches WHERE id = ? AND status = 'queued'").get(batch.id);
+            const leased = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
+            if (!live || !leased) return;
+            const reply = appendUserVisibleAssistantReply(persona.id, text, {fallback: '刚刚看到你的消息了。'});
+            database.prepare("UPDATE companion_chat_deferred_batches SET status = 'complete', result_message_id = ?, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'queued'").run(reply[0].id, now(), now(), batch.id);
+            result = {batchId: batch.id, messageId: reply[0].id, messageIds: reply.map(item => item.id)};
+        })();
+        return settleJob(job, {result: result || {skipped: 'batch_already_settled'}});
+    } catch (error) {
+        database.prepare('UPDATE companion_chat_deferred_batches SET attempt_count = attempt_count + 1, error = ?, updated_at = ? WHERE id = ? AND status = \'queued\'').run(String(error.message || error).slice(0, 500), now(), batch.id);
+        return settleJob(job, {error: error.message});
+    }
+}
+
 function normalizeDailyPlan(value, planDate) {
     const rows = Array.isArray(value?.items) ? value.items : [];
     const time = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -2159,6 +2622,18 @@ function normalizeDailyPlan(value, planDate) {
     })).filter(item => item.title && item.scene && time.test(item.startsAt) && time.test(item.endsAt) && item.startsAt < item.endsAt).slice(0, 6);
     if (!normalized.length) return null;
     return normalized.map(item => ({...item, planDate}));
+}
+
+function lifeFixedSlots(persona, planDate) {
+    const life = blueprint(persona.id);
+    return (life.fixedTimeEvents || []).map(template => {
+        const start = template?.timeWindow?.start;
+        const end = template?.timeWindow?.end;
+        if (!blueprintTime(start) || !blueprintTime(end)) return null;
+        const sceneRef = template.sceneRefs?.[0] || life.world?.defaultSceneRef;
+        const resolved = resolveSceneRef(life, sceneRef);
+        return {template, title: template.title, situation: template.situation, scene: resolved.scene, sceneRef, startsAt: new Date(`${planDate}T${start}:00`).toISOString(), endsAt: new Date(`${planDate}T${end}:00`).toISOString()};
+    }).filter(Boolean);
 }
 
 async function runDailyPlanJob(job) {
@@ -2181,10 +2656,27 @@ async function runDailyPlanJob(job) {
             const leased = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND job_type = 'daily_plan' AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
             if (!leased) return;
             database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'ai_daily_plan' AND substr(starts_at, 1, 10) = ?").run(persona.id, payload.planDate);
+            database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'life_model_fixed' AND substr(starts_at, 1, 10) = ?").run(persona.id, payload.planDate);
+            database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'ai_daily_plan'").run(persona.id, payload.planDate);
+            database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'life_model_fixed'").run(persona.id, payload.planDate);
+            for (const fixed of lifeFixedSlots(persona, payload.planDate)) {
+                const conflict = database.prepare("SELECT 1 FROM companion_schedule_items WHERE persona_id = ? AND source != 'ai_daily_plan' AND source != 'life_model_fixed' AND status = 'active' AND starts_at < ? AND COALESCE(ends_at, starts_at) > ? LIMIT 1").get(persona.id, fixed.endsAt, fixed.startsAt);
+                const slotId = id('slot');
+                if (conflict) {
+                    database.prepare('INSERT INTO companion_timeline_slots (id, persona_id, plan_date, slot_key, slot_kind, starts_at, ends_at, status, source, priority, plan_revision, constraints_json, outcome_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(slotId, persona.id, payload.planDate, `fixed:${fixed.template.templateId}`, 'fixed', fixed.startsAt, fixed.endsAt, 'skipped', 'life_model_fixed', fixed.template.priority, 1, '{}', JSON.stringify({reason: 'explicit_schedule_conflict'}), updatedAt, updatedAt);
+                    continue;
+                }
+                const scheduleId = id('schedule');
+                database.prepare('INSERT INTO companion_schedule_items (id, persona_id, kind, title, starts_at, ends_at, status, source, details_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(scheduleId, persona.id, 'fixed', fixed.title, fixed.startsAt, fixed.endsAt, 'active', 'life_model_fixed', JSON.stringify({scene: fixed.scene, situation: fixed.situation, sceneRef: fixed.sceneRef, slotId, templateId: fixed.template.templateId}), updatedAt, updatedAt);
+                database.prepare('INSERT INTO companion_timeline_slots (id, persona_id, plan_date, slot_key, slot_kind, starts_at, ends_at, status, source, priority, schedule_id, plan_revision, constraints_json, outcome_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(slotId, persona.id, payload.planDate, `fixed:${fixed.template.templateId}`, 'fixed', fixed.startsAt, fixed.endsAt, 'confirmed', 'life_model_fixed', fixed.template.priority, scheduleId, 1, '{}', '{}', updatedAt, updatedAt);
+            }
             for (const item of items) {
                 const startsAt = new Date(`${payload.planDate}T${item.startsAt}:00`).toISOString();
                 const endsAt = new Date(`${payload.planDate}T${item.endsAt}:00`).toISOString();
-                database.prepare('INSERT INTO companion_schedule_items (id, persona_id, kind, title, starts_at, ends_at, status, source, details_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(id('schedule'), persona.id, 'daily_plan', item.title, startsAt, endsAt, 'active', 'ai_daily_plan', JSON.stringify({scene: item.scene, situation: item.situation, dailyPlanId: plan.id}), updatedAt, updatedAt);
+                const scheduleId = id('schedule');
+                const slotId = id('slot');
+                database.prepare('INSERT INTO companion_schedule_items (id, persona_id, kind, title, starts_at, ends_at, status, source, details_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(scheduleId, persona.id, 'daily_plan', item.title, startsAt, endsAt, 'active', 'ai_daily_plan', JSON.stringify({scene: item.scene, situation: item.situation, dailyPlanId: plan.id, slotId}), updatedAt, updatedAt);
+                database.prepare('INSERT INTO companion_timeline_slots (id, persona_id, plan_date, slot_key, slot_kind, starts_at, ends_at, status, source, priority, schedule_id, plan_revision, constraints_json, outcome_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(slotId, persona.id, payload.planDate, `${plan.id}:${item.startsAt}:${item.title}`.slice(0, 180), 'flexible', startsAt, endsAt, 'confirmed', 'ai_daily_plan', 30, scheduleId, 1, JSON.stringify({scene: item.scene}), '{}', updatedAt, updatedAt);
             }
             database.prepare("UPDATE companion_daily_plans SET status = 'ready', plan_json = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(items), updatedAt, plan.id);
             database.prepare("UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND lease_owner = ?").run(JSON.stringify({itemCount: items.length}), updatedAt, updatedAt, job.id, job.lease_owner);
@@ -2198,6 +2690,7 @@ async function runMediaJob(job) {
     if (job.job_type === 'daily_plan') return runDailyPlanJob(job);
     if (job.job_type === 'relationship_evolution') return runRelationshipEvolutionJob(job);
     if (job.job_type === 'proactive_message') return runProactiveMessageJob(job);
+    if (job.job_type === 'deferred_chat_reply') return runDeferredChatReplyJob(job);
     if (job.job_type === 'activity_media_poll' || job.job_type === 'chat_media_poll') return pollMedia(job);
     if (!['activity_image', 'chat_image', 'chat_video'].includes(job.job_type)) return settleJob(job, {result: {ignored: true}});
     return submitMediaJob(job);
@@ -2310,7 +2803,11 @@ async function processJobs() {
 function route(handler) {
     return (req, res) => {
         try {
-            return handler(req, res);
+            const output = handler(req, res);
+            if (output?.catch) output.catch(error => {
+                if (!res.headersSent) res.status(error.status || 400).json({error: error.message || '请求无法处理'});
+            });
+            return output;
         } catch (error) {
             return res.status(error.status || 400).json({error: error.message || '请求无法处理'});
         }
@@ -2365,9 +2862,9 @@ app.post('/api/companion/interviews/:interviewId/answers', route((req, res) => {
     res.json(answerInterview(req.params.interviewId, req.body));
 }));
 
-app.post('/api/companion/interviews/:interviewId/activate', route((req, res) => {
+app.post('/api/companion/interviews/:interviewId/activate', route(async (req, res) => {
     if (req.body !== undefined && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) throw new Error('请求体必须是 JSON 对象');
-    res.status(201).json(activateInterview(req.params.interviewId, req.body || {}));
+    res.status(201).json(await activateInterviewWithLifeModel(req.params.interviewId, req.body || {}));
 }));
 
 app.post('/api/companion/personas', route((req, res) => {
@@ -2393,16 +2890,25 @@ app.get('/api/companion/personas/:personaId/foundation/draft', route((req, res) 
     res.json({foundation: foundation(persona.id)?.foundation || '', version: foundation(persona.id)?.version || 0});
 }));
 
-app.put('/api/companion/personas/:personaId/foundation', route((req, res) => {
+app.put('/api/companion/personas/:personaId/foundation', route(async (req, res) => {
     const persona = requirePersona(req.params.personaId);
     const value = String(req.body?.foundation || '').trim();
     if (!value) throw new Error('基础设定不能为空');
     const previous = foundation(persona.id);
     const version = Number(previous?.version || 0) + 1;
     const createdAt = now();
-    database.prepare('INSERT INTO companion_persona_foundation_revisions (id, persona_id, version, foundation, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(id('foundation'), persona.id, version, value.slice(0, 6000), String(req.body?.reason || '用户修订基础人格').slice(0, 240), createdAt);
+    const reason = String(req.body?.reason || '用户修订基础人格').slice(0, 240);
+    database.prepare('INSERT INTO companion_persona_foundation_revisions (id, persona_id, version, foundation, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(id('foundation'), persona.id, version, value.slice(0, 6000), reason, createdAt);
     database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(createdAt, persona.id);
-    res.status(201).json({version, foundation: value.slice(0, 6000), createdAt});
+    const current = blueprint(persona.id);
+    const affectsLife = req.body?.replanLife !== false && /(职业|专业|学生|工作|住|搬|兴趣|作息|课程|家庭|关系|生活)/.test(`${reason} ${value}`);
+    let lifeRevision = null;
+    if (affectsLife) {
+        const baseline = {...current, foundation: value.slice(0, 6000)};
+        const generated = await generateInitialLifeBlueprint({name: persona.name, role: persona.role, foundation: value.slice(0, 6000), interests: current.interests, supportingCast: current.supportingCast}, baseline);
+        lifeRevision = saveLifeBlueprintRevision(persona.id, generated, `基础人格修订后的未来生活模型：${reason}`);
+    }
+    res.status(201).json({version, foundation: value.slice(0, 6000), createdAt, lifeModelRevision: lifeRevision?.version || null});
 }));
 
 app.post('/api/companion/personas/:personaId/foundation-revisions/:revisionId/restore', route((req, res) => {
@@ -2506,7 +3012,10 @@ if (debugInspectorEnabled) {
         const persona = requirePersona(req.params.personaId);
         const events = database.prepare('SELECT * FROM companion_life_events WHERE persona_id = ? ORDER BY occurred_at DESC, id DESC LIMIT 20').all(persona.id).map(row => ({id: row.id, type: row.type, occurredAt: row.occurred_at, resolvesAt: row.resolves_at, payload: redactDebugValue(json(row.payload_json, {}))}));
         const jobs = database.prepare('SELECT id, job_type, status, attempt_count, error, created_at, updated_at FROM companion_jobs WHERE persona_id = ? ORDER BY created_at DESC LIMIT 20').all(persona.id).map(row => ({id: row.id, type: row.job_type, status: row.status, attempts: row.attempt_count, error: debugSummary(row.error || ''), createdAt: row.created_at, updatedAt: row.updated_at}));
-        res.json({state: stateShape(persona.id), events, jobs, nextEvaluationAt: new Date(Date.now() + 5 * 60_000).toISOString(), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone});
+        const timeline = database.prepare('SELECT * FROM companion_timeline_slots WHERE persona_id = ? ORDER BY starts_at, created_at LIMIT 40').all(persona.id).map(row => ({id: row.id, key: row.slot_key, kind: row.slot_kind, status: row.status, startsAt: row.starts_at, endsAt: row.ends_at, source: row.source, priority: row.priority, constraints: redactDebugValue(json(row.constraints_json, {})), outcome: redactDebugValue(json(row.outcome_json, {}))}));
+        const decisions = database.prepare('SELECT * FROM companion_event_decisions WHERE persona_id = ? ORDER BY created_at DESC LIMIT 40').all(persona.id).map(row => ({id: row.id, key: row.decision_key, type: row.decision_type, status: row.status, runAt: row.run_at, expiresAt: row.expires_at, priority: row.priority, preemptionMode: row.preemption_mode, candidate: redactDebugValue(json(row.candidate_json, {})), rationale: redactDebugValue(json(row.rationale_json, {})), eventId: row.event_id}));
+        const deferredBatches = database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE persona_id = ? ORDER BY created_at DESC LIMIT 10').all(persona.id).map(row => ({id: row.id, status: row.status, deliverAt: row.deliver_at, messageCount: json(row.message_ids_json, []).length, decision: redactDebugValue(json(row.decision_json, {})), error: debugSummary(row.error || '')}));
+        res.json({state: stateShape(persona.id), events, jobs, timeline, decisions, deferredBatches, nextEvaluationAt: new Date(Date.now() + 5 * 60_000).toISOString(), timezone: blueprint(persona.id).timezone || Intl.DateTimeFormat().resolvedOptions().timeZone});
     }));
     app.post('/api/companion/personas/:personaId/simulate', route((req, res) => {
         const persona = requirePersona(req.params.personaId);
@@ -2535,7 +3044,7 @@ app.get('/api/companion/media/:mediaId', async (req, res) => {
 });
 
 export const companionApp = app;
-export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan, mediaProviders, providerFor, providerSummaries, validateMediaSettings, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
+export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan, mediaProviders, providerFor, providerSummaries, validateMediaSettings, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
 
 if (process.env.COMPANION_TEST !== '1') {
     app.listen(port, () => {
