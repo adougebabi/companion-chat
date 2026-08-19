@@ -1,0 +1,5 @@
+{"source":"data/companion.sqlite (2026-08-19 live diagnosis)","kind":"runtime-evidence","summary":"苏芷柠的 ready 日计划为 10:00–13:00 睡醒后打游戏追番；08:00–10:00 却写入多条 routine: 上课中，聊天随后编造十点半下课。","use_for":"implementation"}
+{"source":"server.js:527-557","kind":"codebase","summary":"ensureDailyPlan 只创建离散 daily-plan job；defaultRoutine 对学生固定返回 08:00–12:00 上课中。","use_for":"implementation"}
+{"source":"server.js:1051-1082","kind":"codebase","summary":"scheduledState 当前在未开始 schedule 时退回 legacy routine，因此计划首块前会错误变为上课。","use_for":"implementation"}
+{"source":"server.js:1605-1648","kind":"codebase","summary":"聊天 lifeStateLayer 仅注入文本状态和场景，未提供可信 current endsAt / next boundary。","use_for":"implementation"}
+{"source":"test/companion-api.test.mjs","kind":"tests","summary":"现有测试覆盖事件优先级和 daily plan 存储；新增测试必须固定时区与 08:47/10:00 场景。","use_for":"implementation"}

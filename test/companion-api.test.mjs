@@ -9,7 +9,7 @@ process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '0';
 const {companionApp, companionTestHooks} = await import(`../server.js?test=${Date.now()}`);
-const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, providerFor, providerSummaries, h3Args, h3OutputFile, leaseDurationForJob, saveSettings, publicSettings} = companionTestHooks;
+const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, normalizeDailyPlan, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, providerFor, providerSummaries, h3Args, h3OutputFile, leaseDurationForJob, saveSettings, publicSettings} = companionTestHooks;
 
 const routePaths = app => (app.router?.stack || []).flatMap(layer => layer.route ? [layer.route.path] : []);
 
@@ -277,6 +277,128 @@ test('four layers keep an active schedule coherent for chat and media, and persi
     assert.equal(intent.action, '正在图书馆整理课程笔记');
     assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_daily_plans WHERE persona_id = ? AND status = 'queued'").get(persona.id).count, 1);
     assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'daily_plan'").get(persona.id).count, 1);
+});
+
+test('a ready daily plan owns the pre-first-slot state and its trusted chat time facts', () => {
+    const persona = createPersona({name: '苏芷柠', role: '学生', foundation: '苏芷柠住在学校附近，喜欢按自己的节奏休息和娱乐。'});
+    const planDate = '2026-08-19';
+    const planJson = [{title: '睡到自然醒，宿舍打游戏看番', scene: '宿舍', situation: '睡醒后在宿舍打游戏看番', startsAt: '10:00', endsAt: '13:00'}];
+    const createdAt = new Date('2026-08-18T16:00:00.000Z').toISOString();
+    const existingPlan = database.prepare('SELECT id, plan_date FROM companion_daily_plans WHERE persona_id = ? ORDER BY plan_date DESC LIMIT 1').get(persona.id);
+    const planId = existingPlan?.id || `daily_plan_suzhinong_${persona.id}`;
+    if (existingPlan) database.prepare("UPDATE companion_daily_plans SET plan_date = ?, status = 'ready', plan_json = ?, source = 'test', updated_at = ? WHERE id = ?").run(planDate, JSON.stringify(planJson), createdAt, planId);
+    else database.prepare('INSERT INTO companion_daily_plans (id, persona_id, plan_date, status, plan_json, source, created_at, updated_at) VALUES (?, ?, ?, \'ready\', ?, \'test\', ?, ?)').run(planId, persona.id, planDate, JSON.stringify(planJson), createdAt, createdAt);
+
+    const beforeFirstSlot = new Date('2026-08-19T00:47:00.000Z'); // 08:47 in Asia/Shanghai.
+    const projected = scheduledState(requirePersona(persona.id), beforeFirstSlot);
+    assert.equal(projected.source, 'daily_plan_baseline');
+    assert.match(projected.situation, /睡|赖床|休息/);
+    assert.doesNotMatch(projected.situation, /上课/);
+    assert.equal(projected.startsAt, '2026-08-18T16:00:00.000Z');
+    assert.equal(projected.endsAt, '2026-08-19T02:00:00.000Z');
+    assert.equal(projected.timeFact, 'known');
+    assert.equal(projected.location, '住处');
+    assert.equal(projected.room, '自己的宿舍房间');
+
+    const shape = stateShape(persona.id, beforeFirstSlot);
+    assert.equal(shape.source.kind, 'daily_plan_baseline');
+    assert.equal(shape.startsAt, projected.startsAt);
+    assert.equal(shape.endsAt, projected.endsAt);
+    assert.equal(shape.timeFact, 'known');
+    assert.equal(shape.room, '自己的宿舍房间');
+
+    const context = contextFor(persona.id, beforeFirstSlot);
+    assert.match(context.layers.lifeState, /当前主状态来源：daily_plan_baseline/);
+    assert.match(context.layers.lifeState, /可信结束时间：2026-08-19T02:00:00\.000Z/);
+    assert.doesNotMatch(context.layers.lifeState, /稳定作息.*上课中/);
+    assert.match(context.layers.lifeState, /当天计划已就绪/);
+    assert.match(context.layers.lifeState, /正在睡眠状态/);
+    const planSleep = sleepAvailability(requirePersona(persona.id), beforeFirstSlot, context.state);
+    assert.equal(planSleep.sleeping, true);
+    assert.equal(planSleep.nextBoundaryAt, '2026-08-19T02:00:00.000Z');
+    assert.match(context.layers.systemCapability, /只有 timeFact=known/);
+    const prompt = userVisibleChatPrompt(persona.id, '用户问：什么时候下课？', beforeFirstSlot);
+    assert.match(prompt, /不得根据“学生”“上课”等身份猜测课程/);
+    assert.match(prompt, /不得编造“十点半”等具体时间/);
+    assert.doesNotMatch(prompt, /稳定作息.*上课中/);
+    assert.match(trustedTimeReplyForMessage(requirePersona(persona.id), '啥时候下课呀宝宝', context.state), /我现在不在上课.*10:00/);
+    const baselineMedia = mediaIntentFor(requirePersona(persona.id), {kind: 'image', at: beforeFirstSlot});
+    assert.match(baselineMedia.location, /自己的宿舍房间/);
+    assert.match(baselineMedia.action, /睡觉|赖床/);
+
+    const activeSlot = scheduledState(requirePersona(persona.id), new Date('2026-08-19T02:30:00.000Z'));
+    assert.equal(activeSlot.source, 'daily_plan');
+    assert.equal(activeSlot.startsAt, '2026-08-19T02:00:00.000Z');
+    assert.equal(activeSlot.endsAt, '2026-08-19T05:00:00.000Z');
+    assert.equal(activeSlot.timeFact, 'known');
+    reconcilePersona(persona.id, {publish: false});
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ? AND type IN ('daily_plan', 'daily_plan_baseline')").get(persona.id).count, 0);
+});
+
+test('partial explicit schedule overlays only its own interval and daily plans reject overlapping blocks', () => {
+    const persona = createPersona({name: '局部冲突', role: '学生', foundation: '局部冲突按明确计划安排一天。'});
+    const planDate = '2026-08-19';
+    const existing = database.prepare('SELECT id FROM companion_daily_plans WHERE persona_id = ? ORDER BY plan_date DESC LIMIT 1').get(persona.id);
+    database.prepare("UPDATE companion_daily_plans SET plan_date = ?, status = 'ready', plan_json = ?, source = 'test', updated_at = ? WHERE id = ?").run(
+        planDate,
+        JSON.stringify([{title: '宿舍打游戏', scene: '宿舍', situation: '在宿舍打游戏放松', startsAt: '10:00', endsAt: '13:00'}]),
+        '2026-08-18T16:00:00.000Z',
+        existing.id
+    );
+    database.prepare('INSERT INTO companion_schedule_items (id, persona_id, kind, title, starts_at, ends_at, status, source, details_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+        'schedule_partial_' + persona.id, persona.id, 'plan', '和用户确认的午间安排',
+        '2026-08-19T03:00:00.000Z', '2026-08-19T04:00:00.000Z', 'active', 'explicit_chat_plan',
+        JSON.stringify({scene: '校园咖啡馆', situation: '正在和用户确认的午间安排'}), '2026-08-18T16:00:00.000Z', '2026-08-18T16:00:00.000Z'
+    );
+    assert.equal(scheduledState(requirePersona(persona.id), new Date('2026-08-19T02:15:00.000Z')).source, 'daily_plan');
+    const explicitState = scheduledState(requirePersona(persona.id), new Date('2026-08-19T03:30:00.000Z'));
+    assert.equal(explicitState.source, 'schedule');
+    assert.equal(explicitState.location, '校园咖啡馆');
+    assert.equal(explicitState.room, '');
+    assert.equal(scheduledState(requirePersona(persona.id), new Date('2026-08-19T04:15:00.000Z')).source, 'daily_plan');
+    assert.equal(normalizeDailyPlan({items: [
+        {title: '甲', scene: '宿舍', situation: '甲', startsAt: '10:00', endsAt: '12:00'},
+        {title: '乙', scene: '图书馆', situation: '乙', startsAt: '11:00', endsAt: '13:00'}
+    ]}, planDate), null);
+});
+
+test('generic rest baseline remains awake and unknown time facts do not claim a precise end time', () => {
+    const persona = createPersona({name: '晨间休息', role: '学生', foundation: '晨间休息按自己的安排慢慢开始一天。'});
+    const planDate = '2026-08-19';
+    const plan = database.prepare('SELECT id FROM companion_daily_plans WHERE persona_id = ? ORDER BY plan_date DESC LIMIT 1').get(persona.id);
+    database.prepare("UPDATE companion_daily_plans SET plan_date = ?, status = 'ready', plan_json = ?, source = 'test', updated_at = ? WHERE id = ?").run(
+        planDate,
+        JSON.stringify([{title: '晨间休息', scene: '宿舍', situation: '在宿舍休息一会儿', startsAt: '10:00', endsAt: '11:00'}]),
+        '2026-08-18T16:00:00.000Z',
+        plan.id
+    );
+    const at = new Date('2026-08-19T00:47:00.000Z');
+    const context = contextFor(persona.id, at);
+    assert.equal(context.state.resolved_source, 'daily_plan_baseline');
+    assert.doesNotMatch(context.state.situation, /睡觉|赖床/);
+    assert.equal(sleepAvailability(requirePersona(persona.id), at, context.state).sleeping, false);
+    const unknownState = {...context.state, resolved_time_fact: 'unknown', resolved_ends_at: '2026-08-19T02:00:00.000Z'};
+    const reply = trustedTimeReplyForMessage(requirePersona(persona.id), '啥时候下课呀？', unknownState);
+    assert.doesNotMatch(reply, /10:00|十点/);
+    assert.match(reply, /没有课程或可确认的结束时间/);
+});
+
+test('legacy blueprint reads receive an effective safe v2 room without a migration write', () => {
+    const persona = createPersona({name: '旧设定', role: '学生', foundation: '旧设定有稳定的生活习惯。'});
+    const original = database.prepare('SELECT blueprint_json FROM companion_persona_life_blueprints WHERE persona_id = ?').get(persona.id).blueprint_json;
+    database.prepare('UPDATE companion_persona_life_blueprints SET blueprint_json = ?, updated_at = ? WHERE persona_id = ?').run(JSON.stringify({routine: [{label: '旧作息', from: 0, to: 24, scene: '旧房间'}], interests: ['旧兴趣']}), new Date().toISOString(), persona.id);
+
+    const effective = publicBlueprint(persona.id);
+    assert.equal(effective.schemaVersion, lifeModelSchemaVersion);
+    assert.deepEqual(effective.world.defaultSceneRef, {locationId: 'home', roomId: 'private_room'});
+    assert.equal(validateLifeBlueprint(normalizeLifeBlueprint(effective)).ok, true);
+    assert.deepEqual(effective.interests, ['旧兴趣']);
+    assert.deepEqual(JSON.parse(database.prepare('SELECT blueprint_json FROM companion_persona_life_blueprints WHERE persona_id = ?').get(persona.id).blueprint_json), {routine: [{label: '旧作息', from: 0, to: 24, scene: '旧房间'}], interests: ['旧兴趣']});
+    assert.notEqual(original, database.prepare('SELECT blueprint_json FROM companion_persona_life_blueprints WHERE persona_id = ?').get(persona.id).blueprint_json);
+    const legacyState = scheduledState(requirePersona(persona.id), new Date('2026-08-19T00:47:00.000Z'));
+    assert.equal(legacyState.source, 'routine');
+    assert.equal(legacyState.endsAt, null);
+    assert.equal(legacyState.timeFact, 'unknown');
 });
 
 test('model-authorized media intent preserves a bounded creative direction', () => {

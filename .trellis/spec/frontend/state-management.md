@@ -74,6 +74,50 @@ messages.push({role: 'assistant', text: '她正在睡觉，稍后回复'});
 activeMessages = activeMessages.filter(message => message !== typingEntry);
 ```
 
+## Scenario: Trusted Time Facts
+
+### 1. Scope / Trigger
+
+- Trigger: persona detail or chat uses a server-projected state with an end boundary, time fact, or next boundary.
+
+### 2. Signatures
+
+- State payloads expose scene, location, room, start time, end time, time fact, and next boundary.
+
+### 3. Contracts
+
+- UI labels use server-projected scene and location; browser code never infers class, work, or an end time from role text.
+- A daily-plan baseline such as sleep or lying in is a real state, not an empty or loading state.
+- An unknown time fact means no client-side end-time claim can be rendered or constructed.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Server says daily-plan baseline | Render its sleep/rest situation normally. |
+| Server says known time fact | Display a supplied boundary only where the UI needs it. |
+| Server says unknown time fact | Do not fabricate an end-time hint. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a sleep baseline remains visible before a 10:00 plan slot.
+- Bad: showing 上课中 because the persona role includes 学生.
+
+### 6. Tests Required
+
+- Verify the detail view uses server scene, location, and room.
+- Verify a plan baseline and explicit plan slot do not cause routine labels to leak into chat.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+    const status = /学生/.test(persona.role) ? '上课中' : persona.currentSituation;
+
+#### Correct
+
+    const status = persona.currentSituation;
+
 ## Scenario: Mobile composer and image-safe background refresh
 
 ### 1. Scope / Trigger

@@ -1,0 +1,3 @@
+{"source":"prd.md:R1-R4","kind":"spec","summary":"状态、计划、聊天时间事实必须共享单一来源，ready 计划不可被 legacy routine 覆盖。","check":"验证全天连续 baseline、state source/endsAt 和聊天禁止编造时间。"}
+{"source":"data/companion.sqlite diagnosis","kind":"regression","summary":"苏芷柠在 10:00 计划开始前被错误解析为上课，聊天虚构十点半下课。","check":"固定 08:47 China time fixture，断言非上课且无虚构结束时间。"}
+{"source":"server.js:1051-1082","kind":"cross-layer","summary":"状态解析跨 event/schedule/routine；改动必须同步检查 state API、contextFor、mediaIntent 和 UI。","check":"确认普通状态/聊天/媒体使用同一 slot source 和边界。"}

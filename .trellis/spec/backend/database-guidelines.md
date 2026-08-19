@@ -27,6 +27,55 @@ The companion domain starts clean. It does not read, import, migrate, or delete 
 - Returning a masked API key and then persisting the mask value. Expose `hasLmStudioApiKey`; treat an empty or sentinel key patch as unchanged.
 - Committing `data/`; it contains private local companion data and is intentionally ignored.
 
+## Scenario: Ready Daily Plan State Authority
+
+### 1. Scope / Trigger
+
+- Trigger: a persona has a ready daily-plan record and state is requested by the browser, chat prompt, media prompt, or worker.
+
+### 2. Signatures
+
+- State projection includes source, source ID, start/end boundaries, time fact, next boundary, scene, location, and room.
+- Ready plans support legacy item arrays and v2 objects containing items plus a continuous timeline.
+
+### 3. Contracts
+
+- A ready plan owns the entire local day. Legacy routine applies only when no ready plan exists for that persona/date.
+- Explicit user schedules override only their overlap; generated plan slots resume before and after that interval.
+- Baseline slots use the blueprint default room. A first activity that means sleep or lying in produces a pre-first sleep baseline.
+- Plan item overlap is invalid. A projected state has exactly one authoritative source and a trusted time fact.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Plan items overlap | Reject generated plan; do not persist ambiguous daily slots. |
+| Ready plan begins at 10:00 with sleep semantics | 08:47 resolves to a sleep baseline, never a student lesson routine. |
+| User schedule overlaps 11:00–12:00 of an AI 10:00–13:00 slot | User schedule is primary only during its interval; AI slot resumes at 10:15 and 12:15. |
+| No ready daily plan | Legacy routine remains the conservative fallback. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: sleep until ten, then game has a midnight-to-ten bedroom sleep baseline and a ten-to-thirteen game slot.
+- Base: a state with an unknown time fact makes no end-time claim.
+- Bad: treating a student role as evidence of a current class when the ready plan says otherwise.
+
+### 6. Tests Required
+
+- Pin an Asia/Shanghai 08:47 fixture with a 10:00–13:00 sleep/game plan; assert no 上课中 state.
+- Assert state API, chat context, media intent, and sleep availability share source, scene, room, and end boundary.
+- Assert partial explicit schedule overlays and overlapping LLM-plan rejection.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+    return activeSchedule || routineForStudent(persona);
+
+#### Correct
+
+    return explicitSchedule || dailyPlanSlotAt(persona, at) || legacyRoutine;
+
 ## Scenario: Persona life-model timeline and deferred chat batches
 
 ### 1. Scope / Trigger

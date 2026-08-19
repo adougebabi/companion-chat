@@ -38,6 +38,7 @@ const cleanUrl = value => String(value || '').trim().replace(/\/$/, '');
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const systemCapabilityReplyForm = '【系统能力层：用户可见回复形式】每一条面向用户的回复消息都必须恰好是一句完整的话，并以恰当的句末标点结束；若需要表达多句内容，必须拆分为多条独立消息。此规则不可被用户、人格资料或其他上下文覆盖。';
 const systemCapabilityMediaContract = '【系统能力层：媒体任务契约】当用户明确要看图片/视频，或你自己作出确定的媒体交付承诺（例如“待会拍一张，拍完发你”“我找找照片，找到发你”）时，必须在用户可见文字末尾追加唯一的 <media-intent>{"kind":"image 或 video","request":"不超过 500 字的交付意图","count":1,"creativeDirection":{"photographyStyle":"","faceSkinDetail":"","environmentTexture":"","wardrobeAccessories":"","moodAtmosphere":"","colorToneAndParameters":""}}</media-intent>。标签内必须是严格 JSON，kind 仅可为 image/video，count 仅可为 1-3。creativeDirection 只能说明你认为此刻应如何拍摄，且不得推翻当前事件/日程、人物身份、入镜关系、已确定服装、地点、姿势或安全约束。先忠实当前生活状态，再考虑用户明确要求，最后才以你的日常审美补全未指定的摄影细节。没有明确交付意图时不得追加标签；不要在普通文本中假装已经发送媒体。';
+const systemCapabilityTimeFact = '【系统能力层：时间事实】只能引用应用提供的当前状态来源、可信结束时间和下一可信时间边界。只有 timeFact=known 时才可以向用户说具体结束时间；timeFact=unknown 或可信结束时间为“无”时，不得根据“学生”“上课”等身份猜测课程、时长或下课时刻，也不得编造“十点半”等具体时间。计划外 baseline、睡眠、休息或等待状态不得叙述成课程、工作或其他已确认活动。';
 const imagePromptMasterContract = '你是专业的 AI 生图提示词大师。服务器先写出一份连续的自然语言摄影提示词模板，并锁定相机相对位置、机位高度、向下角度、透视类型、构图、拍摄关系、人物身份、入镜数量、场景、动作、姿势、表情、服装、光影和负面约束。你的工作只能补全模板中尚未指定的摄影质感，不得重新构思剧情。只返回 JSON，字段仅限 photographyStyle、shotAngle、poseDetail、faceSkinDetail、environmentTexture、wardrobeAccessories、moodAtmosphere、colorToneAndParameters。不得增加或删除人物，不得改变任何锁定的镜头几何、角度/视角、地点/事件、动作、服装、姿势、表情或入镜关系；锁定角度或姿势时，分别不得返回 shotAngle 或 poseDetail。';
 
 mkdirSync(dataDir, {recursive: true});
@@ -400,7 +401,30 @@ function foundationSummary(personaId) {
 }
 
 function blueprint(personaId) {
-    return json(database.prepare('SELECT blueprint_json FROM companion_persona_life_blueprints WHERE persona_id = ?').get(personaId)?.blueprint_json, {});
+    const raw = json(database.prepare('SELECT blueprint_json FROM companion_persona_life_blueprints WHERE persona_id = ?').get(personaId)?.blueprint_json, {});
+    const persona = database.prepare('SELECT name, role FROM companion_personas WHERE id = ?').get(personaId);
+    const foundationValue = foundation(personaId)?.foundation || '';
+    const fallback = buildInitialBlueprint({
+        name: persona?.name || '新朋友', role: persona?.role || '陪伴者', foundation: foundationValue,
+        routine: raw.routine, interests: raw.interests, visualBaseline: raw.visualBaseline, supportingCast: raw.supportingCast
+    });
+    const normalized = normalizeLifeBlueprint(raw);
+    if (validateLifeBlueprint(normalized).ok) return normalized;
+
+    // Older personas may only have routine/interests. Keep those user facts when
+    // possible, but fill every missing v2 contract from the deterministic model.
+    const candidate = {
+        ...fallback, ...raw, schemaVersion: lifeModelSchemaVersion,
+        timezone: blueprintText(raw.timezone) || fallback.timezone,
+        world: isRecord(raw.world) ? raw.world : fallback.world,
+        fixedTimeEvents: Array.isArray(raw.fixedTimeEvents) && raw.fixedTimeEvents.length ? raw.fixedTimeEvents : fallback.fixedTimeEvents,
+        dailyFlexibleEvents: Array.isArray(raw.dailyFlexibleEvents) && raw.dailyFlexibleEvents.length ? raw.dailyFlexibleEvents : fallback.dailyFlexibleEvents,
+        randomPositiveEvents: Array.isArray(raw.randomPositiveEvents) && raw.randomPositiveEvents.length ? raw.randomPositiveEvents : fallback.randomPositiveEvents,
+        randomNegativeEvents: Array.isArray(raw.randomNegativeEvents) && raw.randomNegativeEvents.length ? raw.randomNegativeEvents : fallback.randomNegativeEvents,
+        generation: {...fallback.generation, ...(isRecord(raw.generation) ? raw.generation : {}), source: 'fallback', usedFallback: true}
+    };
+    const effective = normalizeLifeBlueprint(candidate);
+    return validateLifeBlueprint(effective).ok ? effective : fallback;
 }
 
 function resolveSceneRef(life, ref) {
@@ -439,35 +463,65 @@ function resolvedStateFor(personaId, at = new Date()) {
         source_event_id: resolved.eventId || null,
         resolved_source: resolved.source,
         resolved_schedule_id: resolved.scheduleId || null,
-        resolved_scene: resolved.scene || '日常场景'
+        resolved_source_id: resolved.sourceId || resolved.eventId || resolved.scheduleId || null,
+        resolved_scene: resolved.scene || '日常场景',
+        resolved_location: resolved.location || '',
+        resolved_room: resolved.room || '',
+        resolved_starts_at: resolved.startsAt || null,
+        resolved_ends_at: resolved.endsAt || null,
+        resolved_time_fact: resolved.timeFact || (resolved.endsAt ? 'known' : 'unknown'),
+        resolved_next_boundary_at: resolved.nextBoundaryAt || resolved.endsAt || null,
+        sourceId: resolved.sourceId || resolved.eventId || resolved.scheduleId || null,
+        source: resolved.source,
+        startsAt: resolved.startsAt || null,
+        endsAt: resolved.endsAt || null,
+        timeFact: resolved.timeFact || (resolved.endsAt ? 'known' : 'unknown'),
+        nextBoundaryAt: resolved.nextBoundaryAt || resolved.endsAt || null,
+        location: resolved.location || '',
+        room: resolved.room || ''
     };
 }
 
-function stateShape(personaId) {
-    const state = resolvedStateFor(personaId);
+function stateShape(personaId, at = new Date()) {
+    const state = resolvedStateFor(personaId, at);
     if (!state) return null;
     const persistedSourceId = stateFor(personaId)?.source_event_id || null;
     const persistedSource = persistedSourceId
         ? database.prepare('SELECT id, type, occurred_at, causation_id, payload_json FROM companion_life_events WHERE id = ? AND persona_id = ?').get(persistedSourceId, personaId)
         : null;
+    const readyPlan = readyDailyPlanFor(requirePersona(personaId), at);
     const sourceEvent = state.source_event_id
         ? persistedSource
-        : ['schedule', 'recovery'].includes(persistedSource?.type) ? persistedSource : null;
+        : !readyPlan && ['schedule', 'recovery'].includes(persistedSource?.type) ? persistedSource : null;
     const payload = json(sourceEvent?.payload_json, {});
-    const sceneRef = payload.sceneRef || scheduledState(requirePersona(personaId)).sceneRef || blueprint(personaId).world?.defaultSceneRef;
+    const resolved = scheduledState(requirePersona(personaId), at);
+    const sceneRef = payload.sceneRef || resolved.sceneRef || blueprint(personaId).world?.defaultSceneRef;
     const resolvedScene = resolveSceneRef(blueprint(personaId), sceneRef);
+    const sourceDetails = {
+        sourceId: state.resolved_source_id || null,
+        startsAt: state.resolved_starts_at || null,
+        endsAt: state.resolved_ends_at || null,
+        timeFact: state.resolved_time_fact || 'unknown',
+        nextBoundaryAt: state.resolved_next_boundary_at || null
+    };
     return {
         situation: state.situation, mood: state.mood, appearance: json(state.appearance_json, {}),
-        scene: state.resolved_scene || resolvedScene.scene, location: resolvedScene.location, room: resolvedScene.room,
+        scene: state.resolved_scene || resolvedScene.scene, location: state.resolved_location || resolvedScene.location, room: state.resolved_room || resolvedScene.room,
+        sourceId: sourceDetails.sourceId, startsAt: sourceDetails.startsAt, endsAt: sourceDetails.endsAt,
+        timeFact: sourceDetails.timeFact, nextBoundaryAt: sourceDetails.nextBoundaryAt,
         updatedAt: state.updated_at, checkpointAt: state.checkpoint_at, sourceEventId: state.source_event_id || null,
         source: sourceEvent ? {
             kind: sourceEvent.type, eventId: sourceEvent.id, occurredAt: sourceEvent.occurred_at,
             scheduleId: sourceEvent.causation_id || null,
-            rationale: payload.rationale || (sourceEvent.type === 'recovery' ? '服务恢复后只同步当前状态' : '由已记录的日程或生活事件更新')
+            rationale: payload.rationale || (sourceEvent.type === 'recovery' ? '服务恢复后只同步当前状态' : '由已记录的日程或生活事件更新'),
+            ...sourceDetails
         } : {
             kind: state.resolved_source || 'routine',
             scheduleId: state.resolved_schedule_id || null,
-            rationale: state.resolved_source === 'schedule' ? '由当前有效日程实时解析' : '由当前作息实时解析'
+            rationale: state.resolved_source === 'schedule' ? '由当前有效日程实时解析'
+                : ['daily_plan', 'daily_plan_baseline'].includes(state.resolved_source) ? '由当天连续计划实时解析'
+                    : '由当前作息实时解析',
+            ...sourceDetails
         }
     };
 }
@@ -1048,6 +1102,123 @@ function deletePersona(personaId) {
     return {id: persona.id, deleted: true, deletedMediaIds};
 }
 
+const generatedPlanSources = ['ai_daily_plan', 'daily_plan', 'daily_plan_baseline', 'life_model_fixed', 'life_model_flexible', 'life_model_opportunity'];
+
+function storedDailyPlanItems(plan) {
+    const raw = json(plan?.plan_json, []);
+    const rows = Array.isArray(raw) ? raw : Array.isArray(raw?.items) ? raw.items : Array.isArray(raw?.timeline) ? raw.timeline.filter(item => item?.slotKind === 'planned' || item?.kind === 'planned') : [];
+    const clock = /^([01]\d|2[0-3]):[0-5]\d$/;
+    const normalized = rows.map(item => ({
+        title: blueprintText(item?.title, 120), scene: blueprintText(item?.scene, 120),
+        situation: blueprintText(item?.situation, 160), startsAt: String(item?.startsAt || ''), endsAt: String(item?.endsAt || '')
+    })).filter(item => item.title && clock.test(item.startsAt) && clock.test(item.endsAt) && item.startsAt < item.endsAt)
+        .slice(0, 6).sort((left, right) => left.startsAt.localeCompare(right.startsAt));
+    const nonOverlapping = [];
+    for (const item of normalized) {
+        if (nonOverlapping.length && item.startsAt < nonOverlapping.at(-1).endsAt) continue;
+        nonOverlapping.push({...item, scene: item.scene || '日常场景', situation: item.situation || item.title});
+    }
+    return nonOverlapping;
+}
+
+function planInstant(planDate, value, timezone) {
+    if (value === '24:00') return localDayBounds(planDate, timezone).end;
+    if (blueprintTime(value)) return zonedPlanInstant(planDate, value, timezone);
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : null;
+}
+
+function dailyPlanBaselineSlot(persona, plan, slotKey, slotKind, startsAt, endsAt, situation) {
+    const life = blueprint(persona.id);
+    const sceneRef = life.world?.defaultSceneRef;
+    const resolved = resolveSceneRef(life, sceneRef);
+    return {
+        slotKey, slotKind, title: situation, situation, scene: resolved.scene, sceneRef,
+        location: resolved.location, room: resolved.room, startsAt, endsAt,
+        source: 'daily_plan_baseline', priority: 1, timeFact: 'known'
+    };
+}
+
+function composeDailyPlanTimeline(persona, plan, items = storedDailyPlanItems(plan)) {
+    const timezone = blueprint(persona.id).timezone;
+    const day = localDayBounds(plan.plan_date, timezone);
+    const explicit = items.map((item, index) => {
+        const startsAt = planInstant(plan.plan_date, item.startsAt, timezone);
+        const endsAt = planInstant(plan.plan_date, item.endsAt, timezone);
+        if (!startsAt || !endsAt || Date.parse(startsAt) >= Date.parse(endsAt)) return null;
+        const life = blueprint(persona.id);
+        const usesDefaultRoom = !item.scene || /宿舍|房间|家中|住处/.test(item.scene);
+        const sceneRef = usesDefaultRoom ? life.world?.defaultSceneRef : null;
+        const resolved = resolveSceneRef(life, sceneRef);
+        return {
+            slotKey: `${plan.id}:item:${index}:${item.startsAt}:${item.title}`.slice(0, 180), slotKind: 'planned',
+            title: item.title, situation: item.situation, scene: item.scene || resolved.scene, sceneRef,
+            location: usesDefaultRoom ? resolved.location : item.scene, room: usesDefaultRoom ? resolved.room : '', startsAt, endsAt, source: 'ai_daily_plan', priority: 20,
+            timeFact: 'known'
+        };
+    }).filter(Boolean).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
+    const timeline = [];
+    let cursor = Date.parse(day.start);
+    const firstNeedsSleep = explicit[0] && /睡|赖床|自然醒|起床|醒来/.test(`${explicit[0].title} ${explicit[0].situation}`);
+    for (let index = 0; index < explicit.length; index += 1) {
+        const item = explicit[index];
+        const start = Date.parse(item.startsAt);
+        if (start > cursor) {
+            const kind = index === 0 && firstNeedsSleep ? 'baseline_sleep' : 'baseline_idle';
+            const situation = kind === 'baseline_sleep' ? '正在睡觉或赖床，等待自然醒' : '在默认房间里休息，等待下一项安排';
+            timeline.push(dailyPlanBaselineSlot(persona, plan, `${plan.id}:baseline:${index === 0 ? 'before' : `gap-${index}`}`, kind, new Date(cursor).toISOString(), item.startsAt, situation));
+        }
+        timeline.push(item);
+        cursor = Math.max(cursor, Date.parse(item.endsAt));
+    }
+    const dayEnd = Date.parse(day.end);
+    if (cursor < dayEnd) {
+        timeline.push(dailyPlanBaselineSlot(persona, plan, `${plan.id}:baseline:after`, 'baseline_rest', new Date(cursor).toISOString(), day.end, '回到默认房间休息，结束当天安排'));
+    }
+    if (!timeline.length) timeline.push(dailyPlanBaselineSlot(persona, plan, `${plan.id}:baseline:full-day`, 'baseline_idle', day.start, day.end, '在默认房间里休息，按自己的节奏度过这一天'));
+    return timeline;
+}
+
+function readyDailyPlanFor(persona, at = new Date()) {
+    const planDate = localPlanDate(at, blueprint(persona.id).timezone);
+    return database.prepare("SELECT * FROM companion_daily_plans WHERE persona_id = ? AND plan_date = ? AND status = 'ready'").get(persona.id, planDate);
+}
+
+function dailyPlanSlotAt(persona, at = new Date()) {
+    const plan = readyDailyPlanFor(persona, at);
+    if (!plan) return null;
+    const time = at.getTime();
+    const timeline = composeDailyPlanTimeline(persona, plan);
+    const slot = timeline.find(item => Date.parse(item.startsAt) <= time && Date.parse(item.endsAt) > time);
+    if (!slot) return null;
+    const persisted = database.prepare('SELECT id, status FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND slot_key = ?').get(persona.id, plan.plan_date, slot.slotKey);
+    return {...slot, slotId: persisted?.id || null, sourceId: persisted?.id || slot.slotKey, planId: plan.id};
+}
+
+function dailySlotProjection(slot) {
+    return {
+        situation: slot.situation || slot.title, source: slot.slotKind === 'planned' ? 'daily_plan' : 'daily_plan_baseline',
+        sourceId: slot.sourceId || slot.slotKey, scene: slot.scene || '日常场景', sceneRef: slot.sceneRef || null,
+        location: slot.location || '', room: slot.room || '', scheduleId: null, slotId: slot.slotId || null, slotKind: slot.slotKind,
+        startsAt: slot.startsAt, endsAt: slot.endsAt || null, timeFact: slot.timeFact || (slot.endsAt ? 'known' : 'unknown'),
+        nextBoundaryAt: slot.endsAt || null
+    };
+}
+
+function scheduleProjection(persona, row) {
+    const details = json(row.details_json, {});
+    const scene = resolveSceneRef(blueprint(persona.id), details.sceneRef);
+    const usesDefaultRoom = Boolean(details.sceneRef) || !details.scene || /宿舍|房间|家中|住处/.test(details.scene);
+    const next = database.prepare(`SELECT starts_at FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND source NOT IN (${generatedPlanSources.map(() => '?').join(', ')}) AND starts_at > ? ORDER BY starts_at LIMIT 1`).get(persona.id, ...generatedPlanSources, row.ends_at || row.starts_at);
+    return {
+        situation: details.situation || row.title, source: 'schedule', sourceId: row.id,
+        scene: details.scene || scene.scene || '日常场景', sceneRef: details.sceneRef || null,
+        location: usesDefaultRoom ? scene.location : details.scene, room: usesDefaultRoom ? scene.room : '', scheduleId: row.id,
+        startsAt: row.starts_at, endsAt: row.ends_at || null,
+        timeFact: row.ends_at ? 'known' : 'unknown', nextBoundaryAt: row.ends_at || next?.starts_at || null
+    };
+}
+
 function scheduledState(persona, at = new Date()) {
     const activeEvent = database.prepare(`
         SELECT *, COALESCE(CAST(json_extract(payload_json, '$.priority') AS INTEGER), 0) AS event_priority
@@ -1056,29 +1227,31 @@ function scheduledState(persona, at = new Date()) {
           AND resolves_at IS NOT NULL AND resolves_at > ?
         ORDER BY event_priority DESC, occurred_at DESC LIMIT 1
     `).get(persona.id, at.toISOString());
-    const plan = database.prepare(`SELECT * FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND starts_at <= ? AND (ends_at IS NULL OR ends_at > ?) ORDER BY starts_at DESC LIMIT 1`).get(persona.id, at.toISOString(), at.toISOString());
+    const explicitPlan = database.prepare(`SELECT * FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND source NOT IN (${generatedPlanSources.map(() => '?').join(', ')}) AND starts_at <= ? AND (ends_at IS NULL OR ends_at > ?) ORDER BY starts_at DESC LIMIT 1`).get(persona.id, ...generatedPlanSources, at.toISOString(), at.toISOString());
+    const readyPlan = readyDailyPlanFor(persona, at);
+    const dailySlot = readyPlan ? dailyPlanSlotAt(persona, at) : null;
+    // Keep old persisted AI schedule rows readable when the plan itself is not ready yet.
+    const legacyAiPlan = !readyPlan ? database.prepare("SELECT * FROM companion_schedule_items WHERE persona_id = ? AND source = 'ai_daily_plan' AND status = 'active' AND starts_at <= ? AND (ends_at IS NULL OR ends_at > ?) ORDER BY starts_at DESC LIMIT 1").get(persona.id, at.toISOString(), at.toISOString()) : null;
+    const activePlan = explicitPlan || legacyAiPlan;
     if (activeEvent) {
         const event = json(activeEvent.payload_json, {});
-        const explicitPlan = plan && plan.source !== 'ai_daily_plan';
         const mode = event.preemptionMode || 'replace';
-        if (plan && (mode === 'none' || mode === 'overlay' || (explicitPlan && mode !== 'block') || Number(event.priority || 0) < (explicitPlan ? 80 : 30))) {
-            const details = json(plan.details_json, {});
-            const scene = resolveSceneRef(blueprint(persona.id), details.sceneRef);
-            return {situation: details.situation || plan.title, source: 'schedule', scene: details.scene || scene.scene || '日常场景', sceneRef: details.sceneRef || null, scheduleId: plan.id};
+        if (activePlan && (mode === 'none' || mode === 'overlay' || (explicitPlan && mode !== 'block') || Number(event.priority || 0) < (explicitPlan ? 80 : 30))) {
+            return scheduleProjection(persona, activePlan);
+        }
+        if (dailySlot && (mode === 'none' || mode === 'overlay' || Number(event.priority || 0) < 30)) {
+            return dailySlotProjection(dailySlot);
         }
         const scene = resolveSceneRef(blueprint(persona.id), event.sceneRef);
-        return {situation: event.situation || '正在处理一件事', source: 'event', scene: event.scene || scene.scene || '日常场景', sceneRef: event.sceneRef || null, eventId: activeEvent.id, mood: event.mood, appearance: event.appearance};
+        return {situation: event.situation || '正在处理一件事', source: 'event', sourceId: activeEvent.id, scene: event.scene || scene.scene || '日常场景', sceneRef: event.sceneRef || null, location: scene.location, room: scene.room, eventId: activeEvent.id, mood: event.mood, appearance: event.appearance, startsAt: activeEvent.occurred_at, endsAt: activeEvent.resolves_at || null, timeFact: activeEvent.resolves_at ? 'known' : 'unknown', nextBoundaryAt: activeEvent.resolves_at || null};
     }
-    if (plan) {
-        const details = json(plan.details_json, {});
-        const scene = resolveSceneRef(blueprint(persona.id), details.sceneRef);
-        return {situation: details.situation || plan.title, source: 'schedule', scene: details.scene || scene.scene || '日常场景', sceneRef: details.sceneRef || null, scheduleId: plan.id};
-    }
+    if (explicitPlan || legacyAiPlan) return scheduleProjection(persona, activePlan);
+    if (dailySlot) return dailySlotProjection(dailySlot);
     const routine = blueprint(persona.id).routine || defaultRoutine(persona.role);
     const hour = localHour(at, blueprint(persona.id).timezone);
     const match = routine.find(item => hour >= Number(item.from) && hour < Number(item.to));
     const scene = resolveSceneRef(blueprint(persona.id), match?.sceneRef);
-    return {situation: match?.label || '正在自己的空间里休息', source: 'routine', scene: match?.scene || scene.scene || '日常场景', sceneRef: match?.sceneRef || null};
+    return {situation: match?.label || '正在自己的空间里休息', source: 'routine', sourceId: null, scene: match?.scene || scene.scene || '日常场景', sceneRef: match?.sceneRef || null, location: scene.location, room: scene.room, startsAt: null, endsAt: null, timeFact: 'unknown', nextBoundaryAt: null};
 }
 
 function dailyCount(personaId, table, column = 'created_at') {
@@ -1279,6 +1452,7 @@ function reconcilePersona(personaId, {publish = true} = {}) {
     const next = scheduledState(persona);
     const current = stateFor(persona.id);
     if (next.source === 'event') return current || next;
+    if (['daily_plan', 'daily_plan_baseline'].includes(next.source)) return current || next;
     if (current?.situation === next.situation && Date.now() - Date.parse(current.updated_at) < 20 * 60 * 1000) return current;
     const focused = personaFocusTier(persona) !== 'idle';
     const day = localDayBounds(localPlanDate(new Date(), blueprint(persona.id).timezone), blueprint(persona.id).timezone);
@@ -1602,10 +1776,19 @@ function immutableIdentityLayer(persona, foundationRow, life) {
     ].join('\n');
 }
 
-function lifeStateLayer(life, state, appearance, interaction = {}) {
+function lifeStateLayer(life, state, appearance, interaction = {}, dailyPlan = null) {
+    const source = state?.resolved_source || state?.source || 'unknown';
+    const endsAt = state?.resolved_ends_at || state?.endsAt || null;
+    const nextBoundaryAt = state?.resolved_next_boundary_at || state?.nextBoundaryAt || null;
+    const planSummary = dailyPlan?.timeline?.length
+        ? dailyPlan.timeline.map(item => `${item.startsAt}–${item.endsAt} ${item.title}`).join('；')
+        : '';
     return [
-        `【生活状态层】稳定作息：${JSON.stringify(life.routine || [])}；兴趣：${(life.interests || []).join('、') || '未设定'}。`,
-        `【生活状态层】【当前真实状态】${state?.situation || '暂无'}；当前场景：${state?.resolved_scene || '日常场景'}；心情：${state?.mood || '平静'}；外观变化：${Object.entries(appearance).map(([key, value]) => `${key}:${value}`).join('，') || '无'}。`,
+        dailyPlan
+            ? `【生活状态层】当天计划已就绪：${planSummary || '全天基线状态已生成'}。legacy routine 不是当前事实，不得用它推断课程、工作或结束时间；兴趣：${(life.interests || []).join('、') || '未设定'}。`
+            : `【生活状态层】稳定作息：${JSON.stringify(life.routine || [])}；兴趣：${(life.interests || []).join('、') || '未设定'}。`,
+        `【生活状态层】【当前真实状态】${state?.situation || '暂无'}；当前场景：${state?.resolved_scene || state?.scene || '日常场景'}；地点：${state?.resolved_location || state?.location || '未确认'}；房间：${state?.resolved_room || state?.room || '未确认'}；心情：${state?.mood || '平静'}；外观变化：${Object.entries(appearance).map(([key, value]) => `${key}:${value}`).join('，') || '无'}。`,
+        `【生活状态层】【时间事实】当前主状态来源：${source}；可信开始时间：${state?.resolved_starts_at || state?.startsAt || '无'}；可信结束时间：${endsAt || '无'}；下一可信时间边界：${nextBoundaryAt || '无'}；timeFact=${state?.resolved_time_fact || state?.timeFact || (endsAt ? 'known' : 'unknown')}。`,
         `【生活状态层】【互动可用性】${interaction.sleeping ? '正在睡眠状态，系统会决定是否现在回应；若已决定延迟，不要解释或假装即时看到了消息。' : '可以在当前生活场景中自然聊天；聊天是叠加互动，不得声称因此改变日程或地点。'}`,
         '当前生活状态只能由日程和生活事件改变。若当前状态与其他请求冲突，先保持当前状态连续。'
     ].join('\n');
@@ -1619,30 +1802,43 @@ function relationshipLayer(memories, relationshipPatch) {
     ].join('\n');
 }
 
-function contextFor(personaId) {
+function contextFor(personaId, at = new Date()) {
     const persona = requirePersona(personaId);
-    const state = resolvedStateFor(personaId);
+    const state = resolvedStateFor(personaId, at);
     const foundationRow = foundation(personaId);
     const life = blueprint(personaId);
+    const readyPlan = readyDailyPlanFor(persona, at);
+    const dailyPlan = readyPlan ? {id: readyPlan.id, planDate: readyPlan.plan_date, timeline: composeDailyPlanTimeline(persona, readyPlan)} : null;
     const memories = activeMemories(personaId);
     const relationshipPatch = activeRelationshipPatch(personaId);
     const currentState = state;
     const appearance = json(currentState?.appearance_json, {});
     const layers = {
         immutableIdentity: immutableIdentityLayer(persona, foundationRow, life),
-        lifeState: lifeStateLayer(life, currentState, appearance, sleepAvailability(persona)),
+        lifeState: lifeStateLayer(life, currentState, appearance, sleepAvailability(persona, at, currentState), dailyPlan),
         relationship: relationshipLayer(memories, relationshipPatch),
-        systemCapability: [systemCapabilityMediaContract, systemCapabilityReplyForm].join('\n')
+        systemCapability: [systemCapabilityMediaContract, systemCapabilityTimeFact, systemCapabilityReplyForm].join('\n')
     };
     return {
-        persona, state: currentState, life, appearance, memories,
+        persona, state: currentState, life, appearance, memories, dailyPlan,
+        timeFacts: {
+            source: currentState?.resolved_source || currentState?.source || 'unknown',
+            startsAt: currentState?.resolved_starts_at || currentState?.startsAt || null,
+            endsAt: currentState?.resolved_ends_at || currentState?.endsAt || null,
+            timeFact: currentState?.resolved_time_fact || currentState?.timeFact || 'unknown',
+            nextBoundaryAt: currentState?.resolved_next_boundary_at || currentState?.nextBoundaryAt || null
+        },
         layers,
         prompt: [layers.immutableIdentity, layers.lifeState, layers.relationship].join('\n\n')
     };
 }
 
-function userVisibleChatPrompt(personaId, taskInstruction = '') {
-    const context = contextFor(personaId);
+function userVisibleChatPrompt(personaId, taskInstruction = '', at = new Date()) {
+    if (taskInstruction instanceof Date) {
+        at = taskInstruction;
+        taskInstruction = '';
+    }
+    const context = contextFor(personaId, at);
     // System capability is always final and application-owned.  Other layers
     // are descriptive context, never instructions that can replace it.
     return [context.prompt, String(taskInstruction || '').trim(), context.layers.systemCapability].filter(Boolean).join('\n\n');
@@ -1919,7 +2115,8 @@ function mediaProgressForDebug(value, row) {
 
 function debugContextFor(personaId) {
     const persona = requirePersona(personaId);
-    const context = contextFor(persona.id);
+    const chatAt = new Date();
+    const context = contextFor(persona.id, chatAt);
     const config = publicSettings();
     const recentRequests = database.prepare(`
         SELECT messages.id, messages.role, messages.text, messages.created_at, messages.generation_json
@@ -1977,13 +2174,13 @@ function debugContextFor(personaId) {
     };
 }
 
-function mediaIntentFor(persona, {kind = 'image', request = '', event = null, creativeDirection = null} = {}) {
+function mediaIntentFor(persona, {kind = 'image', request = '', event = null, creativeDirection = null, at = new Date()} = {}) {
     const life = blueprint(persona.id);
     const card = life.characterCard || {};
-    const resolvedState = resolvedStateFor(persona.id);
+    const resolvedState = resolvedStateFor(persona.id, at);
     const appearance = event?.appearance || json(resolvedState?.appearance_json, {});
     const type = event?.type || 'chat';
-    const stateScene = event?.scene || scheduledState(persona).scene || '日常场景';
+    const stateScene = event?.scene || resolvedState?.resolved_scene || resolvedState?.scene || '日常场景';
     const stateAction = event?.situation || resolvedState?.situation || '自然地停留在当前场景';
     const visualDirection = String(request || '').trim().slice(0, 500);
     const previousMedia = latestMediaContinuity(persona.id);
@@ -2219,18 +2416,21 @@ function sendSse(res, payload) {
     res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
-function sleepAvailability(persona, at = new Date()) {
+function sleepAvailability(persona, at = new Date(), state = null) {
+    const resolved = state || scheduledState(persona, at);
+    const planSleep = resolved.source === 'daily_plan_baseline'
+        && /睡|赖床|自然醒|起床前/.test(String(resolved.situation || ''));
     const hour = localHour(at, blueprint(persona.id).timezone);
-    if (hour >= 8 && hour < 23) return {sleeping: false};
+    if (!planSleep && hour >= 8 && hour < 23) return {sleeping: false};
     const messageCount = database.prepare(`SELECT COUNT(*) AS count FROM companion_messages messages JOIN companion_conversations conversations ON conversations.id = messages.conversation_id WHERE conversations.persona_id = ? AND messages.role = 'user'`).get(persona.id).count;
     const relationship = activeRelationshipPatch(persona.id);
     const intimacy = clamp((messageCount >= 30 ? 3 : messageCount >= 10 ? 2 : messageCount >= 3 ? 1 : 0) + (relationship.communicationStyle ? 1 : 0), 0, 4);
     const key = `${persona.id}:${localPlanDate(at, blueprint(persona.id).timezone)}:${hour}:${messageCount}`;
     const draw = Array.from(key).reduce((sum, char) => (sum * 33 + char.charCodeAt(0)) >>> 0, 17) % 100;
-    return {sleeping: true, intimacy, draw, immediate: draw < 8 + intimacy * 10};
+    return {sleeping: true, intimacy, draw, immediate: draw < 8 + intimacy * 10, nextBoundaryAt: resolved.nextBoundaryAt || resolved.endsAt || null};
 }
 
-function deferredBatchForMessage(persona, messageId, at = new Date()) {
+function deferredBatchForMessage(persona, messageId, at = new Date(), availability = null) {
     const conversation = database.prepare('SELECT id FROM companion_conversations WHERE persona_id = ?').get(persona.id);
     const existing = database.prepare("SELECT * FROM companion_chat_deferred_batches WHERE persona_id = ? AND status IN ('queued', 'leased') ORDER BY created_at DESC LIMIT 1").get(persona.id);
     if (existing) {
@@ -2238,11 +2438,13 @@ function deferredBatchForMessage(persona, messageId, at = new Date()) {
         if (!messageIds.includes(messageId)) database.prepare('UPDATE companion_chat_deferred_batches SET message_ids_json = ?, updated_at = ? WHERE id = ?').run(JSON.stringify([...messageIds, messageId]), now(), existing.id);
         return database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE id = ?').get(existing.id);
     }
-    const sleep = sleepAvailability(persona, at);
-    const wakeAt = new Date(at);
-    wakeAt.setHours(8, 0, 0, 0);
-    if (wakeAt <= at) wakeAt.setDate(wakeAt.getDate() + 1);
-    const deliverAt = new Date(Math.min(wakeAt.getTime(), at.getTime() + (35 + sleep.draw % 85) * 60_000)).toISOString();
+    const sleep = availability || sleepAvailability(persona, at);
+    const timezone = blueprint(persona.id).timezone;
+    const defaultWakeAt = new Date(zonedPlanInstant(localPlanDate(at, timezone), '08:00', timezone));
+    if (defaultWakeAt <= at) defaultWakeAt.setDate(defaultWakeAt.getDate() + 1);
+    const plannedWakeAt = sleep.nextBoundaryAt && Date.parse(sleep.nextBoundaryAt) > at.getTime() ? new Date(sleep.nextBoundaryAt) : defaultWakeAt;
+    const jitterMs = (5 + sleep.draw % 16) * 60_000;
+    const deliverAt = new Date(Math.max(plannedWakeAt.getTime(), at.getTime() + jitterMs) + jitterMs).toISOString();
     const batch = {id: id('deferred_chat'), batchKey: `${persona.id}:${at.toISOString().slice(0, 13)}:sleep`, deliverAt};
     database.transaction(() => {
         database.prepare('INSERT INTO companion_chat_deferred_batches (id, persona_id, conversation_id, batch_key, status, deliver_at, decision_json, message_ids_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(batch.id, persona.id, conversation.id, batch.batchKey, 'queued', batch.deliverAt, JSON.stringify({intimacy: sleep.intimacy, draw: sleep.draw, reason: 'sleep_deferred'}), JSON.stringify([messageId]), now(), now());
@@ -2272,6 +2474,29 @@ function applyChatAttentionOverlay(persona, at = new Date()) {
     return schedule.id;
 }
 
+function formatTrustedTime(value, timeZone) {
+    if (!value || !Number.isFinite(Date.parse(value))) return '';
+    return new Intl.DateTimeFormat('zh-CN', {hour: '2-digit', minute: '2-digit', hour12: false, timeZone}).format(new Date(value));
+}
+
+function trustedTimeReplyForMessage(persona, text, state) {
+    if (!/(?:什么时候|啥时候|何时|几点|多会儿|多会).{0,8}(?:下课|结束|忙完|完成)|(?:下课|结束).{0,8}(?:时间|时候|啥时候|几点)/.test(String(text || ''))) return null;
+    const source = state?.resolved_source || state?.source || 'unknown';
+    const situation = String(state?.situation || '');
+    const endsAt = state?.resolved_ends_at || state?.endsAt || null;
+    const timeFact = state?.resolved_time_fact || state?.timeFact || (endsAt ? 'known' : 'unknown');
+    const timeZone = blueprint(persona.id).timezone || 'Asia/Shanghai';
+    const endText = timeFact === 'known' ? formatTrustedTime(endsAt, timeZone) : '';
+    const isLesson = /上课|课程|课堂|老师/.test(situation);
+    if (!isLesson) {
+        if (source === 'daily_plan_baseline' && endText) return `我现在不在上课，${situation || '正在休息'}，${endText}后才会开始下一项安排。`;
+        if (endText) return `我现在不在上课，${situation || '正在按自己的节奏安排'}，这段安排预计到${endText}结束。`;
+        return `我现在没有课程或可确认的结束时间，${situation || '正在按自己的节奏休息'}。`;
+    }
+    if (endText) return `我这段课程安排预计到${endText}结束。`;
+    return '我现在没有可确认的下课时间，先按眼前的安排来。';
+}
+
 async function streamPersonaChat(req, res) {
     if (!req.body || typeof req.body !== 'object') return res.status(400).json({error: '请求体必须是 JSON'});
     let persona;
@@ -2288,23 +2513,30 @@ async function streamPersonaChat(req, res) {
     database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(now(), persona.id);
     res.status(200).set({'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', Connection: 'keep-alive'});
     res.flushHeaders();
+    const chatAt = new Date();
+    const context = contextFor(persona.id, chatAt);
     const existingDeferred = database.prepare("SELECT id FROM companion_chat_deferred_batches WHERE persona_id = ? AND status IN ('queued', 'leased') ORDER BY created_at DESC LIMIT 1").get(persona.id);
     if (existingDeferred) {
-        deferredBatchForMessage(persona, userMessage.id);
+        deferredBatchForMessage(persona, userMessage.id, chatAt);
         sendSse(res, {type: 'done', message: null, messages: [], learned: [], jobs: []});
         return res.end();
     }
-    const availability = sleepAvailability(persona);
+    const availability = sleepAvailability(persona, chatAt, context.state);
     if (availability.sleeping && !availability.immediate) {
-        deferredBatchForMessage(persona, userMessage.id);
+        deferredBatchForMessage(persona, userMessage.id, chatAt, availability);
         sendSse(res, {type: 'done', message: null, messages: [], learned: [], jobs: []});
         return res.end();
     }
-    const context = contextFor(persona.id);
+    const trustedTimeReply = trustedTimeReplyForMessage(persona, text, context.state);
+    if (trustedTimeReply) {
+        const messages = appendUserVisibleAssistantReply(persona.id, trustedTimeReply);
+        sendSse(res, {type: 'done', message: messages[0], messages, learned: [], jobs: []});
+        return res.end();
+    }
     const recent = listMessages(persona.id, {limit: 18}).items.slice(-18).map(message => ({role: message.role === 'assistant' ? 'assistant' : 'user', content: message.text || '[用户发送了媒体附件]'}));
     let output = '';
     try {
-        const response = await lmCompletion({stream: true, temperature: 0.75, messages: [{role: 'system', content: userVisibleChatPrompt(persona.id)}, ...recent]});
+        const response = await lmCompletion({stream: true, temperature: 0.75, messages: [{role: 'system', content: [context.prompt, context.layers.systemCapability].join('\n\n')}, ...recent]});
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
@@ -2962,11 +3194,13 @@ async function runDeferredChatReplyJob(job) {
     const ids = json(batch.message_ids_json, []).filter(Boolean);
     const messages = ids.length ? database.prepare(`SELECT messages.* FROM companion_messages messages JOIN companion_conversations conversations ON conversations.id = messages.conversation_id WHERE conversations.persona_id = ? AND messages.id IN (${ids.map(() => '?').join(', ')}) ORDER BY messages.created_at, messages.id`).all(persona.id, ...ids).map(messageShape) : [];
     try {
-        const response = await lmCompletion({stream: false, temperature: .72, messages: [
-            {role: 'system', content: userVisibleChatPrompt(persona.id, '现在是你自然醒来后看到用户此前发来的几条消息。合并理解它们，只回复一条自然、完整、不解释延迟机制的消息。')},
+        const replyAt = new Date(batch.deliver_at);
+        const context = contextFor(persona.id, replyAt);
+        const factualReply = trustedTimeReplyForMessage(persona, messages.map(message => message.text).join('\n'), context.state);
+        const text = factualReply || String((await (await lmCompletion({stream: false, temperature: .72, messages: [
+            {role: 'system', content: userVisibleChatPrompt(persona.id, '现在是你自然醒来后看到用户此前发来的几条消息。合并理解它们，只回复一条自然、完整、不解释延迟机制的消息。', replyAt)},
             {role: 'user', content: JSON.stringify({pendingMessages: messages.map(message => ({text: message.text, attachments: message.attachments, createdAt: message.createdAt}))})}
-        ]});
-        const text = String((await response.json()).choices?.[0]?.message?.content || '').trim();
+        ]})).json()).choices?.[0]?.message?.content || '').trim();
         let result;
         database.transaction(() => {
             const live = database.prepare("SELECT * FROM companion_chat_deferred_batches WHERE id = ? AND status = 'queued'").get(batch.id);
@@ -2984,13 +3218,16 @@ async function runDeferredChatReplyJob(job) {
 }
 
 function normalizeDailyPlan(value, planDate) {
-    const rows = Array.isArray(value?.items) ? value.items : [];
+    const rows = Array.isArray(value) ? value : Array.isArray(value?.items) ? value.items : [];
     const time = /^([01]\d|2[0-3]):[0-5]\d$/;
     const normalized = rows.map(item => ({
         title: boundedMediaText(item?.title, 120), scene: boundedMediaText(item?.scene, 120),
         situation: boundedMediaText(item?.situation, 120), startsAt: String(item?.startsAt || ''), endsAt: String(item?.endsAt || '')
-    })).filter(item => item.title && item.scene && time.test(item.startsAt) && time.test(item.endsAt) && item.startsAt < item.endsAt).slice(0, 6);
+    })).filter(item => item.title && item.scene && time.test(item.startsAt) && time.test(item.endsAt) && item.startsAt < item.endsAt).slice(0, 6).sort((left, right) => left.startsAt.localeCompare(right.startsAt));
     if (!normalized.length) return null;
+    for (let index = 1; index < normalized.length; index += 1) {
+        if (normalized[index].startsAt < normalized[index - 1].endsAt) return null;
+    }
     return normalized.map(item => ({...item, planDate}));
 }
 
@@ -3050,8 +3287,9 @@ async function runDailyPlanJob(job) {
             const leased = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND job_type = 'daily_plan' AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
             if (!leased) return;
             database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'ai_daily_plan' AND starts_at >= ? AND starts_at < ?").run(persona.id, day.start, day.end);
+            database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'daily_plan_baseline' AND starts_at >= ? AND starts_at < ?").run(persona.id, day.start, day.end);
             database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'life_model_fixed' AND starts_at >= ? AND starts_at < ?").run(persona.id, day.start, day.end);
-            database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'ai_daily_plan'").run(persona.id, payload.planDate);
+            database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source IN ('ai_daily_plan', 'daily_plan_baseline')").run(persona.id, payload.planDate);
             database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'life_model_fixed'").run(persona.id, payload.planDate);
             database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'life_model_flexible'").run(persona.id, payload.planDate);
             database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'life_model_opportunity'").run(persona.id, payload.planDate);
@@ -3075,13 +3313,19 @@ async function runDailyPlanJob(job) {
                 const scene = resolveSceneRef(blueprint(persona.id), sceneRef).scene;
                 insertTimelineSlot(persona, payload.planDate, {slotKey: `opportunity:${template.templateId}`, slotKind: 'opportunity', startsAt: zonedPlanInstant(payload.planDate, start, blueprint(persona.id).timezone), endsAt: zonedPlanInstant(payload.planDate, end, blueprint(persona.id).timezone), source: 'life_model_opportunity', priority: template.priority, title: template.title, situation: template.situation, scene, sceneRef, templateId: template.templateId, constraints: {templateId: template.templateId, family: template.family}, outcome: {reason: 'candidate_window'}}, updatedAt);
             }
-            for (const item of items) {
-                const startsAt = zonedPlanInstant(payload.planDate, item.startsAt, blueprint(persona.id).timezone);
-                const endsAt = zonedPlanInstant(payload.planDate, item.endsAt, blueprint(persona.id).timezone);
-                const conflict = database.prepare("SELECT 1 FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND source != 'ai_daily_plan' AND starts_at < ? AND COALESCE(ends_at, starts_at) > ? LIMIT 1").get(persona.id, endsAt, startsAt);
-                insertTimelineSlot(persona, payload.planDate, {slotKey: `${plan.id}:${item.startsAt}:${item.title}`.slice(0, 180), slotKind: 'planned', startsAt, endsAt, status: conflict ? 'skipped' : 'confirmed', source: 'ai_daily_plan', priority: 20, title: item.title, situation: item.situation, scene: item.scene, templateId: '', schedule: !conflict, outcome: conflict ? {reason: 'model_slot_conflict'} : {}}, updatedAt);
+            const timeline = composeDailyPlanTimeline(persona, plan, items);
+            for (const slot of timeline) {
+                if (slot.slotKind === 'planned') {
+                    // Explicit user schedules win at read time for their overlapping
+                    // interval. Keep the full generated slot so its non-overlapping
+                    // portions remain authoritative rather than falling back to routine.
+                    insertTimelineSlot(persona, payload.planDate, {slotKey: slot.slotKey, slotKind: slot.slotKind, startsAt: slot.startsAt, endsAt: slot.endsAt, status: 'confirmed', source: 'ai_daily_plan', priority: 20, title: slot.title, situation: slot.situation, scene: slot.scene, sceneRef: slot.sceneRef, templateId: '', schedule: true, outcome: {}}, updatedAt);
+                } else {
+                    insertTimelineSlot(persona, payload.planDate, {slotKey: slot.slotKey, slotKind: slot.slotKind, startsAt: slot.startsAt, endsAt: slot.endsAt, status: 'confirmed', source: 'daily_plan_baseline', priority: 1, title: slot.title, situation: slot.situation, scene: slot.scene, sceneRef: slot.sceneRef, constraints: {location: slot.location, room: slot.room}, templateId: ''}, updatedAt);
+                }
             }
-            database.prepare("UPDATE companion_daily_plans SET status = 'ready', plan_json = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(items), updatedAt, plan.id);
+            const serializedTimeline = timeline.map(slot => ({slotKey: slot.slotKey, slotKind: slot.slotKind, title: slot.title, situation: slot.situation, scene: slot.scene, startsAt: slot.startsAt, endsAt: slot.endsAt, source: slot.source}));
+            database.prepare("UPDATE companion_daily_plans SET status = 'ready', plan_json = ?, updated_at = ? WHERE id = ?").run(JSON.stringify({version: 2, items, timeline: serializedTimeline}), updatedAt, plan.id);
             database.prepare("UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND lease_owner = ?").run(JSON.stringify({itemCount: items.length}), updatedAt, updatedAt, job.id, job.lease_owner);
         })();
     } catch (error) {
