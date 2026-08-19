@@ -1094,7 +1094,13 @@ function lifeTemplateCandidates(persona, at = new Date()) {
         const end = blueprintMinute(template?.timeWindow?.end);
         if (!template?.templateId || !Number.isFinite(start) || !Number.isFinite(end) || minute < start || minute >= end) return false;
         const recent = database.prepare("SELECT occurred_at FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.templateId') = ? ORDER BY occurred_at DESC LIMIT 1").get(persona.id, template.templateId);
-        return !recent || Date.now() - Date.parse(recent.occurred_at) >= Number(template.cooldownHours || 0) * 3_600_000;
+        if (recent && Date.now() - Date.parse(recent.occurred_at) < Number(template.cooldownHours || 0) * 3_600_000) return false;
+        const daily = database.prepare("SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.templateId') = ? AND substr(occurred_at, 1, 10) = ?").get(persona.id, template.templateId, localPlanDate(at, life.timezone)).count;
+        const weekAgo = new Date(at.getTime() - 7 * 24 * 60 * 60_000).toISOString();
+        const weekly = database.prepare("SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.templateId') = ? AND occurred_at >= ?").get(persona.id, template.templateId, weekAgo).count;
+        if (daily >= Number(template.frequencyBudget?.daily || 0) || weekly >= Number(template.frequencyBudget?.weekly || 0)) return false;
+        const sameFamilyRecent = database.prepare("SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.eventFamily') = ? AND occurred_at >= ?").get(persona.id, template.family, new Date(at.getTime() - 36 * 60 * 60_000).toISOString()).count;
+        return sameFamilyRecent < 2;
     });
 }
 
@@ -1125,6 +1131,8 @@ function instantiateTimelineEvent(persona, at = new Date()) {
         templateId: chosen.template.templateId, eventFamily: chosen.template.family, sceneRef, priority: chosen.template.priority, preemptionMode: chosen.template.preemptionMode, reversible: chosen.template.reversible, recovery: chosen.template.recovery, decisionId: existing.id
     }, {publish: true, source: 'timeline', rationale: '人格生活模型候选经时间窗口、冷却和幂等决策后实例化'});
     database.prepare("UPDATE companion_event_decisions SET status = 'executed', event_id = ?, updated_at = ? WHERE id = ? AND status = 'accepted'").run(output.eventId, now(), existing.id);
+    const previous = database.prepare('SELECT id FROM companion_life_events WHERE persona_id = ? AND id != ? ORDER BY occurred_at DESC LIMIT 1').get(persona.id, output.eventId);
+    if (previous) database.prepare('INSERT OR IGNORE INTO companion_event_links (id, persona_id, from_event_id, to_event_id, link_type, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id('event_link'), persona.id, previous.id, output.eventId, 'follows', JSON.stringify({decisionId: existing.id, templateId: chosen.template.templateId}), now());
     return output;
 }
 
@@ -2124,6 +2132,27 @@ function deferredBatchForMessage(persona, messageId, at = new Date()) {
     return database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE id = ?').get(batch.id);
 }
 
+function applyChatAttentionOverlay(persona, at = new Date()) {
+    const recentSince = new Date(at.getTime() - 20 * 60_000).toISOString();
+    const count = database.prepare(`SELECT COUNT(*) AS count FROM companion_messages messages JOIN companion_conversations conversations ON conversations.id = messages.conversation_id WHERE conversations.persona_id = ? AND messages.created_at >= ?`).get(persona.id, recentSince).count;
+    if (count < 6) return null;
+    const schedule = database.prepare("SELECT * FROM companion_schedule_items WHERE persona_id = ? AND source = 'life_model_flexible' AND status = 'active' AND starts_at > ? ORDER BY starts_at LIMIT 1").get(persona.id, at.toISOString());
+    if (!schedule || Date.parse(schedule.starts_at) - at.getTime() > 60 * 60_000) return null;
+    const shiftedStart = new Date(Date.parse(schedule.starts_at) + 15 * 60_000).toISOString();
+    const shiftedEnd = schedule.ends_at ? new Date(Date.parse(schedule.ends_at) + 15 * 60_000).toISOString() : null;
+    const conflict = database.prepare("SELECT 1 FROM companion_schedule_items WHERE persona_id = ? AND id != ? AND status = 'active' AND source != 'life_model_flexible' AND starts_at < ? AND COALESCE(ends_at, starts_at) > ? LIMIT 1").get(persona.id, schedule.id, shiftedEnd || shiftedStart, shiftedStart);
+    if (conflict) return null;
+    const bucket = Math.floor(at.getTime() / (20 * 60_000));
+    const decision = timelineDecision(persona.id, `chat_overlay:${schedule.id}:${bucket}`, {decisionType: 'defer_slot', status: 'executed', priority: 1, preemptionMode: 'overlay', candidate: {scheduleId: schedule.id}, rationale: {reason: 'sustained_chat_attention'}});
+    if (decision.status !== 'executed') return null;
+    const details = {...json(schedule.details_json, {}), chatOverlayAdjustedAt: at.toISOString()};
+    database.transaction(() => {
+        database.prepare('UPDATE companion_schedule_items SET starts_at = ?, ends_at = ?, details_json = ?, updated_at = ? WHERE id = ?').run(shiftedStart, shiftedEnd, JSON.stringify(details), now(), schedule.id);
+        database.prepare("UPDATE companion_timeline_slots SET starts_at = ?, ends_at = ?, outcome_json = json_set(outcome_json, '$.reason', 'sustained_chat_attention'), updated_at = ? WHERE schedule_id = ? AND persona_id = ?").run(shiftedStart, shiftedEnd, now(), schedule.id, persona.id);
+    })();
+    return schedule.id;
+}
+
 async function streamPersonaChat(req, res) {
     if (!req.body || typeof req.body !== 'object') return res.status(400).json({error: '请求体必须是 JSON'});
     let persona;
@@ -2190,6 +2219,7 @@ async function streamPersonaChat(req, res) {
         const plannedMessage = messages.find(message => explicitPlanFromMessage(message.text));
         const proposedPlan = plannedMessage && verifiedAcceptedPlan(persona.id, plannedMessage.id);
         if (proposedPlan) createScheduleItem(persona.id, {...proposedPlan, sourceMessageId: plannedMessage.id, source: 'accepted_chat_plan'});
+        applyChatAttentionOverlay(persona);
         // `message` remains the compatibility alias for callers that have not yet
         // migrated to the ordered `messages` collection.
         sendSse(res, {type: 'done', message: messages[0], messages, learned: [], jobs: []});
