@@ -13,7 +13,7 @@
 - `GET /api/companion/personas/:personaId/debug-context`
   - Success: `{layers, recentRequests, mediaJobs}`.
 - `POST /api/companion/personas/:personaId/debug-media`
-  - Request: `{kind: "image" | "video", prompt?: string}`.
+  - Request: `{kind: "image" | "video", request?: string, prompt?: string}`.
   - Success: existing `createChatMediaRequest()` response containing the queued placeholder message.
 
 ### 3. Contracts
@@ -35,7 +35,7 @@
 
 ### 5. Good / Base / Bad Cases
 
-- Good: an explicitly enabled local inspector fetches the selected persona's last ten jobs and shows a redacted prompt/workflow summary.
+- Good: an explicitly enabled local inspector fetches the selected persona's last ten jobs and shows redacted envelope → persona concept → prompt-template → final-prompt/workflow summaries.
 - Base: no messages or media jobs produces empty arrays; the inspector still renders normally.
 - Bad: a production-like process with no debug flag cannot call an unregistered debug URL even if a user guesses it.
 
@@ -64,6 +64,71 @@ if (process.env.COMPANION_DEBUG_INSPECTOR === '1') {
     res.json(debugContextFor(req.params.personaId));
   }));
 }
+```
+
+## Scenario: h3 configuration summary and no-generation preflight
+
+### 1. Scope / Trigger
+
+- Trigger: an operator needs to confirm the runtime h3 configuration and test whether the local executable can start, without submitting a prompt or creating media work.
+- This is a cross-layer settings → bootstrap → settings UI → explicitly gated debug API contract. Full h3 paths remain server-only.
+
+### 2. Signatures
+
+- Bootstrap-safe derived field: `publicSettings().h3ConfigSummary`.
+- Debug-only route: `POST /api/companion/h3-preflight`.
+- Server helper: `h3Preflight(config = settings()) -> {ok, stage, checks, process?}`.
+
+### 3. Contracts
+
+- `h3ConfigSummary` returns only `{executable, modelDir, outputDir}` checks, each with `configured`, `valid`, an optional safe `displayName` such as `…/h3`, and a safe error. It never returns full paths, command arguments, or model profile values.
+- Saving an h3 field or selecting `videoProvider: 'h3'` validates an absolute executable regular file with execute permission, a real model directory, and an output directory inside the allowed root that can be created and written. Invalid settings fail before the SQLite settings row changes.
+- Register the preflight route only when `COMPANION_DEBUG_INSPECTOR === '1'`; an unset or any other value is disabled.
+- Preflight uses current server settings, does file-system validation, then runs only `["--help"]` using the configured executable with `shell: false` and a short timeout. It does not read a prompt, load a model, enqueue a job, or create a media asset.
+- Redact and truncate process output before returning it. Keep at most four 480-character output records in a rolling buffer, including on process failure.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Executable is absent, relative, non-file, or non-executable | Save/preflight returns a safe executable validation error; settings write is rejected. |
+| Model directory is absent or not a directory | Save/preflight returns a model-directory error; settings write is rejected. |
+| Output directory is outside the allowed root, cannot be created, or is not writable | Save/preflight returns an output-directory error; settings write is rejected. |
+| Filesystem checks pass but `h3 --help` cannot start or exits unsuccessfully | Preflight returns `stage: "process"` with a safe environment-compatibility error and bounded output. |
+| Debug flag is absent or not `1` | The preflight route is absent (`404`); bootstrap does not enable the inspector. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: settings show `…/h3`, `…/MiniMax-H3`, and `…/outputs` as valid without exposing their absolute paths; a local inspector test confirms `h3 --help` and leaves job/asset counts unchanged.
+- Base: an unconfigured h3 provider reports each missing field safely and existing ComfyUI flows remain unchanged.
+- Bad: returning `settings()` directly, allowing `spawn('h3.c')`/relative executables, registering a debug route by default, or buffering unlimited subprocess output.
+
+### 6. Tests Required
+
+- Assert the public summary has safe display names and contains no configured absolute path.
+- Assert relative/non-executable paths, missing model directories, invalid output directories, and allowed-root escapes fail without changing `companion_settings`.
+- Assert the debug route is absent for both `COMPANION_DEBUG_INSPECTOR=0` and an unset flag, and present only for `=1`.
+- Use a harmless executable fixture (or `process.execPath --help`) to assert preflight succeeds without adding durable jobs/assets; assert output is redacted and at most four records.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+const debugInspectorEnabled = process.env.COMPANION_DEBUG_INSPECTOR !== '0';
+const output = [];
+runH3(executable, ['--help'], 8_000, {onOutput: item => output.push(item)});
+```
+
+#### Correct
+
+```js
+const debugInspectorEnabled = process.env.COMPANION_DEBUG_INSPECTOR === '1';
+const output = [];
+const record = item => {
+  output.push(redactAndBound(item));
+  if (output.length > 4) output.shift();
+};
 ```
 
 ## Scenario: Durable local-command media progress

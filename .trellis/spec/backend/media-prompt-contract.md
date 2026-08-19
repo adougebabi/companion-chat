@@ -1,61 +1,66 @@
 # Media Prompt Contract
 
-## Scenario: Direct chat media, capture-contract authority, and durable jobs
+## Scenario: AI-owned media concept, prompt-master template, and durable jobs
 
 ### 1. Scope / Trigger
 
 - Trigger: the final application-owned system-capability layer asks a persona to fulfil an image/video request or a definite media-delivery commitment.
-- This crosses chat SSE, durable SQLite jobs, the prompt refiner, ComfyUI, and the conversation renderer.
+- This crosses chat SSE, activity/debug producers, durable SQLite jobs, the AI-persona concept call, the image prompt master, ComfyUI/H3, and the conversation renderer.
 
 ### 2. Signatures
 
-- `extractMediaIntent(modelText) -> {text, media: {kind, prompt, count?, creativeDirection?} | null}`
-- `mediaIntentFor(persona, {kind, request, event, creativeDirection?}) -> MediaIntentV3`
-- `createChatMediaRequest(personaId, {kind, prompt}) -> {jobId, message}`
+- `extractMediaIntent(modelText) -> {text, media: {kind, request?, count?} | null}`
+- `mediaConceptEnvelopeFor(persona, {kind, request?, event?, trigger}) -> MediaConceptEnvelopeV1`
+- `generatePersonaMediaConcept(envelope) -> PersonaMediaConceptV1`
+- `fillMediaPromptTemplate({envelope, concept}) -> MediaPromptTemplateV1`
+- `renderMediaPromptTemplate(template) -> string`
+- `createChatMediaRequest(personaId, {kind, request?}) -> {jobId, message}`
 - `POST /api/companion/chat` emits ordered `done.messages`, including any queued media placeholder messages.
 
 ### 3. Contracts
 
 - Runtime media authorization comes only from a valid `<media-intent>` emitted under the final application-owned system-capability layer. `mediaRequestFromText()` is compatibility-only and must not be called by live chat dispatch.
-- The same system contract requires a marker both for explicit user requests and definite first-person commitments (for example, “我待会拍一张，拍完发你”). Free prose alone never creates a job.
-- `creativeDirection` accepts only photography style, face/skin, environment texture, accessories, mood, and color/parameter details. It cannot replace a live event's location, action, outfit, people, or safety constraints.
-- `refineMediaIntent()` is the second-stage AI image prompt master. It receives locked narrative facts, the persona's `creativeDirection`, and the deterministic eight-section draft; it returns only a bounded enhancement patch before `compileMediaPrompt()` produces the final provider prompt.
-- A user visual direction may fill only facts compatible with active state; parse it into the V3 `locked` capture contract instead of emitting the raw request as an unrestricted prompt prefix.
-- Authority for scene facts is ordered: active event/context (current location, outfit, action, posture, state) → compatible user request → persona/AI completion. A user clothing request is accepted only when the active context permits a change (for example, a clothing-store or try-on event); otherwise the current event outfit remains authoritative.
-- `locked.capture` owns `view`, `operator`, `device`, `cameraVisibility`, `orientation`, `framing`, and `subjectGaze`; `locked.subjects` owns visible names/count and exclusions; `locked.composition` owns action, required pose/expression, and prohibited compositions. These values never change during refinement.
-- `locked.capture` also owns `relativePosition`, `height`, `downwardAngle`, and `perspectiveType`. The provider prompt emits this camera geometry first and repeats it in a final hard camera-angle requirement; a prompt master may never rewrite it.
-- Provider-facing media prompts are continuous natural-language photography descriptions, never `field=value` or internal enum output. If the capture device is not visible, state in natural language that it remains fully outside the frame and explicitly exclude the device, its screen, mirror/reflection, shadow, occlusion, and any hand holding it.
-- The compiler emits sections in this exact order: photography/gear → subject base → face/skin → environment/light → wardrobe/accessories → mood/temperament → color/parameters → negative constraints.
-- A capture device is out of frame unless the request explicitly says it must be visible (for example, a mirror shot or “手机入镜”). This is a generic capture rule, not a persona- or role-specific exception.
-- The most recent completed media intent is only a continuity fallback. It cannot override current event state or an allowed explicit change, and it is scoped by `persona_id`.
-- `count` is bounded to 1–3 and queues separate durable placeholders/jobs; never rely on one ComfyUI job to imply several images.
-- The local refinement call may only complete `photographyStyle`, `faceSkinDetail`, `environmentTexture`, `wardrobeAccessories`, `moodAtmosphere`, and `colorToneAndParameters`; it cannot change any locked capture, subject, composition, environment, or identity field.
+- The same system contract requires a marker both for explicit user requests and definite first-person commitments (for example, “我待会拍一张，拍完发你”). Free prose alone never creates a job. The marker authorizes media delivery; it is not a server instruction to extract visual semantics from its prose.
+- For every producer (chat image/video, direct activity, model-driven activity, and debug inspector), the server creates `MediaConceptEnvelopeV1` with requested kind/count, channel/trigger, immutable identity facts, active life/event facts, temporary appearance, and the original request/event instruction. The server may authenticate, attach facts, check keys/types/size/provider/kind, redact, persist, and retry; it must not infer visual content.
+- Every provider-bound request then receives a `PersonaMediaConceptV1` from the AI persona. The concept contains bounded JSON fields for scene, action, mood, explicitly visible `humanSubjects`, separate `nonHumanObjects`, and declared capture intent (`selfie`, `external_capture`, `operator_pov`, `first_person`, or `other`) with operator/device/framing intent. The concept is AI-owned even when its source is a direct activity or debug request.
+- `imagePromptMasterContract` receives the envelope facts and persona concept, then returns a complete `MediaPromptTemplateV1`, not a partial “refinement” patch. The fixed template order is: capture and camera relationship → explicit human subjects → identity and continuity → scene and action → wardrobe and non-human props → lighting and mood → photography style and color → constraints/exclusions.
+- `renderMediaPromptTemplate()` may only concatenate/label the returned fixed template sections in their prescribed order. It cannot translate capture modes, add defaults, count/rename subjects, derive camera geometry, append negatives, or otherwise change semantics.
+- Prompt compactness is owned by `imagePromptMasterContract`: it must remove repetition and prioritise essential visual facts. The server must not truncate, summarise, reject solely for length, or otherwise rewrite a structurally valid master template, because that would silently remove model-owned visual facts.
+- The master must render the declared capture relationship coherently: a `selfie` concept has a plausible self-capture treatment; an `external_capture` concept describes an external camera/photographer relationship; an `operator_pov` or `first_person` concept describes the declared off-camera point of view. These are image-prompt-master responsibilities, not server branches.
+- The master must list the explicit human subjects rather than generate a broad “共 X 人” clause. Clothes, props, animals, reflections, screens, environmental objects, and other `nonHumanObjects` are never semantically counted or reclassified by the server as people.
+- Provider-facing prompts are continuous natural-language photography/video descriptions, never `field=value`, internal enum, raw user-direction prefix, or an unstructured direct model answer.
+- `count` is bounded to 1–3 and queues separate durable placeholders/jobs; it is asset quantity, never a server-derived in-frame human count.
+- Semantic visual-rule code is forbidden in `mediaIntentFor`, `compileMediaPrompt`, replacement helpers, parsers, and job producers. Do not add keyword/regex/default branches that infer or override people, personhood, scene occupancy, selfie/POV/external capture, device visibility, camera geometry, pose, expression, wardrobe, lighting, composition, exclusions, or negative prompt text.
+- The most recent completed result may be attached as persona-scoped continuity context for the AI persona/master. It cannot be turned into a server default or override current facts.
+- A missing, malformed, or schema-invalid persona concept/master template is retryable. After normal retry exhaustion, fail only the media placeholder/activity media state with a safe diagnostic. Never submit a deterministic/heuristic fallback prompt or claim a media delivery succeeded.
 
 ### 4. Validation & Error Matrix
 
 | Condition | Result |
 | --- | --- |
-| Valid model marker | Queue one to three durable chat jobs after the model completion. |
+| Valid model marker | Queue one to three durable chat jobs after the model completion; their provider submission waits for a valid persona concept and master template. |
 | Missing/invalid marker | Queue no job, including for free-text promises. |
-| Marker with unsupported creative fields | Ignore unsupported fields; preserve locked identity/state facts. |
-| Unknown/natural-language detail cannot be structured | Preserve it in `source.userDirection` for inspection; generic defaults fill only missing fields and raw wording is not made a provider-priority clause. |
-| Refiner returns invalid JSON or unauthorized fields | Keep deterministic intent and record `deterministic_fallback`. |
+| Unsupported envelope kind/provider/count or malformed transport JSON | Reject/mark invalid before provider submission; never generate a semantic replacement. |
+| Persona concept is unavailable, malformed, or violates the structural schema | Record the concept-stage failure and retry the durable source media job. |
+| Prompt-master result is unavailable, malformed, or violates the fixed-template structural schema | Record the master-stage failure and retry the durable source media job. |
+| Concept/master retries are exhausted | Mark only the media message/activity target failed; retain parent text/activity and do not submit a fallback prompt. |
 
 ### 5. Good / Base / Bad Cases
 
-- Good: “A 和 B 手持手机前置自拍、一起比心、左侧自然光” produces a normalized two-subject self-capture contract, not an external-observer portrait; the same rule applies to any names, identities, and scenes.
+- Good: the AI persona declares two human subjects, an in-frame phone as a non-human object, a `selfie` capture relationship, an interaction, and light intent; the prompt master fills the selfie sections coherently without any server-side keyword detection.
+- Good: the AI persona declares the friend as the only human subject and the persona as off-camera operator; the master makes the photographer POV explicit without server code deciding who “给谁拍照”.
 - Base: a request with no valid model marker queues no job rather than being guessed by server text matching.
-- Bad: creating a job from a regular expression over either user or assistant prose, or allowing creativeDirection to overwrite current state.
+- Bad: a helper uses `/自拍|POV|宠物|两人/`, participant defaults, or a “共 X 人” formatter to decide the visual output; a source job submits a handcrafted fallback prompt when either model stage fails.
 
 ### 6. Tests Required
 
 - Assert a valid model marker queues the right durable job kind and a commitment without a marker queues none.
-- Assert unknown creativeDirection keys are discarded while allowed photography fields persist.
-- Assert a multi-subject self-capture includes both names and locks capture view/operator, device visibility, framing, pose, expression, and light.
-- Assert provider section order and absence of an unrestricted raw `userDirection` clause.
-- Assert photographer-POV requests exclude the photographer and incompatible extra photographers.
-- Assert a high-angle/POV request compiles camera relative position, height, downward angle, and perspective before subject prose, and malformed refinement falls back without changing them.
-- Assert malformed refiner output preserves the deterministic prompt.
+- Assert all producer paths persist the same envelope, persona concept, master template, and rendered final prompt before provider submission.
+- Assert the fixed template renders its eight sections in order and does not add a generic “共 X 人” clause.
+- With model fixtures, assert a selfie concept yields the fixture's coherent selfie template, an external-capture concept yields the fixture's external template, and a photographer-POV concept yields the fixture's declared in-frame/out-of-frame treatment; these tests must not rely on server keyword parsing.
+- Assert a clothing/prop/animal/reflection/screen fixture remains in `nonHumanObjects` and is not converted into a human subject by server code.
+- Assert source code/regression tests reject semantic regex/default branches in media-boundary helpers and prevent raw request text from becoming a provider-priority prefix.
+- Assert malformed/unavailable persona-concept and master-template responses retry, then fail only the media target after exhaustion; assert no provider submission or heuristic fallback prompt occurs.
 
 ### 7. Wrong vs Correct
 
@@ -70,11 +75,10 @@ if (requested) createChatMediaRequest(personaId, requested);
 #### Correct
 
 ```js
-const intent = {
-  ...deterministicIntent,
-  locked: {capture, subjects, composition, environment, identity},
-  enrichable: emptyEnrichableFields
-};
+const envelope = mediaConceptEnvelopeFor(persona, source);
+const concept = await generatePersonaMediaConcept(envelope);
+const template = await fillMediaPromptTemplate({envelope, concept});
+const prompt = renderMediaPromptTemplate(template); // joins fixed slots only
 ```
 
 ## Scenario: Provider-selected durable media execution

@@ -4,7 +4,7 @@
 
 `build()` creates the static shell once. `render()` updates the active persona, header, message stream, and memory list; specialized renderers return HTML strings. Follow this pattern for repeated UI rather than appending arbitrary nodes from several event handlers.
 
-Reference: [`src/main.js:22-125`](../../../src/main.js).
+Reference: [`src/companion-main.js`](../../../src/companion-main.js).
 
 ## Safe HTML
 
@@ -16,7 +16,10 @@ Bind events in `bind()` after `build()`. Prefer existing buttons, labels, dialog
 
 ## Styling
 
-Use existing semantic classes and CSS custom properties where present. Keep layout and responsive rules in `style.css`; do not add inline styles to generated HTML unless a value is genuinely data-driven (the persona color is the established example).
+Use existing semantic classes and CSS custom properties where present. Keep
+layout and responsive rules in `companion-style.css`; do not add inline styles
+to generated HTML unless a value is genuinely data-driven (the persona color is
+the established example).
 
 ## Common Mistakes
 

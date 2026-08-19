@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/debug-observability.md","reason":"debug-only route、脱敏和配置诊断边界。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"配置验证和 provider 启动失败的 API 错误语义。"}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"server-owned provider、测试和持久化设置约束。"}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"设置与检查器的安全 DOM/交互要求。"}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"设置 UI、调试入口和浏览器验证要求。"}

@@ -32,3 +32,23 @@ For each boundary, write down the exact JSON keys, ownership, and failure behavi
 4. [`server.js:66-89`](../../../server.js): additive state compatibility and legacy migration.
 
 When a change touches one of these paths, verify success, provider failure, refresh recovery, and an empty/malformed input case.
+
+## Media Concept Boundary: Never Recreate Visual Semantics in Server Code
+
+For image/video work, distinguish **factual server context** from **model-owned visual semantics** before adding a helper or a prompt field:
+
+```text
+server facts / durable job envelope
+  -> AI-persona media concept
+  -> image-prompt-master fixed template
+  -> provider prompt
+```
+
+- The server may attach immutable identity, event-first current state, temporary appearance, source request/event, kind/count, authorization, provider selection, persistence, retries, and redacted diagnostics.
+- The AI persona owns scene interpretation, human subjects, non-human objects, capture relationship, action, wardrobe treatment, pose, expression, lighting, composition, and exclusions; the prompt master turns that concept into the fixed eight-section provider template.
+- A renderer may join fixed template slots only. It must not translate capture modes, calculate visible humans, emit `共 X 人`, append negative constraints, or repair missing visual content.
+- Concision is a prompt-master instruction, not a renderer policy: never slice, summarise, or length-reject a structurally valid provider template in server code. The master must decide what redundancy to remove while retaining the necessary visual facts.
+- Never add wording regex/default branches such as `/自拍|POV|宠物|两人/` in media parsers, job creators, schema normalizers, or provider-bound helpers. Such branches silently turn clothes, props, animals, screens, or reflections into people and cause broken camera perspective.
+- A malformed/unavailable persona-concept or prompt-master result is a retryable durable-job failure. After exhaustion, fail only the media target; do not submit a server-derived fallback prompt or claim a delivery succeeded.
+
+Before modifying a media flow, trace all four producers (chat, direct activity, model-driven activity, debug inspector) and verify they persist the same factual envelope. Test one fixture each for selfie, external capture/photographer POV, and non-human props alongside a malformed-model response that reaches no provider call.

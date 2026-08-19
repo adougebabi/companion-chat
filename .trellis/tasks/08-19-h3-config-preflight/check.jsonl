@@ -1,0 +1,4 @@
+{"file":".trellis/spec/backend/debug-observability.md","reason":"检查预检 route gate、安全摘要、输出脱敏与无 queue 副作用。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查无效设置不会写入 companion_settings。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"检查预检超时/非零退出/路径错误的安全错误反馈。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查 settings API → bootstrap → UI → debug route 链路。"}

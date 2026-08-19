@@ -1,6 +1,12 @@
 # Frontend Guidelines
 
-The browser client is a dependency-light vanilla ES module: [`src/index.html`](../../../src/index.html) loads [`src/main.js`](../../../src/main.js), which renders the entire UI and uses [`src/style.css`](../../../src/style.css) for presentation. There is no React, component framework, router, hook system, TypeScript, or build step.
+The active browser client is a dependency-light vanilla ES module:
+[`src/index.html`](../../../src/index.html) loads
+[`src/companion-main.js`](../../../src/companion-main.js) and
+[`src/companion-style.css`](../../../src/companion-style.css). There is no
+React, component framework, router, hook system, TypeScript, or build step.
+`src/main.js` and `src/style.css` are legacy, unreferenced UI files; do not
+change them for active-companion work unless the entry point changes.
 
 ## Guides
 
@@ -13,8 +19,10 @@ The browser client is a dependency-light vanilla ES module: [`src/index.html`](.
 
 ## Pre-Development Checklist
 
-- Find the existing render function and the event binding for the UI you are changing.
-- Trace the API payload in both `server.js` and `main.js` before renaming a field.
+- Find the existing render function and the event binding in
+  `companion-main.js` for the UI you are changing.
+- Trace the API payload in both `server.js` and `companion-main.js` before
+  renaming a field.
 - Escape server/user text with `esc()` before interpolating it into HTML.
 - Decide whether the update belongs in canonical `state`, current `messages`, or transient UI variables.
 

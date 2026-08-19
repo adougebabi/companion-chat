@@ -2,7 +2,7 @@
 
 ## Scope
 
-This child expands the interview/blueprint schema and adds a server-owned typed media-intent compiler. It preserves SQLite/WAL, persona isolation, immutable foundation revisions, durable jobs, and ComfyUI ownership by the Node service.
+This child expands the interview/blueprint schema and replaces the server-owned visual-intent compiler with an AI-persona media-concept and image-prompt-master fixed-template pipeline. It preserves SQLite/WAL, persona isolation, immutable foundation revisions, durable jobs, and ComfyUI ownership by the Node service.
 
 ## Character Card and Layer Model
 
@@ -29,34 +29,87 @@ system capability contract
   + immutable identity/appearance/personality
   + structured life/event/current state
   + persona-private relationship patch
-  + current conversation or media intent
+  + current conversation or media-concept/template task
 ```
 
 Automatic evolution receives only the relationship layer. Event workers receive only structured life/current-state fields. The system capability contract defines tool behavior, expected JSON, negative constraints, and non-disclosure rules; it is not exposed in ordinary APIs.
 
-The same application-owned contract defines user-visible reply form: one complete sentence per assistant message. It is appended as a final fixed rule in the common chat context so user/persona data cannot override it. Interactive chat and proactive private-message completions use a shared server-side sentence segmentation/validation helper before persistence. When the completion contains multiple valid sentences, persist and return them in order as multiple assistant messages for one turn; do not apply this helper to internal JSON-only model calls (relationship evolution and media prompt refinement). The streaming/API and active chat client contract must support a final ordered `messages` collection while retaining a compatibility path for existing single-message consumers during migration.
+The same application-owned contract defines user-visible reply form: one complete sentence per assistant message. It is appended as a final fixed rule in the common chat context so user/persona data cannot override it. Interactive chat and proactive private-message completions use a shared server-side sentence segmentation/validation helper before persistence. When the completion contains multiple valid sentences, persist and return them in order as multiple assistant messages for one turn; do not apply this helper to internal JSON-only model calls (relationship evolution, AI-persona media-concept generation, and image-prompt-master template filling). The streaming/API and active chat client contract must support a final ordered `messages` collection while retaining a compatibility path for existing single-message consumers during migration.
 
-## Media Intent Compiler
+## AI-Owned Media Concept and Fixed Prompt Template
 
-Before a `chat_image`, `chat_video`, or `activity_image` job submits to ComfyUI:
+Visual semantics have two model-owned stages and one server-owned transport boundary. This deliberately replaces the prior deterministic visual-intent compiler.
 
-1. Determine channel and immutable visual baseline.
-2. Read active temporary appearance, outfit/event details, structured scene, mood, and source request.
-3. Create a typed intent with bounded enum/value fields:
-   `subject`, `wardrobe`, `scene`, `action`, `pose`, `expression`, `camera`, `framing`, `lighting`, `placement`, `negativeConstraints`, and `mediaKind`.
-4. Apply deterministic defaults based on scene/activity. For example, a café defaults to seated-at-table/chair placement unless the event explicitly establishes another pose.
-5. Queue optional `media_prompt_refinement` local-model work. It may fill only allowed composition fields in a JSON response.
-6. Validate/merge refinement over deterministic intent, compile a provider prompt, and enqueue/continue the existing ComfyUI job.
+```text
+chat / activity / debug trigger
+        |
+        v
+server-owned MediaConceptEnvelopeV1
+  (identity + live-state facts attached; no visual inference)
+        |
+        v
+AI persona produces PersonaMediaConceptV1
+  (scene, action, mood, explicit human subjects, non-human objects,
+   declared capture relationship)
+        |
+        v
+imagePromptMasterContract produces MediaPromptTemplateV1
+  (fills every section of one fixed provider-prompt template)
+        |
+        v
+rule-free template renderer -> provider prompt -> ComfyUI/H3
+```
 
-Provider calls occur outside transactions. The original event/activity/message remains available with its current media skeleton; retries use durable jobs. If prompt refinement is disabled/fails/exhausts retries, the deterministic compiled prompt proceeds (or, for a provider outage, remains retryable according to existing job policy).
+### Server-owned envelope
+
+The server may collect and attach immutable identity, active life/event state, temporary appearance, channel/trigger, requested asset kind/count, and the raw user/event instruction. It validates authentication, supported media kind/provider, JSON structure, key allowlists, bounded size, job ownership, and persistence. It does **not** parse natural-language wording or apply semantic defaults to decide visual content.
+
+The envelope deliberately does not have server-computed equivalents of `visiblePeople`, `requiredCount`, `requestedLandscape`, `requestedSelfie`, `photographing`, `cameraVisibility`, camera geometry, pose, lighting, wardrobe, or negative constraints.
+
+### Persona concept
+
+Every provider-bound media request must have a `PersonaMediaConceptV1` authored by the AI persona. A final chat `<media-intent>` remains media-delivery authorization, but it carries or leads to the persona concept rather than a provider-ready free-text prompt. Direct activity and inspector requests use the same persona-concept call before prompt mastering.
+
+The concept is bounded structured JSON, but its visual content is AI-owned:
+
+- scene, action, mood, and visual narrative;
+- explicitly named/labelled `humanSubjects` that may appear in frame;
+- separately labelled `nonHumanObjects` for wardrobe, props, animals, reflections, screens, environment objects, and similar entities;
+- a declared `capture` relationship: `selfie`, `external_capture`, `operator_pov`, `first_person`, or `other`, with the intended operator/viewer and device-visibility intent;
+- optional concise compositional intent.
+
+The schema exists for transport, auditability, and master-template input; it is not a license for the server to derive missing visual facts. The persona receives the attached identity/live-state facts and is responsible for respecting them.
+
+### Prompt master and fixed template
+
+`imagePromptMasterContract` receives the persona concept plus the attached authoritative facts. It must fill every section of `MediaPromptTemplateV1` in the declared order:
+
+1. capture and camera relationship;
+2. explicit human subjects;
+3. identity and continuity;
+4. scene and action;
+5. wardrobe and non-human props;
+6. lighting and mood;
+7. photography style and color;
+8. constraints/exclusions.
+
+The master owns how to make those sections visually executable. In particular it must write a physically coherent selfie when the concept declares `selfie`, an off-camera operator/external-photographer treatment when declared, and an explicit POV treatment when declared. It must list explicit human subjects rather than emit a generic “共 X 人” clause, and it must keep the separately provided non-human objects out of the human-subject set.
+
+The server only renders the returned section strings in the fixed order. It must not translate values between capture modes, append negative clauses, count subjects, or otherwise repair model choices. `compileMediaPrompt` / `mediaIntentFor` are removed or replaced by boundary helpers with no semantic visual decision-making.
+
+### Failure and durability
+
+The source chat/activity item and durable media job are created before model/provider work. A missing, malformed, or schema-invalid persona concept or master-template result is a retryable media-job failure. It never falls back to a keyword-derived/default prompt. After the normal retry budget, only the media placeholder/activity media state becomes `failed`; the parent chat/activity remains available and no fabricated media delivery is reported.
+
+Provider calls remain outside transactions. Persist bounded diagnostics for the envelope, persona concept, fixed-template result, rendered final prompt, and failure stage; ordinary consumer APIs continue to expose only media status and asset URLs.
 
 ## Observability and Privacy
 
-Store bounded job payload/result metadata: input intent, refinement status, final prompt, and redacted workflow summary. These are exposed only through the development debug-context route introduced by the sibling task; ordinary media APIs still return only status and asset URL.
+Store bounded job payload/result metadata: media-concept envelope, persona concept, prompt-master template, rendered final prompt, stage status/error, and redacted workflow summary. These are exposed only through the development debug-context route introduced by the sibling task; ordinary media APIs still return only status and asset URL.
 
 ## Migration and Compatibility
 
-Use an ordered new SQLite migration for any new tables/columns/indexes. Existing blueprints receive safe defaults at read/compile time; do not rewrite historical raw foundations, activities, media assets, or legacy application data. Keep image-set/video mutual exclusion.
+Use an ordered new SQLite migration for any new tables/columns/indexes. Existing blueprints receive only schema-safe factual defaults at read time; do not introduce visual-semantic defaults and do not rewrite historical raw foundations, activities, media assets, or legacy application data. Keep image-set/video mutual exclusion.
 
 ## Test Persona Deletion
 
