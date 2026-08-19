@@ -505,6 +505,17 @@ function localPlanDate(date = new Date(), timeZone) {
     return new Intl.DateTimeFormat('en-CA', {year: 'numeric', month: '2-digit', day: '2-digit', ...(timeZone ? {timeZone} : {})}).format(date);
 }
 
+function zonedPlanInstant(planDate, clock, timeZone = 'Asia/Shanghai') {
+    const match = String(planDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match || !blueprintTime(clock)) throw new Error('计划时间格式无效');
+    const [hour, minute] = String(clock).split(':').map(Number);
+    const intendedUtc = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), hour, minute);
+    const parts = new Intl.DateTimeFormat('en-US', {timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false}).formatToParts(new Date(intendedUtc));
+    const take = kind => Number(parts.find(part => part.type === kind)?.value || 0);
+    const displayedUtc = Date.UTC(take('year'), take('month') - 1, take('day'), take('hour'), take('minute'));
+    return new Date(intendedUtc - (displayedUtc - intendedUtc)).toISOString();
+}
+
 function ensureDailyPlan(personaId, date = new Date()) {
     const planDate = localPlanDate(date, blueprint(personaId).timezone);
     const existing = database.prepare('SELECT id, status FROM companion_daily_plans WHERE persona_id = ? AND plan_date = ?').get(personaId, planDate);
@@ -2672,7 +2683,7 @@ function lifeFixedSlots(persona, planDate) {
         if (!blueprintTime(start) || !blueprintTime(end)) return null;
         const sceneRef = template.sceneRefs?.[0] || life.world?.defaultSceneRef;
         const resolved = resolveSceneRef(life, sceneRef);
-        return {template, title: template.title, situation: template.situation, scene: resolved.scene, sceneRef, startsAt: new Date(`${planDate}T${start}:00`).toISOString(), endsAt: new Date(`${planDate}T${end}:00`).toISOString()};
+        return {template, title: template.title, situation: template.situation, scene: resolved.scene, sceneRef, startsAt: zonedPlanInstant(planDate, start, life.timezone), endsAt: zonedPlanInstant(planDate, end, life.timezone)};
     }).filter(Boolean);
 }
 
@@ -2685,8 +2696,8 @@ function lifeFlexibleSlots(persona, planDate) {
         const duration = Number(template.durationMinutes?.[0]) || 30;
         const sceneRef = template.sceneRefs?.[0] || life.world?.defaultSceneRef;
         const resolved = resolveSceneRef(life, sceneRef);
-        const startsAt = new Date(`${planDate}T${start}:00`);
-        const endsAt = new Date(Math.min(new Date(`${planDate}T${end}:00`).getTime(), startsAt.getTime() + duration * 60_000));
+        const startsAt = new Date(zonedPlanInstant(planDate, start, life.timezone));
+        const endsAt = new Date(Math.min(Date.parse(zonedPlanInstant(planDate, end, life.timezone)), startsAt.getTime() + duration * 60_000));
         return {template, title: template.title, situation: template.situation, scene: resolved.scene, sceneRef, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString()};
     }).filter(Boolean);
 }
@@ -2742,11 +2753,11 @@ async function runDailyPlanJob(job) {
                 if (!blueprintTime(start) || !blueprintTime(end)) continue;
                 const sceneRef = template.sceneRefs?.[0] || blueprint(persona.id).world?.defaultSceneRef;
                 const scene = resolveSceneRef(blueprint(persona.id), sceneRef).scene;
-                insertTimelineSlot(persona, payload.planDate, {slotKey: `opportunity:${template.templateId}`, slotKind: 'opportunity', startsAt: new Date(`${payload.planDate}T${start}:00`).toISOString(), endsAt: new Date(`${payload.planDate}T${end}:00`).toISOString(), source: 'life_model_opportunity', priority: template.priority, title: template.title, situation: template.situation, scene, sceneRef, templateId: template.templateId, outcome: {reason: 'candidate_window'}}, updatedAt);
+                insertTimelineSlot(persona, payload.planDate, {slotKey: `opportunity:${template.templateId}`, slotKind: 'opportunity', startsAt: zonedPlanInstant(payload.planDate, start, blueprint(persona.id).timezone), endsAt: zonedPlanInstant(payload.planDate, end, blueprint(persona.id).timezone), source: 'life_model_opportunity', priority: template.priority, title: template.title, situation: template.situation, scene, sceneRef, templateId: template.templateId, outcome: {reason: 'candidate_window'}}, updatedAt);
             }
             for (const item of items) {
-                const startsAt = new Date(`${payload.planDate}T${item.startsAt}:00`).toISOString();
-                const endsAt = new Date(`${payload.planDate}T${item.endsAt}:00`).toISOString();
+                const startsAt = zonedPlanInstant(payload.planDate, item.startsAt, blueprint(persona.id).timezone);
+                const endsAt = zonedPlanInstant(payload.planDate, item.endsAt, blueprint(persona.id).timezone);
                 const conflict = database.prepare("SELECT 1 FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND source != 'ai_daily_plan' AND starts_at < ? AND COALESCE(ends_at, starts_at) > ? LIMIT 1").get(persona.id, endsAt, startsAt);
                 insertTimelineSlot(persona, payload.planDate, {slotKey: `${plan.id}:${item.startsAt}:${item.title}`.slice(0, 180), slotKind: 'planned', startsAt, endsAt, status: conflict ? 'skipped' : 'confirmed', source: 'ai_daily_plan', priority: 20, title: item.title, situation: item.situation, scene: item.scene, templateId: '', schedule: !conflict, outcome: conflict ? {reason: 'model_slot_conflict'} : {}}, updatedAt);
             }
