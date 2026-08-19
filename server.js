@@ -1128,6 +1128,15 @@ function instantiateTimelineEvent(persona, at = new Date()) {
     return output;
 }
 
+function advanceTimelineSlots(personaId, at = new Date()) {
+    const time = at.toISOString();
+    database.transaction(() => {
+        database.prepare("UPDATE companion_timeline_slots SET status = 'completed', outcome_json = json_set(outcome_json, '$.reason', 'ended_at_boundary'), updated_at = ? WHERE persona_id = ? AND status = 'active' AND ends_at IS NOT NULL AND ends_at <= ?").run(now(), personaId, time);
+        database.prepare("UPDATE companion_timeline_slots SET status = 'active', updated_at = ? WHERE persona_id = ? AND status = 'confirmed' AND starts_at IS NOT NULL AND starts_at <= ? AND (ends_at IS NULL OR ends_at > ?)").run(now(), personaId, time, time);
+        database.prepare("UPDATE companion_timeline_slots SET status = 'skipped', outcome_json = json_set(outcome_json, '$.reason', 'expired_before_execution'), updated_at = ? WHERE persona_id = ? AND status = 'confirmed' AND ends_at IS NOT NULL AND ends_at <= ?").run(now(), personaId, time);
+    })();
+}
+
 const maxEventDurationMs = 24 * 60 * 60 * 1000;
 
 function boundedAppearance(value) {
@@ -1235,6 +1244,7 @@ function createEvent(persona, event, options = {}) {
 function reconcilePersona(personaId, {publish = true} = {}) {
     const persona = personaRow(personaId);
     if (!persona) return null;
+    advanceTimelineSlots(persona.id);
     const next = scheduledState(persona);
     const current = stateFor(persona.id);
     if (next.source === 'event') return current || next;
