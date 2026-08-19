@@ -177,3 +177,36 @@ Implemented continuous ready-plan state projection with default-room baselines, 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: Freeze persona media intent before generation
+
+**Date**: 2026-08-19
+**Task**: Freeze persona media intent before generation
+**Branch**: `master`
+
+### Summary
+
+Moved persona media concept generation to the AI capability-call boundary; persisted frozen concept, event, and temporary appearance across chat/activity/debug media jobs; removed worker concept fallback and made legacy jobs terminal failures; added fixed-template retry constraints, one-time C-stage visual acceptance with pass/retry/reject/skipped behavior, bounded video keyframes, redacted diagnostics, regression tests, and updated media contract specs.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1d7ff6d` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
