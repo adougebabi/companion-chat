@@ -71,3 +71,42 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Implement persona life timeline
+
+**Date**: 2026-08-19
+**Task**: Implement persona life timeline
+**Branch**: `master`
+
+### Summary
+
+Implemented and verified the persona life-model v2, time-line slots and decisions, safe opportunity events, scene/location projection, cross-scene chat, sleep deferred reply batches, timezone-aware scheduling, audit/debug views, documentation, and regression coverage (31 tests).
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e9c5f19` | (see git log) |
+| `91936fe` | (see git log) |
+| `92d4e9f` | (see git log) |
+| `8d25bd0` | (see git log) |
+| `42f4062` | (see git log) |
+| `8606bc3` | (see git log) |
+| `30b08d0` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
