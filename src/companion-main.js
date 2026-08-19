@@ -178,23 +178,19 @@ function render() {
 }
 
 function renderContacts() {
-    const groups = contactGroups();
     const selectedGroup = activeContactGroup();
     const visiblePersonas = selectedGroup
         ? appState.personas.filter(persona => String(persona.groupId || '') === String(selectedGroup.id))
         : appState.personas;
-    const groupOptions = groups.map(group => `<option value="${esc(group.id)}" ${String(group.id) === activeContactGroupId ? 'selected' : ''}>${esc(group.name)}${Number(group.personaCount) ? ` (${Number(group.personaCount)})` : ''}</option>`).join('');
     const empty = `<div class="contact-empty"><p>${selectedGroup ? `“${esc(selectedGroup.name)}”里还没有陪伴者。` : '还没有陪伴者。'}</p><button class="quiet" id="contacts-empty-create">创建一个陪伴者</button></div>`;
-    $('#main-pane').innerHTML = `<section class="contacts-view"><header class="pane-header contacts-header"><div class="header-copy"><h1>联系人</h1><p>${selectedGroup ? `${esc(selectedGroup.name)} · ${visiblePersonas.length} 位陪伴者` : '所有陪伴者的聊天'}</p></div><div class="contacts-actions">${groups.length ? `<label class="contact-group-control"><span class="sr-only">选择联系人分组</span><select id="contacts-group-select" aria-label="选择联系人分组">${groupOptions}</select></label><button class="text-icon" id="contacts-group-create" aria-label="创建分组" title="创建分组">＋</button>` : ''}<button class="text-icon" id="contacts-create" aria-label="创建陪伴者" title="创建陪伴者">＋</button></div></header><div class="contacts-stream">${visiblePersonas.length ? visiblePersonas.map(persona => `<button class="contact-row" data-contact-persona="${esc(persona.id)}">${avatar(persona)}<span class="persona-copy"><b>${esc(persona.name)}</b><small>${esc(persona.currentSituation || persona.role || '开始聊天')}</small></span>${persona.unreadCount ? `<em>${persona.unreadCount > 99 ? '99+' : persona.unreadCount}</em>` : ''}<i>›</i></button>`).join('') : empty}</div></section>`;
+    $('#main-pane').innerHTML = `<section class="contacts-view"><header class="pane-header contacts-header"><button type="button" class="contacts-title" id="contacts-group-trigger" aria-label="选择联系人分组"><span class="header-copy"><h1>联系人</h1><p>${selectedGroup ? `${esc(selectedGroup.name)} · ${visiblePersonas.length} 位陪伴者` : '所有陪伴者的聊天'}</p></span></button><button class="text-icon" id="contacts-create" aria-label="创建陪伴者" title="创建陪伴者">＋</button></header><div class="contacts-stream">${visiblePersonas.length ? visiblePersonas.map(persona => `<button class="contact-row" data-contact-persona="${esc(persona.id)}">${avatar(persona)}<span class="persona-copy"><b>${esc(persona.name)}</b><small>${esc(persona.currentSituation || persona.role || '开始聊天')}</small></span>${persona.unreadCount ? `<em>${persona.unreadCount > 99 ? '99+' : persona.unreadCount}</em>` : ''}<i>›</i></button>`).join('') : empty}</div></section>`;
+    $('#contacts-group-trigger').onclick = event => openGroupPicker(event.currentTarget);
     $('#contacts-create').onclick = openPersonaWizard;
-    $('#contacts-group-create')?.addEventListener('click', event => openGroupWizard(event.currentTarget));
     $('#contacts-empty-create')?.addEventListener('click', openPersonaWizard);
-    $('#contacts-group-select')?.addEventListener('change', event => {
-        activeContactGroupId = event.currentTarget.value;
-        localStorage.setItem('companion-active-group', activeContactGroupId);
-        renderContacts();
+    document.querySelectorAll('[data-contact-persona]').forEach(button => button.onclick = async () => {
+        currentView = 'chat';
+        await selectPersona(button.dataset.contactPersona);
     });
-    document.querySelectorAll('[data-contact-persona]').forEach(button => button.onclick = () => openContactGroupDialog(button.dataset.contactPersona, button));
 }
 
 function renderSettingsPage() {
@@ -509,37 +505,20 @@ function openGroupWizard(trigger = document.activeElement) {
     };
 }
 
-function openContactGroupDialog(personaId, trigger = document.activeElement) {
-    const persona = appState.personas.find(item => item.id === personaId);
-    if (!persona) return;
+function openGroupPicker(trigger = document.activeElement) {
     const dialog = $('#persona-dialog');
     const groups = contactGroups();
-    const defaultGroup = groups.find(group => group.isDefault) || groups[0];
-    const currentGroupId = String(persona.groupId || defaultGroup?.id || '');
-    const options = groups.map(group => `<option value="${esc(group.id)}" ${String(group.id) === currentGroupId ? 'selected' : ''}>${esc(group.name)}</option>`).join('');
-    dialog.innerHTML = `<form class="persona-wizard contact-group-sheet" id="contact-group-form"><header><div><small>CONTACT GROUP</small><h2>${esc(persona.name)}的分组</h2></div><button type="button" class="close-dialog" id="close-contact-group" aria-label="关闭">×</button></header><div class="wizard-body"><p class="wizard-intro">选择分组后进入聊天。取消不会改变 ${esc(persona.name)} 的归属。</p>${groups.length ? `<label>所属分组<select name="groupId" data-initial-focus>${options}</select></label>` : '<p class="muted">还没有可用分组。</p>'}</div><footer class="wizard-footer"><button type="button" class="quiet" id="cancel-contact-group">取消</button><button class="primary" id="contact-group-submit">进入聊天</button></footer></form>`;
+    const groupItems = groups.length ? groups.map(group => `<button type="button" class="group-choice ${String(group.id) === activeContactGroupId ? 'selected' : ''}" data-contact-group="${esc(group.id)}"><span><b>${esc(group.name)}</b><small>${Number(group.personaCount || 0)} 位联系人</small></span><i aria-hidden="true">${String(group.id) === activeContactGroupId ? '✓' : '›'}</i></button>`).join('') : '<p class="muted">还没有可用分组。</p>';
+    dialog.innerHTML = `<section class="detail-sheet group-picker"><header><div><small>CONTACT GROUP</small><h2>选择分组</h2></div><button class="close-dialog" id="close-group-picker" aria-label="关闭">×</button></header><div class="detail-scroll"><div class="group-picker-list">${groupItems}</div><button class="new-persona" id="group-picker-create">＋ 创建分组</button></div></section>`;
     showDialog(dialog, trigger);
-    $('#close-contact-group').onclick = () => closeDialog(dialog);
-    $('#cancel-contact-group').onclick = () => closeDialog(dialog);
-    $('#contact-group-form').onsubmit = async event => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const submit = $('#contact-group-submit');
-        const selectedGroupId = String(form.elements.groupId?.value || '').trim();
-        submit.disabled = true;
-        try {
-            if (selectedGroupId && selectedGroupId !== currentGroupId) {
-                await api(`/api/companion/personas/${encodeURIComponent(persona.id)}/group`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({groupId: selectedGroupId})});
-            }
-            await loadBootstrap();
-            dialog.close('submitted');
-            currentView = 'chat';
-            await selectPersona(persona.id);
-        } catch (error) {
-            submit.disabled = false;
-            window.alert(error.message);
-        }
-    };
+    $('#close-group-picker').onclick = () => closeDialog(dialog);
+    $('#group-picker-create').onclick = () => { closeDialog(dialog); openGroupWizard(); };
+    dialog.querySelectorAll('[data-contact-group]').forEach(button => button.onclick = () => {
+        activeContactGroupId = button.dataset.contactGroup;
+        localStorage.setItem('companion-active-group', activeContactGroupId);
+        closeDialog(dialog);
+        renderContacts();
+    });
 }
 
 function openPersonaPicker() {
@@ -632,7 +611,11 @@ async function openPersonaDetail(personaId) {
                             : state?.source ? '来自已记录生活事件' : '正在同步状态来源';
         const inferredFields = Object.entries(blueprint?.provenance || {}).filter(([, source]) => source === 'inferred').map(([field]) => ({routine: '作息', interests: '兴趣', visualBaseline: '外观印象', supportingCast: '初始社交圈', foundation: '基础人格'})[field] || field);
         const foundationLines = [foundationSummary?.identity, foundationSummary?.routine?.length ? `日常节奏：${foundationSummary.routine.join(' · ')}` : '', foundationSummary?.interests?.length ? `喜欢：${foundationSummary.interests.join('、')}` : ''].filter(Boolean);
-        dialog.innerHTML = `<section class="detail-sheet"><header><div>${avatar(persona)}<span><small>PERSONA</small><h2>${esc(persona.name)}</h2><p>${esc(persona.role)}</p></span></div><button class="close-dialog" id="close-detail" aria-label="关闭">×</button></header><div class="detail-scroll"><section><h3>现在</h3><p class="state-line">${esc(state?.situation || '正在过自己的日常')}<small>${esc(state?.mood || '平静')}</small></p><p class="state-source">${esc(state?.scene || state?.room || '日常场景')}${state?.location ? ` · ${esc(state.location)}` : ''}</p><p class="state-source">${esc(stateSource)}${state?.source?.rationale ? ` · ${esc(state.source.rationale)}` : ''}</p>${Object.keys(state?.appearance || {}).length ? `<p class="state-source">当前外观：${esc(Object.values(state.appearance).join(' · '))}</p>` : ''}</section><section><h3>近期安排</h3>${schedule.length ? `<ul class="schedule-list">${schedule.map(item => `<li><b>${esc(item.title)}</b><small>${formatTime(item.startsAt)}</small><button class="schedule-reschedule" data-reschedule="${esc(item.id)}" aria-label="改期">↻</button><button class="schedule-cancel" data-schedule="${esc(item.id)}" aria-label="取消这项安排">×</button></li>`).join('')}</ul>` : '<p class="muted">暂无公开的近期安排</p>'}</section><section><h3>生活设定</h3><p class="detail-text">${foundationLines.map(esc).join('<br>')}</p>${inferredFields.length ? `<p class="state-source">AI 推断：${esc(inferredFields.join('、'))}</p>` : '<p class="state-source">所有初始设定均由你提供</p>'}<button class="quiet" id="edit-foundation">修订基础人格</button>${activeDetail.foundationRevisions.length > 1 ? `<ul class="foundation-list">${activeDetail.foundationRevisions.map((revision, index) => `<li><span><b>版本 ${revision.version}</b><small>${esc(revision.reason)} · ${formatTime(revision.createdAt)}</small></span>${index ? `<button class="quiet" data-restore-foundation="${esc(revision.id)}">恢复此版本</button>` : '<small>当前版本</small>'}</li>`).join('')}</ul>` : ''}</section><section><h3>她认识的你</h3>${memories.length ? `<ul class="memory-list">${memories.map(memory => `<li><span>${esc(memory.key)}</span><p>${esc(memory.value)}</p><button data-memory="${esc(memory.id)}" aria-label="删除这条记忆">×</button></li>`).join('')}</ul>` : '<p class="muted">她还在慢慢了解你。</p>'}</section><section><h3>关系变化</h3>${evolutions.length ? `<ul class="evolution-list">${evolutions.map((item, index) => `<li><b>${esc(item.reason)}</b><small>${formatTime(item.createdAt)}</small><span>${esc(item.evidenceSummary)}</span>${(item.changes || []).map(change => `<p class="evolution-diff">${esc(change.field)}：${esc(change.before)} → ${esc(change.after)}</p>`).join('')}${item.status === 'applied' && index === 0 ? `<button data-rollback="${esc(item.id)}" class="quiet">撤销这次变化</button>` : `<span>${item.status === 'reverted' ? '已撤销' : '已归档'}</span>`}</li>`).join('')}</ul>` : '<p class="muted">还没有需要保留的关系变化。</p>'}</section><section><h3>身边的人</h3><p class="supporting-names">${supportingCharacters.length ? supportingCharacters.map(item => esc(item.name)).join(' · ') : '会在生活里慢慢认识新朋友'}</p></section><section><h3>管理</h3><button class="quiet" id="persona-moments">查看她的动态</button><button class="quiet" id="screen-persona">${persona.screened ? '取消屏蔽' : '屏蔽动态与主动私聊'}</button><button class="quiet" id="hidden-activities">管理已隐藏动态</button><button class="quiet danger" id="delete-persona">删除此人格</button></section></div></section>`;
+        const groups = contactGroups();
+        const defaultGroup = groups.find(group => group.isDefault) || groups[0];
+        const currentGroupId = String(persona.groupId || defaultGroup?.id || '');
+        const groupOptions = groups.map(group => `<option value="${esc(group.id)}" ${String(group.id) === currentGroupId ? 'selected' : ''}>${esc(group.name)}${Number(group.personaCount || 0) ? ` (${Number(group.personaCount)})` : ''}</option>`).join('');
+        dialog.innerHTML = `<section class="detail-sheet"><header><div>${avatar(persona)}<span><small>PERSONA</small><h2>${esc(persona.name)}</h2><p>${esc(persona.role)}</p></span></div><button class="close-dialog" id="close-detail" aria-label="关闭">×</button></header><div class="detail-scroll"><section><h3>现在</h3><p class="state-line">${esc(state?.situation || '正在过自己的日常')}<small>${esc(state?.mood || '平静')}</small></p><p class="state-source">${esc(state?.scene || state?.room || '日常场景')}${state?.location ? ` · ${esc(state.location)}` : ''}</p><p class="state-source">${esc(stateSource)}${state?.source?.rationale ? ` · ${esc(state.source.rationale)}` : ''}</p>${Object.keys(state?.appearance || {}).length ? `<p class="state-source">当前外观：${esc(Object.values(state.appearance).join(' · '))}</p>` : ''}</section><section><h3>近期安排</h3>${schedule.length ? `<ul class="schedule-list">${schedule.map(item => `<li><b>${esc(item.title)}</b><small>${formatTime(item.startsAt)}</small><button class="schedule-reschedule" data-reschedule="${esc(item.id)}" aria-label="改期">↻</button><button class="schedule-cancel" data-schedule="${esc(item.id)}" aria-label="取消这项安排">×</button></li>`).join('')}</ul>` : '<p class="muted">暂无公开的近期安排</p>'}</section><section><h3>生活设定</h3><p class="detail-text">${foundationLines.map(esc).join('<br>')}</p>${inferredFields.length ? `<p class="state-source">AI 推断：${esc(inferredFields.join('、'))}</p>` : '<p class="state-source">所有初始设定均由你提供</p>'}<button class="quiet" id="edit-foundation">修订基础人格</button>${activeDetail.foundationRevisions.length > 1 ? `<ul class="foundation-list">${activeDetail.foundationRevisions.map((revision, index) => `<li><span><b>版本 ${revision.version}</b><small>${esc(revision.reason)} · ${formatTime(revision.createdAt)}</small></span>${index ? `<button class="quiet" data-restore-foundation="${esc(revision.id)}">恢复此版本</button>` : '<small>当前版本</small>'}</li>`).join('')}</ul>` : ''}</section><section><h3>她认识的你</h3>${memories.length ? `<ul class="memory-list">${memories.map(memory => `<li><span>${esc(memory.key)}</span><p>${esc(memory.value)}</p><button data-memory="${esc(memory.id)}" aria-label="删除这条记忆">×</button></li>`).join('')}</ul>` : '<p class="muted">她还在慢慢了解你。</p>'}</section><section><h3>关系变化</h3>${evolutions.length ? `<ul class="evolution-list">${evolutions.map((item, index) => `<li><b>${esc(item.reason)}</b><small>${formatTime(item.createdAt)}</small><span>${esc(item.evidenceSummary)}</span>${(item.changes || []).map(change => `<p class="evolution-diff">${esc(change.field)}：${esc(change.before)} → ${esc(change.after)}</p>`).join('')}${item.status === 'applied' && index === 0 ? `<button data-rollback="${esc(item.id)}" class="quiet">撤销这次变化</button>` : `<span>${item.status === 'reverted' ? '已撤销' : '已归档'}</span>`}</li>`).join('')}</ul>` : '<p class="muted">还没有需要保留的关系变化。</p>'}</section><section><h3>身边的人</h3><p class="supporting-names">${supportingCharacters.length ? supportingCharacters.map(item => esc(item.name)).join(' · ') : '会在生活里慢慢认识新朋友'}</p></section><section><h3>管理</h3><button class="quiet" id="persona-moments">查看她的动态</button><button class="quiet" id="screen-persona">${persona.screened ? '取消屏蔽' : '屏蔽动态与主动私聊'}</button><button class="quiet" id="hidden-activities">管理已隐藏动态</button><button class="quiet danger" id="delete-persona">删除此人格</button></section><section class="persona-group-setting"><h3>所属分组</h3><p class="state-source">在这里设置 ${esc(persona.name)} 出现在哪个联系人分组中。</p><div class="persona-group-controls"><select id="persona-group-select" aria-label="选择 ${esc(persona.name)} 所属分组">${groupOptions}</select><button type="button" class="quiet" id="persona-group-save">保存</button></div></section></div></section>`;
         showDialog(dialog);
         $('#close-detail').onclick = () => closeDialog(dialog);
         $('#screen-persona').onclick = () => toggleScreen(persona);
@@ -649,6 +632,23 @@ async function openPersonaDetail(personaId) {
         };
         $('#hidden-activities').onclick = () => openHiddenActivities(persona.id);
         $('#delete-persona').onclick = () => deletePersona(persona);
+        $('#persona-group-save').onclick = async () => {
+            const select = $('#persona-group-select');
+            const button = $('#persona-group-save');
+            const nextGroupId = String(select.value || '').trim();
+            if (!nextGroupId || nextGroupId === currentGroupId) return;
+            button.disabled = true;
+            try {
+                await api(`/api/companion/personas/${encodeURIComponent(persona.id)}/group`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({groupId: nextGroupId})});
+                await loadBootstrap();
+                if (currentView === 'contacts') renderContacts();
+                await openPersonaDetail(persona.id);
+                renderSidebar();
+            } catch (error) {
+                button.disabled = false;
+                window.alert(error.message);
+            }
+        };
     } catch (error) { window.alert(error.message); }
 }
 
