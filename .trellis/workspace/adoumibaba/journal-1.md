@@ -143,3 +143,37 @@ Implemented continuous ready-plan state projection with default-room baselines, 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: 媒体生成进度与简化调试
+
+**Date**: 2026-08-19
+**Task**: 媒体生成进度与简化调试
+**Branch**: `master`
+
+### Summary
+
+新增 h3 provider 进度快照、最终提示词检查器、poll 子任务聚合与简化媒体模式；验证 40 项测试通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a344629` | (see git log) |
+| `b2e78a0` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

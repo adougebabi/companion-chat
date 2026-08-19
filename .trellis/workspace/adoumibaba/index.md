@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 4
+- **Total Sessions**: 5
 - **Last Active**: 2026-08-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~145 | Active |
+| `journal-1.md` | ~179 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-08-19 | 媒体生成进度与简化调试 | `a344629`, `b2e78a0` | `master` |
 | 4 | 2026-08-19 | Align daily plan state and trusted chat time facts | `6064745` | `master` |
 | 3 | 2026-08-19 | Implement persona life timeline | `e9c5f19`, `91936fe`, `92d4e9f`, `8d25bd0`, `42f4062`, `8606bc3`, `30b08d0` | `master` |
 | 2 | 2026-08-18 | h3 reuse 参数校正 | `5fbba8a` | `master` |
