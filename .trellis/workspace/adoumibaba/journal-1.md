@@ -276,3 +276,36 @@ Implemented life-event proactive messaging and chat-declared pending events with
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: 自然语言人格初始化
+
+**Date**: 2026-08-19
+**Task**: 自然语言人格初始化
+**Branch**: `master`
+
+### Summary
+
+将当前人格创建向导改为单段自然语言描述，由服务端 LLM 严格抽取结构化人格字段；新增分析预览 endpoint、默认值与 provenance、失败无副作用处理、确认前编辑和覆盖测试，并完成全量测试。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `72dad14` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
