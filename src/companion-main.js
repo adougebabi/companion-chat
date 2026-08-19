@@ -17,10 +17,11 @@ let hiddenActivityItems = [];
 let hiddenActivityNextCursor = null;
 let hiddenActivityPersonaId = null;
 let hiddenActivityLoadingMore = false;
-let currentView = 'chat';
+let currentView = 'contacts';
 let isSending = false;
 let commentingActivityId = null;
 const dialogReturnFocus = new WeakMap();
+let inspectorMediaRefresh = null;
 
 function chatViewSnapshot() {
     const stream = $('#message-stream');
@@ -35,13 +36,30 @@ function chatViewSnapshot() {
     };
 }
 
+function pinChatToLatest(stream) {
+    const pin = () => {
+        if (!stream.isConnected) return;
+        stream.scrollTop = stream.scrollHeight;
+    };
+    // The stream's final height can change across grid layout, font paint, and
+    // media intrinsic-size resolution. Pin at each of those early frames so a
+    // newly opened conversation reliably starts at its newest message.
+    pin();
+    requestAnimationFrame(() => {
+        pin();
+        requestAnimationFrame(pin);
+    });
+    window.setTimeout(pin, 120);
+}
+
 function restoreChatView(snapshot, {followLatest = false} = {}) {
     const stream = $('#message-stream');
     const input = $('#chat-input');
     if (!stream) return;
+    const shouldFollowLatest = followLatest || !snapshot?.stream || snapshot.stream.atBottom;
+    if (shouldFollowLatest) pinChatToLatest(stream);
     requestAnimationFrame(() => {
-        if (followLatest || !snapshot?.stream || snapshot.stream.atBottom) stream.scrollTop = stream.scrollHeight;
-        else stream.scrollTop = Math.min(snapshot.stream.scrollTop, stream.scrollHeight - stream.clientHeight);
+        if (!shouldFollowLatest) stream.scrollTop = Math.min(snapshot.stream.scrollTop, stream.scrollHeight - stream.clientHeight);
         if (snapshot?.input && input && !isSending) {
             input.focus({preventScroll: true});
             input.setSelectionRange(snapshot.input.start, snapshot.input.end);
@@ -101,19 +119,19 @@ function build() {
         <div class="app-frame">
             <aside class="rail" aria-label="主导航">
                 <button class="brand" id="brand-button" aria-label="知觉首页">知</button>
-                <button class="rail-action active" data-view="chat" aria-label="聊天" title="聊天"><span>⌁</span></button>
+                <button class="rail-action active" data-view="contacts" aria-label="联系人" title="联系人"><span>⌁</span></button>
                 <button class="rail-action" data-view="activity" aria-label="动态" title="动态"><span>◉</span><i id="activity-dot"></i></button>
                 <span class="rail-spacer"></span>
                 <button class="rail-action" id="settings-button" aria-label="设置" title="设置">⚙</button>
             </aside>
             <aside class="sidebar" id="sidebar">
                 <header class="sidebar-header"><div><strong>知觉</strong><small>COMPANION</small></div><button class="icon-button" id="create-button" aria-label="创建人格" title="创建人格">＋</button></header>
-                <nav class="sidebar-tabs"><button data-view="chat" class="active">聊天</button><button data-view="activity">动态</button></nav>
+                <nav class="sidebar-tabs"><button data-view="contacts" class="active">联系人</button><button data-view="activity">动态</button></nav>
                 <div class="persona-list" id="persona-list"></div>
                 <button class="new-persona" id="sidebar-create">＋ 创建一个陪伴者</button>
             </aside>
             <main class="main-pane" id="main-pane"></main>
-            <nav class="mobile-nav" aria-label="移动导航"><button data-view="chat">聊天</button><button data-view="activity">动态<i id="mobile-activity-dot"></i></button><button id="mobile-personas" aria-label="切换陪伴者">陪伴者</button><button id="mobile-settings">设置</button><button id="mobile-create">创建</button></nav>
+            <nav class="mobile-nav" aria-label="主导航"><button data-view="contacts" aria-label="联系人" title="联系人">⌁</button><button data-view="activity" aria-label="动态" title="动态">◉<i id="mobile-activity-dot"></i></button><button data-view="settings" aria-label="设置" title="设置">⚙</button></nav>
         </div>
         <dialog id="persona-dialog"></dialog>
         <dialog id="settings-dialog"></dialog>
@@ -144,8 +162,26 @@ function renderSidebar() {
 function render() {
     renderSidebar();
     if (!appState.personas.length) return renderEmptyStart();
+    if (currentView === 'contacts') return renderContacts();
+    if (currentView === 'settings') return renderSettingsPage();
     if (currentView === 'activity') return renderActivities();
     return renderChat();
+}
+
+function renderContacts() {
+    $('#main-pane').innerHTML = `<section class="contacts-view"><header class="pane-header"><div class="header-copy"><h1>联系人</h1><p>所有陪伴者的聊天</p></div><button class="text-icon" id="contacts-create" aria-label="创建陪伴者" title="创建陪伴者">＋</button></header><div class="contacts-stream">${appState.personas.map(persona => `<button class="contact-row" data-contact-persona="${esc(persona.id)}">${avatar(persona)}<span class="persona-copy"><b>${esc(persona.name)}</b><small>${esc(persona.currentSituation || persona.role || '开始聊天')}</small></span>${persona.unreadCount ? `<em>${persona.unreadCount > 99 ? '99+' : persona.unreadCount}</em>` : ''}<i>›</i></button>`).join('')}</div></section>`;
+    $('#contacts-create').onclick = openPersonaWizard;
+    document.querySelectorAll('[data-contact-persona]').forEach(button => button.onclick = async () => {
+        currentView = 'chat';
+        await selectPersona(button.dataset.contactPersona);
+    });
+}
+
+function renderSettingsPage() {
+    $('#main-pane').innerHTML = `<section class="settings-view"><header class="pane-header"><div class="header-copy"><h1>设置</h1><p>管理应用与陪伴者</p></div></header><nav class="settings-menu"><button id="settings-model"><span>⚙</span><div><b>系统设置</b><small>模型、媒体与服务配置</small></div><i>›</i></button><button id="settings-create"><span>＋</span><div><b>创建陪伴者</b><small>开始一段新的陪伴关系</small></div><i>›</i></button><button id="settings-personas"><span>⌁</span><div><b>管理联系人</b><small>查看和切换已有陪伴者</small></div><i>›</i></button></nav></section>`;
+    $('#settings-model').onclick = openSettings;
+    $('#settings-create').onclick = openPersonaWizard;
+    $('#settings-personas').onclick = openPersonaPicker;
 }
 
 function renderEmptyStart() {
@@ -155,13 +191,23 @@ function renderEmptyStart() {
 
 function messageMediaHtml(message) {
     const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+    const generation = message.generation && typeof message.generation === 'object' ? message.generation : null;
+    if (appState.settings?.simplifiedMediaMode && (attachments.length || generation)) {
+        const kind = (attachments[0]?.kind || generation?.kind) === 'video' ? '视频' : '图片';
+        const failed = generation?.status === 'failed';
+        const request = generation?.request ? `<small>${esc(generation.request)}</small>` : '';
+        const status = attachments.length
+            ? `${kind}已生成（简化模式未加载）`
+            : failed ? `${kind}暂时不可用` : `${kind}生成中（简化模式）`;
+        return `<div class="message-media simplified-media ${failed ? 'failed' : ''}"><span>${status}</span>${request}</div>`;
+    }
     if (attachments.length) return attachments.map(asset => asset.kind === 'video'
         ? `<video class="message-media" controls preload="metadata" src="${esc(asset.url)}" data-media-kind="video">视频无法播放</video>`
         : `<img class="message-media" src="${esc(asset.url)}" alt="生成的图片" data-media-kind="image">`).join('');
-    if (!message.generation) return '';
-    const failed = message.generation.status === 'failed';
-    const kind = message.generation.kind === 'video' ? '视频' : '图片';
-    const request = message.generation.request ? `<small>${esc(message.generation.request)}</small>` : '';
+    if (!generation) return '';
+    const failed = generation.status === 'failed';
+    const kind = generation.kind === 'video' ? '视频' : '图片';
+    const request = generation.request ? `<small>${esc(generation.request)}</small>` : '';
     return `<div class="message-media skeleton ${failed ? 'failed' : ''}"><span>${failed ? `${kind}暂时不可用` : `${kind}生成中`}</span>${request}</div>`;
 }
 
@@ -179,17 +225,18 @@ function renderChat(options = {}) {
     const snapshot = chatViewSnapshot();
     $('#main-pane').innerHTML = `
         <section class="chat-view">
-            <header class="pane-header">
-                <button class="avatar-button" id="profile-button" aria-label="查看人格详情">${avatar(persona)}</button>
-                <div class="header-copy"><h1>${esc(persona.name)}</h1><p>${esc(persona.currentSituation || persona.role)}${persona.mood ? ` · ${esc(persona.mood)}` : ''}</p></div>
-                ${appState.debugInspector ? '<button class="text-icon" id="inspector-button" aria-label="开发检查器" title="开发检查器">⋮</button>' : ''}
+            <header class="pane-header chat-pane-header">
+                <button class="text-icon" id="chat-back" aria-label="返回联系人" title="返回联系人">‹</button>
+                <button class="chat-title" id="profile-button" aria-label="查看人格详情">${avatar(persona, 'header-avatar')}<span><h1>${esc(persona.name)}</h1><p>${esc(persona.currentSituation || persona.role)}${persona.mood ? ` · ${esc(persona.mood)}` : ''}</p></span></button>
+                <div class="chat-tools"><button class="text-icon" id="chat-settings" aria-label="设置" title="设置">⋯</button></div>
             </header>
             <div class="message-stream" id="message-stream">${activeMessages.length ? activeMessages.map(messageHtml).join('') : `<div class="chat-empty">${avatar(persona, 'large')}<h2>${esc(persona.name)}</h2><p>${esc(persona.currentSituation || '正在过自己的日常。')}</p><button class="soft-prompt" data-prompt="今天过得怎么样？">今天过得怎么样？</button></div>`}</div>
             <form class="composer" id="composer"><textarea id="chat-input" rows="1" placeholder="给 ${esc(persona.name)} 发消息" aria-label="消息内容">${esc(chatDraft)}</textarea><button class="send-button" aria-label="发送" title="发送" ${isSending ? 'disabled' : ''}>↑</button></form>
         </section>`;
     $('#composer').onsubmit = sendMessage;
+    $('#chat-back').onclick = () => { currentView = 'contacts'; render(); };
     $('#profile-button').onclick = () => openPersonaDetail(persona.id);
-    $('#inspector-button')?.addEventListener('click', () => openInspector(persona.id));
+    $('#chat-settings').onclick = () => appState.debugInspector ? openInspector(persona.id) : openSettings();
     $('#chat-input').addEventListener('keydown', event => {
         if (event.key !== 'Enter' || event.shiftKey) return;
         event.preventDefault();
@@ -245,9 +292,8 @@ function bindActivityEvents() {
     $('#all-activities')?.addEventListener('click', () => { activityPersonaId = null; loadActivities(); });
     document.querySelectorAll('[data-open-persona]').forEach(button => button.onclick = () => openPersonaDetail(button.dataset.openPersona));
     document.querySelectorAll('[data-chat-persona]').forEach(button => button.onclick = async () => {
-        await selectPersona(button.dataset.chatPersona);
         currentView = 'chat';
-        render();
+        await selectPersona(button.dataset.chatPersona);
     });
     document.querySelectorAll('[data-like]').forEach(button => button.onclick = async () => {
         const activity = activityItems.find(item => item.id === button.dataset.like);
@@ -300,13 +346,14 @@ async function loadBootstrap() {
     if (!appState.personas.some(persona => persona.id === activePersonaId)) activePersonaId = appState.personas[0]?.id || '';
 }
 
-async function selectPersona(personaId) {
+async function selectPersona(personaId, {followLatest = true} = {}) {
     activePersonaId = personaId;
     localStorage.setItem('companion-active-persona', personaId);
     const messages = await api(`/api/companion/conversations/${personaId}`);
     activeMessages = messages.items;
     await loadBootstrap();
-    render();
+    if (currentView === 'chat') renderChat({followLatest});
+    else render();
 }
 
 async function loadActivities(personaId = activityPersonaId) {
@@ -415,9 +462,8 @@ function openPersonaPicker() {
     $('#picker-create').onclick = () => { closeDialog(dialog); openPersonaWizard(); };
     dialog.querySelectorAll('[data-picker-persona]').forEach(button => button.onclick = async () => {
         closeDialog(dialog);
-        await selectPersona(button.dataset.pickerPersona);
         currentView = 'chat';
-        render();
+        await selectPersona(button.dataset.pickerPersona);
     });
 }
 
@@ -666,8 +712,134 @@ async function restoreFoundation(personaId, revisionId) {
 }
 
 const lifecycleEventLabels = {routine: '日常推进', class: '上学/课程', study: '学习', shopping: '逛街/购物', social: '社交活动', mild_setback: '轻度挫折', rest: '休息', schedule: '安排进行中', schedule_cancelled: '安排已取消', schedule_rescheduled: '安排已改期', recovery: '服务恢复'};
-const lifecycleJobLabels = {activity_image: '动态图片生成', chat_image: '聊天图片生成', chat_video: '聊天视频生成', activity_media_poll: '等待动态媒体', chat_media_poll: '等待聊天媒体', relationship_evolution: '关系学习', proactive_message: '主动消息'};
+const lifecycleJobLabels = {activity_image: '动态图片生成', activity_video: '动态视频生成', chat_image: '聊天图片生成', chat_video: '聊天视频生成', activity_media_poll: '等待动态媒体', chat_media_poll: '等待聊天媒体', relationship_evolution: '关系学习', proactive_message: '主动消息'};
 const lifecycleStatusLabels = {queued: '等待处理', leased: '处理中', complete: '已完成', failed: '已失败'};
+const mediaProgressStageLabels = {queued: '等待提交', waiting_provider: '等待 provider 输出', preparing: '正在准备', generating: '正在生成', validating_output: '校验输出', complete: '已完成', failed: '执行失败'};
+
+function inspectorText(value, fallback = '') {
+    if (typeof value === 'string') return value.trim() || fallback;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    return fallback;
+}
+
+function inspectorDebugText(value, fallback = '未提供') {
+    const text = inspectorText(value);
+    if (text) return text.slice(0, 2_000);
+    if (!value || typeof value !== 'object') return fallback;
+    try { return JSON.stringify(value, null, 2).slice(0, 2_000) || fallback; } catch { return fallback; }
+}
+
+function inspectorFiniteNumber(value) {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function inspectorFirstText(...values) {
+    for (const value of values) {
+        const text = inspectorText(value);
+        if (text) return text;
+    }
+    return '';
+}
+
+function formatInspectorElapsed(elapsedMs) {
+    const seconds = Math.max(0, Math.floor(elapsedMs / 1_000));
+    const hours = Math.floor(seconds / 3_600);
+    const minutes = Math.floor((seconds % 3_600) / 60);
+    const remainder = seconds % 60;
+    if (hours) return `${hours}小时${String(minutes).padStart(2, '0')}分${String(remainder).padStart(2, '0')}秒`;
+    if (minutes) return `${minutes}分${String(remainder).padStart(2, '0')}秒`;
+    return `${remainder}秒`;
+}
+
+function formatInspectorTime(value) {
+    const timestamp = Date.parse(inspectorText(value));
+    return Number.isFinite(timestamp) ? formatTime(timestamp) : '';
+}
+
+function mediaJobProgress(job) {
+    const progress = job?.progress && typeof job.progress === 'object' && !Array.isArray(job.progress) ? job.progress : {};
+    const stage = inspectorFirstText(progress.stage);
+    const phase = inspectorFirstText(progress.stageLabel) || mediaProgressStageLabels[stage] || stage || lifecycleStatusLabels[inspectorText(job?.status)] || '进度未知';
+    const attempt = [progress.attempt, job?.attempt, job?.attempts].map(inspectorFiniteNumber).find(value => value !== null && value > 0);
+    const directElapsedMs = inspectorFiniteNumber(progress.elapsedMs);
+    const startedAt = Date.parse(inspectorText(progress.startedAt));
+    const elapsedMs = directElapsedMs !== null && directElapsedMs >= 0
+        ? directElapsedMs
+        : Number.isFinite(startedAt) ? Math.max(0, Date.now() - startedAt) : null;
+    const percentValue = inspectorFiniteNumber(progress.percent);
+    const percent = percentValue === null ? null : Math.max(0, Math.min(100, percentValue));
+    return {
+        phase,
+        attemptLabel: attempt ? `第 ${Math.floor(attempt)} 次` : inspectorText(job?.status) === 'queued' ? '尚未开始' : '未提供',
+        elapsedLabel: elapsedMs === null ? inspectorText(job?.status) === 'queued' ? '尚未开始' : '未提供' : formatInspectorElapsed(elapsedMs),
+        percentLabel: percent === null ? 'provider 未报告百分比' : `${Math.round(percent * 10) / 10}%`,
+        latestOutput: inspectorFirstText(progress.latestOutput, progress.output),
+        latestStream: inspectorFirstText(progress.latestStream, progress.outputStream)
+    };
+}
+
+function renderMediaJobCard(rawJob, index, expandedDiagnosticIds) {
+    const job = rawJob && typeof rawJob === 'object' && !Array.isArray(rawJob) ? rawJob : {};
+    const jobId = inspectorFirstText(job.id) || `media-job-${index}`;
+    const progress = mediaJobProgress(job);
+    const kind = inspectorFirstText(job.kind) || '媒体';
+    const provider = inspectorFirstText(job.provider) || '未标识 provider';
+    const statusValue = inspectorText(job.status);
+    const status = lifecycleStatusLabels[statusValue] || statusValue || '未知状态';
+    const finalPrompt = inspectorFirstText(job.finalPrompt, job.finalProviderPrompt, job.promptSummary, job.prompt);
+    const trigger = inspectorDebugText(job.trigger, '未提供');
+    const inputIntent = inspectorDebugText(job.inputIntent ?? job.intent, '未提供');
+    const workflow = inspectorDebugText(job.workflowSummary ?? job.workflow, '未提供');
+    const error = inspectorFirstText(job.error);
+    const createdAt = formatInspectorTime(job.createdAt);
+    const opened = expandedDiagnosticIds.has(jobId) ? ' open' : '';
+    return `<article class="media-job-card" data-media-job-id="${esc(jobId)}"><header class="media-job-card-header"><div><p>${esc(kind)} · ${esc(provider)}</p>${createdAt ? `<small>${esc(createdAt)}</small>` : ''}</div><span class="media-job-status">${esc(status)}</span></header><section class="media-job-prompt"><b>最终 provider 提示词</b><p>${esc(finalPrompt || '最终提示词尚未持久化')}</p></section><dl class="media-job-meta"><div><dt>阶段</dt><dd>${esc(progress.phase)}</dd></div><div><dt>尝试</dt><dd>${esc(progress.attemptLabel)}</dd></div><div><dt>耗时</dt><dd>${esc(progress.elapsedLabel)}</dd></div><div><dt>进度</dt><dd>${esc(progress.percentLabel)}</dd></div></dl><section class="media-job-output"><b>最新输出</b><p>${esc(progress.latestOutput || '暂无本地输出')}</p>${progress.latestStream ? `<small>来源：${esc(progress.latestStream)}</small>` : ''}</section>${error ? `<p class="media-job-error"><b>失败说明</b>${esc(error)}</p>` : ''}<details class="media-job-diagnostics" data-media-diagnostic-id="${esc(jobId)}"${opened}><summary>原始 intent 与 workflow 诊断</summary><div class="media-job-diagnostics-body"><div><b>触发</b><pre>${esc(trigger)}</pre></div><div><b>输入 intent</b><pre>${esc(inputIntent)}</pre></div><div><b>工作流摘要</b><pre>${esc(workflow)}</pre></div></div></details></article>`;
+}
+
+function renderInspectorMediaJobs(mediaJobs, expandedDiagnosticIds = new Set()) {
+    const jobs = Array.isArray(mediaJobs) ? mediaJobs : [];
+    return `<h3>媒体任务</h3><div class="media-job-list">${jobs.length ? jobs.map((job, index) => renderMediaJobCard(job, index, expandedDiagnosticIds)).join('') : '<p class="media-job-empty">暂无媒体作业。</p>'}</div>`;
+}
+
+function updateInspectorMediaJobs(dialog, mediaJobs) {
+    const region = dialog.querySelector('#inspector-media-jobs');
+    if (!region) return;
+    const expandedDiagnosticIds = new Set([...region.querySelectorAll('details[data-media-diagnostic-id][open]')].map(details => details.dataset.mediaDiagnosticId));
+    region.innerHTML = renderInspectorMediaJobs(mediaJobs, expandedDiagnosticIds);
+}
+
+function stopInspectorMediaRefresh() {
+    if (inspectorMediaRefresh?.timer !== null && inspectorMediaRefresh?.timer !== undefined) window.clearInterval(inspectorMediaRefresh.timer);
+    inspectorMediaRefresh = null;
+}
+
+async function refreshInspectorMediaJobs(refresh) {
+    if (inspectorMediaRefresh !== refresh || refresh.inFlight) return;
+    const region = refresh.dialog.querySelector('#inspector-media-jobs');
+    if (!refresh.dialog.open || !region) return stopInspectorMediaRefresh();
+    refresh.inFlight = true;
+    try {
+        const debug = await api(`/api/companion/personas/${encodeURIComponent(refresh.personaId)}/debug-context`);
+        if (inspectorMediaRefresh === refresh && refresh.dialog.open) updateInspectorMediaJobs(refresh.dialog, debug?.mediaJobs);
+    } catch {
+        // Keep the last successful snapshot visible; a polling error should not interrupt inspector form work.
+    } finally {
+        refresh.inFlight = false;
+    }
+}
+
+function startInspectorMediaRefresh(personaId, dialog) {
+    stopInspectorMediaRefresh();
+    const refresh = {personaId, dialog, timer: null, inFlight: false};
+    inspectorMediaRefresh = refresh;
+    dialog.addEventListener('close', () => {
+        if (inspectorMediaRefresh === refresh) stopInspectorMediaRefresh();
+    }, {once: true});
+    refresh.timer = window.setInterval(() => refreshInspectorMediaJobs(refresh), 1_000);
+}
 
 async function openInspector(personaId) {
     try {
@@ -678,13 +850,13 @@ async function openInspector(personaId) {
         const dialog = $('#inspector-dialog');
         const layerItems = Object.entries(debug.layers || {}).map(([name, value]) => `<li><b>${esc({identity: '身份层', conversation: '对话层', life: '生活层', provider: '提供方层'}[name] || name)}</b><pre>${esc(value)}</pre></li>`).join('') || '<li>暂无可检查的组合层。</li>';
         const requestItems = (debug.recentRequests || []).map(item => `<li><b>${esc(item.status)}</b><span>${esc(item.promptSummary || item.responseSummary || '')}</span><small>${formatTime(item.createdAt)} ${esc(item.error || '')}</small></li>`).join('') || '<li>暂无近期聊天记录。</li>';
-        const mediaItems = (debug.mediaJobs || []).map(job => `<li><b>${esc(job.kind)} · ${esc(lifecycleStatusLabels[job.status] || job.status)}</b><span>触发：${esc(job.trigger || 'unknown')}</span><span>输入意图：${esc(job.inputIntent || '')}</span><span>最终 ComfyUI 提示词：${esc(job.promptSummary || '')}</span><small>${formatTime(job.createdAt)} ${esc(job.error || '')}</small></li>`).join('') || '<li>暂无媒体作业。</li>';
         const timelineItems = (detail.timeline || []).map(slot => `<li><b>${esc(slot.kind)} · ${esc(slot.status)}</b><span>${esc(formatTime(slot.startsAt))}–${esc(formatTime(slot.endsAt))} · ${esc(slot.source)}</span><small>${esc(slot.outcome?.reason || '')}</small></li>`).join('') || '<li>暂无时间线槽位</li>';
         const decisionItems = (detail.decisions || []).map(item => `<li><b>${esc(item.type)} · ${esc(item.status)}</b><span>${esc(item.candidate?.title || item.candidate?.kind || '')}</span><small>${esc(item.rationale?.reason || '')}</small></li>`).join('') || '<li>暂无编排决策</li>';
         const deferredItems = (detail.deferredBatches || []).map(item => `<li><b>${esc(item.status)}</b><span>待投递消息 ${esc(item.messageCount)} 条</span><small>${formatTime(item.deliverAt)}</small></li>`).join('') || '<li>暂无延迟聊天批次</li>';
-        dialog.innerHTML = `<section class="inspector"><header><div><small>LOCAL DEVELOPMENT INSPECTOR</small><h2>生命周期与调试</h2></div><button class="close-dialog" id="close-inspector" aria-label="关闭">×</button></header><div><p class="inspector-warning">仅限本地开发：测试媒体请求会创建真实的耐久作业。</p><p><b>当前状态：</b>${esc(detail.state?.situation || '')} · ${esc(detail.state?.mood || '')}</p><p><b>下次评估：</b>${formatTime(detail.nextEvaluationAt)} · ${esc(detail.timezone)}</p><form id="simulate-form" class="simulate-form"><label>事件类型<select name="kind" aria-label="模拟事件类型"><option value="routine">日常推进</option><option value="class">上学/课程</option><option value="shopping">逛街/购物</option><option value="social">社交活动</option><option value="mild_setback">轻度挫折</option></select></label><label>状态说明<input name="situation" aria-label="当前状态说明" placeholder="当前状态（可选）"></label><label class="visual-toggle"><input type="checkbox" name="visual"> 为该动态生成活动图片</label><button class="primary">模拟允许事件</button></form><form id="test-media-form" class="test-media-form"><label>测试媒体<select name="kind" aria-label="测试媒体类型"><option value="image">图片</option><option value="video">视频</option></select></label><label>测试画面说明<input name="prompt" maxlength="500" placeholder="可选；会结合当前人格状态"></label><button class="quiet">创建测试媒体作业</button></form><h3>今日时间线</h3><ul class="event-list">${timelineItems}</ul><h3>编排决策</h3><ul class="event-list">${decisionItems}</ul><h3>睡眠延迟批次</h3><ul class="event-list">${deferredItems}</ul><h3>提示词组合层</h3><ul class="debug-list">${layerItems}</ul><h3>近期聊天请求/响应</h3><ul class="event-list">${requestItems}</ul><h3>媒体意图与工作流摘要</h3><ul class="event-list">${mediaItems}</ul><h3>最近事件</h3><ul class="event-list">${detail.events.map(event => `<li><b>${esc(lifecycleEventLabels[event.type] || event.type)}</b><span>${esc(event.payload.situation || '')}</span><small>${formatTime(event.occurredAt)}</small></li>`).join('') || '<li>暂无事件</li>'}</ul><h3>作业</h3><ul class="event-list">${detail.jobs.map(job => `<li><b>${esc(lifecycleJobLabels[job.type] || job.type)}</b><span>${esc(lifecycleStatusLabels[job.status] || job.status)}</span><small>${esc(job.error || '')}</small></li>`).join('') || '<li>暂无作业</li>'}</ul></div></section>`;
+        dialog.innerHTML = `<section class="inspector"><header><div><small>LOCAL DEVELOPMENT INSPECTOR</small><h2>生命周期与调试</h2></div><button class="close-dialog" id="close-inspector" aria-label="关闭">×</button></header><div><p class="inspector-warning">仅限本地开发：测试媒体请求会创建真实的耐久作业。</p><p><b>当前状态：</b>${esc(detail.state?.situation || '')} · ${esc(detail.state?.mood || '')}</p><p><b>下次评估：</b>${formatTime(detail.nextEvaluationAt)} · ${esc(detail.timezone)}</p><form id="simulate-form" class="simulate-form"><label>事件类型<select name="kind" aria-label="模拟事件类型"><option value="routine">日常推进</option><option value="class">上学/课程</option><option value="shopping">逛街/购物</option><option value="social">社交活动</option><option value="mild_setback">轻度挫折</option></select></label><label>状态说明<input name="situation" aria-label="当前状态说明" placeholder="当前状态（可选）"></label><label class="visual-toggle"><input type="checkbox" name="visual"> 为该动态生成活动图片</label><button class="primary">模拟允许事件</button></form><form id="test-media-form" class="test-media-form"><label>测试媒体<select name="kind" aria-label="测试媒体类型"><option value="image">图片</option><option value="video">视频</option></select></label><label>测试画面说明<input name="prompt" maxlength="500" placeholder="可选；会结合当前人格状态"></label><button class="quiet">创建测试媒体作业</button></form><h3>今日时间线</h3><ul class="event-list">${timelineItems}</ul><h3>编排决策</h3><ul class="event-list">${decisionItems}</ul><h3>睡眠延迟批次</h3><ul class="event-list">${deferredItems}</ul><h3>提示词组合层</h3><ul class="debug-list">${layerItems}</ul><h3>近期聊天请求/响应</h3><ul class="event-list">${requestItems}</ul><section class="inspector-media-region" id="inspector-media-jobs">${renderInspectorMediaJobs(debug.mediaJobs)}</section><h3>最近事件</h3><ul class="event-list">${detail.events.map(event => `<li><b>${esc(lifecycleEventLabels[event.type] || event.type)}</b><span>${esc(event.payload.situation || '')}</span><small>${formatTime(event.occurredAt)}</small></li>`).join('') || '<li>暂无事件</li>'}</ul><h3>作业</h3><ul class="event-list">${detail.jobs.map(job => `<li><b>${esc(lifecycleJobLabels[job.type] || job.type)}</b><span>${esc(lifecycleStatusLabels[job.status] || job.status)}</span><small>${esc(job.error || '')}</small></li>`).join('') || '<li>暂无作业</li>'}</ul></div></section>`;
         showDialog(dialog);
         $('#close-inspector').onclick = () => closeDialog(dialog);
+        startInspectorMediaRefresh(personaId, dialog);
         $('#simulate-form').onsubmit = async event => {
             event.preventDefault();
             try {
@@ -730,6 +902,7 @@ function openSettings() {
     dialog.innerHTML = `<form id="settings-form" class="settings-sheet"><header><div><small>LOCAL CONFIGURATION</small><h2>模型与生成设置</h2></div><button type="button" class="close-dialog" id="close-settings" aria-label="关闭">×</button></header><div>
         <section class="settings-section"><h3>语言模型</h3><label>模型服务地址<input name="lmStudioUrl" value="${esc(config.lmStudioUrl || '')}"></label><label>API Key<input name="lmStudioApiKey" type="password" placeholder="${config.hasLmStudioApiKey ? '已配置，留空保持不变' : '可选'}"></label><label>模型 ID<input name="model" value="${esc(config.model || '')}"></label></section>
         <section class="settings-section"><h3>媒体提供方</h3><p class="settings-help">媒体任务由服务端执行，浏览器不会直接连接提供方。</p><label>图片提供方<select name="imageProvider">${providerOptions('image', config.imageProvider || 'comfyui')}</select></label><label>视频提供方<select name="videoProvider">${providerOptions('video', config.videoProvider || 'comfyui')}</select></label><div class="provider-list">${providers.length ? providers.map(provider => `<span class="provider-chip"><b>${esc(provider.label || provider.id)}</b><small>${esc(provider.id)} · ${Array.isArray(provider.capabilities) ? provider.capabilities.map(esc).join(' / ') : '未声明能力'}</small></span>`).join('') : '<p class="muted">暂无已注册的媒体提供方</p>'}</div></section>
+        <section class="settings-section"><h3>调试与加载</h3><label class="settings-toggle"><input name="simplifiedMediaMode" type="checkbox" ${config.simplifiedMediaMode ? 'checked' : ''}><span><b>简化媒体模式</b><small>聊天窗口不加载图片或视频；仍可触发媒体任务，并在开发检查器中查看最终提示词和进度。</small></span></label></section>
         <section class="settings-section"><h3>ComfyUI（兼容模式）</h3><label>ComfyUI 地址<input name="comfyUrl" value="${esc(config.comfyUrl || '')}"></label><label>图片工作流 JSON<textarea name="imageWorkflow" rows="5">${esc(config.imageWorkflow || '')}</textarea></label><label>视频工作流 JSON<textarea name="videoWorkflow" rows="5">${esc(config.videoWorkflow || '')}</textarea></label></section>
         <section class="settings-section h3-settings"><h3>h3.c 视频配置</h3><p class="settings-help">仅在视频提供方选择 h3 时生效。路径和数值由服务端校验，命令通过参数数组启动。</p>${config.hasH3Configuration ? '<p class="settings-help">已存在本地 h3 路径配置；留空不会覆盖。</p>' : ''}${h3Enabled ? '' : '<p class="settings-help">当前服务端未注册 h3 提供方。</p>'}<div class="settings-grid"><label>可执行文件<input name="h3Executable" value="${esc(h3Value('executable'))}" placeholder="h3"></label><label>模型/Profile 目录<input name="h3Profile" value="${esc(h3Value('profile'))}"></label><label>输出目录<input name="h3OutputDir" value="${esc(h3Value('outputDir'))}"></label><label>超时（毫秒）<input name="h3TimeoutMs" type="number" min="1000" max="3600000" step="1000" value="${esc(h3Value('timeoutMs', 600000))}"></label><label>宽度<input name="h3Width" type="number" min="1" max="8192" step="1" value="${esc(h3Value('width', 512))}"></label><label>高度<input name="h3Height" type="number" min="1" max="8192" step="1" value="${esc(h3Value('height', 512))}"></label><label>帧数<input name="h3Frames" type="number" min="1" max="100000" step="1" value="${esc(h3Value('frames', 24))}"></label><label>步数<input name="h3Steps" type="number" min="1" max="10000" step="1" value="${esc(h3Value('steps', 20))}"></label><label>Layers<input name="h3Layers" type="number" min="1" max="1000" step="1" value="${esc(h3Value('layers', 1))}"></label><label>Reuse<input name="h3Reuse" type="number" min="0" max="100000" step="1" value="${esc(h3Value('reuse', 2))}"></label><label class="settings-check"><input name="h3SsdStreaming" type="checkbox" ${h3Value('ssdStreaming') ? 'checked' : ''}> SSD streaming</label></div></section>
     </div><footer><button type="button" class="quiet" id="cancel-settings">取消</button><button type="submit" class="primary">保存</button></footer></form>`;
@@ -745,7 +918,8 @@ function openSettings() {
             const payload = {
                 ...values,
                 h3Width: numberOrUndefined(values.h3Width), h3Height: numberOrUndefined(values.h3Height), h3Frames: numberOrUndefined(values.h3Frames), h3Steps: numberOrUndefined(values.h3Steps), h3Layers: numberOrUndefined(values.h3Layers), h3Reuse: numberOrUndefined(values.h3Reuse), h3TimeoutMs: numberOrUndefined(values.h3TimeoutMs),
-                h3SsdStreaming: form.elements.h3SsdStreaming.checked
+                h3SsdStreaming: form.elements.h3SsdStreaming.checked,
+                simplifiedMediaMode: form.elements.simplifiedMediaMode.checked
             };
             payload.h3Defaults = {
                 profile: payload.h3Profile, width: payload.h3Width, height: payload.h3Height, frames: payload.h3Frames, steps: payload.h3Steps, layers: payload.h3Layers,
@@ -754,6 +928,7 @@ function openSettings() {
             for (const key of ['h3Executable', 'h3Profile', 'h3OutputDir']) if (!payload[key]) delete payload[key];
             appState.settings = await api('/api/companion/settings', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
             dialog.close('submitted');
+            if (currentView === 'chat') renderChat({followLatest: false});
         } catch (error) { window.alert(error.message); }
     };
 }
@@ -765,9 +940,6 @@ function bindStatic() {
     });
     $('#create-button').onclick = openPersonaWizard;
     $('#sidebar-create').onclick = openPersonaWizard;
-    $('#mobile-create').onclick = openPersonaWizard;
-    $('#mobile-settings').onclick = openSettings;
-    $('#mobile-personas').onclick = openPersonaPicker;
     $('#settings-button').onclick = openSettings;
     $('#brand-button').onclick = async () => {
         currentView = 'chat';

@@ -306,7 +306,7 @@ function defaultSettings() {
         imageWorkflow: '', videoWorkflow: '', imageProvider: 'comfyui', videoProvider: 'comfyui',
         h3Executable: process.env.H3_EXECUTABLE || 'h3.c', h3ModelDir: process.env.H3_MODEL_DIR || '',
         h3OutputDir: process.env.H3_OUTPUT_DIR || join(dataDir, 'media'), h3AllowedRoot: process.env.H3_ALLOWED_ROOT || '',
-        h3TimeoutMs: Number(process.env.H3_TIMEOUT_MS || 15 * 60_000), h3Defaults: {}, activityReadAt: null
+        h3TimeoutMs: Number(process.env.H3_TIMEOUT_MS || 15 * 60_000), h3Defaults: {}, simplifiedMediaMode: false, activityReadAt: null
     };
 }
 
@@ -355,6 +355,9 @@ function validateMediaSettings(patch, current = settings()) {
     if (Object.hasOwn(patch, 'h3Profile')) {
         patch = {...patch};
         delete patch.h3Profile;
+    }
+    if (patch.simplifiedMediaMode !== undefined) {
+        patch = {...patch, simplifiedMediaMode: patch.simplifiedMediaMode === true || patch.simplifiedMediaMode === 'true' || patch.simplifiedMediaMode === '1' || patch.simplifiedMediaMode === 'on'};
     }
     for (const kind of ['image', 'video']) {
         const key = `${kind}Provider`;
@@ -1324,7 +1327,7 @@ function instantiateTimelineEvent(persona, at = new Date()) {
         type, situation: chosen.template.situation, mood: type === 'mild_setback' ? '有点低落' : '轻松', scene,
         resolvesAt: new Date(at.getTime() + duration * 60_000).toISOString(), content: `${persona.name}${chosen.template.situation}。`,
         templateId: chosen.template.templateId, eventFamily: chosen.template.family, sceneRef, priority: chosen.template.priority, preemptionMode: chosen.template.preemptionMode, reversible: chosen.template.reversible, recovery: chosen.template.recovery, decisionId: existing.id, slotId: slot?.id
-    }, {publish: true, source: 'timeline', rationale: '人格生活模型候选经时间窗口、冷却和幂等决策后实例化'});
+    }, {requestActivityDecision: true, source: 'timeline', rationale: '人格生活模型候选经时间窗口、冷却和幂等决策后实例化；是否发表动态交由人格决定'});
     database.prepare("UPDATE companion_event_decisions SET status = 'executed', event_id = ?, updated_at = ? WHERE id = ? AND status = 'accepted'").run(output.eventId, now(), existing.id);
     if (slot) database.prepare("UPDATE companion_timeline_slots SET status = 'active', outcome_json = json_set(outcome_json, '$.eventId', ?, '$.decisionId', ?), updated_at = ? WHERE id = ?").run(output.eventId, existing.id, now(), slot.id);
     const previous = database.prepare('SELECT id FROM companion_life_events WHERE persona_id = ? AND id != ? ORDER BY occurred_at DESC LIMIT 1').get(persona.id, output.eventId);
@@ -1435,6 +1438,9 @@ function createEvent(persona, event, options = {}) {
                 enqueueJob({jobType: 'activity_image', personaId: persona.id, activityId, priority: 3, payload: {prompt: compileMediaPrompt(mediaIntent), mediaIntent, kind: 'image', provider, eventId, trigger: 'activity_event'}});
             }
         }
+        if (options.requestActivityDecision) {
+            enqueueJob({jobType: 'activity_decision', personaId: persona.id, priority: 3, maxAttempts: 4, payload: {eventId}});
+        }
         if (options.proactive) {
             enqueueJob({
                 jobType: 'proactive_message', personaId: persona.id, priority: 2, maxAttempts: 4,
@@ -1454,11 +1460,8 @@ function reconcilePersona(personaId, {publish = true} = {}) {
     if (next.source === 'event') return current || next;
     if (['daily_plan', 'daily_plan_baseline'].includes(next.source)) return current || next;
     if (current?.situation === next.situation && Date.now() - Date.parse(current.updated_at) < 20 * 60 * 1000) return current;
-    const focused = personaFocusTier(persona) !== 'idle';
-    const day = localDayBounds(localPlanDate(new Date(), blueprint(persona.id).timezone), blueprint(persona.id).timezone);
-    const dailyActivities = database.prepare("SELECT COUNT(*) AS count FROM companion_activities WHERE persona_id = ? AND created_at >= ? AND created_at < ?").get(persona.id, day.start, day.end).count;
-    createEvent(persona, {...next, type: next.source, content: `${persona.name} ${next.situation}。`, visual: false}, {publish: publish && focused && dailyActivities < 2, rationale: `由${next.source === 'schedule' ? '已确认安排' : '日常作息'}更新当前状态`});
-    if (publish && focused) instantiateTimelineEvent(persona);
+    createEvent(persona, {...next, type: next.source, content: '', visual: false}, {publish: false, rationale: `由${next.source === 'schedule' ? '已确认安排' : '日常作息'}更新当前状态；状态投影不自动发表动态`});
+    if (publish && personaFocusTier(persona) !== 'idle') instantiateTimelineEvent(persona);
     return stateFor(persona.id);
 }
 
@@ -2013,6 +2016,7 @@ const mediaProgressMaxLines = 1_000_000;
 const mediaProgressMaxElapsedMs = 24 * 60 * 60_000;
 const mediaProgressStageLabels = Object.freeze({
     queued: '等待执行',
+    waiting_provider: '正在等待 provider 输出',
     preparing: '正在准备视频生成',
     generating: '正在生成视频',
     validating_output: '正在验证视频输出',
@@ -2087,6 +2091,7 @@ function debugSummary(value, limit = 2000) {
 function mediaProgressForDebug(value, row) {
     const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
     const fallbackStage = row.status === 'queued' ? 'queued'
+        : row.status === 'leased' ? 'waiting_provider'
         : row.status === 'complete' ? 'complete'
             : row.status === 'failed' ? 'failed'
                 : 'unknown';
@@ -2113,6 +2118,12 @@ function mediaProgressForDebug(value, row) {
     };
 }
 
+function mediaDebugTargetKey(row) {
+    if (row.message_id) return `message:${row.message_id}`;
+    if (row.activity_id) return `activity:${row.activity_id}`;
+    return `job:${row.id}`;
+}
+
 function debugContextFor(personaId) {
     const persona = requirePersona(personaId);
     const chatAt = new Date();
@@ -2133,31 +2144,47 @@ function debugContextFor(personaId) {
         responseSummary: row.role === 'assistant' ? debugSummary(row.text) : '',
         error: ''
     }));
-    const mediaJobs = database.prepare(`
-        SELECT id, job_type, status, attempt_count, created_at, updated_at, payload_json, result_json, error
+    const sourceMediaJobs = database.prepare(`
+        SELECT id, job_type, status, attempt_count, activity_id, message_id, created_at, updated_at, payload_json, result_json, error
         FROM companion_jobs
-        WHERE persona_id = ? AND job_type IN ('activity_image', 'activity_video', 'chat_image', 'chat_video', 'activity_media_poll', 'chat_media_poll')
+        WHERE persona_id = ? AND job_type IN ('activity_image', 'activity_video', 'chat_image', 'chat_video')
         ORDER BY created_at DESC, id DESC
         LIMIT 10
-    `).all(persona.id).map(row => {
-        const payload = json(row.payload_json, {});
-        const result = json(row.result_json, {});
-        const kind = payload.kind || mediaKindForJob(row.job_type);
+    `).all(persona.id);
+    const pollByTarget = new Map();
+    for (const poll of database.prepare(`
+        SELECT id, job_type, status, attempt_count, activity_id, message_id, created_at, updated_at, payload_json, result_json, error
+        FROM companion_jobs
+        WHERE persona_id = ? AND job_type IN ('activity_media_poll', 'chat_media_poll')
+        ORDER BY updated_at DESC, created_at DESC, id DESC
+        LIMIT 80
+    `).all(persona.id)) {
+        const target = mediaDebugTargetKey(poll);
+        if (!pollByTarget.has(target)) pollByTarget.set(target, poll);
+    }
+    const mediaJobs = sourceMediaJobs.map(source => {
+        const poll = pollByTarget.get(mediaDebugTargetKey(source));
+        const payload = json(source.payload_json, {});
+        const result = json(source.result_json, {});
+        const pollPayload = json(poll?.payload_json, {});
+        const pollResult = json(poll?.result_json, {});
+        const effectiveRow = poll ? {...source, status: poll.status, attempt_count: poll.attempt_count, updated_at: poll.updated_at || source.updated_at} : source;
+        const kind = payload.kind || pollPayload.kind || mediaKindForJob(source.job_type);
         const finalPrompt = debugSummary(result.finalPrompt || payload.prompt || '');
         return {
-            id: row.id,
+            id: source.id,
             kind,
-            status: row.status,
-            createdAt: row.created_at,
+            status: effectiveRow.status,
+            createdAt: source.created_at,
             trigger: payload.trigger || 'unknown',
-            provider: payload.provider || result.provider || 'comfyui',
-            externalId: debugSummary(result.externalId || payload.externalId || result.promptId || payload.promptId || ''),
+            provider: payload.provider || result.provider || pollPayload.provider || pollResult.provider || 'comfyui',
+            externalId: debugSummary(result.externalId || pollResult.externalId || pollPayload.externalId || result.promptId || pollPayload.promptId || ''),
             inputIntent: debugSummary(payload.mediaIntent || {request: payload.request || '', kind}),
             finalPrompt,
             promptSummary: finalPrompt,
-            progress: mediaProgressForDebug(result.progress, row),
-            workflowSummary: debugSummary({kind, provider: payload.provider || result.provider || 'comfyui', configured: Boolean(kind === 'video' ? config.videoWorkflow : config.imageWorkflow), externalId: result.externalId || payload.externalId || result.promptId || payload.promptId || '', promptLength: result.promptLength || 0, refinementStatus: result.refinementStatus || 'not_run', refinementError: result.refinementError || '', workflowError: result.workflowError || ''}),
-            error: debugSummary(row.error || '')
+            progress: mediaProgressForDebug(result.progress || pollResult.progress, effectiveRow),
+            workflowSummary: debugSummary({kind, provider: payload.provider || result.provider || pollPayload.provider || 'comfyui', configured: Boolean(kind === 'video' ? config.videoWorkflow : config.imageWorkflow), externalId: result.externalId || pollResult.externalId || pollPayload.externalId || result.promptId || pollPayload.promptId || '', promptLength: result.promptLength || 0, refinementStatus: result.refinementStatus || 'not_run', refinementError: result.refinementError || '', workflowError: result.workflowError || ''}),
+            error: debugSummary(poll?.error || source.error || '')
         };
     });
     return {
@@ -2683,7 +2710,7 @@ function enqueueJob(input) {
 }
 
 function mediaKindForJob(jobType) {
-    return jobType === 'chat_video' ? 'video' : 'image';
+    return jobType === 'chat_video' || jobType === 'activity_video' ? 'video' : 'image';
 }
 
 function validComfyPromptId(value) {
@@ -3186,6 +3213,78 @@ async function runProactiveMessageJob(job) {
     }
 }
 
+function parseActivityDecision(value) {
+    const source = String(value || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+    const parsed = JSON.parse(source);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || typeof parsed.publish !== 'boolean') throw new Error('动态决策缺少 publish 布尔值');
+    if (!parsed.publish) return {publish: false, content: '', media: null};
+    const content = String(parsed.content || '').trim().slice(0, 900);
+    if (!content) throw new Error('人格选择发表动态时必须提供正文');
+    const media = parsed.media && parsed.media.kind !== 'none' ? normalizeMediaRequest(parsed.media) : null;
+    if (parsed.media && parsed.media.kind !== 'none' && !media) throw new Error('动态媒体决策无效');
+    return {publish: true, content, media};
+}
+
+function completeActivityDecisionJob(job, decision) {
+    let completed = false;
+    let result = null;
+    database.transaction(() => {
+        const leased = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND job_type = 'activity_decision' AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
+        if (!leased) return;
+        const payload = json(leased.payload_json, {});
+        const persona = personaRow(leased.persona_id);
+        const event = persona && database.prepare('SELECT * FROM companion_life_events WHERE id = ? AND persona_id = ?').get(payload.eventId, persona.id);
+        if (!persona || !event) result = {skipped: !persona ? 'persona_missing' : 'event_missing'};
+        else if (!decision?.publish) result = {eventId: event.id, published: false, reason: 'persona_decided_not_to_publish'};
+        else {
+            const existing = database.prepare('SELECT id FROM companion_activities WHERE event_id = ? LIMIT 1').get(event.id);
+            if (existing) result = {eventId: event.id, activityId: existing.id, skipped: 'already_published'};
+            else {
+                const eventPayload = json(event.payload_json, {});
+                const activityId = id('activity');
+                const media = decision.media;
+                const mediaMode = media?.kind === 'video' ? 'video' : media?.kind === 'image' ? 'image_set' : 'none';
+                const mediaStatus = media ? 'queued' : 'none';
+                const createdAt = now();
+                database.prepare('INSERT INTO companion_activities (id, persona_id, event_id, content, media_mode, media_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(activityId, persona.id, event.id, decision.content, mediaMode, mediaStatus, createdAt);
+                const participants = ownedParticipantIds(persona.id, eventPayload.participants);
+                if (participants.length) addSupportingComment(activityId, persona.id, participants[0], event.type);
+                if (media) {
+                    const mediaIntent = mediaIntentFor(persona, {kind: media.kind, request: media.prompt, creativeDirection: media.creativeDirection, event: {...eventPayload, type: event.type, participants}});
+                    const provider = providerFor(media.kind, settings()[`${media.kind}Provider`]).id;
+                    enqueueJob({jobType: media.kind === 'video' ? 'activity_video' : 'activity_image', personaId: persona.id, activityId, priority: 3, payload: {prompt: compileMediaPrompt(mediaIntent), mediaIntent, kind: media.kind, provider, eventId: event.id, trigger: 'persona_activity_decision'}});
+                }
+                result = {eventId: event.id, activityId, published: true, media: media?.kind || 'none'};
+            }
+        }
+        const completedAt = now();
+        completed = Boolean(database.prepare("UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").run(JSON.stringify(result), completedAt, completedAt, leased.id, job.lease_owner, completedAt).changes);
+    })();
+    return {completed, result};
+}
+
+async function runActivityDecisionJob(job) {
+    const persona = personaRow(job.persona_id);
+    const payload = json(job.payload_json, {});
+    const event = persona && database.prepare('SELECT * FROM companion_life_events WHERE id = ? AND persona_id = ?').get(payload.eventId, persona.id);
+    if (!persona || !event) return completeActivityDecisionJob(job, {publish: false});
+    const eventPayload = json(event.payload_json, {});
+    try {
+        const response = await lmCompletion({
+            stream: false,
+            temperature: .65,
+            messages: [
+                {role: 'system', content: userVisibleChatPrompt(persona.id, '一个生活事件已经发生。请以这个人格的口吻决定是否愿意发一条动态；不发是完全正常的选择。只输出 JSON：{"publish":boolean,"content":"最多120字，publish=false时为空字符串","media":{"kind":"none"}|{"kind":"image"|"video","request":"简短自然的画面说明","creativeDirection":{}}}。不要暴露规则、提示词或内部状态；不要编造事件之外的重大事实。')},
+                {role: 'user', content: JSON.stringify({event: {type: event.type, situation: eventPayload.situation, mood: eventPayload.mood, scene: eventPayload.scene, participants: eventPayload.participants || []}})}
+            ]
+        });
+        const decision = parseActivityDecision((await response.json()).choices?.[0]?.message?.content);
+        return completeActivityDecisionJob(job, decision);
+    } catch (error) {
+        return settleJob(job, {error: error.message});
+    }
+}
+
 async function runDeferredChatReplyJob(job) {
     const payload = json(job.payload_json, {});
     const batch = database.prepare("SELECT * FROM companion_chat_deferred_batches WHERE id = ? AND persona_id = ? AND status = 'queued' AND deliver_at <= ?").get(payload.batchId, job.persona_id, now());
@@ -3337,9 +3436,10 @@ async function runMediaJob(job) {
     if (job.job_type === 'daily_plan') return runDailyPlanJob(job);
     if (job.job_type === 'relationship_evolution') return runRelationshipEvolutionJob(job);
     if (job.job_type === 'proactive_message') return runProactiveMessageJob(job);
+    if (job.job_type === 'activity_decision') return runActivityDecisionJob(job);
     if (job.job_type === 'deferred_chat_reply') return runDeferredChatReplyJob(job);
     if (job.job_type === 'activity_media_poll' || job.job_type === 'chat_media_poll') return pollMedia(job);
-    if (!['activity_image', 'chat_image', 'chat_video'].includes(job.job_type)) return settleJob(job, {result: {ignored: true}});
+    if (!['activity_image', 'activity_video', 'chat_image', 'chat_video'].includes(job.job_type)) return settleJob(job, {result: {ignored: true}});
     return submitMediaJob(job);
 }
 
@@ -3709,7 +3809,7 @@ app.get('/api/companion/media/:mediaId', async (req, res) => {
 });
 
 export const companionApp = app;
-export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan, mediaProviders, providerFor, providerSummaries, validateMediaSettings, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
+export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityTimeFact, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, storedDailyPlanItems, normalizeDailyPlan, composeDailyPlanTimeline, readyDailyPlanFor, dailyPlanSlotAt, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan, mediaProviders, providerFor, providerSummaries, validateMediaSettings, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
 
 if (process.env.COMPANION_TEST !== '1') {
     app.listen(port, () => {

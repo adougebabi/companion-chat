@@ -7,6 +7,7 @@
 5. [x] 扩展 `debugContextFor()` 的媒体 job DTO，加入稳定 progress fallback、实时 elapsed 投影、最终 prompt 以及脱敏/长度限制。
 6. [x] 重新组织 `openInspector()` 的媒体区域为可读卡片，默认突出最终 prompt 和执行状态，次级折叠原始 intent/workflow；增加打开期间的 scoped polling 与关闭清理。
 7. [x] 添加 h3 progress parser/writer/lease/terminal merge/debug DTO 测试，执行 `npm test`、`node --check server.js`、`node --check src/companion-main.js`、`git diff --check`；本地子进程流已验证，内置浏览器无法连接隔离的本机监听端口，因此未完成实时截图验证。
+8. [x] 将内部 ComfyUI poll job 聚合到源媒体任务，避免调试卡片重复；新增简化媒体模式设置，在聊天中隐藏媒体资源但保留触发和检查器调试。
 
 ## Review Gates
 

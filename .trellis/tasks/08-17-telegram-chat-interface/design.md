@@ -13,6 +13,16 @@ Build a bright, mobile-first, Telegram-inspired interface around the new compani
 | Persona detail | Contextual detail entry from avatar/list | Detail page/sheet | Current situation, limited availability, individual Moments, memory governance |
 | Lifecycle inspector | Explicit developer-only entry | Explicit developer-only entry | State/event/job trace and simulation controls |
 
+### 2026-08-19 Navigation Refinement
+
+The old desktop rail and mobile drawer are replaced by one shared bottom navigation bar. It has three icon-only controls: Contacts, Activity, and Settings. Contacts contains the full conversation list; opening a row presents the chat as the focused active surface on every viewport. The chat header is a three-column grid so the center name remains visually centered independent of the left back and right settings controls. The header name opens the existing companion detail/memory surface; the right control opens the existing persona editor.
+
+On mobile, the focused chat surface removes the bottom navigation entirely so the composer and message stream receive the full viewport. Back navigation returns to Contacts and restores the three-tab bar.
+
+Routine and schedule projection remain the authority for a persona's visible state, but never imply publication. A separate durable `activity_decision` job supplies the model with an already-occurred life event. The model may decide not to publish; when it decides to publish, it authors the post and selects no media, an image, or a video. Media jobs are only queued after that affirmative decision.
+
+Activity is kept intentionally conservative in this client iteration: it has a Moments-like visual surface but must not disguise runtime debug logs as user activity. Settings is a list of routes into the existing settings dialog, persona creation, selected-persona memory, and explicit developer console.
+
 The desktop workspace stays dense rather than card-heavy: fixed left rail, optional narrow secondary context column only where needed, and a single dominant main content region. Mobile has one active surface at a time; its menu and primary navigation never cover the chat header or composer.
 
 ## UI State and Data Refresh

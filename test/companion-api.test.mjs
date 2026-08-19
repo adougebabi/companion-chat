@@ -9,7 +9,7 @@ process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '0';
 const {companionApp, companionTestHooks} = await import(`../server.js?test=${Date.now()}`);
-const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, normalizeDailyPlan, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, providerFor, providerSummaries, h3Args, h3OutputFile, leaseDurationForJob, saveSettings, publicSettings} = companionTestHooks;
+const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaIntent, systemCapabilityReplyForm, systemCapabilityMediaContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, mediaIntentFor, compileMediaPrompt, normalizeMediaRefinement, refineMediaIntent, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, normalizeDailyPlan, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, providerFor, providerSummaries, h3Args, h3OutputFile, leaseDurationForJob, saveSettings, publicSettings} = companionTestHooks;
 
 const routePaths = app => (app.router?.stack || []).flatMap(layer => layer.route ? [layer.route.path] : []);
 
@@ -147,6 +147,19 @@ test('timeline decisions persist no-event outcomes and sleep batches merge witho
     const secondBatch = deferredBatchForMessage(source, secondMessage.id, midnight);
     assert.equal(secondBatch.id, firstBatch.id);
     assert.deepEqual(JSON.parse(secondBatch.message_ids_json), [firstMessage.id, secondMessage.id]);
+});
+
+test('a life event waits for the persona activity decision and respects a no-post decision', () => {
+    const persona = createPersona({name: '动态决定', role: '学生', foundation: '动态决定会自己判断什么值得分享。'});
+    const event = createEvent(requirePersona(persona.id), {type: 'social', situation: '和朋友在校园散步', mood: '轻松', scene: '校园'}, {requestActivityDecision: true, source: 'test'});
+    assert.equal(listActivities({personaId: persona.id, limit: 20}).items.length, 0);
+    const job = database.prepare("SELECT * FROM companion_jobs WHERE persona_id = ? AND job_type = 'activity_decision' ORDER BY created_at DESC LIMIT 1").get(persona.id);
+    assert.ok(job);
+    database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ? WHERE id = ?").run('activity_decision_lease', new Date(Date.now() + 60_000).toISOString(), job.id);
+    const declined = completeActivityDecisionJob({...job, lease_owner: 'activity_decision_lease'}, parseActivityDecision('{"publish":false,"content":"","media":{"kind":"none"}}'));
+    assert.equal(declined.completed, true);
+    assert.equal(declined.result.reason, 'persona_decided_not_to_publish');
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_activities WHERE event_id = ?').get(event.eventId).count, 0);
 });
 
 test('adaptive interviews skip known facts and preserve inferred blueprint provenance', () => {

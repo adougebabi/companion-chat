@@ -15,6 +15,14 @@ Replace the current visual treatment with a dense, calm, mobile-first Telegram-i
 
 ## Requirements
 
+### Revised Navigation And Chat Scope (2026-08-19)
+
+- The primary application shell uses a Telegram-inspired conversation-first layout with exactly three fixed bottom navigation controls: Contacts, Activity, and Settings. These controls use recognizable icons only; their accessible labels and tooltips may contain text.
+- Contacts is the default destination and behaves like a Telegram chat list: all enabled companion conversations are vertically listed with persona identity and the best available last-conversation summary. Selecting a row opens a dedicated chat surface rather than leaving list and conversation permanently side-by-side.
+- The chat surface has a left back control, a geometrically centered persona name that opens companion detail/memory, and a right settings action that retains the existing per-persona configuration capability. The message stream and composer remain in the middle/bottom of the surface.
+- Activity remains a WeChat-Moments-inspired destination. This iteration preserves the existing product’s limited activity capability as a calm, non-debug placeholder/overview rather than treating the runtime console as a social feed.
+- Settings becomes a navigable option list. Its entries open the existing system configuration, companion-management, memory, and developer-console capabilities instead of exposing configuration only from a sidebar.
+
 - Establish one maintained visual system for the application and remove style-source-order conflicts before adding new presentation behavior.
 - Make the chat shell resilient from narrow mobile screens through desktop layouts, including safe header spacing, dynamic viewport sizing, touch targets, text overflow behavior, and keyboard-safe composer placement.
 - Preserve the practical Telegram cues shown in the supplied references: compact navigation, recognizable conversation hierarchy, clear persona identity, readable message grouping, and command-focused composer controls. The product must not reproduce Telegram branding or assets.
@@ -37,6 +45,12 @@ Replace the current visual treatment with a dense, calm, mobile-first Telegram-i
 ## Acceptance Criteria
 
 - [ ] At 320px, 375px, 650px, tablet, and desktop widths, the chat header, menu, persona identity, message area, composer, drawers, and dialogs have no overlapping or unreachable controls.
+- [ ] The application has exactly three icon-only fixed bottom tabs: Contacts, Activity, and Settings. Contacts opens by default; neither desktop nor mobile uses the legacy hamburger/sidebar navigation.
+- [ ] Tapping a contact opens a dedicated chat page. Its header has a back action on the left, a centered clickable name in the middle, and an existing-functionality settings action on the right.
+- [ ] The focused chat surface hides the three primary bottom tabs; returning to Contacts restores them.
+- [ ] Routine and schedule state projections never directly publish an activity. A qualifying life event is first presented to the persona model, which decides whether to publish and, only when publishing, supplies the post text and an optional none/image/video media choice.
+- [ ] A persona decision not to publish preserves the event and current state but creates no activity, media job, or activity-unread signal.
+- [ ] The Contacts page lists every enabled persona as a conversation row with identity and an available preview; Settings presents existing configuration actions as a list of options.
 - [ ] The mobile composer remains reachable with dynamic browser chrome and an on-screen keyboard; long attachments and text cannot force horizontal overflow.
 - [ ] Selecting one emoji inserts only that emoji, and all composer controls have accessible labels and keyboard behavior appropriate to their function.
 - [ ] Clear-console behavior asks for confirmation, prevents duplicate requests while pending, and displays a failure state without pretending that data was cleared.

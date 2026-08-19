@@ -55,6 +55,12 @@ h3 provider 在参数构造后写 `preparing`，子进程启动/输出写 `gener
 
 `debugContextFor()` 继续最多返回当前人格的 10 个媒体 job。每项增加经脱敏、限长、兼容旧 job 的 `progress`：缺失时提供 `queued`/`unknown` fallback；`elapsedMs` 在读模型时由 `startedAt` 计算以反映当前运行时间，无需每秒仅为计时写数据库。latest output 上限 480，提示词和既有摘要继续走 `debugSummary`。
 
+源图片/视频 job 是一个用户可理解的媒体任务；`activity_media_poll` 和 `chat_media_poll` 是内部实现细节。DTO 先查询源 job，再按相同 `message_id` 或 `activity_id` 找到最新 poll job，以 poll 的 status/error/external ID 覆盖状态投影，但始终保留源 job 的 final prompt、intent 和卡片 ID。因此检查器每次请求只呈现一张卡。
+
+## Simplified Chat Media Mode
+
+设置持久化 `simplifiedMediaMode: boolean`，默认 `false`，经现有 settings API/Bootstrap 返回。开启时，`messageMediaHtml()` 在产生任何 `<img>` 或 `<video>` 前短路，改为一个无资源 URL 的紧凑文本状态：媒体已生成但已隐藏、媒体生成中或失败。任务创建、消息附件、生成状态、刷新和 debug inspector 均不改变；该模式仅改变聊天窗口的资源渲染和网络加载。
+
 ## Compatibility and Rollback
 
 历史 job 没有 `result_json.progress` 时仍能正常显示/结算。ComfyUI 任务不要求 provider 进度输出。发生问题时，可停止进度写入而不影响现有 job claim、retry、provider submit/poll、附件落库和消息原位替换；检查器会退回旧摘要信息。

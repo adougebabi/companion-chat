@@ -87,6 +87,8 @@ if (process.env.COMPANION_DEBUG_INSPECTOR === '1') {
 - Progress writes use the same `status = 'leased'`, `lease_owner`, and non-expired lease guard as settlement. They never renew a lease or alter status/attempt/retry scheduling.
 - Output is ANSI/control-character cleaned, recursively credential-redacted, path-redacted, and capped at 480 characters. Do not persist whole command lines, argument arrays, model/output paths, or stream history.
 - Completion and failure merge existing `result_json` so final prompts and h3 progress survive terminal settlement. A retry starts a new `attempt` snapshot.
+- `activity_media_poll` and `chat_media_poll` are internal worker children, not separate user-visible media tasks. Debug projection groups them by their shared `activity_id` or `message_id`, returns the source media job once, and overlays the newest poll child’s status/error/external ID.
+- `simplifiedMediaMode` is a persisted client-display setting. It may prevent chat `<img>`/`<video>` creation, but it must not stop queueing, provider execution, attachment persistence, or this local inspector.
 
 ### 4. Validation & Error Matrix
 
@@ -97,12 +99,14 @@ if (process.env.COMPANION_DEBUG_INSPECTOR === '1') {
 | Old/expired lease emits output | Guarded update changes zero rows; it cannot overwrite a later attempt. |
 | h3 exits, times out, or lacks output media | Preserve a `failed` terminal progress snapshot and use the normal retry/failure policy. |
 | Legacy or ComfyUI job has no progress | Return a stable fallback based on job status; do not require an h3-shaped record. |
+| Source job has an active poll child | Return one source-job media DTO with the child’s effective status; do not return a second poll card. |
+| Simplified mode is enabled | Chat does not load media URLs, while the durable job and inspector remain available. |
 
 ### 5. Good / Base / Bad Cases
 
 - Good: a running h3 job shows “正在生成视频”, its real elapsed time, a safe latest line, and an explicit percentage only when h3 printed one.
 - Base: a queued ComfyUI job still displays its final provider prompt and ordinary job status with no fabricated progress.
-- Bad: append raw stdout indefinitely to `result_json`, calculate `62%` from elapsed time, or let a stale child process write after its lease expired.
+- Bad: append raw stdout indefinitely to `result_json`, calculate `62%` from elapsed time, show an internal poll as a second media task, or let a stale child process write after its lease expired.
 
 ### 6. Tests Required
 
@@ -110,6 +114,7 @@ if (process.env.COMPANION_DEBUG_INSPECTOR === '1') {
 - Assert stdout and stderr both reach the reporter, high-frequency output is throttled while the latest line survives a flush, and the line count remains bounded.
 - Assert stale leases cannot write, a failed attempt retains `failed` progress, the next attempt resets percent/output count, and h3 completion preserves the final prompt plus `complete: 100%`.
 - Assert debug-context remains persona-scoped and limits displayed output.
+- Assert an active poll child produces one aggregated source-job DTO, and simplified mode remains a rendering-only setting.
 
 ### 7. Wrong vs Correct
 

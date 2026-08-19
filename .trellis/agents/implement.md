@@ -4,6 +4,8 @@ description: |
   Code implementation expert for the Trellis channel runtime. Understands specs and task artifacts, then implements features. No git commit allowed.
 provider: claude
 labels: [trellis, implement]
+model: gpt-5.6-luna
+thinking: high
 ---
 
 # Implement Agent (channel runtime)

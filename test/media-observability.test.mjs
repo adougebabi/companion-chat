@@ -9,7 +9,7 @@ process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '1';
 const {companionTestHooks, mediaObservabilityTestHooks} = await import(`../server.js?observability=${Date.now()}`);
-const {database, createPersona, createChatMediaRequest, completePolledMediaJob, debugContextFor} = companionTestHooks;
+const {database, createPersona, createChatMediaRequest, completePolledMediaJob, debugContextFor, saveSettings, publicSettings} = companionTestHooks;
 const {runH3, parseH3ProgressOutput, recordMediaJobProgress, createMediaProgressReporter, settleJob} = mediaObservabilityTestHooks;
 
 test('h3 progress snapshots preserve the final prompt, redact output, and reject stale leases', () => {
@@ -102,6 +102,28 @@ test('a failed h3 attempt keeps its terminal snapshot and a retry starts a fresh
     assert.equal(restarted.progress.stage, 'preparing');
     assert.equal(restarted.progress.percent, null);
     assert.equal(restarted.progress.outputLineCount, 0);
+});
+
+test('debug context merges a poll child into its source media task and persists simplified media mode', () => {
+    saveSettings({simplifiedMediaMode: true});
+    assert.equal(publicSettings().simplifiedMediaMode, true);
+
+    const persona = createPersona({name: '聚合检查', role: '视频创作者', foundation: '聚合检查会通过本地检查器观察媒体任务。'});
+    const request = createChatMediaRequest(persona.id, {kind: 'video', prompt: '城市夜景延时视频'});
+    const source = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
+    const createdAt = new Date().toISOString();
+    database.prepare("UPDATE companion_jobs SET status = 'complete', result_json = ?, updated_at = ?, completed_at = ? WHERE id = ?").run(JSON.stringify({provider: 'comfyui', finalPrompt: '唯一应显示的最终 provider 提示词', externalId: 'prompt_source', pending: true}), createdAt, createdAt, source.id);
+    database.prepare(`
+        INSERT INTO companion_jobs (id, job_type, status, priority, run_after, lease_owner, lease_expires_at, max_attempts, persona_id, message_id, payload_json, result_json, created_at, updated_at)
+        VALUES (?, 'chat_media_poll', 'leased', 4, ?, ?, ?, 60, ?, ?, ?, '{}', ?, ?)
+    `).run('poll_aggregate_child', createdAt, 'poll_aggregate_lease', new Date(Date.now() + 60_000).toISOString(), persona.id, source.message_id, JSON.stringify({provider: 'comfyui', externalId: 'prompt_source', kind: 'video'}), createdAt, createdAt);
+
+    const matches = debugContextFor(persona.id).mediaJobs.filter(job => job.id === source.id || job.id === 'poll_aggregate_child');
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].id, source.id);
+    assert.equal(matches[0].status, 'leased');
+    assert.equal(matches[0].finalPrompt, '唯一应显示的最终 provider 提示词');
+    assert.equal(matches[0].progress.stage, 'waiting_provider');
 });
 
 test.after(() => rmSync(dataDir, {recursive: true, force: true}));
