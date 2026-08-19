@@ -243,3 +243,36 @@ Implemented life-event proactive messaging and chat-declared pending events with
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: AI 人格与联系人分组
+
+**Date**: 2026-08-19
+**Task**: AI 人格与联系人分组
+**Branch**: `master`
+
+### Summary
+
+新增默认联系人分组、分组创建与人格归属切换；联系人页支持按分组筛选，点击联系人可在弹窗中切换分组；补充 SQLite migration、API 测试、前端响应式样式与规范契约。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `44c28c5` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

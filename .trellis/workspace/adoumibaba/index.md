@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
+- **Total Sessions**: 8
 - **Last Active**: 2026-08-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~245 | Active |
+| `journal-1.md` | ~278 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-08-19 | AI 人格与联系人分组 | `44c28c5` | `master` |
 | 7 | 2026-08-19 | Implement proactive persona messages | `311b235` | `master` |
 | 6 | 2026-08-19 | Freeze persona media intent before generation | `1d7ff6d` | `master` |
 | 5 | 2026-08-19 | 媒体生成进度与简化调试 | `a344629`, `b2e78a0` | `master` |
