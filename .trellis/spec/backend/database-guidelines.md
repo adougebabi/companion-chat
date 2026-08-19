@@ -361,3 +361,60 @@ createEvent(persona, event, {proactive: true}); // inserts a message inside the 
 createEvent(persona, event, {proactive: true}); // queues a durable proactive_message job
 // The worker rechecks policy and writes the message only under its active lease.
 ```
+
+## Scenario: Natural-language persona initialization
+
+### 1. Scope / Trigger
+
+- Trigger: the active browser wizard accepts one bounded natural-language description and asks the server to extract only fields needed for a persona preview.
+
+### 2. Signatures
+
+- Migration 10 adds `source TEXT NOT NULL DEFAULT 'interview'` and `inferred_fields_json TEXT NOT NULL DEFAULT '[]'` to `companion_interview_sessions`.
+- `POST /api/companion/interviews/analyze` accepts `{description: string}` and returns a ready interview view with `source`, normalized `answers`, `inferredFields`, and `preview`.
+- `POST /api/companion/interviews/:interviewId/activate` remains the only persona persistence boundary for this flow.
+
+### 3. Contracts
+
+- Descriptions are trimmed, bounded to 6000 characters, sent to the server-side `lmCompletion()` provider, and never stored in SQLite or returned in the preview.
+- Model output is a strict object with only `answers` and `inferredFields`; answer keys are limited to `interviewQuestions` and values are bounded by their field limits.
+- Missing `name`, `role`, or `foundation` receives a deterministic default and the field is listed in `inferredFields` until the user edits it.
+- The browser submits only preview fields whose values differ from the analyzed values; untouched inferred defaults remain inferred after activation.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Description missing, non-text, or blank | `400 {error: '人格描述不能为空'}`; no provider call or session row |
+| Description exceeds 6000 characters | `400 {error: ...}`; no provider call or session row |
+| Provider timeout/non-2xx, empty response, invalid JSON, unknown model key, or invalid field type | `502 {error: '人格分析失败：...'}`; no session or persona row |
+| User changes a generated preview field | Activation stores the override as `user` provenance |
+| User leaves a generated preview field unchanged | Activation retains `inferred` provenance |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a paragraph yields `name`, `role`, personality, and interests, while only the explicitly inferred fields are marked `inferred` in the preview and final blueprint.
+- Base: a paragraph omits identity; conservative defaults appear in the preview and can be edited before creation.
+- Bad: persist the raw paragraph, create a persona before analysis succeeds, or submit every displayed preview value as an override and erase provenance.
+
+### 6. Tests Required
+
+- Assert migration 10 columns and natural-language session source metadata.
+- Mock fenced JSON success and assert allowlisted answers, defaults, provenance, activation, and raw-description exclusion.
+- Assert blank/oversized input, provider failure, malformed JSON, unknown keys, and invalid types return stable errors with no new session.
+- Assert activation with no preview edits retains inferred provenance and explicit edits become user provenance.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+const persona = createPersona(await extractFromDescription(req.body.description));
+```
+
+#### Correct
+
+```js
+const interview = await createNaturalLanguageInterview(req.body.description);
+// Wait for explicit preview confirmation, then activateInterviewWithLifeModel().
+```

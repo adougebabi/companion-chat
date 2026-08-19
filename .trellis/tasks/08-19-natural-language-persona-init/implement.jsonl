@@ -1,0 +1,11 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend changes stay within the single server.js module and must follow its route/provider ownership rules."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"The new analysis endpoint needs bounded provider failures and stable {error} responses without leaking internals."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Interview provenance metadata is an additive SQLite migration and must preserve existing rows and ownership."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"The implementation must validate route inputs, keep provider calls server-side, and run the required syntax/test gates."}
+{"file":".trellis/spec/frontend/index.md","reason":"The active client is the vanilla companion-main.js flow, not the legacy main.js file."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"The wizard replacement must use existing dialog/render patterns and escape all user/model text."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"The transient description draft and server-backed interview preview must follow the existing client synchronization rules."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"The new dialog needs syntax, browser, API contract, and desktop/mobile verification."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"The change crosses browser request, Express route, provider call, SQLite session, and activation response contracts."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Existing api, esc, interview, blueprint, and provider helpers are the intended owners to reuse."}
+{"file":".trellis/tasks/08-19-natural-language-persona-init/research/initial-code-evidence.md","reason":"Captures repository evidence about the active wizard, backend owners, existing model patterns, migration, and tests."}

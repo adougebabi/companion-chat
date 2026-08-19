@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -10,6 +10,9 @@ process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '0';
 const {companionApp, companionTestHooks} = await import(`../server.js?test=${Date.now()}`);
 const {database, createPersona, createEvent, requirePersona, deletePersona, listGroups, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, createPendingEvent, normalizePendingEventCall, normalizeProactiveDecision, freezeProactiveDecision, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, mediaConceptEnvelopeFor, renderMediaPromptTemplate, mediaPromptTemplateSections, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, personaMediaConceptContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, runPendingEventJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, normalizeDailyPlan, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, enqueueRelationshipEvolutionJob, providerFor, providerSummaries, mediaProviders, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, saveSettings, publicSettings} = companionTestHooks;
+
+const {interviewView, previewInterviewAnswers, validatePersonaDescription, normalizePersonaDescriptionExtraction, analyzePersonaDescription, createNaturalLanguageInterview, naturalLanguageDescriptionMaxLength} = companionTestHooks;
+const {systemCapabilitySceneContract, imageGenerationPolicies, normalizeImageGenerationPolicy, imageGenerationPolicyFor, normalizeSceneEventCall, sharedSceneFor, applySceneEvent, sceneEventTool, consumeStreamedCompletion} = companionTestHooks;
 
 const mediaConcept = (kind, overrides = {}) => ({
     schemaVersion: 1, mediaKind: kind, scene: '测试场景', action: '测试动作', mood: '平静', narrative: '测试媒体概念',
@@ -36,6 +39,20 @@ function invokeRoute(path, method, {params = {}, body} = {}) {
         end() { this.headersSent = true; return this; }
     };
     layer.route.stack[0].handle({params, body}, response);
+    return response;
+}
+
+async function invokeRouteAsync(path, method, {params = {}, body} = {}) {
+    const layer = (companionApp.router?.stack || []).find(item => item.route?.path === path && item.route.methods?.[method.toLowerCase()]);
+    assert.ok(layer, `${method} ${path} route is registered`);
+    const response = {
+        statusCode: 200, body: undefined, headersSent: false,
+        status(code) { this.statusCode = code; return this; },
+        json(value) { this.body = value; this.headersSent = true; return this; },
+        end() { this.headersSent = true; return this; }
+    };
+    const output = layer.route.stack[0].handle({params, body}, response);
+    if (output?.then) await output.catch(() => {});
     return response;
 }
 
@@ -98,6 +115,51 @@ test('contact groups seed a default, assign new personas, and persist route chan
         const malformedAssignment = invokeRoute('/api/companion/personas/:personaId/group', 'PUT', {params: {personaId: persona.id}, body: {}});
         assert.equal(malformedAssignment.statusCode, 400);
         assert.equal(database.prepare('SELECT group_id FROM companion_personas WHERE id = ?').get(persona.id).group_id, createdGroupId);
+    } finally {
+        deletePersona(persona.id);
+    }
+});
+
+test('shared scene events persist continuity and image policy stays persona-scoped', () => {
+    assert.deepEqual(imageGenerationPolicies, ['ask', 'always', 'important', 'user_only', 'autonomous']);
+    assert.equal(normalizeImageGenerationPolicy('unknown'), 'autonomous');
+    assert.throws(() => normalizeSceneEventCall({operation: 'switch', situation: '缺地点'}), /必须包含地点或活动/);
+    assert.match(systemCapabilitySceneContract, /scene_event/);
+
+    const persona = createPersona({name: '同场景测试', role: '测试人格', foundation: '用于验证共同场景连续性。'});
+    try {
+        const detail = invokeRoute('/api/companion/personas/:personaId', 'GET', {params: {personaId: persona.id}});
+        assert.equal(detail.body.persona.imageGenerationPolicy, 'autonomous');
+        const policy = invokeRoute('/api/companion/personas/:personaId/image-generation-policy', 'PUT', {params: {personaId: persona.id}, body: {policy: 'user_only'}});
+        assert.equal(policy.body.imageGenerationPolicy, 'user_only');
+        const invalidPolicy = invokeRoute('/api/companion/personas/:personaId/image-generation-policy', 'PUT', {params: {personaId: persona.id}, body: {policy: '拍照就生成'}});
+        assert.equal(invalidPolicy.statusCode, 400);
+
+        const startMessage = appendMessage(persona.id, {role: 'user', text: '我们去湖边走走。'});
+        const started = applySceneEvent(persona, {operation: 'start', location: '湖边公园', activity: '沿湖散步', situation: '和用户一起沿湖边散步', mood: '放松', objects: ['雨伞']}, startMessage.id);
+        assert.equal(started.operation, 'start');
+        let state = resolvedStateFor(persona.id);
+        assert.equal(state.source, 'shared_scene');
+        assert.equal(state.location, '湖边公园');
+        assert.equal(state.sharedScene.activity, '沿湖散步');
+        assert.match(contextFor(persona.id).layers.lifeState, /湖边公园/);
+
+        const ordinaryEvent = createEvent(persona, {type: 'social', situation: '和朋友聊了几句', mood: '开心', scene: '校园'}, {publish: false, source: 'chat'});
+        assert.ok(ordinaryEvent.eventId);
+        assert.equal(resolvedStateFor(persona.id).location, '湖边公园');
+
+        const switchMessage = appendMessage(persona.id, {role: 'user', text: '那我们去咖啡馆坐坐。'});
+        const switched = applySceneEvent(persona, {operation: 'switch', location: '街角咖啡馆', activity: '靠窗聊天', situation: '和用户在咖啡馆靠窗的位置聊天', mood: '安静'}, switchMessage.id);
+        assert.equal(switched.previousScene.location, '湖边公园');
+        assert.equal(resolvedStateFor(persona.id).location, '街角咖啡馆');
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ? AND type = 'shared_scene'").get(persona.id).count, 2);
+
+        const endMessage = appendMessage(persona.id, {role: 'user', text: '今天先到这里。'});
+        const ended = applySceneEvent(persona, {operation: 'end'}, endMessage.id);
+        assert.equal(ended.operation, 'end');
+        assert.notEqual(resolvedStateFor(persona.id).source, 'shared_scene');
+        assert.equal(resolvedStateFor(persona.id).sharedScene, null);
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ? AND type = 'shared_scene_end'").get(persona.id).count, 1);
     } finally {
         deletePersona(persona.id);
     }
@@ -296,6 +358,96 @@ test('adaptive interviews skip known facts and preserve inferred blueprint prove
 
     const readyAtStart = createInterview({name: '安禾', role: '学生', foundation: '安禾喜欢观察校园里的普通片刻。', ageBand: '20 岁出头', occupation: '学生', socialIdentity: '摄影社成员', householdContext: '住校', initialRelationships: '室友小满', personalityTraits: '细腻', socialAttitude: '友善', languageStyle: '自然简短', specialSetting: '周末会拍照', interests: '摄影', culturalPresentation: '自然校园感', faceBuild: '圆脸', complexionAura: '清爽', hair: '短发', everydayWardrobe: '宽松衬衫', distinguishingFeatures: '常带相机', visualBaseline: '短发', supportingCast: '室友小满', userIdentity: '新朋友', communicationDistance: '自然慢慢熟悉', interactionBoundaries: '尊重彼此生活节奏'});
     assert.equal(readyAtStart.status, 'ready');
+});
+
+test('natural-language analysis stores bounded provenance and activation preserves edits', async () => {
+    const migration = database.prepare('SELECT name FROM companion_schema_migrations WHERE version = 10').get();
+    assert.equal(migration.name, 'natural-language-interview-provenance');
+    const columns = database.prepare('PRAGMA table_info(companion_interview_sessions)').all().map(column => column.name);
+    assert.equal(columns.includes('source'), true);
+    assert.equal(columns.includes('inferred_fields_json'), true);
+    const defaults = normalizePersonaDescriptionExtraction({answers: {personalityTraits: '温和'}, inferredFields: []});
+    assert.deepEqual(defaults.answers, {personalityTraits: '温和', name: '新朋友', role: '陪伴者', foundation: '新朋友是一位陪伴者。'});
+    assert.deepEqual(defaults.inferredFields, ['name', 'role', 'foundation']);
+
+    const description = '她叫林晚，是在读设计专业的学生，喜欢摄影和旧书。她性格细腻慢热，希望和我从自然、尊重边界的朋友关系开始。';
+    const originalFetch = globalThis.fetch;
+    const previous = publicSettings();
+    const modelAnswers = {name: '林晚', role: '在读设计专业学生', foundation: '林晚性格细腻慢热，喜欢摄影和旧书。', personalityTraits: '细腻、慢热', interests: ['摄影', '旧书']};
+    saveSettings({model: 'test-persona-description'});
+    globalThis.fetch = async (url, options) => {
+        assert.match(String(url), /chat\/completions$/);
+        assert.equal(JSON.parse(options.body).messages[1].content, description);
+        return {ok: true, json: async () => ({choices: [{message: {content: `\`\`\`json\n${JSON.stringify({answers: modelAnswers, inferredFields: ['personalityTraits']})}\n\`\`\``}}]})};
+    };
+    let created;
+    try {
+        created = await createNaturalLanguageInterview(description);
+        assert.equal(created.status, 'ready');
+        assert.equal(created.source, 'natural-language');
+        assert.deepEqual(created.inferredFields, ['personalityTraits']);
+        assert.equal(created.answers.name, '林晚');
+        assert.equal(created.preview.blueprint.provenance.name, 'user');
+        assert.equal(created.preview.blueprint.provenance.foundation, 'user');
+        assert.equal(created.preview.blueprint.provenance.personalityTraits, 'inferred');
+        assert.equal(created.preview.blueprint.provenance['personalityCore.traits'], 'inferred');
+        assert.equal(JSON.stringify(created).includes(description), false);
+        const row = database.prepare('SELECT source, inferred_fields_json, answers_json FROM companion_interview_sessions WHERE id = ?').get(created.id);
+        assert.equal(row.source, 'natural-language');
+        assert.deepEqual(JSON.parse(row.inferred_fields_json), ['personalityTraits']);
+        assert.equal(row.answers_json.includes(description), false);
+
+        const untouched = await createNaturalLanguageInterview(description);
+        const untouchedPersona = activateInterview(untouched.id);
+        assert.equal(publicBlueprint(untouchedPersona.id).provenance.personalityTraits, 'inferred');
+        deletePersona(untouchedPersona.id);
+
+        const activated = activateInterview(created.id, {overrides: {name: '林晚（确认）', foundation: '确认后的基础人格。'}});
+        assert.equal(activated.name, '林晚（确认）');
+        assert.equal(publicBlueprint(activated.id).provenance.name, 'user');
+        assert.equal(publicBlueprint(activated.id).provenance.foundation, 'user');
+        assert.equal(publicBlueprint(activated.id).provenance.personalityTraits, 'inferred');
+        deletePersona(activated.id);
+    } finally {
+        globalThis.fetch = originalFetch;
+        saveSettings({model: previous.model, lmStudioUrl: previous.lmStudioUrl});
+    }
+});
+
+test('natural-language analyze route rejects invalid model/input without creating sessions', async () => {
+    const before = database.prepare('SELECT COUNT(*) AS count FROM companion_interview_sessions').get().count;
+    const originalFetch = globalThis.fetch;
+    const previous = publicSettings();
+    let calls = 0;
+    globalThis.fetch = async () => {
+        calls += 1;
+        return {ok: true, json: async () => ({choices: [{message: {content: '{"answers":{"name":"坏结果","unknown":"不应保存"},"inferredFields":[]}'}}]})};
+    };
+    try {
+        const missing = await invokeRouteAsync('/api/companion/interviews/analyze', 'POST', {body: {}});
+        assert.equal(missing.statusCode, 400);
+        assert.equal(missing.body.error, '人格描述不能为空');
+        const oversized = await invokeRouteAsync('/api/companion/interviews/analyze', 'POST', {body: {description: 'x'.repeat(naturalLanguageDescriptionMaxLength + 1)}});
+        assert.equal(oversized.statusCode, 400);
+        assert.equal(oversized.body.error, `人格描述不能超过 ${naturalLanguageDescriptionMaxLength} 个字符`);
+        assert.equal(calls, 0);
+
+        saveSettings({model: 'test-persona-description'});
+        const unknown = await invokeRouteAsync('/api/companion/interviews/analyze', 'POST', {body: {description: '请分析这段描述'}});
+        assert.equal(unknown.statusCode, 502);
+        assert.match(unknown.body.error, /^人格分析失败：/);
+        assert.equal(calls, 1);
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_interview_sessions').get().count, before);
+
+        globalThis.fetch = async () => { calls += 1; throw new Error('mock provider timeout'); };
+        const failed = await invokeRouteAsync('/api/companion/interviews/analyze', 'POST', {body: {description: '请分析后模拟 provider 失败'}});
+        assert.equal(failed.statusCode, 502);
+        assert.match(failed.body.error, /人格分析失败：mock provider timeout/);
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_interview_sessions').get().count, before);
+    } finally {
+        globalThis.fetch = originalFetch;
+        saveSettings({model: previous.model, lmStudioUrl: previous.lmStudioUrl});
+    }
 });
 
 test('user-visible assistant replies are sentence-scoped, ordered, and isolated from JSON-only prompts', () => {
@@ -1223,6 +1375,68 @@ test('media settlement only completes the leased placeholder once', () => {
     assert.equal(duplicate.completed, false);
     assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_media_assets WHERE filename = ?').get('street.png').count, 1);
     assert.equal(database.prepare('SELECT status FROM companion_jobs WHERE id = ?').get(job.id).status, 'complete');
+});
+
+test('shared scene migration, policy detail route, and scene-event projection stay persona-scoped', () => {
+    const migration = database.prepare('SELECT name FROM companion_schema_migrations WHERE version = 11').get();
+    assert.equal(migration.name, 'shared-scene-and-image-generation-policy');
+    const personaColumns = database.prepare('PRAGMA table_info(companion_personas)').all().map(column => column.name);
+    const stateColumns = database.prepare('PRAGMA table_info(companion_persona_states)').all().map(column => column.name);
+    assert.equal(personaColumns.includes('image_generation_policy'), true);
+    assert.equal(stateColumns.includes('shared_scene_json'), true);
+
+    const persona = createPersona({name: '共同场景测试', role: '陪伴者', foundation: '共同场景测试喜欢和用户自然聊天。'});
+    const row = database.prepare('SELECT image_generation_policy FROM companion_personas WHERE id = ?').get(persona.id);
+    assert.equal(row.image_generation_policy, 'autonomous');
+    assert.equal(invokeRoute('/api/companion/personas/:personaId/image-generation-policy', 'PUT', {params: {personaId: persona.id}, body: {policy: 'ask'}}).body.imageGenerationPolicy, 'ask');
+    assert.equal(invokeRoute('/api/companion/personas/:personaId/image-generation-policy', 'PUT', {params: {personaId: persona.id}, body: {policy: 'bad'}}).statusCode, 400);
+    const detail = invokeRoute('/api/companion/personas/:personaId', 'GET', {params: {personaId: persona.id}}).body;
+    assert.equal(detail.persona.imageGenerationPolicy, 'ask');
+    assert.equal(detail.imageGenerationPolicy, 'ask');
+    assert.equal(persona.currentSituation, detail.persona.currentSituation);
+
+    const source = appendMessage(persona.id, {role: 'user', text: '我们去湖边走走吧。'});
+    const started = applySceneEvent(persona, {operation: 'start', location: '湖边公园', room: '', activity: '沿湖散步', situation: '和用户一起沿湖边散步', mood: '放松', objects: ['雨伞'], participants: ['user', 'persona']}, source.id);
+    assert.equal(sharedSceneFor(persona.id).eventId, started.eventId);
+    assert.equal(resolvedStateFor(persona.id).resolved_source, 'shared_scene');
+    assert.equal(stateShape(persona.id).location, '湖边公园');
+    assert.match(contextFor(persona.id).layers.lifeState, /湖边公园/);
+    assert.match(contextFor(persona.id).layers.systemCapability, /人格生图频率.*始终询问/);
+
+    const switched = applySceneEvent(persona, {operation: 'switch', location: '湖边咖啡馆', room: '靠窗座位', activity: '一起喝咖啡', situation: '和用户在湖边咖啡馆靠窗喝咖啡', mood: '安静'}, source.id);
+    assert.equal(sharedSceneFor(persona.id).eventId, switched.eventId);
+    const switchPayload = JSON.parse(database.prepare('SELECT payload_json FROM companion_life_events WHERE id = ?').get(switched.eventId).payload_json);
+    assert.equal(switchPayload.previousScene.eventId, started.eventId);
+
+    const ended = applySceneEvent(persona, {operation: 'end'}, source.id);
+    assert.equal(ended.operation, 'end');
+    assert.equal(sharedSceneFor(persona.id), null);
+    assert.notEqual(resolvedStateFor(persona.id).resolved_source, 'shared_scene');
+    assert.equal(stateShape(persona.id).sharedScene, null);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_activities WHERE persona_id = ? AND event_id IN (?, ?, ?)").get(persona.id, started.eventId, switched.eventId, ended.eventId).count, 0);
+
+    assert.throws(() => normalizeSceneEventCall({operation: 'start', location: '湖边'}), /situation/);
+    assert.throws(() => normalizeSceneEventCall({operation: 'switch', location: '湖边', situation: '散步', unsupported: true}), /不支持字段/);
+});
+
+test('scene tool contract accumulates streamed fragments and parenthesized text remains ordinary escaped message text', async () => {
+    assert.equal(sceneEventTool.function.name, 'scene_event');
+    assert.deepEqual(sceneEventTool.function.parameters.required, ['operation']);
+    const chunks = [
+        'data: ' + JSON.stringify({choices: [{delta: {tool_calls: [{index: 0, id: 'call_scene', type: 'function', function: {name: 'scene_event', arguments: '{"operation":"start","location":"湖边"'}}]}}]}) + '\n\n',
+        'data: ' + JSON.stringify({choices: [{delta: {tool_calls: [{index: 0, function: {arguments: ',"situation":"一起散步"}'}}]}}]}) + '\n\n',
+        'data: [DONE]\n\n'
+    ];
+    const response = {body: {getReader() {
+        let index = 0;
+        return {read: async () => index < chunks.length ? {value: new TextEncoder().encode(chunks[index++]), done: false} : {value: undefined, done: true}};
+    }}};
+    const completion = await consumeStreamedCompletion(response);
+    assert.equal(completion.toolCalls[0].id, 'call_scene');
+    assert.equal(JSON.parse(completion.toolCalls[0].function.arguments).situation, '一起散步');
+    const source = readFileSync(new URL('../src/companion-main.js', import.meta.url), 'utf8');
+    assert.match(source, /const content = esc\(message\.text\)/);
+    assert.doesNotMatch(source, /scene-panel|quick-reply/);
 });
 
 test.after(() => rmSync(dataDir, {recursive: true, force: true}));

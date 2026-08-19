@@ -2,6 +2,9 @@ const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[char]));
 const formatTime = value => value ? new Intl.DateTimeFormat('zh-CN', {month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'}).format(new Date(value)) : '';
 const initials = name => Array.from(name || '?').slice(0, 1).join('');
+const imageGenerationPolicyOptions = [
+    ['ask', '始终询问'], ['always', '始终生成'], ['important', '重要时刻自动生成'], ['user_only', '只有我要求才生成'], ['autonomous', '人格自行决定']
+];
 
 let appState = {settings: {}, personas: [], groups: [], activityUnread: false};
 let activePersonaId = localStorage.getItem('companion-active-persona') || '';
@@ -536,66 +539,65 @@ function openPersonaPicker() {
 
 async function openPersonaWizard() {
     const dialog = $('#persona-dialog');
-    dialog.innerHTML = `<section class="persona-wizard"><header><div><small>PERSONA INTERVIEW</small><h2>认识一下她</h2></div><button type="button" class="close-dialog" id="close-interview" aria-label="关闭">×</button></header><div class="wizard-body"><p class="wizard-intro">正在准备几个真正会影响她日常生活的问题。</p></div></section>`;
+    let description = '';
+    let interview = null;
+    const renderDescription = errorMessage => {
+        dialog.innerHTML = `<form class="persona-wizard" id="persona-description-form"><header><div><small>PERSONA DESCRIPTION</small><h2>描述一下她</h2></div><button type="button" class="close-dialog" id="close-interview" aria-label="关闭">×</button></header><div class="wizard-body"><p class="wizard-intro">描述你希望她是谁、什么性格、生活背景以及你们如何相处。自然地写几句就够了。</p>${errorMessage ? `<p class="wizard-error" role="alert">${esc(errorMessage)}</p>` : ''}<label>人格描述<textarea name="description" rows="9" maxlength="6000" required data-initial-focus placeholder="例如：她叫林晚，是在读设计专业的学生，性格细腻慢热，喜欢摄影和旧书。她和室友住在学校附近，和我先从自然、尊重边界的朋友关系开始。">${esc(description)}</textarea></label></div><footer class="wizard-footer"><button type="button" class="quiet" id="cancel-interview">取消</button><button class="primary">分析并预览</button></footer></form>`;
+        $('#close-interview').onclick = () => closeDialog(dialog);
+        $('#cancel-interview').onclick = () => closeDialog(dialog);
+        $('#persona-description-form').onsubmit = async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            if (!form.reportValidity()) return;
+            description = String(new FormData(form).get('description') || '');
+            const button = form.querySelector('.primary');
+            button.disabled = true;
+            try {
+                interview = await api('/api/companion/interviews/analyze', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({description})});
+                if (dialog.open) renderPersonaPreview();
+            } catch (error) {
+                if (dialog.open) renderDescription(error.message);
+            }
+        };
+    };
+    const renderPersonaPreview = errorMessage => {
+        const preview = interview?.preview;
+        if (!preview) return renderDescription(errorMessage || '人格分析结果不可用');
+        const blueprint = preview.blueprint || {};
+        const inferred = (interview.inferredFields || preview.inferredFields || []).join('、') || '无';
+        const initialValues = {
+            name: blueprint.characterCard?.roleCore?.name || interview.answers?.name || '',
+            role: interview.answers?.role || '',
+            foundation: preview.foundation || '',
+            interests: (blueprint.interests || []).join('、'),
+            visualBaseline: blueprint.visualBaseline || '',
+            supportingCast: (blueprint.supportingCast || []).map(item => item.name).join('、')
+        };
+        dialog.innerHTML = `<form class="persona-wizard" id="persona-preview-form"><header><div><small>PERSONA PREVIEW</small><h2>确认她的设定</h2></div><button type="button" class="close-dialog" id="close-interview" aria-label="关闭">×</button></header><div class="wizard-body"><p class="wizard-intro">确认前可以修改核心摘要。AI 推断的字段会保留来源标记，原始描述只用于这次分析。</p>${errorMessage ? `<p class="wizard-error" role="alert">${esc(errorMessage)}</p>` : ''}<div class="preview-card"><b>AI 推断：${esc(inferred)}</b><p><strong>日常作息</strong>${esc((blueprint.routine || []).map(item => item.label).join(' · ') || '将由生活模型生成')}</p></div><label>名字<input name="name" maxlength="30" required value="${esc(blueprint.characterCard?.roleCore?.name || interview.answers?.name || '')}"></label><label>身份<input name="role" maxlength="80" required value="${esc(interview.answers?.role || '')}"></label><label>基础人格<textarea name="foundation" rows="5" maxlength="3000" required>${esc(preview.foundation || '')}</textarea></label><label>兴趣<input name="interests" maxlength="180" value="${esc((blueprint.interests || []).join('、'))}"></label><label>外观和日常穿衣印象<input name="visualBaseline" maxlength="240" value="${esc(blueprint.visualBaseline || '')}"></label><label>身边最早出现的人<input name="supportingCast" maxlength="180" value="${esc((blueprint.supportingCast || []).map(item => item.name).join('、'))}"></label></div><footer class="wizard-footer"><button type="button" class="quiet" id="back-to-description">返回修改</button><button class="primary">确认并创建</button></footer></form>`;
+        $('#close-interview').onclick = () => closeDialog(dialog);
+        $('#back-to-description').onclick = () => renderDescription();
+        $('#persona-preview-form').onsubmit = async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            if (!form.reportValidity()) return;
+            const button = form.querySelector('.primary');
+            button.disabled = true;
+            try {
+                const overrides = Object.fromEntries([...new FormData(form)].filter(([key, value]) => value !== initialValues[key]));
+                const persona = await api(`/api/companion/interviews/${encodeURIComponent(interview.id)}/activate`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({overrides})});
+                dialog.close('submitted');
+                await loadBootstrap();
+                await selectPersona(persona.id);
+            } catch (error) {
+                button.disabled = false;
+                const errorBox = form.querySelector('.wizard-error');
+                if (errorBox) errorBox.textContent = error.message;
+                else form.querySelector('.wizard-body').insertAdjacentHTML('afterbegin', `<p class="wizard-error" role="alert">${esc(error.message)}</p>`);
+            }
+        };
+    };
+    renderDescription();
     showDialog(dialog);
-    $('#close-interview').onclick = () => closeDialog(dialog);
-    try {
-        const interview = await api('/api/companion/interviews', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});
-        if (dialog.open) renderInterview(dialog, interview);
-    } catch (error) {
-        closeDialog(dialog);
-        window.alert(error.message);
-    }
-}
-
-function renderInterview(dialog, interview) {
-    const question = interview.question;
-    if (!question) return renderInterviewPreview(dialog, interview);
-    const input = question.type === 'textarea'
-        ? `<textarea name="answer" rows="5" maxlength="${question.maxLength}" ${question.required ? 'required' : ''} placeholder="${esc(question.placeholder)}"></textarea>`
-        : `<input name="answer" type="text" maxlength="${question.maxLength}" ${question.required ? 'required' : ''} placeholder="${esc(question.placeholder)}">`;
-    dialog.innerHTML = `<form class="persona-wizard" id="interview-form"><header><div><small>PERSONA INTERVIEW</small><h2>认识一下她</h2></div><button type="button" class="close-dialog" id="close-interview" aria-label="关闭">×</button></header><div class="wizard-body"><p class="wizard-intro">只问还不知道、且会影响她生活设定的信息。${question.required ? '' : ' 这题可以跳过，系统会明确标记为 AI 推断。'}</p><label>${esc(question.label)}${input}</label></div><footer class="wizard-footer">${question.required ? '' : '<button type="button" class="quiet" id="skip-interview-question">跳过</button>'}<button class="primary">继续</button></footer></form>`;
-    $('#close-interview').onclick = () => closeDialog(dialog);
-    const submit = async skip => {
-        const form = $('#interview-form');
-        if (!skip && !form.reportValidity()) return;
-        const answer = skip ? '' : new FormData(form).get('answer');
-        const button = form.querySelector('.primary');
-        button.disabled = true;
-        try {
-            const next = await api(`/api/companion/interviews/${encodeURIComponent(interview.id)}/answers`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({key: question.key, answer})});
-            renderInterview(dialog, next);
-        } catch (error) {
-            button.disabled = false;
-            window.alert(error.message);
-        }
-    };
-    $('#interview-form').onsubmit = event => { event.preventDefault(); submit(false); };
-    $('#skip-interview-question')?.addEventListener('click', () => submit(true));
-}
-
-function renderInterviewPreview(dialog, interview) {
-    const preview = interview.preview;
-    const inferred = preview.inferredFields.length ? preview.inferredFields.join('、') : '无';
-    dialog.innerHTML = `<form class="persona-wizard" id="interview-preview-form"><header><div><small>PERSONA PREVIEW</small><h2>确认她的生活设定</h2></div><button type="button" class="close-dialog" id="close-interview" aria-label="关闭">×</button></header><div class="wizard-body"><p class="wizard-intro">以下内容会成为她稳定的身份与生活蓝图。你提供的信息和 AI 推断会一直保留为不同来源。</p><div class="preview-card"><b>AI 推断：${esc(inferred)}</b><p><strong>日常作息</strong>${esc(preview.blueprint.routine.map(item => item.label).join(' · '))}</p></div><label>基础人格<textarea name="foundation" rows="5" maxlength="3000" required>${esc(preview.foundation)}</textarea></label><label>兴趣<input name="interests" maxlength="180" value="${esc(preview.blueprint.interests.join('、'))}"></label><label>外观和日常穿衣印象<input name="visualBaseline" maxlength="240" value="${esc(preview.blueprint.visualBaseline)}"></label><label>身边最早出现的人<input name="supportingCast" maxlength="180" value="${esc(preview.blueprint.supportingCast.map(item => item.name).join('、'))}"></label></div><footer class="wizard-footer"><button type="button" class="quiet" id="back-to-interview">返回修改</button><button class="primary">确认并创建</button></footer></form>`;
-    $('#close-interview').onclick = () => closeDialog(dialog);
-    $('#back-to-interview').onclick = () => window.alert('已回答的信息会保留。关闭后重新开始可调整访谈答案。');
-    $('#interview-preview-form').onsubmit = async event => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        if (!form.reportValidity()) return;
-        const button = form.querySelector('.primary');
-        button.disabled = true;
-        try {
-            const persona = await api(`/api/companion/interviews/${encodeURIComponent(interview.id)}/activate`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({overrides: Object.fromEntries(new FormData(form))})});
-            dialog.close('submitted');
-            await loadBootstrap();
-            await selectPersona(persona.id);
-        } catch (error) {
-            button.disabled = false;
-            window.alert(error.message);
-        }
-    };
 }
 
 async function openPersonaDetail(personaId) {
@@ -603,7 +605,9 @@ async function openPersonaDetail(personaId) {
         activeDetail = await api(`/api/companion/personas/${personaId}`);
         const dialog = $('#persona-dialog');
         const {persona, state, schedule, supportingCharacters, memories, evolutions, foundationSummary, blueprint} = activeDetail;
-        const stateSource = state?.source?.kind === 'schedule' ? '来自已确认安排'
+        const imageGenerationPolicy = activeDetail.imageGenerationPolicy || persona.imageGenerationPolicy || 'autonomous';
+        const stateSource = state?.source?.kind === 'shared_scene' ? '来自当前共同场景'
+            : state?.source?.kind === 'schedule' ? '来自已确认安排'
             : state?.source?.kind === 'daily_plan' ? '来自当天计划'
                 : state?.source?.kind === 'daily_plan_baseline' ? '来自当天计划基线'
                     : state?.source?.kind === 'routine' ? '来自日常作息'
@@ -615,7 +619,8 @@ async function openPersonaDetail(personaId) {
         const defaultGroup = groups.find(group => group.isDefault) || groups[0];
         const currentGroupId = String(persona.groupId || defaultGroup?.id || '');
         const groupOptions = groups.map(group => `<option value="${esc(group.id)}" ${String(group.id) === currentGroupId ? 'selected' : ''}>${esc(group.name)}${Number(group.personaCount || 0) ? ` (${Number(group.personaCount)})` : ''}</option>`).join('');
-        dialog.innerHTML = `<section class="detail-sheet"><header><div>${avatar(persona)}<span><small>PERSONA</small><h2>${esc(persona.name)}</h2><p>${esc(persona.role)}</p></span></div><button class="close-dialog" id="close-detail" aria-label="关闭">×</button></header><div class="detail-scroll"><section><h3>现在</h3><p class="state-line">${esc(state?.situation || '正在过自己的日常')}<small>${esc(state?.mood || '平静')}</small></p><p class="state-source">${esc(state?.scene || state?.room || '日常场景')}${state?.location ? ` · ${esc(state.location)}` : ''}</p><p class="state-source">${esc(stateSource)}${state?.source?.rationale ? ` · ${esc(state.source.rationale)}` : ''}</p>${Object.keys(state?.appearance || {}).length ? `<p class="state-source">当前外观：${esc(Object.values(state.appearance).join(' · '))}</p>` : ''}</section><section><h3>近期安排</h3>${schedule.length ? `<ul class="schedule-list">${schedule.map(item => `<li><b>${esc(item.title)}</b><small>${formatTime(item.startsAt)}</small><button class="schedule-reschedule" data-reschedule="${esc(item.id)}" aria-label="改期">↻</button><button class="schedule-cancel" data-schedule="${esc(item.id)}" aria-label="取消这项安排">×</button></li>`).join('')}</ul>` : '<p class="muted">暂无公开的近期安排</p>'}</section><section><h3>生活设定</h3><p class="detail-text">${foundationLines.map(esc).join('<br>')}</p>${inferredFields.length ? `<p class="state-source">AI 推断：${esc(inferredFields.join('、'))}</p>` : '<p class="state-source">所有初始设定均由你提供</p>'}<button class="quiet" id="edit-foundation">修订基础人格</button>${activeDetail.foundationRevisions.length > 1 ? `<ul class="foundation-list">${activeDetail.foundationRevisions.map((revision, index) => `<li><span><b>版本 ${revision.version}</b><small>${esc(revision.reason)} · ${formatTime(revision.createdAt)}</small></span>${index ? `<button class="quiet" data-restore-foundation="${esc(revision.id)}">恢复此版本</button>` : '<small>当前版本</small>'}</li>`).join('')}</ul>` : ''}</section><section><h3>她认识的你</h3>${memories.length ? `<ul class="memory-list">${memories.map(memory => `<li><span>${esc(memory.key)}</span><p>${esc(memory.value)}</p><button data-memory="${esc(memory.id)}" aria-label="删除这条记忆">×</button></li>`).join('')}</ul>` : '<p class="muted">她还在慢慢了解你。</p>'}</section><section><h3>关系变化</h3>${evolutions.length ? `<ul class="evolution-list">${evolutions.map((item, index) => `<li><b>${esc(item.reason)}</b><small>${formatTime(item.createdAt)}</small><span>${esc(item.evidenceSummary)}</span>${(item.changes || []).map(change => `<p class="evolution-diff">${esc(change.field)}：${esc(change.before)} → ${esc(change.after)}</p>`).join('')}${item.status === 'applied' && index === 0 ? `<button data-rollback="${esc(item.id)}" class="quiet">撤销这次变化</button>` : `<span>${item.status === 'reverted' ? '已撤销' : '已归档'}</span>`}</li>`).join('')}</ul>` : '<p class="muted">还没有需要保留的关系变化。</p>'}</section><section><h3>身边的人</h3><p class="supporting-names">${supportingCharacters.length ? supportingCharacters.map(item => esc(item.name)).join(' · ') : '会在生活里慢慢认识新朋友'}</p></section><section><h3>管理</h3><button class="quiet" id="persona-moments">查看她的动态</button><button class="quiet" id="screen-persona">${persona.screened ? '取消屏蔽' : '屏蔽动态与主动私聊'}</button><button class="quiet" id="hidden-activities">管理已隐藏动态</button><button class="quiet danger" id="delete-persona">删除此人格</button></section><section class="persona-group-setting"><h3>所属分组</h3><p class="state-source">在这里设置 ${esc(persona.name)} 出现在哪个联系人分组中。</p><div class="persona-group-controls"><select id="persona-group-select" aria-label="选择 ${esc(persona.name)} 所属分组">${groupOptions}</select><button type="button" class="quiet" id="persona-group-save">保存</button></div></section></div></section>`;
+        const imagePolicyOptions = imageGenerationPolicyOptions.map(([value, label]) => `<option value="${value}" ${value === imageGenerationPolicy ? 'selected' : ''}>${label}</option>`).join('');
+        dialog.innerHTML = `<section class="detail-sheet"><header><div>${avatar(persona)}<span><small>PERSONA</small><h2>${esc(persona.name)}</h2><p>${esc(persona.role)}</p></span></div><button class="close-dialog" id="close-detail" aria-label="关闭">×</button></header><div class="detail-scroll"><section><h3>现在</h3><p class="state-line">${esc(state?.situation || '正在过自己的日常')}<small>${esc(state?.mood || '平静')}</small></p><p class="state-source">${esc(state?.scene || state?.room || '日常场景')}${state?.location ? ` · ${esc(state.location)}` : ''}</p><p class="state-source">${esc(stateSource)}${state?.source?.rationale ? ` · ${esc(state.source.rationale)}` : ''}</p>${Object.keys(state?.appearance || {}).length ? `<p class="state-source">当前外观：${esc(Object.values(state.appearance).join(' · '))}</p>` : ''}</section><section><h3>近期安排</h3>${schedule.length ? `<ul class="schedule-list">${schedule.map(item => `<li><b>${esc(item.title)}</b><small>${formatTime(item.startsAt)}</small><button class="schedule-reschedule" data-reschedule="${esc(item.id)}" aria-label="改期">↻</button><button class="schedule-cancel" data-schedule="${esc(item.id)}" aria-label="取消这项安排">×</button></li>`).join('')}</ul>` : '<p class="muted">暂无公开的近期安排</p>'}</section><section><h3>生活设定</h3><p class="detail-text">${foundationLines.map(esc).join('<br>')}</p>${inferredFields.length ? `<p class="state-source">AI 推断：${esc(inferredFields.join('、'))}</p>` : '<p class="state-source">所有初始设定均由你提供</p>'}<button class="quiet" id="edit-foundation">修订基础人格</button>${activeDetail.foundationRevisions.length > 1 ? `<ul class="foundation-list">${activeDetail.foundationRevisions.map((revision, index) => `<li><span><b>版本 ${revision.version}</b><small>${esc(revision.reason)} · ${formatTime(revision.createdAt)}</small></span>${index ? `<button class="quiet" data-restore-foundation="${esc(revision.id)}">恢复此版本</button>` : '<small>当前版本</small>'}</li>`).join('')}</ul>` : ''}</section><section><h3>她认识的你</h3>${memories.length ? `<ul class="memory-list">${memories.map(memory => `<li><span>${esc(memory.key)}</span><p>${esc(memory.value)}</p><button data-memory="${esc(memory.id)}" aria-label="删除这条记忆">×</button></li>`).join('')}</ul>` : '<p class="muted">她还在慢慢了解你。</p>'}</section><section><h3>关系变化</h3>${evolutions.length ? `<ul class="evolution-list">${evolutions.map((item, index) => `<li><b>${esc(item.reason)}</b><small>${formatTime(item.createdAt)}</small><span>${esc(item.evidenceSummary)}</span>${(item.changes || []).map(change => `<p class="evolution-diff">${esc(change.field)}：${esc(change.before)} → ${esc(change.after)}</p>`).join('')}${item.status === 'applied' && index === 0 ? `<button data-rollback="${esc(item.id)}" class="quiet">撤销这次变化</button>` : `<span>${item.status === 'reverted' ? '已撤销' : '已归档'}</span>`}</li>`).join('')}</ul>` : '<p class="muted">还没有需要保留的关系变化。</p>'}</section><section><h3>身边的人</h3><p class="supporting-names">${supportingCharacters.length ? supportingCharacters.map(item => esc(item.name)).join(' · ') : '会在生活里慢慢认识新朋友'}</p></section><section><h3>人格生图频率</h3><label class="detail-label" for="image-generation-policy">选择人格在视觉时刻的默认行为<select id="image-generation-policy" aria-label="人格生图频率">${imagePolicyOptions}</select></label><button type="button" class="quiet" id="image-generation-policy-save">保存</button></section><section><h3>管理</h3><button class="quiet" id="persona-moments">查看她的动态</button><button class="quiet" id="screen-persona">${persona.screened ? '取消屏蔽' : '屏蔽动态与主动私聊'}</button><button class="quiet" id="hidden-activities">管理已隐藏动态</button><button class="quiet danger" id="delete-persona">删除此人格</button></section><section class="persona-group-setting"><h3>所属分组</h3><p class="state-source">在这里设置 ${esc(persona.name)} 出现在哪个联系人分组中。</p><div class="persona-group-controls"><select id="persona-group-select" aria-label="选择 ${esc(persona.name)} 所属分组">${groupOptions}</select><button type="button" class="quiet" id="persona-group-save">保存</button></div></section></div></section>`;
         showDialog(dialog);
         $('#close-detail').onclick = () => closeDialog(dialog);
         $('#screen-persona').onclick = () => toggleScreen(persona);
@@ -632,6 +637,18 @@ async function openPersonaDetail(personaId) {
         };
         $('#hidden-activities').onclick = () => openHiddenActivities(persona.id);
         $('#delete-persona').onclick = () => deletePersona(persona);
+        $('#image-generation-policy-save').onclick = async () => {
+            const select = $('#image-generation-policy');
+            const button = $('#image-generation-policy-save');
+            button.disabled = true;
+            try {
+                await api(`/api/companion/personas/${encodeURIComponent(persona.id)}/image-generation-policy`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({policy: select.value})});
+                await openPersonaDetail(persona.id);
+            } catch (error) {
+                button.disabled = false;
+                window.alert(error.message);
+            }
+        };
         $('#persona-group-save').onclick = async () => {
             const select = $('#persona-group-select');
             const button = $('#persona-group-save');

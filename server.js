@@ -40,6 +40,7 @@ const systemCapabilityReplyForm = '【系统能力层：用户可见回复形式
 const systemCapabilityMediaContract = '【系统能力层：媒体任务契约】当用户明确要看图片/视频，或你自己作出确定的媒体交付承诺（例如“待会拍一张，拍完发你”“我找找照片，找到发你”）时，必须在用户可见文字末尾追加唯一的 <media-intent>{"schemaVersion":2,"kind":"image 或 video","request":"可选，不超过 500 字的交付说明","count":1,"personaMediaConcept":{"schemaVersion":1,"mediaKind":"image 或 video","scene":"","action":"","mood":"","narrative":"","humanSubjects":[{"label":"","role":"","inFrame":true}],"nonHumanObjects":[{"label":"","kind":"","inFrame":true}],"capture":{"mode":"selfie|external_capture|operator_pov|first_person|other","operator":"","deviceVisibility":"visible|out_of_frame|unspecified","framingIntent":""},"compositionIntent":""},"currentEvent":null,"temporaryAppearance":{}}</media-intent>。标签内必须是严格 JSON，kind 仅可为 image/video，count 仅可为 1-3，personaMediaConcept.mediaKind 必须与 kind 相同。你必须在这次调用中自己决定场景、人物/非人物对象、动作、情绪和拍摄/入镜关系；不要只写 request 让服务器或稍后的 worker 猜画面。currentEvent 与 temporaryAppearance 也必须如实带入调用记录；服务器会冻结自身权威状态，不能被这些字段覆盖。此标签只授权创建媒体作业，不是最终 provider prompt；没有明确交付意图时不得追加标签；不要在普通文本中假装已经发送媒体。';
 const systemCapabilityPendingEventContract = '【系统能力层：待定事件契约】只有当这次聊天中出现明确、尚未完成且稍后值得自然跟进的事项时，才可以在用户可见文字末尾追加唯一的 <pending-event>{"schemaVersion":1,"summary":"不超过 280 字的待跟进事实","notBefore":"带时区的绝对 ISO 时间","expiresAt":"带时区的绝对 ISO 时间","dedupeKey":"稳定短键"}</pending-event>。普通闲聊、泛泛情绪、已经解决的问题、没有明确时间边界的内容不得调用。时间必须由你明确给出带时区的绝对时间，服务器不会从自然语言猜测；expiresAt 必须晚于 notBefore，且候选有效期不超过未来 30 天。标签只登记待跟进事实，不直接发送主动消息；同一事项重复登记应使用相同 dedupeKey。标签内必须是严格 JSON，未知字段不会生效，调用失败不会影响普通聊天。';
 const systemCapabilityTimeFact = '【系统能力层：时间事实】只能引用应用提供的当前状态来源、可信结束时间和下一可信时间边界。只有 timeFact=known 时才可以向用户说具体结束时间；timeFact=unknown 或可信结束时间为“无”时，不得根据“学生”“上课”等身份猜测课程、时长或下课时刻，也不得编造“十点半”等具体时间。计划外 baseline、睡眠、休息或等待状态不得叙述成课程、工作或其他已确认活动。';
+const systemCapabilitySceneContract = '【系统能力层：共同场景与自然动作】普通文字用于自然交流，括号中的自然语言是可选、短暂且用户可见的动作描述；用户和人格都可以这样表达，服务端会原样保存，不会解析括号内容或因其中出现某个词产生副作用。不要为每个手势调用工具。只有地点或活动真正开始、切换或结束时，才调用唯一的 scene_event 工具；重大变化先在自然对话中提出并结合用户的上下文回复判断是否已经得到足够确认，模糊回复时继续自然追问或保持当前场景。场景工具由你决定是否调用，服务器只验证参数并保存事实，不从用户原文猜测接受、拒绝、动作或媒体意图。';
 const personaMediaConceptContract = '你正在以该陪伴人格的身份，为一次已授权的图片或视频交付提出简洁的画面概念。只返回严格 JSON，不要返回用户可见聊天文字，不要返回最终 provider prompt。JSON 必须是 {"schemaVersion":1,"mediaKind":"image"|"video","scene":"","action":"","mood":"","narrative":"","humanSubjects":[{"label":"","role":"","inFrame":true|false}],"nonHumanObjects":[{"label":"","kind":"","inFrame":true|false}],"capture":{"mode":"selfie"|"external_capture"|"operator_pov"|"first_person"|"other","operator":"","deviceVisibility":"visible"|"out_of_frame"|"unspecified","framingIntent":""},"compositionIntent":""}。先忠实附带的身份和当前生活事实；再结合媒体交付说明决定画面。人类主体必须只列真正的人，衣物、道具、宠物、屏幕、镜面/倒影和环境物体必须列入 nonHumanObjects。你负责明确自拍、他拍、摄影者 POV 或第一人称等拍摄关系；不要把不确定的视觉判断留给服务器。';
 const imagePromptMasterContract = '你是专业的 AI 生图提示词大师。输入包含服务器附带的身份/当前生活事实，以及 AI 人格已经给出的结构化媒体概念。你必须把它们填入唯一固定的生图模板；不要重新发明人物、场景或拍摄关系，也不要返回用户可见聊天文字。只返回严格 JSON：{"schemaVersion":1,"sections":{"capture":"","humanSubjects":"","identityAndContinuity":"","sceneAndAction":"","wardrobeAndNonHumanProps":"","lightingAndMood":"","photographyStyleAndColor":"","constraints":""}}。八段内容按字段分别填写为简洁、可执行的自然语言摄影/视频提示词：你必须主动消除同义重复和低优先级赘述，优先保留人物、镜头关系、动作、场景与必要约束；但不得为了变短而遗漏这些关键事实。capture 必须把概念声明的自拍、外部他拍、摄影者 POV 或第一人称拍法写得物理上合理；humanSubjects 只列人格概念明确允许入镜的真实人类，不要写“共 X 人”；衣物、道具、动物、屏幕、镜面/倒影和环境物体只能进入 wardrobeAndNonHumanProps 或 constraints，不得变成人。所有段落必须尊重附带身份和当前状态事实；constraints 由你根据概念和事实完成，服务器不会补写任何视觉规则。';
 
@@ -347,6 +348,27 @@ const companionMigrations = [
             database.prepare('UPDATE companion_personas SET group_id = ? WHERE group_id IS NULL').run(defaultGroupId);
             database.exec('CREATE INDEX companion_personas_group_created_idx ON companion_personas(group_id, created_at)');
         }
+    },
+    {
+        version: 10,
+        name: 'natural-language-interview-provenance',
+        apply() {
+            const columns = database.prepare('PRAGMA table_info(companion_interview_sessions)').all().map(column => column.name);
+            if (!columns.includes('source')) database.exec("ALTER TABLE companion_interview_sessions ADD COLUMN source TEXT NOT NULL DEFAULT 'interview'");
+            if (!columns.includes('inferred_fields_json')) database.exec("ALTER TABLE companion_interview_sessions ADD COLUMN inferred_fields_json TEXT NOT NULL DEFAULT '[]'");
+        }
+    },
+    {
+        version: 11,
+        name: 'shared-scene-and-image-generation-policy',
+        apply() {
+            const personaColumns = database.prepare('PRAGMA table_info(companion_personas)').all().map(column => column.name);
+            if (!personaColumns.includes('image_generation_policy')) database.exec("ALTER TABLE companion_personas ADD COLUMN image_generation_policy TEXT NOT NULL DEFAULT 'autonomous'");
+            database.exec("UPDATE companion_personas SET image_generation_policy = 'autonomous' WHERE image_generation_policy NOT IN ('ask', 'always', 'important', 'user_only', 'autonomous') OR image_generation_policy IS NULL OR image_generation_policy = ''");
+            const stateColumns = database.prepare('PRAGMA table_info(companion_persona_states)').all().map(column => column.name);
+            if (!stateColumns.includes('shared_scene_json')) database.exec("ALTER TABLE companion_persona_states ADD COLUMN shared_scene_json TEXT NOT NULL DEFAULT '{}'");
+            database.exec("UPDATE companion_persona_states SET shared_scene_json = '{}' WHERE shared_scene_json IS NULL OR trim(shared_scene_json) = ''");
+        }
     }
 ];
 
@@ -557,6 +579,136 @@ function publicBlueprint(personaId) {
     return safe;
 }
 
+const imageGenerationPolicies = Object.freeze(['ask', 'always', 'important', 'user_only', 'autonomous']);
+const imageGenerationPolicyLabels = Object.freeze({
+    ask: '始终询问', always: '始终生成', important: '重要时刻自动生成', user_only: '只有我要求才生成', autonomous: '人格自行决定'
+});
+
+function normalizeImageGenerationPolicy(value, fallback = 'autonomous') {
+    return imageGenerationPolicies.includes(value) ? value : fallback;
+}
+
+const sceneEventOperations = Object.freeze(['start', 'switch', 'end']);
+const sceneEventTool = Object.freeze({
+    type: 'function',
+    function: {
+        name: 'scene_event',
+        description: 'Persist a material shared-scene start, switch, or end after the conversation supports it.',
+        parameters: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['operation'],
+            properties: {
+                operation: {type: 'string', enum: [...sceneEventOperations]},
+                location: {type: 'string', maxLength: 160},
+                room: {type: 'string', maxLength: 120},
+                activity: {type: 'string', maxLength: 160},
+                situation: {type: 'string', maxLength: 240},
+                mood: {type: 'string', maxLength: 80},
+                objects: {type: 'array', items: {type: 'string', maxLength: 80}, maxItems: 12},
+                participants: {type: 'array', items: {type: 'string', enum: ['user', 'persona']}, maxItems: 2}
+            }
+        }
+    }
+});
+
+function boundedSceneText(value, limit) {
+    return typeof value === 'string' ? value.trim().slice(0, limit) : '';
+}
+
+function sceneInputText(value, label, limit) {
+    if (value === undefined) return '';
+    if (typeof value !== 'string') throw new Error(`${label} 必须是字符串`);
+    const text = value.trim();
+    if (text.length > limit) throw new Error(`${label} 不能超过 ${limit} 个字符`);
+    return text;
+}
+
+function normalizeSceneEventCall(value) {
+    if (!isRecord(value)) throw new Error('scene_event 参数必须是 JSON 对象');
+    const allowed = ['operation', 'location', 'room', 'activity', 'situation', 'mood', 'objects', 'participants'];
+    if (Object.keys(value).some(key => !allowed.includes(key))) throw new Error('scene_event 参数包含不支持字段');
+    const operation = value.operation;
+    if (!sceneEventOperations.includes(operation)) throw new Error('scene_event operation 无效');
+    const location = sceneInputText(value.location, 'scene_event.location', 160);
+    const room = sceneInputText(value.room, 'scene_event.room', 120);
+    const activity = sceneInputText(value.activity, 'scene_event.activity', 160);
+    const situation = sceneInputText(value.situation, 'scene_event.situation', 240);
+    const mood = sceneInputText(value.mood, 'scene_event.mood', 80);
+    if (value.objects !== undefined && (!Array.isArray(value.objects) || value.objects.length > 12 || value.objects.some(item => typeof item !== 'string' || item.trim().length > 80))) throw new Error('scene_event.objects 格式无效');
+    if (value.participants !== undefined && (!Array.isArray(value.participants) || value.participants.length > 2 || value.participants.some(item => !['user', 'persona'].includes(item)))) throw new Error('scene_event.participants 格式无效');
+    if (operation === 'end') return {operation};
+    if ((!location && !activity) || !situation) throw new Error('scene_event.start/switch 必须包含地点或活动以及 situation');
+    const participants = [...new Set((value.participants || ['user', 'persona']).map(item => item))];
+    return {
+        operation, location, room, activity, situation,
+        mood,
+        objects: (value.objects || []).map(item => item.trim()).filter(Boolean),
+        participants: participants.length ? participants : ['user', 'persona']
+    };
+}
+
+function sharedSceneFor(personaId) {
+    const raw = database.prepare('SELECT shared_scene_json FROM companion_persona_states WHERE persona_id = ?').get(personaId)?.shared_scene_json;
+    const scene = json(raw, null);
+    if (!isRecord(scene) || !boundedSceneText(scene.eventId, 80)) return null;
+    const location = boundedSceneText(scene.location, 160);
+    const room = boundedSceneText(scene.room, 120);
+    const activity = boundedSceneText(scene.activity, 160);
+    const situation = boundedSceneText(scene.situation, 240);
+    if ((!location && !activity) || !situation) return null;
+    return {
+        location, room, activity, situation, mood: boundedSceneText(scene.mood, 80),
+        objects: Array.isArray(scene.objects) ? scene.objects.map(item => boundedSceneText(item, 80)).filter(Boolean).slice(0, 12) : [],
+        participants: Array.isArray(scene.participants) ? [...new Set(scene.participants.filter(item => ['user', 'persona'].includes(item)))].slice(0, 2) : ['user', 'persona'],
+        startedAt: boundedSceneText(scene.startedAt, 80), eventId: boundedSceneText(scene.eventId, 80)
+    };
+}
+
+function imageGenerationPolicyFor(personaId) {
+    const value = database.prepare('SELECT image_generation_policy FROM companion_personas WHERE id = ?').get(personaId)?.image_generation_policy;
+    return normalizeImageGenerationPolicy(value);
+}
+
+function applySceneEvent(personaInput, value, causationId) {
+    const persona = typeof personaInput === 'string' ? requirePersona(personaInput) : requirePersona(personaInput?.id);
+    const call = normalizeSceneEventCall(value);
+    const sourceMessageId = String(causationId || '').trim();
+    if (!sourceMessageId) throw new Error('scene_event 必须关联来源用户消息');
+    const source = database.prepare(`
+        SELECT messages.id FROM companion_messages messages
+        JOIN companion_conversations conversations ON conversations.id = messages.conversation_id
+        WHERE messages.id = ? AND conversations.persona_id = ? AND messages.role = 'user'
+    `).get(sourceMessageId, persona.id);
+    if (!source) throw new Error('scene_event 来源消息不存在或不属于该人格');
+    const previousScene = sharedSceneFor(persona.id);
+    const createdAt = now();
+    const eventId = id('event');
+    const fallback = scheduledState(persona, new Date(createdAt));
+    const nextScene = call.operation === 'end' ? null : {
+        location: call.location, room: call.room, activity: call.activity, situation: call.situation,
+        mood: call.mood || '平静', objects: call.objects, participants: call.participants,
+        startedAt: createdAt, eventId
+    };
+    const payload = {
+        schemaVersion: 1, operation: call.operation, source: 'scene_event', causationId: source.id, eventId,
+        location: nextScene?.location || '', room: nextScene?.room || '', activity: nextScene?.activity || '',
+        situation: nextScene?.situation || fallback.situation || '', mood: nextScene?.mood || fallback.mood || '平静',
+        objects: nextScene?.objects || [], participants: nextScene?.participants || previousScene?.participants || ['user', 'persona'],
+        startedAt: nextScene?.startedAt || null, previousScene: call.operation === 'switch' || call.operation === 'end' ? previousScene : null
+    };
+    database.transaction(() => {
+        database.prepare('INSERT INTO companion_life_events (id, persona_id, type, occurred_at, resolves_at, causation_id, payload_json, created_at) VALUES (?, ?, ?, ?, NULL, ?, ?, ?)').run(
+            eventId, persona.id, call.operation === 'end' ? 'shared_scene_end' : 'shared_scene', createdAt, source.id, JSON.stringify(payload), createdAt
+        );
+        database.prepare('UPDATE companion_persona_states SET situation = ?, mood = ?, checkpoint_at = ?, updated_at = ?, source_event_id = ?, shared_scene_json = ? WHERE persona_id = ?').run(
+            nextScene?.situation || fallback.situation || '', nextScene?.mood || fallback.mood || '平静', createdAt, createdAt, eventId, JSON.stringify(nextScene || {}), persona.id
+        );
+        database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(createdAt, persona.id);
+    })();
+    return {eventId, operation: call.operation, scene: nextScene, previousScene};
+}
+
 function stateFor(personaId) {
     const state = database.prepare('SELECT * FROM companion_persona_states WHERE persona_id = ?').get(personaId);
     if (!state || !state.source_event_id || !Object.keys(json(state.appearance_json, {})).length) return state;
@@ -569,6 +721,36 @@ function stateFor(personaId) {
 function resolvedStateFor(personaId, at = new Date()) {
     const persona = requirePersona(personaId);
     const persisted = stateFor(personaId);
+    const sharedScene = sharedSceneFor(personaId);
+    if (sharedScene) {
+        return {
+            ...persisted,
+            situation: sharedScene.situation,
+            mood: sharedScene.mood || persisted?.mood || '平静',
+            appearance_json: persisted?.appearance_json || '{}',
+            source_event_id: sharedScene.eventId,
+            resolved_source: 'shared_scene',
+            resolved_schedule_id: null,
+            resolved_source_id: sharedScene.eventId,
+            resolved_scene: sharedScene.activity || sharedScene.situation || '共同场景',
+            resolved_location: sharedScene.location,
+            resolved_room: sharedScene.room,
+            resolved_starts_at: sharedScene.startedAt || null,
+            resolved_ends_at: null,
+            resolved_time_fact: 'unknown',
+            resolved_next_boundary_at: null,
+            sourceId: sharedScene.eventId,
+            source: 'shared_scene',
+            startsAt: sharedScene.startedAt || null,
+            endsAt: null,
+            timeFact: 'unknown',
+            nextBoundaryAt: null,
+            location: sharedScene.location,
+            room: sharedScene.room,
+            shared_scene_json: JSON.stringify(sharedScene),
+            sharedScene
+        };
+    }
     const resolved = scheduledState(persona, at);
     // The resolved state is a read-time projection.  It intentionally does
     // not wait for the five-minute reconciliation worker: chat, UI, and media
@@ -596,7 +778,9 @@ function resolvedStateFor(personaId, at = new Date()) {
         timeFact: resolved.timeFact || (resolved.endsAt ? 'known' : 'unknown'),
         nextBoundaryAt: resolved.nextBoundaryAt || resolved.endsAt || null,
         location: resolved.location || '',
-        room: resolved.room || ''
+        room: resolved.room || '',
+        shared_scene_json: '{}',
+        sharedScene: null
     };
 }
 
@@ -608,7 +792,7 @@ function stateShape(personaId, at = new Date()) {
         ? database.prepare('SELECT id, type, occurred_at, causation_id, payload_json FROM companion_life_events WHERE id = ? AND persona_id = ?').get(persistedSourceId, personaId)
         : null;
     const readyPlan = readyDailyPlanFor(requirePersona(personaId), at);
-    const sourceEvent = state.source_event_id
+    const sourceEvent = state.source_event_id && persistedSource?.type !== 'shared_scene_end'
         ? persistedSource
         : !readyPlan && ['schedule', 'recovery'].includes(persistedSource?.type) ? persistedSource : null;
     const payload = json(sourceEvent?.payload_json, {});
@@ -625,6 +809,7 @@ function stateShape(personaId, at = new Date()) {
     return {
         situation: state.situation, mood: state.mood, appearance: json(state.appearance_json, {}),
         scene: state.resolved_scene || resolvedScene.scene, location: state.resolved_location || resolvedScene.location, room: state.resolved_room || resolvedScene.room,
+        sharedScene: state.sharedScene || null,
         sourceId: sourceDetails.sourceId, startsAt: sourceDetails.startsAt, endsAt: sourceDetails.endsAt,
         timeFact: sourceDetails.timeFact, nextBoundaryAt: sourceDetails.nextBoundaryAt,
         updatedAt: state.updated_at, checkpointAt: state.checkpoint_at, sourceEventId: state.source_event_id || null,
@@ -984,29 +1169,152 @@ function nextInterviewQuestion(answers, skipped = []) {
     return question ? {...question} : null;
 }
 
+const interviewFieldKeys = new Set(interviewQuestions.map(question => question.key));
+const interviewProvenancePaths = {
+    name: ['roleCore.name'], role: ['roleCore.occupation'], foundation: [],
+    ageBand: ['roleCore.ageBand'], occupation: ['roleCore.occupation'], socialIdentity: ['roleCore.socialIdentity'],
+    householdContext: ['roleCore.householdContext'], initialRelationships: ['roleCore.initialRelationships'],
+    personalityTraits: ['personalityCore.traits'], socialAttitude: ['personalityCore.socialAttitude'],
+    languageStyle: ['personalityCore.languageStyle'], specialSetting: ['personalityCore.specialSetting'],
+    culturalPresentation: ['appearanceCore.culturalPresentation'], faceBuild: ['appearanceCore.faceBuild'],
+    complexionAura: ['appearanceCore.complexionAura'], hair: ['appearanceCore.hair'],
+    everydayWardrobe: ['appearanceCore.everydayWardrobe'], distinguishingFeatures: ['appearanceCore.distinguishingFeatures'],
+    visualBaseline: ['appearanceCore.everydayWardrobe'], supportingCast: ['roleCore.initialRelationships'],
+    userIdentity: ['interactionRules.userIdentity'], communicationDistance: ['interactionRules.communicationDistance'],
+    interactionBoundaries: ['interactionRules.boundaries']
+};
+
+function normalizeInterviewInferredFields(value) {
+    if (!Array.isArray(value)) return [];
+    return [...new Set(value.filter(field => typeof field === 'string' && interviewFieldKeys.has(field)))];
+}
+
+function interviewMetadata(row) {
+    return {
+        source: row?.source === 'natural-language' ? 'natural-language' : 'interview',
+        inferredFields: normalizeInterviewInferredFields(json(row?.inferred_fields_json, []))
+    };
+}
+
+function applyInterviewProvenance(blueprint, answers, inferredFields) {
+    const normalizedInferredFields = normalizeInterviewInferredFields(inferredFields);
+    const inferredSet = new Set(normalizedInferredFields);
+    blueprint.provenance = {...blueprint.provenance};
+    blueprint.inferred = {...blueprint.inferred};
+    for (const question of interviewQuestions) {
+        const field = question.key;
+        const hasValue = Boolean(String(answers[field] || '').trim());
+        if (field === 'name' || field === 'role') blueprint.provenance[field] = inferredSet.has(field) || !hasValue ? 'inferred' : 'user';
+        if (inferredSet.has(field)) {
+            blueprint.provenance[field] = 'inferred';
+            blueprint.inferred[field] = true;
+            for (const path of interviewProvenancePaths[field] || []) blueprint.provenance[path] = 'inferred';
+        } else if (hasValue) {
+            blueprint.provenance[field] = 'user';
+            for (const path of interviewProvenancePaths[field] || []) blueprint.provenance[path] = 'user';
+        }
+    }
+    return blueprint;
+}
+
 function interviewView(row) {
     const answers = normalizeInterviewAnswers(json(row.answers_json, {}));
     const skipped = json(row.skipped_json, []);
     const question = row.status === 'active' ? nextInterviewQuestion(answers, skipped) : null;
+    const metadata = interviewMetadata(row);
     return {
-        id: row.id, status: question ? 'active' : 'ready', question,
+        id: row.id, status: question ? 'active' : 'ready', question, source: metadata.source,
         answers, skipped: Array.isArray(skipped) ? skipped : [],
-        preview: question ? null : previewInterviewAnswers(answers)
+        inferredFields: metadata.inferredFields,
+        preview: question ? null : previewInterviewAnswers(answers, metadata.source === 'natural-language' ? metadata : null)
     };
 }
 
-function previewInterviewAnswers(answers) {
+function previewInterviewAnswers(answers, options = null) {
     const cast = String(answers.supportingCast || '').split(/[，,、]/).map(name => name.trim()).filter(Boolean).map(name => ({name, relationshipKind: '朋友'}));
     const blueprint = buildInitialBlueprint({...answers, supportingCast: cast});
-    return {foundation: blueprint.foundation, blueprint, inferredFields: Object.keys(blueprint.inferred).filter(key => blueprint.inferred[key])};
+    const inferredFields = options && Array.isArray(options.inferredFields)
+        ? normalizeInterviewInferredFields(options.inferredFields)
+        : Object.keys(blueprint.inferred).filter(key => blueprint.inferred[key]);
+    applyInterviewProvenance(blueprint, answers, inferredFields);
+    return {foundation: blueprint.foundation, blueprint, inferredFields};
 }
 
 function createInterview(initialAnswers = {}) {
     const createdAt = now();
     const session = {id: id('interview'), answers: normalizeInterviewAnswers(initialAnswers), skipped: []};
     const ready = !nextInterviewQuestion(session.answers, session.skipped);
-    database.prepare("INSERT INTO companion_interview_sessions (id, answers_json, skipped_json, status, created_at, updated_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(session.id, JSON.stringify(session.answers), JSON.stringify(session.skipped), ready ? 'ready' : 'active', createdAt, createdAt, ready ? createdAt : null);
+    database.prepare("INSERT INTO companion_interview_sessions (id, answers_json, skipped_json, status, source, inferred_fields_json, created_at, updated_at, completed_at) VALUES (?, ?, ?, ?, 'interview', '[]', ?, ?, ?)").run(session.id, JSON.stringify(session.answers), JSON.stringify(session.skipped), ready ? 'ready' : 'active', createdAt, createdAt, ready ? createdAt : null);
     return interviewView(database.prepare('SELECT * FROM companion_interview_sessions WHERE id = ?').get(session.id));
+}
+
+const naturalLanguageDescriptionMaxLength = 6000;
+const personaDescriptionPromptVersion = 'persona-description-v1';
+const personaDescriptionDefaults = {
+    name: '新朋友', role: '陪伴者', foundation: '新朋友是一位陪伴者。'
+};
+
+function validatePersonaDescription(description) {
+    if (typeof description !== 'string' || !description.trim()) throw Object.assign(new Error('人格描述不能为空'), {status: 400});
+    if (description.length > naturalLanguageDescriptionMaxLength) throw Object.assign(new Error(`人格描述不能超过 ${naturalLanguageDescriptionMaxLength} 个字符`), {status: 400});
+    return description.trim();
+}
+
+function normalizePersonaDescriptionExtraction(value) {
+    if (!isRecord(value) || Object.keys(value).some(key => !['answers', 'inferredFields'].includes(key))) throw new Error('人格分析结果包含未知字段');
+    if (!isRecord(value.answers)) throw new Error('人格分析结果缺少有效 answers');
+    if (!Array.isArray(value.inferredFields) || value.inferredFields.some(field => typeof field !== 'string')) throw new Error('人格分析结果缺少有效 inferredFields');
+    const unknownAnswer = Object.keys(value.answers).find(key => !interviewFieldKeys.has(key));
+    if (unknownAnswer) throw new Error('人格分析结果包含未知人格字段');
+    for (const [key, raw] of Object.entries(value.answers)) {
+        if (raw === null || raw === undefined) continue;
+        const arrayAllowed = key === 'interests' || key === 'supportingCast';
+        if (typeof raw !== 'string' && !(arrayAllowed && Array.isArray(raw) && raw.every(item => typeof item === 'string'))) throw new Error(`人格分析字段 ${key} 的格式无效`);
+    }
+    const answers = normalizeInterviewAnswers(value.answers);
+    const inferredFields = normalizeInterviewInferredFields(value.inferredFields);
+    if (value.inferredFields.some(field => !interviewFieldKeys.has(field))) throw new Error('人格分析结果包含未知来源字段');
+    for (const [key, fallback] of Object.entries(personaDescriptionDefaults)) {
+        if (!answers[key]) {
+            answers[key] = fallback;
+            if (!inferredFields.includes(key)) inferredFields.push(key);
+        }
+    }
+    return {answers, inferredFields};
+}
+
+async function analyzePersonaDescription(description) {
+    const source = validatePersonaDescription(description);
+    const system = `你是人格初始化信息抽取器。只返回一个严格 JSON 对象，不得返回 Markdown、解释或额外字段。对象必须只有 answers 和 inferredFields：answers 只能使用既有访谈字段白名单，inferredFields 是其中由你推断、补全或概括的字段名数组。只保留与陪伴人格身份、性格、语言风格、兴趣、外观、身边角色、用户关系和互动边界有关的信息，丢弃无关内容。用户明确写出的事实优先，不要把未写出的事实标记为 user；无法确定的字段省略。缺少 name、role 或 foundation 时可使用保守默认值，并将对应字段放入 inferredFields。字段值必须是简洁字符串，interests 和 supportingCast 也可以是字符串数组。不要保存或复述原始描述。白名单字段：${interviewQuestions.map(question => question.key).join(', ')}。promptVersion=${personaDescriptionPromptVersion}`;
+    try {
+        const response = await lmCompletion({stream: false, temperature: .1, signal: AbortSignal.timeout(8_000), messages: [{role: 'system', content: system}, {role: 'user', content: source}]});
+        const content = String((await response.json()).choices?.[0]?.message?.content || '').trim();
+        if (!content) throw new Error('模型返回为空');
+        const parsed = modelJson(content, '人格分析');
+        const normalized = normalizePersonaDescriptionExtraction(parsed);
+        const preview = previewInterviewAnswers(normalized.answers, {inferredFields: normalized.inferredFields});
+        return {source: 'natural-language', promptVersion: personaDescriptionPromptVersion, answers: normalized.answers, inferredFields: normalized.inferredFields, preview};
+    } catch (error) {
+        if (error?.status === 400) throw error;
+        const message = String(error?.message || error).replace(/\s+/g, ' ').slice(0, 180);
+        throw Object.assign(new Error(`人格分析失败：${message || '模型未返回有效结果'}`), {status: 502});
+    }
+}
+
+async function createNaturalLanguageInterview(description) {
+    const analysis = await analyzePersonaDescription(description);
+    const createdAt = now();
+    const interviewId = id('interview');
+    database.prepare("INSERT INTO companion_interview_sessions (id, answers_json, skipped_json, status, source, inferred_fields_json, created_at, updated_at, completed_at) VALUES (?, ?, '[]', 'ready', 'natural-language', ?, ?, ?, ?)").run(interviewId, JSON.stringify(analysis.answers), JSON.stringify(analysis.inferredFields), createdAt, createdAt, createdAt);
+    return interviewView(database.prepare('SELECT * FROM companion_interview_sessions WHERE id = ?').get(interviewId));
+}
+
+function interviewAnswersForActivation(interview, input = {}) {
+    const persistedAnswers = normalizeInterviewAnswers(json(interview.answers_json, {}));
+    const overrides = normalizeInterviewAnswers(input.overrides || {});
+    const answers = {...persistedAnswers, ...overrides};
+    const inferredFields = interviewMetadata(interview).inferredFields.filter(field => !Object.hasOwn(overrides, field));
+    return {answers, overrides, inferredFields};
 }
 
 function answerInterview(interviewId, input) {
@@ -1032,8 +1340,8 @@ function activateInterview(interviewId, input = {}) {
     if (!claimed.changes) throw Object.assign(new Error('访谈尚未准备好激活'), {status: 409});
     try {
         const interview = database.prepare('SELECT * FROM companion_interview_sessions WHERE id = ?').get(interviewId);
-        const answers = {...normalizeInterviewAnswers(json(interview.answers_json, {})), ...normalizeInterviewAnswers(input.overrides || {})};
-        const preview = previewInterviewAnswers(answers);
+        const {answers, inferredFields} = interviewAnswersForActivation(interview, input);
+        const preview = previewInterviewAnswers(answers, {inferredFields});
         const persona = createPersona({name: answers.name, role: answers.role, foundation: preview.foundation, blueprint: preview.blueprint, color: input.color});
         database.prepare("UPDATE companion_interview_sessions SET status = 'activated', updated_at = ?, completed_at = ? WHERE id = ? AND status = 'activating'").run(now(), now(), interview.id);
         return persona;
@@ -1089,8 +1397,8 @@ async function activateInterviewWithLifeModel(interviewId, input = {}) {
     if (!claimed.changes) throw Object.assign(new Error('访谈尚未准备好激活'), {status: 409});
     try {
         const interview = database.prepare('SELECT * FROM companion_interview_sessions WHERE id = ?').get(interviewId);
-        const answers = {...normalizeInterviewAnswers(json(interview.answers_json, {})), ...normalizeInterviewAnswers(input.overrides || {})};
-        const preview = previewInterviewAnswers(answers);
+        const {answers, inferredFields} = interviewAnswersForActivation(interview, input);
+        const preview = previewInterviewAnswers(answers, {inferredFields});
         const blueprint = await generateInitialLifeBlueprint(answers, preview.blueprint);
         const persona = createPersona({name: answers.name, role: answers.role, foundation: preview.foundation, blueprint, color: input.color});
         database.prepare("UPDATE companion_interview_sessions SET status = 'activated', updated_at = ?, completed_at = ? WHERE id = ? AND status = 'activating'").run(now(), now(), interview.id);
@@ -1551,7 +1859,9 @@ function createEvent(persona, event, options = {}) {
                 database.prepare('UPDATE companion_life_events SET payload_json = ? WHERE id = ?').run(JSON.stringify(payload), eventId);
             }
         }
-        database.prepare('UPDATE companion_persona_states SET situation = ?, mood = ?, appearance_json = ?, checkpoint_at = ?, updated_at = ?, source_event_id = ? WHERE persona_id = ?').run(payload.situation, payload.mood, JSON.stringify(payload.appearance), createdAt, createdAt, eventId, persona.id);
+        if (!sharedSceneFor(persona.id)) {
+            database.prepare('UPDATE companion_persona_states SET situation = ?, mood = ?, appearance_json = ?, checkpoint_at = ?, updated_at = ?, source_event_id = ? WHERE persona_id = ?').run(payload.situation, payload.mood, JSON.stringify(payload.appearance), createdAt, createdAt, eventId, persona.id);
+        }
         database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(createdAt, persona.id);
         if (options.publish) {
             activityId = id('activity');
@@ -1590,6 +1900,8 @@ function createEvent(persona, event, options = {}) {
 function reconcilePersona(personaId, {publish = true} = {}) {
     const persona = personaRow(personaId);
     if (!persona) return null;
+    const sharedScene = sharedSceneFor(persona.id);
+    if (sharedScene) return stateFor(persona.id);
     advanceTimelineSlots(persona.id);
     const next = scheduledState(persona);
     const current = stateFor(persona.id);
@@ -1939,6 +2251,7 @@ function lifeStateLayer(life, state, appearance, interaction = {}, dailyPlan = n
     const planSummary = dailyPlan?.timeline?.length
         ? dailyPlan.timeline.map(item => `${item.startsAt}–${item.endsAt} ${item.title}`).join('；')
         : '';
+    const sharedScene = state?.sharedScene;
     return [
         dailyPlan
             ? `【生活状态层】当天计划已就绪：${planSummary || '全天基线状态已生成'}。legacy routine 不是当前事实，不得用它推断课程、工作或结束时间；兴趣：${(life.interests || []).join('、') || '未设定'}。`
@@ -1946,6 +2259,9 @@ function lifeStateLayer(life, state, appearance, interaction = {}, dailyPlan = n
         `【生活状态层】【当前真实状态】${state?.situation || '暂无'}；当前场景：${state?.resolved_scene || state?.scene || '日常场景'}；地点：${state?.resolved_location || state?.location || '未确认'}；房间：${state?.resolved_room || state?.room || '未确认'}；心情：${state?.mood || '平静'}；外观变化：${Object.entries(appearance).map(([key, value]) => `${key}:${value}`).join('，') || '无'}。`,
         `【生活状态层】【时间事实】当前主状态来源：${source}；可信开始时间：${state?.resolved_starts_at || state?.startsAt || '无'}；可信结束时间：${endsAt || '无'}；下一可信时间边界：${nextBoundaryAt || '无'}；timeFact=${state?.resolved_time_fact || state?.timeFact || (endsAt ? 'known' : 'unknown')}。`,
         `【生活状态层】【互动可用性】${interaction.sleeping ? '正在睡眠状态，系统会决定是否现在回应；若已决定延迟，不要解释或假装即时看到了消息。' : '可以在当前生活场景中自然聊天；聊天是叠加互动，不得声称因此改变日程或地点。'}`,
+        sharedScene
+            ? `【共同场景层】当前持续共同场景：地点=${sharedScene.location || '未确认'}；房间=${sharedScene.room || '未确认'}；活动=${sharedScene.activity || '未命名活动'}；参与者=${sharedScene.participants.join('、') || 'user、persona'}；可见物件=${sharedScene.objects.join('、') || '无'}；开始时间=${sharedScene.startedAt || '未知'}。除非调用 scene_event 结束或切换，否则保持该场景连续。`
+            : '【共同场景层】当前没有已持久化的共同场景；普通括号动作只作为聊天叙述，不写入场景事实。',
         '当前生活状态只能由日程和生活事件改变。若当前状态与其他请求冲突，先保持当前状态连续。'
     ].join('\n');
 }
@@ -1968,15 +2284,21 @@ function contextFor(personaId, at = new Date()) {
     const memories = activeMemories(personaId);
     const relationshipPatch = activeRelationshipPatch(personaId);
     const currentState = state;
+    const imagePolicy = imageGenerationPolicyFor(persona.id);
+    const imagePolicyMeaning = {
+        ask: '在生成前先自然询问用户', always: '出现适合视觉记录的时刻时可以直接发起', important: '只在你判断为重要的时刻发起',
+        user_only: '不要主动发起，只响应用户明确要求', autonomous: '由人格结合上下文自然决定'
+    }[imagePolicy];
     const appearance = json(currentState?.appearance_json, {});
     const layers = {
         immutableIdentity: immutableIdentityLayer(persona, foundationRow, life),
         lifeState: lifeStateLayer(life, currentState, appearance, sleepAvailability(persona, at, currentState), dailyPlan),
         relationship: relationshipLayer(memories, relationshipPatch),
-        systemCapability: [systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, systemCapabilityReplyForm].join('\n')
+        systemCapability: [systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, systemCapabilitySceneContract, `【系统能力层：人格生图频率】当前人格偏好为“${imageGenerationPolicyLabels[imagePolicy]}”（${imagePolicy}）：${imagePolicyMeaning}。这是行为偏好，不是服务器关键词触发器；媒体仍必须使用明确的 <media-intent> 契约。`, systemCapabilityReplyForm].join('\n')
     };
     return {
         persona, state: currentState, life, appearance, memories, dailyPlan,
+        imageGenerationPolicy: imagePolicy,
         timeFacts: {
             source: currentState?.resolved_source || currentState?.source || 'unknown',
             startsAt: currentState?.resolved_starts_at || currentState?.startsAt || null,
@@ -2629,6 +2951,70 @@ function sendSse(res, payload) {
     res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
+function appendToolCallFragment(toolCalls, fragment) {
+    const index = Number.isInteger(fragment?.index) ? fragment.index : toolCalls.length;
+    const current = toolCalls[index] || {id: '', type: 'function', function: {name: '', arguments: ''}};
+    current.id += String(fragment?.id || '');
+    current.type = fragment?.type || current.type;
+    current.function.name += String(fragment?.function?.name || '');
+    current.function.arguments += String(fragment?.function?.arguments || '');
+    toolCalls[index] = current;
+}
+
+async function consumeStreamedCompletion(response, {onText} = {}) {
+    const reader = response.body?.getReader?.();
+    if (!reader) throw new Error('模型服务未返回可读取的流');
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let text = '';
+    const toolCalls = [];
+    const processPayload = raw => {
+        if (!raw || raw === '[DONE]') return;
+        let payload;
+        try { payload = JSON.parse(raw); } catch { return; }
+        const choice = payload.choices?.[0] || {};
+        const delta = choice.delta || {};
+        const token = typeof delta.content === 'string' ? delta.content : '';
+        if (token) {
+            text += token;
+            onText?.(token);
+        }
+        for (const fragment of (Array.isArray(delta.tool_calls) ? delta.tool_calls : [])) appendToolCallFragment(toolCalls, fragment);
+        for (const call of (Array.isArray(choice.message?.tool_calls) ? choice.message.tool_calls : [])) appendToolCallFragment(toolCalls, call);
+    };
+    while (true) {
+        const {value, done} = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, {stream: true});
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+            if (line.startsWith('data:')) processPayload(line.slice(5).trim());
+        }
+    }
+    buffer += decoder.decode();
+    if (buffer.startsWith('data:')) processPayload(buffer.slice(5).trim());
+    return {text, toolCalls: toolCalls.filter(Boolean)};
+}
+
+function executeSceneToolCall(persona, toolCalls, causationId) {
+    const sceneCalls = (Array.isArray(toolCalls) ? toolCalls : []).filter(call => call?.function?.name === 'scene_event');
+    if (!sceneCalls.length) return {call: null, result: null, error: null};
+    if (sceneCalls.length > 1) return {call: sceneCalls[0], result: null, error: '本次回复包含多个 scene_event 调用，未执行场景变更'};
+    const call = sceneCalls[0];
+    try {
+        const args = JSON.parse(String(call.function?.arguments || ''));
+        return {call, result: applySceneEvent(persona, args, causationId), error: null};
+    } catch (error) {
+        return {call, result: null, error: String(error?.message || error).replace(/\s+/g, ' ').slice(0, 240)};
+    }
+}
+
+function sceneToolResult(execution) {
+    if (execution?.result) return {ok: true, eventId: execution.result.eventId, operation: execution.result.operation, scene: execution.result.scene};
+    return {ok: false, error: execution?.error || 'scene_event 未执行'};
+}
+
 function createVisibleMarkerRedactor() {
     const tags = ['media-intent', 'pending-event'];
     let buffer = '';
@@ -2800,40 +3186,50 @@ async function streamPersonaChat(req, res) {
         return res.end();
     }
     const recent = listMessages(persona.id, {limit: 18}).items.slice(-18).map(message => ({role: message.role === 'assistant' ? 'assistant' : 'user', content: message.text || '[用户发送了媒体附件]'}));
-    let output = '';
     const visibleRedactor = createVisibleMarkerRedactor();
     try {
-        const response = await lmCompletion({stream: true, temperature: 0.75, messages: [{role: 'system', content: [context.prompt, context.layers.systemCapability].join('\n\n')}, ...recent]});
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        while (true) {
-            const {value, done} = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, {stream: true});
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-            for (const line of lines) {
-                if (!line.startsWith('data:')) continue;
-                const raw = line.slice(5).trim();
-                if (!raw || raw === '[DONE]') continue;
-                try {
-                    const token = JSON.parse(raw).choices?.[0]?.delta?.content || '';
-                    if (token) {
-                        output += token;
+        const systemMessage = {role: 'system', content: [context.prompt, context.layers.systemCapability].join('\n\n')};
+        const modelMessages = [systemMessage, ...recent];
+        const response = await lmCompletion({stream: true, temperature: 0.75, messages: modelMessages, tools: [sceneEventTool], tool_choice: 'auto'});
+        const first = await consumeStreamedCompletion(response, {
+            onText: token => {
+                const visibleToken = visibleRedactor.push(token);
+                if (visibleToken) sendSse(res, {type: 'token', token: visibleToken});
+            }
+        });
+        const trailingVisible = visibleRedactor.flush();
+        if (trailingVisible) sendSse(res, {type: 'token', token: trailingVisible});
+        let output = first.text;
+        let sceneExecution = executeSceneToolCall(persona, first.toolCalls, userMessage.id);
+        let continuationError = null;
+        const firstVisible = extractPendingEventIntent(extractMediaIntent(first.text).text).text.trim();
+        if (first.toolCalls.some(call => call?.function?.name === 'scene_event') && !firstVisible) {
+            const sceneCall = sceneExecution.call;
+            const toolCallId = sceneCall?.id || id('tool_call');
+            const continuationMessages = [
+                ...modelMessages,
+                {role: 'assistant', content: null, tool_calls: [{id: toolCallId, type: 'function', function: {name: 'scene_event', arguments: String(sceneCall?.function?.arguments || '')}}]},
+                {role: 'tool', tool_call_id: toolCallId, content: JSON.stringify(sceneToolResult(sceneExecution))}
+            ];
+            try {
+                const continuation = await lmCompletion({stream: true, temperature: 0.75, messages: continuationMessages, tools: [sceneEventTool], tool_choice: 'none'});
+                const followup = await consumeStreamedCompletion(continuation, {
+                    onText: token => {
                         const visibleToken = visibleRedactor.push(token);
                         if (visibleToken) sendSse(res, {type: 'token', token: visibleToken});
                     }
-                } catch {
-                    // Ignore a malformed upstream SSE packet and keep this client stream alive.
-                }
+                });
+                const followupVisible = visibleRedactor.flush();
+                if (followupVisible) sendSse(res, {type: 'token', token: followupVisible});
+                output = followup.text;
+            } catch (error) {
+                continuationError = String(error?.message || error).replace(/\s+/g, ' ').slice(0, 180);
+                output = '';
             }
         }
-        const trailingVisible = visibleRedactor.flush();
-        if (trailingVisible) sendSse(res, {type: 'token', token: trailingVisible});
         const extracted = extractMediaIntent(output);
         const pending = extractPendingEventIntent(extracted.text);
-        const messages = appendUserVisibleAssistantReply(persona.id, pending.text, {fallback: '我刚刚想了一下，但还没有组织好回复。'});
+        const messages = appendUserVisibleAssistantReply(persona.id, pending.text, {fallback: continuationError ? '我已经记住刚才的场景了，我们继续聊。' : '我刚刚想了一下，但还没有组织好回复。'});
         let pendingEvent = null;
         if (pending.pendingEvent) {
             try {
@@ -2860,7 +3256,7 @@ async function streamPersonaChat(req, res) {
         applyChatAttentionOverlay(persona);
         // `message` remains the compatibility alias for callers that have not yet
         // migrated to the ordered `messages` collection.
-        sendSse(res, {type: 'done', message: messages[0], messages, learned: [], jobs: [], pendingEvent});
+        sendSse(res, {type: 'done', message: messages[0], messages, learned: [], jobs: [], pendingEvent, sceneEvent: sceneExecution.result ? {eventId: sceneExecution.result.eventId, operation: sceneExecution.result.operation} : sceneExecution.error ? {error: sceneExecution.error} : null});
     } catch (error) {
         sendSse(res, {type: 'error', error: `无法连接本地模型：${error.message}`});
     } finally {
@@ -4297,6 +4693,12 @@ app.post('/api/companion/interviews/preview', route((req, res) => {
     res.json(previewInterviewAnswers(normalizeInterviewAnswers(req.body.answers || req.body)));
 }));
 
+app.post('/api/companion/interviews/analyze', route(async (req, res) => {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw Object.assign(new Error('请求体必须是 JSON 对象'), {status: 400});
+    const interview = await createNaturalLanguageInterview(req.body.description);
+    res.status(201).json(interview);
+}));
+
 app.post('/api/companion/interviews', route((req, res) => {
     if (req.body !== undefined && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) throw new Error('请求体必须是 JSON 对象');
     res.status(201).json(createInterview(req.body?.answers || req.body || {}));
@@ -4337,13 +4739,22 @@ app.put('/api/companion/personas/:personaId/group', route((req, res) => {
     res.json(assignPersonaGroup(req.params.personaId, req.body.groupId));
 }));
 
+app.put('/api/companion/personas/:personaId/image-generation-policy', route((req, res) => {
+    const persona = requirePersona(req.params.personaId);
+    const policy = req.body?.policy ?? req.body?.imageGenerationPolicy;
+    if (!imageGenerationPolicies.includes(policy)) throw Object.assign(new Error('人格生图频率无效'), {status: 400});
+    const updatedAt = now();
+    database.prepare('UPDATE companion_personas SET image_generation_policy = ?, updated_at = ? WHERE id = ?').run(policy, updatedAt, persona.id);
+    res.json({personaId: persona.id, imageGenerationPolicy: policy, updatedAt});
+}));
+
 app.get('/api/companion/personas/:personaId', route((req, res) => {
     const persona = requirePersona(req.params.personaId);
     const revisions = database.prepare('SELECT id, version, reason, created_at FROM companion_persona_foundation_revisions WHERE persona_id = ? ORDER BY version DESC').all(persona.id).map(row => ({id: row.id, version: row.version, reason: row.reason, createdAt: row.created_at}));
     const schedule = database.prepare("SELECT * FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND starts_at >= ? ORDER BY starts_at LIMIT 4").all(persona.id, now()).map(scheduleShape);
     const characters = database.prepare('SELECT id, name, relationship_kind FROM companion_supporting_characters WHERE persona_id = ? ORDER BY created_at').all(persona.id).map(row => ({id: row.id, name: row.name, relationshipKind: row.relationship_kind}));
     const evolutions = database.prepare("SELECT * FROM companion_persona_evolutions WHERE persona_id = ? ORDER BY created_at DESC LIMIT 12").all(persona.id).map(evolutionSummary);
-    res.json({persona: summary(persona), foundationSummary: foundationSummary(persona.id), foundationRevisions: revisions, blueprint: publicBlueprint(persona.id), state: stateShape(persona.id), schedule, supportingCharacters: characters, memories: activeMemories(persona.id), evolutions});
+    res.json({persona: {...summary(persona), imageGenerationPolicy: imageGenerationPolicyFor(persona.id)}, imageGenerationPolicy: imageGenerationPolicyFor(persona.id), foundationSummary: foundationSummary(persona.id), foundationRevisions: revisions, blueprint: publicBlueprint(persona.id), state: stateShape(persona.id), schedule, supportingCharacters: characters, memories: activeMemories(persona.id), evolutions});
 }));
 
 app.get('/api/companion/personas/:personaId/foundation/draft', route((req, res) => {
@@ -4518,7 +4929,7 @@ app.get('/api/companion/media/:mediaId', async (req, res) => {
 });
 
 export const companionApp = app;
-export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listGroups, createGroup, assignPersonaGroup, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaCapabilityCall, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, normalizeMediaAcceptance, normalizePendingEventCall, pendingEventShape, createPendingEvent, normalizeProactiveDecision, parseProactiveDecision, freezeProactiveDecision, evaluateProactiveDecision, runProactiveMessageJob, runPendingEventJob, mediaConceptEnvelopeFor, generatePersonaMediaConcept, fillMediaPromptTemplate, renderMediaPromptTemplate, mediaConceptSchemaVersion, mediaCapabilityCallSchemaVersion, mediaPromptTemplateSchemaVersion, mediaPromptTemplateSections, pendingEventSchemaVersion, proactiveDecisionSchemaVersion, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, personaMediaConceptContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, storedDailyPlanItems, normalizeDailyPlan, composeDailyPlanTimeline, readyDailyPlanFor, dailyPlanSlotAt, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan, enqueueRelationshipEvolutionJob, mediaProviders, providerFor, providerSummaries, validateMediaSettings, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
+export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listGroups, createGroup, assignPersonaGroup, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaCapabilityCall, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, normalizeMediaAcceptance, normalizePendingEventCall, pendingEventShape, createPendingEvent, normalizeProactiveDecision, parseProactiveDecision, freezeProactiveDecision, evaluateProactiveDecision, runProactiveMessageJob, runPendingEventJob, mediaConceptEnvelopeFor, generatePersonaMediaConcept, fillMediaPromptTemplate, renderMediaPromptTemplate, mediaConceptSchemaVersion, mediaCapabilityCallSchemaVersion, mediaPromptTemplateSchemaVersion, mediaPromptTemplateSections, pendingEventSchemaVersion, proactiveDecisionSchemaVersion, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, systemCapabilitySceneContract, personaMediaConceptContract, imagePromptMasterContract, imageGenerationPolicies, imageGenerationPolicyLabels, normalizeImageGenerationPolicy, imageGenerationPolicyFor, sceneEventOperations, sceneEventTool, boundedSceneText, normalizeSceneEventCall, sharedSceneFor, applySceneEvent, appendToolCallFragment, consumeStreamedCompletion, executeSceneToolCall, sceneToolResult, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, storedDailyPlanItems, normalizeDailyPlan, composeDailyPlanTimeline, readyDailyPlanFor, dailyPlanSlotAt, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, interviewView, previewInterviewAnswers, validatePersonaDescription, normalizePersonaDescriptionExtraction, analyzePersonaDescription, createNaturalLanguageInterview, naturalLanguageDescriptionMaxLength, personaDescriptionPromptVersion, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan, enqueueRelationshipEvolutionJob, mediaProviders, providerFor, providerSummaries, validateMediaSettings, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
 
 if (process.env.COMPANION_TEST !== '1') {
     app.listen(port, () => {

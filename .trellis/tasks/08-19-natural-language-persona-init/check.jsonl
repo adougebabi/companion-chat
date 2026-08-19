@@ -1,0 +1,7 @@
+{"file":".trellis/spec/backend/error-handling.md","reason":"Check expected validation/provider failure status and {error} response semantics."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Check migration compatibility, no raw-description persistence, and scoped session state."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Run required tests, syntax checks, temporary-data route checks, and request-to-storage review."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Check escaped rendering, dialog event binding, accessibility, and legacy wizard removal from the active client."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Check browser/API contract and narrow/mobile dialog behavior."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Verify every producer/consumer of the new analyze and activation payloads and failure path."}
+{"file":".trellis/tasks/08-19-natural-language-persona-init/research/initial-code-evidence.md","reason":"Use the scoped code evidence as the review baseline."}
