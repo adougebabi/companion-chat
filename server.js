@@ -1809,11 +1809,74 @@ function latestMediaContinuity(personaId) {
 }
 
 const debugSensitiveKey = /(?:api[_-]?key|authorization|token|secret|password|credential|cookie)/i;
-const debugSensitiveValue = /(?:bearer\s+\S+|\b(?:sk|pk)_[A-Za-z0-9_-]{8,}\b|\b(?:api[_-]?key|authorization|token|secret|password|credential)\s*[:=]\s*["']?[^\s,;}"']+)/ig;
+const debugSensitiveValue = /(?:bearer\s+\S+|\b(?:sk|pk)_[A-Za-z0-9_-]{8,}\b|(?:--?)(?:api[_-]?key|authorization|token|secret|password|credential|cookie)(?:\s+|\s*[:=]\s*)["']?[^\s,;}"']+|\b(?:api[_-]?key|authorization|token|secret|password|credential|cookie)\s*[:=]\s*["']?[^\s,;}"']+)/ig;
+const mediaProgressSchemaVersion = 1;
+const mediaProgressOutputLimit = 480;
+const mediaProgressWriteIntervalMs = 1000;
+const mediaProgressMaxLines = 1_000_000;
+const mediaProgressMaxElapsedMs = 24 * 60 * 60_000;
+const mediaProgressStageLabels = Object.freeze({
+    queued: '等待执行',
+    preparing: '正在准备视频生成',
+    generating: '正在生成视频',
+    validating_output: '正在验证视频输出',
+    complete: '视频生成完成',
+    failed: '视频生成失败',
+    unknown: '状态未知'
+});
+
+function redactDebugPaths(value) {
+    return String(value || '')
+        .replace(/file:\/\/\/[^\s"'`<>|]+/ig, 'file:[path]')
+        .replace(/(^|[\s("'`=,:])\/(?:[^\/\s"'`<>|]+\/)+[^\/\s"'`<>|]+/g, '$1[path]')
+        .replace(/(^|[\s("'`=,:])[A-Za-z]:\\(?:[^\\\s"'`<>|]+\\)*[^\\\s"'`<>|]+/g, '$1[path]');
+}
+
+function stripH3TerminalOutput(value) {
+    return String(value || '')
+        .replace(/\u001B\][\s\S]*?(?:\u0007|\u001B\\)/g, '')
+        .replace(/\u001B\[[0-?]*[ -/]*[@-~]/g, '')
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, '')
+        .replace(/[\r\n\t]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function safeH3ProgressOutput(value) {
+    return String(redactDebugValue(stripH3TerminalOutput(value)) || '').slice(0, mediaProgressOutputLimit);
+}
+
+function normalizeMediaProgressPercent(value) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? Math.round(clamp(numeric, 0, 100) * 100) / 100 : null;
+}
+
+function parseH3ProgressOutput(value) {
+    const cleaned = stripH3TerminalOutput(value);
+    let percent = null;
+    for (const match of cleaned.matchAll(/(?:^|[^\d.])(\d{1,3}(?:\.\d+)?)\s*%/g)) percent = normalizeMediaProgressPercent(match[1]);
+    return {output: safeH3ProgressOutput(cleaned), percent};
+}
+
+function mediaProgressStage(value, fallback = 'unknown') {
+    const candidate = String(value || '');
+    return Object.hasOwn(mediaProgressStageLabels, candidate) ? candidate : fallback;
+}
+
+function progressTimestamp(value, fallback) {
+    const candidate = String(value || '');
+    return Number.isFinite(Date.parse(candidate)) ? candidate : fallback;
+}
+
+function mediaProgressElapsed(startedAt, fallback = 0, at = Date.now()) {
+    const started = Date.parse(startedAt || '');
+    if (!Number.isFinite(started)) return clamp(Number(fallback) || 0, 0, mediaProgressMaxElapsedMs);
+    return clamp(Math.max(0, at - started), 0, mediaProgressMaxElapsedMs);
+}
 
 function redactDebugValue(value, key = '') {
     if (debugSensitiveKey.test(key)) return '[redacted]';
-    if (typeof value === 'string') return value.replace(debugSensitiveValue, '[redacted]');
+    if (typeof value === 'string') return redactDebugPaths(value.replace(debugSensitiveValue, '[redacted]'));
     if (Array.isArray(value)) return value.map(item => redactDebugValue(item));
     if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([entryKey, entryValue]) => [entryKey, redactDebugValue(entryValue, entryKey)]));
     return value;
@@ -1823,6 +1886,35 @@ function debugSummary(value, limit = 2000) {
     const redacted = redactDebugValue(value);
     const text = typeof redacted === 'string' ? redacted : JSON.stringify(redacted);
     return String(text || '').slice(0, limit);
+}
+
+function mediaProgressForDebug(value, row) {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const fallbackStage = row.status === 'queued' ? 'queued'
+        : row.status === 'complete' ? 'complete'
+            : row.status === 'failed' ? 'failed'
+                : 'unknown';
+    const stage = mediaProgressStage(source.stage, fallbackStage);
+    const startedAt = progressTimestamp(source.startedAt, row.created_at);
+    const updatedAt = progressTimestamp(source.updatedAt, row.updated_at || row.created_at);
+    const persistedElapsed = clamp(Number(source.elapsedMs) || 0, 0, mediaProgressMaxElapsedMs);
+    const elapsedMs = row.status === 'leased' ? mediaProgressElapsed(startedAt, persistedElapsed) : persistedElapsed || mediaProgressElapsed(startedAt, 0, Date.parse(updatedAt) || Date.now());
+    const latestOutput = safeH3ProgressOutput(source.latestOutput);
+    const latestStream = source.latestStream === 'stdout' || source.latestStream === 'stderr' ? source.latestStream : null;
+    return {
+        schemaVersion: mediaProgressSchemaVersion,
+        attempt: clamp(Math.floor(Number(source.attempt) || Number(row.attempt_count) || 0), 0, mediaProgressMaxLines),
+        stage,
+        stageLabel: mediaProgressStageLabels[stage],
+        percent: normalizeMediaProgressPercent(source.percent),
+        startedAt,
+        updatedAt,
+        elapsedMs,
+        latestOutput,
+        latestStream,
+        outputSeen: Boolean(source.outputSeen || latestOutput),
+        outputLineCount: clamp(Math.floor(Number(source.outputLineCount) || 0), 0, mediaProgressMaxLines)
+    };
 }
 
 function debugContextFor(personaId) {
@@ -1845,15 +1937,16 @@ function debugContextFor(personaId) {
         error: ''
     }));
     const mediaJobs = database.prepare(`
-        SELECT id, job_type, status, created_at, payload_json, result_json, error
+        SELECT id, job_type, status, attempt_count, created_at, updated_at, payload_json, result_json, error
         FROM companion_jobs
-        WHERE persona_id = ? AND job_type IN ('activity_image', 'chat_image', 'chat_video', 'activity_media_poll', 'chat_media_poll')
+        WHERE persona_id = ? AND job_type IN ('activity_image', 'activity_video', 'chat_image', 'chat_video', 'activity_media_poll', 'chat_media_poll')
         ORDER BY created_at DESC, id DESC
         LIMIT 10
     `).all(persona.id).map(row => {
         const payload = json(row.payload_json, {});
         const result = json(row.result_json, {});
         const kind = payload.kind || mediaKindForJob(row.job_type);
+        const finalPrompt = debugSummary(result.finalPrompt || payload.prompt || '');
         return {
             id: row.id,
             kind,
@@ -1863,7 +1956,9 @@ function debugContextFor(personaId) {
             provider: payload.provider || result.provider || 'comfyui',
             externalId: debugSummary(result.externalId || payload.externalId || result.promptId || payload.promptId || ''),
             inputIntent: debugSummary(payload.mediaIntent || {request: payload.request || '', kind}),
-            promptSummary: debugSummary(result.finalPrompt || payload.prompt || ''),
+            finalPrompt,
+            promptSummary: finalPrompt,
+            progress: mediaProgressForDebug(result.progress, row),
             workflowSummary: debugSummary({kind, provider: payload.provider || result.provider || 'comfyui', configured: Boolean(kind === 'video' ? config.videoWorkflow : config.imageWorkflow), externalId: result.externalId || payload.externalId || result.promptId || payload.promptId || '', promptLength: result.promptLength || 0, refinementStatus: result.refinementStatus || 'not_run', refinementError: result.refinementError || '', workflowError: result.workflowError || ''}),
             error: debugSummary(row.error || '')
         };
@@ -2397,17 +2492,48 @@ function h3Args(payload, config, outputPath) {
     return args;
 }
 
-function runH3(executable, args, timeoutMs) {
-    return new Promise((resolve, reject) => {
-        const child = spawn(executable, args, {stdio: ['ignore', 'ignore', 'pipe'], shell: false});
-        let stderr = '';
-        const timer = setTimeout(() => { child.kill('SIGTERM'); reject(new Error('h3 进程超时')); }, timeoutMs);
-        child.stderr.on('data', chunk => { stderr = `${stderr}${chunk}`.slice(-1000); });
-        child.once('error', error => { clearTimeout(timer); reject(new Error(`h3 启动失败: ${error.message}`)); });
-        child.once('exit', code => {
+function runH3(executable, args, timeoutMs, {onOutput} = {}) {
+    return new Promise((resolvePromise, rejectPromise) => {
+        const child = spawn(executable, args, {stdio: ['ignore', 'pipe', 'pipe'], shell: false});
+        let settled = false;
+        const flushers = [];
+        const emitOutput = (stream, text) => {
+            if (settled || !text) return;
+            try { onOutput?.(stream, text); } catch { /* progress reporting never interrupts provider execution */ }
+        };
+        const capture = (stream, source) => {
+            let buffer = '';
+            const flush = () => {
+                const pending = buffer;
+                buffer = '';
+                emitOutput(source, pending);
+            };
+            flushers.push(flush);
+            stream.on('data', chunk => {
+                buffer += String(chunk || '');
+                const pieces = buffer.split(/[\r\n]+/);
+                buffer = pieces.pop() || '';
+                for (const piece of pieces) emitOutput(source, piece);
+            });
+            stream.once('end', flush);
+        };
+        capture(child.stdout, 'stdout');
+        capture(child.stderr, 'stderr');
+        const finish = (settler, value) => {
+            if (settled) return;
+            for (const flush of flushers) flush();
+            settled = true;
             clearTimeout(timer);
-            if (code !== 0) reject(new Error(`h3 进程退出码 ${code}`));
-            else resolve({stderr});
+            settler(value);
+        };
+        const timer = setTimeout(() => {
+            child.kill('SIGTERM');
+            finish(rejectPromise, new Error('h3 进程超时'));
+        }, timeoutMs);
+        child.once('error', () => finish(rejectPromise, new Error('h3 启动失败')));
+        child.once('close', (code, signal) => {
+            if (code !== 0) return finish(rejectPromise, new Error(signal ? 'h3 进程被信号终止' : `h3 进程退出码 ${code}`));
+            finish(resolvePromise, {});
         });
     });
 }
@@ -2449,15 +2575,24 @@ registerMediaProvider({
 
 registerMediaProvider({
     id: 'h3', label: 'h3.c', capabilities: ['video'],
-    async submit({prompt, payload, settings: config}) {
+    async submit({prompt, payload, settings: config, progress}) {
         const outputPath = h3OutputFile(payload, config);
         mkdirSync(dirname(outputPath), {recursive: true});
-        const args = h3Args(payload, {...config, h3Defaults: config.h3Defaults}, outputPath);
-        await runH3(config.h3Executable, args, Number(config.h3TimeoutMs) || 15 * 60_000);
+        const args = h3Args({...payload, prompt}, {...config, h3Defaults: config.h3Defaults}, outputPath);
+        const preparing = progress?.stage('preparing');
+        if (preparing && !preparing.changed) throw new Error('h3 作业租约已失效');
+        const generating = progress?.stage('generating');
+        if (generating && !generating.changed) throw new Error('h3 作业租约已失效');
+        await runH3(config.h3Executable, args, Number(config.h3TimeoutMs) || 15 * 60_000, {
+            onOutput: (stream, text) => progress?.output(stream, text)
+        });
+        progress?.flush();
+        const validating = progress?.stage('validating_output');
+        if (validating && !validating.changed) throw new Error('h3 作业租约已失效');
         let stat;
         try { stat = statSync(outputPath); } catch { throw new Error('h3 未生成输出文件'); }
         if (!stat.isFile() || stat.size <= 0) throw new Error('h3 输出文件为空');
-        return {externalId: outputPath, pending: false, files: [{filename: outputPath, type: 'h3', format: 'video', path: outputPath}]};
+        return {externalId: id('h3_result'), pending: false, files: [{filename: outputPath, type: 'h3', format: 'video', path: outputPath}]};
     },
     async poll({externalId}) {
         if (typeof externalId !== 'string' || !/\.mp4$/i.test(externalId)) return {status: 'failed', error: 'h3 外部任务标识无效'};
@@ -2520,18 +2655,72 @@ function mediaAssets(files, provider = 'comfyui') {
     return assets;
 }
 
+function mergeJobResult(current, patch) {
+    const base = current && typeof current === 'object' && !Array.isArray(current) ? current : {};
+    const next = patch && typeof patch === 'object' && !Array.isArray(patch) ? patch : {};
+    return {...base, ...Object.fromEntries(Object.entries(next).filter(([, value]) => value !== undefined))};
+}
+
+function persistedMediaFiles(files, provider) {
+    const bounded = Array.isArray(files) ? files.slice(0, 3) : [];
+    if (provider === 'h3') return bounded.map(file => ({type: 'h3', format: String(file?.format || 'video').slice(0, 32)}));
+    return bounded.map(file => ({
+        filename: String(file?.filename || '').slice(0, 512),
+        subfolder: String(file?.subfolder || '').slice(0, 512),
+        type: String(file?.type || 'output').slice(0, 32),
+        format: String(file?.format || '').slice(0, 32)
+    }));
+}
+
+function persistedH3ExternalId(value) {
+    const candidate = String(value || '');
+    return /^h3_result_[A-Za-z0-9_-]+$/.test(candidate) ? candidate : id('h3_result');
+}
+
+function terminalMediaProgress(value, row, stage, settledAt) {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const attempt = Math.max(1, Math.floor(Number(source.attempt) || Number(row.attempt_count) || 1));
+    const startedAt = progressTimestamp(source.startedAt, row.created_at || settledAt);
+    const terminalStage = mediaProgressStage(stage, 'unknown');
+    const latestOutput = safeH3ProgressOutput(source.latestOutput);
+    return {
+        schemaVersion: mediaProgressSchemaVersion,
+        attempt,
+        stage: terminalStage,
+        stageLabel: mediaProgressStageLabels[terminalStage],
+        percent: terminalStage === 'complete' ? 100 : normalizeMediaProgressPercent(source.percent),
+        startedAt,
+        updatedAt: settledAt,
+        elapsedMs: mediaProgressElapsed(startedAt, source.elapsedMs, Date.parse(settledAt) || Date.now()),
+        latestOutput,
+        latestStream: source.latestStream === 'stdout' || source.latestStream === 'stderr' ? source.latestStream : null,
+        outputSeen: Boolean(source.outputSeen || latestOutput),
+        outputLineCount: clamp(Math.floor(Number(source.outputLineCount) || 0), 0, mediaProgressMaxLines)
+    };
+}
+
 function completePolledMediaJob(job, promptId, files, provider = 'comfyui') {
     if (provider === 'comfyui' && !validComfyPromptId(promptId)) return settleJob(job, {error: '缺少有效的 ComfyUI prompt ID'});
     let assets = [];
     let completed = false;
     database.transaction(() => {
-        const active = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
+        const settledAt = now();
+        const active = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, settledAt);
         if (!active) return;
         assets = mediaAssets(files, provider);
         if (job.activity_id) for (const [position, asset] of assets.entries()) database.prepare('INSERT OR IGNORE INTO companion_activity_media (activity_id, media_id, position) VALUES (?, ?, ?)').run(job.activity_id, asset.id, position);
-        updateMediaTarget(job, {status: 'ready', promptId, provider, externalId: promptId, attachments: assets});
-        database.prepare(`UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?`).run(JSON.stringify({provider, externalId: promptId, promptId, files}), now(), now(), job.id, job.lease_owner, now());
-        completed = true;
+        const externalId = provider === 'h3' ? persistedH3ExternalId(promptId) : promptId;
+        const currentResult = json(active.result_json, {});
+        const result = mergeJobResult(currentResult, {
+            provider,
+            externalId,
+            promptId: externalId,
+            pending: false,
+            files: persistedMediaFiles(files, provider),
+            ...(provider === 'h3' ? {progress: terminalMediaProgress(currentResult.progress, active, 'complete', settledAt)} : {})
+        });
+        updateMediaTarget(job, {status: 'ready', promptId: externalId, provider, externalId, attachments: assets});
+        completed = Boolean(database.prepare(`UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?`).run(JSON.stringify(result), settledAt, settledAt, job.id, job.lease_owner, settledAt).changes);
     })();
     return {completed, assets};
 }
@@ -2574,7 +2763,7 @@ function claimJob() {
         if (!candidate) return;
         const leaseMs = leaseDurationForJob(candidate);
         const updated = database.prepare(`UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = attempt_count + 1, updated_at = ? WHERE id = ? AND ((status = 'queued' AND run_after <= ?) OR (status = 'leased' AND lease_expires_at < ?))`).run(owner, new Date(Date.now() + leaseMs).toISOString(), time, candidate.id, time, time);
-        if (updated.changes) job = {...candidate, lease_owner: owner};
+        if (updated.changes) job = {...candidate, lease_owner: owner, attempt_count: Number(candidate.attempt_count) + 1};
     })();
     return job;
 }
@@ -2586,11 +2775,128 @@ function leaseDurationForJob(job) {
     return clamp(timeoutMs + 30_000, 90_000, 24 * 60 * 60_000);
 }
 
-function settleJob(job, {result, error}) {
+function normalizedProgressPatch(patch = {}) {
+    const output = patch.output !== undefined ? parseH3ProgressOutput(patch.output) : null;
+    const latestOutput = output ? output.output : patch.latestOutput !== undefined ? safeH3ProgressOutput(patch.latestOutput) : undefined;
+    const percent = patch.percent !== undefined
+        ? normalizeMediaProgressPercent(patch.percent)
+        : output && output.percent !== null ? output.percent : undefined;
+    return {
+        ...(patch.stage !== undefined ? {stage: mediaProgressStage(patch.stage)} : {}),
+        ...(percent !== undefined ? {percent} : {}),
+        ...(latestOutput !== undefined ? {latestOutput} : {}),
+        ...(patch.latestStream === 'stdout' || patch.latestStream === 'stderr' ? {latestStream: patch.latestStream} : {}),
+        ...(patch.outputSeen !== undefined ? {outputSeen: Boolean(patch.outputSeen)} : {}),
+        ...(patch.outputLineCount !== undefined ? {outputLineCount: clamp(Math.floor(Number(patch.outputLineCount) || 0), 0, mediaProgressMaxLines)} : {})
+    };
+}
+
+function initialMediaProgress(job, stage = 'preparing', startedAt = now()) {
+    return {
+        schemaVersion: mediaProgressSchemaVersion,
+        attempt: Math.max(1, Math.floor(Number(job.attempt_count) || 1)),
+        stage: mediaProgressStage(stage, 'unknown'),
+        stageLabel: mediaProgressStageLabels[mediaProgressStage(stage, 'unknown')],
+        percent: null,
+        startedAt,
+        updatedAt: startedAt,
+        elapsedMs: 0,
+        latestOutput: '',
+        latestStream: null,
+        outputSeen: false,
+        outputLineCount: 0
+    };
+}
+
+function recordMediaJobResult(job, patch = {}) {
+    let output = null;
+    database.transaction(() => {
+        const updatedAt = now();
+        const active = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, updatedAt);
+        if (!active) return;
+        const result = mergeJobResult(json(active.result_json, {}), patch);
+        const changed = database.prepare("UPDATE companion_jobs SET result_json = ?, updated_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").run(JSON.stringify(result), updatedAt, active.id, job.lease_owner, updatedAt).changes;
+        output = {changed: Boolean(changed), result};
+    })();
+    return output || {changed: false, result: null};
+}
+
+function recordMediaJobProgress(job, patch = {}) {
+    let output = null;
+    database.transaction(() => {
+        const updatedAt = now();
+        const active = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, updatedAt);
+        if (!active) return;
+        const currentResult = json(active.result_json, {});
+        const currentProgress = currentResult.progress && typeof currentResult.progress === 'object' && !Array.isArray(currentResult.progress)
+            ? currentResult.progress
+            : null;
+        const attempt = Math.max(1, Math.floor(Number(active.attempt_count) || Number(job.attempt_count) || 1));
+        const sameAttempt = Number(currentProgress?.attempt) === attempt;
+        const base = sameAttempt ? {...initialMediaProgress({...active, attempt_count: attempt}, currentProgress.stage || 'preparing', progressTimestamp(currentProgress.startedAt, updatedAt)), ...currentProgress} : initialMediaProgress({...active, attempt_count: attempt}, patch.stage || 'preparing', updatedAt);
+        const nextProgress = {
+            ...base,
+            ...normalizedProgressPatch(patch),
+            schemaVersion: mediaProgressSchemaVersion,
+            attempt,
+            stage: mediaProgressStage(patch.stage || base.stage, 'unknown'),
+            stageLabel: mediaProgressStageLabels[mediaProgressStage(patch.stage || base.stage, 'unknown')],
+            startedAt: progressTimestamp(base.startedAt, updatedAt),
+            updatedAt,
+            elapsedMs: mediaProgressElapsed(base.startedAt, base.elapsedMs),
+            outputSeen: Boolean(base.outputSeen || base.latestOutput),
+            outputLineCount: clamp(Math.floor(Number(base.outputLineCount) || 0) + Math.max(0, Math.floor(Number(patch.outputLineCountDelta) || 0)), 0, mediaProgressMaxLines)
+        };
+        if (patch.output !== undefined && nextProgress.latestOutput) nextProgress.outputSeen = true;
+        const result = mergeJobResult(currentResult, patch.result);
+        result.progress = nextProgress;
+        const changed = database.prepare("UPDATE companion_jobs SET result_json = ?, updated_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").run(JSON.stringify(result), updatedAt, active.id, job.lease_owner, updatedAt).changes;
+        output = {changed: Boolean(changed), progress: nextProgress, result};
+    })();
+    return output || {changed: false, progress: null, result: null};
+}
+
+function createMediaProgressReporter(job) {
+    let pending = null;
+    let pendingOutputCount = 0;
+    let lastWriteAt = 0;
+    const report = (patch = {}, {force = false} = {}) => {
+        const nextPatch = {...patch};
+        if (pendingOutputCount) nextPatch.outputLineCountDelta = pendingOutputCount;
+        pending = {...(pending || {}), ...nextPatch};
+        const current = Date.now();
+        if (!force && current - lastWriteAt < mediaProgressWriteIntervalMs) return {changed: true, throttled: true};
+        const result = recordMediaJobProgress(job, pending);
+        pending = null;
+        pendingOutputCount = 0;
+        lastWriteAt = current;
+        return result;
+    };
+    report.stage = stage => report({stage}, {force: true});
+    report.output = (stream, output) => {
+        pendingOutputCount += 1;
+        const parsed = parseH3ProgressOutput(output);
+        return report({output, ...(parsed.percent === null ? {} : {percent: parsed.percent}), latestStream: stream}, {force: false});
+    };
+    report.flush = () => pending ? report({}, {force: true}) : {changed: true, progress: null};
+    return report;
+}
+
+function settleJob(job, {result, error, progressStage}) {
     const complete = !error;
     const retryAt = new Date(Date.now() + Math.min(15 * 60_000, 1000 * 2 ** Math.min(Number(job.attempt_count), 8))).toISOString();
     const status = complete ? 'complete' : Number(job.attempt_count) + 1 >= Number(job.max_attempts) ? 'failed' : 'queued';
-    const changed = database.prepare(`UPDATE companion_jobs SET status = ?, lease_owner = NULL, lease_expires_at = NULL, run_after = ?, result_json = ?, error = ?, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?`).run(status, complete ? now() : retryAt, result ? JSON.stringify(result) : null, error || null, now(), complete ? now() : null, job.id, job.lease_owner, now()).changes;
+    let changed = 0;
+    database.transaction(() => {
+        const settledAt = now();
+        const active = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, settledAt);
+        if (!active) return;
+        const currentResult = json(active.result_json, {});
+        const nextResult = mergeJobResult(currentResult, result);
+        if (progressStage && nextResult.progress) nextResult.progress = terminalMediaProgress(nextResult.progress, active, progressStage, settledAt);
+        const resultJson = Object.keys(nextResult).length ? JSON.stringify(nextResult) : active.result_json || null;
+        changed = database.prepare(`UPDATE companion_jobs SET status = ?, lease_owner = NULL, lease_expires_at = NULL, run_after = ?, result_json = ?, error = ?, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?`).run(status, complete ? settledAt : retryAt, resultJson, error || null, settledAt, complete ? settledAt : null, active.id, job.lease_owner, settledAt).changes;
+    })();
     return {status, changed: Boolean(changed)};
 }
 
@@ -2797,23 +3103,41 @@ async function submitMediaJob(job) {
     const config = settings();
     const payload = json(job.payload_json, {});
     const kind = mediaKindForJob(job.job_type);
+    let reporter = null;
+    let provider = null;
     try {
         // A persisted job is still untrusted input at the provider boundary: old or
         // malformed payloads fail retryably instead of becoming a free-form prompt.
         const refinement = await refineMediaIntent(normalizeMediaIntent(payload.mediaIntent));
         const finalPrompt = compileMediaPrompt(refinement.intent);
-        const provider = providerFor(kind, payload.provider || config[`${kind}Provider`]);
-        const submitted = await provider.submit({kind, prompt: finalPrompt, payload, settings: config});
+        provider = providerFor(kind, payload.provider || config[`${kind}Provider`]);
+        const promptResult = {
+            provider: provider.id,
+            finalPrompt,
+            promptLength: finalPrompt.length,
+            refinementStatus: refinement.status,
+            refinementError: refinement.error || ''
+        };
+        if (provider.id === 'h3') {
+            reporter = createMediaProgressReporter(job);
+            const initialized = reporter({stage: 'preparing', result: promptResult}, {force: true});
+            if (!initialized.changed) throw new Error('h3 作业租约已失效');
+        } else {
+            const persisted = recordMediaJobResult(job, promptResult);
+            if (!persisted.changed) return;
+        }
+        const submitted = await provider.submit({kind, prompt: finalPrompt, payload, settings: config, progress: reporter});
         if (typeof submitted?.externalId !== 'string' || submitted.externalId.length > 2048) throw new Error(`${provider.label} 未返回有效外部任务标识`);
         if (!submitted.pending && Array.isArray(submitted.files)) {
             return completePolledMediaJob(job, submitted.externalId, submitted.files, provider.id);
         }
-        const settled = settleJob(job, {result: {provider: provider.id, externalId: submitted.externalId, promptId: submitted.externalId, pending: true, finalPrompt, promptLength: finalPrompt.length, refinementStatus: refinement.status, refinementError: refinement.error || ''}});
+        const settled = settleJob(job, {result: {...promptResult, externalId: submitted.externalId, promptId: submitted.externalId, pending: true}});
         if (!settled.changed) return;
         updateMediaTarget(job, {status: 'processing', provider: provider.id, externalId: submitted.externalId, promptId: submitted.externalId});
         enqueueJob({jobType: job.activity_id ? 'activity_media_poll' : 'chat_media_poll', personaId: job.persona_id, activityId: job.activity_id, messageId: job.message_id, priority: 4, maxAttempts: 60, payload: {provider: provider.id, externalId: submitted.externalId, promptId: submitted.externalId, kind}});
     } catch (error) {
-        const settled = settleJob(job, {error: error.message});
+        reporter?.flush();
+        const settled = settleJob(job, {error: error.message, progressStage: provider?.id === 'h3' ? 'failed' : undefined});
         if (settled.changed && settled.status === 'failed') updateMediaTarget(job, {status: 'failed', error: error.message});
     }
 }
@@ -3151,3 +3475,5 @@ if (process.env.COMPANION_TEST !== '1') {
         setInterval(() => processJobs(), 2500);
     });
 }
+
+export const mediaObservabilityTestHooks = {runH3, parseH3ProgressOutput, mediaProgressForDebug, recordMediaJobResult, recordMediaJobProgress, createMediaProgressReporter, settleJob};

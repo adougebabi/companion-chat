@@ -66,3 +66,61 @@ if (process.env.COMPANION_DEBUG_INSPECTOR === '1') {
 }
 ```
 
+## Scenario: Durable local-command media progress
+
+### 1. Scope / Trigger
+
+- Trigger: a server-owned media provider such as `h3` runs a long local command and the local inspector must reveal the final provider prompt plus real execution activity.
+- This crosses the durable SQLite job, a leased worker, child-process stdout/stderr, the debug DTO, and the inspector card UI.
+
+### 2. Signatures
+
+- `recordMediaJobProgress(job, patch) -> {changed, progress?, result?}`
+- `createMediaProgressReporter(job)` exposes `stage()`, `output()`, and `flush()`.
+- `companion_jobs.result_json.progress` contains `{schemaVersion, attempt, stage, percent, startedAt, updatedAt, elapsedMs, latestOutput, latestStream, outputSeen, outputLineCount}`.
+- `GET /api/companion/personas/:personaId/debug-context` includes `mediaJobs[].finalPrompt` and `mediaJobs[].progress`.
+
+### 3. Contracts
+
+- The only prompt presented as the final provider prompt is the compiled prompt persisted immediately before provider submission; raw `mediaIntent` remains secondary diagnostic information.
+- h3 receives `progress` through the server-owned provider boundary, reads both stdout and stderr, and stores only the latest normalized line. Explicit `%` values may set `percent`; time elapsed must never synthesize a percentage.
+- Progress writes use the same `status = 'leased'`, `lease_owner`, and non-expired lease guard as settlement. They never renew a lease or alter status/attempt/retry scheduling.
+- Output is ANSI/control-character cleaned, recursively credential-redacted, path-redacted, and capped at 480 characters. Do not persist whole command lines, argument arrays, model/output paths, or stream history.
+- Completion and failure merge existing `result_json` so final prompts and h3 progress survive terminal settlement. A retry starts a new `attempt` snapshot.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Provider outputs `12.5%` | Store/display `percent: 12.5`. |
+| Provider outputs text but no percentage | Store stage, elapsed time, and latest output; display no reported percentage. |
+| Old/expired lease emits output | Guarded update changes zero rows; it cannot overwrite a later attempt. |
+| h3 exits, times out, or lacks output media | Preserve a `failed` terminal progress snapshot and use the normal retry/failure policy. |
+| Legacy or ComfyUI job has no progress | Return a stable fallback based on job status; do not require an h3-shaped record. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a running h3 job shows “正在生成视频”, its real elapsed time, a safe latest line, and an explicit percentage only when h3 printed one.
+- Base: a queued ComfyUI job still displays its final provider prompt and ordinary job status with no fabricated progress.
+- Bad: append raw stdout indefinitely to `result_json`, calculate `62%` from elapsed time, or let a stale child process write after its lease expired.
+
+### 6. Tests Required
+
+- Assert ANSI/CR output is normalized, credentials and absolute paths are redacted, and explicit percentages are clamped.
+- Assert stdout and stderr both reach the reporter, high-frequency output is throttled while the latest line survives a flush, and the line count remains bounded.
+- Assert stale leases cannot write, a failed attempt retains `failed` progress, the next attempt resets percent/output count, and h3 completion preserves the final prompt plus `complete: 100%`.
+- Assert debug-context remains persona-scoped and limits displayed output.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+child.stderr.on('data', chunk => job.result_json += chunk);
+```
+
+#### Correct
+
+```js
+reporter.output('stderr', chunk); // lease-guarded, redacted, bounded, throttled
+```

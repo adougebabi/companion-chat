@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/debug-observability.md","reason":"检查 debug DTO 的 local gate、persona scope、脱敏、数量和摘要上限。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查 result_json 更新、lease guard 和 retry 尝试隔离。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"检查 h3 timeout/exit/output 校验失败后的 job 结算。"}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"检查 inspector UI 的窄屏表现与浏览器安全。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查 worker、SQLite、debug API 与前端轮询的端到端契约。"}

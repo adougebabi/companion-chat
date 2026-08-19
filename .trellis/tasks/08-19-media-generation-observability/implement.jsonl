@@ -1,0 +1,7 @@
+{"file":".trellis/spec/backend/debug-observability.md","reason":"debug inspector 开关、人格范围、脱敏和输出边界。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"provider worker 失败、retry 与最终状态约束。"}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"SQLite lease、外部 provider 与验证规则。"}
+{"file":".trellis/spec/backend/media-prompt-contract.md","reason":"最终 provider prompt 的权威来源与媒体 job 契约。"}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"安全 DOM 渲染、dialog 生命周期与可访问性。"}
+{"file":".trellis/spec/frontend/state-management.md","reason":"轮询、刷新和 transient UI 状态约束。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"SQLite → debug API → Inspector 的跨层数据流。"}
