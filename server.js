@@ -2646,6 +2646,29 @@ function lifeFixedSlots(persona, planDate) {
     }).filter(Boolean);
 }
 
+function lifeFlexibleSlots(persona, planDate) {
+    const life = blueprint(persona.id);
+    return (life.dailyFlexibleEvents || []).map(template => {
+        const start = template?.timeWindow?.start;
+        const end = template?.timeWindow?.end;
+        if (!blueprintTime(start) || !blueprintTime(end)) return null;
+        const duration = Number(template.durationMinutes?.[0]) || 30;
+        const sceneRef = template.sceneRefs?.[0] || life.world?.defaultSceneRef;
+        const resolved = resolveSceneRef(life, sceneRef);
+        const startsAt = new Date(`${planDate}T${start}:00`);
+        const endsAt = new Date(Math.min(new Date(`${planDate}T${end}:00`).getTime(), startsAt.getTime() + duration * 60_000));
+        return {template, title: template.title, situation: template.situation, scene: resolved.scene, sceneRef, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString()};
+    }).filter(Boolean);
+}
+
+function insertTimelineSlot(persona, planDate, input, createdAt) {
+    const scheduleId = input.schedule ? id('schedule') : null;
+    const slotId = id('slot');
+    if (scheduleId) database.prepare('INSERT INTO companion_schedule_items (id, persona_id, kind, title, starts_at, ends_at, status, source, details_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(scheduleId, persona.id, input.slotKind, input.title, input.startsAt, input.endsAt, 'active', input.source, JSON.stringify({scene: input.scene, situation: input.situation, sceneRef: input.sceneRef, slotId, templateId: input.templateId}), createdAt, createdAt);
+    database.prepare('INSERT INTO companion_timeline_slots (id, persona_id, plan_date, slot_key, slot_kind, starts_at, ends_at, status, source, priority, schedule_id, plan_revision, constraints_json, outcome_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(slotId, persona.id, planDate, input.slotKey, input.slotKind, input.startsAt, input.endsAt, input.status || 'confirmed', input.source, input.priority || 0, scheduleId, 1, JSON.stringify(input.constraints || {}), JSON.stringify(input.outcome || {}), createdAt, createdAt);
+    return {slotId, scheduleId};
+}
+
 async function runDailyPlanJob(job) {
     const payload = json(job.payload_json, {});
     const persona = personaRow(job.persona_id);
@@ -2669,24 +2692,33 @@ async function runDailyPlanJob(job) {
             database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'life_model_fixed' AND substr(starts_at, 1, 10) = ?").run(persona.id, payload.planDate);
             database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'ai_daily_plan'").run(persona.id, payload.planDate);
             database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'life_model_fixed'").run(persona.id, payload.planDate);
+            database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'life_model_flexible'").run(persona.id, payload.planDate);
+            database.prepare("DELETE FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND source = 'life_model_opportunity'").run(persona.id, payload.planDate);
             for (const fixed of lifeFixedSlots(persona, payload.planDate)) {
                 const conflict = database.prepare("SELECT 1 FROM companion_schedule_items WHERE persona_id = ? AND source != 'ai_daily_plan' AND source != 'life_model_fixed' AND status = 'active' AND starts_at < ? AND COALESCE(ends_at, starts_at) > ? LIMIT 1").get(persona.id, fixed.endsAt, fixed.startsAt);
-                const slotId = id('slot');
                 if (conflict) {
-                    database.prepare('INSERT INTO companion_timeline_slots (id, persona_id, plan_date, slot_key, slot_kind, starts_at, ends_at, status, source, priority, plan_revision, constraints_json, outcome_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(slotId, persona.id, payload.planDate, `fixed:${fixed.template.templateId}`, 'fixed', fixed.startsAt, fixed.endsAt, 'skipped', 'life_model_fixed', fixed.template.priority, 1, '{}', JSON.stringify({reason: 'explicit_schedule_conflict'}), updatedAt, updatedAt);
+                    insertTimelineSlot(persona, payload.planDate, {slotKey: `fixed:${fixed.template.templateId}`, slotKind: 'fixed', startsAt: fixed.startsAt, endsAt: fixed.endsAt, status: 'skipped', source: 'life_model_fixed', priority: fixed.template.priority, title: fixed.title, situation: fixed.situation, scene: fixed.scene, sceneRef: fixed.sceneRef, templateId: fixed.template.templateId, outcome: {reason: 'explicit_schedule_conflict'}}, updatedAt);
                     continue;
                 }
-                const scheduleId = id('schedule');
-                database.prepare('INSERT INTO companion_schedule_items (id, persona_id, kind, title, starts_at, ends_at, status, source, details_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(scheduleId, persona.id, 'fixed', fixed.title, fixed.startsAt, fixed.endsAt, 'active', 'life_model_fixed', JSON.stringify({scene: fixed.scene, situation: fixed.situation, sceneRef: fixed.sceneRef, slotId, templateId: fixed.template.templateId}), updatedAt, updatedAt);
-                database.prepare('INSERT INTO companion_timeline_slots (id, persona_id, plan_date, slot_key, slot_kind, starts_at, ends_at, status, source, priority, schedule_id, plan_revision, constraints_json, outcome_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(slotId, persona.id, payload.planDate, `fixed:${fixed.template.templateId}`, 'fixed', fixed.startsAt, fixed.endsAt, 'confirmed', 'life_model_fixed', fixed.template.priority, scheduleId, 1, '{}', '{}', updatedAt, updatedAt);
+                insertTimelineSlot(persona, payload.planDate, {slotKey: `fixed:${fixed.template.templateId}`, slotKind: 'fixed', startsAt: fixed.startsAt, endsAt: fixed.endsAt, source: 'life_model_fixed', priority: fixed.template.priority, title: fixed.title, situation: fixed.situation, scene: fixed.scene, sceneRef: fixed.sceneRef, templateId: fixed.template.templateId, schedule: true}, updatedAt);
+            }
+            for (const flexible of lifeFlexibleSlots(persona, payload.planDate)) {
+                const conflict = database.prepare("SELECT 1 FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND starts_at < ? AND COALESCE(ends_at, starts_at) > ? LIMIT 1").get(persona.id, flexible.endsAt, flexible.startsAt);
+                insertTimelineSlot(persona, payload.planDate, {slotKey: `flexible:${flexible.template.templateId}`, slotKind: 'flexible', startsAt: flexible.startsAt, endsAt: flexible.endsAt, status: conflict ? 'skipped' : 'confirmed', source: 'life_model_flexible', priority: flexible.template.priority, title: flexible.title, situation: flexible.situation, scene: flexible.scene, sceneRef: flexible.sceneRef, templateId: flexible.template.templateId, schedule: !conflict, outcome: conflict ? {reason: 'higher_priority_schedule_conflict'} : {}}, updatedAt);
+            }
+            for (const template of [...(blueprint(persona.id).randomPositiveEvents || []), ...(blueprint(persona.id).randomNegativeEvents || [])]) {
+                const start = template.timeWindow?.start;
+                const end = template.timeWindow?.end;
+                if (!blueprintTime(start) || !blueprintTime(end)) continue;
+                const sceneRef = template.sceneRefs?.[0] || blueprint(persona.id).world?.defaultSceneRef;
+                const scene = resolveSceneRef(blueprint(persona.id), sceneRef).scene;
+                insertTimelineSlot(persona, payload.planDate, {slotKey: `opportunity:${template.templateId}`, slotKind: 'opportunity', startsAt: new Date(`${payload.planDate}T${start}:00`).toISOString(), endsAt: new Date(`${payload.planDate}T${end}:00`).toISOString(), source: 'life_model_opportunity', priority: template.priority, title: template.title, situation: template.situation, scene, sceneRef, templateId: template.templateId, outcome: {reason: 'candidate_window'}}, updatedAt);
             }
             for (const item of items) {
                 const startsAt = new Date(`${payload.planDate}T${item.startsAt}:00`).toISOString();
                 const endsAt = new Date(`${payload.planDate}T${item.endsAt}:00`).toISOString();
-                const scheduleId = id('schedule');
-                const slotId = id('slot');
-                database.prepare('INSERT INTO companion_schedule_items (id, persona_id, kind, title, starts_at, ends_at, status, source, details_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(scheduleId, persona.id, 'daily_plan', item.title, startsAt, endsAt, 'active', 'ai_daily_plan', JSON.stringify({scene: item.scene, situation: item.situation, dailyPlanId: plan.id, slotId}), updatedAt, updatedAt);
-                database.prepare('INSERT INTO companion_timeline_slots (id, persona_id, plan_date, slot_key, slot_kind, starts_at, ends_at, status, source, priority, schedule_id, plan_revision, constraints_json, outcome_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(slotId, persona.id, payload.planDate, `${plan.id}:${item.startsAt}:${item.title}`.slice(0, 180), 'flexible', startsAt, endsAt, 'confirmed', 'ai_daily_plan', 30, scheduleId, 1, JSON.stringify({scene: item.scene}), '{}', updatedAt, updatedAt);
+                const conflict = database.prepare("SELECT 1 FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND source != 'ai_daily_plan' AND starts_at < ? AND COALESCE(ends_at, starts_at) > ? LIMIT 1").get(persona.id, endsAt, startsAt);
+                insertTimelineSlot(persona, payload.planDate, {slotKey: `${plan.id}:${item.startsAt}:${item.title}`.slice(0, 180), slotKind: 'planned', startsAt, endsAt, status: conflict ? 'skipped' : 'confirmed', source: 'ai_daily_plan', priority: 20, title: item.title, situation: item.situation, scene: item.scene, templateId: '', schedule: !conflict, outcome: conflict ? {reason: 'model_slot_conflict'} : {}}, updatedAt);
             }
             database.prepare("UPDATE companion_daily_plans SET status = 'ready', plan_json = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(items), updatedAt, plan.id);
             database.prepare("UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND lease_owner = ?").run(JSON.stringify({itemCount: items.length}), updatedAt, updatedAt, job.id, job.lease_owner);
