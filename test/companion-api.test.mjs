@@ -9,7 +9,7 @@ process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '0';
 const {companionApp, companionTestHooks} = await import(`../server.js?test=${Date.now()}`);
-const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, mediaConceptEnvelopeFor, renderMediaPromptTemplate, mediaPromptTemplateSections, systemCapabilityReplyForm, systemCapabilityMediaContract, personaMediaConceptContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, normalizeDailyPlan, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, enqueueRelationshipEvolutionJob, providerFor, providerSummaries, mediaProviders, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, saveSettings, publicSettings} = companionTestHooks;
+const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, createPendingEvent, normalizePendingEventCall, normalizeProactiveDecision, freezeProactiveDecision, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, mediaConceptEnvelopeFor, renderMediaPromptTemplate, mediaPromptTemplateSections, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, personaMediaConceptContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, runPendingEventJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, normalizeDailyPlan, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, enqueueRelationshipEvolutionJob, providerFor, providerSummaries, mediaProviders, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, saveSettings, publicSettings} = companionTestHooks;
 
 const mediaConcept = (kind, overrides = {}) => ({
     schemaVersion: 1, mediaKind: kind, scene: '测试场景', action: '测试动作', mood: '平静', narrative: '测试媒体概念',
@@ -812,7 +812,8 @@ test('screened personas suppress proactive unread messages without affecting oth
     const visible = createPersona({name: '陈岚', role: '学生', foundation: '陈岚喜欢和朋友分享校园生活。'});
     const screened = createPersona({name: '陆遥', role: '学生', foundation: '陆遥习惯安静地记录日常。'});
     const visiblePersona = requirePersona(visible.id);
-    appendMessage(visible.id, {role: 'user', text: '今天还好吗？'});
+    const visibleUser = appendMessage(visible.id, {role: 'user', text: '今天还好吗？'});
+    database.prepare('UPDATE companion_messages SET created_at = ? WHERE id = ?').run(new Date(Date.now() - 11 * 60 * 1000).toISOString(), visibleUser.id);
 
     const visibleEvent = createEvent(visiblePersona, {
         type: 'social', situation: '和朋友散步', mood: '轻松', scene: '校园小路', content: '晚风很舒服。', proactiveText: '刚散完步，想和你说一声。'
@@ -858,6 +859,9 @@ test('proactive delivery uses focus, screen, budget, and lease guards', () => {
     assert.equal(proactiveEligibility(source, {eventType: 'social'}).reason, 'not_recently_engaged');
     appendMessage(persona.id, {role: 'user', text: '下午见。'});
     assert.equal(personaFocusTier(requirePersona(persona.id)), 'active');
+    assert.equal(proactiveEligibility(requirePersona(persona.id), {eventType: 'mild_setback'}).reason, 'active_chat');
+
+    database.prepare('UPDATE companion_messages SET created_at = ? WHERE conversation_id = (SELECT id FROM companion_conversations WHERE persona_id = ?)').run(new Date(Date.now() - 11 * 60 * 1000).toISOString(), persona.id);
     assert.equal(proactiveEligibility(requirePersona(persona.id), {eventType: 'mild_setback'}).allowed, true);
 
     createEvent(requirePersona(persona.id), {type: 'mild_setback', situation: '因小插曲有点低落', mood: '低落', scene: '校园', proactiveText: '想和你说说今天的小插曲。'}, {proactive: true, source: 'test'});
@@ -876,6 +880,185 @@ test('proactive delivery uses focus, screen, budget, and lease guards', () => {
 
     database.prepare('UPDATE companion_personas SET screened_at = ? WHERE id = ?').run(new Date().toISOString(), persona.id);
     assert.equal(proactiveEligibility(requirePersona(persona.id), {eventType: 'social'}).reason, 'screened');
+});
+
+test('pending-event markers are strict, bounded, and deduplicated into one durable job', () => {
+    const persona = createPersona({name: '闻夏', role: '学生', foundation: '闻夏会记得朋友重要的日子。'});
+    const source = appendMessage(persona.id, {role: 'user', text: '我下午要去面试。'});
+    const notBefore = new Date(Date.now() + 60_000).toISOString();
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60_000).toISOString();
+    const call = {schemaVersion: 1, summary: '下午面试结束后可以问问结果', notBefore, expiresAt, dedupeKey: '下午面试'};
+    assert.match(systemCapabilityPendingEventContract, /<pending-event>/);
+    assert.throws(() => normalizePendingEventCall({...call, expiresAt: '2026-08-19T12:00:00'}), /带时区/);
+    assert.equal(extractPendingEventIntent(`普通回复。<pending-event>${JSON.stringify(call)}</pending-event>`).text, '普通回复。');
+    const first = createPendingEvent(persona.id, call, source.id);
+    const second = createPendingEvent(persona.id, call, source.id);
+    assert.equal(first.created, true);
+    assert.equal(second.created, false);
+    assert.equal(first.pendingEvent.id, second.pendingEvent.id);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_pending_events WHERE persona_id = ?").get(persona.id).count, 1);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'pending_event'").get(persona.id).count, 1);
+    const oversized = `<pending-event>${'x'.repeat(2_000)}</pending-event>`;
+    assert.equal(extractPendingEventIntent(`正常文字。${oversized}`).text, '正常文字。');
+    assert.equal(extractPendingEventIntent('<pending-event>{"schemaVersion":1').text, '');
+});
+
+test('stream marker redactor never emits internal capability tags', () => {
+    const redactor = createVisibleMarkerRedactor();
+    const chunks = [
+        '先说一句。<pend',
+        'ing-event>{"schemaVersion":1}</pending-event>然后继续。',
+        '<media-intent>{"kind":"image"}</media-intent>结束。'
+    ];
+    const visible = chunks.map(chunk => redactor.push(chunk)).join('') + redactor.flush();
+    assert.equal(visible, '先说一句。然后继续。结束。');
+    assert.equal(/<\/?(?:pending-event|media-intent)/i.test(visible), false);
+});
+
+test('pending-event due worker evaluates current chat context and can intervene during active chat', async () => {
+    const persona = createPersona({name: '沈宁', role: '学生', foundation: '沈宁会在重要事情之后认真关心朋友。'});
+    const source = appendMessage(persona.id, {role: 'user', text: '我刚结束面试，现在有点紧张。'});
+    const call = {
+        schemaVersion: 1,
+        summary: '面试结束后关心用户的感受',
+        notBefore: new Date(Date.now() + 60_000).toISOString(),
+        expiresAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(),
+        dedupeKey: '面试结束关心'
+    };
+    const created = createPendingEvent(persona.id, call, source.id);
+    const dueAt = new Date(Date.now() - 1_000).toISOString();
+    const expiresAt = new Date(Date.now() + 60 * 60_000).toISOString();
+    database.prepare('UPDATE companion_pending_events SET not_before = ?, expires_at = ? WHERE id = ?').run(dueAt, expiresAt, created.pendingEvent.id);
+    const job = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND job_type = 'pending_event'").get(created.jobId);
+    const leaseOwner = 'lease_pending_due';
+    database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, run_after = ? WHERE id = ?").run(leaseOwner, new Date(Date.now() + 60_000).toISOString(), dueAt, job.id);
+
+    const previousSettings = publicSettings();
+    const previousFetch = globalThis.fetch;
+    let calls = 0;
+    saveSettings({model: 'pending-test-model'});
+    globalThis.fetch = async (_url, request) => {
+        calls += 1;
+        const body = JSON.parse(request.body);
+        assert.equal(body.stream, false);
+        assert.match(body.messages[0].content, /主动私聊结构化决策/);
+        assert.match(body.messages[1].content, /面试结束后关心/);
+        return new Response(JSON.stringify({choices: [{message: {content: JSON.stringify({schemaVersion: 1, send: true, reason: '当前聊天适合自然关心', message: '面试结束了吗？现在感觉怎么样？'})}}]}), {status: 200, headers: {'content-type': 'application/json'}});
+    };
+    try {
+        const result = await runPendingEventJob({...job, lease_owner: leaseOwner});
+        assert.equal(result.completed, true);
+        assert.equal(calls, 1);
+        assert.equal(database.prepare('SELECT status FROM companion_pending_events WHERE id = ?').get(created.pendingEvent.id).status, 'consumed');
+        const message = listMessages(persona.id, {markRead: false}).items.find(item => item.proactivePendingEventId === created.pendingEvent.id);
+        assert.equal(message.text, '面试结束了吗？');
+    } finally {
+        globalThis.fetch = previousFetch;
+        saveSettings({model: previousSettings.model || ''});
+    }
+});
+
+test('expired pending events finish without an LLM call', async () => {
+    const persona = createPersona({name: '顾遥', role: '学生', foundation: '顾遥不会错过已经过期的提醒。'});
+    const source = appendMessage(persona.id, {role: 'user', text: '下周有一件事。'});
+    const created = createPendingEvent(persona.id, {
+        schemaVersion: 1,
+        summary: '过期后不再跟进',
+        notBefore: new Date(Date.now() + 60_000).toISOString(),
+        expiresAt: new Date(Date.now() + 2 * 60 * 60_000).toISOString(),
+        dedupeKey: '过期提醒'
+    }, source.id);
+    const past = new Date(Date.now() - 60_000).toISOString();
+    database.prepare('UPDATE companion_pending_events SET not_before = ?, expires_at = ? WHERE id = ?').run(past, past, created.pendingEvent.id);
+    const job = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND job_type = 'pending_event'").get(created.jobId);
+    const leaseOwner = 'lease_pending_expired';
+    database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, run_after = ? WHERE id = ?").run(leaseOwner, new Date(Date.now() + 60_000).toISOString(), past, job.id);
+    const previousFetch = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = async () => { calls += 1; throw new Error('expired event must not call model'); };
+    try {
+        const result = await runPendingEventJob({...job, lease_owner: leaseOwner});
+        assert.equal(result.status, 'complete');
+        assert.equal(calls, 0);
+        assert.equal(database.prepare('SELECT status FROM companion_pending_events WHERE id = ?').get(created.pendingEvent.id).status, 'expired');
+    } finally {
+        globalThis.fetch = previousFetch;
+    }
+});
+
+test('terminal pending-event evaluation failure closes the pending lifecycle', async () => {
+    const persona = createPersona({name: '苏禾', role: '学生', foundation: '苏禾会谨慎处理未完成的提醒。'});
+    const source = appendMessage(persona.id, {role: 'user', text: '我有一件稍后再说的事。'});
+    const created = createPendingEvent(persona.id, {
+        schemaVersion: 1,
+        summary: '模型失败时也要结束生命周期',
+        notBefore: new Date(Date.now() + 60_000).toISOString(),
+        expiresAt: new Date(Date.now() + 60 * 60_000).toISOString(),
+        dedupeKey: '模型失败生命周期'
+    }, source.id);
+    const dueAt = new Date(Date.now() - 1_000).toISOString();
+    database.prepare('UPDATE companion_pending_events SET not_before = ? WHERE id = ?').run(dueAt, created.pendingEvent.id);
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({choices: [{message: {content: '不是 JSON'}}]}), {status: 200, headers: {'content-type': 'application/json'}});
+    try {
+        for (let attempt = 1; attempt <= 4; attempt += 1) {
+            const owner = `lease_pending_failure_${attempt}`;
+            database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, run_after = ?, attempt_count = ? WHERE id = ?").run(owner, new Date(Date.now() + 60_000).toISOString(), dueAt, attempt, created.jobId);
+            const job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(created.jobId);
+            await runPendingEventJob({...job, lease_owner: owner});
+        }
+        assert.equal(database.prepare('SELECT status FROM companion_jobs WHERE id = ?').get(created.jobId).status, 'failed');
+        assert.equal(database.prepare('SELECT status FROM companion_pending_events WHERE id = ?').get(created.pendingEvent.id).status, 'cancelled');
+        assert.equal(listMessages(persona.id, {markRead: false}).items.some(message => message.proactivePendingEventId === created.pendingEvent.id), false);
+    } finally {
+        globalThis.fetch = previousFetch;
+    }
+});
+
+test('life-event proactive delivery is suppressed while the user is actively chatting', () => {
+    const persona = createPersona({name: '许安', role: '学生', foundation: '许安只在合适的时候打扰朋友。'});
+    appendMessage(persona.id, {role: 'user', text: '我正在和你聊天。'});
+    const event = createEvent(requirePersona(persona.id), {type: 'social', situation: '和朋友散步', mood: '轻松', scene: '校园小路'}, {proactive: true, source: 'test'});
+    assert.ok(event.eventId);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'proactive_message'").get(persona.id).count, 0);
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_life_events WHERE id = ?').get(event.eventId).count, 1);
+});
+
+test('life-event worker rechecks active chat before making its LLM call', async () => {
+    const persona = createPersona({name: '许真', role: '学生', foundation: '许真不会在用户正在说话时另起话题。'});
+    const oldMessage = appendMessage(persona.id, {role: 'user', text: '刚刚聊完。'});
+    database.prepare('UPDATE companion_messages SET created_at = ? WHERE id = ?').run(new Date(Date.now() - 11 * 60 * 1000).toISOString(), oldMessage.id);
+    const event = createEvent(requirePersona(persona.id), {type: 'social', situation: '和朋友散步', mood: '轻松', scene: '校园小路'}, {proactive: true, source: 'test'});
+    const job = database.prepare("SELECT * FROM companion_jobs WHERE persona_id = ? AND job_type = 'proactive_message' ORDER BY created_at DESC LIMIT 1").get(persona.id);
+    appendMessage(persona.id, {role: 'user', text: '现在继续聊天。'});
+    const owner = 'lease_life_event_active_race';
+    database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ? WHERE id = ?").run(owner, new Date(Date.now() + 60_000).toISOString(), job.id);
+    const previousFetch = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = async () => { calls += 1; throw new Error('active life event must not call model'); };
+    try {
+        const result = await companionTestHooks.runProactiveMessageJob({...job, lease_owner: owner});
+        assert.equal(result.result.skipped, 'active_chat');
+        assert.equal(calls, 0);
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_messages WHERE proactive_event_id = ?').get(event.eventId).count, 0);
+    } finally {
+        globalThis.fetch = previousFetch;
+    }
+});
+
+test('proactive decisions are frozen before delivery retries', () => {
+    const persona = createPersona({name: '林澄', role: '学生', foundation: '林澄会把重要的关心说得自然。'});
+    const source = appendMessage(persona.id, {role: 'user', text: '今天见。'});
+    database.prepare('UPDATE companion_messages SET created_at = ? WHERE id = ?').run(new Date(Date.now() - 11 * 60 * 1000).toISOString(), source.id);
+    const event = createEvent(requirePersona(persona.id), {type: 'social', situation: '和朋友散步', mood: '轻松', scene: '校园小路'}, {proactive: true, source: 'test'});
+    const job = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND job_type = 'proactive_message'").get(database.prepare("SELECT id FROM companion_jobs WHERE persona_id = ? AND job_type = 'proactive_message' ORDER BY created_at DESC LIMIT 1").get(persona.id).id);
+    const leaseOwner = 'lease_frozen_decision';
+    database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ? WHERE id = ?").run(leaseOwner, new Date(Date.now() + 60_000).toISOString(), job.id);
+    const decision = {schemaVersion: 1, send: true, reason: '冻结测试', message: '这是冻结后的主动消息。'};
+    assert.equal(freezeProactiveDecision({...job, lease_owner: leaseOwner}, decision).changed, true);
+    const completed = completeProactiveMessageJob({...job, lease_owner: leaseOwner});
+    assert.equal(completed.completed, true);
+    assert.equal(listMessages(persona.id, {markRead: false}).items.find(message => message.proactiveEventId === event.eventId).text, '这是冻结后的主动消息。');
 });
 
 test('rescheduling keeps one schedule and records an audited life event', () => {

@@ -188,6 +188,74 @@ database.transaction(() => {
 })();
 ```
 
+## Scenario: Chat-declared pending events and one-shot proactive evaluation
+
+### 1. Scope / Trigger
+
+- Trigger: the persona may register a bounded “follow up later” fact during a normal chat, then deliver at a durable time without scanning every persona or reinterpreting the chat history.
+- This crosses the chat SSE marker, SQLite migration, durable worker, current-chat context, and assistant-message provenance.
+
+### 2. Signatures
+
+- Marker: `<pending-event>{"schemaVersion":1,"summary":string,"notBefore":ISO-with-offset,"expiresAt":ISO-with-offset,"dedupeKey":string}</pending-event>`.
+- `normalizePendingEventCall(value, reference?) -> {schemaVersion, summary, notBefore, expiresAt, dedupeKey}`; rejects missing fields, timezone-less timestamps, invalid ordering, past `notBefore`, or a horizon beyond 30 days.
+- `createPendingEvent(persona, value, sourceMessageId) -> {pendingEvent, jobId, created}`; binds the source to a user message owned by the same persona and creates one `pending_event` job at `run_after = notBefore`.
+- `companion_messages.proactive_pending_event_id` is nullable provenance for assistant messages created from a pending event.
+- Structured proactive decision: `{"schemaVersion":1,"send":boolean,"reason":string,"message":string}`; `send=true` message is limited to 90 characters.
+
+### 3. Contracts
+
+- `companion_pending_events` is persona-scoped with `status` in `pending|triggered|consumed|cancelled|expired`, immutable summary/time fields, `UNIQUE(persona_id, dedupe_key, not_before)`, and a due index.
+- `source_message_id` and `proactive_pending_event_id` use `ON DELETE SET NULL`; pending jobs/events are removed before conversations/messages during persona deletion.
+- Marker parsing removes complete, oversized, malformed, or unclosed marker regions from the visible assistant text; invalid capability data never blocks the ordinary chat response.
+- The due worker may evaluate a pending event even when the latest user message is under ten minutes old, because the marker is an explicit follow-up authorization. It sends the current persona context, the frozen pending fact, and at most the existing recent-message window (18 messages) to one structured model call.
+- The model decision is frozen in `companion_jobs.result_json.decision` under the active lease before delivery. Retries reuse it and do not call the model again. Terminal evaluation failure changes a `triggered` pending event to `cancelled`.
+- A life-event proactive job remains distinct: if the latest user message is under ten minutes old, it is skipped before any model call; the life event fact itself remains persisted.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Missing/invalid marker JSON, no timezone, empty summary, `expiresAt <= notBefore`, or horizon > 30 days | Strip marker, keep normal chat text, create no pending row/job |
+| Source message missing, assistant-owned, or another persona's message | Reject pending registration; no row/job |
+| Same persona, `dedupeKey`, and `notBefore` already registered | Return existing pending row/job; do not duplicate |
+| Pending event is past `expiresAt` before execution | Mark `expired`, complete job, make no model call |
+| Pending event model call fails but retries remain | Keep row `triggered`, requeue job with bounded retry |
+| Pending event model call reaches terminal failure | Mark row `cancelled`, job `failed`, persist bounded diagnostic, no visible message |
+| Life event arrives during active chat | Persist life event only; no proactive evaluation/job |
+| Stale lease or duplicate settlement | Conditional update changes zero rows; never duplicate a message |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a chat response registers “下午面试结束后问问感受” with absolute `notBefore`/`expiresAt`; one durable job later evaluates the current conversation and writes one pending-provenance assistant message.
+- Base: the current conversation makes an intervention awkward; the model returns `send=false`, the pending row becomes `consumed`, and no assistant message is inserted.
+- Bad: scanning all personas every ten minutes, deriving a timestamp from free text on the server, exposing marker JSON in the streamed UI, or regenerating a different message after a lease retry.
+
+### 6. Tests Required
+
+- Assert migration v8 tables/columns/indexes and persona deletion with source-message and pending-message provenance.
+- Assert marker normalization/removal for valid, duplicate, malformed, oversized, and unclosed markers; assert marker redaction before SSE token emission.
+- Assert source ownership, timezone/horizon/order validation, exact dedupe, expiry without model call, active-chat pending intervention, and life-event active-chat suppression.
+- Mock one structured model response and assert one call, frozen decision reuse, `send=false` consumption, terminal failure cancellation, stale lease rejection, and no duplicate assistant message.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+// Re-read the whole chat every ten minutes and infer a follow-up timestamp.
+scanAllPersonasAndGuessPendingEvents();
+```
+
+#### Correct
+
+```js
+// The model explicitly registers a bounded fact; the worker reuses its frozen
+// time/source and evaluates exactly once at the durable due boundary.
+const pending = createPendingEvent(persona, marker, currentUserMessage.id);
+enqueueJob({jobType: 'pending_event', runAfter: pending.notBefore, payload: {pendingEventId: pending.id}});
+```
+
 ## Scenario: Audited schedule changes and proactive delivery
 
 ### 1. Scope / Trigger

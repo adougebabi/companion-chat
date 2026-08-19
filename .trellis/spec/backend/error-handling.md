@@ -14,6 +14,10 @@ Validate request shape and resource existence before mutating state. For awaited
 
 `POST /api/chat` sets `text/event-stream` before contacting MTPLX. Stream tokens as `data: {"type":"token","token":"..."}\n\n`, finish with `type: done`, and send `type: error` on failure before `res.end()`. Parse each upstream SSE payload independently and collect malformed payloads in `parseErrors` rather than terminating the whole stream.
 
+Structured capability markers such as `<media-intent>` and `<pending-event>` are transport-only. Hold back and redact their opening/body/closing regions before emitting SSE token events; remove malformed or oversized regions from the final visible text as well. A malformed capability call must not turn an otherwise valid assistant completion into an SSE error after the visible text has already been persisted. Queueing a capability job is best-effort after the ordinary assistant message boundary.
+
+Model calls that can freeze a durable proactive decision must have a bounded timeout shorter than their default job lease. If the call fails, retry the job while its lease/result remains authoritative; once attempts are exhausted, settle the job with a bounded diagnostic and close any source lifecycle instead of leaving a triggered candidate indefinitely active.
+
 ## Scenario: User-visible assistant reply form and multi-message completion
 
 ### 1. Scope / Trigger

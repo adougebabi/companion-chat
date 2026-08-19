@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Verify migration ordering, foreign-key cleanup, indexes, transaction boundaries, and lease-safe state transitions."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Verify malformed marker/provider failures do not lose chat正文, SSE errors close correctly, and worker retries remain bounded."}
+{"file":".trellis/spec/backend/debug-observability.md","reason":"Verify persona-scoped lifecycle/job diagnostics are bounded and do not expose prompts or secrets."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Run npm test, node --check, temporary database smoke tests, and full producer/consumer contract review."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Review all producers/consumers for new pending_event, provenance, job type, and SSE contracts."}

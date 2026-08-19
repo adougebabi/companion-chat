@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"SQLite migration v8, persona-scoped pending-event persistence, durable job ownership, and deletion order."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"SSE marker parsing failures, worker retry/settlement, and safe structured proactive decision errors."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Required tests, lease guards, temporary DATA_DIR validation, and no second queue/database."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Chat SSE -> marker -> SQLite pending event -> durable job -> assistant message contract tracing."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Reuse existing marker parser, prompt builder, message persistence, job settlement, and provenance owners."}
