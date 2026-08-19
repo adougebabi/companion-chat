@@ -110,3 +110,36 @@ Implemented and verified the persona life-model v2, time-line slots and decision
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Align daily plan state and trusted chat time facts
+
+**Date**: 2026-08-19
+**Task**: Align daily plan state and trusted chat time facts
+**Branch**: `master`
+
+### Summary
+
+Implemented continuous ready-plan state projection with default-room baselines, legacy blueprint fallback, explicit schedule overlays, trusted time boundaries, sleep-aware deferred chat decisions, media/chat source consistency, deterministic time replies, regression coverage, and synchronized Trellis specs. Preserved unrelated dirty work and archived only 08-19-state-plan-consistency.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6064745` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
