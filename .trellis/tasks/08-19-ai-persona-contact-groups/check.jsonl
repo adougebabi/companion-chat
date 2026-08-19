@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Final backend syntax, test, temporary-data smoke, and persistence checks."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Final browser/manual responsive, safe interpolation, and regression checks."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Dialog keyboard/cancel behavior and accessible group controls."}
+{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Confirm existing api(), esc(), render, and dialog helpers are reused."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Review the complete browser-to-route-to-SQLite-to-bootstrap flow."}

@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Migration, default seeding, persona-scoped group persistence, and additive compatibility rules."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Validation and HTTP error response conventions for group routes."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Required API/syntax/test verification and cross-layer contract checks."}
+{"file":".trellis/spec/frontend/component-guidelines.md","reason":"Native dialog, safe DOM rendering, accessibility, and event binding patterns."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Bootstrap/localStorage synchronization and derived contact filtering rules."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Additive bootstrap contract and persisted state producer/consumer checklist."}

@@ -27,6 +27,58 @@ The companion domain starts clean. It does not read, import, migrate, or delete 
 - Returning a masked API key and then persisting the mask value. Expose `hasLmStudioApiKey`; treat an empty or sentinel key patch as unchanged.
 - Committing `data/`; it contains private local companion data and is intentionally ignored.
 
+## Scenario: Persona Contact Groups
+
+### 1. Scope / Trigger
+
+- Trigger: the companion client needs durable user-defined groups for AI personas and a group-aware contact view.
+
+### 2. Signatures
+
+- Migration 9 creates `companion_groups(id, name, is_default, created_at, updated_at)` and adds `companion_personas.group_id`.
+- `GET /api/companion/bootstrap` returns `groups: [{id, name, isDefault, personaCount}]`; persona summaries include `groupId` and `groupName`.
+- `POST /api/companion/groups` accepts `{name}`; `PUT /api/companion/personas/:personaId/group` accepts `{groupId}`.
+
+### 3. Contracts
+
+- Startup seeds exactly one immutable `默认` group and backfills existing personas to it in the same migration transaction.
+- New personas are inserted with the current default group ID; group assignment updates `updated_at` and is visible in the next bootstrap response.
+- The browser may filter contacts locally, but SQLite remains the authority for group membership and group counts.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Group name is blank, non-text, or longer than 60 characters | 400 with a bounded validation error; no row is inserted |
+| Group name already exists | 400; no duplicate group |
+| Persona or target group does not exist | 404; persona membership is unchanged |
+| Default group is missing during persona creation | Fail the creation instead of inserting an ungrouped persona |
+
+### 5. Good / Base / Bad Cases
+
+- Good: migration seeds `默认`, a new persona points to it, and assigning `工作` survives a bootstrap reload.
+- Base: an empty custom group is returned with `personaCount: 0` and can be selected by the client.
+- Bad: storing the selected filter only in the browser or inserting a persona with a null `group_id`.
+
+### 6. Tests Required
+
+- Assert migration 9, the unique default guard, default persona assignment, group counts, bootstrap fields, successful reassignment, duplicate/blank/oversized names, and unknown-resource no-mutation behavior.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+database.prepare('UPDATE companion_personas SET group_id = ? WHERE id = ?').run(groupId, personaId);
+```
+
+#### Correct
+
+```js
+// The route delegates validation and the timestamped update to one owner.
+return assignPersonaGroup(personaId, groupId);
+```
+
 ## Scenario: Ready Daily Plan State Authority
 
 ### 1. Scope / Trigger

@@ -327,6 +327,26 @@ const companionMigrations = [
                     ON companion_messages(proactive_pending_event_id, created_at DESC);
             `);
         }
+    },
+    {
+        version: 9,
+        name: 'persona-contact-groups',
+        apply() {
+            database.exec(`
+                CREATE TABLE companion_groups (
+                    id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE,
+                    is_default INTEGER NOT NULL DEFAULT 0 CHECK(is_default IN (0, 1)),
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+                );
+            `);
+            const defaultGroupId = id('group');
+            const createdAt = now();
+            database.prepare('INSERT INTO companion_groups (id, name, is_default, created_at, updated_at) VALUES (?, ?, 1, ?, ?)').run(defaultGroupId, '默认', createdAt, createdAt);
+            database.exec('CREATE UNIQUE INDEX companion_groups_default_once ON companion_groups(is_default) WHERE is_default = 1');
+            database.exec('ALTER TABLE companion_personas ADD COLUMN group_id TEXT REFERENCES companion_groups(id)');
+            database.prepare('UPDATE companion_personas SET group_id = ? WHERE group_id IS NULL').run(defaultGroupId);
+            database.exec('CREATE INDEX companion_personas_group_created_idx ON companion_personas(group_id, created_at)');
+        }
     }
 ];
 
@@ -419,6 +439,66 @@ function requirePersona(personaId) {
     const persona = personaRow(personaId);
     if (!persona) throw Object.assign(new Error('人格不存在'), {status: 404});
     return persona;
+}
+
+const companionGroupNameMaxLength = 60;
+
+function defaultGroup() {
+    return database.prepare('SELECT * FROM companion_groups WHERE is_default = 1 ORDER BY created_at, id LIMIT 1').get();
+}
+
+function groupForPersona(personaId) {
+    const groupId = typeof personaId === 'object' ? personaId?.group_id : personaId;
+    const group = groupId
+        ? database.prepare('SELECT id, name, is_default, created_at, updated_at FROM companion_groups WHERE id = ?').get(groupId)
+        : null;
+    return group || defaultGroup();
+}
+
+function groupShape(row, personaCount = 0) {
+    return {
+        id: row.id, name: row.name, isDefault: Boolean(row.is_default),
+        personaCount: Number(personaCount || 0)
+    };
+}
+
+function listGroups() {
+    return database.prepare(`
+        SELECT groups.id, groups.name, groups.is_default, groups.created_at, groups.updated_at,
+            COUNT(personas.id) AS persona_count
+        FROM companion_groups groups
+        LEFT JOIN companion_personas personas
+            ON personas.group_id = groups.id AND personas.enabled = 1 AND personas.deleted_at IS NULL
+        GROUP BY groups.id
+        ORDER BY groups.is_default DESC, groups.created_at, groups.id
+    `).all().map(row => groupShape(row, row.persona_count));
+}
+
+function createGroup(name) {
+    if (typeof name !== 'string') throw new Error('分组名称必须是文本');
+    const normalized = name.trim();
+    if (!normalized) throw new Error('分组名称不能为空');
+    if (normalized.length > companionGroupNameMaxLength) throw new Error(`分组名称不能超过 ${companionGroupNameMaxLength} 个字符`);
+    if (database.prepare('SELECT 1 FROM companion_groups WHERE name = ?').get(normalized)) throw new Error('分组名称已存在');
+    const group = {id: id('group'), name: normalized, isDefault: false, personaCount: 0};
+    const createdAt = now();
+    try {
+        database.prepare('INSERT INTO companion_groups (id, name, is_default, created_at, updated_at) VALUES (?, ?, 0, ?, ?)').run(group.id, group.name, createdAt, createdAt);
+    } catch (error) {
+        if (String(error.code || '').includes('SQLITE_CONSTRAINT')) throw new Error('分组名称已存在');
+        throw error;
+    }
+    return group;
+}
+
+function assignPersonaGroup(personaId, groupId) {
+    const persona = requirePersona(personaId);
+    if (typeof groupId !== 'string' || !groupId.trim()) throw new Error('分组 ID 不能为空');
+    const group = database.prepare('SELECT id FROM companion_groups WHERE id = ?').get(groupId.trim());
+    if (!group) throw Object.assign(new Error('分组不存在'), {status: 404});
+    const updatedAt = now();
+    database.prepare('UPDATE companion_personas SET group_id = ?, updated_at = ? WHERE id = ?').run(group.id, updatedAt, persona.id);
+    return summary(requirePersona(persona.id));
 }
 
 function foundation(personaId) {
@@ -567,6 +647,7 @@ function stateShape(personaId, at = new Date()) {
 function summary(persona) {
     if (!persona) return null;
     const state = resolvedStateFor(persona.id);
+    const group = groupForPersona(persona);
     const unread = persona.screened_at ? 0 : database.prepare(`
         SELECT COUNT(*) AS count FROM companion_messages messages
         JOIN companion_conversations conversations ON conversations.id = messages.conversation_id
@@ -574,6 +655,7 @@ function summary(persona) {
     `).get(persona.id).count;
     return {
         id: persona.id, name: persona.name, role: persona.role, color: persona.color,
+        groupId: group?.id || null, groupName: group?.name || null,
         screened: Boolean(persona.screened_at), currentSituation: state?.situation || '', mood: state?.mood || '',
         unreadCount: unread, updatedAt: persona.updated_at
     };
@@ -1031,8 +1113,10 @@ function createPersona(input) {
         color: /^#[0-9a-f]{6}$/i.test(String(input.color || '')) ? input.color : '#3593d2', blueprint: candidate
     };
     if (!value.name || !value.role || !value.foundation) throw new Error('人格名称、角色和基础设定不能为空');
+    const group = defaultGroup();
+    if (!group) throw new Error('默认分组不存在');
     database.transaction(() => {
-        database.prepare('INSERT INTO companion_personas (id, name, role, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run(value.id, value.name, value.role, value.color, createdAt, createdAt);
+        database.prepare('INSERT INTO companion_personas (id, name, role, color, group_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(value.id, value.name, value.role, value.color, group.id, createdAt, createdAt);
         database.prepare('INSERT INTO companion_persona_foundation_revisions (id, persona_id, version, foundation, reason, created_at) VALUES (?, ?, 1, ?, ?, ?)').run(id('foundation'), value.id, value.foundation, '初始化人格', createdAt);
         database.prepare('INSERT INTO companion_persona_life_blueprints (persona_id, blueprint_json, created_at, updated_at) VALUES (?, ?, ?, ?)').run(value.id, JSON.stringify(value.blueprint), createdAt, createdAt);
         database.prepare('INSERT INTO companion_persona_life_blueprint_revisions (id, persona_id, version, blueprint_json, reason, schema_version, source, prompt_version, model, used_fallback, validation_warnings_json, created_at) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
@@ -4189,7 +4273,7 @@ app.get('/api/companion/bootstrap', route((req, res) => {
     const activityUnread = config.activityReadAt
         ? database.prepare(`SELECT 1 FROM companion_activities activities WHERE ${unreadWhere} AND activities.created_at > ? LIMIT 1`).get(config.activityReadAt)
         : database.prepare(`SELECT 1 FROM companion_activities activities WHERE ${unreadWhere} LIMIT 1`).get();
-    res.json({settings: publicSettings(), personas: listPersonas(), activityUnread: Boolean(activityUnread), defaultTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone, debugInspector: debugInspectorEnabled});
+    res.json({settings: publicSettings(), personas: listPersonas(), groups: listGroups(), activityUnread: Boolean(activityUnread), defaultTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone, debugInspector: debugInspectorEnabled});
 }));
 
 app.put('/api/companion/settings', route((req, res) => {
@@ -4239,8 +4323,18 @@ app.post('/api/companion/personas', route((req, res) => {
     res.status(201).json(createPersona(req.body));
 }));
 
+app.post('/api/companion/groups', route((req, res) => {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('请求体必须是 JSON 对象');
+    res.status(201).json(createGroup(req.body.name));
+}));
+
 app.delete('/api/companion/personas/:personaId', route((req, res) => {
     res.json(deletePersona(req.params.personaId));
+}));
+
+app.put('/api/companion/personas/:personaId/group', route((req, res) => {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('请求体必须是 JSON 对象');
+    res.json(assignPersonaGroup(req.params.personaId, req.body.groupId));
 }));
 
 app.get('/api/companion/personas/:personaId', route((req, res) => {
@@ -4424,7 +4518,7 @@ app.get('/api/companion/media/:mediaId', async (req, res) => {
 });
 
 export const companionApp = app;
-export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaCapabilityCall, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, normalizeMediaAcceptance, normalizePendingEventCall, pendingEventShape, createPendingEvent, normalizeProactiveDecision, parseProactiveDecision, freezeProactiveDecision, evaluateProactiveDecision, runProactiveMessageJob, runPendingEventJob, mediaConceptEnvelopeFor, generatePersonaMediaConcept, fillMediaPromptTemplate, renderMediaPromptTemplate, mediaConceptSchemaVersion, mediaCapabilityCallSchemaVersion, mediaPromptTemplateSchemaVersion, mediaPromptTemplateSections, pendingEventSchemaVersion, proactiveDecisionSchemaVersion, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, personaMediaConceptContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, storedDailyPlanItems, normalizeDailyPlan, composeDailyPlanTimeline, readyDailyPlanFor, dailyPlanSlotAt, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan, enqueueRelationshipEvolutionJob, mediaProviders, providerFor, providerSummaries, validateMediaSettings, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
+export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listGroups, createGroup, assignPersonaGroup, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaCapabilityCall, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, normalizeMediaAcceptance, normalizePendingEventCall, pendingEventShape, createPendingEvent, normalizeProactiveDecision, parseProactiveDecision, freezeProactiveDecision, evaluateProactiveDecision, runProactiveMessageJob, runPendingEventJob, mediaConceptEnvelopeFor, generatePersonaMediaConcept, fillMediaPromptTemplate, renderMediaPromptTemplate, mediaConceptSchemaVersion, mediaCapabilityCallSchemaVersion, mediaPromptTemplateSchemaVersion, mediaPromptTemplateSections, pendingEventSchemaVersion, proactiveDecisionSchemaVersion, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, personaMediaConceptContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, storedDailyPlanItems, normalizeDailyPlan, composeDailyPlanTimeline, readyDailyPlanFor, dailyPlanSlotAt, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, ensureDailyPlan, enqueueRelationshipEvolutionJob, mediaProviders, providerFor, providerSummaries, validateMediaSettings, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
 
 if (process.env.COMPANION_TEST !== '1') {
     app.listen(port, () => {

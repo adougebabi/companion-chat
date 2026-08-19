@@ -9,7 +9,7 @@ process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 process.env.COMPANION_DEBUG_INSPECTOR = '0';
 const {companionApp, companionTestHooks} = await import(`../server.js?test=${Date.now()}`);
-const {database, createPersona, createEvent, requirePersona, deletePersona, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, createPendingEvent, normalizePendingEventCall, normalizeProactiveDecision, freezeProactiveDecision, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, mediaConceptEnvelopeFor, renderMediaPromptTemplate, mediaPromptTemplateSections, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, personaMediaConceptContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, runPendingEventJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, normalizeDailyPlan, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, enqueueRelationshipEvolutionJob, providerFor, providerSummaries, mediaProviders, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, saveSettings, publicSettings} = companionTestHooks;
+const {database, createPersona, createEvent, requirePersona, deletePersona, listGroups, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, createPendingEvent, normalizePendingEventCall, normalizeProactiveDecision, freezeProactiveDecision, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, mediaConceptEnvelopeFor, renderMediaPromptTemplate, mediaPromptTemplateSections, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, personaMediaConceptContract, imagePromptMasterContract, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, runPendingEventJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, zonedPlanInstant, localDayBounds, normalizeDailyPlan, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, createInterview, answerInterview, activateInterview, debugContextFor, redactDebugValue, debugSummary, debugInspectorEnabled, enqueueRelationshipEvolutionJob, providerFor, providerSummaries, mediaProviders, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, saveSettings, publicSettings} = companionTestHooks;
 
 const mediaConcept = (kind, overrides = {}) => ({
     schemaVersion: 1, mediaKind: kind, scene: '测试场景', action: '测试动作', mood: '平静', narrative: '测试媒体概念',
@@ -25,6 +25,83 @@ const mediaCall = (kind, request, overrides = {}) => ({
 });
 
 const routePaths = app => (app.router?.stack || []).flatMap(layer => layer.route ? [layer.route.path] : []);
+
+function invokeRoute(path, method, {params = {}, body} = {}) {
+    const layer = (companionApp.router?.stack || []).find(item => item.route?.path === path && item.route.methods?.[method.toLowerCase()]);
+    assert.ok(layer, `${method} ${path} route is registered`);
+    const response = {
+        statusCode: 200, body: undefined, headersSent: false,
+        status(code) { this.statusCode = code; return this; },
+        json(value) { this.body = value; this.headersSent = true; return this; },
+        end() { this.headersSent = true; return this; }
+    };
+    layer.route.stack[0].handle({params, body}, response);
+    return response;
+}
+
+test('contact groups seed a default, assign new personas, and persist route changes', () => {
+    const migration = database.prepare("SELECT name FROM companion_schema_migrations WHERE version = 9").get();
+    assert.equal(migration.name, 'persona-contact-groups');
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'companion_groups'").get().count, 1);
+
+    const initialGroups = listGroups();
+    assert.deepEqual(initialGroups.map(group => ({name: group.name, isDefault: group.isDefault, personaCount: group.personaCount})), [{name: '默认', isDefault: true, personaCount: 0}]);
+    const persona = createPersona({name: '分组测试', role: '测试人格', foundation: '分组测试用于验证联系人分组。'});
+    try {
+        const defaultGroup = listGroups()[0];
+        assert.equal(persona.groupId, defaultGroup.id);
+        assert.equal(persona.groupName, '默认');
+        assert.equal(defaultGroup.personaCount, 1);
+
+        const initialBootstrap = invokeRoute('/api/companion/bootstrap', 'GET');
+        assert.equal(initialBootstrap.statusCode, 200);
+        assert.deepEqual(initialBootstrap.body.groups[0], defaultGroup);
+        assert.equal(initialBootstrap.body.personas.find(item => item.id === persona.id).groupId, defaultGroup.id);
+        assert.equal(initialBootstrap.body.personas.find(item => item.id === persona.id).groupName, '默认');
+
+        const created = invokeRoute('/api/companion/groups', 'POST', {body: {name: '  工作  '}});
+        assert.equal(created.statusCode, 201);
+        assert.match(created.body.id, /^group_/);
+        assert.equal(created.body.name, '工作');
+        assert.equal(created.body.isDefault, false);
+        assert.equal(created.body.personaCount, 0);
+        const createdGroupId = created.body.id;
+
+        const assigned = invokeRoute('/api/companion/personas/:personaId/group', 'PUT', {params: {personaId: persona.id}, body: {groupId: createdGroupId}});
+        assert.equal(assigned.statusCode, 200);
+        assert.equal(assigned.body.id, persona.id);
+        assert.equal(assigned.body.groupId, createdGroupId);
+        assert.equal(assigned.body.groupName, '工作');
+        assert.equal(database.prepare('SELECT group_id FROM companion_personas WHERE id = ?').get(persona.id).group_id, createdGroupId);
+
+        const persistedBootstrap = invokeRoute('/api/companion/bootstrap', 'GET');
+        const persistedPersona = persistedBootstrap.body.personas.find(item => item.id === persona.id);
+        assert.equal(persistedPersona.groupId, createdGroupId);
+        assert.equal(persistedPersona.groupName, '工作');
+        assert.equal(persistedBootstrap.body.groups.find(group => group.id === defaultGroup.id).personaCount, 0);
+        assert.equal(persistedBootstrap.body.groups.find(group => group.id === createdGroupId).personaCount, 1);
+
+        const duplicate = invokeRoute('/api/companion/groups', 'POST', {body: {name: '工作'}});
+        assert.equal(duplicate.statusCode, 400);
+        assert.equal(duplicate.body.error, '分组名称已存在');
+        const blank = invokeRoute('/api/companion/groups', 'POST', {body: {name: '   '}});
+        assert.equal(blank.statusCode, 400);
+        const tooLong = invokeRoute('/api/companion/groups', 'POST', {body: {name: 'x'.repeat(61)}});
+        assert.equal(tooLong.statusCode, 400);
+        const malformed = invokeRoute('/api/companion/groups', 'POST', {body: []});
+        assert.equal(malformed.statusCode, 400);
+
+        const unknownGroup = invokeRoute('/api/companion/personas/:personaId/group', 'PUT', {params: {personaId: persona.id}, body: {groupId: 'group_missing'}});
+        assert.equal(unknownGroup.statusCode, 404);
+        const unknownPersona = invokeRoute('/api/companion/personas/:personaId/group', 'PUT', {params: {personaId: 'persona_missing'}, body: {groupId: createdGroupId}});
+        assert.equal(unknownPersona.statusCode, 404);
+        const malformedAssignment = invokeRoute('/api/companion/personas/:personaId/group', 'PUT', {params: {personaId: persona.id}, body: {}});
+        assert.equal(malformedAssignment.statusCode, 400);
+        assert.equal(database.prepare('SELECT group_id FROM companion_personas WHERE id = ?').get(persona.id).group_id, createdGroupId);
+    } finally {
+        deletePersona(persona.id);
+    }
+});
 
 test('life model v2 fallback supplies a default room, safe event templates, and v7 tables', () => {
     const requiredTables = [

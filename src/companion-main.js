@@ -3,8 +3,9 @@ const esc = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&': '&am
 const formatTime = value => value ? new Intl.DateTimeFormat('zh-CN', {month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'}).format(new Date(value)) : '';
 const initials = name => Array.from(name || '?').slice(0, 1).join('');
 
-let appState = {settings: {}, personas: [], activityUnread: false};
+let appState = {settings: {}, personas: [], groups: [], activityUnread: false};
 let activePersonaId = localStorage.getItem('companion-active-persona') || '';
+let activeContactGroupId = localStorage.getItem('companion-active-group') || '';
 let chatDraft = '';
 let activeMessages = [];
 let activeDetail = null;
@@ -77,6 +78,14 @@ async function api(path, options = {}) {
 
 function activePersona() {
     return appState.personas.find(item => item.id === activePersonaId) || appState.personas[0] || null;
+}
+
+function contactGroups() {
+    return Array.isArray(appState.groups) ? appState.groups : [];
+}
+
+function activeContactGroup() {
+    return contactGroups().find(group => String(group.id) === activeContactGroupId) || null;
 }
 
 function avatar(persona, className = '') {
@@ -161,7 +170,7 @@ function renderSidebar() {
 
 function render() {
     renderSidebar();
-    if (!appState.personas.length) return renderEmptyStart();
+    if (!appState.personas.length && !(currentView === 'contacts' && contactGroups().length)) return renderEmptyStart();
     if (currentView === 'contacts') return renderContacts();
     if (currentView === 'settings') return renderSettingsPage();
     if (currentView === 'activity') return renderActivities();
@@ -169,12 +178,23 @@ function render() {
 }
 
 function renderContacts() {
-    $('#main-pane').innerHTML = `<section class="contacts-view"><header class="pane-header"><div class="header-copy"><h1>联系人</h1><p>所有陪伴者的聊天</p></div><button class="text-icon" id="contacts-create" aria-label="创建陪伴者" title="创建陪伴者">＋</button></header><div class="contacts-stream">${appState.personas.map(persona => `<button class="contact-row" data-contact-persona="${esc(persona.id)}">${avatar(persona)}<span class="persona-copy"><b>${esc(persona.name)}</b><small>${esc(persona.currentSituation || persona.role || '开始聊天')}</small></span>${persona.unreadCount ? `<em>${persona.unreadCount > 99 ? '99+' : persona.unreadCount}</em>` : ''}<i>›</i></button>`).join('')}</div></section>`;
+    const groups = contactGroups();
+    const selectedGroup = activeContactGroup();
+    const visiblePersonas = selectedGroup
+        ? appState.personas.filter(persona => String(persona.groupId || '') === String(selectedGroup.id))
+        : appState.personas;
+    const groupOptions = groups.map(group => `<option value="${esc(group.id)}" ${String(group.id) === activeContactGroupId ? 'selected' : ''}>${esc(group.name)}${Number(group.personaCount) ? ` (${Number(group.personaCount)})` : ''}</option>`).join('');
+    const empty = `<div class="contact-empty"><p>${selectedGroup ? `“${esc(selectedGroup.name)}”里还没有陪伴者。` : '还没有陪伴者。'}</p><button class="quiet" id="contacts-empty-create">创建一个陪伴者</button></div>`;
+    $('#main-pane').innerHTML = `<section class="contacts-view"><header class="pane-header contacts-header"><div class="header-copy"><h1>联系人</h1><p>${selectedGroup ? `${esc(selectedGroup.name)} · ${visiblePersonas.length} 位陪伴者` : '所有陪伴者的聊天'}</p></div><div class="contacts-actions">${groups.length ? `<label class="contact-group-control"><span class="sr-only">选择联系人分组</span><select id="contacts-group-select" aria-label="选择联系人分组">${groupOptions}</select></label><button class="text-icon" id="contacts-group-create" aria-label="创建分组" title="创建分组">＋</button>` : ''}<button class="text-icon" id="contacts-create" aria-label="创建陪伴者" title="创建陪伴者">＋</button></div></header><div class="contacts-stream">${visiblePersonas.length ? visiblePersonas.map(persona => `<button class="contact-row" data-contact-persona="${esc(persona.id)}">${avatar(persona)}<span class="persona-copy"><b>${esc(persona.name)}</b><small>${esc(persona.currentSituation || persona.role || '开始聊天')}</small></span>${persona.unreadCount ? `<em>${persona.unreadCount > 99 ? '99+' : persona.unreadCount}</em>` : ''}<i>›</i></button>`).join('') : empty}</div></section>`;
     $('#contacts-create').onclick = openPersonaWizard;
-    document.querySelectorAll('[data-contact-persona]').forEach(button => button.onclick = async () => {
-        currentView = 'chat';
-        await selectPersona(button.dataset.contactPersona);
+    $('#contacts-group-create')?.addEventListener('click', event => openGroupWizard(event.currentTarget));
+    $('#contacts-empty-create')?.addEventListener('click', openPersonaWizard);
+    $('#contacts-group-select')?.addEventListener('change', event => {
+        activeContactGroupId = event.currentTarget.value;
+        localStorage.setItem('companion-active-group', activeContactGroupId);
+        renderContacts();
     });
+    document.querySelectorAll('[data-contact-persona]').forEach(button => button.onclick = () => openContactGroupDialog(button.dataset.contactPersona, button));
 }
 
 function renderSettingsPage() {
@@ -342,8 +362,14 @@ function bindActivityEvents() {
 }
 
 async function loadBootstrap() {
-    appState = await api('/api/companion/bootstrap');
+    const nextState = await api('/api/companion/bootstrap');
+    appState = {...nextState, groups: Array.isArray(nextState.groups) ? nextState.groups : []};
     if (!appState.personas.some(persona => persona.id === activePersonaId)) activePersonaId = appState.personas[0]?.id || '';
+    if (!contactGroups().some(group => String(group.id) === activeContactGroupId)) {
+        activeContactGroupId = String(contactGroups().find(group => group.isDefault)?.id || contactGroups()[0]?.id || '');
+        if (activeContactGroupId) localStorage.setItem('companion-active-group', activeContactGroupId);
+        else localStorage.removeItem('companion-active-group');
+    }
 }
 
 async function selectPersona(personaId, {followLatest = true} = {}) {
@@ -452,6 +478,68 @@ async function sendMessage(event) {
         await loadBootstrap().catch(() => {});
         if (currentView === 'chat' && activePersonaId === personaId) renderChat({followLatest: completed});
     }
+}
+
+function openGroupWizard(trigger = document.activeElement) {
+    const dialog = $('#persona-dialog');
+    dialog.innerHTML = `<form class="persona-wizard group-wizard" id="group-form"><header><div><small>CONTACT GROUP</small><h2>创建分组</h2></div><button type="button" class="close-dialog" id="close-group" aria-label="关闭">×</button></header><div class="wizard-body"><p class="wizard-intro">把陪伴者按你想要的方式整理起来，之后可以在联系人页快速切换。</p><label>分组名称<input name="name" maxlength="60" required data-initial-focus placeholder="例如：学习伙伴"></label></div><footer class="wizard-footer"><button type="button" class="quiet" id="cancel-group">取消</button><button class="primary">创建分组</button></footer></form>`;
+    showDialog(dialog, trigger);
+    $('#close-group').onclick = () => closeDialog(dialog);
+    $('#cancel-group').onclick = () => closeDialog(dialog);
+    $('#group-form').onsubmit = async event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        if (!form.reportValidity()) return;
+        const submit = form.querySelector('.primary');
+        submit.disabled = true;
+        try {
+            const created = await api('/api/companion/groups', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name: String(new FormData(form).get('name') || '').trim()})});
+            await loadBootstrap();
+            const group = created?.group || created;
+            if (group?.id) {
+                activeContactGroupId = String(group.id);
+                localStorage.setItem('companion-active-group', activeContactGroupId);
+            }
+            dialog.close('submitted');
+            render();
+        } catch (error) {
+            submit.disabled = false;
+            window.alert(error.message);
+        }
+    };
+}
+
+function openContactGroupDialog(personaId, trigger = document.activeElement) {
+    const persona = appState.personas.find(item => item.id === personaId);
+    if (!persona) return;
+    const dialog = $('#persona-dialog');
+    const groups = contactGroups();
+    const defaultGroup = groups.find(group => group.isDefault) || groups[0];
+    const currentGroupId = String(persona.groupId || defaultGroup?.id || '');
+    const options = groups.map(group => `<option value="${esc(group.id)}" ${String(group.id) === currentGroupId ? 'selected' : ''}>${esc(group.name)}</option>`).join('');
+    dialog.innerHTML = `<form class="persona-wizard contact-group-sheet" id="contact-group-form"><header><div><small>CONTACT GROUP</small><h2>${esc(persona.name)}的分组</h2></div><button type="button" class="close-dialog" id="close-contact-group" aria-label="关闭">×</button></header><div class="wizard-body"><p class="wizard-intro">选择分组后进入聊天。取消不会改变 ${esc(persona.name)} 的归属。</p>${groups.length ? `<label>所属分组<select name="groupId" data-initial-focus>${options}</select></label>` : '<p class="muted">还没有可用分组。</p>'}</div><footer class="wizard-footer"><button type="button" class="quiet" id="cancel-contact-group">取消</button><button class="primary" id="contact-group-submit">进入聊天</button></footer></form>`;
+    showDialog(dialog, trigger);
+    $('#close-contact-group').onclick = () => closeDialog(dialog);
+    $('#cancel-contact-group').onclick = () => closeDialog(dialog);
+    $('#contact-group-form').onsubmit = async event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const submit = $('#contact-group-submit');
+        const selectedGroupId = String(form.elements.groupId?.value || '').trim();
+        submit.disabled = true;
+        try {
+            if (selectedGroupId && selectedGroupId !== currentGroupId) {
+                await api(`/api/companion/personas/${encodeURIComponent(persona.id)}/group`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({groupId: selectedGroupId})});
+            }
+            await loadBootstrap();
+            dialog.close('submitted');
+            currentView = 'chat';
+            await selectPersona(persona.id);
+        } catch (error) {
+            submit.disabled = false;
+            window.alert(error.message);
+        }
+    };
 }
 
 function openPersonaPicker() {
@@ -982,6 +1070,8 @@ async function refreshQuietly() {
     await loadBootstrap();
     if (currentView === 'activity') {
         await refreshActivities();
+    } else if (currentView === 'contacts') {
+        renderContacts();
     } else {
         if (activePersonaId) {
             const messages = (await api(`/api/companion/conversations/${activePersonaId}`)).items;
