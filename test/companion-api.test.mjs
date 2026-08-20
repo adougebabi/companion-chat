@@ -425,8 +425,12 @@ test('relationship evolution jobs debounce to the newest user message per person
     assert.equal(firstRow.status, 'complete');
     assert.deepEqual(JSON.parse(firstRow.result_json), {skipped: 'superseded_by_newer_message', supersededByJobId: second.id, supersededByMessageId: secondMessage.id});
     assert.ok(firstRow.completed_at);
+    assert.equal(firstRow.attempt_count, 0);
     assert.equal(secondRow.status, 'queued');
+    assert.equal(secondRow.priority, 1);
+    assert.equal(secondRow.max_attempts, 4);
     assert.equal(secondRow.message_id, secondMessage.id);
+    assert.deepEqual(JSON.parse(secondRow.payload_json), {sourceMessageId: secondMessage.id});
     assert.equal(new Date(secondRow.run_after).getTime() - new Date(secondRow.created_at).getTime() >= 10 * 60 * 1000 - 1_000, true);
     assert.deepEqual(queuedForPersona.map(job => job.id), [second.id]);
     assert.deepEqual(queuedForOtherPersona.map(job => job.id), [other.id]);
@@ -1594,6 +1598,7 @@ test('media settlement only completes the leased placeholder once', () => {
     const persona = createPersona({name: '白露', role: '摄影爱好者', foundation: '白露喜欢拍城市里的光影。'});
     const request = createChatMediaRequest(persona.id, mediaCall('image', '午后街角的自然照片'));
     const job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
+    const originalRunAfter = job.run_after;
     const leaseOwner = 'lease_media_settlement';
     database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ? WHERE id = ?").run(leaseOwner, new Date(Date.now() + 60_000).toISOString(), job.id);
 
@@ -1608,6 +1613,7 @@ test('media settlement only completes the leased placeholder once', () => {
     assert.equal(settled.generation.status, 'ready');
     assert.equal(settled.generation.promptId, 'prompt_valid');
     assert.equal(settled.attachments.length, 1);
+    assert.equal(database.prepare('SELECT run_after FROM companion_jobs WHERE id = ?').get(job.id).run_after, originalRunAfter);
 
     const duplicate = completePolledMediaJob({...job, lease_owner: leaseOwner}, 'prompt_valid', [{filename: 'street.png', type: 'output'}]);
     assert.equal(duplicate.completed, false);

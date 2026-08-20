@@ -985,8 +985,7 @@ function stateShape(personaId, at = new Date()) {
         ? persistedSource
         : !readyPlan && ['schedule', 'recovery'].includes(persistedSource?.type) ? persistedSource : null;
     const payload = json(sourceEvent?.payload_json, {});
-    const resolved = scheduledState(requirePersona(personaId), at);
-    const sceneRef = payload.sceneRef || resolved.sceneRef || blueprint(personaId).world?.defaultSceneRef;
+    const sceneRef = payload.sceneRef || blueprint(personaId).world?.defaultSceneRef;
     const resolvedScene = resolveSceneRef(blueprint(personaId), sceneRef);
     const sourceDetails = {
         sourceId: state.resolved_source_id || null,
@@ -2090,7 +2089,7 @@ function reconcilePersona(personaId, {publish = true} = {}) {
     const persona = personaRow(personaId);
     if (!persona) return null;
     const sharedScene = sharedSceneFor(persona.id);
-    if (sharedScene) return stateFor(persona.id);
+    if (sharedScene) return resolvedStateFor(persona.id);
     advanceTimelineSlots(persona.id);
     const next = scheduledState(persona);
     const current = stateFor(persona.id);
@@ -2104,8 +2103,10 @@ function reconcilePersona(personaId, {publish = true} = {}) {
 
 function recoverPersona(personaId) {
     const persona = personaRow(personaId);
+    if (!persona) return null;
+    if (sharedSceneFor(persona.id)) return resolvedStateFor(persona.id);
     const current = stateFor(personaId);
-    if (!persona || !current) return null;
+    if (!current) return null;
     const checkpoint = Date.parse(current.checkpoint_at);
     const elapsed = Date.now() - checkpoint;
     if (!Number.isFinite(elapsed) || elapsed < 30 * 60 * 1000) return reconcilePersona(personaId, {publish: false});
@@ -2272,7 +2273,7 @@ function eventFromSimulation(persona, input) {
     const situation = String(input.situation || (mildNegative ? '因为一件小事有些低落，正在缓一缓' : '正在忙自己的事')).slice(0, 100);
     return {
         type: kind, situation, mood: String(input.mood || (mildNegative ? '有点低落' : '平静')).slice(0, 40),
-        scene: String(input.scene || scheduledState(persona).scene).slice(0, 120), appearance: boundedAppearance(input.appearance),
+        scene: String(input.scene || resolvedStateFor(persona.id).resolved_scene).slice(0, 120), appearance: boundedAppearance(input.appearance),
         content: String(input.content || `${persona.name} ${situation}。`).slice(0, 900), visual: Boolean(input.visual),
         resolvesAt: boundedResolvesAt(input.resolvesAt || new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString())
     };
@@ -3722,7 +3723,7 @@ function createVisibleMarkerRedactor() {
 }
 
 function sleepAvailability(persona, at = new Date(), state = null) {
-    const resolved = state || scheduledState(persona, at);
+    const resolved = state || resolvedStateFor(persona.id, at);
     const planSleep = resolved.source === 'daily_plan_baseline'
         && /睡|赖床|自然醒|起床前/.test(String(resolved.situation || ''));
     const hour = localHour(at, blueprint(persona.id).timezone);
@@ -4092,7 +4093,7 @@ function enqueueRelationshipEvolutionJob(personaId, messageId) {
         payload: {sourceMessageId: messageId}
     };
     database.transaction(() => {
-        database.prepare(`INSERT INTO companion_jobs (id, job_type, status, priority, run_after, max_attempts, persona_id, activity_id, message_id, payload_json, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?, ?, ?, NULL, ?, ?, ?, ?)`).run(job.id, job.jobType, job.priority, job.runAfter, job.maxAttempts, job.personaId, job.messageId, JSON.stringify(job.payload), queuedAt, queuedAt);
+        jobRepository.enqueue({...job, createdAt: queuedAt, updatedAt: queuedAt});
         database.prepare(`UPDATE companion_jobs
             SET status = 'complete', result_json = ?, error = NULL, updated_at = ?, completed_at = ?
             WHERE persona_id = ? AND job_type = 'relationship_evolution' AND status = 'queued' AND id != ?`).run(
@@ -4579,7 +4580,7 @@ function completePolledMediaJob(job, promptId, files, provider = 'comfyui') {
     let completed = false;
     database.transaction(() => {
         const settledAt = now();
-        const active = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, settledAt);
+        const active = activeLeasedJob(job);
         if (!active) return;
         assets = mediaAssets(files, provider);
         if (job.activity_id) {
@@ -4598,7 +4599,7 @@ function completePolledMediaJob(job, promptId, files, provider = 'comfyui') {
             ...(provider === 'h3' ? {progress: terminalMediaProgress(currentResult.progress, active, 'complete', settledAt)} : {})
         });
         updateMediaTarget(job, {status: 'ready', promptId: externalId, provider, externalId, attachments: assets});
-        completed = Boolean(database.prepare(`UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?`).run(JSON.stringify(result), settledAt, settledAt, job.id, job.lease_owner, settledAt).changes);
+        completed = Boolean(jobRepository.settle(active, {result, runAfter: active.run_after, now: settledAt}).changed);
     })();
     return {completed, assets};
 }
@@ -4609,7 +4610,7 @@ async function completeGeneratedMedia(job, promptId, files, providerId = 'comfyu
     const acceptance = await acceptMediaCandidate({sourceJob: source, provider, files});
     appendMediaAcceptance(source.id, acceptance);
     if (acceptance.verdict === 'retry' && Number(json(source.payload_json, {}).qualityRetryCount || 0) < Number(json(source.payload_json, {}).maxQualityRetries ?? 1)) {
-        const active = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
+        const active = activeLeasedJob(job);
         if (!active) return {completed: false, assets: []};
         enqueueQualityRetry(source, acceptance);
         updateMediaTarget(source, {status: 'queued', error: '媒体需要按原始意图重新生成'});
@@ -4668,7 +4669,12 @@ function createChatMediaRequest(personaId, input, provenance = {}) {
                 attachmentsJson: '[]', generationJson: JSON.stringify(generation),
                 jobsJson: JSON.stringify([{id: jobId, kind, provider}]), createdAt, readAt: createdAt
             });
-            database.prepare(`INSERT INTO companion_jobs (id, job_type, status, priority, run_after, max_attempts, persona_id, message_id, payload_json, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?)`).run(jobId, jobType, 4, createdAt, 3, persona.id, messageId, JSON.stringify({envelope, personaMediaConcept: capabilityCall.personaMediaConcept, capabilityCall: callWithProvenance, kind, provider, trigger, qualityRetryCount: 0, maxQualityRetries: 1}), createdAt, createdAt);
+            jobRepository.enqueue({
+                id: jobId, jobType, priority: 4, runAfter: createdAt, maxAttempts: 3,
+                personaId: persona.id, messageId,
+                payload: {envelope, personaMediaConcept: capabilityCall.personaMediaConcept, capabilityCall: callWithProvenance, kind, provider, trigger, qualityRetryCount: 0, maxQualityRetries: 1},
+                createdAt, updatedAt: createdAt
+            });
             created.push({jobId, message: messageShape(inserted), replayed: false});
         }
         database.prepare('UPDATE companion_conversations SET updated_at = ? WHERE id = ?').run(now(), thread.id);
@@ -4733,11 +4739,19 @@ function initialMediaProgress(job, stage = 'preparing', startedAt = now()) {
     };
 }
 
+function activeLeasedJob(job, jobTypes = null) {
+    const active = jobRepository.find(job.id);
+    const checkedAt = now();
+    if (!active || active.status !== 'leased' || active.lease_owner !== job.lease_owner || !(active.lease_expires_at > checkedAt)) return null;
+    if (jobTypes && !jobTypes.includes(active.job_type)) return null;
+    return active;
+}
+
 function recordMediaJobResult(job, patch = {}) {
     let output = null;
     database.transaction(() => {
         const updatedAt = now();
-        const active = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, updatedAt);
+        const active = activeLeasedJob(job);
         if (!active) return;
         const result = mergeJobResult(json(active.result_json, {}), patch);
         const changed = database.prepare("UPDATE companion_jobs SET result_json = ?, updated_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").run(JSON.stringify(result), updatedAt, active.id, job.lease_owner, updatedAt).changes;
@@ -4750,7 +4764,7 @@ function recordMediaJobProgress(job, patch = {}) {
     let output = null;
     database.transaction(() => {
         const updatedAt = now();
-        const active = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, updatedAt);
+        const active = activeLeasedJob(job);
         if (!active) return;
         const currentResult = json(active.result_json, {});
         const currentProgress = currentResult.progress && typeof currentResult.progress === 'object' && !Array.isArray(currentResult.progress)
@@ -4884,7 +4898,7 @@ function completeProactiveMessageJob(job, input) {
     let completed = false;
     let result = null;
     database.transaction(() => {
-        const leased = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ? AND job_type IN ('proactive_message', 'pending_event')").get(job.id, job.lease_owner, now());
+        const leased = activeLeasedJob(job, ['proactive_message', 'pending_event']);
         if (!leased) return;
         const payload = json(leased.payload_json, {});
         const persona = personaRow(leased.persona_id);
@@ -4930,8 +4944,7 @@ function completeProactiveMessageJob(job, input) {
         }
         const completedAt = now();
         const merged = mergeJobResult(json(leased.result_json, {}), {decision, ...result});
-        const changed = database.prepare("UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").run(JSON.stringify(merged), completedAt, completedAt, leased.id, job.lease_owner, completedAt).changes;
-        completed = Boolean(changed);
+        completed = Boolean(jobRepository.settle(leased, {result: merged, runAfter: leased.run_after, now: completedAt}).changed);
     })();
     return {completed, result};
 }
@@ -5040,7 +5053,7 @@ function completeActivityDecisionJob(job, decision) {
     let completed = false;
     let result = null;
     database.transaction(() => {
-        const leased = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND job_type = 'activity_decision' AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
+        const leased = activeLeasedJob(job, ['activity_decision']);
         if (!leased) return;
         const payload = json(leased.payload_json, {});
         const persona = personaRow(leased.persona_id);
@@ -5069,7 +5082,7 @@ function completeActivityDecisionJob(job, decision) {
             }
         }
         const completedAt = now();
-        completed = Boolean(database.prepare("UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").run(JSON.stringify(result), completedAt, completedAt, leased.id, job.lease_owner, completedAt).changes);
+        completed = Boolean(jobRepository.settle(leased, {result, runAfter: leased.run_after, now: completedAt}).changed);
     })();
     return {completed, result};
 }
@@ -5195,7 +5208,7 @@ async function runDailyPlanJob(job) {
         if (!items) throw new Error('每日计划模型输出不符合受限日程格式');
         const updatedAt = now();
         database.transaction(() => {
-            const leased = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND job_type = 'daily_plan' AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
+            const leased = activeLeasedJob(job, ['daily_plan']);
             if (!leased) return;
             database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'ai_daily_plan' AND starts_at >= ? AND starts_at < ?").run(persona.id, day.start, day.end);
             database.prepare("DELETE FROM companion_schedule_items WHERE persona_id = ? AND source = 'daily_plan_baseline' AND starts_at >= ? AND starts_at < ?").run(persona.id, day.start, day.end);
@@ -5237,7 +5250,7 @@ async function runDailyPlanJob(job) {
             }
             const serializedTimeline = timeline.map(slot => ({slotKey: slot.slotKey, slotKind: slot.slotKind, title: slot.title, situation: slot.situation, scene: slot.scene, startsAt: slot.startsAt, endsAt: slot.endsAt, source: slot.source}));
             database.prepare("UPDATE companion_daily_plans SET status = 'ready', plan_json = ?, updated_at = ? WHERE id = ?").run(JSON.stringify({version: 2, items, timeline: serializedTimeline}), updatedAt, plan.id);
-            database.prepare("UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND lease_owner = ?").run(JSON.stringify({itemCount: items.length}), updatedAt, updatedAt, job.id, job.lease_owner);
+            jobRepository.settle(leased, {result: {itemCount: items.length}, runAfter: leased.run_after, now: updatedAt});
         })();
     } catch (error) {
         settleJob(job, {error: error.message});
@@ -5337,8 +5350,8 @@ function completeRelationshipEvolutionJob(job, {personaId, evidence, parsed}) {
     let completed = false;
     let result = null;
     database.transaction(() => {
-        const lease = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND job_type = 'relationship_evolution' AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
-        if (!lease || !personaRow(personaId)) return;
+        const leased = activeLeasedJob(job, ['relationship_evolution']);
+        if (!leased || !personaRow(personaId)) return;
         const evolution = applyRelationshipEvolution(personaId, {reason: parsed.reason, evidence, patch: parsed.relationshipPatch});
         const createdAt = now();
         let memoryCount = 0;
@@ -5349,7 +5362,7 @@ function completeRelationshipEvolutionJob(job, {personaId, evidence, parsed}) {
         }
         result = {evolutionId: evolution?.id || null, memoryCount};
         const settledAt = now();
-        completed = Boolean(database.prepare("UPDATE companion_jobs SET status = 'complete', lease_owner = NULL, lease_expires_at = NULL, result_json = ?, error = NULL, updated_at = ?, completed_at = ? WHERE id = ? AND job_type = 'relationship_evolution' AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").run(JSON.stringify(result), settledAt, settledAt, job.id, job.lease_owner, settledAt).changes);
+        completed = Boolean(jobRepository.settle(leased, {result, runAfter: leased.run_after, now: settledAt}).changed);
     })();
     return {completed, result};
 }

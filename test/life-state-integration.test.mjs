@@ -8,7 +8,7 @@ const dataDir = mkdtempSync(join(tmpdir(), 'local-ai-companion-life-state-'));
 process.env.DATA_DIR = dataDir;
 process.env.COMPANION_TEST = '1';
 const {companionTestHooks: hooks} = await import(`../server.js?life-state-integration=${Date.now()}`);
-const {database, createPersona, deletePersona, resolvedStateFor, stateShape} = hooks;
+const {database, createPersona, deletePersona, resolvedStateFor, stateShape, scheduledState, sleepAvailability, reconcilePersona, recoverPersona} = hooks;
 
 test('resolvedStateFor uses explicit Asia/Shanghai time through the pure resolver adapter', () => {
     const persona = createPersona({name: 'Life resolver', role: 'companion', foundation: 'Integration fixture.'});
@@ -78,6 +78,91 @@ test('resolvedStateFor preserves temporary appearance aliases at an explicit tim
         const resolved = resolvedStateFor(persona.id, at);
         assert.deepEqual(JSON.parse(resolved.appearance_json), {coat: 'blue'});
         assert.deepEqual(stateShape(persona.id, at).appearance, {coat: 'blue'});
+    } finally {
+        deletePersona(persona.id);
+    }
+});
+
+test('state and sleep projections use shared-scene precedence without changing scheduledState compatibility', () => {
+    const persona = createPersona({name: 'Projection adapter', role: 'companion', foundation: 'Integration fixture.'});
+    try {
+        const startsAt = '2023-12-31T17:00:00.000Z';
+        const endsAt = '2023-12-31T19:00:00.000Z';
+        database.prepare('INSERT INTO companion_schedule_items (id, persona_id, kind, title, starts_at, ends_at, status, source, details_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+            'integration-shared-schedule', persona.id, 'plan', 'legacy schedule', startsAt, endsAt, 'active', 'explicit_chat_plan',
+            JSON.stringify({sceneRef: {locationId: 'home', roomId: 'private_room'}, situation: 'legacy schedule should yield to the shared scene'}),
+            startsAt, startsAt
+        );
+        const at = new Date('2023-12-31T18:00:00.000Z');
+        const legacy = scheduledState(persona, at);
+        assert.equal(legacy.source, 'schedule');
+        assert.equal(legacy.endsAt, endsAt);
+
+        database.prepare('UPDATE companion_persona_states SET shared_scene_json = ? WHERE persona_id = ?').run(JSON.stringify({
+            eventId: 'integration-shared-scene', location: '湖边公园', room: '湖边步道', activity: '一起散步',
+            situation: '正在湖边公园一起散步', startedAt: '2023-12-31T17:30:00.000Z'
+        }), persona.id);
+        database.prepare('INSERT INTO companion_life_events (id, persona_id, type, occurred_at, resolves_at, causation_id, payload_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+            'integration-shared-scene', persona.id, 'shared_scene', '2023-12-31T17:30:00.000Z', null, null,
+            JSON.stringify({operation: 'start', location: '湖边公园', room: '湖边步道', activity: '一起散步', situation: '正在湖边公园一起散步'}),
+            '2023-12-31T17:30:00.000Z'
+        );
+        database.prepare('UPDATE companion_persona_states SET source_event_id = ? WHERE persona_id = ?').run('integration-shared-scene', persona.id);
+
+        const projected = stateShape(persona.id, at);
+        assert.equal(projected.sharedScene.eventId, 'integration-shared-scene');
+        assert.equal(projected.source.kind, 'shared_scene');
+        assert.equal(projected.sourceId, 'integration-shared-scene');
+        assert.equal(projected.location, '湖边公园');
+        assert.equal(projected.timeFact, 'unknown');
+        assert.equal(projected.endsAt, null);
+
+        const availability = sleepAvailability(persona, at);
+        assert.equal(availability.sleeping, true);
+        assert.equal(availability.nextBoundaryAt, null);
+
+        const eventCountBeforeReconcile = database.prepare('SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ?').get(persona.id).count;
+        const reconciled = reconcilePersona(persona.id, {publish: false});
+        assert.equal(reconciled.source, 'shared_scene');
+        assert.equal(reconciled.sharedScene.eventId, 'integration-shared-scene');
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ?').get(persona.id).count, eventCountBeforeReconcile);
+
+        database.prepare('UPDATE companion_persona_states SET checkpoint_at = ? WHERE persona_id = ?').run('2023-12-31T17:00:00.000Z', persona.id);
+        const recovered = recoverPersona(persona.id);
+        assert.equal(recovered.source, 'shared_scene');
+        assert.equal(recovered.sharedScene.eventId, 'integration-shared-scene');
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ?').get(persona.id).count, eventCountBeforeReconcile);
+    } finally {
+        deletePersona(persona.id);
+    }
+});
+
+test('stateShape keeps appearance expiry and trusted source metadata on read', () => {
+    const persona = createPersona({name: 'Expiry projection', role: 'companion', foundation: 'Integration fixture.'});
+    try {
+        const eventId = 'integration-expiring-appearance';
+        const startsAt = '2024-01-01T03:15:00.000Z';
+        const endsAt = '2024-01-01T04:15:00.000Z';
+        database.prepare('INSERT INTO companion_life_events (id, persona_id, type, occurred_at, resolves_at, causation_id, payload_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+            eventId, persona.id, 'social', startsAt, endsAt, null,
+            JSON.stringify({situation: 'wearing a temporary coat', mood: 'calm', scene: 'park', appearance: {coat: 'blue'}, rationale: 'integration fixture'}),
+            startsAt
+        );
+        database.prepare('UPDATE companion_persona_states SET situation = ?, mood = ?, appearance_json = ?, source_event_id = ?, checkpoint_at = ?, updated_at = ? WHERE persona_id = ?').run(
+            'wearing a temporary coat', 'calm', JSON.stringify({coat: 'blue'}), eventId, startsAt, startsAt, persona.id
+        );
+
+        const before = stateShape(persona.id, new Date('2024-01-01T03:30:00.000Z'));
+        assert.deepEqual(before.appearance, {coat: 'blue'});
+        assert.equal(before.source.kind, 'social');
+        assert.equal(before.source.eventId, eventId);
+        assert.equal(before.startsAt, startsAt);
+        assert.equal(before.endsAt, endsAt);
+        assert.equal(before.timeFact, 'known');
+
+        const after = stateShape(persona.id, new Date('2024-01-01T04:30:00.000Z'));
+        assert.deepEqual(after.appearance, {});
+        assert.equal(database.prepare('SELECT appearance_json FROM companion_persona_states WHERE persona_id = ?').get(persona.id).appearance_json, '{}');
     } finally {
         deletePersona(persona.id);
     }
