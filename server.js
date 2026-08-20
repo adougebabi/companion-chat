@@ -792,7 +792,34 @@ function imageGenerationPolicyFor(personaId) {
     return normalizeImageGenerationPolicy(value);
 }
 
-function applySceneEvent(personaInput, value, causationId, provenance = {}) {
+const sceneEventPlans = new WeakMap();
+
+function sceneProjectionSnapshot(personaId) {
+    const state = database.prepare('SELECT source_event_id, shared_scene_json FROM companion_persona_states WHERE persona_id = ?').get(personaId);
+    return {
+        sourceEventId: state?.source_event_id || null,
+        sharedSceneJson: state?.shared_scene_json || '{}',
+        sharedScene: sharedSceneFor(personaId)
+    };
+}
+
+function sameSceneProjection(left, right) {
+    return JSON.stringify(left || null) === JSON.stringify(right || null);
+}
+
+function sceneEventReplayResult(personaId, existing) {
+    const existingPayload = json(existing.payload_json, {});
+    const operation = existingPayload.operation || (existing.type === 'shared_scene_end' ? 'end' : 'start');
+    return {
+        eventId: existing.id,
+        operation,
+        scene: operation === 'end' ? null : existingPayload.nextScene || sharedSceneFor(personaId),
+        previousScene: existingPayload.previousScene || null,
+        replayed: true
+    };
+}
+
+function planSceneEvent(personaInput, value, causationId, provenance = {}) {
     const persona = typeof personaInput === 'string' ? requirePersona(personaInput) : requirePersona(personaInput?.id);
     const call = normalizeSceneEventCall(value);
     const sourceMessageId = String(causationId || '').trim();
@@ -804,47 +831,124 @@ function applySceneEvent(personaInput, value, causationId, provenance = {}) {
     `).get(sourceMessageId, persona.id);
     if (!source) throw new Error('scene_event 来源消息不存在或不属于该人格');
     const idempotencyKey = boundedSceneText(provenance.idempotencyKey, 160);
-    if (idempotencyKey) {
-        const existing = database.prepare("SELECT * FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.idempotencyKey') = ? ORDER BY created_at, id LIMIT 1").get(persona.id, idempotencyKey);
-        if (existing) {
-            const existingPayload = json(existing.payload_json, {});
-            return {
-                eventId: existing.id,
-                operation: existingPayload.operation || (existing.type === 'shared_scene_end' ? 'end' : 'start'),
-                scene: existingPayload.operation === 'end' ? null : existingPayload.nextScene || sharedSceneFor(persona.id),
-                previousScene: existingPayload.previousScene || null,
-                replayed: true
-            };
-        }
-    }
-    const previousScene = sharedSceneFor(persona.id);
-    const createdAt = now();
-    const eventId = id('event');
-    const fallback = scheduledState(persona, new Date(createdAt));
-    const nextScene = call.operation === 'end' ? null : {
-        location: call.location, room: call.room, activity: call.activity, situation: call.situation,
-        mood: call.mood || '平静', objects: call.objects, participants: call.participants,
-        startedAt: createdAt, eventId
-    };
-    const payload = {
+    const existing = idempotencyKey
+        ? database.prepare("SELECT * FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.idempotencyKey') = ? ORDER BY created_at, id LIMIT 1").get(persona.id, idempotencyKey)
+        : null;
+    const projection = sceneProjectionSnapshot(persona.id);
+    const existingPayload = existing ? json(existing.payload_json, {}) : null;
+    const replayed = Boolean(existing);
+    const replayOperation = existingPayload?.operation || (existing?.type === 'shared_scene_end' ? 'end' : 'start');
+    const operation = replayed && sceneEventOperations.includes(replayOperation)
+        ? replayOperation
+        : call.operation;
+    const previousScene = replayed ? existingPayload.previousScene || null : projection.sharedScene;
+    const createdAt = existing?.created_at || now();
+    const eventId = existing?.id || id('event');
+    const fallback = replayed ? null : scheduledState(persona, new Date(createdAt));
+    const nextScene = replayed
+        ? (operation === 'end' ? null : existingPayload.nextScene || sharedSceneFor(persona.id))
+        : call.operation === 'end' ? null : {
+            location: call.location, room: call.room, activity: call.activity, situation: call.situation,
+            mood: call.mood || '平静', objects: call.objects, participants: call.participants,
+            startedAt: createdAt, eventId
+        };
+    const payload = replayed ? existingPayload : {
         schemaVersion: 1, operation: call.operation, source: provenance.source || 'scene_event', causationId: source.id, eventId,
         ...(provenance.callId ? {capabilityCallId: boundedSceneText(provenance.callId, 160)} : {}),
         ...(idempotencyKey ? {idempotencyKey} : {}),
         location: nextScene?.location || '', room: nextScene?.room || '', activity: nextScene?.activity || '',
         situation: nextScene?.situation || fallback.situation || '', mood: nextScene?.mood || fallback.mood || '平静',
-        objects: nextScene?.objects || [], participants: nextScene?.participants || previousScene?.participants || ['user', 'persona'],
-        startedAt: nextScene?.startedAt || null, nextScene, previousScene: call.operation === 'switch' || call.operation === 'end' ? previousScene : null
+        objects: nextScene?.objects || [], participants: nextScene?.participants || projection.sharedScene?.participants || ['user', 'persona'],
+        startedAt: nextScene?.startedAt || null, nextScene, previousScene: call.operation === 'switch' || call.operation === 'end' ? projection.sharedScene : null
     };
-    database.transaction(() => {
-        database.prepare('INSERT INTO companion_life_events (id, persona_id, type, occurred_at, resolves_at, causation_id, payload_json, created_at) VALUES (?, ?, ?, ?, NULL, ?, ?, ?)').run(
-            eventId, persona.id, call.operation === 'end' ? 'shared_scene_end' : 'shared_scene', createdAt, source.id, JSON.stringify(payload), createdAt
-        );
-        database.prepare('UPDATE companion_persona_states SET situation = ?, mood = ?, checkpoint_at = ?, updated_at = ?, source_event_id = ?, shared_scene_json = ? WHERE persona_id = ?').run(
-            nextScene?.situation || fallback.situation || '', nextScene?.mood || fallback.mood || '平静', createdAt, createdAt, eventId, JSON.stringify(nextScene || {}), persona.id
-        );
-        database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(createdAt, persona.id);
+    const provenanceValue = Object.freeze({
+        source: boundedSceneText(provenance.source, 80) || 'scene_event',
+        ...(provenance.callId ? {callId: boundedSceneText(provenance.callId, 160)} : {}),
+        ...(idempotencyKey ? {idempotencyKey} : {})
+    });
+    const expected = Object.freeze({
+        sourceEventId: projection.sourceEventId,
+        sharedSceneJson: projection.sharedSceneJson,
+        sharedScene: previousScene
+    });
+    const preview = Object.freeze({eventId, operation, scene: nextScene, previousScene, replayed});
+    const plan = {
+        type: 'scene_event_plan',
+        version: 1,
+        personaId: persona.id,
+        sourceMessageId: source.id,
+        call: Object.freeze({...call}),
+        provenance: provenanceValue,
+        operation,
+        eventId,
+        createdAt,
+        preallocatedIds: Object.freeze({eventId}),
+        idempotencyKey,
+        expected,
+        scene: nextScene,
+        previousScene,
+        nextScene,
+        payload,
+        preview,
+        previewResult: preview,
+        replayed,
+        replayCandidate: replayed
+    };
+    Object.freeze(plan);
+    sceneEventPlans.set(plan, {call, provenance: provenanceValue, expected, previousScene, nextScene, payload, eventId, createdAt, operation});
+    return plan;
+}
+
+function applySceneEventPlan(plan) {
+    const state = sceneEventPlans.get(plan);
+    if (!state) throw new TypeError('scene_event 计划无效');
+    const persona = requirePersona(plan.personaId);
+    const sourceMessageId = String(plan.sourceMessageId || '').trim();
+    if (!sourceMessageId) throw new Error('scene_event 必须关联来源用户消息');
+    const source = database.prepare(`
+        SELECT messages.id FROM companion_messages messages
+        JOIN companion_conversations conversations ON conversations.id = messages.conversation_id
+        WHERE messages.id = ? AND conversations.persona_id = ? AND messages.role = 'user'
+    `).get(sourceMessageId, persona.id);
+    if (!source) throw new Error('scene_event 来源消息不存在或不属于该人格');
+
+    const idempotencyKey = state.provenance.idempotencyKey || '';
+    if (idempotencyKey) {
+        const existing = database.prepare("SELECT * FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.idempotencyKey') = ? ORDER BY created_at, id LIMIT 1").get(persona.id, idempotencyKey);
+        if (existing) return sceneEventReplayResult(persona.id, existing);
+    }
+
+    const expected = state.expected;
+    const current = sceneProjectionSnapshot(persona.id);
+    if (current.sourceEventId !== (expected.sourceEventId || null) || current.sharedSceneJson !== (expected.sharedSceneJson || '{}') || !sameSceneProjection(current.sharedScene, expected.sharedScene)) {
+        throw new Error('scene_event 计划与当前场景不一致，请重新规划');
+    }
+
+    const {eventId, createdAt, operation, payload: plannedPayload} = state;
+    if (!eventId || !createdAt || !operation || !plannedPayload || typeof plannedPayload !== 'object') throw new Error('scene_event 计划内容无效');
+    const nextScene = operation === 'end' ? null : state.nextScene || null;
+    const payload = plannedPayload;
+    database.prepare('INSERT INTO companion_life_events (id, persona_id, type, occurred_at, resolves_at, causation_id, payload_json, created_at) VALUES (?, ?, ?, ?, NULL, ?, ?, ?)').run(
+        eventId, persona.id, operation === 'end' ? 'shared_scene_end' : 'shared_scene', createdAt, source.id, JSON.stringify(payload), createdAt
+    );
+    const projectionUpdate = database.prepare(`
+        UPDATE companion_persona_states
+        SET situation = ?, mood = ?, checkpoint_at = ?, updated_at = ?, source_event_id = ?, shared_scene_json = ?
+        WHERE persona_id = ? AND source_event_id IS ? AND shared_scene_json = ?
+    `).run(
+        payload.situation || '', payload.mood || '平静', createdAt, createdAt, eventId,
+        JSON.stringify(nextScene || {}), persona.id, expected.sourceEventId || null, expected.sharedSceneJson || '{}'
+    );
+    if (projectionUpdate.changes !== 1) throw new Error('scene_event 计划与当前状态不一致，请重新规划');
+    database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(createdAt, persona.id);
+    return {eventId, operation, scene: nextScene, previousScene: state.previousScene || null};
+}
+
+function applySceneEvent(personaInput, value, causationId, provenance = {}) {
+    const plan = planSceneEvent(personaInput, value, causationId, provenance);
+    return database.transaction(() => {
+        return applySceneEventPlan(plan);
     })();
-    return {eventId, operation: call.operation, scene: nextScene, previousScene};
 }
 
 function stateFor(personaId, at = new Date()) {
@@ -2654,57 +2758,152 @@ function extractPendingEventIntent(text) {
     }
 }
 
-function createPendingEvent(persona, value, sourceMessageId, provenance = {}) {
-    const owner = typeof persona === 'string' ? requirePersona(persona) : requirePersona(persona?.id);
-    const call = normalizePendingEventCall(value);
-    const source = database.prepare(`
+const pendingEventPlans = new WeakMap();
+
+function pendingEventSourceFor(personaId, sourceMessageId) {
+    return database.prepare(`
         SELECT messages.id FROM companion_messages messages
         JOIN companion_conversations conversations ON conversations.id = messages.conversation_id
         WHERE messages.id = ? AND conversations.persona_id = ? AND messages.role = 'user'
-    `).get(sourceMessageId, owner.id);
+    `).get(sourceMessageId, personaId);
+}
+
+function pendingEventProvenance(provenance = {}) {
+    return Object.freeze({
+        source: boundedSceneText(provenance.source, 80) || 'pending_event',
+        ...(provenance.callId ? {callId: boundedSceneText(provenance.callId, 160)} : {}),
+        ...(provenance.idempotencyKey ? {idempotencyKey: boundedSceneText(provenance.idempotencyKey, 160)} : {})
+    });
+}
+
+function pendingEventPreview({personaId, sourceMessageId, call, pendingEventId, jobId, existing = null, existingJob = null}) {
+    const row = existing || {
+        id: pendingEventId,
+        persona_id: personaId,
+        source_message_id: sourceMessageId,
+        status: 'pending',
+        summary: call.summary,
+        not_before: call.notBefore,
+        expires_at: call.expiresAt,
+        dedupe_key: call.dedupeKey,
+        created_at: null,
+        updated_at: null,
+        triggered_at: null,
+        consumed_at: null,
+        cancelled_at: null
+    };
+    return {
+        pendingEvent: pendingEventShape(row),
+        job: {
+            id: existingJob?.id || jobId,
+            jobType: 'pending_event',
+            personaId,
+            runAfter: existingJob?.run_after || call.notBefore,
+            replayed: Boolean(existing && existingJob)
+        },
+        created: !existing || !existingJob,
+        replayed: Boolean(existing && existingJob)
+    };
+}
+
+function planPendingEvent(persona, value, sourceMessageId, provenance = {}) {
+    const owner = typeof persona === 'string' ? requirePersona(persona) : requirePersona(persona?.id);
+    const call = normalizePendingEventCall(value);
+    const source = pendingEventSourceFor(owner.id, sourceMessageId);
     if (!source) throw new Error('待定事件来源消息不存在或不属于该人格');
-    const createdAt = now();
-    let row = null;
-    let job = null;
+    const existing = pendingEventRepository.findByDedupeKey({personaId: owner.id, dedupeKey: call.dedupeKey, notBefore: call.notBefore});
+    const existingJob = existing ? pendingEventRepository.findLinkedJob({personaId: owner.id, pendingEventId: existing.id}) : null;
+    const pendingEventId = existing?.id || id('pending_event');
+    const jobId = existingJob?.id || id('job');
+    const provenanceValue = pendingEventProvenance(provenance);
+    const preview = pendingEventPreview({
+        personaId: owner.id,
+        sourceMessageId: source.id,
+        call,
+        pendingEventId,
+        jobId,
+        existing,
+        existingJob
+    });
+    const plan = {
+        type: 'pending_event_plan',
+        version: 1,
+        personaId: owner.id,
+        sourceMessageId: source.id,
+        call: Object.freeze({...call}),
+        provenance: provenanceValue,
+        pendingEvent: preview.pendingEvent,
+        pendingEventId,
+        jobId: preview.job.id,
+        preallocatedIds: Object.freeze({pendingEventId, jobId: preview.job.id}),
+        job: preview.job,
+        created: preview.created,
+        replayed: preview.replayed,
+        preview: Object.freeze(preview),
+        previewResult: Object.freeze(preview)
+    };
+    Object.freeze(plan);
+    pendingEventPlans.set(plan, {call, provenance: provenanceValue});
+    return plan;
+}
+
+function applyPendingEventPlan(plan) {
+    const state = pendingEventPlans.get(plan);
+    if (!state) throw new TypeError('待定事件计划无效');
+    const owner = requirePersona(plan.personaId);
+    const source = pendingEventSourceFor(owner.id, plan.sourceMessageId);
+    if (!source) throw new Error('待定事件来源消息不存在或不属于该人格');
+    const call = state.call;
+    const existing = pendingEventRepository.findByDedupeKey({personaId: owner.id, dedupeKey: call.dedupeKey, notBefore: call.notBefore});
+    let row = existing;
     let created = false;
-    database.transaction(() => {
-        row = pendingEventRepository.findByDedupeKey({personaId: owner.id, dedupeKey: call.dedupeKey, notBefore: call.notBefore});
-        if (!row) {
-            const pendingId = id('pending_event');
-            const payload = {
-                schemaVersion: pendingEventSchemaVersion, summary: call.summary, notBefore: call.notBefore,
-                expiresAt: call.expiresAt, dedupeKey: call.dedupeKey, sourceMessageId: source.id,
-                ...(provenance.callId ? {capabilityCallId: boundedSceneText(provenance.callId, 160)} : {}),
-                ...(provenance.idempotencyKey ? {idempotencyKey: boundedSceneText(provenance.idempotencyKey, 160)} : {}),
-                source: provenance.source || 'pending_event'
-            };
-            row = pendingEventRepository.insertPendingEvent({
-                id: pendingId,
-                personaId: owner.id,
-                sourceMessageId: source.id,
-                status: 'pending',
-                summary: call.summary,
-                notBefore: call.notBefore,
-                expiresAt: call.expiresAt,
-                dedupeKey: call.dedupeKey,
-                payload,
-                createdAt,
-                updatedAt: createdAt
-            });
-            created = true;
-        }
-        const linked = pendingEventRepository.ensureLinkedJob({
+    if (!row) {
+        const createdAt = now();
+        const payload = {
+            schemaVersion: pendingEventSchemaVersion, summary: call.summary, notBefore: call.notBefore,
+            expiresAt: call.expiresAt, dedupeKey: call.dedupeKey, sourceMessageId: source.id,
+            ...(state.provenance.callId ? {capabilityCallId: state.provenance.callId} : {}),
+            ...(state.provenance.idempotencyKey ? {idempotencyKey: state.provenance.idempotencyKey} : {}),
+            source: state.provenance.source
+        };
+        row = pendingEventRepository.insertPendingEvent({
+            id: plan.preallocatedIds.pendingEventId,
             personaId: owner.id,
-            pendingEventId: row.id,
-            job: {jobType: 'pending_event', personaId: owner.id, priority: 2, maxAttempts: 4, runAfter: call.notBefore, payload: {
-                pendingEventId: row.id,
-                ...(provenance.idempotencyKey ? {idempotencyKey: boundedSceneText(provenance.idempotencyKey, 160)} : {})
-            }}
+            sourceMessageId: source.id,
+            status: 'pending',
+            summary: call.summary,
+            notBefore: call.notBefore,
+            expiresAt: call.expiresAt,
+            dedupeKey: call.dedupeKey,
+            payload,
+            createdAt,
+            updatedAt: createdAt
         });
-        job = linked.job;
-        if (linked.created) created = true;
-    })();
-    return {pendingEvent: pendingEventShape(row), jobId: job?.id || null, created};
+        created = true;
+    }
+    const linked = pendingEventRepository.ensureLinkedJob({
+        personaId: owner.id,
+        pendingEventId: row.id,
+        job: {
+            id: plan.preallocatedIds.jobId,
+            jobType: 'pending_event',
+            personaId: owner.id,
+            priority: 2,
+            maxAttempts: 4,
+            runAfter: row.not_before || call.notBefore,
+            payload: {
+                pendingEventId: row.id,
+                ...(state.provenance.idempotencyKey ? {idempotencyKey: state.provenance.idempotencyKey} : {})
+            }
+        }
+    });
+    if (linked.created) created = true;
+    return {pendingEvent: pendingEventShape(row), jobId: linked.job?.id || null, created};
+}
+
+function createPendingEvent(persona, value, sourceMessageId, provenance = {}) {
+    const plan = planPendingEvent(persona, value, sourceMessageId, provenance);
+    return database.transaction(() => applyPendingEventPlan(plan))();
 }
 
 function mediaRequestFromText(text) {
@@ -3510,7 +3709,8 @@ const capabilityRegistry = Object.freeze({
         markerAdapter: null,
         execute(persona, call) {
             if (call.error) throw new Error(call.error);
-            return applySceneEvent(persona, call.arguments, call.causationUserMessageId, {source: call.source, callId: call.id, idempotencyKey: call.idempotencyKey});
+            const plan = planSceneEvent(persona, call.arguments, call.causationUserMessageId, {source: call.source, callId: call.id, idempotencyKey: call.idempotencyKey});
+            return database.transaction(() => applySceneEventPlan(plan))();
         },
         result(execution) { return execution.result ? {ok: true, eventId: execution.result.eventId, operation: execution.result.operation, scene: execution.result.scene} : {ok: false, error: execution.error || 'scene_event 未执行'}; }
     },
@@ -3530,13 +3730,14 @@ const capabilityRegistry = Object.freeze({
                 temporaryAppearance: {},
                 trigger: call.source === 'native' ? 'model_media_tool' : 'model_capability_contract'
             });
-            return createChatMediaRequest(persona.id, normalized, {
+            const plan = planChatMediaRequest(persona.id, normalized, {
                 source: call.source,
                 callId: call.id,
                 idempotencyKey: call.idempotencyKey,
                 causationUserMessageId: call.causationUserMessageId,
                 trigger: normalized.trigger
             });
+            return database.transaction(() => applyChatMediaRequestPlan(plan))();
         },
         result(execution) { return execution.result ? {ok: true, jobId: execution.result.jobId, jobIds: execution.result.jobIds, kind: execution.result.kind} : {ok: false, error: execution.error || 'media_event 未执行'}; }
     },
@@ -3549,7 +3750,8 @@ const capabilityRegistry = Object.freeze({
         execute(persona, call) {
             if (call.error) throw new Error(call.error);
             if (call.source === 'native') validateNativeCapabilityArguments(call.name, call.arguments);
-            return createPendingEvent(persona, call.arguments, call.causationUserMessageId, {source: call.source, callId: call.id, idempotencyKey: call.idempotencyKey});
+            const plan = planPendingEvent(persona, call.arguments, call.causationUserMessageId, {source: call.source, callId: call.id, idempotencyKey: call.idempotencyKey});
+            return database.transaction(() => applyPendingEventPlan(plan))();
         },
         result(execution) { return execution.result ? pendingCapabilityResult(execution.result) : {ok: false, error: execution.error || 'pending_event 未执行'}; }
     }
@@ -4282,7 +4484,7 @@ function setUserReaction(activityId, liked) {
 
 function enqueueJob(input) {
     const createdAt = now();
-    const job = {id: id('job'), jobType: input.jobType, personaId: input.personaId || null, activityId: input.activityId || null, messageId: input.messageId || null, priority: Number(input.priority) || 0, runAfter: input.runAfter || createdAt, maxAttempts: Number(input.maxAttempts) || 3, payload: input.payload || {}};
+    const job = {id: input.id || id('job'), jobType: input.jobType, personaId: input.personaId || null, activityId: input.activityId || null, messageId: input.messageId || null, priority: Number(input.priority) || 0, runAfter: input.runAfter || createdAt, maxAttempts: Number(input.maxAttempts) || 3, payload: input.payload || {}};
     jobRepository.enqueue({...job, createdAt, updatedAt: createdAt});
     return job;
 }
@@ -4830,67 +5032,116 @@ async function completeGeneratedMedia(job, promptId, files, providerId = 'comfyu
     return completePolledMediaJob(job, promptId, files, providerId);
 }
 
-function createChatMediaRequest(personaId, input, provenance = {}) {
+function chatMediaJobForAsset(personaId, jobType, assetKey) {
+    if (!assetKey) return null;
+    return database.prepare("SELECT jobs.*, messages.id AS message_row_id FROM companion_jobs jobs JOIN companion_messages messages ON messages.id = jobs.message_id WHERE jobs.persona_id = ? AND jobs.job_type = ? AND json_extract(jobs.payload_json, '$.capabilityCall.idempotencyKey') = ? ORDER BY jobs.created_at, jobs.id LIMIT 1").get(personaId, jobType, assetKey);
+}
+
+function mediaMessagePlaceholder({messageId, jobId, kind, provider, request, createdAt}) {
+    const generation = {status: 'queued', kind, provider, ...(request ? {request} : {})};
+    return {
+        id: messageId, role: 'assistant', text: '', attachments: [], generation,
+        jobs: [{id: jobId, kind, provider}], createdAt, readAt: createdAt
+    };
+}
+
+function planChatMediaRequest(personaId, input, provenance = {}) {
     const persona = requirePersona(personaId);
     const capabilityCall = normalizeMediaCapabilityCall(input);
     const {kind, request = ''} = capabilityCall;
     const count = clamp(Number.isInteger(capabilityCall.count) ? capabilityCall.count : 1, 1, 3);
     const trigger = boundedMediaText(input?.trigger, 80) || boundedMediaText(provenance.trigger, 80) || 'explicit_user_request';
     const provider = providerFor(kind, settings()[`${kind}Provider`]).id;
-    const thread = conversation(persona.id);
     const jobType = kind === 'video' ? 'chat_video' : 'chat_image';
     const baseKey = boundedSceneText(provenance.idempotencyKey, 160);
-    const existingForKey = key => key ? database.prepare("SELECT jobs.*, messages.id AS message_row_id FROM companion_jobs jobs JOIN companion_messages messages ON messages.id = jobs.message_id WHERE jobs.persona_id = ? AND jobs.job_type = ? AND substr(json_extract(jobs.payload_json, '$.capabilityCall.idempotencyKey'), 1, length(?) + 1) = ? ORDER BY CAST(substr(json_extract(jobs.payload_json, '$.capabilityCall.idempotencyKey'), length(?) + 2) AS INTEGER)").all(persona.id, jobType, key, key, key) : [];
-    const existing = baseKey ? existingForKey(baseKey) : [];
-    if (baseKey && existing.length >= count) {
-        const messages = existing.slice(0, count).map(row => messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(row.message_row_id)));
-        return {jobId: existing[0].id, jobIds: existing.slice(0, count).map(row => row.id), message: messages[0], messages, kind, replayed: true};
-    }
     // Validate the authoritative envelope before opening the transaction. A
     // malformed concept therefore creates neither a placeholder nor a job.
     const envelope = mediaConceptEnvelopeFor(persona, {kind, request, count: 1, trigger});
-    const created = [];
-    database.transaction(() => {
-        for (let position = 0; position < count; position += 1) {
-            const assetKey = baseKey ? `${baseKey}:${position}` : null;
-            const prior = assetKey ? database.prepare("SELECT jobs.*, messages.id AS message_row_id FROM companion_jobs jobs JOIN companion_messages messages ON messages.id = jobs.message_id WHERE jobs.persona_id = ? AND jobs.job_type = ? AND json_extract(jobs.payload_json, '$.capabilityCall.idempotencyKey') = ? ORDER BY jobs.created_at, jobs.id LIMIT 1").get(persona.id, jobType, assetKey) : null;
-            if (prior) {
-                created.push({jobId: prior.id, message: messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(prior.message_row_id)), replayed: true});
-                continue;
-            }
-            const createdAt = now();
-            const messageId = id('message');
-            const jobId = id('job');
-            const generation = {status: 'queued', kind, provider, ...(request ? {request} : {})};
-            const callWithProvenance = {
-                ...capabilityCall, count: 1, trigger,
-                ...(provenance.callId ? {capabilityCallId: boundedSceneText(provenance.callId, 160)} : {}),
-                ...(assetKey ? {idempotencyKey: assetKey} : {}),
-                source: provenance.source || 'media_event', causationId: provenance.causationUserMessageId || null
-            };
-            const inserted = conversationRepository.appendMessage({
-                id: messageId, conversationId: thread.id, role: 'assistant', text: '',
-                attachmentsJson: '[]', generationJson: JSON.stringify(generation),
-                jobsJson: JSON.stringify([{id: jobId, kind, provider}]), createdAt, readAt: createdAt
+    const entries = [];
+    for (let position = 0; position < count; position += 1) {
+        const assetKey = baseKey ? `${baseKey}:${position}` : null;
+        const prior = chatMediaJobForAsset(persona.id, jobType, assetKey);
+        if (prior) {
+            entries.push({
+                position, assetKey, replayed: true, jobId: prior.id,
+                message: messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(prior.message_row_id))
             });
-            jobRepository.enqueue({
-                id: jobId, jobType, priority: 4, runAfter: createdAt, maxAttempts: 3,
-                personaId: persona.id, messageId,
-                payload: {envelope, personaMediaConcept: capabilityCall.personaMediaConcept, capabilityCall: callWithProvenance, kind, provider, trigger, qualityRetryCount: 0, maxQualityRetries: 1},
-                createdAt, updatedAt: createdAt
-            });
-            created.push({jobId, message: messageShape(inserted), replayed: false});
+            continue;
         }
-        database.prepare('UPDATE companion_conversations SET updated_at = ? WHERE id = ?').run(now(), thread.id);
-    })();
+        const createdAt = now();
+        const messageId = id('message');
+        const jobId = id('job');
+        const callWithProvenance = {
+            ...capabilityCall, count: 1, trigger,
+            ...(provenance.callId ? {capabilityCallId: boundedSceneText(provenance.callId, 160)} : {}),
+            ...(assetKey ? {idempotencyKey: assetKey} : {}),
+            source: provenance.source || 'media_event', causationId: provenance.causationUserMessageId || null
+        };
+        const payload = {
+            envelope, personaMediaConcept: capabilityCall.personaMediaConcept,
+            capabilityCall: callWithProvenance, kind, provider, trigger,
+            qualityRetryCount: 0, maxQualityRetries: 1
+        };
+        entries.push({
+            position, assetKey, replayed: false, messageId, jobId, createdAt,
+            generation: {status: 'queued', kind, provider, ...(request ? {request} : {})},
+            message: mediaMessagePlaceholder({messageId, jobId, kind, provider, request, createdAt}),
+            job: {id: jobId, jobType, priority: 4, runAfter: createdAt, maxAttempts: 3, personaId: persona.id, messageId, payload, createdAt, updatedAt: createdAt}
+        });
+    }
+    const messages = entries.map(entry => entry.message);
     return {
-        jobId: created[0]?.jobId || null,
-        jobIds: created.map(item => item.jobId),
-        message: created[0]?.message || null,
-        messages: created.map(item => item.message),
-        kind,
-        replayed: created.every(item => item.replayed)
+        personaId: persona.id, kind, count, provider, jobType, trigger, baseKey, envelope,
+        assetKeys: entries.map(entry => entry.assetKey), entries,
+        jobId: entries[0]?.jobId || null, jobIds: entries.map(entry => entry.jobId),
+        messageIds: messages.map(message => message.id),
+        preallocatedIds: entries.map(entry => ({messageId: entry.message.id, jobId: entry.jobId})),
+        jobs: entries.map(entry => entry.job || {id: entry.jobId, jobType}),
+        message: messages[0] || null, messages, placeholders: messages,
+        replayed: entries.length > 0 && entries.every(entry => entry.replayed)
     };
+}
+
+// The caller owns the transaction. This keeps a media batch atomic when the
+// generic flow runner commits it together with other facts and projections.
+function applyChatMediaRequestPlan(plan) {
+    if (!plan || !Array.isArray(plan.entries) || !plan.entries.length) throw new Error('媒体请求计划无效');
+    const persona = requirePersona(plan.personaId);
+    let thread = null;
+    const applied = [];
+    for (const entry of plan.entries) {
+        const prior = chatMediaJobForAsset(persona.id, plan.jobType, entry.assetKey);
+        if (prior) {
+            applied.push({jobId: prior.id, message: messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(prior.message_row_id)), replayed: true});
+            continue;
+        }
+        thread ||= conversationRepository.getOrCreateConversation({personaId: persona.id, id: id('conversation'), createdAt: now()});
+        const message = entry.message;
+        const job = entry.job;
+        const inserted = conversationRepository.appendMessage({
+            id: entry.messageId, conversationId: thread.id, role: 'assistant', text: '',
+            attachmentsJson: '[]', generationJson: JSON.stringify(entry.generation),
+            jobsJson: JSON.stringify([{id: entry.jobId, kind: plan.kind, provider: plan.provider}]),
+            createdAt: entry.createdAt, readAt: message.readAt || entry.createdAt
+        });
+        jobRepository.enqueue(job);
+        applied.push({jobId: entry.jobId, message: messageShape(inserted), replayed: false});
+    }
+    if (thread) database.prepare('UPDATE companion_conversations SET updated_at = ? WHERE id = ?').run(now(), thread.id);
+    const messages = applied.map(item => item.message);
+    return {
+        jobId: applied[0]?.jobId || null,
+        jobIds: applied.map(item => item.jobId),
+        message: messages[0] || null,
+        messages,
+        kind: plan.kind,
+        replayed: applied.length > 0 && applied.every(item => item.replayed)
+    };
+}
+
+function createChatMediaRequest(personaId, input, provenance = {}) {
+    const plan = planChatMediaRequest(personaId, input, provenance);
+    return database.transaction(() => applyChatMediaRequestPlan(plan))();
 }
 
 function claimJob() {
@@ -5920,7 +6171,10 @@ app.get('/api/companion/media/:mediaId', async (req, res) => {
 });
 
 export const companionApp = app;
-export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listGroups, createGroup, assignPersonaGroup, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaCapabilityCall, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, normalizeMediaAcceptance, normalizePendingEventCall, pendingEventShape, createPendingEvent, normalizeProactiveDecision, parseProactiveDecision, freezeProactiveDecision, evaluateProactiveDecision, runProactiveMessageJob, runPendingEventJob, mediaConceptEnvelopeFor, generatePersonaMediaConcept, fillMediaPromptTemplate, renderMediaPromptTemplate, mediaConceptSchemaVersion, mediaCapabilityCallSchemaVersion, mediaPromptTemplateSchemaVersion, mediaPromptTemplateSections, pendingEventSchemaVersion, proactiveDecisionSchemaVersion, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, systemCapabilitySceneContract, personaMediaConceptContract, imagePromptMasterContract, imageGenerationPolicies, imageGenerationPolicyLabels, normalizeImageGenerationPolicy, imageGenerationPolicyFor, sceneEventOperations, sceneEventTool, mediaEventTool, pendingEventTool, boundedSceneText, normalizeSceneEventCall, sharedSceneFor, applySceneEvent, appendToolCallFragment, consumeStreamedCompletion, capabilityRegistry, dispatchCapabilityCalls, executeSceneToolCall, sceneToolResult, executeMediaToolCall, mediaToolResult, pendingToolResult, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, storedDailyPlanItems, normalizeDailyPlan, composeDailyPlanTimeline, readyDailyPlanFor, dailyPlanSlotAt, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, interviewView, previewInterviewAnswers, validatePersonaDescription, normalizePersonaDescriptionExtraction, analyzePersonaDescription, createNaturalLanguageInterview, naturalLanguageDescriptionMaxLength, personaDescriptionPromptVersion, debugContextFor, redactDebugValue, debugSummary, promptRunsFor, lmCompletion, debugInspectorEnabled, ensureDailyPlan, enqueueRelationshipEvolutionJob, mediaProviders, providerFor, providerSummaries, validateMediaSettings, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
+export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listGroups, createGroup, assignPersonaGroup, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaCapabilityCall, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, normalizeMediaAcceptance, normalizePendingEventCall, pendingEventShape, planPendingEvent, applyPendingEventPlan, createPendingEvent, normalizeProactiveDecision, parseProactiveDecision, freezeProactiveDecision, evaluateProactiveDecision, runProactiveMessageJob, runPendingEventJob, mediaConceptEnvelopeFor, generatePersonaMediaConcept, fillMediaPromptTemplate, renderMediaPromptTemplate, mediaConceptSchemaVersion, mediaCapabilityCallSchemaVersion, mediaPromptTemplateSchemaVersion, mediaPromptTemplateSections, pendingEventSchemaVersion, proactiveDecisionSchemaVersion, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, systemCapabilitySceneContract, personaMediaConceptContract, imagePromptMasterContract, imageGenerationPolicies, imageGenerationPolicyLabels, normalizeImageGenerationPolicy, imageGenerationPolicyFor, sceneEventOperations, sceneEventTool, mediaEventTool, pendingEventTool, boundedSceneText, normalizeSceneEventCall, sharedSceneFor, planSceneEvent, applySceneEventPlan, applySceneEvent, appendToolCallFragment, consumeStreamedCompletion, capabilityRegistry, dispatchCapabilityCalls, executeSceneToolCall, sceneToolResult, executeMediaToolCall, mediaToolResult, pendingToolResult, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, storedDailyPlanItems, normalizeDailyPlan, composeDailyPlanTimeline, readyDailyPlanFor, dailyPlanSlotAt, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, interviewView, previewInterviewAnswers, validatePersonaDescription, normalizePersonaDescriptionExtraction, analyzePersonaDescription, createNaturalLanguageInterview, naturalLanguageDescriptionMaxLength, personaDescriptionPromptVersion, debugContextFor, redactDebugValue, debugSummary, promptRunsFor, lmCompletion, debugInspectorEnabled, ensureDailyPlan, enqueueRelationshipEvolutionJob, mediaProviders, providerFor, providerSummaries, validateMediaSettings, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
+
+companionTestHooks.planChatMediaRequest = planChatMediaRequest;
+companionTestHooks.applyChatMediaRequestPlan = applyChatMediaRequestPlan;
 
 if (process.env.COMPANION_TEST !== '1') {
     app.listen(port, () => {
