@@ -1,0 +1,6 @@
+{"file":"CONTEXT.md","reason":"Verify the final glossary distinguishes the 摇光 concept, 摇光实例, identity core, life world, relationship, and presence without implementation detail."}
+{"file":".trellis/tasks/08-20-fluctlight-architecture-performance-modernization/prd.md","reason":"Verify the task is limited to naming/terminology and does not promise self-awareness or architecture implementation."}
+{"file":".trellis/tasks/08-20-fluctlight-architecture-performance-modernization/design.md","reason":"Verify rename surface and compatibility-preserved technical identifiers are explicit."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Verify active UI title, accessibility labels, and Express-served browser behavior after copy changes."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Verify contacts-first boot, 20-message cursor pagination, draft preservation, IME composition, and incremental SSE reconciliation contracts."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Verify companion API, database, environment, and SSE names remain unchanged."}

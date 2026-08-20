@@ -2,13 +2,13 @@
 
 ## State Categories
 
-`state` is the server snapshot (`settings`, `personas`, `memories`). `messages` is the active persona conversation. `activePersonaId` is persisted only in `localStorage` under `companion-active-persona`. `attachments` and `isSending` are transient browser state.
+`state` is the server snapshot (`settings`, `personas`, `memories`). `messages` is the currently loaded page(s) of the active 摇光实例 conversation, not necessarily the complete history. `activePersonaId` is persisted only in `localStorage` under the legacy `companion-active-persona` key. `historyCursor`, `historyLoading`, `historyHasMore`, `attachments`, `isSending`, and `isComposing` are transient browser state.
 
 ## Server State Rules
 
-Use the `api()` helper for JSON endpoints; it throws on non-2xx responses using the server's `error` field. `boot()` loads state and the active conversation, `switchPersona()` loads a new conversation, and `refreshState()` reloads both. The five-second refresh interval is disabled while sending and while the document is hidden.
+Use the `api()` helper for JSON endpoints; it throws on non-2xx responses using the server's `error` field. `boot()` loads bootstrap state and renders contacts first; selecting a 摇光实例 loads the latest bounded message page, and history pagination requests older pages by cursor. Background refresh must not eagerly fetch or replace the active conversation page. The refresh interval is disabled while sending, composing, or while the document is hidden.
 
-Do not treat optimistic messages as persisted until the server stream emits `done` or a later refresh returns them. A streamed chat may end in several separately persisted assistant records: read ordered `payload.messages` first, then fall back to `[payload.message]` for a pre-migration server. Replace the one transient typing entry with that whole collection in order; do not leave the transient entry between or after persisted messages. Generation jobs are queued through `/api/generate` and restored from conversation state after a refresh.
+Do not treat optimistic messages as persisted until the server stream emits `done` or a later refresh returns them. A streamed chat may end in several separately persisted assistant records: read ordered `payload.messages` first, then fall back to `[payload.message]` for a pre-migration server. Replace the one transient typing entry with that whole collection in order; do not leave the transient entry between or after persisted messages. History pages merge by message ID at the head; new messages merge at the tail. Generation jobs are queued through the server chat contract and restored from conversation state after a refresh.
 
 ## Derived UI
 
@@ -18,6 +18,8 @@ Compute counts and labels from `state` during `renderMemory()`/`renderPersonaLis
 
 - Reading `state.personas[0]` when the saved active persona was deleted; `boot()` must fall back first.
 - Refreshing during an active stream and overwriting incremental `messages`.
+- Replacing the composer DOM during polling, pagination, or streaming and closing a mobile IME.
+- Clearing a draft because a background request completed or a provider call is still pending.
 - Sending duplicate chat requests; `send()` guards with `isSending` and disables the send button.
 - Assuming localStorage contains server truth; it stores only the selected persona ID.
 

@@ -195,3 +195,38 @@ child.stderr.on('data', chunk => job.result_json += chunk);
 ```js
 reporter.output('stderr', chunk); // lease-guarded, redacted, bounded, throttled
 ```
+
+## Scenario: Unified LLM prompt runs
+
+### 1. Scope / Trigger
+
+- Trigger: any server-owned `lmCompletion()` call needs one local place to inspect the exact bounded request sent to the model, regardless of persona, chat path, or background job.
+
+### 2. Signatures
+
+- Migrations 12-13 own `companion_prompt_runs` with `persona_id`, optional `job_id`/`message_id`, `operation`, `status`, `model`, bounded `request_json`/`response_json`, error, and timestamps.
+- `GET /api/companion/prompt-runs?limit=50&personaId=...` returns the newest prompt runs across personas (or one persona when filtered).
+- `lmCompletion(payload)` accepts a transport-only `trace` object; the trace is removed before the provider request.
+
+### 3. Contracts
+
+- Every LLM request is recorded at the shared `lmCompletion()` boundary; streaming calls record the full request before token consumption, and continuation calls are separate rows. A clone of the provider response is drained independently so ordinary callers can still consume it; JSON responses are stored as objects and streaming responses as bounded SSE text.
+- The prompt run table is bounded to the newest 5,000 rows. Request text is recursively redacted, path-scrubbed, string-bounded, and binary data URLs are omitted before persistence.
+- The global prompt-run route is registered only when `COMPANION_DEBUG_INSPECTOR=1`; it returns redacted request JSON and remains persona-filterable with `persona_id = ?`.
+- Prompt runs are local diagnostics, not user-visible conversation messages. Media provider prompts continue to be read from their durable media jobs.
+
+### 4. Validation / Failure Behavior
+
+| Condition | Result |
+| --- | --- |
+| Provider accepts and the response body is captured | Run status is `completed`; resolved model/request/response are stored. |
+| Provider accepts but response cloning/reading is unavailable | Run remains `submitted`; request and model are still stored. |
+| Model resolution or provider HTTP call fails | Run status is `failed` with a bounded error; the original provider error behavior is unchanged. |
+| Debug flag is absent or not `1` | The prompt-run route is absent; the SQLite rows remain available for local inspection. |
+| Persona is deleted | Prompt rows cascade with the persona; job/message references are nullable. |
+
+### 5. Tests Required
+
+- Assert migration 12, one row per direct/continuation LLM call, bounded retention, redaction, and binary omission.
+- Assert the route is absent without the explicit debug flag and present with `=1`.
+- Assert deleting a persona removes its prompt rows without affecting another persona.

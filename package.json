@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "22.23.2"
+  },
   "scripts": {
     "dev": "node --watch server.js",
     "start": "node server.js",

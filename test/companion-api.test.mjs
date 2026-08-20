@@ -13,6 +13,8 @@ const {database, createPersona, createEvent, requirePersona, deletePersona, list
 
 const {interviewView, previewInterviewAnswers, validatePersonaDescription, normalizePersonaDescriptionExtraction, analyzePersonaDescription, createNaturalLanguageInterview, naturalLanguageDescriptionMaxLength} = companionTestHooks;
 const {systemCapabilitySceneContract, imageGenerationPolicies, normalizeImageGenerationPolicy, imageGenerationPolicyFor, normalizeSceneEventCall, sharedSceneFor, applySceneEvent, sceneEventTool, consumeStreamedCompletion} = companionTestHooks;
+const {mediaEventTool, executeMediaToolCall} = companionTestHooks;
+const {promptRunsFor, lmCompletion} = companionTestHooks;
 
 const mediaConcept = (kind, overrides = {}) => ({
     schemaVersion: 1, mediaKind: kind, scene: '测试场景', action: '测试动作', mood: '平静', narrative: '测试媒体概念',
@@ -54,6 +56,23 @@ async function invokeRouteAsync(path, method, {params = {}, body} = {}) {
     const output = layer.route.stack[0].handle({params, body}, response);
     if (output?.then) await output.catch(() => {});
     return response;
+}
+
+async function invokeChatRoute(personaId, text, responses) {
+    const layer = (companionApp.router?.stack || []).find(item => item.route?.path === '/api/companion/chat' && item.route.methods?.post);
+    assert.ok(layer, 'POST /api/companion/chat route is registered');
+    const frames = [];
+    const response = {
+        statusCode: 200, headersSent: false,
+        status(code) { this.statusCode = code; return this; },
+        set() { return this; },
+        flushHeaders() { this.headersSent = true; },
+        write(value) { frames.push(String(value)); },
+        end() { this.headersSent = true; }
+    };
+    const output = layer.route.stack[0].handle({body: {personaId, text}}, response);
+    if (output?.then) await output;
+    return frames.join('');
 }
 
 test('contact groups seed a default, assign new personas, and persist route changes', () => {
@@ -193,6 +212,66 @@ test('life model v2 fallback supplies a default room, safe event templates, and 
     const unsafePositive = structuredClone(fallback);
     unsafePositive.randomPositiveEvents[0] = {...unsafePositive.randomPositiveEvents[0], title: '需要用户借钱处理债务'};
     assert.equal(validateLifeBlueprint(normalizeLifeBlueprint(unsafePositive)).ok, false);
+});
+
+test('all LLM prompts are captured in one bounded, redacted prompt-run table', async () => {
+    assert.equal(database.prepare("SELECT name FROM companion_schema_migrations WHERE version = 12").get().name, 'prompt-run-observability');
+    assert.equal(database.prepare("SELECT name FROM companion_schema_migrations WHERE version = 13").get().name, 'prompt-run-response-observability');
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'table' AND name = 'companion_prompt_runs'").get().count, 1);
+    const persona = createPersona({name: '提示词追踪测试', role: '陪伴者', foundation: '用于验证统一提示词入口。'});
+    const previousFetch = globalThis.fetch;
+    const previousSettings = publicSettings();
+    const sourceMessage = appendMessage(persona.id, {role: 'user', text: '提示词来源消息'});
+    saveSettings({model: 'test-prompt-trace-model', lmStudioUrl: 'http://test/v1'});
+    const responseBody = JSON.stringify({choices: [{message: {content: '好的。'}}]});
+    globalThis.fetch = async () => ({ok: true, status: 200, json: async () => JSON.parse(responseBody), clone: () => ({text: async () => responseBody})});
+    try {
+        await lmCompletion({
+            stream: false,
+            temperature: .2,
+            messages: [{role: 'system', content: '统一入口测试'}, {role: 'user', content: 'apiKey=super-secret data:image/png;base64,AAAA'}],
+            trace: {operation: 'test_prompt_trace', personaId: persona.id, messageId: sourceMessage.id}
+        });
+        await new Promise(resolve => setImmediate(resolve));
+        const run = promptRunsFor({personaId: persona.id, limit: 20}).find(item => item.operation === 'test_prompt_trace');
+        assert.ok(run);
+        assert.equal(run.status, 'completed');
+        assert.equal(run.model, 'test-prompt-trace-model');
+        assert.equal(run.messageId, sourceMessage.id);
+        assert.equal(run.request.messages[1].content.includes('super-secret'), false);
+        assert.match(run.request.messages[1].content, /binary omitted/);
+        assert.equal(run.response.choices[0].message.content, '好的。');
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_prompt_runs WHERE persona_id = ?').get(persona.id).count, 1);
+    } finally {
+        globalThis.fetch = previousFetch;
+        saveSettings({model: previousSettings.model, lmStudioUrl: previousSettings.lmStudioUrl});
+        deletePersona(persona.id);
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_prompt_runs WHERE persona_id = ?').get(persona.id).count, 0);
+    }
+});
+
+test('failed LLM responses keep both the provider error and response body', async () => {
+    const persona = createPersona({name: '错误响应追踪', role: '陪伴者', foundation: '用于验证失败响应诊断。'});
+    const previousFetch = globalThis.fetch;
+    const previousSettings = publicSettings();
+    saveSettings({model: 'test-prompt-error-model'});
+    globalThis.fetch = async () => new Response(JSON.stringify({error: {message: '模型服务拒绝请求'}}), {status: 502, headers: {'content-type': 'application/json'}});
+    try {
+        await assert.rejects(
+            lmCompletion({stream: false, messages: [{role: 'user', content: '失败响应测试'}], trace: {operation: 'test_prompt_error', personaId: persona.id}}),
+            /模型服务拒绝请求/
+        );
+        await new Promise(resolve => setImmediate(resolve));
+        const run = promptRunsFor({personaId: persona.id, limit: 20}).find(item => item.operation === 'test_prompt_error');
+        assert.ok(run);
+        assert.equal(run.status, 'failed');
+        assert.equal(run.error, '模型服务拒绝请求');
+        assert.equal(run.response.error.message, '模型服务拒绝请求');
+    } finally {
+        globalThis.fetch = previousFetch;
+        saveSettings({model: previousSettings.model, lmStudioUrl: previousSettings.lmStudioUrl});
+        deletePersona(persona.id);
+    }
 });
 
 test('persona local-day bounds preserve an Asia/Shanghai morning that belongs to the prior UTC date', () => {
@@ -930,6 +1009,7 @@ test('debug context is redacted, bounded, and persona-scoped', () => {
 test('debug routes are not registered unless the explicit local flag is enabled', async () => {
     assert.equal(routePaths(companionApp).some(path => String(path).includes('debug-context')), false);
     assert.equal(routePaths(companionApp).some(path => String(path).includes('debug-media')), false);
+    assert.equal(routePaths(companionApp).some(path => String(path).includes('prompt-runs')), false);
     assert.equal(routePaths(companionApp).some(path => String(path).includes('h3-preflight')), false);
 
     const debugDataDir = mkdtempSync(join(tmpdir(), 'local-ai-companion-debug-test-'));
@@ -949,6 +1029,7 @@ test('debug routes are not registered unless the explicit local flag is enabled'
         assert.equal(debugModule.companionTestHooks.debugInspectorEnabled, true);
         assert.equal(routePaths(debugModule.companionApp).includes('/api/companion/personas/:personaId/debug-context'), true);
         assert.equal(routePaths(debugModule.companionApp).includes('/api/companion/personas/:personaId/debug-media'), true);
+        assert.equal(routePaths(debugModule.companionApp).includes('/api/companion/prompt-runs'), true);
         assert.equal(routePaths(debugModule.companionApp).includes('/api/companion/h3-preflight'), true);
         const context = debugModule.companionTestHooks.debugContextFor(persona.id);
         assert.equal(context.layers.identity.includes('本地检查'), true);
@@ -1437,6 +1518,74 @@ test('scene tool contract accumulates streamed fragments and parenthesized text 
     const source = readFileSync(new URL('../src/companion-main.js', import.meta.url), 'utf8');
     assert.match(source, /const content = esc\(message\.text\)/);
     assert.doesNotMatch(source, /scene-panel|quick-reply/);
+});
+
+test('always image policy requires media delivery when the persona uses an action', () => {
+    const persona = createPersona({name: '始终生图提示词测试', role: '陪伴者', foundation: '用于验证人格生图策略提示词。'});
+    try {
+        database.prepare("UPDATE companion_personas SET image_generation_policy = 'always' WHERE id = ?").run(persona.id);
+        const policyLine = contextFor(persona.id).layers.systemCapability.split('\n').find(line => line.includes('人格生图频率'));
+        assert.match(policyLine, /始终生成.*括号动作.*必须.*(?:media_event|<media-intent>)/);
+    } finally {
+        deletePersona(persona.id);
+    }
+});
+
+test('native media tool creates the same durable chat image job as a media marker', () => {
+    assert.equal(mediaEventTool.function.name, 'media_event');
+    const persona = createPersona({name: '媒体工具测试', role: '陪伴者', foundation: '用于验证原生媒体调用。'});
+    try {
+        const source = appendMessage(persona.id, {role: 'user', text: '请拍一张我们现在的照片。'});
+        const call = mediaCall('image', '现在的自然合照');
+        const execution = executeMediaToolCall(persona, [{id: 'call_media', type: 'function', function: {name: 'media_event', arguments: JSON.stringify(call)}}], source.id);
+        assert.equal(execution.error, null);
+        assert.ok(execution.result.jobId);
+        assert.equal(database.prepare("SELECT job_type FROM companion_jobs WHERE id = ?").get(execution.result.jobId).job_type, 'chat_image');
+    } finally {
+        deletePersona(persona.id);
+    }
+});
+
+test('chat stream executes a native media tool and preserves the visible continuation', async () => {
+    const baseline = buildInitialBlueprint({name: '流式媒体测试', role: '陪伴者', foundation: '用于验证聊天媒体工具。'});
+    baseline.timezone = 'Asia/Shanghai';
+    const persona = createPersona({name: '流式媒体测试', role: '陪伴者', foundation: '用于验证聊天媒体工具。', blueprint: baseline});
+    const previousSettings = publicSettings();
+    const previousFetch = globalThis.fetch;
+    const calls = [];
+    const concept = mediaCall('image', '现在的自然合照').personaMediaConcept;
+    const argument = JSON.stringify({kind: 'image', request: '现在的自然合照', count: 1, personaMediaConcept: concept});
+    const split = Math.ceil(argument.length / 2);
+    const streamResponse = chunks => ({ok: true, body: {getReader() {
+        let index = 0;
+        return {read: async () => index < chunks.length ? {value: new TextEncoder().encode(chunks[index++]), done: false} : {value: undefined, done: true}};
+    }}});
+    const toolResponse = [
+        `data: ${JSON.stringify({choices: [{delta: {tool_calls: [{index: 0, id: 'call_media', type: 'function', function: {name: 'media_event', arguments: argument.slice(0, split)}}]}}]})}\n\n`,
+        `data: ${JSON.stringify({choices: [{delta: {tool_calls: [{index: 0, function: {arguments: argument.slice(split)}}]}}]})}\n\n`,
+        'data: [DONE]\n\n'
+    ];
+    const continuationResponse = [
+        `data: ${JSON.stringify({choices: [{delta: {content: '照片已经发给你。'}}]})}\n\n`,
+        'data: [DONE]\n\n'
+    ];
+    globalThis.fetch = async (url, options) => {
+        calls.push({url, payload: JSON.parse(options.body)});
+        return streamResponse(calls.length === 1 ? toolResponse : continuationResponse);
+    };
+    saveSettings({model: 'test-media-tool-model', lmStudioUrl: 'http://test/v1'});
+    try {
+        const source = await invokeChatRoute(persona.id, '请主动拍一张我们现在的照片。', [toolResponse, continuationResponse]);
+        assert.equal(calls.length, 2);
+        assert.equal(calls[0].payload.tools.some(tool => tool.function.name === 'media_event'), true);
+        assert.equal(calls[1].payload.tool_choice, 'none');
+        assert.match(source, /照片已经发给你/);
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'chat_image'").get(persona.id).count, 1);
+    } finally {
+        globalThis.fetch = previousFetch;
+        saveSettings({model: previousSettings.model, lmStudioUrl: previousSettings.lmStudioUrl});
+        deletePersona(persona.id);
+    }
 });
 
 test.after(() => rmSync(dataDir, {recursive: true, force: true}));

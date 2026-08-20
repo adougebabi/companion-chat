@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Migration ordering, persona-scoped ownership, and transactional state-transition rules for the new scene projection and image-generation policy."}
+{"file":".trellis/spec/backend/media-prompt-contract.md","reason":"Existing media capability and frozen-envelope contract that the scene-aware image trigger must preserve."}
+{"file":".trellis/spec/backend/shared-scene-contract.md","reason":"Executable scene_event, durable shared-scene projection, and image-generation policy contract implemented by this task."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Required contract map for SQLite state, chat SSE, model tool calls, and browser rendering."}
+{"file":".trellis/tasks/08-17-lifelike-ai-companion/design.md","reason":"Existing life/event/context/media architecture and the persona-private world boundary that this task extends."}

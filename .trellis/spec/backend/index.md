@@ -11,6 +11,7 @@ The backend is a single ES module, [`server.js`](../../../server.js), run by Nod
 | [Error Handling](./error-handling.md) | HTTP, provider, SSE, and worker failures |
 | [Development Debug Observability](./debug-observability.md) | Explicitly gated, persona-scoped prompt/job diagnostics |
 | [Media Prompt Contract](./media-prompt-contract.md) | Typed image/video intent, direct chat requests, and prompt authority |
+| [Shared Scene Contract](./shared-scene-contract.md) | Native scene-event tool, durable single-persona scene projection, and policy settings |
 | [Quality Guidelines](./quality-guidelines.md) | Safe changes and verification |
 | [Logging Guidelines](./logging-guidelines.md) | Operational and debug output |
 

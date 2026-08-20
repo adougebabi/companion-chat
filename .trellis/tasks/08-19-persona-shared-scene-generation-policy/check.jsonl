@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Backend quality gate for migration, streaming, route, and failure-path verification."}
+{"file":".trellis/spec/backend/shared-scene-contract.md","reason":"Final verification contract for native scene tools, persistence, and no-text-matching behavior."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Frontend verification rules for the persona detail select and unchanged natural-language message rendering."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Cross-layer review checklist for producer/consumer payloads, SSE compatibility, and refresh recovery."}
+{"file":".trellis/tasks/08-19-persona-shared-scene-generation-policy/prd.md","reason":"User-approved acceptance criteria and explicit exclusions for the shared-scene MVP."}
+{"file":".trellis/tasks/08-19-persona-shared-scene-generation-policy/design.md","reason":"Technical contracts and failure behavior to verify before implementation is considered complete."}

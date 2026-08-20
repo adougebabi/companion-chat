@@ -15,11 +15,13 @@
 - `fillMediaPromptTemplate({envelope, concept}) -> MediaPromptTemplateV1`
 - `renderMediaPromptTemplate(template) -> string`
 - `createChatMediaRequest(personaId, {kind, request?}) -> {jobId, message}`
+- `media_event({kind, request, count, personaMediaConcept}) -> durable chat image/video placeholders/jobs`
 - `POST /api/companion/chat` emits ordered `done.messages`, including any queued media placeholder messages.
 
 ### 3. Contracts
 
-- Runtime media authorization comes only from a valid `<media-intent>` emitted under the final application-owned system-capability layer. `mediaRequestFromText()` is compatibility-only and must not be called by live chat dispatch.
+- Runtime media authorization comes from either a validated `media_event` model tool call or a valid `<media-intent>` emitted under the final application-owned system-capability layer. `mediaRequestFromText()` is compatibility-only and must not be called by live chat dispatch. Free prose alone never creates a job.
+- In live chat, `media_event` is preferred when the provider advertises tools; the marker remains a compatibility fallback. A turn must not create duplicate jobs when both forms appear.
 - The same system contract requires a marker both for explicit user requests and definite first-person commitments (for example, “我待会拍一张，拍完发你”). Free prose alone never creates a job. The marker authorizes media delivery; it is not a server instruction to extract visual semantics from its prose.
 - For every producer (chat image/video, direct activity, model-driven activity, and debug inspector), the AI persona's capability call must provide a validated `MediaCapabilityCallV2` containing `personaMediaConcept`, `currentEvent`, and `temporaryAppearance`. The server creates `MediaConceptEnvelopeV1` with requested kind/count, channel/trigger, immutable identity facts, active life/event facts, temporary appearance, and the original request/event instruction. The server may authenticate, attach authoritative facts, check keys/types/size/provider/kind, redact, persist, and retry provider work; it must not infer visual content.
 - Every provider-bound request then receives a `PersonaMediaConceptV1` from the AI persona. The concept contains bounded JSON fields for scene, action, mood, explicitly visible `humanSubjects`, separate `nonHumanObjects`, and declared capture intent (`selfie`, `external_capture`, `operator_pov`, `first_person`, or `other`) with operator/device/framing intent. The concept is AI-owned even when its source is a direct activity or debug request.

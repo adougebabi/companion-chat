@@ -1,0 +1,5 @@
+{"file":".trellis/tasks/08-20-frontend-runtime-performance/prd.md","reason":"Frontend acceptance criteria for one-shot Vue rewrite, contacts-first boot, pagination, IME stability, performance and old-src deletion."}
+{"file":".trellis/tasks/08-20-frontend-runtime-performance/design.md","reason":"Verify component/store/composable boundaries, typed contracts, build entry and no-dual-frontend cutover."}
+{"file":".trellis/tasks/08-20-frontend-runtime-performance/implement.md","reason":"Verify complete workflow coverage, staged migration, mobile checks, Vite delivery and final deletion."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Audit draft, composition, pagination, stream, refresh and scroll behavior."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Run final TypeScript/Vite/Express-served desktop and mobile browser gate."}

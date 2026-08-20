@@ -1,9 +1,9 @@
-FROM node:22-bookworm-slim AS build
+FROM node:22.23.2-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/* && npm ci --omit=dev
 
-FROM node:22-bookworm-slim
+FROM node:22.23.2-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=4178 \

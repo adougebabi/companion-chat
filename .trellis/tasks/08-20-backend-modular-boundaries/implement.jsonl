@@ -1,0 +1,8 @@
+{"file":".trellis/tasks/08-20-fluctlight-architecture-performance-modernization/design.md","reason":"Parent two-dimensional architecture, generic flow runtime, effect contract, prompt pipeline, cutover, observability and recovery decisions."}
+{"file":".trellis/tasks/08-20-fluctlight-architecture-performance-modernization/research/mtplx-tool-call-results.md","reason":"Real provider evidence for native tool-call streaming and continuation compatibility."}
+{"file":".trellis/spec/backend/directory-structure.md","reason":"Current backend layout and constraints for the final server/index.js composition root migration."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"SQLite ownership, migration, transaction and persistence rules."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Required API, SSE, worker, temporary database and failure-path verification."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Provider, HTTP, SSE and worker error semantics to preserve in generic effect settlement."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Producer/consumer and persistence/provider/browser contract review across the vertical and horizontal axes."}
+{"file":".trellis/tasks/08-20-backend-modular-boundaries/design.md","reason":"Backend-specific target modules, ports, flow runner and final deletion boundary."}

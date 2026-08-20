@@ -1,0 +1,6 @@
+{"file":"CONTEXT.md","reason":"Canonical domain glossary for 摇光, 摇光实例, identity core, self-model, life world, relationship, and presence."}
+{"file":".trellis/spec/frontend/index.md","reason":"Identifies the active browser entry so the rename only changes live UI and does not expand into legacy files."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Requires Express-served browser verification, escaped text, syntax checks, and mobile/accessibility checks for changed UI copy."}
+{"file":".trellis/spec/backend/directory-structure.md","reason":"Documents stable companion API/data names that must remain compatibility-preserved during the presentation rename."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Protects API, SQLite, environment, SSE, and deployment contracts from accidental rename edits."}
+{"file":".trellis/tasks/08-20-fluctlight-architecture-performance-modernization/research/mtplx-tool-call-results.md","reason":"Research-only evidence; confirms native tool support but explicitly remains outside this naming task's implementation scope."}

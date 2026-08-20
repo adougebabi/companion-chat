@@ -4,7 +4,10 @@
 
 ## 运行
 
+运行时固定为 Node.js `22.23.2`。使用与 `.nvmrc` 一致的 Node 版本后再安装依赖：
+
 ```bash
+nvm use
 npm install
 npm start
 ```
