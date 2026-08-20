@@ -70,7 +70,7 @@ async function invokeChatRoute(personaId, text, responses) {
         write(value) { frames.push(String(value)); },
         end() { this.headersSent = true; }
     };
-    const output = layer.route.stack[0].handle({body: {personaId, text}}, response);
+    const output = layer.route.stack[0].handle({body: {personaId, text, chatAt: '2026-08-20T12:00:00+08:00'}}, response);
     if (output?.then) await output;
     return frames.join('');
 }
@@ -82,7 +82,7 @@ async function invokeChatRouteWithConnection(personaId, text, onConnection) {
     const requestHandlers = new Map();
     const responseHandlers = new Map();
     const request = {
-        body: {personaId, text},
+        body: {personaId, text, chatAt: '2026-08-20T12:00:00+08:00'},
         on(event, handler) { requestHandlers.set(event, handler); return this; },
         removeListener(event, handler) { if (requestHandlers.get(event) === handler) requestHandlers.delete(event); return this; }
     };

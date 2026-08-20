@@ -3703,13 +3703,23 @@ function markerCapabilityCall(name, args, personaId, causationUserMessageId, ind
     };
 }
 
+function capabilityPlanIntent(call, plan) {
+    return Object.freeze({
+        mode: 'plan', capability: call.name, source: call.source, index: call.index,
+        callId: call.id || null, idempotencyKey: call.idempotencyKey,
+        causationId: call.causationUserMessageId, planType: plan.type || `${call.name}_plan`,
+        preallocatedIds: plan.preallocatedIds || {}
+    });
+}
+
 const capabilityRegistry = Object.freeze({
     scene_event: {
         cardinality: 1,
         markerAdapter: null,
-        execute(persona, call) {
+        execute(persona, call, {mode = 'execute'} = {}) {
             if (call.error) throw new Error(call.error);
             const plan = planSceneEvent(persona, call.arguments, call.causationUserMessageId, {source: call.source, callId: call.id, idempotencyKey: call.idempotencyKey});
+            if (mode === 'plan') return {result: plan.previewResult, plan, intent: capabilityPlanIntent(call, plan)};
             return database.transaction(() => applySceneEventPlan(plan))();
         },
         result(execution) { return execution.result ? {ok: true, eventId: execution.result.eventId, operation: execution.result.operation, scene: execution.result.scene} : {ok: false, error: execution.error || 'scene_event 未执行'}; }
@@ -3720,7 +3730,7 @@ const capabilityRegistry = Object.freeze({
             const extracted = extractMediaIntent(text);
             return {text: extracted.text, arguments: extracted.media};
         },
-        execute(persona, call) {
+        execute(persona, call, {mode = 'execute'} = {}) {
             if (call.error) throw new Error(call.error);
             if (call.source === 'native') validateNativeCapabilityArguments(call.name, call.arguments);
             const normalized = normalizeMediaCapabilityCall({
@@ -3737,6 +3747,13 @@ const capabilityRegistry = Object.freeze({
                 causationUserMessageId: call.causationUserMessageId,
                 trigger: normalized.trigger
             });
+            if (mode === 'plan') {
+                const preview = {
+                    jobId: plan.jobId, jobIds: plan.jobIds, message: plan.message,
+                    messages: plan.messages, kind: plan.kind, replayed: plan.replayed
+                };
+                return {result: preview, plan, intent: capabilityPlanIntent(call, plan)};
+            }
             return database.transaction(() => applyChatMediaRequestPlan(plan))();
         },
         result(execution) { return execution.result ? {ok: true, jobId: execution.result.jobId, jobIds: execution.result.jobIds, kind: execution.result.kind} : {ok: false, error: execution.error || 'media_event 未执行'}; }
@@ -3747,10 +3764,11 @@ const capabilityRegistry = Object.freeze({
             const extracted = extractPendingEventIntent(text);
             return {text: extracted.text, arguments: extracted.pendingEvent};
         },
-        execute(persona, call) {
+        execute(persona, call, {mode = 'execute'} = {}) {
             if (call.error) throw new Error(call.error);
             if (call.source === 'native') validateNativeCapabilityArguments(call.name, call.arguments);
             const plan = planPendingEvent(persona, call.arguments, call.causationUserMessageId, {source: call.source, callId: call.id, idempotencyKey: call.idempotencyKey});
+            if (mode === 'plan') return {result: plan.previewResult, plan, intent: capabilityPlanIntent(call, plan)};
             return database.transaction(() => applyPendingEventPlan(plan))();
         },
         result(execution) { return execution.result ? pendingCapabilityResult(execution.result) : {ok: false, error: execution.error || 'pending_event 未执行'}; }
@@ -3761,7 +3779,14 @@ function capabilityNames() {
     return Object.keys(capabilityRegistry);
 }
 
-function dispatchCapabilityCalls(persona, {toolCalls = [], completion = {}, markerText = '', causationId, nativeState = null, blockMarkers = false} = {}) {
+function capabilityDispatchMode(value) {
+    const mode = value === undefined ? 'execute' : value;
+    if (mode !== 'execute' && mode !== 'plan') throw new Error(`不支持的能力执行模式：${String(mode)}`);
+    return mode;
+}
+
+function dispatchCapabilityCalls(persona, {toolCalls = [], completion = {}, markerText = '', causationId, nativeState = null, blockMarkers = false, mode: requestedMode} = {}) {
+    const mode = capabilityDispatchMode(requestedMode);
     const nativeGroups = new Map(capabilityNames().map(name => [name, []]));
     const attempts = [];
     const unknownNative = Boolean(blockMarkers);
@@ -3783,9 +3808,17 @@ function dispatchCapabilityCalls(persona, {toolCalls = [], completion = {}, mark
     for (const [name, calls] of nativeGroups.entries()) if (calls.length) nativeCapabilities.add(name);
     const byCapability = Object.fromEntries(capabilityNames().map(name => [name, null]));
     const execute = (call, registry, duplicateError = null) => {
-        const execution = {call, result: null, error: duplicateError, source: call.source};
+        const execution = {call, result: null, plan: null, intent: null, error: duplicateError, source: call.source, mode};
         if (!execution.error) {
-            try { execution.result = registry.execute(persona, call); } catch (error) { execution.error = capabilityError(error); }
+            try {
+                const outcome = registry.execute(persona, call, {mode});
+                if (mode === 'plan') {
+                    if (!outcome?.plan) throw new Error('能力计划未返回有效引用');
+                    execution.plan = outcome.plan;
+                    execution.intent = outcome.intent || capabilityPlanIntent(call, outcome.plan);
+                    execution.result = outcome.result ?? outcome.plan.previewResult;
+                } else execution.result = outcome;
+            } catch (error) { execution.error = capabilityError(error); }
         }
         return execution;
     };
@@ -3835,7 +3868,7 @@ function dispatchCapabilityCalls(persona, {toolCalls = [], completion = {}, mark
             return {call, result: capabilityRegistry[call.name].result(execution)};
         });
     return {
-        attempts, byCapability, visibleText, nativeCapabilities, unknownNative: sawUnknownNative,
+        mode, attempts, byCapability, visibleText, nativeCapabilities, unknownNative: sawUnknownNative,
         continuationEntries, diagnostics: attempts.filter(attempt => attempt.error).map(attempt => attempt.error).slice(0, capabilityDiagnosticLimit)
     };
 }
@@ -4062,18 +4095,70 @@ function flowCapabilityResult(execution) {
 function flowEffectIntent(execution) {
     const call = execution?.call;
     if (!call || execution.error || !execution.result) return null;
+    const previewResult = capabilityResultValue(call.name, execution.result);
+    const intent = {
+        mode: execution.mode || (execution.plan ? 'plan' : 'execute'),
+        capability: call.name,
+        source: call.source,
+        index: call.index,
+        callId: call.id || null,
+        idempotencyKey: call.idempotencyKey,
+        causationId: call.causationUserMessageId,
+        ...(execution.intent ? {planType: execution.intent.planType, preallocatedIds: execution.intent.preallocatedIds} : {})
+    };
+    const payload = {
+        ...(isRecord(previewResult) ? previewResult : {result: previewResult}),
+        previewResult,
+        intent
+    };
+    // Keep the executable plan available to the caller-owned commit boundary,
+    // while leaving it out of serialized/public effect projections.
+    Object.defineProperty(payload, 'planRef', {value: execution.plan || null, enumerable: false});
     return {
         effectId: `effect_${call.idempotencyKey}`,
         kind: `chat.${call.name}`,
         capability: call.name,
         idempotencyKey: call.idempotencyKey,
         causationId: call.causationUserMessageId,
-        payload: capabilityResultValue(call.name, execution.result)
+        payload
     };
 }
 
 function createChatTurnIntegration(persona, userMessage, chatAt) {
     let turn = null;
+
+    function applyCapabilityPlan(execution) {
+        const plan = execution?.plan;
+        if (!plan) throw new Error('能力计划引用缺失');
+        if (execution.call?.name === 'scene_event') return applySceneEventPlan(plan);
+        if (execution.call?.name === 'media_event') return applyChatMediaRequestPlan(plan);
+        if (execution.call?.name === 'pending_event') return applyPendingEventPlan(plan);
+        throw new Error(`未知能力计划：${String(execution.call?.name || '')}`);
+    }
+
+    function appendVisibleReplyInCommit(text, fallback) {
+        const parts = splitUserVisibleAssistantReply(text, fallback);
+        const createdAt = now();
+        const thread = conversationRepository.getOrCreateConversation({
+            personaId: persona.id, id: id('conversation'), createdAt, updatedAt: createdAt
+        });
+        const baseTime = Date.now();
+        const records = parts.map((part, index) => ({
+            id: id('message'), text: part.slice(0, 8000), createdAt: new Date(baseTime + index).toISOString()
+        }));
+        const suppressUnread = Boolean(persona.screened_at);
+        const inserted = conversationRepository.appendMessages({
+            conversationId: thread.id,
+            messages: records.map(record => ({
+                id: record.id, role: 'assistant', text: record.text,
+                attachmentsJson: '[]', generationJson: null, jobsJson: '[]',
+                proactiveEventId: null, proactivePendingEventId: null,
+                createdAt: record.createdAt, readAt: suppressUnread ? record.createdAt : null
+            })),
+            updatedAt: records.at(-1).createdAt
+        });
+        return inserted.map(messageShape);
+    }
 
     const contextReader = {
         read({personaId, command, context}) {
@@ -4144,7 +4229,8 @@ function createChatTurnIntegration(persona, userMessage, chatAt) {
                 completion: turn.completion,
                 markerText: turn.rawText,
                 causationId: userMessage.id,
-                blockMarkers: Boolean(turn.completion?.unknownNative)
+                blockMarkers: Boolean(turn.completion?.unknownNative),
+                mode: 'plan'
             });
             turn.firstDispatch = firstDispatch;
             turn.followupDispatch = null;
@@ -4200,7 +4286,8 @@ function createChatTurnIntegration(persona, userMessage, chatAt) {
                         markerText: followup.text,
                         causationId: userMessage.id,
                         nativeState: firstDispatch.nativeCapabilities,
-                        blockMarkers: firstDispatch.unknownNative
+                        blockMarkers: firstDispatch.unknownNative,
+                        mode: 'plan'
                     });
                     turn.followupDispatch = followupDispatch;
                     turn.followupTokens = continuationTokens;
@@ -4246,13 +4333,31 @@ function createChatTurnIntegration(persona, userMessage, chatAt) {
                 : turn.mediaExecution?.call ? '我已经处理好这次媒体请求了，但暂时无法继续补充。'
                     : '我已经记住刚才的场景了，但暂时无法继续补充。'
             : '我刚刚想了一下，但还没有组织好回复。';
-        const messages = appendUserVisibleAssistantReply(persona.id, turn.output, {fallback: continuationFallback});
-        if (turn.mediaExecution?.result) messages.push(...turn.mediaExecution.result.messages);
-        const plannedMessage = messages.find(message => explicitPlanFromMessage(message.text));
-        const proposedPlan = plannedMessage && verifiedAcceptedPlan(persona.id, plannedMessage.id);
-        if (proposedPlan) createScheduleItem(persona.id, {...proposedPlan, sourceMessageId: plannedMessage.id, source: 'accepted_chat_plan'});
-        applyChatAttentionOverlay(persona);
-        turn.committedMessages = messages;
+        const dispatches = [turn.firstDispatch, turn.followupDispatch].filter(Boolean);
+        const plannedExecutions = dispatches.flatMap((dispatch, dispatchIndex) => (dispatch.attempts || []).map((execution, attemptIndex) => ({
+            execution, dispatchIndex, attemptIndex
+        }))).filter(item => item.execution.plan && !item.execution.error);
+        plannedExecutions.sort((left, right) => {
+            const leftIndex = Number.isInteger(left.execution.call?.index) ? left.execution.call.index : Number.MAX_SAFE_INTEGER;
+            const rightIndex = Number.isInteger(right.execution.call?.index) ? right.execution.call.index : Number.MAX_SAFE_INTEGER;
+            return leftIndex - rightIndex || left.dispatchIndex - right.dispatchIndex || left.attemptIndex - right.attemptIndex;
+        });
+        const committed = database.transaction(() => {
+            const appliedPlans = new Set();
+            for (const {execution} of plannedExecutions) {
+                if (appliedPlans.has(execution.plan)) continue;
+                execution.result = applyCapabilityPlan(execution);
+                appliedPlans.add(execution.plan);
+            }
+            const messages = appendVisibleReplyInCommit(turn.output, continuationFallback);
+            if (turn.mediaExecution?.result?.messages) messages.push(...turn.mediaExecution.result.messages);
+            const plannedMessage = messages.find(message => explicitPlanFromMessage(message.text));
+            const proposedPlan = plannedMessage && verifiedAcceptedPlan(persona.id, plannedMessage.id);
+            if (proposedPlan) createScheduleItem(persona.id, {...proposedPlan, sourceMessageId: plannedMessage.id, source: 'accepted_chat_plan'});
+            applyChatAttentionOverlay(persona);
+            return messages;
+        })();
+        turn.committedMessages = committed;
         turn.pendingPresentation = capabilityPresentation(turn.pendingExecution);
         turn.scenePresentation = capabilityPresentation(turn.sceneExecution);
         turn.mediaPresentation = capabilityPresentation(turn.mediaExecution);
@@ -4307,7 +4412,8 @@ async function streamPersonaChat(req, res) {
     database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(now(), persona.id);
     res.status(200).set({'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', Connection: 'keep-alive'});
     res.flushHeaders();
-    const chatAt = new Date();
+    const testChatAt = process.env.COMPANION_TEST === '1' && typeof req.body.chatAt === 'string' ? new Date(req.body.chatAt) : null;
+    const chatAt = testChatAt && Number.isFinite(testChatAt.getTime()) ? testChatAt : new Date();
     const context = contextFor(persona.id, chatAt);
     const existingDeferred = database.prepare("SELECT id FROM companion_chat_deferred_batches WHERE persona_id = ? AND status IN ('queued', 'leased') ORDER BY created_at DESC LIMIT 1").get(persona.id);
     if (existingDeferred) {
