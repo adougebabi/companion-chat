@@ -4,6 +4,7 @@
 
 - Validate IDs, required text, cursor shape, and JSON body types at route boundaries.
 - Use table-scoped helpers for companion persistence. Do not restore the legacy whole-state JSON model.
+- Table-scoped repositories accept an already-open database and injected side-effect functions; they own parameterized SQL for their tables and linked jobs, but never open a second database, run migrations, validate domain policy, or return browser DTOs.
 - Use `cleanUrl()` for configured provider URLs so joining `/models` and `/prompt` is stable.
 - Clone workflow JSON before replacing `{{prompt}}`; never mutate the configured workflow string in place.
 - Keep initial media worker concurrency at one, but use a durable SQLite lease rather than an in-process flag as job ownership.

@@ -5,6 +5,7 @@ import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 import Database from 'better-sqlite3';
+import {createPendingEventRepository} from './server/infrastructure/pending-event-repository.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const dataDir = process.env.DATA_DIR || join(root, 'data');
@@ -2595,7 +2596,7 @@ function createPendingEvent(persona, value, sourceMessageId, provenance = {}) {
     let job = null;
     let created = false;
     database.transaction(() => {
-        row = database.prepare('SELECT * FROM companion_pending_events WHERE persona_id = ? AND dedupe_key = ? AND not_before = ?').get(owner.id, call.dedupeKey, call.notBefore);
+        row = pendingEventRepository.findByDedupeKey({personaId: owner.id, dedupeKey: call.dedupeKey, notBefore: call.notBefore});
         if (!row) {
             const pendingId = id('pending_event');
             const payload = {
@@ -2605,19 +2606,31 @@ function createPendingEvent(persona, value, sourceMessageId, provenance = {}) {
                 ...(provenance.idempotencyKey ? {idempotencyKey: boundedSceneText(provenance.idempotencyKey, 160)} : {}),
                 source: provenance.source || 'pending_event'
             };
-            database.prepare(`INSERT INTO companion_pending_events (id, persona_id, source_message_id, status, summary, not_before, expires_at, dedupe_key, payload_json, created_at, updated_at)
-                VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`).run(pendingId, owner.id, source.id, call.summary, call.notBefore, call.expiresAt, call.dedupeKey, JSON.stringify(payload), createdAt, createdAt);
-            row = database.prepare('SELECT * FROM companion_pending_events WHERE id = ?').get(pendingId);
+            row = pendingEventRepository.insertPendingEvent({
+                id: pendingId,
+                personaId: owner.id,
+                sourceMessageId: source.id,
+                status: 'pending',
+                summary: call.summary,
+                notBefore: call.notBefore,
+                expiresAt: call.expiresAt,
+                dedupeKey: call.dedupeKey,
+                payload,
+                createdAt,
+                updatedAt: createdAt
+            });
             created = true;
         }
-        job = database.prepare("SELECT * FROM companion_jobs WHERE job_type = 'pending_event' AND persona_id = ? AND json_extract(payload_json, '$.pendingEventId') = ? ORDER BY created_at DESC LIMIT 1").get(owner.id, row.id);
-        if (!job) {
-            job = enqueueJob({jobType: 'pending_event', personaId: owner.id, priority: 2, maxAttempts: 4, runAfter: call.notBefore, payload: {
+        const linked = pendingEventRepository.ensureLinkedJob({
+            personaId: owner.id,
+            pendingEventId: row.id,
+            job: {jobType: 'pending_event', personaId: owner.id, priority: 2, maxAttempts: 4, runAfter: call.notBefore, payload: {
                 pendingEventId: row.id,
                 ...(provenance.idempotencyKey ? {idempotencyKey: boundedSceneText(provenance.idempotencyKey, 160)} : {})
-            }});
-            created = true;
-        }
+            }}
+        });
+        job = linked.job;
+        if (linked.created) created = true;
     })();
     return {pendingEvent: pendingEventShape(row), jobId: job?.id || null, created};
 }
@@ -3960,6 +3973,8 @@ function enqueueJob(input) {
     database.prepare(`INSERT INTO companion_jobs (id, job_type, status, priority, run_after, max_attempts, persona_id, activity_id, message_id, payload_json, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(job.id, job.jobType, job.priority, job.runAfter, job.maxAttempts, job.personaId, job.activityId, job.messageId, JSON.stringify(job.payload), createdAt, createdAt);
     return job;
 }
+
+const pendingEventRepository = createPendingEventRepository({database, enqueueJob});
 
 function enqueueRelationshipEvolutionJob(personaId, messageId) {
     const queuedAt = now();
