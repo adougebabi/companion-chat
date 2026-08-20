@@ -64,7 +64,9 @@
 
 ### Testing
 
-- Validation was not recorded for this session.
+- `npm test` passed: 64 tests, 0 failures.
+- Native pending, native-first fallback, media batch idempotency, missing `[DONE]`, provider error, and browser disconnect abort tests passed.
+- `node --check server.js`, Trellis manifest validation, and `git diff --check` passed.
 
 ### Status
 
@@ -332,6 +334,39 @@ Implemented life-event proactive messaging and chat-declared pending events with
 | Hash | Message |
 |------|---------|
 | `925795c` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 11: Native tool-call 迁移
+
+**Date**: 2026-08-20
+**Task**: Native tool-call 迁移
+**Branch**: `master`
+
+### Summary
+
+完成 native scene_event/media_event/pending_event registry 与统一 dispatcher；按 index/id 累加流式 tool calls，收集 parseErrors，屏蔽 reasoning/tool JSON，支持 native-first marker fallback、SQLite payload 幂等、媒体 count 原子批量、pending job 修复、一次 continuation、provider error 和浏览器断线 abort；更新 shared-scene/media/error specs，新增失败路径与断线测试，npm test 64/64，通过语法和 manifest 校验并归档任务。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0a733d4` | (see git log) |
 
 ### Testing
 

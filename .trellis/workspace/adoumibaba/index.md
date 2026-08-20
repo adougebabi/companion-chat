@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 10
+- **Total Sessions**: 11
 - **Last Active**: 2026-08-20
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~344 | Active |
+| `journal-1.md` | ~379 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 11 | 2026-08-20 | Native tool-call 迁移 | `0a733d4` | `master` |
 | 10 | 2026-08-20 | Fluctlight 展示层改名 | `925795c` | `master` |
 | 9 | 2026-08-19 | 自然语言人格初始化 | `72dad14` | `master` |
 | 8 | 2026-08-19 | AI 人格与联系人分组 | `44c28c5` | `master` |
