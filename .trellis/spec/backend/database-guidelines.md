@@ -10,6 +10,7 @@ Persistence uses one `better-sqlite3` database file in WAL mode. `companion_sche
 
 - Query and update the table that owns the resource. Every persona-private read includes `persona_id` directly or through its owning conversation/activity.
 - Use short SQLite transactions for a state transition that creates related rows, such as event + current state + activity, or message + conversation timestamp.
+- When an application flow creates a message placeholder and its durable job together, the caller owns one transaction covering both inserts, including every row in a count batch. The conversation repository writes and returns the raw message row; the media/application layer writes the job envelope and shapes browser DTOs. A later job failure must roll back all placeholders and jobs together.
 - Claim jobs with a conditional lease update inside a transaction. Run MTPLX or ComfyUI outside that transaction, then settle only with the matching lease owner.
 - Published activities are immutable. Hide/restore writes `companion_activity_visibility`; it never changes the activity, event, evidence, or media record.
 - Keep cursor ordering stable with `(created_at, id)`. Fetch one additional row to determine whether `nextCursor` exists.

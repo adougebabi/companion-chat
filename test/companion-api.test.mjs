@@ -896,9 +896,13 @@ test('model-authorized media markers are transport-only and all producers persis
 test('chat media jobs persist a placeholder and replace that exact message on completion', () => {
     const persona = createPersona({name: '沈青', role: '在读大学生', foundation: '沈青是摄影社成员，喜欢记录普通日常。'});
     const request = createChatMediaRequest(persona.id, mediaCall('image', '今天在校园里的自然照片'));
+    assert.equal(request.message.role, 'assistant');
+    assert.equal(request.message.text, '');
     assert.equal(request.message.generation.status, 'queued');
     assert.equal(request.message.generation.kind, 'image');
     assert.equal(request.message.attachments.length, 0);
+    assert.deepEqual(request.message.jobs, [{id: request.jobId, kind: 'image', provider: request.message.generation.provider}]);
+    assert.ok(request.message.readAt);
 
     let job = database.prepare('SELECT * FROM companion_jobs WHERE id = ?').get(request.jobId);
     const payload = JSON.parse(job.payload_json);
@@ -917,6 +921,78 @@ test('chat media jobs persist a placeholder and replace that exact message on co
     assert.match(message.attachments[0].url, /^\/api\/companion\/media\//);
     assert.equal(database.prepare('SELECT status FROM companion_jobs WHERE id = ?').get(job.id).status, 'complete');
     assert.throws(() => createChatMediaRequest(persona.id, mediaCall('image,video', '非法媒体类型')), /媒体类型/);
+});
+
+test('chat media count creates every placeholder with its matching durable job', () => {
+    const persona = createPersona({name: '批量媒体', role: '学生', foundation: '批量媒体用于验证多张媒体请求。'});
+    const request = createChatMediaRequest(persona.id, mediaCall('image', '傍晚校园的三张照片', {count: 3}));
+    assert.equal(request.messages.length, 3);
+    assert.equal(request.jobIds.length, 3);
+    assert.deepEqual(request.messages.map(message => message.jobs[0].id), request.jobIds);
+    for (const [index, message] of request.messages.entries()) {
+        const row = database.prepare(`
+            SELECT messages.role, messages.text, messages.generation_json, messages.jobs_json, messages.read_at,
+                   jobs.id AS job_id, jobs.status, jobs.message_id
+            FROM companion_messages messages
+            JOIN companion_jobs jobs ON jobs.message_id = messages.id
+            WHERE messages.id = ? AND jobs.job_type = 'chat_image'
+        `).get(message.id);
+        assert.ok(row);
+        assert.equal(row.role, 'assistant');
+        assert.equal(row.text, '');
+        assert.equal(row.read_at, message.readAt);
+        assert.equal(row.job_id, request.jobIds[index]);
+        assert.equal(row.message_id, message.id);
+        assert.equal(row.status, 'queued');
+        assert.deepEqual(JSON.parse(row.generation_json), message.generation);
+        assert.deepEqual(JSON.parse(row.jobs_json), message.jobs);
+    }
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_messages messages JOIN companion_conversations conversations ON conversations.id = messages.conversation_id WHERE conversations.persona_id = ?").get(persona.id).count, 3);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'chat_image'").get(persona.id).count, 3);
+});
+
+test('replaying a keyed chat media request returns the same placeholders without duplication', () => {
+    const persona = createPersona({name: '媒体重放', role: '学生', foundation: '媒体重放用于验证幂等请求。'});
+    const input = mediaCall('image', '只生成一次的照片', {count: 2});
+    const provenance = {idempotencyKey: 'media-replay-test'};
+    const first = createChatMediaRequest(persona.id, input, provenance);
+    const before = {
+        messages: database.prepare("SELECT COUNT(*) AS count FROM companion_messages messages JOIN companion_conversations conversations ON conversations.id = messages.conversation_id WHERE conversations.persona_id = ?").get(persona.id).count,
+        jobs: database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'chat_image'").get(persona.id).count
+    };
+    const replay = createChatMediaRequest(persona.id, input, provenance);
+    assert.equal(first.replayed, false);
+    assert.equal(replay.replayed, true);
+    assert.deepEqual(replay.jobIds, first.jobIds);
+    assert.deepEqual(replay.messages.map(message => message.id), first.messages.map(message => message.id));
+    assert.deepEqual(replay.message, first.message);
+    assert.deepEqual(replay.messages.map(message => message.jobs[0].id), first.jobIds);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_messages messages JOIN companion_conversations conversations ON conversations.id = messages.conversation_id WHERE conversations.persona_id = ?").get(persona.id).count, before.messages);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'chat_image'").get(persona.id).count, before.jobs);
+});
+
+test('a later chat media job insert failure rolls back all placeholders and jobs', () => {
+    const persona = createPersona({name: '媒体回滚', role: '学生', foundation: '媒体回滚用于验证消息和任务的一致性。'});
+    const conversationId = database.prepare('SELECT id FROM companion_conversations WHERE persona_id = ?').get(persona.id).id;
+    database.exec(`
+        CREATE TRIGGER fail_second_chat_media_job_insert
+        BEFORE INSERT ON companion_jobs
+        WHEN NEW.job_type IN ('chat_image', 'chat_video')
+            AND (SELECT COUNT(*) FROM companion_jobs WHERE persona_id = NEW.persona_id AND job_type = NEW.job_type) >= 1
+        BEGIN
+            SELECT RAISE(ABORT, 'forced later media job insert failure');
+        END;
+    `);
+    try {
+        assert.throws(
+            () => createChatMediaRequest(persona.id, mediaCall('image', '故意触发回滚的三张照片', {count: 3})),
+            /forced later media job insert failure/
+        );
+    } finally {
+        database.exec('DROP TRIGGER fail_second_chat_media_job_insert');
+    }
+    assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_messages WHERE conversation_id = ?').get(conversationId).count, 0);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type IN ('chat_image', 'chat_video')").get(persona.id).count, 0);
 });
 
 test('frozen persona concept and prompt master preserve capture, people, and object semantics before provider submission', async () => {

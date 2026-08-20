@@ -4533,7 +4533,7 @@ function createChatMediaRequest(personaId, input, provenance = {}) {
     const thread = conversation(persona.id);
     const jobType = kind === 'video' ? 'chat_video' : 'chat_image';
     const baseKey = boundedSceneText(provenance.idempotencyKey, 160);
-    const existingForKey = key => key ? database.prepare("SELECT jobs.*, messages.id AS message_row_id FROM companion_jobs jobs JOIN companion_messages messages ON messages.id = jobs.message_id WHERE jobs.persona_id = ? AND jobs.job_type = ? AND json_extract(jobs.payload_json, '$.capabilityCall.idempotencyKey') LIKE ? ORDER BY jobs.created_at, jobs.id").all(persona.id, jobType, `${key}:%`) : [];
+    const existingForKey = key => key ? database.prepare("SELECT jobs.*, messages.id AS message_row_id FROM companion_jobs jobs JOIN companion_messages messages ON messages.id = jobs.message_id WHERE jobs.persona_id = ? AND jobs.job_type = ? AND substr(json_extract(jobs.payload_json, '$.capabilityCall.idempotencyKey'), 1, length(?) + 1) = ? ORDER BY CAST(substr(json_extract(jobs.payload_json, '$.capabilityCall.idempotencyKey'), length(?) + 2) AS INTEGER)").all(persona.id, jobType, key, key, key) : [];
     const existing = baseKey ? existingForKey(baseKey) : [];
     if (baseKey && existing.length >= count) {
         const messages = existing.slice(0, count).map(row => messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(row.message_row_id)));
@@ -4561,9 +4561,13 @@ function createChatMediaRequest(personaId, input, provenance = {}) {
                 ...(assetKey ? {idempotencyKey: assetKey} : {}),
                 source: provenance.source || 'media_event', causationId: provenance.causationUserMessageId || null
             };
-            database.prepare('INSERT INTO companion_messages (id, conversation_id, role, text, attachments_json, generation_json, jobs_json, created_at, read_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(messageId, thread.id, 'assistant', '', '[]', JSON.stringify(generation), JSON.stringify([{id: jobId, kind, provider}]), createdAt, createdAt);
+            const inserted = conversationRepository.appendMessage({
+                id: messageId, conversationId: thread.id, role: 'assistant', text: '',
+                attachmentsJson: '[]', generationJson: JSON.stringify(generation),
+                jobsJson: JSON.stringify([{id: jobId, kind, provider}]), createdAt, readAt: createdAt
+            });
             database.prepare(`INSERT INTO companion_jobs (id, job_type, status, priority, run_after, max_attempts, persona_id, message_id, payload_json, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?)`).run(jobId, jobType, 4, createdAt, 3, persona.id, messageId, JSON.stringify({envelope, personaMediaConcept: capabilityCall.personaMediaConcept, capabilityCall: callWithProvenance, kind, provider, trigger, qualityRetryCount: 0, maxQualityRetries: 1}), createdAt, createdAt);
-            created.push({jobId, message: messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(messageId)), replayed: false});
+            created.push({jobId, message: messageShape(inserted), replayed: false});
         }
         database.prepare('UPDATE companion_conversations SET updated_at = ? WHERE id = ?').run(now(), thread.id);
     })();
