@@ -4606,12 +4606,11 @@ function enqueueRelationshipEvolutionJob(personaId, messageId) {
     };
     database.transaction(() => {
         jobRepository.enqueue({...job, createdAt: queuedAt, updatedAt: queuedAt});
-        database.prepare(`UPDATE companion_jobs
-            SET status = 'complete', result_json = ?, error = NULL, updated_at = ?, completed_at = ?
-            WHERE persona_id = ? AND job_type = 'relationship_evolution' AND status = 'queued' AND id != ?`).run(
-            JSON.stringify({skipped: 'superseded_by_newer_message', supersededByJobId: job.id, supersededByMessageId: messageId}),
-            queuedAt, queuedAt, personaId, job.id
-        );
+        jobRepository.completeQueued({
+            personaId, jobType: 'relationship_evolution', excludeId: job.id,
+            result: {skipped: 'superseded_by_newer_message', supersededByJobId: job.id, supersededByMessageId: messageId},
+            now: queuedAt
+        });
     })();
     return job;
 }
@@ -5046,16 +5045,16 @@ async function acceptMediaCandidate({sourceJob, provider, files}) {
 
 function sourceMediaJobFor(job) {
     const sourceJobId = json(job.payload_json, {}).sourceJobId;
-    return sourceJobId ? database.prepare('SELECT * FROM companion_jobs WHERE id = ? AND persona_id = ?').get(sourceJobId, job.persona_id) || job : job;
+    return sourceJobId ? jobRepository.find({id: sourceJobId, personaId: job.persona_id}) || job : job;
 }
 
 function appendMediaAcceptance(jobId, acceptance) {
-    const row = database.prepare('SELECT result_json FROM companion_jobs WHERE id = ?').get(jobId);
+    const row = jobRepository.find(jobId);
     if (!row) return;
     const result = json(row.result_json, {});
     const history = Array.isArray(result.acceptance) ? result.acceptance.slice(-2) : [];
     history.push(acceptance);
-    database.prepare('UPDATE companion_jobs SET result_json = ?, updated_at = ? WHERE id = ?').run(JSON.stringify({...result, acceptance: history}), now(), jobId);
+    jobRepository.patchResult(row, {patch: {acceptance: history}, now: now()});
 }
 
 function enqueueQualityRetry(sourceJob, acceptance) {
@@ -5140,7 +5139,10 @@ async function completeGeneratedMedia(job, promptId, files, providerId = 'comfyu
 
 function chatMediaJobForAsset(personaId, jobType, assetKey) {
     if (!assetKey) return null;
-    return database.prepare("SELECT jobs.*, messages.id AS message_row_id FROM companion_jobs jobs JOIN companion_messages messages ON messages.id = jobs.message_id WHERE jobs.persona_id = ? AND jobs.job_type = ? AND json_extract(jobs.payload_json, '$.capabilityCall.idempotencyKey') = ? ORDER BY jobs.created_at, jobs.id LIMIT 1").get(personaId, jobType, assetKey);
+    const job = jobRepository.findByPayload({personaId, jobType, path: '$.capabilityCall.idempotencyKey', value: assetKey});
+    if (!job?.message_id) return null;
+    const message = database.prepare('SELECT id FROM companion_messages WHERE id = ?').get(job.message_id);
+    return message ? {...job, message_row_id: message.id} : null;
 }
 
 function mediaMessagePlaceholder({messageId, jobId, kind, provider, request, createdAt}) {
@@ -5300,12 +5302,14 @@ function initialMediaProgress(job, stage = 'preparing', startedAt = now()) {
     };
 }
 
-function activeLeasedJob(job, jobTypes = null) {
-    const active = jobRepository.find(job.id);
-    const checkedAt = now();
-    if (!active || active.status !== 'leased' || active.lease_owner !== job.lease_owner || !(active.lease_expires_at > checkedAt)) return null;
-    if (jobTypes && !jobTypes.includes(active.job_type)) return null;
-    return active;
+function activeLeasedJob(job, jobTypes = null, checkedAt = now()) {
+    return jobRepository.findLeased({
+        id: job.id,
+        leaseOwner: job.lease_owner,
+        ...(job.persona_id !== undefined ? {personaId: job.persona_id} : {}),
+        ...(jobTypes ? {jobTypes} : {}),
+        now: checkedAt
+    });
 }
 
 function recordMediaJobResult(job, patch = {}) {
@@ -5314,9 +5318,8 @@ function recordMediaJobResult(job, patch = {}) {
         const updatedAt = now();
         const active = activeLeasedJob(job);
         if (!active) return;
-        const result = mergeJobResult(json(active.result_json, {}), patch);
-        const changed = database.prepare("UPDATE companion_jobs SET result_json = ?, updated_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").run(JSON.stringify(result), updatedAt, active.id, job.lease_owner, updatedAt).changes;
-        output = {changed: Boolean(changed), result};
+        const updated = jobRepository.patchResult(active, {patch, now: updatedAt});
+        output = {changed: updated.changed, result: updated.result};
     })();
     return output || {changed: false, result: null};
 }
@@ -5350,8 +5353,8 @@ function recordMediaJobProgress(job, patch = {}) {
         if (patch.output !== undefined && nextProgress.latestOutput) nextProgress.outputSeen = true;
         const result = mergeJobResult(currentResult, patch.result);
         result.progress = nextProgress;
-        const changed = database.prepare("UPDATE companion_jobs SET result_json = ?, updated_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").run(JSON.stringify(result), updatedAt, active.id, job.lease_owner, updatedAt).changes;
-        output = {changed: Boolean(changed), progress: nextProgress, result};
+        const updated = jobRepository.patchResult(active, {patch: result, now: updatedAt});
+        output = {changed: updated.changed, progress: nextProgress, result: updated.result};
     })();
     return output || {changed: false, progress: null, result: null};
 }
@@ -5391,7 +5394,7 @@ function settleJob(job, {result, error, progressStage, terminal = false}) {
     let changed = 0;
     database.transaction(() => {
         const settledAt = now();
-        const active = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, settledAt);
+        const active = activeLeasedJob(job, null, settledAt);
         if (!active) return;
         const currentResult = json(active.result_json, {});
         const nextResult = mergeJobResult(currentResult, result);
@@ -5447,10 +5450,10 @@ function freezeProactiveDecision(job, decision) {
     const normalized = normalizeProactiveDecision(decision);
     let changed = false;
     database.transaction(() => {
-        const active = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND job_type IN ('proactive_message', 'pending_event') AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
+        const checkedAt = now();
+        const active = activeLeasedJob(job, ['proactive_message', 'pending_event'], checkedAt);
         if (!active) return;
-        const result = mergeJobResult(json(active.result_json, {}), {decision: normalized});
-        changed = Boolean(database.prepare("UPDATE companion_jobs SET result_json = ?, updated_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").run(JSON.stringify(result), now(), active.id, job.lease_owner, now()).changes);
+        changed = jobRepository.patchResult(active, {patch: {decision: normalized}, now: checkedAt}).changed;
     })();
     return {changed, decision: normalized};
 }
@@ -5540,7 +5543,7 @@ async function runProactiveMessageJob(job) {
     const payload = json(job.payload_json, {});
     const event = persona && database.prepare('SELECT * FROM companion_life_events WHERE id = ? AND persona_id = ?').get(payload.eventId, persona.id);
     if (!persona || !event) return completeProactiveMessageJob(job, '');
-    const existingDecision = json(database.prepare('SELECT result_json FROM companion_jobs WHERE id = ?').get(job.id)?.result_json, {}).decision;
+    const existingDecision = json(jobRepository.find(job.id)?.result_json, {}).decision;
     if (existingDecision) return completeProactiveMessageJob(job, existingDecision);
     const eligibility = proactiveEligibility(persona, {eventType: event.type, sourceType: 'life_event'});
     if (!eligibility.allowed) return completeProactiveMessageJob(job, '');
@@ -5563,7 +5566,7 @@ async function runPendingEventJob(job) {
     const current = Date.now();
     if (Date.parse(pending.expires_at) <= current) {
         database.transaction(() => {
-            const lease = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
+            const lease = activeLeasedJob(job);
             if (!lease) return;
             database.prepare("UPDATE companion_pending_events SET status = 'expired', updated_at = ? WHERE id = ? AND persona_id = ? AND status IN ('pending', 'triggered')").run(now(), pending.id, persona.id);
         })();
@@ -5576,7 +5579,7 @@ async function runPendingEventJob(job) {
     // retried job can remain triggered; its frozen decision is reused below.
     let triggered = false;
     database.transaction(() => {
-        const lease = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
+        const lease = activeLeasedJob(job);
         if (!lease) return;
         triggered = Boolean(database.prepare("UPDATE companion_pending_events SET status = 'triggered', triggered_at = COALESCE(triggered_at, ?), updated_at = ? WHERE id = ? AND persona_id = ? AND status = 'pending'").run(now(), now(), pending.id, persona.id).changes);
     })();
@@ -5585,7 +5588,7 @@ async function runPendingEventJob(job) {
     const eligibility = proactiveEligibility(persona, {eventType: 'pending_event', sourceType: 'pending_event'});
     if (!eligibility.allowed) return completeProactiveMessageJob(job, {schemaVersion: proactiveDecisionSchemaVersion, send: false, reason: eligibility.reason, message: ''});
 
-    const existingDecision = json(database.prepare('SELECT result_json FROM companion_jobs WHERE id = ?').get(job.id)?.result_json, {}).decision;
+    const existingDecision = json(jobRepository.find(job.id)?.result_json, {}).decision;
     if (existingDecision) return completeProactiveMessageJob(job, existingDecision);
     try {
         const recentMessages = listMessages(persona.id, {limit: 18, markRead: false}).items.slice(-18).map(message => ({id: message.id, role: message.role, text: message.text, createdAt: message.createdAt}));
@@ -5689,7 +5692,7 @@ async function runDeferredChatReplyJob(job) {
         let result;
         database.transaction(() => {
             const live = database.prepare("SELECT * FROM companion_chat_deferred_batches WHERE id = ? AND status = 'queued'").get(batch.id);
-            const leased = database.prepare("SELECT id FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, now());
+            const leased = activeLeasedJob(job);
             if (!live || !leased) return;
             const reply = appendUserVisibleAssistantReply(persona.id, text, {fallback: '刚刚看到你的消息了。'});
             database.prepare("UPDATE companion_chat_deferred_batches SET status = 'complete', result_message_id = ?, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'queued'").run(reply[0].id, now(), now(), batch.id);

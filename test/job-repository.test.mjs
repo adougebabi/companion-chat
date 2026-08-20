@@ -283,3 +283,48 @@ test('enqueue participates in the caller transaction and invalid payloads leave 
         database.close();
     }
 });
+
+test('worker lookups and result patches stay payload-scoped and lease-guarded', () => {
+    const database = createDatabase();
+    try {
+        const repository = createRepository(database);
+        enqueue(repository, {
+            id: 'job_media_asset',
+            jobType: 'chat_image',
+            payload: {capabilityCall: {idempotencyKey: 'asset_1'}}
+        });
+        const claimed = repository.claim({personaId: 'persona_1', leaseOwner: 'worker_media', leaseExpiresAt: T2, now: T1});
+        assert.equal(repository.findByPayload({personaId: 'persona_1', jobType: 'chat_image', path: '$.capabilityCall.idempotencyKey', value: 'asset_1'}).id, claimed.id);
+        assert.equal(repository.findByPayload({personaId: 'persona_2', jobType: 'chat_image', path: '$.capabilityCall.idempotencyKey', value: 'asset_1'}), undefined);
+        assert.equal(repository.findLeased({id: claimed.id, personaId: 'persona_1', leaseOwner: 'worker_media', now: T1}).id, claimed.id);
+
+        const rejected = repository.patchResult(claimed, {patch: {stale: true}, leaseOwner: 'worker_other', now: T1});
+        assert.equal(rejected.changed, false);
+        const patched = repository.patchResult(claimed, {patch: {externalId: 'prompt_1'}, now: T1});
+        assert.equal(patched.changed, true);
+        assert.deepEqual(JSON.parse(patched.job.result_json), {externalId: 'prompt_1'});
+        assert.equal(repository.findLeased({id: claimed.id, leaseOwner: 'worker_other', now: T1}), undefined);
+    } finally {
+        database.close();
+    }
+});
+
+test('queued supersession remains composable inside a caller transaction', () => {
+    const database = createDatabase();
+    try {
+        const repository = createRepository(database);
+        enqueue(repository, {id: 'job_old', jobType: 'relationship_evolution', runAfter: T0});
+        enqueue(repository, {id: 'job_new', jobType: 'relationship_evolution', runAfter: T0});
+        database.transaction(() => {
+            repository.completeQueued({
+                personaId: 'persona_1', jobType: 'relationship_evolution', excludeId: 'job_new',
+                result: {skipped: 'superseded_by_newer_message'}, now: T1
+            });
+        })();
+        assert.equal(repository.find('job_old').status, 'complete');
+        assert.deepEqual(JSON.parse(repository.find('job_old').result_json), {skipped: 'superseded_by_newer_message'});
+        assert.equal(repository.find('job_new').status, 'queued');
+    } finally {
+        database.close();
+    }
+});

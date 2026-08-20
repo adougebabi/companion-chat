@@ -115,6 +115,20 @@ function personaScope(personaId, fieldName = 'Job.personaId') {
     return {sql: ' AND persona_id = ?', values: [requiredText(personaId, fieldName)]};
 }
 
+function jobTypeScope(jobTypes) {
+    if (jobTypes === undefined || jobTypes === null) return {sql: '', values: []};
+    if (!Array.isArray(jobTypes) || !jobTypes.length) throw new TypeError('Job.jobTypes must be a non-empty array');
+    const values = jobTypes.map((jobType, index) => requiredText(jobType, `Job.jobTypes[${index}]`));
+    return {sql: ` AND job_type IN (${values.map(() => '?').join(', ')})`, values};
+}
+
+function payloadPath(value) {
+    if (typeof value !== 'string' || !/^\$(?:\.[A-Za-z_][A-Za-z0-9_]*)+$/.test(value)) {
+        throw new TypeError('Job.payloadPath must be a simple JSON path');
+    }
+    return value;
+}
+
 function leaseOwnerFor(input, generateId) {
     const configured = valueFor(input, 'leaseOwner', 'lease_owner') ?? input.owner;
     return requiredText(configured === undefined ? generateId('lease') : configured, 'Job.leaseOwner');
@@ -162,6 +176,36 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
             SELECT * FROM companion_jobs
             WHERE id = ?${scope.sql}
         `).get(idValue, ...scope.values);
+    }
+
+    function findByPayload(input = {}) {
+        assertRecord(input, 'Job payload lookup');
+        const personaId = valueFor(input, 'personaId', 'persona_id');
+        const jobType = requiredText(valueFor(input, 'jobType', 'job_type'), 'Job.jobType');
+        const path = payloadPath(input.path ?? input.payloadPath);
+        if (input.value === undefined) throw new TypeError('Job.payloadValue is required');
+        const scope = personaScope(personaId);
+        return openDatabase.prepare(`
+            SELECT * FROM companion_jobs
+            WHERE job_type = ?
+              AND json_extract(payload_json, ?) = ?${scope.sql}
+            ORDER BY created_at ASC, id ASC
+            LIMIT 1
+        `).get(jobType, path, input.value, ...scope.values);
+    }
+
+    function findLeased(input = {}) {
+        assertRecord(input, 'Job lease lookup');
+        const jobId = requiredText(input.id, 'Job.id');
+        const owner = requiredText(valueFor(input, 'leaseOwner', 'lease_owner') ?? input.owner, 'Job.leaseOwner');
+        const checkedAt = timestamp(input.now ?? now(), 'Job.checkedAt');
+        const persona = personaScope(valueFor(input, 'personaId', 'persona_id'));
+        const types = jobTypeScope(input.jobTypes ?? input.types);
+        return openDatabase.prepare(`
+            SELECT * FROM companion_jobs
+            WHERE id = ? AND status = 'leased' AND lease_owner = ?
+              AND lease_expires_at > ?${persona.sql}${types.sql}
+        `).get(jobId, owner, checkedAt, ...persona.values, ...types.values);
     }
 
     function enqueue(input = {}) {
@@ -244,6 +288,63 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
         return {...base, ...overrides};
     }
 
+    function patchResult(first, second = {}) {
+        const input = transitionInput(first, second);
+        const jobId = requiredText(input.id, 'Job.id');
+        const updatedAt = timestamp(input.now ?? now(), 'Job.updatedAt');
+        const patch = input.patch ?? input.result;
+        if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new TypeError('Job.result patch must be an object');
+        const persona = personaScope(valueFor(input, 'personaId', 'persona_id'));
+        const types = jobTypeScope(input.jobTypes ?? input.types);
+        const configuredOwner = valueFor(input, 'leaseOwner', 'lease_owner') ?? input.owner;
+        const owner = configuredOwner === undefined ? null : requiredText(configuredOwner, 'Job.leaseOwner');
+        const lease = owner === null ? {sql: '', values: []} : {
+            sql: " AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?",
+            values: [owner, updatedAt]
+        };
+
+        return openDatabase.transaction(() => {
+            const active = openDatabase.prepare(`
+                SELECT * FROM companion_jobs
+                WHERE id = ?${persona.sql}${types.sql}${lease.sql}
+            `).get(jobId, ...persona.values, ...types.values, ...lease.values);
+            if (!active) return {changed: false, result: null, job: null};
+
+            let current;
+            try {
+                current = active.result_json ? JSON.parse(active.result_json) : {};
+            } catch {
+                current = {};
+            }
+            const base = current && typeof current === 'object' && !Array.isArray(current) ? current : {};
+            const next = {...base, ...Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined))};
+            const resultJson = JSON.stringify(next);
+            const changed = openDatabase.prepare(`
+                UPDATE companion_jobs
+                SET result_json = ?, updated_at = ?
+                WHERE id = ?${persona.sql}${types.sql}${lease.sql}
+            `).run(resultJson, updatedAt, jobId, ...persona.values, ...types.values, ...lease.values);
+            const job = changed.changes ? find({id: jobId, ...(valueFor(input, 'personaId', 'persona_id') !== undefined ? {personaId: valueFor(input, 'personaId', 'persona_id')} : {})}) : null;
+            return {changed: Boolean(changed.changes), result: next, job};
+        })();
+    }
+
+    function completeQueued(input = {}) {
+        assertRecord(input, 'Job queued completion');
+        const personaId = requiredText(valueFor(input, 'personaId', 'persona_id'), 'Job.personaId');
+        const jobType = requiredText(valueFor(input, 'jobType', 'job_type'), 'Job.jobType');
+        const excludedId = valueFor(input, 'excludeId', 'exclude_id');
+        if (excludedId !== undefined && excludedId !== null) requiredText(excludedId, 'Job.excludeId');
+        const completedAt = timestamp(input.now ?? now(), 'Job.completedAt');
+        const resultJson = optionalJson(input, 'Job', 'result', 'result_json') ?? '{}';
+        const exclusion = excludedId === undefined || excludedId === null ? {sql: '', values: []} : {sql: ' AND id != ?', values: [excludedId]};
+        return openDatabase.prepare(`
+            UPDATE companion_jobs
+            SET status = 'complete', result_json = ?, error = NULL, updated_at = ?, completed_at = ?
+            WHERE persona_id = ? AND job_type = ? AND status = 'queued'${exclusion.sql}
+        `).run(resultJson, completedAt, completedAt, personaId, jobType, ...exclusion.values);
+    }
+
     function transitionJob(input, operation) {
         const jobId = requiredText(input.id, 'Job.id');
         const owner = requiredText(valueFor(input, 'leaseOwner', 'lease_owner') ?? input.owner, 'Job.leaseOwner');
@@ -305,6 +406,10 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
         enqueue,
         find,
         findById: find,
+        findByPayload,
+        findLeased,
+        patchResult,
+        completeQueued,
         claim,
         settle,
         retry
