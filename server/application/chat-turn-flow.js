@@ -188,15 +188,19 @@ function invocationFor(first, second) {
     return {context: first ?? {}, command: second ?? {}};
 }
 
-function repositoryHistory(repository, input) {
+async function repositoryHistory(repository, input) {
     const reader = resolvePortMethod(repository, ['listMessages', 'readMessages', 'read'], 'ConversationRepository', {optional: true});
     if (!reader) return [];
-    return reader({
+    const value = await reader({
         personaId: input.command.personaId,
         conversationId: input.command.conversationId,
         limit: Math.min(Number(input.command.historyLimit) || MAX_HISTORY, MAX_HISTORY),
         cursor: null
     });
+    // The table-scoped repository returns raw rows newest-first. The model
+    // context must be chronological, matching the public conversation helper.
+    const rows = Array.isArray(value) ? value : value?.items;
+    return Array.isArray(rows) ? rows.slice(-MAX_HISTORY).reverse() : [];
 }
 
 function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDispatcher, conversationRepository, presentationMapper, flowId}) {

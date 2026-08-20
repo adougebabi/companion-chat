@@ -140,6 +140,30 @@ test('ChatTurnFlow preserves the ordered context, stream, native handoff, and pr
     assert.deepEqual(result.presentation[1].result, {name: 'scene_event', ok: true, callId: 'call_test', idempotencyKey: 'capability_test', result: {eventId: 'event_test'}, error: null});
 });
 
+test('ChatTurnFlow presents raw repository history oldest-first to the model', async () => {
+    let modelHistory;
+    const flow = createChatTurnFlow({
+        ...dependencies({repository: {
+            listMessages() {
+                return {items: [
+                    {id: 'newest', role: 'user', text: 'newest'},
+                    {id: 'older', role: 'assistant', text: 'older'}
+                ]};
+            }
+        }}),
+        llmStreamingPort: {
+            async stream(input) {
+                modelHistory = input.messages.map(message => message.text);
+                return {text: 'ready', toolCalls: []};
+            }
+        }
+    });
+
+    await flow.run({context: {}, command: {personaId: 'persona_test', text: 'hello'}});
+
+    assert.deepEqual(modelHistory, ['older', 'newest']);
+});
+
 test('ChatTurnFlow does not commit or persist a partial result after a provider failure', async () => {
     const events = [];
     let commits = 0;
