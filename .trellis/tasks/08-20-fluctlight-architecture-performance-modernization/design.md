@@ -192,7 +192,7 @@ Renaming these technical identifiers would require a separate migration with dua
 | Current joint interaction | presence/shared scene | shared scene/state | Show natural context; do not expose internal state terms by default |
 | Legacy implementation terms | deprecated `persona` / `companion` | current code/API identifiers | Keep only as explicit migration-compatibility references |
 
-The table is a proposal, not a license to rename API/database symbols. Any terminology conflict discovered during implementation must be resolved in `CONTEXT.md` before changing copy.
+The table is the approved terminology mapping, not a license to rename API/database symbols. Any terminology conflict discovered during implementation must be resolved in `CONTEXT.md` before changing copy.
 
 ## Rollback And Verification
 

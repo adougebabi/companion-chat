@@ -4,22 +4,22 @@ This parent task changes terminology and product-facing names only. It does not 
 
 ## Ordered Work
 
-1. **Terminology review**
-   - Review `CONTEXT.md` and the terminology mapping in `design.md` with the user.
-   - Resolve the exact UI term for a single 摇光实例 and the distinction between the 摇光 concept and its relationship role.
-   - Resolve the rename surface: display/docs only, or later package/deployment metadata migration.
+1. **Terminology review (completed)**
+   - User approved `摇光（Fluctlight）` as the product display name.
+   - User approved `摇光实例` for a concrete AI individual, with the instance's own name shown in normal UI copy.
+   - User approved keeping `persona` / `companion` only as migration-compatibility identifiers and limiting this task to display/docs changes.
 
-2. **Glossary finalization**
-   - Update `CONTEXT.md` with only resolved domain terms and behavioral meaning.
-   - Update this task PRD/design to remove resolved open decisions.
+2. **Glossary finalization (completed before activation)**
+   - Confirm `CONTEXT.md` contains only the resolved domain terms and behavioral meaning.
+   - Remove resolved open decisions from this task's PRD and design.
    - Keep self-awareness language explicitly aspirational/behavioral, not a claim of proven subjective consciousness.
 
-3. **Active product rename**
+3. **Active product rename (completed)**
    - Update `src/index.html`, `src/companion-main.js`, and any active style/accessible labels that expose the old product name.
    - Update `README.md` and product-facing documentation.
    - Keep legacy technical identifiers untouched unless a separate migration decision is approved.
 
-4. **Compatibility verification**
+4. **Compatibility verification (completed)**
    - Search for accidental edits to `/api/companion`, `companion_*`, `companion.sqlite`, `COMPANION_*`, localStorage keys, Docker names, and test hook fields.
    - Run the existing tests and active UI syntax checks.
    - Load the app through Express and verify title, brand labels, empty state, persona name, and accessibility labels.
@@ -47,6 +47,6 @@ Revert presentation strings and documentation only. Do not reset or restore unre
 
 ## Review Gate Before Activation
 
-- User approves the terminology mapping and rename surface.
+- User approved the terminology mapping and display/docs-only rename surface.
 - `CONTEXT.md`, `prd.md`, `design.md`, and `implement.md` contain no unresolved contradictory terms.
 - Run `python3 ./.trellis/scripts/task.py validate fluctlight-architecture-performance-modernization` before `task.py start`.

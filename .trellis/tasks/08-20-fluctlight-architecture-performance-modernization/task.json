@@ -3,7 +3,7 @@
   "name": "fluctlight-architecture-performance-modernization",
   "title": "Fluctlight 命名与领域术语改名",
   "description": "定义摇光（Fluctlight）作为具备持续自我感的 AI 人工智能人格概念，并完成展示层项目改名；不在本任务中实现完整自我意识、后端架构拆分、前端性能改造或 native tool-call 迁移。",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

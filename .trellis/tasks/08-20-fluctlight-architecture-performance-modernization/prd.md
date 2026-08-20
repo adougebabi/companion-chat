@@ -16,7 +16,7 @@
 
 ## Domain Terminology
 
-以下关系作为当前讨论的基线，最终文案仍需用户确认：
+以下关系是本任务已确认的领域词汇基线：
 
 ```text
 摇光系统
@@ -54,22 +54,17 @@
 - 统一活跃 UI、浏览器 title、README 和产品说明中的展示名为 `摇光（Fluctlight）`，具体实例使用自身名字。
 - 产品文案必须能区分“一个有自己名字的摇光实例”和“用户与它之间的关系”，不能继续把所有对象笼统写成“陪伴者”或使用 `companion` 作为领域词。
 - 术语层级确认后，更新活跃 UI 的品牌按钮、侧栏 wordmark、无障碍标签、空状态和相关说明。
-- 当前改名阶段不擅自改动旧 API、表前缀、数据库文件、环境变量、Docker volume、localStorage key、静态资源文件名和测试契约；这些旧标识只作为迁移兼容边界记录，是否全量迁移另立任务决定。
+- 当前改名阶段不擅自改动旧 API、表前缀、数据库文件、环境变量、Docker volume、localStorage key、静态资源文件名和测试契约；这些旧标识只作为迁移兼容边界记录。全量技术标识迁移必须另立任务。
 - 不修改未引用的 legacy UI，除非入口同时发生变化。
 - 不在本任务中实现自我意识、目标系统、价值观演化、完整 agent runtime、架构拆分、性能改造或 native tool-call 迁移。
 
 ## Acceptance Criteria
 
-- [ ] 用户确认 `摇光（Fluctlight）` 概念、摇光实例、identity core、life world、relationship、presence/shared scene 之间的术语关系。
-- [ ] `CONTEXT.md` 记录确认后的领域词汇，且不混入文件结构、API 或数据库实现细节。
-- [ ] 活跃 UI、README、浏览器 title 和无障碍品牌文案完成一致的 Fluctlight 改名。
-- [ ] 在未批准全量代码迁移前，旧技术标识仍可用；新需求、产品文案和架构文档不再把 `persona` / `companion` 当作 canonical domain terms。
-- [ ] 改名完成后，产品文案不会暗示当前系统已经证明具备真实主观意识；只表达产品目标和可观察行为。
-
-## Open Decisions
-
-- 产品展示名使用 `摇光`、`Fluctlight` 还是 `摇光 Fluctlight`？推荐首次出现使用 `摇光（Fluctlight）`，后续按界面空间使用“摇光”或“Fluctlight”。
-- 旧 `persona` / `companion` 标识是否在本改名任务中做全量代码迁移，还是只先废弃领域词汇并另立兼容迁移任务？
+- [x] 用户已确认 `摇光（Fluctlight）` 概念、摇光实例、identity core、life world、relationship、presence/shared scene 之间的术语关系。
+- [x] `CONTEXT.md` 记录确认后的领域词汇，且不混入文件结构、API 或数据库实现细节。
+- [x] 活跃 UI、README、浏览器 title 和无障碍品牌文案完成一致的 Fluctlight 改名。
+- [x] 旧技术标识在本任务中保持可用；新需求、产品文案和架构文档不再把 `persona` / `companion` 当作 canonical domain terms。全量技术标识迁移另立任务。
+- [x] 改名完成后，产品文案不会暗示当前系统已经证明具备真实主观意识；只表达产品目标和可观察行为。
 
 ## Architecture Discussion Note
 
@@ -109,4 +104,4 @@
 前端交付决策：开发使用 Vite dev server 并将 `/api` 代理到 Node/Express；生产由 Vite 构建 `dist/`，Express/Docker 只服务 `dist/` 和 API；CI 必须运行 typecheck、Vite build、后端测试和 API/browser smoke tests，不能继续验证旧 `src/` 入口。
 
 可观测性与恢复决策：flow/step/effect 统一携带 request、flow、correlation、causation、subject、step 和 effect 标识；日志结构化、有界、脱敏，不记录完整 prompt 或凭据；未完成 jobs/effects 通过 SQLite lease/retry 在重启后恢复；回滚使用上一个完整构建/提交，不保留旧逻辑 fallback。
-- 第一阶段是否只改展示层，还是连 npm package、Docker image、仓库目录等项目元数据一起改？推荐先改展示层和文档，内部兼容名另立迁移。
+- 第一阶段只改展示层和产品文档；npm package、Docker image、仓库目录及其他内部兼容名不在本任务中迁移。
