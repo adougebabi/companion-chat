@@ -2303,13 +2303,19 @@ function appendUserVisibleAssistantReply(personaId, text, {proactiveEventId, pro
         id: id('message'), text: part.slice(0, 8000), createdAt: new Date(baseTime + index).toISOString()
     }));
     const suppressUnread = Boolean(persona.screened_at);
-    database.transaction(() => {
-        for (const record of records) {
-            database.prepare('INSERT INTO companion_messages (id, conversation_id, role, text, attachments_json, jobs_json, proactive_event_id, proactive_pending_event_id, created_at, read_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(record.id, thread.id, 'assistant', record.text, '[]', '[]', proactiveEventId || null, proactivePendingEventId || null, record.createdAt, suppressUnread ? record.createdAt : null);
-        }
-        database.prepare('UPDATE companion_conversations SET updated_at = ? WHERE id = ?').run(records.at(-1).createdAt, thread.id);
-    })();
-    return records.map(record => messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(record.id)));
+    const inserted = database.transaction(() => conversationRepository.appendMessages({
+        conversationId: thread.id,
+        messages: records.map(record => ({
+            id: record.id, role: 'assistant', text: record.text,
+            attachmentsJson: '[]', generationJson: null, jobsJson: '[]',
+            proactiveEventId: proactiveEventId || null,
+            proactivePendingEventId: proactivePendingEventId || null,
+            createdAt: record.createdAt,
+            readAt: suppressUnread ? record.createdAt : null
+        })),
+        updatedAt: records.at(-1).createdAt
+    }))();
+    return inserted.map(messageShape);
 }
 
 function activeMemories(personaId) {

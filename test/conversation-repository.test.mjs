@@ -87,6 +87,48 @@ test('message insertion and conversation timestamp update stay table-scoped', ()
     }
 });
 
+test('batch append preserves input order and message-owned fields while updating once', () => {
+    const database = createDatabase();
+    try {
+        const repository = createConversationRepository({database});
+        repository.getOrCreateConversation(conversationInput());
+        database.exec(`
+            CREATE TABLE conversation_timestamp_updates (conversation_id TEXT, updated_at TEXT);
+            CREATE TRIGGER conversation_timestamp_update_log
+            AFTER UPDATE OF updated_at ON companion_conversations
+            BEGIN
+                INSERT INTO conversation_timestamp_updates (conversation_id, updated_at) VALUES (NEW.id, NEW.updated_at);
+            END;
+        `);
+        const inserted = repository.appendMessages({
+            conversationId: 'conversation_1',
+            updatedAt: '2026-08-20T00:00:03.000Z',
+            messages: [
+                messageInput({
+                    id: 'assistant_1', role: 'assistant', text: 'first', createdAt: '2026-08-20T00:00:01.000Z', readAt: null,
+                    generationJson: JSON.stringify({status: 'queued'}), jobsJson: JSON.stringify([{id: 'job_1'}]),
+                    proactiveEventId: 'event_1', proactivePendingEventId: 'pending_1'
+                }),
+                messageInput({
+                    id: 'assistant_2', role: 'assistant', text: 'second', createdAt: '2026-08-20T00:00:02.000Z', readAt: '2026-08-20T00:00:02.000Z',
+                    generationJson: JSON.stringify({status: 'ready'}), jobsJson: JSON.stringify([{id: 'job_2'}]),
+                    proactiveEventId: 'event_2', proactivePendingEventId: 'pending_2'
+                })
+            ]
+        });
+
+        assert.deepEqual(inserted.map(row => row.id), ['assistant_1', 'assistant_2']);
+        assert.equal(inserted[0].generation_json, JSON.stringify({status: 'queued'}));
+        assert.equal(inserted[0].jobs_json, JSON.stringify([{id: 'job_1'}]));
+        assert.equal(inserted[0].proactive_event_id, 'event_1');
+        assert.equal(inserted[0].proactive_pending_event_id, 'pending_1');
+        assert.equal(database.prepare('SELECT updated_at FROM companion_conversations WHERE id = ?').get('conversation_1').updated_at, '2026-08-20T00:00:03.000Z');
+        assert.deepEqual(database.prepare('SELECT conversation_id, updated_at FROM conversation_timestamp_updates').all(), [{conversation_id: 'conversation_1', updated_at: '2026-08-20T00:00:03.000Z'}]);
+    } finally {
+        database.close();
+    }
+});
+
 test('message pages use descending cursor order while returning rows oldest-first in the server', () => {
     const database = createDatabase();
     try {
@@ -141,6 +183,26 @@ test('caller transaction rolls back a failed message insert and timestamp update
             repository.updateConversationTimestamp({conversationId: 'conversation_1', updatedAt: '2026-08-20T00:00:02.000Z'});
             repository.appendMessage(messageInput({id: 'message_1', text: 'duplicate'}));
         })(), /UNIQUE constraint failed/);
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_messages WHERE conversation_id = ?').get('conversation_1').count, 0);
+        assert.equal(database.prepare('SELECT updated_at FROM companion_conversations WHERE id = ?').get('conversation_1').updated_at, '2026-08-20T00:00:00.000Z');
+    } finally {
+        database.close();
+    }
+});
+
+test('batch append rolls back every row and its timestamp when a later insert fails', () => {
+    const database = createDatabase();
+    try {
+        const repository = createConversationRepository({database});
+        repository.getOrCreateConversation(conversationInput());
+        assert.throws(() => database.transaction(() => repository.appendMessages({
+            conversationId: 'conversation_1',
+            updatedAt: '2026-08-20T00:00:03.000Z',
+            messages: [
+                messageInput({id: 'assistant_batch_1', role: 'assistant', text: 'first', readAt: null}),
+                messageInput({id: 'assistant_batch_1', role: 'assistant', text: 'duplicate', readAt: null})
+            ]
+        }))(), /UNIQUE constraint failed/);
         assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_messages WHERE conversation_id = ?').get('conversation_1').count, 0);
         assert.equal(database.prepare('SELECT updated_at FROM companion_conversations WHERE id = ?').get('conversation_1').updated_at, '2026-08-20T00:00:00.000Z');
     } finally {

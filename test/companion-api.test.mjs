@@ -580,6 +580,41 @@ test('user-visible assistant replies are sentence-scoped, ordered, and isolated 
     assert.equal(extractMediaIntent('今天聊聊天。').media, null);
 });
 
+test('user-visible assistant batch preserves proactive provenance and screened read suppression', () => {
+    const persona = createPersona({name: '批量回复', role: '陪伴者', foundation: '用于验证用户可见回复批量落库。'});
+    try {
+        const source = appendMessage(persona.id, {role: 'user', text: '稍后再聊。'});
+        const pending = createPendingEvent(requirePersona(persona.id), {
+            schemaVersion: 1,
+            summary: '稍后问问近况',
+            notBefore: new Date(Date.now() + 60_000).toISOString(),
+            expiresAt: new Date(Date.now() + 120_000).toISOString(),
+            dedupeKey: 'batch-reply-test'
+        }, source.id);
+        const event = createEvent(requirePersona(persona.id), {
+            type: 'routine', situation: '整理桌面', mood: '平静', scene: '房间', content: '我整理了一下桌面。'
+        }, {publish: false, source: 'test'});
+        database.prepare('UPDATE companion_personas SET screened_at = ? WHERE id = ?').run(new Date().toISOString(), persona.id);
+
+        const messages = appendUserVisibleAssistantReply(persona.id, '第一句。第二句。', {
+            proactiveEventId: event.eventId,
+            proactivePendingEventId: pending.pendingEvent.id
+        });
+
+        assert.deepEqual(messages.map(message => message.text), ['第一句。', '第二句。']);
+        assert.equal(messages[0].proactiveEventId, event.eventId);
+        assert.equal(messages[0].proactivePendingEventId, pending.pendingEvent.id);
+        assert.equal(messages[1].proactiveEventId, event.eventId);
+        assert.equal(messages[1].proactivePendingEventId, pending.pendingEvent.id);
+        assert.equal(messages[0].readAt, messages[0].createdAt);
+        assert.equal(messages[1].readAt, messages[1].createdAt);
+        assert.equal(messages[0].createdAt < messages[1].createdAt, true);
+        assert.equal(database.prepare('SELECT updated_at FROM companion_conversations WHERE persona_id = ?').get(persona.id).updated_at, messages[1].createdAt);
+    } finally {
+        deletePersona(persona.id);
+    }
+});
+
 test('conversation cursors advance from the oldest row in each returned page', () => {
     const persona = createPersona({name: '会话分页', role: '陪伴者', foundation: '用于验证会话游标连续性。'});
     try {

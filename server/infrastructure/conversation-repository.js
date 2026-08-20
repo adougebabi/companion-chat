@@ -94,6 +94,66 @@ export function createConversationRepository({database} = {}) {
         return openDatabase.prepare('SELECT * FROM companion_messages WHERE id = ?').get(id);
     }
 
+    /**
+     * Append prepared message rows within the caller's transaction and update
+     * the owning conversation once. The repository intentionally returns raw
+     * SQLite rows; sentence policy, unread policy, and DTO shaping stay above
+     * this table boundary.
+     */
+    function appendMessages(first, second = {}) {
+        const input = inputFor(first, second);
+        const messages = input.messages ?? input.rows;
+        if (!Array.isArray(messages)) throw new TypeError('Conversation messages must be an array');
+        if (!messages.length) return [];
+
+        let conversationId = input.conversationId;
+        if (conversationId !== undefined) requiredText(conversationId, 'Message.conversationId');
+        const prepared = messages.map((message, index) => {
+            if (!message || typeof message !== 'object' || Array.isArray(message)) throw new TypeError(`Message row ${index} must be an object`);
+            const rowConversationId = message.conversationId ?? message.conversation_id ?? conversationId;
+            requiredText(rowConversationId, `Message[${index}].conversationId`);
+            if (conversationId === undefined) conversationId = rowConversationId;
+            if (rowConversationId !== conversationId) throw new TypeError('Conversation messages must share one conversation');
+            return {
+                id: requiredText(message.id, `Message[${index}].id`),
+                conversationId,
+                role: requiredText(message.role, `Message[${index}].role`),
+                text: typeof message.text === 'string' ? message.text : requiredText(message.text, `Message[${index}].text`),
+                attachmentsJson: jsonColumn(message.attachmentsJson ?? message.attachments_json, `Message[${index}].attachmentsJson`, '[]'),
+                generationJson: nullableText(message.generationJson ?? message.generation_json, `Message[${index}].generationJson`),
+                jobsJson: jsonColumn(message.jobsJson ?? message.jobs_json, `Message[${index}].jobsJson`, '[]'),
+                proactiveEventId: nullableText(message.proactiveEventId ?? message.proactive_event_id, `Message[${index}].proactiveEventId`),
+                proactivePendingEventId: nullableText(message.proactivePendingEventId ?? message.proactive_pending_event_id, `Message[${index}].proactivePendingEventId`),
+                createdAt: requiredText(message.createdAt ?? message.created_at, `Message[${index}].createdAt`),
+                readAt: nullableText(message.readAt ?? message.read_at, `Message[${index}].readAt`)
+            };
+        });
+        const updatedAt = input.updatedAt === undefined
+            ? prepared.at(-1).createdAt
+            : requiredText(input.updatedAt, 'Conversation.updatedAt');
+        const insert = openDatabase.prepare(`
+            INSERT INTO companion_messages (
+                id, conversation_id, role, text, attachments_json, generation_json,
+                jobs_json, proactive_event_id, proactive_pending_event_id, created_at, read_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        const select = openDatabase.prepare('SELECT * FROM companion_messages WHERE id = ?');
+        const inserted = [];
+        for (const message of prepared) {
+            insert.run(
+                message.id, message.conversationId, message.role, message.text,
+                message.attachmentsJson, message.generationJson, message.jobsJson,
+                message.proactiveEventId, message.proactivePendingEventId,
+                message.createdAt, message.readAt
+            );
+            inserted.push(select.get(message.id));
+        }
+        openDatabase.prepare(`
+            UPDATE companion_conversations SET updated_at = ? WHERE id = ?
+        `).run(updatedAt, conversationId);
+        return inserted;
+    }
+
     function updateConversationTimestamp(first, second = {}) {
         const input = inputFor(first, second);
         const updatedAt = requiredText(input.updatedAt, 'Conversation.updatedAt');
@@ -169,6 +229,7 @@ export function createConversationRepository({database} = {}) {
         getConversation,
         getOrCreateConversation,
         appendMessage,
+        appendMessages,
         updateConversationTimestamp,
         listMessages,
         updateReadAt,
