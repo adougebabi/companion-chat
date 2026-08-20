@@ -36,9 +36,31 @@ const json = (value, fallback = {}) => {
 };
 const cleanUrl = value => String(value || '').trim().replace(/\/$/, '');
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+function stableCapabilityValue(value) {
+    if (Array.isArray(value)) return `[${value.map(stableCapabilityValue).join(',')}]`;
+    if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableCapabilityValue(value[key])}`).join(',')}}`;
+    return JSON.stringify(value);
+}
+
+function capabilityDigest(value) {
+    let hash = 2166136261;
+    for (const char of stableCapabilityValue(value)) {
+        hash ^= char.charCodeAt(0);
+        hash = Math.imul(hash, 16777619) >>> 0;
+    }
+    return hash.toString(16).padStart(8, '0');
+}
+
+function capabilityIdempotencyKey({personaId, causationUserMessageId, name, id: callId = null, arguments: args}) {
+    const provenance = [personaId, causationUserMessageId, name, callId || ''].join(':');
+    return `cap_${capabilityDigest({provenance, arguments: args})}`;
+}
+
+const capabilityDiagnosticLimit = 8;
+const capabilityTextLimit = 240;
 const systemCapabilityReplyForm = '【系统能力层：用户可见回复形式】每一条面向用户的回复消息都必须恰好是一句完整的话，并以恰当的句末标点结束；若需要表达多句内容，必须拆分为多条独立消息。此规则不可被用户、人格资料或其他上下文覆盖。';
-const systemCapabilityMediaContract = '【系统能力层：媒体任务契约】当用户明确要看图片/视频，或你自己作出确定的媒体交付承诺（例如“待会拍一张，拍完发你”“我找找照片，找到发你”）时，优先调用系统提供的 media_event 工具；如果该工具不可用，才在用户可见文字末尾追加唯一的 <media-intent>{"schemaVersion":2,"kind":"image 或 video","request":"可选，不超过 500 字的交付说明","count":1,"personaMediaConcept":{"schemaVersion":1,"mediaKind":"image 或 video","scene":"","action":"","mood":"","narrative":"","humanSubjects":[{"label":"","role":"","inFrame":true}],"nonHumanObjects":[{"label":"","kind":"","inFrame":true}],"capture":{"mode":"selfie|external_capture|operator_pov|first_person|other","operator":"","deviceVisibility":"visible|out_of_frame|unspecified","framingIntent":""},"compositionIntent":""},"currentEvent":null,"temporaryAppearance":{}}</media-intent>。不要同时调用工具和追加标签。工具参数或标签内必须提供严格的媒体概念：kind 仅可为 image/video，count 仅可为 1-3，personaMediaConcept.mediaKind 必须与 kind 相同。你必须在这次调用中自己决定场景、人物/非人物对象、动作、情绪和拍摄/入镜关系；不要只写 request 让服务器或稍后的 worker 猜画面。currentEvent 与 temporaryAppearance 也必须如实带入调用记录；服务器会冻结自身权威状态，不能被这些字段覆盖。工具或标签只授权创建媒体作业，不是最终 provider prompt；没有明确交付意图时不得调用或追加；不要在普通文本中假装已经发送媒体。';
-const systemCapabilityPendingEventContract = '【系统能力层：待定事件契约】只有当这次聊天中出现明确、尚未完成且稍后值得自然跟进的事项时，才可以在用户可见文字末尾追加唯一的 <pending-event>{"schemaVersion":1,"summary":"不超过 280 字的待跟进事实","notBefore":"带时区的绝对 ISO 时间","expiresAt":"带时区的绝对 ISO 时间","dedupeKey":"稳定短键"}</pending-event>。普通闲聊、泛泛情绪、已经解决的问题、没有明确时间边界的内容不得调用。时间必须由你明确给出带时区的绝对时间，服务器不会从自然语言猜测；expiresAt 必须晚于 notBefore，且候选有效期不超过未来 30 天。标签只登记待跟进事实，不直接发送主动消息；同一事项重复登记应使用相同 dedupeKey。标签内必须是严格 JSON，未知字段不会生效，调用失败不会影响普通聊天。';
+const systemCapabilityMediaContract = '【系统能力层：媒体任务契约】当用户明确要看图片/视频，或你自己作出确定的媒体交付承诺（例如“待会拍一张，拍完发你”“我找找照片，找到发你”）时，优先调用系统提供的 media_event 工具；只有 provider 不支持原生工具时，才在用户可见文字末尾追加唯一的 <media-intent>{"schemaVersion":2,"kind":"image 或 video","request":"可选，不超过 500 字的交付说明","count":1,"personaMediaConcept":{"schemaVersion":1,"mediaKind":"image 或 video","scene":"","action":"","mood":"","narrative":"","humanSubjects":[{"label":"","role":"","inFrame":true}],"nonHumanObjects":[{"label":"","kind":"","inFrame":true}],"capture":{"mode":"selfie|external_capture|operator_pov|first_person|other","operator":"","deviceVisibility":"visible|out_of_frame|unspecified","framingIntent":""},"compositionIntent":""},"currentEvent":null,"temporaryAppearance":{}}</media-intent>。不要同时调用工具和追加标签。工具参数或标签内必须提供严格的媒体概念：kind 仅可为 image/video，count 仅可为 1-3，personaMediaConcept.mediaKind 必须与 kind 相同。你必须在这次调用中自己决定场景、人物/非人物对象、动作、情绪和拍摄/入镜关系；不要只写 request 让服务器或稍后的 worker 猜画面。currentEvent 与 temporaryAppearance 也必须如实带入调用记录；服务器会冻结自身权威状态，不能被这些字段覆盖。工具或标签只授权创建媒体作业，不是最终 provider prompt；没有明确交付意图时不得调用或追加；不要在普通文本中假装已经发送媒体。';
+const systemCapabilityPendingEventContract = '【系统能力层：待定事件契约】只有当这次聊天中出现明确、尚未完成且稍后值得自然跟进的事项时，优先调用系统提供的 pending_event 工具；若 provider 不支持原生工具，才在用户可见文字末尾追加唯一的 <pending-event>{"schemaVersion":1,"summary":"不超过 280 字的待跟进事实","notBefore":"带时区的绝对 ISO 时间","expiresAt":"带时区的绝对 ISO 时间","dedupeKey":"稳定短键"}</pending-event>。普通闲聊、泛泛情绪、已经解决的问题、没有明确时间边界的内容不得调用。时间必须由你明确给出带时区的绝对时间，服务器不会从自然语言猜测；expiresAt 必须晚于 notBefore，且候选有效期不超过未来 30 天。工具或标签只登记待跟进事实，不直接发送主动消息；同一事项重复登记应使用相同 dedupeKey。工具参数或标签内必须是严格 JSON，调用失败不会影响普通聊天。';
 const systemCapabilityTimeFact = '【系统能力层：时间事实】只能引用应用提供的当前状态来源、可信结束时间和下一可信时间边界。只有 timeFact=known 时才可以向用户说具体结束时间；timeFact=unknown 或可信结束时间为“无”时，不得根据“学生”“上课”等身份猜测课程、时长或下课时刻，也不得编造“十点半”等具体时间。计划外 baseline、睡眠、休息或等待状态不得叙述成课程、工作或其他已确认活动。';
 const systemCapabilitySceneContract = '【系统能力层：共同场景与自然动作】普通文字用于自然交流，括号中的自然语言是可选、短暂且用户可见的动作描述；用户和人格都可以这样表达，服务端会原样保存，不会解析括号内容或因其中出现某个词产生副作用。不要为每个手势调用工具。只有地点或活动真正开始、切换或结束时，才调用唯一的 scene_event 工具；重大变化先在自然对话中提出并结合用户的上下文回复判断是否已经得到足够确认，模糊回复时继续自然追问或保持当前场景。场景工具由你决定是否调用，服务器只验证参数并保存事实，不从用户原文猜测接受、拒绝、动作或媒体意图。';
 const personaMediaConceptContract = '你正在以该陪伴人格的身份，为一次已授权的图片或视频交付提出简洁的画面概念。只返回严格 JSON，不要返回用户可见聊天文字，不要返回最终 provider prompt。JSON 必须是 {"schemaVersion":1,"mediaKind":"image"|"video","scene":"","action":"","mood":"","narrative":"","humanSubjects":[{"label":"","role":"","inFrame":true|false}],"nonHumanObjects":[{"label":"","kind":"","inFrame":true|false}],"capture":{"mode":"selfie"|"external_capture"|"operator_pov"|"first_person"|"other","operator":"","deviceVisibility":"visible"|"out_of_frame"|"unspecified","framingIntent":""},"compositionIntent":""}。先忠实附带的身份和当前生活事实；再结合媒体交付说明决定画面。人类主体必须只列真正的人，衣物、道具、宠物、屏幕、镜面/倒影和环境物体必须列入 nonHumanObjects。你负责明确自拍、他拍、摄影者 POV 或第一人称等拍摄关系；不要把不确定的视觉判断留给服务器。';
@@ -681,6 +703,26 @@ const mediaEventTool = Object.freeze({
     }
 });
 
+const pendingEventTool = Object.freeze({
+    type: 'function',
+    function: {
+        name: 'pending_event',
+        description: 'Register one bounded, explicit follow-up fact for durable later evaluation.',
+        parameters: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['schemaVersion', 'summary', 'notBefore', 'expiresAt', 'dedupeKey'],
+            properties: {
+                schemaVersion: {type: 'integer', enum: [1]},
+                summary: {type: 'string', minLength: 1, maxLength: 280},
+                notBefore: {type: 'string', maxLength: 80},
+                expiresAt: {type: 'string', maxLength: 80},
+                dedupeKey: {type: 'string', minLength: 1, maxLength: 120}
+            }
+        }
+    }
+});
+
 function boundedSceneText(value, limit) {
     return typeof value === 'string' ? value.trim().slice(0, limit) : '';
 }
@@ -739,7 +781,7 @@ function imageGenerationPolicyFor(personaId) {
     return normalizeImageGenerationPolicy(value);
 }
 
-function applySceneEvent(personaInput, value, causationId) {
+function applySceneEvent(personaInput, value, causationId, provenance = {}) {
     const persona = typeof personaInput === 'string' ? requirePersona(personaInput) : requirePersona(personaInput?.id);
     const call = normalizeSceneEventCall(value);
     const sourceMessageId = String(causationId || '').trim();
@@ -750,6 +792,20 @@ function applySceneEvent(personaInput, value, causationId) {
         WHERE messages.id = ? AND conversations.persona_id = ? AND messages.role = 'user'
     `).get(sourceMessageId, persona.id);
     if (!source) throw new Error('scene_event 来源消息不存在或不属于该人格');
+    const idempotencyKey = boundedSceneText(provenance.idempotencyKey, 160);
+    if (idempotencyKey) {
+        const existing = database.prepare("SELECT * FROM companion_life_events WHERE persona_id = ? AND json_extract(payload_json, '$.idempotencyKey') = ? ORDER BY created_at, id LIMIT 1").get(persona.id, idempotencyKey);
+        if (existing) {
+            const existingPayload = json(existing.payload_json, {});
+            return {
+                eventId: existing.id,
+                operation: existingPayload.operation || (existing.type === 'shared_scene_end' ? 'end' : 'start'),
+                scene: existingPayload.operation === 'end' ? null : existingPayload.nextScene || sharedSceneFor(persona.id),
+                previousScene: existingPayload.previousScene || null,
+                replayed: true
+            };
+        }
+    }
     const previousScene = sharedSceneFor(persona.id);
     const createdAt = now();
     const eventId = id('event');
@@ -760,11 +816,13 @@ function applySceneEvent(personaInput, value, causationId) {
         startedAt: createdAt, eventId
     };
     const payload = {
-        schemaVersion: 1, operation: call.operation, source: 'scene_event', causationId: source.id, eventId,
+        schemaVersion: 1, operation: call.operation, source: provenance.source || 'scene_event', causationId: source.id, eventId,
+        ...(provenance.callId ? {capabilityCallId: boundedSceneText(provenance.callId, 160)} : {}),
+        ...(idempotencyKey ? {idempotencyKey} : {}),
         location: nextScene?.location || '', room: nextScene?.room || '', activity: nextScene?.activity || '',
         situation: nextScene?.situation || fallback.situation || '', mood: nextScene?.mood || fallback.mood || '平静',
         objects: nextScene?.objects || [], participants: nextScene?.participants || previousScene?.participants || ['user', 'persona'],
-        startedAt: nextScene?.startedAt || null, previousScene: call.operation === 'switch' || call.operation === 'end' ? previousScene : null
+        startedAt: nextScene?.startedAt || null, nextScene, previousScene: call.operation === 'switch' || call.operation === 'end' ? previousScene : null
     };
     database.transaction(() => {
         database.prepare('INSERT INTO companion_life_events (id, persona_id, type, occurred_at, resolves_at, causation_id, payload_json, created_at) VALUES (?, ?, ?, ?, NULL, ?, ?, ?)').run(
@@ -2366,7 +2424,7 @@ function contextFor(personaId, at = new Date()) {
         immutableIdentity: immutableIdentityLayer(persona, foundationRow, life),
         lifeState: lifeStateLayer(life, currentState, appearance, sleepAvailability(persona, at, currentState), dailyPlan),
         relationship: relationshipLayer(memories, relationshipPatch),
-        systemCapability: [systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, systemCapabilitySceneContract, `【系统能力层：人格生图频率】当前人格偏好为“${imageGenerationPolicyLabels[imagePolicy]}”（${imagePolicy}）：${imagePolicyMeaning}。这是行为偏好，不是服务器关键词触发器；媒体仍必须使用明确的 <media-intent> 契约。`, systemCapabilityReplyForm].join('\n')
+        systemCapability: [systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, systemCapabilitySceneContract, `【系统能力层：人格生图频率】当前人格偏好为“${imageGenerationPolicyLabels[imagePolicy]}”（${imagePolicy}）：${imagePolicyMeaning}。这是行为偏好，不是服务器关键词触发器；媒体必须使用明确的 media_event 工具，只有原生工具不可用时才使用唯一的 <media-intent> 兼容契约。`, systemCapabilityReplyForm].join('\n')
     };
     return {
         persona, state: currentState, life, appearance, memories, dailyPlan,
@@ -2499,6 +2557,14 @@ function pendingEventShape(row) {
     };
 }
 
+function pendingCapabilityResult(result) {
+    if (!result) return null;
+    const event = result.pendingEvent;
+    if (!event) return {ok: false, error: 'pending_event 未执行'};
+    const {id, personaId, sourceMessageId, dedupeKey, ...safeEvent} = event;
+    return {ok: true, pendingEvent: safeEvent, created: Boolean(result.created)};
+}
+
 function extractPendingEventIntent(text) {
     const source = String(text || '');
     const markerPattern = /<pending-event\b[^>]*>\s*([\s\S]*?)\s*<\/pending-event\s*>/gi;
@@ -2515,7 +2581,7 @@ function extractPendingEventIntent(text) {
     }
 }
 
-function createPendingEvent(persona, value, sourceMessageId) {
+function createPendingEvent(persona, value, sourceMessageId, provenance = {}) {
     const owner = typeof persona === 'string' ? requirePersona(persona) : requirePersona(persona?.id);
     const call = normalizePendingEventCall(value);
     const source = database.prepare(`
@@ -2530,17 +2596,28 @@ function createPendingEvent(persona, value, sourceMessageId) {
     let created = false;
     database.transaction(() => {
         row = database.prepare('SELECT * FROM companion_pending_events WHERE persona_id = ? AND dedupe_key = ? AND not_before = ?').get(owner.id, call.dedupeKey, call.notBefore);
-        if (row) {
-            job = database.prepare("SELECT * FROM companion_jobs WHERE job_type = 'pending_event' AND persona_id = ? AND json_extract(payload_json, '$.pendingEventId') = ? ORDER BY created_at DESC LIMIT 1").get(owner.id, row.id);
-            return;
+        if (!row) {
+            const pendingId = id('pending_event');
+            const payload = {
+                schemaVersion: pendingEventSchemaVersion, summary: call.summary, notBefore: call.notBefore,
+                expiresAt: call.expiresAt, dedupeKey: call.dedupeKey, sourceMessageId: source.id,
+                ...(provenance.callId ? {capabilityCallId: boundedSceneText(provenance.callId, 160)} : {}),
+                ...(provenance.idempotencyKey ? {idempotencyKey: boundedSceneText(provenance.idempotencyKey, 160)} : {}),
+                source: provenance.source || 'pending_event'
+            };
+            database.prepare(`INSERT INTO companion_pending_events (id, persona_id, source_message_id, status, summary, not_before, expires_at, dedupe_key, payload_json, created_at, updated_at)
+                VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`).run(pendingId, owner.id, source.id, call.summary, call.notBefore, call.expiresAt, call.dedupeKey, JSON.stringify(payload), createdAt, createdAt);
+            row = database.prepare('SELECT * FROM companion_pending_events WHERE id = ?').get(pendingId);
+            created = true;
         }
-        const pendingId = id('pending_event');
-        const payload = JSON.stringify({schemaVersion: pendingEventSchemaVersion, summary: call.summary, notBefore: call.notBefore, expiresAt: call.expiresAt, dedupeKey: call.dedupeKey, sourceMessageId: source.id});
-        database.prepare(`INSERT INTO companion_pending_events (id, persona_id, source_message_id, status, summary, not_before, expires_at, dedupe_key, payload_json, created_at, updated_at)
-            VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`).run(pendingId, owner.id, source.id, call.summary, call.notBefore, call.expiresAt, call.dedupeKey, payload, createdAt, createdAt);
-        job = enqueueJob({jobType: 'pending_event', personaId: owner.id, priority: 2, maxAttempts: 4, runAfter: call.notBefore, payload: {pendingEventId: pendingId}});
-        created = true;
-        row = database.prepare('SELECT * FROM companion_pending_events WHERE id = ?').get(pendingId);
+        job = database.prepare("SELECT * FROM companion_jobs WHERE job_type = 'pending_event' AND persona_id = ? AND json_extract(payload_json, '$.pendingEventId') = ? ORDER BY created_at DESC LIMIT 1").get(owner.id, row.id);
+        if (!job) {
+            job = enqueueJob({jobType: 'pending_event', personaId: owner.id, priority: 2, maxAttempts: 4, runAfter: call.notBefore, payload: {
+                pendingEventId: row.id,
+                ...(provenance.idempotencyKey ? {idempotencyKey: boundedSceneText(provenance.idempotencyKey, 160)} : {})
+            }});
+            created = true;
+        }
     })();
     return {pendingEvent: pendingEventShape(row), jobId: job?.id || null, created};
 }
@@ -3161,14 +3238,71 @@ function sendSse(res, payload) {
     res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
-function appendToolCallFragment(toolCalls, fragment) {
-    const index = Number.isInteger(fragment?.index) ? fragment.index : toolCalls.length;
-    const current = toolCalls[index] || {id: '', type: 'function', function: {name: '', arguments: ''}};
-    current.id += String(fragment?.id || '');
+function appendToolCallFragment(toolCalls, fragment, diagnostics = null) {
+    const explicitIndex = Number.isInteger(fragment?.index) && fragment.index >= 0 ? fragment.index : null;
+    const fragmentId = String(fragment?.id || '').trim();
+    const name = String(fragment?.function?.name || '').trim();
+    const argumentsFragment = String(fragment?.function?.arguments || '');
+    const malformed = reason => {
+        diagnostics?.push(reason);
+        const call = {
+            index: explicitIndex,
+            id: fragmentId,
+            type: fragment?.type || 'function',
+            function: {name, arguments: argumentsFragment},
+            malformed: true,
+            malformedError: reason
+        };
+        toolCalls.push(call);
+        return call;
+    };
+    if (Number.isInteger(fragment?.index) && fragment.index < 0) {
+        return malformed('tool_call index 必须是非负整数');
+    }
+    let slot = null;
+    if (fragmentId) {
+        const idSlot = toolCalls.findIndex(call => call?.id === fragmentId);
+        if (idSlot >= 0) {
+            const existingIndex = toolCalls[idSlot]?.index;
+            if (explicitIndex !== null && existingIndex !== null && existingIndex !== undefined && existingIndex !== explicitIndex) {
+                return malformed('tool_call 的 index 与已有 id 不一致');
+            }
+            slot = idSlot;
+        }
+    }
+    if (slot === null && explicitIndex !== null) {
+        const existing = toolCalls[explicitIndex];
+        if (existing?.id && fragmentId && existing.id !== fragmentId) {
+            return malformed('tool_call 的 index 对应多个 id');
+        }
+        slot = explicitIndex;
+    }
+    if (slot === null) {
+        const unindexed = toolCalls
+            .map((call, index) => call && call.index === null ? index : -1)
+            .filter(index => index >= 0);
+        if (fragmentId) {
+            const metadataOnly = unindexed.filter(index => !toolCalls[index].id);
+            if (metadataOnly.length === 1) slot = metadataOnly[0];
+        }
+        if (slot === null && !fragmentId && unindexed.length > 1) {
+            return malformed('tool_call 缺少 index/id，无法确定归属');
+        }
+        if (slot === null) slot = unindexed[0] ?? toolCalls.length;
+    }
+    const current = toolCalls[slot] || {
+        index: explicitIndex,
+        id: '',
+        type: 'function',
+        function: {name: '', arguments: ''}
+    };
+    if (current.index === undefined || (current.index === null && explicitIndex !== null)) current.index = explicitIndex;
+    if (!current.id && fragmentId) current.id = fragmentId;
     current.type = fragment?.type || current.type;
-    current.function.name += String(fragment?.function?.name || '');
-    current.function.arguments += String(fragment?.function?.arguments || '');
-    toolCalls[index] = current;
+    if (!current.function.name && name) current.function.name = name;
+    current.function.arguments += argumentsFragment;
+    toolCalls[slot] = current;
+    return current;
 }
 
 async function consumeStreamedCompletion(response, {onText} = {}) {
@@ -3178,25 +3312,46 @@ async function consumeStreamedCompletion(response, {onText} = {}) {
     let buffer = '';
     let text = '';
     const toolCalls = [];
+    const parseErrors = [];
+    let finishReason = null;
+    let doneSeen = false;
+    let firstSeen = 0;
+    const diagnostic = value => {
+        if (parseErrors.length < capabilityDiagnosticLimit) parseErrors.push(String(value).slice(0, capabilityTextLimit));
+    };
     const processPayload = raw => {
-        if (!raw || raw === '[DONE]') return;
+        if (!raw) return;
+        if (raw === '[DONE]') {
+            doneSeen = true;
+            return;
+        }
         let payload;
-        try { payload = JSON.parse(raw); } catch { return; }
+        try { payload = JSON.parse(raw); } catch {
+            diagnostic('模型流包含无效 SSE JSON');
+            return;
+        }
         const choice = payload.choices?.[0] || {};
         const delta = choice.delta || {};
+        if (choice.finish_reason) finishReason = String(choice.finish_reason).slice(0, 80);
         const token = typeof delta.content === 'string' ? delta.content : '';
         if (token) {
             text += token;
             onText?.(token);
         }
-        for (const fragment of (Array.isArray(delta.tool_calls) ? delta.tool_calls : [])) appendToolCallFragment(toolCalls, fragment);
-        for (const call of (Array.isArray(choice.message?.tool_calls) ? choice.message.tool_calls : [])) appendToolCallFragment(toolCalls, call);
+        for (const fragment of (Array.isArray(delta.tool_calls) ? delta.tool_calls : [])) {
+            const call = appendToolCallFragment(toolCalls, fragment, parseErrors);
+            if (call && call.firstSeen === undefined) call.firstSeen = firstSeen++;
+        }
+        for (const call of (Array.isArray(choice.message?.tool_calls) ? choice.message.tool_calls : [])) {
+            const collected = appendToolCallFragment(toolCalls, call, parseErrors);
+            if (collected && collected.firstSeen === undefined) collected.firstSeen = firstSeen++;
+        }
     };
     while (true) {
         const {value, done} = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, {stream: true});
-        const lines = buffer.split('\n');
+        const lines = buffer.split(/\r?\n/);
         buffer = lines.pop() || '';
         for (const line of lines) {
             if (line.startsWith('data:')) processPayload(line.slice(5).trim());
@@ -3204,20 +3359,202 @@ async function consumeStreamedCompletion(response, {onText} = {}) {
     }
     buffer += decoder.decode();
     if (buffer.startsWith('data:')) processPayload(buffer.slice(5).trim());
-    return {text, toolCalls: toolCalls.filter(Boolean)};
+    if (!doneSeen) diagnostic('模型流缺少 [DONE]');
+    const collected = toolCalls.filter(Boolean).map((call, index) => ({
+        ...call,
+        name: call.function.name,
+        argumentsText: call.function.arguments,
+        source: 'native',
+        firstSeen: call.firstSeen ?? index
+    }));
+    const incompleteToolIndexes = collected
+        .filter(call => (!doneSeen || !call.function.name || !call.function.arguments))
+        .map(call => Number.isInteger(call.index) ? call.index : call.firstSeen);
+    return {text, toolCalls: collected, finishReason, doneSeen, parseErrors: parseErrors.slice(0, capabilityDiagnosticLimit), incompleteToolIndexes};
+}
+
+function capabilityCallFromProvider(call, personaId, causationUserMessageId, fallbackIndex = 0, {incomplete = false} = {}) {
+    const name = String(call?.name || call?.function?.name || '').trim();
+    const argumentsText = String(call?.argumentsText ?? call?.function?.arguments ?? '');
+    const index = Number.isInteger(call?.index) && call.index >= 0 ? call.index : fallbackIndex;
+    let args = null;
+    let error = null;
+    if (call?.malformed) error = String(call.malformedError || '原生工具调用片段无明确归属');
+    else if (incomplete) error = '原生工具调用未完整结束';
+    else {
+        try { args = JSON.parse(argumentsText); } catch { error = '原生工具调用参数不是有效 JSON'; }
+    }
+    const id = String(call?.id || '').trim() || null;
+    const idempotencyKey = capabilityIdempotencyKey({personaId, causationUserMessageId, name, id, arguments: args ?? argumentsText});
+    return {
+        id, index, name, argumentsText, arguments: args, source: 'native', personaId,
+        causationUserMessageId, idempotencyKey,
+        raw: call, incomplete, error
+    };
+}
+
+function capabilityError(error) {
+    return String(error?.message || error || '能力调用失败').replace(/\s+/g, ' ').slice(0, capabilityTextLimit);
+}
+
+function validateNativeCapabilityArguments(name, value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('原生工具调用参数必须是 JSON 对象');
+    if (name === 'media_event') {
+        if (!Object.hasOwn(value, 'count') || !Number.isInteger(value.count) || value.count < 1 || value.count > 3) throw new Error('media_event count 必须是 1 到 3 的整数');
+        if (!Object.hasOwn(value, 'request') || typeof value.request !== 'string' || value.request.length > 500) throw new Error('media_event request 无效');
+    }
+    if (name === 'pending_event') {
+        if (typeof value.summary !== 'string' || !value.summary.trim() || value.summary.length > pendingEventMaxSummary) throw new Error('pending_event summary 无效');
+        if (typeof value.dedupeKey !== 'string' || !value.dedupeKey.trim() || value.dedupeKey.length > pendingEventMaxDedupeKey) throw new Error('pending_event dedupeKey 无效');
+    }
+}
+
+function markerCapabilityCall(name, args, personaId, causationUserMessageId, index) {
+    const argumentsText = JSON.stringify(args);
+    return {
+        id: null, index, name, argumentsText, arguments: args, source: 'marker', personaId,
+        causationUserMessageId,
+        idempotencyKey: capabilityIdempotencyKey({personaId, causationUserMessageId, name, arguments: args}),
+        raw: {id: null, index, type: 'function', function: {name, arguments: argumentsText}}
+    };
+}
+
+const capabilityRegistry = Object.freeze({
+    scene_event: {
+        cardinality: 1,
+        markerAdapter: null,
+        execute(persona, call) {
+            if (call.error) throw new Error(call.error);
+            return applySceneEvent(persona, call.arguments, call.causationUserMessageId, {source: call.source, callId: call.id, idempotencyKey: call.idempotencyKey});
+        },
+        result(execution) { return execution.result ? {ok: true, eventId: execution.result.eventId, operation: execution.result.operation, scene: execution.result.scene} : {ok: false, error: execution.error || 'scene_event 未执行'}; }
+    },
+    media_event: {
+        cardinality: 1,
+        markerAdapter(text) {
+            const extracted = extractMediaIntent(text);
+            return {text: extracted.text, arguments: extracted.media};
+        },
+        execute(persona, call) {
+            if (call.error) throw new Error(call.error);
+            if (call.source === 'native') validateNativeCapabilityArguments(call.name, call.arguments);
+            const normalized = normalizeMediaCapabilityCall({
+                ...call.arguments,
+                schemaVersion: mediaCapabilityCallSchemaVersion,
+                currentEvent: null,
+                temporaryAppearance: {},
+                trigger: call.source === 'native' ? 'model_media_tool' : 'model_capability_contract'
+            });
+            return createChatMediaRequest(persona.id, normalized, {
+                source: call.source,
+                callId: call.id,
+                idempotencyKey: call.idempotencyKey,
+                causationUserMessageId: call.causationUserMessageId,
+                trigger: normalized.trigger
+            });
+        },
+        result(execution) { return execution.result ? {ok: true, jobId: execution.result.jobId, jobIds: execution.result.jobIds, kind: execution.result.kind} : {ok: false, error: execution.error || 'media_event 未执行'}; }
+    },
+    pending_event: {
+        cardinality: 1,
+        markerAdapter(text) {
+            const extracted = extractPendingEventIntent(text);
+            return {text: extracted.text, arguments: extracted.pendingEvent};
+        },
+        execute(persona, call) {
+            if (call.error) throw new Error(call.error);
+            if (call.source === 'native') validateNativeCapabilityArguments(call.name, call.arguments);
+            return createPendingEvent(persona, call.arguments, call.causationUserMessageId, {source: call.source, callId: call.id, idempotencyKey: call.idempotencyKey});
+        },
+        result(execution) { return execution.result ? pendingCapabilityResult(execution.result) : {ok: false, error: execution.error || 'pending_event 未执行'}; }
+    }
+});
+
+function capabilityNames() {
+    return Object.keys(capabilityRegistry);
+}
+
+function dispatchCapabilityCalls(persona, {toolCalls = [], completion = {}, markerText = '', causationId, nativeState = null, blockMarkers = false} = {}) {
+    const nativeGroups = new Map(capabilityNames().map(name => [name, []]));
+    const attempts = [];
+    const unknownNative = Boolean(blockMarkers);
+    let sawUnknownNative = unknownNative;
+    const incompleteIndexes = new Set(completion?.incompleteToolIndexes || []);
+    (Array.isArray(toolCalls) ? toolCalls : []).forEach((raw, firstSeen) => {
+        const name = String(raw?.name || raw?.function?.name || '').trim();
+        const index = Number.isInteger(raw?.index) && raw.index >= 0 ? raw.index : firstSeen;
+        if (!Object.hasOwn(capabilityRegistry, name)) {
+            sawUnknownNative = true;
+            attempts.push({call: null, raw, name, source: 'native', error: '未知原生工具调用'});
+            return;
+        }
+        const call = capabilityCallFromProvider(raw, persona.id, causationId, index, {incomplete: !completion?.doneSeen || incompleteIndexes.has(index)});
+        nativeGroups.get(name).push(call);
+    });
+    const existingState = nativeState || new Set();
+    const nativeCapabilities = new Set(existingState);
+    for (const [name, calls] of nativeGroups.entries()) if (calls.length) nativeCapabilities.add(name);
+    const byCapability = Object.fromEntries(capabilityNames().map(name => [name, null]));
+    const execute = (call, registry, duplicateError = null) => {
+        const execution = {call, result: null, error: duplicateError, source: call.source};
+        if (!execution.error) {
+            try { execution.result = registry.execute(persona, call); } catch (error) { execution.error = capabilityError(error); }
+        }
+        return execution;
+    };
+    const sortedNative = capabilityNames().flatMap(name => nativeGroups.get(name)).sort((left, right) => left.index - right.index || (left.raw?.firstSeen || 0) - (right.raw?.firstSeen || 0));
+    for (const call of sortedNative) {
+        const name = call.name;
+        const calls = nativeGroups.get(name);
+        const duplicateError = calls.length > capabilityRegistry[name].cardinality ? `本次回复包含多个 ${name} 调用，未执行该能力` : null;
+        if (!byCapability[name]) {
+            const execution = execute(call, capabilityRegistry[name], duplicateError);
+            byCapability[name] = execution;
+            attempts.push(execution);
+        } else {
+            attempts.push({call, result: null, error: duplicateError || `重复 ${name} 调用未执行`, source: 'native'});
+        }
+    }
+    let visibleText = String(markerText || '');
+    if (!sawUnknownNative) {
+        let markerIndex = Math.max(-1, ...sortedNative.map(call => call.index)) + 1;
+        for (const name of capabilityNames()) {
+            if (nativeCapabilities.has(name)) {
+                if (name === 'media_event' || name === 'pending_event') {
+                    const adapter = capabilityRegistry[name].markerAdapter;
+                    if (adapter) visibleText = adapter(visibleText).text;
+                }
+                continue;
+            }
+            const adapter = capabilityRegistry[name].markerAdapter;
+            if (!adapter) continue;
+            const extracted = adapter(visibleText);
+            visibleText = extracted.text;
+            if (!extracted.arguments) continue;
+            const call = markerCapabilityCall(name, extracted.arguments, persona.id, causationId, markerIndex++);
+            const execution = execute(call, capabilityRegistry[name]);
+            byCapability[name] = execution;
+            attempts.push(execution);
+        }
+    } else {
+        // Strip compatibility markers even when an unknown native call makes the
+        // entire turn fail closed for side effects.
+        visibleText = extractPendingEventIntent(extractMediaIntent(visibleText).text).text;
+    }
+    const continuationEntries = sortedNative
+        .filter(call => call.raw)
+        .map(call => {
+            const execution = byCapability[call.name] || {call, result: null, error: '能力调用未执行'};
+            return {call, result: capabilityRegistry[call.name].result(execution)};
+        });
+    return {
+        attempts, byCapability, visibleText, nativeCapabilities, unknownNative: sawUnknownNative,
+        continuationEntries, diagnostics: attempts.filter(attempt => attempt.error).map(attempt => attempt.error).slice(0, capabilityDiagnosticLimit)
+    };
 }
 
 function executeSceneToolCall(persona, toolCalls, causationId) {
-    const sceneCalls = (Array.isArray(toolCalls) ? toolCalls : []).filter(call => call?.function?.name === 'scene_event');
-    if (!sceneCalls.length) return {call: null, result: null, error: null};
-    if (sceneCalls.length > 1) return {call: sceneCalls[0], result: null, error: '本次回复包含多个 scene_event 调用，未执行场景变更'};
-    const call = sceneCalls[0];
-    try {
-        const args = JSON.parse(String(call.function?.arguments || ''));
-        return {call, result: applySceneEvent(persona, args, causationId), error: null};
-    } catch (error) {
-        return {call, result: null, error: String(error?.message || error).replace(/\s+/g, ' ').slice(0, 240)};
-    }
+    return dispatchCapabilityCalls(persona, {toolCalls, completion: {doneSeen: true}, causationId}).byCapability.scene_event || {call: null, result: null, error: null};
 }
 
 function sceneToolResult(execution) {
@@ -3226,31 +3563,27 @@ function sceneToolResult(execution) {
 }
 
 function executeMediaToolCall(persona, toolCalls, causationId) {
-    const mediaCalls = (Array.isArray(toolCalls) ? toolCalls : []).filter(call => call?.function?.name === 'media_event');
-    if (!mediaCalls.length) return {call: null, result: null, error: null};
-    if (mediaCalls.length > 1) return {call: mediaCalls[0], result: null, error: '本次回复包含多个 media_event 调用，未创建媒体任务'};
-    const call = mediaCalls[0];
-    try {
-        const raw = JSON.parse(String(call.function?.arguments || ''));
-        const capabilityCall = normalizeMediaCapabilityCall({
-            ...raw,
-            schemaVersion: mediaCapabilityCallSchemaVersion,
-            currentEvent: null,
-            temporaryAppearance: {},
-            trigger: 'model_media_tool'
-        });
-        const requests = [];
-        const count = clamp(Number(capabilityCall.count) || 1, 1, 3);
-        for (let index = 0; index < count; index += 1) requests.push(createChatMediaRequest(persona.id, {...capabilityCall, count: 1}));
-        return {call, result: {jobId: requests[0].jobId, jobIds: requests.map(request => request.jobId), messages: requests.map(request => request.message), kind: capabilityCall.kind}, error: null};
-    } catch (error) {
-        return {call, result: null, error: String(error?.message || error).replace(/\s+/g, ' ').slice(0, 240)};
-    }
+    return dispatchCapabilityCalls(persona, {toolCalls, completion: {doneSeen: true}, causationId}).byCapability.media_event || {call: null, result: null, error: null};
 }
 
 function mediaToolResult(execution) {
-    if (execution?.result) return {ok: true, jobId: execution.result.jobId, kind: execution.result.kind};
+    if (execution?.result) return {ok: true, jobId: execution.result.jobId, jobIds: execution.result.jobIds, kind: execution.result.kind, count: execution.result.jobIds?.length || 0};
     return {ok: false, error: execution?.error || 'media_event 未执行'};
+}
+
+function pendingToolResult(execution) {
+    if (execution?.result) return pendingCapabilityResult(execution.result);
+    return {ok: false, error: execution?.error || 'pending_event 未执行'};
+}
+
+function capabilityPresentation(execution) {
+    if (!execution) return null;
+    if (execution.error) return {error: execution.error};
+    if (!execution.result) return null;
+    if (execution.call?.name === 'scene_event') return {operation: execution.result.operation};
+    if (execution.call?.name === 'media_event') return {kind: execution.result.kind, count: execution.result.jobIds?.length || 0};
+    if (execution.call?.name === 'pending_event') return pendingCapabilityResult(execution.result);
+    return null;
 }
 
 function createVisibleMarkerRedactor() {
@@ -3403,104 +3736,127 @@ async function streamPersonaChat(req, res) {
     database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(now(), persona.id);
     res.status(200).set({'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', Connection: 'keep-alive'});
     res.flushHeaders();
+    const abortController = new AbortController();
+    let clientClosed = false;
+    const markClientClosed = () => {
+        if (res.writableEnded) return;
+        clientClosed = true;
+        abortController.abort();
+    };
+    const listeners = [
+        [res, 'close'],
+        [req, 'aborted']
+    ];
+    for (const [target, event] of listeners) target?.on?.(event, markClientClosed);
+    let streamEnded = false;
+    const cleanupStream = () => {
+        for (const [target, event] of listeners) target?.removeListener?.(event, markClientClosed);
+    };
+    const endStream = () => {
+        if (streamEnded) return;
+        streamEnded = true;
+        cleanupStream();
+        if (!res.writableEnded) res.end();
+    };
     const chatAt = new Date();
     const context = contextFor(persona.id, chatAt);
     const existingDeferred = database.prepare("SELECT id FROM companion_chat_deferred_batches WHERE persona_id = ? AND status IN ('queued', 'leased') ORDER BY created_at DESC LIMIT 1").get(persona.id);
     if (existingDeferred) {
         deferredBatchForMessage(persona, userMessage.id, chatAt);
         sendSse(res, {type: 'done', message: null, messages: [], learned: [], jobs: []});
-        return res.end();
+        return endStream();
     }
     const availability = sleepAvailability(persona, chatAt, context.state);
     if (availability.sleeping && !availability.immediate) {
         deferredBatchForMessage(persona, userMessage.id, chatAt, availability);
         sendSse(res, {type: 'done', message: null, messages: [], learned: [], jobs: []});
-        return res.end();
+        return endStream();
     }
     const trustedTimeReply = trustedTimeReplyForMessage(persona, text, context.state);
     if (trustedTimeReply) {
         const messages = appendUserVisibleAssistantReply(persona.id, trustedTimeReply);
         sendSse(res, {type: 'done', message: messages[0], messages, learned: [], jobs: []});
-        return res.end();
+        return endStream();
     }
     const recent = listMessages(persona.id, {limit: 18}).items.slice(-18).map(message => ({role: message.role === 'assistant' ? 'assistant' : 'user', content: message.text || '[用户发送了媒体附件]'}));
     const visibleRedactor = createVisibleMarkerRedactor();
     try {
+        if (clientClosed) return endStream();
         const systemMessage = {role: 'system', content: [context.prompt, context.layers.systemCapability].join('\n\n')};
         const modelMessages = [systemMessage, ...recent];
-        const response = await lmCompletion({stream: true, temperature: 0.75, messages: modelMessages, tools: [sceneEventTool, mediaEventTool], tool_choice: 'auto', trace: {operation: 'chat', personaId: persona.id, messageId: userMessage.id}});
+        const response = await lmCompletion({stream: true, temperature: 0.75, signal: abortController.signal, messages: modelMessages, tools: [sceneEventTool, mediaEventTool, pendingEventTool], tool_choice: 'auto', trace: {operation: 'chat', personaId: persona.id, messageId: userMessage.id}});
         const first = await consumeStreamedCompletion(response, {
             onText: token => {
                 const visibleToken = visibleRedactor.push(token);
-                if (visibleToken) sendSse(res, {type: 'token', token: visibleToken});
+                if (!clientClosed && visibleToken) sendSse(res, {type: 'token', token: visibleToken});
             }
         });
+        if (clientClosed) return endStream();
         const trailingVisible = visibleRedactor.flush();
-        if (trailingVisible) sendSse(res, {type: 'token', token: trailingVisible});
-        let output = first.text;
-        let sceneExecution = executeSceneToolCall(persona, first.toolCalls, userMessage.id);
-        let mediaExecution = executeMediaToolCall(persona, first.toolCalls, userMessage.id);
+        if (!clientClosed && trailingVisible) sendSse(res, {type: 'token', token: trailingVisible});
+        const firstDispatch = dispatchCapabilityCalls(persona, {toolCalls: first.toolCalls, completion: first, markerText: first.text, causationId: userMessage.id});
+        let output = firstDispatch.visibleText;
+        let sceneExecution = firstDispatch.byCapability.scene_event;
+        let mediaExecution = firstDispatch.byCapability.media_event;
+        let pendingExecution = firstDispatch.byCapability.pending_event;
         let continuationError = null;
-        const firstVisible = extractPendingEventIntent(extractMediaIntent(first.text).text).text.trim();
-        const supportedToolCalls = [sceneExecution.call ? {call: sceneExecution.call, result: sceneToolResult(sceneExecution)} : null, mediaExecution.call ? {call: mediaExecution.call, result: mediaToolResult(mediaExecution)} : null].filter(Boolean);
+        const firstVisible = firstDispatch.visibleText.trim();
+        const supportedToolCalls = firstDispatch.continuationEntries;
         if (supportedToolCalls.length && !firstVisible) {
-            const continuationToolCalls = supportedToolCalls.map(({call}) => ({id: call.id || id('tool_call'), type: 'function', function: {name: call.function.name, arguments: String(call.function.arguments || '')}}));
+            if (clientClosed) return endStream();
+            const continuationToolCalls = supportedToolCalls.map(({call}) => ({id: call.id || id('tool_call'), type: 'function', function: {name: call.name || call.function?.name, arguments: call.argumentsText ?? String(call.function?.arguments || '')}}));
             const continuationMessages = [
                 ...modelMessages,
                 {role: 'assistant', content: null, tool_calls: continuationToolCalls},
-                ...supportedToolCalls.map(({call, result}, index) => ({role: 'tool', tool_call_id: continuationToolCalls[index].id, name: call.function.name, content: JSON.stringify(result)}))
+                ...supportedToolCalls.map(({call, result}, index) => ({role: 'tool', tool_call_id: continuationToolCalls[index].id, name: call.name || call.function?.name, content: JSON.stringify(result)}))
             ];
             try {
-                const continuation = await lmCompletion({stream: true, temperature: 0.75, messages: continuationMessages, tools: [sceneEventTool, mediaEventTool], tool_choice: 'none', trace: {operation: 'chat_continuation', personaId: persona.id, messageId: userMessage.id}});
+                const continuation = await lmCompletion({stream: true, temperature: 0.75, signal: abortController.signal, messages: continuationMessages, tools: [sceneEventTool, mediaEventTool, pendingEventTool], tool_choice: 'none', trace: {operation: 'chat_continuation', personaId: persona.id, messageId: userMessage.id}});
                 const followup = await consumeStreamedCompletion(continuation, {
                     onText: token => {
                         const visibleToken = visibleRedactor.push(token);
-                        if (visibleToken) sendSse(res, {type: 'token', token: visibleToken});
+                        if (!clientClosed && visibleToken) sendSse(res, {type: 'token', token: visibleToken});
                     }
                 });
+                if (clientClosed) return endStream();
                 const followupVisible = visibleRedactor.flush();
-                if (followupVisible) sendSse(res, {type: 'token', token: followupVisible});
-                output = followup.text;
+                if (!clientClosed && followupVisible) sendSse(res, {type: 'token', token: followupVisible});
+                if (followup.toolCalls.length) {
+                    continuationError = '续答再次请求系统能力，已忽略该调用';
+                }
+                const followupDispatch = dispatchCapabilityCalls(persona, {
+                    toolCalls: [], completion: followup, markerText: followup.text, causationId: userMessage.id,
+                    nativeState: firstDispatch.nativeCapabilities, blockMarkers: firstDispatch.unknownNative
+                });
+                output = [firstDispatch.visibleText, followupDispatch.visibleText].filter(Boolean).join('');
+                sceneExecution ||= followupDispatch.byCapability.scene_event;
+                mediaExecution ||= followupDispatch.byCapability.media_event;
+                pendingExecution ||= followupDispatch.byCapability.pending_event;
             } catch (error) {
                 continuationError = String(error?.message || error).replace(/\s+/g, ' ').slice(0, 180);
-                output = '';
+                output = firstDispatch.visibleText;
             }
         }
-        const extracted = extractMediaIntent(output);
-        const pending = extractPendingEventIntent(extracted.text);
-        const messages = appendUserVisibleAssistantReply(persona.id, pending.text, {fallback: continuationError ? '我已经记住刚才的场景了，我们继续聊。' : '我刚刚想了一下，但还没有组织好回复。'});
-        let pendingEvent = null;
-        if (pending.pendingEvent) {
-            try {
-                pendingEvent = createPendingEvent(persona, pending.pendingEvent, userMessage.id);
-            } catch (error) {
-                // A malformed/duplicate capability call must never turn a valid
-                // chat completion into an SSE error. The marker is already absent
-                // from the persisted user-visible text.
-                pendingEvent = {error: String(error.message || error).slice(0, 240)};
-            }
-        }
-        if (mediaExecution.result) messages.push(...mediaExecution.result.messages);
-        if (extracted.media && !mediaExecution.result) {
-            const count = clamp(Number(extracted.media.count) || 1, 1, 3);
-            try {
-                for (let index = 0; index < count; index += 1) messages.push(createChatMediaRequest(persona.id, {...extracted.media, trigger: 'model_capability_contract'}).message);
-            } catch {
-                // Invalid legacy media markers must not turn an otherwise valid
-                // assistant completion into an SSE error after its text is saved.
-            }
-        }
+        if (clientClosed) return endStream();
+        const continuationFallback = continuationError
+            ? pendingExecution?.call ? '我已经记下这件事了，但暂时无法继续补充。'
+                : mediaExecution?.call ? '我已经处理好这次媒体请求了，但暂时无法继续补充。'
+                    : '我已经记住刚才的场景了，但暂时无法继续补充。'
+            : '我刚刚想了一下，但还没有组织好回复。';
+        const messages = appendUserVisibleAssistantReply(persona.id, output, {fallback: continuationFallback});
+        if (mediaExecution?.result) messages.push(...mediaExecution.result.messages);
+        const pendingEvent = capabilityPresentation(pendingExecution);
         const plannedMessage = messages.find(message => explicitPlanFromMessage(message.text));
         const proposedPlan = plannedMessage && verifiedAcceptedPlan(persona.id, plannedMessage.id);
         if (proposedPlan) createScheduleItem(persona.id, {...proposedPlan, sourceMessageId: plannedMessage.id, source: 'accepted_chat_plan'});
         applyChatAttentionOverlay(persona);
         // `message` remains the compatibility alias for callers that have not yet
         // migrated to the ordered `messages` collection.
-        sendSse(res, {type: 'done', message: messages[0], messages, learned: [], jobs: [], pendingEvent, sceneEvent: sceneExecution.result ? {eventId: sceneExecution.result.eventId, operation: sceneExecution.result.operation} : sceneExecution.error ? {error: sceneExecution.error} : null, mediaEvent: mediaExecution.result ? {jobIds: mediaExecution.result.jobIds, kind: mediaExecution.result.kind} : mediaExecution.error ? {error: mediaExecution.error} : null});
+        sendSse(res, {type: 'done', message: messages[0], messages, learned: [], jobs: [], pendingEvent, sceneEvent: capabilityPresentation(sceneExecution), mediaEvent: capabilityPresentation(mediaExecution)});
     } catch (error) {
-        sendSse(res, {type: 'error', error: `无法连接本地模型：${error.message}`});
+        if (!clientClosed) sendSse(res, {type: 'error', error: `无法连接本地模型：${error.message}`});
     } finally {
-        res.end();
+        endStream();
     }
 }
 
@@ -4142,28 +4498,58 @@ async function completeGeneratedMedia(job, promptId, files, providerId = 'comfyu
     return completePolledMediaJob(job, promptId, files, providerId);
 }
 
-function createChatMediaRequest(personaId, input) {
+function createChatMediaRequest(personaId, input, provenance = {}) {
     const persona = requirePersona(personaId);
     const capabilityCall = normalizeMediaCapabilityCall(input);
     const {kind, request = ''} = capabilityCall;
-    const createdAt = now();
-    const messageId = id('message');
-    const jobId = id('job');
-    const thread = conversation(persona.id);
+    const count = clamp(Number.isInteger(capabilityCall.count) ? capabilityCall.count : 1, 1, 3);
+    const trigger = boundedMediaText(input?.trigger, 80) || boundedMediaText(provenance.trigger, 80) || 'explicit_user_request';
     const provider = providerFor(kind, settings()[`${kind}Provider`]).id;
-    const trigger = boundedMediaText(input?.trigger, 80) || 'explicit_user_request';
-    // This helper creates exactly one durable placeholder/job. Chat marker
-    // `count` is expanded by its caller into separate invocations, so the
-    // per-job envelope always describes one asset rather than a human count.
-    const envelope = mediaConceptEnvelopeFor(persona, {kind, request, count: 1, trigger});
-    const generation = {status: 'queued', kind, provider, ...(request ? {request} : {})};
+    const thread = conversation(persona.id);
     const jobType = kind === 'video' ? 'chat_video' : 'chat_image';
+    const baseKey = boundedSceneText(provenance.idempotencyKey, 160);
+    const existingForKey = key => key ? database.prepare("SELECT jobs.*, messages.id AS message_row_id FROM companion_jobs jobs JOIN companion_messages messages ON messages.id = jobs.message_id WHERE jobs.persona_id = ? AND jobs.job_type = ? AND json_extract(jobs.payload_json, '$.capabilityCall.idempotencyKey') LIKE ? ORDER BY jobs.created_at, jobs.id").all(persona.id, jobType, `${key}:%`) : [];
+    const existing = baseKey ? existingForKey(baseKey) : [];
+    if (baseKey && existing.length >= count) {
+        const messages = existing.slice(0, count).map(row => messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(row.message_row_id)));
+        return {jobId: existing[0].id, jobIds: existing.slice(0, count).map(row => row.id), message: messages[0], messages, kind, replayed: true};
+    }
+    // Validate the authoritative envelope before opening the transaction. A
+    // malformed concept therefore creates neither a placeholder nor a job.
+    const envelope = mediaConceptEnvelopeFor(persona, {kind, request, count: 1, trigger});
+    const created = [];
     database.transaction(() => {
-        database.prepare('INSERT INTO companion_messages (id, conversation_id, role, text, attachments_json, generation_json, jobs_json, created_at, read_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(messageId, thread.id, 'assistant', '', '[]', JSON.stringify(generation), JSON.stringify([{id: jobId, kind, provider}]), createdAt, createdAt);
-        database.prepare(`INSERT INTO companion_jobs (id, job_type, status, priority, run_after, max_attempts, persona_id, message_id, payload_json, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?)`).run(jobId, jobType, 4, createdAt, 3, persona.id, messageId, JSON.stringify({envelope, personaMediaConcept: capabilityCall.personaMediaConcept, capabilityCall: {...capabilityCall, trigger}, kind, provider, trigger, qualityRetryCount: 0, maxQualityRetries: 1}), createdAt, createdAt);
-        database.prepare('UPDATE companion_conversations SET updated_at = ? WHERE id = ?').run(createdAt, thread.id);
+        for (let position = 0; position < count; position += 1) {
+            const assetKey = baseKey ? `${baseKey}:${position}` : null;
+            const prior = assetKey ? database.prepare("SELECT jobs.*, messages.id AS message_row_id FROM companion_jobs jobs JOIN companion_messages messages ON messages.id = jobs.message_id WHERE jobs.persona_id = ? AND jobs.job_type = ? AND json_extract(jobs.payload_json, '$.capabilityCall.idempotencyKey') = ? ORDER BY jobs.created_at, jobs.id LIMIT 1").get(persona.id, jobType, assetKey) : null;
+            if (prior) {
+                created.push({jobId: prior.id, message: messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(prior.message_row_id)), replayed: true});
+                continue;
+            }
+            const createdAt = now();
+            const messageId = id('message');
+            const jobId = id('job');
+            const generation = {status: 'queued', kind, provider, ...(request ? {request} : {})};
+            const callWithProvenance = {
+                ...capabilityCall, count: 1, trigger,
+                ...(provenance.callId ? {capabilityCallId: boundedSceneText(provenance.callId, 160)} : {}),
+                ...(assetKey ? {idempotencyKey: assetKey} : {}),
+                source: provenance.source || 'media_event', causationId: provenance.causationUserMessageId || null
+            };
+            database.prepare('INSERT INTO companion_messages (id, conversation_id, role, text, attachments_json, generation_json, jobs_json, created_at, read_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(messageId, thread.id, 'assistant', '', '[]', JSON.stringify(generation), JSON.stringify([{id: jobId, kind, provider}]), createdAt, createdAt);
+            database.prepare(`INSERT INTO companion_jobs (id, job_type, status, priority, run_after, max_attempts, persona_id, message_id, payload_json, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?)`).run(jobId, jobType, 4, createdAt, 3, persona.id, messageId, JSON.stringify({envelope, personaMediaConcept: capabilityCall.personaMediaConcept, capabilityCall: callWithProvenance, kind, provider, trigger, qualityRetryCount: 0, maxQualityRetries: 1}), createdAt, createdAt);
+            created.push({jobId, message: messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(messageId)), replayed: false});
+        }
+        database.prepare('UPDATE companion_conversations SET updated_at = ? WHERE id = ?').run(now(), thread.id);
     })();
-    return {jobId, message: messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(messageId))};
+    return {
+        jobId: created[0]?.jobId || null,
+        jobIds: created.map(item => item.jobId),
+        message: created[0]?.message || null,
+        messages: created.map(item => item.message),
+        kind,
+        replayed: created.every(item => item.replayed)
+    };
 }
 
 function claimJob() {
@@ -5175,7 +5561,7 @@ app.get('/api/companion/media/:mediaId', async (req, res) => {
 });
 
 export const companionApp = app;
-export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listGroups, createGroup, assignPersonaGroup, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaCapabilityCall, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, normalizeMediaAcceptance, normalizePendingEventCall, pendingEventShape, createPendingEvent, normalizeProactiveDecision, parseProactiveDecision, freezeProactiveDecision, evaluateProactiveDecision, runProactiveMessageJob, runPendingEventJob, mediaConceptEnvelopeFor, generatePersonaMediaConcept, fillMediaPromptTemplate, renderMediaPromptTemplate, mediaConceptSchemaVersion, mediaCapabilityCallSchemaVersion, mediaPromptTemplateSchemaVersion, mediaPromptTemplateSections, pendingEventSchemaVersion, proactiveDecisionSchemaVersion, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, systemCapabilitySceneContract, personaMediaConceptContract, imagePromptMasterContract, imageGenerationPolicies, imageGenerationPolicyLabels, normalizeImageGenerationPolicy, imageGenerationPolicyFor, sceneEventOperations, sceneEventTool, mediaEventTool, boundedSceneText, normalizeSceneEventCall, sharedSceneFor, applySceneEvent, appendToolCallFragment, consumeStreamedCompletion, executeSceneToolCall, sceneToolResult, executeMediaToolCall, mediaToolResult, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, storedDailyPlanItems, normalizeDailyPlan, composeDailyPlanTimeline, readyDailyPlanFor, dailyPlanSlotAt, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, interviewView, previewInterviewAnswers, validatePersonaDescription, normalizePersonaDescriptionExtraction, analyzePersonaDescription, createNaturalLanguageInterview, naturalLanguageDescriptionMaxLength, personaDescriptionPromptVersion, debugContextFor, redactDebugValue, debugSummary, promptRunsFor, lmCompletion, debugInspectorEnabled, ensureDailyPlan, enqueueRelationshipEvolutionJob, mediaProviders, providerFor, providerSummaries, validateMediaSettings, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
+export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listGroups, createGroup, assignPersonaGroup, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaCapabilityCall, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, normalizeMediaAcceptance, normalizePendingEventCall, pendingEventShape, createPendingEvent, normalizeProactiveDecision, parseProactiveDecision, freezeProactiveDecision, evaluateProactiveDecision, runProactiveMessageJob, runPendingEventJob, mediaConceptEnvelopeFor, generatePersonaMediaConcept, fillMediaPromptTemplate, renderMediaPromptTemplate, mediaConceptSchemaVersion, mediaCapabilityCallSchemaVersion, mediaPromptTemplateSchemaVersion, mediaPromptTemplateSections, pendingEventSchemaVersion, proactiveDecisionSchemaVersion, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, systemCapabilitySceneContract, personaMediaConceptContract, imagePromptMasterContract, imageGenerationPolicies, imageGenerationPolicyLabels, normalizeImageGenerationPolicy, imageGenerationPolicyFor, sceneEventOperations, sceneEventTool, mediaEventTool, pendingEventTool, boundedSceneText, normalizeSceneEventCall, sharedSceneFor, applySceneEvent, appendToolCallFragment, consumeStreamedCompletion, capabilityRegistry, dispatchCapabilityCalls, executeSceneToolCall, sceneToolResult, executeMediaToolCall, mediaToolResult, pendingToolResult, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, storedDailyPlanItems, normalizeDailyPlan, composeDailyPlanTimeline, readyDailyPlanFor, dailyPlanSlotAt, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, interviewView, previewInterviewAnswers, validatePersonaDescription, normalizePersonaDescriptionExtraction, analyzePersonaDescription, createNaturalLanguageInterview, naturalLanguageDescriptionMaxLength, personaDescriptionPromptVersion, debugContextFor, redactDebugValue, debugSummary, promptRunsFor, lmCompletion, debugInspectorEnabled, ensureDailyPlan, enqueueRelationshipEvolutionJob, mediaProviders, providerFor, providerSummaries, validateMediaSettings, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
 
 if (process.env.COMPANION_TEST !== '1') {
     app.listen(port, () => {

@@ -21,10 +21,11 @@
 - `start` and `switch` require a non-empty `location` or `activity` plus `situation`; `end` requires only `operation`.
 - A valid call creates `companion_life_events.type = 'shared_scene'` for `start`/`switch` or `shared_scene_end` for `end`, with `causation_id` bound to a user message in the same persona conversation.
 - `start`/`switch` update `shared_scene_json`; `end` clears it and resumes the existing schedule/routine projection. No activity or proactive message is published.
-- The chat request advertises exactly one `scene_event` tool and preserves existing `token`, `done`, and `error` SSE names. A tool-only completion may use one standard tool-result continuation; this is not a hidden semantic extraction pass.
+- The chat request advertises the registry's native capabilities, including exactly one `scene_event` entry; this scene contract allows at most one `scene_event` call per completion and preserves existing `token`, `done`, and `error` SSE names. A tool-only completion may use one standard tool-result continuation; this is not a hidden semantic extraction pass.
 - Image-generation policy values are `ask`, `always`, `important`, `user_only`, `autonomous`; the server exposes the value only in persona detail and the detail update route. The model receives the behavioral meaning in the system capability layer; the server does not text-match it.
 - For `always`, the model must append one validated image `<media-intent>` whenever its user-visible reply contains a parenthesized action; an ordinary reply without an action does not force an image. This is a model instruction, not a server parser.
 - When the chat provider advertises tools, `media_event` is the preferred native delivery path; `<media-intent>` remains a compatibility fallback and the same turn must not create duplicate media jobs.
+- `pending_event` follows the same registry and continuation boundary, while its dedupe key and internal event/job identifiers remain server-side provenance and are not included in browser-visible capability summaries.
 
 ### 4. Validation & Error Matrix
 

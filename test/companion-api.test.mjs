@@ -13,7 +13,7 @@ const {database, createPersona, createEvent, requirePersona, deletePersona, list
 
 const {interviewView, previewInterviewAnswers, validatePersonaDescription, normalizePersonaDescriptionExtraction, analyzePersonaDescription, createNaturalLanguageInterview, naturalLanguageDescriptionMaxLength} = companionTestHooks;
 const {systemCapabilitySceneContract, imageGenerationPolicies, normalizeImageGenerationPolicy, imageGenerationPolicyFor, normalizeSceneEventCall, sharedSceneFor, applySceneEvent, sceneEventTool, consumeStreamedCompletion} = companionTestHooks;
-const {mediaEventTool, executeMediaToolCall} = companionTestHooks;
+const {mediaEventTool, executeMediaToolCall, pendingEventTool, dispatchCapabilityCalls} = companionTestHooks;
 const {promptRunsFor, lmCompletion} = companionTestHooks;
 
 const mediaConcept = (kind, overrides = {}) => ({
@@ -71,6 +71,33 @@ async function invokeChatRoute(personaId, text, responses) {
         end() { this.headersSent = true; }
     };
     const output = layer.route.stack[0].handle({body: {personaId, text}}, response);
+    if (output?.then) await output;
+    return frames.join('');
+}
+
+async function invokeChatRouteWithConnection(personaId, text, onConnection) {
+    const layer = (companionApp.router?.stack || []).find(item => item.route?.path === '/api/companion/chat' && item.route.methods?.post);
+    assert.ok(layer, 'POST /api/companion/chat route is registered');
+    const frames = [];
+    const requestHandlers = new Map();
+    const responseHandlers = new Map();
+    const request = {
+        body: {personaId, text},
+        on(event, handler) { requestHandlers.set(event, handler); return this; },
+        removeListener(event, handler) { if (requestHandlers.get(event) === handler) requestHandlers.delete(event); return this; }
+    };
+    const response = {
+        statusCode: 200, headersSent: false, writableEnded: false,
+        status(code) { this.statusCode = code; return this; },
+        set() { return this; },
+        flushHeaders() { this.headersSent = true; },
+        on(event, handler) { responseHandlers.set(event, handler); return this; },
+        removeListener(event, handler) { if (responseHandlers.get(event) === handler) responseHandlers.delete(event); return this; },
+        write(value) { frames.push(String(value)); },
+        end() { this.headersSent = true; this.writableEnded = true; }
+    };
+    const output = layer.route.stack[0].handle(request, response);
+    onConnection({abort: () => requestHandlers.get('aborted')?.(), close: () => responseHandlers.get('close')?.()});
     if (output?.then) await output;
     return frames.join('');
 }
@@ -1586,6 +1613,159 @@ test('chat stream executes a native media tool and preserves the visible continu
         saveSettings({model: previousSettings.model, lmStudioUrl: previousSettings.lmStudioUrl});
         deletePersona(persona.id);
     }
+});
+
+test('chat provider failure emits SSE error without persisting a partial assistant reply', async () => {
+    const persona = createPersona({name: '聊天 provider 失败', role: '陪伴者', foundation: '用于验证聊天流失败边界。'});
+    const previousSettings = publicSettings();
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async () => { throw new Error('mock chat provider failure'); };
+    saveSettings({model: 'test-chat-error-model', lmStudioUrl: 'http://test/v1'});
+    try {
+        const source = await invokeChatRoute(persona.id, '这条消息应该失败。');
+        assert.match(source, /"type":"error"/);
+        assert.match(source, /mock chat provider failure/);
+        const assistantMessages = listMessages(persona.id, {markRead: false}).items.filter(message => message.role === 'assistant');
+        assert.equal(assistantMessages.length, 0);
+    } finally {
+        globalThis.fetch = previousFetch;
+        saveSettings({model: previousSettings.model, lmStudioUrl: previousSettings.lmStudioUrl});
+        deletePersona(persona.id);
+    }
+});
+
+test('chat disconnect aborts the upstream provider without persisting a partial assistant reply', async () => {
+    const persona = createPersona({name: '聊天断线测试', role: '陪伴者', foundation: '用于验证浏览器断线清理。'});
+    const previousSettings = publicSettings();
+    const previousFetch = globalThis.fetch;
+    let upstreamSignal;
+    globalThis.fetch = async (url, options) => {
+        upstreamSignal = options.signal;
+        return {ok: true, body: {getReader() {
+            return {read: () => new Promise(resolve => upstreamSignal.addEventListener('abort', () => resolve({value: undefined, done: true}), {once: true}))};
+        }}};
+    };
+    saveSettings({model: 'test-chat-disconnect-model', lmStudioUrl: 'http://test/v1'});
+    try {
+        const source = await invokeChatRouteWithConnection(persona.id, '这条消息会在断线时停止。', connection => setTimeout(connection.abort, 0));
+        assert.equal(upstreamSignal.aborted, true);
+        assert.doesNotMatch(source, /"type":"error"/);
+        assert.equal(listMessages(persona.id, {markRead: false}).items.filter(message => message.role === 'assistant').length, 0);
+    } finally {
+        globalThis.fetch = previousFetch;
+        saveSettings({model: previousSettings.model, lmStudioUrl: previousSettings.lmStudioUrl});
+        deletePersona(persona.id);
+    }
+});
+
+test('native pending_event persists one durable row and uses one tool continuation', async () => {
+    const persona = createPersona({name: '原生待定事件测试', role: '陪伴者', foundation: '用于验证原生待定事件。'});
+    const previousSettings = publicSettings();
+    const previousFetch = globalThis.fetch;
+    const calls = [];
+    const notBefore = new Date(Date.now() + 60_000).toISOString();
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60_000).toISOString();
+    const args = JSON.stringify({schemaVersion: 1, summary: '面试结束后问问结果', notBefore, expiresAt, dedupeKey: 'native-interview-followup'});
+    const stream = chunks => ({ok: true, body: {getReader() {
+        let index = 0;
+        return {read: async () => index < chunks.length ? {value: new TextEncoder().encode(chunks[index++]), done: false} : {value: undefined, done: true}};
+    }}});
+    const toolResponse = [
+        `data: ${JSON.stringify({choices: [{delta: {tool_calls: [{index: 0, id: 'call_pending', type: 'function', function: {name: 'pending_event', arguments: args}}]}}]})}\n\n`,
+        'data: [DONE]\n\n'
+    ];
+    const continuationResponse = [
+        `data: ${JSON.stringify({choices: [{delta: {content: '我会记得这件事。'}}]})}\n\n`,
+        'data: [DONE]\n\n'
+    ];
+    globalThis.fetch = async (url, options) => {
+        calls.push({url, payload: JSON.parse(options.body)});
+        return stream(calls.length === 1 ? toolResponse : continuationResponse);
+    };
+    saveSettings({model: 'test-pending-tool-model', lmStudioUrl: 'http://test/v1'});
+    try {
+        const source = await invokeChatRoute(persona.id, '我下午要去面试。', [toolResponse, continuationResponse]);
+        assert.equal(pendingEventTool.function.name, 'pending_event');
+        assert.equal(calls.length, 2);
+        assert.equal(calls[0].payload.tools.some(tool => tool.function.name === 'pending_event'), true);
+        assert.equal(calls[1].payload.tool_choice, 'none');
+        assert.match(source, /我会记得这件事/);
+        assert.doesNotMatch(source, /pending_event|native-interview-followup/);
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_pending_events WHERE persona_id = ?").get(persona.id).count, 1);
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'pending_event'").get(persona.id).count, 1);
+        const payload = JSON.parse(database.prepare('SELECT payload_json FROM companion_pending_events WHERE persona_id = ?').get(persona.id).payload_json);
+        assert.equal(payload.capabilityCallId, 'call_pending');
+        assert.equal(payload.source, 'native');
+    } finally {
+        globalThis.fetch = previousFetch;
+        saveSettings({model: previousSettings.model, lmStudioUrl: previousSettings.lmStudioUrl});
+        deletePersona(persona.id);
+    }
+});
+
+test('native capability precedence fails closed for malformed, duplicate, and unknown calls', () => {
+    const persona = createPersona({name: '原生优先测试', role: '陪伴者', foundation: '用于验证原生能力优先级。'});
+    try {
+        const marker = `<media-intent>${JSON.stringify(mediaCall('image', '兼容标签媒体'))}</media-intent>`;
+        const native = {index: 0, id: 'native_media', type: 'function', function: {name: 'media_event', arguments: JSON.stringify(mediaCall('image', '原生媒体'))}};
+        const valid = dispatchCapabilityCalls(persona, {toolCalls: [native], completion: {doneSeen: true}, markerText: `回复。${marker}`, causationId: 'message_native'});
+        assert.equal(valid.byCapability.media_event.error, null);
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'chat_image'").get(persona.id).count, 1);
+        assert.equal(valid.visibleText, '回复。');
+
+        const malformed = dispatchCapabilityCalls(persona, {toolCalls: [{index: 0, id: 'bad_media', type: 'function', function: {name: 'media_event', arguments: '{'}}], completion: {doneSeen: true}, markerText: marker, causationId: 'message_bad'});
+        assert.match(malformed.byCapability.media_event.error, /JSON/);
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'chat_image'").get(persona.id).count, 1);
+
+        const duplicate = dispatchCapabilityCalls(persona, {toolCalls: [native, {...native, id: 'native_media_duplicate'}], completion: {doneSeen: true}, markerText: marker, causationId: 'message_duplicate'});
+        assert.match(duplicate.byCapability.media_event.error, /多个 media_event/);
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'chat_image'").get(persona.id).count, 1);
+
+        const unknown = dispatchCapabilityCalls(persona, {toolCalls: [{index: 0, id: 'unknown', type: 'function', function: {name: 'unknown_event', arguments: '{}'}}], completion: {doneSeen: true}, markerText: marker, causationId: 'message_unknown'});
+        assert.equal(unknown.unknownNative, true);
+        assert.equal(unknown.visibleText, '');
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'chat_image'").get(persona.id).count, 1);
+    } finally {
+        deletePersona(persona.id);
+    }
+});
+
+test('native media count is atomic and replayed by capability provenance', () => {
+    const persona = createPersona({name: '媒体批量幂等测试', role: '陪伴者', foundation: '用于验证媒体批量与重放。'});
+    try {
+        const argument = mediaCall('image', '三张连续照片', {count: 3});
+        const raw = {index: 0, id: 'media_batch', type: 'function', function: {name: 'media_event', arguments: JSON.stringify(argument)}};
+        const first = dispatchCapabilityCalls(persona, {toolCalls: [raw], completion: {doneSeen: true}, causationId: 'message_batch'}).byCapability.media_event.result;
+        assert.equal(first.jobIds.length, 3);
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'chat_image'").get(persona.id).count, 3);
+        const second = dispatchCapabilityCalls(persona, {toolCalls: [raw], completion: {doneSeen: true}, causationId: 'message_batch'}).byCapability.media_event.result;
+        assert.equal(second.replayed, true);
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'chat_image'").get(persona.id).count, 3);
+        const payload = JSON.parse(database.prepare('SELECT payload_json FROM companion_jobs WHERE id = ?').get(first.jobIds[0]).payload_json);
+        assert.equal(payload.capabilityCall.capabilityCallId, 'media_batch');
+        assert.equal(payload.capabilityCall.source, 'native');
+        assert.match(payload.capabilityCall.idempotencyKey, /^cap_[0-9a-f]+:/);
+    } finally {
+        deletePersona(persona.id);
+    }
+});
+
+test('stream accumulator preserves first metadata, ignores reasoning, and diagnoses missing DONE', async () => {
+    const chunks = [
+        `data: ${JSON.stringify({choices: [{delta: {reasoning_content: 'internal', tool_calls: [{index: 0, type: 'function', function: {arguments: '{"operation":"start"'}}]}}]})}\n\n`,
+        `data: ${JSON.stringify({choices: [{delta: {tool_calls: [{index: 0, id: 'call_scene', type: 'function', function: {name: 'scene_event', arguments: ',"location":"湖边","situation":"一起散步"}'}}]}}]})}\n\n`
+    ];
+    const response = {body: {getReader() {
+        let index = 0;
+        return {read: async () => index < chunks.length ? {value: new TextEncoder().encode(chunks[index++]), done: false} : {value: undefined, done: true}};
+    }}};
+    const completion = await consumeStreamedCompletion(response);
+    assert.equal(completion.doneSeen, false);
+    assert.deepEqual(completion.incompleteToolIndexes, [0]);
+    assert.match(completion.parseErrors.join(' '), /缺少 \[DONE\]/);
+    assert.equal(completion.toolCalls[0].id, 'call_scene');
+    assert.equal(completion.toolCalls[0].function.name, 'scene_event');
+    assert.deepEqual(JSON.parse(completion.toolCalls[0].argumentsText), {operation: 'start', location: '湖边', situation: '一起散步'});
 });
 
 test.after(() => rmSync(dataDir, {recursive: true, force: true}));

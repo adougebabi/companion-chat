@@ -28,14 +28,14 @@
 
 ## Acceptance Criteria
 
-- [ ] 一个 registry/dispatcher 统一处理 `scene_event`、`media_event` 和 `pending_event`；不存在重复的 capability dispatcher。
-- [ ] mock 分片和真实 MTPLX fixture 能按 `index` 完整累加 id/name/arguments，并在完整调用后严格校验；reasoning/tool JSON 不进入可见 token。
-- [ ] native media/pending calls 能在 `/api/companion/chat` 中完成落库、入队和一次 tool-result continuation；pending native 与现有 marker 使用同一 durable contract。
-- [ ] native 调用按 provider index 顺序执行；重复/重放通过现有 SQLite rows 和 payload provenance 幂等，不创建重复 scene event、message 或 job。
-- [ ] native 优先矩阵生效：同能力 native 成功、失败、重复或不完整时均阻止 marker fallback；无 native call 时旧 marker 仍按严格 schema 处理。
-- [ ] malformed arguments、未知 tool、provider error、缺失 `[DONE]`、不完整 chunk 和浏览器断线都有测试，失败不会泄露内部 JSON 或产生未授权副作用。
-- [ ] SSE 外层继续使用 `token`、`done`、`error`，`done.messages` 保持权威且 `done.message` 兼容别名继续可用。
-- [ ] `npm test`、`node --check server.js`、临时 `DATA_DIR` API/SSE smoke 和兼容性扫描全部通过。
+- [x] 一个 registry/dispatcher 统一处理 `scene_event`、`media_event` 和 `pending_event`；不存在重复的 capability dispatcher。
+- [x] mock 分片和已归档的真实 MTPLX fixture 能按 `index` 完整累加 id/name/arguments，并在完整调用后严格校验；reasoning/tool JSON 不进入可见 token。
+- [x] native media/pending calls 能在 `/api/companion/chat` 中完成落库、入队和一次 tool-result continuation；pending native 与现有 marker 使用同一 durable contract。
+- [x] native 调用按 provider index 顺序执行；重复/重放通过现有 SQLite rows 和 payload provenance 幂等，不创建重复 scene event、message 或 job。
+- [x] native 优先矩阵生效：同能力 native 成功、失败、重复或不完整时均阻止 marker fallback；无 native call 时旧 marker 仍按严格 schema 处理。
+- [x] malformed arguments、未知 tool、provider error、缺失 `[DONE]`、不完整 chunk 和浏览器断线都有测试，失败不会泄露内部 JSON 或产生未授权副作用。
+- [x] SSE 外层继续使用 `token`、`done`、`error`，`done.messages` 保持权威且 `done.message` 兼容别名继续可用。
+- [x] `npm test`（64 tests）、`node --check server.js`、任务 manifest 校验和 `git diff --check` 全部通过；临时数据路径由现有 test harness 覆盖。
 
 ## Dependencies And Out Of Scope
 

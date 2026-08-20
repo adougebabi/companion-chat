@@ -3,7 +3,7 @@
   "name": "native-tool-call-migration",
   "title": "原生工具调用与 marker 兼容迁移",
   "description": "基于已验证的 MTPLX 原生 tool_calls，将媒体和待定事件从 marker 迁移到结构化工具，同时保留旧模型兼容和应用层 SSE 契约。",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,
