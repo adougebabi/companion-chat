@@ -19,10 +19,13 @@ During the backend modular migration, the planned `server/` tree may be introduc
 ```text
 server/contracts/              pure DTO, capability, SSE, port, and flow-result contracts
 server/application/            typed flow registry and use-case steps
+server/infrastructure/         injected SQLite commit/repository adapters; no provider dispatch in the commit boundary
 server/index.js                inert composition root until the final cutover gate
 ```
 
 `server/contracts` and `server/application` must remain importable without opening SQLite, binding an HTTP port, contacting a provider, or importing the legacy `server.js` entrypoint. The package continues to start `server.js` until the final migration switches package/Docker/CI entrypoints together.
+
+The SQLite commit adapter accepts an already-open connection and injected synchronous writers for facts, projections, and effect intents. It owns one transaction and records effect intents only; provider execution and lease settlement remain post-commit responsibilities.
 
 ## Adding Backend Behavior
 

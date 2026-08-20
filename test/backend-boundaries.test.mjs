@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import Database from 'better-sqlite3';
 
 import {
     BACKEND_CONTRACT_BASELINE,
@@ -14,6 +15,7 @@ import {
 } from '../server/contracts/index.js';
 import {createFlowRegistry} from '../server/application/flow-registry.js';
 import {createFlowExecutor, FlowExecutionError} from '../server/application/flow-executor.js';
+import {createSqliteCommitAdapter, SqliteCommitError} from '../server/infrastructure/sqlite-commit.js';
 import {createCompositionRoot} from '../server/index.js';
 
 function ports() {
@@ -221,4 +223,185 @@ test('native CapabilityCall hands off to CapabilityResult and EffectIntent', asy
     assert.equal(BACKEND_CONTRACT_BASELINE.sse.done.message, 'Message|null');
     assert.equal(commits.length, 1);
     assert.strictEqual(commits[0], result);
+});
+
+test('the composition root accepts a commit adapter as an optional boundary', async () => {
+    const commits = [];
+    const composition = createCompositionRoot({
+        ports: ports(),
+        capabilityDispatcher: {async dispatch() { return {results: [], effects: []}; }},
+        commitAdapter: {commit(result) { commits.push(result); }}
+    });
+
+    await composition.flowExecutor.run('chat-turn', {personaId: 'persona_test'}, {});
+
+    assert.equal(typeof composition.commitAdapter, 'function');
+    assert.equal(commits.length, 1);
+    assert.deepEqual(commits[0], {facts: [], projections: [], effects: [], presentation: []});
+});
+
+test('the composition root preserves a commit adapter receiver', async () => {
+    const commitAdapter = {
+        commits: [],
+        commit(result) {
+            this.commits.push(result);
+        }
+    };
+    const composition = createCompositionRoot({
+        ports: ports(),
+        capabilityDispatcher: {async dispatch() { return {results: [], effects: []}; }},
+        commitAdapter
+    });
+
+    await composition.flowExecutor.run('chat-turn', {personaId: 'persona_test'}, {});
+
+    assert.equal(commitAdapter.commits.length, 1);
+});
+
+function createCommitDatabase() {
+    const database = new Database(':memory:');
+    database.exec(`
+        CREATE TABLE facts (id TEXT PRIMARY KEY, type TEXT NOT NULL);
+        CREATE TABLE projections (id TEXT PRIMARY KEY, state TEXT NOT NULL);
+        CREATE TABLE effect_intents (id TEXT PRIMARY KEY, kind TEXT NOT NULL, payload TEXT NOT NULL);
+    `);
+    return database;
+}
+
+function commitFixture(overrides = {}) {
+    return {
+        facts: [{id: 'fact_1', type: 'scene_started'}],
+        projections: [{id: 'projection_1', state: 'active'}],
+        effects: [{
+            effectId: ' effect_1 ',
+            kind: 'scene-notification',
+            capability: 'scene_event',
+            idempotencyKey: 'effect_key_1',
+            causationId: 'message_1',
+            payload: {scene: 'cafe'}
+        }],
+        presentation: [{type: 'done'}],
+        ...overrides
+    };
+}
+
+test('the SQLite commit adapter atomically records normalized channels without dispatching effects', () => {
+    const database = createCommitDatabase();
+    let providerCalls = 0;
+    try {
+        const adapter = createSqliteCommitAdapter({
+            database,
+            writers: {
+                facts: fact => {
+                    database.prepare('INSERT INTO facts (id, type) VALUES (?, ?)').run(fact.id, fact.type);
+                    return fact.id;
+                },
+                projections: projection => {
+                    database.prepare('INSERT INTO projections (id, state) VALUES (?, ?)').run(projection.id, projection.state);
+                    return projection.id;
+                },
+                effects: effect => {
+                    database.prepare('INSERT INTO effect_intents (id, kind, payload) VALUES (?, ?, ?)').run(effect.effectId, effect.kind, JSON.stringify(effect.payload));
+                    return effect.effectId;
+                }
+            }
+        });
+
+        const result = adapter.commit(commitFixture());
+
+        assert.deepEqual(result.counts, {facts: 1, projections: 1, effects: 1, presentation: 1});
+        assert.deepEqual(result.ids, {facts: ['fact_1'], projections: ['projection_1'], effects: ['effect_1']});
+        assert.deepEqual(result.facts, {count: 1, ids: ['fact_1']});
+        assert.deepEqual(database.prepare('SELECT id, type FROM facts').all(), [{id: 'fact_1', type: 'scene_started'}]);
+        assert.deepEqual(database.prepare('SELECT id, state FROM projections').all(), [{id: 'projection_1', state: 'active'}]);
+        assert.deepEqual(database.prepare('SELECT id, kind FROM effect_intents').all(), [{id: 'effect_1', kind: 'scene-notification'}]);
+        assert.equal(providerCalls, 0);
+    } finally {
+        database.close();
+    }
+});
+
+test('the SQLite commit adapter validates StepResult before invoking writers', () => {
+    const database = createCommitDatabase();
+    let writerCalls = 0;
+    try {
+        const writer = () => {
+            writerCalls += 1;
+        };
+        const adapter = createSqliteCommitAdapter({database, writers: {facts: writer, projections: writer, effects: writer}});
+
+        assert.throws(
+            () => adapter.commit({facts: [], projections: [], effects: [{}], presentation: []}),
+            error => error instanceof SqliteCommitError
+                && error.code === 'SQLITE_COMMIT_INVALID_STEP_RESULT'
+                && error.message.length <= 240
+        );
+        assert.equal(writerCalls, 0);
+        assert.deepEqual(database.prepare('SELECT COUNT(*) AS count FROM facts').get(), {count: 0});
+    } finally {
+        database.close();
+    }
+});
+
+test('the SQLite commit adapter rolls back every channel when one synchronous writer fails', () => {
+    const database = createCommitDatabase();
+    try {
+        const adapter = createSqliteCommitAdapter({
+            database,
+            writers: {
+                facts: fact => database.prepare('INSERT INTO facts (id, type) VALUES (?, ?)').run(fact.id, fact.type),
+                projections: projection => {
+                    database.prepare('INSERT INTO projections (id, state) VALUES (?, ?)').run(projection.id, projection.state);
+                    throw new Error('SQLITE_ERROR provider_secret=do-not-leak ' + 'projection writer failed '.repeat(40));
+                },
+                effects: effect => database.prepare('INSERT INTO effect_intents (id, kind, payload) VALUES (?, ?, ?)').run(effect.effectId, effect.kind, JSON.stringify(effect.payload))
+            }
+        });
+
+        assert.throws(
+            () => adapter.commit(commitFixture()),
+            error => error instanceof SqliteCommitError
+                && error.code === 'SQLITE_COMMIT_WRITER_FAILED'
+                && error.channel === 'projections'
+                && error.message.length <= 240
+                && !error.message.includes('provider_secret')
+                && !error.message.includes('SQLITE_ERROR')
+        );
+        assert.deepEqual(database.prepare('SELECT COUNT(*) AS count FROM facts').get(), {count: 0});
+        assert.deepEqual(database.prepare('SELECT COUNT(*) AS count FROM projections').get(), {count: 0});
+        assert.deepEqual(database.prepare('SELECT COUNT(*) AS count FROM effect_intents').get(), {count: 0});
+    } finally {
+        database.close();
+    }
+});
+
+test('the SQLite commit adapter rejects declared async writers before invocation', async () => {
+    const database = createCommitDatabase();
+    let writerCalls = 0;
+    try {
+        const adapter = createSqliteCommitAdapter({
+            database,
+            writers: {
+                facts: async fact => {
+                    writerCalls += 1;
+                    await Promise.resolve();
+                    database.prepare('INSERT INTO facts (id, type) VALUES (?, ?)').run(fact.id, fact.type);
+                },
+                projections: () => {},
+                effects: () => {}
+            }
+        });
+
+        assert.throws(
+            () => adapter.commit(commitFixture()),
+            error => error instanceof SqliteCommitError
+                && error.code === 'SQLITE_COMMIT_WRITER_ASYNC'
+                && error.channel === 'facts'
+        );
+        await Promise.resolve();
+        assert.equal(writerCalls, 0);
+        assert.deepEqual(database.prepare('SELECT COUNT(*) AS count FROM facts').get(), {count: 0});
+    } finally {
+        database.close();
+    }
 });
