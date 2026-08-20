@@ -29,7 +29,9 @@
 
 ### Testing
 
-- Validation was not recorded for this session.
+- `npm test` passed: 58 tests, 0 failures.
+- `node --check src/companion-main.js`, `node --check src/main.js`, and `node --check server.js` passed.
+- Trellis `implement.jsonl` / `check.jsonl` validation, `git diff --check`, compatibility scans, and Express smoke checks passed.
 
 ### Status
 
@@ -297,6 +299,39 @@ Implemented life-event proactive messaging and chat-declared pending events with
 | Hash | Message |
 |------|---------|
 | `72dad14` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 10: Fluctlight 展示层改名
+
+**Date**: 2026-08-20
+**Task**: Fluctlight 展示层改名
+**Branch**: `master`
+
+### Summary
+
+确认并落实摇光（Fluctlight）领域术语；完成 README、活跃前端 title/品牌/无障碍/空状态/身份核心文案改名，保留 companion API、SQLite、环境变量、Docker、localStorage 与 legacy 入口兼容标识；通过 58 项测试、语法检查、Trellis 校验、兼容性扫描和 Express smoke，并归档任务。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `925795c` | (see git log) |
 
 ### Testing
 
