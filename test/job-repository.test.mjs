@@ -141,6 +141,23 @@ test('claim assigns ownership, increments attempts, and rejects a wrong-owner se
     }
 });
 
+test('claim accepts a caller lease policy for the selected job', () => {
+    const database = createDatabase();
+    try {
+        const repository = createRepository(database);
+        enqueue(repository, {id: 'job_h3', payload: {provider: 'h3'}});
+
+        const claimed = repository.claim({
+            leaseOwner: 'worker_h3',
+            now: T1,
+            leaseMs: job => job.id === 'job_h3' && JSON.parse(job.payload_json).provider === 'h3' ? 120_000 : 90_000
+        });
+        assert.equal(claimed.lease_expires_at, '2026-08-20T00:03:00.000Z');
+    } finally {
+        database.close();
+    }
+});
+
 test('claim reclaims an expired lease while preserving persona isolation', () => {
     const database = createDatabase();
     try {

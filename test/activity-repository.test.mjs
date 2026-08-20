@@ -135,6 +135,9 @@ test('activity and comment inserts return raw rows and preserve persona ownershi
         const mediaLink = repository.insertActivityMedia({activityId: activity.id, personaId: 'persona_1', mediaId: 'media_1', position: 0});
         assert.equal(mediaLink.position, 0);
         assert.equal(repository.listActivityMedia({activityId: activity.id, personaId: 'persona_1'})[0].media_id, 'media_1');
+        database.prepare('INSERT INTO companion_media_assets (id) VALUES (?)').run('media_2');
+        assert.throws(() => repository.insertActivityMedia({activityId: activity.id, personaId: 'persona_2', mediaId: 'media_2', position: 1}), /does not belong/);
+        assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_activity_media WHERE media_id = ?').get('media_2').count, 0);
     } finally {
         database.close();
     }

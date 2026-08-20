@@ -5,8 +5,11 @@ import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 import Database from 'better-sqlite3';
+import {createActivityRepository} from './server/infrastructure/activity-repository.js';
 import {createConversationRepository} from './server/infrastructure/conversation-repository.js';
+import {createJobRepository} from './server/infrastructure/job-repository.js';
 import {createPendingEventRepository} from './server/infrastructure/pending-event-repository.js';
+import {createLifeStateResolver} from './server/domain/life-state-resolver.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const dataDir = process.env.DATA_DIR || join(root, 'data');
@@ -73,7 +76,10 @@ const database = new Database(databasePath);
 database.pragma('journal_mode = WAL');
 database.pragma('foreign_keys = ON');
 database.pragma('busy_timeout = 5000');
+const activityRepository = createActivityRepository({database});
 const conversationRepository = createConversationRepository({database});
+const jobRepository = createJobRepository({database, id, clock: now});
+const lifeStateResolver = createLifeStateResolver();
 
 const companionMigrations = [
     {
@@ -839,57 +845,110 @@ function applySceneEvent(personaInput, value, causationId, provenance = {}) {
     return {eventId, operation: call.operation, scene: nextScene, previousScene};
 }
 
-function stateFor(personaId) {
+function stateFor(personaId, at = new Date()) {
     const state = database.prepare('SELECT * FROM companion_persona_states WHERE persona_id = ?').get(personaId);
     if (!state || !state.source_event_id || !Object.keys(json(state.appearance_json, {})).length) return state;
     const sourceEvent = database.prepare('SELECT resolves_at FROM companion_life_events WHERE id = ? AND persona_id = ?').get(state.source_event_id, personaId);
-    if (!sourceEvent?.resolves_at || Date.parse(sourceEvent.resolves_at) > Date.now()) return state;
+    const currentTime = at instanceof Date ? at : new Date(at);
+    if (!sourceEvent?.resolves_at || Date.parse(sourceEvent.resolves_at) > currentTime.getTime()) return state;
     database.prepare("UPDATE companion_persona_states SET appearance_json = '{}' WHERE persona_id = ? AND source_event_id = ?").run(personaId, state.source_event_id);
     return {...state, appearance_json: '{}'};
 }
 
+function lifeStateResolverInputFor(persona, at) {
+    const currentTime = at instanceof Date ? new Date(at.getTime()) : new Date(at);
+    const life = blueprint(persona.id);
+    const scheduleItems = database.prepare('SELECT * FROM companion_schedule_items WHERE persona_id = ? AND status = \'active\'').all(persona.id).map(row => {
+        const details = json(row.details_json, {});
+        const scene = typeof details.scene === 'string' ? details.scene.trim() : '';
+        const usesDefaultRoom = Boolean(details.sceneRef) || !scene || /宿舍|房间|家中|住处/.test(scene);
+        return !usesDefaultRoom && !details.location && scene ? {...row, location: scene} : row;
+    });
+    const lifeEvents = database.prepare(`
+        SELECT * FROM companion_life_events
+        WHERE persona_id = ?
+          AND type NOT IN ('routine', 'schedule', 'shared_scene', 'shared_scene_end')
+          AND resolves_at IS NOT NULL
+          AND resolves_at > ?
+        ORDER BY occurred_at DESC, id DESC
+    `).all(persona.id, currentTime.toISOString());
+    const readyPlan = readyDailyPlanFor(persona, currentTime);
+    const legacyAiPlan = !readyPlan
+        ? database.prepare("SELECT * FROM companion_schedule_items WHERE persona_id = ? AND source = 'ai_daily_plan' AND status = 'active' AND starts_at <= ? AND (ends_at IS NULL OR ends_at > ?) ORDER BY starts_at DESC LIMIT 1").get(persona.id, currentTime.toISOString(), currentTime.toISOString())
+        : null;
+    const legacyDetails = json(legacyAiPlan?.details_json, {});
+    const dailyPlanProjection = legacyAiPlan ? {
+        id: legacyAiPlan.id,
+        planId: legacyAiPlan.id,
+        planDate: localPlanDate(currentTime, life.timezone),
+        source: 'daily_plan',
+        slotKind: 'planned',
+        title: legacyAiPlan.title,
+        situation: legacyDetails.situation || legacyAiPlan.title,
+        scene: legacyDetails.scene || '',
+        sceneRef: legacyDetails.sceneRef || null,
+        location: legacyDetails.location || (legacyDetails.scene && !legacyDetails.sceneRef ? legacyDetails.scene : ''),
+        room: legacyDetails.room || '',
+        startsAt: legacyAiPlan.starts_at,
+        endsAt: legacyAiPlan.ends_at || null,
+        timeFact: legacyAiPlan.ends_at ? 'known' : 'unknown'
+    } : null;
+    const dailyPlan = readyPlan
+        ? {
+            ...readyPlan,
+            timeline: composeDailyPlanTimeline(persona, readyPlan).map(slot => {
+                const persisted = database.prepare('SELECT id FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ? AND slot_key = ?').get(persona.id, readyPlan.plan_date, slot.slotKey);
+                return {...slot, slotId: persisted?.id || null, sourceId: persisted?.id || slot.slotKey};
+            })
+        }
+        : null;
+    return {
+        blueprint: life,
+        personaId: persona.id,
+        scheduleItems,
+        lifeEvents,
+        dailyPlan,
+        dailyPlanProjection,
+        presence: sharedSceneFor(persona.id),
+        currentTime
+    };
+}
+
 function resolvedStateFor(personaId, at = new Date()) {
     const persona = requirePersona(personaId);
-    const persisted = stateFor(personaId);
+    const currentTime = at instanceof Date ? new Date(at.getTime()) : new Date(at);
+    if (!Number.isFinite(currentTime.getTime())) throw new TypeError('resolvedStateFor requires a valid current time');
+    const persisted = stateFor(personaId, currentTime);
+    const resolved = lifeStateResolver(lifeStateResolverInputFor(persona, currentTime));
     const sharedScene = sharedSceneFor(personaId);
-    if (sharedScene) {
-        return {
-            ...persisted,
-            situation: sharedScene.situation,
-            mood: sharedScene.mood || persisted?.mood || '平静',
-            appearance_json: persisted?.appearance_json || '{}',
-            source_event_id: sharedScene.eventId,
-            resolved_source: 'shared_scene',
-            resolved_schedule_id: null,
-            resolved_source_id: sharedScene.eventId,
-            resolved_scene: sharedScene.activity || sharedScene.situation || '共同场景',
-            resolved_location: sharedScene.location,
-            resolved_room: sharedScene.room,
-            resolved_starts_at: sharedScene.startedAt || null,
-            resolved_ends_at: null,
-            resolved_time_fact: 'unknown',
-            resolved_next_boundary_at: null,
-            sourceId: sharedScene.eventId,
-            source: 'shared_scene',
-            startsAt: sharedScene.startedAt || null,
-            endsAt: null,
-            timeFact: 'unknown',
-            nextBoundaryAt: null,
-            location: sharedScene.location,
-            room: sharedScene.room,
-            shared_scene_json: JSON.stringify(sharedScene),
-            sharedScene
-        };
-    }
-    const resolved = scheduledState(persona, at);
     // The resolved state is a read-time projection.  It intentionally does
     // not wait for the five-minute reconciliation worker: chat, UI, and media
     // must observe the same current event/schedule/routine at this instant.
+    const isSharedScene = resolved.source === 'shared_scene';
+    const sourceEventPayload = resolved.source === 'event' && resolved.eventId
+        ? json(database.prepare('SELECT payload_json FROM companion_life_events WHERE id = ? AND persona_id = ?').get(resolved.eventId, personaId)?.payload_json, {})
+        : null;
+    const eventAppearanceValue = sourceEventPayload
+        ? sourceEventPayload.appearance ?? sourceEventPayload.temporaryAppearance ?? sourceEventPayload.appearance_json
+        : undefined;
+    const eventAppearance = eventAppearanceValue === undefined
+        ? null
+        : eventAppearanceValue && typeof eventAppearanceValue === 'object'
+            ? eventAppearanceValue
+            : json(eventAppearanceValue, {});
+    const appearance = isSharedScene
+        ? json(persisted?.appearance_json, {})
+        : (eventAppearance || json(persisted?.appearance_json, {}));
+    const mood = isSharedScene
+        ? sharedScene?.mood || persisted?.mood || '平静'
+        : sourceEventPayload && Object.hasOwn(sourceEventPayload, 'mood')
+            ? sourceEventPayload.mood || persisted?.mood || '平静'
+            : persisted?.mood || resolved.mood || '平静';
     return {
         ...persisted,
         situation: resolved.situation,
-        mood: resolved.mood || persisted?.mood || '平静',
-        appearance_json: JSON.stringify(resolved.appearance || json(persisted?.appearance_json, {})),
+        mood,
+        appearance_json: JSON.stringify(appearance),
         source_event_id: resolved.eventId || null,
         resolved_source: resolved.source,
         resolved_schedule_id: resolved.scheduleId || null,
@@ -909,15 +968,15 @@ function resolvedStateFor(personaId, at = new Date()) {
         nextBoundaryAt: resolved.nextBoundaryAt || resolved.endsAt || null,
         location: resolved.location || '',
         room: resolved.room || '',
-        shared_scene_json: '{}',
-        sharedScene: null
+        shared_scene_json: isSharedScene && sharedScene ? JSON.stringify(sharedScene) : '{}',
+        sharedScene: isSharedScene ? sharedScene : null
     };
 }
 
 function stateShape(personaId, at = new Date()) {
     const state = resolvedStateFor(personaId, at);
     if (!state) return null;
-    const persistedSourceId = stateFor(personaId)?.source_event_id || null;
+    const persistedSourceId = stateFor(personaId, at)?.source_event_id || null;
     const persistedSource = persistedSourceId
         ? database.prepare('SELECT id, type, occurred_at, causation_id, payload_json FROM companion_life_events WHERE id = ? AND persona_id = ?').get(persistedSourceId, personaId)
         : null;
@@ -3898,57 +3957,94 @@ function decodeCursor(cursor) {
 
 function activityShape(row) {
     const persona = personaRow(row.persona_id);
-    const comments = database.prepare(`
-        SELECT comments.*, characters.name AS character_name FROM companion_activity_comments comments
-        LEFT JOIN companion_supporting_characters characters ON characters.id = comments.supporting_character_id
-        WHERE comments.activity_id = ? ORDER BY comments.created_at, comments.id LIMIT 8
-    `).all(row.id).map(comment => ({id: comment.id, authorKind: comment.author_kind, authorName: comment.character_name || (comment.author_kind === 'user' ? '我' : persona?.name || ''), content: comment.content, createdAt: comment.created_at}));
+    const comments = activityRepository.listActivityComments({activityId: row.id, limit: 8}).map(comment => {
+        const character = comment.supporting_character_id
+            ? database.prepare('SELECT name FROM companion_supporting_characters WHERE id = ?').get(comment.supporting_character_id)
+            : null;
+        return {
+            id: comment.id,
+            authorKind: comment.author_kind,
+            authorName: character?.name || (comment.author_kind === 'user' ? '我' : persona?.name || ''),
+            content: comment.content,
+            createdAt: comment.created_at
+        };
+    });
+    const media = activityRepository.listActivityMedia({activityId: row.id}).flatMap(link => {
+        const asset = database.prepare('SELECT * FROM companion_media_assets WHERE id = ?').get(link.media_id);
+        return asset ? [{id: asset.id, kind: asset.media_kind, url: `/api/companion/media/${asset.id}`}] : [];
+    });
     return {
         id: row.id, persona: summary(persona), content: row.content, mediaMode: row.media_mode, mediaStatus: row.media_status,
         createdAt: row.created_at, comments,
         liked: Boolean(database.prepare("SELECT 1 FROM companion_activity_reactions WHERE activity_id = ? AND actor_kind = 'user'").get(row.id)),
-        media: database.prepare(`SELECT assets.* FROM companion_activity_media media JOIN companion_media_assets assets ON assets.id = media.media_id WHERE media.activity_id = ? ORDER BY media.position`).all(row.id).map(asset => ({id: asset.id, kind: asset.media_kind, url: `/api/companion/media/${asset.id}`}))
+        media
     };
 }
 
 function listActivities({personaId, cursor, limit = 20, visibility = 'visible'}) {
     const parsed = cursor ? decodeCursor(cursor) : null;
     if (cursor && !parsed) throw Object.assign(new Error('动态游标无效'), {status: 400});
-    const filters = [visibility === 'hidden'
-        ? 'EXISTS (SELECT 1 FROM companion_activity_visibility visibility WHERE visibility.activity_id = activities.id AND visibility.hidden_at IS NOT NULL)'
-        : 'NOT EXISTS (SELECT 1 FROM companion_activity_visibility visibility WHERE visibility.activity_id = activities.id AND visibility.hidden_at IS NOT NULL)'];
-    const values = [];
-    if (personaId) {
-        const persona = requirePersona(personaId);
-        filters.push('activities.persona_id = ?');
-        values.push(personaId);
-        if (visibility === 'visible' && persona.screened_at) {
-            filters.push('activities.created_at < ?');
-            values.push(persona.screened_at);
-        }
-    } else {
-        filters.push(`NOT EXISTS (SELECT 1 FROM companion_personas owners WHERE owners.id = activities.persona_id AND owners.screened_at IS NOT NULL AND activities.created_at >= owners.screened_at)`);
-    }
-    if (parsed) {
-        filters.push('(activities.created_at < ? OR (activities.created_at = ? AND activities.id < ?))');
-        values.push(parsed.createdAt, parsed.createdAt, parsed.id);
-    }
     const pageSize = clamp(Number(limit) || 20, 1, 50);
-    const rows = database.prepare(`SELECT activities.* FROM companion_activities activities WHERE ${filters.join(' AND ')} ORDER BY activities.created_at DESC, activities.id DESC LIMIT ?`).all(...values, pageSize + 1);
-    const hasMore = rows.length > pageSize;
+    const repositoryVisibility = visibility === 'hidden' ? 'hidden' : 'visible';
+    const persona = personaId ? requirePersona(personaId) : null;
+    const rows = [];
+    let repositoryCursor = parsed;
+    let exhausted = false;
+
+    // The repository owns raw activity ordering. Keep visibility, screened-
+    // persona policy, and the page boundary in the application layer.
+    while (rows.length <= pageSize && !exhausted) {
+        const batchLimit = Math.min(50, pageSize + 1);
+        const batch = activityRepository.listActivities({
+            personaId: personaId || undefined,
+            cursor: repositoryCursor,
+            limit: batchLimit,
+            visibility: 'all'
+        });
+        if (!batch.length) {
+            exhausted = true;
+            break;
+        }
+        for (const row of batch) {
+            const owner = personaId
+                ? persona
+                : database.prepare('SELECT screened_at FROM companion_personas WHERE id = ?').get(row.persona_id);
+            const visibilityRow = database.prepare('SELECT hidden_at FROM companion_activity_visibility WHERE activity_id = ?').get(row.id);
+            const hidden = Boolean(visibilityRow?.hidden_at);
+            const visibilityMatch = repositoryVisibility === 'hidden' ? hidden : !hidden;
+            const screenedOut = repositoryVisibility === 'visible' && owner?.screened_at && row.created_at >= owner.screened_at;
+            if (visibilityMatch && !screenedOut) rows.push(row);
+            if (rows.length > pageSize) break;
+        }
+        const lastRow = batch.at(-1);
+        repositoryCursor = lastRow ? {createdAt: lastRow.created_at, id: lastRow.id} : repositoryCursor;
+        if (rows.length > pageSize || batch.length < batchLimit) exhausted = true;
+    }
+
     const items = rows.slice(0, pageSize);
-    return {items: items.map(activityShape), nextCursor: hasMore ? cursorFor(items.at(-1)) : null};
+    return {items: items.map(activityShape), nextCursor: rows.length > pageSize ? cursorFor(items.at(-1)) : null};
 }
 
 function addActivityComment(activityId, content) {
-    const activity = database.prepare('SELECT * FROM companion_activities WHERE id = ?').get(activityId);
+    const activity = activityRepository.findActivity(activityId);
     if (!activity) throw Object.assign(new Error('动态不存在'), {status: 404});
-    const text = String(content || '').trim();
+    if (typeof content !== 'string') throw Object.assign(new Error('评论内容必须是文本'), {status: 400});
+    const text = content.trim();
     if (!text) throw new Error('评论不能为空');
     const createdAt = now();
     const comment = {id: id('comment'), content: text.slice(0, 500), authorKind: 'user', authorName: '我', createdAt};
     database.transaction(() => {
-        database.prepare("INSERT INTO companion_activity_comments (id, activity_id, author_kind, content, created_at) VALUES (?, ?, 'user', ?, ?)").run(comment.id, activity.id, comment.content, createdAt);
+        activityRepository.insertActivityComment({
+            id: comment.id,
+            activityId: activity.id,
+            personaId: activity.persona_id,
+            parentCommentId: null,
+            authorKind: 'user',
+            authorPersonaId: null,
+            supportingCharacterId: null,
+            content: comment.content,
+            createdAt
+        });
         database.prepare("INSERT INTO companion_memories (id, persona_id, memory_key, value, confidence, status, source_type, source_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'active', 'activity_comment', ?, ?, ?)").run(id('memory'), activity.persona_id, '动态互动', comment.content, .7, comment.id, createdAt, createdAt);
     })();
     return comment;
@@ -3968,19 +4064,21 @@ function addSupportingComment(activityId, personaId, characterId, eventType) {
 }
 
 function setUserReaction(activityId, liked) {
-    const activity = database.prepare('SELECT id FROM companion_activities WHERE id = ?').get(activityId);
+    const activity = activityRepository.findActivity(activityId);
     if (!activity) throw Object.assign(new Error('动态不存在'), {status: 404});
-    database.transaction(() => {
-        database.prepare("DELETE FROM companion_activity_reactions WHERE activity_id = ? AND actor_kind = 'user'").run(activity.id);
-        if (liked) database.prepare("INSERT INTO companion_activity_reactions (activity_id, actor_kind, supporting_character_id, created_at) VALUES (?, 'user', NULL, ?)").run(activity.id, now());
-    })();
+    activityRepository.setUserReaction({
+        activityId: activity.id,
+        personaId: activity.persona_id,
+        liked,
+        createdAt: now()
+    });
     return {liked};
 }
 
 function enqueueJob(input) {
     const createdAt = now();
     const job = {id: id('job'), jobType: input.jobType, personaId: input.personaId || null, activityId: input.activityId || null, messageId: input.messageId || null, priority: Number(input.priority) || 0, runAfter: input.runAfter || createdAt, maxAttempts: Number(input.maxAttempts) || 3, payload: input.payload || {}};
-    database.prepare(`INSERT INTO companion_jobs (id, job_type, status, priority, run_after, max_attempts, persona_id, activity_id, message_id, payload_json, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(job.id, job.jobType, job.priority, job.runAfter, job.maxAttempts, job.personaId, job.activityId, job.messageId, JSON.stringify(job.payload), createdAt, createdAt);
+    jobRepository.enqueue({...job, createdAt, updatedAt: createdAt});
     return job;
 }
 
@@ -4484,7 +4582,11 @@ function completePolledMediaJob(job, promptId, files, provider = 'comfyui') {
         const active = database.prepare("SELECT * FROM companion_jobs WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?").get(job.id, job.lease_owner, settledAt);
         if (!active) return;
         assets = mediaAssets(files, provider);
-        if (job.activity_id) for (const [position, asset] of assets.entries()) database.prepare('INSERT OR IGNORE INTO companion_activity_media (activity_id, media_id, position) VALUES (?, ?, ?)').run(job.activity_id, asset.id, position);
+        if (job.activity_id) {
+            for (const [position, asset] of assets.entries()) {
+                activityRepository.insertActivityMedia({activityId: job.activity_id, personaId: job.persona_id, mediaId: asset.id, position});
+            }
+        }
         const externalId = provider === 'h3' ? persistedH3ExternalId(promptId) : promptId;
         const currentResult = json(active.result_json, {});
         const result = mergeJobResult(currentResult, {
@@ -4584,15 +4686,11 @@ function createChatMediaRequest(personaId, input, provenance = {}) {
 function claimJob() {
     const owner = id('lease');
     const time = now();
-    let job = null;
-    database.transaction(() => {
-        const candidate = database.prepare(`SELECT * FROM companion_jobs WHERE (status = 'queued' AND run_after <= ?) OR (status = 'leased' AND lease_expires_at < ?) ORDER BY run_after, priority DESC, created_at LIMIT 1`).get(time, time);
-        if (!candidate) return;
-        const leaseMs = leaseDurationForJob(candidate);
-        const updated = database.prepare(`UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ?, attempt_count = attempt_count + 1, updated_at = ? WHERE id = ? AND ((status = 'queued' AND run_after <= ?) OR (status = 'leased' AND lease_expires_at < ?))`).run(owner, new Date(Date.now() + leaseMs).toISOString(), time, candidate.id, time, time);
-        if (updated.changes) job = {...candidate, lease_owner: owner, attempt_count: Number(candidate.attempt_count) + 1};
-    })();
-    return job;
+    return jobRepository.claim({
+        leaseOwner: owner,
+        now: time,
+        leaseMs: candidate => leaseDurationForJob(candidate)
+    });
 }
 
 function leaseDurationForJob(job) {
@@ -4730,8 +4828,18 @@ function settleJob(job, {result, error, progressStage, terminal = false}) {
             }
         }
         if (progressStage && nextResult.progress) nextResult.progress = terminalMediaProgress(nextResult.progress, active, progressStage, settledAt);
-        const resultJson = Object.keys(nextResult).length ? JSON.stringify(nextResult) : active.result_json || null;
-        changed = database.prepare(`UPDATE companion_jobs SET status = ?, lease_owner = NULL, lease_expires_at = NULL, run_after = ?, result_json = ?, error = ?, updated_at = ?, completed_at = ? WHERE id = ? AND status = 'leased' AND lease_owner = ? AND lease_expires_at > ?`).run(status, complete ? settledAt : retryAt, resultJson, error || null, settledAt, complete ? settledAt : null, active.id, job.lease_owner, settledAt).changes;
+        const settlement = {
+            id: active.id,
+            personaId: active.persona_id,
+            leaseOwner: job.lease_owner,
+            status,
+            runAfter: complete ? settledAt : retryAt,
+            error: error || null,
+            now: settledAt
+        };
+        if (Object.keys(nextResult).length) settlement.result = nextResult;
+        const transition = status === 'queued' ? jobRepository.retry(settlement) : jobRepository.settle(settlement);
+        changed = Number(transition.changed);
     })();
     return {status, changed: Boolean(changed)};
 }
@@ -5527,9 +5635,14 @@ app.put('/api/companion/activities/:activityId/like', route((req, res) => {
 }));
 app.put('/api/companion/activities/:activityId/hide', route((req, res) => {
     if (typeof req.body?.hidden !== 'boolean') throw new Error('hidden 必须是布尔值');
-    const activity = database.prepare('SELECT id FROM companion_activities WHERE id = ?').get(req.params.activityId);
+    const activity = activityRepository.findActivity(req.params.activityId);
     if (!activity) return res.status(404).json({error: '动态不存在'});
-    database.prepare('INSERT INTO companion_activity_visibility (activity_id, hidden_at, updated_at) VALUES (?, ?, ?) ON CONFLICT(activity_id) DO UPDATE SET hidden_at = excluded.hidden_at, updated_at = excluded.updated_at').run(activity.id, req.body.hidden ? now() : null, now());
+    const updatedAt = now();
+    if (req.body.hidden) {
+        activityRepository.hideActivity({activityId: activity.id, hiddenAt: updatedAt, updatedAt});
+    } else {
+        activityRepository.restoreActivity({activityId: activity.id, updatedAt});
+    }
     res.json({hidden: req.body.hidden});
 }));
 

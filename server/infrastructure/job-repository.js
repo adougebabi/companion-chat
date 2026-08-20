@@ -120,11 +120,12 @@ function leaseOwnerFor(input, generateId) {
     return requiredText(configured === undefined ? generateId('lease') : configured, 'Job.leaseOwner');
 }
 
-function leaseExpiryFor(input, leasedAt) {
+function leaseExpiryFor(input, leasedAt, candidate) {
     const configured = valueFor(input, 'leaseExpiresAt', 'lease_expires_at') ?? input.leaseUntil;
     if (configured !== undefined) return timestamp(configured, 'Job.leaseExpiresAt');
 
-    const duration = input.leaseMs ?? input.leaseDurationMs;
+    const configuredDuration = input.leaseMs ?? input.leaseDurationMs;
+    const duration = typeof configuredDuration === 'function' ? configuredDuration(candidate) : configuredDuration;
     if (!Number.isFinite(duration) || duration <= 0) {
         throw new RangeError('Job lease requires leaseExpiresAt or a positive leaseMs');
     }
@@ -202,8 +203,6 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
         assertRecord(input, 'Job claim input');
         const claimedAt = timestamp(input.now ?? now(), 'Job.claimedAt');
         const owner = leaseOwnerFor(input, generateId);
-        const leaseExpiresAt = leaseExpiryFor(input, claimedAt);
-        assertLeaseExpiryAfter(leaseExpiresAt, claimedAt);
         const scope = personaScope(valueFor(input, 'personaId', 'persona_id'));
 
         return openDatabase.transaction(() => {
@@ -216,6 +215,8 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
             `).get(claimedAt, claimedAt, ...scope.values);
             if (!candidate) return null;
 
+            const leaseExpiresAt = leaseExpiryFor(input, claimedAt, candidate);
+            assertLeaseExpiryAfter(leaseExpiresAt, claimedAt);
             const changed = openDatabase.prepare(`
                 UPDATE companion_jobs
                 SET status = 'leased', lease_owner = ?, lease_expires_at = ?,

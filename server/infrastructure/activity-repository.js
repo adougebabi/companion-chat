@@ -228,7 +228,7 @@ export function createActivityRepository({database} = {}) {
         const position = nonNegativeInteger(input.position, 'Activity media.position');
         requireActivity({...input, activityId});
         openDatabase.prepare(`
-            INSERT INTO companion_activity_media (activity_id, media_id, position)
+            INSERT OR IGNORE INTO companion_activity_media (activity_id, media_id, position)
             VALUES (?, ?, ?)
         `).run(activityId, mediaId, position);
         return openDatabase.prepare(`
