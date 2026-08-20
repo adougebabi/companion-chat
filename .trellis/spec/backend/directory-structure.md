@@ -14,6 +14,16 @@ compose.yaml       Single-service Docker deployment
 
 There is no `src/server`, controller directory, ORM layer, or separate service package. `server.js` stays vertically organized: configuration/storage migrations, table helpers, life/context logic, API routes, durable job worker, and startup.
 
+During the backend modular migration, the planned `server/` tree may be introduced incrementally:
+
+```text
+server/contracts/              pure DTO, capability, SSE, port, and flow-result contracts
+server/application/            typed flow registry and use-case steps
+server/index.js                inert composition root until the final cutover gate
+```
+
+`server/contracts` and `server/application` must remain importable without opening SQLite, binding an HTTP port, contacting a provider, or importing the legacy `server.js` entrypoint. The package continues to start `server.js` until the final migration switches package/Docker/CI entrypoints together.
+
 ## Adding Backend Behavior
 
 - Put pure transformations near their persistence/context owner (`cleanUrl`, `contextFor`, `scheduledState`, `activityShape`).

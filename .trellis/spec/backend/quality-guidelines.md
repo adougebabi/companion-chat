@@ -21,3 +21,10 @@
 Run `npm test` and `node --check server.js`. Also start the service against a temporary `DATA_DIR`, call `/api/health`, and exercise changed routes with representative success and failure payloads. Do not test against the checked-out `data/` database.
 
 Review the full request-to-storage-to-UI path for every API change and verify that SSE errors close streams and background workers release their guards.
+
+## Modular Contract Slice
+
+- Contract and flow-registry modules under `server/contracts` and `server/application` must be independently importable and side-effect free.
+- A flow step returns `facts`, `projections`, `effects`, and `presentation`; it does not open SQLite, write a job, call a provider, or emit SSE directly.
+- Native capability normalization is consumed through the frozen `CapabilityCall` handoff. Do not add a second stream accumulator or capability dispatcher in the backend migration.
+- Keep the legacy `server.js` production entrypoint unchanged until the new composition root passes normalized replay and the final API/worker/browser deletion gate.

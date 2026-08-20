@@ -6,6 +6,6 @@
 {"file":".trellis/spec/backend/error-handling.md","reason":"Provider, HTTP, SSE and worker error semantics to preserve in generic effect settlement."}
 {"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Producer/consumer and persistence/provider/browser contract review across the vertical and horizontal axes."}
 {"file":".trellis/tasks/08-20-backend-modular-boundaries/design.md","reason":"Backend-specific target modules, ports, flow runner and final deletion boundary."}
-{"file":".trellis/tasks/08-20-native-tool-call-migration/prd.md","reason":"Frozen native capability scope, compatibility requirements, fallback matrix, idempotency and SSE acceptance criteria."}
-{"file":".trellis/tasks/08-20-native-tool-call-migration/design.md","reason":"Canonical CapabilityCall envelope, accumulator, native-first dispatch, continuation, provenance and failure semantics consumed by backend flows."}
-{"file":".trellis/tasks/08-20-native-tool-call-migration/implement.md","reason":"Native migration order and cutover gate; backend Phase 3 must consume its dispatcher rather than duplicate it."}
+{"file":".trellis/tasks/archive/2026-08/08-20-native-tool-call-migration/prd.md","reason":"Frozen native capability scope, compatibility requirements, fallback matrix, idempotency and SSE acceptance criteria."}
+{"file":".trellis/tasks/archive/2026-08/08-20-native-tool-call-migration/design.md","reason":"Canonical CapabilityCall envelope, accumulator, native-first dispatch, continuation, provenance and failure semantics consumed by backend flows."}
+{"file":".trellis/tasks/archive/2026-08/08-20-native-tool-call-migration/implement.md","reason":"Native migration order and cutover gate; backend Phase 3 must consume its dispatcher rather than duplicate it."}
