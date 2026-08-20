@@ -11,6 +11,7 @@
 - 前端迁移方向确定为 Vue 3 + TypeScript + Vite，并采用一次性整体重写活跃客户端，不保留新旧 UI 长期并行路径。
 - Pinia 管理跨页面 server/app state；composables 管理聊天、SSE、历史分页、composer 和输入法副作用；组件本地状态管理短暂 UI 状态。
 - 父任务/后端架构讨论负责稳定 API/DTO 边界；本任务负责浏览器请求、状态、渲染、交互和技术迁移。
+- native tool-call 和 backend flow 的结构化结果由对应任务冻结；本任务只消费 `done.messages`、SSE event 和 typed DTO，不在浏览器解析 tool JSON、推断 capability 语义或创建持久化副作用。
 
 ## Requirements
 
@@ -55,6 +56,6 @@
 
 ## Dependencies And Out Of Scope
 
-- 依赖父任务的 cross-layer SSE/API contract review；依赖 backend child 提供批量 activity DTO 后再优化消费端。
+- 依赖父任务的 cross-layer SSE/API contract review；依赖 backend child 提供批量 activity DTO，并依赖 native tool-call child 冻结 `done` capability result 形状后再优化消费端。
 - 在父任务确定实体、关系、生活流和当前在场状态的顶层模型前，本子任务只做启动/渲染架构讨论，不启动页面重组或状态迁移实现。
 - 不修改聊天 prompt、模型 tool schema 或 SQLite schema；一次性重写活跃客户端，旧 UI 不作为新入口继续运行。视觉语言和设计系统重做明确不属于本任务，后续另立任务。

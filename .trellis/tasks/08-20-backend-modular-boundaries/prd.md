@@ -29,6 +29,7 @@ Prompt context is another shared pipeline: horizontal modules emit typed `Contex
 - `runMediaJob` 改为注册式 dispatcher，避免新的 job type 继续扩张中心分支。
 - 迁移每个边界后保留完整 API test 和 temporary database 验证。
 - 与现有 prompt optimization、shared-scene、media_event 未提交改动明确整合，不重复实现相同契约。
+- 复用 native tool-call 任务冻结的 `CapabilityCall` envelope；backend 只定义 `CapabilityResult` / `EffectIntent` 的 flow 边界，不再创建第二套 accumulator 或 dispatcher。
 
 ## Acceptance Criteria
 
@@ -42,9 +43,10 @@ Prompt context is another shared pipeline: horizontal modules emit typed `Contex
 - [ ] 聊天、生活、媒体、主动行为和关系流程均通过统一 pipeline/step registry 执行，不再各自复制事务、job、retry 或 provider orchestration。
 - [ ] 迁移期间有 contract fixtures、pipeline tests、normalized replay/dry-run 对照；删除旧层后再次运行完整 API/worker 测试。
 - [ ] flow/step/effect correlation、脱敏结构化日志、SQLite lease/retry 恢复和上一构建回滚路径有验证。
+- [ ] native capability handoff 有明确记录：native dispatcher 负责 transport normalization/validation/order，generic runner 负责 facts/projections/effects 的事务与 settlement；`causationUserMessageId` 与统一 `causationId` 的关系已固定。
 
 ## Dependencies And Out Of Scope
 
-- 依赖 native tool child 定义 capability dispatcher 的调用边界；依赖 parent contract review。
+- 依赖 native tool child 已冻结的 `CapabilityCall`/registry/continuation 契约；依赖 parent contract review。Phase 0/1 可在契约 review 后开始，Capability/Chat Flow 的实现必须等 native dispatcher 代码完成并通过其集成验证。
 - 在父任务确定“自主 AI 实体/关系/生活运行时”的领域边界前，本子任务只做架构方案讨论和边界草图，不启动文件拆分实现；实现阶段允许分批施工，但最终必须一次性切换并清理遗留层。
 - 不更换数据库、队列、HTTP 框架或前端技术栈；不在本子任务中做 Fluctlight 文案改名。

@@ -8,6 +8,7 @@ This is one complete frontend migration. Work is staged internally, but the fina
 - Record API DTOs, SSE frames, loading/error/empty states, media states, dialog flows and accessibility labels.
 - Add typed contract fixtures for bootstrap, persona detail/create, conversations, cursor pages, chat SSE, activities, settings, media and debug inspector.
 - Define browser behavior fixtures for contacts-first boot, IME composition, draft preservation, scroll anchor and stream reconciliation.
+- Load the native/backend handoff fixtures and record that the browser consumes DTO/SSE results without parsing tool JSON or recreating capability side effects.
 
 ## Phase 1: Vite/Vue Foundation
 

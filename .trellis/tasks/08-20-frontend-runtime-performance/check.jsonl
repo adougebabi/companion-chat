@@ -3,3 +3,5 @@
 {"file":".trellis/tasks/08-20-frontend-runtime-performance/implement.md","reason":"Verify complete workflow coverage, staged migration, mobile checks, Vite delivery and final deletion."}
 {"file":".trellis/spec/frontend/state-management.md","reason":"Audit draft, composition, pagination, stream, refresh and scroll behavior."}
 {"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Run final TypeScript/Vite/Express-served desktop and mobile browser gate."}
+{"file":".trellis/tasks/08-20-native-tool-call-migration/design.md","reason":"Check that browser state never parses native tool JSON and preserves bounded capability results and SSE failure semantics."}
+{"file":".trellis/tasks/08-20-backend-modular-boundaries/design.md","reason":"Check API/DTO/SSE handoff and ensure the Vue client does not duplicate backend domain or persistence rules."}

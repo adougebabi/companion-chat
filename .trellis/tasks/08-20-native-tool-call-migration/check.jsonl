@@ -1,1 +1,6 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/spec/backend/shared-scene-contract.md","reason":"Check scene_event cardinality, causation, projection, continuation, and no free-text side effects."}
+{"file":".trellis/spec/backend/media-prompt-contract.md","reason":"Check native media schema, malformed-call rejection, frozen concept/job provenance, and no heuristic fallback."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Check malformed SSE collection, visible token redaction, provider failure, and continuation failure behavior."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Check database/API/SSE compatibility, lease behavior, syntax/tests, and temporary-data verification."}
+{"file":".trellis/tasks/archive/2026-08/08-20-fluctlight-architecture-performance-modernization/research/mtplx-tool-call-results.md","reason":"Check streaming fragment and follow-up fixtures against the provider evidence."}
+{"file":".trellis/tasks/08-20-backend-modular-boundaries/design.md","reason":"Check that the implementation creates one dispatcher and preserves the future backend CapabilityCall boundary."}

@@ -113,6 +113,25 @@ Required transport contracts:
 
 Schemas are validated at boundaries. Internal domain objects are not sent directly to the browser.
 
+## Native Capability Handoff
+
+The native-tool migration owns the transport-facing capability adapter during the transition. It freezes the `CapabilityCall` envelope, provider-index ordering, native/marker precedence, malformed-call behavior, and the single continuation limit. The backend task must consume those outputs rather than implement a second stream accumulator or dispatcher.
+
+The handoff is:
+
+```text
+CompletionRecord.toolCalls
+  -> CapabilityCall[]
+      -> CapabilityDispatcher
+          -> CapabilityResult[] + EffectIntent[]
+              -> Flow runner transaction/effect registry
+                  -> PresentationEvent[] -> token/done/error SSE
+```
+
+`CapabilityCall.causationUserMessageId` is the domain source message and is copied into the flow's `causationId` when the call enters `ChatTurnFlow`. The flow-level `correlationId` and `requestId` remain distinct observability fields. Native call ids and deterministic idempotency keys remain capability provenance, not browser payload fields.
+
+During the native migration, a compatibility adapter may wrap existing `applySceneEvent()`, `createChatMediaRequest()`, and `createPendingEvent()` helpers behind ports so the current service remains runnable. Those helpers may not become a second dispatcher. The final backend runner owns transaction boundaries, durable effect-intent persistence, lease/retry/settlement, and presentation mapping; capability handlers return facts, projections, effect intents, and bounded result data.
+
 ## Context And Prompt Pipeline
 
 Horizontal modules emit structured fragments:

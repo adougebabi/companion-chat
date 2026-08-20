@@ -16,6 +16,7 @@ The work is staged for verification but belongs to one final migration. Temporar
 - Add the generic flow registry/runner with a mock effect executor.
 - Add correlation/causation IDs and bounded redacted logging.
 - Keep the old root runnable only as a temporary comparison path.
+- Freeze the native task's `CapabilityCall`/registry contract in a handoff fixture; do not reimplement its accumulator.
 
 ## Phase 2: Infrastructure Ports
 
@@ -28,8 +29,8 @@ The work is staged for verification but belongs to one final migration. Temporar
 ## Phase 3: Conversation And Capability Flow
 
 - Implement `ChatTurnFlow` with typed context fragments and `ContextBudgeter`/`PromptSerializer` ports.
-- Move native tool-call parsing and marker fallback into `CapabilityTransportAdapter`.
-- Implement `CapabilityDispatcher` returning domain commands/effect intents, not direct SQL/jobs.
+- Consume the native task's `CapabilityCall` output through `CapabilityTransportAdapter`; do not create a second parser/dispatcher.
+- Implement the backend `CapabilityDispatcher` flow step as a consumer that returns `CapabilityResult`/`EffectIntent`; generic runner owns SQL/jobs and settlement.
 - Preserve `token/done/error`, `done.messages`, `done.message`, deferred-chat empty messages and tool continuation semantics.
 - Add native MTPLX fixtures, malformed-call fixtures, disconnect tests and dry-run effect tests.
 
@@ -57,6 +58,7 @@ The work is staged for verification but belongs to one final migration. Temporar
 ## Phase 7: Replay, Cutover And Deletion
 
 - Run old/new normalized replay with all external effects in dry-run mode.
+- Verify native and backend handoff fixtures have one dispatcher and one idempotency/provenance contract.
 - Run temporary-database API, SSE, worker, restart, lease, provider-failure and browser smoke tests.
 - Switch package scripts, Docker, CI and health checks to `server/index.js`.
 - Delete old `server.js`, `companionTestHooks`, duplicate dispatchers, duplicate providers and old route implementations.

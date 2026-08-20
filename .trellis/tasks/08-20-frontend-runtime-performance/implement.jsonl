@@ -1,7 +1,9 @@
-{"file":".trellis/tasks/08-20-fluctlight-architecture-performance-modernization/design.md","reason":"Parent delivery, two-dimensional boundaries, frontend cutover, migration verification and observability decisions."}
-{"file":".trellis/tasks/08-20-fluctlight-architecture-performance-modernization/research/mtplx-tool-call-results.md","reason":"Provider behavior needed for chat tool/SSE fixtures; research only, not a browser runtime dependency."}
+{"file":".trellis/tasks/archive/2026-08/08-20-fluctlight-architecture-performance-modernization/design.md","reason":"Archived parent delivery, two-dimensional boundaries, frontend cutover, migration verification and observability decisions."}
+{"file":".trellis/tasks/archive/2026-08/08-20-fluctlight-architecture-performance-modernization/research/mtplx-tool-call-results.md","reason":"Provider behavior needed for chat tool/SSE fixtures; research only, not a browser runtime dependency."}
 {"file":".trellis/spec/frontend/index.md","reason":"Active client boundary and legacy entry constraints during the web/dist rewrite."}
 {"file":".trellis/spec/frontend/state-management.md","reason":"Contacts-first boot, cursor pages, stream reconciliation, draft, IME, focus and scroll contracts."}
 {"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Typecheck/build/browser/mobile/SSE verification requirements and safe rendering rules."}
 {"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"API/SSE/storage/provider/DOM producer-consumer review for the new Vue client."}
 {"file":".trellis/tasks/08-20-frontend-runtime-performance/design.md","reason":"Vue source layout, Pinia/composable state, pagination, SSE, build and deletion boundary."}
+{"file":".trellis/tasks/08-20-native-tool-call-migration/design.md","reason":"Frozen native tool-call/SSE behavior; the new client consumes done.messages and bounded capability results without parsing tool JSON."}
+{"file":".trellis/tasks/08-20-backend-modular-boundaries/design.md","reason":"Backend/native handoff, stable DTO/SSE contracts, and the final composition-root boundary consumed by the Vue client."}

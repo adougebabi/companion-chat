@@ -6,6 +6,12 @@ Rewrite the active client once in Vue 3 + TypeScript + Vite + Pinia. The current
 
 The rewrite preserves API paths, response fields, SSE event names, SQLite-backed behavior, existing information architecture and current visual language. It includes technical layout stability and state feedback, but not a new visual design system.
 
+## Cross-Layer Contract Handoff
+
+The Vue client consumes the backend/native contracts; it does not become a second capability interpreter. `useChatStream` handles only `token`, `done`, and `error`, uses ordered `done.messages` plus the compatibility `done.message`, and treats bounded capability result fields as status data. Native tool-call JSON, provider reasoning, idempotency keys, causation ids, and persistence payloads never enter browser state.
+
+The frontend migration may begin its Phase 0 inventory and typed fixtures before backend cutover, but page/state implementation must pin the current DTO/SSE fixtures first. Activity batching comes from the backend task; native continuation/error behavior comes from the native task. A frontend contract change must be reviewed against both task designs before it reaches `web/src/api/contracts.ts`.
+
 ## Source Layout
 
 ```text

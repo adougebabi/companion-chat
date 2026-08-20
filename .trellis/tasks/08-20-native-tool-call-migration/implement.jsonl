@@ -1,1 +1,7 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
+{"file":".trellis/spec/backend/shared-scene-contract.md","reason":"Canonical scene_event schema, persona-scoped scene persistence, continuation, and native/marker compatibility rules."}
+{"file":".trellis/spec/backend/media-prompt-contract.md","reason":"MediaCapabilityCallV2 validation, frozen concept provenance, durable jobs, provider boundaries, and marker fallback rules."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"SSE parseErrors, malformed capability behavior, partial reply persistence, and provider/continuation failure semantics."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"SQLite ownership, SSE compatibility, temporary DATA_DIR verification, and no-secret/no-second-store constraints."}
+{"file":".trellis/tasks/archive/2026-08/08-20-fluctlight-architecture-performance-modernization/research/mtplx-tool-call-results.md","reason":"Verified MTPLX streaming index fragments, reasoning_content, [DONE], and tool-result follow-up behavior."}
+{"file":".trellis/tasks/08-19-persona-shared-scene-generation-policy/design.md","reason":"Existing scene/media native path and continuation intent that this migration must consolidate without creating a second dispatcher."}
+{"file":".trellis/tasks/08-20-backend-modular-boundaries/design.md","reason":"Target CapabilityCall, CapabilityDispatcher, ConversationRepository, EffectPublisher, and SSE compatibility boundary for the later backend split."}

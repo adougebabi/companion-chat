@@ -3,3 +3,4 @@
 {"file":".trellis/tasks/08-20-backend-modular-boundaries/implement.md","reason":"Verify phased execution, replay/dry-run, deletion gate, rollback and completion commands."}
 {"file":".trellis/spec/backend/quality-guidelines.md","reason":"Run final backend quality gate for syntax, tests, routes, leases, provider failures and temporary database recovery."}
 {"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Audit API, SSE, SQLite, provider, effect and browser contracts after the old layer is deleted."}
+{"file":".trellis/tasks/08-20-native-tool-call-migration/design.md","reason":"Check the backend/native handoff, one dispatcher rule, causation mapping, idempotency and continuation compatibility."}
