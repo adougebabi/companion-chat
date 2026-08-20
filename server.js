@@ -5,6 +5,7 @@ import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 import Database from 'better-sqlite3';
+import {createConversationRepository} from './server/infrastructure/conversation-repository.js';
 import {createPendingEventRepository} from './server/infrastructure/pending-event-repository.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -72,6 +73,7 @@ const database = new Database(databasePath);
 database.pragma('journal_mode = WAL');
 database.pragma('foreign_keys = ON');
 database.pragma('busy_timeout = 5000');
+const conversationRepository = createConversationRepository({database});
 
 const companionMigrations = [
     {
@@ -2218,7 +2220,7 @@ function eventFromSimulation(persona, input) {
 }
 
 function conversation(personaId) {
-    return database.prepare('SELECT * FROM companion_conversations WHERE persona_id = ?').get(personaId);
+    return conversationRepository.getOrCreateConversation({personaId, id: id('conversation'), createdAt: now()});
 }
 
 function messageShape(row) {
@@ -2236,16 +2238,11 @@ function listMessages(personaId, {cursor, limit = 50, markRead = true} = {}) {
     const thread = conversation(item.id);
     const parsed = cursor ? decodeCursor(cursor) : null;
     if (cursor && !parsed) throw Object.assign(new Error('会话游标无效'), {status: 400});
-    const values = [thread.id];
-    let where = 'conversation_id = ?';
-    if (parsed) {
-        where += ' AND (created_at < ? OR (created_at = ? AND id < ?))';
-        values.push(parsed.createdAt, parsed.createdAt, parsed.id);
-    }
-    const rows = database.prepare(`SELECT * FROM companion_messages WHERE ${where} ORDER BY created_at DESC, id DESC LIMIT ?`).all(...values, clamp(Number(limit) || 50, 1, 100));
-    const messages = rows.reverse().map(messageShape);
-    if (markRead) database.prepare("UPDATE companion_messages SET read_at = ? WHERE conversation_id = ? AND role = 'assistant' AND read_at IS NULL").run(now(), thread.id);
-    return {items: messages, nextCursor: rows.length === clamp(Number(limit) || 50, 1, 100) ? cursorFor(rows.at(-1)) : null};
+    const pageSize = clamp(Number(limit) || 50, 1, 100);
+    const rows = conversationRepository.listMessages({conversationId: thread.id, cursor: parsed, limit: pageSize});
+    const messages = [...rows].reverse().map(messageShape);
+    if (markRead) conversationRepository.updateReadAt({conversationId: thread.id, role: 'assistant', readAt: now()});
+    return {items: messages, nextCursor: rows.length === pageSize ? cursorFor(rows.at(-1)) : null};
 }
 
 function appendMessage(personaId, input) {
@@ -2258,11 +2255,18 @@ function appendMessage(personaId, input) {
         proactivePendingEventId: input.proactivePendingEventId
     };
     const suppressUnread = value.role === 'assistant' && Boolean(personaRow(personaId)?.screened_at);
-    database.transaction(() => {
-        database.prepare('INSERT INTO companion_messages (id, conversation_id, role, text, attachments_json, generation_json, jobs_json, proactive_event_id, proactive_pending_event_id, created_at, read_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(value.id, thread.id, value.role, value.text, JSON.stringify(value.attachments), value.generation ? JSON.stringify(value.generation) : null, JSON.stringify(value.jobs), value.proactiveEventId || null, value.proactivePendingEventId || null, createdAt, value.role === 'user' || suppressUnread ? createdAt : null);
-        database.prepare('UPDATE companion_conversations SET updated_at = ? WHERE id = ?').run(createdAt, thread.id);
+    const inserted = database.transaction(() => {
+        const row = conversationRepository.appendMessage({
+            id: value.id, conversationId: thread.id, role: value.role, text: value.text,
+            attachmentsJson: JSON.stringify(value.attachments), generationJson: value.generation ? JSON.stringify(value.generation) : null,
+            jobsJson: JSON.stringify(value.jobs), proactiveEventId: value.proactiveEventId || null,
+            proactivePendingEventId: value.proactivePendingEventId || null, createdAt,
+            readAt: value.role === 'user' || suppressUnread ? createdAt : null
+        });
+        conversationRepository.updateConversationTimestamp({conversationId: thread.id, updatedAt: createdAt});
+        return row;
     })();
-    return messageShape(database.prepare('SELECT * FROM companion_messages WHERE id = ?').get(value.id));
+    return messageShape(inserted);
 }
 
 function replySentenceEnding(text) {

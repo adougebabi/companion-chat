@@ -580,6 +580,25 @@ test('user-visible assistant replies are sentence-scoped, ordered, and isolated 
     assert.equal(extractMediaIntent('今天聊聊天。').media, null);
 });
 
+test('conversation cursors advance from the oldest row in each returned page', () => {
+    const persona = createPersona({name: '会话分页', role: '陪伴者', foundation: '用于验证会话游标连续性。'});
+    try {
+        const messages = [
+            appendMessage(persona.id, {role: 'user', text: '第一页之前。'}),
+            appendMessage(persona.id, {role: 'user', text: '第一页之后。'}),
+            appendMessage(persona.id, {role: 'user', text: '最新一页。'})
+        ];
+        messages.forEach((message, index) => database.prepare('UPDATE companion_messages SET created_at = ? WHERE id = ?').run(`2026-08-20T00:00:0${index + 1}.000Z`, message.id));
+
+        const firstPage = listMessages(persona.id, {limit: 2, markRead: false});
+        assert.deepEqual(firstPage.items.map(message => message.text), ['第一页之后。', '最新一页。']);
+        const secondPage = listMessages(persona.id, {cursor: firstPage.nextCursor, limit: 2, markRead: false});
+        assert.deepEqual(secondPage.items.map(message => message.text), ['第一页之前。']);
+    } finally {
+        deletePersona(persona.id);
+    }
+});
+
 test('media envelopes and model-owned schemas are structurally validated without visual inference', () => {
     const persona = createPersona({name: '契约', role: '学生', foundation: '契约会遵守当前生活状态。'});
     assert.deepEqual(normalizeMediaRequest({kind: 'image'}), {kind: 'image'});
