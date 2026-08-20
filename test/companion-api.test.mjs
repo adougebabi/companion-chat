@@ -1751,6 +1751,31 @@ test('chat stream executes a native media tool and preserves the visible continu
     }
 });
 
+test('chat route keeps unknown native tools fail-closed without turning them into SSE errors', async () => {
+    const persona = createPersona({name: '未知工具路由测试', role: '陪伴者', foundation: '用于验证 unknown tool 的兼容语义。'});
+    const previousSettings = publicSettings();
+    const previousFetch = globalThis.fetch;
+    const stream = chunks => ({ok: true, body: {getReader() {
+        let index = 0;
+        return {read: async () => index < chunks.length ? {value: new TextEncoder().encode(chunks[index++]), done: false} : {value: undefined, done: true}};
+    }}});
+    globalThis.fetch = async () => stream([
+        `data: ${JSON.stringify({choices: [{delta: {tool_calls: [{index: 0, id: 'call_unknown', type: 'function', function: {name: 'unknown_event', arguments: '{}'}}], content: '我会继续正常回复。'}}]})}\n\n`,
+        'data: [DONE]\n\n'
+    ]);
+    saveSettings({model: 'test-unknown-tool-model', lmStudioUrl: 'http://test/v1'});
+    try {
+        const source = await invokeChatRoute(persona.id, '请继续。');
+        assert.match(source, /我会继续正常回复/);
+        assert.doesNotMatch(source, /"type":"error"/);
+        assert.equal(listMessages(persona.id, {markRead: false}).items.filter(message => message.role === 'assistant').length, 1);
+    } finally {
+        globalThis.fetch = previousFetch;
+        saveSettings({model: previousSettings.model, lmStudioUrl: previousSettings.lmStudioUrl});
+        deletePersona(persona.id);
+    }
+});
+
 test('chat provider failure emits SSE error without persisting a partial assistant reply', async () => {
     const persona = createPersona({name: '聊天 provider 失败', role: '陪伴者', foundation: '用于验证聊天流失败边界。'});
     const previousSettings = publicSettings();

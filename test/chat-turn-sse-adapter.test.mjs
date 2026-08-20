@@ -67,6 +67,26 @@ test('emits token presentation in order and sends one done with an authoritative
     assert.equal(sink.ended, 1);
 });
 
+test('forwards live token callbacks before the flow resolves', async () => {
+    const sink = responseSink();
+    let flowObservedToken = false;
+    const adapter = adapterFor({
+        async run({command}) {
+            await command.onToken('live');
+            flowObservedToken = sink.events[0]?.type === 'token' && sink.events[0]?.token === 'live';
+            return {messages: [{id: 'message_live', role: 'assistant', text: 'done'}]};
+        }
+    });
+
+    await adapter({context: {}, command: {}}, sink);
+
+    assert.equal(flowObservedToken, true);
+    assert.deepEqual(sink.events, [
+        {type: 'token', token: 'live'},
+        {type: 'done', messages: [{id: 'message_live', role: 'assistant', text: 'done'}], message: {id: 'message_live', role: 'assistant', text: 'done'}, learned: [], jobs: []}
+    ]);
+});
+
 test('maps a flow failure to one bounded error event before ending', async () => {
     const sink = responseSink();
     const adapter = adapterFor({

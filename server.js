@@ -10,6 +10,8 @@ import {createConversationRepository} from './server/infrastructure/conversation
 import {createJobRepository} from './server/infrastructure/job-repository.js';
 import {createPendingEventRepository} from './server/infrastructure/pending-event-repository.js';
 import {createLifeStateResolver} from './server/domain/life-state-resolver.js';
+import {createChatTurnFlow} from './server/application/chat-turn-flow.js';
+import {createChatTurnSseAdapter} from './server/http/chat-turn-sse-adapter.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const dataDir = process.env.DATA_DIR || join(root, 'data');
@@ -3402,7 +3404,7 @@ async function consumeStreamedCompletion(response, {onText} = {}) {
     const diagnostic = value => {
         if (parseErrors.length < capabilityDiagnosticLimit) parseErrors.push(String(value).slice(0, capabilityTextLimit));
     };
-    const processPayload = raw => {
+    const processPayload = async raw => {
         if (!raw) return;
         if (raw === '[DONE]') {
             doneSeen = true;
@@ -3419,7 +3421,7 @@ async function consumeStreamedCompletion(response, {onText} = {}) {
         const token = typeof delta.content === 'string' ? delta.content : '';
         if (token) {
             text += token;
-            onText?.(token);
+            await onText?.(token);
         }
         for (const fragment of (Array.isArray(delta.tool_calls) ? delta.tool_calls : [])) {
             const call = appendToolCallFragment(toolCalls, fragment, parseErrors);
@@ -3437,11 +3439,11 @@ async function consumeStreamedCompletion(response, {onText} = {}) {
         const lines = buffer.split(/\r?\n/);
         buffer = lines.pop() || '';
         for (const line of lines) {
-            if (line.startsWith('data:')) processPayload(line.slice(5).trim());
+            if (line.startsWith('data:')) await processPayload(line.slice(5).trim());
         }
     }
     buffer += decoder.decode();
-    if (buffer.startsWith('data:')) processPayload(buffer.slice(5).trim());
+    if (buffer.startsWith('data:')) await processPayload(buffer.slice(5).trim());
     if (!doneSeen) diagnostic('模型流缺少 [DONE]');
     const collected = toolCalls.filter(Boolean).map((call, index) => ({
         ...call,
@@ -3803,6 +3805,290 @@ function trustedTimeReplyForMessage(persona, text, state) {
     return '我现在没有可确认的下课时间，先按眼前的安排来。';
 }
 
+function flowCapabilityCall(call, personaId, causationUserMessageId, fallbackIndex = 0) {
+    const name = String(call?.name || call?.function?.name || '').trim();
+    const argumentsText = String(call?.argumentsText ?? call?.function?.arguments ?? '');
+    let argumentsValue = null;
+    try {
+        argumentsValue = JSON.parse(argumentsText);
+    } catch {
+        // The native dispatcher remains the sole authority for malformed-call
+        // diagnostics and schema validation.
+    }
+    const id = String(call?.id || '').trim() || null;
+    const index = Number.isInteger(call?.index) && call.index >= 0 ? call.index : fallbackIndex;
+    return {
+        id,
+        index,
+        name,
+        argumentsText,
+        arguments: argumentsValue,
+        source: 'native',
+        personaId,
+        causationUserMessageId,
+        idempotencyKey: capabilityIdempotencyKey({
+            personaId,
+            causationUserMessageId,
+            name,
+            id,
+            arguments: argumentsValue ?? argumentsText
+        })
+    };
+}
+
+function capabilityResultValue(name, result) {
+    if (!result) return null;
+    if (name === 'scene_event') return {eventId: result.eventId, operation: result.operation, scene: result.scene};
+    if (name === 'media_event') return {jobId: result.jobId, jobIds: result.jobIds, kind: result.kind};
+    if (name === 'pending_event') return pendingCapabilityResult(result);
+    return null;
+}
+
+function flowCapabilityResult(execution) {
+    const call = execution?.call;
+    if (!call || !capabilityRegistry[call.name]) return null;
+    return {
+        name: call.name,
+        ok: !execution.error && Boolean(execution.result),
+        callId: call.id || null,
+        idempotencyKey: call.idempotencyKey,
+        result: capabilityResultValue(call.name, execution.result),
+        error: execution.error || null
+    };
+}
+
+function flowEffectIntent(execution) {
+    const call = execution?.call;
+    if (!call || execution.error || !execution.result) return null;
+    return {
+        effectId: `effect_${call.idempotencyKey}`,
+        kind: `chat.${call.name}`,
+        capability: call.name,
+        idempotencyKey: call.idempotencyKey,
+        causationId: call.causationUserMessageId,
+        payload: capabilityResultValue(call.name, execution.result)
+    };
+}
+
+function createChatTurnIntegration(persona, userMessage, chatAt) {
+    let turn = null;
+
+    const contextReader = {
+        read({personaId, command, context}) {
+            const at = new Date(command.chatAt || context.chatAt || chatAt);
+            return contextFor(personaId, Number.isFinite(at.getTime()) ? at : chatAt);
+        }
+    };
+
+    const llmStreamingPort = {
+        async stream({context, messages, personaId, signal, command}) {
+            const recent = (Array.isArray(messages) ? messages : []).slice(-18).map(message => ({
+                role: message.role === 'assistant' ? 'assistant' : 'user',
+                content: message.text || message.content || '[用户发送了媒体附件]'
+            }));
+            const modelMessages = [
+                {role: 'system', content: [context.prompt, context.layers?.systemCapability].filter(Boolean).join('\n\n')},
+                ...recent
+            ];
+            turn = {personaId, signal, onToken: command?.onToken, modelMessages, rawText: '', firstDispatch: null, followupDispatch: null, followupTokens: [], output: ''};
+            const response = await lmCompletion({
+                stream: true,
+                temperature: 0.75,
+                signal,
+                messages: modelMessages,
+                tools: [sceneEventTool, mediaEventTool, pendingEventTool],
+                tool_choice: 'auto',
+                trace: {operation: 'chat', personaId, messageId: userMessage.id}
+            });
+            const visibleRedactor = createVisibleMarkerRedactor();
+            const visibleTokens = [];
+            const completion = await consumeStreamedCompletion(response, {
+                onText: async token => {
+                    const visible = visibleRedactor.push(token);
+                    if (visible) {
+                        visibleTokens.push(visible);
+                        await turn.onToken?.(visible);
+                    }
+                }
+            });
+            if (signal?.aborted) throw new DOMException('The operation was aborted', 'AbortError');
+            const trailingVisible = visibleRedactor.flush();
+            if (trailingVisible) visibleTokens.push(trailingVisible);
+            turn.rawText = completion.text;
+            const normalizedCalls = completion.toolCalls.map((call, index) => flowCapabilityCall(call, personaId, userMessage.id, index));
+            const supportedCalls = normalizedCalls.filter(call => Object.hasOwn(capabilityRegistry, call.name));
+            turn.completion = {...completion, unknownNative: supportedCalls.length !== normalizedCalls.length};
+            turn.visibleTokens = visibleTokens;
+            return {
+                ...completion,
+                text: visibleTokens.join(''),
+                tokens: visibleTokens,
+                toolCalls: supportedCalls,
+                unknownNative: turn.completion.unknownNative
+            };
+        }
+    };
+
+    const capabilityDispatcher = {
+        async dispatch({calls}) {
+            if (!turn) throw new Error('Chat capability dispatch started before the LLM stream');
+            const nativeCalls = (Array.isArray(calls) ? calls : []).map((call, index) => ({
+                ...call,
+                function: {name: call.name, arguments: call.argumentsText},
+                raw: {id: call.id, index: call.index ?? index, type: 'function', function: {name: call.name, arguments: call.argumentsText}}
+            }));
+            const firstDispatch = dispatchCapabilityCalls(persona, {
+                toolCalls: nativeCalls,
+                completion: turn.completion,
+                markerText: turn.rawText,
+                causationId: userMessage.id,
+                blockMarkers: Boolean(turn.completion?.unknownNative)
+            });
+            turn.firstDispatch = firstDispatch;
+            turn.followupDispatch = null;
+            turn.followupTokens = [];
+            turn.continuationError = null;
+            turn.output = firstDispatch.visibleText;
+            const firstVisible = firstDispatch.visibleText.trim();
+            const supportedToolCalls = firstDispatch.continuationEntries;
+            if (supportedToolCalls.length && !firstVisible) {
+                const continuationToolCalls = supportedToolCalls.map(({call}) => ({
+                    id: call.id || id('tool_call'),
+                    type: 'function',
+                    function: {name: call.name || call.function?.name, arguments: call.argumentsText ?? String(call.function?.arguments || '')}
+                }));
+                const continuationMessages = [
+                    ...turn.modelMessages,
+                    {role: 'assistant', content: null, tool_calls: continuationToolCalls},
+                    ...supportedToolCalls.map(({call, result}, index) => ({
+                        role: 'tool',
+                        tool_call_id: continuationToolCalls[index].id,
+                        name: call.name || call.function?.name,
+                        content: JSON.stringify(result)
+                    }))
+                ];
+                try {
+                    const continuation = await lmCompletion({
+                        stream: true,
+                        temperature: 0.75,
+                        signal: turn.signal,
+                        messages: continuationMessages,
+                        tools: [sceneEventTool, mediaEventTool, pendingEventTool],
+                        tool_choice: 'none',
+                        trace: {operation: 'chat_continuation', personaId: persona.id, messageId: userMessage.id}
+                    });
+                    const continuationRedactor = createVisibleMarkerRedactor();
+                    const continuationTokens = [];
+                    const followup = await consumeStreamedCompletion(continuation, {
+                        onText: async token => {
+                            const visible = continuationRedactor.push(token);
+                            if (visible) {
+                                continuationTokens.push(visible);
+                                await turn.onToken?.(visible);
+                            }
+                        }
+                    });
+                    if (turn.signal?.aborted) throw new DOMException('The operation was aborted', 'AbortError');
+                    const trailingVisible = continuationRedactor.flush();
+                    if (trailingVisible) continuationTokens.push(trailingVisible);
+                    if (followup.toolCalls.length) turn.continuationError = '续答再次请求系统能力，已忽略该调用';
+                    const followupDispatch = dispatchCapabilityCalls(persona, {
+                        toolCalls: [],
+                        completion: followup,
+                        markerText: followup.text,
+                        causationId: userMessage.id,
+                        nativeState: firstDispatch.nativeCapabilities,
+                        blockMarkers: firstDispatch.unknownNative
+                    });
+                    turn.followupDispatch = followupDispatch;
+                    turn.followupTokens = continuationTokens;
+                    turn.output = [firstDispatch.visibleText, followupDispatch.visibleText].filter(Boolean).join('');
+                } catch (error) {
+                    if (turn.signal?.aborted) throw error;
+                    turn.continuationError = String(error?.message || error).replace(/\s+/g, ' ').slice(0, 180);
+                    turn.output = firstDispatch.visibleText;
+                }
+            }
+            const dispatches = [firstDispatch, turn.followupDispatch].filter(Boolean);
+            const executions = dispatches.flatMap(dispatch => dispatch.attempts || []);
+            return {
+                results: executions.map(flowCapabilityResult).filter(Boolean),
+                effects: executions.map(flowEffectIntent).filter(Boolean)
+            };
+        }
+    };
+
+    const presentationMapper = () => {
+        const pendingExecution = turn?.followupDispatch?.byCapability?.pending_event || turn?.firstDispatch?.byCapability?.pending_event;
+        const sceneExecution = turn?.followupDispatch?.byCapability?.scene_event || turn?.firstDispatch?.byCapability?.scene_event;
+        const mediaExecution = turn?.followupDispatch?.byCapability?.media_event || turn?.firstDispatch?.byCapability?.media_event;
+        turn.pendingExecution = pendingExecution;
+        turn.sceneExecution = sceneExecution;
+        turn.mediaExecution = mediaExecution;
+        return {
+            chatResult: {
+                type: 'done', messages: [], learned: [], jobs: [],
+                pendingEvent: capabilityPresentation(pendingExecution),
+                sceneEvent: capabilityPresentation(sceneExecution),
+                mediaEvent: capabilityPresentation(mediaExecution)
+            },
+            facts: [], projections: [], effects: [],
+            presentation: (turn?.followupTokens || []).map(token => ({type: 'token', token}))
+        };
+    };
+
+    const commitBoundary = () => {
+        if (!turn) throw new Error('Chat turn commit started before the LLM stream');
+        const continuationFallback = turn.continuationError
+            ? turn.pendingExecution?.call ? '我已经记下这件事了，但暂时无法继续补充。'
+                : turn.mediaExecution?.call ? '我已经处理好这次媒体请求了，但暂时无法继续补充。'
+                    : '我已经记住刚才的场景了，但暂时无法继续补充。'
+            : '我刚刚想了一下，但还没有组织好回复。';
+        const messages = appendUserVisibleAssistantReply(persona.id, turn.output, {fallback: continuationFallback});
+        if (turn.mediaExecution?.result) messages.push(...turn.mediaExecution.result.messages);
+        const plannedMessage = messages.find(message => explicitPlanFromMessage(message.text));
+        const proposedPlan = plannedMessage && verifiedAcceptedPlan(persona.id, plannedMessage.id);
+        if (proposedPlan) createScheduleItem(persona.id, {...proposedPlan, sourceMessageId: plannedMessage.id, source: 'accepted_chat_plan'});
+        applyChatAttentionOverlay(persona);
+        turn.committedMessages = messages;
+        turn.pendingPresentation = capabilityPresentation(turn.pendingExecution);
+        turn.scenePresentation = capabilityPresentation(turn.sceneExecution);
+        turn.mediaPresentation = capabilityPresentation(turn.mediaExecution);
+    };
+
+    const chatTurnFlow = createChatTurnFlow({
+        contextReader,
+        llmStreamingPort,
+        capabilityDispatcher,
+        conversationRepository,
+        presentationMapper,
+        commitBoundary
+    });
+    const flowWithCommittedResult = {
+        async run(invocation) {
+            const result = await chatTurnFlow.run(invocation);
+            const messages = turn?.committedMessages || result.messages || [];
+            const chatResult = {
+                ...(result.chatResult || {}),
+                messages,
+                message: messages[0] || null,
+                pendingEvent: turn?.pendingPresentation ?? result.pendingEvent,
+                sceneEvent: turn?.scenePresentation ?? result.sceneEvent,
+                mediaEvent: turn?.mediaPresentation ?? result.mediaEvent
+            };
+            return {...result, ...chatResult, chatResult};
+        }
+    };
+    return createChatTurnSseAdapter({
+        chatTurnFlow: flowWithCommittedResult,
+        sendSse: (sink, event) => sendSse(sink, event),
+        end: sink => {
+            if (!sink.writableEnded) sink.end();
+        },
+        errorMapper: error => ({error: `无法连接本地模型：${error.message}`})
+    });
+}
+
 async function streamPersonaChat(req, res) {
     if (!req.body || typeof req.body !== 'object') return res.status(400).json({error: '请求体必须是 JSON'});
     let persona;
@@ -3819,128 +4105,46 @@ async function streamPersonaChat(req, res) {
     database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(now(), persona.id);
     res.status(200).set({'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', Connection: 'keep-alive'});
     res.flushHeaders();
-    const abortController = new AbortController();
-    let clientClosed = false;
-    const markClientClosed = () => {
-        if (res.writableEnded) return;
-        clientClosed = true;
-        abortController.abort();
-    };
-    const listeners = [
-        [res, 'close'],
-        [req, 'aborted']
-    ];
-    for (const [target, event] of listeners) target?.on?.(event, markClientClosed);
-    let streamEnded = false;
-    const cleanupStream = () => {
-        for (const [target, event] of listeners) target?.removeListener?.(event, markClientClosed);
-    };
-    const endStream = () => {
-        if (streamEnded) return;
-        streamEnded = true;
-        cleanupStream();
-        if (!res.writableEnded) res.end();
-    };
     const chatAt = new Date();
     const context = contextFor(persona.id, chatAt);
     const existingDeferred = database.prepare("SELECT id FROM companion_chat_deferred_batches WHERE persona_id = ? AND status IN ('queued', 'leased') ORDER BY created_at DESC LIMIT 1").get(persona.id);
     if (existingDeferred) {
         deferredBatchForMessage(persona, userMessage.id, chatAt);
         sendSse(res, {type: 'done', message: null, messages: [], learned: [], jobs: []});
-        return endStream();
+        return res.end();
     }
     const availability = sleepAvailability(persona, chatAt, context.state);
     if (availability.sleeping && !availability.immediate) {
         deferredBatchForMessage(persona, userMessage.id, chatAt, availability);
         sendSse(res, {type: 'done', message: null, messages: [], learned: [], jobs: []});
-        return endStream();
+        return res.end();
     }
     const trustedTimeReply = trustedTimeReplyForMessage(persona, text, context.state);
     if (trustedTimeReply) {
         const messages = appendUserVisibleAssistantReply(persona.id, trustedTimeReply);
         sendSse(res, {type: 'done', message: messages[0], messages, learned: [], jobs: []});
-        return endStream();
+        return res.end();
     }
-    const recent = listMessages(persona.id, {limit: 18}).items.slice(-18).map(message => ({role: message.role === 'assistant' ? 'assistant' : 'user', content: message.text || '[用户发送了媒体附件]'}));
-    const visibleRedactor = createVisibleMarkerRedactor();
-    try {
-        if (clientClosed) return endStream();
-        const systemMessage = {role: 'system', content: [context.prompt, context.layers.systemCapability].join('\n\n')};
-        const modelMessages = [systemMessage, ...recent];
-        const response = await lmCompletion({stream: true, temperature: 0.75, signal: abortController.signal, messages: modelMessages, tools: [sceneEventTool, mediaEventTool, pendingEventTool], tool_choice: 'auto', trace: {operation: 'chat', personaId: persona.id, messageId: userMessage.id}});
-        const first = await consumeStreamedCompletion(response, {
-            onText: token => {
-                const visibleToken = visibleRedactor.push(token);
-                if (!clientClosed && visibleToken) sendSse(res, {type: 'token', token: visibleToken});
-            }
-        });
-        if (clientClosed) return endStream();
-        const trailingVisible = visibleRedactor.flush();
-        if (!clientClosed && trailingVisible) sendSse(res, {type: 'token', token: trailingVisible});
-        const firstDispatch = dispatchCapabilityCalls(persona, {toolCalls: first.toolCalls, completion: first, markerText: first.text, causationId: userMessage.id});
-        let output = firstDispatch.visibleText;
-        let sceneExecution = firstDispatch.byCapability.scene_event;
-        let mediaExecution = firstDispatch.byCapability.media_event;
-        let pendingExecution = firstDispatch.byCapability.pending_event;
-        let continuationError = null;
-        const firstVisible = firstDispatch.visibleText.trim();
-        const supportedToolCalls = firstDispatch.continuationEntries;
-        if (supportedToolCalls.length && !firstVisible) {
-            if (clientClosed) return endStream();
-            const continuationToolCalls = supportedToolCalls.map(({call}) => ({id: call.id || id('tool_call'), type: 'function', function: {name: call.name || call.function?.name, arguments: call.argumentsText ?? String(call.function?.arguments || '')}}));
-            const continuationMessages = [
-                ...modelMessages,
-                {role: 'assistant', content: null, tool_calls: continuationToolCalls},
-                ...supportedToolCalls.map(({call, result}, index) => ({role: 'tool', tool_call_id: continuationToolCalls[index].id, name: call.name || call.function?.name, content: JSON.stringify(result)}))
-            ];
-            try {
-                const continuation = await lmCompletion({stream: true, temperature: 0.75, signal: abortController.signal, messages: continuationMessages, tools: [sceneEventTool, mediaEventTool, pendingEventTool], tool_choice: 'none', trace: {operation: 'chat_continuation', personaId: persona.id, messageId: userMessage.id}});
-                const followup = await consumeStreamedCompletion(continuation, {
-                    onText: token => {
-                        const visibleToken = visibleRedactor.push(token);
-                        if (!clientClosed && visibleToken) sendSse(res, {type: 'token', token: visibleToken});
-                    }
-                });
-                if (clientClosed) return endStream();
-                const followupVisible = visibleRedactor.flush();
-                if (!clientClosed && followupVisible) sendSse(res, {type: 'token', token: followupVisible});
-                if (followup.toolCalls.length) {
-                    continuationError = '续答再次请求系统能力，已忽略该调用';
-                }
-                const followupDispatch = dispatchCapabilityCalls(persona, {
-                    toolCalls: [], completion: followup, markerText: followup.text, causationId: userMessage.id,
-                    nativeState: firstDispatch.nativeCapabilities, blockMarkers: firstDispatch.unknownNative
-                });
-                output = [firstDispatch.visibleText, followupDispatch.visibleText].filter(Boolean).join('');
-                sceneExecution ||= followupDispatch.byCapability.scene_event;
-                mediaExecution ||= followupDispatch.byCapability.media_event;
-                pendingExecution ||= followupDispatch.byCapability.pending_event;
-            } catch (error) {
-                continuationError = String(error?.message || error).replace(/\s+/g, ' ').slice(0, 180);
-                output = firstDispatch.visibleText;
-            }
-        }
-        if (clientClosed) return endStream();
-        const continuationFallback = continuationError
-            ? pendingExecution?.call ? '我已经记下这件事了，但暂时无法继续补充。'
-                : mediaExecution?.call ? '我已经处理好这次媒体请求了，但暂时无法继续补充。'
-                    : '我已经记住刚才的场景了，但暂时无法继续补充。'
-            : '我刚刚想了一下，但还没有组织好回复。';
-        const messages = appendUserVisibleAssistantReply(persona.id, output, {fallback: continuationFallback});
-        if (mediaExecution?.result) messages.push(...mediaExecution.result.messages);
-        const pendingEvent = capabilityPresentation(pendingExecution);
-        const plannedMessage = messages.find(message => explicitPlanFromMessage(message.text));
-        const proposedPlan = plannedMessage && verifiedAcceptedPlan(persona.id, plannedMessage.id);
-        if (proposedPlan) createScheduleItem(persona.id, {...proposedPlan, sourceMessageId: plannedMessage.id, source: 'accepted_chat_plan'});
-        applyChatAttentionOverlay(persona);
-        // `message` remains the compatibility alias for callers that have not yet
-        // migrated to the ordered `messages` collection.
-        sendSse(res, {type: 'done', message: messages[0], messages, learned: [], jobs: [], pendingEvent, sceneEvent: capabilityPresentation(sceneExecution), mediaEvent: capabilityPresentation(mediaExecution)});
-    } catch (error) {
-        if (!clientClosed) sendSse(res, {type: 'error', error: `无法连接本地模型：${error.message}`});
-    } finally {
-        endStream();
-    }
+    const handleChat = createChatTurnIntegration(persona, userMessage, chatAt);
+    await handleChat({
+        context: {
+            personaId: persona.id,
+            requestId: id('request'),
+            correlationId: id('chat'),
+            causationId: userMessage.id,
+            chatAt: chatAt.toISOString(),
+            req
+        },
+        command: {
+            personaId: persona.id,
+            text,
+            attachments,
+            historyLimit: 18,
+            chatAt: chatAt.toISOString(),
+            causationId: userMessage.id
+        },
+        req
+    }, res);
 }
 
 function cursorFor(row) {

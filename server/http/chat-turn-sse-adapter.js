@@ -189,6 +189,7 @@ export function createChatTurnSseAdapter({chatTurnFlow, sendSse, end, errorMappe
         let clientClosed = sinkLooksClosed(sink);
         let ended = false;
         let transportFailure = null;
+        let streamedTokenCount = 0;
 
         const markClientClosed = () => {
             clientClosed = true;
@@ -248,12 +249,18 @@ export function createChatTurnSseAdapter({chatTurnFlow, sendSse, end, errorMappe
 
         try {
             if (clientHasClosed()) return null;
-            const flowCommand = flowSignal && command.signal !== flowSignal
-                ? {...command, signal: flowSignal}
-                : command;
+            const flowCommand = {
+                ...command,
+                ...(flowSignal && command.signal !== flowSignal ? {signal: flowSignal} : {}),
+                onToken: async token => {
+                    await command.onToken?.(token);
+                    if (typeof token !== 'string') return;
+                    if (await emit(sseToken(token))) streamedTokenCount += 1;
+                }
+            };
             const result = await runFlow({context, command: flowCommand});
             if (clientHasClosed()) return null;
-            for (const event of tokenEvents(result)) {
+            for (const event of tokenEvents(result).slice(streamedTokenCount)) {
                 if (!(await emit(sseToken(event.token)))) return null;
             }
             if (clientHasClosed()) return null;
