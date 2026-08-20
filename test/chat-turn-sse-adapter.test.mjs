@@ -1,0 +1,142 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import test from 'node:test';
+
+import {createChatTurnSseAdapter} from '../server/http/chat-turn-sse-adapter.js';
+
+function responseSink() {
+    const listeners = new Map();
+    return {
+        writableEnded: false,
+        events: [],
+        ended: 0,
+        on(event, listener) {
+            listeners.set(event, listener);
+            return this;
+        },
+        removeListener(event, listener) {
+            if (listeners.get(event) === listener) listeners.delete(event);
+            return this;
+        },
+        close() {
+            listeners.get('close')?.();
+        },
+        abort() {
+            listeners.get('aborted')?.();
+        }
+    };
+}
+
+function adapterFor(flow, overrides = {}) {
+    return createChatTurnSseAdapter({
+        chatTurnFlow: flow,
+        sendSse: (sink, event) => sink.events.push(event),
+        end: sink => { sink.ended += 1; sink.writableEnded = true; },
+        ...overrides
+    });
+}
+
+test('emits token presentation in order and sends one done with an authoritative alias', async () => {
+    const sink = responseSink();
+    const message = {id: 'message_1', role: 'assistant', text: 'Ready.', attachments: [], jobs: []};
+    const flow = {
+        async run() {
+            return {
+                presentation: [
+                    {type: 'token', token: 'One'},
+                    {type: 'capability-result', result: {secret: 'internal'}},
+                    {type: 'token', token: ' two'}
+                ],
+                messages: [message],
+                message: {id: 'stale'},
+                facts: [{type: 'internal-fact'}],
+                effects: [{effectId: 'internal-effect'}],
+                pendingEvent: {id: 'pending_1'}
+            };
+        }
+    };
+
+    await adapterFor(flow)({context: {requestId: 'request_1'}, command: {personaId: 'persona_1'}}, sink);
+
+    assert.deepEqual(sink.events, [
+        {type: 'token', token: 'One'},
+        {type: 'token', token: 'two'},
+        {type: 'done', messages: [message], message, learned: [], jobs: [], pendingEvent: {id: 'pending_1'}}
+    ]);
+    assert.equal(sink.events.filter(event => event.type === 'done').length, 1);
+    assert.equal(sink.ended, 1);
+});
+
+test('maps a flow failure to one bounded error event before ending', async () => {
+    const sink = responseSink();
+    const adapter = adapterFor({
+        async run() {
+            throw new Error('provider detail should be mapped ' + 'x'.repeat(700));
+        }
+    }, {errorMapper: () => ({error: 'safe failure'})});
+
+    await adapter({context: {}, command: {}}, sink);
+
+    assert.deepEqual(sink.events, [{type: 'error', error: 'safe failure'}]);
+    assert.equal(sink.ended, 1);
+});
+
+test('bounds an error mapper result and never emits a second terminal error', async () => {
+    const sink = responseSink();
+    const adapter = adapterFor({
+        async run() {
+            throw new Error('failed');
+        }
+    }, {errorMapper: () => ' mapped ' + 'x'.repeat(700)});
+
+    await adapter({context: {}, command: {}}, sink);
+
+    assert.equal(sink.events.length, 1);
+    assert.equal(sink.events[0].type, 'error');
+    assert.equal(sink.events[0].error.length, 480);
+    assert.match(sink.events[0].error, /\.\.\.$/);
+    assert.equal(sink.ended, 1);
+});
+
+test('does not write after a client close while the flow is settling', async () => {
+    const sink = responseSink();
+    let release;
+    const flow = {
+        run() {
+            return new Promise(resolve => {
+                release = resolve;
+            });
+        }
+    };
+    const running = adapterFor(flow)({context: {}, command: {}}, sink);
+    sink.close();
+    release({presentation: [{type: 'token', token: 'late'}], messages: [{id: 'late'}]});
+
+    await running;
+    assert.deepEqual(sink.events, []);
+    assert.equal(sink.ended, 1);
+});
+
+test('forwards an abort signal to the flow and stops terminal presentation after abort', async () => {
+    const sink = responseSink();
+    const controller = new AbortController();
+    let receivedSignal;
+    const flow = {
+        async run({command}) {
+            receivedSignal = command.signal;
+            controller.abort();
+            return {presentation: [{type: 'token', token: 'late'}], messages: [{id: 'late'}]};
+        }
+    };
+
+    await adapterFor(flow)({context: {}, command: {signal: controller.signal}}, sink);
+
+    assert.equal(receivedSignal.aborted, true);
+    assert.deepEqual(sink.events, []);
+    assert.equal(sink.ended, 1);
+});
+
+test('transport adapter has no infrastructure or legacy entrypoint imports', async () => {
+    const source = await readFile(new URL('../server/http/chat-turn-sse-adapter.js', import.meta.url), 'utf8');
+    assert.doesNotMatch(source, /better-sqlite3|server\.js|fetch\s*\(|child_process|comfy|mtplx/i);
+});

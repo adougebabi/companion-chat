@@ -18,6 +18,8 @@ Structured capability markers such as `<media-intent>` and `<pending-event>` are
 
 Native capability calls use the same boundary: accumulate streamed fragments by provider index/id, collect malformed upstream payloads in bounded diagnostics, and validate only after the complete call. A supported native attempt blocks the matching marker fallback even when invalid, duplicated, incomplete, or replayed; unknown native tools fail closed for marker side effects. Tool JSON, reasoning content, call ids, and dedupe keys never enter visible `token` or browser capability summaries. One tool-result continuation is allowed; continuation failure keeps committed effects and returns normal `done` data with a bounded fallback.
 
+The HTTP/SSE transport adapter consumes normalized application presentation only. It may emit `token`, one terminal `done`, or one bounded `error`; it must not parse provider chunks, dispatch capabilities, open SQLite, or expose aggregate facts/effects. Request/response close and abort signals suppress later writes and are forwarded to the flow where supported.
+
 Model calls that can freeze a durable proactive decision must have a bounded timeout shorter than their default job lease. If the call fails, retry the job while its lease/result remains authoritative; once attempts are exhausted, settle the job with a bounded diagnostic and close any source lifecycle instead of leaving a triggered candidate indefinitely active.
 
 ## Scenario: User-visible assistant reply form and multi-message completion
