@@ -128,3 +128,19 @@ test('runtime wires route handlers, provider registry, and registered job dispat
         rmSync(dataDir, {recursive: true, force: true});
     }
 });
+
+test('runtime owns auxiliary task lifecycles in start/stop order', async () => {
+    const dataDir = temporaryDirectory();
+    const events = [];
+    const first = {start: async () => events.push('first:start'), stop: async () => events.push('first:stop')};
+    const second = {start: async () => events.push('second:start'), stop: async () => events.push('second:stop')};
+    const runtime = createRuntime({Database, dataDir, workerRuntime: false, auxiliaryRuntimes: [first, second], environment: {DATA_DIR: dataDir}});
+    try {
+        await runtime.start({listen: false, worker: false});
+        await runtime.stop();
+        assert.deepEqual(events, ['first:start', 'second:start', 'second:stop', 'first:stop']);
+    } finally {
+        if (runtime.state !== 'stopped') await runtime.stop().catch(() => {});
+        rmSync(dataDir, {recursive: true, force: true});
+    }
+});

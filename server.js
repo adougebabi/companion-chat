@@ -6,6 +6,7 @@ import {spawn} from 'node:child_process';
 import {createActivityRepository} from './server/infrastructure/activity-repository.js';
 import {createConversationRepository} from './server/infrastructure/conversation-repository.js';
 import {createJobRepository} from './server/infrastructure/job-repository.js';
+import {createPersonaRepository} from './server/infrastructure/persona-repository.js';
 import {createPendingEventRepository} from './server/infrastructure/pending-event-repository.js';
 import {createSettingsRepository} from './server/infrastructure/settings-repository.js';
 import {createLifeStateResolver} from './server/domain/life-state-resolver.js';
@@ -20,6 +21,7 @@ import {createJobDispatcher} from './server/runtime/job-dispatcher.js';
 import createWorkerRuntime from './server/runtime/worker-runtime.js';
 import {createStartupRuntime} from './server/runtime/startup.js';
 import {createRuntime} from './server/runtime/runtime.js';
+import createTaskRuntime from './server/runtime/task-runtime.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 4178);
@@ -33,6 +35,7 @@ const {dataDir, databasePath, database} = startupRuntime;
 const activityRepository = createActivityRepository({database});
 const conversationRepository = createConversationRepository({database});
 const jobRepository = createJobRepository({database, id, clock: now});
+const personaRepository = createPersonaRepository({database, id, clock: now});
 const settingsRepository = createSettingsRepository({database, defaults: defaultSettings, clock: now});
 const lifeStateResolver = createLifeStateResolver();
 const json = (value, fallback = {}) => {
@@ -161,7 +164,7 @@ function saveSettings(patch) {
 }
 
 function personaRow(personaId) {
-    return database.prepare('SELECT * FROM companion_personas WHERE id = ? AND enabled = 1 AND deleted_at IS NULL').get(personaId);
+    return personaRepository.findActive(personaId);
 }
 
 function requirePersona(personaId) {
@@ -778,7 +781,7 @@ function summary(persona) {
 }
 
 function listPersonas() {
-    return database.prepare('SELECT * FROM companion_personas WHERE enabled = 1 AND deleted_at IS NULL ORDER BY created_at').all().map(summary);
+    return personaRepository.listActive().map(summary);
 }
 
 function localHour(date = new Date(), timeZone) {
@@ -5719,7 +5722,7 @@ screenPersona: (req, res) => {
     if (typeof req.body?.screened !== 'boolean') throw new Error('screened 必须是布尔值');
     const updatedAt = now();
     database.transaction(() => {
-        database.prepare('UPDATE companion_personas SET screened_at = ?, updated_at = ? WHERE id = ?').run(req.body.screened ? updatedAt : null, updatedAt, persona.id);
+        personaRepository.updateScreen({personaId: persona.id, screenedAt: req.body.screened ? updatedAt : null, updatedAt});
         if (req.body.screened) database.prepare(`
             UPDATE companion_messages SET read_at = ?
             WHERE role = 'assistant' AND read_at IS NULL
@@ -5855,10 +5858,23 @@ export const companionTestHooks = {database, createPersona, createEvent, require
 companionTestHooks.planChatMediaRequest = planChatMediaRequest;
 companionTestHooks.applyChatMediaRequestPlan = applyChatMediaRequestPlan;
 
+let legacyLifecycleTaskStarted = false;
 const legacyRuntime = createRuntime({
     startupRuntime,
     app,
     workerRuntime: legacyWorkerRuntime,
+    auxiliaryRuntimes: [createTaskRuntime({
+        owner: 'companion-lifecycle',
+        startupDelayMs: 250,
+        intervalMs: 5 * 60 * 1000,
+        task: ({generation}) => listPersonas().forEach(persona => {
+            recoverPersona(persona.id);
+            ensureDailyPlan(persona.id);
+            if (generation > 1 || legacyLifecycleTaskStarted) reconcilePersona(persona.id);
+            legacyLifecycleTaskStarted = true;
+        }),
+        onError: error => console.warn(`Companion lifecycle task failed: ${error.message}`)
+    })],
     port,
     host: process.env.HOST || '0.0.0.0'
 });
@@ -5866,8 +5882,6 @@ const legacyRuntime = createRuntime({
 if (process.env.COMPANION_TEST !== '1') {
     legacyRuntime.start().then(() => {
         console.log(`Companion Chat: http://localhost:${port}`);
-        setTimeout(() => listPersonas().forEach(persona => { recoverPersona(persona.id); ensureDailyPlan(persona.id); }), 250);
-        setInterval(() => listPersonas().forEach(persona => { reconcilePersona(persona.id); ensureDailyPlan(persona.id); }), 5 * 60 * 1000);
     }).catch(error => console.warn(`Companion runtime startup failed: ${error.message}`));
     const shutdown = () => legacyRuntime.stop().catch(error => console.warn(`Companion runtime shutdown failed: ${error.message}`));
     process.once('SIGTERM', shutdown);

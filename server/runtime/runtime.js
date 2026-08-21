@@ -131,6 +131,18 @@ function resolveJobDispatcher(options, startup) {
     });
 }
 
+function resolveAuxiliaryRuntimes(options) {
+    const configured = options.auxiliaryRuntimes ?? options.auxiliaryRuntime ?? [];
+    const values = Array.isArray(configured) ? configured : [configured];
+    if (values.length === 1 && values[0] === undefined) return Object.freeze([]);
+    for (const runtime of values) {
+        if (!isRecord(runtime) || typeof runtime.start !== 'function' || typeof runtime.stop !== 'function') {
+            throw new TypeError('Runtime auxiliaryRuntimes must provide start() and stop()');
+        }
+    }
+    return Object.freeze(values.slice());
+}
+
 function closeServer(server) {
     if (!server || typeof server.close !== 'function') return Promise.resolve();
     if (server.listening === false) return Promise.resolve();
@@ -193,6 +205,7 @@ export function createRuntime(options = {}) {
     const jobDispatcher = resolveJobDispatcher(options, startup);
     const worker = resolveWorker({...options, jobDispatcher}, startup);
     const app = resolveApp(options, startup, worker);
+    const auxiliaryRuntimes = resolveAuxiliaryRuntimes(options);
     const port = resolvePort(options.port, environment);
     const host = nonEmpty(options.host ?? environment.HOST, DEFAULT_HOST);
     const repositories = options.repositories ?? Object.freeze({});
@@ -212,9 +225,12 @@ export function createRuntime(options = {}) {
             try {
                 if (shouldListen) server = await listen(app, port, host);
                 if (shouldStartWorker && worker) await worker.start();
+                for (const auxiliary of auxiliaryRuntimes) await auxiliary.start();
                 phase = 'running';
                 return server;
             } catch (error) {
+                for (const auxiliary of [...auxiliaryRuntimes].reverse()) await auxiliary.stop().catch(() => {});
+                if (worker) await worker.stop().catch(() => {});
                 await closeServer(server).catch(() => {});
                 server = null;
                 phase = 'created';
@@ -239,6 +255,7 @@ export function createRuntime(options = {}) {
         let pendingStop;
         pendingStop = (async () => {
             try {
+                for (const auxiliary of [...auxiliaryRuntimes].reverse()) await auxiliary.stop();
                 if (worker) await worker.stop();
                 await closeServer(server);
                 server = null;
@@ -262,6 +279,7 @@ export function createRuntime(options = {}) {
         jobDispatcher,
         app,
         worker,
+        auxiliaryRuntimes,
         port,
         host,
         start,
