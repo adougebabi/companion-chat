@@ -27,6 +27,7 @@ export {
 export {createSettingsPolicy} from './application/settings-policy.js';
 export {createLifeStateService} from './application/life-state-service.js';
 export {createLifeEventFlow, createLifeEventApplicationFlow} from './application/life-event-flow.js';
+export {createContextPipeline, createContextFragmentPipeline} from './application/context-pipeline.js';
 export {createCapabilityHandoffAdapter, createFlowCapabilityRegistry} from './application/capability-handoff-adapter.js';
 export {createStateRepository} from './infrastructure/state-repository.js';
 export {createPersonaLifecycleService} from './application/persona-lifecycle-service.js';

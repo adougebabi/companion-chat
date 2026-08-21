@@ -36,6 +36,7 @@ import {createLifeWorldReader} from '../application/life-world-reader.js';
 import {createLifeStateResolver} from '../domain/life-state-resolver.js';
 import {createLifeStateService} from '../application/life-state-service.js';
 import {createLifeEventFlow} from '../application/life-event-flow.js';
+import {createContextPipeline} from '../application/context-pipeline.js';
 import {createTimelineFlow} from '../application/timeline-flow.js';
 import {createRelationshipFlow} from '../application/relationship-flow.js';
 import {createDeferredChatPolicy} from '../application/deferred-chat-policy.js';
@@ -274,6 +275,10 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
         ? createLifeWorldReader({repositories, blueprintReader: repositories.blueprint, clock})
         : null;
     const resolveLifeState = createLifeStateResolver();
+    const contextPipeline = createContextPipeline({
+        maxChars: options.contextBudget?.maxChars ?? 12_000,
+        maxFragments: options.contextBudget?.maxFragments ?? 24
+    });
     const deferredLifeWorld = lifeWorldReader
         ? {
             read({personaId, at} = {}) {
@@ -326,9 +331,17 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
             const state = resolved?.situation ? `${resolved.situation}（${resolved.scene || '日常场景'}）` : '当前没有额外的已确认生活事件。';
             const memories = repositories.memory?.listActive?.({personaId, limit: 12}) ?? [];
             const relationship = repositories.relationship?.activePatch?.({personaId}) ?? null;
+            const contextFragments = contextPipeline.collect({fragments: [
+                {source: 'identity', priority: 100, text: `人格：${persona.name}；角色：${persona.role || '陪伴者'}`},
+                {source: 'life_state', priority: 90, value: state},
+                {source: 'memory', priority: 50, value: memories.slice(0, 12)},
+                {source: 'relationship', priority: 40, value: relationship?.next_patch ? (() => { try { return JSON.parse(relationship.next_patch); } catch { return {}; } })() : {}},
+                {source: 'capabilities', priority: 80, text: '能力调用必须通过应用提供的 capability dispatcher。'}
+            ]});
+            const serializedContext = contextPipeline.serialize({budget: contextPipeline.budget(contextFragments)});
             return {
                 persona: {id: persona.id, name: persona.name, role: persona.role, color: persona.color},
-                prompt: `你是 ${persona.name}，角色是 ${persona.role || '陪伴者'}。请基于已确认事实与用户交流，不要编造当前状态。`,
+                prompt: `你是 ${persona.name}，角色是 ${persona.role || '陪伴者'}。请基于已确认事实与用户交流，不要编造当前状态。\n\n${serializedContext}`,
                 layers: {
                     lifeState: state,
                     memory: JSON.stringify(memories.slice(0, 12)),
