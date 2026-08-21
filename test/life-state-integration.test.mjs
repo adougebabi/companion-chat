@@ -1,14 +1,28 @@
 import assert from 'node:assert/strict';
-import {mkdtempSync} from 'node:fs';
+import {mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import Database from 'better-sqlite3';
+import {createCompanionRuntime} from '../server/runtime/runtime.js';
 
 const dataDir = mkdtempSync(join(tmpdir(), 'local-ai-companion-life-state-'));
-process.env.DATA_DIR = dataDir;
-process.env.COMPANION_TEST = '1';
-const {companionTestHooks: hooks} = await import(`../server.js?life-state-integration=${Date.now()}`);
-const {database, createPersona, deletePersona, resolvedStateFor, stateShape, scheduledState, sleepAvailability, reconcilePersona, recoverPersona} = hooks;
+const runtime = createCompanionRuntime({Database, dataDir, workerRuntime: false, environment: {DATA_DIR: dataDir}});
+const {database} = runtime;
+const services = runtime.application.services;
+const createPersona = input => services.persona.create(input);
+const deletePersona = personaId => services.persona.delete({personaId});
+const resolvedStateFor = (personaId, at) => services.life.resolvedStateFor({personaId, at});
+const stateShape = (personaId, at) => services.life.stateShape({personaId, at});
+const scheduledState = (persona, at) => services.life.scheduledState({personaId: persona.id, at});
+const sleepAvailability = (persona, at) => services.life.sleepAvailability({personaId: persona.id, at});
+const reconcilePersona = (personaId, options = {}) => services.life.reconcilePersona({personaId, at: options.at});
+const recoverPersona = personaId => services.life.recoverPersona({personaId});
+
+test.after(async () => {
+    await runtime.stop();
+    rmSync(dataDir, {recursive: true, force: true});
+});
 
 test('resolvedStateFor uses explicit Asia/Shanghai time through the pure resolver adapter', () => {
     const persona = createPersona({name: 'Life resolver', role: 'companion', foundation: 'Integration fixture.'});

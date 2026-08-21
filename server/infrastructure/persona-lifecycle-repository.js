@@ -69,6 +69,8 @@ export function createPersonaLifecycleRepository({database, clock, id, foundatio
             }
             db.prepare(`INSERT INTO companion_persona_states (persona_id, situation, mood, appearance_json, checkpoint_at, updated_at) VALUES (?, ?, ?, '{}', ?, ?)`).run(personaId, '正在开始自己的日常', '平静', createdAt, createdAt);
             db.prepare(`INSERT INTO companion_conversations (id, persona_id, created_at, updated_at) VALUES (?, ?, ?, ?)`).run(nextId('conversation'), personaId, createdAt, createdAt);
+            const planDate = new Date(createdAt).toISOString().slice(0, 10);
+            db.prepare(`INSERT OR IGNORE INTO companion_daily_plans (id, persona_id, plan_date, status, plan_json, source, created_at, updated_at) VALUES (?, ?, ?, 'queued', '[]', 'modular-default', ?, ?)`).run(nextId('daily_plan'), personaId, planDate, createdAt, createdAt);
         })();
         return getPersona({personaId});
     }

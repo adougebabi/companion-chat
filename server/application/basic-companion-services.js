@@ -66,7 +66,8 @@ export function createBasicCompanionServices({
     scheduleService,
     memoryService,
     debugService,
-    mediaService
+    mediaService,
+    lifeStateService
 } = {}) {
     const personas = repository(repositories, ['persona', 'personas'], 'persona repository');
     const groups = repository(repositories, ['group', 'groups'], 'group repository');
@@ -147,6 +148,7 @@ export function createBasicCompanionServices({
         lifecycle: routeApplication.identity,
         ...(mediaApplication ? {media: mediaApplication, assets: mediaApplication} : {}),
         ...(debugService ? {debug: debugService} : {}),
+        ...(lifeStateService ? {life: lifeStateService, lifeState: lifeStateService} : {}),
         ...(repositories.relationship ? {
             relationship: {
                 rollbackEvolution(command) {

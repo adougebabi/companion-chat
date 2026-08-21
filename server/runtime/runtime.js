@@ -33,6 +33,7 @@ import {createDebugService} from '../application/debug-service.js';
 import {createSettingsPolicy} from '../application/settings-policy.js';
 import {createLifeWorldReader} from '../application/life-world-reader.js';
 import {createLifeStateResolver} from '../domain/life-state-resolver.js';
+import {createLifeStateService} from '../application/life-state-service.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
 import {createProductionProviderRegistry} from '../infrastructure/production-media-providers.js';
 import {createMtplxCompletionPort} from '../infrastructure/llm-provider.js';
@@ -838,6 +839,13 @@ export function createCompanionRuntime(options = {}) {
                 mediaJobService: resolved.mediaJobService,
                 clock: resolved.clock
             });
+            const lifeReader = createLifeWorldReader({repositories: resolved.repositories, blueprintReader: resolved.repositories.blueprint, clock: resolved.clock});
+            const lifeStateService = options.lifeStateService ?? createLifeStateService({
+                reader: lifeReader,
+                resolver: createLifeStateResolver(),
+                stateRepository: resolved.repositories.state,
+                clock: resolved.clock
+            });
             return createCompanionApplication({
                 ...resolved,
                 services: options.services ?? createBasicCompanionServices({
@@ -856,7 +864,8 @@ export function createCompanionRuntime(options = {}) {
                     scheduleService: options.scheduleService,
                     memoryService: options.memoryService,
                     debugService,
-                    mediaService: options.mediaService
+                    mediaService: options.mediaService,
+                    lifeStateService
                 })
             });
         };

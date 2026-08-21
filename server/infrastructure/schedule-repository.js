@@ -28,6 +28,10 @@ function detailsFor(input) {
     });
 }
 
+function decodeDetails(value) {
+    try { return value ? JSON.parse(value) : {}; } catch { return {}; }
+}
+
 export function createScheduleRepository({database, clock, id} = {}) {
     const db = assertDatabase(database);
     const now = clockFor(clock);
@@ -48,7 +52,12 @@ export function createScheduleRepository({database, clock, id} = {}) {
             SELECT * FROM companion_schedule_items
             WHERE persona_id = ? AND status = 'active'
             ORDER BY starts_at, id
-        `).all(owner);
+        `).all(owner).map(row => {
+            const details = decodeDetails(row.details_json);
+            const merged = {...row, ...details};
+            if (!merged.location && typeof merged.scene === 'string' && merged.scene.trim() && !/宿舍|房间|家中|住处/.test(merged.scene)) merged.location = merged.scene.trim();
+            return merged;
+        });
     }
 
     function createSchedule(input = {}) {
