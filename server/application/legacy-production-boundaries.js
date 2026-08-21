@@ -35,7 +35,7 @@ function freezeEntry(entry) {
 const BOUNDARIES = [
     {
         key: 'createEvent',
-        status: 'blocked',
+        status: 'partial',
         legacy: {
             file: 'server.js',
             symbols: ['createEvent', 'instantiateTimelineEvent', 'reconcilePersona'],
@@ -52,7 +52,7 @@ const BOUNDARIES = [
         blockers: [
             {code: 'event-policy-mixed-with-persistence', detail: 'The legacy function validates automatic-event policy, resolves participants, writes life state, and updates persona state in one transaction.'},
             {code: 'event-fanout-not-effect-intent', detail: 'Activity creation, media enqueue, activity-decision enqueue, and proactive enqueue are still direct SQL/job side effects.'},
-            {code: 'generic-life-event-flow-missing', detail: 'No modular flow owns the generic life-event fact plus state projection and post-commit effect intents for routine, schedule, recovery, and timeline sources.'}
+            {code: 'timeline-policy-parity-incomplete', detail: 'The modular life-event flow now owns generic fact/state/activity/job fanout, but timeline candidate policy, participant introduction, and recovery reconciliation still need normalized replay.'}
         ],
         deletionChecks: [
             'Register a generic life-event flow with facts, projections, and effect intents.',
