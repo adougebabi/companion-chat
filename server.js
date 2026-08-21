@@ -12,6 +12,7 @@ import {createPendingEventRepository} from './server/infrastructure/pending-even
 import {createLifeStateResolver} from './server/domain/life-state-resolver.js';
 import {createChatTurnFlow} from './server/application/chat-turn-flow.js';
 import {createChatTurnSseAdapter} from './server/http/chat-turn-sse-adapter.js';
+import {registerCompanionRoutes} from './server/http/route-registry.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const dataDir = process.env.DATA_DIR || join(root, 'data');
@@ -6003,23 +6004,21 @@ function route(handler) {
     };
 }
 
-app.get('/api/health', (req, res) => res.json({ok: true, storage: 'companion-v2'}));
-
-app.get('/api/companion/bootstrap', route((req, res) => {
+const modularReadRouteHandlers = {
+health: (req, res) => res.json({ok: true, storage: 'companion-v2'}),
+bootstrap: (req, res) => {
     const config = settings();
     const unreadWhere = `NOT EXISTS (SELECT 1 FROM companion_personas owners WHERE owners.id = activities.persona_id AND owners.screened_at IS NOT NULL)`;
     const activityUnread = config.activityReadAt
         ? database.prepare(`SELECT 1 FROM companion_activities activities WHERE ${unreadWhere} AND activities.created_at > ? LIMIT 1`).get(config.activityReadAt)
         : database.prepare(`SELECT 1 FROM companion_activities activities WHERE ${unreadWhere} LIMIT 1`).get();
     res.json({settings: publicSettings(), personas: listPersonas(), groups: listGroups(), activityUnread: Boolean(activityUnread), defaultTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone, debugInspector: debugInspectorEnabled});
-}));
-
-app.put('/api/companion/settings', route((req, res) => {
+},
+settings: (req, res) => {
     if (!req.body || typeof req.body !== 'object') throw new Error('请求体必须是 JSON');
     res.json(saveSettings(req.body));
-}));
-
-app.get('/api/companion/models', async (req, res) => {
+},
+models: async (req, res) => {
     try {
         const config = settings();
         const headers = config.lmStudioApiKey ? {Authorization: `Bearer ${config.lmStudioApiKey}`} : {};
@@ -6028,6 +6027,18 @@ app.get('/api/companion/models', async (req, res) => {
     } catch (error) {
         res.status(502).json({error: error.message});
     }
+}
+};
+
+// The first production slice is registered through the modular route
+// contract. Remaining handlers stay on the temporary facade until their
+// dependencies have been moved behind application ports.
+registerCompanionRoutes({
+    app,
+    handlers: modularReadRouteHandlers,
+    debugInspectorEnabled,
+    wrapRoute: route,
+    missingHandler: 'skip'
 });
 
 app.post('/api/companion/interviews/preview', route((req, res) => {

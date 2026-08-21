@@ -84,3 +84,47 @@ test('runtime can start without binding HTTP or a worker for composition tests',
         rmSync(dataDir, {recursive: true, force: true});
     }
 });
+
+test('runtime wires route handlers, provider registry, and registered job dispatcher', async () => {
+    const dataDir = temporaryDirectory();
+    const calls = [];
+    const runtime = createRuntime({
+        Database,
+        dataDir,
+        workerRuntime: false,
+        environment: {DATA_DIR: dataDir},
+        routeHandlers: {
+            bootstrap(_req, res) {
+                res.json({ok: true, source: 'fixture'});
+            }
+        },
+        missingHandler: 'skip',
+        providerAdapters: {
+            fixture: {id: 'fixture', portType: 'llm-streaming', stream() { calls.push('provider'); }}
+        },
+        jobHandlers: {
+            fixture_job: {run() { calls.push('job'); }}
+        },
+        jobRepository: {
+            claim() {
+                return {id: 'job_1', job_type: 'fixture_job', status: 'leased', lease_owner: 'fixture', lease_expires_at: '2999-01-01T00:00:00.000Z', attempt_count: 1, max_attempts: 1};
+            },
+            findLeased() {
+                return {id: 'job_1', status: 'leased', lease_owner: 'fixture', lease_expires_at: '2999-01-01T00:00:00.000Z'};
+            },
+            settle() {
+                calls.push('settle');
+                return {changed: true};
+            }
+        }
+    });
+    try {
+        assert.ok(runtime.providers.get('fixture'));
+        assert.deepEqual(runtime.jobDispatcher.list(), ['fixture_job']);
+        assert.equal(runtime.app, runtime.app);
+        await runtime.start({listen: false, worker: false});
+    } finally {
+        await runtime.stop().catch(() => {});
+        rmSync(dataDir, {recursive: true, force: true});
+    }
+});

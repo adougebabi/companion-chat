@@ -1,4 +1,7 @@
 import {createHttpApp} from '../http/app.js';
+import {registerCompanionRoutes} from '../http/route-registry.js';
+import {createProviderRegistry} from '../infrastructure/provider-ports.js';
+import createJobDispatcher from './job-dispatcher.js';
 import createStartupRuntime from './startup.js';
 import createWorkerRuntime from './worker-runtime.js';
 
@@ -51,11 +54,21 @@ function resolveApp(options, startup, worker) {
     const configured = options.app;
     if (configured !== undefined) return configured;
     const httpOptions = isRecord(options.httpOptions) ? options.httpOptions : {};
+    const configuredRegistrar = httpOptions.routeRegistrar ?? options.routeRegistrar;
+    const routeHandlers = httpOptions.routeHandlers ?? options.routeHandlers;
+    const routeRegistrar = configuredRegistrar ?? (routeHandlers ? ({app: routeApp, wrapRoute, sendError}) => registerCompanionRoutes({
+        app: routeApp,
+        handlers: routeHandlers,
+        wrapRoute,
+        sendError,
+        debugInspectorEnabled: options.debugInspectorEnabled === true || httpOptions.debugInspectorEnabled === true,
+        missingHandler: httpOptions.missingHandler ?? options.missingHandler ?? 'error'
+    }) : undefined);
     return createHttpApp({
         ...httpOptions,
         root: httpOptions.root ?? options.root,
         staticRoot: httpOptions.staticRoot ?? options.staticRoot,
-        routeRegistrar: httpOptions.routeRegistrar ?? options.routeRegistrar,
+        routeRegistrar,
         chatSseAdapter: httpOptions.chatSseAdapter ?? options.chatSseAdapter,
         healthResponse: httpOptions.healthResponse ?? options.healthResponse,
         worker,
@@ -78,7 +91,7 @@ function resolveWorker(options, startup) {
     return createWorkerRuntime({
         ...workerOptions,
         jobRepository: workerOptions.jobRepository ?? options.jobRepository,
-        jobTick: workerOptions.jobTick ?? options.jobTick,
+        jobTick: workerOptions.jobTick ?? options.jobTick ?? options.jobDispatcher?.jobTick,
         claimJob: workerOptions.claimJob ?? options.claimJob,
         runJob: workerOptions.runJob ?? options.runJob,
         recoverLeases: workerOptions.recoverLeases ?? options.recoverLeases,
@@ -86,6 +99,35 @@ function resolveWorker(options, startup) {
         timers: workerOptions.timers ?? options.timers,
         leaseOwner: workerOptions.leaseOwner ?? options.leaseOwner,
         onError: workerOptions.onError ?? options.onWorkerError
+    });
+}
+
+function resolveProviders(options) {
+    const configured = options.providerRegistry ?? options.providers;
+    if (configured && typeof configured.get === 'function' && typeof configured.register === 'function') return configured;
+    const adapters = options.providerAdapters ?? options.providers;
+    if (adapters === undefined || adapters === null) return createProviderRegistry();
+    return createProviderRegistry({providers: adapters, dryRunAdapters: options.dryRunAdapters});
+}
+
+function resolveJobDispatcher(options, startup) {
+    const configured = options.jobDispatcher;
+    if (configured !== undefined) {
+        if (!isRecord(configured) || typeof configured.runJob !== 'function' || typeof configured.jobTick !== 'function') {
+            throw new TypeError('Runtime jobDispatcher must provide runJob() and jobTick()');
+        }
+        return configured;
+    }
+    const handlers = options.jobHandlers ?? options.jobRegistry;
+    if (handlers === undefined) return null;
+    return createJobDispatcher({
+        jobRepository: options.jobRepository,
+        handlers,
+        clock: options.clock,
+        receiver: options.jobHandlerReceiver,
+        onRetry: options.onJobRetry,
+        onTerminal: options.onJobTerminal,
+        onSettled: options.onJobSettled
     });
 }
 
@@ -147,12 +189,13 @@ export function createRuntime(options = {}) {
     const environment = options.environment ?? options.env ?? process.env;
     if (!isRecord(environment)) throw new TypeError('Runtime environment must be an object');
     const startup = resolveStartup({...options, environment});
-    const worker = resolveWorker(options, startup);
+    const providers = resolveProviders(options);
+    const jobDispatcher = resolveJobDispatcher(options, startup);
+    const worker = resolveWorker({...options, jobDispatcher}, startup);
     const app = resolveApp(options, startup, worker);
     const port = resolvePort(options.port, environment);
     const host = nonEmpty(options.host ?? environment.HOST, DEFAULT_HOST);
     const repositories = options.repositories ?? Object.freeze({});
-    const providers = options.providers ?? Object.freeze({});
 
     let phase = 'created';
     let server = null;
@@ -185,7 +228,12 @@ export function createRuntime(options = {}) {
     }
 
     async function stop() {
-        if (phase === 'stopped' || phase === 'created') return false;
+        if (phase === 'stopped') return false;
+        if (phase === 'created') {
+            startup.close();
+            phase = 'stopped';
+            return true;
+        }
         if (phase === 'stopping') return stopPromise;
         phase = 'stopping';
         let pendingStop;
@@ -211,6 +259,7 @@ export function createRuntime(options = {}) {
         databaseConfig: startup.databaseConfig,
         repositories,
         providers,
+        jobDispatcher,
         app,
         worker,
         port,
