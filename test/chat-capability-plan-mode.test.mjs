@@ -65,7 +65,7 @@ function streamResponse(chunks) {
     }}};
 }
 
-async function invokeChatRoute(personaId, text) {
+async function invokeChatRoute(personaId, text, chatAt = '2026-08-21T15:00:00.000Z') {
     const layer = (companionApp.router?.stack || []).find(item => item.route?.path === '/api/companion/chat' && item.route.methods?.post);
     assert.ok(layer, 'POST /api/companion/chat route is registered');
     const frames = [];
@@ -77,7 +77,7 @@ async function invokeChatRoute(personaId, text) {
         write(value) { frames.push(String(value)); },
         end() { this.headersSent = true; }
     };
-    const output = layer.route.stack[0].handle({body: {personaId, text}}, response);
+    const output = layer.route.stack[0].handle({body: {personaId, text, chatAt}}, response);
     if (output?.then) await output;
     return frames.join('');
 }

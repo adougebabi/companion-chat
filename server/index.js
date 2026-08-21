@@ -1,6 +1,7 @@
 import {BACKEND_CONTRACT_BASELINE, assertCapabilityDispatcherPort, validatePorts} from './contracts/index.js';
 import {createCapabilityHandoffStep, createFlowRegistry} from './application/flow-registry.js';
 import {createFlowExecutor} from './application/flow-executor.js';
+export {createRuntime, createCompanionRuntime} from './runtime/runtime.js';
 
 /**
  * Future composition root for the modular backend.
