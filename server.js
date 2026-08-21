@@ -15,6 +15,7 @@ import {createChatTurnSseAdapter} from './server/http/chat-turn-sse-adapter.js';
 import {registerCompanionRoutes} from './server/http/route-registry.js';
 import {createProviderRegistry} from './server/infrastructure/provider-ports.js';
 import {createJobDispatcher} from './server/runtime/job-dispatcher.js';
+import createWorkerRuntime from './server/runtime/worker-runtime.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const dataDir = process.env.DATA_DIR || join(root, 'data');
@@ -6017,6 +6018,13 @@ async function processJobs() {
     }
 }
 
+const legacyWorkerRuntime = createWorkerRuntime({
+    leaseOwner: legacyWorkerOwner,
+    pollIntervalMs: 2500,
+    jobTick: () => processJobs(),
+    onError: error => console.warn(`Companion job worker failed: ${error.message}`)
+});
+
 function route(handler) {
     return (req, res) => {
         try {
@@ -6289,9 +6297,9 @@ companionTestHooks.applyChatMediaRequestPlan = applyChatMediaRequestPlan;
 if (process.env.COMPANION_TEST !== '1') {
     app.listen(port, () => {
         console.log(`Companion Chat: http://localhost:${port}`);
+        legacyWorkerRuntime.start().catch(error => console.warn(`Companion worker startup failed: ${error.message}`));
         setTimeout(() => listPersonas().forEach(persona => { recoverPersona(persona.id); ensureDailyPlan(persona.id); }), 250);
         setInterval(() => listPersonas().forEach(persona => { reconcilePersona(persona.id); ensureDailyPlan(persona.id); }), 5 * 60 * 1000);
-        setInterval(() => processJobs(), 2500);
     });
 }
 
