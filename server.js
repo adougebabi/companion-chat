@@ -6027,6 +6027,32 @@ models: async (req, res) => {
     } catch (error) {
         res.status(502).json({error: error.message});
     }
+},
+interviewPreview: (req, res) => {
+    if (!req.body || typeof req.body !== 'object') throw new Error('请求体必须是 JSON');
+    res.json(previewInterviewAnswers(normalizeInterviewAnswers(req.body.answers || req.body)));
+},
+interviewAnalyze: async (req, res) => {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw Object.assign(new Error('请求体必须是 JSON 对象'), {status: 400});
+    const interview = await createNaturalLanguageInterview(req.body.description);
+    res.status(201).json(interview);
+},
+createInterview: (req, res) => {
+    if (req.body !== undefined && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) throw new Error('请求体必须是 JSON 对象');
+    res.status(201).json(createInterview(req.body?.answers || req.body || {}));
+},
+getInterview: (req, res) => {
+    const interview = database.prepare('SELECT * FROM companion_interview_sessions WHERE id = ?').get(req.params.interviewId);
+    if (!interview) throw Object.assign(new Error('访谈不存在'), {status: 404});
+    res.json(interviewView(interview));
+},
+answerInterview: (req, res) => {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('请求体必须是 JSON 对象');
+    res.json(answerInterview(req.params.interviewId, req.body));
+},
+activateInterview: async (req, res) => {
+    if (req.body !== undefined && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) throw new Error('请求体必须是 JSON 对象');
+    res.status(201).json(await activateInterviewWithLifeModel(req.params.interviewId, req.body || {}));
 }
 };
 
@@ -6040,38 +6066,6 @@ registerCompanionRoutes({
     wrapRoute: route,
     missingHandler: 'skip'
 });
-
-app.post('/api/companion/interviews/preview', route((req, res) => {
-    if (!req.body || typeof req.body !== 'object') throw new Error('请求体必须是 JSON');
-    res.json(previewInterviewAnswers(normalizeInterviewAnswers(req.body.answers || req.body)));
-}));
-
-app.post('/api/companion/interviews/analyze', route(async (req, res) => {
-    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw Object.assign(new Error('请求体必须是 JSON 对象'), {status: 400});
-    const interview = await createNaturalLanguageInterview(req.body.description);
-    res.status(201).json(interview);
-}));
-
-app.post('/api/companion/interviews', route((req, res) => {
-    if (req.body !== undefined && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) throw new Error('请求体必须是 JSON 对象');
-    res.status(201).json(createInterview(req.body?.answers || req.body || {}));
-}));
-
-app.get('/api/companion/interviews/:interviewId', route((req, res) => {
-    const interview = database.prepare('SELECT * FROM companion_interview_sessions WHERE id = ?').get(req.params.interviewId);
-    if (!interview) throw Object.assign(new Error('访谈不存在'), {status: 404});
-    res.json(interviewView(interview));
-}));
-
-app.post('/api/companion/interviews/:interviewId/answers', route((req, res) => {
-    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('请求体必须是 JSON 对象');
-    res.json(answerInterview(req.params.interviewId, req.body));
-}));
-
-app.post('/api/companion/interviews/:interviewId/activate', route(async (req, res) => {
-    if (req.body !== undefined && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) throw new Error('请求体必须是 JSON 对象');
-    res.status(201).json(await activateInterviewWithLifeModel(req.params.interviewId, req.body || {}));
-}));
 
 app.post('/api/companion/personas', route((req, res) => {
     if (!req.body || typeof req.body !== 'object') throw new Error('请求体必须是 JSON');
