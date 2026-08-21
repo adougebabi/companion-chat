@@ -11,6 +11,7 @@ import {createMemoryRepository} from './server/infrastructure/memory-repository.
 import {createPersonaRepository} from './server/infrastructure/persona-repository.js';
 import {createRelationshipRepository} from './server/infrastructure/relationship-repository.js';
 import {createPendingEventRepository} from './server/infrastructure/pending-event-repository.js';
+import {createLifeEventRepository} from './server/infrastructure/life-event-repository.js';
 import {createSettingsRepository} from './server/infrastructure/settings-repository.js';
 import {createLifeStateResolver} from './server/domain/life-state-resolver.js';
 import {createChatTurnFlow} from './server/application/chat-turn-flow.js';
@@ -42,6 +43,7 @@ const groupRepository = createGroupRepository({database, id, clock: now});
 const memoryRepository = createMemoryRepository({database, clock: now});
 const personaRepository = createPersonaRepository({database, id, clock: now});
 const relationshipRepository = createRelationshipRepository({database, id, clock: now});
+const lifeEventRepository = createLifeEventRepository({database, id, clock: now});
 const settingsRepository = createSettingsRepository({database, defaults: defaultSettings, clock: now});
 const lifeStateResolver = createLifeStateResolver();
 const json = (value, fallback = {}) => {
@@ -1776,8 +1778,15 @@ function createEvent(persona, event, options = {}) {
     let eventId = null;
     let activityId = null;
     database.transaction(() => {
-        eventId = id('event');
-        database.prepare('INSERT INTO companion_life_events (id, persona_id, type, occurred_at, resolves_at, causation_id, payload_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(eventId, persona.id, type, createdAt, resolvesAt, event.scheduleId || event.causationId || null, payloadJson, createdAt);
+        eventId = lifeEventRepository.createEvent({
+            personaId: persona.id,
+            type,
+            occurredAt: createdAt,
+            resolvesAt,
+            causationId: event.scheduleId || event.causationId || null,
+            payloadJson,
+            createdAt
+        }).id;
         if (introduced && ['class', 'shopping', 'social', 'study'].includes(type)) {
             const name = String(introduced.name || '').trim().slice(0, 30);
             if (name) {
@@ -1785,11 +1794,23 @@ function createEvent(persona, event, options = {}) {
                 database.prepare('INSERT INTO companion_supporting_characters (id, persona_id, name, relationship_kind, profile_json, introduced_event_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(characterId, persona.id, name, String(introduced.relationshipKind || '新认识的朋友').slice(0, 60), JSON.stringify({introducedBy: type}), eventId, createdAt, createdAt);
                 participants.unshift(characterId);
                 payload.participants = participants;
-                database.prepare('UPDATE companion_life_events SET payload_json = ? WHERE id = ?').run(JSON.stringify(payload), eventId);
+                lifeEventRepository.updateEvent({
+                    eventId,
+                    personaId: persona.id,
+                    payloadJson: JSON.stringify(payload)
+                });
             }
         }
         if (!sharedSceneFor(persona.id)) {
-            database.prepare('UPDATE companion_persona_states SET situation = ?, mood = ?, appearance_json = ?, checkpoint_at = ?, updated_at = ?, source_event_id = ? WHERE persona_id = ?').run(payload.situation, payload.mood, JSON.stringify(payload.appearance), createdAt, createdAt, eventId, persona.id);
+            lifeEventRepository.updateState({
+                personaId: persona.id,
+                situation: payload.situation,
+                mood: payload.mood,
+                appearanceJson: JSON.stringify(payload.appearance),
+                checkpointAt: createdAt,
+                updatedAt: createdAt,
+                sourceEventId: eventId
+            });
         }
         database.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ?').run(createdAt, persona.id);
         if (options.publish) {
