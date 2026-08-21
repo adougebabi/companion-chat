@@ -200,6 +200,23 @@ export function createConversationRepository({database} = {}) {
         `).all(...values, pageSize);
     }
 
+    function findMessage(first, second = {}) {
+        const input = inputFor(first, second);
+        const messageId = requiredText(input.id ?? input.messageId ?? input.message_id, 'Message.id');
+        const values = [messageId];
+        let scope = '';
+        if (input.personaId !== undefined || input.persona_id !== undefined) {
+            const personaId = requiredText(input.personaId ?? input.persona_id, 'Message.personaId');
+            scope = ' AND conversations.persona_id = ?';
+            values.push(personaId);
+        }
+        return openDatabase.prepare(`
+            SELECT messages.*, conversations.persona_id AS persona_id FROM companion_messages messages
+            JOIN companion_conversations conversations ON conversations.id = messages.conversation_id
+            WHERE messages.id = ?${scope}
+        `).get(...values);
+    }
+
     // The route owns which roles are considered unread; this method only
     // performs the requested table update and leaves policy outside storage.
     function updateReadAt(first, second = {}) {
@@ -232,6 +249,7 @@ export function createConversationRepository({database} = {}) {
         appendMessages,
         updateConversationTimestamp,
         listMessages,
+        findMessage,
         updateReadAt,
         markMessagesRead: updateReadAt
     });

@@ -1,24 +1,62 @@
 import assert from 'node:assert/strict';
-import {mkdtempSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
 import test from 'node:test';
+import {createCompanionTestContext} from '../server/testing/companion-context.js';
+import {createPendingEventFlow} from '../server/application/pending-event-flow.js';
 
-const dataDir = mkdtempSync(join(tmpdir(), 'local-ai-companion-pending-plan-'));
-process.env.DATA_DIR = dataDir;
-process.env.COMPANION_TEST = '1';
-process.env.COMPANION_DEBUG_INSPECTOR = '0';
-const {companionTestHooks} = await import(`../server.js?pending-plan-test=${Date.now()}`);
-const {database, createPersona, deletePersona, appendMessage, planPendingEvent, applyPendingEventPlan} = companionTestHooks;
+let idSequence = 0;
+const context = createCompanionTestContext({
+    clock: () => '2026-08-21T00:00:00.000Z',
+    idGenerator: prefix => `${prefix}_pending_test_${++idSequence}`
+});
+const {database, repositories} = context;
+const pendingFlow = createPendingEventFlow({
+    repositories: {...repositories, sourceMessage: repositories.conversation},
+    clock: context.clock,
+    idGenerator: context.id,
+    transaction: work => database.transaction(work)()
+});
+
+function createPersona(name) {
+    const id = `persona_${name}`;
+    database.prepare(`INSERT INTO companion_personas (id, name, role, color, enabled, created_at, updated_at) VALUES (?, ?, '陪伴者', '#888888', 1, ?, ?)`)
+        .run(id, name, context.clock(), context.clock());
+    return {id, name};
+}
+
+function appendMessage(personaId, text) {
+    const conversation = repositories.conversation.getOrCreateConversation({personaId, id: `conversation_${personaId}`, createdAt: context.clock()});
+    return repositories.conversation.appendMessage({
+        id: `message_${personaId}`,
+        conversationId: conversation.id,
+        role: 'user',
+        text,
+        attachmentsJson: '[]',
+        generationJson: null,
+        jobsJson: '[]',
+        proactiveEventId: null,
+        proactivePendingEventId: null,
+        createdAt: context.clock(),
+        readAt: context.clock()
+    });
+}
+
+function deletePersona(personaId) {
+    database.prepare('DELETE FROM companion_jobs WHERE persona_id = ?').run(personaId);
+    database.prepare('DELETE FROM companion_messages WHERE conversation_id = (SELECT id FROM companion_conversations WHERE persona_id = ?)').run(personaId);
+    database.prepare('DELETE FROM companion_conversations WHERE persona_id = ?').run(personaId);
+    database.prepare('DELETE FROM companion_pending_events WHERE persona_id = ?').run(personaId);
+    database.prepare('DELETE FROM companion_personas WHERE id = ?').run(personaId);
+}
 
 function pendingCall(suffix = 'followup') {
-    const notBefore = new Date(Date.now() + 90_000).toISOString();
-    const expiresAt = new Date(Date.now() + 2 * 60 * 60_000).toISOString();
-    return {schemaVersion: 1, summary: '面试结束后跟进', notBefore, expiresAt, dedupeKey: `${suffix}-${Date.now()}`};
+    const base = Date.parse(context.clock());
+    const notBefore = new Date(base + 90_000).toISOString();
+    const expiresAt = new Date(base + 2 * 60 * 60_000).toISOString();
+    return {schemaVersion: 1, summary: '面试结束后跟进', notBefore, expiresAt, dedupeKey: `${suffix}-${base}`};
 }
 
 function transactionApply(plan) {
-    return database.transaction(() => applyPendingEventPlan(plan))();
+    return pendingFlow.apply(plan);
 }
 
 function pendingCounts(personaId) {
@@ -29,8 +67,8 @@ function pendingCounts(personaId) {
 }
 
 function setup(name = '待定事件计划测试') {
-    const persona = createPersona({name, role: '陪伴者', foundation: '用于验证待定事件计划与应用边界。'});
-    const source = appendMessage(persona.id, {role: 'user', text: '这件事稍后再聊。'});
+    const persona = createPersona(name);
+    const source = appendMessage(persona.id, '这件事稍后再聊。');
     return {persona, source};
 }
 
@@ -38,7 +76,7 @@ test('planning validates and preallocates without writing rows or invoking a pro
     const {persona, source} = setup();
     try {
         const before = pendingCounts(persona.id);
-        const plan = planPendingEvent(persona.id, pendingCall(), source.id, {source: 'native', callId: 'call_preview'});
+        const plan = pendingFlow.plan(persona.id, pendingCall(), source.id, {source: 'native', callId: 'call_preview'});
         assert.equal(plan.type, 'pending_event_plan');
         assert.equal(plan.pendingEventId, plan.preallocatedIds.pendingEventId);
         assert.equal(plan.jobId, plan.preallocatedIds.jobId);
@@ -55,14 +93,14 @@ test('apply commits the plan, replays idempotently, and uses the planned job ID'
     const {persona, source} = setup('待定事件回放测试');
     try {
         const call = pendingCall('replay');
-        const plan = planPendingEvent(persona.id, call, source.id, {source: 'native', idempotencyKey: 'cap_replay'});
+        const plan = pendingFlow.plan(persona.id, call, source.id, {source: 'native', idempotencyKey: 'cap_replay'});
         const first = transactionApply(plan);
         assert.equal(first.created, true);
         assert.equal(first.pendingEvent.id, plan.pendingEventId);
         assert.equal(first.jobId, plan.jobId);
         assert.equal(database.prepare('SELECT id FROM companion_jobs WHERE id = ?').get(plan.jobId).id, plan.jobId);
 
-        const replayPlan = planPendingEvent(persona.id, call, source.id, {source: 'native', idempotencyKey: 'cap_replay'});
+        const replayPlan = pendingFlow.plan(persona.id, call, source.id, {source: 'native', idempotencyKey: 'cap_replay'});
         assert.equal(replayPlan.pendingEventId, plan.pendingEventId);
         assert.equal(replayPlan.jobId, plan.jobId);
         assert.equal(replayPlan.previewResult.replayed, true);
@@ -78,10 +116,10 @@ test('apply repairs a pending event whose linked job was removed', () => {
     const {persona, source} = setup('待定事件修复测试');
     try {
         const call = pendingCall('repair');
-        const firstPlan = planPendingEvent(persona.id, call, source.id);
+        const firstPlan = pendingFlow.plan(persona.id, call, source.id);
         const first = transactionApply(firstPlan);
         database.prepare('DELETE FROM companion_jobs WHERE id = ?').run(first.jobId);
-        const repairPlan = planPendingEvent(persona.id, call, source.id);
+        const repairPlan = pendingFlow.plan(persona.id, call, source.id);
         assert.equal(repairPlan.pendingEventId, first.pendingEvent.id);
         assert.notEqual(repairPlan.jobId, first.jobId);
         const repaired = transactionApply(repairPlan);
@@ -96,7 +134,7 @@ test('apply repairs a pending event whose linked job was removed', () => {
 test('caller transaction rolls back the pending row when the planned job ID cannot be inserted', () => {
     const {persona, source} = setup('待定事件回滚测试');
     try {
-        const plan = planPendingEvent(persona.id, pendingCall('rollback'), source.id);
+        const plan = pendingFlow.plan(persona.id, pendingCall('rollback'), source.id);
         const createdAt = new Date().toISOString();
         database.prepare(`
             INSERT INTO companion_jobs (id, job_type, status, run_after, payload_json, created_at, updated_at)
@@ -109,3 +147,5 @@ test('caller transaction rolls back the pending row when the planned job ID cann
         deletePersona(persona.id);
     }
 });
+
+test.after(() => context.cleanup());

@@ -87,6 +87,20 @@ test('message insertion and conversation timestamp update stay table-scoped', ()
     }
 });
 
+test('findMessage enforces persona ownership while returning the raw message row', () => {
+    const database = createDatabase();
+    try {
+        const repository = createConversationRepository({database});
+        repository.getOrCreateConversation(conversationInput());
+        repository.getOrCreateConversation(conversationInput({personaId: 'persona_2', id: 'conversation_2'}));
+        repository.appendMessage(messageInput());
+        assert.equal(repository.findMessage({id: 'message_1', personaId: 'persona_1'}).persona_id, 'persona_1');
+        assert.equal(repository.findMessage({id: 'message_1', personaId: 'persona_2'}), undefined);
+    } finally {
+        database.close();
+    }
+});
+
 test('batch append preserves input order and message-owned fields while updating once', () => {
     const database = createDatabase();
     try {
