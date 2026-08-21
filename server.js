@@ -7,6 +7,7 @@ import {createActivityRepository} from './server/infrastructure/activity-reposit
 import {createConversationRepository} from './server/infrastructure/conversation-repository.js';
 import {createJobRepository} from './server/infrastructure/job-repository.js';
 import {createPendingEventRepository} from './server/infrastructure/pending-event-repository.js';
+import {createSettingsRepository} from './server/infrastructure/settings-repository.js';
 import {createLifeStateResolver} from './server/domain/life-state-resolver.js';
 import {createChatTurnFlow} from './server/application/chat-turn-flow.js';
 import {createChatTurnSseAdapter} from './server/http/chat-turn-sse-adapter.js';
@@ -32,6 +33,7 @@ const {dataDir, databasePath, database} = startupRuntime;
 const activityRepository = createActivityRepository({database});
 const conversationRepository = createConversationRepository({database});
 const jobRepository = createJobRepository({database, id, clock: now});
+const settingsRepository = createSettingsRepository({database, defaults: defaultSettings, clock: now});
 const lifeStateResolver = createLifeStateResolver();
 const json = (value, fallback = {}) => {
     try {
@@ -86,7 +88,7 @@ function defaultSettings() {
 }
 
 function settings() {
-    return {...defaultSettings(), ...json(database.prepare('SELECT payload_json FROM companion_settings WHERE id = 1').get()?.payload_json, {})};
+    return settingsRepository.read();
 }
 
 function publicSettings() {
@@ -154,7 +156,7 @@ function saveSettings(patch) {
     const current = settings();
     const next = validateMediaSettings(patch, current);
     if (patch.lmStudioApiKey === undefined || patch.lmStudioApiKey === '' || patch.lmStudioApiKey === 'configured') next.lmStudioApiKey = current.lmStudioApiKey;
-    database.prepare('UPDATE companion_settings SET payload_json = ?, updated_at = ? WHERE id = 1').run(JSON.stringify(next), now());
+    settingsRepository.write(next);
     return publicSettings();
 }
 

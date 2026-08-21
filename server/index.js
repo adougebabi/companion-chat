@@ -4,11 +4,12 @@ import {createFlowExecutor} from './application/flow-executor.js';
 export {createRuntime, createCompanionRuntime} from './runtime/runtime.js';
 
 /**
- * Future composition root for the modular backend.
+ * Modular composition exports.
  *
- * It is intentionally inert: the current package still starts server.js.
- * Keeping construction separate lets contract and flow tests run without
- * opening SQLite, binding a port, or contacting a provider.
+ * `createRuntime()` is the executable lifecycle factory. The small contract
+ * composition below remains side-effect free for flow tests while the package
+ * entrypoint is migrated in a later cutover once all business adapters are
+ * supplied by the new root.
  */
 function resolveCommitAdapter(value) {
     if (value === undefined || value === null) return null;
