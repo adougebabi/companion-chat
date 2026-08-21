@@ -412,3 +412,36 @@ Completed modular backend cutover: removed server.js, legacy compatibility harne
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: 前端 Vue 运行时切换与性能收口
+
+**Date**: 2026-08-21
+**Task**: 前端 Vue 运行时切换与性能收口
+**Branch**: `master`
+
+### Summary
+
+完成 Vue 3 + TypeScript + Vite + Pinia 前端切换；接通联系人、会话历史、SSE、动态、设置、人格创建与详情管理、媒体和 debug inspector；删除旧 src 入口，Express/Docker/CI 改为 dist；修复动态评论事件、历史锚点、重试、draft/IME 和 polling guard。npm run typecheck、npm run build、node --check server/index.js、npm test (307/307) 与 Express dist cache smoke 通过；浏览器视觉/性能回归按本次范围暂缓。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4b3d6d3` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
