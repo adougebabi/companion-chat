@@ -6,6 +6,7 @@ import {spawn} from 'node:child_process';
 import {createActivityRepository} from './server/infrastructure/activity-repository.js';
 import {createConversationRepository} from './server/infrastructure/conversation-repository.js';
 import {createJobRepository} from './server/infrastructure/job-repository.js';
+import {createGroupRepository} from './server/infrastructure/group-repository.js';
 import {createPersonaRepository} from './server/infrastructure/persona-repository.js';
 import {createPendingEventRepository} from './server/infrastructure/pending-event-repository.js';
 import {createSettingsRepository} from './server/infrastructure/settings-repository.js';
@@ -35,6 +36,7 @@ const {dataDir, databasePath, database} = startupRuntime;
 const activityRepository = createActivityRepository({database});
 const conversationRepository = createConversationRepository({database});
 const jobRepository = createJobRepository({database, id, clock: now});
+const groupRepository = createGroupRepository({database, id, clock: now});
 const personaRepository = createPersonaRepository({database, id, clock: now});
 const settingsRepository = createSettingsRepository({database, defaults: defaultSettings, clock: now});
 const lifeStateResolver = createLifeStateResolver();
@@ -176,13 +178,13 @@ function requirePersona(personaId) {
 const companionGroupNameMaxLength = 60;
 
 function defaultGroup() {
-    return database.prepare('SELECT * FROM companion_groups WHERE is_default = 1 ORDER BY created_at, id LIMIT 1').get();
+    return groupRepository.defaultGroup();
 }
 
 function groupForPersona(personaId) {
     const groupId = typeof personaId === 'object' ? personaId?.group_id : personaId;
     const group = groupId
-        ? database.prepare('SELECT id, name, is_default, created_at, updated_at FROM companion_groups WHERE id = ?').get(groupId)
+        ? groupRepository.find(groupId)
         : null;
     return group || defaultGroup();
 }
@@ -195,15 +197,7 @@ function groupShape(row, personaCount = 0) {
 }
 
 function listGroups() {
-    return database.prepare(`
-        SELECT groups.id, groups.name, groups.is_default, groups.created_at, groups.updated_at,
-            COUNT(personas.id) AS persona_count
-        FROM companion_groups groups
-        LEFT JOIN companion_personas personas
-            ON personas.group_id = groups.id AND personas.enabled = 1 AND personas.deleted_at IS NULL
-        GROUP BY groups.id
-        ORDER BY groups.is_default DESC, groups.created_at, groups.id
-    `).all().map(row => groupShape(row, row.persona_count));
+    return groupRepository.list().map(row => groupShape(row, row.persona_count));
 }
 
 function createGroup(name) {
@@ -211,25 +205,22 @@ function createGroup(name) {
     const normalized = name.trim();
     if (!normalized) throw new Error('分组名称不能为空');
     if (normalized.length > companionGroupNameMaxLength) throw new Error(`分组名称不能超过 ${companionGroupNameMaxLength} 个字符`);
-    if (database.prepare('SELECT 1 FROM companion_groups WHERE name = ?').get(normalized)) throw new Error('分组名称已存在');
-    const group = {id: id('group'), name: normalized, isDefault: false, personaCount: 0};
-    const createdAt = now();
     try {
-        database.prepare('INSERT INTO companion_groups (id, name, is_default, created_at, updated_at) VALUES (?, ?, 0, ?, ?)').run(group.id, group.name, createdAt, createdAt);
+        const row = groupRepository.create({name: normalized});
+        return {id: row.id, name: row.name, isDefault: Boolean(row.is_default), personaCount: 0};
     } catch (error) {
         if (String(error.code || '').includes('SQLITE_CONSTRAINT')) throw new Error('分组名称已存在');
         throw error;
     }
-    return group;
 }
 
 function assignPersonaGroup(personaId, groupId) {
     const persona = requirePersona(personaId);
     if (typeof groupId !== 'string' || !groupId.trim()) throw new Error('分组 ID 不能为空');
-    const group = database.prepare('SELECT id FROM companion_groups WHERE id = ?').get(groupId.trim());
+    const group = groupRepository.find(groupId.trim());
     if (!group) throw Object.assign(new Error('分组不存在'), {status: 404});
     const updatedAt = now();
-    database.prepare('UPDATE companion_personas SET group_id = ?, updated_at = ? WHERE id = ?').run(group.id, updatedAt, persona.id);
+    groupRepository.assignPersona({personaId: persona.id, groupId: group.id, updatedAt});
     return summary(requirePersona(persona.id));
 }
 
