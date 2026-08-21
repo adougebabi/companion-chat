@@ -3,6 +3,10 @@ import {createCapabilityHandoffStep, createFlowRegistry} from './application/flo
 import {createFlowExecutor} from './application/flow-executor.js';
 import {createRuntime, createCompanionRuntime} from './runtime/runtime.js';
 export {createCompositionRoot as createProductionCompositionRoot} from './composition-root.js';
+export {createCompanionRouteHandlers} from './application/companion-route-handlers.js';
+export {createPendingEventFlow} from './application/pending-event-flow.js';
+export {createSceneEventFlow} from './application/scene-event-flow.js';
+export {createMediaFlow} from './application/media-flow.js';
 
 export {createRuntime, createCompanionRuntime};
 
