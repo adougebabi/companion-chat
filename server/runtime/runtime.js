@@ -25,8 +25,14 @@ import {createPersonaLifecycleRepository} from '../infrastructure/persona-lifecy
 import {createMediaAssetRepository} from '../infrastructure/media-asset-repository.js';
 import {createPromptRunRepository} from '../infrastructure/prompt-run-repository.js';
 import {createStateRepository} from '../infrastructure/state-repository.js';
+import {createBlueprintRepository} from '../infrastructure/blueprint-repository.js';
+import {createDailyPlanRepository} from '../infrastructure/daily-plan-repository.js';
+import {createPresenceRepository} from '../infrastructure/presence-repository.js';
 import {h3RuntimeHelpers} from '../infrastructure/h3-preflight.js';
 import {createDebugService} from '../application/debug-service.js';
+import {createSettingsPolicy} from '../application/settings-policy.js';
+import {createLifeWorldReader} from '../application/life-world-reader.js';
+import {createLifeStateResolver} from '../domain/life-state-resolver.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
 import {createProductionProviderRegistry} from '../infrastructure/production-media-providers.js';
 import {createMtplxCompletionPort} from '../infrastructure/llm-provider.js';
@@ -188,15 +194,21 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
     const idGenerator = runtimeId(options.idGenerator ?? options.id);
     const settings = options.settings ?? repositories.settings;
     const readSettings = typeof settings === 'function' ? settings : settings?.read?.bind(settings) ?? (() => ({}));
+    const lifeWorldReader = createLifeWorldReader({
+        repositories,
+        blueprintReader: repositories.blueprint,
+        clock
+    });
+    const resolveLifeState = createLifeStateResolver();
     const contextReader = {
         read({command = {}, messages = []} = {}) {
             const personaId = command.personaId ?? command?.command?.personaId;
             const persona = repositories.persona?.findActive?.(personaId);
             if (!persona) throw Object.assign(new Error('人格不存在'), {status: 404});
             const at = command.chatAt ?? clock();
-            const events = repositories.lifeEvent?.listActive?.({personaId, at, limit: 1}) ?? [];
-            const event = events[0];
-            const state = event ? `${event.type}: ${event.payload_json || ''}` : '当前没有额外的已确认生活事件。';
+            const resolverInput = lifeWorldReader.readResolverInput({personaId, at});
+            const resolved = resolveLifeState(resolverInput);
+            const state = resolved.situation ? `${resolved.situation}（${resolved.scene || '日常场景'}）` : '当前没有额外的已确认生活事件。';
             return {
                 persona: {id: persona.id, name: persona.name, role: persona.role, color: persona.color},
                 prompt: `你是 ${persona.name}，角色是 ${persona.role || '陪伴者'}。请基于已确认事实与用户交流，不要编造当前状态。`,
@@ -466,7 +478,10 @@ function resolveRepositories(options, startup) {
         interview,
         mediaAsset: createMediaAssetRepository({database}),
         promptRun: createPromptRunRepository({database, clock}),
-        state: createStateRepository({database, clock})
+        state: createStateRepository({database, clock}),
+        blueprint: createBlueprintRepository({database}),
+        dailyPlan: createDailyPlanRepository({database}),
+        presence: createPresenceRepository({database})
     });
 }
 
@@ -683,6 +698,11 @@ export function createRuntime(options = {}) {
     const mediaCapabilityOptions = options.defaultProductionComposition === true
         ? createDefaultMediaCapabilityOptions(options, repositories)
         : {};
+    const h3Helpers = h3RuntimeHelpers({id: runtimeId(options.idGenerator ?? options.id)});
+    const settingsPolicy = options.settingsPolicy ?? createSettingsPolicy({
+        providers,
+        h3Inspector: h3Helpers.inspectH3Configuration
+    });
     const jobDispatcher = resolveJobDispatcher({...options, jobRepository, mediaJobService, proactiveJobService}, startup, repositories);
     const application = options.application ?? options.applicationFactory?.({
         ...options,
@@ -694,6 +714,7 @@ export function createRuntime(options = {}) {
         mediaObservability,
         proactiveJobService,
         chatProductionPorts,
+        settingsPolicy,
         ...mediaCapabilityOptions
     });
     const worker = resolveWorker({...options, jobRepository, jobDispatcher}, startup, repositories);
@@ -799,7 +820,7 @@ export function createCompanionRuntime(options = {}) {
                 repositories: resolved.repositories,
                 settings: options.settings ?? resolved.repositories.settings,
                 providers: resolved.providers,
-                settingsPolicy: options.settingsPolicy,
+                settingsPolicy: resolved.settingsPolicy ?? options.settingsPolicy,
                 defaultTimezone: options.defaultTimezone,
                 debugInspector: options.debugInspectorEnabled === true
             });

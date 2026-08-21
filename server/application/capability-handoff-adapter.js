@@ -81,10 +81,11 @@ export function createCapabilityHandoffAdapter({registry, capabilityRegistry} = 
         names: dispatcher.names,
         dispatch(input = {}) {
             const context = input.context ?? {};
+            const markerText = input.markerText ?? '';
             const output = dispatcher.dispatch({
                 mode: input.mode ?? 'execute',
                 calls: Array.isArray(input.calls) ? input.calls : [],
-                markerText: input.markerText ?? '',
+                markerText,
                 completion: input.completion ?? {doneSeen: true},
                 personaId: context.personaId ?? input.personaId,
                 causationUserMessageId: context.causationId ?? input.causationUserMessageId
@@ -92,7 +93,7 @@ export function createCapabilityHandoffAdapter({registry, capabilityRegistry} = 
             return {
                 results: output.attempts.map(resultFor),
                 effects: output.attempts.flatMap(attempt => attempt?.intent ? [attempt.intent] : []),
-                visibleText: output.visibleText,
+                ...(output.visibleText !== markerText ? {visibleText: output.visibleText} : {}),
                 diagnostics: output.diagnostics
             };
         }

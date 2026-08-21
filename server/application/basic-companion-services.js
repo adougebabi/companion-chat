@@ -122,7 +122,15 @@ export function createBasicCompanionServices({
             }
         },
         models: {
-            list() { return providers?.summaries?.({detailed: true}) ?? []; }
+            list(command = {}) {
+                const summaries = providers?.summaries?.({detailed: true}) ?? [];
+                const providerId = command.provider ?? command.providerId ?? 'mtplx';
+                const provider = providers?.find?.(providerId, {portType: 'llm-streaming'}) ?? null;
+                if (provider?.models) {
+                    return Promise.resolve(provider.models(command)).then(value => ({provider: providerId, models: value?.data ?? value?.models ?? value ?? [], providers: summaries}));
+                }
+                return summaries;
+            }
         },
         persona: routeApplication.persona,
         personas: routeApplication.personas,

@@ -42,6 +42,15 @@ export function createScheduleRepository({database, clock, id} = {}) {
         `).get(schedule, owner);
     }
 
+    function listActive({personaId, at} = {}) {
+        const owner = text(personaId, 'Persona.id');
+        return db.prepare(`
+            SELECT * FROM companion_schedule_items
+            WHERE persona_id = ? AND status = 'active'
+            ORDER BY starts_at, id
+        `).all(owner);
+    }
+
     function createSchedule(input = {}) {
         const owner = text(input.personaId, 'Persona.id');
         const scheduleId = text(input.id ?? nextId('schedule'), 'Schedule.id');
@@ -82,7 +91,7 @@ export function createScheduleRepository({database, clock, id} = {}) {
         return result.changes ? {id: scheduleId, cancelled: true, cancelledAt: at} : null;
     }
 
-    return Object.freeze({findActive, find: findActive, createSchedule, create: createSchedule, insert: createSchedule, rescheduleSchedule, reschedule: rescheduleSchedule, update: rescheduleSchedule, cancelSchedule, cancel: cancelSchedule, delete: cancelSchedule});
+    return Object.freeze({findActive, find: findActive, listActive, list: listActive, createSchedule, create: createSchedule, insert: createSchedule, rescheduleSchedule, reschedule: rescheduleSchedule, update: rescheduleSchedule, cancelSchedule, cancel: cancelSchedule, delete: cancelSchedule});
 }
 
 export default createScheduleRepository;

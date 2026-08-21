@@ -15,6 +15,7 @@ export {createBasicCompanionServices} from './application/basic-companion-servic
 export {createIdentitySettingsService, publicSettings, redactSettings} from './application/identity-settings-service.js';
 export {createActivityService, createCompanionActivityService} from './application/activity-service.js';
 export {createDebugService} from './application/debug-service.js';
+export {createSettingsPolicy} from './application/settings-policy.js';
 export {createCapabilityHandoffAdapter, createFlowCapabilityRegistry} from './application/capability-handoff-adapter.js';
 export {createStateRepository} from './infrastructure/state-repository.js';
 export {createPersonaLifecycleService} from './application/persona-lifecycle-service.js';

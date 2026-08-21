@@ -78,8 +78,28 @@ export function createDebugService({repositories = {}, promptRuns, h3Preflight, 
     }
 
     function debugMedia(command = {}) {
-        if (!mediaJobService?.submit) throw Object.assign(new Error('debug media job service 未配置'), {status: 501});
-        return mediaJobService.submit(command.job ?? command, command.context ?? {});
+        const job = command.job;
+        if (job && mediaJobService?.submit) return mediaJobService.submit(job, command.context ?? {});
+        if (!jobs?.enqueue) throw Object.assign(new Error('debug media job service 未配置'), {status: 501});
+        const personaId = text(command.personaId, '人格 ID');
+        const kind = command.kind === 'video' ? 'video' : 'image';
+        const concept = isRecord(command.personaMediaConcept) ? command.personaMediaConcept : {
+            schemaVersion: 1,
+            mediaKind: kind,
+            scene: String(command.request || '开发检查器媒体任务').slice(0, 800),
+            action: String(command.request || '开发检查器媒体任务').slice(0, 800),
+            mood: '', narrative: '', humanSubjects: [], nonHumanObjects: [],
+            capture: {mode: 'other', operator: '', deviceVisibility: 'unspecified', framingIntent: ''},
+            compositionIntent: ''
+        };
+        return jobs.enqueue({
+            jobType: kind === 'video' ? 'chat_video' : 'chat_image',
+            personaId,
+            priority: 4,
+            maxAttempts: 3,
+            payload: {kind, provider: command.provider ?? (kind === 'video' ? 'comfyui' : 'comfyui'), request: command.request ?? '', personaMediaConcept: concept},
+            runAfter: command.runAfter ?? clock()
+        });
     }
 
     return Object.freeze({

@@ -290,6 +290,15 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
         return {changed: changed.changes, recovered: changed.changes};
     }
 
+    function listForPersona({personaId, limit = 50} = {}) {
+        const owner = requiredText(personaId, 'Persona.id');
+        const bounded = Math.min(200, Math.max(1, Number(limit) || 50));
+        return openDatabase.prepare(`
+            SELECT * FROM companion_jobs WHERE persona_id = ?
+            ORDER BY created_at DESC, id DESC LIMIT ?
+        `).all(owner, bounded);
+    }
+
     function transitionInput(first, second = {}) {
         if (typeof first === 'string') return {...second, id: first};
         const source = assertRecord(first, 'Job transition input');
@@ -429,6 +438,7 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
         claim,
         recoverLeases,
         recoverExpiredLeases: recoverLeases,
+        listForPersona,
         settle,
         retry
     });
