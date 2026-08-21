@@ -3,8 +3,8 @@
  * providers, process state, or the wall clock.
  *
  * The resolver deliberately accepts both the normalized domain vocabulary and
- * the row-shaped aliases currently produced by server.js. That keeps the
- * contract useful during the migration while leaving all I/O at the callers.
+ * row-shaped persistence aliases. This keeps the pure contract useful across
+ * repository adapters while leaving all I/O at the callers.
  */
 
 const GENERATED_SCHEDULE_SOURCES = new Set([

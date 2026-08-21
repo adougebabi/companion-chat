@@ -34,6 +34,26 @@ function clone(value) {
     return value;
 }
 
+function fallbackBlueprint(personaId) {
+    const label = personaId || '人格';
+    return {
+        schemaVersion: 2,
+        timezone: 'Asia/Shanghai',
+        identity: {name: label, role: '陪伴者'},
+        interests: [],
+        routine: [],
+        world: {
+            defaultSceneRef: {locationId: 'home', roomId: 'private_room'},
+            locations: [{
+                id: 'home', name: '家中', isDefault: true,
+                rooms: [{id: 'private_room', name: '自己的宿舍房间', scene: `${label}在自己的宿舍房间里，保持自然的日常状态。`}]
+            }]
+        },
+        fixedTimeEvents: [], dailyFlexibleEvents: [], randomPositiveEvents: [], randomNegativeEvents: [], supportingCast: [],
+        generation: {source: 'safe-v2-fallback', usedFallback: true, validationWarnings: ['blueprint_reader_missing']}
+    };
+}
+
 function text(value) {
     return typeof value === 'string' ? value.trim() : '';
 }
@@ -378,15 +398,15 @@ export function createLifeWorldReader({repositories = {}, blueprintReader, scene
     function readResolverInput(first, second) {
         const request = readRequest(first, second, currentTime);
         const blueprint = invoke(readBlueprint, contextFor(request.personaId, request), 'blueprintReader', {positional: true});
-        if (!isRecord(blueprint)) throw new TypeError('Life-world reader blueprintReader must return an object');
-        const blueprintScope = rowPersonaId(blueprint);
+        const effectiveBlueprint = isRecord(blueprint) ? blueprint : fallbackBlueprint(request.personaId);
+        const blueprintScope = rowPersonaId(effectiveBlueprint);
         if (blueprintScope && blueprintScope !== request.personaId) {
             throw new TypeError('Life-world reader blueprint does not belong to persona');
         }
         const state = personaState(request);
         const plan = dailyPlan(request);
         return {
-            blueprint: clone(blueprint),
+            blueprint: clone(effectiveBlueprint),
             personaId: request.personaId,
             scheduleItems: scheduleItems(request),
             lifeEvents: lifeEvents(request),

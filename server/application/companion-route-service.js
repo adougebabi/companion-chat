@@ -117,7 +117,23 @@ function personaDto(row, group) {
 
 function personaDetailDto(row, group) {
     if (!isRecord(row)) throw new TypeError('人格 repository 未返回人格详情');
-    if (isRecord(row.persona)) return row;
+    if (isRecord(row.persona)) {
+        const nested = row.persona;
+        const hasSummaryFields = ['name', 'role', 'color', 'groupId', 'group_id', 'screened', 'screened_at', 'currentSituation', 'current_situation', 'mood', 'unreadCount', 'unread_count', 'updatedAt', 'updated_at', 'imageGenerationPolicy', 'image_generation_policy']
+            .some(field => Object.hasOwn(nested, field) || Object.hasOwn(row, field));
+        if (!hasSummaryFields) return row;
+        const nestedGroup = group ?? (nested.groupName || nested.group_name ? {name: nested.groupName ?? nested.group_name} : undefined);
+        const policy = nested.image_generation_policy
+            ?? nested.imageGenerationPolicy
+            ?? row.image_generation_policy
+            ?? row.imageGenerationPolicy
+            ?? 'autonomous';
+        return {
+            ...row,
+            persona: {...personaDto(nested, nestedGroup), imageGenerationPolicy: policy},
+            imageGenerationPolicy: row.imageGenerationPolicy ?? policy
+        };
+    }
     const summary = personaDto(row, group);
     const policy = row.image_generation_policy ?? row.imageGenerationPolicy ?? 'autonomous';
     return {
@@ -128,7 +144,6 @@ function personaDetailDto(row, group) {
 
 function scheduleDto(row) {
     if (!isRecord(row)) return row;
-    if (row.startsAt !== undefined || row.endsAt !== undefined) return row;
     let details = row.details;
     if (!isRecord(details)) {
         try {
@@ -137,13 +152,22 @@ function scheduleDto(row) {
             details = {};
         }
     }
+    const startsAt = row.startsAt ?? row.starts_at ?? null;
+    const endsAt = row.endsAt ?? row.ends_at ?? null;
+    const sourceMessageId = row.sourceMessageId
+        ?? row.source_message_id
+        ?? details.sourceMessageId
+        ?? details.source_message_id
+        ?? null;
     return {
         id: row.id,
         title: row.title,
         kind: row.kind,
-        startsAt: row.starts_at,
-        endsAt: row.ends_at ?? null,
-        source: row.source,
+        startsAt,
+        endsAt,
+        source: row.source ?? row.source_type ?? null,
+        ...(sourceMessageId ? {sourceMessageId} : {}),
+        ...(details.scene === undefined ? {} : {scene: details.scene}),
         ...(row.status === undefined ? {} : {status: row.status}),
         details
     };
@@ -381,6 +405,16 @@ export function createCompanionRouteService({
         return summaryFor(updated);
     }
 
+    function listGroups(command = {}) {
+        assertRecord(command, '分组列表请求');
+        const operation = candidate(groups, ['list', 'listAll', 'getAll']);
+        if (!operation) throw notConfigured('分组 repository 未配置列表方法');
+        return mapMaybe(operation(command), rows => {
+            if (!Array.isArray(rows)) throw new TypeError('分组 repository 列表必须返回数组');
+            return rows.map(groupDto);
+        });
+    }
+
     function screenPersona(command = {}) {
         const input = assertRecord(command, '人格屏蔽请求');
         const personaId = requiredText(input.personaId ?? input.persona_id, '人格 ID');
@@ -447,6 +481,9 @@ export function createCompanionRouteService({
         setImageGenerationPolicy: updateImageGenerationPolicy
     });
     const groupApi = Object.freeze({
+        list: listGroups,
+        listGroups,
+        get: listGroups,
         create: createGroup,
         assignPersona: assignPersonaGroup,
         assignGroup: assignPersonaGroup
@@ -514,6 +551,7 @@ export function createCompanionRouteService({
         getPersona,
         createGroup,
         assignPersonaGroup,
+        listGroups,
         screenPersona,
         updateImageGenerationPolicy,
         interviewPreview: interview.preview,

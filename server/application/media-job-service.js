@@ -77,6 +77,11 @@ function jobType(job) {
     return text(valueFor(job, 'jobType', 'job_type'), 'Media job type', 80);
 }
 
+function activityIdFor(job) {
+    const value = valueFor(job, 'activityId', 'activity_id');
+    return value === null || value === undefined ? null : text(value, 'Media job activityId', 160);
+}
+
 function personaId(job) {
     const value = valueFor(job, 'personaId', 'persona_id');
     return value === null || value === undefined ? undefined : text(value, 'Media job personaId', 160);
@@ -234,6 +239,21 @@ function retryAtFor(job, now, retryDelayMs, maxRetryDelayMs) {
     return new Date(Date.parse(now) + delay).toISOString();
 }
 
+function associationError(job, payload) {
+    const type = jobType(job);
+    const activityId = activityIdFor(job);
+    const payloadActivityId = payload?.activityId ?? payload?.activity_id ?? null;
+    if (type.startsWith('activity_')) {
+        if (!activityId) return new Error('Activity media job requires top-level activityId');
+        if (payloadActivityId !== null && payloadActivityId !== undefined && payloadActivityId !== activityId) {
+            return new Error('Activity media job activityId does not match its payload');
+        }
+        return null;
+    }
+    if (activityId) return new Error('Chat media job cannot carry top-level activityId');
+    return null;
+}
+
 function methodResult(value) {
     return value && typeof value.then === 'function' ? value : Promise.resolve(value);
 }
@@ -371,6 +391,10 @@ export function createMediaJobService({
     async function updateTarget(job, patch, context = {}) {
         const active = await activeLease(job, context);
         if (!active) return {changed: false, reason: 'lease_rejected'};
+        // Activity jobs must never fall through to the chat-message target
+        // path when their durable top-level association is missing.
+        const association = associationError(active, payloadFor(active));
+        if (association) return {changed: false, reason: 'invalid_activity_association'};
         if (!flowUpdateTarget) return {changed: false, reason: 'target_writer_unavailable'};
         return await methodResult(flowUpdateTarget({job: active, ...patch, now: context.now ?? now()})) ?? {changed: true};
     }
@@ -513,6 +537,8 @@ export function createMediaJobService({
     async function submit(job, context = {}) {
         requiredRecord(job, 'job');
         const payload = payloadFor(job);
+        const association = associationError(job, payload);
+        if (association) return fail(job, association, context, {terminal: true, failedStage: 'invalid_activity_association'});
         const kind = kindFor(job, payload);
         if (!isRecord(payload.personaMediaConcept) || payload.personaMediaConcept.mediaKind !== kind) {
             return fail(job, new Error('Media job has no valid frozen media concept'), context, {terminal: true, failedStage: 'missing_frozen_media_concept'});
@@ -559,6 +585,8 @@ export function createMediaJobService({
         requiredRecord(job, 'job');
         if (!(await activeLease(job, context))) return outcome('stale', null, null, {changed: false, reason: 'lease_rejected'});
         const payload = payloadFor(job);
+        const association = associationError(job, payload);
+        if (association) return fail(job, association, context, {terminal: true, failedStage: 'invalid_activity_association'});
         const kind = kindFor(job, payload);
         try {
             const selected = providerFor(providers, kind, payload.provider);

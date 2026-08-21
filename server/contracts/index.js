@@ -2,8 +2,8 @@
  * Stable contracts shared by the future backend composition root.
  *
  * This module is deliberately independent from Express, SQLite, providers,
- * and the current server.js entrypoint. The runtime checks keep JavaScript
- * callers honest until the backend is migrated to TypeScript.
+ * and any executable entrypoint. The runtime checks keep JavaScript callers
+ * honest until the backend is migrated to TypeScript.
  */
 
 export const BACKEND_CONTRACT_VERSION = 1;

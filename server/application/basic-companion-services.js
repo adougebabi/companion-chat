@@ -70,10 +70,11 @@ export function createBasicCompanionServices({
     mediaService,
     lifeStateService,
     lifeEventFlow,
+    timelineFlow,
     relationshipFlow
 } = {}) {
-    const personas = repository(repositories, ['persona', 'personas'], 'persona repository');
-    const groups = repository(repositories, ['group', 'groups'], 'group repository');
+    const personas = repository(repositories, ['persona', 'personas', 'personaRepository'], 'persona repository');
+    const groups = repository(repositories, ['group', 'groups', 'groupRepository'], 'group repository');
     const conversation = repository(repositories, ['conversation', 'conversationRepository'], 'conversation repository');
     const activity = repository(repositories, ['activity', 'activityRepository'], 'activity repository');
     const conversationService = createConversationService({repository: conversation, clock, idGenerator});
@@ -86,18 +87,24 @@ export function createBasicCompanionServices({
     });
     const useIdentitySettings = identitySettingsService !== undefined;
     const activityApplication = activityService ?? null;
-    const mediaApplication = mediaDebugService ?? mediaService ?? (repositories.mediaAsset ? {
-        get: command => repositories.mediaAsset.find(command),
-        read: command => repositories.mediaAsset.find(command),
-        getMedia: command => repositories.mediaAsset.find(command)
+    const mediaAssetCandidate = repositories.mediaAsset ?? repositories.mediaAssetRepository
+        ?? repositories.asset ?? repositories.assets;
+    const mediaAsset = isRecord(mediaAssetCandidate) && typeof mediaAssetCandidate.find === 'function'
+        ? mediaAssetCandidate : null;
+    const mediaApplication = mediaDebugService ?? mediaService ?? (mediaAsset ? {
+        get: command => mediaAsset.find(command),
+        read: command => mediaAsset.find(command),
+        getMedia: command => mediaAsset.find(command)
     } : null);
-    const debugApplication = mediaDebugService
-        ? Object.freeze({
-            ...(debugService ?? {}),
-            ...mediaDebugService,
-            debug: Object.freeze({...((debugService ?? {}).debug ?? {}), ...(mediaDebugService.debug ?? {})})
-        })
-        : debugService;
+    const debugApplication = debugInspector === true
+        ? mediaDebugService
+            ? Object.freeze({
+                ...(debugService ?? {}),
+                ...mediaDebugService,
+                debug: Object.freeze({...((debugService ?? {}).debug ?? {}), ...(mediaDebugService.debug ?? {})})
+            })
+            : debugService
+        : null;
     const routeApplication = routeService ?? createCompanionRouteService({
         repositories,
         services: {identity: identity},
@@ -160,6 +167,7 @@ export function createBasicCompanionServices({
         ...(debugApplication ? {debug: debugApplication} : {}),
         ...(lifeStateService ? {life: lifeStateService, lifeState: lifeStateService} : {}),
         ...(lifeEventFlow ? {lifeEvent: lifeEventFlow, events: lifeEventFlow} : {}),
+        ...(timelineFlow ? {timeline: timelineFlow, lifeTimeline: timelineFlow} : {}),
         ...(repositories.relationship ? {
             relationship: {
                 rollbackEvolution(command) {

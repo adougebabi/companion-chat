@@ -89,3 +89,18 @@ Provider tests use mock/dry-run adapters. Real MTPLX capability probing remains 
 - No horizontal module directly imports Express, SQLite or a provider.
 - All flows use the generic runner and effect registry.
 - Full API/SSE/SQLite/worker/browser/replay suite passes after old-layer deletion.
+
+## Deep Parity Closeout (2026-08-21)
+
+- `createLifeEventFlow` now owns generic event validation, idempotency, automatic safety policy, scene-reference checks, mild-setback recovery requirements, participant ownership/introduction, shared-scene projection protection, activity/supporting-character fan-out, frozen media authorization, proactive/activity effects, and one transaction boundary.
+- The default runtime now composes timeline decision/slot/link persistence, supporting-character persistence, centralized context fragments and prompt contracts, model-message serialization (including tool continuation), life-state reconciliation through the event flow, and proactive/deferred/activity/debug context through the same context reader.
+- Job enqueueing reuses an active SQLite transaction so fact, projection, activity and effect rows cannot fail on nested `better-sqlite3` transactions. Media activity jobs carry the frozen `personaMediaConcept` at the top-level worker envelope and preserve activity ownership.
+- Validation in this implementation phase was limited to `node --check`, module-import smoke, and `git diff --check`; test migration, test repair, and regression execution remain intentionally deferred until the unified replay/regression phase.
+
+## Scope Adjustment (2026-08-21)
+
+Per the latest user direction, this continuation explicitly excludes old/new normalized replay, real MTPLX probing, real ComfyUI/H3 process verification, provider performance/failure-recovery checks, lease/retry/restart recovery checks, log-format/redaction verification, and frontend visual/performance regression. API/SSE/SQLite/worker regression is now being run after the legacy root cutover. The old `server.js` root and direct legacy test imports have been removed; remaining failures are recorded as regression work rather than hidden by restoring compatibility code.
+
+The modular hardening pass also completed route/debug fail-closed wiring, shared provider-message serialization with tool-call correlation, timeline stale-slot safety, life-state recovery idempotency, strict activity-media association checks, and duplicate job-registration detection. The boundary audit now records these as `partial` legacy cutover boundaries rather than `blocked` missing modular implementations; `readyForLegacyDeletion` remains false until the old root, hooks, and duplicate paths are removed.
+
+Legacy cutover is now applied: `server.js`, direct `server.js`/`companionTestHooks` imports, the compatibility harness, legacy fixtures, and the legacy boundary inventory/test were removed. `server/index.js` is the only package start/dev entrypoint. The deleted compatibility suite is no longer part of the regression surface; remaining tests exercise the modular contracts, applications, runtime, providers, workers, and routes directly.

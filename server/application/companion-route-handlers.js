@@ -140,6 +140,14 @@ function responseEmpty(res, status = 204) {
     return undefined;
 }
 
+function responseEnded(res) {
+    return Boolean(res?.headersSent || res?.writableEnded || res?.writableFinished || res?.destroyed);
+}
+
+function debugDisabledResponse(res) {
+    return responseJson(res, {error: 'Debug inspector is disabled'}, 404);
+}
+
 function boundedNotImplemented(routeName, res) {
     const payload = {error: `Companion route "${routeName}" is not configured`};
     return responseJson(res, payload, 501);
@@ -252,7 +260,12 @@ function presentResult({res, adapters, routeName, command, context, result, stat
         return responseJson(res, mapDto(adapters, routeName, http.body, command, context), http.status ?? status);
     }
     if (empty || status === 204) return responseEmpty(res, status);
-    if (result === undefined && routeName === 'getMedia') return result;
+    if (result === undefined && routeName === 'getMedia') {
+        // Asset providers stream directly and may resolve with no DTO. A
+        // missing repository row, however, must not leave the HTTP request
+        // without a response.
+        return responseEnded(res) ? result : responseJson(res, {error: 'Media does not exist'}, 404);
+    }
     let dto = result;
     if (routeName === 'appendConversationMessage' && Array.isArray(dto)) {
         dto = {message: dto[0] ?? null, messages: dto};
@@ -429,12 +442,13 @@ function descriptor(routeName) {
  * implementation. Every contract route receives a function; an unconfigured
  * use-case responds with a bounded 501 instead of disappearing from the API.
  */
-export function createCompanionRouteHandlers({repositories, services, policies, adapters} = {}) {
+export function createCompanionRouteHandlers({repositories, services, policies, adapters, debugInspectorEnabled = false} = {}) {
     const dependencies = Object.freeze({
         repositories: assertDependencies(repositories, 'repositories'),
         services: assertDependencies(services, 'services'),
         policies: assertDependencies(policies, 'policies'),
-        adapters: assertDependencies(adapters, 'adapters')
+        adapters: assertDependencies(adapters, 'adapters'),
+        debugInspectorEnabled: debugInspectorEnabled === true
     });
 
     const handlers = {};
@@ -442,7 +456,12 @@ export function createCompanionRouteHandlers({repositories, services, policies, 
         const routeName = definition.handler;
         const route = descriptor(routeName);
         if (typeof route !== 'function') throw new Error(`No companion route descriptor for ${routeName}`);
-        handlers[routeName] = (req, res) => route({req, res, dependencies});
+        handlers[routeName] = (req, res) => {
+            if (definition.debug && dependencies.debugInspectorEnabled !== true) {
+                return debugDisabledResponse(res);
+            }
+            return route({req, res, dependencies});
+        };
     }
     return Object.freeze(handlers);
 }

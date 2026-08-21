@@ -79,7 +79,7 @@ test('the service is an inert registration seam with an explicit parity blocker 
     assert.equal(service.audit().ready, false);
     assert.deepEqual(service.audit().availableTypes, []);
     assert.deepEqual(service.audit().blockers.map(blocker => blocker.type), PROACTIVE_JOB_TYPES);
-    assert.match(service.audit().blockers[0].reason, /server\.js/);
+    assert.match(service.audit().blockers[0].reason, /former handler|transport-bound branch/);
     assert.equal(service.ports.repositories.job, undefined);
     assert.equal(service.ports.repositories.conversation.findMessage instanceof Function, true);
 });

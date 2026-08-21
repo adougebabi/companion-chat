@@ -2,8 +2,19 @@ function isRecord(value) { return Boolean(value) && typeof value === 'object' &&
 function required(value, field) { if (typeof value !== 'string' || !value.trim()) throw Object.assign(new TypeError(`${field}不能为空`), {status: 400}); return value.trim(); }
 function parse(value, fallback = {}) { if (value && typeof value === 'object') return value; try { return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
 function atFor(value, clock) { const result = value ? new Date(value) : new Date(clock()); if (!Number.isFinite(result.getTime())) throw new TypeError('生活状态时间无效'); return result; }
+function sameProjection(persisted, value) {
+    if (!persisted || persisted.situation !== value.situation || persisted.mood !== value.mood) return false;
+    return JSON.stringify(parse(persisted.appearance_json, {})) === JSON.stringify(parse(value.appearance_json, {}));
+}
+function recentProjection(persisted, at, windowMs = 20 * 60 * 1_000) {
+    const updatedAt = Date.parse(persisted?.updated_at ?? persisted?.updatedAt ?? '');
+    return Number.isFinite(updatedAt) && at.getTime() - updatedAt < windowMs;
+}
+function factTypeFor(source) {
+    return source === 'schedule' ? 'schedule' : 'routine';
+}
 
-export function createLifeStateService({reader, resolver, stateRepository, clock = () => new Date().toISOString()} = {}) {
+export function createLifeStateService({reader, resolver, stateRepository, lifeEventFlow, clock = () => new Date().toISOString()} = {}) {
     if (!reader || typeof reader.readResolverInput !== 'function') throw new TypeError('Life state service requires life-world reader');
     if (typeof resolver !== 'function') throw new TypeError('Life state service requires a pure resolver');
     const state = stateRepository;
@@ -80,10 +91,65 @@ export function createLifeStateService({reader, resolver, stateRepository, clock
     }
     function reconcile(command = {}) {
         const value = project(command);
-        if (state?.updateProjection) state.updateProjection({personaId: value.personaId, situation: value.situation, mood: value.mood, appearance: value.appearance_json, checkpointAt: value.currentTime.toISOString(), updatedAt: value.currentTime.toISOString(), sourceEventId: value.source_event_id, sharedScene: value.sharedScene});
+        const persisted = state?.read?.({personaId: value.personaId}) ?? {};
+        // An active event or shared scene is already the authoritative source.
+        // Reconciliation must project it, never create a second fact describing
+        // the same state on every request or worker tick.
+        if (value.resolved_source === 'shared_scene' || value.resolved_source === 'event') return value;
+        if (sameProjection(persisted, value) && recentProjection(persisted, value.currentTime)) return value;
+        if (lifeEventFlow?.record) {
+            const source = value.resolved_source || 'baseline';
+            lifeEventFlow.record({
+                personaId: value.personaId,
+                type: factTypeFor(source),
+                occurredAt: value.currentTime.toISOString(),
+                resolvesAt: value.resolved_ends_at ?? null,
+                situation: value.situation,
+                mood: value.mood,
+                scene: value.resolved_scene,
+                appearance: value.appearance,
+                source: 'reconcile',
+                rationale: '由 life-state resolver 投影当前可信状态',
+                idempotencyKey: `reconcile:${value.personaId}:${source}:${value.resolved_source_id || ''}:${value.resolved_starts_at || value.currentTime.toISOString().slice(0, 13)}`,
+                publish: false,
+                reversible: true
+            });
+            return project(command);
+        } else if (state?.updateProjection) {
+            state.updateProjection({personaId: value.personaId, situation: value.situation, mood: value.mood, appearance: value.appearance_json, checkpointAt: value.currentTime.toISOString(), updatedAt: value.currentTime.toISOString(), sourceEventId: value.source_event_id, sharedScene: value.sharedScene});
+        }
         return value;
     }
-    return Object.freeze({resolvedStateFor, stateShape, scheduledState, sleepAvailability, reconcilePersona: reconcile, recoverPersona: reconcile});
+    function recover(command = {}) {
+        const value = project(command);
+        if (value.resolved_source === 'shared_scene' || value.resolved_source === 'event') return value;
+        const persisted = state?.read?.({personaId: value.personaId}) ?? {};
+        const checkpointAt = Date.parse(persisted.checkpoint_at ?? persisted.checkpointAt ?? '');
+        if (!Number.isFinite(checkpointAt) || value.currentTime.getTime() - checkpointAt < 30 * 60 * 1_000) return reconcile(command);
+        if (!lifeEventFlow?.record) {
+            if (state?.updateProjection) state.updateProjection({personaId: value.personaId, situation: value.situation, mood: value.mood, appearance: value.appearance_json, checkpointAt: value.currentTime.toISOString(), updatedAt: value.currentTime.toISOString(), sourceEventId: value.source_event_id, sharedScene: value.sharedScene});
+            return value;
+        }
+        const source = value.resolved_source || 'baseline';
+        lifeEventFlow.record({
+            personaId: value.personaId,
+            // Recovery is a state fact, not a competing active life event.
+            type: 'routine',
+            occurredAt: value.currentTime.toISOString(),
+            resolvesAt: value.resolved_ends_at ?? null,
+            situation: value.situation,
+            mood: value.mood,
+            scene: value.resolved_scene,
+            appearance: value.appearance,
+            source: 'recovery',
+            rationale: '服务恢复后只同步当前可信状态，不补发中间作息',
+            idempotencyKey: `recovery:${value.personaId}:${persisted.checkpoint_at ?? persisted.checkpointAt}:${source}:${value.resolved_source_id || ''}:${value.resolved_starts_at || ''}`,
+            publish: false,
+            reversible: true
+        });
+        return project(command);
+    }
+    return Object.freeze({resolvedStateFor, stateShape, scheduledState, sleepAvailability, reconcilePersona: reconcile, recoverPersona: recover});
 }
 
 export default createLifeStateService;

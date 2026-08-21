@@ -35,7 +35,7 @@ const BLOCKER_DETAILS = Object.freeze({
         code: 'missing_proactive_flow',
         owner: 'activity/proactive application flow',
         missing: Object.freeze(['eligibility policy', 'structured decision call', 'frozen decision persistence', 'user-visible assistant reply projection']),
-        reason: 'The legacy handler combines life-event lookup, eligibility, model evaluation, decision freezing, and assistant-message creation in server.js.'
+        reason: 'The former handler combined life-event lookup, eligibility, model evaluation, decision freezing, and assistant-message creation in one transport-bound branch.'
     }),
     pending_event: Object.freeze({
         code: 'missing_pending_event_worker_flow',
@@ -47,13 +47,13 @@ const BLOCKER_DETAILS = Object.freeze({
         code: 'missing_activity_decision_flow',
         owner: 'activity application flow',
         missing: Object.freeze(['life-event read', 'structured publish decision', 'activity projection', 'media effect intent']),
-        reason: 'The legacy handler performs model parsing, activity SQL, supporting comments, and media enqueue in one server.js branch.'
+        reason: 'The former handler performed model parsing, activity persistence, supporting comments, and media enqueue in one branch.'
     }),
     deferred_chat_reply: Object.freeze({
         code: 'missing_deferred_chat_reply_flow',
         owner: 'conversation/deferred-reply application flow',
         missing: Object.freeze(['deferred-batch read', 'life-world-aware reply context', 'single reply projection', 'batch completion projection']),
-        reason: 'The legacy handler reads and updates deferred batches, calls the model, and persists the reply in one server.js transaction.'
+        reason: 'The former handler read and updated deferred batches, called the model, and persisted the reply in one transaction.'
     })
 });
 
@@ -246,7 +246,7 @@ function commandFor(type, job, context, ports) {
  *
  * A flow is intentionally optional during the migration. Missing flows are
  * reported by audit() and fail closed as terminal input rather than silently
- * routing a job back to server.js or retrying it forever.
+ * routing a job back to a removed compatibility implementation or retrying it forever.
  */
 export function createProactiveJobService(options = {}) {
     if (!isRecord(options)) throw new TypeError('Proactive job service options must be an object');

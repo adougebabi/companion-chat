@@ -173,7 +173,8 @@ export function createCompanionApplication(options = {}) {
         repositories,
         services,
         policies: options.policies,
-        adapters: options.adapters
+        adapters: options.adapters,
+        debugInspectorEnabled: options.debugInspectorEnabled === true
     });
     const routeHandlers = options.routeHandlers ?? defaultRouteHandlers;
     // The generated handler owns body validation and SSE response preparation;

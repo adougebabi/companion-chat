@@ -1,3 +1,5 @@
+import {randomUUID} from 'node:crypto';
+
 function assertDatabase(database) {
     if (!database || typeof database.prepare !== 'function' || typeof database.transaction !== 'function') {
         throw new TypeError('Foundation repository requires an open database');
@@ -19,7 +21,7 @@ function clockFor(clock) {
 function idFor(id) {
     if (typeof id === 'function') return id;
     if (id && typeof id.next === 'function') return id.next.bind(id);
-    return prefix => `${prefix}_${crypto.randomUUID()}`;
+    return prefix => `${prefix}_${randomUUID()}`;
 }
 
 function row(database, personaId) {

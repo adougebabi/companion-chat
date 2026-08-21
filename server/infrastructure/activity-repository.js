@@ -176,6 +176,31 @@ export function createActivityRepository({database} = {}) {
         return openDatabase.prepare('SELECT * FROM companion_activities WHERE id = ?').get(input.id);
     }
 
+    function updateActivity(first, second = {}) {
+        const input = inputFor(first, second);
+        const activityId = requiredText(input.activityId ?? input.id, 'Activity.id');
+        const assignments = [];
+        const values = [];
+        if (input.content !== undefined) {
+            assignments.push('content = ?');
+            values.push(textColumn(input.content, 'Activity.content'));
+        }
+        if (input.mediaMode !== undefined || input.media_mode !== undefined) {
+            assignments.push('media_mode = ?');
+            values.push(input.mediaMode ?? input.media_mode);
+        }
+        if (input.mediaStatus !== undefined || input.media_status !== undefined) {
+            assignments.push('media_status = ?');
+            values.push(input.mediaStatus ?? input.media_status);
+        }
+        if (!assignments.length) return findActivity({activityId, personaId: input.personaId});
+        const scope = input.personaId === undefined || input.personaId === null ? '' : ' AND persona_id = ?';
+        values.push(activityId);
+        if (scope) values.push(requiredText(input.personaId, 'Activity.personaId'));
+        openDatabase.prepare(`UPDATE companion_activities SET ${assignments.join(', ')} WHERE id = ?${scope}`).run(...values);
+        return findActivity({activityId, personaId: input.personaId});
+    }
+
     function listActivityComments(first, second = {}) {
         const input = inputFor(first, second);
         const activity = requireActivity(input);
@@ -316,6 +341,7 @@ export function createActivityRepository({database} = {}) {
         findActivityByEvent,
         listActivities,
         insertActivity,
+        updateActivity,
         listActivityComments,
         insertActivityComment,
         insertComment: insertActivityComment,

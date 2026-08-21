@@ -1,4 +1,5 @@
 import {createCapabilityDispatcher} from './capability-dispatcher.js';
+import {serializePromptMessages} from './context-pipeline.js';
 
 const MAX_HISTORY = 18;
 const MAX_MESSAGE_LENGTH = 8_000;
@@ -119,28 +120,8 @@ export function createChatContextReader({contextFor, read, clock = () => new Dat
     });
 }
 
-function modelMessageFor(message) {
-    return {
-        role: message?.role === 'assistant' ? 'assistant' : 'user',
-        content: message?.text || message?.content || '[用户发送了媒体附件]'
-    };
-}
-
 function defaultPrompt({context, messages}) {
-    const system = [
-        context?.prompt,
-        context?.layers?.lifeState,
-        context?.layers?.memory,
-        context?.layers?.relationship,
-        context?.layers?.systemCapability,
-        context?.systemCapability
-    ]
-        .filter(value => typeof value === 'string' && value.trim())
-        .join('\n\n');
-    return [
-        ...(system ? [{role: 'system', content: system}] : []),
-        ...(Array.isArray(messages) ? messages.slice(-MAX_HISTORY).map(modelMessageFor) : [])
-    ];
+    return serializePromptMessages({context, messages, maxHistory: MAX_HISTORY});
 }
 
 /**
@@ -149,8 +130,8 @@ function defaultPrompt({context, messages}) {
  * that transport concern and may return either normalized completion data or
  * an async iterable of normalized chunks.
  */
-export function createChatLlmStreamingPort({stream, complete, promptSerializer, tools = [], toolChoice = 'auto', temperature = 0.75} = {}) {
-    const delegate = callable(stream ?? complete, ['stream', 'streamCompletion', 'streamChat', 'complete'], 'Chat LLM completion');
+export function createChatLlmStreamingPort({stream, complete, llmStreamingPort, promptSerializer, tools = [], toolChoice = 'auto', temperature = 0.75} = {}) {
+    const delegate = callable(stream ?? complete ?? llmStreamingPort, ['stream', 'streamCompletion', 'streamChat', 'complete'], 'Chat LLM completion');
     const serialize = typeof promptSerializer === 'function' ? promptSerializer : defaultPrompt;
     return Object.freeze({
         stream(input = {}) {

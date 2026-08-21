@@ -28,8 +28,22 @@ export {createSettingsPolicy} from './application/settings-policy.js';
 export {createLifeStateService} from './application/life-state-service.js';
 export {createLifeEventFlow, createLifeEventApplicationFlow} from './application/life-event-flow.js';
 export {createContextPipeline, createContextFragmentPipeline} from './application/context-pipeline.js';
+export {
+    systemCapabilityReplyForm,
+    systemCapabilityMediaContract,
+    systemCapabilityPendingEventContract,
+    systemCapabilityTimeFact,
+    systemCapabilitySceneContract,
+    imageGenerationPolicyLabels,
+    systemCapabilityContracts,
+    systemCapabilityPromptFor,
+    contextPromptFor
+} from './application/context-contracts.js';
+export {serializePromptMessages} from './application/context-pipeline.js';
 export {createCapabilityHandoffAdapter, createFlowCapabilityRegistry} from './application/capability-handoff-adapter.js';
 export {createStateRepository} from './infrastructure/state-repository.js';
+export {createSupportingCharacterRepository} from './infrastructure/supporting-character-repository.js';
+export {createTimelineRepository} from './infrastructure/timeline-repository.js';
 export {createPersonaLifecycleService} from './application/persona-lifecycle-service.js';
 export {createInterviewService} from './application/interview-service.js';
 export {createFoundationService} from './application/foundation-service.js';
@@ -99,14 +113,6 @@ export {createLifeWorldReader} from './application/life-world-reader.js';
 export {createConversationService} from './application/conversation-service.js';
 export {createProductionDeferredChatBatchRepository} from './infrastructure/production-proactive-ports.js';
 export {createCompanionRouteService, createCompanionRouteApplicationService} from './application/companion-route-service.js';
-export {
-    LEGACY_PRODUCTION_BOUNDARY_VERSION,
-    LEGACY_PRODUCTION_BOUNDARIES,
-    LEGACY_PRODUCTION_SYMBOLS,
-    getLegacyProductionBoundary,
-    auditLegacyProductionBoundaries
-} from './application/legacy-production-boundaries.js';
-
 export {createRuntime, createCompanionRuntime};
 
 /** Start a fully assembled modular runtime supplied by the caller. */

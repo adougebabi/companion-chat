@@ -78,12 +78,14 @@ export function createMediaJobRepository({database, jobRepository, activityRepos
         const activityId = rowValue(job, 'activityId', 'activity_id');
         const updatedAt = requiredText(at ?? now(), 'Media target.updatedAt');
         if (activityId) {
-            database.prepare(`
+            const changed = database.prepare(`
                 UPDATE companion_activities
                 SET media_status = ?
                 WHERE id = ? AND persona_id = ?
             `).run(status ?? 'none', activityId, jobPersonaId);
-            return {changed: true};
+            return changed.changes
+                ? {changed: true}
+                : {changed: false, reason: 'activity_not_found'};
         }
         const message = scopedMessage(job);
         if (!message) return {changed: false, reason: 'message_not_found'};

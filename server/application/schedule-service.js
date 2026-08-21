@@ -71,6 +71,7 @@ export function createScheduleService(options = {}) {
     const schedules = sourceFor(options, ['schedule', 'schedules', 'scheduleRepository', 'schedulePort']);
     const personas = sourceFor(options, ['persona', 'personas', 'personaRepository', 'personaPort']);
     const conversations = sourceFor(options, ['conversation', 'conversationRepository', 'conversationPort']);
+    const lifeEvents = sourceFor(options, ['lifeEvent', 'lifeEvents', 'lifeEventRepository', 'lifeEventPort']);
     const now = clockFor(options.clock ?? options.now);
     const findPersona = methodFor(personas, ['findActive', 'find', 'get'], 'persona port', {optional: true});
     const findSchedule = methodFor(schedules, ['findActive', 'find', 'get'], 'schedule port', {optional: true});
@@ -95,6 +96,18 @@ export function createScheduleService(options = {}) {
         const result = methodFor(schedules, names, field, {optional: true});
         if (!result) throw statusError(`日程服务缺少 ${field} port`, 501);
         return result;
+    }
+
+    const createLifeEvent = methodFor(lifeEvents, ['createEvent', 'insertEvent', 'record'], 'life-event port', {optional: true});
+
+    function transactionRun(work) {
+        const transaction = options.transaction ?? options.transactionPort;
+        if (!transaction) return work();
+        const runner = typeof transaction === 'function'
+            ? transaction
+            : methodFor(transaction, ['run', 'transaction', 'execute'], 'transaction');
+        const result = runner(work);
+        return result && typeof result === 'function' ? result() : result;
     }
 
     function normalizeWindow(input, existing = null) {
@@ -150,11 +163,16 @@ export function createScheduleService(options = {}) {
         requirePersona(personaId);
         const existing = currentSchedule(personaId, scheduleId);
         const window = normalizeWindow(input, existing);
+        const current = Date.parse(timestamp(now(), '当前时间'));
+        const existingStart = Date.parse(existing.startsAt ?? existing.starts_at);
+        if (Number.isFinite(existingStart) && existingStart <= current) {
+            throw statusError('已经开始的日程不能改期', 400);
+        }
         const title = input.title === undefined
             ? existing?.title
             : requiredText(input.title, '计划标题', MAX_TITLE_LENGTH);
         if (!title) throw statusError('计划标题不能为空', 400);
-        return operation(['rescheduleSchedule', 'reschedule', 'update'], 'reschedule')({
+        const next = {
             ...input,
             personaId,
             scheduleId,
@@ -162,7 +180,37 @@ export function createScheduleService(options = {}) {
             startsAt: window.startsAt,
             endsAt: window.endsAt,
             updatedAt: input.updatedAt ?? now()
-        });
+        };
+        const write = () => {
+            const updated = operation(['rescheduleSchedule', 'reschedule', 'update'], 'reschedule')(next);
+            const audit = value => {
+                if (!value) throw statusError('有效日程不存在', 404);
+                if (createLifeEvent) {
+                    createLifeEvent({
+                        personaId,
+                        type: 'schedule_rescheduled',
+                        occurredAt: next.updatedAt,
+                        causationId: input.sourceMessageId ?? input.source_message_id ?? null,
+                        payload: {
+                            source: 'user',
+                            scheduleId,
+                            previous: {
+                                id: scheduleId,
+                                title: existing.title,
+                                startsAt: existing.startsAt ?? existing.starts_at,
+                                endsAt: existing.endsAt ?? existing.ends_at ?? null,
+                                scene: existing.scene ?? existing.details?.scene ?? null
+                            },
+                            next: {id: scheduleId, title, startsAt: window.startsAt, endsAt: window.endsAt, scene: input.scene ?? existing.scene ?? existing.details?.scene ?? null}
+                        },
+                        createdAt: next.updatedAt
+                    });
+                }
+                return value;
+            };
+            return mapMaybe(updated, audit);
+        };
+        return transactionRun(write);
     }
 
     function cancel(command = {}) {

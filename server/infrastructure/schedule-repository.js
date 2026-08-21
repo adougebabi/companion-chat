@@ -1,3 +1,5 @@
+import {randomUUID} from 'node:crypto';
+
 function assertDatabase(database) {
     if (!database || typeof database.prepare !== 'function') throw new TypeError('Schedule repository requires an open database');
     return database;
@@ -17,7 +19,7 @@ function clockFor(clock) {
 function idFor(id) {
     if (typeof id === 'function') return id;
     if (id && typeof id.next === 'function') return id.next.bind(id);
-    return prefix => `${prefix}_${crypto.randomUUID()}`;
+    return prefix => `${prefix}_${randomUUID()}`;
 }
 
 function detailsFor(input) {

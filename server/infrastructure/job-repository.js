@@ -227,7 +227,10 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
         if (traceId !== null) requiredText(traceId, 'Job.traceId');
         const payloadJson = jsonFor(input, 'Job', 'payloadJson', '{}');
 
-        return openDatabase.transaction(() => {
+        // Application flows may enqueue an effect while their outer fact/
+        // projection transaction is active; reuse that transaction instead of
+        // attempting a nested better-sqlite3 transaction.
+        const persist = () => {
             openDatabase.prepare(`
                 INSERT INTO companion_jobs (
                     id, job_type, status, priority, run_after, lease_owner,
@@ -240,7 +243,8 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
                 activityId, messageId, traceId, payloadJson, createdAt, updatedAt
             );
             return find({id: jobId, ...(personaId === null ? {personaId: null} : personaId ? {personaId} : {})});
-        })();
+        };
+        return openDatabase.inTransaction ? persist() : openDatabase.transaction(persist)();
     }
 
     function claim(input = {}) {

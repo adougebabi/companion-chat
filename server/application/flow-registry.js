@@ -100,6 +100,7 @@ export function createCapabilityHandoffStep({dispatcher}) {
         async run(context = {}, command = {}) {
             const calls = Array.isArray(command.capabilityCalls) ? command.capabilityCalls.map(normalizeCapabilityCall) : [];
             const rawOutcome = await dispatcher.dispatch({
+                mode: command.mode ?? command.completion?.capabilityMode ?? 'execute',
                 calls,
                 markerText: command.markerText ?? command.text ?? command.completion?.text ?? '',
                 completion: command.completion,

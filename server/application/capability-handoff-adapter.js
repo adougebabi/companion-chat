@@ -26,6 +26,24 @@ function resultFor(attempt) {
     };
 }
 
+function effectIntentFor(call, plan, apply) {
+    if (!isRecord(call) || !isRecord(plan)) return null;
+    if (typeof apply !== 'function') return null;
+    const causationId = call.causationUserMessageId ?? call.causationId;
+    if (typeof call.idempotencyKey !== 'string' || !call.idempotencyKey.trim()) return null;
+    if (typeof causationId !== 'string' || !causationId.trim()) return null;
+    return {
+        effectId: `capability:${call.idempotencyKey}`.slice(0, 240),
+        kind: `capability.${call.name}`,
+        capability: call.name,
+        idempotencyKey: call.idempotencyKey,
+        causationId,
+        // The plan is an in-process commit handle. It is intentionally carried
+        // in the request-scoped effect result rather than serialized to storage.
+        payload: {plan, apply}
+    };
+}
+
 function markerAdapterFor(tag) {
     const pattern = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'i');
     return (text, context = {}) => {
@@ -67,7 +85,13 @@ function entryFor(flow, planCommand) {
             if (!isRecord(args)) throw new Error('Capability arguments must be a JSON object');
             const command = planCommand({args, call, personaId, causationUserMessageId});
             const plan = flow.plan(command);
-            if (mode === 'plan') return {plan, result: plan.previewResult ?? plan.preview ?? null};
+            if (mode === 'plan') {
+                return {
+                    plan,
+                    result: plan.previewResult ?? plan.preview ?? null,
+                    intent: effectIntentFor(call, plan, () => flow.apply(plan))
+                };
+            }
             return flow.apply(plan);
         }
     };
@@ -80,11 +104,12 @@ export function createCapabilityHandoffAdapter({registry, capabilityRegistry} = 
     const dispatcher = createCapabilityDispatcher({registry: source});
     return Object.freeze({
         names: dispatcher.names,
+        supportsContinuation: true,
         dispatch(input = {}) {
             const context = input.context ?? {};
             const markerText = input.markerText ?? '';
             const output = dispatcher.dispatch({
-                mode: input.mode ?? 'execute',
+                mode: input.mode ?? input.completion?.capabilityMode ?? 'execute',
                 calls: Array.isArray(input.calls) ? input.calls : [],
                 markerText,
                 completion: input.completion ?? {doneSeen: true},

@@ -6,7 +6,7 @@ import {createBasicCompanionServices} from '../application/basic-companion-servi
 import {createIdentitySettingsService} from '../application/identity-settings-service.js';
 import {createActivityService} from '../application/activity-service.js';
 import {createProactiveJobService} from '../application/proactive-job-service.js';
-import {createChatProductionPorts} from '../application/chat-production-adapter.js';
+import {createChatProductionPorts, createChatLlmStreamingPort} from '../application/chat-production-adapter.js';
 import {createConversationCommitAdapter} from '../infrastructure/conversation-commit-adapter.js';
 import {createActivityRepository} from '../infrastructure/activity-repository.js';
 import {createConversationRepository} from '../infrastructure/conversation-repository.js';
@@ -28,6 +28,8 @@ import {createStateRepository} from '../infrastructure/state-repository.js';
 import {createBlueprintRepository} from '../infrastructure/blueprint-repository.js';
 import {createDailyPlanRepository} from '../infrastructure/daily-plan-repository.js';
 import {createPresenceRepository} from '../infrastructure/presence-repository.js';
+import {createSupportingCharacterRepository} from '../infrastructure/supporting-character-repository.js';
+import {createTimelineRepository} from '../infrastructure/timeline-repository.js';
 import {h3RuntimeHelpers} from '../infrastructure/h3-preflight.js';
 import {createDebugService} from '../application/debug-service.js';
 import {createMediaDebugService} from '../application/media-debug-service.js';
@@ -40,6 +42,7 @@ import {createContextPipeline} from '../application/context-pipeline.js';
 import {createTimelineFlow} from '../application/timeline-flow.js';
 import {createRelationshipFlow} from '../application/relationship-flow.js';
 import {createDeferredChatPolicy} from '../application/deferred-chat-policy.js';
+import {systemCapabilityContracts, imageGenerationPolicyLabels} from '../application/context-contracts.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
 import {createProductionProviderRegistry} from '../infrastructure/production-media-providers.js';
 import {createMtplxCompletionPort} from '../infrastructure/llm-provider.js';
@@ -325,35 +328,83 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
             const persona = repositories.persona?.findActive?.(personaId);
             if (!persona) throw Object.assign(new Error('人格不存在'), {status: 404});
             const at = command.chatAt ?? clock();
-            const resolved = lifeWorldReader
-                ? resolveLifeState(lifeWorldReader.readResolverInput({personaId, at}))
-                : null;
-            const state = resolved?.situation ? `${resolved.situation}（${resolved.scene || '日常场景'}）` : '当前没有额外的已确认生活事件。';
+            const worldInput = lifeWorldReader?.readResolverInput({personaId, at}) ?? null;
+            const resolved = worldInput ? resolveLifeState(worldInput) : null;
+            const state = resolved?.situation
+                ? `${resolved.situation}（${resolved.scene || '日常场景'}；地点：${resolved.location || '未确认'}；房间：${resolved.room || '未确认'}；心情：${resolved.mood || '平静'}）`
+                : '当前没有额外的已确认生活事件。';
             const memories = repositories.memory?.listActive?.({personaId, limit: 12}) ?? [];
             const relationship = repositories.relationship?.activePatch?.({personaId}) ?? null;
+            let relationshipPatch = {};
+            try { relationshipPatch = relationship?.next_patch ? JSON.parse(relationship.next_patch) : {}; } catch { relationshipPatch = {}; }
+            const foundation = repositories.foundation?.getDraft?.({personaId}) ?? repositories.foundation?.draft?.({personaId}) ?? null;
+            const imagePolicy = ['ask', 'always', 'important', 'user_only', 'autonomous'].includes(persona.image_generation_policy)
+                ? persona.image_generation_policy : 'autonomous';
+            const imagePolicyMeaning = {
+                ask: '出现适合视觉记录的时刻时先自然询问用户。',
+                always: '用户可见回复包含括号动作时必须调用 media_event；没有动作不强制生图。',
+                important: '只在结合关系和上下文判断为重要的时刻调用 media_event。',
+                user_only: '不要主动发起 media_event，只响应用户明确要求。',
+                autonomous: '由人格结合上下文自然决定是否调用 media_event。'
+            }[imagePolicy];
+            const appearance = resolved?.appearance ?? worldInput?.state?.appearance ?? {};
+            const timeFacts = {
+                source: resolved?.source ?? 'unknown', startsAt: resolved?.startsAt ?? null,
+                endsAt: resolved?.endsAt ?? null, timeFact: resolved?.timeFact ?? 'unknown',
+                nextBoundaryAt: resolved?.nextBoundaryAt ?? null
+            };
+            const lifeLayer = [
+                `生活状态：${state}`,
+                `可信时间：source=${timeFacts.source}; startsAt=${timeFacts.startsAt || '无'}; endsAt=${timeFacts.endsAt || '无'}; nextBoundaryAt=${timeFacts.nextBoundaryAt || '无'}; timeFact=${timeFacts.timeFact}`,
+                `外观变化：${JSON.stringify(appearance)}`,
+                worldInput?.dailyPlan ? `当天计划：${JSON.stringify(worldInput.dailyPlan)}` : '当天没有已确认的日计划。',
+                worldInput?.presence?.active ? `共同场景：${JSON.stringify(worldInput.presence)}` : '当前没有持久化共同场景。'
+            ].join('\n');
+            const identityLayer = `人格：${persona.name}；角色：${persona.role || '陪伴者'}；基础设定：${foundation?.foundation || '暂无'}。`;
+            const relationshipLayer = `长期了解：${memories.map(memory => `${memory.memory_key ?? memory.memoryKey}:${memory.value}`).join('；') || '暂无'}。关系补丁：${JSON.stringify(relationshipPatch)}。`;
+            const [mediaContract, pendingContract, timeContract, sceneContract, replyContract] = systemCapabilityContracts;
+            const capabilityLayer = [
+                mediaContract, pendingContract, timeContract, sceneContract,
+                `【系统能力层：人格生图频率】当前人格偏好为“${imageGenerationPolicyLabels[imagePolicy]}”（${imagePolicy}）：${imagePolicyMeaning}。这是行为偏好，不是服务器关键词触发器。`,
+                '能力调用必须通过应用提供的 capability dispatcher，不要把工具 JSON 或内部标识写入用户可见文本。',
+                '当前状态只能由日程、生活事件或 scene_event 改变；普通聊天动作不写入生活事实。',
+                replyContract
+            ].join('\n');
             const contextFragments = contextPipeline.collect({fragments: [
-                {source: 'identity', priority: 100, text: `人格：${persona.name}；角色：${persona.role || '陪伴者'}`},
-                {source: 'life_state', priority: 90, value: state},
+                {source: 'identity', priority: 100, text: identityLayer},
+                {source: 'life_state', priority: 90, value: lifeLayer},
                 {source: 'memory', priority: 50, value: memories.slice(0, 12)},
-                {source: 'relationship', priority: 40, value: relationship?.next_patch ? (() => { try { return JSON.parse(relationship.next_patch); } catch { return {}; } })() : {}},
-                {source: 'capabilities', priority: 80, text: '能力调用必须通过应用提供的 capability dispatcher。'}
+                {source: 'relationship', priority: 40, value: relationshipPatch}
             ]});
             const serializedContext = contextPipeline.serialize({budget: contextPipeline.budget(contextFragments)});
             return {
                 persona: {id: persona.id, name: persona.name, role: persona.role, color: persona.color},
-                prompt: `你是 ${persona.name}，角色是 ${persona.role || '陪伴者'}。请基于已确认事实与用户交流，不要编造当前状态。\n\n${serializedContext}`,
+                prompt: `你是 ${persona.name}，角色是 ${persona.role || '陪伴者'}。请基于已确认事实与用户交流，不要编造当前状态。\n\n${serializedContext}\n\n${capabilityLayer}`,
                 layers: {
-                    lifeState: state,
+                    lifeState: lifeLayer,
                     memory: JSON.stringify(memories.slice(0, 12)),
-                    relationship: JSON.stringify(relationship?.next_patch ? (() => { try { return JSON.parse(relationship.next_patch); } catch { return {}; } })() : {}),
-                    systemCapability: '只输出用户可见的自然回复；能力调用必须通过应用提供的 capability port。'
+                    immutableIdentity: identityLayer,
+                    relationship: relationshipLayer,
+                    timeFacts,
+                    systemCapability: `只输出用户可见的自然回复；${capabilityLayer}`
                 },
                 settings: readSettings(),
-                history: messages
+                history: messages,
+                state: resolved,
+                lifeWorld: worldInput,
+                memories,
+                relationship: relationshipPatch,
+                imageGenerationPolicy: imagePolicy
             };
-        }
+        },
+        readContext(input = {}) { return this.read(input); }
     };
-    const llmStreamingPort = createMtplxCompletionPort({provider: mtplx, settings: readSettings, tools: COMPANION_CAPABILITY_TOOLS});
+    const rawLlmStreamingPort = createMtplxCompletionPort({provider: mtplx, settings: readSettings, tools: COMPANION_CAPABILITY_TOOLS});
+    const llmStreamingPort = createChatLlmStreamingPort({
+        llmStreamingPort: rawLlmStreamingPort,
+        stream: rawLlmStreamingPort,
+        tools: COMPANION_CAPABILITY_TOOLS
+    });
     const commitBoundary = createConversationCommitAdapter({
         repository: repositories.conversation,
         clock,
@@ -476,6 +527,10 @@ function hasMediaJobConfiguration(options) {
 
 function resolveMediaComposition(options, repositories, providers, startup) {
     const configured = options.mediaJobService;
+    // An explicit null disables the media worker. This is useful for a
+    // composition that intentionally exposes no provider/job service; it must
+    // not be replaced by the default production composition below.
+    if (configured === null) return {observability: null, mediaJobService: null};
     if (isMediaJobService(configured)) return {
         observability: configured.observability ?? options.mediaObservability ?? options.observability ?? null,
         mediaJobService: configured
@@ -538,6 +593,17 @@ function resolveProactiveJobService(options, repositories, startup, providers) {
         || options.flowRegistry !== undefined;
     if (configured === undefined && !hasFlows && options.defaultProductionComposition !== true) return null;
     const nested = isRecord(configured) ? configured : {};
+    const lifeWorldReady = isRecord(repositories.blueprint)
+        && isRecord(repositories.schedule)
+        && isRecord(repositories.dailyPlan)
+        && isRecord(repositories.presence);
+    const lifeWorldReader = lifeWorldReady
+        ? createLifeWorldReader({repositories, blueprintReader: repositories.blueprint, clock: options.clock})
+        : null;
+    const resolveLifeState = createLifeStateResolver();
+    const lifeWorld = lifeWorldReader
+        ? {read({personaId, at} = {}) { return resolveLifeState(lifeWorldReader.readResolverInput({personaId, at})); }}
+        : null;
     const canComposeDefaultFlows = options.defaultProductionComposition === true
         && isOpenDatabase(startup?.database)
         && repositories.conversation
@@ -554,7 +620,9 @@ function resolveProactiveJobService(options, repositories, startup, providers) {
                 : providers?.get?.('mtplx', {portType: 'llm-streaming'}),
             settings: options.settings ?? repositories.settings,
             clock: options.clock,
-            id: options.idGenerator ?? options.id
+            id: options.idGenerator ?? options.id,
+            lifeWorld,
+            contextReader: options.contextReader
         })
         : undefined;
     return createProactiveJobService({
@@ -579,6 +647,13 @@ function runtimeId(value) {
     return prefix => `${prefix}_${crypto.randomUUID()}`;
 }
 
+function runtimeTransaction(options, startup) {
+    if (typeof options.transaction === 'function' || typeof options.transaction?.run === 'function' || typeof options.transaction?.transaction === 'function') return options.transaction;
+    const database = startup?.database;
+    if (!database || typeof database.transaction !== 'function') return undefined;
+    return work => database.inTransaction ? work() : database.transaction(work)();
+}
+
 function resolveRepositories(options, startup) {
     if (options.repositories !== undefined) {
         if (!isRecord(options.repositories)) throw new TypeError('Runtime repositories must be an object');
@@ -595,9 +670,18 @@ function resolveRepositories(options, startup) {
     const settings = createSettingsRepository({database, defaults: () => ({}), clock});
     const personaLifecycle = createPersonaLifecycleRepository({database, clock, id, jobRepository: job});
     const interview = createInterviewRepository({database, clock, id, personaLifecycle});
+    const supportingCharacter = createSupportingCharacterRepository({database});
+    const timeline = createTimelineRepository({database, clock, id});
     return Object.freeze({
         conversation: createConversationRepository({database}),
         activity: createActivityRepository({database}),
+        supportingCharacter,
+        supportingCharacterRepository: supportingCharacter,
+        timeline,
+        eventDecision: timeline,
+        eventDecisionRepository: timeline,
+        timelineSlot: timeline,
+        timelineSlotRepository: timeline,
         job,
         jobRepository: job,
         deferredChatBatch,
@@ -622,11 +706,16 @@ function resolveRepositories(options, startup) {
     });
 }
 
-function descriptorHandler(value) {
-    if (typeof value === 'function') return {handler: value, receiver: undefined};
+function descriptorHandler(value, fallbackReceiver) {
+    if (typeof value === 'function') return {handler: value, receiver: fallbackReceiver};
     if (!isRecord(value)) return {handler: null, receiver: undefined};
     const handler = value.handler ?? value.run ?? value.handle;
-    const receiver = value.receiver ?? (typeof handler === 'function' ? value : undefined);
+    const receiver = value.receiver
+        ?? (typeof value.run === 'function'
+            || typeof value.handle === 'function'
+            || (typeof value.handler === 'function' && fallbackReceiver === undefined)
+            ? value
+            : fallbackReceiver);
     return {handler: typeof handler === 'function' ? handler : null, receiver};
 }
 
@@ -663,8 +752,8 @@ function mediaJobRegistrations(service) {
     if (!isRecord(service)) throw new TypeError('Runtime mediaJobService must be an object');
     if (typeof service.registrations === 'function') return service.registrations();
     const map = service.handlers ?? service.handlerMap;
-    if (map instanceof Map) return [...map].map(([type, value]) => ({type, ...descriptorHandler(value)}));
-    if (isRecord(map)) return Object.entries(map).map(([type, value]) => ({type, ...descriptorHandler(value)}));
+    if (map instanceof Map) return [...map].map(([type, value]) => ({type, value, receiver: map}));
+    if (isRecord(map)) return Object.entries(map).map(([type, value]) => ({type, value, receiver: map}));
     if (typeof service.list === 'function' && typeof service.get === 'function') {
         return service.list().map(type => ({type, handler: service.get(type), receiver: service}));
     }
@@ -679,7 +768,9 @@ function mediaJobRegistrations(service) {
 function mediaJobHandlers(service) {
     const handlers = new Map();
     for (const registration of mediaJobRegistrations(service)) {
-        const {handler, receiver} = descriptorHandler(registration);
+        const {handler, receiver} = registration.value !== undefined
+            ? descriptorHandler(registration.value, registration.receiver)
+            : descriptorHandler(registration, service);
         if (!handler) throw new TypeError(`Runtime mediaJobService handler for ${registration?.type} must be a function`);
         // Media application handlers perform guarded projections themselves.
         // The generic dispatcher owns the one durable job transition when they
@@ -697,24 +788,31 @@ function resolveJobHandlers(options) {
     }
     if (options.proactiveJobService !== undefined && options.proactiveJobService !== null) {
         const service = options.proactiveJobService;
+        const handlerMap = service.handlers ?? service.handlerMap;
         const registrations = typeof service.registrations === 'function'
             ? service.registrations()
-            : Object.entries(service.handlers ?? service.handlerMap ?? {}).map(([type, handler]) => ({type, handler}));
+            : Object.entries(handlerMap ?? {}).map(([type, handler]) => ({type, handler, receiver: handlerMap}));
         if (!Array.isArray(registrations)) throw new TypeError('Runtime proactiveJobService registrations must be an array');
         for (const registration of registrations) {
             if (registration?.available === false) continue;
-            addJobHandler(handlers, registration?.type, registration?.handler, 'Runtime proactiveJobService');
+            addJobHandler(handlers, registration?.type, registration, 'Runtime proactiveJobService');
         }
     }
-    collectJobHandlers(handlers, options.jobHandlers ?? options.jobRegistry ?? options.handlers, 'Runtime');
+    // Keep registration sources separate so a duplicate type cannot be
+    // silently overwritten by object spread before addJobHandler() sees it.
+    collectJobHandlers(handlers, options.maintenanceHandlers, 'Runtime maintenance');
+    collectJobHandlers(handlers, options.jobHandlers, 'Runtime jobHandlers');
+    collectJobHandlers(handlers, options.jobRegistry, 'Runtime jobRegistry');
+    collectJobHandlers(handlers, options.handlers, 'Runtime handlers');
     return handlers.size ? handlers : undefined;
 }
 
-function resolveApplicationFlows(options, repositories) {
+function resolveApplicationFlows(options, repositories, startup) {
     const clock = options.clock;
     const idGenerator = options.idGenerator ?? options.id;
+    const transaction = runtimeTransaction(options, startup);
     const lifeEventFlow = options.lifeEventFlow ?? (repositories.lifeEvent || repositories.life
-        ? createLifeEventFlow({repositories, clock, idGenerator, transaction: options.transaction})
+        ? createLifeEventFlow({repositories, clock, idGenerator, transaction})
         : null);
     const timelineReady = repositories.eventDecisionRepository
         || repositories.timelineDecisionRepository
@@ -722,10 +820,10 @@ function resolveApplicationFlows(options, repositories) {
         || repositories.eventDecision
         || repositories.decisions;
     const timelineFlow = options.timelineFlow ?? (timelineReady && lifeEventFlow
-        ? createTimelineFlow({repositories, lifeEventFlow, clock, idGenerator, transaction: options.transaction})
+        ? createTimelineFlow({repositories, lifeEventFlow, clock, idGenerator, transaction})
         : null);
     const relationshipFlow = options.relationshipFlow ?? (repositories.relationship || repositories.relationshipRepository
-        ? createRelationshipFlow({repositories, clock, idGenerator, transaction: options.transaction, evaluator: options.relationshipEvaluator})
+        ? createRelationshipFlow({repositories, clock, idGenerator, transaction, evaluator: options.relationshipEvaluator})
         : null);
     return {lifeEventFlow, timelineFlow, relationshipFlow};
 }
@@ -871,8 +969,8 @@ export function createRuntime(options = {}) {
     const mediaComposition = resolveMediaComposition(options, repositories, providers, startup);
     const mediaJobService = mediaComposition.mediaJobService;
     const mediaObservability = mediaComposition.observability;
-    const proactiveJobService = resolveProactiveJobService(options, repositories, startup, providers);
-    const applicationFlows = resolveApplicationFlows(options, repositories);
+    const transaction = runtimeTransaction(options, startup);
+    const applicationFlows = resolveApplicationFlows(options, repositories, startup);
     const explicitChatPorts = options.chatProductionPorts
         ?? options.productionChatPorts
         ?? options.chatOptions
@@ -884,6 +982,10 @@ export function createRuntime(options = {}) {
         ?? (options.defaultProductionComposition === true && !explicitChatPorts
             ? createDefaultChatProductionPorts(options, repositories, providers)
             : null);
+    const proactiveJobService = resolveProactiveJobService({
+        ...options,
+        contextReader: options.contextReader ?? chatProductionPorts?.contextReader
+    }, repositories, startup, providers);
     const mediaCapabilityOptions = options.defaultProductionComposition === true
         ? createDefaultMediaCapabilityOptions(options, repositories)
         : {};
@@ -898,10 +1000,11 @@ export function createRuntime(options = {}) {
         jobRepository,
         mediaJobService,
         proactiveJobService,
-        jobHandlers: {...maintenanceHandlers, ...(options.handlers ?? {}), ...(options.jobRegistry ?? {}), ...(options.jobHandlers ?? {})}
+        maintenanceHandlers
     }, startup, repositories);
     const application = options.application ?? options.applicationFactory?.({
         ...options,
+        transaction,
         repositories,
         ...applicationFlows,
         jobRepository,
@@ -1045,6 +1148,7 @@ export function createCompanionRuntime(options = {}) {
                     : null);
             const debugService = options.debugService ?? createDebugService({
                 repositories: resolved.repositories,
+                settings: options.settings ?? resolved.repositories.settings,
                 promptRuns: resolved.repositories.promptRun,
                 h3Preflight: options.h3Preflight ?? h3.h3Preflight,
                 contextReader: resolved.chatProductionPorts?.contextReader,
@@ -1078,6 +1182,7 @@ export function createCompanionRuntime(options = {}) {
                 reader: lifeReader,
                 resolver: createLifeStateResolver(),
                 stateRepository: resolved.repositories.state,
+                lifeEventFlow: resolved.lifeEventFlow ?? lifeEventFlow,
                 clock: resolved.clock
             }) : null);
             return createCompanionApplication({
@@ -1103,6 +1208,7 @@ export function createCompanionRuntime(options = {}) {
                     mediaService: options.mediaService ?? mediaDebugService,
                     lifeStateService,
                     lifeEventFlow,
+                    timelineFlow: resolved.timelineFlow,
                     relationshipFlow: resolved.relationshipFlow
                 }),
                 mediaFlow,
@@ -1115,8 +1221,7 @@ export function createCompanionRuntime(options = {}) {
         ...options,
         defaultProductionComposition: options.defaultProductionComposition !== false,
         debugInspectorEnabled: options.debugInspectorEnabled
-            ?? options.environment?.COMPANION_DEBUG_INSPECTOR === '1'
-            ?? process.env.COMPANION_DEBUG_INSPECTOR === '1',
+            ?? (options.environment ?? process.env).COMPANION_DEBUG_INSPECTOR === '1',
         applicationFactory,
         missingHandler: options.missingHandler ?? 'error'
     });

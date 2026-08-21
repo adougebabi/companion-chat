@@ -127,6 +127,11 @@ function rows(value) {
     return [];
 }
 
+function belongsToPersona(row, personaId) {
+    const rowPersonaId = personaIdFor(row);
+    return rowPersonaId === undefined || rowPersonaId === null || rowPersonaId === personaId;
+}
+
 function jobType(job) {
     return valueFor(job, 'jobType', 'job_type');
 }
@@ -366,6 +371,17 @@ function providerFor(providers, id) {
     return providers?.[id] ?? (providers?.readAsset ? providers : null);
 }
 
+function providerSummaries(providers) {
+    const list = method(providers, ['summaries']);
+    if (!list) return [];
+    const values = list({portType: 'media', detailed: false});
+    return (Array.isArray(values) ? values : []).map(provider => ({
+        id: provider.id,
+        label: provider.label,
+        capabilities: provider.capabilities
+    }));
+}
+
 function invokeReadAsset(providers, provider, providerId, input, response) {
     if (typeof providers?.readAsset === 'function') return providers.readAsset(providerId, input, response);
     const read = method(provider, ['readAsset', 'read', 'readCandidate']);
@@ -380,7 +396,7 @@ function findPersona(personas, personaId) {
 }
 
 function requireDebugPersona(personas, personaId) {
-    if (!personas) return null;
+    if (!personas) throw Object.assign(new Error('Persona repository is unavailable'), {status: 501});
     const value = findPersona(personas, personaId);
     if (isPromise(value)) return value.then(persona => persona || Promise.reject(notFoundError('Persona does not exist')));
     if (!value) throw notFoundError('Persona does not exist');
@@ -394,27 +410,29 @@ function normalizeJobList(value, types) {
 function listJobs(jobRepository, personaId, types, limit) {
     const list = method(jobRepository, ['listMediaDebugJobs', 'listForPersona', 'list']);
     if (!list) return [];
-    return mapMaybe(list({personaId, jobTypes: types, types, limit}), value => normalizeJobList(value, types).slice(0, limit));
+    return mapMaybe(list({personaId, jobTypes: types, types, limit}), value => normalizeJobList(value, types)
+        .filter(row => belongsToPersona(row, personaId)).slice(0, limit));
 }
 
 function listMessages(conversationRepository, personaId, limit) {
     const list = method(conversationRepository, ['listMessages', 'listForPersona', 'recentForPersona']);
     if (!list) return [];
-    return mapMaybe(list({personaId, limit}), rows);
+    return mapMaybe(list({personaId, limit}), value => rows(value)
+        .filter(row => belongsToPersona(row, personaId)).slice(0, limit));
 }
 
 function readMessage(conversationRepository, messageId, personaId, messages) {
     if (!messageId) return null;
-    const cached = messages.find(row => row.id === messageId);
+    const cached = messages.find(row => row.id === messageId && belongsToPersona(row, personaId));
     if (cached) return cached;
     const find = method(conversationRepository, ['findMessage', 'findById', 'getMessage', 'get']);
-    return find ? find({id: messageId, messageId, personaId}) : null;
+    return find ? mapMaybe(find({id: messageId, messageId, personaId}), value => value && belongsToPersona(value, personaId) ? value : null) : null;
 }
 
 function readActivity(activityRepository, activityId, personaId) {
     if (!activityId) return null;
     const find = method(activityRepository, ['findActivity', 'findById', 'get']);
-    return find ? find({id: activityId, activityId, personaId}) : null;
+    return find ? mapMaybe(find({id: activityId, activityId, personaId}), value => value && belongsToPersona(value, personaId) ? value : null) : null;
 }
 
 function readAssets({assetRepository, activityRepository, source, result, message, personaId}) {
@@ -513,7 +531,12 @@ function buildMediaDtos({sources, polls, messages, personaId, repositories, sett
         const key = targetKey(poll);
         if (!pollByTarget.has(key)) pollByTarget.set(key, poll);
     }
-    const values = sources.slice().sort(sortNewest).slice(0, MAX_DEBUG_ITEMS).map(source => {
+    const uniqueSources = new Map();
+    for (const source of sources) {
+        const key = jobId(source) ? `job:${jobId(source)}` : targetKey(source);
+        if (!uniqueSources.has(key)) uniqueSources.set(key, source);
+    }
+    const values = [...uniqueSources.values()].sort(sortNewest).slice(0, MAX_DEBUG_ITEMS).map(source => {
         const poll = pollBySource.get(jobId(source)) || pollByTarget.get(targetKey(source)) || null;
         const message = readMessage(repositories.conversation, messageIdFor(source), personaId, messages);
         const activity = readActivity(repositories.activity, activityIdFor(source), personaId);
@@ -612,8 +635,14 @@ export function createMediaDebugService({
                 persona: resolvedPersona ? {id: resolvedPersona.id, name: mediaDebugSummary(resolvedPersona.name || '', 240)} : null,
                 settings: resolvedSettings,
                 layers: {
-                    identity: mediaDebugSummary(resolvedPersona || {}),
-                    provider: mediaDebugSummary({configured: Boolean(providers), providers: providers?.summaries?.({portType: 'media', detailed: true}) || []})
+                    identity: mediaDebugSummary({
+                        id: resolvedPersona?.id,
+                        name: resolvedPersona?.name,
+                        role: resolvedPersona?.role,
+                        color: resolvedPersona?.color,
+                        imageGenerationPolicy: resolvedPersona?.image_generation_policy ?? resolvedPersona?.imageGenerationPolicy
+                    }),
+                    provider: mediaDebugSummary({configured: Boolean(providers), providers: providerSummaries(providers)})
                 },
                 recentRequests,
                 mediaJobs: jobs

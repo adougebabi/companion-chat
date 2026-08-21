@@ -6,6 +6,8 @@ import {
     createPendingEventWorkerFlow,
     createProactiveMessageFlow
 } from '../application/proactive/worker-flows.js';
+import {splitChatAssistantReply} from '../application/chat-production-adapter.js';
+import {serializePromptMessages} from '../application/context-pipeline.js';
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -36,6 +38,13 @@ function idFor(id) {
     if (typeof id === 'function') return id;
     if (isRecord(id) && typeof id.next === 'function') return id.next.bind(id);
     return prefix => `${prefix}_${randomUUID()}`;
+}
+
+async function readContext(contextReader, input) {
+    const reader = typeof contextReader === 'function'
+        ? contextReader
+        : contextReader?.read ?? contextReader?.readContext;
+    return typeof reader === 'function' ? reader.call(contextReader, input) : null;
 }
 
 function providerCompletion(provider, settings) {
@@ -91,8 +100,11 @@ function createPendingPort(database, jobRepository, now) {
         },
         transition({pendingEventId, personaId, from, to, at, reason}) {
             const fromStatus = from ? ' AND status = ?' : '';
-            const values = [to, at ?? now(), ...(to === 'triggered' ? [at ?? now()] : []), ...(to === 'consumed' ? [at ?? now()] : []), ...(to === 'cancelled' || to === 'expired' ? [at ?? now()] : []), reason ? JSON.stringify({reason}) : null, pendingEventId, personaId];
-            const sql = `
+            // Keep transitions deliberately small and avoid trying to infer a
+            // missing status from stale worker observations.
+            const row = database.prepare('SELECT * FROM companion_pending_events WHERE id = ? AND persona_id = ?').get(pendingEventId, personaId);
+            if (!row || (from && row.status !== from)) return null;
+            const result = database.prepare(`
                 UPDATE companion_pending_events
                 SET status = ?, updated_at = ?,
                     triggered_at = CASE WHEN ? = 'triggered' THEN ? ELSE triggered_at END,
@@ -100,21 +112,12 @@ function createPendingPort(database, jobRepository, now) {
                     cancelled_at = CASE WHEN ? IN ('cancelled', 'expired') THEN ? ELSE cancelled_at END,
                     payload_json = CASE WHEN ? IS NULL THEN payload_json ELSE json_set(payload_json, '$.lastTransition', json(?)) END
                 WHERE id = ? AND persona_id = ?${fromStatus}
-            `;
-            // Keep transitions deliberately small and avoid trying to infer a
-            // missing status from stale worker observations.
-            const row = database.prepare('SELECT * FROM companion_pending_events WHERE id = ? AND persona_id = ?').get(pendingEventId, personaId);
-            if (!row || (from && row.status !== from)) return null;
-            database.prepare(`
-                UPDATE companion_pending_events
-                SET status = ?, updated_at = ?,
-                    triggered_at = CASE WHEN ? = 'triggered' THEN ? ELSE triggered_at END,
-                    consumed_at = CASE WHEN ? = 'consumed' THEN ? ELSE consumed_at END,
-                    cancelled_at = CASE WHEN ? IN ('cancelled', 'expired') THEN ? ELSE cancelled_at END
-                WHERE id = ? AND persona_id = ?${fromStatus}
             `).run(
-                to, at ?? now(), to, at ?? now(), to, at ?? now(), to, at ?? now(), pendingEventId, personaId, ...(from ? [from] : [])
+                to, at ?? now(), to, at ?? now(), to, at ?? now(), to, at ?? now(),
+                reason ? JSON.stringify({reason}) : null, reason ? JSON.stringify({reason}) : null,
+                pendingEventId, personaId, ...(from ? [from] : [])
             );
+            if (!result.changes) return null;
             return database.prepare('SELECT * FROM companion_pending_events WHERE id = ?').get(pendingEventId);
         },
         findDelivery({personaId, pendingEventId}) {
@@ -129,7 +132,7 @@ function createPendingPort(database, jobRepository, now) {
     };
 }
 
-function createDecisionPort({database, jobRepository, completion, now}) {
+function createDecisionPort({database, jobRepository, completion, now, contextReader}) {
     return {
         readFrozen({jobId}) {
             const row = jobRepository.find({id: jobId});
@@ -139,11 +142,15 @@ function createDecisionPort({database, jobRepository, completion, now}) {
         async evaluate(input) {
             if (!completion) throw new Error('MTPLX proactive decision provider is unavailable');
             const source = input.proactive ?? input.event ?? {};
+            const context = await readContext(contextReader, {command: {personaId: input.personaId, chatAt: input.at}, messages: input.recentMessages ?? []});
             return completion({
-                messages: [
-                    {role: 'system', content: 'Return strict JSON for this proactive decision. Use send/publish booleans as requested by the caller and never invent facts.'},
+                messages: serializePromptMessages({
+                    context,
+                    messages: input.recentMessages ?? [],
+                    instruction: 'Return strict JSON for this proactive decision. Use send/publish booleans as requested by the caller and never invent facts.'
+                }).concat([
                     {role: 'user', content: JSON.stringify({source, recentMessages: input.recentMessages ?? [], lifeWorld: input.lifeWorld ?? null})}
-                ],
+                ]),
                 signal: input.context?.signal
             });
         },
@@ -179,9 +186,9 @@ function createReplyProjection({database, conversationRepository, id, now}) {
             const conversation = conversationFor(personaId);
             if (!conversation) throw new Error('Conversation is unavailable for proactive reply');
             const createdAt = now();
-            const value = typeof text === 'string' && text.trim() ? text.trim() : fallback;
-            const row = conversationRepository.appendMessage({
-                id: source?.replyMessageId ?? id('message'),
+            const values = splitChatAssistantReply(text, fallback);
+            const rows = values.map((value, index) => ({
+                id: index === 0 && source?.replyMessageId ? source.replyMessageId : id('message'),
                 conversationId: conversation.id,
                 role: 'assistant',
                 text: value,
@@ -190,15 +197,18 @@ function createReplyProjection({database, conversationRepository, id, now}) {
                 jobsJson: source?.batchId ? JSON.stringify([{type: 'deferred_chat_reply', deferredBatchId: source.batchId}]) : '[]',
                 proactiveEventId: source?.eventId ?? null,
                 proactivePendingEventId: source?.pendingEventId ?? null,
-                createdAt,
+                createdAt: new Date(Date.parse(createdAt) + index).toISOString(),
                 readAt: null
-            });
-            return [{id: row.id, role: row.role, text: row.text, attachments: [], jobs: [], createdAt: row.created_at, readAt: row.read_at}];
+            }));
+            const stored = typeof conversationRepository.appendMessages === 'function'
+                ? conversationRepository.appendMessages({conversationId: conversation.id, messages: rows, updatedAt: rows.at(-1).createdAt})
+                : rows.map(row => conversationRepository.appendMessage(row));
+            return stored.map(row => ({id: row.id, role: row.role, text: row.text, attachments: [], jobs: [], createdAt: row.created_at ?? row.createdAt, readAt: row.read_at ?? row.readAt}));
         }
     };
 }
 
-function createActivityProjection({activityRepository, id, now}) {
+function createActivityProjection({activityRepository, jobRepository, id, now}) {
     return {
         findByEvent({personaId, eventId}) {
             return activityRepository.findActivityByEvent?.({eventId, personaId})
@@ -206,12 +216,32 @@ function createActivityProjection({activityRepository, id, now}) {
                 ?? activityRepository.findActivity({activityId: eventId, personaId});
         },
         publish({personaId, eventId, content, media, createdAt = now()}) {
-            return activityRepository.insertActivity({
+            const activity = activityRepository.insertActivity({
                 id: id('activity'), personaId, eventId, content,
                 mediaMode: media?.kind && media.kind !== 'none' ? media.kind : 'none',
                 mediaStatus: media?.kind && media.kind !== 'none' ? 'queued' : 'none',
                 createdAt
             });
+            const frozen = media?.kind && media.kind !== 'none'
+                && isRecord(media.personaMediaConcept)
+                && Object.hasOwn(media, 'currentEvent')
+                && Object.hasOwn(media, 'temporaryAppearance');
+            if (activity?.id && media?.kind && media.kind !== 'none' && !frozen) {
+                activityRepository.updateActivity?.({id: activity.id, activityId: activity.id, personaId, mediaStatus: 'failed'});
+            }
+            if (activity?.id && frozen && jobRepository?.enqueue) {
+                jobRepository.enqueue({
+                    id: id('job'), jobType: media.kind === 'video' ? 'activity_video' : 'activity_image',
+                    personaId, activityId: activity.id, priority: 3, maxAttempts: 4,
+                    runAfter: createdAt,
+                    payload: {
+                        activityId: activity.id, eventId, personaId, kind: media.kind,
+                        request: media.request ?? '', count: media.count ?? 1,
+                        personaMediaConcept: media.personaMediaConcept, capabilityCall: media
+                    }
+                });
+            }
+            return activity;
         }
     };
 }
@@ -304,7 +334,7 @@ function createConversationMessages(conversationRepository) {
 }
 
 /** Compose the application flows used by the default proactive worker. */
-export function createProductionProactiveFlows({database, repositories, provider, settings, clock, id} = {}) {
+export function createProductionProactiveFlows({database, repositories, provider, settings, clock, id, lifeWorld, contextReader} = {}) {
     const openDatabase = requireDatabase(database);
     const now = clockFor(clock);
     const generateId = idFor(id);
@@ -314,9 +344,9 @@ export function createProductionProactiveFlows({database, repositories, provider
     const lifeEvent = repositories.lifeEvent ?? repositories.lifeEventRepository;
     const activity = repositories.activity ?? repositories.activityRepository;
     const pending = createPendingPort(openDatabase, repositories.job ?? repositories.jobRepository, now);
-    const decision = createDecisionPort({database: openDatabase, jobRepository: repositories.job ?? repositories.jobRepository, completion, now});
+    const decision = createDecisionPort({database: openDatabase, jobRepository: repositories.job ?? repositories.jobRepository, completion, now, contextReader});
     const reply = createReplyProjection({database: openDatabase, conversationRepository: conversation, id: generateId, now});
-    const activityProjection = createActivityProjection({activityRepository: activity, id: generateId, now});
+    const activityProjection = createActivityProjection({activityRepository: activity, jobRepository: repositories.job ?? repositories.jobRepository, id: generateId, now});
     const deferredBatch = createDeferredBatchPort(openDatabase, now, {
         jobRepository: repositories.job ?? repositories.jobRepository,
         id: generateId
@@ -325,23 +355,28 @@ export function createProductionProactiveFlows({database, repositories, provider
     const replyComposer = {
         async compose({personaId, batch, messages, lifeWorld, at, command, signal} = {}) {
             if (!replyCompletion) throw new Error('MTPLX deferred reply provider is unavailable');
+            const context = await readContext(contextReader, {command: {personaId, chatAt: at}, messages});
             return replyCompletion({
-                messages: [
-                    {role: 'system', content: 'Return one concise user-visible assistant reply. Preserve the supplied life-world facts and do not invent events.'},
+                messages: serializePromptMessages({
+                    context,
+                    messages,
+                    instruction: 'Return one concise user-visible assistant reply. Preserve the supplied life-world facts and do not invent events.'
+                }).concat([
                     {role: 'user', content: JSON.stringify({personaId, batch, messages, lifeWorld, at, command: {type: command?.type, jobId: command?.jobId}})}
-                ],
+                ]),
                 signal
             });
         }
     };
     return {
-        proactive_message: createProactiveMessageFlow({lifeEvent, pendingEvent: pending, decision, reply, clock: now, idGenerator: generateId}),
-        pending_event: createPendingEventWorkerFlow({lifeEvent, pendingEvent: pending, decision, reply, clock: now, idGenerator: generateId}),
-        activity_decision: createActivityDecisionFlow({lifeEvent, decision, activity: activityProjection, clock: now, idGenerator: generateId}),
+        proactive_message: createProactiveMessageFlow({lifeEvent, pendingEvent: pending, decision, reply, lifeWorld, clock: now, idGenerator: generateId}),
+        pending_event: createPendingEventWorkerFlow({lifeEvent, pendingEvent: pending, decision, reply, lifeWorld, clock: now, idGenerator: generateId}),
+        activity_decision: createActivityDecisionFlow({lifeEvent, decision, activity: activityProjection, lifeWorld, clock: now, idGenerator: generateId}),
         deferred_chat_reply: createDeferredChatReplyFlow({
             deferredBatch,
             conversation: conversationMessages,
             reply,
+            lifeWorld,
             replyComposer,
             lease: repositories.job ?? repositories.jobRepository,
             clock: now,

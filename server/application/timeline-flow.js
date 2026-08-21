@@ -176,8 +176,22 @@ function personaFor(lookup, personaId, supplied) {
     return row;
 }
 
-function planDateFor(value, at) {
-    if (value === undefined || value === null || value === '') return at.slice(0, 10);
+function localDateFor(at, timezone = 'UTC') {
+    try {
+        const parts = new Intl.DateTimeFormat('en-CA', {timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit'}).formatToParts(new Date(at));
+        const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+        return `${values.year}-${values.month}-${values.day}`;
+    } catch {
+        return new Date(at).toISOString().slice(0, 10);
+    }
+}
+
+function localHourFor(at, timezone = 'UTC') {
+    try { return Number(new Intl.DateTimeFormat('en-US', {timeZone: timezone, hour: '2-digit', hour12: false}).format(new Date(at))); } catch { return new Date(at).getUTCHours(); }
+}
+
+function planDateFor(value, at, timezone = 'UTC') {
+    if (value === undefined || value === null || value === '') return localDateFor(at, timezone);
     const date = requiredText(value, 'Timeline planDate', 32);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new TypeError('Timeline planDate must use YYYY-MM-DD');
     return date;
@@ -215,12 +229,16 @@ function candidateValue(value) {
     const situation = optionalText(value.situation ?? value.title ?? value.summary, 'Timeline candidate.situation', 240);
     if (!templateId && !situation) return null;
     const duration = Array.isArray(value.durationMinutes) ? value.durationMinutes.map(Number).filter(Number.isFinite) : Number(value.durationMinutes);
+    const sceneRef = value.sceneRef ?? value.scene_ref ?? (Array.isArray(value.sceneRefs) ? value.sceneRefs[0] : undefined);
+    const recovery = optionalText(value.recovery, 'Timeline candidate.recovery', 240);
     return {
         ...value,
         ...(templateId ? {templateId} : {}),
         ...(family ? {family, eventFamily: family} : {}),
         type,
         ...(situation ? {situation} : {}),
+        ...(sceneRef !== undefined ? {sceneRef} : {}),
+        ...(recovery ? {recovery} : {}),
         ...(Number.isFinite(duration) ? {durationMinutes: duration} : Array.isArray(duration) && duration.length ? {durationMinutes: duration} : {}),
         priority: Number.isFinite(Number(value.priority)) ? Number(value.priority) : 0,
         preemptionMode: optionalText(value.preemptionMode, 'Timeline candidate.preemptionMode', 32) || 'none',
@@ -241,14 +259,31 @@ function deterministicIndex(key, length) {
     return seed % length;
 }
 
-function normalizePlanSlot(value, index, planDate) {
+function zonedInstant(planDate, clockText, timezone = 'UTC') {
+    const match = /^(\d{2}):(\d{2})$/.exec(String(clockText || ''));
+    if (!match || Number(match[1]) > 24 || Number(match[2]) > 59 || (Number(match[1]) === 24 && Number(match[2]) !== 0)) return null;
+    const nextDate = Number(match[1]) === 24
+        ? new Date(`${planDate}T00:00:00.000Z`).getTime() + 86_400_000
+        : Date.UTC(Number(planDate.slice(0, 4)), Number(planDate.slice(5, 7)) - 1, Number(planDate.slice(8, 10)), Number(match[1]), Number(match[2]));
+    const target = nextDate;
+    let candidate = target;
+    for (let index = 0; index < 3; index += 1) {
+        const parts = new Intl.DateTimeFormat('en-US', {timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false}).formatToParts(new Date(candidate));
+        const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
+        const represented = Date.UTC(values.year, values.month - 1, values.day, values.hour === 24 ? 0 : values.hour, values.minute);
+        candidate += target - represented;
+    }
+    return new Date(candidate).toISOString();
+}
+
+function normalizePlanSlot(value, index, planDate, timezone = 'UTC') {
     if (!isRecord(value)) return null;
     const title = optionalText(value.title ?? value.situation ?? value.label, 'Daily-plan slot.title', 160);
     let startsAt = value.startsAt ?? value.starts_at ?? null;
     let endsAt = value.endsAt ?? value.ends_at ?? null;
     const localTime = /^\d{2}:\d{2}$/;
-    if (localTime.test(String(startsAt || ''))) startsAt = `${planDate}T${startsAt}:00.000Z`;
-    if (localTime.test(String(endsAt || ''))) endsAt = `${planDate}T${endsAt}:00.000Z`;
+    if (localTime.test(String(startsAt || ''))) startsAt = zonedInstant(planDate, startsAt, timezone);
+    if (localTime.test(String(endsAt || ''))) endsAt = zonedInstant(planDate, endsAt, timezone);
     if (!title || !startsAt || !endsAt) return null;
     startsAt = timestamp(startsAt, 'Daily-plan slot.startsAt');
     endsAt = timestamp(endsAt, 'Daily-plan slot.endsAt');
@@ -278,7 +313,8 @@ function normalizePlanSlot(value, index, planDate) {
 function normalizeDailyPlan(plan, planDate) {
     const raw = plan?.timeline ?? plan?.plan?.timeline ?? plan?.items ?? plan?.plan?.items ?? [];
     if (!Array.isArray(raw)) throw new TypeError('Daily plan slots must be an array');
-    const slots = raw.slice(0, MAX_SLOTS).map((item, index) => normalizePlanSlot(item, index, planDate)).filter(Boolean)
+    const timezone = plan?.timezone ?? plan?.timeZone ?? plan?.plan?.timezone ?? 'UTC';
+    const slots = raw.slice(0, MAX_SLOTS).map((item, index) => normalizePlanSlot(item, index, planDate, timezone)).filter(Boolean)
         .sort((left, right) => Date.parse(left.startsAt) - Date.parse(right.startsAt) || left.slotKey.localeCompare(right.slotKey));
     for (let index = 1; index < slots.length; index += 1) {
         if (Date.parse(slots[index].startsAt) < Date.parse(slots[index - 1].endsAt)) {
@@ -313,6 +349,7 @@ export function createTimelineFlow({
     const slotRepository = resolveRepository(repositories, ['timelineSlotRepository', 'timelineSlot', 'timelineSlots', 'timelineRepository', 'slots'], 'timeline-slot repository', {optional: true});
     const dailyPlanRepository = resolveRepository(repositories, ['dailyPlanRepository', 'dailyPlan', 'plan'], 'daily-plan repository', {optional: true});
     const blueprintRepository = resolveRepository(repositories, ['blueprintRepository', 'blueprint', 'lifeBlueprint'], 'blueprint repository', {optional: true});
+    const lifeEventRepository = resolveRepository(repositories, ['lifeEventRepository', 'lifeEvent', 'life'], 'life-event repository', {optional: true});
     const focusRepository = resolveRepository(repositories, ['focusRepository', 'focus', 'attention'], 'focus repository', {optional: true});
     const budgetRepository = resolveRepository(repositories, ['budgetRepository', 'budget', 'attentionBudget'], 'budget repository', {optional: true});
     const lifeEvent = lifeEventFlow ?? repositories.lifeEventFlow;
@@ -325,6 +362,9 @@ export function createTimelineFlow({
     const slotInsert = slotRepository ? methodFor(slotRepository, ['upsertSlot', 'insertSlot', 'createSlot'], 'timeline-slot repository', {optional: true}) : null;
     const slotUpdate = slotRepository ? methodFor(slotRepository, ['updateSlot', 'markStatus', 'update'], 'timeline-slot repository', {optional: true}) : null;
     const slotLink = slotRepository ? methodFor(slotRepository, ['linkEvents', 'linkEvent', 'createEventLink'], 'timeline-slot repository', {optional: true}) : null;
+    const slotPrune = slotRepository ? methodFor(slotRepository, ['deleteGeneratedSlots', 'removeStaleSlots', 'pruneGeneratedSlots'], 'timeline-slot repository', {optional: true}) : null;
+    const eventLink = slotRepository ? methodFor(slotRepository, ['createEventLink'], 'timeline-slot repository', {optional: true}) : null;
+    const lifeEventList = lifeEventRepository ? methodFor(lifeEventRepository, ['list', 'listActive'], 'life-event repository', {optional: true}) : null;
     const planRead = dailyPlanRepository ? methodFor(dailyPlanRepository, ['read', 'findReady', 'find', 'get'], 'daily-plan repository', {optional: true}) : null;
     const blueprintRead = blueprintRepository ? methodFor(blueprintRepository, ['read', 'findCurrent', 'find', 'get'], 'blueprint repository', {optional: true}) : null;
     const focusRead = focusRepository ? methodFor(focusRepository, ['read', 'resolve', 'find', 'get'], 'focus repository', {optional: true}) : null;
@@ -374,8 +414,8 @@ export function createTimelineFlow({
     }
 
     function decisionShape(command, personaId, at, persona, blueprint) {
-        const planDate = planDateFor(command.planDate ?? command.plan_date, at);
-        const bucket = optionalText(command.bucket ?? command.timeBucket, 'Timeline bucket', 80) || String(new Date(at).getUTCHours()).padStart(2, '0');
+        const planDate = planDateFor(command.planDate ?? command.plan_date, at, blueprint?.timezone);
+        const bucket = optionalText(command.bucket ?? command.timeBucket, 'Timeline bucket', 80) || String(localHourFor(at, blueprint?.timezone)).padStart(2, '0');
         const slotKey = optionalText(command.slotKey ?? command.slot_key, 'Timeline slotKey', 160);
         const decisionKey = requiredText(command.decisionKey ?? command.decision_key ?? `${personaId}:${planDate}:${slotKey || 'opportunity'}:${bucket}`, 'Timeline decisionKey', 240);
         const candidates = normalizeCandidates(command);
@@ -398,6 +438,7 @@ export function createTimelineFlow({
             slotKey,
             at,
             causationId: command.causationId ?? command.sourceMessageId ?? command.source_message_id ?? null,
+            jobId: command.jobId ?? command.job_id ?? null,
             candidate: chosen,
             candidates,
             policy,
@@ -419,7 +460,9 @@ export function createTimelineFlow({
         const blueprint = blueprintRead ? sync(blueprintRead({personaId}), 'blueprint lookup') : input.blueprint ?? {};
         const shape = decisionShape(input, personaId, at, persona, blueprint ?? {});
         const existing = existingDecision(personaId, shape.decisionKey);
-        if (existing) {
+        const resumable = existing && ['accepted', 'proposed'].includes(existing.status)
+            && existing.decisionType === 'start_event' && !existing.eventId && existing.candidate;
+        if (existing && !resumable) {
             const replay = {
                 type: 'timeline_decision_plan',
                 version: TIMELINE_FLOW_VERSION,
@@ -441,19 +484,32 @@ export function createTimelineFlow({
             PRIVATE_PLANS.set(frozen, {shape, existing});
             return frozen;
         }
-        const slot = findSlot(personaId, shape.planDate, shape.slotKey);
-        const decisionId = nextId('decision');
-        const eventId = shape.candidate ? nextId('event') : null;
+        const effectiveShape = resumable ? {
+            ...shape,
+            at: existing.runAt ?? shape.at,
+            runAt: existing.runAt ?? shape.runAt,
+            expiresAt: existing.expiresAt ?? shape.expiresAt,
+            candidate: candidateValue(existing.candidate),
+            candidates: [candidateValue(existing.candidate)].filter(Boolean),
+            decisionType: 'start_event',
+            status: existing.status,
+            priority: existing.priority,
+            preemptionMode: existing.preemptionMode,
+            rationale: existing.rationale
+        } : shape;
+        const slot = findSlot(personaId, effectiveShape.planDate, effectiveShape.slotKey);
+        const decisionId = existing?.id ?? nextId('decision');
+        const eventId = effectiveShape.candidate ? (existing?.eventId ?? nextId('event')) : null;
         const preview = {
             decisionId,
             eventId,
-            slotId: slot?.id ?? input.slotId ?? shape.candidate?.slotId ?? null,
-            noEvent: shape.decisionType === 'no_event',
-            status: shape.status,
-            decisionType: shape.decisionType,
-            focusTier: shape.policy.focusTier,
-            screened: shape.policy.screened,
-            budget: shape.policy.budget
+            slotId: slot?.id ?? input.slotId ?? effectiveShape.candidate?.slotId ?? null,
+            noEvent: effectiveShape.decisionType === 'no_event',
+            status: effectiveShape.status,
+            decisionType: effectiveShape.decisionType,
+            focusTier: effectiveShape.policy.focusTier,
+            screened: effectiveShape.policy.screened,
+            budget: effectiveShape.policy.budget
         };
         const result = {
             type: 'timeline_decision_plan',
@@ -464,26 +520,27 @@ export function createTimelineFlow({
             decisionId,
             eventId,
             slotId: preview.slotId,
-            candidate: shape.candidate,
-            candidates: shape.candidates,
-            decisionType: shape.decisionType,
-            status: shape.status,
+            candidate: effectiveShape.candidate,
+            candidates: effectiveShape.candidates,
+            decisionType: effectiveShape.decisionType,
+            status: effectiveShape.status,
             noEvent: preview.noEvent,
             policy: shape.policy,
             rationale: shape.rationale,
+            jobId: shape.jobId,
             preallocatedIds: {decisionId, ...(eventId ? {eventId} : {})},
             previewResult: preview,
             replayed: false
         };
         const frozen = deepFreeze(result);
-        PRIVATE_PLANS.set(frozen, {shape, existing: null, persona});
+        PRIVATE_PLANS.set(frozen, {shape: effectiveShape, existing: resumable ? null : null, resume: Boolean(resumable), persona, decision: resumable ? existing : null});
         return frozen;
     }
 
     function applyWithin(planValue) {
         const privateState = PRIVATE_PLANS.get(planValue);
         if (!privateState) throw new TypeError('Timeline decision plan is invalid');
-        if (privateState.existing || planValue.replayed) {
+        if ((privateState.existing || planValue.replayed) && !privateState.resume) {
             return resultEnvelope({
                 type: 'timeline_decision_result',
                 version: TIMELINE_FLOW_VERSION,
@@ -513,11 +570,14 @@ export function createTimelineFlow({
             preemptionMode: shape.preemptionMode,
             candidate: shape.candidate ?? {kind: 'no_event'},
             rationale: shape.rationale,
+            jobId: shape.jobId,
             createdAt,
             updatedAt: createdAt
         };
         let decisionRow;
-        if (decisionInsert) {
+        if (privateState.resume) {
+            decisionRow = privateState.decision;
+        } else if (decisionInsert) {
             try {
                 decisionRow = sync(decisionInsert(decisionInput), 'decision insert');
             } catch (error) {
@@ -592,6 +652,8 @@ export function createTimelineFlow({
             templateId: candidate.templateId,
             priority: shape.priority,
             preemptionMode: shape.preemptionMode,
+            reversible: candidate.reversible,
+            recovery: candidate.recovery,
             decisionId: planValue.decisionId,
             slotId: planValue.slotId,
             publish: false,
@@ -600,7 +662,21 @@ export function createTimelineFlow({
         const eventId = eventResult?.eventId ?? eventResult?.event?.id ?? planValue.eventId;
         if (decisionUpdate) sync(decisionUpdate({id: planValue.decisionId, decisionId: planValue.decisionId, personaId: planValue.personaId, status: 'executed', eventId, updatedAt: shape.at}), 'decision update');
         if (slotUpdate && planValue.slotId) sync(slotUpdate({id: planValue.slotId, slotId: planValue.slotId, personaId: planValue.personaId, status: 'active', outcome: {eventId, decisionId: planValue.decisionId}, updatedAt: shape.at}), 'slot update');
-        if (slotLink && eventId) sync(slotLink({personaId: planValue.personaId, slotId: planValue.slotId, eventId, decisionId: planValue.decisionId}), 'slot event link');
+        if (slotLink && planValue.slotId && eventId) sync(slotLink({personaId: planValue.personaId, slotId: planValue.slotId, eventId, decisionId: planValue.decisionId}), 'slot event link');
+        if (eventLink && eventId && lifeEventList) {
+            const rows = sync(lifeEventList({personaId: planValue.personaId, limit: 20}), 'timeline event lookup') || [];
+            const previous = rows.find(row => (row.id ?? row.eventId ?? row.event_id) !== eventId);
+            if (previous?.id ?? previous?.eventId ?? previous?.event_id) {
+                sync(eventLink({
+                    personaId: planValue.personaId,
+                    fromEventId: previous.id ?? previous.eventId ?? previous.event_id,
+                    toEventId: eventId,
+                    linkType: 'follows',
+                    metadata: {decisionId: planValue.decisionId, templateId: candidate.templateId ?? null},
+                    createdAt: shape.at
+                }), 'timeline event link');
+            }
+        }
         const event = eventResult?.event ?? eventResult;
         return resultEnvelope({
             type: 'timeline_decision_result',
@@ -631,41 +707,47 @@ export function createTimelineFlow({
     function syncDailyPlanSlots(input = {}) {
         if (!isRecord(input)) throw new TypeError('Daily-plan sync command must be an object');
         const personaId = personaIdFor(input);
-        const planDate = planDateFor(input.planDate ?? input.plan_date, timestamp(input.at ?? now(), 'Daily-plan sync time'));
+        const at = timestamp(input.at ?? now(), 'Daily-plan sync time');
+        const blueprint = blueprintRead ? sync(blueprintRead({personaId}), 'blueprint lookup') : {};
+        const planDate = planDateFor(input.planDate ?? input.plan_date, at, blueprint?.timezone);
         const plan = input.plan ?? (planRead ? sync(planRead({personaId, planDate, at: input.at}), 'daily-plan lookup') : null);
         if (!plan) return resultEnvelope({type: 'daily_plan_slots', personaId, planDate, slots: [], skipped: 'plan_missing'});
         if (plan.status && plan.status !== 'ready' && input.allowUnready !== true) return resultEnvelope({type: 'daily_plan_slots', personaId, planDate, slots: [], skipped: 'plan_not_ready'});
-        const slots = normalizeDailyPlan(plan, planDate);
+        const slots = normalizeDailyPlan({...plan, timezone: plan.timezone ?? plan.timeZone ?? blueprint?.timezone}, planDate);
         if (!slotInsert) throw new TypeError('Timeline flow requires a timeline-slot upsert port to sync daily plans');
-        const persisted = slots.map(slot => rowSlot(sync(slotInsert({
-            id: slot.id ?? nextId('slot'),
-            personaId,
-            planDate,
-            slotKey: slot.slotKey,
-            slotKind: slot.slotKind,
-            title: slot.title,
-            situation: slot.situation,
-            scene: slot.scene,
-            sceneRef: slot.sceneRef,
-            location: slot.location,
-            room: slot.room,
-            startsAt: slot.startsAt,
-            endsAt: slot.endsAt,
-            status: slot.status,
-            source: slot.source,
-            priority: slot.priority,
-            constraints: slot.constraints,
-            outcome: slot.outcome,
-            planRevision: plan.revision ?? plan.planRevision ?? null,
-            updatedAt: input.updatedAt ?? now(),
-            createdAt: input.createdAt ?? now()
-        }), 'daily-plan slot upsert')));
-        return resultEnvelope({
-            type: 'daily_plan_slots', personaId, planDate, slots: persisted,
-            facts: [],
-            projections: persisted.map(slot => ({type: 'timeline_slot', slot})),
-            presentation: [{type: 'daily_plan_slots', personaId, planDate, count: persisted.length}]
-        });
+        const persist = () => {
+            if (slotPrune) sync(slotPrune({personaId, planDate, slotKeys: slots.map(slot => slot.slotKey)}), 'daily-plan stale-slot prune');
+            const persisted = slots.map(slot => rowSlot(sync(slotInsert({
+                id: slot.id ?? nextId('slot'),
+                personaId,
+                planDate,
+                slotKey: slot.slotKey,
+                slotKind: slot.slotKind,
+                title: slot.title,
+                situation: slot.situation,
+                scene: slot.scene,
+                sceneRef: slot.sceneRef,
+                location: slot.location,
+                room: slot.room,
+                startsAt: slot.startsAt,
+                endsAt: slot.endsAt,
+                status: slot.status,
+                source: slot.source,
+                priority: slot.priority,
+                constraints: slot.constraints,
+                outcome: slot.outcome,
+                planRevision: plan.revision ?? plan.planRevision ?? null,
+                updatedAt: input.updatedAt ?? now(),
+                createdAt: input.createdAt ?? now()
+            }), 'daily-plan slot upsert')));
+            return resultEnvelope({
+                type: 'daily_plan_slots', personaId, planDate, slots: persisted,
+                facts: [],
+                projections: persisted.map(slot => ({type: 'timeline_slot', slot})),
+                presentation: [{type: 'daily_plan_slots', personaId, planDate, count: persisted.length}]
+            });
+        };
+        return transactionRunner(input.transaction ?? transaction, persist);
     }
 
     function advanceSlots(input = {}) {
@@ -673,25 +755,28 @@ export function createTimelineFlow({
         const personaId = personaIdFor(input);
         const at = timestamp(input.at ?? now(), 'Timeline advancement time');
         if (!slotList || !slotUpdate) return resultEnvelope({type: 'timeline_slots_advanced', personaId, at, slots: []});
-        const rows = sync(slotList({personaId, at}), 'slot list') || [];
-        const changed = [];
-        for (const raw of rows) {
-            const slot = rowSlot(raw);
-            let status = slot.status;
-            let reason = null;
-            if (slot.status === 'active' && slot.endsAt && Date.parse(slot.endsAt) <= Date.parse(at)) {
-                status = 'completed'; reason = 'ended_at_boundary';
-            } else if (slot.status === 'confirmed' && slot.endsAt && Date.parse(slot.endsAt) <= Date.parse(at)) {
-                status = 'skipped'; reason = 'expired_before_execution';
-            } else if (slot.status === 'confirmed' && slot.startsAt && Date.parse(slot.startsAt) <= Date.parse(at) && (!slot.endsAt || Date.parse(slot.endsAt) > Date.parse(at))) {
-                status = 'active';
+        const advance = () => {
+            const rows = sync(slotList({personaId, at}), 'slot list') || [];
+            const changed = [];
+            for (const raw of rows) {
+                const slot = rowSlot(raw);
+                let status = slot.status;
+                let reason = null;
+                if (slot.status === 'active' && slot.endsAt && Date.parse(slot.endsAt) <= Date.parse(at)) {
+                    status = 'completed'; reason = 'ended_at_boundary';
+                } else if (slot.status === 'confirmed' && slot.endsAt && Date.parse(slot.endsAt) <= Date.parse(at)) {
+                    status = 'skipped'; reason = 'expired_before_execution';
+                } else if (slot.status === 'confirmed' && slot.startsAt && Date.parse(slot.startsAt) <= Date.parse(at) && (!slot.endsAt || Date.parse(slot.endsAt) > Date.parse(at))) {
+                    status = 'active';
+                }
+                if (status !== slot.status) {
+                    const updated = sync(slotUpdate({id: slot.id, slotId: slot.id, personaId, status, outcome: {...slot.outcome, ...(reason ? {reason} : {})}, updatedAt: at}), 'slot status update');
+                    changed.push(rowSlot(updated) ?? {...slot, status});
+                }
             }
-            if (status !== slot.status) {
-                const updated = sync(slotUpdate({id: slot.id, slotId: slot.id, personaId, status, outcome: {...slot.outcome, ...(reason ? {reason} : {})}, updatedAt: at}), 'slot status update');
-                changed.push(rowSlot(updated) ?? {...slot, status});
-            }
-        }
-        return resultEnvelope({type: 'timeline_slots_advanced', personaId, at, slots: changed, projections: changed.map(slot => ({type: 'timeline_slot', slot}))});
+            return resultEnvelope({type: 'timeline_slots_advanced', personaId, at, slots: changed, projections: changed.map(slot => ({type: 'timeline_slot', slot}))});
+        };
+        return transactionRunner(input.transaction ?? transaction, advance);
     }
 
     async function handleJob(job, context = {}) {
@@ -700,7 +785,7 @@ export function createTimelineFlow({
         const type = job?.jobType ?? job?.job_type ?? payload.type ?? 'timeline_candidate';
         if (type === 'daily_plan') return syncDailyPlanSlots({personaId: job.personaId ?? job.persona_id, planDate: payload.planDate ?? payload.plan_date, plan: payload.plan, at: context.now});
         if (type === 'timeline_reconcile' || type === 'timeline_slots') return advanceSlots({personaId: job.personaId ?? job.persona_id, at: context.now});
-        const command = {...payload, personaId: payload.personaId ?? job?.personaId ?? job?.persona_id, at: payload.at ?? context.now};
+        const command = {...payload, personaId: payload.personaId ?? job?.personaId ?? job?.persona_id, jobId: payload.jobId ?? payload.job_id ?? job?.id ?? job?.jobId, at: payload.at ?? context.now};
         const planned = plan(command);
         return apply(planned);
     }

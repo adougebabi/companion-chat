@@ -213,6 +213,27 @@ export function createMtplxProvider({settings, fetchImpl, promptRuns, clock = ()
         try { promptRuns.finish?.(runId, {...patch, completedAt: clock()}); } catch { /* diagnostics must not fail the provider */ }
     }
 
+    async function captureResponse(runId, response) {
+        if (!runId || !promptRuns) return;
+        if (typeof response?.clone !== 'function') {
+            finishTrace(runId, {status: 'submitted'});
+            return;
+        }
+        try {
+            const copy = response.clone();
+            const contentType = copy.headers?.get?.('content-type') || '';
+            const body = /json/i.test(contentType)
+                ? await copy.json()
+                : typeof copy.text === 'function' ? await copy.text() : null;
+            finishTrace(runId, {status: 'completed', response: body});
+        } catch {
+            // A provider response may not support cloning (notably some local
+            // test adapters). Keep the request trace without consuming the
+            // caller-owned stream.
+            finishTrace(runId, {status: 'submitted'});
+        }
+    }
+
     async function request(path, {body, signal, method = 'GET', allowErrorResponse = false} = {}) {
         const fetcher = fetchImpl ?? globalThis.fetch;
         if (typeof fetcher !== 'function') throw new TypeError('MTPLX provider requires fetch()');
@@ -239,12 +260,21 @@ export function createMtplxProvider({settings, fetchImpl, promptRuns, clock = ()
         portType: 'llm-streaming',
         capabilities: ['stream'],
         async stream(requestPayload = {}) {
-            const {signal, ...body} = requestPayload;
+            const {signal, trace: _trace, ...body} = requestPayload;
             const traceId = startTrace(requestPayload);
             try {
                 const response = await request('/chat/completions', {method: 'POST', body, signal, allowErrorResponse: true});
-                if (!response.ok) finishTrace(traceId, {status: 'failed', error: `模型服务 HTTP ${response.status}`});
-                else finishTrace(traceId, {status: 'submitted'});
+                if (!response.ok) {
+                    let payload = null;
+                    try {
+                        const copy = typeof response.clone === 'function' ? response.clone() : response;
+                        payload = await copy?.json?.();
+                    } catch { /* bounded HTTP fallback below */ }
+                    const error = responseError(response.status, payload);
+                    finishTrace(traceId, {status: 'failed', error: error.message, response: payload});
+                    throw error;
+                }
+                void captureResponse(traceId, response);
                 return response;
             } catch (error) {
                 finishTrace(traceId, {status: 'failed', error: boundedProviderError(error)});

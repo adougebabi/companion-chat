@@ -24,7 +24,7 @@ function redact(value, depth = 0) {
     if (typeof value === 'string') {
         const redacted = value
             .replace(/Bearer\s+[^\s,;]+/gi, 'Bearer [redacted]')
-            .replace(/((?:api[-_]?key|token|secret|password)\s*[:=]\s*)[^\s,;]+/gi, '$1[redacted]');
+            .replace(/((?:api[-_]?key|authorization|token|secret|password|credential|cookie)\s*[:=]\s*)[^\s,;]+/gi, '$1[redacted]');
         return redacted.length > 2_000 ? `${redacted.slice(0, 1_997)}...` : redacted;
     }
     if (Array.isArray(value)) return value.slice(0, 50).map(item => redact(item, depth + 1));
@@ -32,16 +32,41 @@ function redact(value, depth = 0) {
     return Object.fromEntries(Object.entries(value).slice(0, 80).map(([key, child]) => /key|token|secret|password|authorization|credential|cookie/i.test(key) ? [key, '[redacted]'] : [key, redact(child, depth + 1)]));
 }
 
-export function createDebugService({repositories = {}, promptRuns, h3Preflight, contextReader, lifeWorldReader, lifeEventFlow, mediaJobService, clock = () => new Date().toISOString()} = {}) {
+function summary(value, limit = 2_000) {
+    const safe = redact(value);
+    let serialized;
+    try { serialized = typeof safe === 'string' ? safe : JSON.stringify(safe); } catch { serialized = '[unavailable]'; }
+    const textValue = String(serialized ?? '');
+    return textValue.length <= limit ? textValue : `${textValue.slice(0, Math.max(0, limit - 3))}...`;
+}
+
+function requirePersona(personas, personaId) {
+    if (!personas) return null;
+    const lookup = typeof personas.findActive === 'function'
+        ? () => personas.findActive(personaId)
+        : typeof personas.findById === 'function'
+            ? () => personas.findById({personaId, id: personaId})
+            : typeof personas.get === 'function'
+                ? () => personas.get({personaId, id: personaId})
+                : null;
+    if (!lookup) throw Object.assign(new Error('persona repository 未配置查找方法'), {status: 501});
+    const persona = sync(lookup(), 'debug persona');
+    if (!persona) throw Object.assign(new Error('人格不存在'), {status: 404});
+    return persona;
+}
+
+export function createDebugService({repositories = {}, promptRuns, settings, h3Preflight, contextReader, lifeWorldReader, lifeEventFlow, mediaJobService, clock = () => new Date().toISOString()} = {}) {
     const runs = promptRuns ?? repositories.promptRun;
     const lifeEvents = repositories.lifeEvent;
     const personas = repositories.persona;
     const jobs = repositories.job;
     const readContext = contextReader ?? lifeWorldReader;
+    const settingsPort = settings ?? repositories.settings;
 
     function listPromptRuns(command = {}) {
         if (!runs?.list) throw Object.assign(new Error('prompt runs 未配置'), {status: 501});
-        return runs.list({personaId: command.personaId, limit: command.limit});
+        const limit = command.limit === undefined ? 50 : Math.min(100, Math.max(1, Math.trunc(Number(command.limit) || 50)));
+        return runs.list({personaId: command.personaId ?? command.persona_id ?? null, limit});
     }
 
     function h3PreflightRead(command = {}) {
@@ -51,23 +76,72 @@ export function createDebugService({repositories = {}, promptRuns, h3Preflight, 
 
     function getContext(command = {}) {
         const personaId = text(command.personaId, '人格 ID');
-        if (!readContext?.readResolverInput && !readContext?.read) throw Object.assign(new Error('debug context 未配置'), {status: 501});
+        requirePersona(personas, personaId);
+        if (typeof readContext !== 'function' && !readContext?.readResolverInput && !readContext?.read) throw Object.assign(new Error('debug context 未配置'), {status: 501});
         const input = {personaId, at: command.at, command: {...command, personaId}};
-        const result = readContext.readResolverInput
-            ? readContext.readResolverInput(input)
-            : readContext.read(input);
-        return redact(sync(result, 'debug context'));
+        const result = typeof readContext === 'function'
+            ? readContext(input)
+            : readContext.readResolverInput
+                ? readContext.readResolverInput(input)
+                : readContext.read(input);
+        const context = sync(result, 'debug context');
+        const settingsValue = sync(settingsPort?.read?.() ?? (typeof settingsPort === 'function' ? settingsPort() : {}), 'debug settings') ?? {};
+        const recentRows = sync(repositories.conversation?.listMessages?.({personaId, limit: 10}) ?? [], 'debug messages');
+        const messages = Array.isArray(recentRows) ? recentRows : recentRows?.items ?? [];
+        const recentRequests = messages.map(row => ({
+            id: row.id,
+            createdAt: row.created_at ?? row.createdAt,
+            status: row.role === 'assistant' ? 'response' : 'request',
+            promptSummary: row.role === 'user' ? summary(row.text || '', 240) : '',
+            responseSummary: row.role === 'assistant' ? summary(row.text || '', 240) : '',
+            error: ''
+        }));
+        const mediaRows = sync(repositories.job?.listForPersona?.({
+            personaId,
+            jobTypes: ['activity_image', 'activity_video', 'chat_image', 'chat_video', 'activity_media_poll', 'chat_media_poll'],
+            limit: 10
+        }) ?? [], 'debug media jobs');
+        const mediaJobs = (Array.isArray(mediaRows) ? mediaRows : mediaRows?.items ?? [])
+            .filter(row => row.persona_id === undefined || row.persona_id === personaId || row.personaId === personaId)
+            .slice(0, 10).map(row => {
+            const payload = parse(row.payload_json ?? row.payload, {});
+            const resultValue = parse(row.result_json ?? row.result, {});
+            return {
+                id: row.id,
+                kind: payload.kind ?? (/video/i.test(row.job_type ?? '') ? 'video' : 'image'),
+                status: row.status,
+                createdAt: row.created_at ?? row.createdAt,
+                provider: payload.provider ?? resultValue.provider ?? 'comfyui',
+                trigger: payload.trigger ?? 'unknown',
+                promptSummary: summary(resultValue.finalPrompt || '', 480),
+                progress: redact(resultValue.progress ?? {}),
+                error: summary(row.error || '', 500)
+            };
+        });
+        const layers = {
+            identity: summary(context?.layers?.immutableIdentity ?? context?.layers?.identity ?? ''),
+            immutableIdentity: summary(context?.layers?.immutableIdentity ?? ''),
+            lifeState: summary(context?.layers?.lifeState ?? context?.state ?? ''),
+            relationship: summary(context?.layers?.relationship ?? ''),
+            systemCapability: summary(context?.layers?.systemCapability ?? ''),
+            provider: {model: summary(settingsValue.model || '自动选择', 240), lmStudioConfigured: Boolean(settingsValue.lmStudioUrl), comfyConfigured: Boolean(settingsValue.comfyUrl)}
+        };
+        return {layers, recentRequests, mediaJobs};
     }
 
     function getLifecycle(command = {}) {
         const personaId = text(command.personaId, '人格 ID');
+        requirePersona(personas, personaId);
         const events = lifeEvents?.list ? lifeEvents.list({personaId, limit: 20}) : lifeEvents?.listActive?.({personaId, at: clock(), limit: 20}) ?? [];
         const jobsForPersona = jobs?.listForPersona ? jobs.listForPersona({personaId, limit: 50}) : [];
-        return {personaId, events: redact(sync(events, 'lifecycle events')), jobs: redact(sync(jobsForPersona, 'lifecycle jobs'))};
+        const scopedJobs = sync(jobsForPersona, 'lifecycle jobs');
+        const rows = Array.isArray(scopedJobs) ? scopedJobs.filter(row => row.persona_id === undefined || row.persona_id === personaId || row.personaId === personaId) : scopedJobs;
+        return {personaId, events: redact(sync(events, 'lifecycle events')), jobs: redact(rows)};
     }
 
     function simulatePersona(command = {}) {
         const personaId = text(command.personaId, '人格 ID');
+        requirePersona(personas, personaId);
         if (lifeEventFlow?.record) return lifeEventFlow.record({
             ...command,
             personaId,
@@ -94,6 +168,7 @@ export function createDebugService({repositories = {}, promptRuns, h3Preflight, 
         if (job && mediaJobService?.submit) return mediaJobService.submit(job, command.context ?? {});
         if (!jobs?.enqueue) throw Object.assign(new Error('debug media job service 未配置'), {status: 501});
         const personaId = text(command.personaId, '人格 ID');
+        requirePersona(personas, personaId);
         const kind = command.kind === 'video' ? 'video' : 'image';
         const concept = isRecord(command.personaMediaConcept) ? command.personaMediaConcept : {
             schemaVersion: 1,
@@ -116,12 +191,14 @@ export function createDebugService({repositories = {}, promptRuns, h3Preflight, 
 
     return Object.freeze({
         listPromptRuns,
+        promptRuns: listPromptRuns,
+        promptRunsFor: listPromptRuns,
         h3Preflight: h3PreflightRead,
         getDebugContext: getContext,
         getLifecycle,
         simulatePersona,
         debugMedia,
-        debug: {listPromptRuns, h3Preflight: h3PreflightRead, getDebugContext: getContext, getLifecycle, simulatePersona, debugMedia}
+        debug: {listPromptRuns, promptRuns: listPromptRuns, promptRunsFor: listPromptRuns, h3Preflight: h3PreflightRead, getDebugContext: getContext, getLifecycle, simulatePersona, debugMedia}
     });
 }
 

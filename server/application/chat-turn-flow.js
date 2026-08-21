@@ -193,9 +193,27 @@ function policyHandled(runtime) {
 
 function modelMessage(message) {
     if (!isRecord(message)) return null;
-    return {
+    const mapped = {
         role: message.role === 'assistant' ? 'assistant' : message.role === 'tool' ? 'tool' : 'user',
         content: message.content ?? message.text ?? ''
+    };
+    if (mapped.role === 'assistant' && Array.isArray(message.tool_calls)) {
+        mapped.tool_calls = message.tool_calls.slice(0, 8);
+    }
+    if (mapped.role === 'tool') {
+        if (message.tool_call_id !== undefined) mapped.tool_call_id = message.tool_call_id;
+        if (message.name !== undefined) mapped.name = message.name;
+    }
+    return mapped;
+}
+
+function continuationResult(result) {
+    if (!isRecord(result)) return result;
+    const payload = isRecord(result.result) ? result.result : {};
+    return {
+        ok: result.ok === true,
+        ...payload,
+        ...(result.error ? {error: result.error} : {})
     };
 }
 
@@ -216,16 +234,25 @@ function continuationMessages(history, completion, presentation) {
         }
     }));
     if (!assistantToolCalls.length) return {messages, calls, results};
-    messages.push({role: 'assistant', content: '', tool_calls: assistantToolCalls});
+    messages.push({role: 'assistant', content: null, tool_calls: assistantToolCalls});
     for (const [index, call] of calls.entries()) {
         const id = call.id || `call_${call.index ?? index}`;
-        const result = results.find(item => item.callId === call.id || item.name === call.name) ?? {
+        const matchingByCallId = call.id ? results.find(item => item.callId === call.id) : null;
+        const matchingByPosition = results.length === calls.length ? results[index] : null;
+        const sameName = results.filter(item => item.name === call.name);
+        const matchingUniqueName = sameName.length === 1 ? sameName[0] : null;
+        const result = matchingByCallId ?? matchingByPosition ?? matchingUniqueName ?? {
             name: call.name,
             ok: false,
             callId: call.id ?? null,
             error: 'Capability result unavailable'
         };
-        messages.push({role: 'tool', tool_call_id: id, content: JSON.stringify(result)});
+        messages.push({
+            role: 'tool',
+            tool_call_id: id,
+            name: call.name,
+            content: JSON.stringify(continuationResult(result))
+        });
     }
     return {messages, calls, results};
 }
@@ -388,7 +415,10 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         ...command,
                         capabilityCalls: calls,
                         markerText: runtime.completion?.text ?? '',
-                        completion: runtime.completion ?? {},
+                        completion: {
+                            ...(runtime.completion ?? {}),
+                            capabilityMode: 'plan'
+                        },
                         causationId
                     };
                     const result = await capabilityHandoff.run(handoffContext, handoffCommand, previous);
@@ -409,12 +439,18 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                     const calls = Array.isArray(completion.toolCalls)
                         ? completion.toolCalls.filter(call => call?.source === 'native' && call?.name)
                         : [];
-                    if (!calls.length || completion.doneSeen !== true || completion.incompleteToolIndexes?.length) {
+                    if (!calls.length || completion.doneSeen !== true || completion.incompleteToolIndexes?.length || runtime.continuationUsed) {
                         return emptyStepResult();
                     }
 
+                    // A tool-only completion needs one natural-language follow-up;
+                    // a completion that already contains visible text does not.
+                    const visibleText = runtime.visibleText ?? completion.text ?? '';
+                    if (typeof visibleText === 'string' && visibleText.trim()) return emptyStepResult();
+
                     const continuation = continuationMessages(runtime.history, completion, previous.presentation);
                     if (!continuation.calls.length) return emptyStepResult();
+                    runtime.continuationUsed = true;
 
                     try {
                         const response = await llmStream({
@@ -548,6 +584,8 @@ export function createChatTurnFlow({
     }
     if (registry.has?.(flowId)) throw new Error(`Chat turn flow already registered: ${flowId}`);
 
+    const continuationEnabled = enableContinuation || capabilityDispatcher?.supportsContinuation === true;
+
     registerChatTurnFlow({
         registry,
         contextReader: readContext,
@@ -557,7 +595,7 @@ export function createChatTurnFlow({
         presentationMapper: mapPresentation,
         userMessageWriter,
         chatPolicy: resolveChatPolicy(chatPolicy),
-        enableContinuation,
+        enableContinuation: continuationEnabled,
         flowId
     });
 

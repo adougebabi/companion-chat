@@ -44,6 +44,26 @@ function assistantFacts(result) {
     return facts.filter(fact => fact?.type === ASSISTANT_MESSAGE_FACT && Array.isArray(fact.messages));
 }
 
+function capabilityPlans(result) {
+    const effects = Array.isArray(result?.effects) ? result.effects : [];
+    return effects
+        .map(effect => ({
+            plan: effect?.payload?.plan ?? effect?.payload?.capabilityPlan,
+            apply: effect?.payload?.apply
+        }))
+        .filter(item => isRecord(item.plan) && typeof item.apply === 'function');
+}
+
+function applyCapabilityPlans(result) {
+    const plans = capabilityPlans(result);
+    for (const {apply} of plans) {
+        const applied = apply();
+        if (applied && typeof applied.then === 'function') {
+            throw new TypeError('Capability plan apply must complete synchronously');
+        }
+    }
+}
+
 function messageRow(message, conversationId) {
     if (!isRecord(message)) throw new TypeError('Assistant message fact must contain message objects');
     const createdAt = timestamp(message.createdAt ?? message.created_at, 'Assistant message.createdAt');
@@ -118,6 +138,10 @@ export function createConversationCommitAdapter({repository, conversationReposit
                 }
                 committed.push(...(Array.isArray(inserted) ? inserted : [inserted]).filter(Boolean));
             }
+            // Capability plans are deliberately applied after the assistant
+            // facts. If the visible assistant commit fails, no scene/media/
+            // pending effect has been applied and the database remains clean.
+            applyCapabilityPlans(stepResult);
         });
         return {messages: committed, facts: facts.length};
     }
@@ -128,4 +152,3 @@ export function createConversationCommitAdapter({repository, conversationReposit
 export const createConversationCommitBoundary = createConversationCommitAdapter;
 export const createChatConversationCommitAdapter = createConversationCommitAdapter;
 export const ASSISTANT_MESSAGE_FACT_TYPE = ASSISTANT_MESSAGE_FACT;
-

@@ -84,7 +84,14 @@ export function createPersonaRepository({database, clock, now, id} = {}) {
         return result.changes ? openDatabase.prepare('SELECT * FROM companion_personas WHERE id = ?').get(idValue) : null;
     }
 
-    return Object.freeze({findActive, listActive, updateScreen, updateImageGenerationPolicy});
+    function touch({personaId, updatedAt} = {}) {
+        const idValue = requiredText(personaId, 'Persona.id');
+        const updatedValue = timestamp(updatedAt ?? currentTime(), 'Persona.updatedAt');
+        const result = openDatabase.prepare('UPDATE companion_personas SET updated_at = ? WHERE id = ? AND enabled = 1 AND deleted_at IS NULL').run(updatedValue, idValue);
+        return result.changes ? openDatabase.prepare('SELECT * FROM companion_personas WHERE id = ?').get(idValue) : null;
+    }
+
+    return Object.freeze({findActive, listActive, updateScreen, updateImageGenerationPolicy, touch, updateTimestamp: touch});
 }
 
 export const createCompanionPersonaRepository = createPersonaRepository;
