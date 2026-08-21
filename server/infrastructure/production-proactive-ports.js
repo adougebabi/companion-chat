@@ -147,10 +147,10 @@ function createDecisionPort({database, jobRepository, completion, now}) {
                 signal: input.context?.signal
             });
         },
-        freeze({jobId, decision}) {
+        freeze({jobId, decision, leaseOwner, personaId}) {
             const row = jobRepository.find({id: jobId});
             if (!row) return {changed: false};
-            return jobRepository.patchResult(row, {patch: {decision}, now: now()});
+            return jobRepository.patchResult(row, {patch: {decision}, leaseOwner, personaId, now: now()});
         }
     };
 }
@@ -171,7 +171,7 @@ function createReplyProjection({database, conversationRepository, id, now}) {
             const createdAt = now();
             const value = typeof text === 'string' && text.trim() ? text.trim() : fallback;
             const row = conversationRepository.appendMessage({
-                id: id('message'),
+                id: source?.replyMessageId ?? id('message'),
                 conversationId: conversation.id,
                 role: 'assistant',
                 text: value,
@@ -191,7 +191,8 @@ function createReplyProjection({database, conversationRepository, id, now}) {
 function createActivityProjection({activityRepository, id, now}) {
     return {
         findByEvent({personaId, eventId}) {
-            return activityRepository.findActivity({id: eventId, personaId})
+            return activityRepository.findActivityByEvent?.({eventId, personaId})
+                ?? activityRepository.findActivity({id: eventId, personaId})
                 ?? activityRepository.findActivity({activityId: eventId, personaId});
         },
         publish({personaId, eventId, content, media, createdAt = now()}) {

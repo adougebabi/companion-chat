@@ -102,6 +102,13 @@ export function createScheduleService(options = {}) {
         const startsAt = timestamp(input.startsAt, '计划开始时间');
         if (Date.parse(startsAt) <= Date.parse(current)) throw statusError('计划开始时间必须是未来的明确时间', 400);
         let endsAt = input.endsAt === undefined ? existing?.endsAt ?? existing?.ends_at : input.endsAt;
+        if (input.endsAt === undefined && endsAt && existing) {
+            const existingStartsAt = existing.startsAt ?? existing.starts_at;
+            const duration = Date.parse(endsAt) - Date.parse(existingStartsAt);
+            if (Number.isFinite(duration) && duration > 0) {
+                endsAt = new Date(Date.parse(startsAt) + duration).toISOString();
+            }
+        }
         if (endsAt !== null && endsAt !== undefined) {
             endsAt = timestamp(endsAt, '计划结束时间');
             if (Date.parse(endsAt) <= Date.parse(startsAt)) throw statusError('计划结束时间无效', 400);

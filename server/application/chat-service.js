@@ -98,6 +98,7 @@ export function createCompanionChatService({
     conversationRepository,
     presentationMapper,
     userMessageWriter,
+    enableContinuation,
     commitBoundary,
     sendSse,
     end,
@@ -111,6 +112,7 @@ export function createCompanionChatService({
         conversationRepository,
         presentationMapper,
         userMessageWriter,
+        enableContinuation,
         commitBoundary: resolvedCommitBoundary
     });
     const sseAdapter = createChatTurnSseAdapter({

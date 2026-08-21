@@ -102,6 +102,15 @@ export function createActivityRepository({database} = {}) {
         `).get(...values);
     }
 
+    function findActivityByEvent(first, second = {}) {
+        const input = inputFor(first, second);
+        const eventId = requiredText(input.eventId ?? input.event_id, 'Activity.eventId');
+        const values = [eventId];
+        const ownerFilter = input.personaId === undefined || input.personaId === null ? '' : ' AND activities.persona_id = ?';
+        if (ownerFilter) values.push(requiredText(input.personaId, 'Activity.personaId'));
+        return openDatabase.prepare(`SELECT activities.* FROM companion_activities activities WHERE activities.event_id = ?${ownerFilter} ORDER BY activities.created_at DESC, activities.id DESC LIMIT 1`).get(...values);
+    }
+
     function requireActivity(input) {
         const activity = findActivity(input);
         if (!activity) {
@@ -304,6 +313,7 @@ export function createActivityRepository({database} = {}) {
 
     return Object.freeze({
         findActivity,
+        findActivityByEvent,
         listActivities,
         insertActivity,
         listActivityComments,

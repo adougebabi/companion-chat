@@ -272,12 +272,14 @@ export function createMtplxCompletionPort({provider, settings, tools = [], toolC
             const personaId = input.personaId || input.command?.personaId || '';
             const causationId = input.causationId || input.command?.causationId || '';
             const model = input.model || readSettings().model || '';
+            const requestedTools = input.tools ?? tools;
+            const requestedToolChoice = input.toolChoice ?? input.tool_choice ?? toolChoice;
             const payload = {
                 ...input,
                 model,
                 stream: true,
-                ...(Array.isArray(tools) && tools.length ? {tools} : {}),
-                ...(toolChoice === undefined ? {} : {tool_choice: toolChoice}),
+                ...(Array.isArray(requestedTools) && requestedTools.length ? {tools: requestedTools} : {}),
+                ...(requestedToolChoice === undefined ? {} : {tool_choice: requestedToolChoice}),
                 ...(temperature === undefined ? {} : {temperature})
             };
             delete payload.context;
@@ -287,6 +289,7 @@ export function createMtplxCompletionPort({provider, settings, tools = [], toolC
             delete payload.correlationId;
             delete payload.causationId;
             delete payload.onToken;
+            delete payload.toolChoice;
             const response = await port.stream({...payload, signal: input.signal});
             if (!response?.ok) {
                 let body = null;

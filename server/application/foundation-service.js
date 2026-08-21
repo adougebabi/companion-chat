@@ -119,9 +119,13 @@ export function createFoundationService(options = {}) {
         const personaId = personaIdFor(input);
         const revisionId = requiredText(input.revisionId ?? input.revision_id, '版本 ID');
         requirePersona(personaId);
-        return callFoundation(['restoreFoundationRevision', 'restoreRevision', 'restore'], {
+        const result = callFoundation(['restoreFoundationRevision', 'restoreRevision', 'restore'], {
             ...input, personaId, revisionId, restoredAt: input.restoredAt ?? now()
         }, 'restore');
+        return mapMaybe(result, value => {
+            if (!value) throw statusError('基础人格版本不存在', 404);
+            return value;
+        });
     }
 
     return Object.freeze({

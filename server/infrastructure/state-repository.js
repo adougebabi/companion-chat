@@ -47,7 +47,13 @@ export function createStateRepository({database, clock} = {}) {
             input.checkpointAt ?? at,
             at,
             input.sourceEventId ?? input.source_event_id ?? current.source_event_id ?? null,
-            JSON.stringify(input.sharedScene ?? input.shared_scene ?? json(current.shared_scene_json, null) ?? {})
+            JSON.stringify(
+                Object.hasOwn(input, 'sharedScene')
+                    ? input.sharedScene
+                    : Object.hasOwn(input, 'shared_scene')
+                        ? input.shared_scene
+                        : json(current.shared_scene_json, null) ?? {}
+            )
         );
         return read({personaId: owner});
     }

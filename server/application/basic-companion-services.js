@@ -73,7 +73,7 @@ export function createBasicCompanionServices({
     const groups = repository(repositories, ['group', 'groups'], 'group repository');
     const conversation = repository(repositories, ['conversation', 'conversationRepository'], 'conversation repository');
     const activity = repository(repositories, ['activity', 'activityRepository'], 'activity repository');
-    const conversationService = createConversationService({repository: conversation, clock});
+    const conversationService = createConversationService({repository: conversation, clock, idGenerator});
     const settingsPort = settings ?? repositories?.settings;
     if (!isRecord(settingsPort) || typeof settingsPort.read !== 'function') throw new TypeError('Basic companion services require settings.read()');
     const identity = identitySettingsService ?? createIdentitySettingsService({

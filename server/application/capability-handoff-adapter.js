@@ -15,6 +15,7 @@ function argumentsFor(call) {
 function resultFor(attempt) {
     const call = attempt?.call || {};
     const name = call.name || attempt?.name || 'pending_event';
+    if (!['scene_event', 'media_event', 'pending_event'].includes(name)) return null;
     return {
         name,
         ok: !attempt?.error,
@@ -91,7 +92,7 @@ export function createCapabilityHandoffAdapter({registry, capabilityRegistry} = 
                 causationUserMessageId: context.causationId ?? input.causationUserMessageId
             });
             return {
-                results: output.attempts.map(resultFor),
+                results: output.attempts.map(resultFor).filter(Boolean),
                 effects: output.attempts.flatMap(attempt => attempt?.intent ? [attempt.intent] : []),
                 ...(output.visibleText !== markerText ? {visibleText: output.visibleText} : {}),
                 diagnostics: output.diagnostics

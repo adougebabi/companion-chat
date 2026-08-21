@@ -41,7 +41,7 @@ function defaultBlueprint(name, role, foundation) {
     };
 }
 
-export function createPersonaLifecycleRepository({database, clock, id, foundation, blueprintFactory} = {}) {
+export function createPersonaLifecycleRepository({database, clock, id, foundation, blueprintFactory, jobRepository} = {}) {
     const db = assertDatabase(database);
     const now = clockFor(clock);
     const nextId = idFor(id);
@@ -60,6 +60,7 @@ export function createPersonaLifecycleRepository({database, clock, id, foundatio
         const group = db.prepare(`SELECT * FROM companion_groups WHERE is_default = 1 ORDER BY created_at, id LIMIT 1`).get();
         if (!group) throw new Error('默认分组不存在');
         const blueprintValue = input.blueprint && typeof input.blueprint === 'object' ? input.blueprint : (blueprintFactory?.(input) ?? defaultBlueprint(name, role, foundationText));
+        const planDate = new Date(createdAt).toISOString().slice(0, 10);
         db.transaction(() => {
             db.prepare(`INSERT INTO companion_personas (id, name, role, color, group_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`).run(personaId, name, role, color, group.id, createdAt, createdAt);
             db.prepare(`INSERT INTO companion_persona_foundation_revisions (id, persona_id, version, foundation, reason, created_at) VALUES (?, ?, 1, ?, ?, ?)`).run(nextId('foundation'), personaId, foundationText, '初始化人格', createdAt);
@@ -69,9 +70,9 @@ export function createPersonaLifecycleRepository({database, clock, id, foundatio
             }
             db.prepare(`INSERT INTO companion_persona_states (persona_id, situation, mood, appearance_json, checkpoint_at, updated_at) VALUES (?, ?, ?, '{}', ?, ?)`).run(personaId, '正在开始自己的日常', '平静', createdAt, createdAt);
             db.prepare(`INSERT INTO companion_conversations (id, persona_id, created_at, updated_at) VALUES (?, ?, ?, ?)`).run(nextId('conversation'), personaId, createdAt, createdAt);
-            const planDate = new Date(createdAt).toISOString().slice(0, 10);
             db.prepare(`INSERT OR IGNORE INTO companion_daily_plans (id, persona_id, plan_date, status, plan_json, source, created_at, updated_at) VALUES (?, ?, ?, 'queued', '[]', 'modular-default', ?, ?)`).run(nextId('daily_plan'), personaId, planDate, createdAt, createdAt);
         })();
+        jobRepository?.enqueue?.({id: nextId('job'), jobType: 'daily_plan', personaId, priority: 2, maxAttempts: 12, runAfter: createdAt, payload: {planDate}});
         return getPersona({personaId});
     }
 

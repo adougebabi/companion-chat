@@ -17,6 +17,7 @@ const MAX_COLLECTION_ITEMS = 50;
 const MAX_MESSAGE_TEXT = 12_000;
 const MAX_TOKEN_TEXT = 12_000;
 const FLOW_RUNTIME = Symbol('chat-turn-runtime');
+const CONTINUATION_FALLBACK = '我已经记下这件事，但暂时没能组织出更多回复。';
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -173,6 +174,45 @@ function resultChannels(value) {
     return normalizeStepResult(value);
 }
 
+function modelMessage(message) {
+    if (!isRecord(message)) return null;
+    return {
+        role: message.role === 'assistant' ? 'assistant' : message.role === 'tool' ? 'tool' : 'user',
+        content: message.content ?? message.text ?? ''
+    };
+}
+
+function continuationMessages(history, completion, presentation) {
+    const messages = Array.isArray(history) ? history.map(modelMessage).filter(Boolean) : [];
+    const calls = Array.isArray(completion.toolCalls) ? completion.toolCalls : [];
+    const results = Array.isArray(presentation)
+        ? presentation
+            .filter(event => event?.type === 'capability-result' && isRecord(event.result))
+            .map(event => event.result)
+        : [];
+    const assistantToolCalls = calls.map((call, index) => ({
+        id: call.id || `call_${call.index ?? index}`,
+        type: 'function',
+        function: {
+            name: call.name,
+            arguments: call.argumentsText || '{}'
+        }
+    }));
+    if (!assistantToolCalls.length) return {messages, calls, results};
+    messages.push({role: 'assistant', content: '', tool_calls: assistantToolCalls});
+    for (const [index, call] of calls.entries()) {
+        const id = call.id || `call_${call.index ?? index}`;
+        const result = results.find(item => item.callId === call.id || item.name === call.name) ?? {
+            name: call.name,
+            ok: false,
+            callId: call.id ?? null,
+            error: 'Capability result unavailable'
+        };
+        messages.push({role: 'tool', tool_call_id: id, content: JSON.stringify(result)});
+    }
+    return {messages, calls, results};
+}
+
 function invokeMapper(mapper, input) {
     if (typeof mapper === 'function') return mapper(input);
     return mapper.map(input);
@@ -203,7 +243,7 @@ async function repositoryHistory(repository, input) {
     return Array.isArray(rows) ? rows.slice(-MAX_HISTORY).reverse() : [];
 }
 
-function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDispatcher, conversationRepository, presentationMapper, userMessageWriter, flowId}) {
+function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDispatcher, conversationRepository, presentationMapper, userMessageWriter, enableContinuation = false, flowId}) {
     const capabilityHandoff = createCapabilityHandoffStep({dispatcher: capabilityDispatcher});
     registry.register({
         id: flowId,
@@ -280,9 +320,10 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         ? runtime.completion.tokens
                         : runtime.completion.text ? [runtime.completion.text] : [];
                     const markerText = /<(?:media-intent|pending-event|scene-event)>/i.test(runtime.completion.text || '');
+                    const capabilityText = runtime.completion.toolCalls.length > 0;
                     return {
                         ...runtime.completion.stepResult,
-                        presentation: runtime.completion.stepResult.presentation.concat(markerText ? [] : tokens.map(token => sseToken(token)))
+                        presentation: runtime.completion.stepResult.presentation.concat(markerText || (capabilityText && enableContinuation) ? [] : tokens.map(token => sseToken(token)))
                     };
                 }
             },
@@ -314,6 +355,69 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                     return result;
                 }
             },
+            ...(enableContinuation ? [{
+                id: 'capability-continuation',
+                layer: 'application',
+                dependencies: [{id: 'llm-streaming-port', layer: 'contracts'}],
+                async run(context, command, previous) {
+                    const runtime = command[FLOW_RUNTIME];
+                    const completion = runtime.completion ?? {};
+                    const calls = Array.isArray(completion.toolCalls)
+                        ? completion.toolCalls.filter(call => call?.source === 'native' && call?.name)
+                        : [];
+                    if (!calls.length || completion.doneSeen !== true || completion.incompleteToolIndexes?.length) {
+                        return emptyStepResult();
+                    }
+
+                    const continuation = continuationMessages(runtime.history, completion, previous.presentation);
+                    if (!continuation.calls.length) return emptyStepResult();
+
+                    try {
+                        const response = await streamLlm({
+                            context: runtime.context ?? {},
+                            messages: continuation.messages,
+                            command: {...command, toolChoice: 'none', tool_choice: 'none'},
+                            personaId: command.personaId,
+                            requestId: context.requestId ?? null,
+                            correlationId: context.correlationId ?? null,
+                            causationId: context.causationId ?? command.causationId ?? null,
+                            signal: command.signal,
+                            toolChoice: 'none',
+                            tool_choice: 'none',
+                            continuation: true
+                        });
+                        const next = await completionFromStream(response);
+                        if (next.toolCalls.length) {
+                            runtime.completion = normalizeCompletion({
+                                ...next,
+                                text: CONTINUATION_FALLBACK,
+                                tokens: [CONTINUATION_FALLBACK],
+                                toolCalls: [],
+                                doneSeen: true,
+                                parseErrors: [...(next.parseErrors || []), 'Continuation attempted another capability call']
+                            });
+                        } else {
+                            runtime.completion = next;
+                        }
+                    } catch {
+                        // Durable capability effects are already committed by
+                        // their flow adapters; a continuation failure only
+                        // changes the bounded user-visible fallback.
+                        runtime.completion = normalizeCompletion({
+                            text: CONTINUATION_FALLBACK,
+                            tokens: [CONTINUATION_FALLBACK],
+                            toolCalls: [],
+                            doneSeen: true
+                        });
+                    }
+                    return {
+                        facts: [],
+                        projections: [],
+                        effects: [],
+                        presentation: runtime.completion.tokens.map(token => sseToken(token))
+                    };
+                }
+            }] : []),
             {
                 id: 'conversation-result',
                 layer: 'application',
@@ -378,6 +482,7 @@ export function createChatTurnFlow({
     commit,
     commitBoundary,
     userMessageWriter,
+    enableContinuation = false,
     flowId = CHAT_TURN_FLOW_ID
 } = {}) {
     const readContext = resolvePortMethod(contextReader, ['read', 'readContext'], 'ChatContextReader');
@@ -403,6 +508,7 @@ export function createChatTurnFlow({
         conversationRepository,
         presentationMapper: mapPresentation,
         userMessageWriter,
+        enableContinuation,
         flowId
     });
 

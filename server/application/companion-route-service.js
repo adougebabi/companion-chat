@@ -115,6 +115,40 @@ function personaDto(row, group) {
     };
 }
 
+function personaDetailDto(row, group) {
+    if (!isRecord(row)) throw new TypeError('人格 repository 未返回人格详情');
+    if (isRecord(row.persona)) return row;
+    const summary = personaDto(row, group);
+    const policy = row.image_generation_policy ?? row.imageGenerationPolicy ?? 'autonomous';
+    return {
+        persona: {...summary, imageGenerationPolicy: policy},
+        imageGenerationPolicy: policy
+    };
+}
+
+function scheduleDto(row) {
+    if (!isRecord(row)) return row;
+    if (row.startsAt !== undefined || row.endsAt !== undefined) return row;
+    let details = row.details;
+    if (!isRecord(details)) {
+        try {
+            details = row.details_json ? JSON.parse(row.details_json) : {};
+        } catch {
+            details = {};
+        }
+    }
+    return {
+        id: row.id,
+        title: row.title,
+        kind: row.kind,
+        startsAt: row.starts_at,
+        endsAt: row.ends_at ?? null,
+        source: row.source,
+        ...(row.status === undefined ? {} : {status: row.status}),
+        details
+    };
+}
+
 function pageDto(result) {
     if (Array.isArray(result)) return {items: result, nextCursor: null};
     if (!isRecord(result)) return {items: [], nextCursor: null};
@@ -282,7 +316,12 @@ export function createCompanionRouteService({
     function createPersona(command = {}) {
         const input = normalizePersonaCreate(command);
         const result = lifecycle.createPersona(input);
-        return mapMaybe(result, value => value);
+        return mapMaybe(result, value => {
+            if (isRecord(value) && (Object.hasOwn(value, 'group_id') || Object.hasOwn(value, 'screened_at'))) {
+                return summaryFor(value);
+            }
+            return value;
+        });
     }
 
     function deletePersona(command = {}) {
@@ -296,7 +335,22 @@ export function createCompanionRouteService({
     function getPersona(command = {}) {
         const personaId = normalizePersonaId(command);
         requireActivePersona(personas, personaId);
-        return lifecycle.getPersona({...command, personaId});
+        const groupId = findActivePersona(personas, personaId)?.group_id;
+        const group = groupId && typeof groups.find === 'function' ? groups.find(groupId) : undefined;
+        return mapMaybe(lifecycle.getPersona({...command, personaId}), value => personaDetailDto(value, group));
+    }
+
+    function updateImageGenerationPolicy(command = {}) {
+        const input = assertRecord(command, '生图策略请求');
+        const personaId = requiredText(input.personaId ?? input.persona_id, '人格 ID');
+        return mapMaybe(lifecycle.updateImageGenerationPolicy({...input, personaId}), value => {
+            const policy = value?.image_generation_policy ?? value?.imageGenerationPolicy ?? input.policy ?? input.imageGenerationPolicy;
+            return {
+                personaId: value?.id ?? personaId,
+                imageGenerationPolicy: policy,
+                updatedAt: value?.updated_at ?? value?.updatedAt ?? input.updatedAt
+            };
+        });
     }
 
     function createGroup(command = {}) {
@@ -389,8 +443,8 @@ export function createCompanionRouteService({
         getPersona,
         assignGroup: assignPersonaGroup,
         screen: screenPersona,
-        updateImageGenerationPolicy: lifecycle.updateImageGenerationPolicy,
-        setImageGenerationPolicy: lifecycle.updateImageGenerationPolicy
+        updateImageGenerationPolicy,
+        setImageGenerationPolicy: updateImageGenerationPolicy
     });
     const groupApi = Object.freeze({
         create: createGroup,
@@ -427,10 +481,10 @@ export function createCompanionRouteService({
         restoreFoundationRevision: foundationApplication.restoreFoundationRevision
     });
     const scheduleApi = Object.freeze({
-        create: scheduleApplication.create,
-        createSchedule: scheduleApplication.createSchedule,
-        reschedule: scheduleApplication.reschedule,
-        rescheduleSchedule: scheduleApplication.rescheduleSchedule,
+        create: command => mapMaybe(scheduleApplication.create(command), scheduleDto),
+        createSchedule: command => mapMaybe(scheduleApplication.createSchedule(command), scheduleDto),
+        reschedule: command => mapMaybe(scheduleApplication.reschedule(command), scheduleDto),
+        rescheduleSchedule: command => mapMaybe(scheduleApplication.rescheduleSchedule(command), scheduleDto),
         cancel: scheduleApplication.cancel,
         cancelSchedule: scheduleApplication.cancelSchedule
     });
@@ -461,7 +515,7 @@ export function createCompanionRouteService({
         createGroup,
         assignPersonaGroup,
         screenPersona,
-        updateImageGenerationPolicy: lifecycle.updateImageGenerationPolicy,
+        updateImageGenerationPolicy,
         interviewPreview: interview.preview,
         interviewAnalyze: interview.analyze,
         createInterview: interview.create,

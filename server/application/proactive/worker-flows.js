@@ -206,13 +206,13 @@ function resultMessageProjection(messages, source) {
 
 async function readFrozenDecision({decision, kind, command, source, personaId, at, evaluatorInput, decode}) {
     const stored = decision.readFrozen
-        ? await decision.readFrozen({kind, personaId, jobId: command.jobId, sourceId: sourceId(source), source, at})
+        ? await decision.readFrozen({kind, personaId, jobId: command.jobId, leaseOwner: command.context?.leaseOwner, sourceId: sourceId(source), source, at})
         : null;
     if (stored !== null && stored !== undefined) return {decision: decode(frozenDecisionValue(stored)), frozen: true, changed: false};
 
     const evaluated = await decision.evaluate({...evaluatorInput, kind, personaId, jobId: command.jobId, source, at});
     const normalized = decode(evaluated);
-    const frozen = await decision.freeze({kind, personaId, jobId: command.jobId, sourceId: sourceId(source), source, decision: normalized, at});
+    const frozen = await decision.freeze({kind, personaId, jobId: command.jobId, leaseOwner: command.context?.leaseOwner, sourceId: sourceId(source), source, decision: normalized, at});
     const changed = frozen?.changed === undefined ? true : Boolean(frozen.changed);
     if (!changed) {
         const replay = decision.readFrozen ? await decision.readFrozen({kind, personaId, jobId: command.jobId, sourceId: sourceId(source), source, at}) : null;
@@ -358,7 +358,8 @@ function buildProactiveMessageFlow({lifeEvent, pendingEvent, decision, reply, li
                 projections: [projection('proactive_decision', {source, decision: decisionValue})]
             });
         }
-        const projected = normalizeReplyMessages(await replies.project({personaId, text: decisionValue.message, source, fallback: jobPayload(command).fallbackText || '刚好想和你说一声。'}));
+        const payload = jobPayload(command);
+        const projected = normalizeReplyMessages(await replies.project({personaId, text: decisionValue.message, source: {...source, ...(payload.replyMessageId ? {replyMessageId: payload.replyMessageId} : {})}, fallback: payload.fallbackText || '刚好想和你说一声。'}));
         if (kind === 'pending_event') await transitionPending(pending, transitionInput({personaId, row, id: pendingId(row), from: pendingStatus(row), to: 'consumed', at, reason: 'delivered'}));
         const result = {
             sourceType: source.sourceType,

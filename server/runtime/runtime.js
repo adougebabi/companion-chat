@@ -52,6 +52,70 @@ function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+// Keep the transport-facing tool schema in the composition layer. Capability
+// validation and persistence remain owned by the registered application flows.
+const COMPANION_CAPABILITY_TOOLS = Object.freeze([
+    Object.freeze({
+        type: 'function',
+        function: Object.freeze({
+            name: 'scene_event',
+            description: 'Persist a material shared-scene start, switch, or end.',
+            parameters: Object.freeze({
+                type: 'object',
+                additionalProperties: false,
+                required: ['operation'],
+                properties: Object.freeze({
+                    operation: Object.freeze({type: 'string', enum: Object.freeze(['start', 'switch', 'end'])}),
+                    location: Object.freeze({type: 'string', maxLength: 160}),
+                    room: Object.freeze({type: 'string', maxLength: 120}),
+                    activity: Object.freeze({type: 'string', maxLength: 160}),
+                    situation: Object.freeze({type: 'string', maxLength: 240}),
+                    mood: Object.freeze({type: 'string', maxLength: 80}),
+                    objects: Object.freeze({type: 'array', maxItems: 12, items: Object.freeze({type: 'string', maxLength: 80})}),
+                    participants: Object.freeze({type: 'array', maxItems: 2, items: Object.freeze({type: 'string', enum: Object.freeze(['user', 'persona'])})})
+                })
+            })
+        })
+    }),
+    Object.freeze({
+        type: 'function',
+        function: Object.freeze({
+            name: 'media_event',
+            description: 'Queue a validated image or video delivery.',
+            parameters: Object.freeze({
+                type: 'object',
+                additionalProperties: false,
+                required: ['kind', 'request', 'count', 'personaMediaConcept'],
+                properties: Object.freeze({
+                    kind: Object.freeze({type: 'string', enum: Object.freeze(['image', 'video'])}),
+                    request: Object.freeze({type: 'string', maxLength: 500}),
+                    count: Object.freeze({type: 'integer', minimum: 1, maximum: 3}),
+                    personaMediaConcept: Object.freeze({type: 'object'})
+                })
+            })
+        })
+    }),
+    Object.freeze({
+        type: 'function',
+        function: Object.freeze({
+            name: 'pending_event',
+            description: 'Register one bounded, explicit follow-up fact for durable later evaluation.',
+            parameters: Object.freeze({
+                type: 'object',
+                additionalProperties: false,
+                required: Object.freeze(['schemaVersion', 'summary', 'notBefore', 'expiresAt', 'dedupeKey']),
+                properties: Object.freeze({
+                    schemaVersion: Object.freeze({type: 'integer', enum: Object.freeze([1])}),
+                    summary: Object.freeze({type: 'string', minLength: 1, maxLength: 280}),
+                    notBefore: Object.freeze({type: 'string', maxLength: 80}),
+                    expiresAt: Object.freeze({type: 'string', maxLength: 80}),
+                    dedupeKey: Object.freeze({type: 'string', minLength: 1, maxLength: 120})
+                })
+            })
+        })
+    })
+]);
+
 function nonEmpty(value, fallback) {
     if (typeof value === 'string' && value.trim() !== '') return value.trim();
     return fallback;
@@ -195,11 +259,13 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
     const idGenerator = runtimeId(options.idGenerator ?? options.id);
     const settings = options.settings ?? repositories.settings;
     const readSettings = typeof settings === 'function' ? settings : settings?.read?.bind(settings) ?? (() => ({}));
-    const lifeWorldReader = createLifeWorldReader({
-        repositories,
-        blueprintReader: repositories.blueprint,
-        clock
-    });
+    const lifeWorldReady = isRecord(repositories.blueprint)
+        && isRecord(repositories.schedule)
+        && isRecord(repositories.dailyPlan)
+        && isRecord(repositories.presence);
+    const lifeWorldReader = lifeWorldReady
+        ? createLifeWorldReader({repositories, blueprintReader: repositories.blueprint, clock})
+        : null;
     const resolveLifeState = createLifeStateResolver();
     const contextReader = {
         read({command = {}, messages = []} = {}) {
@@ -207,9 +273,10 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
             const persona = repositories.persona?.findActive?.(personaId);
             if (!persona) throw Object.assign(new Error('人格不存在'), {status: 404});
             const at = command.chatAt ?? clock();
-            const resolverInput = lifeWorldReader.readResolverInput({personaId, at});
-            const resolved = resolveLifeState(resolverInput);
-            const state = resolved.situation ? `${resolved.situation}（${resolved.scene || '日常场景'}）` : '当前没有额外的已确认生活事件。';
+            const resolved = lifeWorldReader
+                ? resolveLifeState(lifeWorldReader.readResolverInput({personaId, at}))
+                : null;
+            const state = resolved?.situation ? `${resolved.situation}（${resolved.scene || '日常场景'}）` : '当前没有额外的已确认生活事件。';
             return {
                 persona: {id: persona.id, name: persona.name, role: persona.role, color: persona.color},
                 prompt: `你是 ${persona.name}，角色是 ${persona.role || '陪伴者'}。请基于已确认事实与用户交流，不要编造当前状态。`,
@@ -222,7 +289,7 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
             };
         }
     };
-    const llmStreamingPort = createMtplxCompletionPort({provider: mtplx, settings: readSettings});
+    const llmStreamingPort = createMtplxCompletionPort({provider: mtplx, settings: readSettings, tools: COMPANION_CAPABILITY_TOOLS});
     const commitBoundary = createConversationCommitAdapter({
         repository: repositories.conversation,
         clock,
@@ -265,7 +332,8 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
         end(sink) {
             if (typeof sink?.end === 'function') sink.end();
             else if (sink && typeof sink === 'object') sink.writableEnded = true;
-        }
+        },
+        enableContinuation: true
     };
 }
 
@@ -458,7 +526,7 @@ function resolveRepositories(options, startup) {
     const job = createJobRepository({database, clock, id});
     const pending = createPendingEventRepository({database, enqueueJob: job.enqueue.bind(job)});
     const settings = createSettingsRepository({database, defaults: () => ({}), clock});
-    const personaLifecycle = createPersonaLifecycleRepository({database, clock, id});
+    const personaLifecycle = createPersonaLifecycleRepository({database, clock, id, jobRepository: job});
     const interview = createInterviewRepository({database, clock, id, personaLifecycle});
     return Object.freeze({
         conversation: createConversationRepository({database}),
@@ -839,13 +907,19 @@ export function createCompanionRuntime(options = {}) {
                 mediaJobService: resolved.mediaJobService,
                 clock: resolved.clock
             });
-            const lifeReader = createLifeWorldReader({repositories: resolved.repositories, blueprintReader: resolved.repositories.blueprint, clock: resolved.clock});
-            const lifeStateService = options.lifeStateService ?? createLifeStateService({
+            const lifeWorldReady = isRecord(resolved.repositories.blueprint)
+                && isRecord(resolved.repositories.schedule)
+                && isRecord(resolved.repositories.dailyPlan)
+                && isRecord(resolved.repositories.presence);
+            const lifeReader = lifeWorldReady
+                ? createLifeWorldReader({repositories: resolved.repositories, blueprintReader: resolved.repositories.blueprint, clock: resolved.clock})
+                : null;
+            const lifeStateService = options.lifeStateService ?? (lifeReader ? createLifeStateService({
                 reader: lifeReader,
                 resolver: createLifeStateResolver(),
                 stateRepository: resolved.repositories.state,
                 clock: resolved.clock
-            });
+            }) : null);
             return createCompanionApplication({
                 ...resolved,
                 services: options.services ?? createBasicCompanionServices({
@@ -853,6 +927,7 @@ export function createCompanionRuntime(options = {}) {
                     settings: options.settings ?? resolved.repositories.settings,
                     providers: resolved.providers,
                     clock: resolved.clock,
+                    idGenerator: resolved.idGenerator ?? resolved.id,
                     debugInspector: options.debugInspectorEnabled === true,
                     identitySettingsService: identitySettings,
                     activityService,

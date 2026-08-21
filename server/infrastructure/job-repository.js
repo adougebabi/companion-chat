@@ -248,15 +248,16 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
         const claimedAt = timestamp(input.now ?? now(), 'Job.claimedAt');
         const owner = leaseOwnerFor(input, generateId);
         const scope = personaScope(valueFor(input, 'personaId', 'persona_id'));
+        const types = jobTypeScope(input.jobTypes ?? input.types);
 
         return openDatabase.transaction(() => {
             const candidate = openDatabase.prepare(`
                 SELECT * FROM companion_jobs
                 WHERE ((status = 'queued' AND run_after <= ?)
-                    OR (status = 'leased' AND lease_expires_at < ?))${scope.sql}
+                    OR (status = 'leased' AND lease_expires_at < ?))${scope.sql}${types.sql}
                 ORDER BY run_after ASC, priority DESC, created_at ASC, id ASC
                 LIMIT 1
-            `).get(claimedAt, claimedAt, ...scope.values);
+            `).get(claimedAt, claimedAt, ...scope.values, ...types.values);
             if (!candidate) return null;
 
             const leaseExpiresAt = leaseExpiryFor(input, claimedAt, candidate);
@@ -267,8 +268,8 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
                     attempt_count = attempt_count + 1, updated_at = ?
                 WHERE id = ?
                   AND ((status = 'queued' AND run_after <= ?)
-                    OR (status = 'leased' AND lease_expires_at < ?))${scope.sql}
-            `).run(owner, leaseExpiresAt, claimedAt, candidate.id, claimedAt, claimedAt, ...scope.values);
+                    OR (status = 'leased' AND lease_expires_at < ?))${scope.sql}${types.sql}
+            `).run(owner, leaseExpiresAt, claimedAt, candidate.id, claimedAt, claimedAt, ...scope.values, ...types.values);
             if (!changed.changes) return null;
             return find({id: candidate.id, ...(valueFor(input, 'personaId', 'persona_id') !== undefined ? {personaId: valueFor(input, 'personaId', 'persona_id')} : {})});
         })();
@@ -387,7 +388,17 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
             `).get(jobId, owner, settledAt, ...scope.values);
             if (!active) return {changed: false, status: null, job: null};
 
-            const nextResultJson = resultJson === undefined ? active.result_json : resultJson;
+            let nextResultJson = active.result_json;
+            if (resultJson !== undefined) {
+                let previous = {};
+                let next = {};
+                try { previous = active.result_json ? JSON.parse(active.result_json) : {}; } catch {}
+                try { next = JSON.parse(resultJson); } catch {}
+                nextResultJson = JSON.stringify({
+                    ...(previous && typeof previous === 'object' && !Array.isArray(previous) ? previous : {}),
+                    ...(next && typeof next === 'object' && !Array.isArray(next) ? next : {})
+                });
+            }
             if (operation === 'retry') {
                 const runAfter = timestamp(valueFor(input, 'runAfter', 'run_after') ?? input.retryAt ?? input.retry_at, 'Job.runAfter');
                 const changed = openDatabase.prepare(`
