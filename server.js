@@ -4,7 +4,6 @@ import {tmpdir} from 'node:os';
 import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
-import Database from 'better-sqlite3';
 import {createActivityRepository} from './server/infrastructure/activity-repository.js';
 import {createConversationRepository} from './server/infrastructure/conversation-repository.js';
 import {createJobRepository} from './server/infrastructure/job-repository.js';
@@ -16,10 +15,9 @@ import {registerCompanionRoutes} from './server/http/route-registry.js';
 import {createProviderRegistry} from './server/infrastructure/provider-ports.js';
 import {createJobDispatcher} from './server/runtime/job-dispatcher.js';
 import createWorkerRuntime from './server/runtime/worker-runtime.js';
+import {createStartupRuntime} from './server/runtime/startup.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
-const dataDir = process.env.DATA_DIR || join(root, 'data');
-const databasePath = process.env.DATABASE_PATH || join(dataDir, 'companion.sqlite');
 const port = Number(process.env.PORT || 4178);
 const app = express();
 const debugInspectorEnabled = process.env.COMPANION_DEBUG_INSPECTOR === '1';
@@ -38,6 +36,12 @@ app.use(express.static(join(root, 'src'), {
 
 const now = () => new Date().toISOString();
 const id = prefix => `${prefix}_${crypto.randomUUID()}`;
+const startupRuntime = createStartupRuntime({environment: process.env, rootDir: root, now, id});
+const {dataDir, databasePath, database} = startupRuntime;
+const activityRepository = createActivityRepository({database});
+const conversationRepository = createConversationRepository({database});
+const jobRepository = createJobRepository({database, id, clock: now});
+const lifeStateResolver = createLifeStateResolver();
 const json = (value, fallback = {}) => {
     try {
         return value ? JSON.parse(value) : fallback;
@@ -77,375 +81,6 @@ const systemCapabilitySceneContract = '【系统能力层：共同场景与自�
 const personaMediaConceptContract = '你正在以该陪伴人格的身份，为一次已授权的图片或视频交付提出简洁的画面概念。只返回严格 JSON，不要返回用户可见聊天文字，不要返回最终 provider prompt。JSON 必须是 {"schemaVersion":1,"mediaKind":"image"|"video","scene":"","action":"","mood":"","narrative":"","humanSubjects":[{"label":"","role":"","inFrame":true|false}],"nonHumanObjects":[{"label":"","kind":"","inFrame":true|false}],"capture":{"mode":"selfie"|"external_capture"|"operator_pov"|"first_person"|"other","operator":"","deviceVisibility":"visible"|"out_of_frame"|"unspecified","framingIntent":""},"compositionIntent":""}。先忠实附带的身份和当前生活事实；再结合媒体交付说明决定画面。人类主体必须只列真正的人，衣物、道具、宠物、屏幕、镜面/倒影和环境物体必须列入 nonHumanObjects。你负责明确自拍、他拍、摄影者 POV 或第一人称等拍摄关系；不要把不确定的视觉判断留给服务器。';
 const imagePromptMasterContract = '你是专业的 AI 生图提示词大师。输入包含服务器附带的身份/当前生活事实，以及 AI 人格已经给出的结构化媒体概念。你必须把它们填入唯一固定的生图模板；不要重新发明人物、场景或拍摄关系，也不要返回用户可见聊天文字。只返回严格 JSON：{"schemaVersion":1,"sections":{"capture":"","humanSubjects":"","identityAndContinuity":"","sceneAndAction":"","wardrobeAndNonHumanProps":"","lightingAndMood":"","photographyStyleAndColor":"","constraints":""}}。八段内容按字段分别填写为简洁、可执行的自然语言摄影/视频提示词：你必须主动消除同义重复和低优先级赘述，优先保留人物、镜头关系、动作、场景与必要约束；但不得为了变短而遗漏这些关键事实。capture 必须把概念声明的自拍、外部他拍、摄影者 POV 或第一人称拍法写得物理上合理；humanSubjects 只列人格概念明确允许入镜的真实人类，不要写“共 X 人”；衣物、道具、动物、屏幕、镜面/倒影和环境物体只能进入 wardrobeAndNonHumanProps 或 constraints，不得变成人。所有段落必须尊重附带身份和当前状态事实；constraints 由你根据概念和事实完成，服务器不会补写任何视觉规则。';
 
-mkdirSync(dataDir, {recursive: true});
-const database = new Database(databasePath);
-database.pragma('journal_mode = WAL');
-database.pragma('foreign_keys = ON');
-database.pragma('busy_timeout = 5000');
-const activityRepository = createActivityRepository({database});
-const conversationRepository = createConversationRepository({database});
-const jobRepository = createJobRepository({database, id, clock: now});
-const lifeStateResolver = createLifeStateResolver();
-
-const companionMigrations = [
-    {
-        version: 1,
-        name: 'initial-companion-domain',
-        apply() {
-            database.exec(`
-                CREATE TABLE companion_personas (
-                    id TEXT PRIMARY KEY, name TEXT NOT NULL, role TEXT NOT NULL, color TEXT NOT NULL,
-                    enabled INTEGER NOT NULL DEFAULT 1, screened_at TEXT, created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL, deleted_at TEXT
-                );
-                CREATE TABLE companion_persona_foundation_revisions (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
-                    version INTEGER NOT NULL, foundation TEXT NOT NULL, reason TEXT NOT NULL,
-                    created_at TEXT NOT NULL, UNIQUE(persona_id, version)
-                );
-                CREATE TABLE companion_persona_life_blueprints (
-                    persona_id TEXT PRIMARY KEY REFERENCES companion_personas(id), blueprint_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
-                );
-                CREATE TABLE companion_persona_states (
-                    persona_id TEXT PRIMARY KEY REFERENCES companion_personas(id), situation TEXT NOT NULL DEFAULT '',
-                    mood TEXT NOT NULL DEFAULT '', appearance_json TEXT NOT NULL DEFAULT '{}',
-                    checkpoint_at TEXT NOT NULL, updated_at TEXT NOT NULL, source_event_id TEXT
-                );
-                CREATE TABLE companion_supporting_characters (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id), name TEXT NOT NULL,
-                    relationship_kind TEXT NOT NULL, profile_json TEXT NOT NULL DEFAULT '{}', introduced_event_id TEXT,
-                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
-                );
-                CREATE INDEX companion_supporting_characters_persona_idx ON companion_supporting_characters(persona_id, created_at);
-                CREATE TABLE companion_schedule_items (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id), kind TEXT NOT NULL,
-                    title TEXT NOT NULL, starts_at TEXT NOT NULL, ends_at TEXT, status TEXT NOT NULL, source TEXT NOT NULL,
-                    details_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
-                );
-                CREATE INDEX companion_schedule_items_persona_start_idx ON companion_schedule_items(persona_id, starts_at);
-                CREATE TABLE companion_life_events (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id), type TEXT NOT NULL,
-                    occurred_at TEXT NOT NULL, resolves_at TEXT, causation_id TEXT, payload_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                );
-                CREATE INDEX companion_life_events_persona_time_idx ON companion_life_events(persona_id, occurred_at DESC, id DESC);
-                CREATE TABLE companion_activities (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
-                    event_id TEXT REFERENCES companion_life_events(id), content TEXT NOT NULL,
-                    media_mode TEXT NOT NULL DEFAULT 'none', media_status TEXT NOT NULL DEFAULT 'none', created_at TEXT NOT NULL
-                );
-                CREATE INDEX companion_activities_feed_idx ON companion_activities(created_at DESC, id DESC);
-                CREATE INDEX companion_activities_persona_feed_idx ON companion_activities(persona_id, created_at DESC, id DESC);
-                CREATE TABLE companion_activity_comments (
-                    id TEXT PRIMARY KEY, activity_id TEXT NOT NULL REFERENCES companion_activities(id),
-                    parent_comment_id TEXT REFERENCES companion_activity_comments(id), author_kind TEXT NOT NULL,
-                    author_persona_id TEXT REFERENCES companion_personas(id),
-                    supporting_character_id TEXT REFERENCES companion_supporting_characters(id), content TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                );
-                CREATE INDEX companion_activity_comments_activity_idx ON companion_activity_comments(activity_id, created_at, id);
-                CREATE TABLE companion_activity_reactions (
-                    activity_id TEXT NOT NULL REFERENCES companion_activities(id), actor_kind TEXT NOT NULL,
-                    supporting_character_id TEXT REFERENCES companion_supporting_characters(id), created_at TEXT NOT NULL
-                );
-                CREATE TABLE companion_activity_visibility (
-                    activity_id TEXT PRIMARY KEY REFERENCES companion_activities(id), hidden_at TEXT, updated_at TEXT NOT NULL
-                );
-                CREATE TABLE companion_memories (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id), memory_key TEXT NOT NULL,
-                    value TEXT NOT NULL, confidence REAL NOT NULL, status TEXT NOT NULL, source_type TEXT, source_id TEXT,
-                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL, superseded_at TEXT
-                );
-                CREATE INDEX companion_memories_persona_status_idx ON companion_memories(persona_id, status, updated_at DESC);
-                CREATE TABLE companion_persona_evolutions (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id), reason TEXT NOT NULL,
-                    evidence_json TEXT NOT NULL, previous_patch TEXT NOT NULL, next_patch TEXT NOT NULL,
-                    status TEXT NOT NULL, created_at TEXT NOT NULL, reverted_at TEXT
-                );
-                CREATE INDEX companion_persona_evolutions_persona_idx ON companion_persona_evolutions(persona_id, created_at DESC);
-                CREATE TABLE companion_conversations (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL UNIQUE REFERENCES companion_personas(id),
-                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
-                );
-                CREATE TABLE companion_messages (
-                    id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL REFERENCES companion_conversations(id), role TEXT NOT NULL,
-                    text TEXT NOT NULL, attachments_json TEXT NOT NULL DEFAULT '[]', generation_json TEXT,
-                    jobs_json TEXT NOT NULL DEFAULT '[]', proactive_event_id TEXT REFERENCES companion_life_events(id),
-                    created_at TEXT NOT NULL, read_at TEXT
-                );
-                CREATE INDEX companion_messages_conversation_time_idx ON companion_messages(conversation_id, created_at DESC, id DESC);
-                CREATE TABLE companion_media_assets (
-                    id TEXT PRIMARY KEY, provider TEXT NOT NULL, media_kind TEXT NOT NULL, filename TEXT NOT NULL,
-                    subfolder TEXT NOT NULL DEFAULT '', file_type TEXT NOT NULL DEFAULT 'output', locator_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL, unavailable_at TEXT, UNIQUE(provider, filename, subfolder, file_type)
-                );
-                CREATE TABLE companion_activity_media (
-                    activity_id TEXT NOT NULL REFERENCES companion_activities(id), media_id TEXT NOT NULL REFERENCES companion_media_assets(id),
-                    position INTEGER NOT NULL, PRIMARY KEY(activity_id, media_id)
-                );
-                CREATE TABLE companion_jobs (
-                    id TEXT PRIMARY KEY, job_type TEXT NOT NULL, status TEXT NOT NULL, priority INTEGER NOT NULL DEFAULT 0,
-                    run_after TEXT NOT NULL, lease_owner TEXT, lease_expires_at TEXT, attempt_count INTEGER NOT NULL DEFAULT 0,
-                    max_attempts INTEGER NOT NULL DEFAULT 3, persona_id TEXT REFERENCES companion_personas(id),
-                    activity_id TEXT REFERENCES companion_activities(id), message_id TEXT REFERENCES companion_messages(id),
-                    trace_id TEXT, payload_json TEXT NOT NULL, result_json TEXT, error TEXT, created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL, completed_at TEXT
-                );
-                CREATE INDEX companion_jobs_ready_idx ON companion_jobs(status, run_after, priority DESC, created_at);
-                CREATE INDEX companion_jobs_lease_idx ON companion_jobs(lease_expires_at);
-            `);
-        }
-    },
-    {
-        version: 2,
-        name: 'companion-settings-and-reaction-guard',
-        apply() {
-            database.exec(`
-                CREATE TABLE companion_settings (
-                    id INTEGER PRIMARY KEY CHECK(id = 1), payload_json TEXT NOT NULL, updated_at TEXT NOT NULL
-                );
-                CREATE UNIQUE INDEX companion_user_reaction_once
-                    ON companion_activity_reactions(activity_id, actor_kind)
-                    WHERE actor_kind = 'user';
-            `);
-            database.prepare('INSERT OR IGNORE INTO companion_settings (id, payload_json, updated_at) VALUES (1, ?, ?)').run(JSON.stringify(defaultSettings()), now());
-        }
-    },
-    {
-        version: 3,
-        name: 'state-source-and-user-reaction-guard',
-        apply() {
-            const stateColumns = database.prepare('PRAGMA table_info(companion_persona_states)').all().map(column => column.name);
-            if (!stateColumns.includes('source_event_id')) database.exec('ALTER TABLE companion_persona_states ADD COLUMN source_event_id TEXT');
-            database.exec(`
-                DELETE FROM companion_activity_reactions
-                WHERE actor_kind = 'user'
-                  AND rowid NOT IN (
-                      SELECT MIN(rowid) FROM companion_activity_reactions
-                      WHERE actor_kind = 'user' GROUP BY activity_id
-                  );
-                CREATE UNIQUE INDEX IF NOT EXISTS companion_user_reaction_once
-                    ON companion_activity_reactions(activity_id, actor_kind)
-                    WHERE actor_kind = 'user';
-            `);
-        }
-    },
-    {
-        version: 4,
-        name: 'adaptive-persona-interviews',
-        apply() {
-            database.exec(`
-                CREATE TABLE companion_interview_sessions (
-                    id TEXT PRIMARY KEY, answers_json TEXT NOT NULL, skipped_json TEXT NOT NULL DEFAULT '[]',
-                    status TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, completed_at TEXT
-                );
-                CREATE INDEX companion_interview_sessions_status_idx
-                    ON companion_interview_sessions(status, updated_at DESC);
-            `);
-        }
-    },
-    {
-        version: 5,
-        name: 'focus-and-proactive-query-indexes',
-        apply() {
-            database.exec(`
-                CREATE INDEX companion_messages_role_recent_idx
-                    ON companion_messages(role, created_at DESC);
-                CREATE INDEX companion_life_events_persona_type_time_idx
-                    ON companion_life_events(persona_id, type, occurred_at DESC);
-                CREATE INDEX companion_jobs_persona_type_status_idx
-                    ON companion_jobs(persona_id, job_type, status, created_at DESC);
-            `);
-        }
-    },
-    {
-        version: 6,
-        name: 'persona-ai-daily-plans',
-        apply() {
-            database.exec(`
-                CREATE TABLE companion_daily_plans (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
-                    plan_date TEXT NOT NULL, status TEXT NOT NULL, plan_json TEXT NOT NULL DEFAULT '[]',
-                    source TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
-                    UNIQUE(persona_id, plan_date)
-                );
-                CREATE INDEX companion_daily_plans_persona_date_idx ON companion_daily_plans(persona_id, plan_date DESC);
-            `);
-        }
-    },
-    {
-        version: 7,
-        name: 'persona-life-model-timeline',
-        apply() {
-            database.exec(`
-                CREATE TABLE companion_persona_life_blueprint_revisions (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
-                    version INTEGER NOT NULL, blueprint_json TEXT NOT NULL, reason TEXT NOT NULL,
-                    schema_version INTEGER NOT NULL, source TEXT NOT NULL, prompt_version TEXT,
-                    model TEXT, used_fallback INTEGER NOT NULL DEFAULT 0,
-                    validation_warnings_json TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL,
-                    UNIQUE(persona_id, version)
-                );
-                CREATE INDEX companion_life_blueprint_revisions_persona_idx
-                    ON companion_persona_life_blueprint_revisions(persona_id, version DESC);
-                CREATE TABLE companion_timeline_slots (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
-                    plan_date TEXT NOT NULL, slot_key TEXT NOT NULL, slot_kind TEXT NOT NULL,
-                    starts_at TEXT, ends_at TEXT, status TEXT NOT NULL, source TEXT NOT NULL,
-                    priority INTEGER NOT NULL DEFAULT 0, schedule_id TEXT REFERENCES companion_schedule_items(id),
-                    plan_revision INTEGER, constraints_json TEXT NOT NULL DEFAULT '{}',
-                    outcome_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
-                    UNIQUE(persona_id, plan_date, slot_key)
-                );
-                CREATE INDEX companion_timeline_slots_persona_date_idx
-                    ON companion_timeline_slots(persona_id, plan_date, starts_at);
-                CREATE TABLE companion_event_decisions (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
-                    slot_id TEXT REFERENCES companion_timeline_slots(id), decision_key TEXT NOT NULL,
-                    decision_type TEXT NOT NULL, status TEXT NOT NULL, run_at TEXT, expires_at TEXT,
-                    priority INTEGER NOT NULL DEFAULT 0, preemption_mode TEXT NOT NULL DEFAULT 'none',
-                    candidate_json TEXT NOT NULL DEFAULT '{}', rationale_json TEXT NOT NULL DEFAULT '{}',
-                    event_id TEXT REFERENCES companion_life_events(id), job_id TEXT REFERENCES companion_jobs(id),
-                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(persona_id, decision_key)
-                );
-                CREATE INDEX companion_event_decisions_persona_status_idx
-                    ON companion_event_decisions(persona_id, status, run_at);
-                CREATE TABLE companion_event_links (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
-                    from_event_id TEXT NOT NULL REFERENCES companion_life_events(id),
-                    to_event_id TEXT NOT NULL REFERENCES companion_life_events(id), link_type TEXT NOT NULL,
-                    metadata_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL,
-                    UNIQUE(from_event_id, to_event_id, link_type)
-                );
-                CREATE INDEX companion_event_links_persona_from_idx
-                    ON companion_event_links(persona_id, from_event_id, created_at);
-                CREATE TABLE companion_chat_deferred_batches (
-                    id TEXT PRIMARY KEY, persona_id TEXT NOT NULL REFERENCES companion_personas(id),
-                    conversation_id TEXT NOT NULL REFERENCES companion_conversations(id), batch_key TEXT NOT NULL,
-                    status TEXT NOT NULL, deliver_at TEXT NOT NULL, decision_json TEXT NOT NULL DEFAULT '{}',
-                    message_ids_json TEXT NOT NULL DEFAULT '[]', result_message_id TEXT REFERENCES companion_messages(id),
-                    attempt_count INTEGER NOT NULL DEFAULT 0, error TEXT, created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL, completed_at TEXT, UNIQUE(persona_id, batch_key)
-                );
-                CREATE INDEX companion_chat_deferred_batches_due_idx
-                    ON companion_chat_deferred_batches(status, deliver_at);
-                CREATE INDEX companion_chat_deferred_batches_persona_idx
-                    ON companion_chat_deferred_batches(persona_id, status, created_at DESC);
-            `);
-        }
-    },
-    {
-        version: 8,
-        name: 'proactive-pending-events',
-        apply() {
-            database.exec(`
-                CREATE TABLE companion_pending_events (
-                    id TEXT PRIMARY KEY,
-                    persona_id TEXT NOT NULL REFERENCES companion_personas(id),
-                    source_message_id TEXT REFERENCES companion_messages(id) ON DELETE SET NULL,
-                    status TEXT NOT NULL,
-                    summary TEXT NOT NULL,
-                    not_before TEXT NOT NULL,
-                    expires_at TEXT NOT NULL,
-                    dedupe_key TEXT NOT NULL,
-                    payload_json TEXT NOT NULL DEFAULT '{}',
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    triggered_at TEXT,
-                    consumed_at TEXT,
-                    cancelled_at TEXT,
-                    UNIQUE(persona_id, dedupe_key, not_before)
-                );
-                CREATE INDEX companion_pending_events_due_idx
-                    ON companion_pending_events(persona_id, status, not_before, expires_at);
-                ALTER TABLE companion_messages ADD COLUMN proactive_pending_event_id TEXT
-                    REFERENCES companion_pending_events(id) ON DELETE SET NULL;
-                CREATE INDEX companion_messages_proactive_pending_idx
-                    ON companion_messages(proactive_pending_event_id, created_at DESC);
-            `);
-        }
-    },
-    {
-        version: 9,
-        name: 'persona-contact-groups',
-        apply() {
-            database.exec(`
-                CREATE TABLE companion_groups (
-                    id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE,
-                    is_default INTEGER NOT NULL DEFAULT 0 CHECK(is_default IN (0, 1)),
-                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
-                );
-            `);
-            const defaultGroupId = id('group');
-            const createdAt = now();
-            database.prepare('INSERT INTO companion_groups (id, name, is_default, created_at, updated_at) VALUES (?, ?, 1, ?, ?)').run(defaultGroupId, '默认', createdAt, createdAt);
-            database.exec('CREATE UNIQUE INDEX companion_groups_default_once ON companion_groups(is_default) WHERE is_default = 1');
-            database.exec('ALTER TABLE companion_personas ADD COLUMN group_id TEXT REFERENCES companion_groups(id)');
-            database.prepare('UPDATE companion_personas SET group_id = ? WHERE group_id IS NULL').run(defaultGroupId);
-            database.exec('CREATE INDEX companion_personas_group_created_idx ON companion_personas(group_id, created_at)');
-        }
-    },
-    {
-        version: 10,
-        name: 'natural-language-interview-provenance',
-        apply() {
-            const columns = database.prepare('PRAGMA table_info(companion_interview_sessions)').all().map(column => column.name);
-            if (!columns.includes('source')) database.exec("ALTER TABLE companion_interview_sessions ADD COLUMN source TEXT NOT NULL DEFAULT 'interview'");
-            if (!columns.includes('inferred_fields_json')) database.exec("ALTER TABLE companion_interview_sessions ADD COLUMN inferred_fields_json TEXT NOT NULL DEFAULT '[]'");
-        }
-    },
-    {
-        version: 11,
-        name: 'shared-scene-and-image-generation-policy',
-        apply() {
-            const personaColumns = database.prepare('PRAGMA table_info(companion_personas)').all().map(column => column.name);
-            if (!personaColumns.includes('image_generation_policy')) database.exec("ALTER TABLE companion_personas ADD COLUMN image_generation_policy TEXT NOT NULL DEFAULT 'autonomous'");
-            database.exec("UPDATE companion_personas SET image_generation_policy = 'autonomous' WHERE image_generation_policy NOT IN ('ask', 'always', 'important', 'user_only', 'autonomous') OR image_generation_policy IS NULL OR image_generation_policy = ''");
-            const stateColumns = database.prepare('PRAGMA table_info(companion_persona_states)').all().map(column => column.name);
-            if (!stateColumns.includes('shared_scene_json')) database.exec("ALTER TABLE companion_persona_states ADD COLUMN shared_scene_json TEXT NOT NULL DEFAULT '{}'");
-            database.exec("UPDATE companion_persona_states SET shared_scene_json = '{}' WHERE shared_scene_json IS NULL OR trim(shared_scene_json) = ''");
-        }
-    },
-    {
-        version: 12,
-        name: 'prompt-run-observability',
-        apply() {
-            database.exec(`
-                CREATE TABLE companion_prompt_runs (
-                    id TEXT PRIMARY KEY,
-                    persona_id TEXT REFERENCES companion_personas(id) ON DELETE CASCADE,
-                    job_id TEXT REFERENCES companion_jobs(id) ON DELETE SET NULL,
-                    message_id TEXT REFERENCES companion_messages(id) ON DELETE SET NULL,
-                    operation TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    model TEXT NOT NULL DEFAULT '',
-                    request_json TEXT NOT NULL,
-                    error TEXT,
-                    created_at TEXT NOT NULL,
-                    completed_at TEXT
-                );
-                CREATE INDEX companion_prompt_runs_recent_idx
-                    ON companion_prompt_runs(created_at DESC, id DESC);
-                CREATE INDEX companion_prompt_runs_persona_recent_idx
-                    ON companion_prompt_runs(persona_id, created_at DESC, id DESC);
-                CREATE INDEX companion_prompt_runs_job_idx
-                    ON companion_prompt_runs(job_id);
-                CREATE INDEX companion_prompt_runs_message_idx
-                    ON companion_prompt_runs(message_id);
-            `);
-        }
-    },
-    {
-        version: 13,
-        name: 'prompt-run-response-observability',
-        apply() {
-            const columns = database.prepare('PRAGMA table_info(companion_prompt_runs)').all().map(column => column.name);
-            if (!columns.includes('response_json')) database.exec('ALTER TABLE companion_prompt_runs ADD COLUMN response_json TEXT');
-        }
-    }
-];
-
 function defaultSettings() {
     return {
         lmStudioUrl: process.env.MTPLX_URL || process.env.LM_STUDIO_URL || 'http://127.0.0.1:8000/v1',
@@ -458,20 +93,6 @@ function defaultSettings() {
         h3TimeoutMs: Number(process.env.H3_TIMEOUT_MS || 15 * 60_000), h3Defaults: {}, simplifiedMediaMode: false, activityReadAt: null
     };
 }
-
-function initializeCompanionStorage() {
-    database.exec('CREATE TABLE IF NOT EXISTS companion_schema_migrations (version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)');
-    const applied = new Set(database.prepare('SELECT version FROM companion_schema_migrations').all().map(row => row.version));
-    for (const migration of companionMigrations) {
-        if (applied.has(migration.version)) continue;
-        database.transaction(() => {
-            migration.apply();
-            database.prepare('INSERT INTO companion_schema_migrations (version, name, applied_at) VALUES (?, ?, ?)').run(migration.version, migration.name, now());
-        })();
-    }
-}
-
-initializeCompanionStorage();
 
 function settings() {
     return {...defaultSettings(), ...json(database.prepare('SELECT payload_json FROM companion_settings WHERE id = 1').get()?.payload_json, {})};
