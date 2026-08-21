@@ -6053,63 +6053,43 @@ answerInterview: (req, res) => {
 activateInterview: async (req, res) => {
     if (req.body !== undefined && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) throw new Error('请求体必须是 JSON 对象');
     res.status(201).json(await activateInterviewWithLifeModel(req.params.interviewId, req.body || {}));
-}
-};
-
-// The first production slice is registered through the modular route
-// contract. Remaining handlers stay on the temporary facade until their
-// dependencies have been moved behind application ports.
-registerCompanionRoutes({
-    app,
-    handlers: modularReadRouteHandlers,
-    debugInspectorEnabled,
-    wrapRoute: route,
-    missingHandler: 'skip'
-});
-
-app.post('/api/companion/personas', route((req, res) => {
+},
+createPersona: (req, res) => {
     if (!req.body || typeof req.body !== 'object') throw new Error('请求体必须是 JSON');
     res.status(201).json(createPersona(req.body));
-}));
-
-app.post('/api/companion/groups', route((req, res) => {
+},
+createGroup: (req, res) => {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('请求体必须是 JSON 对象');
     res.status(201).json(createGroup(req.body.name));
-}));
-
-app.delete('/api/companion/personas/:personaId', route((req, res) => {
+},
+deletePersona: (req, res) => {
     res.json(deletePersona(req.params.personaId));
-}));
-
-app.put('/api/companion/personas/:personaId/group', route((req, res) => {
+},
+assignPersonaGroup: (req, res) => {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('请求体必须是 JSON 对象');
     res.json(assignPersonaGroup(req.params.personaId, req.body.groupId));
-}));
-
-app.put('/api/companion/personas/:personaId/image-generation-policy', route((req, res) => {
+},
+updateImageGenerationPolicy: (req, res) => {
     const persona = requirePersona(req.params.personaId);
     const policy = req.body?.policy ?? req.body?.imageGenerationPolicy;
     if (!imageGenerationPolicies.includes(policy)) throw Object.assign(new Error('人格生图频率无效'), {status: 400});
     const updatedAt = now();
     database.prepare('UPDATE companion_personas SET image_generation_policy = ?, updated_at = ? WHERE id = ?').run(policy, updatedAt, persona.id);
     res.json({personaId: persona.id, imageGenerationPolicy: policy, updatedAt});
-}));
-
-app.get('/api/companion/personas/:personaId', route((req, res) => {
+},
+getPersona: (req, res) => {
     const persona = requirePersona(req.params.personaId);
     const revisions = database.prepare('SELECT id, version, reason, created_at FROM companion_persona_foundation_revisions WHERE persona_id = ? ORDER BY version DESC').all(persona.id).map(row => ({id: row.id, version: row.version, reason: row.reason, createdAt: row.created_at}));
     const schedule = database.prepare("SELECT * FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND starts_at >= ? ORDER BY starts_at LIMIT 4").all(persona.id, now()).map(scheduleShape);
     const characters = database.prepare('SELECT id, name, relationship_kind FROM companion_supporting_characters WHERE persona_id = ? ORDER BY created_at').all(persona.id).map(row => ({id: row.id, name: row.name, relationshipKind: row.relationship_kind}));
     const evolutions = database.prepare("SELECT * FROM companion_persona_evolutions WHERE persona_id = ? ORDER BY created_at DESC LIMIT 12").all(persona.id).map(evolutionSummary);
     res.json({persona: {...summary(persona), imageGenerationPolicy: imageGenerationPolicyFor(persona.id)}, imageGenerationPolicy: imageGenerationPolicyFor(persona.id), foundationSummary: foundationSummary(persona.id), foundationRevisions: revisions, blueprint: publicBlueprint(persona.id), state: stateShape(persona.id), schedule, supportingCharacters: characters, memories: activeMemories(persona.id), evolutions});
-}));
-
-app.get('/api/companion/personas/:personaId/foundation/draft', route((req, res) => {
+},
+getFoundationDraft: (req, res) => {
     const persona = requirePersona(req.params.personaId);
     res.json({foundation: foundation(persona.id)?.foundation || '', version: foundation(persona.id)?.version || 0});
-}));
-
-app.put('/api/companion/personas/:personaId/foundation', route(async (req, res) => {
+},
+updateFoundation: async (req, res) => {
     const persona = requirePersona(req.params.personaId);
     const value = String(req.body?.foundation || '').trim();
     if (!value) throw new Error('基础设定不能为空');
@@ -6128,22 +6108,19 @@ app.put('/api/companion/personas/:personaId/foundation', route(async (req, res) 
         lifeRevision = saveLifeBlueprintRevision(persona.id, generated, `基础人格修订后的未来生活模型：${reason}`);
     }
     res.status(201).json({version, foundation: value.slice(0, 6000), createdAt, lifeModelRevision: lifeRevision?.version || null});
-}));
-
-app.post('/api/companion/personas/:personaId/foundation-revisions/:revisionId/restore', route((req, res) => {
+},
+restoreFoundationRevision: (req, res) => {
     const result = restoreFoundationRevision(req.params.personaId, req.params.revisionId);
     res.status(result.restored ? 201 : 200).json(result);
-}));
-
-app.post('/api/companion/personas/:personaId/evolutions/:evolutionId/rollback', route((req, res) => {
+},
+rollbackEvolution: (req, res) => {
     const persona = requirePersona(req.params.personaId);
     const latest = database.prepare("SELECT * FROM companion_persona_evolutions WHERE persona_id = ? AND status = 'applied' ORDER BY created_at DESC LIMIT 1").get(persona.id);
     if (!latest || latest.id !== req.params.evolutionId) throw new Error('只能回滚当前最新的关系层演化');
     database.prepare("UPDATE companion_persona_evolutions SET status = 'reverted', reverted_at = ? WHERE id = ?").run(now(), latest.id);
     res.json({id: latest.id, status: 'reverted'});
-}));
-
-app.put('/api/companion/personas/:personaId/screen', route((req, res) => {
+},
+screenPersona: (req, res) => {
     const persona = requirePersona(req.params.personaId);
     if (typeof req.body?.screened !== 'boolean') throw new Error('screened 必须是布尔值');
     const updatedAt = now();
@@ -6156,7 +6133,19 @@ app.put('/api/companion/personas/:personaId/screen', route((req, res) => {
         `).run(updatedAt, persona.id);
     })();
     res.json(summary(requirePersona(persona.id)));
-}));
+}
+};
+
+// The first production slice is registered through the modular route
+// contract. Remaining handlers stay on the temporary facade until their
+// dependencies have been moved behind application ports.
+registerCompanionRoutes({
+    app,
+    handlers: modularReadRouteHandlers,
+    debugInspectorEnabled,
+    wrapRoute: route,
+    missingHandler: 'skip'
+});
 
 app.post('/api/companion/personas/:personaId/schedule', route((req, res) => {
     if (req.body?.explicitlyAccepted !== true) throw new Error('只有明确、已接受且有具体时间的计划可以写入日程');
