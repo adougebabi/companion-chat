@@ -7,6 +7,7 @@ import {createActivityRepository} from './server/infrastructure/activity-reposit
 import {createConversationRepository} from './server/infrastructure/conversation-repository.js';
 import {createJobRepository} from './server/infrastructure/job-repository.js';
 import {createGroupRepository} from './server/infrastructure/group-repository.js';
+import {createMemoryRepository} from './server/infrastructure/memory-repository.js';
 import {createPersonaRepository} from './server/infrastructure/persona-repository.js';
 import {createPendingEventRepository} from './server/infrastructure/pending-event-repository.js';
 import {createSettingsRepository} from './server/infrastructure/settings-repository.js';
@@ -37,6 +38,7 @@ const activityRepository = createActivityRepository({database});
 const conversationRepository = createConversationRepository({database});
 const jobRepository = createJobRepository({database, id, clock: now});
 const groupRepository = createGroupRepository({database, id, clock: now});
+const memoryRepository = createMemoryRepository({database, clock: now});
 const personaRepository = createPersonaRepository({database, id, clock: now});
 const settingsRepository = createSettingsRepository({database, defaults: defaultSettings, clock: now});
 const lifeStateResolver = createLifeStateResolver();
@@ -2116,7 +2118,7 @@ function appendUserVisibleAssistantReply(personaId, text, {proactiveEventId, pro
 }
 
 function activeMemories(personaId) {
-    return database.prepare("SELECT * FROM companion_memories WHERE persona_id = ? AND status = 'active' ORDER BY updated_at DESC LIMIT 20").all(personaId).map(row => ({id: row.id, key: row.memory_key, value: row.value, confidence: row.confidence, sourceType: row.source_type, sourceId: row.source_id, createdAt: row.created_at, updatedAt: row.updated_at}));
+    return memoryRepository.listActive({personaId, limit: 20}).map(row => ({id: row.id, key: row.memory_key, value: row.value, confidence: row.confidence, sourceType: row.source_type, sourceId: row.source_id, createdAt: row.created_at, updatedAt: row.updated_at}));
 }
 
 function activeRelationshipPatch(personaId) {
@@ -5744,7 +5746,7 @@ cancelSchedule: (req, res) => {
 },
 deleteMemory: (req, res) => {
     const persona = requirePersona(req.params.personaId);
-    const changed = database.prepare("UPDATE companion_memories SET status = 'deleted', updated_at = ? WHERE id = ? AND persona_id = ? AND status = 'active'").run(now(), req.params.memoryId, persona.id);
+    const changed = memoryRepository.delete({personaId: persona.id, memoryId: req.params.memoryId, updatedAt: now()});
     if (!changed.changes) return res.status(404).json({error: '记忆不存在'});
     res.status(204).end();
 },
@@ -5858,12 +5860,15 @@ const legacyRuntime = createRuntime({
         owner: 'companion-lifecycle',
         startupDelayMs: 250,
         intervalMs: 5 * 60 * 1000,
-        task: ({generation}) => listPersonas().forEach(persona => {
-            recoverPersona(persona.id);
-            ensureDailyPlan(persona.id);
-            if (generation > 1 || legacyLifecycleTaskStarted) reconcilePersona(persona.id);
+        task: ({generation}) => {
+            const shouldReconcile = generation > 1 || legacyLifecycleTaskStarted;
             legacyLifecycleTaskStarted = true;
-        }),
+            listPersonas().forEach(persona => {
+                recoverPersona(persona.id);
+                ensureDailyPlan(persona.id);
+                if (shouldReconcile) reconcilePersona(persona.id);
+            });
+        },
         onError: error => console.warn(`Companion lifecycle task failed: ${error.message}`)
     })],
     port,
