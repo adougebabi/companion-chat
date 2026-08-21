@@ -2,6 +2,7 @@ import {BACKEND_CONTRACT_BASELINE, assertCapabilityDispatcherPort, validatePorts
 import {createCapabilityHandoffStep, createFlowRegistry} from './application/flow-registry.js';
 import {createFlowExecutor} from './application/flow-executor.js';
 import {createRuntime, createCompanionRuntime} from './runtime/runtime.js';
+export {createCompositionRoot as createProductionCompositionRoot} from './composition-root.js';
 
 export {createRuntime, createCompanionRuntime};
 
