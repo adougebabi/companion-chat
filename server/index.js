@@ -74,6 +74,13 @@ export {
 export {createLifeWorldReader} from './application/life-world-reader.js';
 export {createConversationService} from './application/conversation-service.js';
 export {createCompanionRouteService, createCompanionRouteApplicationService} from './application/companion-route-service.js';
+export {
+    LEGACY_PRODUCTION_BOUNDARY_VERSION,
+    LEGACY_PRODUCTION_BOUNDARIES,
+    LEGACY_PRODUCTION_SYMBOLS,
+    getLegacyProductionBoundary,
+    auditLegacyProductionBoundaries
+} from './application/legacy-production-boundaries.js';
 
 export {createRuntime, createCompanionRuntime};
 

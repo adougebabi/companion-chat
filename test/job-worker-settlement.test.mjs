@@ -1,18 +1,38 @@
 import assert from 'node:assert/strict';
-import {mkdtempSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
 import test from 'node:test';
 
-const dataDir = mkdtempSync(join(tmpdir(), 'local-ai-companion-job-worker-test-'));
-process.env.DATA_DIR = dataDir;
-process.env.COMPANION_TEST = '1';
-process.env.COMPANION_DEBUG_INSPECTOR = '0';
+import {createProactiveSettlementFixture} from './fixtures/proactive-job-settlement-composition-fixture.mjs';
+import {cleanup as cleanupLegacy, state as legacyState} from './fixtures/legacy-proactive-settlement-domain-fixture.mjs';
 
-const {companionTestHooks} = await import(`../server.js?job-worker=${Date.now()}`);
-const {database, createPersona, createEvent, deletePersona, appendMessage, completeProactiveMessageJob} = companionTestHooks;
+test('generic dispatcher settles proactive flows once and rejects stale leases', async () => {
+    const fixture = createProactiveSettlementFixture();
+    const completed = await fixture.dispatcher.runJob(fixture.job, fixture.context);
+    assert.equal(completed.status, 'complete');
+    assert.deepEqual(completed.result, {
+        skipped: 'decision_send_false',
+        causationId: 'cause_fixture'
+    });
+    assert.equal(fixture.job.status, 'complete');
+    assert.equal(fixture.calls.filter(([kind]) => kind === 'settle').length, 1);
+    assert.equal(fixture.flowCalls(), 1);
 
-test('proactive settlement remains lease-scoped after repository migration', () => {
+    const stale = await fixture.dispatcher.runJob({
+        ...fixture.job,
+        status: 'leased',
+        lease_owner: 'stale_worker',
+        lease_expires_at: '2026-08-21T00:01:00.000Z'
+    }, {
+        ...fixture.context,
+        leaseOwner: 'stale_worker'
+    });
+    assert.equal(stale.status, 'stale');
+    assert.equal(stale.changed, false);
+    assert.equal(fixture.calls.filter(([kind]) => kind === 'settle').length, 1);
+    assert.equal(fixture.flowCalls(), 1);
+});
+
+test('legacy proactive domain settlement remains an explicit comparison fixture', () => {
+    const {database, createPersona, createEvent, deletePersona, appendMessage, completeProactiveMessageJob} = legacyState();
     const persona = createPersona({name: '租约回归', role: '测试人格', foundation: '用于验证主动消息作业的租约结算。'});
     try {
         const oldMessage = appendMessage(persona.id, {role: 'user', text: '今天见。'});
@@ -24,7 +44,7 @@ test('proactive settlement remains lease-scoped after repository migration', () 
         assert.ok(job);
         const owner = 'lease_proactive_regression';
         const leaseExpiresAt = new Date(Date.now() + 60_000).toISOString();
-        database.prepare('UPDATE companion_jobs SET status = \'leased\', lease_owner = ?, lease_expires_at = ? WHERE id = ?').run(owner, leaseExpiresAt, job.id);
+        database.prepare("UPDATE companion_jobs SET status = 'leased', lease_owner = ?, lease_expires_at = ? WHERE id = ?").run(owner, leaseExpiresAt, job.id);
 
         const completed = completeProactiveMessageJob({...job, status: 'leased', lease_owner: owner, lease_expires_at: leaseExpiresAt}, {
             schemaVersion: 1, send: false, reason: 'regression', message: ''
@@ -43,3 +63,5 @@ test('proactive settlement remains lease-scoped after repository migration', () 
         deletePersona(persona.id);
     }
 });
+
+test.after(() => cleanupLegacy());

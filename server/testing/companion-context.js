@@ -168,6 +168,7 @@ export function createCompanionTestContext({
                 database.prepare('DELETE FROM companion_activity_media WHERE activity_id IN (SELECT id FROM companion_activities WHERE persona_id = ?)').run(personaId);
                 database.prepare('DELETE FROM companion_activity_visibility WHERE activity_id IN (SELECT id FROM companion_activities WHERE persona_id = ?)').run(personaId);
                 database.prepare('DELETE FROM companion_activity_comments WHERE activity_id IN (SELECT id FROM companion_activities WHERE persona_id = ?)').run(personaId);
+                database.prepare('DELETE FROM companion_activity_reactions WHERE activity_id IN (SELECT id FROM companion_activities WHERE persona_id = ?)').run(personaId);
                 database.prepare('DELETE FROM companion_activities WHERE persona_id = ?').run(personaId);
                 database.prepare('DELETE FROM companion_messages WHERE conversation_id IN (SELECT id FROM companion_conversations WHERE persona_id = ?)').run(personaId);
                 database.prepare('DELETE FROM companion_conversations WHERE persona_id = ?').run(personaId);
