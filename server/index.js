@@ -9,6 +9,8 @@ export {createSceneEventFlow} from './application/scene-event-flow.js';
 export {createMediaFlow} from './application/media-flow.js';
 export {createCompanionApplication} from './application/companion-application.js';
 export {createBasicCompanionServices} from './application/basic-companion-services.js';
+export {createMediaObservability} from './application/media-observability.js';
+export {createLifeWorldReader} from './application/life-world-reader.js';
 
 export {createRuntime, createCompanionRuntime};
 
