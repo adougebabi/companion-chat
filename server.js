@@ -13,6 +13,7 @@ import {createChatTurnSseAdapter} from './server/http/chat-turn-sse-adapter.js';
 import {createHttpApp} from './server/http/app.js';
 import {registerCompanionRoutes} from './server/http/route-registry.js';
 import {createProviderRegistry} from './server/infrastructure/provider-ports.js';
+import {createMtplxProvider} from './server/infrastructure/llm-provider.js';
 import {createJobDispatcher} from './server/runtime/job-dispatcher.js';
 import createWorkerRuntime from './server/runtime/worker-runtime.js';
 import {createStartupRuntime} from './server/runtime/startup.js';
@@ -114,7 +115,7 @@ function registerMediaProvider(provider) {
     return provider;
 }
 function providerSummaries() {
-    return providerRegistry.summaries();
+    return providerRegistry.summaries({portType: 'media'});
 }
 function providerFor(kind, configured) {
     const id = configured || 'comfyui';
@@ -124,6 +125,9 @@ function providerFor(kind, configured) {
     if (!metadata.capabilities.includes(kind)) throw new Error(`媒体 provider ${id} 不支持${kind === 'video' ? '视频' : '图片'}`);
     return provider;
 }
+
+const mtplxProvider = createMtplxProvider({settings});
+providerRegistry.register(mtplxProvider);
 function validateMediaSettings(patch, current = settings()) {
     if (patch.h3Profile !== undefined && patch.h3ModelDir === undefined) patch = {...patch, h3ModelDir: patch.h3Profile};
     if (Object.hasOwn(patch, 'h3Profile')) {
@@ -3112,10 +3116,13 @@ async function providerError(response) {
 
 async function resolveModel(config) {
     if (config.model) return config.model;
-    const headers = config.lmStudioApiKey ? {Authorization: `Bearer ${config.lmStudioApiKey}`} : {};
-    const response = await fetch(`${cleanUrl(config.lmStudioUrl)}/models`, {headers});
-    if (!response.ok) throw new Error(await providerError(response));
-    const models = (await response.json()).data || [];
+    let modelsResponse;
+    try {
+        modelsResponse = await providerRegistry.invoke('mtplx', 'models');
+    } catch (error) {
+        throw new Error(error?.providerId === 'mtplx' && error.detail ? error.detail : error.message);
+    }
+    const models = modelsResponse.data || [];
     const model = models.find(item => !/embedding/i.test(item.id))?.id || models[0]?.id;
     if (!model) throw new Error('未找到可用模型');
     return model;
@@ -3123,15 +3130,13 @@ async function resolveModel(config) {
 
 async function lmCompletion(payload) {
     const config = settings();
-    const headers = {'Content-Type': 'application/json'};
-    if (config.lmStudioApiKey) headers.Authorization = `Bearer ${config.lmStudioApiKey}`;
     const {signal, trace, ...requestPayload} = payload;
     const runId = startPromptRun(trace, requestPayload);
     let model = requestPayload.model || config.model || '';
     try {
         model = requestPayload.model || await resolveModel(config);
         const requestWithModel = {...requestPayload, model};
-        const response = await fetch(`${cleanUrl(config.lmStudioUrl)}/chat/completions`, {method: 'POST', headers, signal, body: JSON.stringify(requestWithModel)});
+        const response = await providerRegistry.stream('mtplx', {...requestWithModel, signal});
         if (!response.ok) {
             capturePromptResponse(runId, response, 'failed');
             const message = await providerError(response);
@@ -3142,7 +3147,14 @@ async function lmCompletion(payload) {
         capturePromptResponse(runId, response);
         return response;
     } catch (error) {
-        finishPromptRun(runId, {status: 'failed', model, error: error?.message || error});
+        const message = error?.providerId === 'mtplx' && error.detail ? error.detail : error?.message || error;
+        finishPromptRun(runId, {status: 'failed', model, error: message});
+        if (message !== error?.message) {
+            const normalized = new Error(String(message));
+            normalized.name = error?.name || normalized.name;
+            normalized.status = error?.status;
+            throw normalized;
+        }
         throw error;
     }
 }
@@ -5664,12 +5676,9 @@ settings: (req, res) => {
 },
 models: async (req, res) => {
     try {
-        const config = settings();
-        const headers = config.lmStudioApiKey ? {Authorization: `Bearer ${config.lmStudioApiKey}`} : {};
-        const response = await fetch(`${cleanUrl(config.lmStudioUrl)}/models`, {headers});
-        res.status(response.status).json(await response.json());
+        res.json(await providerRegistry.invoke('mtplx', 'models'));
     } catch (error) {
-        res.status(502).json({error: error.message});
+        res.status(502).json({error: error.message || '模型服务不可用'});
     }
 },
 interviewPreview: (req, res) => {

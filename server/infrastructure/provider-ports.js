@@ -198,6 +198,7 @@ export class ProviderPortError extends Error {
         this.code = code;
         this.providerId = id;
         this.operation = method;
+        this.detail = detail;
     }
 }
 
