@@ -21,7 +21,12 @@ function parse(value, fallback = {}) {
 
 function redact(value, depth = 0) {
     if (depth > 5) return '[bounded]';
-    if (typeof value === 'string') return value.length > 2_000 ? `${value.slice(0, 1_997)}...` : value;
+    if (typeof value === 'string') {
+        const redacted = value
+            .replace(/Bearer\s+[^\s,;]+/gi, 'Bearer [redacted]')
+            .replace(/((?:api[-_]?key|token|secret|password)\s*[:=]\s*)[^\s,;]+/gi, '$1[redacted]');
+        return redacted.length > 2_000 ? `${redacted.slice(0, 1_997)}...` : redacted;
+    }
     if (Array.isArray(value)) return value.slice(0, 50).map(item => redact(item, depth + 1));
     if (!isRecord(value)) return value;
     return Object.fromEntries(Object.entries(value).slice(0, 80).map(([key, child]) => /key|token|secret|password|authorization|credential|cookie/i.test(key) ? [key, '[redacted]'] : [key, redact(child, depth + 1)]));

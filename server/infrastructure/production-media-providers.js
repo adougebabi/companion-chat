@@ -158,18 +158,19 @@ function defaultSettingsWithEnvironment(readSettings, environment = {}) {
  * network and child-process work only happens when a registered adapter method
  * is invoked by an application flow or worker.
  */
-export function createProductionProviderRegistry({settings, environment = {}, fetchImpl, spawnImpl, id, providerAdapters, promptRuns} = {}) {
+export function createProductionProviderRegistry({settings, environment = {}, fetchImpl, spawnImpl, fs, id, providerAdapters, promptRuns} = {}) {
     if (providerAdapters !== undefined) return createProviderRegistry({providers: providerAdapters});
     const readSettings = settingsReader(settings);
     const settingsForProvider = () => defaultSettingsWithEnvironment(readSettings, environment);
     const generateId = typeof id === 'function' ? id : prefix => `${prefix}_${randomUUID()}`;
+    const fileSystem = fs ?? {mkdirSync, statSync, readFileSync};
     const media = createMediaProviders({
         fetch: fetchImpl,
-        fs: {mkdirSync, statSync, readFileSync},
+        fs: fileSystem,
         spawn: spawnImpl ?? spawn,
         h3Args,
         h3OutputFile: (payload, config) => h3OutputFile(payload, config, generateId),
-        runH3: (executable, args, timeoutMs, options) => runH3(executable, args, timeoutMs, {...options, spawn: spawnImpl ?? spawn}),
+        runH3: (executable, args, timeoutMs, options) => runH3(executable, args, timeoutMs, {...options, spawnImpl: spawnImpl ?? spawn}),
         safeH3Path,
         validComfyPromptId,
         comfyOutputFiles,

@@ -11,7 +11,7 @@ function number(value) {
 
 export function createSettingsPolicy({providers, h3Inspector} = {}) {
     return Object.freeze({
-        validate(candidate = {}) {
+        validate(candidate = {}, context = {}) {
             if (!isRecord(candidate)) throw Object.assign(new TypeError('Settings must be an object'), {status: 400});
             const next = {...candidate};
             if (next.h3Profile !== undefined && next.h3ModelDir === undefined) next.h3ModelDir = next.h3Profile;
@@ -30,7 +30,8 @@ export function createSettingsPolicy({providers, h3Inspector} = {}) {
                 if (timeout === null || timeout < 1_000 || timeout > 86_400_000) throw Object.assign(new Error('h3TimeoutMs 无效'), {status: 400});
                 next.h3TimeoutMs = timeout;
             }
-            const h3Changed = ['h3Executable', 'h3ModelDir', 'h3OutputDir', 'h3AllowedRoot'].some(key => Object.hasOwn(candidate, key));
+            const patch = isRecord(context?.patch) ? context.patch : candidate;
+            const h3Changed = ['h3Executable', 'h3ModelDir', 'h3OutputDir', 'h3AllowedRoot'].some(key => Object.hasOwn(patch, key));
             if (h3Changed && typeof h3Inspector === 'function') {
                 const result = h3Inspector(next);
                 if (!result?.ok) throw Object.assign(new Error('h3 配置不可用'), {status: 400});

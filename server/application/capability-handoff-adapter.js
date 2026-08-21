@@ -95,6 +95,8 @@ export function createCapabilityHandoffAdapter({registry, capabilityRegistry} = 
                 results: output.attempts.map(resultFor).filter(Boolean),
                 effects: output.attempts.flatMap(attempt => attempt?.intent ? [attempt.intent] : []),
                 ...(output.visibleText !== markerText ? {visibleText: output.visibleText} : {}),
+                unknownNative: output.unknownNative === true,
+                continuationEntries: output.continuationEntries,
                 diagnostics: output.diagnostics
             };
         }

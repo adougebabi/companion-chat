@@ -373,7 +373,7 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                     if (!continuation.calls.length) return emptyStepResult();
 
                     try {
-                        const response = await streamLlm({
+                        const response = await llmStream({
                             context: runtime.context ?? {},
                             messages: continuation.messages,
                             command: {...command, toolChoice: 'none', tool_choice: 'none'},
@@ -399,7 +399,8 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         } else {
                             runtime.completion = next;
                         }
-                    } catch {
+                    } catch (error) {
+                        void error;
                         // Durable capability effects are already committed by
                         // their flow adapters; a continuation failure only
                         // changes the bounded user-visible fallback.

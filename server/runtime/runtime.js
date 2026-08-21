@@ -231,6 +231,7 @@ function defaultProductionProviders(options, environment, repositories) {
         environment,
         fetchImpl: options.fetchImpl ?? options.fetch,
         spawnImpl: options.spawnImpl ?? options.spawn,
+        fs: options.providerFs ?? options.mediaProviderFs,
         id: runtimeId(options.idGenerator ?? options.id),
         promptRuns: repositories?.promptRun,
         providerAdapters: options.providerAdapters ?? options.mediaProviderAdapters
@@ -302,11 +303,12 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
         transaction: options.transaction
     });
     const userMessageWriter = ({personaId, text: messageText, attachments = {}} = {}) => {
+        const userCreatedAt = new Date(Date.parse(clock()) - 1).toISOString();
         const conversation = repositories.conversation.getOrCreateConversation({
             personaId,
             id: idGenerator('conversation'),
-            createdAt: clock(),
-            updatedAt: clock()
+            createdAt: userCreatedAt,
+            updatedAt: userCreatedAt
         });
         return repositories.conversation.appendMessage({
             id: idGenerator('message'),
@@ -316,8 +318,8 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
             attachmentsJson: JSON.stringify(Array.isArray(attachments) ? attachments : []),
             generationJson: null,
             jobsJson: '[]',
-            createdAt: clock(),
-            readAt: clock()
+            createdAt: userCreatedAt,
+            readAt: userCreatedAt
         });
     };
     return {

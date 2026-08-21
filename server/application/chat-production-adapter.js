@@ -170,7 +170,22 @@ function capabilityPresentation(value) {
     if (!isRecord(value) || value.type !== 'capability-result' || !isRecord(value.result)) return null;
     const result = value.result;
     if (!result.ok) return {error: result.error || '能力调用未执行'};
-    return result.result ?? {ok: true};
+    const raw = result.result;
+    if (value.result.name === 'media_event' && isRecord(raw)) {
+        return {
+            ok: true,
+            jobId: raw.jobId ?? null,
+            jobIds: Array.isArray(raw.jobIds) ? raw.jobIds.slice(0, 3) : [],
+            kind: raw.kind ?? null,
+            provider: raw.provider ?? null,
+            count: raw.count ?? 1,
+            replayed: raw.replayed === true
+        };
+    }
+    if (value.result.name === 'pending_event' && isRecord(raw)) {
+        return {ok: true, pendingEventId: raw.pendingEvent?.id ?? raw.pendingEventId ?? null, jobId: raw.jobId ?? null, created: raw.created === true};
+    }
+    return raw ?? {ok: true};
 }
 
 function presentationByCapability(value) {
