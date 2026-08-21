@@ -9,6 +9,7 @@ import {createJobRepository} from './server/infrastructure/job-repository.js';
 import {createGroupRepository} from './server/infrastructure/group-repository.js';
 import {createMemoryRepository} from './server/infrastructure/memory-repository.js';
 import {createPersonaRepository} from './server/infrastructure/persona-repository.js';
+import {createRelationshipRepository} from './server/infrastructure/relationship-repository.js';
 import {createPendingEventRepository} from './server/infrastructure/pending-event-repository.js';
 import {createSettingsRepository} from './server/infrastructure/settings-repository.js';
 import {createLifeStateResolver} from './server/domain/life-state-resolver.js';
@@ -40,6 +41,7 @@ const jobRepository = createJobRepository({database, id, clock: now});
 const groupRepository = createGroupRepository({database, id, clock: now});
 const memoryRepository = createMemoryRepository({database, clock: now});
 const personaRepository = createPersonaRepository({database, id, clock: now});
+const relationshipRepository = createRelationshipRepository({database, id, clock: now});
 const settingsRepository = createSettingsRepository({database, defaults: defaultSettings, clock: now});
 const lifeStateResolver = createLifeStateResolver();
 const json = (value, fallback = {}) => {
@@ -2122,7 +2124,7 @@ function activeMemories(personaId) {
 }
 
 function activeRelationshipPatch(personaId) {
-    return json(database.prepare("SELECT next_patch FROM companion_persona_evolutions WHERE persona_id = ? AND status = 'applied' ORDER BY created_at DESC, rowid DESC LIMIT 1").get(personaId)?.next_patch, {});
+    return json(relationshipRepository.activePatch({personaId})?.next_patch, {});
 }
 
 function normalizeRelationshipPatch(value) {
@@ -2143,7 +2145,16 @@ function applyRelationshipEvolution(personaId, {reason, evidence = [], patch}) {
     if (JSON.stringify(previousPatch) === JSON.stringify(nextPatch)) return null;
     const createdAt = now();
     const record = {id: id('evolution'), personaId: persona.id, reason: String(reason || '基于近期互动的关系层更新').slice(0, 300), evidence: evidence.slice(0, 12), previousPatch, nextPatch, createdAt};
-    database.prepare("INSERT INTO companion_persona_evolutions (id, persona_id, reason, evidence_json, previous_patch, next_patch, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'applied', ?)").run(record.id, record.personaId, record.reason, JSON.stringify(record.evidence), JSON.stringify(previousPatch), JSON.stringify(nextPatch), createdAt);
+    relationshipRepository.insertEvolution({
+        id: record.id,
+        personaId: record.personaId,
+        reason: record.reason,
+        evidence: record.evidence,
+        previousPatch: record.previousPatch,
+        nextPatch: record.nextPatch,
+        status: 'applied',
+        createdAt
+    });
     return record;
 }
 
@@ -5672,7 +5683,7 @@ getPersona: (req, res) => {
     const revisions = database.prepare('SELECT id, version, reason, created_at FROM companion_persona_foundation_revisions WHERE persona_id = ? ORDER BY version DESC').all(persona.id).map(row => ({id: row.id, version: row.version, reason: row.reason, createdAt: row.created_at}));
     const schedule = database.prepare("SELECT * FROM companion_schedule_items WHERE persona_id = ? AND status = 'active' AND starts_at >= ? ORDER BY starts_at LIMIT 4").all(persona.id, now()).map(scheduleShape);
     const characters = database.prepare('SELECT id, name, relationship_kind FROM companion_supporting_characters WHERE persona_id = ? ORDER BY created_at').all(persona.id).map(row => ({id: row.id, name: row.name, relationshipKind: row.relationship_kind}));
-    const evolutions = database.prepare("SELECT * FROM companion_persona_evolutions WHERE persona_id = ? ORDER BY created_at DESC LIMIT 12").all(persona.id).map(evolutionSummary);
+    const evolutions = relationshipRepository.listRecent({personaId: persona.id, limit: 12}).map(evolutionSummary);
     res.json({persona: {...summary(persona), imageGenerationPolicy: imageGenerationPolicyFor(persona.id)}, imageGenerationPolicy: imageGenerationPolicyFor(persona.id), foundationSummary: foundationSummary(persona.id), foundationRevisions: revisions, blueprint: publicBlueprint(persona.id), state: stateShape(persona.id), schedule, supportingCharacters: characters, memories: activeMemories(persona.id), evolutions});
 },
 getFoundationDraft: (req, res) => {
