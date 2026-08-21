@@ -1,4 +1,3 @@
-import express from 'express';
 import {accessSync, constants as fsConstants, mkdirSync, statSync, readFileSync, writeFileSync, mkdtempSync, readdirSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
@@ -11,6 +10,7 @@ import {createPendingEventRepository} from './server/infrastructure/pending-even
 import {createLifeStateResolver} from './server/domain/life-state-resolver.js';
 import {createChatTurnFlow} from './server/application/chat-turn-flow.js';
 import {createChatTurnSseAdapter} from './server/http/chat-turn-sse-adapter.js';
+import {createHttpApp} from './server/http/app.js';
 import {registerCompanionRoutes} from './server/http/route-registry.js';
 import {createProviderRegistry} from './server/infrastructure/provider-ports.js';
 import {createJobDispatcher} from './server/runtime/job-dispatcher.js';
@@ -19,20 +19,8 @@ import {createStartupRuntime} from './server/runtime/startup.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 4178);
-const app = express();
+let app;
 const debugInspectorEnabled = process.env.COMPANION_DEBUG_INSPECTOR === '1';
-
-app.set('etag', false);
-app.use(express.json({limit: '12mb'}));
-app.use('/api', (req, res, next) => {
-    res.set('Cache-Control', 'no-store, max-age=0');
-    next();
-});
-app.use(express.static(join(root, 'src'), {
-    setHeaders: (res, filePath) => {
-        if (/\/(index\.html|companion-main\.js|companion-style\.css)$/.test(filePath)) res.set('Cache-Control', 'no-store, max-age=0');
-    }
-}));
 
 const now = () => new Date().toISOString();
 const id = prefix => `${prefix}_${crypto.randomUUID()}`;
@@ -5898,15 +5886,17 @@ debugMedia: (req, res) => {
 }
 };
 
-// The first production slice is registered through the modular route
-// contract. Remaining handlers stay on the temporary facade until their
-// dependencies have been moved behind application ports.
-registerCompanionRoutes({
-    app,
-    handlers: modularReadRouteHandlers,
-    debugInspectorEnabled,
-    wrapRoute: route,
-    missingHandler: 'skip'
+app = createHttpApp({
+    root,
+    routeRegistrar: ({app: routeApp, wrapRoute, sendError}) => registerCompanionRoutes({
+        app: routeApp,
+        handlers: modularReadRouteHandlers,
+        debugInspectorEnabled,
+        wrapRoute,
+        sendError,
+        skip: ['health'],
+        missingHandler: 'error'
+    })
 });
 
 export const companionApp = app;

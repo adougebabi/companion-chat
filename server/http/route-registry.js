@@ -132,7 +132,8 @@ export function registerCompanionRoutes({
     debugInspectorEnabled = false,
     wrapRoute,
     sendError,
-    missingHandler = 'skip'
+    missingHandler = 'skip',
+    skip = []
 } = {}) {
     assertApp(app);
     const providedHandlers = assertHandlers(handlers);
@@ -143,12 +144,20 @@ export function registerCompanionRoutes({
     if (!MISSING_HANDLER_POLICIES.has(missingHandler)) {
         throw new TypeError('Companion route registry missingHandler must be "skip" or "error"');
     }
+    if (!Array.isArray(skip) || skip.some(value => typeof value !== 'string')) {
+        throw new TypeError('Companion route registry skip must be an array of route ids');
+    }
+    const skippedIds = new Set(skip);
 
     const registered = [];
     const skipped = [];
     const debugEnabled = debugInspectorEnabled === true;
 
     for (const definition of ROUTE_DEFINITIONS) {
+        if (skippedIds.has(definition.id)) {
+            skipped.push(routeMetadata(definition, 'pre_registered'));
+            continue;
+        }
         if (definition.debug && !debugEnabled) {
             skipped.push(routeMetadata(definition, 'debug_disabled'));
             continue;
