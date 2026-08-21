@@ -1,6 +1,7 @@
 # Cross-Cutting Thinking Guides
 
-These guides apply when a change crosses the Node server, SQLite state, streaming API, and vanilla browser client.
+These guides apply when a change crosses the Node server, SQLite state,
+streaming API, and Vue browser client.
 
 | Guide | Use it when |
 | --- | --- |
@@ -9,4 +10,7 @@ These guides apply when a change crosses the Node server, SQLite state, streamin
 
 ## Pre-Modification Rule
 
-Before changing a constant, endpoint field, event type, or persisted key, search the whole repository for every producer and consumer. These contracts are intentionally informal and duplicated between `server.js` and `src/main.js`.
+Before changing a constant, endpoint field, event type, or persisted key, search
+the whole repository for every producer and consumer. Contracts are explicit at
+the server route boundary and in `web/src/api/contracts.ts`; update both
+producers and consumers together.

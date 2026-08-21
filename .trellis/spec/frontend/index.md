@@ -1,12 +1,10 @@
 # Frontend Guidelines
 
-The active browser client is a dependency-light vanilla ES module:
-[`src/index.html`](../../../src/index.html) loads
-[`src/companion-main.js`](../../../src/companion-main.js) and
-[`src/companion-style.css`](../../../src/companion-style.css). There is no
-React, component framework, router, hook system, TypeScript, or build step.
-`src/main.js` and `src/style.css` are legacy, unreferenced UI files; do not
-change them for active-companion work unless the entry point changes.
+The active browser client is a Vue 3 + TypeScript application under `web/`.
+[`web/index.html`](../../../web/index.html) provides the static shell and loads
+[`web/src/main.ts`](../../../web/src/main.ts). Vite builds it to `dist/`, which
+Express serves in production. The deleted root `src/` client is historical
+context only and must not be restored as a compatibility entry point.
 
 ## Guides
 
@@ -19,13 +17,17 @@ change them for active-companion work unless the entry point changes.
 
 ## Pre-Development Checklist
 
-- Find the existing render function and the event binding in
-  `companion-main.js` for the UI you are changing.
-- Trace the API payload in both `server.js` and `companion-main.js` before
-  renaming a field.
-- Escape server/user text with `esc()` before interpolating it into HTML.
-- Decide whether the update belongs in canonical `state`, current `messages`, or transient UI variables.
+- Find the owning Vue view/component and Pinia store/composable before editing.
+- Trace API payloads through `web/src/api/contracts.ts` and the server route
+  registry before renaming a field.
+- Render server/user text through Vue text bindings; do not add raw HTML
+  interpolation for untrusted values.
+- Decide whether the update belongs in Pinia server state or transient local
+  component/composable state.
 
 ## Quality Check
 
-Run the server and open `http://localhost:4178`. Exercise persona switching, sending text, settings, memory, console, attachments, and mobile menu as relevant. Check browser console errors and verify that a refresh restores the same server-backed state.
+Run the production build through Express and open `http://localhost:4178`.
+Exercise persona switching, sending text, settings, memory, attachments,
+activity actions, inspector and mobile menu as relevant. Check browser console
+errors and verify that a refresh restores the same server-backed state.

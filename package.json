@@ -9,11 +9,24 @@
   "scripts": {
     "dev": "node --watch server/index.js",
     "start": "node server/index.js",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "web:dev": "vite --config web/vite.config.ts",
+    "web:typecheck": "vue-tsc --noEmit -p web/tsconfig.json",
+    "web:build": "vite build --config web/vite.config.ts",
+    "typecheck": "npm run web:typecheck",
+    "build": "npm run web:build"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",
     "express": "5.2.1",
-    "marked": "18.0.9"
+    "marked": "18.0.9",
+    "pinia": "3.0.3",
+    "vue": "3.5.22"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "6.0.1",
+    "typescript": "5.9.3",
+    "vite": "7.1.5",
+    "vue-tsc": "3.0.6"
   }
 }

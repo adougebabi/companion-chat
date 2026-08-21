@@ -1,19 +1,18 @@
 # Frontend Directory And Structure
 
 ```text
-src/index.html              Minimal document shell and active module entry point
-src/companion-main.js       Active state, renderers, event binding, and boot
-src/companion-style.css     Active layout, responsive rules, dialogs, messages, panels
-src/main.js                 Legacy, currently unreferenced UI module
-src/style.css               Legacy, currently unreferenced UI stylesheet
+web/index.html              Static shell and loading skeleton
+web/src/main.ts             Vue + Pinia entry point
+web/src/app/App.vue         Application shell and view routing
+web/src/api/*               Typed HTTP/SSE clients and normalizers
+web/src/stores/*            Shared server/app state
+web/src/composables/*       Chat, history, activity, composer and dialog effects
+web/src/components/*        Feature components and accessible interactions
+web/src/styles/*            Migrated visual tokens and responsive layout
+dist/                       Vite production output, served by Express
 ```
 
-Keep active browser behavior in `companion-main.js` unless a new static asset or
-stylesheet rule is needed. New features should extend the nearest existing
-function rather than create a parallel boot path.
-
-There is no asset pipeline: files are served directly by Express from `src/`. Keep imports browser-compatible and use the vendored `/vendor/marked/marked.esm.js` path for Markdown parsing.
-
-Use kebab-case DOM IDs/classes (`memory-panel`, `clear-memory`) and camelCase
-JavaScript functions/variables. Keep responsive behavior in the existing
-media-query sections of `companion-style.css`.
+Keep API parsing in `web/src/api`, shared state in Pinia stores, and DOM side
+effects in composables. Components should emit intent to their parent or store;
+they should not perform raw fetches. Use kebab-case CSS classes and stable
+dimensions for message/media surfaces.

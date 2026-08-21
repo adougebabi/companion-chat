@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#243447" />
+    <title>摇光（Fluctlight）</title>
+    <style>
+      :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+      * { box-sizing: border-box; }
+      html, body, #app { min-width: 320px; min-height: 100%; margin: 0; }
+      body { min-height: 100dvh; background: #dce5ef; }
+      .app-frame { width: min(1500px, 100%); min-height: 100dvh; margin: 0 auto; display: grid; grid-template-columns: 68px 300px minmax(0, 1fr); background: #f8fafc; }
+      .rail { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 0; background: #243447; color: #bed0e0; }
+      .brand, .rail-action { border: 0; }
+      .brand { width: 40px; height: 40px; border-radius: 10px; background: #4e9ee9; color: #fff; font-size: 20px; font-weight: 700; }
+      .rail-action { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 9px; background: transparent; color: inherit; font-size: 23px; }
+      .rail-action.active { background: #36516c; color: #fff; }
+      .rail-spacer { flex: 1; }
+      .sidebar { display: flex; min-width: 0; flex-direction: column; background: #fff; border-right: 1px solid #dfe7ef; }
+      .sidebar-header { display: flex; min-height: 72px; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid #edf1f5; }
+      .sidebar-header strong { display: block; font-size: 21px; }
+      .sidebar-header small { color: #8a99a9; font-size: 9px; font-weight: 700; letter-spacing: .12em; }
+      .sidebar-tabs { display: grid; grid-template-columns: 1fr 1fr; padding: 9px 12px 6px; gap: 4px; }
+      .sidebar-tabs button { border: 0; border-radius: 6px; background: transparent; padding: 8px; color: #718096; }
+      .sidebar-tabs button.active { background: #edf6ff; color: #2787da; font-weight: 600; }
+      .persona-list { flex: 1; overflow-y: auto; padding: 4px 8px; }
+      .main-pane { min-width: 0; min-height: 0; background: #f4f7fa; }
+      .contacts-view { display: grid; height: 100dvh; min-height: 0; grid-template-rows: 72px minmax(0, 1fr); background: #f4f7fa; }
+      .pane-header { display: flex; align-items: center; gap: 11px; padding: 0 24px; border-bottom: 1px solid #e1e8ef; background: rgb(255 255 255 / 88%); }
+      .contacts-header { justify-content: space-between; }
+      .contacts-stream { overflow-y: auto; }
+      .contact-skeleton { display: flex; align-items: center; gap: 12px; min-height: 75px; padding: 14px 24px; border-bottom: 1px solid #e7eef3; }
+      .contact-skeleton::before { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 50%; background: #e4ebf1; content: ""; }
+      .contact-skeleton::after { width: min(48%, 260px); height: 13px; border-radius: 4px; background: #e4ebf1; content: ""; }
+      .contact-skeleton + .contact-skeleton::after { width: min(38%, 210px); }
+      .contact-skeleton + .contact-skeleton + .contact-skeleton::after { width: min(56%, 310px); }
+      .mobile-nav { display: none; }
+      @media (max-width: 780px) {
+        .app-frame { grid-template-columns: 1fr; padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+        .rail, .sidebar { display: none; }
+        .main-pane, .contacts-view { height: calc(100dvh - 64px - env(safe-area-inset-bottom)); }
+        .mobile-nav { position: fixed; z-index: 5; right: 0; bottom: 0; left: 0; display: grid; height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); grid-template-columns: repeat(3, 1fr); border-top: 1px solid #dbe5ec; background: rgb(255 255 255 / 96%); }
+        .mobile-nav button { border: 0; background: transparent; color: #718396; font-size: 24px; }
+        .pane-header { padding: 0 15px; }
+        .contact-skeleton { padding: 14px 18px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" aria-busy="true">
+      <div class="app-frame">
+        <aside class="rail" aria-label="主导航">
+          <button class="brand" type="button" aria-label="摇光首页">摇</button>
+          <button class="rail-action active" type="button" aria-label="联系人" title="联系人">⌁</button>
+          <button class="rail-action" type="button" aria-label="动态" title="动态">◉</button>
+          <span class="rail-spacer"></span>
+          <button class="rail-action" type="button" aria-label="设置" title="设置">⚙</button>
+        </aside>
+        <aside class="sidebar" aria-label="联系人列表">
+          <header class="sidebar-header"><div><strong>摇光（Fluctlight）</strong><small>FLUCTLIGHT</small></div><button type="button" aria-label="创建摇光实例">＋</button></header>
+          <nav class="sidebar-tabs" aria-label="联系人视图"><button class="active" type="button">联系人</button><button type="button">动态</button></nav>
+          <div class="persona-list" aria-label="联系人加载中"><div class="contact-skeleton"></div><div class="contact-skeleton"></div><div class="contact-skeleton"></div></div>
+        </aside>
+        <main class="main-pane" id="main-pane">
+          <section class="contacts-view" aria-labelledby="contacts-title">
+            <header class="pane-header contacts-header"><span class="header-copy"><h1 id="contacts-title">联系人</h1><p>正在准备摇光实例列表</p></span><span aria-hidden="true">＋</span></header>
+            <div class="contacts-stream" aria-label="联系人加载中"><div class="contact-skeleton"></div><div class="contact-skeleton"></div><div class="contact-skeleton"></div></div>
+          </section>
+        </main>
+        <nav class="mobile-nav" aria-label="主导航"><button class="active" type="button" aria-label="联系人">⌁</button><button type="button" aria-label="动态">◉</button><button type="button" aria-label="设置">⚙</button></nav>
+      </div>
+    </div>
+    <noscript><p>请启用 JavaScript 以使用摇光。</p></noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

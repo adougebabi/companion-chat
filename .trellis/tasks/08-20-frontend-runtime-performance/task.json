@@ -3,7 +3,7 @@
   "name": "frontend-runtime-performance",
   "title": "前端启动与流式性能优化",
   "description": "在同一任务内完成 Vue 3 + TypeScript + Vite 活跃客户端整体重写、首屏/流式/分页性能优化和移动端输入法与草稿稳定性修复；保持现有视觉语言，视觉系统调整另立后续任务。",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

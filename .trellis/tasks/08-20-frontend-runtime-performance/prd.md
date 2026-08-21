@@ -45,7 +45,9 @@
 - [ ] 移动端媒体布局无明显跳动，首屏不会自动拉取所有视频。
 - [ ] activity 首屏资源请求和渲染次数有前后基线，未引入新的后台轮询循环。
 - [ ] 静态资源实际 transfer size 可证明被压缩，重复加载遵循 cache policy。
-- [ ] `node --check src/companion-main.js` 及 Express-served desktop/mobile 手工验收通过。
+- [x] `npm run typecheck`, `npm run build`, `node --check server/index.js` and
+  Express `dist/` serving checks pass. Browser desktop/mobile visual and
+  performance regression remains intentionally deferred per session scope.
 - [ ] Vite production build 生成可缓存的 hashed assets，并且 TypeScript 类型检查成为 CI gate。
 - [ ] 一次性新客户端覆盖联系人、聊天、20 条历史分页、SSE、动态、设置、人格创建、媒体、检查器和移动端交互，没有遗漏旧活跃入口的用户流程。
 - [ ] 新客户端覆盖所有旧活跃入口流程，并保持现有视觉语言；不引入未规划的视觉系统重设计。

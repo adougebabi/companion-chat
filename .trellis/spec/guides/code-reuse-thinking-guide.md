@@ -4,7 +4,11 @@ This repository is small enough that duplication is easy to miss but costly: the
 
 ## Search Before Adding
 
-Search for existing helpers and fields before adding another one: `cleanUrl`, `now`, `id`, `getPersona`, `api`, `esc`, `renderMessages`, and `appendDebug` are the established owners for common behavior. If a payload field is read in both `server.js` and `main.js`, update both deliberately rather than adding a third shape.
+Search for existing helpers and fields before adding another one: `cleanUrl`,
+`now`, `id`, typed API clients, contract normalizers, Pinia stores and
+composables are the established owners for common behavior. If a payload field
+crosses the server route and `web/src/api/contracts.ts`, update both
+deliberately rather than adding a third shape.
 
 ## Reuse Local Owners
 

@@ -1,0 +1,159 @@
+import {ref} from 'vue';
+import {sendChat} from '../api/client';
+import {isSseDoneEvent, parseSseEvent} from '../api/contracts';
+import {useConversationsStore} from '../stores/conversations';
+import type {Attachment, Message, SseDoneEvent} from '../types';
+
+export interface ChatStreamInput {
+  personaId: string;
+  text: string;
+  attachments?: Attachment[];
+  userMessageId?: string;
+  signal?: AbortSignal;
+}
+
+export class ChatStreamError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ChatStreamError';
+  }
+}
+
+function idFor(prefix: string): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return `${prefix}-${crypto.randomUUID()}`;
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function scheduleFrame(callback: () => void): {cancel: () => void} {
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    const handle = window.requestAnimationFrame(callback);
+    return {cancel: () => window.cancelAnimationFrame(handle)};
+  }
+  const handle = setTimeout(callback, 16);
+  return {cancel: () => clearTimeout(handle)};
+}
+
+function frameData(frame: string): string | null {
+  const lines = frame.split(/\r?\n/);
+  const data = lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart());
+  return data.length ? data.join('\n') : null;
+}
+
+async function* readSse(response: Response): AsyncGenerator<ReturnType<typeof parseSseEvent>> {
+  if (!response.body) throw new ChatStreamError('流式响应不可用');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    while (true) {
+      const result = await reader.read();
+      buffer += decoder.decode(result.value, {stream: !result.done});
+      const frames = buffer.split(/\r?\n\r?\n/);
+      buffer = frames.pop() ?? '';
+      for (const frame of frames) {
+        const data = frameData(frame);
+        if (!data) continue;
+        if (data === '[DONE]') continue;
+        const event = parseSseEvent(data);
+        if (!event) throw new ChatStreamError('流式响应格式无效');
+        yield event;
+      }
+      if (result.done) break;
+    }
+    const data = frameData(buffer);
+    if (data && data !== '[DONE]') {
+      const event = parseSseEvent(data);
+      if (!event) throw new ChatStreamError('流式响应格式无效');
+      yield event;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+export function useChatStream() {
+  const conversations = useConversationsStore();
+  const isSending = ref(false);
+  const error = ref<string | null>(null);
+  let activePersonaId: string | null = null;
+
+  async function send(input: ChatStreamInput): Promise<SseDoneEvent> {
+    const text = input.text.trim();
+    if (!text) throw new ChatStreamError('消息不能为空');
+    if (isSending.value) throw new ChatStreamError('消息正在发送');
+    isSending.value = true;
+    error.value = null;
+    activePersonaId = input.personaId;
+    const userId = input.userMessageId ?? idFor('local-user');
+    const pendingId = idFor('pending-assistant');
+    conversations.addOptimistic(input.personaId, {
+      id: userId,
+      role: 'user',
+      text,
+      attachments: input.attachments ?? []
+    });
+    conversations.addOptimistic(input.personaId, {
+      id: pendingId,
+      role: 'assistant',
+      text: '',
+      transient: true
+    });
+    conversations.startStream(input.personaId, pendingId);
+
+    let scheduled: {cancel: () => void} | null = null;
+    let tokenBuffer = '';
+    const flush = () => {
+      scheduled = null;
+      if (!tokenBuffer) return;
+      const token = tokenBuffer;
+      tokenBuffer = '';
+      conversations.appendTransientToken(input.personaId, pendingId, token);
+    };
+    const cancelScheduled = () => {
+      const current = scheduled;
+      scheduled = null;
+      current?.cancel();
+    };
+    const queueToken = (token: string) => {
+      tokenBuffer += token;
+      if (!scheduled) scheduled = scheduleFrame(flush);
+    };
+
+    try {
+      const response = await sendChat({personaId: input.personaId, text, attachments: input.attachments}, {signal: input.signal});
+      let done: SseDoneEvent | null = null;
+      for await (const event of readSse(response)) {
+        if (!event) continue;
+        if (event.type === 'token') queueToken(event.token);
+        else if (event.type === 'error') throw new ChatStreamError(event.error || '发送失败');
+        else if (isSseDoneEvent(event)) {
+          done = event;
+          break;
+        }
+      }
+      cancelScheduled();
+      flush();
+      if (!done) throw new ChatStreamError('流式响应未完成');
+      conversations.reconcileStream(input.personaId, pendingId, done.messages, done.message);
+      return done;
+    } catch (caught) {
+      cancelScheduled();
+      tokenBuffer = '';
+      const message = caught instanceof Error ? caught.message : '发送失败';
+      conversations.failStream(input.personaId, pendingId, message);
+      error.value = message;
+      throw caught instanceof ChatStreamError ? caught : new ChatStreamError(message);
+    } finally {
+      isSending.value = false;
+      activePersonaId = null;
+    }
+  }
+
+  function cancel(): void {
+    if (activePersonaId) conversations.setStreamStatus(activePersonaId, 'error', '已取消');
+  }
+
+  return {isSending, error, send, cancel};
+}
+
+export default useChatStream;

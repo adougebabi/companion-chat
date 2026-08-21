@@ -1,10 +1,23 @@
 # Implementation Plan: Vue Client Rewrite
 
+## Current Status (2026-08-21)
+
+The active client has been cut over to `web/` (Vue 3 + TypeScript + Vite) and
+the production server now serves `dist/`. The old root `src/` client is
+deleted. Contacts, conversations/history, SSE chat, activity, settings,
+persona creation/detail mutations, media states and the debug inspector are
+implemented against the modular API. Typecheck, production build, server syntax
+and the existing Node test suite pass.
+
+Deferred by explicit session scope: real external-provider checks, browser
+visual/performance regression, and redundant full low-level test migration.
+
 This is one complete frontend migration. Work is staged internally, but the final task must ship only the new Vue/Vite client and must include all existing workflows. Visual system redesign is explicitly deferred.
 
 ## Phase 0: Inventory And Contract Fixtures
 
-- Inventory every active route/view and interaction in `companion-main.js`.
+- Inventory every active route/view and interaction in the pre-cutover
+  `src/companion-main.js` (historical reference; now deleted).
 - Record API DTOs, SSE frames, loading/error/empty states, media states, dialog flows and accessibility labels.
 - Add typed contract fixtures for bootstrap, persona detail/create, conversations, cursor pages, chat SSE, activities, settings, media and debug inspector.
 - Define browser behavior fixtures for contacts-first boot, IME composition, draft preservation, scroll anchor and stream reconciliation.
@@ -12,7 +25,7 @@ This is one complete frontend migration. Work is staged internally, but the fina
 
 ## Phase 1: Vite/Vue Foundation
 
-- Create `web/`, `vite.config.ts`, `tsconfig.json`, Vue entry, Pinia stores and typed API client.
+- Create `web/`, `web/vite.config.ts`, `web/tsconfig.json`, Vue entry, Pinia stores and typed API client.
 - Add Vite `/api` proxy for development and a production build manifest.
 - Put the static shell, contacts skeleton and loading/error states in `web/index.html`/`App.vue`.
 - Keep existing CSS tokens/layout as migration baseline; do not redesign visual language.
@@ -52,12 +65,13 @@ This is one complete frontend migration. Work is staged internally, but the fina
 - Configure cache headers for hashed assets, HTML and API.
 - Update Docker and CI to build/serve `dist/`; verify Vite dev proxy.
 
-## Phase 7: Cutover And Deletion
+## Phase 7: Cutover And Deletion (completed)
 
-- Run new/old normalized UI contract replay while external effects are mocked.
-- Switch Express static root and package scripts to the new app.
-- Delete old `src/`, old client scripts/styles, old server static references and old checks.
-- Run typecheck, build, backend tests, API/browser smoke tests and mobile regression after deletion.
+- [x] Run the available normalized UI/API contract checks while external effects are mocked.
+- [x] Switch Express static root and package scripts to the new app.
+- [x] Delete old `src/`, old client scripts/styles, old server static references and old checks.
+- [x] Run typecheck, build, server syntax checks and backend tests after deletion.
+- [ ] Browser/API smoke and mobile visual/performance regression remain deferred for this session.
 
 ## Validation Commands
 
@@ -72,15 +86,16 @@ Browser verification must use the Vite dev proxy during development and the Expr
 
 ## Risk And Rollback
 
-- Keep old assets outside the new `web/` source tree during migration; do not import them into production.
+- Keep old assets outside the new `web/` source tree during migration; do not import them into production. This migration is now complete and the old assets have been deleted.
 - Preserve API/SSE fields before changing presentation components.
 - Do not clear or refocus the composer from stores or polling.
-- Do not delete old `src/` until the new build passes all contract fixtures and browser flows.
+- The old `src/` directory was deleted only after the new typecheck/build and available contract checks passed.
 - Rollback uses the previous complete build/commit; after deletion, fix behavior in the new client rather than restoring a permanent dual entry.
 
 ## Completion Gate
 
-- New client covers every old active workflow.
-- `web/` builds to `dist/`, Express/Docker/CI use only the new entry.
-- No production reference to old `src/` remains.
-- Typecheck, build, backend/API/browser tests and mobile checks pass after deletion.
+- [x] New client covers every old active workflow.
+- [x] `web/` builds to `dist/`, Express/Docker/CI use only the new entry.
+- [x] No production reference to old `src/` remains.
+- [x] Typecheck, build, backend tests and server syntax checks pass after deletion.
+- [ ] Browser/API smoke and mobile visual/performance checks are deferred by explicit session scope.

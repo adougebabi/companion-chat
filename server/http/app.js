@@ -5,13 +5,14 @@ import {fileURLToPath} from 'node:url';
 const DEFAULT_JSON_LIMIT = '12mb';
 const DEFAULT_API_CACHE_CONTROL = 'no-store, max-age=0';
 const DEFAULT_STATIC_CACHE_CONTROL = 'no-store, max-age=0';
+const VERSIONED_STATIC_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const DEFAULT_SSE_HEADERS = Object.freeze({
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache',
     Connection: 'keep-alive'
 });
 const DEFAULT_HEALTH_RESPONSE = Object.freeze({ok: true, storage: 'companion-v2'});
-const STATIC_NO_STORE_FILES = new Set(['index.html', 'companion-main.js', 'companion-style.css']);
+const STATIC_NO_STORE_FILES = new Set(['index.html']);
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -39,10 +40,10 @@ function resolveApp(options, expressFactory) {
 }
 
 function resolveStaticRoot(options) {
-    const configured = options.staticRoot ?? options.staticDir ?? options.srcDir;
+    const configured = options.staticRoot ?? options.staticDir;
     if (configured !== undefined) return resolve(String(configured));
     const root = options.root === undefined ? projectRoot : resolve(String(options.root));
-    return join(root, 'src');
+    return join(root, 'dist');
 }
 
 function responseHeaders(res, headers) {
@@ -131,7 +132,12 @@ function staticHeaders(options) {
     const configured = options.staticSetHeaders ?? options.setStaticHeaders;
     const cacheControl = options.staticCacheControl ?? DEFAULT_STATIC_CACHE_CONTROL;
     return (res, filePath) => {
-        if (STATIC_NO_STORE_FILES.has(basename(filePath))) responseHeaders(res, {'Cache-Control': cacheControl});
+        const pathParts = String(filePath).split(/[\\/]/);
+        if (STATIC_NO_STORE_FILES.has(basename(filePath))) {
+            responseHeaders(res, {'Cache-Control': cacheControl});
+        } else if (pathParts.includes('assets')) {
+            responseHeaders(res, {'Cache-Control': VERSIONED_STATIC_CACHE_CONTROL});
+        }
         if (typeof configured === 'function') configured(res, filePath);
     };
 }

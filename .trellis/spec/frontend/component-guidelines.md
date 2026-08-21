@@ -1,29 +1,34 @@
-# DOM Rendering And Interaction
+# Vue Components And Interaction
 
 ## Rendering Pattern
 
-`build()` creates the static shell once. `render()` updates the active persona, header, message stream, and memory list; specialized renderers return HTML strings. Follow this pattern for repeated UI rather than appending arbitrary nodes from several event handlers.
-
-Reference: [`src/companion-main.js`](../../../src/companion-main.js).
+`web/index.html` creates the static shell once. Vue views and components update
+reactive props from Pinia stores; composables own asynchronous side effects.
+Avoid whole-app rerenders or direct DOM replacement during chat, activity, or
+composer updates.
 
 ## Safe HTML
 
-All external or user-controlled text must pass through `esc()`. Markdown is the one deliberate exception: `renderMarkdown()` calls `marked.parse()` and then sanitizes dangerous `script`, `iframe`, `object`, `embed`, and event-handler attributes before insertion. Keep the same boundary for new message-like content.
+All external or user-controlled text must be rendered through Vue text nodes.
+Only explicitly trusted, sanitized HTML may use `v-html` (none is needed for
+the current chat/activity flows).
 
 ## Events And Accessibility
 
-Bind events in `bind()` after `build()`. Prefer existing buttons, labels, dialogs, and `aria-label`/`title` patterns. Keyboard send behavior is Enter, with Shift+Enter reserved for a newline. When adding a modal action, close it through the native `<dialog>` API and preserve a cancel path.
+Declare component emits and props explicitly. Prefer existing buttons, labels,
+dialogs, and `aria-label`/`title` patterns. Keyboard send behavior is Enter,
+with Shift+Enter reserved for a newline. Modal actions must preserve a cancel
+path and return focus to the trigger.
 
 ## Styling
 
 Use existing semantic classes and CSS custom properties where present. Keep
-layout and responsive rules in `companion-style.css`; do not add inline styles
-to generated HTML unless a value is genuinely data-driven (the persona color is
-the established example).
+layout and responsive rules in `web/src/styles/*.css`; do not add inline styles
+unless a value is genuinely data-driven.
 
 ## Common Mistakes
 
-- Rebinding the entire document on every refresh and losing input state.
-- Inserting `entry.prompt`, persona names, or attachment names without `esc()`.
+- Replacing the entire app tree on every refresh and losing input state.
+- Rendering server refresh over an active SSE stream without reconciliation.
 - Treating a server refresh as authoritative while an active SSE stream is still rendering.
 - Adding framework-style components or hooks that the project does not have.

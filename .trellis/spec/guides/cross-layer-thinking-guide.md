@@ -6,11 +6,11 @@ Use this guide for anything that moves through Express, SQLite, an external prov
 
 ```text
 browser event
-  -> fetch /api route
+  -> typed API client /api route
   -> readState / provider call
   -> saveState or SSE event
-  -> main.js state update
-  -> render()
+  -> Pinia store / composable
+  -> Vue render
 ```
 
 For each boundary, write down the exact JSON keys, ownership, and failure behavior. The chat path additionally has upstream MTPLX SSE -> server SSE translation; generation has tool call -> queued job -> ComfyUI history -> attachment message.
@@ -26,10 +26,10 @@ For each boundary, write down the exact JSON keys, ownership, and failure behavi
 
 ## High-Risk Boundaries
 
-1. [`server.js:441-569`](../../../server.js) and [`src/main.js:434-510`](../../../src/main.js): chat request, streaming, and optimistic messages.
-2. [`server.js:517-555`](../../../server.js) and [`src/main.js:512-531`](../../../src/main.js): tool calls and generation job creation.
-3. [`server.js:622-710`](../../../server.js) and conversation rendering: serialized ComfyUI work and eventual attachment replacement.
-4. [`server.js:66-89`](../../../server.js): additive state compatibility and legacy migration.
+1. `server/http/route-registry.js` and `web/src/composables/useChatStream.ts`: chat request, streaming, and optimistic messages.
+2. `server/application/companion-route-handlers.js` and the chat stream: tool calls and generation job creation.
+3. `server/application/activity-service.js` and `web/src/components/media/*`: serialized media work and eventual attachment replacement.
+4. `server/runtime/*` and Pinia bootstrap state: additive runtime configuration and migration.
 
 When a change touches one of these paths, verify success, provider failure, refresh recovery, and an empty/malformed input case.
 
