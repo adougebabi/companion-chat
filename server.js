@@ -6133,6 +6133,76 @@ screenPersona: (req, res) => {
         `).run(updatedAt, persona.id);
     })();
     res.json(summary(requirePersona(persona.id)));
+},
+createSchedule: (req, res) => {
+    if (req.body?.explicitlyAccepted !== true) throw new Error('只有明确、已接受且有具体时间的计划可以写入日程');
+    const plan = verifiedAcceptedPlan(req.params.personaId, req.body?.sourceMessageId);
+    res.status(201).json(createScheduleItem(req.params.personaId, {...plan, source: 'explicit_chat_plan', scene: req.body?.scene}));
+},
+rescheduleSchedule: (req, res) => {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('改期内容必须是 JSON 对象');
+    res.json(rescheduleScheduleItem(req.params.personaId, req.params.scheduleId, req.body));
+},
+cancelSchedule: (req, res) => {
+    const persona = requirePersona(req.params.personaId);
+    const schedule = database.prepare("SELECT * FROM companion_schedule_items WHERE id = ? AND persona_id = ? AND status = 'active'").get(req.params.scheduleId, persona.id);
+    if (!schedule) return res.status(404).json({error: '有效日程不存在'});
+    const createdAt = now();
+    database.transaction(() => {
+        database.prepare("UPDATE companion_schedule_items SET status = 'cancelled', updated_at = ? WHERE id = ?").run(createdAt, schedule.id);
+        database.prepare('INSERT INTO companion_life_events (id, persona_id, type, occurred_at, causation_id, payload_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id('event'), persona.id, 'schedule_cancelled', createdAt, schedule.id, JSON.stringify({title: schedule.title, source: 'user'}), createdAt);
+    })();
+    res.status(204).end();
+},
+deleteMemory: (req, res) => {
+    const persona = requirePersona(req.params.personaId);
+    const changed = database.prepare("UPDATE companion_memories SET status = 'deleted', updated_at = ? WHERE id = ? AND persona_id = ? AND status = 'active'").run(now(), req.params.memoryId, persona.id);
+    if (!changed.changes) return res.status(404).json({error: '记忆不存在'});
+    res.status(204).end();
+},
+listConversations: (req, res) => res.json(listMessages(req.params.personaId, {cursor: req.query.cursor, limit: req.query.limit})),
+appendConversationMessage: (req, res) => {
+    const persona = requirePersona(req.params.personaId);
+    if (!['assistant', 'user'].includes(req.body?.role)) throw new Error('消息角色无效');
+    if (req.body.role === 'assistant') {
+        const messages = appendUserVisibleAssistantReply(persona.id, req.body.text, {fallback: '我刚刚想了一下，但还没有组织好回复。'});
+        return res.status(201).json({message: messages[0], messages});
+    }
+    res.status(201).json(appendMessage(persona.id, req.body));
+},
+chat: (req, res) => streamPersonaChat(req, res),
+listActivities: (req, res) => {
+    const visibility = req.query.visibility === 'hidden' ? 'hidden' : 'visible';
+    res.json(listActivities({personaId: req.query.personaId ? String(req.query.personaId) : null, cursor: req.query.cursor, limit: req.query.limit, visibility}));
+},
+markActivitiesRead: (req, res) => {
+    saveSettings({activityReadAt: now()});
+    res.status(204).end();
+},
+commentActivity: (req, res) => res.status(201).json(addActivityComment(req.params.activityId, req.body?.content)),
+likeActivity: (req, res) => {
+    if (typeof req.body?.liked !== 'boolean') throw new Error('liked 必须是布尔值');
+    res.json(setUserReaction(req.params.activityId, req.body.liked));
+},
+hideActivity: (req, res) => {
+    if (typeof req.body?.hidden !== 'boolean') throw new Error('hidden 必须是布尔值');
+    const activity = activityRepository.findActivity(req.params.activityId);
+    if (!activity) return res.status(404).json({error: '动态不存在'});
+    const updatedAt = now();
+    if (req.body.hidden) activityRepository.hideActivity({activityId: activity.id, hiddenAt: updatedAt, updatedAt});
+    else activityRepository.restoreActivity({activityId: activity.id, updatedAt});
+    res.json({hidden: req.body.hidden});
+},
+getMedia: async (req, res) => {
+    const asset = database.prepare('SELECT * FROM companion_media_assets WHERE id = ?').get(req.params.mediaId);
+    if (!asset) return res.status(404).json({error: '媒体不存在'});
+    try {
+        const provider = mediaProviders.get(asset.provider);
+        if (!provider?.readAsset) return res.status(502).json({error: '媒体 provider 不可用'});
+        await provider.readAsset({asset: {...asset, locator: json(asset.locator_json, {})}, res, settings: settings()});
+    } catch (error) {
+        res.status(502).json({error: error.message});
+    }
 }
 };
 
@@ -6146,76 +6216,6 @@ registerCompanionRoutes({
     wrapRoute: route,
     missingHandler: 'skip'
 });
-
-app.post('/api/companion/personas/:personaId/schedule', route((req, res) => {
-    if (req.body?.explicitlyAccepted !== true) throw new Error('只有明确、已接受且有具体时间的计划可以写入日程');
-    const plan = verifiedAcceptedPlan(req.params.personaId, req.body?.sourceMessageId);
-    res.status(201).json(createScheduleItem(req.params.personaId, {...plan, source: 'explicit_chat_plan', scene: req.body?.scene}));
-}));
-
-app.patch('/api/companion/personas/:personaId/schedule/:scheduleId', route((req, res) => {
-    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('改期内容必须是 JSON 对象');
-    res.json(rescheduleScheduleItem(req.params.personaId, req.params.scheduleId, req.body));
-}));
-
-app.post('/api/companion/personas/:personaId/schedule/:scheduleId/cancel', route((req, res) => {
-    const persona = requirePersona(req.params.personaId);
-    const schedule = database.prepare("SELECT * FROM companion_schedule_items WHERE id = ? AND persona_id = ? AND status = 'active'").get(req.params.scheduleId, persona.id);
-    if (!schedule) return res.status(404).json({error: '有效日程不存在'});
-    const createdAt = now();
-    database.transaction(() => {
-        database.prepare("UPDATE companion_schedule_items SET status = 'cancelled', updated_at = ? WHERE id = ?").run(createdAt, schedule.id);
-        database.prepare('INSERT INTO companion_life_events (id, persona_id, type, occurred_at, causation_id, payload_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(id('event'), persona.id, 'schedule_cancelled', createdAt, schedule.id, JSON.stringify({title: schedule.title, source: 'user'}), createdAt);
-    })();
-    res.status(204).end();
-}));
-
-app.delete('/api/companion/personas/:personaId/memories/:memoryId', route((req, res) => {
-    const persona = requirePersona(req.params.personaId);
-    const changed = database.prepare("UPDATE companion_memories SET status = 'deleted', updated_at = ? WHERE id = ? AND persona_id = ? AND status = 'active'").run(now(), req.params.memoryId, persona.id);
-    if (!changed.changes) return res.status(404).json({error: '记忆不存在'});
-    res.status(204).end();
-}));
-
-app.get('/api/companion/conversations/:personaId', route((req, res) => res.json(listMessages(req.params.personaId, {cursor: req.query.cursor, limit: req.query.limit}))));
-app.post('/api/companion/conversations/:personaId/messages', route((req, res) => {
-    const persona = requirePersona(req.params.personaId);
-    if (!['assistant', 'user'].includes(req.body?.role)) throw new Error('消息角色无效');
-    if (req.body.role === 'assistant') {
-        const messages = appendUserVisibleAssistantReply(persona.id, req.body.text, {fallback: '我刚刚想了一下，但还没有组织好回复。'});
-        return res.status(201).json({message: messages[0], messages});
-    }
-    res.status(201).json(appendMessage(persona.id, req.body));
-}));
-app.post('/api/companion/chat', streamPersonaChat);
-
-app.get('/api/companion/activities', route((req, res) => {
-    const visibility = req.query.visibility === 'hidden' ? 'hidden' : 'visible';
-    res.json(listActivities({personaId: req.query.personaId ? String(req.query.personaId) : null, cursor: req.query.cursor, limit: req.query.limit, visibility}));
-}));
-app.post('/api/companion/activities/read', route((req, res) => {
-    saveSettings({activityReadAt: now()});
-    res.status(204).end();
-}));
-app.post('/api/companion/activities/:activityId/comments', route((req, res) => {
-    res.status(201).json(addActivityComment(req.params.activityId, req.body?.content));
-}));
-app.put('/api/companion/activities/:activityId/like', route((req, res) => {
-    if (typeof req.body?.liked !== 'boolean') throw new Error('liked 必须是布尔值');
-    res.json(setUserReaction(req.params.activityId, req.body.liked));
-}));
-app.put('/api/companion/activities/:activityId/hide', route((req, res) => {
-    if (typeof req.body?.hidden !== 'boolean') throw new Error('hidden 必须是布尔值');
-    const activity = activityRepository.findActivity(req.params.activityId);
-    if (!activity) return res.status(404).json({error: '动态不存在'});
-    const updatedAt = now();
-    if (req.body.hidden) {
-        activityRepository.hideActivity({activityId: activity.id, hiddenAt: updatedAt, updatedAt});
-    } else {
-        activityRepository.restoreActivity({activityId: activity.id, updatedAt});
-    }
-    res.json({hidden: req.body.hidden});
-}));
 
 if (debugInspectorEnabled) {
     app.get('/api/companion/prompt-runs', route((req, res) => {
@@ -6260,18 +6260,6 @@ if (debugInspectorEnabled) {
         res.status(202).json(createChatMediaRequest(req.params.personaId, {...req.body, trigger: 'debug_inspector'}));
     }));
 }
-
-app.get('/api/companion/media/:mediaId', async (req, res) => {
-    const asset = database.prepare('SELECT * FROM companion_media_assets WHERE id = ?').get(req.params.mediaId);
-    if (!asset) return res.status(404).json({error: '媒体不存在'});
-    try {
-        const provider = mediaProviders.get(asset.provider);
-        if (!provider?.readAsset) return res.status(502).json({error: '媒体 provider 不可用'});
-        await provider.readAsset({asset: {...asset, locator: json(asset.locator_json, {})}, res, settings: settings()});
-    } catch (error) {
-        res.status(502).json({error: error.message});
-    }
-});
 
 export const companionApp = app;
 export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listGroups, createGroup, assignPersonaGroup, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaCapabilityCall, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, normalizeMediaAcceptance, normalizePendingEventCall, pendingEventShape, planPendingEvent, applyPendingEventPlan, createPendingEvent, normalizeProactiveDecision, parseProactiveDecision, freezeProactiveDecision, evaluateProactiveDecision, runProactiveMessageJob, runPendingEventJob, mediaConceptEnvelopeFor, generatePersonaMediaConcept, fillMediaPromptTemplate, renderMediaPromptTemplate, mediaConceptSchemaVersion, mediaCapabilityCallSchemaVersion, mediaPromptTemplateSchemaVersion, mediaPromptTemplateSections, pendingEventSchemaVersion, proactiveDecisionSchemaVersion, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, systemCapabilitySceneContract, personaMediaConceptContract, imagePromptMasterContract, imageGenerationPolicies, imageGenerationPolicyLabels, normalizeImageGenerationPolicy, imageGenerationPolicyFor, sceneEventOperations, sceneEventTool, mediaEventTool, pendingEventTool, boundedSceneText, normalizeSceneEventCall, sharedSceneFor, planSceneEvent, applySceneEventPlan, applySceneEvent, appendToolCallFragment, consumeStreamedCompletion, capabilityRegistry, dispatchCapabilityCalls, executeSceneToolCall, sceneToolResult, executeMediaToolCall, mediaToolResult, pendingToolResult, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, storedDailyPlanItems, normalizeDailyPlan, composeDailyPlanTimeline, readyDailyPlanFor, dailyPlanSlotAt, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, interviewView, previewInterviewAnswers, validatePersonaDescription, normalizePersonaDescriptionExtraction, analyzePersonaDescription, createNaturalLanguageInterview, naturalLanguageDescriptionMaxLength, personaDescriptionPromptVersion, debugContextFor, redactDebugValue, debugSummary, promptRunsFor, lmCompletion, debugInspectorEnabled, ensureDailyPlan, enqueueRelationshipEvolutionJob, mediaProviders, providerFor, providerSummaries, validateMediaSettings, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
