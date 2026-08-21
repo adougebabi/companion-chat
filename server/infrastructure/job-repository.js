@@ -291,13 +291,14 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
         return {changed: changed.changes, recovered: changed.changes};
     }
 
-    function listForPersona({personaId, limit = 50} = {}) {
+    function listForPersona({personaId, limit = 50, jobTypes, types} = {}) {
         const owner = requiredText(personaId, 'Persona.id');
         const bounded = Math.min(200, Math.max(1, Number(limit) || 50));
+        const typeScope = jobTypeScope(jobTypes ?? types);
         return openDatabase.prepare(`
-            SELECT * FROM companion_jobs WHERE persona_id = ?
+            SELECT * FROM companion_jobs WHERE persona_id = ?${typeScope.sql}
             ORDER BY created_at DESC, id DESC LIMIT ?
-        `).all(owner, bounded);
+        `).all(owner, ...typeScope.values, bounded);
     }
 
     function transitionInput(first, second = {}) {

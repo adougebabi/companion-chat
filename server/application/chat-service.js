@@ -98,6 +98,8 @@ export function createCompanionChatService({
     conversationRepository,
     presentationMapper,
     userMessageWriter,
+    chatPolicy,
+    deferredChatPolicy,
     enableContinuation,
     commitBoundary,
     sendSse,
@@ -112,6 +114,7 @@ export function createCompanionChatService({
         conversationRepository,
         presentationMapper,
         userMessageWriter,
+        chatPolicy: chatPolicy ?? deferredChatPolicy,
         enableContinuation,
         commitBoundary: resolvedCommitBoundary
     });

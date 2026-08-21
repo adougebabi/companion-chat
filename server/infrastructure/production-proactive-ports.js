@@ -163,6 +163,16 @@ function createReplyProjection({database, conversationRepository, id, now}) {
         findDelivery({personaId, source}) {
             if (source?.pendingEventId) return database.prepare('SELECT * FROM companion_messages WHERE proactive_pending_event_id = ? LIMIT 1').get(source.pendingEventId);
             if (source?.eventId) return database.prepare('SELECT * FROM companion_messages WHERE proactive_event_id = ? LIMIT 1').get(source.eventId);
+            if (source?.batchId) {
+                return database.prepare(`
+                    SELECT messages.* FROM companion_messages messages
+                    JOIN companion_conversations conversations ON conversations.id = messages.conversation_id
+                    WHERE conversations.persona_id = ?
+                      AND json_extract(messages.jobs_json, '$[0].deferredBatchId') = ?
+                    LIMIT 1
+                `).get(personaId, source.batchId)
+                    ?? database.prepare('SELECT * FROM companion_messages WHERE id = ? LIMIT 1').get(source.replyMessageId);
+            }
             return null;
         },
         project({personaId, text, source, fallback}) {
@@ -177,7 +187,7 @@ function createReplyProjection({database, conversationRepository, id, now}) {
                 text: value,
                 attachmentsJson: '[]',
                 generationJson: null,
-                jobsJson: '[]',
+                jobsJson: source?.batchId ? JSON.stringify([{type: 'deferred_chat_reply', deferredBatchId: source.batchId}]) : '[]',
                 proactiveEventId: source?.eventId ?? null,
                 proactivePendingEventId: source?.pendingEventId ?? null,
                 createdAt,
@@ -206,28 +216,83 @@ function createActivityProjection({activityRepository, id, now}) {
     };
 }
 
-function createDeferredBatchPort(database, now) {
+function createDeferredBatchPort(database, now, {jobRepository, id} = {}) {
+    const nextId = typeof id === 'function' ? id : prefix => `${prefix}_${randomUUID()}`;
     return {
         findById({batchId, personaId}) {
             const row = database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE id = ? AND persona_id = ?').get(batchId, personaId);
             if (!row) return null;
             return {...row, messageIds: parseJson(row.message_ids_json, [])};
         },
+        findActive({personaId}) {
+            const row = database.prepare(`
+                SELECT * FROM companion_chat_deferred_batches
+                WHERE persona_id = ? AND status IN ('queued', 'leased', 'processing')
+                ORDER BY created_at DESC, id DESC LIMIT 1
+            `).get(personaId);
+            return row ? {...row, messageIds: parseJson(row.message_ids_json, [])} : null;
+        },
+        appendMessage({batchId, personaId, messageId, at = now()}) {
+            const row = database.prepare(`
+                SELECT * FROM companion_chat_deferred_batches
+                WHERE id = ? AND persona_id = ? AND status IN ('queued', 'leased', 'processing')
+            `).get(batchId, personaId);
+            if (!row) return null;
+            const ids = parseJson(row.message_ids_json, []);
+            if (!ids.includes(messageId)) ids.push(messageId);
+            database.prepare(`
+                UPDATE companion_chat_deferred_batches SET message_ids_json = ?, updated_at = ?
+                WHERE id = ? AND persona_id = ? AND status IN ('queued', 'leased', 'processing')
+            `).run(JSON.stringify(ids), at, batchId, personaId);
+            return database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE id = ?').get(batchId);
+        },
+        create(input = {}) {
+            const existing = database.prepare(`
+                SELECT * FROM companion_chat_deferred_batches
+                WHERE persona_id = ? AND batch_key = ? LIMIT 1
+            `).get(input.personaId, input.batchKey);
+            if (existing) return {batch: {...existing, messageIds: parseJson(existing.message_ids_json, [])}, job: null, created: false};
+            const createdAt = input.createdAt ?? now();
+            const updatedAt = input.updatedAt ?? createdAt;
+            const messageIds = Array.isArray(input.messageIds) ? input.messageIds.filter(Boolean) : [];
+            const decision = input.decision && typeof input.decision === 'object' ? input.decision : {};
+            let job = null;
+            database.transaction(() => {
+                database.prepare(`
+                    INSERT INTO companion_chat_deferred_batches
+                        (id, persona_id, conversation_id, batch_key, status, deliver_at, decision_json,
+                         message_ids_json, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?)
+                `).run(
+                    input.id, input.personaId, input.conversationId, input.batchKey,
+                    input.deliverAt, JSON.stringify(decision), JSON.stringify(messageIds), createdAt, updatedAt
+                );
+                const jobInput = input.job;
+                job = jobInput && jobRepository?.enqueue ? jobRepository.enqueue(jobInput) : null;
+            })();
+            const batch = database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE id = ?').get(input.id);
+            return {batch: {...batch, messageIds}, job, created: true};
+        },
         complete({batchId, personaId, at = now(), resultMessageId, messageIds}) {
             const result = database.prepare(`
                 UPDATE companion_chat_deferred_batches
                 SET status = 'complete', result_message_id = ?, message_ids_json = ?, updated_at = ?, completed_at = ?
-                WHERE id = ? AND persona_id = ? AND status IN ('queued', 'processing')
+                WHERE id = ? AND persona_id = ? AND status IN ('queued', 'leased', 'processing')
             `).run(resultMessageId, JSON.stringify(messageIds || []), at, at, batchId, personaId);
             return result.changes ? database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE id = ?').get(batchId) : null;
         },
         expire({batchId, personaId, at = now()}) {
-            return database.prepare(`UPDATE companion_chat_deferred_batches SET status = 'expired', updated_at = ? WHERE id = ? AND persona_id = ? AND status = 'queued'`).run(at, batchId, personaId);
+            return database.prepare(`UPDATE companion_chat_deferred_batches SET status = 'expired', updated_at = ? WHERE id = ? AND persona_id = ? AND status IN ('queued', 'leased', 'processing')`).run(at, batchId, personaId);
         },
         recordFailure({batchId, personaId, at = now(), error}) {
             return database.prepare(`UPDATE companion_chat_deferred_batches SET error = ?, attempt_count = attempt_count + 1, updated_at = ? WHERE id = ? AND persona_id = ?`).run(String(error || '').slice(0, 500), at, batchId, personaId);
         }
     };
+}
+
+export function createProductionDeferredChatBatchRepository({database, jobRepository, clock, id} = {}) {
+    const now = clockFor(clock);
+    return createDeferredBatchPort(requireDatabase(database), now, {jobRepository, id: idFor(id)});
 }
 
 function createConversationMessages(conversationRepository) {
@@ -252,7 +317,10 @@ export function createProductionProactiveFlows({database, repositories, provider
     const decision = createDecisionPort({database: openDatabase, jobRepository: repositories.job ?? repositories.jobRepository, completion, now});
     const reply = createReplyProjection({database: openDatabase, conversationRepository: conversation, id: generateId, now});
     const activityProjection = createActivityProjection({activityRepository: activity, id: generateId, now});
-    const deferredBatch = createDeferredBatchPort(openDatabase, now);
+    const deferredBatch = createDeferredBatchPort(openDatabase, now, {
+        jobRepository: repositories.job ?? repositories.jobRepository,
+        id: generateId
+    });
     const conversationMessages = createConversationMessages(conversation);
     const replyComposer = {
         async compose({personaId, batch, messages, lifeWorld, at, command, signal} = {}) {
@@ -270,7 +338,15 @@ export function createProductionProactiveFlows({database, repositories, provider
         proactive_message: createProactiveMessageFlow({lifeEvent, pendingEvent: pending, decision, reply, clock: now, idGenerator: generateId}),
         pending_event: createPendingEventWorkerFlow({lifeEvent, pendingEvent: pending, decision, reply, clock: now, idGenerator: generateId}),
         activity_decision: createActivityDecisionFlow({lifeEvent, decision, activity: activityProjection, clock: now, idGenerator: generateId}),
-        deferred_chat_reply: createDeferredChatReplyFlow({deferredBatch, conversation: conversationMessages, reply, replyComposer, clock: now})
+        deferred_chat_reply: createDeferredChatReplyFlow({
+            deferredBatch,
+            conversation: conversationMessages,
+            reply,
+            replyComposer,
+            lease: repositories.job ?? repositories.jobRepository,
+            clock: now,
+            idGenerator: generateId
+        })
     };
 }
 

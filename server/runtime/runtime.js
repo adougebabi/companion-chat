@@ -30,18 +30,23 @@ import {createDailyPlanRepository} from '../infrastructure/daily-plan-repository
 import {createPresenceRepository} from '../infrastructure/presence-repository.js';
 import {h3RuntimeHelpers} from '../infrastructure/h3-preflight.js';
 import {createDebugService} from '../application/debug-service.js';
+import {createMediaDebugService} from '../application/media-debug-service.js';
 import {createSettingsPolicy} from '../application/settings-policy.js';
 import {createLifeWorldReader} from '../application/life-world-reader.js';
 import {createLifeStateResolver} from '../domain/life-state-resolver.js';
 import {createLifeStateService} from '../application/life-state-service.js';
 import {createLifeEventFlow} from '../application/life-event-flow.js';
+import {createTimelineFlow} from '../application/timeline-flow.js';
+import {createRelationshipFlow} from '../application/relationship-flow.js';
+import {createDeferredChatPolicy} from '../application/deferred-chat-policy.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
 import {createProductionProviderRegistry} from '../infrastructure/production-media-providers.js';
 import {createMtplxCompletionPort} from '../infrastructure/llm-provider.js';
 import {createMediaJobRepository} from '../infrastructure/media-job-repository.js';
 import {createMediaPromptMaster, createSkippedMediaAcceptance} from '../infrastructure/media-prompt-master.js';
-import {createProductionProactiveFlows} from '../infrastructure/production-proactive-ports.js';
+import {createProductionDeferredChatBatchRepository, createProductionProactiveFlows} from '../infrastructure/production-proactive-ports.js';
 import {createMediaJobApplication} from '../application/media-job-composition.js';
+import {createMediaFlow} from '../application/media-flow.js';
 import createJobDispatcher from './job-dispatcher.js';
 import createStartupRuntime from './startup.js';
 import createWorkerRuntime from './worker-runtime.js';
@@ -269,6 +274,46 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
         ? createLifeWorldReader({repositories, blueprintReader: repositories.blueprint, clock})
         : null;
     const resolveLifeState = createLifeStateResolver();
+    const deferredLifeWorld = lifeWorldReader
+        ? {
+            read({personaId, at} = {}) {
+                return resolveLifeState(lifeWorldReader.readResolverInput({personaId, at}));
+            }
+        }
+        : null;
+    const resolveDeferredSleep = ({personaId, at, state} = {}) => {
+        const life = repositories.blueprint?.read?.({personaId}) ?? {};
+        const timezone = life.timezone || 'Asia/Shanghai';
+        const rawHour = Number(new Intl.DateTimeFormat('en-US', {hour: 'numeric', hour12: false, timeZone: timezone}).format(new Date(at)));
+        const hour = rawHour === 24 ? 0 : rawHour;
+        const planSleep = state?.source === 'daily_plan_baseline'
+            && /睡|赖床|自然醒|起床前/.test(String(state?.situation || ''));
+        if (!planSleep && hour >= 8 && hour < 23) return {sleeping: false, immediate: true, timezone};
+        const rows = repositories.conversation?.listMessages?.({personaId, limit: 1_000}) ?? [];
+        const userCount = (Array.isArray(rows) ? rows : rows?.items ?? []).filter(row => (row.role ?? row.role_name) === 'user').length;
+        const relationship = repositories.relationship?.activePatch?.({personaId});
+        const intimacy = Math.max(0, Math.min(4,
+            (userCount >= 30 ? 3 : userCount >= 10 ? 2 : userCount >= 3 ? 1 : 0)
+            + (relationship?.communicationStyle || relationship?.communication_style ? 1 : 0)));
+        const key = `${personaId}:${String(at).slice(0, 13)}:${hour}:${userCount}`;
+        const draw = Array.from(key).reduce((sum, char) => (sum * 33 + char.charCodeAt(0)) >>> 0, 17) % 100;
+        return {
+            sleeping: true,
+            intimacy,
+            draw,
+            immediate: draw < 8 + intimacy * 10,
+            nextBoundaryAt: state?.nextBoundaryAt ?? state?.next_boundary_at ?? null,
+            timezone
+        };
+    };
+    const deferredChatPolicy = options.deferredChatPolicy ?? createDeferredChatPolicy({
+        deferredBatch: repositories.deferredChatBatch,
+        conversationRepository: repositories.conversation,
+        lifeWorld: deferredLifeWorld,
+        sleepAvailability: resolveDeferredSleep,
+        clock,
+        idGenerator
+    });
     const contextReader = {
         read({command = {}, messages = []} = {}) {
             const personaId = command.personaId ?? command?.command?.personaId;
@@ -332,6 +377,7 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
         }),
         conversationRepository: repositories.conversation,
         userMessageWriter,
+        deferredChatPolicy,
         commitBoundary,
         sendSse(sink, event) {
             if (typeof sink?.write === 'function') sink.write(`data: ${JSON.stringify(event)}\n\n`);
@@ -532,6 +578,7 @@ function resolveRepositories(options, startup) {
     const id = runtimeId(options.idGenerator ?? options.id);
     const job = createJobRepository({database, clock, id});
     const pending = createPendingEventRepository({database, enqueueJob: job.enqueue.bind(job)});
+    const deferredChatBatch = createProductionDeferredChatBatchRepository({database, jobRepository: job, clock, id});
     const settings = createSettingsRepository({database, defaults: () => ({}), clock});
     const personaLifecycle = createPersonaLifecycleRepository({database, clock, id, jobRepository: job});
     const interview = createInterviewRepository({database, clock, id, personaLifecycle});
@@ -540,6 +587,7 @@ function resolveRepositories(options, startup) {
         activity: createActivityRepository({database}),
         job,
         jobRepository: job,
+        deferredChatBatch,
         pending,
         pendingEvent: pending,
         lifeEvent: createLifeEventRepository({database, clock, id}),
@@ -649,17 +697,52 @@ function resolveJobHandlers(options) {
     return handlers.size ? handlers : undefined;
 }
 
-function resolveMaintenanceHandlers(options, repositories) {
-    if (options.defaultProductionComposition !== true || options.repositories !== undefined) return {};
+function resolveApplicationFlows(options, repositories) {
+    const clock = options.clock;
+    const idGenerator = options.idGenerator ?? options.id;
+    const lifeEventFlow = options.lifeEventFlow ?? (repositories.lifeEvent || repositories.life
+        ? createLifeEventFlow({repositories, clock, idGenerator, transaction: options.transaction})
+        : null);
+    const timelineReady = repositories.eventDecisionRepository
+        || repositories.timelineDecisionRepository
+        || repositories.decisionRepository
+        || repositories.eventDecision
+        || repositories.decisions;
+    const timelineFlow = options.timelineFlow ?? (timelineReady && lifeEventFlow
+        ? createTimelineFlow({repositories, lifeEventFlow, clock, idGenerator, transaction: options.transaction})
+        : null);
+    const relationshipFlow = options.relationshipFlow ?? (repositories.relationship || repositories.relationshipRepository
+        ? createRelationshipFlow({repositories, clock, idGenerator, transaction: options.transaction, evaluator: options.relationshipEvaluator})
+        : null);
+    return {lifeEventFlow, timelineFlow, relationshipFlow};
+}
+
+function resolveMaintenanceHandlers(options, repositories, flows = {}) {
+    const hasExplicitFlow = Boolean(options.timelineFlow || options.relationshipFlow || options.relationshipEvolution || options.relationshipEvolutionFlow || flows.timelineFlow || flows.relationshipFlow);
+    if (options.defaultProductionComposition !== true || (options.repositories !== undefined && !hasExplicitFlow)) return {};
+    const timelineFlow = flows.timelineFlow ?? options.timelineFlow;
+    const relationshipFlow = flows.relationshipFlow ?? options.relationshipFlow;
     return {
         daily_plan: async job => {
             const payload = typeof job.payload_json === 'string' ? JSON.parse(job.payload_json || '{}') : (job.payload ?? {});
+            const slots = timelineFlow?.syncDailyPlanSlots
+                ? await timelineFlow.syncDailyPlanSlots({personaId: job.persona_id ?? job.personaId, planDate: payload.planDate ?? payload.plan_date, plan: payload.plan, at: job.updated_at ?? new Date().toISOString()})
+                : null;
             const plan = repositories.dailyPlan?.markReady?.({dailyPlanId: payload.dailyPlanId ?? payload.id, updatedAt: job.updated_at ?? new Date().toISOString()});
-            return {status: 'complete', result: {dailyPlanId: payload.dailyPlanId ?? payload.id, status: plan?.status ?? 'ready'}};
+            return {status: 'complete', result: {dailyPlanId: payload.dailyPlanId ?? payload.id, status: plan?.status ?? 'ready', slots: slots?.slots ?? []}};
+        },
+        timeline_candidate: async (job, context) => {
+            if (typeof timelineFlow?.handleJob === 'function') return timelineFlow.handleJob(job, context);
+            return {status: 'complete', result: {skipped: 'timeline flow not configured'}};
+        },
+        timeline_reconcile: async (job, context) => {
+            if (typeof timelineFlow?.handleJob === 'function') return timelineFlow.handleJob(job, context);
+            return {status: 'complete', result: {skipped: 'timeline flow not configured'}};
         },
         relationship_evolution: async job => {
             const handler = options.relationshipEvolution ?? options.relationshipEvolutionFlow;
             if (typeof handler === 'function') return handler(job);
+            if (typeof relationshipFlow?.handleJob === 'function') return relationshipFlow.handleJob(job, {now: typeof options.clock === 'function' ? options.clock() : options.clock?.now?.() ?? new Date().toISOString()});
             return {status: 'complete', result: {skipped: 'relationship evolution flow not configured'}};
         }
     };
@@ -776,6 +859,7 @@ export function createRuntime(options = {}) {
     const mediaJobService = mediaComposition.mediaJobService;
     const mediaObservability = mediaComposition.observability;
     const proactiveJobService = resolveProactiveJobService(options, repositories, startup, providers);
+    const applicationFlows = resolveApplicationFlows(options, repositories);
     const explicitChatPorts = options.chatProductionPorts
         ?? options.productionChatPorts
         ?? options.chatOptions
@@ -795,7 +879,7 @@ export function createRuntime(options = {}) {
         providers,
         h3Inspector: h3Helpers.inspectH3Configuration
     });
-    const maintenanceHandlers = resolveMaintenanceHandlers(options, repositories);
+    const maintenanceHandlers = resolveMaintenanceHandlers(options, repositories, applicationFlows);
     const jobDispatcher = resolveJobDispatcher({
         ...options,
         jobRepository,
@@ -806,6 +890,7 @@ export function createRuntime(options = {}) {
     const application = options.application ?? options.applicationFactory?.({
         ...options,
         repositories,
+        ...applicationFlows,
         jobRepository,
         providers,
         jobDispatcher,
@@ -921,7 +1006,7 @@ export function createCompanionRuntime(options = {}) {
                 providers: resolved.providers,
                 settingsPolicy: resolved.settingsPolicy ?? options.settingsPolicy,
                 defaultTimezone: options.defaultTimezone,
-                debugInspector: options.debugInspectorEnabled === true
+                debugInspector: resolved.debugInspectorEnabled === true
             });
             const activityService = options.activityService ?? createActivityService({
                 repositories: resolved.repositories,
@@ -933,6 +1018,18 @@ export function createCompanionRuntime(options = {}) {
                 ?? (resolved.repositories.lifeEvent?.createEvent || resolved.repositories.lifeEvent?.insertEvent
                     ? createLifeEventFlow({repositories: resolved.repositories, clock: resolved.clock, idGenerator: resolved.idGenerator ?? resolved.id})
                     : null);
+            const mediaFlow = resolved.mediaFlow
+                ?? (typeof resolved.normalizeMediaCapabilityCall === 'function'
+                    ? createMediaFlow({
+                        repositories: resolved.repositories,
+                        clock: resolved.clock,
+                        idGenerator: resolved.idGenerator ?? resolved.id,
+                        normalizeMediaCapabilityCall: resolved.normalizeMediaCapabilityCall,
+                        mediaConceptEnvelopeFor: resolved.mediaConceptEnvelopeFor,
+                        providerFor: resolved.providerFor,
+                        transaction: resolved.transaction
+                    })
+                    : null);
             const debugService = options.debugService ?? createDebugService({
                 repositories: resolved.repositories,
                 promptRuns: resolved.repositories.promptRun,
@@ -941,6 +1038,21 @@ export function createCompanionRuntime(options = {}) {
                 lifeEventFlow,
                 mediaJobService: resolved.mediaJobService,
                 clock: resolved.clock
+            });
+            const mediaDebugService = options.mediaDebugService ?? createMediaDebugService({
+                repositories: resolved.repositories,
+                settings: options.settings ?? resolved.repositories.settings,
+                providers: resolved.providers,
+                mediaFlow,
+                mediaJobService: resolved.mediaJobService,
+                observability: resolved.mediaObservability,
+                clock: resolved.clock,
+                enabled: resolved.debugInspectorEnabled === true
+            });
+            const debugApplication = Object.freeze({
+                ...debugService,
+                ...mediaDebugService,
+                debug: Object.freeze({...(debugService.debug ?? {}), ...(mediaDebugService.debug ?? {})})
             });
             const lifeWorldReady = isRecord(resolved.repositories.blueprint)
                 && isRecord(resolved.repositories.schedule)
@@ -963,7 +1075,7 @@ export function createCompanionRuntime(options = {}) {
                     providers: resolved.providers,
                     clock: resolved.clock,
                     idGenerator: resolved.idGenerator ?? resolved.id,
-                    debugInspector: options.debugInspectorEnabled === true,
+                    debugInspector: resolved.debugInspectorEnabled === true,
                     identitySettingsService: identitySettings,
                     activityService,
                     adapters: options.adapters,
@@ -973,11 +1085,17 @@ export function createCompanionRuntime(options = {}) {
                     foundationService: options.foundationService,
                     scheduleService: options.scheduleService,
                     memoryService: options.memoryService,
-                    debugService,
-                    mediaService: options.mediaService,
+                    debugService: debugApplication,
+                    mediaDebugService,
+                    mediaService: options.mediaService ?? mediaDebugService,
                     lifeStateService,
-                    lifeEventFlow
-                })
+                    lifeEventFlow,
+                    relationshipFlow: resolved.relationshipFlow
+                }),
+                mediaFlow,
+                lifeEventFlow: resolved.lifeEventFlow ?? lifeEventFlow,
+                timelineFlow: resolved.timelineFlow,
+                relationshipFlow: resolved.relationshipFlow
             });
         };
     return createRuntime({

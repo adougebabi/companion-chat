@@ -5,6 +5,7 @@ import {
     createConversationMessagePort,
     createDecisionPort,
     createDeferredBatchPort,
+    createDeferredChatLeasePort,
     createIdPort,
     createLifeEventPort,
     createLifeWorldPort,
@@ -451,13 +452,29 @@ export function createActivityDecisionFlow({lifeEvent, decision, activity, lifeW
     return flowDefinition('activity-decision', 'activity-decision-projection', execute);
 }
 
-export function createDeferredChatReplyFlow({deferredBatch, conversation, reply, lifeWorld, replyComposer, clock} = {}) {
+export function createDeferredChatReplyFlow({deferredBatch, conversation, reply, lifeWorld, replyComposer, lease, jobLease, clock} = {}) {
     const batches = createDeferredBatchPort(deferredBatch);
     const messages = createConversationMessagePort(conversation);
     const replies = createAssistantReplyProjectionPort(reply);
     const world = createLifeWorldPort(lifeWorld);
+    const leasePort = lease || jobLease ? createDeferredChatLeasePort(lease ?? jobLease) : null;
     const now = createClockPort(clock);
     if (!replyComposer || typeof replyComposer.compose !== 'function') throw new TypeError('deferred replyComposer must provide compose()');
+
+    async function activeLease(command, context, personaId, at) {
+        if (!leasePort?.isActive) return true;
+        const owner = context?.leaseOwner ?? context?.owner ?? command.context?.leaseOwner ?? command.job?.['lease_' + 'owner'];
+        if (!owner) return true;
+        const current = await leasePort.isActive({
+            id: command.jobId ?? command.job?.id,
+            jobId: command.jobId ?? command.job?.id,
+            personaId,
+            leaseOwner: owner,
+            now: at,
+            job: command.job
+        });
+        return current === true || Boolean(current?.active ?? current?.job ?? current);
+    }
 
     async function execute(command, context = {}) {
         const personaId = personaFor(command);
@@ -474,6 +491,12 @@ export function createDeferredChatReplyFlow({deferredBatch, conversation, reply,
             if (batches.expire) await batches.expire({personaId, batchId, at, from: status});
             return channelResult({result: {skipped: 'expired', batchId}, projections: [projection('deferred_batch', {batchId, status: 'expired'})]});
         }
+        if (!(await activeLease(command, context, personaId, at))) return channelResult({result: {skipped: 'stale_lease', batchId}});
+        // A deterministic projection id lets a retry/restart discover the
+        // message even when the first worker lost its lease after insertion.
+        const source = {batchId, personaId, replyMessageId: `deferred_reply_${batchId}`};
+        const existing = replies.findDelivery ? await replies.findDelivery({personaId, source}) : null;
+        if (existing) return channelResult({result: {skipped: 'already_completed', batchId, messageId: existing.id}});
         const rawIds = valueOf(batch, 'messageIds', 'message_ids', null);
         const ids = Array.isArray(rawIds) ? rawIds : parseJson(rawIds ?? valueOf(batch, 'messageIdsJson', 'message_ids_json'), []);
         const pendingMessages = Array.isArray(batch.messages) ? batch.messages : await messages.listByIds({personaId, ids: Array.isArray(ids) ? ids.filter(Boolean) : []});
@@ -485,8 +508,22 @@ export function createDeferredChatReplyFlow({deferredBatch, conversation, reply,
             if (batches.recordFailure) await batches.recordFailure({personaId, batchId, at, error: String(error?.message || error).slice(0, 500)});
             throw retryable(error?.message || 'Deferred reply composition failed');
         }
-        const projected = normalizeReplyMessages(await replies.project({personaId, text: textValue?.text ?? textValue, source: {batchId, personaId}, fallback: '刚刚看到你的消息了。'}));
-        const completed = await batches.complete({personaId, batchId, at, resultMessageId: projected[0].id, messageIds: projected.map(message => message.id), status});
+        // A lease may expire while the model is running. Recheck both the
+        // durable lease and the batch before projecting user-visible text.
+        if (!(await activeLease(command, context, personaId, at))) return channelResult({result: {skipped: 'stale_lease', batchId}});
+        const live = await batches.read({personaId, batchId});
+        const liveStatus = valueOf(live, 'status', 'status', null);
+        if (!live || !['queued', 'leased', 'processing'].includes(liveStatus)) {
+            const delivered = replies.findDelivery ? await replies.findDelivery({personaId, source}) : null;
+            return channelResult({result: delivered ? {skipped: 'already_completed', batchId, messageId: delivered.id} : {skipped: 'batch_already_settled', batchId}});
+        }
+        const projected = normalizeReplyMessages(await replies.project({personaId, text: textValue?.text ?? textValue, source, fallback: '刚刚看到你的消息了。'}));
+        const completed = await batches.complete({personaId, batchId, at, resultMessageId: projected[0].id, messageIds: projected.map(message => message.id), status: liveStatus});
+        if (!completed) {
+            const delivered = replies.findDelivery ? await replies.findDelivery({personaId, source}) : null;
+            if (delivered) return channelResult({result: {skipped: 'already_completed', batchId, messageId: delivered.id}});
+            return channelResult({result: {skipped: 'batch_already_settled', batchId}});
+        }
         const result = {batchId, messageId: projected[0].id, messageIds: projected.map(message => message.id)};
         return channelResult({
             result,

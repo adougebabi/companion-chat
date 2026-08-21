@@ -66,9 +66,11 @@ export function createBasicCompanionServices({
     scheduleService,
     memoryService,
     debugService,
+    mediaDebugService,
     mediaService,
     lifeStateService,
-    lifeEventFlow
+    lifeEventFlow,
+    relationshipFlow
 } = {}) {
     const personas = repository(repositories, ['persona', 'personas'], 'persona repository');
     const groups = repository(repositories, ['group', 'groups'], 'group repository');
@@ -84,11 +86,18 @@ export function createBasicCompanionServices({
     });
     const useIdentitySettings = identitySettingsService !== undefined;
     const activityApplication = activityService ?? null;
-    const mediaApplication = mediaService ?? (repositories.mediaAsset ? {
+    const mediaApplication = mediaDebugService ?? mediaService ?? (repositories.mediaAsset ? {
         get: command => repositories.mediaAsset.find(command),
         read: command => repositories.mediaAsset.find(command),
         getMedia: command => repositories.mediaAsset.find(command)
     } : null);
+    const debugApplication = mediaDebugService
+        ? Object.freeze({
+            ...(debugService ?? {}),
+            ...mediaDebugService,
+            debug: Object.freeze({...((debugService ?? {}).debug ?? {}), ...(mediaDebugService.debug ?? {})})
+        })
+        : debugService;
     const routeApplication = routeService ?? createCompanionRouteService({
         repositories,
         services: {identity: identity},
@@ -148,18 +157,22 @@ export function createBasicCompanionServices({
         memories: routeApplication.memories,
         lifecycle: routeApplication.identity,
         ...(mediaApplication ? {media: mediaApplication, assets: mediaApplication} : {}),
-        ...(debugService ? {debug: debugService} : {}),
+        ...(debugApplication ? {debug: debugApplication} : {}),
         ...(lifeStateService ? {life: lifeStateService, lifeState: lifeStateService} : {}),
         ...(lifeEventFlow ? {lifeEvent: lifeEventFlow, events: lifeEventFlow} : {}),
         ...(repositories.relationship ? {
             relationship: {
                 rollbackEvolution(command) {
-                    const result = repositories.relationship.rollbackEvolution(command);
+                    const result = relationshipFlow
+                        ? relationshipFlow.rollback(command)
+                        : repositories.relationship.rollbackEvolution(command);
                     if (!result) throw Object.assign(new Error('关系演化不存在或已回滚'), {status: 404});
                     return result;
                 },
                 rollback: command => {
-                    const result = repositories.relationship.rollbackEvolution(command);
+                    const result = relationshipFlow
+                        ? relationshipFlow.rollback(command)
+                        : repositories.relationship.rollbackEvolution(command);
                     if (!result) throw Object.assign(new Error('关系演化不存在或已回滚'), {status: 404});
                     return result;
                 }

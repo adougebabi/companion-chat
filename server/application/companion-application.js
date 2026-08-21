@@ -2,6 +2,9 @@ import {createCompanionRouteHandlers} from './companion-route-handlers.js';
 import {createMediaFlow} from './media-flow.js';
 import {createPendingEventFlow} from './pending-event-flow.js';
 import {createSceneEventFlow} from './scene-event-flow.js';
+import {createLifeEventFlow} from './life-event-flow.js';
+import {createTimelineFlow} from './timeline-flow.js';
+import {createRelationshipFlow} from './relationship-flow.js';
 import {createCompanionChatService} from './chat-service.js';
 import {createCapabilityHandoffAdapter, createFlowCapabilityRegistry} from './capability-handoff-adapter.js';
 
@@ -23,6 +26,8 @@ const CHAT_PORT_NAMES = Object.freeze([
     'conversationRepository',
     'conversation',
     'userMessageWriter',
+    'chatPolicy',
+    'deferredChatPolicy',
     'enableContinuation',
     'presentationMapper',
     'chatPresentationMapper',
@@ -43,6 +48,8 @@ const DIRECT_CHAT_MARKERS = Object.freeze([
     'conversationRepository',
     'conversation',
     'userMessageWriter',
+    'chatPolicy',
+    'deferredChatPolicy',
     'enableContinuation',
     'presentationMapper',
     'chatPresentationMapper',
@@ -100,6 +107,9 @@ export function createCompanionApplication(options = {}) {
     const clock = options.clock;
     const idGenerator = options.idGenerator ?? options.id;
     const flowOptions = {repositories, clock, idGenerator};
+    const lifeEventFlow = options.lifeEventFlow ?? (repositories.lifeEvent || repositories.life
+        ? optionalFactory(createLifeEventFlow, {...flowOptions, transaction: options.transaction})
+        : null);
     const pendingReady = repositories.pending || repositories.pendingEvent
         ? Boolean(repositories.job || repositories.jobRepository)
         : false;
@@ -117,6 +127,17 @@ export function createCompanionApplication(options = {}) {
             scheduledState: options.scheduledState,
             transaction: options.transaction
         })
+        : null);
+    const timelineRepositoryReady = repositories.eventDecisionRepository
+        || repositories.timelineDecisionRepository
+        || repositories.decisionRepository
+        || repositories.eventDecision
+        || repositories.decisions;
+    const timelineFlow = options.timelineFlow ?? (timelineRepositoryReady && lifeEventFlow
+        ? optionalFactory(createTimelineFlow, {...flowOptions, lifeEventFlow, transaction: options.transaction})
+        : null);
+    const relationshipFlow = options.relationshipFlow ?? (repositories.relationship || repositories.relationshipRepository
+        ? optionalFactory(createRelationshipFlow, {...flowOptions, transaction: options.transaction})
         : null);
     const mediaFlow = options.mediaFlow ?? (options.normalizeMediaCapabilityCall || options.mediaNormalizer
         ? optionalFactory(createMediaFlow, {
@@ -143,7 +164,10 @@ export function createCompanionApplication(options = {}) {
     })();
     const services = {
         ...(isRecord(options.services) ? options.services : {}),
-        ...(chatService ? {chat: chatService} : {})
+        ...(chatService ? {chat: chatService} : {}),
+        ...(lifeEventFlow ? {lifeEvent: lifeEventFlow, events: lifeEventFlow} : {}),
+        ...(timelineFlow ? {timeline: timelineFlow, lifeTimeline: timelineFlow} : {}),
+        ...(relationshipFlow ? {relationship: relationshipFlow, evolution: relationshipFlow} : {})
     };
     const defaultRouteHandlers = createCompanionRouteHandlers({
         repositories,
@@ -163,6 +187,9 @@ export function createCompanionApplication(options = {}) {
         adapters: options.adapters ?? Object.freeze({}),
         pendingEventFlow,
         sceneEventFlow,
+        lifeEventFlow,
+        timelineFlow,
+        relationshipFlow,
         mediaFlow,
         capabilityDispatcher,
         chatService,

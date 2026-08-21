@@ -4,6 +4,7 @@ function clockFor(clock) { if (typeof clock === 'function') return clock; if (cl
 function idFor(id) { if (typeof id === 'function') return id; if (id?.next) return id.next.bind(id); return prefix => `${prefix}_${crypto.randomUUID()}`; }
 function boundedAppearance(value) { if (!isRecord(value)) return {}; return Object.fromEntries(Object.entries(value).slice(0, 6).map(([key, item]) => [text(key, 'appearance key', 32), String(item).slice(0, 120)]).filter(([key, item]) => key && item)); }
 function timestamp(value, field) { const date = new Date(value); if (!Number.isFinite(date.getTime())) throw Object.assign(new TypeError(`${field}必须是有效时间`), {status: 400}); return date.toISOString(); }
+function boundedOptional(value, field, max = 160) { return value === undefined || value === null || value === '' ? null : text(value, field, max); }
 
 /** Records a generic life-event fact and returns post-commit projection/effect intents. */
 export function createLifeEventFlow({repositories = {}, clock, idGenerator, transaction} = {}) {
@@ -35,7 +36,15 @@ export function createLifeEventFlow({repositories = {}, clock, idGenerator, tran
             rationale: text(command.rationale, '事件原因', 240),
             simulated: Boolean(command.simulated),
             ...(command.sceneRef ? {sceneRef: command.sceneRef} : {}),
-            ...(command.eventFamily ? {eventFamily: text(command.eventFamily, 'eventFamily', 48)} : {})
+            ...(command.eventFamily ? {eventFamily: text(command.eventFamily, 'eventFamily', 48)} : {}),
+            ...(boundedOptional(command.idempotencyKey, 'idempotencyKey') ? {idempotencyKey: boundedOptional(command.idempotencyKey, 'idempotencyKey')} : {}),
+            ...(boundedOptional(command.templateId, 'templateId', 120) ? {templateId: boundedOptional(command.templateId, 'templateId', 120)} : {}),
+            ...(boundedOptional(command.decisionId, 'decisionId', 160) ? {decisionId: boundedOptional(command.decisionId, 'decisionId', 160)} : {}),
+            ...(boundedOptional(command.slotId, 'slotId', 160) ? {slotId: boundedOptional(command.slotId, 'slotId', 160)} : {}),
+            ...(Number.isFinite(Number(command.priority)) ? {priority: Number(command.priority)} : {}),
+            ...(boundedOptional(command.preemptionMode, 'preemptionMode', 32) ? {preemptionMode: boundedOptional(command.preemptionMode, 'preemptionMode', 32)} : {}),
+            ...(command.reversible === undefined ? {} : {reversible: Boolean(command.reversible)}),
+            ...(boundedOptional(command.recovery, 'recovery', 240) ? {recovery: boundedOptional(command.recovery, 'recovery', 240)} : {})
         };
         const fact = createFact({
             id: command.id ?? command.eventId ?? nextId('event'),

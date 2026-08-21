@@ -92,9 +92,18 @@ export function createActivityProjectionPort(source) {
 export function createDeferredBatchPort(source) {
     return port(source, 'deferredBatch', {
         read: {names: ['findById', 'findBatch', 'find', 'read']},
+        findActive: {names: ['findActive', 'findActiveForPersona', 'active'], optional: true},
+        create: {names: ['create', 'createBatch', 'enqueue'], optional: true},
+        appendMessage: {names: ['appendMessage', 'append', 'mergeMessage'], optional: true},
         complete: {names: ['complete', 'markComplete', 'finish']},
         expire: {names: ['expire', 'markExpired'], optional: true},
         recordFailure: {names: ['recordFailure', 'markAttemptFailure'], optional: true}
+    });
+}
+
+export function createDeferredChatLeasePort(source) {
+    return port(source, 'deferredChatLease', {
+        isActive: {names: ['isActive', 'assertActive', 'findLeased'], optional: true}
     });
 }
 
@@ -137,6 +146,7 @@ export default {
     createAssistantReplyProjectionPort,
     createActivityProjectionPort,
     createDeferredBatchPort,
+    createDeferredChatLeasePort,
     createConversationMessagePort,
     createLifeWorldPort,
     createIdPort,

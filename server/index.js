@@ -15,6 +15,15 @@ export {createBasicCompanionServices} from './application/basic-companion-servic
 export {createIdentitySettingsService, publicSettings, redactSettings} from './application/identity-settings-service.js';
 export {createActivityService, createCompanionActivityService} from './application/activity-service.js';
 export {createDebugService} from './application/debug-service.js';
+export {
+    MEDIA_DEBUG_SERVICE_VERSION,
+    MEDIA_SOURCE_JOB_TYPES,
+    MEDIA_POLL_JOB_TYPES,
+    createMediaDebugService,
+    createMediaDebugApplicationService,
+    redactMediaDebugValue,
+    mediaDebugSummary
+} from './application/media-debug-service.js';
 export {createSettingsPolicy} from './application/settings-policy.js';
 export {createLifeStateService} from './application/life-state-service.js';
 export {createLifeEventFlow, createLifeEventApplicationFlow} from './application/life-event-flow.js';
@@ -31,6 +40,17 @@ export {createInterviewRepository} from './infrastructure/interview-repository.j
 export {createPersonaLifecycleRepository} from './infrastructure/persona-lifecycle-repository.js';
 export {createProactiveJobService, createProactiveJobApplicationService} from './application/proactive-job-service.js';
 export {
+    DEFERRED_CHAT_POLICY_VERSION,
+    DEFERRED_CHAT_JOB_TYPE,
+    DEFERRED_BATCH_ACTIVE_STATUSES,
+    createDeferredChatPolicy,
+    createChatDeferredPolicy,
+    createDeferredReplyPolicy,
+    trustedTimeFacts,
+    trustedTimeReplyForMessage,
+    resolveTrustedTimeFacts
+} from './application/deferred-chat-policy.js';
+export {
     createProactiveMessageFlow,
     createPendingEventWorkerFlow,
     createActivityDecisionFlow,
@@ -44,6 +64,7 @@ export {
     createAssistantReplyProjectionPort,
     createActivityProjectionPort,
     createDeferredBatchPort,
+    createDeferredChatLeasePort,
     createConversationMessagePort,
     createLifeWorldPort,
     createIdPort,
@@ -75,6 +96,7 @@ export {
 } from './infrastructure/conversation-commit-adapter.js';
 export {createLifeWorldReader} from './application/life-world-reader.js';
 export {createConversationService} from './application/conversation-service.js';
+export {createProductionDeferredChatBatchRepository} from './infrastructure/production-proactive-ports.js';
 export {createCompanionRouteService, createCompanionRouteApplicationService} from './application/companion-route-service.js';
 export {
     LEGACY_PRODUCTION_BOUNDARY_VERSION,

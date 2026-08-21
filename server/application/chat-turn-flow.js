@@ -174,6 +174,23 @@ function resultChannels(value) {
     return normalizeStepResult(value);
 }
 
+function resolveChatPolicy(value) {
+    if (value === undefined || value === null) return null;
+    if (typeof value === 'function') return value;
+    if (!isRecord(value)) throw new TypeError('Chat policy must be a function or object');
+    for (const method of ['evaluate', 'apply', 'run', 'handle']) {
+        if (value[method] !== undefined) {
+            if (typeof value[method] !== 'function') throw new TypeError(`Chat policy.${method} must be a function`);
+            return value[method].bind(value);
+        }
+    }
+    throw new TypeError('Chat policy must provide evaluate()');
+}
+
+function policyHandled(runtime) {
+    return runtime.policy?.handled === true;
+}
+
 function modelMessage(message) {
     if (!isRecord(message)) return null;
     return {
@@ -243,7 +260,7 @@ async function repositoryHistory(repository, input) {
     return Array.isArray(rows) ? rows.slice(-MAX_HISTORY).reverse() : [];
 }
 
-function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDispatcher, conversationRepository, presentationMapper, userMessageWriter, enableContinuation = false, flowId}) {
+function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDispatcher, conversationRepository, presentationMapper, userMessageWriter, chatPolicy, enableContinuation = false, flowId}) {
     const capabilityHandoff = createCapabilityHandoffStep({dispatcher: capabilityDispatcher});
     registry.register({
         id: flowId,
@@ -271,12 +288,35 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                     return emptyStepResult();
                 }
             }] : []),
+            ...(chatPolicy ? [{
+                id: 'deferred-chat-policy',
+                layer: 'application',
+                dependencies: [{id: 'conversation-repository', layer: 'contracts'}],
+                async run(context, command) {
+                    const runtime = command[FLOW_RUNTIME];
+                    const value = await chatPolicy({
+                        context,
+                        command,
+                        personaId: command.personaId,
+                        text: command.text,
+                        chatAt: command.chatAt ?? context.chatAt,
+                        userMessage: runtime.userMessage,
+                        message: runtime.userMessage
+                    });
+                    if (!value || value.handled !== true) return emptyStepResult();
+                    runtime.policy = value;
+                    runtime.chatResult = normalizeBoundedChatResult(value.chatResult ?? {messages: value.messages ?? []});
+                    runtime.messages = runtime.chatResult.messages.slice();
+                    return resultChannels(value);
+                }
+            }] : []),
             {
                 id: 'conversation-context',
                 layer: 'application',
                 dependencies: [{id: 'conversation-repository', layer: 'contracts'}],
                 async run(context, command) {
                     const runtime = command[FLOW_RUNTIME];
+                    if (policyHandled(runtime)) return emptyStepResult();
                     runtime.history = normalizeHistory(await repositoryHistory(conversationRepository, {context, command}));
                     return emptyStepResult();
                 }
@@ -287,6 +327,7 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                 dependencies: [{id: 'context-reader', layer: 'domain'}],
                 async run(context, command) {
                     const runtime = command[FLOW_RUNTIME];
+                    if (policyHandled(runtime)) return emptyStepResult();
                     runtime.context = await contextReader({
                         context,
                         command,
@@ -305,6 +346,7 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                 dependencies: [{id: 'llm-streaming-port', layer: 'contracts'}],
                 async run(context, command) {
                     const runtime = command[FLOW_RUNTIME];
+                    if (policyHandled(runtime)) return emptyStepResult();
                     const response = await llmStream({
                         context: runtime.context ?? {},
                         messages: runtime.history,
@@ -333,6 +375,7 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                 dependencies: [{id: 'capability-dispatcher', layer: 'contracts'}],
                 async run(context, command, previous) {
                     const runtime = command[FLOW_RUNTIME];
+                    if (policyHandled(runtime)) return emptyStepResult();
                     const calls = runtime.completion?.toolCalls?.length
                         ? runtime.completion.toolCalls
                         : Array.isArray(command.capabilityCalls) ? command.capabilityCalls : [];
@@ -361,6 +404,7 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                 dependencies: [{id: 'llm-streaming-port', layer: 'contracts'}],
                 async run(context, command, previous) {
                     const runtime = command[FLOW_RUNTIME];
+                    if (policyHandled(runtime)) return emptyStepResult();
                     const completion = runtime.completion ?? {};
                     const calls = Array.isArray(completion.toolCalls)
                         ? completion.toolCalls.filter(call => call?.source === 'native' && call?.name)
@@ -425,6 +469,7 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                 dependencies: [{id: 'conversation-repository', layer: 'contracts'}],
                 async run(_context, command, previous) {
                     const runtime = command[FLOW_RUNTIME];
+                    if (policyHandled(runtime)) return emptyStepResult();
                     const completion = runtime.completion ?? {};
                     runtime.messages = Array.isArray(completion.messages)
                         ? completion.messages.slice(0, MAX_MESSAGES)
@@ -439,6 +484,7 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                 dependencies: [{id: 'presentation-mapper', layer: 'contracts'}],
                 async run(context, command, previous) {
                     const runtime = command[FLOW_RUNTIME];
+                    if (policyHandled(runtime)) return emptyStepResult();
                     const mapped = await invokeMapper(presentationMapper, {
                         context: runtime.context ?? {},
                         command,
@@ -483,6 +529,7 @@ export function createChatTurnFlow({
     commit,
     commitBoundary,
     userMessageWriter,
+    chatPolicy,
     enableContinuation = false,
     flowId = CHAT_TURN_FLOW_ID
 } = {}) {
@@ -509,6 +556,7 @@ export function createChatTurnFlow({
         conversationRepository,
         presentationMapper: mapPresentation,
         userMessageWriter,
+        chatPolicy: resolveChatPolicy(chatPolicy),
         enableContinuation,
         flowId
     });
