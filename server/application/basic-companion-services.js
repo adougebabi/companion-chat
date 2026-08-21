@@ -1,6 +1,7 @@
 import {createConversationService} from './conversation-service.js';
 import {createIdentitySettingsService} from './identity-settings-service.js';
 import {createActivityService} from './activity-service.js';
+import {createCompanionRouteService} from './companion-route-service.js';
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -47,7 +48,7 @@ function pageDto(result) {
  * Feature-specific policy remains in application flows; unsupported routes
  * continue to report bounded 501 through the route-handler composition.
  */
-export function createBasicCompanionServices({repositories, settings, providers, clock = () => new Date().toISOString(), debugInspector = false, identitySettingsService, activityService} = {}) {
+export function createBasicCompanionServices({repositories, settings, providers, clock = () => new Date().toISOString(), idGenerator, debugInspector = false, identitySettingsService, activityService, routeService, adapters, personaLifecycle} = {}) {
     const personas = repository(repositories, ['persona', 'personas'], 'persona repository');
     const groups = repository(repositories, ['group', 'groups'], 'group repository');
     const conversation = repository(repositories, ['conversation', 'conversationRepository'], 'conversation repository');
@@ -62,6 +63,18 @@ export function createBasicCompanionServices({repositories, settings, providers,
     });
     const useIdentitySettings = identitySettingsService !== undefined;
     const activityApplication = activityService ?? null;
+    const routeApplication = routeService ?? createCompanionRouteService({
+        repositories,
+        services: {identity: identity},
+        adapters: {
+            ...(isRecord(adapters) ? adapters : {}),
+            ...(personaLifecycle === undefined ? {} : {personaLifecycle})
+        },
+        identitySettingsService: identity,
+        conversationService,
+        clock,
+        idGenerator
+    });
 
     const service = {
         bootstrap: {
@@ -82,10 +95,13 @@ export function createBasicCompanionServices({repositories, settings, providers,
         models: {
             list() { return providers?.summaries?.({detailed: true}) ?? []; }
         },
-        conversations: {
-            list(command) { return pageDto(conversationService.list(conversationCommand(command))); },
-            appendMessage(command) { return conversationService.appendMessage(command); }
-        },
+        persona: routeApplication.persona,
+        personas: routeApplication.personas,
+        identity: routeApplication.identity,
+        group: routeApplication.group,
+        groups: routeApplication.groups,
+        conversations: routeApplication.conversations,
+        conversation: routeApplication.conversation,
         activities: {
             list(command) {
                 if (activityApplication) return activityApplication.activities?.list?.(command ?? {}) ?? activityApplication.list(command ?? {});
@@ -109,7 +125,7 @@ export function createBasicCompanionServices({repositories, settings, providers,
             }
         }
     };
-    return Object.freeze(service);
+    return Object.freeze({...service, routeService: routeApplication});
 }
 
 export default createBasicCompanionServices;

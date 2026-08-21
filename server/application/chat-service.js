@@ -15,6 +15,16 @@ function requestTarget(value) {
     return null;
 }
 
+function resolveCommitBoundary(value) {
+    if (value === undefined || value === null) return value;
+    if (typeof value === 'function') return value;
+    if (isRecord(value)) {
+        if (typeof value.commit === 'function') return value.commit.bind(value);
+        if (typeof value.commitStepResult === 'function') return value.commitStepResult.bind(value);
+    }
+    throw new TypeError('Chat commit boundary must provide commit()');
+}
+
 /**
  * Keep request-scoped transport state at the application boundary. The chat
  * flow receives the same stable context shape for direct callers and HTTP
@@ -92,13 +102,14 @@ export function createCompanionChatService({
     end,
     errorMapper
 } = {}) {
+    const resolvedCommitBoundary = resolveCommitBoundary(commitBoundary);
     const chatTurnFlow = createChatTurnFlow({
         contextReader,
         llmStreamingPort,
         capabilityDispatcher,
         conversationRepository,
         presentationMapper,
-        commitBoundary
+        commitBoundary: resolvedCommitBoundary
     });
     const sseAdapter = createChatTurnSseAdapter({
         chatTurnFlow,

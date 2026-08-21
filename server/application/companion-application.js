@@ -23,8 +23,12 @@ const CHAT_PORT_NAMES = Object.freeze([
     'conversationRepository',
     'conversation',
     'presentationMapper',
+    'chatPresentationMapper',
     'commitBoundary',
     'commit',
+    'conversationCommitAdapter',
+    'assistantCommitAdapter',
+    'chatCommitBoundary',
     'sendSse',
     'end',
     'errorMapper'
@@ -36,17 +40,26 @@ const DIRECT_CHAT_MARKERS = Object.freeze([
     'llm',
     'conversationRepository',
     'conversation',
+    'presentationMapper',
+    'chatPresentationMapper',
+    'conversationCommitAdapter',
+    'assistantCommitAdapter',
+    'chatCommitBoundary',
     'sendSse',
     'end'
 ]);
 
 function chatOptionsFrom(options) {
+    const production = isRecord(options.chatProductionPorts)
+        ? options.chatProductionPorts
+        : isRecord(options.productionChatPorts) ? options.productionChatPorts : null;
     const nested = isRecord(options.chatOptions) || isRecord(options.chatPorts)
         ? {
+            ...(production ?? {}),
             ...(isRecord(options.chatPorts) ? options.chatPorts : {}),
             ...(isRecord(options.chatOptions) ? options.chatOptions : {})
         }
-        : null;
+        : production;
     const direct = {};
     for (const name of CHAT_PORT_NAMES) {
         if (options[name] !== undefined) direct[name] = options[name];
@@ -60,7 +73,15 @@ function chatOptionsFrom(options) {
     if (resolved.conversationRepository === undefined) {
         resolved.conversationRepository = resolved.conversation;
     }
+    if (resolved.presentationMapper === undefined) {
+        resolved.presentationMapper = resolved.chatPresentationMapper;
+    }
     if (resolved.commitBoundary === undefined) resolved.commitBoundary = resolved.commit;
+    if (resolved.commitBoundary === undefined) {
+        resolved.commitBoundary = resolved.chatCommitBoundary
+            ?? resolved.conversationCommitAdapter
+            ?? resolved.assistantCommitAdapter;
+    }
     return resolved;
 }
 

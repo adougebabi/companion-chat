@@ -15,6 +15,25 @@ export {createBasicCompanionServices} from './application/basic-companion-servic
 export {createIdentitySettingsService, publicSettings, redactSettings} from './application/identity-settings-service.js';
 export {createActivityService, createCompanionActivityService} from './application/activity-service.js';
 export {createProactiveJobService, createProactiveJobApplicationService} from './application/proactive-job-service.js';
+export {
+    createProactiveMessageFlow,
+    createPendingEventWorkerFlow,
+    createActivityDecisionFlow,
+    createDeferredChatReplyFlow,
+    createDeferredReplyFlow
+} from './application/proactive/worker-flows.js';
+export {
+    createLifeEventPort,
+    createPendingEventPort,
+    createDecisionPort,
+    createAssistantReplyProjectionPort,
+    createActivityProjectionPort,
+    createDeferredBatchPort,
+    createConversationMessagePort,
+    createLifeWorldPort,
+    createIdPort,
+    createClockPort
+} from './application/proactive/flow-ports.js';
 export {createMediaObservability} from './application/media-observability.js';
 export {createMediaJobService} from './application/media-job-service.js';
 export {
@@ -23,8 +42,25 @@ export {
     createMediaJobComposition
 } from './application/media-job-composition.js';
 export {createCompanionChatService} from './application/chat-service.js';
+export {
+    createChatContextReader,
+    createChatContextPort,
+    createChatLlmStreamingPort,
+    createChatStreamingPort,
+    createChatPresentationMapper,
+    createChatPresentationPort,
+    createChatProductionPorts,
+    splitChatAssistantReply,
+    ASSISTANT_MESSAGE_FACT_TYPE
+} from './application/chat-production-adapter.js';
+export {
+    createConversationCommitAdapter,
+    createConversationCommitBoundary,
+    createChatConversationCommitAdapter
+} from './infrastructure/conversation-commit-adapter.js';
 export {createLifeWorldReader} from './application/life-world-reader.js';
 export {createConversationService} from './application/conversation-service.js';
+export {createCompanionRouteService, createCompanionRouteApplicationService} from './application/companion-route-service.js';
 
 export {createRuntime, createCompanionRuntime};
 

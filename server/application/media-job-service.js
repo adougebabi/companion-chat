@@ -590,6 +590,9 @@ export function createMediaJobService({
 
     const service = {
         version: MEDIA_JOB_SERVICE_VERSION,
+        observability: observability ?? null,
+        providers,
+        repositories: repositoryGroup,
         handlers: handlerMap,
         handlerMap,
         submit,
