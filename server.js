@@ -18,6 +18,7 @@ import {createMediaProviders} from './server/infrastructure/media-providers.js';
 import {createJobDispatcher} from './server/runtime/job-dispatcher.js';
 import createWorkerRuntime from './server/runtime/worker-runtime.js';
 import {createStartupRuntime} from './server/runtime/startup.js';
+import {createRuntime} from './server/runtime/runtime.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 4178);
@@ -5852,13 +5853,23 @@ export const companionTestHooks = {database, createPersona, createEvent, require
 companionTestHooks.planChatMediaRequest = planChatMediaRequest;
 companionTestHooks.applyChatMediaRequestPlan = applyChatMediaRequestPlan;
 
+const legacyRuntime = createRuntime({
+    startupRuntime,
+    app,
+    workerRuntime: legacyWorkerRuntime,
+    port,
+    host: process.env.HOST || '0.0.0.0'
+});
+
 if (process.env.COMPANION_TEST !== '1') {
-    app.listen(port, () => {
+    legacyRuntime.start().then(() => {
         console.log(`Companion Chat: http://localhost:${port}`);
-        legacyWorkerRuntime.start().catch(error => console.warn(`Companion worker startup failed: ${error.message}`));
         setTimeout(() => listPersonas().forEach(persona => { recoverPersona(persona.id); ensureDailyPlan(persona.id); }), 250);
         setInterval(() => listPersonas().forEach(persona => { reconcilePersona(persona.id); ensureDailyPlan(persona.id); }), 5 * 60 * 1000);
-    });
+    }).catch(error => console.warn(`Companion runtime startup failed: ${error.message}`));
+    const shutdown = () => legacyRuntime.stop().catch(error => console.warn(`Companion runtime shutdown failed: ${error.message}`));
+    process.once('SIGTERM', shutdown);
+    process.once('SIGINT', shutdown);
 }
 
 export const mediaObservabilityTestHooks = {runH3, parseH3ProgressOutput, mediaProgressForDebug, recordMediaJobResult, recordMediaJobProgress, createMediaProgressReporter, settleJob};
