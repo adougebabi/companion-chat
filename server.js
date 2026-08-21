@@ -14,6 +14,7 @@ import {createChatTurnFlow} from './server/application/chat-turn-flow.js';
 import {createChatTurnSseAdapter} from './server/http/chat-turn-sse-adapter.js';
 import {registerCompanionRoutes} from './server/http/route-registry.js';
 import {createProviderRegistry} from './server/infrastructure/provider-ports.js';
+import {createJobDispatcher} from './server/runtime/job-dispatcher.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const dataDir = process.env.DATA_DIR || join(root, 'data');
@@ -5839,18 +5840,6 @@ async function runDailyPlanJob(job) {
     }
 }
 
-async function runMediaJob(job) {
-    if (job.job_type === 'daily_plan') return runDailyPlanJob(job);
-    if (job.job_type === 'relationship_evolution') return runRelationshipEvolutionJob(job);
-    if (job.job_type === 'proactive_message') return runProactiveMessageJob(job);
-    if (job.job_type === 'pending_event') return runPendingEventJob(job);
-    if (job.job_type === 'activity_decision') return runActivityDecisionJob(job);
-    if (job.job_type === 'deferred_chat_reply') return runDeferredChatReplyJob(job);
-    if (job.job_type === 'activity_media_poll' || job.job_type === 'chat_media_poll') return pollMedia(job);
-    if (!['activity_image', 'activity_video', 'chat_image', 'chat_video'].includes(job.job_type)) return settleJob(job, {result: {ignored: true}});
-    return submitMediaJob(job);
-}
-
 async function submitMediaJob(job) {
     const config = settings();
     const payload = json(job.payload_json, {});
@@ -5993,17 +5982,38 @@ async function pollMedia(job) {
     }
 }
 
-let jobWorkerRunning = false;
+const legacyWorkerOwner = id('worker');
+const legacyJobDispatcher = createJobDispatcher({
+    clock: now,
+    claimJob: context => jobRepository.claim({
+        leaseOwner: context.leaseOwner || legacyWorkerOwner,
+        now: context.now || now(),
+        leaseMs: candidate => leaseDurationForJob(candidate)
+    }),
+    findLeased: input => jobRepository.findLeased(input),
+    onRetry: output => settleJob(output.job, {error: output.error}),
+    onTerminal: output => settleJob(output.job, {error: output.error, terminal: true}),
+    handlers: {
+        daily_plan: runDailyPlanJob,
+        relationship_evolution: runRelationshipEvolutionJob,
+        proactive_message: runProactiveMessageJob,
+        pending_event: runPendingEventJob,
+        activity_decision: runActivityDecisionJob,
+        deferred_chat_reply: runDeferredChatReplyJob,
+        activity_media_poll: pollMedia,
+        chat_media_poll: pollMedia,
+        activity_image: submitMediaJob,
+        activity_video: submitMediaJob,
+        chat_image: submitMediaJob,
+        chat_video: submitMediaJob
+    }
+});
+
 async function processJobs() {
-    if (jobWorkerRunning) return;
-    jobWorkerRunning = true;
     try {
-        const job = claimJob();
-        if (job) await runMediaJob(job);
+        await legacyJobDispatcher.jobTick({leaseOwner: legacyWorkerOwner, owner: legacyWorkerOwner, now: now()});
     } catch (error) {
         console.warn(`Companion job worker failed: ${error.message}`);
-    } finally {
-        jobWorkerRunning = false;
     }
 }
 
