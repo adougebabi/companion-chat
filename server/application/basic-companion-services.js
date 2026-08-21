@@ -84,7 +84,7 @@ export function createBasicCompanionServices({repositories, settings, providers,
         conversations: {
             list(command) {
                 const personaId = command.personaId;
-                const thread = conversation.getConversation?.({personaId});
+                const thread = conversation.getConversation?.(personaId);
                 if (!thread) return {items: [], nextCursor: null};
                 const rows = conversation.listMessages({conversationId: thread.id, limit: Math.min(100, Math.max(1, Number(command.limit) || 50))});
                 return {items: rows.reverse().map(messageDto), nextCursor: null};
@@ -108,7 +108,11 @@ export function createBasicCompanionServices({repositories, settings, providers,
             }
         },
         activities: {
-            list(command) { return activity.listActivities(command); }
+            list(command) {
+                const result = activity.listActivities(command);
+                if (Array.isArray(result)) return {items: result, nextCursor: null};
+                return result;
+            }
         }
     };
     return Object.freeze(service);

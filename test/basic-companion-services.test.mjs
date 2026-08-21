@@ -22,6 +22,23 @@ test('basic services return repository-backed bootstrap and settings DTOs', () =
     assert.deepEqual(services.models.list(), [{id: 'mtplx'}]);
 });
 
+test('basic conversation/activity services preserve wrapper shapes', () => {
+    const services = createBasicCompanionServices({
+        repositories: {
+            persona: {listActive: () => []},
+            group: {list: () => []},
+            conversation: {
+                getConversation: personaId => ({id: `conversation_${personaId}`}),
+                listMessages: () => [{id: 'm1', role: 'user', text: 'hello', attachments_json: '[]', jobs_json: '[]', created_at: 'now'}]
+            },
+            activity: {listActivities: () => [{id: 'a1'}]},
+            settings: {read: () => ({})}
+        }
+    });
+    assert.deepEqual(services.conversations.list({personaId: 'p1'}).items.map(item => item.id), ['m1']);
+    assert.deepEqual(services.activities.list({}).items, [{id: 'a1'}]);
+});
+
 test('basic services have no legacy or transport imports', async () => {
     const {readFile} = await import('node:fs/promises');
     const source = await readFile(new URL('../server/application/basic-companion-services.js', import.meta.url), 'utf8');
