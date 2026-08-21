@@ -1,5 +1,6 @@
 import {createConversationService} from './conversation-service.js';
 import {createIdentitySettingsService} from './identity-settings-service.js';
+import {createActivityService} from './activity-service.js';
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -46,7 +47,7 @@ function pageDto(result) {
  * Feature-specific policy remains in application flows; unsupported routes
  * continue to report bounded 501 through the route-handler composition.
  */
-export function createBasicCompanionServices({repositories, settings, providers, clock = () => new Date().toISOString(), debugInspector = false, identitySettingsService} = {}) {
+export function createBasicCompanionServices({repositories, settings, providers, clock = () => new Date().toISOString(), debugInspector = false, identitySettingsService, activityService} = {}) {
     const personas = repository(repositories, ['persona', 'personas'], 'persona repository');
     const groups = repository(repositories, ['group', 'groups'], 'group repository');
     const conversation = repository(repositories, ['conversation', 'conversationRepository'], 'conversation repository');
@@ -60,6 +61,7 @@ export function createBasicCompanionServices({repositories, settings, providers,
         debugInspector
     });
     const useIdentitySettings = identitySettingsService !== undefined;
+    const activityApplication = activityService ?? null;
 
     const service = {
         bootstrap: {
@@ -86,7 +88,24 @@ export function createBasicCompanionServices({repositories, settings, providers,
         },
         activities: {
             list(command) {
+                if (activityApplication) return activityApplication.activities?.list?.(command ?? {}) ?? activityApplication.list(command ?? {});
                 return pageDto(activity.listActivities(command ?? {}));
+            },
+            comment(command) {
+                if (!activityApplication) throw new TypeError('Activity service is not configured');
+                return activityApplication.activities?.comment?.(command) ?? activityApplication.comment(command);
+            },
+            like(command) {
+                if (!activityApplication) throw new TypeError('Activity service is not configured');
+                return activityApplication.activities?.like?.(command) ?? activityApplication.like(command);
+            },
+            hide(command) {
+                if (!activityApplication) throw new TypeError('Activity service is not configured');
+                return activityApplication.activities?.hide?.(command) ?? activityApplication.hide(command);
+            },
+            markRead(command) {
+                if (!activityApplication) throw new TypeError('Activity service is not configured');
+                return activityApplication.activities?.markRead?.(command) ?? activityApplication.markRead(command);
             }
         }
     };

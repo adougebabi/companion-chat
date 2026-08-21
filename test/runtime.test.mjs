@@ -301,6 +301,31 @@ test('companion runtime keeps stale media leases fail-closed and terminal/retry 
     assert.equal(terminal.job.status, 'failed');
 });
 
+test('companion runtime composes the activity application service for feed routes', async () => {
+    const dataDir = temporaryDirectory();
+    const runtime = createCompanionRuntime({Database, dataDir, workerRuntime: false, environment: {DATA_DIR: dataDir}});
+    try {
+        assert.equal(typeof runtime.application.services.activities.list, 'function');
+        assert.equal(typeof runtime.application.services.activities.comment, 'function');
+        const layer = runtime.app.router.stack.find(item => item.route?.path === '/api/companion/activities');
+        assert.ok(layer);
+        const response = {
+            statusCode: 200,
+            body: undefined,
+            headersSent: false,
+            status(code) { this.statusCode = code; return this; },
+            json(value) { this.body = value; this.headersSent = true; return this; }
+        };
+        const result = layer.route.stack[0].handle({query: {}}, response);
+        if (result?.then) await result;
+        assert.equal(response.statusCode, 200);
+        assert.deepEqual(response.body, {items: [], nextCursor: null});
+    } finally {
+        await runtime.stop();
+        rmSync(dataDir, {recursive: true, force: true});
+    }
+});
+
 test('runtime owns auxiliary task lifecycles in start/stop order', async () => {
     const dataDir = temporaryDirectory();
     const events = [];

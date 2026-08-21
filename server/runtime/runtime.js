@@ -4,6 +4,8 @@ import {createCompanionRouteHandlers} from '../application/companion-route-handl
 import {createCompanionApplication} from '../application/companion-application.js';
 import {createBasicCompanionServices} from '../application/basic-companion-services.js';
 import {createIdentitySettingsService} from '../application/identity-settings-service.js';
+import {createActivityService} from '../application/activity-service.js';
+import {createProactiveJobService} from '../application/proactive-job-service.js';
 import {createActivityRepository} from '../infrastructure/activity-repository.js';
 import {createConversationRepository} from '../infrastructure/conversation-repository.js';
 import {createGroupRepository} from '../infrastructure/group-repository.js';
@@ -15,6 +17,7 @@ import {createPersonaRepository} from '../infrastructure/persona-repository.js';
 import {createRelationshipRepository} from '../infrastructure/relationship-repository.js';
 import {createSettingsRepository} from '../infrastructure/settings-repository.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
+import {createMediaJobApplication} from '../application/media-job-composition.js';
 import createJobDispatcher from './job-dispatcher.js';
 import createStartupRuntime from './startup.js';
 import createWorkerRuntime from './worker-runtime.js';
@@ -129,6 +132,89 @@ function resolveProviders(options) {
     return createProviderRegistry({providers: adapters, dryRunAdapters: options.dryRunAdapters});
 }
 
+function isMediaJobService(value) {
+    return isRecord(value) && (
+        typeof value.register === 'function'
+        || typeof value.submit === 'function'
+        || isRecord(value.handlers)
+        || isRecord(value.handlerMap)
+    );
+}
+
+function hasMediaJobConfiguration(options) {
+    return options.mediaJobServiceOptions !== undefined
+        || options.mediaJobOptions !== undefined
+        || (options.mediaJobService !== undefined && !isMediaJobService(options.mediaJobService))
+        || [
+            'mediaObservability',
+            'observability',
+            'observabilityPorts',
+            'observabilityOptions',
+            'mediaFlow',
+            'mediaRepositories',
+            'mediaProviderAdapters',
+            'mediaPromptMaster',
+            'mediaAcceptance',
+            'promptMaster',
+            'acceptance'
+        ].some(name => options[name] !== undefined);
+}
+
+function resolveMediaComposition(options, repositories, providers) {
+    const configured = options.mediaJobService;
+    if (isMediaJobService(configured)) return {
+        observability: configured.observability ?? options.mediaObservability ?? options.observability ?? null,
+        mediaJobService: configured
+    };
+    if (!hasMediaJobConfiguration(options)) return {observability: null, mediaJobService: null};
+
+    const configuredService = isRecord(options.mediaJobService) && !isMediaJobService(options.mediaJobService)
+        ? options.mediaJobService
+        : {};
+    const nested = {
+        ...configuredService,
+        ...(isRecord(options.mediaJobServiceOptions)
+            ? options.mediaJobServiceOptions
+            : isRecord(options.mediaJobOptions) ? options.mediaJobOptions : {})
+    };
+    const mediaJobService = createMediaJobApplication({
+        ...nested,
+        ...options,
+        providers: nested.providers ?? options.providers ?? providers,
+        repositories: nested.repositories ?? options.mediaRepositories ?? repositories,
+        observability: nested.observability ?? options.mediaObservability ?? options.observability,
+        mediaFlow: nested.mediaFlow ?? options.mediaFlow,
+        providerAdapters: nested.providerAdapters ?? options.mediaProviderAdapters,
+        promptMaster: nested.promptMaster ?? options.mediaPromptMaster ?? options.promptMaster,
+        acceptance: nested.acceptance ?? options.mediaAcceptance ?? options.acceptance,
+        clock: nested.clock ?? options.clock
+    });
+    return {
+        observability: mediaJobService.observability ?? options.mediaObservability ?? options.observability ?? null,
+        mediaJobService
+    };
+}
+
+function resolveProactiveJobService(options, repositories) {
+    if (options.proactiveJobService !== undefined) return options.proactiveJobService;
+    const configured = options.proactiveJobServiceOptions ?? options.proactiveJobOptions;
+    const hasFlows = options.proactiveFlows !== undefined
+        || options.jobFlows !== undefined
+        || options.applicationFlows !== undefined
+        || options.proactiveFlowRegistry !== undefined
+        || options.flowRegistry !== undefined;
+    if (configured === undefined && !hasFlows) return null;
+    const nested = isRecord(configured) ? configured : {};
+    return createProactiveJobService({
+        ...nested,
+        ...options,
+        repositories: nested.repositories ?? repositories,
+        flows: nested.flows ?? options.proactiveFlows ?? options.jobFlows ?? options.applicationFlows,
+        flowRegistry: nested.flowRegistry ?? options.proactiveFlowRegistry ?? options.flowRegistry,
+        ports: nested.ports ?? options.proactivePorts ?? options.applicationPorts
+    });
+}
+
 function runtimeClock(value) {
     if (typeof value === 'function') return value;
     if (isRecord(value) && typeof value.now === 'function') return value.now.bind(value);
@@ -240,8 +326,19 @@ function mediaJobHandlers(service) {
 
 function resolveJobHandlers(options) {
     const handlers = new Map();
-    if (options.mediaJobService !== undefined) {
+    if (options.mediaJobService !== undefined && options.mediaJobService !== null) {
         for (const [type, value] of mediaJobHandlers(options.mediaJobService)) addJobHandler(handlers, type, value, 'Runtime mediaJobService');
+    }
+    if (options.proactiveJobService !== undefined && options.proactiveJobService !== null) {
+        const service = options.proactiveJobService;
+        const registrations = typeof service.registrations === 'function'
+            ? service.registrations()
+            : Object.entries(service.handlers ?? service.handlerMap ?? {}).map(([type, handler]) => ({type, handler}));
+        if (!Array.isArray(registrations)) throw new TypeError('Runtime proactiveJobService registrations must be an array');
+        for (const registration of registrations) {
+            if (registration?.available === false) continue;
+            addJobHandler(handlers, registration?.type, registration?.handler, 'Runtime proactiveJobService');
+        }
     }
     collectJobHandlers(handlers, options.jobHandlers ?? options.jobRegistry ?? options.handlers, 'Runtime');
     return handlers.size ? handlers : undefined;
@@ -348,8 +445,21 @@ export function createRuntime(options = {}) {
     const repositories = resolveRepositories(options, startup);
     const providers = resolveProviders(options);
     const jobRepository = options.jobRepository ?? repositories.jobRepository ?? repositories.job;
-    const jobDispatcher = resolveJobDispatcher({...options, jobRepository}, startup, repositories);
-    const application = options.application ?? options.applicationFactory?.({...options, repositories, jobRepository, providers, jobDispatcher});
+    const mediaComposition = resolveMediaComposition(options, repositories, providers);
+    const mediaJobService = mediaComposition.mediaJobService;
+    const mediaObservability = mediaComposition.observability;
+    const proactiveJobService = resolveProactiveJobService(options, repositories);
+    const jobDispatcher = resolveJobDispatcher({...options, jobRepository, mediaJobService, proactiveJobService}, startup, repositories);
+    const application = options.application ?? options.applicationFactory?.({
+        ...options,
+        repositories,
+        jobRepository,
+        providers,
+        jobDispatcher,
+        mediaJobService,
+        mediaObservability,
+        proactiveJobService
+    });
     const worker = resolveWorker({...options, jobRepository, jobDispatcher}, startup, repositories);
     const app = resolveApp({...options, application, routeHandlers: options.routeHandlers ?? application?.routeHandlers}, startup, worker);
     const auxiliaryRuntimes = resolveAuxiliaryRuntimes(options);
@@ -424,7 +534,9 @@ export function createRuntime(options = {}) {
         jobRepository,
         providers,
         jobDispatcher,
-        mediaJobService: options.mediaJobService ?? null,
+        mediaObservability,
+        mediaJobService,
+        proactiveJobService,
         application,
         app,
         worker,
@@ -455,6 +567,11 @@ export function createCompanionRuntime(options = {}) {
                 defaultTimezone: options.defaultTimezone,
                 debugInspector: options.debugInspectorEnabled === true
             });
+            const activityService = options.activityService ?? createActivityService({
+                repositories: resolved.repositories,
+                clock: resolved.clock,
+                idGenerator: resolved.idGenerator ?? resolved.id
+            });
             return createCompanionApplication({
                 ...resolved,
                 services: options.services ?? createBasicCompanionServices({
@@ -463,7 +580,8 @@ export function createCompanionRuntime(options = {}) {
                     providers: resolved.providers,
                     clock: resolved.clock,
                     debugInspector: options.debugInspectorEnabled === true,
-                    identitySettingsService: identitySettings
+                    identitySettingsService: identitySettings,
+                    activityService
                 })
             });
         };

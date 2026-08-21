@@ -263,6 +263,16 @@ export function createActivityRepository({database} = {}) {
         return openDatabase.inTransaction ? replace() : openDatabase.transaction(replace)();
     }
 
+    function getUserReaction(first, second = {}) {
+        const input = inputFor(first, second);
+        const activityId = requiredText(input.activityId ?? input.id, 'Activity.id');
+        requireActivity({activityId, personaId: input.personaId});
+        return openDatabase.prepare(`
+            SELECT * FROM companion_activity_reactions
+            WHERE activity_id = ? AND actor_kind = 'user'
+        `).get(activityId);
+    }
+
     function setActivityVisibility(first, second = {}) {
         const input = inputFor(first, second);
         const activityId = requiredText(input.activityId ?? input.id, 'Activity.id');
@@ -302,6 +312,7 @@ export function createActivityRepository({database} = {}) {
         listActivityMedia,
         insertActivityMedia,
         setUserReaction: reactionActivity,
+        getUserReaction,
         setActivityVisibility,
         setVisibility: setActivityVisibility,
         hideActivity,

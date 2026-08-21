@@ -13,8 +13,15 @@ export {createMediaFlow} from './application/media-flow.js';
 export {createCompanionApplication} from './application/companion-application.js';
 export {createBasicCompanionServices} from './application/basic-companion-services.js';
 export {createIdentitySettingsService, publicSettings, redactSettings} from './application/identity-settings-service.js';
+export {createActivityService, createCompanionActivityService} from './application/activity-service.js';
+export {createProactiveJobService, createProactiveJobApplicationService} from './application/proactive-job-service.js';
 export {createMediaObservability} from './application/media-observability.js';
 export {createMediaJobService} from './application/media-job-service.js';
+export {
+    createMediaObservabilityApplication,
+    createMediaJobApplication,
+    createMediaJobComposition
+} from './application/media-job-composition.js';
 export {createCompanionChatService} from './application/chat-service.js';
 export {createLifeWorldReader} from './application/life-world-reader.js';
 export {createConversationService} from './application/conversation-service.js';
