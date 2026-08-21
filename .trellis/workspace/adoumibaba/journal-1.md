@@ -379,3 +379,36 @@ Implemented life-event proactive messaging and chat-declared pending events with
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: Remove legacy backend compatibility layer
+
+**Date**: 2026-08-21
+**Task**: Remove legacy backend compatibility layer
+**Branch**: `master`
+
+### Summary
+
+Completed modular backend cutover: removed server.js, legacy compatibility harness/tests and boundary inventory; fixed modular runtime, life/timeline, context/debug, provider/job, and chat commit/continuation paths. Remaining regression surface excludes deleted compatibility tests. npm test passes 307/307 after compatibility removal; external provider/performance/logging/frontend checks intentionally skipped per user scope.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `23abe9a` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
