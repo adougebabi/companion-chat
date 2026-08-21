@@ -10,6 +10,7 @@ ENV NODE_ENV=production \
     DATA_DIR=/app/data
 COPY --from=build /app/node_modules ./node_modules
 COPY package.json server.js ./
+COPY server ./server
 COPY src ./src
 RUN mkdir -p /app/data && chown -R node:node /app
 USER node
