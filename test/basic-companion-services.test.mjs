@@ -9,7 +9,7 @@ test('basic services return repository-backed bootstrap and settings DTOs', () =
         repositories: {
             persona: {listActive: () => [{id: 'p1', name: 'P1', role: 'tester', color: '#fff', group_id: null, updated_at: 'now'}]},
             group: {list: () => [{id: 'g1', name: 'Default', is_default: 1, persona_count: 1}]},
-            conversation: {},
+            conversation: {getConversation: () => null, listMessages: () => [], getOrCreateConversation() {}, appendMessage() {}},
             activity: {listActivities: () => []},
             settings: {read: () => ({model: 'fixture'}), write: value => calls.push(value)}
         },

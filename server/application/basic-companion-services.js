@@ -53,6 +53,7 @@ export function createBasicCompanionServices({repositories, settings, providers,
     const groups = repository(repositories, ['group', 'groups'], 'group repository');
     const conversation = repository(repositories, ['conversation', 'conversationRepository'], 'conversation repository');
     const activity = repository(repositories, ['activity', 'activityRepository'], 'activity repository');
+    const conversationService = createConversationService({repository: conversation, clock});
     const settingsPort = settings ?? repositories?.settings;
     if (!isRecord(settingsPort) || typeof settingsPort.read !== 'function') throw new TypeError('Basic companion services require settings.read()');
 
@@ -82,30 +83,8 @@ export function createBasicCompanionServices({repositories, settings, providers,
             list() { return providers?.summaries?.({detailed: true}) ?? []; }
         },
         conversations: {
-            list(command) {
-                const personaId = command.personaId;
-                const thread = conversation.getConversation?.(personaId);
-                if (!thread) return {items: [], nextCursor: null};
-                const rows = conversation.listMessages({conversationId: thread.id, limit: Math.min(100, Math.max(1, Number(command.limit) || 50))});
-                return {items: rows.reverse().map(messageDto), nextCursor: null};
-            },
-            appendMessage(command) {
-                const thread = conversation.getOrCreateConversation({personaId: command.personaId, id: `conversation_${command.personaId}`, createdAt: clock(), updatedAt: clock()});
-                const row = conversation.appendMessage({
-                    id: command.id || `message_${Date.now()}`,
-                    conversationId: thread.id,
-                    role: command.role,
-                    text: String(command.text || ''),
-                    attachmentsJson: JSON.stringify(command.attachments || []),
-                    generationJson: command.generation ? JSON.stringify(command.generation) : null,
-                    jobsJson: JSON.stringify(command.jobs || []),
-                    proactiveEventId: command.proactiveEventId || null,
-                    proactivePendingEventId: command.proactivePendingEventId || null,
-                    createdAt: clock(),
-                    readAt: clock()
-                });
-                return messageDto(row);
-            }
+            list(command) { return conversationService.list(command); },
+            appendMessage(command) { return conversationService.appendMessage(command); }
         },
         activities: {
             list(command) {
@@ -119,3 +98,4 @@ export function createBasicCompanionServices({repositories, settings, providers,
 }
 
 export default createBasicCompanionServices;
+import {createConversationService} from './conversation-service.js';
