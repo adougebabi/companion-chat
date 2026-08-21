@@ -34,6 +34,7 @@ import {createSettingsPolicy} from '../application/settings-policy.js';
 import {createLifeWorldReader} from '../application/life-world-reader.js';
 import {createLifeStateResolver} from '../domain/life-state-resolver.js';
 import {createLifeStateService} from '../application/life-state-service.js';
+import {createLifeEventFlow} from '../application/life-event-flow.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
 import {createProductionProviderRegistry} from '../infrastructure/production-media-providers.js';
 import {createMtplxCompletionPort} from '../infrastructure/llm-provider.js';
@@ -642,6 +643,22 @@ function resolveJobHandlers(options) {
     return handlers.size ? handlers : undefined;
 }
 
+function resolveMaintenanceHandlers(options, repositories) {
+    if (options.defaultProductionComposition !== true || options.repositories !== undefined) return {};
+    return {
+        daily_plan: async job => {
+            const payload = typeof job.payload_json === 'string' ? JSON.parse(job.payload_json || '{}') : (job.payload ?? {});
+            const plan = repositories.dailyPlan?.markReady?.({dailyPlanId: payload.dailyPlanId ?? payload.id, updatedAt: job.updated_at ?? new Date().toISOString()});
+            return {status: 'complete', result: {dailyPlanId: payload.dailyPlanId ?? payload.id, status: plan?.status ?? 'ready'}};
+        },
+        relationship_evolution: async job => {
+            const handler = options.relationshipEvolution ?? options.relationshipEvolutionFlow;
+            if (typeof handler === 'function') return handler(job);
+            return {status: 'complete', result: {skipped: 'relationship evolution flow not configured'}};
+        }
+    };
+}
+
 function registerJobHandlers(target, handlers) {
     if (!handlers?.size) return target;
     if (typeof target.register !== 'function') throw new TypeError('Runtime jobDispatcher must provide register() when mediaJobService is injected');
@@ -772,7 +789,14 @@ export function createRuntime(options = {}) {
         providers,
         h3Inspector: h3Helpers.inspectH3Configuration
     });
-    const jobDispatcher = resolveJobDispatcher({...options, jobRepository, mediaJobService, proactiveJobService}, startup, repositories);
+    const maintenanceHandlers = resolveMaintenanceHandlers(options, repositories);
+    const jobDispatcher = resolveJobDispatcher({
+        ...options,
+        jobRepository,
+        mediaJobService,
+        proactiveJobService,
+        jobHandlers: {...maintenanceHandlers, ...(options.handlers ?? {}), ...(options.jobRegistry ?? {}), ...(options.jobHandlers ?? {})}
+    }, startup, repositories);
     const application = options.application ?? options.applicationFactory?.({
         ...options,
         repositories,
@@ -899,11 +923,16 @@ export function createCompanionRuntime(options = {}) {
                 idGenerator: resolved.idGenerator ?? resolved.id
             });
             const h3 = h3RuntimeHelpers({id: resolved.idGenerator ?? resolved.id});
+            const lifeEventFlow = options.lifeEventFlow
+                ?? (resolved.repositories.lifeEvent?.createEvent || resolved.repositories.lifeEvent?.insertEvent
+                    ? createLifeEventFlow({repositories: resolved.repositories, clock: resolved.clock, idGenerator: resolved.idGenerator ?? resolved.id})
+                    : null);
             const debugService = options.debugService ?? createDebugService({
                 repositories: resolved.repositories,
                 promptRuns: resolved.repositories.promptRun,
                 h3Preflight: options.h3Preflight ?? h3.h3Preflight,
                 contextReader: resolved.chatProductionPorts?.contextReader,
+                lifeEventFlow,
                 mediaJobService: resolved.mediaJobService,
                 clock: resolved.clock
             });
@@ -940,7 +969,8 @@ export function createCompanionRuntime(options = {}) {
                     memoryService: options.memoryService,
                     debugService,
                     mediaService: options.mediaService,
-                    lifeStateService
+                    lifeStateService,
+                    lifeEventFlow
                 })
             });
         };

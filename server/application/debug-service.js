@@ -27,7 +27,7 @@ function redact(value, depth = 0) {
     return Object.fromEntries(Object.entries(value).slice(0, 80).map(([key, child]) => /key|token|secret|password|authorization|credential|cookie/i.test(key) ? [key, '[redacted]'] : [key, redact(child, depth + 1)]));
 }
 
-export function createDebugService({repositories = {}, promptRuns, h3Preflight, contextReader, lifeWorldReader, mediaJobService, clock = () => new Date().toISOString()} = {}) {
+export function createDebugService({repositories = {}, promptRuns, h3Preflight, contextReader, lifeWorldReader, lifeEventFlow, mediaJobService, clock = () => new Date().toISOString()} = {}) {
     const runs = promptRuns ?? repositories.promptRun;
     const lifeEvents = repositories.lifeEvent;
     const personas = repositories.persona;
@@ -63,6 +63,13 @@ export function createDebugService({repositories = {}, promptRuns, h3Preflight, 
 
     function simulatePersona(command = {}) {
         const personaId = text(command.personaId, '人格 ID');
+        if (lifeEventFlow?.record) return lifeEventFlow.record({
+            ...command,
+            personaId,
+            source: 'debug',
+            simulated: true,
+            publish: command.publish === true
+        });
         if (!lifeEvents?.createEvent && !lifeEvents?.insertEvent) throw Object.assign(new Error('life event repository 未配置'), {status: 501});
         const create = lifeEvents.createEvent ?? lifeEvents.insertEvent;
         const event = create.call(lifeEvents, {

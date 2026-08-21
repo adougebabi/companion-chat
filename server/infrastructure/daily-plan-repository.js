@@ -11,6 +11,12 @@ export function createDailyPlanRepository({database} = {}) {
         const plan = Array.isArray(raw) ? {items: raw, timeline, planDate: row.plan_date, planId: row.id, status: row.status} : {...raw, timeline, planDate: row.plan_date, planId: row.id, status: row.status};
         return {...row, items: Array.isArray(raw) ? raw : raw.items ?? [], plan, dailyPlan: plan, timeline};
     }
-    return Object.freeze({read, findReady: read, find: read, get: read});
+    function markReady({dailyPlanId, id, updatedAt} = {}) {
+        const planId = dailyPlanId ?? id;
+        const at = updatedAt ?? new Date().toISOString();
+        db.prepare(`UPDATE companion_daily_plans SET status = 'ready', updated_at = ? WHERE id = ? AND status IN ('queued', 'processing')`).run(at, planId);
+        return db.prepare('SELECT * FROM companion_daily_plans WHERE id = ?').get(planId);
+    }
+    return Object.freeze({read, findReady: read, find: read, get: read, markReady, complete: markReady});
 }
 export default createDailyPlanRepository;
