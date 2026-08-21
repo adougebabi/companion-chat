@@ -247,3 +247,21 @@ test('a stopped startup cannot clear or abort a later runtime generation', async
     assert.equal(timers.intervals.size, 1);
     await runtime.stop();
 });
+
+test('waitForTasks drains an abort-aware tick before stop resolves', async () => {
+    const timers = fakeTimers();
+    const entered = deferred();
+    const runtime = createWorkerRuntime({
+        timers,
+        runOnStart: true,
+        jobTick({signal}) {
+            entered.resolve();
+            return new Promise(resolve => signal.addEventListener('abort', resolve, {once: true}));
+        },
+        onError: () => {}
+    });
+    await runtime.start();
+    await entered.promise;
+    await runtime.stop({waitForTasks: true, drainTimeoutMs: 100});
+    assert.equal(runtime.state, 'stopped');
+});

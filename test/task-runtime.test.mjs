@@ -227,3 +227,21 @@ test('an old generation cannot clear or interrupt a restarted runtime', async ()
     assert.equal(timers.intervals.size, 1);
     await runtime.stop();
 });
+
+test('waitForTasks drains an abort-aware task before stop resolves', async () => {
+    const timers = fakeTimers();
+    const entered = deferred();
+    const runtime = createTaskRuntime({
+        timers,
+        startupDelayMs: 0,
+        task({signal}) {
+            entered.resolve();
+            return new Promise(resolve => signal.addEventListener('abort', resolve, {once: true}));
+        },
+        onError: () => {}
+    });
+    await runtime.start();
+    await entered.promise;
+    await runtime.stop({waitForTasks: true, drainTimeoutMs: 100});
+    assert.equal(runtime.state, 'stopped');
+});

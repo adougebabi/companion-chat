@@ -255,8 +255,8 @@ export function createRuntime(options = {}) {
         let pendingStop;
         pendingStop = (async () => {
             try {
-                for (const auxiliary of [...auxiliaryRuntimes].reverse()) await auxiliary.stop();
-                if (worker) await worker.stop();
+                for (const auxiliary of [...auxiliaryRuntimes].reverse()) await auxiliary.stop({waitForTasks: true});
+                if (worker) await worker.stop({waitForTasks: true});
                 await closeServer(server);
                 server = null;
                 startup.close();

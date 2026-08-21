@@ -1,6 +1,7 @@
 const DEFAULT_INTERVAL_MS = 60_000;
 const DEFAULT_STARTUP_DELAY_MS = 0;
 export const MAX_TASK_ERROR_LENGTH = 240;
+const DEFAULT_DRAIN_TIMEOUT_MS = 5_000;
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -247,16 +248,28 @@ export function createTaskRuntime(options = {}) {
         return startPromise;
     }
 
-    function stop() {
+    function stop({waitForTasks = false, drainTimeoutMs = DEFAULT_DRAIN_TIMEOUT_MS} = {}) {
         if (phase === 'idle' || phase === 'stopped') return Promise.resolve(false);
         if (phase === 'stopping') return stopPromise;
 
         phase = 'stopping';
         clearTimers();
         const activeController = controller;
+        const activeTask = taskPromise;
         if (activeController && !activeController.signal.aborted) activeController.abort();
-        taskPromise = null;
-        stopPromise = Promise.resolve().then(() => {
+        let drainHandle = null;
+        const drain = waitForTasks && activeTask
+            ? Promise.race([
+                Promise.resolve(activeTask).catch(() => undefined),
+                new Promise(resolve => {
+                    drainHandle = timers.setTimeout(resolve, Math.max(0, Number(drainTimeoutMs) || DEFAULT_DRAIN_TIMEOUT_MS));
+                })
+            ]).finally(() => {
+                if (drainHandle !== null) timers.clearTimeout(drainHandle);
+            })
+            : Promise.resolve();
+        stopPromise = drain.then(() => {
+            taskPromise = null;
             clearTimers();
             if (controller === activeController) controller = null;
             phase = 'stopped';

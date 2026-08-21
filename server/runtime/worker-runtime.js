@@ -1,6 +1,7 @@
 const DEFAULT_POLL_INTERVAL_MS = 2_500;
 const DEFAULT_LEASE_MS = 60_000;
 const MAX_ERROR_LENGTH = 240;
+const DEFAULT_DRAIN_TIMEOUT_MS = 5_000;
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -301,15 +302,27 @@ export function createWorkerRuntime(options = {}) {
         return startPromise;
     }
 
-    function stop() {
+    function stop({waitForTasks = false, drainTimeoutMs = DEFAULT_DRAIN_TIMEOUT_MS} = {}) {
         if (phase === 'idle' || phase === 'stopped') return Promise.resolve(false);
         if (phase === 'stopping') return stopPromise;
 
         phase = 'stopping';
         clearTimers();
         const activeController = controller;
+        const activeTick = tickPromise;
         if (activeController && !activeController.signal.aborted) activeController.abort();
-        stopPromise = Promise.resolve().then(() => {
+        let drainHandle = null;
+        const drain = waitForTasks && activeTick
+            ? Promise.race([
+                Promise.resolve(activeTick).catch(() => undefined),
+                new Promise(resolve => {
+                    drainHandle = timers.setTimeout(resolve, Math.max(0, Number(drainTimeoutMs) || DEFAULT_DRAIN_TIMEOUT_MS));
+                })
+            ]).finally(() => {
+                if (drainHandle !== null) timers.clearTimeout(drainHandle);
+            })
+            : Promise.resolve();
+        stopPromise = drain.then(() => {
             clearTimers();
             if (controller === activeController) controller = null;
             phase = 'stopped';
