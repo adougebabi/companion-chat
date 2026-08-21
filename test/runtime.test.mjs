@@ -152,6 +152,8 @@ test('companion runtime mounts the complete contract with bounded unconfigured h
         await runtime.start({listen: false, worker: false});
         const bootstrap = runtime.app.router.stack.find(layer => layer.route?.path === '/api/companion/bootstrap');
         assert.ok(bootstrap);
+        assert.ok(runtime.application);
+        assert.equal(typeof runtime.application.routeHandlers.bootstrap, 'function');
         assert.equal(typeof runtime.app, 'function');
     } finally {
         await runtime.stop();
