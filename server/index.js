@@ -7,6 +7,7 @@ export {createCompanionRouteHandlers} from './application/companion-route-handle
 export {createPendingEventFlow} from './application/pending-event-flow.js';
 export {createSceneEventFlow} from './application/scene-event-flow.js';
 export {createMediaFlow} from './application/media-flow.js';
+export {createCompanionApplication} from './application/companion-application.js';
 
 export {createRuntime, createCompanionRuntime};
 

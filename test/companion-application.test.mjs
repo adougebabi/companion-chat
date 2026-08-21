@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import {createCompanionApplication} from '../server/application/companion-application.js';
+import {COMPANION_ROUTE_CONTRACT} from '../server/http/route-registry.js';
+
+test('companion application composes route handlers without infrastructure side effects', () => {
+    const application = createCompanionApplication({
+        routeHandlers: Object.fromEntries(COMPANION_ROUTE_CONTRACT.map(route => [route.handler, () => {}]))
+    });
+    assert.equal(Object.keys(application.routeHandlers).length, COMPANION_ROUTE_CONTRACT.length);
+    assert.equal(application.pendingEventFlow, null);
+    assert.equal(application.sceneEventFlow, null);
+    assert.equal(application.mediaFlow, null);
+    assert.equal(application.capabilityDispatcher, null);
+});
+
+test('companion application keeps injected flows, services, and route handlers', () => {
+    const flows = {pendingEventFlow: {plan() {}}, sceneEventFlow: {plan() {}}, mediaFlow: {plan() {}}};
+    const handlers = {health() {}};
+    const application = createCompanionApplication({...flows, routeHandlers: handlers, services: {chat() {}}});
+    assert.strictEqual(application.pendingEventFlow, flows.pendingEventFlow);
+    assert.strictEqual(application.sceneEventFlow, flows.sceneEventFlow);
+    assert.strictEqual(application.mediaFlow, flows.mediaFlow);
+    assert.strictEqual(application.routeHandlers, handlers);
+});
