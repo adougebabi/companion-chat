@@ -6203,6 +6203,42 @@ getMedia: async (req, res) => {
     } catch (error) {
         res.status(502).json({error: error.message});
     }
+},
+listPromptRuns: (req, res) => {
+    const personaId = req.query?.personaId ? String(req.query.personaId) : null;
+    res.json(promptRunsFor({personaId, limit: req.query?.limit}));
+},
+h3Preflight: async (req, res) => {
+    const result = await h3Preflight();
+    res.json(result);
+},
+getDebugContext: (req, res) => {
+    res.json(debugContextFor(req.params.personaId));
+},
+getLifecycle: (req, res) => {
+    const persona = requirePersona(req.params.personaId);
+    const events = database.prepare('SELECT * FROM companion_life_events WHERE persona_id = ? ORDER BY occurred_at DESC, id DESC LIMIT 20').all(persona.id).map(row => ({id: row.id, type: row.type, occurredAt: row.occurred_at, resolvesAt: row.resolves_at, payload: redactDebugValue(json(row.payload_json, {}))}));
+    const jobs = database.prepare('SELECT id, job_type, status, attempt_count, error, created_at, updated_at FROM companion_jobs WHERE persona_id = ? ORDER BY created_at DESC LIMIT 20').all(persona.id).map(row => ({id: row.id, type: row.job_type, status: row.status, attempts: row.attempt_count, error: debugSummary(row.error || ''), createdAt: row.created_at, updatedAt: row.updated_at}));
+    const pendingEvents = database.prepare('SELECT * FROM companion_pending_events WHERE persona_id = ? ORDER BY created_at DESC, id DESC LIMIT 20').all(persona.id).map(row => {
+        const job = database.prepare("SELECT id, status, attempt_count, error, created_at, updated_at FROM companion_jobs WHERE persona_id = ? AND job_type = 'pending_event' AND json_extract(payload_json, '$.pendingEventId') = ? ORDER BY created_at DESC LIMIT 1").get(persona.id, row.id);
+        return {id: row.id, status: row.status, summary: debugSummary(row.summary), sourceMessageId: row.source_message_id || null, notBefore: row.not_before, expiresAt: row.expires_at, createdAt: row.created_at, updatedAt: row.updated_at, triggeredAt: row.triggered_at, consumedAt: row.consumed_at, cancelledAt: row.cancelled_at, job: job ? {id: job.id, status: job.status, attempts: job.attempt_count, error: debugSummary(job.error || ''), createdAt: job.created_at, updatedAt: job.updated_at} : null};
+    });
+    const timeline = database.prepare('SELECT * FROM companion_timeline_slots WHERE persona_id = ? ORDER BY starts_at, created_at LIMIT 40').all(persona.id).map(row => ({id: row.id, key: row.slot_key, kind: row.slot_kind, status: row.status, startsAt: row.starts_at, endsAt: row.ends_at, source: row.source, priority: row.priority, constraints: redactDebugValue(json(row.constraints_json, {})), outcome: redactDebugValue(json(row.outcome_json, {}))}));
+    const decisions = database.prepare('SELECT * FROM companion_event_decisions WHERE persona_id = ? ORDER BY created_at DESC LIMIT 40').all(persona.id).map(row => ({id: row.id, key: row.decision_key, type: row.decision_type, status: row.status, runAt: row.run_at, expiresAt: row.expires_at, priority: row.priority, preemptionMode: row.preemption_mode, candidate: redactDebugValue(json(row.candidate_json, {})), rationale: redactDebugValue(json(row.rationale_json, {})), eventId: row.event_id}));
+    const deferredBatches = database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE persona_id = ? ORDER BY created_at DESC LIMIT 10').all(persona.id).map(row => ({id: row.id, status: row.status, deliverAt: row.deliver_at, messageCount: json(row.message_ids_json, []).length, decision: redactDebugValue(json(row.decision_json, {})), error: debugSummary(row.error || '')}));
+    res.json({state: stateShape(persona.id), events, jobs, pendingEvents, timeline, decisions, deferredBatches, nextEvaluationAt: new Date(Date.now() + 5 * 60_000).toISOString(), timezone: blueprint(persona.id).timezone || Intl.DateTimeFormat().resolvedOptions().timeZone});
+},
+simulatePersona: (req, res) => {
+    const persona = requirePersona(req.params.personaId);
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('模拟事件必须是 JSON 对象');
+    const event = eventFromSimulation(persona, req.body || {});
+    const output = createEvent(persona, event, {publish: req.body?.publish !== false, simulated: true, source: 'debug', rationale: '开发检查器手动模拟；使用生产事件白名单'});
+    const activity = output.activityId && database.prepare('SELECT * FROM companion_activities WHERE id = ?').get(output.activityId);
+    res.status(201).json({eventId: output.eventId, activity: activity ? activityShape(activity) : null, state: stateShape(persona.id)});
+},
+debugMedia: (req, res) => {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('测试媒体请求必须是 JSON 对象');
+    res.status(202).json(createChatMediaRequest(req.params.personaId, {...req.body, trigger: 'debug_inspector'}));
 }
 };
 
@@ -6216,50 +6252,6 @@ registerCompanionRoutes({
     wrapRoute: route,
     missingHandler: 'skip'
 });
-
-if (debugInspectorEnabled) {
-    app.get('/api/companion/prompt-runs', route((req, res) => {
-        const personaId = req.query?.personaId ? String(req.query.personaId) : null;
-        res.json(promptRunsFor({personaId, limit: req.query?.limit}));
-    }));
-    app.post('/api/companion/h3-preflight', route(async (req, res) => {
-        const result = await h3Preflight();
-        res.json(result);
-    }));
-    app.get('/api/companion/personas/:personaId/debug-context', route((req, res) => {
-        res.json(debugContextFor(req.params.personaId));
-    }));
-    app.get('/api/companion/personas/:personaId/lifecycle', route((req, res) => {
-        const persona = requirePersona(req.params.personaId);
-        const events = database.prepare('SELECT * FROM companion_life_events WHERE persona_id = ? ORDER BY occurred_at DESC, id DESC LIMIT 20').all(persona.id).map(row => ({id: row.id, type: row.type, occurredAt: row.occurred_at, resolvesAt: row.resolves_at, payload: redactDebugValue(json(row.payload_json, {}))}));
-        const jobs = database.prepare('SELECT id, job_type, status, attempt_count, error, created_at, updated_at FROM companion_jobs WHERE persona_id = ? ORDER BY created_at DESC LIMIT 20').all(persona.id).map(row => ({id: row.id, type: row.job_type, status: row.status, attempts: row.attempt_count, error: debugSummary(row.error || ''), createdAt: row.created_at, updatedAt: row.updated_at}));
-        const pendingEvents = database.prepare('SELECT * FROM companion_pending_events WHERE persona_id = ? ORDER BY created_at DESC, id DESC LIMIT 20').all(persona.id).map(row => {
-            const job = database.prepare("SELECT id, status, attempt_count, error, created_at, updated_at FROM companion_jobs WHERE persona_id = ? AND job_type = 'pending_event' AND json_extract(payload_json, '$.pendingEventId') = ? ORDER BY created_at DESC LIMIT 1").get(persona.id, row.id);
-            return {
-                id: row.id, status: row.status, summary: debugSummary(row.summary), sourceMessageId: row.source_message_id || null,
-                notBefore: row.not_before, expiresAt: row.expires_at, createdAt: row.created_at, updatedAt: row.updated_at,
-                triggeredAt: row.triggered_at, consumedAt: row.consumed_at, cancelledAt: row.cancelled_at,
-                job: job ? {id: job.id, status: job.status, attempts: job.attempt_count, error: debugSummary(job.error || ''), createdAt: job.created_at, updatedAt: job.updated_at} : null
-            };
-        });
-        const timeline = database.prepare('SELECT * FROM companion_timeline_slots WHERE persona_id = ? ORDER BY starts_at, created_at LIMIT 40').all(persona.id).map(row => ({id: row.id, key: row.slot_key, kind: row.slot_kind, status: row.status, startsAt: row.starts_at, endsAt: row.ends_at, source: row.source, priority: row.priority, constraints: redactDebugValue(json(row.constraints_json, {})), outcome: redactDebugValue(json(row.outcome_json, {}))}));
-        const decisions = database.prepare('SELECT * FROM companion_event_decisions WHERE persona_id = ? ORDER BY created_at DESC LIMIT 40').all(persona.id).map(row => ({id: row.id, key: row.decision_key, type: row.decision_type, status: row.status, runAt: row.run_at, expiresAt: row.expires_at, priority: row.priority, preemptionMode: row.preemption_mode, candidate: redactDebugValue(json(row.candidate_json, {})), rationale: redactDebugValue(json(row.rationale_json, {})), eventId: row.event_id}));
-        const deferredBatches = database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE persona_id = ? ORDER BY created_at DESC LIMIT 10').all(persona.id).map(row => ({id: row.id, status: row.status, deliverAt: row.deliver_at, messageCount: json(row.message_ids_json, []).length, decision: redactDebugValue(json(row.decision_json, {})), error: debugSummary(row.error || '')}));
-        res.json({state: stateShape(persona.id), events, jobs, pendingEvents, timeline, decisions, deferredBatches, nextEvaluationAt: new Date(Date.now() + 5 * 60_000).toISOString(), timezone: blueprint(persona.id).timezone || Intl.DateTimeFormat().resolvedOptions().timeZone});
-    }));
-    app.post('/api/companion/personas/:personaId/simulate', route((req, res) => {
-        const persona = requirePersona(req.params.personaId);
-        if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('模拟事件必须是 JSON 对象');
-        const event = eventFromSimulation(persona, req.body || {});
-        const output = createEvent(persona, event, {publish: req.body?.publish !== false, simulated: true, source: 'debug', rationale: '开发检查器手动模拟；使用生产事件白名单'});
-        const activity = output.activityId && database.prepare('SELECT * FROM companion_activities WHERE id = ?').get(output.activityId);
-        res.status(201).json({eventId: output.eventId, activity: activity ? activityShape(activity) : null, state: stateShape(persona.id)});
-    }));
-    app.post('/api/companion/personas/:personaId/debug-media', route((req, res) => {
-        if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw new Error('测试媒体请求必须是 JSON 对象');
-        res.status(202).json(createChatMediaRequest(req.params.personaId, {...req.body, trigger: 'debug_inspector'}));
-    }));
-}
 
 export const companionApp = app;
 export const companionTestHooks = {database, createPersona, createEvent, requirePersona, deletePersona, listGroups, createGroup, assignPersonaGroup, listActivities, listMessages, appendMessage, appendUserVisibleAssistantReply, splitUserVisibleAssistantReply, userVisibleChatPrompt, extractMediaIntent, extractPendingEventIntent, createVisibleMarkerRedactor, mediaRequestFromText, mediaCommitmentFromText, normalizeMediaRequest, normalizeMediaCapabilityCall, normalizeMediaConceptEnvelope, normalizePersonaMediaConcept, normalizeMediaPromptTemplate, normalizeMediaAcceptance, normalizePendingEventCall, pendingEventShape, planPendingEvent, applyPendingEventPlan, createPendingEvent, normalizeProactiveDecision, parseProactiveDecision, freezeProactiveDecision, evaluateProactiveDecision, runProactiveMessageJob, runPendingEventJob, mediaConceptEnvelopeFor, generatePersonaMediaConcept, fillMediaPromptTemplate, renderMediaPromptTemplate, mediaConceptSchemaVersion, mediaCapabilityCallSchemaVersion, mediaPromptTemplateSchemaVersion, mediaPromptTemplateSections, pendingEventSchemaVersion, proactiveDecisionSchemaVersion, systemCapabilityReplyForm, systemCapabilityMediaContract, systemCapabilityPendingEventContract, systemCapabilityTimeFact, systemCapabilitySceneContract, personaMediaConceptContract, imagePromptMasterContract, imageGenerationPolicies, imageGenerationPolicyLabels, normalizeImageGenerationPolicy, imageGenerationPolicyFor, sceneEventOperations, sceneEventTool, mediaEventTool, pendingEventTool, boundedSceneText, normalizeSceneEventCall, sharedSceneFor, planSceneEvent, applySceneEventPlan, applySceneEvent, appendToolCallFragment, consumeStreamedCompletion, capabilityRegistry, dispatchCapabilityCalls, executeSceneToolCall, sceneToolResult, executeMediaToolCall, mediaToolResult, pendingToolResult, addActivityComment, setUserReaction, activeMemories, stateFor, resolvedStateFor, stateShape, scheduledState, contextFor, applyRelationshipEvolution, activeRelationshipPatch, explicitPlanFromMessage, createScheduleItem, rescheduleScheduleItem, createChatMediaRequest, mediaAssets, completePolledMediaJob, completeGeneratedMedia, completeProactiveMessageJob, completeActivityDecisionJob, parseActivityDecision, proactiveEligibility, personaFocusTier, publicBlueprint, restoreFoundationRevision, recoverPersona, reconcilePersona, buildInitialBlueprint, normalizeLifeBlueprint, validateLifeBlueprint, finalizeLifeBlueprint, generateInitialLifeBlueprint, lifeModelSchemaVersion, resolveSceneRef, zonedPlanInstant, localDayBounds, storedDailyPlanItems, normalizeDailyPlan, composeDailyPlanTimeline, readyDailyPlanFor, dailyPlanSlotAt, timelineDecision, chooseTimelineTemplate, instantiateTimelineEvent, sleepAvailability, deferredBatchForMessage, trustedTimeReplyForMessage, runDeferredChatReplyJob, createInterview, answerInterview, activateInterview, interviewView, previewInterviewAnswers, validatePersonaDescription, normalizePersonaDescriptionExtraction, analyzePersonaDescription, createNaturalLanguageInterview, naturalLanguageDescriptionMaxLength, personaDescriptionPromptVersion, debugContextFor, redactDebugValue, debugSummary, promptRunsFor, lmCompletion, debugInspectorEnabled, ensureDailyPlan, enqueueRelationshipEvolutionJob, mediaProviders, providerFor, providerSummaries, validateMediaSettings, validateH3Configuration, h3ConfigSummary, h3Preflight, h3Args, h3OutputFile, leaseDurationForJob, submitMediaJob, pollMedia, saveSettings, publicSettings};
