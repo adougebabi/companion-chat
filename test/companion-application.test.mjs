@@ -31,3 +31,36 @@ test('companion application adds an injected chat service to the service map', (
     assert.strictEqual(application.chatService, chatService);
     assert.strictEqual(application.services.chat, chatService);
 });
+
+test('companion application exposes the validated chat route for explicit chat ports', () => {
+    const calls = [];
+    const application = createCompanionApplication({
+        chatPorts: {
+            contextReader: {read: async () => ({fragments: []})},
+            llm: {stream: async () => ({tokens: [], toolCalls: []})},
+            capabilityDispatcher: {dispatch: async () => ({results: [], effects: []})},
+            conversation: {listMessages: () => ({items: []})},
+            commit: async () => calls.push('commit'),
+            sendSse: (_sink, event) => calls.push(event),
+            end: sink => { sink.ended = true; }
+        }
+    });
+
+    assert.equal(typeof application.chatService.handle, 'function');
+    assert.strictEqual(application.chatRoute, application.routeHandlers.chat);
+
+    const sink = {
+        events: [],
+        writableEnded: false,
+        on() { return this; },
+        removeListener() { return this; }
+    };
+    const request = {body: {personaId: 'persona_test', text: 'hello'}};
+    return application.chatRoute(request, sink).then(() => {
+        assert.deepEqual(calls, [
+            'commit',
+            {type: 'done', messages: [], message: null, learned: [], jobs: []}
+        ]);
+        assert.equal(sink.ended, true);
+    });
+});

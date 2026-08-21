@@ -1,3 +1,6 @@
+import {createConversationService} from './conversation-service.js';
+import {createIdentitySettingsService} from './identity-settings-service.js';
+
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -9,37 +12,32 @@ function repository(repositories, names, field) {
     throw new TypeError(`Basic companion services require ${field}`);
 }
 
-function messageDto(row) {
-    if (!row) return null;
-    const decode = value => {
-        if (value && typeof value === 'object') return value;
-        try { return value ? JSON.parse(value) : []; } catch { return []; }
-    };
-    return {
-        id: row.id,
-        role: row.role,
-        text: row.text,
-        attachments: decode(row.attachments ?? row.attachments_json),
-        generation: row.generation ?? (row.generation_json ? decode(row.generation_json) : undefined),
-        jobs: decode(row.jobs ?? row.jobs_json),
-        createdAt: row.createdAt ?? row.created_at,
-        readAt: row.readAt ?? row.read_at ?? undefined
-    };
+function conversationCommand(command) {
+    if (typeof command === 'string') return {personaId: command};
+    if (!isRecord(command)) return {};
+
+    const normalized = {...command};
+    if (normalized.personaId === undefined && normalized.persona_id !== undefined) {
+        normalized.personaId = normalized.persona_id;
+    }
+    // Older callers used the response name as the request cursor. The
+    // conversation application service still owns cursor decoding/validation.
+    if (normalized.cursor === undefined && normalized.nextCursor !== undefined) {
+        normalized.cursor = normalized.nextCursor;
+    }
+    return normalized;
 }
 
-function groupDto(row) {
-    return {id: row.id, name: row.name, isDefault: Boolean(row.is_default), personaCount: Number(row.persona_count || 0)};
-}
+function pageDto(result) {
+    if (Array.isArray(result)) return {items: result, nextCursor: null};
+    if (!isRecord(result)) return {items: [], nextCursor: null};
 
-function personaDto(row) {
+    const nextCursor = result.nextCursor ?? result.cursor ?? null;
+    const {cursor: _legacyCursor, ...rest} = result;
     return {
-        id: row.id,
-        name: row.name,
-        role: row.role,
-        color: row.color,
-        groupId: row.group_id || null,
-        screened: Boolean(row.screened_at),
-        updatedAt: row.updated_at
+        ...rest,
+        items: Array.isArray(result.items) ? result.items : [],
+        nextCursor
     };
 }
 
@@ -48,7 +46,7 @@ function personaDto(row) {
  * Feature-specific policy remains in application flows; unsupported routes
  * continue to report bounded 501 through the route-handler composition.
  */
-export function createBasicCompanionServices({repositories, settings, providers, clock = () => new Date().toISOString(), debugInspector = false} = {}) {
+export function createBasicCompanionServices({repositories, settings, providers, clock = () => new Date().toISOString(), debugInspector = false, identitySettingsService} = {}) {
     const personas = repository(repositories, ['persona', 'personas'], 'persona repository');
     const groups = repository(repositories, ['group', 'groups'], 'group repository');
     const conversation = repository(repositories, ['conversation', 'conversationRepository'], 'conversation repository');
@@ -56,41 +54,39 @@ export function createBasicCompanionServices({repositories, settings, providers,
     const conversationService = createConversationService({repository: conversation, clock});
     const settingsPort = settings ?? repositories?.settings;
     if (!isRecord(settingsPort) || typeof settingsPort.read !== 'function') throw new TypeError('Basic companion services require settings.read()');
+    const identity = identitySettingsService ?? createIdentitySettingsService({
+        repositories: {persona: personas, group: groups, activity, settings: settingsPort},
+        providers,
+        debugInspector
+    });
+    const useIdentitySettings = identitySettingsService !== undefined;
 
     const service = {
         bootstrap: {
-            read() {
-                return {
-                    settings: settingsPort.read(),
-                    personas: personas.listActive().map(personaDto),
-                    groups: groups.list().map(groupDto),
-                    activityUnread: false,
-                    defaultTimezone: 'UTC',
-                    debugInspector: debugInspector === true
-                };
-            }
+            read() { return identity.bootstrap.read(); }
         },
         settings: {
-            read() { return settingsPort.read(); },
+            read() { return useIdentitySettings ? identity.settings.read() : settingsPort.read(); },
             update(command) {
-                if (!isRecord(command)) throw new TypeError('Settings command must be an object');
-                if (typeof settingsPort.write !== 'function') throw new TypeError('Settings service is read-only');
-                settingsPort.write(command);
-                return settingsPort.read();
+                if (!useIdentitySettings) {
+                    if (!isRecord(command)) throw new TypeError('Settings command must be an object');
+                    if (typeof settingsPort.write !== 'function') throw new TypeError('Settings service is read-only');
+                    settingsPort.write(command);
+                    return settingsPort.read();
+                }
+                return identity.settings.update(command);
             }
         },
         models: {
             list() { return providers?.summaries?.({detailed: true}) ?? []; }
         },
         conversations: {
-            list(command) { return conversationService.list(command); },
+            list(command) { return pageDto(conversationService.list(conversationCommand(command))); },
             appendMessage(command) { return conversationService.appendMessage(command); }
         },
         activities: {
             list(command) {
-                const result = activity.listActivities(command);
-                if (Array.isArray(result)) return {items: result, nextCursor: null};
-                return result;
+                return pageDto(activity.listActivities(command ?? {}));
             }
         }
     };
@@ -98,4 +94,3 @@ export function createBasicCompanionServices({repositories, settings, providers,
 }
 
 export default createBasicCompanionServices;
-import {createConversationService} from './conversation-service.js';

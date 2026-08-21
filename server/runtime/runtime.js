@@ -3,6 +3,7 @@ import {registerCompanionRoutes} from '../http/route-registry.js';
 import {createCompanionRouteHandlers} from '../application/companion-route-handlers.js';
 import {createCompanionApplication} from '../application/companion-application.js';
 import {createBasicCompanionServices} from '../application/basic-companion-services.js';
+import {createIdentitySettingsService} from '../application/identity-settings-service.js';
 import {createActivityRepository} from '../infrastructure/activity-repository.js';
 import {createConversationRepository} from '../infrastructure/conversation-repository.js';
 import {createGroupRepository} from '../infrastructure/group-repository.js';
@@ -69,19 +70,22 @@ function resolveApp(options, startup, worker) {
     const httpOptions = isRecord(options.httpOptions) ? options.httpOptions : {};
     const configuredRegistrar = httpOptions.routeRegistrar ?? options.routeRegistrar;
     const routeHandlers = httpOptions.routeHandlers ?? options.routeHandlers;
+    const chatRoute = httpOptions.chatRoute ?? options.chatRoute ?? options.application?.chatRoute;
     const routeRegistrar = configuredRegistrar ?? (routeHandlers ? ({app: routeApp, wrapRoute, sendError}) => registerCompanionRoutes({
         app: routeApp,
         handlers: routeHandlers,
         wrapRoute,
         sendError,
         debugInspectorEnabled: options.debugInspectorEnabled === true || httpOptions.debugInspectorEnabled === true,
-        missingHandler: httpOptions.missingHandler ?? options.missingHandler ?? 'error'
+        missingHandler: httpOptions.missingHandler ?? options.missingHandler ?? 'error',
+        skip: chatRoute ? ['chat'] : []
     }) : undefined);
     return createHttpApp({
         ...httpOptions,
         root: httpOptions.root ?? options.root,
         staticRoot: httpOptions.staticRoot ?? options.staticRoot,
         routeRegistrar,
+        chatRoute,
         chatSseAdapter: httpOptions.chatSseAdapter ?? options.chatSseAdapter,
         healthResponse: httpOptions.healthResponse ?? options.healthResponse,
         worker,
@@ -89,7 +93,7 @@ function resolveApp(options, startup, worker) {
     });
 }
 
-function resolveWorker(options, startup) {
+function resolveWorker(options, startup, repositories) {
     if (options.workerRuntime === false || options.worker === false) return null;
     const configured = options.workerRuntime ?? (isRecord(options.worker) ? options.worker : undefined);
     if (configured !== undefined) {
@@ -99,11 +103,13 @@ function resolveWorker(options, startup) {
         return configured;
     }
     const workerOptions = isRecord(options.workerOptions) ? options.workerOptions : {};
-    const hasWork = ['jobTick', 'tick', 'processTick', 'claimJob', 'runJob'].some(name => typeof workerOptions[name] === 'function' || typeof options[name] === 'function');
+    const hasWork = ['jobTick', 'tick', 'processTick', 'claimJob', 'runJob'].some(name => typeof workerOptions[name] === 'function' || typeof options[name] === 'function')
+        || typeof options.jobDispatcher?.jobTick === 'function'
+        || typeof options.jobDispatcher?.runJob === 'function';
     if (!hasWork) return null;
     return createWorkerRuntime({
         ...workerOptions,
-        jobRepository: workerOptions.jobRepository ?? options.jobRepository,
+        jobRepository: workerOptions.jobRepository ?? options.jobRepository ?? repositories?.jobRepository ?? repositories?.job,
         jobTick: workerOptions.jobTick ?? options.jobTick ?? options.jobDispatcher?.jobTick,
         claimJob: workerOptions.claimJob ?? options.claimJob,
         runJob: workerOptions.runJob ?? options.runJob,
@@ -138,7 +144,9 @@ function runtimeId(value) {
 function resolveRepositories(options, startup) {
     if (options.repositories !== undefined) {
         if (!isRecord(options.repositories)) throw new TypeError('Runtime repositories must be an object');
-        return options.repositories;
+        const job = options.repositories.jobRepository ?? options.repositories.job ?? options.repositories.effectRepository ?? options.jobRepository;
+        if (!job || (options.repositories.job === job && options.repositories.jobRepository === job)) return options.repositories;
+        return Object.freeze({...options.repositories, job, jobRepository: job});
     }
     const database = startup.database;
     const clock = runtimeClock(options.clock);
@@ -150,6 +158,7 @@ function resolveRepositories(options, startup) {
         conversation: createConversationRepository({database}),
         activity: createActivityRepository({database}),
         job,
+        jobRepository: job,
         pending,
         pendingEvent: pending,
         lifeEvent: createLifeEventRepository({database, clock, id}),
@@ -161,18 +170,102 @@ function resolveRepositories(options, startup) {
     });
 }
 
-function resolveJobDispatcher(options, startup) {
+function descriptorHandler(value) {
+    if (typeof value === 'function') return {handler: value, receiver: undefined};
+    if (!isRecord(value)) return {handler: null, receiver: undefined};
+    const handler = value.handler ?? value.run ?? value.handle;
+    const receiver = value.receiver ?? (typeof handler === 'function' ? value : undefined);
+    return {handler: typeof handler === 'function' ? handler : null, receiver};
+}
+
+function addJobHandler(target, type, value, source) {
+    if (typeof type !== 'string' || type.trim() === '') throw new TypeError(`${source} job type must be a non-empty string`);
+    const {handler, receiver} = descriptorHandler(value);
+    if (!handler) throw new TypeError(`${source} handler for ${type} must be a function`);
+    const normalizedType = type.trim();
+    const existing = target.get(normalizedType);
+    if (existing && (existing.handler !== handler || existing.receiver !== receiver)) {
+        throw new Error(`Job type already registered: ${normalizedType}`);
+    }
+    target.set(normalizedType, Object.freeze({handler, receiver}));
+}
+
+function collectJobHandlers(target, input, source) {
+    if (input === undefined || input === null) return;
+    if (input instanceof Map) {
+        for (const [type, value] of input) addJobHandler(target, type, value, source);
+        return;
+    }
+    if (Array.isArray(input)) {
+        for (const value of input) {
+            if (!isRecord(value)) throw new TypeError(`${source} handlers must contain registration objects`);
+            addJobHandler(target, value.type ?? value.jobType ?? value.job_type, value, source);
+        }
+        return;
+    }
+    if (!isRecord(input)) throw new TypeError(`${source} handlers must be a map, array, or object`);
+    for (const [type, value] of Object.entries(input)) addJobHandler(target, type, value, source);
+}
+
+function mediaJobRegistrations(service) {
+    if (!isRecord(service)) throw new TypeError('Runtime mediaJobService must be an object');
+    if (typeof service.registrations === 'function') return service.registrations();
+    const map = service.handlers ?? service.handlerMap;
+    if (map instanceof Map) return [...map].map(([type, value]) => ({type, ...descriptorHandler(value)}));
+    if (isRecord(map)) return Object.entries(map).map(([type, value]) => ({type, ...descriptorHandler(value)}));
+    if (typeof service.list === 'function' && typeof service.get === 'function') {
+        return service.list().map(type => ({type, handler: service.get(type), receiver: service}));
+    }
+    if (typeof service.register === 'function') {
+        const registrations = [];
+        service.register({register(type, handler, receiver) { registrations.push({type, handler, receiver}); }});
+        return registrations;
+    }
+    throw new TypeError('Runtime mediaJobService must expose handlers or register()');
+}
+
+function mediaJobHandlers(service) {
+    const handlers = new Map();
+    for (const registration of mediaJobRegistrations(service)) {
+        const {handler, receiver} = descriptorHandler(registration);
+        if (!handler) throw new TypeError(`Runtime mediaJobService handler for ${registration?.type} must be a function`);
+        // Media application handlers perform guarded projections themselves.
+        // The generic dispatcher owns the one durable job transition when they
+        // run inside a worker, so defer the service's repository settlement.
+        const delegated = async (job, context = {}) => handler.call(receiver ?? service, job, {...context, deferSettlement: true});
+        addJobHandler(handlers, registration.type, delegated, 'Runtime mediaJobService');
+    }
+    return handlers;
+}
+
+function resolveJobHandlers(options) {
+    const handlers = new Map();
+    if (options.mediaJobService !== undefined) {
+        for (const [type, value] of mediaJobHandlers(options.mediaJobService)) addJobHandler(handlers, type, value, 'Runtime mediaJobService');
+    }
+    collectJobHandlers(handlers, options.jobHandlers ?? options.jobRegistry ?? options.handlers, 'Runtime');
+    return handlers.size ? handlers : undefined;
+}
+
+function registerJobHandlers(target, handlers) {
+    if (!handlers?.size) return target;
+    if (typeof target.register !== 'function') throw new TypeError('Runtime jobDispatcher must provide register() when mediaJobService is injected');
+    for (const [type, value] of handlers) target.register(type, value.handler, value.receiver);
+    return target;
+}
+
+function resolveJobDispatcher(options, startup, repositories) {
     const configured = options.jobDispatcher;
+    const handlers = resolveJobHandlers(options);
     if (configured !== undefined) {
         if (!isRecord(configured) || typeof configured.runJob !== 'function' || typeof configured.jobTick !== 'function') {
             throw new TypeError('Runtime jobDispatcher must provide runJob() and jobTick()');
         }
-        return configured;
+        return registerJobHandlers(configured, handlers);
     }
-    const handlers = options.jobHandlers ?? options.jobRegistry;
     if (handlers === undefined) return null;
     return createJobDispatcher({
-        jobRepository: options.jobRepository,
+        jobRepository: options.jobRepository ?? repositories?.jobRepository ?? repositories?.job,
         handlers,
         clock: options.clock,
         receiver: options.jobHandlerReceiver,
@@ -254,9 +347,10 @@ export function createRuntime(options = {}) {
     const startup = resolveStartup({...options, environment});
     const repositories = resolveRepositories(options, startup);
     const providers = resolveProviders(options);
-    const jobDispatcher = resolveJobDispatcher(options, startup);
-    const application = options.application ?? options.applicationFactory?.({...options, repositories, providers, jobDispatcher});
-    const worker = resolveWorker({...options, jobDispatcher}, startup);
+    const jobRepository = options.jobRepository ?? repositories.jobRepository ?? repositories.job;
+    const jobDispatcher = resolveJobDispatcher({...options, jobRepository}, startup, repositories);
+    const application = options.application ?? options.applicationFactory?.({...options, repositories, jobRepository, providers, jobDispatcher});
+    const worker = resolveWorker({...options, jobRepository, jobDispatcher}, startup, repositories);
     const app = resolveApp({...options, application, routeHandlers: options.routeHandlers ?? application?.routeHandlers}, startup, worker);
     const auxiliaryRuntimes = resolveAuxiliaryRuntimes(options);
     const port = resolvePort(options.port, environment);
@@ -327,8 +421,10 @@ export function createRuntime(options = {}) {
         database: startup.database,
         databaseConfig: startup.databaseConfig,
         repositories,
+        jobRepository,
         providers,
         jobDispatcher,
+        mediaJobService: options.mediaJobService ?? null,
         application,
         app,
         worker,
@@ -350,15 +446,27 @@ export function createCompanionRuntime(options = {}) {
     if (!isRecord(options)) throw new TypeError('Companion runtime options must be an object');
     const applicationFactory = options.application
         ? undefined
-        : resolved => createCompanionApplication({
-            ...resolved,
-            services: options.services ?? createBasicCompanionServices({
+        : resolved => {
+            const identitySettings = options.identitySettingsService ?? createIdentitySettingsService({
                 repositories: resolved.repositories,
-                settings: resolved.repositories.settings,
+                settings: options.settings ?? resolved.repositories.settings,
                 providers: resolved.providers,
-                clock: resolved.clock
-            })
-        });
+                settingsPolicy: options.settingsPolicy,
+                defaultTimezone: options.defaultTimezone,
+                debugInspector: options.debugInspectorEnabled === true
+            });
+            return createCompanionApplication({
+                ...resolved,
+                services: options.services ?? createBasicCompanionServices({
+                    repositories: resolved.repositories,
+                    settings: options.settings ?? resolved.repositories.settings,
+                    providers: resolved.providers,
+                    clock: resolved.clock,
+                    debugInspector: options.debugInspectorEnabled === true,
+                    identitySettingsService: identitySettings
+                })
+            });
+        };
     return createRuntime({...options, applicationFactory, missingHandler: options.missingHandler ?? 'error'});
 }
 export default createRuntime;

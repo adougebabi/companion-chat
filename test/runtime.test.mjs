@@ -129,6 +129,178 @@ test('runtime wires route handlers, provider registry, and registered job dispat
     }
 });
 
+test('companion runtime registers every media handler, dispatches through the worker, and settles once', async () => {
+    const dataDir = temporaryDirectory();
+    const calls = [];
+    const job = {
+        id: 'media_runtime_job',
+        job_type: 'chat_image',
+        status: 'queued',
+        lease_owner: null,
+        lease_expires_at: null,
+        attempt_count: 0,
+        max_attempts: 2
+    };
+    const jobRepository = {
+        claim(input) {
+            calls.push(['claim', input.leaseOwner]);
+            if (job.status !== 'queued') return null;
+            job.status = 'leased';
+            job.lease_owner = input.leaseOwner;
+            job.lease_expires_at = '2999-01-01T00:00:00.000Z';
+            job.attempt_count += 1;
+            return job;
+        },
+        findLeased(input) {
+            return job.status === 'leased' && job.lease_owner === input.leaseOwner ? job : null;
+        },
+        settle(input) {
+            calls.push(['settle', input.status]);
+            if (job.status !== 'leased' || job.lease_owner !== input.leaseOwner) return {changed: false, status: null, job: null};
+            job.status = input.status;
+            job.lease_owner = null;
+            job.lease_expires_at = null;
+            return {changed: true, status: input.status, job};
+        },
+        retry(input) {
+            calls.push(['retry', input.runAfter]);
+            if (job.status !== 'leased' || job.lease_owner !== input.leaseOwner) return {changed: false, status: null, job: null};
+            job.status = 'queued';
+            job.lease_owner = null;
+            job.lease_expires_at = null;
+            return {changed: true, status: 'queued', job};
+        }
+    };
+    const mediaTypes = ['activity_image', 'activity_video', 'chat_image', 'chat_video', 'activity_media_poll', 'chat_media_poll'];
+    const mediaJobService = {
+        handlers: Object.fromEntries(mediaTypes.map(type => [type, async (receivedJob, context) => {
+            calls.push(['media', type, context.deferSettlement]);
+            if (type !== 'chat_image') return {status: 'complete', result: {type}};
+            // This mirrors media-job-service: direct callers settle, but the
+            // runtime adapter defers to the generic dispatcher.
+            if (!context.deferSettlement) jobRepository.settle({id: receivedJob.id, status: 'complete', leaseOwner: context.leaseOwner});
+            return {status: 'complete', result: {type}};
+        }]) )
+    };
+    const timers = {
+        setInterval() { return 1; },
+        clearInterval() {},
+        setTimeout() { return 1; },
+        clearTimeout() {}
+    };
+    const runtime = createCompanionRuntime({
+        Database,
+        dataDir,
+        repositories: {job: jobRepository},
+        mediaJobService,
+        handlers: {
+            generic_job() { calls.push(['generic']); }
+        },
+        application: {routeHandlers: {}},
+        missingHandler: 'skip',
+        workerOptions: {timers, leaseOwner: 'runtime_worker'},
+        environment: {DATA_DIR: dataDir}
+    });
+    try {
+        assert.strictEqual(runtime.jobRepository, jobRepository);
+        assert.strictEqual(runtime.repositories.jobRepository, jobRepository);
+        assert.deepEqual(runtime.jobDispatcher.list(), [...mediaTypes, 'generic_job']);
+        await runtime.start({listen: false});
+        const result = await runtime.worker.tick();
+        assert.equal(result.status, 'complete');
+        assert.deepEqual(calls.filter(([kind]) => kind === 'media'), [['media', 'chat_image', true]]);
+        assert.deepEqual(calls.filter(([kind]) => kind === 'settle'), [['settle', 'complete']]);
+        assert.equal(job.status, 'complete');
+    } finally {
+        await runtime.stop();
+        rmSync(dataDir, {recursive: true, force: true});
+    }
+});
+
+test('companion runtime keeps stale media leases fail-closed and terminal/retry settlement single-owner', async () => {
+    async function run(mode) {
+        const calls = [];
+        const job = {
+            id: `media_${mode}`,
+            job_type: 'chat_image',
+            status: 'queued',
+            lease_owner: null,
+            lease_expires_at: null,
+            attempt_count: 0,
+            max_attempts: mode === 'terminal' ? 1 : 2
+        };
+        const repository = {
+            claim(input) {
+                job.status = 'leased';
+                job.lease_owner = input.leaseOwner;
+                job.lease_expires_at = '2999-01-01T00:00:00.000Z';
+                job.attempt_count += 1;
+                return job;
+            },
+            findLeased(input) {
+                if (mode === 'stale') return null;
+                return job.status === 'leased' && job.lease_owner === input.leaseOwner ? job : null;
+            },
+            settle(input) {
+                calls.push(['settle', input.status]);
+                job.status = input.status;
+                job.lease_owner = null;
+                job.lease_expires_at = null;
+                return {changed: true, status: input.status, job};
+            },
+            retry(input) {
+                calls.push(['retry', input.runAfter]);
+                job.status = 'queued';
+                job.lease_owner = null;
+                job.lease_expires_at = null;
+                return {changed: true, status: 'queued', job};
+            }
+        };
+        const runtime = createCompanionRuntime({
+            startupRuntime: {database: {}, close() {}},
+            app: {},
+            application: {},
+            repositories: {job: repository},
+            mediaJobService: {
+                handlers: {
+                    chat_image(_receivedJob, context) {
+                        calls.push(['handler', context.deferSettlement]);
+                        return mode === 'terminal'
+                            ? {status: 'failed', terminal: true, error: 'terminal media failure'}
+                            : {status: 'retry', error: 'temporary media failure'};
+                    }
+                }
+            },
+            workerOptions: {
+                leaseOwner: 'media_runtime_worker',
+                timers: {setInterval() { return 1; }, clearInterval() {}, setTimeout() { return 1; }, clearTimeout() {}}
+            }
+        });
+        try {
+            await runtime.start({listen: false});
+            const result = await runtime.worker.tick();
+            return {result, calls, job};
+        } finally {
+            await runtime.stop();
+        }
+    }
+
+    const stale = await run('stale');
+    assert.equal(stale.result.status, 'stale');
+    assert.deepEqual(stale.calls, []);
+    assert.equal(stale.job.status, 'leased');
+
+    const retried = await run('retry');
+    assert.equal(retried.result.status, 'retry');
+    assert.deepEqual(retried.calls.map(([kind]) => kind), ['handler', 'retry']);
+    assert.equal(retried.job.status, 'queued');
+
+    const terminal = await run('terminal');
+    assert.equal(terminal.result.status, 'failed');
+    assert.deepEqual(terminal.calls, [['handler', true], ['settle', 'failed']]);
+    assert.equal(terminal.job.status, 'failed');
+});
+
 test('runtime owns auxiliary task lifecycles in start/stop order', async () => {
     const dataDir = temporaryDirectory();
     const events = [];
@@ -181,6 +353,50 @@ test('companion runtime provides a real repository-backed bootstrap slice', asyn
         assert.equal(payload.storage, undefined);
     } finally {
         await runtime.stop();
+        rmSync(dataDir, {recursive: true, force: true});
+    }
+});
+
+test('companion runtime mounts one validated chat route from explicit chat ports', async () => {
+    const dataDir = temporaryDirectory();
+    const sent = [];
+    const runtime = createCompanionRuntime({
+        Database,
+        dataDir,
+        workerRuntime: false,
+        environment: {DATA_DIR: dataDir},
+        contextReader: {read: async () => ({fragments: []})},
+        llmStreamingPort: {stream: async () => ({tokens: ['ready'], toolCalls: []})},
+        capabilityDispatcher: {dispatch: async () => ({results: [], effects: []})},
+        conversationRepository: {listMessages: () => ({items: []})},
+        commitBoundary: async () => {},
+        sendSse: (_sink, event) => sent.push(event),
+        end: sink => { sink.writableEnded = true; }
+    });
+    try {
+        const chatRoutes = runtime.app.router.stack.filter(item => item.route?.path === '/api/companion/chat');
+        assert.equal(chatRoutes.length, 1);
+        assert.strictEqual(runtime.application.chatRoute, runtime.application.routeHandlers.chat);
+
+        await runtime.start({listen: false, worker: false});
+        const response = {
+            writableEnded: false,
+            status() { return this; },
+            set() { return this; },
+            flushHeaders() {},
+            on() { return this; },
+            removeListener() { return this; },
+            end() { this.writableEnded = true; }
+        };
+        const result = chatRoutes[0].route.stack[0].handle({body: {personaId: 'persona_test', text: 'hello'}}, response);
+        if (result?.then) await result;
+        assert.deepEqual(sent, [
+            {type: 'token', token: 'ready'},
+            {type: 'done', messages: [], message: null, learned: [], jobs: []}
+        ]);
+        assert.equal(response.writableEnded, true);
+    } finally {
+        await runtime.stop().catch(() => {});
         rmSync(dataDir, {recursive: true, force: true});
     }
 });

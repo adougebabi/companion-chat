@@ -182,6 +182,19 @@ test('submit freezes the prompt result, settles the source, and enqueues one pol
     assert.equal(fixtureValue.calls.some(([kind]) => kind === 'observability.settle'), true);
 });
 
+test('dispatcher-owned settlement defers the media repository transition', async () => {
+    const fixtureValue = fixture();
+    const result = await fixtureValue.service.handlers.chat_image(fixtureValue.source, {
+        leaseOwner: 'worker_1',
+        deferSettlement: true
+    });
+
+    assert.equal(result.status, 'complete');
+    assert.equal(result.settlement.deferred, true);
+    assert.equal(fixtureValue.source.status, 'leased');
+    assert.equal(fixtureValue.calls.filter(([kind]) => kind === 'observability.settle' || kind === 'settle').length, 0);
+});
+
 test('poll accepts completed provider output and projects ready assets', async () => {
     const fixtureValue = fixture();
     const poll = job({

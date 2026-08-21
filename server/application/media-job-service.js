@@ -335,6 +335,12 @@ export function createMediaJobService({
         const active = await activeLease(job, context);
         if (!active) return {changed: false, reason: 'lease_rejected', status: null, job: null};
         const input = settlementInput(active, status, options, context);
+        if (context.deferSettlement === true) {
+            // A generic durable dispatcher can own the single repository
+            // transition while the media service still guards the lease and
+            // returns the intended outcome to that dispatcher.
+            return {changed: true, deferred: true, status, job: active, input};
+        }
         let result;
         if (observeSettle) {
             result = await methodResult(observeSettle(active, input));

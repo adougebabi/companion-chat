@@ -14,6 +14,56 @@ function optionalFactory(factory, options) {
     return factory(options);
 }
 
+const CHAT_PORT_NAMES = Object.freeze([
+    'contextReader',
+    'llmStreamingPort',
+    'llmStreamPort',
+    'llm',
+    'capabilityDispatcher',
+    'conversationRepository',
+    'conversation',
+    'presentationMapper',
+    'commitBoundary',
+    'commit',
+    'sendSse',
+    'end',
+    'errorMapper'
+]);
+const DIRECT_CHAT_MARKERS = Object.freeze([
+    'contextReader',
+    'llmStreamingPort',
+    'llmStreamPort',
+    'llm',
+    'conversationRepository',
+    'conversation',
+    'sendSse',
+    'end'
+]);
+
+function chatOptionsFrom(options) {
+    const nested = isRecord(options.chatOptions) || isRecord(options.chatPorts)
+        ? {
+            ...(isRecord(options.chatPorts) ? options.chatPorts : {}),
+            ...(isRecord(options.chatOptions) ? options.chatOptions : {})
+        }
+        : null;
+    const direct = {};
+    for (const name of CHAT_PORT_NAMES) {
+        if (options[name] !== undefined) direct[name] = options[name];
+    }
+    const hasDirectPorts = DIRECT_CHAT_MARKERS.some(name => options[name] !== undefined);
+    if (!nested && !hasDirectPorts) return null;
+    const resolved = {...direct, ...(nested ?? {})};
+    if (resolved.llmStreamingPort === undefined) {
+        resolved.llmStreamingPort = resolved.llmStreamPort ?? resolved.llm;
+    }
+    if (resolved.conversationRepository === undefined) {
+        resolved.conversationRepository = resolved.conversation;
+    }
+    if (resolved.commitBoundary === undefined) resolved.commitBoundary = resolved.commit;
+    return resolved;
+}
+
 /**
  * Assemble application flows and transport handlers from injected ports.
  * Persistence, HTTP binding, providers, and worker lifecycle remain owned by
@@ -61,19 +111,25 @@ export function createCompanionApplication(options = {}) {
                 markerCallFactory: options.markerCallFactory
             })
             : null);
-    const chatService = options.chatService ?? (options.chatOptions
-        ? createCompanionChatService(options.chatOptions)
-        : null);
+    const chatService = options.chatService ?? (() => {
+        const chatOptions = chatOptionsFrom(options);
+        return chatOptions ? createCompanionChatService(chatOptions) : null;
+    })();
     const services = {
         ...(isRecord(options.services) ? options.services : {}),
         ...(chatService ? {chat: chatService} : {})
     };
-    const routeHandlers = options.routeHandlers ?? createCompanionRouteHandlers({
+    const defaultRouteHandlers = createCompanionRouteHandlers({
         repositories,
         services,
         policies: options.policies,
         adapters: options.adapters
     });
+    const routeHandlers = options.routeHandlers ?? defaultRouteHandlers;
+    // The generated handler owns body validation and SSE response preparation;
+    // exposing it separately lets the HTTP composition mount one chat route
+    // without relying on generic service method discovery or duplicating it.
+    const chatRoute = options.chatRoute ?? (chatService ? routeHandlers.chat ?? defaultRouteHandlers.chat : null);
     return Object.freeze({
         repositories,
         services: Object.freeze(services),
@@ -84,6 +140,7 @@ export function createCompanionApplication(options = {}) {
         mediaFlow,
         capabilityDispatcher,
         chatService,
+        chatRoute,
         routeHandlers
     });
 }
