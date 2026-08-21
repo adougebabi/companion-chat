@@ -4,6 +4,7 @@ import {
     normalizeCapabilityCall,
     normalizeCapabilityDispatch,
     normalizeStepResult,
+    sseToken,
     validateLayerDependencies
 } from '../contracts/index.js';
 
@@ -98,19 +99,26 @@ export function createCapabilityHandoffStep({dispatcher}) {
         dependencies: [{id: 'capability-contract', layer: 'contracts'}],
         async run(context = {}, command = {}) {
             const calls = Array.isArray(command.capabilityCalls) ? command.capabilityCalls.map(normalizeCapabilityCall) : [];
-            const outcome = normalizeCapabilityDispatch(await dispatcher.dispatch({
+            const rawOutcome = await dispatcher.dispatch({
                 calls,
+                markerText: command.markerText ?? command.text ?? command.completion?.text ?? '',
+                completion: command.completion,
                 context: {
                     personaId: context.personaId || command.personaId || null,
                     causationId: context.causationId || command.causationId || null,
                     correlationId: context.correlationId || command.correlationId || null
                 }
-            }));
+            });
+            const outcome = normalizeCapabilityDispatch(rawOutcome);
             return {
                 facts: [],
                 projections: [],
                 effects: outcome.effects,
-                presentation: outcome.results.map(result => ({type: 'capability-result', result}))
+                presentation: [
+                    ...outcome.results.map(result => ({type: 'capability-result', result})),
+                    ...(typeof rawOutcome.visibleText === 'string' && rawOutcome.visibleText ? [sseToken(rawOutcome.visibleText)] : []),
+                    ...(typeof rawOutcome.visibleText === 'string' ? [{type: 'capability-visible-text', text: rawOutcome.visibleText}] : [])
+                ]
             };
         }
     };

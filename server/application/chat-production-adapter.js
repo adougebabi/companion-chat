@@ -207,7 +207,7 @@ export function createChatPresentationMapper({clock = () => new Date().toISOStri
         const personaId = command.personaId ?? input.personaId;
         if (typeof personaId !== 'string' || !personaId.trim()) throw new TypeError('Chat presentation personaId must be a non-empty string');
         const existing = Array.isArray(input.messages) ? input.messages.filter(isRecord) : [];
-        const replyText = completion.text ?? (Array.isArray(completion.tokens) ? completion.tokens.join('') : '');
+        const replyText = input.visibleText ?? completion.text ?? (Array.isArray(completion.tokens) ? completion.tokens.join('') : '');
         const base = isoTimestamp(now());
         const messages = existing.length
             ? existing.slice(0, MAX_SENTENCES)

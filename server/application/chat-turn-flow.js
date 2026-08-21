@@ -279,9 +279,10 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                     const tokens = runtime.completion.tokens.length
                         ? runtime.completion.tokens
                         : runtime.completion.text ? [runtime.completion.text] : [];
+                    const markerText = /<(?:media-intent|pending-event|scene-event)>/i.test(runtime.completion.text || '');
                     return {
                         ...runtime.completion.stepResult,
-                        presentation: runtime.completion.stepResult.presentation.concat(tokens.map(token => sseToken(token)))
+                        presentation: runtime.completion.stepResult.presentation.concat(markerText ? [] : tokens.map(token => sseToken(token)))
                     };
                 }
             },
@@ -299,9 +300,17 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         ?? command.causationId
                         ?? null;
                     const handoffContext = {...context, causationId};
-                    const handoffCommand = {...command, capabilityCalls: calls, causationId};
+                    const handoffCommand = {
+                        ...command,
+                        capabilityCalls: calls,
+                        markerText: runtime.completion?.text ?? '',
+                        completion: runtime.completion ?? {},
+                        causationId
+                    };
                     const result = await capabilityHandoff.run(handoffContext, handoffCommand, previous);
                     runtime.capabilityPresentation = result.presentation.slice();
+                    const visible = result.presentation.find(event => event?.type === 'capability-visible-text');
+                    if (visible) runtime.visibleText = visible.text;
                     return result;
                 }
             },
@@ -335,7 +344,8 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         projections: previous.projections,
                         effects: previous.effects,
                         presentation: previous.presentation,
-                        messages: runtime.messages ?? []
+                        messages: runtime.messages ?? [],
+                        ...(runtime.visibleText === undefined ? {} : {visibleText: runtime.visibleText})
                     });
                     const mappedResult = isRecord(mapped) && Object.hasOwn(mapped, 'chatResult')
                         ? mapped.chatResult

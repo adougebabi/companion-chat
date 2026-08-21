@@ -25,6 +25,38 @@ function resultFor(attempt) {
     };
 }
 
+function markerAdapterFor(tag) {
+    const pattern = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'i');
+    return (text, context = {}) => {
+        const match = String(text || '').match(pattern);
+        if (!match) return {text, arguments: null};
+        let argumentsValue;
+        try { argumentsValue = JSON.parse(match[1]); } catch { return {text: String(text || '').replace(match[0], ''), arguments: null}; }
+        return {
+            text: String(text || '').replace(match[0], ''),
+            call: {
+                id: null,
+                index: context.index,
+                name: tag === 'media-intent' ? 'media_event' : tag === 'pending-event' ? 'pending_event' : 'scene_event',
+                source: 'marker',
+                arguments: argumentsValue,
+                argumentsText: JSON.stringify(argumentsValue),
+                personaId: context.personaId,
+                causationUserMessageId: context.causationUserMessageId
+            }
+        };
+    };
+}
+
+function provenanceForCall(call, causationUserMessageId) {
+    return {
+        source: call.source ?? 'native',
+        ...(call.id ? {callId: call.id} : {}),
+        ...(call.idempotencyKey ? {idempotencyKey: call.idempotencyKey} : {}),
+        ...(causationUserMessageId ?? call.causationUserMessageId ? {causationUserMessageId: causationUserMessageId ?? call.causationUserMessageId} : {})
+    };
+}
+
 function entryFor(flow, planCommand) {
     if (!flow || typeof flow.plan !== 'function' || typeof flow.apply !== 'function') return null;
     return {
@@ -71,19 +103,19 @@ export function createFlowCapabilityRegistry({pendingEventFlow, sceneEventFlow, 
     const registry = {};
     const pending = entryFor(pendingEventFlow, ({args, call, personaId, causationUserMessageId}) => ({
         personaId, call: args, sourceMessageId: causationUserMessageId ?? call.causationUserMessageId,
-        provenance: {source: call.source ?? 'native', callId: call.id, idempotencyKey: call.idempotencyKey, causationUserMessageId: causationUserMessageId ?? call.causationUserMessageId}
+        provenance: provenanceForCall(call, causationUserMessageId)
     }));
     const scene = entryFor(sceneEventFlow, ({args, call, personaId, causationUserMessageId}) => ({
         personaId, call: args, sourceMessageId: causationUserMessageId ?? call.causationUserMessageId,
-        provenance: {source: call.source ?? 'native', callId: call.id, idempotencyKey: call.idempotencyKey}
+        provenance: provenanceForCall(call, causationUserMessageId)
     }));
     const media = entryFor(mediaFlow, ({args, call, personaId, causationUserMessageId}) => ({
         personaId, call: args, sourceMessageId: causationUserMessageId ?? call.causationUserMessageId,
-        provenance: {source: call.source ?? 'native', callId: call.id, idempotencyKey: call.idempotencyKey, causationUserMessageId: causationUserMessageId ?? call.causationUserMessageId}
+        provenance: provenanceForCall(call, causationUserMessageId)
     }));
-    if (pending) registry.pending_event = pending;
-    if (scene) registry.scene_event = scene;
-    if (media) registry.media_event = media;
+    if (pending) registry.pending_event = {...pending, markerAdapter: markerAdapterFor('pending-event')};
+    if (scene) registry.scene_event = {...scene, markerAdapter: markerAdapterFor('scene-event')};
+    if (media) registry.media_event = {...media, markerAdapter: markerAdapterFor('media-intent')};
     return registry;
 }
 
