@@ -160,3 +160,27 @@ test('companion runtime mounts the complete contract with bounded unconfigured h
         rmSync(dataDir, {recursive: true, force: true});
     }
 });
+
+test('companion runtime provides a real repository-backed bootstrap slice', async () => {
+    const dataDir = temporaryDirectory();
+    const runtime = createCompanionRuntime({Database, dataDir, workerRuntime: false, environment: {DATA_DIR: dataDir}});
+    try {
+        await runtime.start({listen: false, worker: false});
+        const layer = runtime.app.router.stack.find(item => item.route?.path === '/api/companion/bootstrap');
+        assert.ok(layer);
+        let payload;
+        const response = {
+            headersSent: false,
+            status() { return this; },
+            json(value) { payload = value; this.headersSent = true; return this; }
+        };
+        const result = layer.route.stack[0].handle({query: {}}, response);
+        if (result?.then) await result;
+        assert.equal(response.headersSent, true);
+        assert.equal(Array.isArray(payload.groups), true);
+        assert.equal(payload.storage, undefined);
+    } finally {
+        await runtime.stop();
+        rmSync(dataDir, {recursive: true, force: true});
+    }
+});

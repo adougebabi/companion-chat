@@ -1,0 +1,117 @@
+function isRecord(value) {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function repository(repositories, names, field) {
+    for (const name of names) {
+        if (isRecord(repositories?.[name])) return repositories[name];
+    }
+    throw new TypeError(`Basic companion services require ${field}`);
+}
+
+function messageDto(row) {
+    if (!row) return null;
+    const decode = value => {
+        if (value && typeof value === 'object') return value;
+        try { return value ? JSON.parse(value) : []; } catch { return []; }
+    };
+    return {
+        id: row.id,
+        role: row.role,
+        text: row.text,
+        attachments: decode(row.attachments ?? row.attachments_json),
+        generation: row.generation ?? (row.generation_json ? decode(row.generation_json) : undefined),
+        jobs: decode(row.jobs ?? row.jobs_json),
+        createdAt: row.createdAt ?? row.created_at,
+        readAt: row.readAt ?? row.read_at ?? undefined
+    };
+}
+
+function groupDto(row) {
+    return {id: row.id, name: row.name, isDefault: Boolean(row.is_default), personaCount: Number(row.persona_count || 0)};
+}
+
+function personaDto(row) {
+    return {
+        id: row.id,
+        name: row.name,
+        role: row.role,
+        color: row.color,
+        groupId: row.group_id || null,
+        screened: Boolean(row.screened_at),
+        updatedAt: row.updated_at
+    };
+}
+
+/**
+ * Small repository-backed services used by the modular runtime smoke path.
+ * Feature-specific policy remains in application flows; unsupported routes
+ * continue to report bounded 501 through the route-handler composition.
+ */
+export function createBasicCompanionServices({repositories, settings, providers, clock = () => new Date().toISOString(), debugInspector = false} = {}) {
+    const personas = repository(repositories, ['persona', 'personas'], 'persona repository');
+    const groups = repository(repositories, ['group', 'groups'], 'group repository');
+    const conversation = repository(repositories, ['conversation', 'conversationRepository'], 'conversation repository');
+    const activity = repository(repositories, ['activity', 'activityRepository'], 'activity repository');
+    const settingsPort = settings ?? repositories?.settings;
+    if (!isRecord(settingsPort) || typeof settingsPort.read !== 'function') throw new TypeError('Basic companion services require settings.read()');
+
+    const service = {
+        bootstrap: {
+            read() {
+                return {
+                    settings: settingsPort.read(),
+                    personas: personas.listActive().map(personaDto),
+                    groups: groups.list().map(groupDto),
+                    activityUnread: false,
+                    defaultTimezone: 'UTC',
+                    debugInspector: debugInspector === true
+                };
+            }
+        },
+        settings: {
+            read() { return settingsPort.read(); },
+            update(command) {
+                if (!isRecord(command)) throw new TypeError('Settings command must be an object');
+                if (typeof settingsPort.write !== 'function') throw new TypeError('Settings service is read-only');
+                settingsPort.write(command);
+                return settingsPort.read();
+            }
+        },
+        models: {
+            list() { return providers?.summaries?.({detailed: true}) ?? []; }
+        },
+        conversations: {
+            list(command) {
+                const personaId = command.personaId;
+                const thread = conversation.getConversation?.({personaId});
+                if (!thread) return {items: [], nextCursor: null};
+                const rows = conversation.listMessages({conversationId: thread.id, limit: Math.min(100, Math.max(1, Number(command.limit) || 50))});
+                return {items: rows.reverse().map(messageDto), nextCursor: null};
+            },
+            appendMessage(command) {
+                const thread = conversation.getOrCreateConversation({personaId: command.personaId, id: `conversation_${command.personaId}`, createdAt: clock(), updatedAt: clock()});
+                const row = conversation.appendMessage({
+                    id: command.id || `message_${Date.now()}`,
+                    conversationId: thread.id,
+                    role: command.role,
+                    text: String(command.text || ''),
+                    attachmentsJson: JSON.stringify(command.attachments || []),
+                    generationJson: command.generation ? JSON.stringify(command.generation) : null,
+                    jobsJson: JSON.stringify(command.jobs || []),
+                    proactiveEventId: command.proactiveEventId || null,
+                    proactivePendingEventId: command.proactivePendingEventId || null,
+                    createdAt: clock(),
+                    readAt: clock()
+                });
+                return messageDto(row);
+            }
+        },
+        activities: {
+            list(command) { return activity.listActivities(command); }
+        }
+    };
+    return Object.freeze(service);
+}
+
+export default createBasicCompanionServices;

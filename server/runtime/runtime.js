@@ -2,6 +2,17 @@ import {createHttpApp} from '../http/app.js';
 import {registerCompanionRoutes} from '../http/route-registry.js';
 import {createCompanionRouteHandlers} from '../application/companion-route-handlers.js';
 import {createCompanionApplication} from '../application/companion-application.js';
+import {createBasicCompanionServices} from '../application/basic-companion-services.js';
+import {createActivityRepository} from '../infrastructure/activity-repository.js';
+import {createConversationRepository} from '../infrastructure/conversation-repository.js';
+import {createGroupRepository} from '../infrastructure/group-repository.js';
+import {createJobRepository} from '../infrastructure/job-repository.js';
+import {createLifeEventRepository} from '../infrastructure/life-event-repository.js';
+import {createMemoryRepository} from '../infrastructure/memory-repository.js';
+import {createPendingEventRepository} from '../infrastructure/pending-event-repository.js';
+import {createPersonaRepository} from '../infrastructure/persona-repository.js';
+import {createRelationshipRepository} from '../infrastructure/relationship-repository.js';
+import {createSettingsRepository} from '../infrastructure/settings-repository.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
 import createJobDispatcher from './job-dispatcher.js';
 import createStartupRuntime from './startup.js';
@@ -112,6 +123,44 @@ function resolveProviders(options) {
     return createProviderRegistry({providers: adapters, dryRunAdapters: options.dryRunAdapters});
 }
 
+function runtimeClock(value) {
+    if (typeof value === 'function') return value;
+    if (isRecord(value) && typeof value.now === 'function') return value.now.bind(value);
+    return () => new Date().toISOString();
+}
+
+function runtimeId(value) {
+    if (typeof value === 'function') return value;
+    if (isRecord(value) && typeof value.next === 'function') return value.next.bind(value);
+    return prefix => `${prefix}_${crypto.randomUUID()}`;
+}
+
+function resolveRepositories(options, startup) {
+    if (options.repositories !== undefined) {
+        if (!isRecord(options.repositories)) throw new TypeError('Runtime repositories must be an object');
+        return options.repositories;
+    }
+    const database = startup.database;
+    const clock = runtimeClock(options.clock);
+    const id = runtimeId(options.idGenerator ?? options.id);
+    const job = createJobRepository({database, clock, id});
+    const pending = createPendingEventRepository({database, enqueueJob: job.enqueue.bind(job)});
+    const settings = createSettingsRepository({database, defaults: () => ({}), clock});
+    return Object.freeze({
+        conversation: createConversationRepository({database}),
+        activity: createActivityRepository({database}),
+        job,
+        pending,
+        pendingEvent: pending,
+        lifeEvent: createLifeEventRepository({database, clock, id}),
+        persona: createPersonaRepository({database, clock, id}),
+        group: createGroupRepository({database, clock, id}),
+        memory: createMemoryRepository({database, clock}),
+        relationship: createRelationshipRepository({database, clock, id}),
+        settings
+    });
+}
+
 function resolveJobDispatcher(options, startup) {
     const configured = options.jobDispatcher;
     if (configured !== undefined) {
@@ -203,14 +252,15 @@ export function createRuntime(options = {}) {
     const environment = options.environment ?? options.env ?? process.env;
     if (!isRecord(environment)) throw new TypeError('Runtime environment must be an object');
     const startup = resolveStartup({...options, environment});
+    const repositories = resolveRepositories(options, startup);
     const providers = resolveProviders(options);
     const jobDispatcher = resolveJobDispatcher(options, startup);
+    const application = options.application ?? options.applicationFactory?.({...options, repositories, providers, jobDispatcher});
     const worker = resolveWorker({...options, jobDispatcher}, startup);
-    const app = resolveApp(options, startup, worker);
+    const app = resolveApp({...options, application, routeHandlers: options.routeHandlers ?? application?.routeHandlers}, startup, worker);
     const auxiliaryRuntimes = resolveAuxiliaryRuntimes(options);
     const port = resolvePort(options.port, environment);
     const host = nonEmpty(options.host ?? environment.HOST, DEFAULT_HOST);
-    const repositories = options.repositories ?? Object.freeze({});
 
     let phase = 'created';
     let server = null;
@@ -279,7 +329,7 @@ export function createRuntime(options = {}) {
         repositories,
         providers,
         jobDispatcher,
-        application: options.application,
+        application,
         app,
         worker,
         auxiliaryRuntimes,
@@ -298,7 +348,17 @@ export function createRuntime(options = {}) {
 
 export function createCompanionRuntime(options = {}) {
     if (!isRecord(options)) throw new TypeError('Companion runtime options must be an object');
-    const application = options.application ?? createCompanionApplication(options);
-    return createRuntime({...options, application, routeHandlers: options.routeHandlers ?? application.routeHandlers, missingHandler: options.missingHandler ?? 'error'});
+    const applicationFactory = options.application
+        ? undefined
+        : resolved => createCompanionApplication({
+            ...resolved,
+            services: options.services ?? createBasicCompanionServices({
+                repositories: resolved.repositories,
+                settings: resolved.repositories.settings,
+                providers: resolved.providers,
+                clock: resolved.clock
+            })
+        });
+    return createRuntime({...options, applicationFactory, missingHandler: options.missingHandler ?? 'error'});
 }
 export default createRuntime;

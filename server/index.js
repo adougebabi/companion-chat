@@ -8,6 +8,7 @@ export {createPendingEventFlow} from './application/pending-event-flow.js';
 export {createSceneEventFlow} from './application/scene-event-flow.js';
 export {createMediaFlow} from './application/media-flow.js';
 export {createCompanionApplication} from './application/companion-application.js';
+export {createBasicCompanionServices} from './application/basic-companion-services.js';
 
 export {createRuntime, createCompanionRuntime};
 
