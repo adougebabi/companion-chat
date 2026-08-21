@@ -1,7 +1,17 @@
 import {BACKEND_CONTRACT_BASELINE, assertCapabilityDispatcherPort, validatePorts} from './contracts/index.js';
 import {createCapabilityHandoffStep, createFlowRegistry} from './application/flow-registry.js';
 import {createFlowExecutor} from './application/flow-executor.js';
-export {createRuntime, createCompanionRuntime} from './runtime/runtime.js';
+import {createRuntime, createCompanionRuntime} from './runtime/runtime.js';
+
+export {createRuntime, createCompanionRuntime};
+
+/** Start a fully assembled modular runtime supplied by the caller. */
+export async function startModularRuntime(options = {}) {
+    const {startOptions, ...runtimeOptions} = options;
+    const runtime = createRuntime(runtimeOptions);
+    await runtime.start(startOptions);
+    return runtime;
+}
 
 /**
  * Modular composition exports.
