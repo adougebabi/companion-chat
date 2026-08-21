@@ -10,7 +10,9 @@ export {createMediaFlow} from './application/media-flow.js';
 export {createCompanionApplication} from './application/companion-application.js';
 export {createBasicCompanionServices} from './application/basic-companion-services.js';
 export {createMediaObservability} from './application/media-observability.js';
+export {createMediaJobService} from './application/media-job-service.js';
 export {createLifeWorldReader} from './application/life-world-reader.js';
+export {createConversationService} from './application/conversation-service.js';
 
 export {createRuntime, createCompanionRuntime};
 
