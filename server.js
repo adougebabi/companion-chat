@@ -14,6 +14,7 @@ import {createHttpApp} from './server/http/app.js';
 import {registerCompanionRoutes} from './server/http/route-registry.js';
 import {createProviderRegistry} from './server/infrastructure/provider-ports.js';
 import {createMtplxProvider} from './server/infrastructure/llm-provider.js';
+import {createMediaProviders} from './server/infrastructure/media-providers.js';
 import {createJobDispatcher} from './server/runtime/job-dispatcher.js';
 import createWorkerRuntime from './server/runtime/worker-runtime.js';
 import {createStartupRuntime} from './server/runtime/startup.js';
@@ -4439,85 +4440,22 @@ function runH3(executable, args, timeoutMs, {onOutput} = {}) {
     });
 }
 
-registerMediaProvider({
-    id: 'comfyui', label: 'ComfyUI', capabilities: ['image', 'video'],
-    async submit({kind, prompt, payload, settings: config}) {
-        const workflowSource = kind === 'video' ? config.videoWorkflow : config.imageWorkflow;
-        if (!workflowSource) throw new Error(`尚未配置${kind === 'video' ? '视频' : '图片'}工作流`);
-        const workflow = JSON.parse(workflowSource);
-        let found = false;
-        for (const node of Object.values(workflow)) {
-            if (!node?.inputs || typeof node.inputs !== 'object') continue;
-            for (const [key, value] of Object.entries(node.inputs)) if (typeof value === 'string' && value.includes('{{prompt}}')) { node.inputs[key] = value.replaceAll('{{prompt}}', prompt); found = true; }
-        }
-        if (!found) throw new Error('工作流未包含 {{prompt}} 占位符');
-        const response = await fetch(`${cleanUrl(config.comfyUrl)}/prompt`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt: workflow})});
-        if (!response.ok) throw new Error(`ComfyUI HTTP ${response.status}`);
-        const body = await response.json();
-        if (!validComfyPromptId(body?.prompt_id)) throw new Error('ComfyUI 未返回有效 prompt ID');
-        return {externalId: body.prompt_id, pending: true};
-    },
-    async poll({kind, externalId, settings: config}) {
-        if (!validComfyPromptId(externalId)) return {status: 'failed', error: '缺少有效的 ComfyUI prompt ID'};
-        const response = await fetch(`${cleanUrl(config.comfyUrl)}/history/${encodeURIComponent(externalId)}`);
-        if (!response.ok) throw new Error(`ComfyUI HTTP ${response.status}`);
-        const history = await response.json();
-        const files = comfyOutputFiles(history, externalId);
-        return files.length ? {status: 'complete', files} : {status: 'pending'};
-    },
-    async readAsset({asset, res, settings: config}) {
-        const params = new URLSearchParams({filename: asset.filename, subfolder: asset.subfolder || '', type: asset.file_type || 'output'});
-        const response = await fetch(`${cleanUrl(config.comfyUrl)}/view?${params}`);
-        if (!response.ok) throw new Error(`ComfyUI HTTP ${response.status}`);
-        res.set('Content-Type', response.headers.get('content-type') || 'application/octet-stream');
-        res.send(Buffer.from(await response.arrayBuffer()));
-    },
-    async readCandidate({file, settings: config}) {
-        const params = new URLSearchParams({filename: file.filename, subfolder: file.subfolder || '', type: file.type || 'output'});
-        const response = await fetch(`${cleanUrl(config.comfyUrl)}/view?${params}`);
-        if (!response.ok) throw new Error(`ComfyUI HTTP ${response.status}`);
-        return {bytes: Buffer.from(await response.arrayBuffer()), mimeType: response.headers.get('content-type') || 'application/octet-stream'};
-    }
+const mediaProviderAdapters = createMediaProviders({
+    fetch,
+    fs: {mkdirSync, statSync, readFileSync},
+    spawn,
+    cleanUrl,
+    h3Args,
+    h3OutputFile,
+    runH3,
+    safeH3Path,
+    validComfyPromptId,
+    comfyOutputFiles,
+    id,
+    settings
 });
-
-registerMediaProvider({
-    id: 'h3', label: 'h3.c', capabilities: ['video'],
-    async submit({prompt, payload, settings: config, progress}) {
-        const outputPath = h3OutputFile(payload, config);
-        mkdirSync(dirname(outputPath), {recursive: true});
-        const args = h3Args({...payload, prompt}, {...config, h3Defaults: config.h3Defaults}, outputPath);
-        const preparing = progress?.stage('preparing');
-        if (preparing && !preparing.changed) throw new Error('h3 作业租约已失效');
-        const generating = progress?.stage('generating');
-        if (generating && !generating.changed) throw new Error('h3 作业租约已失效');
-        await runH3(config.h3Executable, args, Number(config.h3TimeoutMs) || 15 * 60_000, {
-            onOutput: (stream, text) => progress?.output(stream, text)
-        });
-        progress?.flush();
-        const validating = progress?.stage('validating_output');
-        if (validating && !validating.changed) throw new Error('h3 作业租约已失效');
-        let stat;
-        try { stat = statSync(outputPath); } catch { throw new Error('h3 未生成输出文件'); }
-        if (!stat.isFile() || stat.size <= 0) throw new Error('h3 输出文件为空');
-        return {externalId: id('h3_result'), pending: false, files: [{filename: outputPath, type: 'h3', format: 'video', path: outputPath}]};
-    },
-    async poll({externalId}) {
-        if (typeof externalId !== 'string' || !/\.mp4$/i.test(externalId)) return {status: 'failed', error: 'h3 外部任务标识无效'};
-        try { const stat = statSync(externalId); return stat.isFile() && stat.size > 0 ? {status: 'complete', files: [{filename: externalId, type: 'h3', format: 'video', path: externalId}]} : {status: 'pending'}; } catch { return {status: 'pending'}; }
-    },
-    async readAsset({asset, res}) {
-        const path = asset.locator?.path || asset.filename;
-        if (!path || !safeH3Path(path, settings().h3AllowedRoot || settings().h3OutputDir)) throw new Error('h3 资产路径无效');
-        res.sendFile(path);
-    },
-    async readCandidate({file, settings: config}) {
-        const path = file?.path || file?.filename;
-        if (!path || !safeH3Path(path, config.h3AllowedRoot || config.h3OutputDir)) throw new Error('h3 候选资产路径无效');
-        const stat = statSync(path);
-        if (!stat.isFile() || stat.size <= 0 || stat.size > 96 * 1024 * 1024) throw new Error('h3 候选资产大小无效');
-        return {bytes: readFileSync(path), mimeType: 'video/mp4', path};
-    }
-});
+registerMediaProvider(mediaProviderAdapters.comfyui);
+registerMediaProvider(mediaProviderAdapters.h3);
 
 function mediaTargetGeneration(job, patch = {}) {
     if (!job.message_id) return null;
