@@ -24,3 +24,10 @@ test('companion application keeps injected flows, services, and route handlers',
     assert.strictEqual(application.mediaFlow, flows.mediaFlow);
     assert.strictEqual(application.routeHandlers, handlers);
 });
+
+test('companion application adds an injected chat service to the service map', () => {
+    const chatService = {handle() {}};
+    const application = createCompanionApplication({chatService, routeHandlers: {health() {}}});
+    assert.strictEqual(application.chatService, chatService);
+    assert.strictEqual(application.services.chat, chatService);
+});

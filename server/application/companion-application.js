@@ -3,6 +3,7 @@ import {createCompanionRouteHandlers} from './companion-route-handlers.js';
 import {createMediaFlow} from './media-flow.js';
 import {createPendingEventFlow} from './pending-event-flow.js';
 import {createSceneEventFlow} from './scene-event-flow.js';
+import {createCompanionChatService} from './chat-service.js';
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -60,21 +61,29 @@ export function createCompanionApplication(options = {}) {
                 markerCallFactory: options.markerCallFactory
             })
             : null);
+    const chatService = options.chatService ?? (options.chatOptions
+        ? createCompanionChatService(options.chatOptions)
+        : null);
+    const services = {
+        ...(isRecord(options.services) ? options.services : {}),
+        ...(chatService ? {chat: chatService} : {})
+    };
     const routeHandlers = options.routeHandlers ?? createCompanionRouteHandlers({
         repositories,
-        services: options.services,
+        services,
         policies: options.policies,
         adapters: options.adapters
     });
     return Object.freeze({
         repositories,
-        services: options.services ?? Object.freeze({}),
+        services: Object.freeze(services),
         policies: options.policies ?? Object.freeze({}),
         adapters: options.adapters ?? Object.freeze({}),
         pendingEventFlow,
         sceneEventFlow,
         mediaFlow,
         capabilityDispatcher,
+        chatService,
         routeHandlers
     });
 }
