@@ -102,7 +102,19 @@ export function createRelationshipRepository({database, clock, now, id, idGenera
         `).all(personaValue, limitValue(limit));
     }
 
-    return Object.freeze({activePatch, insertEvolution, listRecent});
+    function rollbackEvolution({personaId, evolutionId, updatedAt} = {}) {
+        const personaValue = requiredText(personaId, 'Persona.id');
+        const evolutionValue = requiredText(evolutionId, 'Evolution.id');
+        const at = timestamp(updatedAt ?? currentTime(), 'Evolution.revertedAt');
+        const result = openDatabase.prepare(`
+            UPDATE companion_persona_evolutions
+            SET status = 'reverted', reverted_at = ?
+            WHERE id = ? AND persona_id = ? AND status = 'applied'
+        `).run(at, evolutionValue, personaValue);
+        return result.changes ? openDatabase.prepare('SELECT * FROM companion_persona_evolutions WHERE id = ?').get(evolutionValue) : null;
+    }
+
+    return Object.freeze({activePatch, insertEvolution, listRecent, rollbackEvolution, rollback: rollbackEvolution});
 }
 
 export const createCompanionRelationshipRepository = createRelationshipRepository;

@@ -274,6 +274,22 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
         })();
     }
 
+    /** Requeue expired leases during process startup/restart recovery. */
+    function recoverLeases(input = {}) {
+        assertRecord(input, 'Job recovery input');
+        const recoveredAt = timestamp(input.now ?? now(), 'Job.recoveredAt');
+        const types = jobTypeScope(input.jobTypes ?? input.types);
+        const persona = personaScope(valueFor(input, 'personaId', 'persona_id'));
+        const changed = openDatabase.prepare(`
+            UPDATE companion_jobs
+            SET status = 'queued', lease_owner = NULL, lease_expires_at = NULL,
+                run_after = CASE WHEN run_after > ? THEN run_after ELSE ? END,
+                updated_at = ?
+            WHERE status = 'leased' AND lease_expires_at <= ?${persona.sql}${types.sql}
+        `).run(recoveredAt, recoveredAt, recoveredAt, recoveredAt, ...persona.values, ...types.values);
+        return {changed: changed.changes, recovered: changed.changes};
+    }
+
     function transitionInput(first, second = {}) {
         if (typeof first === 'string') return {...second, id: first};
         const source = assertRecord(first, 'Job transition input');
@@ -411,6 +427,8 @@ export function createJobRepository({database, id, idGenerator, clock} = {}) {
         patchResult,
         completeQueued,
         claim,
+        recoverLeases,
+        recoverExpiredLeases: recoverLeases,
         settle,
         retry
     });

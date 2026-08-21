@@ -72,7 +72,19 @@ export function createPersonaRepository({database, clock, now, id} = {}) {
         return openDatabase.prepare('SELECT * FROM companion_personas WHERE id = ?').get(idValue);
     }
 
-    return Object.freeze({findActive, listActive, updateScreen});
+    function updateImageGenerationPolicy({personaId, policy, updatedAt} = {}) {
+        const idValue = requiredText(personaId, 'Persona.id');
+        const policyValue = requiredText(policy, 'Persona.imageGenerationPolicy');
+        const updatedValue = timestamp(updatedAt ?? currentTime(), 'Persona.updatedAt');
+        const result = openDatabase.prepare(`
+            UPDATE companion_personas
+            SET image_generation_policy = ?, updated_at = ?
+            WHERE id = ? AND enabled = 1 AND deleted_at IS NULL
+        `).run(policyValue, updatedValue, idValue);
+        return result.changes ? openDatabase.prepare('SELECT * FROM companion_personas WHERE id = ?').get(idValue) : null;
+    }
+
+    return Object.freeze({findActive, listActive, updateScreen, updateImageGenerationPolicy});
 }
 
 export const createCompanionPersonaRepository = createPersonaRepository;

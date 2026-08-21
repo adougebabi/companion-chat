@@ -6,6 +6,8 @@ import {createBasicCompanionServices} from '../application/basic-companion-servi
 import {createIdentitySettingsService} from '../application/identity-settings-service.js';
 import {createActivityService} from '../application/activity-service.js';
 import {createProactiveJobService} from '../application/proactive-job-service.js';
+import {createChatProductionPorts} from '../application/chat-production-adapter.js';
+import {createConversationCommitAdapter} from '../infrastructure/conversation-commit-adapter.js';
 import {createActivityRepository} from '../infrastructure/activity-repository.js';
 import {createConversationRepository} from '../infrastructure/conversation-repository.js';
 import {createGroupRepository} from '../infrastructure/group-repository.js';
@@ -16,7 +18,20 @@ import {createPendingEventRepository} from '../infrastructure/pending-event-repo
 import {createPersonaRepository} from '../infrastructure/persona-repository.js';
 import {createRelationshipRepository} from '../infrastructure/relationship-repository.js';
 import {createSettingsRepository} from '../infrastructure/settings-repository.js';
+import {createFoundationRepository} from '../infrastructure/foundation-repository.js';
+import {createScheduleRepository} from '../infrastructure/schedule-repository.js';
+import {createInterviewRepository} from '../infrastructure/interview-repository.js';
+import {createPersonaLifecycleRepository} from '../infrastructure/persona-lifecycle-repository.js';
+import {createMediaAssetRepository} from '../infrastructure/media-asset-repository.js';
+import {createPromptRunRepository} from '../infrastructure/prompt-run-repository.js';
+import {h3RuntimeHelpers} from '../infrastructure/h3-preflight.js';
+import {createDebugService} from '../application/debug-service.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
+import {createProductionProviderRegistry} from '../infrastructure/production-media-providers.js';
+import {createMtplxCompletionPort} from '../infrastructure/llm-provider.js';
+import {createMediaJobRepository} from '../infrastructure/media-job-repository.js';
+import {createMediaPromptMaster, createSkippedMediaAcceptance} from '../infrastructure/media-prompt-master.js';
+import {createProductionProactiveFlows} from '../infrastructure/production-proactive-ports.js';
 import {createMediaJobApplication} from '../application/media-job-composition.js';
 import createJobDispatcher from './job-dispatcher.js';
 import createStartupRuntime from './startup.js';
@@ -81,7 +96,7 @@ function resolveApp(options, startup, worker) {
         sendError,
         debugInspectorEnabled: options.debugInspectorEnabled === true || httpOptions.debugInspectorEnabled === true,
         missingHandler: httpOptions.missingHandler ?? options.missingHandler ?? 'error',
-        skip: chatRoute ? ['chat'] : []
+        skip: ['health', ...(chatRoute ? ['chat'] : [])]
     }) : undefined);
     return createHttpApp({
         ...httpOptions,
@@ -124,12 +139,101 @@ function resolveWorker(options, startup, repositories) {
     });
 }
 
-function resolveProviders(options) {
+function resolveProviders(options, environment, repositories) {
     const configured = options.providerRegistry ?? options.providers;
     if (configured && typeof configured.get === 'function' && typeof configured.register === 'function') return configured;
-    const adapters = options.providerAdapters ?? options.providers;
+    const adapters = options.providerAdapters ?? options.mediaProviderAdapters ?? options.providers;
     if (adapters === undefined || adapters === null) return createProviderRegistry();
     return createProviderRegistry({providers: adapters, dryRunAdapters: options.dryRunAdapters});
+}
+
+function isOpenDatabase(database) {
+    return isRecord(database) && typeof database.prepare === 'function' && typeof database.transaction === 'function';
+}
+
+function defaultProductionProviders(options, environment, repositories) {
+    const settings = options.settings ?? repositories?.settings;
+    return createProductionProviderRegistry({
+        settings,
+        environment,
+        fetchImpl: options.fetchImpl ?? options.fetch,
+        spawnImpl: options.spawnImpl ?? options.spawn,
+        id: runtimeId(options.idGenerator ?? options.id),
+        promptRuns: repositories?.promptRun,
+        providerAdapters: options.providerAdapters ?? options.mediaProviderAdapters
+    });
+}
+
+function createDefaultCapabilityPort() {
+    return Object.freeze({
+        dispatch() {
+            // Native capabilities remain fail-closed until their application
+            // registry is explicitly composed. Ordinary chat still has one
+            // valid dispatcher boundary and never falls back to marker SQL.
+            return {results: [], effects: []};
+        }
+    });
+}
+
+function createDefaultChatProductionPorts(options, repositories, providers) {
+    if (!isRecord(repositories?.conversation)
+        || typeof repositories.conversation.listMessages !== 'function'
+        || typeof repositories.conversation.getOrCreateConversation !== 'function') return null;
+    const mtplx = typeof providers?.find === 'function'
+        ? providers.find('mtplx', {portType: 'llm-streaming'})
+        : providers?.get?.('mtplx', {portType: 'llm-streaming'});
+    if (!mtplx) return null;
+    const clock = runtimeClock(options.clock);
+    const idGenerator = runtimeId(options.idGenerator ?? options.id);
+    const settings = options.settings ?? repositories.settings;
+    const readSettings = typeof settings === 'function' ? settings : settings?.read?.bind(settings) ?? (() => ({}));
+    const contextReader = {
+        read({command = {}, messages = []} = {}) {
+            const personaId = command.personaId ?? command?.command?.personaId;
+            const persona = repositories.persona?.findActive?.(personaId);
+            if (!persona) throw Object.assign(new Error('人格不存在'), {status: 404});
+            const at = command.chatAt ?? clock();
+            const events = repositories.lifeEvent?.listActive?.({personaId, at, limit: 1}) ?? [];
+            const event = events[0];
+            const state = event ? `${event.type}: ${event.payload_json || ''}` : '当前没有额外的已确认生活事件。';
+            return {
+                persona: {id: persona.id, name: persona.name, role: persona.role, color: persona.color},
+                prompt: `你是 ${persona.name}，角色是 ${persona.role || '陪伴者'}。请基于已确认事实与用户交流，不要编造当前状态。`,
+                layers: {
+                    lifeState: state,
+                    systemCapability: '只输出用户可见的自然回复；能力调用必须通过应用提供的 capability port。'
+                },
+                settings: readSettings(),
+                history: messages
+            };
+        }
+    };
+    const llmStreamingPort = createMtplxCompletionPort({provider: mtplx, settings: readSettings});
+    const commitBoundary = createConversationCommitAdapter({
+        repository: repositories.conversation,
+        clock,
+        idGenerator,
+        transaction: options.transaction
+    });
+    return {
+        ...createChatProductionPorts({
+            contextReader,
+            llmStreamingPort,
+            capabilityDispatcher: createDefaultCapabilityPort(),
+            conversationRepository: repositories.conversation,
+            clock,
+            idGenerator
+        }),
+        conversationRepository: repositories.conversation,
+        commitBoundary,
+        sendSse(sink, event) {
+            if (typeof sink?.write === 'function') sink.write(`data: ${JSON.stringify(event)}\n\n`);
+        },
+        end(sink) {
+            if (typeof sink?.end === 'function') sink.end();
+            else if (sink && typeof sink === 'object') sink.writableEnded = true;
+        }
+    };
 }
 
 function isMediaJobService(value) {
@@ -142,7 +246,8 @@ function isMediaJobService(value) {
 }
 
 function hasMediaJobConfiguration(options) {
-    return options.mediaJobServiceOptions !== undefined
+    return options.defaultProductionComposition === true
+        || options.mediaJobServiceOptions !== undefined
         || options.mediaJobOptions !== undefined
         || (options.mediaJobService !== undefined && !isMediaJobService(options.mediaJobService))
         || [
@@ -160,7 +265,7 @@ function hasMediaJobConfiguration(options) {
         ].some(name => options[name] !== undefined);
 }
 
-function resolveMediaComposition(options, repositories, providers) {
+function resolveMediaComposition(options, repositories, providers, startup) {
     const configured = options.mediaJobService;
     if (isMediaJobService(configured)) return {
         observability: configured.observability ?? options.mediaObservability ?? options.observability ?? null,
@@ -171,6 +276,25 @@ function resolveMediaComposition(options, repositories, providers) {
     const configuredService = isRecord(options.mediaJobService) && !isMediaJobService(options.mediaJobService)
         ? options.mediaJobService
         : {};
+    const productionDefaults = options.defaultProductionComposition === true;
+    const productionMediaFlow = productionDefaults && isOpenDatabase(startup?.database)
+        && typeof (repositories.jobRepository ?? repositories.job)?.enqueue === 'function'
+        ? createMediaJobRepository({
+            database: startup.database,
+            jobRepository: repositories.jobRepository ?? repositories.job,
+            activityRepository: repositories.activity,
+            conversationRepository: repositories.conversation,
+            clock: options.clock,
+            id: options.idGenerator ?? options.id
+        })
+        : null;
+    const mtplx = typeof providers?.find === 'function'
+        ? providers.find('mtplx', {portType: 'llm-streaming'})
+        : providers?.get?.('mtplx', {portType: 'llm-streaming'});
+    const defaultPromptMaster = productionDefaults && mtplx
+        ? createMediaPromptMaster({provider: mtplx, settings: options.settings ?? repositories.settings})
+        : null;
+    const defaultAcceptance = productionDefaults ? createSkippedMediaAcceptance({clock: runtimeClock(options.clock)}) : null;
     const nested = {
         ...configuredService,
         ...(isRecord(options.mediaJobServiceOptions)
@@ -183,10 +307,10 @@ function resolveMediaComposition(options, repositories, providers) {
         providers: nested.providers ?? options.providers ?? providers,
         repositories: nested.repositories ?? options.mediaRepositories ?? repositories,
         observability: nested.observability ?? options.mediaObservability ?? options.observability,
-        mediaFlow: nested.mediaFlow ?? options.mediaFlow,
         providerAdapters: nested.providerAdapters ?? options.mediaProviderAdapters,
-        promptMaster: nested.promptMaster ?? options.mediaPromptMaster ?? options.promptMaster,
-        acceptance: nested.acceptance ?? options.mediaAcceptance ?? options.acceptance,
+        mediaFlow: nested.mediaFlow ?? options.mediaFlow ?? productionMediaFlow,
+        promptMaster: nested.promptMaster ?? options.mediaPromptMaster ?? options.promptMaster ?? defaultPromptMaster,
+        acceptance: nested.acceptance ?? options.mediaAcceptance ?? options.acceptance ?? defaultAcceptance,
         clock: nested.clock ?? options.clock
     });
     return {
@@ -195,7 +319,7 @@ function resolveMediaComposition(options, repositories, providers) {
     };
 }
 
-function resolveProactiveJobService(options, repositories) {
+function resolveProactiveJobService(options, repositories, startup, providers) {
     if (options.proactiveJobService !== undefined) return options.proactiveJobService;
     const configured = options.proactiveJobServiceOptions ?? options.proactiveJobOptions;
     const hasFlows = options.proactiveFlows !== undefined
@@ -203,13 +327,32 @@ function resolveProactiveJobService(options, repositories) {
         || options.applicationFlows !== undefined
         || options.proactiveFlowRegistry !== undefined
         || options.flowRegistry !== undefined;
-    if (configured === undefined && !hasFlows) return null;
+    if (configured === undefined && !hasFlows && options.defaultProductionComposition !== true) return null;
     const nested = isRecord(configured) ? configured : {};
+    const canComposeDefaultFlows = options.defaultProductionComposition === true
+        && isOpenDatabase(startup?.database)
+        && repositories.conversation
+        && repositories.lifeEvent
+        && repositories.activity
+        && repositories.job
+        && typeof repositories.job.enqueue === 'function';
+    const defaultFlows = canComposeDefaultFlows
+        ? createProductionProactiveFlows({
+            database: startup.database,
+            repositories,
+            provider: typeof providers?.find === 'function'
+                ? providers.find('mtplx', {portType: 'llm-streaming'})
+                : providers?.get?.('mtplx', {portType: 'llm-streaming'}),
+            settings: options.settings ?? repositories.settings,
+            clock: options.clock,
+            id: options.idGenerator ?? options.id
+        })
+        : undefined;
     return createProactiveJobService({
         ...nested,
         ...options,
         repositories: nested.repositories ?? repositories,
-        flows: nested.flows ?? options.proactiveFlows ?? options.jobFlows ?? options.applicationFlows,
+        flows: nested.flows ?? options.proactiveFlows ?? options.jobFlows ?? options.applicationFlows ?? defaultFlows,
         flowRegistry: nested.flowRegistry ?? options.proactiveFlowRegistry ?? options.flowRegistry,
         ports: nested.ports ?? options.proactivePorts ?? options.applicationPorts
     });
@@ -240,6 +383,8 @@ function resolveRepositories(options, startup) {
     const job = createJobRepository({database, clock, id});
     const pending = createPendingEventRepository({database, enqueueJob: job.enqueue.bind(job)});
     const settings = createSettingsRepository({database, defaults: () => ({}), clock});
+    const personaLifecycle = createPersonaLifecycleRepository({database, clock, id});
+    const interview = createInterviewRepository({database, clock, id, personaLifecycle});
     return Object.freeze({
         conversation: createConversationRepository({database}),
         activity: createActivityRepository({database}),
@@ -252,7 +397,13 @@ function resolveRepositories(options, startup) {
         group: createGroupRepository({database, clock, id}),
         memory: createMemoryRepository({database, clock}),
         relationship: createRelationshipRepository({database, clock, id}),
-        settings
+        settings,
+        personaLifecycle,
+        foundation: createFoundationRepository({database, clock, id}),
+        schedule: createScheduleRepository({database, clock, id}),
+        interview,
+        mediaAsset: createMediaAssetRepository({database}),
+        promptRun: createPromptRunRepository({database, clock})
     });
 }
 
@@ -443,12 +594,29 @@ export function createRuntime(options = {}) {
     if (!isRecord(environment)) throw new TypeError('Runtime environment must be an object');
     const startup = resolveStartup({...options, environment});
     const repositories = resolveRepositories(options, startup);
-    const providers = resolveProviders(options);
+    const hasExplicitProviders = options.providerRegistry !== undefined
+        || options.providerAdapters !== undefined
+        || options.mediaProviderAdapters !== undefined
+        || options.providers !== undefined;
+    const providers = options.defaultProductionComposition === true && !hasExplicitProviders
+        ? defaultProductionProviders(options, environment, repositories)
+        : resolveProviders(options, environment, repositories);
     const jobRepository = options.jobRepository ?? repositories.jobRepository ?? repositories.job;
-    const mediaComposition = resolveMediaComposition(options, repositories, providers);
+    const mediaComposition = resolveMediaComposition(options, repositories, providers, startup);
     const mediaJobService = mediaComposition.mediaJobService;
     const mediaObservability = mediaComposition.observability;
-    const proactiveJobService = resolveProactiveJobService(options, repositories);
+    const proactiveJobService = resolveProactiveJobService(options, repositories, startup, providers);
+    const explicitChatPorts = options.chatProductionPorts
+        ?? options.productionChatPorts
+        ?? options.chatOptions
+        ?? options.chatPorts
+        ?? ['contextReader', 'llmStreamingPort', 'llmStreamPort', 'llm', 'conversationRepository', 'conversation', 'capabilityDispatcher', 'commitBoundary', 'commit', 'sendSse', 'end']
+            .some(name => options[name] !== undefined);
+    const chatProductionPorts = options.chatProductionPorts
+        ?? options.productionChatPorts
+        ?? (options.defaultProductionComposition === true && !explicitChatPorts
+            ? createDefaultChatProductionPorts(options, repositories, providers)
+            : null);
     const jobDispatcher = resolveJobDispatcher({...options, jobRepository, mediaJobService, proactiveJobService}, startup, repositories);
     const application = options.application ?? options.applicationFactory?.({
         ...options,
@@ -458,7 +626,8 @@ export function createRuntime(options = {}) {
         jobDispatcher,
         mediaJobService,
         mediaObservability,
-        proactiveJobService
+        proactiveJobService,
+        chatProductionPorts
     });
     const worker = resolveWorker({...options, jobRepository, jobDispatcher}, startup, repositories);
     const app = resolveApp({...options, application, routeHandlers: options.routeHandlers ?? application?.routeHandlers}, startup, worker);
@@ -572,6 +741,15 @@ export function createCompanionRuntime(options = {}) {
                 clock: resolved.clock,
                 idGenerator: resolved.idGenerator ?? resolved.id
             });
+            const h3 = h3RuntimeHelpers({id: resolved.idGenerator ?? resolved.id});
+            const debugService = options.debugService ?? createDebugService({
+                repositories: resolved.repositories,
+                promptRuns: resolved.repositories.promptRun,
+                h3Preflight: options.h3Preflight ?? h3.h3Preflight,
+                contextReader: resolved.chatProductionPorts?.contextReader,
+                mediaJobService: resolved.mediaJobService,
+                clock: resolved.clock
+            });
             return createCompanionApplication({
                 ...resolved,
                 services: options.services ?? createBasicCompanionServices({
@@ -581,10 +759,27 @@ export function createCompanionRuntime(options = {}) {
                     clock: resolved.clock,
                     debugInspector: options.debugInspectorEnabled === true,
                     identitySettingsService: identitySettings,
-                    activityService
+                    activityService,
+                    adapters: options.adapters,
+                    personaLifecycle: options.personaLifecycle,
+                    personaLifecycleService: options.personaLifecycleService,
+                    interviewService: options.interviewService,
+                    foundationService: options.foundationService,
+                    scheduleService: options.scheduleService,
+                    memoryService: options.memoryService,
+                    debugService,
+                    mediaService: options.mediaService
                 })
             });
         };
-    return createRuntime({...options, applicationFactory, missingHandler: options.missingHandler ?? 'error'});
+    return createRuntime({
+        ...options,
+        defaultProductionComposition: options.defaultProductionComposition !== false,
+        debugInspectorEnabled: options.debugInspectorEnabled
+            ?? options.environment?.COMPANION_DEBUG_INSPECTOR === '1'
+            ?? process.env.COMPANION_DEBUG_INSPECTOR === '1',
+        applicationFactory,
+        missingHandler: options.missingHandler ?? 'error'
+    });
 }
 export default createRuntime;

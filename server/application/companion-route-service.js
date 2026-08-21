@@ -1,3 +1,9 @@
+import {createPersonaLifecycleService} from './persona-lifecycle-service.js';
+import {createInterviewService} from './interview-service.js';
+import {createFoundationService} from './foundation-service.js';
+import {createScheduleService} from './schedule-service.js';
+import {createMemoryService} from './memory-service.js';
+
 const MAX_ID_LENGTH = 240;
 const MAX_PERSONA_NAME_LENGTH = 160;
 const MAX_PERSONA_ROLE_LENGTH = 160;
@@ -217,6 +223,11 @@ export function createCompanionRouteService({
     adapters = {},
     identitySettingsService,
     conversationService,
+    personaLifecycleService,
+    interviewService,
+    foundationService,
+    scheduleService,
+    memoryService,
     clock,
     idGenerator
 } = {}) {
@@ -235,6 +246,32 @@ export function createCompanionRouteService({
     const now = resolveClock(clock);
     void idGenerator;
 
+    const configuredLifecycle = personaLifecycleService
+        ?? services.personaLifecycleService
+        ?? services.personaLifecycle
+        ?? adapters.personaLifecycle
+        ?? adapters.identity;
+    const lifecycle = configuredLifecycle
+        ? (personaLifecycleService ?? services.personaLifecycleService ?? services.personaLifecycle
+            ?? createPersonaLifecycleService({repositories, personaLifecycle: configuredLifecycle, clock}))
+        : createPersonaLifecycleService({repositories, clock});
+    const interview = interviewService
+        ?? services.interviewService
+        ?? services.interview
+        ?? createInterviewService({repositories, ...adapters, clock});
+    const foundationApplication = foundationService
+        ?? services.foundationService
+        ?? services.foundation
+        ?? createFoundationService({repositories, ...adapters, clock});
+    const scheduleApplication = scheduleService
+        ?? services.scheduleService
+        ?? services.schedule
+        ?? createScheduleService({repositories, ...adapters, clock});
+    const memoryApplication = memoryService
+        ?? services.memoryService
+        ?? services.memory
+        ?? createMemoryService({repositories, ...adapters, clock});
+
     function summaryFor(row) {
         const groupId = row.group_id ?? row.groupId;
         const group = groupId && typeof groups.find === 'function' ? groups.find(groupId) : undefined;
@@ -244,13 +281,7 @@ export function createCompanionRouteService({
 
     function createPersona(command = {}) {
         const input = normalizePersonaCreate(command);
-        const lifecycle = adapters.personaLifecycle ?? adapters.identity ?? services.personaLifecycle ?? services.identity;
-        const result = invokeConfigured(
-            [lifecycle, adapters],
-            ['createPersona', 'create'],
-            [input],
-            '人格创建需要配置 identity lifecycle adapter'
-        );
+        const result = lifecycle.createPersona(input);
         return mapMaybe(result, value => value);
     }
 
@@ -258,26 +289,14 @@ export function createCompanionRouteService({
         const personaId = normalizePersonaId(command);
         // Resolve first so an unknown/deleted ID cannot cause an adapter side effect.
         requireActivePersona(personas, personaId);
-        const lifecycle = adapters.personaLifecycle ?? adapters.identity ?? services.personaLifecycle ?? services.identity;
-        const result = invokeConfigured(
-            [lifecycle, adapters],
-            ['deletePersona', 'delete'],
-            [{...command, personaId}],
-            '人格删除需要配置 identity lifecycle adapter'
-        );
+        const result = lifecycle.deletePersona({...command, personaId});
         return mapMaybe(result, value => value ?? {id: personaId, deleted: true, deletedMediaIds: []});
     }
 
     function getPersona(command = {}) {
         const personaId = normalizePersonaId(command);
         requireActivePersona(personas, personaId);
-        const lifecycle = adapters.personaLifecycle ?? adapters.identity ?? services.personaLifecycle ?? services.identity;
-        return invokeConfigured(
-            [lifecycle, adapters],
-            ['getPersona', 'readPersona', 'get'],
-            [{...command, personaId}],
-            '人格详情需要配置 identity lifecycle adapter'
-        );
+        return lifecycle.getPersona({...command, personaId});
     }
 
     function createGroup(command = {}) {
@@ -369,7 +388,9 @@ export function createCompanionRouteService({
         get: getPersona,
         getPersona,
         assignGroup: assignPersonaGroup,
-        screen: screenPersona
+        screen: screenPersona,
+        updateImageGenerationPolicy: lifecycle.updateImageGenerationPolicy,
+        setImageGenerationPolicy: lifecycle.updateImageGenerationPolicy
     });
     const groupApi = Object.freeze({
         create: createGroup,
@@ -381,6 +402,43 @@ export function createCompanionRouteService({
         appendMessage: appendConversationMessage,
         append: appendConversationMessage
     });
+    const interviewApi = Object.freeze({
+        preview: interview.preview,
+        analyze: interview.analyze,
+        create: interview.create,
+        get: interview.get,
+        answer: interview.answer,
+        activate: interview.activate,
+        previewInterview: interview.previewInterview,
+        analyzeInterview: interview.analyzeInterview,
+        createInterview: interview.createInterview,
+        getInterview: interview.getInterview,
+        answerInterview: interview.answerInterview,
+        activateInterview: interview.activateInterview
+    });
+    const foundationApi = Object.freeze({
+        draft: foundationApplication.draft,
+        getDraft: foundationApplication.getDraft,
+        getFoundationDraft: foundationApplication.getFoundationDraft,
+        update: foundationApplication.update,
+        updateFoundation: foundationApplication.updateFoundation,
+        restore: foundationApplication.restore,
+        restoreRevision: foundationApplication.restoreRevision,
+        restoreFoundationRevision: foundationApplication.restoreFoundationRevision
+    });
+    const scheduleApi = Object.freeze({
+        create: scheduleApplication.create,
+        createSchedule: scheduleApplication.createSchedule,
+        reschedule: scheduleApplication.reschedule,
+        rescheduleSchedule: scheduleApplication.rescheduleSchedule,
+        cancel: scheduleApplication.cancel,
+        cancelSchedule: scheduleApplication.cancelSchedule
+    });
+    const memoryApi = Object.freeze({
+        delete: memoryApplication.delete,
+        deleteMemory: memoryApplication.deleteMemory,
+        remove: memoryApplication.remove
+    });
 
     return Object.freeze({
         persona: personaApi,
@@ -388,6 +446,13 @@ export function createCompanionRouteService({
         identity: personaApi,
         group: groupApi,
         groups: groupApi,
+        interview: interviewApi,
+        interviews: interviewApi,
+        foundation: foundationApi,
+        schedule: scheduleApi,
+        schedules: scheduleApi,
+        memory: memoryApi,
+        memories: memoryApi,
         conversations: conversationApi,
         conversation: conversationApi,
         createPersona,
@@ -396,6 +461,20 @@ export function createCompanionRouteService({
         createGroup,
         assignPersonaGroup,
         screenPersona,
+        updateImageGenerationPolicy: lifecycle.updateImageGenerationPolicy,
+        interviewPreview: interview.preview,
+        interviewAnalyze: interview.analyze,
+        createInterview: interview.create,
+        getInterview: interview.get,
+        answerInterview: interview.answer,
+        activateInterview: interview.activate,
+        getFoundationDraft: foundationApplication.draft,
+        updateFoundation: foundationApplication.update,
+        restoreFoundationRevision: foundationApplication.restore,
+        createSchedule: scheduleApplication.create,
+        rescheduleSchedule: scheduleApplication.reschedule,
+        cancelSchedule: scheduleApplication.cancel,
+        deleteMemory: memoryApplication.delete,
         listConversations,
         appendConversationMessage
     });

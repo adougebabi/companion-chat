@@ -48,7 +48,26 @@ function pageDto(result) {
  * Feature-specific policy remains in application flows; unsupported routes
  * continue to report bounded 501 through the route-handler composition.
  */
-export function createBasicCompanionServices({repositories, settings, providers, clock = () => new Date().toISOString(), idGenerator, debugInspector = false, identitySettingsService, activityService, routeService, adapters, personaLifecycle} = {}) {
+export function createBasicCompanionServices({
+    repositories,
+    settings,
+    providers,
+    clock = () => new Date().toISOString(),
+    idGenerator,
+    debugInspector = false,
+    identitySettingsService,
+    activityService,
+    routeService,
+    adapters,
+    personaLifecycle,
+    personaLifecycleService,
+    interviewService,
+    foundationService,
+    scheduleService,
+    memoryService,
+    debugService,
+    mediaService
+} = {}) {
     const personas = repository(repositories, ['persona', 'personas'], 'persona repository');
     const groups = repository(repositories, ['group', 'groups'], 'group repository');
     const conversation = repository(repositories, ['conversation', 'conversationRepository'], 'conversation repository');
@@ -63,6 +82,11 @@ export function createBasicCompanionServices({repositories, settings, providers,
     });
     const useIdentitySettings = identitySettingsService !== undefined;
     const activityApplication = activityService ?? null;
+    const mediaApplication = mediaService ?? (repositories.mediaAsset ? {
+        get: command => repositories.mediaAsset.find(command),
+        read: command => repositories.mediaAsset.find(command),
+        getMedia: command => repositories.mediaAsset.find(command)
+    } : null);
     const routeApplication = routeService ?? createCompanionRouteService({
         repositories,
         services: {identity: identity},
@@ -73,7 +97,12 @@ export function createBasicCompanionServices({repositories, settings, providers,
         identitySettingsService: identity,
         conversationService,
         clock,
-        idGenerator
+        idGenerator,
+        personaLifecycleService: personaLifecycleService ?? personaLifecycle,
+        interviewService,
+        foundationService,
+        scheduleService,
+        memoryService
     });
 
     const service = {
@@ -100,6 +129,30 @@ export function createBasicCompanionServices({repositories, settings, providers,
         identity: routeApplication.identity,
         group: routeApplication.group,
         groups: routeApplication.groups,
+        interview: routeApplication.interview,
+        interviews: routeApplication.interviews,
+        foundation: routeApplication.foundation,
+        schedule: routeApplication.schedule,
+        schedules: routeApplication.schedules,
+        memory: routeApplication.memory,
+        memories: routeApplication.memories,
+        lifecycle: routeApplication.identity,
+        ...(mediaApplication ? {media: mediaApplication, assets: mediaApplication} : {}),
+        ...(debugService ? {debug: debugService} : {}),
+        ...(repositories.relationship ? {
+            relationship: {
+                rollbackEvolution(command) {
+                    const result = repositories.relationship.rollbackEvolution(command);
+                    if (!result) throw Object.assign(new Error('关系演化不存在或已回滚'), {status: 404});
+                    return result;
+                },
+                rollback: command => {
+                    const result = repositories.relationship.rollbackEvolution(command);
+                    if (!result) throw Object.assign(new Error('关系演化不存在或已回滚'), {status: 404});
+                    return result;
+                }
+            }
+        } : {}),
         conversations: routeApplication.conversations,
         conversation: routeApplication.conversation,
         activities: {

@@ -52,6 +52,15 @@ function resolveProviderDependencies(options = {}) {
     };
 }
 
+function settingsFor(dependencies, config) {
+    if (isRecord(config)) return config;
+    if (typeof dependencies.settings === 'function') {
+        const value = dependencies.settings();
+        return isRecord(value) ? value : {};
+    }
+    return {};
+}
+
 function requireComfyDependency(dependencies, name) {
     return requiredFunction(dependencies[name], name);
 }
@@ -67,7 +76,8 @@ function createComfyUiAdapter(dependencies) {
         portType: 'media',
         capabilities: ['image', 'video'],
         async submit({kind, prompt, settings: config}) {
-            const workflowSource = kind === 'video' ? config.videoWorkflow : config.imageWorkflow;
+            const providerSettings = settingsFor(dependencies, config);
+            const workflowSource = kind === 'video' ? providerSettings.videoWorkflow : providerSettings.imageWorkflow;
             if (!workflowSource) throw new Error(`尚未配置${kind === 'video' ? '视频' : '图片'}工作流`);
             const workflow = JSON.parse(workflowSource);
             let found = false;
@@ -81,7 +91,7 @@ function createComfyUiAdapter(dependencies) {
             }
             if (!found) throw new Error('工作流未包含 {{prompt}} 占位符');
             const fetcher = dependencies.fetch;
-            const url = dependencies.cleanUrl(config.comfyUrl);
+            const url = dependencies.cleanUrl(providerSettings.comfyUrl);
             const response = await fetcher(`${url}/prompt`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -94,9 +104,10 @@ function createComfyUiAdapter(dependencies) {
             return {externalId: body.prompt_id, pending: true};
         },
         async poll({externalId, settings: config}) {
+            const providerSettings = settingsFor(dependencies, config);
             const validPromptId = requireComfyDependency(dependencies, 'validComfyPromptId');
             if (!validPromptId(externalId)) return {status: 'failed', error: '缺少有效的 ComfyUI prompt ID'};
-            const response = await dependencies.fetch(`${dependencies.cleanUrl(config.comfyUrl)}/history/${encodeURIComponent(externalId)}`);
+            const response = await dependencies.fetch(`${dependencies.cleanUrl(providerSettings.comfyUrl)}/history/${encodeURIComponent(externalId)}`);
             if (!response.ok) throw new Error(`ComfyUI HTTP ${response.status}`);
             const history = await response.json();
             const filesForPrompt = requireComfyDependency(dependencies, 'comfyOutputFiles');
@@ -104,8 +115,9 @@ function createComfyUiAdapter(dependencies) {
             return files.length ? {status: 'complete', files} : {status: 'pending'};
         },
         async readAsset({asset, res, settings: config}) {
+            const providerSettings = settingsFor(dependencies, config);
             const params = new URLSearchParams({filename: asset.filename, subfolder: asset.subfolder || '', type: asset.file_type || 'output'});
-            const response = await dependencies.fetch(`${dependencies.cleanUrl(config.comfyUrl)}/view?${params}`);
+            const response = await dependencies.fetch(`${dependencies.cleanUrl(providerSettings.comfyUrl)}/view?${params}`);
             if (!response.ok) throw new Error(`ComfyUI HTTP ${response.status}`);
             res.set('Content-Type', response.headers.get('content-type') || 'application/octet-stream');
             res.send(Buffer.from(await response.arrayBuffer()));
@@ -126,18 +138,19 @@ function createH3Adapter(dependencies) {
         portType: 'media',
         capabilities: ['video'],
         async submit({prompt, payload, settings: config, progress}) {
+            const providerSettings = settingsFor(dependencies, config);
             const outputFile = requireH3Dependency(dependencies, 'h3OutputFile');
             const makeArgs = requireH3Dependency(dependencies, 'h3Args');
             const runH3 = requireH3Dependency(dependencies, 'runH3');
             const spawn = dependencies.spawn === undefined ? undefined : requireH3Dependency(dependencies, 'spawn');
-            const outputPath = outputFile(payload, config);
+            const outputPath = outputFile(payload, providerSettings);
             resolveFileHelper(dependencies, 'mkdirSync')(requirePathDirname(outputPath), {recursive: true});
-            const args = makeArgs({...payload, prompt}, {...config, h3Defaults: config.h3Defaults}, outputPath);
+            const args = makeArgs({...payload, prompt}, {...providerSettings, h3Defaults: providerSettings.h3Defaults}, outputPath);
             const preparing = progress?.stage('preparing');
             if (preparing && !preparing.changed) throw new Error('h3 作业租约已失效');
             const generating = progress?.stage('generating');
             if (generating && !generating.changed) throw new Error('h3 作业租约已失效');
-            await runH3(config.h3Executable, args, Number(config.h3TimeoutMs) || 15 * 60_000, {
+            await runH3(providerSettings.h3Executable, args, Number(providerSettings.h3TimeoutMs) || 15 * 60_000, {
                 spawn,
                 onOutput: (stream, text) => progress?.output(stream, text)
             });

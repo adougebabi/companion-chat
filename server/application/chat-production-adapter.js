@@ -252,6 +252,7 @@ export function createChatProductionPorts({
     tools,
     toolChoice,
     temperature,
+    capabilityDispatcher,
     capabilityRegistry,
     registry,
     markerCallFactory,
@@ -262,9 +263,9 @@ export function createChatProductionPorts({
 } = {}) {
     const resolvedContext = contextReader ?? (contextFor ? createChatContextReader({contextFor, clock}) : null);
     const resolvedLlm = llmStreamingPort ?? ((stream || complete) ? createChatLlmStreamingPort({stream, complete, promptSerializer, tools, toolChoice, temperature}) : null);
-    const resolvedDispatcher = capabilityRegistry || registry
+    const resolvedDispatcher = capabilityDispatcher ?? (capabilityRegistry || registry
         ? createCapabilityDispatcher({registry: capabilityRegistry ?? registry, markerCallFactory})
-        : null;
+        : null);
     const resolvedPresentation = presentationMapper ?? createChatPresentationMapper({clock, idGenerator, fallback});
     return Object.freeze({
         ...(resolvedContext ? {contextReader: resolvedContext} : {}),
