@@ -127,7 +127,14 @@ function modelMessageFor(message) {
 }
 
 function defaultPrompt({context, messages}) {
-    const system = [context?.prompt, context?.layers?.systemCapability, context?.systemCapability]
+    const system = [
+        context?.prompt,
+        context?.layers?.lifeState,
+        context?.layers?.memory,
+        context?.layers?.relationship,
+        context?.layers?.systemCapability,
+        context?.systemCapability
+    ]
         .filter(value => typeof value === 'string' && value.trim())
         .join('\n\n');
     return [

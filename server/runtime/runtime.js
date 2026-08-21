@@ -278,11 +278,15 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
                 ? resolveLifeState(lifeWorldReader.readResolverInput({personaId, at}))
                 : null;
             const state = resolved?.situation ? `${resolved.situation}（${resolved.scene || '日常场景'}）` : '当前没有额外的已确认生活事件。';
+            const memories = repositories.memory?.listActive?.({personaId, limit: 12}) ?? [];
+            const relationship = repositories.relationship?.activePatch?.({personaId}) ?? null;
             return {
                 persona: {id: persona.id, name: persona.name, role: persona.role, color: persona.color},
                 prompt: `你是 ${persona.name}，角色是 ${persona.role || '陪伴者'}。请基于已确认事实与用户交流，不要编造当前状态。`,
                 layers: {
                     lifeState: state,
+                    memory: JSON.stringify(memories.slice(0, 12)),
+                    relationship: JSON.stringify(relationship?.next_patch ? (() => { try { return JSON.parse(relationship.next_patch); } catch { return {}; } })() : {}),
                     systemCapability: '只输出用户可见的自然回复；能力调用必须通过应用提供的 capability port。'
                 },
                 settings: readSettings(),
