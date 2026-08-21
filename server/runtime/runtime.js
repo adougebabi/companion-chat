@@ -24,6 +24,7 @@ import {createInterviewRepository} from '../infrastructure/interview-repository.
 import {createPersonaLifecycleRepository} from '../infrastructure/persona-lifecycle-repository.js';
 import {createMediaAssetRepository} from '../infrastructure/media-asset-repository.js';
 import {createPromptRunRepository} from '../infrastructure/prompt-run-repository.js';
+import {createStateRepository} from '../infrastructure/state-repository.js';
 import {h3RuntimeHelpers} from '../infrastructure/h3-preflight.js';
 import {createDebugService} from '../application/debug-service.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
@@ -215,16 +216,35 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
         idGenerator,
         transaction: options.transaction
     });
+    const userMessageWriter = ({personaId, text: messageText, attachments = {}} = {}) => {
+        const conversation = repositories.conversation.getOrCreateConversation({
+            personaId,
+            id: idGenerator('conversation'),
+            createdAt: clock(),
+            updatedAt: clock()
+        });
+        return repositories.conversation.appendMessage({
+            id: idGenerator('message'),
+            conversationId: conversation.id,
+            role: 'user',
+            text: String(messageText ?? ''),
+            attachmentsJson: JSON.stringify(Array.isArray(attachments) ? attachments : []),
+            generationJson: null,
+            jobsJson: '[]',
+            createdAt: clock(),
+            readAt: clock()
+        });
+    };
     return {
         ...createChatProductionPorts({
             contextReader,
             llmStreamingPort,
-            capabilityDispatcher: createDefaultCapabilityPort(),
             conversationRepository: repositories.conversation,
             clock,
             idGenerator
         }),
         conversationRepository: repositories.conversation,
+        userMessageWriter,
         commitBoundary,
         sendSse(sink, event) {
             if (typeof sink?.write === 'function') sink.write(`data: ${JSON.stringify(event)}\n\n`);
@@ -232,6 +252,48 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
         end(sink) {
             if (typeof sink?.end === 'function') sink.end();
             else if (sink && typeof sink === 'object') sink.writableEnded = true;
+        }
+    };
+}
+
+function createDefaultMediaCapabilityOptions(options, repositories) {
+    const settings = options.settings ?? repositories.settings;
+    const readSettings = typeof settings === 'function' ? settings : settings?.read?.bind(settings) ?? (() => ({}));
+    const normalizeMediaCapabilityCall = (value = {}) => {
+        if (!isRecord(value)) throw new TypeError('media_event 参数必须是 JSON 对象');
+        const kind = value.kind;
+        if (kind !== 'image' && kind !== 'video') throw new TypeError('media_event.kind 无效');
+        const count = value.count === undefined ? 1 : Number(value.count);
+        if (!Number.isInteger(count) || count < 1 || count > 3) throw new RangeError('media_event.count 必须在 1 到 3 之间');
+        const concept = isRecord(value.personaMediaConcept) ? value.personaMediaConcept : {
+            schemaVersion: 1,
+            mediaKind: kind,
+            scene: String(value.request || '').slice(0, 800),
+            action: String(value.request || '').slice(0, 800),
+            mood: '', narrative: '', humanSubjects: [], nonHumanObjects: [],
+            capture: {mode: 'other', operator: '', deviceVisibility: 'unspecified', framingIntent: ''},
+            compositionIntent: ''
+        };
+        if (concept.mediaKind !== kind) throw new TypeError('media_event.personaMediaConcept.mediaKind 必须与 kind 一致');
+        return {kind, count, request: typeof value.request === 'string' ? value.request.trim().slice(0, 500) : '', personaMediaConcept: concept};
+    };
+    return {
+        normalizeMediaCapabilityCall,
+        mediaConceptEnvelopeFor(persona, input = {}) {
+            return {
+                schemaVersion: 1,
+                mediaKind: input.kind,
+                personaId: persona?.id ?? null,
+                personaName: persona?.name ?? '',
+                personaRole: persona?.role ?? '',
+                request: input.request ?? '',
+                currentEvent: null,
+                temporaryAppearance: {}
+            };
+        },
+        providerFor(kind) {
+            const config = readSettings();
+            return config?.[`${kind}Provider`] || 'comfyui';
         }
     };
 }
@@ -403,7 +465,8 @@ function resolveRepositories(options, startup) {
         schedule: createScheduleRepository({database, clock, id}),
         interview,
         mediaAsset: createMediaAssetRepository({database}),
-        promptRun: createPromptRunRepository({database, clock})
+        promptRun: createPromptRunRepository({database, clock}),
+        state: createStateRepository({database, clock})
     });
 }
 
@@ -617,6 +680,9 @@ export function createRuntime(options = {}) {
         ?? (options.defaultProductionComposition === true && !explicitChatPorts
             ? createDefaultChatProductionPorts(options, repositories, providers)
             : null);
+    const mediaCapabilityOptions = options.defaultProductionComposition === true
+        ? createDefaultMediaCapabilityOptions(options, repositories)
+        : {};
     const jobDispatcher = resolveJobDispatcher({...options, jobRepository, mediaJobService, proactiveJobService}, startup, repositories);
     const application = options.application ?? options.applicationFactory?.({
         ...options,
@@ -627,7 +693,8 @@ export function createRuntime(options = {}) {
         mediaJobService,
         mediaObservability,
         proactiveJobService,
-        chatProductionPorts
+        chatProductionPorts,
+        ...mediaCapabilityOptions
     });
     const worker = resolveWorker({...options, jobRepository, jobDispatcher}, startup, repositories);
     const app = resolveApp({...options, application, routeHandlers: options.routeHandlers ?? application?.routeHandlers}, startup, worker);

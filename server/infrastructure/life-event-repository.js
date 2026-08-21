@@ -148,6 +148,16 @@ export function createLifeEventRepository({database, clock, now, id, idGenerator
         `).all(personaId, at, at, limitValue(input.limit));
     }
 
+    function findByIdempotencyKey({personaId, idempotencyKey} = {}) {
+        const owner = requiredText(personaId, 'Persona.id');
+        const key = requiredText(idempotencyKey, 'Life-event.idempotencyKey');
+        return openDatabase.prepare(`
+            SELECT * FROM companion_life_events
+            WHERE persona_id = ? AND json_extract(payload_json, '$.idempotencyKey') = ?
+            ORDER BY created_at, id LIMIT 1
+        `).get(owner, key);
+    }
+
     function list(input = {}) {
         assertRecord(input, 'Life-event list input');
         const personaId = requiredText(valueFor(input, 'personaId', 'persona_id'), 'Persona.id');
@@ -253,6 +263,7 @@ export function createLifeEventRepository({database, clock, now, id, idGenerator
         findById,
         list,
         listActive,
+        findByIdempotencyKey,
         updateEvent,
         findState,
         insertState,

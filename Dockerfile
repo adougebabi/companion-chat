@@ -9,7 +9,7 @@ ENV NODE_ENV=production \
     PORT=4178 \
     DATA_DIR=/app/data
 COPY --from=build /app/node_modules ./node_modules
-COPY package.json server.js ./
+COPY package.json ./
 COPY server ./server
 COPY src ./src
 RUN mkdir -p /app/data && chown -R node:node /app

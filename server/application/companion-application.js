@@ -1,9 +1,9 @@
-import {createCapabilityDispatcher} from './capability-dispatcher.js';
 import {createCompanionRouteHandlers} from './companion-route-handlers.js';
 import {createMediaFlow} from './media-flow.js';
 import {createPendingEventFlow} from './pending-event-flow.js';
 import {createSceneEventFlow} from './scene-event-flow.js';
 import {createCompanionChatService} from './chat-service.js';
+import {createCapabilityHandoffAdapter, createFlowCapabilityRegistry} from './capability-handoff-adapter.js';
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -22,6 +22,7 @@ const CHAT_PORT_NAMES = Object.freeze([
     'capabilityDispatcher',
     'conversationRepository',
     'conversation',
+    'userMessageWriter',
     'presentationMapper',
     'chatPresentationMapper',
     'commitBoundary',
@@ -40,6 +41,7 @@ const DIRECT_CHAT_MARKERS = Object.freeze([
     'llm',
     'conversationRepository',
     'conversation',
+    'userMessageWriter',
     'presentationMapper',
     'chatPresentationMapper',
     'conversationCommitAdapter',
@@ -125,16 +127,17 @@ export function createCompanionApplication(options = {}) {
             transaction: options.transaction
         })
         : null);
+    const capabilityRegistry = options.capabilityRegistry ?? options.registry
+        ?? createFlowCapabilityRegistry({pendingEventFlow, sceneEventFlow, mediaFlow});
     const capabilityDispatcher = options.capabilityDispatcher
-        ?? (options.capabilityRegistry || options.registry
-            ? createCapabilityDispatcher({
-                registry: options.capabilityRegistry ?? options.registry,
-                markerCallFactory: options.markerCallFactory
-            })
+        ?? (Object.keys(capabilityRegistry).length
+            ? createCapabilityHandoffAdapter({registry: capabilityRegistry})
             : null);
     const chatService = options.chatService ?? (() => {
         const chatOptions = chatOptionsFrom(options);
-        return chatOptions ? createCompanionChatService(chatOptions) : null;
+        if (!chatOptions) return null;
+        if (chatOptions.capabilityDispatcher === undefined && capabilityDispatcher) chatOptions.capabilityDispatcher = capabilityDispatcher;
+        return createCompanionChatService(chatOptions);
     })();
     const services = {
         ...(isRecord(options.services) ? options.services : {}),

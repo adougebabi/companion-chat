@@ -203,7 +203,7 @@ async function repositoryHistory(repository, input) {
     return Array.isArray(rows) ? rows.slice(-MAX_HISTORY).reverse() : [];
 }
 
-function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDispatcher, conversationRepository, presentationMapper, flowId}) {
+function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDispatcher, conversationRepository, presentationMapper, userMessageWriter, flowId}) {
     const capabilityHandoff = createCapabilityHandoffStep({dispatcher: capabilityDispatcher});
     registry.register({
         id: flowId,
@@ -214,6 +214,23 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
             {id: 'flow-runtime', layer: 'domain'}
         ],
         steps: [
+            ...(userMessageWriter ? [{
+                id: 'user-message-boundary',
+                layer: 'application',
+                dependencies: [{id: 'conversation-repository', layer: 'contracts'}],
+                async run(_context, command) {
+                    const runtime = command[FLOW_RUNTIME];
+                    const message = await userMessageWriter({
+                        personaId: command.personaId,
+                        text: command.text,
+                        attachments: command.attachments,
+                        command
+                    });
+                    runtime.userMessage = message ?? null;
+                    if (message?.id && !command.causationId) command.causationId = message.id;
+                    return emptyStepResult();
+                }
+            }] : []),
             {
                 id: 'conversation-context',
                 layer: 'application',
@@ -350,6 +367,7 @@ export function createChatTurnFlow({
     presentationMapper,
     commit,
     commitBoundary,
+    userMessageWriter,
     flowId = CHAT_TURN_FLOW_ID
 } = {}) {
     const readContext = resolvePortMethod(contextReader, ['read', 'readContext'], 'ChatContextReader');
@@ -374,6 +392,7 @@ export function createChatTurnFlow({
         capabilityDispatcher,
         conversationRepository,
         presentationMapper: mapPresentation,
+        userMessageWriter,
         flowId
     });
 

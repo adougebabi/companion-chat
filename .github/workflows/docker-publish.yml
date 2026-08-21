@@ -21,7 +21,6 @@ jobs:
           node-version: 22.23.2
           cache: npm
       - run: npm ci
-      - run: node --check server.js
       - run: node --check server/index.js
       - run: npm test
       - run: node --check src/main.js
