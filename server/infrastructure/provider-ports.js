@@ -126,6 +126,9 @@ function inferPortType(port) {
         || OPERATION_ALIASES.poll.some(name => typeof port[name] === 'function')) {
         return PROVIDER_PORT_TYPES.MEDIA;
     }
+    if (Array.isArray(port.capabilities) && port.capabilities.some(capability => ['image', 'video'].includes(capability))) {
+        return PROVIDER_PORT_TYPES.MEDIA;
+    }
     if (OPERATION_ALIASES.readAsset.some(name => typeof port[name] === 'function')) {
         return PROVIDER_PORT_TYPES.ASSET_READER;
     }
@@ -152,6 +155,7 @@ function normalizeCapabilities(port, portType) {
 function requiredOperation(port, portType) {
     const operation = DEFAULT_OPERATION_BY_TYPE[portType];
     if (operationNames(port).includes(operation)) return operation;
+    if (portType === PROVIDER_PORT_TYPES.MEDIA && operationNames(port).includes('readAsset')) return 'readAsset';
     const aliases = OPERATION_ALIASES[operation].join('(), ');
     throw new TypeError(`Provider ${port.id || 'port'} must provide ${aliases}()`);
 }
@@ -326,6 +330,14 @@ export function createProviderRegistry(options = {}) {
 
     const registry = {
         register,
+        set(id, provider) {
+            register(id, provider, {replace: true});
+            return registry;
+        },
+        delete(id) {
+            const providerId = text(id, 'Provider id', MAX_PROVIDER_ID_LENGTH);
+            return entries.delete(providerId);
+        },
         get,
         find,
         has(id, requirement) {

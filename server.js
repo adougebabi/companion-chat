@@ -13,6 +13,7 @@ import {createLifeStateResolver} from './server/domain/life-state-resolver.js';
 import {createChatTurnFlow} from './server/application/chat-turn-flow.js';
 import {createChatTurnSseAdapter} from './server/http/chat-turn-sse-adapter.js';
 import {registerCompanionRoutes} from './server/http/route-registry.js';
+import {createProviderRegistry} from './server/infrastructure/provider-ports.js';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const dataDir = process.env.DATA_DIR || join(root, 'data');
@@ -481,19 +482,35 @@ function publicSettings() {
     return {...safe, h3Defaults: safeH3Defaults, h3TimeoutMs, hasH3Configuration: Boolean(h3Executable && h3ModelDir && h3OutputDir), h3ConfigSummary: h3ConfigSummary(value), hasLmStudioApiKey: Boolean(lmStudioApiKey), mediaProviders: providerSummaries()};
 }
 
-const mediaProviders = new Map();
+const providerRegistry = createProviderRegistry();
+// Temporary compatibility facade for existing domain helpers/tests. Provider
+// ownership and validation live in providerRegistry; this surface only keeps
+// the old mutable Map-shaped calls working during the final cutover.
+const mediaProviders = Object.freeze({
+    set(id, provider) {
+        providerRegistry.register(id, provider);
+        return this;
+    },
+    delete(id) {
+        return providerRegistry.delete(id);
+    },
+    get(id) {
+        return providerRegistry.find(id);
+    }
+});
 function registerMediaProvider(provider) {
-    mediaProviders.set(provider.id, provider);
+    providerRegistry.register(provider);
     return provider;
 }
 function providerSummaries() {
-    return [...mediaProviders.values()].map(provider => ({id: provider.id, label: provider.label, capabilities: provider.capabilities}));
+    return providerRegistry.summaries();
 }
 function providerFor(kind, configured) {
     const id = configured || 'comfyui';
-    const provider = mediaProviders.get(id);
+    const provider = providerRegistry.find(id, {portType: 'media'});
     if (!provider) throw new Error(`未注册媒体 provider: ${id}`);
-    if (!provider.capabilities.includes(kind)) throw new Error(`媒体 provider ${id} 不支持${kind === 'video' ? '视频' : '图片'}`);
+    const metadata = providerRegistry.metadata(id);
+    if (!metadata.capabilities.includes(kind)) throw new Error(`媒体 provider ${id} 不支持${kind === 'video' ? '视频' : '图片'}`);
     return provider;
 }
 function validateMediaSettings(patch, current = settings()) {
