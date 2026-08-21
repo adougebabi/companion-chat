@@ -116,3 +116,17 @@ test('context module is independent of the legacy server and HTTP hooks', async 
     const source = readFileSync(new URL('../server/testing/companion-context.js', import.meta.url), 'utf8');
     assert.doesNotMatch(source, /server\.js|express|companionTestHooks/);
 });
+
+test('context identity helpers create and delete persona-scoped rows', () => {
+    const context = createCompanionTestContext({idGenerator: prefix => `${prefix}_identity`});
+    try {
+        const persona = context.createPersona({name: 'Context Persona', role: 'tester'});
+        assert.equal(context.repositories.persona.findActive(persona.id).name, 'Context Persona');
+        context.repositories.conversation.getOrCreateConversation({personaId: persona.id, id: 'conversation_context', createdAt: context.clock(), updatedAt: context.clock()});
+        context.deletePersona(persona.id);
+        assert.equal(context.repositories.persona.findActive(persona.id), undefined);
+        assert.equal(context.database.prepare('SELECT COUNT(*) AS count FROM companion_conversations WHERE persona_id = ?').get(persona.id).count, 0);
+    } finally {
+        context.cleanup();
+    }
+});

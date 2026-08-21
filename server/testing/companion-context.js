@@ -137,6 +137,54 @@ export function createCompanionTestContext({
         });
         const providers = createProviderRegistry({dryRunAdapters: providerAdapters});
 
+        function createPersona(input = {}) {
+            if (!isRecord(input)) throw new TypeError('Companion test persona must be an object');
+            const personaId = input.id ?? id('persona');
+            const createdAt = input.createdAt ?? clock();
+            const updatedAt = input.updatedAt ?? createdAt;
+            const name = typeof input.name === 'string' && input.name.trim() ? input.name.trim() : '测试人格';
+            const role = typeof input.role === 'string' && input.role.trim() ? input.role.trim() : '陪伴者';
+            const color = typeof input.color === 'string' && input.color.trim() ? input.color.trim() : '#888888';
+            database.prepare(`
+                INSERT INTO companion_personas (id, name, role, color, enabled, created_at, updated_at, group_id)
+                VALUES (?, ?, ?, ?, 1, ?, ?, (SELECT id FROM companion_groups WHERE is_default = 1 ORDER BY created_at, id LIMIT 1))
+            `).run(personaId, name, role, color, createdAt, updatedAt);
+            database.prepare(`
+                INSERT INTO companion_persona_states (persona_id, situation, mood, appearance_json, checkpoint_at, updated_at, source_event_id, shared_scene_json)
+                VALUES (?, '', '平静', '{}', ?, ?, NULL, '{}')
+            `).run(personaId, createdAt, updatedAt);
+            return repositories.persona.findActive(personaId);
+        }
+
+        function deletePersona(personaId) {
+            if (typeof personaId !== 'string' || !personaId.trim()) throw new TypeError('Companion test persona id must be a non-empty string');
+            database.transaction(() => {
+                database.prepare('DELETE FROM companion_jobs WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_pending_events WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_event_decisions WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_event_links WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_timeline_slots WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_daily_plans WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_activity_media WHERE activity_id IN (SELECT id FROM companion_activities WHERE persona_id = ?)').run(personaId);
+                database.prepare('DELETE FROM companion_activity_visibility WHERE activity_id IN (SELECT id FROM companion_activities WHERE persona_id = ?)').run(personaId);
+                database.prepare('DELETE FROM companion_activity_comments WHERE activity_id IN (SELECT id FROM companion_activities WHERE persona_id = ?)').run(personaId);
+                database.prepare('DELETE FROM companion_activities WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_messages WHERE conversation_id IN (SELECT id FROM companion_conversations WHERE persona_id = ?)').run(personaId);
+                database.prepare('DELETE FROM companion_conversations WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_memories WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_persona_evolutions WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_schedule_items WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_life_events WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_persona_life_blueprint_revisions WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_persona_life_blueprints WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_persona_foundation_revisions WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_persona_states WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_supporting_characters WHERE persona_id = ?').run(personaId);
+                database.prepare('DELETE FROM companion_personas WHERE id = ?').run(personaId);
+            })();
+            return true;
+        }
+
         const cleanup = () => {
             if (cleaned) return false;
             cleaned = true;
@@ -148,6 +196,8 @@ export function createCompanionTestContext({
         return Object.freeze({
             database,
             repositories,
+            createPersona,
+            deletePersona,
             clock,
             id,
             providers,
