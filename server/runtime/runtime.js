@@ -1,5 +1,6 @@
 import {createHttpApp} from '../http/app.js';
 import {registerCompanionRoutes} from '../http/route-registry.js';
+import {createCompanionRouteHandlers} from '../application/companion-route-handlers.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
 import createJobDispatcher from './job-dispatcher.js';
 import createStartupRuntime from './startup.js';
@@ -293,5 +294,14 @@ export function createRuntime(options = {}) {
     });
 }
 
-export const createCompanionRuntime = createRuntime;
+export function createCompanionRuntime(options = {}) {
+    if (!isRecord(options)) throw new TypeError('Companion runtime options must be an object');
+    const routeHandlers = options.routeHandlers ?? createCompanionRouteHandlers({
+        repositories: options.repositories,
+        services: options.services,
+        policies: options.policies,
+        adapters: options.adapters
+    });
+    return createRuntime({...options, routeHandlers, missingHandler: options.missingHandler ?? 'error'});
+}
 export default createRuntime;

@@ -5,7 +5,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import Database from 'better-sqlite3';
 
-import {createRuntime} from '../server/runtime/runtime.js';
+import {createCompanionRuntime, createRuntime} from '../server/runtime/runtime.js';
 import {createHttpApp} from '../server/http/app.js';
 
 function temporaryDirectory() {
@@ -141,6 +141,20 @@ test('runtime owns auxiliary task lifecycles in start/stop order', async () => {
         assert.deepEqual(events, ['first:start', 'second:start', 'second:stop', 'first:stop']);
     } finally {
         if (runtime.state !== 'stopped') await runtime.stop().catch(() => {});
+        rmSync(dataDir, {recursive: true, force: true});
+    }
+});
+
+test('companion runtime mounts the complete contract with bounded unconfigured handlers', async () => {
+    const dataDir = temporaryDirectory();
+    const runtime = createCompanionRuntime({Database, dataDir, workerRuntime: false, environment: {DATA_DIR: dataDir}});
+    try {
+        await runtime.start({listen: false, worker: false});
+        const bootstrap = runtime.app.router.stack.find(layer => layer.route?.path === '/api/companion/bootstrap');
+        assert.ok(bootstrap);
+        assert.equal(typeof runtime.app, 'function');
+    } finally {
+        await runtime.stop();
         rmSync(dataDir, {recursive: true, force: true});
     }
 });
