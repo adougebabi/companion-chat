@@ -1,4 +1,5 @@
 import {randomUUID} from 'node:crypto';
+import {createFlowEffectAdapter} from './flow-effect-adapter.js';
 
 /**
  * The chat media flow owns only the durable intent handoff.  Capability
@@ -329,7 +330,8 @@ export function createMediaFlow({
     mediaMessagePlaceholder = defaultMediaMessagePlaceholder,
     messageShape = defaultMessageShape,
     providerFor,
-    transaction
+    transaction,
+    effectAdapter
 } = {}) {
     if (!isRecord(repositories)) throw new TypeError('Media-flow repositories must be an object');
     if (typeof mediaMessagePlaceholder !== 'function') throw new TypeError('Media-flow mediaMessagePlaceholder must be a function');
@@ -344,7 +346,7 @@ export function createMediaFlow({
     const jobRepository = resolveRepository(repositories, ['jobRepository', 'job', 'effectRepository'], 'job repository');
     const personaLookup = personaRepository ? methodFor(personaRepository, ['findActive', 'findById', 'requirePersona', 'get'], 'persona repository', {optional: true}) : null;
     const jobFindByPayload = methodFor(jobRepository, ['findByPayload', 'findByIdempotencyKey', 'findByCapabilityIdempotencyKey'], 'job repository', {optional: true});
-    const jobEnqueue = methodFor(jobRepository, ['enqueue', 'create', 'insert'], 'job repository');
+    const effectsPort = effectAdapter ?? createFlowEffectAdapter({jobRepository, clock, idGenerator: idGenerator ?? id});
     const messageFind = methodFor(conversationRepository, ['findMessage', 'findById', 'getMessage', 'getById'], 'conversation repository', {optional: true});
     const messageByIdempotency = methodFor(conversationRepository, ['findMessageByIdempotencyKey', 'findByCapabilityIdempotencyKey', 'findByJobIdempotencyKey'], 'conversation repository', {optional: true});
     const messageByJob = methodFor(conversationRepository, ['findMessageByJob', 'findByJob'], 'conversation repository', {optional: true});
@@ -594,7 +596,14 @@ export function createMediaFlow({
                     createdAt: item.entry.createdAt,
                     updatedAt: item.entry.createdAt
                 };
-                persistedJob = syncResult(jobEnqueue(jobInput), 'job repository write') || jobInput;
+                const queued = effectsPort.publish({
+                    ...jobInput,
+                    effectId: `effect_media_${item.jobId}`,
+                    kind: planValue.jobType,
+                    capability: 'media',
+                    idempotencyKey: item.assetKey ?? `${planValue.personaId}:${item.jobId}`
+                }, {personaId: planValue.personaId, causationId: planValue.sourceMessageId ?? item.jobId, now: item.entry.createdAt});
+                persistedJob = queued?.job ?? queued ?? jobInput;
             }
             const shaped = item.inserted ? syncResult(messageShape(item.inserted), 'messageShape') : item.placeholder;
             applied.push({entry: item.entry, job: persistedJob, message: shaped, replayed: false});

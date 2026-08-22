@@ -117,12 +117,19 @@ export function createDebugService({repositories = {}, promptRuns, settings, h3P
                 progress: redact(resultValue.progress ?? {}),
                 error: summary(row.error || '', 500)
             };
-        });
+            });
+        const affectSnapshot = repositories.affect?.readSnapshot
+            ? sync(repositories.affect.readSnapshot({personaId, at: command.at ?? clock()}), 'debug affect snapshot')
+            : null;
+        const affectEvents = repositories.affect?.listEvents
+            ? sync(repositories.affect.listEvents({personaId, limit: 10}), 'debug affect events')
+            : [];
         const layers = {
             identity: summary(context?.layers?.immutableIdentity ?? context?.layers?.identity ?? ''),
             immutableIdentity: summary(context?.layers?.immutableIdentity ?? ''),
             lifeState: summary(context?.layers?.lifeState ?? context?.state ?? ''),
             relationship: summary(context?.layers?.relationship ?? ''),
+            affect: redact({snapshot: affectSnapshot, recentEvents: affectEvents}),
             systemCapability: summary(context?.layers?.systemCapability ?? ''),
             provider: {model: summary(settingsValue.model || '自动选择', 240), lmStudioConfigured: Boolean(settingsValue.lmStudioUrl), comfyConfigured: Boolean(settingsValue.comfyUrl)}
         };
@@ -136,7 +143,10 @@ export function createDebugService({repositories = {}, promptRuns, settings, h3P
         const jobsForPersona = jobs?.listForPersona ? jobs.listForPersona({personaId, limit: 50}) : [];
         const scopedJobs = sync(jobsForPersona, 'lifecycle jobs');
         const rows = Array.isArray(scopedJobs) ? scopedJobs.filter(row => row.persona_id === undefined || row.persona_id === personaId || row.personaId === personaId) : scopedJobs;
-        return {personaId, events: redact(sync(events, 'lifecycle events')), jobs: redact(rows)};
+        const affectEvents = repositories.affect?.listEvents
+            ? repositories.affect.listEvents({personaId, limit: 20})
+            : [];
+        return {personaId, events: redact(sync(events, 'lifecycle events')), affectEvents: redact(affectEvents), jobs: redact(rows)};
     }
 
     function simulatePersona(command = {}) {

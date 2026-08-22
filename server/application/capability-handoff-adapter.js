@@ -15,7 +15,7 @@ function argumentsFor(call) {
 function resultFor(attempt) {
     const call = attempt?.call || {};
     const name = call.name || attempt?.name || 'pending_event';
-    if (!['scene_event', 'media_event', 'pending_event'].includes(name)) return null;
+    if (!['scene_event', 'media_event', 'pending_event', 'memory_event'].includes(name)) return null;
     return {
         name,
         ok: !attempt?.error,
@@ -128,7 +128,7 @@ export function createCapabilityHandoffAdapter({registry, capabilityRegistry} = 
     });
 }
 
-export function createFlowCapabilityRegistry({pendingEventFlow, sceneEventFlow, mediaFlow} = {}) {
+export function createFlowCapabilityRegistry({pendingEventFlow, sceneEventFlow, mediaFlow, memoryEventFlow, memoryFlow} = {}) {
     const registry = {};
     const pending = entryFor(pendingEventFlow, ({args, call, personaId, causationUserMessageId}) => ({
         personaId, call: args, sourceMessageId: causationUserMessageId ?? call.causationUserMessageId,
@@ -142,9 +142,16 @@ export function createFlowCapabilityRegistry({pendingEventFlow, sceneEventFlow, 
         personaId, call: args, sourceMessageId: causationUserMessageId ?? call.causationUserMessageId,
         provenance: provenanceForCall(call, causationUserMessageId)
     }));
+    const memory = entryFor(memoryEventFlow ?? memoryFlow, ({args, call, personaId, causationUserMessageId}) => ({
+        personaId,
+        call: args,
+        sourceMessageId: causationUserMessageId ?? call.causationUserMessageId,
+        provenance: provenanceForCall(call, causationUserMessageId)
+    }));
     if (pending) registry.pending_event = {...pending, markerAdapter: markerAdapterFor('pending-event')};
     if (scene) registry.scene_event = {...scene, markerAdapter: markerAdapterFor('scene-event')};
     if (media) registry.media_event = {...media, markerAdapter: markerAdapterFor('media-intent')};
+    if (memory) registry.memory_event = memory;
     return registry;
 }
 

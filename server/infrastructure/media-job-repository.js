@@ -73,6 +73,24 @@ export function createMediaJobRepository({database, jobRepository, activityRepos
         `).get(messageId, personaId);
     }
 
+    function findByIdempotency({jobType, personaId, idempotencyKey} = {}) {
+        if (!idempotencyKey || typeof jobRepository.findByPayload !== 'function') return null;
+        return jobRepository.findByPayload({
+            jobType,
+            personaId,
+            path: '$.idempotencyKey',
+            value: idempotencyKey
+        }) ?? null;
+    }
+
+    function deterministicPollKey({sourceJobId, externalId} = {}) {
+        return `media:poll:${requiredText(sourceJobId, 'Media poll sourceJobId')}:${requiredText(externalId, 'Media poll externalId')}`;
+    }
+
+    function deterministicQualityRetryKey({sourceJobId, retryCount} = {}) {
+        return `media:quality-retry:${requiredText(sourceJobId, 'Media quality retry sourceJobId')}:${Number(retryCount)}`;
+    }
+
     function updateTarget({job, status, provider, externalId, promptId, attachments, error, now: at} = {}) {
         const jobPersonaId = requiredText(rowValue(job, 'personaId', 'persona_id'), 'Media job personaId');
         const activityId = rowValue(job, 'activityId', 'activity_id');
@@ -103,6 +121,21 @@ export function createMediaJobRepository({database, jobRepository, activityRepos
             WHERE id = ? AND conversation_id = (SELECT id FROM companion_conversations WHERE persona_id = ?)
         `).run(JSON.stringify(generation), attachmentsJson, message.id, jobPersonaId);
         return {changed: Boolean(result.changes), updatedAt};
+    }
+
+    function targetStatus({job} = {}) {
+        const jobPersonaId = requiredText(rowValue(job, 'personaId', 'persona_id'), 'Media job personaId');
+        const activityId = rowValue(job, 'activityId', 'activity_id');
+        if (activityId) {
+            return database.prepare(`
+                SELECT media_status AS status
+                FROM companion_activities
+                WHERE id = ? AND persona_id = ?
+            `).get(activityId, jobPersonaId)?.status ?? null;
+        }
+        const message = scopedMessage(job);
+        if (!message) return null;
+        return parseJson(message.generation_json, {})?.status ?? null;
     }
 
     function persistAssets({job, provider, files, now: at} = {}) {
@@ -143,7 +176,17 @@ export function createMediaJobRepository({database, jobRepository, activityRepos
         const jobType = String(rowValue(job, 'jobType', 'job_type') || 'chat_image').startsWith('activity_')
             ? 'activity_media_poll'
             : 'chat_media_poll';
-        return jobRepository.enqueue({
+        const sourceJobId = payload?.sourceJobId ?? payload?.source_job_id ?? rowValue(job, 'id', 'id');
+        const externalId = payload?.externalId ?? payload?.external_id ?? payload?.promptId ?? payload?.prompt_id;
+        const idempotencyKey = payload?.idempotencyKey ?? deterministicPollKey({sourceJobId, externalId});
+        const jobPayload = {...payload, idempotencyKey};
+        const existing = findByIdempotency({
+            jobType,
+            personaId: rowValue(job, 'personaId', 'persona_id') ?? null,
+            idempotencyKey
+        });
+        if (existing) return {job: existing, created: false, replayed: true};
+        const input = {
             jobType,
             personaId: rowValue(job, 'personaId', 'persona_id') ?? null,
             activityId: rowValue(job, 'activityId', 'activity_id') ?? null,
@@ -151,23 +194,112 @@ export function createMediaJobRepository({database, jobRepository, activityRepos
             priority: 4,
             maxAttempts: 60,
             runAfter: at ?? now(),
-            payload,
+            payload: jobPayload,
             now: at ?? now()
-        });
+        };
+        try {
+            return {job: jobRepository.enqueue(input), created: true, replayed: false};
+        } catch (error) {
+            // A concurrent/replayed enqueue may win between the lookup and
+            // INSERT. Re-read the deterministic key before surfacing failure.
+            const raced = findByIdempotency({
+                jobType,
+                personaId: rowValue(job, 'personaId', 'persona_id') ?? null,
+                idempotencyKey
+            });
+            if (raced) return {job: raced, created: false, replayed: true};
+            throw error;
+        }
     }
 
     function enqueueQualityRetry({job, payload, now: at} = {}) {
-        return jobRepository.enqueue({
-            jobType: rowValue(job, 'jobType', 'job_type'),
+        const sourceJobId = rowValue(job, 'id', 'id');
+        const retryCount = Number(payload?.qualityRetryCount ?? payload?.quality_retry_count);
+        const idempotencyKey = payload?.idempotencyKey
+            ?? payload?.qualityRetryKey
+            ?? deterministicQualityRetryKey({sourceJobId, retryCount});
+        const jobPayload = {...payload, idempotencyKey, qualityRetryKey: idempotencyKey};
+        const jobType = rowValue(job, 'jobType', 'job_type');
+        const existing = findByIdempotency({
+            jobType,
+            personaId: rowValue(job, 'personaId', 'persona_id') ?? null,
+            idempotencyKey
+        });
+        if (existing) return {job: existing, created: false, replayed: true};
+        const input = {
+            jobType,
             personaId: rowValue(job, 'personaId', 'persona_id') ?? null,
             activityId: rowValue(job, 'activityId', 'activity_id') ?? null,
             messageId: rowValue(job, 'messageId', 'message_id') ?? null,
             priority: Number(rowValue(job, 'priority', 'priority') || 4),
             maxAttempts: Number(rowValue(job, 'maxAttempts', 'max_attempts') || 3),
-            payload,
+            payload: jobPayload,
             runAfter: at ?? now(),
             now: at ?? now()
+        };
+        try {
+            return {job: jobRepository.enqueue(input), created: true, replayed: false};
+        } catch (error) {
+            const raced = findByIdempotency({
+                jobType,
+                personaId: rowValue(job, 'personaId', 'persona_id') ?? null,
+                idempotencyKey
+            });
+            if (raced) return {job: raced, created: false, replayed: true};
+            throw error;
+        }
+    }
+
+    function findPoll({job, sourceJobId, externalId} = {}) {
+        const sourceType = String(rowValue(job, 'jobType', 'job_type') || 'chat_image');
+        const jobType = sourceType.startsWith('activity_') ? 'activity_media_poll' : 'chat_media_poll';
+        const idempotencyKey = deterministicPollKey({sourceJobId, externalId});
+        return findByIdempotency({
+            jobType,
+            personaId: rowValue(job, 'personaId', 'persona_id') ?? null,
+            idempotencyKey
         });
+    }
+
+    function enqueuePollCompensation({job, payload, now: at} = {}) {
+        const sourceJobId = payload?.sourceJobId ?? payload?.source_job_id;
+        const externalId = payload?.externalId ?? payload?.external_id ?? payload?.promptId ?? payload?.prompt_id;
+        const idempotencyKey = payload?.idempotencyKey
+            ?? `media:poll-compensation:${requiredText(sourceJobId, 'Media compensation sourceJobId')}:${requiredText(externalId, 'Media compensation externalId')}`;
+        const sourceJobType = rowValue(job, 'jobType', 'job_type');
+        const activityId = rowValue(job, 'activityId', 'activity_id') ?? null;
+        const messageId = rowValue(job, 'messageId', 'message_id') ?? null;
+        const jobPayload = {...payload, sourceJobType, idempotencyKey};
+        const existing = findByIdempotency({
+            jobType: 'media_poll_compensation',
+            personaId: rowValue(job, 'personaId', 'persona_id') ?? null,
+            idempotencyKey
+        });
+        if (existing) return {job: existing, created: false, replayed: true};
+        const input = {
+            id: payload?.compensationJobId,
+            jobType: 'media_poll_compensation',
+            personaId: rowValue(job, 'personaId', 'persona_id') ?? null,
+            activityId,
+            messageId,
+            priority: 5,
+            maxAttempts: 60,
+            runAfter: at ?? now(),
+            payload: jobPayload,
+            now: at ?? now()
+        };
+        delete input.id;
+        try {
+            return {job: jobRepository.enqueue(input), created: true, replayed: false};
+        } catch (error) {
+            const raced = findByIdempotency({
+                jobType: 'media_poll_compensation',
+                personaId: rowValue(job, 'personaId', 'persona_id') ?? null,
+                idempotencyKey
+            });
+            if (raced) return {job: raced, created: false, replayed: true};
+            throw error;
+        }
     }
 
     return Object.freeze({
@@ -179,12 +311,15 @@ export function createMediaJobRepository({database, jobRepository, activityRepos
         },
         updateTarget,
         settleTarget: updateTarget,
+        targetStatus,
         persistAssets,
         saveAssets: persistAssets,
         enqueuePoll,
         schedulePoll: enqueuePoll,
         enqueueQualityRetry,
         scheduleQualityRetry: enqueueQualityRetry,
+        findPoll,
+        enqueuePollCompensation,
         findMessage({job} = {}) { return scopedMessage(job); },
         conversationRepository,
         activityRepository

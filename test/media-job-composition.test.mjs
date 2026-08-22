@@ -135,7 +135,7 @@ test('runtime composes media service from observability, repositories, and provi
     try {
         assert.ok(runtime.mediaJobService);
         assert.strictEqual(runtime.mediaJobService.observability, ports.observability);
-        assert.deepEqual(runtime.jobDispatcher.list(), ['activity_image', 'activity_video', 'chat_image', 'chat_video', 'activity_media_poll', 'chat_media_poll']);
+        assert.deepEqual(runtime.jobDispatcher.list(), ['activity_image', 'activity_video', 'chat_image', 'chat_video', 'activity_media_poll', 'chat_media_poll', 'media_poll_compensation']);
 
         const result = await runtime.mediaJobService.submit(job, {leaseOwner: 'runtime_worker', now: NOW});
         assert.equal(result.status, 'failed');

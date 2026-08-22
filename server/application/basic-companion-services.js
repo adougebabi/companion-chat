@@ -43,6 +43,14 @@ function pageDto(result) {
     };
 }
 
+function providerFailure(error) {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    const safe = /fetch failed|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNRESET/i.test(message)
+        ? '模型服务暂时不可达，请检查模型服务地址、服务状态和网络连接'
+        : '模型服务请求失败';
+    return Object.assign(new Error(safe), {status: 502});
+}
+
 /**
  * Small repository-backed services used by the modular runtime smoke path.
  * Feature-specific policy remains in application flows; unsupported routes
@@ -62,6 +70,8 @@ export function createBasicCompanionServices({
     personaLifecycle,
     personaLifecycleService,
     interviewService,
+    personaAnalyzer,
+    interviewAnalyzer,
     foundationService,
     scheduleService,
     memoryService,
@@ -105,17 +115,26 @@ export function createBasicCompanionServices({
             })
             : debugService
         : null;
+    const configuredInterviewAnalyzer = personaAnalyzer ?? interviewAnalyzer;
+    const routeAdapters = {
+        ...(isRecord(adapters) ? adapters : {}),
+        ...(configuredInterviewAnalyzer === undefined ? {} : {
+            analyzer: configuredInterviewAnalyzer,
+            interviewAnalyzer: configuredInterviewAnalyzer
+        })
+    };
     const routeApplication = routeService ?? createCompanionRouteService({
         repositories,
         services: {identity: identity},
         adapters: {
-            ...(isRecord(adapters) ? adapters : {}),
+            ...routeAdapters,
             ...(personaLifecycle === undefined ? {} : {personaLifecycle})
         },
         identitySettingsService: identity,
         conversationService,
         clock,
         idGenerator,
+        lifeStateService,
         personaLifecycleService: personaLifecycleService ?? personaLifecycle,
         interviewService,
         foundationService,
@@ -145,7 +164,10 @@ export function createBasicCompanionServices({
                 const providerId = command.provider ?? command.providerId ?? 'mtplx';
                 const provider = providers?.find?.(providerId, {portType: 'llm-streaming'}) ?? null;
                 if (provider?.models) {
-                    return Promise.resolve(provider.models(command)).then(value => ({provider: providerId, models: value?.data ?? value?.models ?? value ?? [], providers: summaries}));
+                    return Promise.resolve()
+                        .then(() => provider.models(command))
+                        .then(value => ({provider: providerId, models: value?.data ?? value?.models ?? value ?? [], providers: summaries}))
+                        .catch(error => { throw providerFailure(error); });
                 }
                 return summaries;
             }

@@ -50,3 +50,7 @@ Revert presentation strings and documentation only. Do not reset or restore unre
 - User approved the terminology mapping and display/docs-only rename surface.
 - `CONTEXT.md`, `prd.md`, `design.md`, and `implement.md` contain no unresolved contradictory terms.
 - Run `python3 ./.trellis/scripts/task.py validate fluctlight-architecture-performance-modernization` before `task.py start`.
+
+## Follow-up Closure (2026-08-22)
+
+The migration follow-up closed the concrete frontend/backend gaps found after the original cutover: settings/hidden activities/inspector actions, history sentinel, per-instance drafts, dynamic imports, compression, generic effect adaptation and structured context metadata. Automated checks and temporary Express/browser smoke passed; real provider execution and physical-device IME remain environment-dependent verification.

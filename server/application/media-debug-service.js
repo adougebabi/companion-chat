@@ -15,6 +15,7 @@ export const MEDIA_SOURCE_JOB_TYPES = Object.freeze([
     'chat_video'
 ]);
 export const MEDIA_POLL_JOB_TYPES = Object.freeze(['activity_media_poll', 'chat_media_poll']);
+export const MEDIA_COMPENSATION_JOB_TYPES = Object.freeze(['media_poll_compensation']);
 
 const MAX_DEBUG_ITEMS = 10;
 const MAX_POLL_ITEMS = 80;
@@ -608,7 +609,7 @@ export function createMediaDebugService({
         const persona = requireDebugPersona(personaRepository, personaId);
         const recent = listMessages(conversationRepository, personaId, boundedRequestLimit);
         const source = listJobs(jobRepository, personaId, MEDIA_SOURCE_JOB_TYPES, MAX_JOBS_LIMIT);
-        const polls = listJobs(jobRepository, personaId, MEDIA_POLL_JOB_TYPES, MAX_POLL_ITEMS);
+        const polls = listJobs(jobRepository, personaId, [...MEDIA_POLL_JOB_TYPES, ...MEDIA_COMPENSATION_JOB_TYPES], MAX_POLL_ITEMS);
         const safeSettings = readSafeSettings();
         return allMaybe([persona, recent, source, polls, safeSettings], ([resolvedPersona, recentRows, sourceRows, pollRows, resolvedSettings]) => {
             const mediaJobs = buildMediaDtos({

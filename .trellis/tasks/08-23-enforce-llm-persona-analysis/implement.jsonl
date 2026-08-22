@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend layer conventions and test boundaries for the analyzer runtime and repository ports."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Required contract review for the interview analyze API, persisted session metadata, and runtime wiring."}
+{"file":".trellis/tasks/archive/2026-08/08-19-natural-language-persona-init/design.md","reason":"Historical natural-language persona extraction contract and failure semantics."}

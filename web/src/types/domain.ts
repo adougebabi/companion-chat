@@ -34,7 +34,7 @@ export interface Message {
   proactivePendingEventId?: string;
   createdAt: string;
   readAt?: string;
-  transient?: boolean;
+  transient?: boolean | 'typing';
   [key: string]: unknown;
 }
 
@@ -61,7 +61,39 @@ export interface ContactGroup {
   [key: string]: unknown;
 }
 
+export interface MediaProviderSummary {
+  id: string;
+  label?: string;
+  capabilities?: string[];
+  portType?: string;
+  configured?: boolean;
+}
+
+export interface H3ConfigCheck {
+  configured: boolean;
+  valid: boolean;
+  displayName?: string;
+  error?: string;
+}
+
+export interface H3ConfigSummary {
+  executable?: H3ConfigCheck;
+  modelDir?: H3ConfigCheck;
+  outputDir?: H3ConfigCheck;
+}
+
 export type PublicSettings = JsonObject & {
+  lmStudioUrl?: string;
+  model?: string;
+  imageProvider?: string;
+  videoProvider?: string;
+  comfyUrl?: string;
+  imageWorkflow?: string;
+  videoWorkflow?: string;
+  h3TimeoutMs?: number;
+  h3Defaults?: JsonObject;
+  h3ConfigSummary?: H3ConfigSummary;
+  mediaProviders?: MediaProviderSummary[];
   hasH3Configuration?: boolean;
   hasLmStudioApiKey?: boolean;
   defaultTimezone?: string;
@@ -117,6 +149,7 @@ export interface ChatRequest {
   personaId: string;
   text: string;
   attachments?: Attachment[];
+  userMessageId?: string;
 }
 
 export interface SseTokenEvent {
@@ -157,4 +190,3 @@ export interface ConversationState {
   historyError: string | null;
   stream: ConversationStreamState;
 }
-

@@ -58,6 +58,15 @@ export function useComposer<TResult = unknown>(sender: ComposerSender<TResult>, 
     selectionEnd.value = Math.min(selectionEnd.value, value.length);
   }
 
+  function setSelection(start: number, end = start): void {
+    selectionStart.value = Math.max(0, Math.min(start, draft.value.length));
+    selectionEnd.value = Math.max(selectionStart.value, Math.min(end, draft.value.length));
+  }
+
+  function clearError(): void {
+    error.value = null;
+  }
+
   function restoreSelection(): void {
     const element = textarea.value;
     if (!element) return;
@@ -107,7 +116,9 @@ export function useComposer<TResult = unknown>(sender: ComposerSender<TResult>, 
     isComposing,
     isSending,
     error,
+    clearError,
     setDraft,
+    setSelection,
     updateSelection,
     restoreSelection,
     onInput,

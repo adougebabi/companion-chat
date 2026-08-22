@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import Database from 'better-sqlite3';
 
-import {createMemoryRepository} from '../server/infrastructure/memory-repository.js';
+import {createMemoryRepository, memoryEventIdFor} from '../server/infrastructure/memory-repository.js';
 
 function createDatabase() {
     const database = new Database(':memory:');
@@ -99,4 +99,55 @@ test('memory repository validates storage identity/limit but does not own DTO or
     const source = await readFile(new URL('../server/infrastructure/memory-repository.js', import.meta.url), 'utf8');
     assert.doesNotMatch(source, /(?:from|import)\s*['"][^'"]*(?:server\.js|express|provider)/i);
     assert.doesNotMatch(source, /better-sqlite3|fetch\s*\(|child_process|messageShape|companion_persona_evolutions|findEvolutionPatch/i);
+});
+
+test('memory repository provides durable idempotency on the legacy schema with insert-ignore and upsert SQL', () => {
+    const database = createDatabase();
+    try {
+        const repository = repositoryFor(database);
+        const id = memoryEventIdFor('persona_1', 'turn_1');
+        const input = {
+            id,
+            personaId: 'persona_1',
+            memoryKey: 'preference',
+            value: 'tea',
+            confidence: 0.8,
+            sourceType: 'structured_turn',
+            sourceId: 'message_1',
+            idempotencyKey: 'turn_1'
+        };
+        assert.equal(repository.insertIgnore(input).changes, 1);
+        assert.equal(repository.insertIgnore({...input, value: 'coffee'}).changes, 0);
+        assert.equal(repository.findByIdempotencyKey({personaId: 'persona_1', idempotencyKey: 'turn_1'}).value, 'tea');
+        const updated = repository.upsert({...input, value: 'coffee', confidence: 0.9, updatedAt: '2026-08-20T02:00:00.000Z'});
+        assert.deepEqual({value: updated.value, confidence: updated.confidence, source_id: updated.source_id}, {
+            value: 'coffee', confidence: 0.9, source_id: 'message_1'
+        });
+    } finally {
+        database.close();
+    }
+});
+
+test('memory repository uses an idempotency column when a later migration provides one', () => {
+    const database = new Database(':memory:');
+    database.exec(`
+        CREATE TABLE companion_memories (
+            id TEXT PRIMARY KEY, persona_id TEXT NOT NULL, memory_key TEXT NOT NULL,
+            value TEXT NOT NULL, confidence REAL NOT NULL, status TEXT NOT NULL,
+            source_type TEXT, source_id TEXT, idempotency_key TEXT UNIQUE,
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL, superseded_at TEXT
+        );
+    `);
+    try {
+        const repository = repositoryFor(database);
+        assert.equal(repository.idempotencyStorage, 'column');
+        const row = repository.insert({
+            id: 'memory_column', personaId: 'persona_1', memoryKey: 'key', value: 'value', confidence: 0.6,
+            sourceType: 'structured_turn', sourceId: 'message_1', idempotencyKey: 'column_key'
+        });
+        assert.equal(row.idempotency_key, 'column_key');
+        assert.equal(repository.findByIdempotencyKey({personaId: 'persona_1', idempotencyKey: 'column_key'}).id, row.id);
+    } finally {
+        database.close();
+    }
 });

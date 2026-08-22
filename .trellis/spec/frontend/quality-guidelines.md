@@ -29,4 +29,4 @@
 
 ## Verification Notes
 
-There is no frontend test script, bundler, or type checker. Manual browser checks plus syntax validation are the project’s current quality gate. Use a temporary or empty data directory for destructive UI checks when needed.
+The frontend uses Vite and TypeScript. `npm run typecheck` and `npm run build` are required before browser checks. Manual browser checks through Express-served `dist/`, plus API/SSE smoke and narrow/mobile viewport checks, remain the user-facing quality gate. Use a temporary or empty data directory for destructive UI checks when needed.

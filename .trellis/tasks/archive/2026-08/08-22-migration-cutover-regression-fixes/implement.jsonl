@@ -1,0 +1,6 @@
+{"file":".trellis/tasks/archive/2026-08/08-20-backend-modular-boundaries/design.md","reason":"Original backend architecture and generic flow/effect contract to close against current implementation."}
+{"file":".trellis/tasks/archive/2026-08/08-20-frontend-runtime-performance/design.md","reason":"Original Vue client, pagination, IME, delivery and deletion contract."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Draft, IME, pagination, polling and SSE state invariants."}
+{"file":".trellis/spec/frontend/quality-guidelines.md","reason":"Browser/mobile and Express-served client quality gate."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Backend API, SSE, worker, lease and temporary database verification."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Cross-layer contract and producer/consumer verification."}

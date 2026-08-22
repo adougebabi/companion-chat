@@ -13,6 +13,9 @@ import {
   deletePersona as deletePersonaRequest,
   getPersona,
   loadInspector as loadInspectorRequest,
+  h3Preflight as h3PreflightRequest,
+  simulatePersona as simulatePersonaRequest,
+  debugMedia as debugMediaRequest,
   normalizePersonaDetail,
   rescheduleSchedule as rescheduleScheduleRequest,
   restoreFoundation as restoreFoundationRequest,
@@ -43,7 +46,9 @@ function writeStorage(key: string, value: string | null): void {
 }
 
 export const useAppStore = defineStore('app', () => {
-  const boot = ref<BootStatus>('idle');
+  // Match the static shell's loading skeleton before the first bootstrap
+  // request resolves; an idle state would briefly render an empty contacts view.
+  const boot = ref<BootStatus>('loading');
   const error = ref<string | null>(null);
   const personas = ref<PersonaSummary[]>([]);
   const groups = ref<ContactGroup[]>([]);
@@ -57,6 +62,7 @@ export const useAppStore = defineStore('app', () => {
   const detail = ref<PersonaDetailData | null>(null);
   const inspector = ref<{mediaJobs: MediaJob[]; lifecycle: Record<string, unknown> | null; debugContext: Record<string, unknown> | null} | null>(null);
   const lastInterviewId = ref<string | null>(null);
+  let bootstrapRequest: Promise<BootstrapResponse> | null = null;
 
   const activePersona = computed(() => personas.value.find(item => item.id === activePersonaId.value) ?? null);
   const activeGroup = computed(() => groups.value.find(item => item.id === activeGroupId.value) ?? null);
@@ -87,29 +93,29 @@ export const useAppStore = defineStore('app', () => {
   }
 
   async function bootstrap(options: {signal?: AbortSignal; force?: boolean} = {}): Promise<BootstrapResponse> {
-    if (boot.value === 'loading' && !options.force) {
-      return {
-        settings: settings.value,
-        personas: personas.value,
-        groups: groups.value,
-        activityUnread: activityUnread.value,
-        defaultTimezone: defaultTimezone.value,
-        debugInspector: debugInspector.value
-      };
-    }
+    // `boot` starts as loading so the shell can render its skeleton. That is
+    // not evidence that a request has started; coalesce only an actual
+    // in-flight request so the first mount still fetches bootstrap data.
+    if (bootstrapRequest) return bootstrapRequest;
     boot.value = 'loading';
     error.value = null;
-    try {
-      const snapshot = await getBootstrap({signal: options.signal});
-      applyBootstrap(snapshot);
-      boot.value = 'ready';
-      return snapshot;
-    } catch (caught) {
-      if ((caught as Error)?.name === 'AbortError') throw caught;
-      error.value = caught instanceof Error ? caught.message : '联系人加载失败';
-      boot.value = 'error';
-      throw caught;
-    }
+    const performBootstrap = async (): Promise<BootstrapResponse> => {
+      try {
+        const snapshot = await getBootstrap({signal: options.signal});
+        applyBootstrap(snapshot);
+        boot.value = 'ready';
+        return snapshot;
+      } catch (caught) {
+        if ((caught as Error)?.name === 'AbortError') throw caught;
+        error.value = caught instanceof Error ? caught.message : '联系人加载失败';
+        boot.value = 'error';
+        throw caught;
+      } finally {
+        bootstrapRequest = null;
+      }
+    };
+    bootstrapRequest = performBootstrap();
+    return bootstrapRequest;
   }
 
   function selectPersona(personaId: string | null): void {
@@ -139,7 +145,7 @@ export const useAppStore = defineStore('app', () => {
   async function createPersona(input: Record<string, unknown>): Promise<PersonaSummary> {
     const interviewId = typeof input.interviewId === 'string' ? input.interviewId : lastInterviewId.value;
     const result = interviewId
-      ? await activateInterview(interviewId, {...input, interviewId: undefined})
+      ? await activateInterview(interviewId, Object.fromEntries(Object.entries(input).filter(([key]) => !['interviewId', 'description', 'source', 'status', 'inferredFields', 'fieldSources', 'preview'].includes(key))))
       : await createPersonaRequest(input);
     lastInterviewId.value = null;
     await bootstrap({force: true});
@@ -239,6 +245,18 @@ export const useAppStore = defineStore('app', () => {
     inspector.value = {mediaJobs: result.mediaJobs, lifecycle: result.lifecycle, debugContext: result.debugContext};
   }
 
+  async function runH3Preflight() {
+    return h3PreflightRequest();
+  }
+
+  async function simulatePersona(personaId: string, input: Record<string, unknown>) {
+    return simulatePersonaRequest(personaId, input);
+  }
+
+  async function debugMedia(personaId: string, input: Record<string, unknown>) {
+    return debugMediaRequest(personaId, input as {kind: 'image' | 'video'; [key: string]: unknown});
+  }
+
   function setView(view: AppView): void {
     currentView.value = view;
   }
@@ -287,6 +305,9 @@ export const useAppStore = defineStore('app', () => {
     cancelSchedule: cancelScheduleAction,
     loadHiddenActivities,
     loadInspector,
+    runH3Preflight,
+    simulatePersona,
+    debugMedia,
     setView,
     setActivityUnread
   };

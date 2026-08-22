@@ -1,4 +1,5 @@
 import {randomUUID} from 'node:crypto';
+import {createFlowEffectAdapter} from './flow-effect-adapter.js';
 
 const MAX_EVENT_DURATION_MS = 24 * 60 * 60 * 1_000;
 const AUTOMATIC_SOURCES = new Set(['timeline', 'debug', 'engine']);
@@ -99,7 +100,7 @@ function activeSharedScene(value) {
  * transaction keeps the fact, state projection, activity and durable jobs
  * atomic. External providers are represented by frozen effect payloads only.
  */
-export function createLifeEventFlow({repositories = {}, clock, idGenerator, transaction, policy = {}} = {}) {
+export function createLifeEventFlow({repositories = {}, clock, idGenerator, transaction, policy = {}, effectAdapter} = {}) {
     const lifeEvent = repositories.lifeEvent ?? repositories.life;
     const state = repositories.state;
     const activity = repositories.activity;
@@ -111,6 +112,7 @@ export function createLifeEventFlow({repositories = {}, clock, idGenerator, tran
     const personaUpdater = repositories.personaUpdater ?? persona;
     const now = clockFor(clock);
     const nextId = idFor(idGenerator);
+    const effectsPort = effectAdapter ?? (job?.enqueue ? createFlowEffectAdapter({jobRepository: job, clock, idGenerator}) : null);
     const createFact = methodFor(lifeEvent, ['createEvent', 'insertEvent']);
     if (!createFact) throw new TypeError('Life-event flow requires lifeEvent.createEvent()');
 
@@ -295,16 +297,19 @@ export function createLifeEventFlow({repositories = {}, clock, idGenerator, tran
             }
             if (command.requestActivityDecision === true) effects.push({effectId: nextId('effect'), kind: 'activity_decision', idempotencyKey: `activity-decision:${fact?.id ?? eventId}`, causationId: fact?.id ?? eventId, payload: {eventId: fact?.id ?? eventId, personaId}});
             if (command.proactive === true && proactiveAllowed(personaId, owner, createdAt, command)) effects.push({effectId: nextId('effect'), kind: 'proactive_message', idempotencyKey: `proactive:${fact?.id ?? eventId}`, causationId: fact?.id ?? eventId, payload: {eventId: fact?.id ?? eventId, personaId, fallbackText: text(command.proactiveText ?? `${payload.situation}，忽然想和你说一声。`, '主动消息', 500)}});
-            if (job?.enqueue) {
+            if (effectsPort) {
                 for (const effect of effects) {
-                    const queued = job.enqueue({
-                        id: nextId('job'), jobType: effect.kind, personaId,
+                    const queued = effectsPort.publish({
+                        ...effect,
                         activityId: effect.payload?.activityId ?? null,
                         messageId: effect.payload?.messageId ?? null,
                         priority: effect.kind === 'proactive_message' ? 2 : 3,
-                        maxAttempts: 4, runAfter: createdAt, payload: effect.payload
-                    });
-                    effect.job = queued;
+                        maxAttempts: 4,
+                        runAfter: createdAt,
+                        createdAt,
+                        updatedAt: createdAt
+                    }, {personaId, causationId: fact?.id ?? eventId, now: createdAt});
+                    effect.job = queued?.job ?? queued;
                 }
             }
             return {eventId: fact?.id ?? eventId, activityId: activityRow?.id ?? null, event: fact, state: stateProjection, effects, replayed: false, introducedCharacter: introduced ?? null};

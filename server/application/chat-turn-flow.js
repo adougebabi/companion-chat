@@ -7,6 +7,7 @@ import {
 } from '../contracts/index.js';
 import {createCapabilityHandoffStep, createFlowRegistry} from './flow-registry.js';
 import {createFlowExecutor} from './flow-executor.js';
+import {normalizeStructuredTurn} from './structured-turn.js';
 
 export const CHAT_TURN_FLOW_ID = 'chat-turn';
 export const CHAT_TURN_FLOW_VERSION = 1;
@@ -61,7 +62,10 @@ function normalizeCommand(value) {
         : Array.isArray(command.attachments)
             ? command.attachments.slice(0, 8)
             : (() => { throw new TypeError('Chat turn command attachments must be an array'); })();
-    return {...command, personaId, text, attachments};
+    const userMessageId = command.userMessageId === undefined
+        ? undefined
+        : boundedText(command.userMessageId, 'Chat turn command userMessageId', 160);
+    return {...command, personaId, text, attachments, ...(userMessageId === undefined ? {} : {userMessageId})};
 }
 
 function normalizeHistory(value) {
@@ -73,7 +77,7 @@ function normalizeHistory(value) {
 function normalizeCallList(value) {
     if (value === undefined || value === null) return [];
     if (!Array.isArray(value)) throw new TypeError('Chat completion toolCalls must be an array');
-    return value.map(normalizeCapabilityCall);
+    return value.map(call => normalizeCapabilityCall(call, {allowStructured: true}));
 }
 
 function normalizeCompletion(value = {}) {
@@ -95,6 +99,55 @@ function normalizeCompletion(value = {}) {
         toolCalls,
         stepResult,
         doneSeen: completion.doneSeen === undefined ? true : Boolean(completion.doneSeen)
+    };
+}
+
+function structuredCapabilityCalls(turn, completion, command, causationId, structuredTurnControl = true) {
+    const calls = [];
+    const seen = new Set();
+    const add = call => {
+        if (!isRecord(call) || typeof call.name !== 'string') return;
+        if (call.name === 'affect_event' || call.name === 'drive_signal') return;
+        if (structuredTurnControl === false && call.name === 'memory_event') return;
+        const key = call.idempotencyKey || `${call.name}:${call.index ?? calls.length}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        calls.push({
+            ...call,
+            index: Number.isInteger(call.index) && call.index >= 0 ? call.index : calls.length,
+            source: call.source === 'structured' ? 'structured' : call.source ?? 'native',
+            personaId: call.personaId ?? command.personaId,
+            causationUserMessageId: call.causationUserMessageId ?? causationId
+        });
+    };
+    for (const call of Array.isArray(completion?.toolCalls) ? completion.toolCalls : []) add(call);
+    for (const call of Array.isArray(turn?.control?.capabilityCalls) ? turn.control.capabilityCalls : []) add(call);
+    for (const [index, memory] of (Array.isArray(turn?.control?.memoryWrites) ? turn.control.memoryWrites : []).entries()) {
+        add({
+            id: null,
+            index: calls.length + index,
+            name: 'memory_event',
+            source: 'structured',
+            arguments: {memory},
+            argumentsText: JSON.stringify({memory}),
+            personaId: command.personaId,
+            causationUserMessageId: causationId,
+            idempotencyKey: memory.idempotencyKey
+        });
+    }
+    return calls;
+}
+
+function affectEffectFor(plan, affectFlow, personaId, causationId, events) {
+    if (!plan || !affectFlow || !events.length) return null;
+    const idempotencyKey = `affect:${personaId}:${events.map(event => event.idempotencyKey).join('|')}`.slice(0, 240);
+    return {
+        effectId: `effect_${idempotencyKey}`.slice(0, 240),
+        kind: 'affect_state',
+        capability: 'affect',
+        idempotencyKey,
+        causationId: causationId ?? personaId,
+        payload: {plan, apply: () => affectFlow.apply(plan)}
     };
 }
 
@@ -287,7 +340,7 @@ async function repositoryHistory(repository, input) {
     return Array.isArray(rows) ? rows.slice(-MAX_HISTORY).reverse() : [];
 }
 
-function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDispatcher, conversationRepository, presentationMapper, userMessageWriter, chatPolicy, enableContinuation = false, flowId}) {
+function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDispatcher, conversationRepository, presentationMapper, userMessageWriter, chatPolicy, affectFlow, structuredTurnControl = true, enableContinuation = false, flowId}) {
     const capabilityHandoff = createCapabilityHandoffStep({dispatcher: capabilityDispatcher});
     registry.register({
         id: flowId,
@@ -308,6 +361,7 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         personaId: command.personaId,
                         text: command.text,
                         attachments: command.attachments,
+                        userMessageId: command.userMessageId,
                         command
                     });
                     runtime.userMessage = message ?? null;
@@ -385,6 +439,28 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         signal: command.signal
                     });
                     runtime.completion = await completionFromStream(response);
+                    runtime.turn = structuredTurnControl === false
+                        ? {
+                            schemaVersion: 'companion.turn.v1',
+                            text: runtime.completion.text,
+                            tokens: runtime.completion.tokens,
+                            messages: [],
+                            control: {affectEvents: [], driveSignals: [], memoryWrites: [], capabilityCalls: []},
+                            parseDiagnostics: [],
+                            sourceMode: 'text'
+                        }
+                        : normalizeStructuredTurn(runtime.completion, {
+                            personaId: command.personaId,
+                            causationId: context.causationId ?? command.causationId ?? runtime.userMessage?.id ?? null,
+                            sourceMessageId: runtime.userMessage?.id ?? command.causationId ?? null
+                        });
+                    runtime.completion = normalizeCompletion({
+                        ...runtime.completion,
+                        text: runtime.turn.text,
+                        tokens: runtime.turn.tokens,
+                        structuredTurn: runtime.turn,
+                        control: runtime.turn.control
+                    });
                     const tokens = runtime.completion.tokens.length
                         ? runtime.completion.tokens
                         : runtime.completion.text ? [runtime.completion.text] : [];
@@ -403,13 +479,12 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                 async run(context, command, previous) {
                     const runtime = command[FLOW_RUNTIME];
                     if (policyHandled(runtime)) return emptyStepResult();
-                    const calls = runtime.completion?.toolCalls?.length
-                        ? runtime.completion.toolCalls
-                        : Array.isArray(command.capabilityCalls) ? command.capabilityCalls : [];
-                    const causationId = calls[0]?.causationUserMessageId
-                        ?? context.causationId
+                    const baseCausationId = context.causationId
                         ?? command.causationId
+                        ?? runtime.userMessage?.id
                         ?? null;
+                    const calls = structuredCapabilityCalls(runtime.turn, runtime.completion, command, baseCausationId, structuredTurnControl);
+                    const causationId = calls[0]?.causationUserMessageId ?? baseCausationId;
                     const handoffContext = {...context, causationId};
                     const handoffCommand = {
                         ...command,
@@ -422,10 +497,29 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         causationId
                     };
                     const result = await capabilityHandoff.run(handoffContext, handoffCommand, previous);
-                    runtime.capabilityPresentation = result.presentation.slice();
-                    const visible = result.presentation.find(event => event?.type === 'capability-visible-text');
+                    const affectEvents = [
+                        ...(runtime.turn?.control?.affectEvents ?? []),
+                        ...(runtime.turn?.control?.driveSignals ?? [])
+                    ];
+                    const affectPlan = affectFlow && affectEvents.length
+                        ? affectFlow.plan({
+                            personaId: command.personaId,
+                            sourceMessageId: runtime.userMessage?.id ?? causationId,
+                            causationId,
+                            modelVersion: runtime.turn?.schemaVersion,
+                            affectEvents: runtime.turn.control.affectEvents,
+                            driveSignals: runtime.turn.control.driveSignals,
+                            at: context.chatAt ?? command.chatAt
+                        })
+                        : null;
+                    const affectEffect = affectEffectFor(affectPlan, affectFlow, command.personaId, causationId, affectEvents);
+                    const handoffResult = affectEffect
+                        ? {...result, effects: [...result.effects, affectEffect]}
+                        : result;
+                    runtime.capabilityPresentation = handoffResult.presentation.slice();
+                    const visible = handoffResult.presentation.find(event => event?.type === 'capability-visible-text');
                     if (visible) runtime.visibleText = visible.text;
-                    return result;
+                    return handoffResult;
                 }
             },
             ...(enableContinuation ? [{
@@ -562,6 +656,8 @@ export function createChatTurnFlow({
     capabilityDispatcher,
     conversationRepository,
     presentationMapper,
+    affectFlow,
+    structuredTurnControl = true,
     commit,
     commitBoundary,
     userMessageWriter,
@@ -595,6 +691,8 @@ export function createChatTurnFlow({
         presentationMapper: mapPresentation,
         userMessageWriter,
         chatPolicy: resolveChatPolicy(chatPolicy),
+        affectFlow,
+        structuredTurnControl,
         enableContinuation: continuationEnabled,
         flowId
     });

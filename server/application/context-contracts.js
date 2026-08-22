@@ -5,6 +5,10 @@ export const systemCapabilityMediaContract = '【系统能力层：媒体任务�
 
 export const systemCapabilityPendingEventContract = '【系统能力层：待定事件契约】只有当这次聊天中出现明确、尚未完成且稍后值得自然跟进的事项时，优先调用系统提供的 pending_event 工具；普通闲聊、泛泛情绪、已经解决的问题、没有明确时间边界的内容不得调用。时间必须是带时区的绝对 ISO 时间，expiresAt 必须晚于 notBefore，且有效期不超过未来 30 天；同一事项重复登记应使用相同 dedupeKey。工具或标签只登记待跟进事实，不直接发送主动消息。';
 
+export const systemCapabilityMemoryContract = '【系统能力层：记忆能力契约】只有当用户在当前消息中明确表达了稳定、未来有用且属于当前人格私有范围的事实时，才显式调用 memory_event；普通闲聊、一次性情绪、未经确认的推测、系统内部状态和跨人格信息不得写入。memory_event 必须使用当前用户消息作为 sourceMessageId，提供短而可审计的 key/value、0 到 1 的 confidence 和稳定 idempotencyKey；记忆写入由服务器校验并与本回合消息事务提交，不能把工具参数或内部理由写入用户可见回复。';
+
+export const systemCapabilityStateContract = '【系统能力层：隐藏状态契约】当当前互动明确改变了人格的短期情绪或需求压力时，可以分别调用一次 affect_event 或 drive_signal；只能提供允许的事件类型、drive 名称、方向、confidence 和幂等键，不得提供 PAD 数值或任意 delta。普通语气波动、未经确认的心理推测和与当前消息无关的状态变化不要调用；用户可见回复不得提及工具、数值或内部状态机。';
+
 export const systemCapabilityTimeFact = '【系统能力层：时间事实】只能引用应用提供的当前状态来源、可信结束时间和下一可信时间边界。只有 timeFact=known 时才可以向用户说具体结束时间；timeFact=unknown 或可信结束时间为“无”时，不得根据身份猜测课程、时长或下课时刻，也不得编造具体时间。计划外 baseline、睡眠、休息或等待状态不得叙述成课程、工作或其他已确认活动。';
 
 export const systemCapabilitySceneContract = '【系统能力层：共同场景与自然动作】普通文字用于自然交流，括号中的自然语言是可选、短暂且用户可见的动作描述；服务端会原样保存，不会解析括号内容或因其中出现某个词产生副作用。不要为每个手势调用工具。只有地点或活动真正开始、切换或结束时，才调用唯一的 scene_event 工具；服务器只验证参数并保存事实，不从用户原文猜测接受、拒绝、动作或媒体意图。';
@@ -20,6 +24,8 @@ export const imageGenerationPolicyLabels = Object.freeze({
 export const systemCapabilityContracts = Object.freeze([
     systemCapabilityMediaContract,
     systemCapabilityPendingEventContract,
+    systemCapabilityMemoryContract,
+    systemCapabilityStateContract,
     systemCapabilityTimeFact,
     systemCapabilitySceneContract,
     systemCapabilityReplyForm

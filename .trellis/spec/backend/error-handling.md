@@ -4,7 +4,7 @@
 
 Routes return small JSON objects with an `error` string for expected failures, for example `{error: '人格不存在'}` with 404 or `{error: '消息不能为空'}` with 400. Successful deletes use 204. Provider failures are translated to 502 by `/api/models` and `/api/generate/:promptId`; `/api/chat` instead emits an SSE `error` event because headers are already committed.
 
-Reference routes: [`server.js:344-371`](../../../server.js), [`server.js:441-569`](../../../server.js), [`server.js:748-779`](../../../server.js).
+Reference boundaries: [`server/http/route-registry.js`](../../../server/http/route-registry.js), [`server/http/app.js`](../../../server/http/app.js), and the typed handlers under [`server/application/companion-route-handlers.js`](../../../server/application/companion-route-handlers.js).
 
 ## Route Pattern
 
@@ -12,9 +12,17 @@ Validate request shape and resource existence before mutating state. For awaited
 
 ## SSE Pattern
 
-`POST /api/chat` sets `text/event-stream` before contacting MTPLX. Stream tokens as `data: {"type":"token","token":"..."}\n\n`, finish with `type: done`, and send `type: error` on failure before `res.end()`. Parse each upstream SSE payload independently and collect malformed payloads in `parseErrors` rather than terminating the whole stream.
+`POST /api/companion/chat` sets `text/event-stream` before contacting MTPLX. Stream tokens as `data: {"type":"token","token":"..."}\n\n`, finish with `type: done`, and send `type: error` on failure before `res.end()`. Parse each upstream SSE payload independently and collect malformed payloads in `parseErrors` rather than terminating the whole stream.
 
 Structured capability markers such as `<media-intent>` and `<pending-event>` are transport-only. Hold back and redact their opening/body/closing regions before emitting SSE token events; remove malformed or oversized regions from the final visible text as well. A malformed capability call must not turn an otherwise valid assistant completion into an SSE error after the visible text has already been persisted. Queueing a capability job is best-effort after the ordinary assistant message boundary.
+
+For Node HTTP streaming, do not treat `IncomingMessage.close` as a client
+disconnect: it can fire normally after the request body has been consumed.
+Abort the upstream provider from the response socket's `close`/`aborted`
+events, the request's `aborted` event, or an explicit caller signal.
+When a provider can take longer than an intermediary idle timeout, the SSE
+adapter may send comment heartbeats such as `: keep-alive`; clients must ignore
+comments and continue waiting for the normal `token`/`done`/`error` event.
 
 Native capability calls use the same boundary: accumulate streamed fragments by provider index/id, collect malformed upstream payloads in bounded diagnostics, and validate only after the complete call. A supported native attempt blocks the matching marker fallback even when invalid, duplicated, incomplete, or replayed; unknown native tools fail closed for marker side effects. Tool JSON, reasoning content, call ids, and dedupe keys never enter visible `token` or browser capability summaries. One tool-result continuation is allowed; continuation failure keeps committed effects and returns normal `done` data with a bounded fallback.
 
@@ -83,7 +91,7 @@ sendSse(res, {type: 'done', messages, message: messages[0]});
 
 ## Background Workers
 
-Evolution and generation workers catch per-item failures, log a concise warning, and mark generation jobs `failed` with an error message. A worker must reset its running guard in `finally` so one failed request cannot permanently stop processing (`server.js:289-311`, `620-710`).
+Evolution and generation workers catch per-item failures, log a concise warning, and mark generation jobs `failed` with an error message. A worker must reset its running guard in `finally` so one failed request cannot permanently stop processing; see the worker/runtime modules under [`server/runtime/`](../../../server/runtime/).
 
 ## Avoid
 

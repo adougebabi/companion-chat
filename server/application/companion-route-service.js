@@ -173,6 +173,43 @@ function scheduleDto(row) {
     };
 }
 
+function parseJson(value, fallback) {
+    if (isRecord(value) || Array.isArray(value)) return value;
+    if (typeof value !== 'string' || !value.trim()) return fallback;
+    try { return JSON.parse(value) ?? fallback; } catch { return fallback; }
+}
+
+function memoryDto(row) {
+    if (!isRecord(row)) return null;
+    return {
+        id: row.id,
+        key: row.memory_key ?? row.memoryKey ?? row.key ?? '',
+        value: String(row.value ?? ''),
+        confidence: Number(row.confidence ?? 0),
+        sourceType: row.source_type ?? row.sourceType ?? null,
+        sourceId: row.source_id ?? row.sourceId ?? null,
+        updatedAt: row.updated_at ?? row.updatedAt ?? null
+    };
+}
+
+function evolutionDto(row) {
+    if (!isRecord(row)) return null;
+    const evidence = parseJson(row.evidence_json ?? row.evidence, []);
+    const previous = parseJson(row.previous_patch ?? row.previousPatch, {});
+    const next = parseJson(row.next_patch ?? row.nextPatch, {});
+    const fields = [...new Set([...Object.keys(previous), ...Object.keys(next)])];
+    return {
+        id: row.id,
+        reason: row.reason ?? '',
+        status: row.status ?? null,
+        createdAt: row.created_at ?? row.createdAt ?? null,
+        evidenceSummary: Array.isArray(evidence)
+            ? evidence.map(item => item?.summary ?? item?.text ?? item?.value ?? '').filter(Boolean).join('；')
+            : String(evidence || ''),
+        changes: fields.map(field => ({field, before: String(previous[field] ?? ''), after: String(next[field] ?? '')})).filter(change => change.before !== change.after)
+    };
+}
+
 function pageDto(result) {
     if (Array.isArray(result)) return {items: result, nextCursor: null};
     if (!isRecord(result)) return {items: [], nextCursor: null};
@@ -286,6 +323,7 @@ export function createCompanionRouteService({
     foundationService,
     scheduleService,
     memoryService,
+    lifeStateService,
     clock,
     idGenerator
 } = {}) {
@@ -361,7 +399,60 @@ export function createCompanionRouteService({
         requireActivePersona(personas, personaId);
         const groupId = findActivePersona(personas, personaId)?.group_id;
         const group = groupId && typeof groups.find === 'function' ? groups.find(groupId) : undefined;
-        return mapMaybe(lifecycle.getPersona({...command, personaId}), value => personaDetailDto(value, group));
+        return mapMaybe(lifecycle.getPersona({...command, personaId}), value => {
+            const detail = personaDetailDto(value, group);
+            const foundationRow = candidate(repositories.foundation, ['getDraft', 'draft', 'getCurrent'])?.({personaId}) ?? null;
+            const revisions = candidate(repositories.foundation, ['listRevisions', 'revisions', 'list'])?.({personaId, limit: 20}) ?? [];
+            const blueprint = candidate(repositories.blueprint, ['read', 'get', 'find'])?.({personaId}) ?? null;
+            const state = lifeStateService?.stateShape
+                ? lifeStateService.stateShape({personaId, at: now()})
+                : candidate(repositories.state, ['read', 'get', 'findByPersona'])?.({personaId}) ?? null;
+            const schedules = candidate(repositories.schedule, ['listActive', 'list'])?.({personaId, at: now(), limit: 20}) ?? [];
+            const characters = candidate(repositories.supportingCharacter, ['list', 'listForPersona'])?.({personaId, limit: 20}) ?? [];
+            const memories = candidate(repositories.memory, ['listActive', 'list'])?.({personaId, limit: 20}) ?? [];
+            const evolutions = candidate(repositories.relationship, ['listRecent', 'list'])?.({personaId, limit: 20}) ?? [];
+            const safeBlueprint = isRecord(blueprint) ? Object.fromEntries(Object.entries(blueprint).filter(([key]) => key !== 'foundation')) : null;
+            const foundation = foundationRow?.foundation ?? blueprint?.foundation ?? '';
+            const foundationSummary = isRecord(blueprint)
+                ? {
+                    identity: `${detail.persona?.name ?? value?.name ?? ''} · ${detail.persona?.role ?? value?.role ?? ''}`.trim(),
+                    routine: Array.isArray(blueprint.routine) ? blueprint.routine.map(item => item?.label ?? item).filter(Boolean).slice(0, 8) : [],
+                    interests: Array.isArray(blueprint.interests) ? blueprint.interests.map(String).filter(Boolean).slice(0, 8) : []
+                }
+                : {};
+            const enriched = {
+                ...detail,
+                foundation,
+                foundationSummary,
+                foundationRevisions: revisions.map(revision => ({
+                    id: revision.id,
+                    version: Number(revision.version ?? 0),
+                    reason: revision.reason ?? '',
+                    createdAt: revision.created_at ?? revision.createdAt ?? null
+                })),
+                blueprint: safeBlueprint,
+                state,
+                schedule: Array.isArray(schedules) ? schedules.map(scheduleDto).slice(0, 20) : [],
+                supportingCharacters: Array.isArray(characters) ? characters.map(character => ({
+                    id: character.id,
+                    name: character.name,
+                    relationshipKind: character.relationship_kind ?? character.relationshipKind ?? null
+                })) : [],
+                memories: Array.isArray(memories) ? memories.map(memoryDto).filter(Boolean) : [],
+                evolutions: Array.isArray(evolutions) ? evolutions.map(evolutionDto).filter(Boolean) : []
+            };
+            const hasDetailSources = [
+                repositories.foundation,
+                repositories.blueprint,
+                repositories.state,
+                repositories.schedule,
+                repositories.supportingCharacter,
+                repositories.memory,
+                repositories.relationship,
+                lifeStateService
+            ].some(Boolean);
+            return hasDetailSources ? enriched : detail;
+        });
     }
 
     function updateImageGenerationPolicy(command = {}) {

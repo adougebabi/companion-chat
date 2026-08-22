@@ -1,4 +1,5 @@
 import {randomUUID} from 'node:crypto';
+import {createFlowEffectAdapter} from './flow-effect-adapter.js';
 
 /**
  * Application flow for persona-private relationship evidence and evolution.
@@ -207,7 +208,8 @@ export function createRelationshipFlow({
     idGenerator,
     debounceMs = RELATIONSHIP_DEBOUNCE_MS,
     evaluator,
-    transaction
+    transaction,
+    effectAdapter
 } = {}) {
     if (!isRecord(repositories)) throw new TypeError('Relationship flow repositories must be an object');
     const relationshipRepository = resolveRepository(repositories, ['relationshipRepository', 'relationship', 'evolutionRepository', 'evolution'], 'relationship repository');
@@ -219,8 +221,7 @@ export function createRelationshipFlow({
     const recentEvolutionLookup = methodFor(relationshipRepository, ['listRecent', 'list', 'recent'], 'relationship repository', {optional: true});
     const rollbackEvolution = methodFor(relationshipRepository, ['rollbackEvolution', 'rollback', 'revert'], 'relationship repository', {optional: true});
     const findQueuedJob = jobRepository ? methodFor(jobRepository, ['findQueued', 'findPending', 'findLatestQueued', 'findBySource'], 'job repository', {optional: true}) : null;
-    const enqueueJob = jobRepository ? methodFor(jobRepository, ['enqueue', 'create', 'insert'], 'job repository', {optional: true}) : null;
-    const supersedeJobs = jobRepository ? methodFor(jobRepository, ['completeQueued', 'supersedeQueued', 'cancelQueued'], 'job repository', {optional: true}) : null;
+    const effectsPort = effectAdapter ?? (jobRepository?.enqueue ? createFlowEffectAdapter({jobRepository, clock, idGenerator}) : null);
     const now = clockFunction(clock);
     const nextId = idFunction(idGenerator);
     const debounce = Number.isFinite(Number(debounceMs)) && Number(debounceMs) >= 0 ? Number(debounceMs) : RELATIONSHIP_DEBOUNCE_MS;
@@ -352,7 +353,7 @@ export function createRelationshipFlow({
         return apply(plan(command));
     }
 
-    function submitEvidence(command = {}) {
+    function submitEvidenceWithin(command = {}) {
         if (!isRecord(command)) throw new TypeError('Relationship evidence command must be an object');
         const personaId = requiredText(command.personaId ?? command.persona_id, 'Relationship personaId', 160);
         const at = timestamp(command.at ?? now(), 'Relationship evidence time');
@@ -365,7 +366,6 @@ export function createRelationshipFlow({
             ? sync(findQueuedJob({personaId, jobType: RELATIONSHIP_EVOLUTION_JOB_TYPE, evidence, sourceMessageId: command.sourceMessageId ?? command.messageId ?? null}), 'relationship queued-job lookup')
             : null;
         if (queuedExisting) return resultEnvelope({type: 'relationship_evidence', personaId, status: 'suppressed', reason: 'debounced', evidence, queued: true, job: queuedExisting, jobId: queuedExisting.id ?? queuedExisting.jobId, debounced: true});
-        if (!enqueueJob) return resultEnvelope({type: 'relationship_evidence', personaId, status: 'accepted', evidence, queued: false, effects: [{effectId: `effect_relationship_${personaId}_${Date.parse(at)}`, kind: RELATIONSHIP_EVOLUTION_JOB_TYPE, capability: 'relationship', idempotencyKey: `relationship:${personaId}:${evidence.map(evidenceKey).join('|')}`, causationId: command.causationId ?? personaId, payload: {personaId, evidence}}]});
         const job = {
             id: command.jobId ?? nextId('job'),
             jobType: RELATIONSHIP_EVOLUTION_JOB_TYPE,
@@ -376,9 +376,24 @@ export function createRelationshipFlow({
             maxAttempts: Number.isFinite(Number(command.maxAttempts)) ? Number(command.maxAttempts) : 4,
             payload: {personaId, sourceMessageId: command.sourceMessageId ?? command.messageId ?? null, evidence, reason: command.reason ?? null, patch: command.patch ?? command.relationshipPatch ?? null, causationId: command.causationId ?? null}
         };
-        if (supersedeJobs && command.supersede !== false) sync(supersedeJobs({personaId, jobType: RELATIONSHIP_EVOLUTION_JOB_TYPE, excludeId: job.id, result: {skipped: 'superseded_by_newer_evidence', supersededByJobId: job.id}, now: at}), 'relationship job debounce');
-        const queued = sync(enqueueJob({...job, createdAt: at, updatedAt: at}), 'relationship job enqueue') ?? job;
+        const idempotencyKey = `relationship:${personaId}:${evidence.map(evidenceKey).join('|')}`;
+        if (effectsPort && command.supersede !== false) sync(effectsPort.supersede({personaId, jobType: RELATIONSHIP_EVOLUTION_JOB_TYPE, excludeId: job.id, result: {skipped: 'superseded_by_newer_evidence', supersededByJobId: job.id}, now: at}), 'relationship job debounce');
+        if (!effectsPort) return resultEnvelope({type: 'relationship_evidence', personaId, status: 'accepted', evidence, queued: false, effects: [{effectId: `effect_relationship_${personaId}_${Date.parse(at)}`, kind: RELATIONSHIP_EVOLUTION_JOB_TYPE, capability: 'relationship', idempotencyKey, causationId: command.causationId ?? personaId, payload: {personaId, evidence}}]});
+        const queuedResult = effectsPort.publish({
+            ...job,
+            effectId: `effect_relationship_${personaId}_${Date.parse(at)}`,
+            kind: RELATIONSHIP_EVOLUTION_JOB_TYPE,
+            capability: 'relationship',
+            idempotencyKey,
+            createdAt: at,
+            updatedAt: at
+        }, {personaId, causationId: command.causationId ?? personaId, now: at});
+        const queued = sync(queuedResult?.job ?? queuedResult, 'relationship job enqueue') ?? job;
         return resultEnvelope({type: 'relationship_evidence', personaId, status: 'accepted', evidence, queued: true, job: queued, jobId: queued.id ?? job.id, effects: [], presentation: [{type: 'relationship_evidence_queued', personaId, jobId: queued.id ?? job.id}]});
+    }
+
+    function submitEvidence(command = {}) {
+        return transactionRunner(transaction, () => submitEvidenceWithin(command));
     }
 
     function rollback(command = {}) {

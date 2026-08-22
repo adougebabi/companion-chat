@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {EventEmitter} from 'node:events';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 
@@ -134,6 +135,43 @@ test('does not write after a client close while the flow is settling', async () 
 
     await running;
     assert.deepEqual(sink.events, []);
+    assert.equal(sink.ended, 1);
+});
+
+test('does not treat a normal request close as an SSE client disconnect', async () => {
+    const sink = responseSink();
+    const request = new EventEmitter();
+    let receivedSignal;
+    const adapter = adapterFor({
+        async run({command}) {
+            receivedSignal = command.signal;
+            return {messages: [{id: 'message_request_close', role: 'assistant', text: 'done'}]};
+        }
+    });
+
+    const running = adapter({context: {request}, command: {}, request}, sink);
+    request.emit('close');
+    await running;
+
+    assert.equal(receivedSignal.aborted, false);
+    assert.equal(sink.events.at(-1).type, 'done');
+    assert.equal(sink.ended, 1);
+});
+
+test('keeps a slow provider connection alive with SSE comments', async () => {
+    const sink = responseSink();
+    const writes = [];
+    sink.write = value => { writes.push(String(value)); return true; };
+    const adapter = adapterFor({
+        async run() {
+            await new Promise(resolve => setTimeout(resolve, 25));
+            return {messages: [{id: 'message_heartbeat', role: 'assistant', text: 'done'}]};
+        }
+    }, {heartbeatIntervalMs: 5});
+
+    await adapter({context: {}, command: {}}, sink);
+
+    assert.ok(writes.some(value => value === ': keep-alive\n\n'));
     assert.equal(sink.ended, 1);
 });
 

@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/index.md","reason":"Backend conventions for durable jobs, transactions, and application/infrastructure boundaries."}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Required contract review for media target state, job payloads, and worker events."}
+{"file":".trellis/tasks/archive/2026-08/08-20-backend-modular-boundaries/implement.md","reason":"Existing modular flow/effect boundary decisions and acceptance constraints."}

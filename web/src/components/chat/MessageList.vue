@@ -17,29 +17,24 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ (event: 'load-older'): void; (event: 'retry-history'): void; (event: 'prompt', value: string): void }>();
 const stream = ref<HTMLElement | null>(null);
-const topSentinel = ref<HTMLElement | null>(null);
-const history = useMessageHistory(() => props.persona.id, stream, {autoLoad: false});
-let pendingAnchor: ReturnType<typeof history.captureAnchor> = null;
+const history = useMessageHistory(() => props.persona.id, stream, {autoLoad: true, loadInitial: false});
+const historySentinel = history.topSentinel;
 
 function onScroll() {
-  if (!stream.value || stream.value.scrollTop > 64) return;
-  pendingAnchor = history.captureAnchor();
-  emit('load-older');
+  history.onScroll();
 }
 
-watch(() => [props.messages?.length, props.loadingOlder], async () => {
-  if (props.loadingOlder || !pendingAnchor) return;
+watch(() => [props.messages?.length, props.loadingOlder, props.persona.id], async () => {
   await nextTick();
-  history.restoreAnchor(pendingAnchor);
-  pendingAnchor = null;
+  history.observeSentinel();
 });
 
-defineExpose({ stream, topSentinel, scrollToLatest: async () => { await nextTick(); if (stream.value) stream.value.scrollTop = stream.value.scrollHeight; } });
+defineExpose({ stream, topSentinel: historySentinel, scrollToLatest: async () => { await nextTick(); if (stream.value) stream.value.scrollTop = stream.value.scrollHeight; } });
 </script>
 
 <template>
   <div ref="stream" class="message-stream" role="log" aria-live="polite" aria-relevant="additions text" @scroll.passive="onScroll">
-    <div ref="topSentinel" class="history-sentinel" aria-hidden="true" />
+    <div ref="historySentinel" class="history-sentinel" aria-hidden="true" />
     <div v-if="loading" class="message-loading" role="status">正在加载消息…</div>
     <div v-else-if="historyError" class="history-feedback" role="alert">
       <span>历史消息加载失败。</span><button class="quiet" type="button" @click="emit('retry-history')">重试</button>

@@ -11,6 +11,7 @@ import type {Activity, ActivityPage} from '../types';
 
 const PAGE_SIZE = 20;
 export const ALL_ACTIVITIES_KEY = '__all__';
+export const HIDDEN_ACTIVITIES_PREFIX = '__hidden__:';
 
 export interface ActivityState {
   items: Activity[];
@@ -30,6 +31,10 @@ function keyFor(personaId?: string | null): string {
   return personaId || ALL_ACTIVITIES_KEY;
 }
 
+function hiddenKeyFor(personaId: string): string {
+  return `${HIDDEN_ACTIVITIES_PREFIX}${personaId}`;
+}
+
 function merge(current: Activity[], incoming: Activity[]): Activity[] {
   const seen = new Set(current.map(item => item.id));
   return [...current, ...incoming.filter(item => !seen.has(item.id))];
@@ -37,6 +42,7 @@ function merge(current: Activity[], incoming: Activity[]): Activity[] {
 
 export const useActivitiesStore = defineStore('activities', () => {
   const feeds = reactive<Record<string, ActivityState>>({});
+  const hiddenFeeds = reactive<Record<string, ActivityState>>({});
   const commentingId = ref<string | null>(null);
 
   function ensure(personaId?: string | null): ActivityState {
@@ -47,6 +53,16 @@ export const useActivitiesStore = defineStore('activities', () => {
 
   function get(personaId?: string | null): ActivityState {
     return ensure(personaId);
+  }
+
+  function ensureHidden(personaId: string): ActivityState {
+    const key = hiddenKeyFor(personaId);
+    if (!hiddenFeeds[key]) hiddenFeeds[key] = createState();
+    return hiddenFeeds[key];
+  }
+
+  function getHidden(personaId?: string | null): ActivityState {
+    return personaId ? ensureHidden(personaId) : createState();
   }
 
   function applyPage(state: ActivityState, page: ActivityPage, append: boolean): void {
@@ -90,6 +106,45 @@ export const useActivitiesStore = defineStore('activities', () => {
     }
   }
 
+  async function loadHiddenInitial(personaId: string, signal?: AbortSignal): Promise<ActivityPage> {
+    const state = ensureHidden(personaId);
+    state.loading = true;
+    state.error = null;
+    try {
+      const page = await listActivityPage({personaId, visibility: 'hidden', limit: PAGE_SIZE, signal});
+      applyPage(state, page, false);
+      return page;
+    } catch (caught) {
+      if ((caught as Error)?.name !== 'AbortError') state.error = caught instanceof Error ? caught.message : '已隐藏动态加载失败';
+      throw caught;
+    } finally {
+      state.loading = false;
+    }
+  }
+
+  async function loadHiddenMore(personaId: string, signal?: AbortSignal): Promise<ActivityPage | null> {
+    const state = ensureHidden(personaId);
+    if (state.loadingMore || !state.hasMore || !state.nextCursor) return null;
+    state.loadingMore = true;
+    state.error = null;
+    try {
+      const page = await listActivityPage({personaId, visibility: 'hidden', cursor: state.nextCursor, limit: PAGE_SIZE, signal});
+      applyPage(state, page, true);
+      return page;
+    } catch (caught) {
+      if ((caught as Error)?.name !== 'AbortError') state.error = caught instanceof Error ? caught.message : '已隐藏动态加载失败';
+      throw caught;
+    } finally {
+      state.loadingMore = false;
+    }
+  }
+
+  async function restore(activityId: string, personaId: string): Promise<void> {
+    await setActivityHidden(activityId, false);
+    const state = ensureHidden(personaId);
+    state.items = state.items.filter(activity => activity.id !== activityId);
+  }
+
   async function like(activityId: string, liked: boolean, personaId?: string | null): Promise<void> {
     const response = await setActivityLike(activityId, liked);
     const item = ensure(personaId).items.find(activity => activity.id === activityId);
@@ -127,7 +182,7 @@ export const useActivitiesStore = defineStore('activities', () => {
     await markActivitiesRead();
   }
 
-  return {feeds, commentingId, ensure, get, loadInitial, loadMore, like, hide, comment, startComment, cancelComment, markRead};
+  return {feeds, hiddenFeeds, commentingId, ensure, get, getHidden, loadInitial, loadMore, loadHiddenInitial, loadHiddenMore, restore, like, hide, comment, startComment, cancelComment, markRead};
 });
 
 export {PAGE_SIZE as ACTIVITY_PAGE_SIZE};

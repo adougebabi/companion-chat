@@ -1,0 +1,6 @@
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Defines required producer/consumer tracing and SSE/persistence compatibility checks for this cross-layer LLM contract change."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Defines SQLite migration, transaction, idempotency, and persistence safety requirements for affect/drives and memory changes."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Defines bounded failure behavior for provider, structured parsing, capability, worker, and SSE errors."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Defines backend quality gates, repository boundaries, and verification expectations for implementation."}
+{"file":".trellis/spec/backend/debug-observability.md","reason":"Defines persona-scoped, bounded, credential-safe diagnostics for state and structured control inspection."}
+{"file":".trellis/tasks/archive/2026-08/08-19-proactive-persona-messages/prd.md","reason":"Records the existing decision against periodic LLM scans and implicit per-message extraction, while preserving explicit capabilities and proactive gates."}

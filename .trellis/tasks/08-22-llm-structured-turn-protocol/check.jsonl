@@ -1,0 +1,5 @@
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Review the complete Express/provider/SQLite/SSE/Vue data flow and verify all producers and consumers remain aligned."}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Review migration ordering, transaction atomicity, CAS/idempotency, retention, and persona deletion behavior."}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Review malformed structured responses, provider failures, capability rejection, retries, and user-safe SSE terminal errors."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Review complexity, reuse, test scope, and regression coverage before implementation is considered complete."}
+{"file":".trellis/spec/backend/debug-observability.md","reason":"Review privacy, bounding, persona isolation, and no-secret/no-hidden-prompt guarantees in diagnostics."}

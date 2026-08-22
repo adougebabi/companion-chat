@@ -28,10 +28,13 @@ export {createSettingsPolicy} from './application/settings-policy.js';
 export {createLifeStateService} from './application/life-state-service.js';
 export {createLifeEventFlow, createLifeEventApplicationFlow} from './application/life-event-flow.js';
 export {createContextPipeline, createContextFragmentPipeline} from './application/context-pipeline.js';
+export {createFlowEffectAdapter, registerFlowAdapter} from './application/flow-effect-adapter.js';
 export {
     systemCapabilityReplyForm,
     systemCapabilityMediaContract,
     systemCapabilityPendingEventContract,
+    systemCapabilityMemoryContract,
+    systemCapabilityStateContract,
     systemCapabilityTimeFact,
     systemCapabilitySceneContract,
     imageGenerationPolicyLabels,
@@ -46,12 +49,27 @@ export {createSupportingCharacterRepository} from './infrastructure/supporting-c
 export {createTimelineRepository} from './infrastructure/timeline-repository.js';
 export {createPersonaLifecycleService} from './application/persona-lifecycle-service.js';
 export {createInterviewService} from './application/interview-service.js';
+export {createInterviewAnalyzer, normalizeInterviewAnalysis, INTERVIEW_ANALYZER_PROMPT_VERSION} from './application/interview-analyzer.js';
 export {createFoundationService} from './application/foundation-service.js';
 export {createScheduleService} from './application/schedule-service.js';
 export {createMemoryService} from './application/memory-service.js';
+export {createMemoryEventFlow, createMemoryFlow} from './application/memory-flow.js';
+export {createAffectFlow, createAffectStateFlow} from './application/affect-flow.js';
+export {createAffectRepository} from './infrastructure/affect-repository.js';
+export {
+    STRUCTURED_TURN_SCHEMA_VERSION,
+    STRUCTURED_TURN_SCHEMA,
+    normalizeStructuredTurnEnvelope,
+    normalizeStructuredTurnSafely,
+    normalizeMemoryEventCandidate,
+    normalizeAffectEventCandidate,
+    normalizeDriveSignalCandidate
+} from './contracts/index.js';
+export {normalizeStructuredTurn, readStructuredSidecar} from './application/structured-turn.js';
 export {createFoundationRepository} from './infrastructure/foundation-repository.js';
 export {createScheduleRepository} from './infrastructure/schedule-repository.js';
 export {createInterviewRepository} from './infrastructure/interview-repository.js';
+export {createMtplxJsonCompletionPort} from './infrastructure/llm-provider.js';
 export {createPersonaLifecycleRepository} from './infrastructure/persona-lifecycle-repository.js';
 export {createProactiveJobService, createProactiveJobApplicationService} from './application/proactive-job-service.js';
 export {
@@ -86,7 +104,12 @@ export {
     createClockPort
 } from './application/proactive/flow-ports.js';
 export {createMediaObservability} from './application/media-observability.js';
-export {createMediaJobService} from './application/media-job-service.js';
+export {
+    MEDIA_JOB_SERVICE_VERSION,
+    MEDIA_SUBMIT_JOB_TYPES,
+    MEDIA_COMPENSATION_JOB_TYPES,
+    createMediaJobService
+} from './application/media-job-service.js';
 export {
     createMediaObservabilityApplication,
     createMediaJobApplication,

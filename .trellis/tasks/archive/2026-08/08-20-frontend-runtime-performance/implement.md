@@ -99,3 +99,7 @@ Browser verification must use the Vite dev proxy during development and the Expr
 - [x] No production reference to old `src/` remains.
 - [x] Typecheck, build, backend tests and server syntax checks pass after deletion.
 - [ ] Browser/API smoke and mobile visual/performance checks are deferred by explicit session scope.
+
+## Follow-up Closure (2026-08-22)
+
+The migration follow-up restored settings/provider/h3 controls, hidden-activity management, inspector actions, boot loading state, sentinel history pagination, per-instance drafts, dynamic imports and static gzip/Brotli handling. Temporary Express/browser smoke verified contacts-first boot, settings, history, mobile chat layout, inspector and hidden-activity UI. Physical-device IME and real provider execution remain environment-dependent checks; automated typecheck/build and 310 backend/frontend tests pass.

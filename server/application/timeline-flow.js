@@ -1,4 +1,5 @@
 import {randomUUID} from 'node:crypto';
+import {createFlowEffectAdapter} from './flow-effect-adapter.js';
 
 /**
  * Application flow for the persona life-model timeline.
@@ -340,7 +341,8 @@ export function createTimelineFlow({
     clock,
     idGenerator,
     candidateSelector,
-    transaction
+    transaction,
+    effectAdapter
 } = {}) {
     if (!isRecord(repositories)) throw new TypeError('Timeline flow repositories must be an object');
 
@@ -352,6 +354,7 @@ export function createTimelineFlow({
     const lifeEventRepository = resolveRepository(repositories, ['lifeEventRepository', 'lifeEvent', 'life'], 'life-event repository', {optional: true});
     const focusRepository = resolveRepository(repositories, ['focusRepository', 'focus', 'attention'], 'focus repository', {optional: true});
     const budgetRepository = resolveRepository(repositories, ['budgetRepository', 'budget', 'attentionBudget'], 'budget repository', {optional: true});
+    const affectRepository = resolveRepository(repositories, ['affectRepository', 'affect', 'affectState'], 'affect repository', {optional: true});
     const lifeEvent = lifeEventFlow ?? repositories.lifeEventFlow;
     const personaLookup = personaRepository ? methodFor(personaRepository, ['findActive', 'findById', 'get'], 'persona repository', {optional: true}) : null;
     const decisionFind = methodFor(decisionRepository, ['findByDecisionKey', 'findByKey', 'find', 'get'], 'event-decision repository');
@@ -369,8 +372,12 @@ export function createTimelineFlow({
     const blueprintRead = blueprintRepository ? methodFor(blueprintRepository, ['read', 'findCurrent', 'find', 'get'], 'blueprint repository', {optional: true}) : null;
     const focusRead = focusRepository ? methodFor(focusRepository, ['read', 'resolve', 'find', 'get'], 'focus repository', {optional: true}) : null;
     const budgetRead = budgetRepository ? methodFor(budgetRepository, ['read', 'count', 'resolve', 'find', 'get'], 'budget repository', {optional: true}) : null;
+    const affectRead = affectRepository ? methodFor(affectRepository, ['readSnapshot', 'getSnapshot', 'read', 'get'], 'affect repository', {optional: true}) : null;
     const now = clockFunction(clock);
     const nextId = idFunction(idGenerator);
+    const effectsPort = effectAdapter ?? (repositories?.job?.enqueue || repositories?.jobRepository?.enqueue
+        ? createFlowEffectAdapter({jobRepository: repositories.job ?? repositories.jobRepository, clock, idGenerator})
+        : null);
     if (!lifeEvent || !methodFor(lifeEvent, ['record', 'createEvent', 'insertEvent'], 'life-event flow', {optional: true})) {
         throw new TypeError('Timeline flow requires the generic life-event flow');
     }
@@ -391,6 +398,14 @@ export function createTimelineFlow({
         const atMs = Date.parse(at);
         const focusValue = command.focus ?? command.focusTier ?? (focusRead ? sync(focusRead({personaId, persona, at}), 'focus lookup') : null);
         const budgetValue = command.budget ?? (budgetRead ? sync(budgetRead({personaId, persona, at}), 'budget lookup') : null);
+        const affect = affectRead ? sync(affectRead({personaId, at}), 'affect lookup') : null;
+        const drives = affect?.drives ?? {};
+        const socialPressure = Math.max(0, Math.min(1, Number(drives.social ?? 0.5)));
+        const explorationPressure = Math.max(0, Math.min(1, Number(drives.exploration ?? 0.5)));
+        const restPressure = Math.max(0, Math.min(1, Number(drives.rest ?? 0.5)));
+        const initiativeDrive = socialPressure >= explorationPressure + 0.1
+            ? 'social'
+            : explorationPressure >= socialPressure + 0.1 ? 'exploration' : null;
         const focusTier = focusTierFor(focusValue, persona, atMs);
         const budget = budgetFor({...command, ...(budgetValue === null || budgetValue === undefined ? {} : {budget: budgetValue})}, persona, blueprint);
         const screened = command.screened !== undefined
@@ -400,17 +415,33 @@ export function createTimelineFlow({
         if (focusTier === 'idle' && command.allowIdle !== true) reasons.push('not_recently_engaged');
         if (budget.limit !== null && budget.used >= budget.limit && command.ignoreBudget !== true) reasons.push('daily_budget');
         if (screened && command.allowScreened !== true) reasons.push('screened');
-        return {allowed: reasons.length === 0, reasons, reason: reasons[0] ?? null, focusTier, budget, screened};
+        return {
+            allowed: reasons.length === 0,
+            reasons,
+            reason: reasons[0] ?? null,
+            focusTier,
+            budget,
+            screened,
+            ...(affect ? {
+                affect: {pleasure: affect.pleasure, arousal: affect.arousal, dominance: affect.dominance},
+                drivePressure: {social: socialPressure, exploration: explorationPressure, rest: restPressure},
+                initiativeDrive
+            } : {})
+        };
     }
 
-    function chooseCandidate(candidates, command, decisionKey) {
+    function chooseCandidate(candidates, command, decisionKey, policy) {
         if (command.candidate === null || command.noEvent === true) return null;
         if (typeof candidateSelector === 'function') {
             const selected = sync(candidateSelector(candidates, {command, decisionKey}), 'candidate selector');
             return typeof selected === 'number' ? candidates[selected] ?? null : candidateValue(selected);
         }
         if (command.selectedCandidate !== undefined) return candidateValue(command.selectedCandidate);
-        return candidates[deterministicIndex(decisionKey, candidates.length)] ?? null;
+        const aligned = policy?.initiativeDrive
+            ? candidates.filter(candidate => candidate?.drive === policy.initiativeDrive)
+            : [];
+        const pool = aligned.length ? aligned : candidates;
+        return pool[deterministicIndex(decisionKey, pool.length)] ?? null;
     }
 
     function decisionShape(command, personaId, at, persona, blueprint) {
@@ -420,7 +451,7 @@ export function createTimelineFlow({
         const decisionKey = requiredText(command.decisionKey ?? command.decision_key ?? `${personaId}:${planDate}:${slotKey || 'opportunity'}:${bucket}`, 'Timeline decisionKey', 240);
         const candidates = normalizeCandidates(command);
         const policy = policyFor(command, personaId, persona, blueprint, at);
-        const chosen = policy.allowed ? chooseCandidate(candidates, command, decisionKey) : null;
+        const chosen = policy.allowed ? chooseCandidate(candidates, command, decisionKey, policy) : null;
         const noEvent = !chosen;
         const rationale = {
             ...(isRecord(command.rationale) ? command.rationale : {}),
@@ -429,6 +460,7 @@ export function createTimelineFlow({
             focusTier: policy.focusTier,
             budget: policy.budget,
             screened: policy.screened,
+            ...(policy.drivePressure ? {drivePressure: policy.drivePressure, initiativeDrive: policy.initiativeDrive} : {}),
             ...(policy.reasons.length ? {policyReasons: policy.reasons} : {})
         };
         return {
@@ -678,7 +710,7 @@ export function createTimelineFlow({
             }
         }
         const event = eventResult?.event ?? eventResult;
-        return resultEnvelope({
+        const result = resultEnvelope({
             type: 'timeline_decision_result',
             version: TIMELINE_FLOW_VERSION,
             personaId: planValue.personaId,
@@ -696,6 +728,15 @@ export function createTimelineFlow({
             effects: [{effectId: `effect_timeline_activity_${planValue.decisionId}`, kind: 'timeline.activity_decision', capability: 'timeline', idempotencyKey: `timeline:${planValue.decisionId}`, causationId: planValue.decisionId, payload: {eventId, decisionId: planValue.decisionId}}],
             presentation: [{type: 'timeline_event', eventId, decisionId: planValue.decisionId}]
         });
+        if (effectsPort && result.effects.length) {
+            const published = effectsPort.publishMany(result.effects, {
+                personaId: result.personaId ?? planValue.personaId,
+                causationId: result.decisionId ?? planValue.decisionId,
+                now: planValue.createdAt
+            });
+            result.effects.forEach((effect, index) => { effect.job = published[index]?.job ?? published[index]; });
+        }
+        return result;
     }
 
     function apply(planValue, options = {}) {

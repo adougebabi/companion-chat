@@ -3,33 +3,37 @@
 ## Actual Layout
 
 ```text
-server.js          Express app, normalized persistence, provider clients, workers, routes
-src/               Static browser client (see frontend specs)
-test/              Node built-in test runner API coverage
-data/              Runtime SQLite and untouched legacy state; ignored by Git
-.env.example       Deployment defaults
-Dockerfile         Production image and health check
-compose.yaml       Single-service Docker deployment
+server/index.js                 composition root and startup
+server/http/                    Express app, routes, DTOs, SSE
+server/application/             typed flows and use cases
+server/domain/                  pure domain rules
+server/contracts/               ports, schemas, flow/SSE contracts
+server/infrastructure/          SQLite/provider/filesystem adapters
+server/runtime/                 workers, leases, timers, shutdown
+web/                            Vue/Vite browser source
+dist/                           Vite production output
+test/                           Node built-in contract/application/domain/runtime coverage
+data/                           Runtime SQLite; ignored by Git
 ```
 
-There is no `src/server`, controller directory, ORM layer, or separate service package. `server.js` stays vertically organized: configuration/storage migrations, table helpers, life/context logic, API routes, durable job worker, and startup.
+The old root `server.js` and root `src/` browser client were deleted during the cutover and must not be restored as compatibility entrypoints.
 
-During the backend modular migration, the planned `server/` tree may be introduced incrementally:
+The modular backend tree is:
 
 ```text
 server/contracts/              pure DTO, capability, SSE, port, and flow-result contracts
 server/application/            typed flow registry and use-case steps
 server/infrastructure/         injected SQLite commit/repository adapters; no provider dispatch in the commit boundary
-server/index.js                inert composition root until the final cutover gate
+server/index.js                composition root and package start/dev entrypoint
 ```
 
-`server/contracts` and `server/application` must remain importable without opening SQLite, binding an HTTP port, contacting a provider, or importing the legacy `server.js` entrypoint. The package continues to start `server.js` until the final migration switches package/Docker/CI entrypoints together.
+`server/contracts` and `server/application` must remain importable without opening SQLite, binding an HTTP port, contacting a provider, or importing the legacy root. The package starts `server/index.js`; Docker and CI use the same composition root.
 
 The SQLite commit adapter accepts an already-open connection and injected synchronous writers for facts, projections, and effect intents. It owns one transaction and records effect intents only; provider execution and lease settlement remain post-commit responsibilities.
 
 ## Adding Backend Behavior
 
-- Put pure transformations near their persistence/context owner (`cleanUrl`, `contextFor`, `scheduledState`, `activityShape`).
+- Put pure transformations in the owning domain/application module; keep repository reads and DTO shaping at their respective boundaries.
 - Keep HTTP parsing and status selection in the route that exposes the behavior.
 - Never carry a stale aggregate across an awaited external call. For normalized jobs, use a lease claim and guarded completion update.
 - Keep provider-specific URL and error handling at the provider boundary.

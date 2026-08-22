@@ -19,7 +19,7 @@ const timeText = computed(() => {
 <template>
   <article class="message" :data-message-id="message.id" :class="isUser ? 'outgoing' : 'incoming'" :aria-live="isTyping ? 'polite' : undefined">
     <div class="bubble">
-      <span v-if="isTyping && !messageText" class="pending-text">正在输入…</span>
+      <span v-if="isTyping && !messageText" class="pending-text">输入中…</span>
       <div v-else-if="messageText" class="message-copy">{{ messageText }}</div>
       <MediaGallery v-if="hasAttachments" :assets="message.attachments" :simplified="simplifiedMedia" />
       <div v-if="message.generation && !hasAttachments" class="message-media skeleton" :class="{ failed: message.generation.status === 'failed' }" role="status">

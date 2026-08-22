@@ -40,6 +40,18 @@ export function createFoundationRepository({database, clock, id} = {}) {
         return row(db, text(personaId, 'Persona.id'));
     }
 
+    function listRevisions({personaId, limit = 20} = {}) {
+        const owner = text(personaId, 'Persona.id');
+        const count = Math.max(1, Math.min(100, Number(limit) || 20));
+        return db.prepare(`
+            SELECT id, persona_id, version, foundation, reason, created_at
+            FROM companion_persona_foundation_revisions
+            WHERE persona_id = ?
+            ORDER BY version DESC, created_at DESC, id DESC
+            LIMIT ?
+        `).all(owner, count);
+    }
+
     function updateFoundation({personaId, foundation, reason = '用户修订基础人格', updatedAt} = {}) {
         const owner = text(personaId, 'Persona.id');
         const value = text(foundation, 'Foundation');
@@ -83,6 +95,8 @@ export function createFoundationRepository({database, clock, id} = {}) {
         getDraft,
         getCurrent: getDraft,
         draft: getDraft,
+        listRevisions,
+        revisions: listRevisions,
         updateFoundation,
         update: updateFoundation,
         createRevision: updateFoundation,

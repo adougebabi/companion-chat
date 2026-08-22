@@ -14,6 +14,7 @@ import {createGroupRepository} from '../infrastructure/group-repository.js';
 import {createJobRepository} from '../infrastructure/job-repository.js';
 import {createLifeEventRepository} from '../infrastructure/life-event-repository.js';
 import {createMemoryRepository} from '../infrastructure/memory-repository.js';
+import {createAffectRepository} from '../infrastructure/affect-repository.js';
 import {createPendingEventRepository} from '../infrastructure/pending-event-repository.js';
 import {createPersonaRepository} from '../infrastructure/persona-repository.js';
 import {createRelationshipRepository} from '../infrastructure/relationship-repository.js';
@@ -41,16 +42,26 @@ import {createLifeEventFlow} from '../application/life-event-flow.js';
 import {createContextPipeline} from '../application/context-pipeline.js';
 import {createTimelineFlow} from '../application/timeline-flow.js';
 import {createRelationshipFlow} from '../application/relationship-flow.js';
+import {createAffectFlow} from '../application/affect-flow.js';
+import {createMemoryEventFlow} from '../application/memory-flow.js';
+import {createMemoryService} from '../application/memory-service.js';
 import {createDeferredChatPolicy} from '../application/deferred-chat-policy.js';
 import {systemCapabilityContracts, imageGenerationPolicyLabels} from '../application/context-contracts.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
 import {createProductionProviderRegistry} from '../infrastructure/production-media-providers.js';
 import {createMtplxCompletionPort} from '../infrastructure/llm-provider.js';
+import {createMtplxJsonCompletionPort} from '../infrastructure/llm-provider.js';
+import {createInterviewAnalyzer} from '../application/interview-analyzer.js';
 import {createMediaJobRepository} from '../infrastructure/media-job-repository.js';
 import {createMediaPromptMaster, createSkippedMediaAcceptance} from '../infrastructure/media-prompt-master.js';
 import {createProductionDeferredChatBatchRepository, createProductionProactiveFlows} from '../infrastructure/production-proactive-ports.js';
 import {createMediaJobApplication} from '../application/media-job-composition.js';
 import {createMediaFlow} from '../application/media-flow.js';
+import {createPendingEventFlow} from '../application/pending-event-flow.js';
+import {createSceneEventFlow} from '../application/scene-event-flow.js';
+import {createFlowRegistry} from '../application/flow-registry.js';
+import {registerFlowAdapter} from '../application/flow-effect-adapter.js';
+import {createFlowEffectAdapter} from '../application/flow-effect-adapter.js';
 import createJobDispatcher from './job-dispatcher.js';
 import createStartupRuntime from './startup.js';
 import createWorkerRuntime from './worker-runtime.js';
@@ -120,6 +131,85 @@ const COMPANION_CAPABILITY_TOOLS = Object.freeze([
                     notBefore: Object.freeze({type: 'string', maxLength: 80}),
                     expiresAt: Object.freeze({type: 'string', maxLength: 80}),
                     dedupeKey: Object.freeze({type: 'string', minLength: 1, maxLength: 120})
+                })
+            })
+        })
+    }),
+    Object.freeze({
+        type: 'function',
+        function: Object.freeze({
+            name: 'memory_event',
+            description: 'Explicitly record one persona-private memory from the current user message.',
+            parameters: Object.freeze({
+                type: 'object',
+                additionalProperties: false,
+                required: ['memory'],
+                properties: Object.freeze({
+                    memory: Object.freeze({
+                        type: 'object',
+                        additionalProperties: false,
+                        required: ['operation', 'key', 'value', 'confidence', 'idempotencyKey'],
+                        properties: Object.freeze({
+                            schemaVersion: Object.freeze({type: 'integer', enum: Object.freeze([1])}),
+                            operation: Object.freeze({type: 'string', enum: Object.freeze(['insert', 'upsert'])}),
+                            key: Object.freeze({type: 'string', minLength: 1, maxLength: 120}),
+                            value: Object.freeze({type: 'string', minLength: 1, maxLength: 2_000}),
+                            confidence: Object.freeze({type: 'number', minimum: 0, maximum: 1}),
+                            sourceType: Object.freeze({type: 'string', maxLength: 80}),
+                            sourceId: Object.freeze({type: 'string', maxLength: 240}),
+                            sourceMessageId: Object.freeze({type: 'string', maxLength: 160}),
+                            idempotencyKey: Object.freeze({type: 'string', minLength: 1, maxLength: 240})
+                        })
+                    })
+                })
+            })
+        })
+    }),
+    Object.freeze({
+        type: 'function',
+        function: Object.freeze({
+            name: 'affect_event',
+            description: 'Report one bounded hidden affect event; the server owns PAD deltas.',
+            parameters: Object.freeze({
+                type: 'object',
+                additionalProperties: false,
+                required: ['event'],
+                properties: Object.freeze({
+                    event: Object.freeze({
+                        type: 'object',
+                        additionalProperties: false,
+                        required: ['type', 'confidence', 'idempotencyKey'],
+                        properties: Object.freeze({
+                            type: Object.freeze({type: 'string', enum: Object.freeze(['social_connection', 'social_friction', 'exploration_discovery', 'exploration_blocked', 'restored', 'fatigue'])}),
+                            confidence: Object.freeze({type: 'number', minimum: 0, maximum: 1}),
+                            idempotencyKey: Object.freeze({type: 'string', minLength: 1, maxLength: 240})
+                        })
+                    })
+                })
+            })
+        })
+    }),
+    Object.freeze({
+        type: 'function',
+        function: Object.freeze({
+            name: 'drive_signal',
+            description: 'Report one bounded drive pressure change; the server owns the magnitude.',
+            parameters: Object.freeze({
+                type: 'object',
+                additionalProperties: false,
+                required: ['signal'],
+                properties: Object.freeze({
+                    signal: Object.freeze({
+                        type: 'object',
+                        additionalProperties: false,
+                        required: ['drive', 'direction', 'confidence', 'idempotencyKey'],
+                        properties: Object.freeze({
+                            drive: Object.freeze({type: 'string', pattern: '^[a-z][a-z0-9_:-]{0,79}$'}),
+                            direction: Object.freeze({type: 'string', enum: Object.freeze(['increase_pressure', 'decrease_pressure', 'neutral'])}),
+                            confidence: Object.freeze({type: 'number', minimum: 0, maximum: 1}),
+                            idempotencyKey: Object.freeze({type: 'string', minLength: 1, maxLength: 240})
+                        })
+                    })
                 })
             })
         })
@@ -258,6 +348,21 @@ function createDefaultCapabilityPort() {
     });
 }
 
+function replyPostureFor(affect, drives = {}) {
+    const pleasure = Number(affect?.pleasure ?? 0);
+    const arousal = Number(affect?.arousal ?? 0);
+    const dominance = Number(affect?.dominance ?? 0);
+    const pressure = key => Math.max(0, Math.min(1, Number(drives?.[key] ?? 0.5)));
+    return {
+        warmth: pleasure <= -0.35 ? 'cool' : pleasure >= 0.25 ? 'warm' : 'neutral',
+        energy: arousal <= -0.25 ? 'low' : arousal >= 0.3 ? 'high' : 'steady',
+        directness: dominance >= 0.3 ? 'direct' : dominance <= -0.25 ? 'accommodating' : 'balanced',
+        initiative: pressure('social') >= 0.7 || pressure('exploration') >= 0.7 ? 'available' : 'restraint',
+        restPressure: Number(pressure('rest').toFixed(3)),
+        source: affect ? 'affect_state' : 'default'
+    };
+}
+
 function createDefaultChatProductionPorts(options, repositories, providers) {
     if (!isRecord(repositories?.conversation)
         || typeof repositories.conversation.listMessages !== 'function'
@@ -303,15 +408,20 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
         const intimacy = Math.max(0, Math.min(4,
             (userCount >= 30 ? 3 : userCount >= 10 ? 2 : userCount >= 3 ? 1 : 0)
             + (relationship?.communicationStyle || relationship?.communication_style ? 1 : 0)));
+        const affect = repositories.affect?.readSnapshot?.({personaId, at: at}) ?? null;
+        const socialPressure = Math.max(0, Math.min(1, Number(affect?.drives?.social ?? 0.5)));
+        const restPressure = Math.max(0, Math.min(1, Number(affect?.drives?.rest ?? 0.5)));
         const key = `${personaId}:${String(at).slice(0, 13)}:${hour}:${userCount}`;
         const draw = Array.from(key).reduce((sum, char) => (sum * 33 + char.charCodeAt(0)) >>> 0, 17) % 100;
         return {
             sleeping: true,
             intimacy,
             draw,
-            immediate: draw < 8 + intimacy * 10,
+            immediate: draw < 8 + intimacy * 10 + Math.round((socialPressure - restPressure) * 8),
             nextBoundaryAt: state?.nextBoundaryAt ?? state?.next_boundary_at ?? null,
-            timezone
+            timezone,
+            socialPressure,
+            restPressure
         };
     };
     const deferredChatPolicy = options.deferredChatPolicy ?? createDeferredChatPolicy({
@@ -348,6 +458,8 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
                 autonomous: '由人格结合上下文自然决定是否调用 media_event。'
             }[imagePolicy];
             const appearance = resolved?.appearance ?? worldInput?.state?.appearance ?? {};
+            const affect = repositories.affect?.readSnapshot?.({personaId, at}) ?? null;
+            const replyPosture = replyPostureFor(affect, affect?.drives);
             const timeFacts = {
                 source: resolved?.source ?? 'unknown', startsAt: resolved?.startsAt ?? null,
                 endsAt: resolved?.endsAt ?? null, timeFact: resolved?.timeFact ?? 'unknown',
@@ -358,13 +470,14 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
                 `可信时间：source=${timeFacts.source}; startsAt=${timeFacts.startsAt || '无'}; endsAt=${timeFacts.endsAt || '无'}; nextBoundaryAt=${timeFacts.nextBoundaryAt || '无'}; timeFact=${timeFacts.timeFact}`,
                 `外观变化：${JSON.stringify(appearance)}`,
                 worldInput?.dailyPlan ? `当天计划：${JSON.stringify(worldInput.dailyPlan)}` : '当天没有已确认的日计划。',
-                worldInput?.presence?.active ? `共同场景：${JSON.stringify(worldInput.presence)}` : '当前没有持久化共同场景。'
+                worldInput?.presence?.active ? `共同场景：${JSON.stringify(worldInput.presence)}` : '当前没有持久化共同场景。',
+                `当前表达姿态：${JSON.stringify(replyPosture)}`
             ].join('\n');
             const identityLayer = `人格：${persona.name}；角色：${persona.role || '陪伴者'}；基础设定：${foundation?.foundation || '暂无'}。`;
             const relationshipLayer = `长期了解：${memories.map(memory => `${memory.memory_key ?? memory.memoryKey}:${memory.value}`).join('；') || '暂无'}。关系补丁：${JSON.stringify(relationshipPatch)}。`;
-            const [mediaContract, pendingContract, timeContract, sceneContract, replyContract] = systemCapabilityContracts;
+            const [mediaContract, pendingContract, memoryContract, stateContract, timeContract, sceneContract, replyContract] = systemCapabilityContracts;
             const capabilityLayer = [
-                mediaContract, pendingContract, timeContract, sceneContract,
+                mediaContract, pendingContract, memoryContract, stateContract, timeContract, sceneContract,
                 `【系统能力层：人格生图频率】当前人格偏好为“${imageGenerationPolicyLabels[imagePolicy]}”（${imagePolicy}）：${imagePolicyMeaning}。这是行为偏好，不是服务器关键词触发器。`,
                 '能力调用必须通过应用提供的 capability dispatcher，不要把工具 JSON 或内部标识写入用户可见文本。',
                 '当前状态只能由日程、生活事件或 scene_event 改变；普通聊天动作不写入生活事实。',
@@ -374,7 +487,8 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
                 {source: 'identity', priority: 100, text: identityLayer},
                 {source: 'life_state', priority: 90, value: lifeLayer},
                 {source: 'memory', priority: 50, value: memories.slice(0, 12)},
-                {source: 'relationship', priority: 40, value: relationshipPatch}
+                {source: 'relationship', priority: 40, value: relationshipPatch},
+                {source: 'affect', priority: 45, value: replyPosture}
             ]});
             const serializedContext = contextPipeline.serialize({budget: contextPipeline.budget(contextFragments)});
             return {
@@ -385,6 +499,7 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
                     memory: JSON.stringify(memories.slice(0, 12)),
                     immutableIdentity: identityLayer,
                     relationship: relationshipLayer,
+                    affect: JSON.stringify(replyPosture),
                     timeFacts,
                     systemCapability: `只输出用户可见的自然回复；${capabilityLayer}`
                 },
@@ -394,6 +509,9 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
                 lifeWorld: worldInput,
                 memories,
                 relationship: relationshipPatch,
+                affect,
+                drives: affect?.drives ?? {},
+                replyPosture,
                 imageGenerationPolicy: imagePolicy
             };
         },
@@ -411,7 +529,7 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
         idGenerator,
         transaction: options.transaction
     });
-    const userMessageWriter = ({personaId, text: messageText, attachments = {}} = {}) => {
+    const userMessageWriter = ({personaId, text: messageText, attachments = [], userMessageId} = {}) => {
         const userCreatedAt = new Date(Date.parse(clock()) - 1).toISOString();
         const conversation = repositories.conversation.getOrCreateConversation({
             personaId,
@@ -419,8 +537,15 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
             createdAt: userCreatedAt,
             updatedAt: userCreatedAt
         });
+        const requestedId = typeof userMessageId === 'string' && userMessageId.trim() && userMessageId.trim().length <= 160
+            ? userMessageId.trim()
+            : null;
+        if (requestedId && typeof repositories.conversation.findMessage === 'function') {
+            const existing = repositories.conversation.findMessage({id: requestedId, personaId});
+            if (existing) return existing;
+        }
         return repositories.conversation.appendMessage({
-            id: idGenerator('message'),
+            id: requestedId ?? idGenerator('message'),
             conversationId: conversation.id,
             role: 'user',
             text: String(messageText ?? ''),
@@ -622,15 +747,29 @@ function resolveProactiveJobService(options, repositories, startup, providers) {
             clock: options.clock,
             id: options.idGenerator ?? options.id,
             lifeWorld,
-            contextReader: options.contextReader
+            contextReader: options.contextReader,
+            transaction: runtimeTransaction(options, startup)
         })
         : undefined;
+    const flowRegistry = options.flowRegistry;
+    const flows = nested.flows ?? options.proactiveFlows ?? options.jobFlows ?? options.applicationFlows ?? defaultFlows;
+    if (flowRegistry && isRecord(flows)) {
+        const ids = {
+            proactive_message: 'proactive-message',
+            pending_event: 'pending-event',
+            activity_decision: 'activity-decision',
+            deferred_chat_reply: 'deferred-chat-reply'
+        };
+        for (const [type, flow] of Object.entries(flows)) {
+            registerFlowAdapter(flowRegistry, {id: ids[type] ?? type.replaceAll('_', '-'), flow, version: flow?.version ?? 1});
+        }
+    }
     return createProactiveJobService({
         ...nested,
         ...options,
         repositories: nested.repositories ?? repositories,
-        flows: nested.flows ?? options.proactiveFlows ?? options.jobFlows ?? options.applicationFlows ?? defaultFlows,
-        flowRegistry: nested.flowRegistry ?? options.proactiveFlowRegistry ?? options.flowRegistry,
+        flows,
+        flowRegistry: nested.flowRegistry ?? options.proactiveFlowRegistry ?? flowRegistry,
         ports: nested.ports ?? options.proactivePorts ?? options.applicationPorts
     });
 }
@@ -672,6 +811,8 @@ function resolveRepositories(options, startup) {
     const interview = createInterviewRepository({database, clock, id, personaLifecycle});
     const supportingCharacter = createSupportingCharacterRepository({database});
     const timeline = createTimelineRepository({database, clock, id});
+    const blueprint = createBlueprintRepository({database});
+    const memory = createMemoryRepository({database, clock});
     return Object.freeze({
         conversation: createConversationRepository({database}),
         activity: createActivityRepository({database}),
@@ -690,7 +831,8 @@ function resolveRepositories(options, startup) {
         lifeEvent: createLifeEventRepository({database, clock, id}),
         persona: createPersonaRepository({database, clock, id}),
         group: createGroupRepository({database, clock, id}),
-        memory: createMemoryRepository({database, clock}),
+        memory,
+        affect: createAffectRepository({database, clock, id, blueprintRepository: blueprint}),
         relationship: createRelationshipRepository({database, clock, id}),
         settings,
         personaLifecycle,
@@ -700,7 +842,7 @@ function resolveRepositories(options, startup) {
         mediaAsset: createMediaAssetRepository({database}),
         promptRun: createPromptRunRepository({database, clock}),
         state: createStateRepository({database, clock}),
-        blueprint: createBlueprintRepository({database}),
+        blueprint,
         dailyPlan: createDailyPlanRepository({database}),
         presence: createPresenceRepository({database})
     });
@@ -811,8 +953,12 @@ function resolveApplicationFlows(options, repositories, startup) {
     const clock = options.clock;
     const idGenerator = options.idGenerator ?? options.id;
     const transaction = runtimeTransaction(options, startup);
+    const effectAdapter = options.effectAdapter
+        ?? ((repositories.job ?? repositories.jobRepository)?.enqueue
+            ? createFlowEffectAdapter({jobRepository: repositories.job ?? repositories.jobRepository, clock, idGenerator})
+            : null);
     const lifeEventFlow = options.lifeEventFlow ?? (repositories.lifeEvent || repositories.life
-        ? createLifeEventFlow({repositories, clock, idGenerator, transaction})
+        ? createLifeEventFlow({repositories, clock, idGenerator, transaction, effectAdapter})
         : null);
     const timelineReady = repositories.eventDecisionRepository
         || repositories.timelineDecisionRepository
@@ -820,12 +966,39 @@ function resolveApplicationFlows(options, repositories, startup) {
         || repositories.eventDecision
         || repositories.decisions;
     const timelineFlow = options.timelineFlow ?? (timelineReady && lifeEventFlow
-        ? createTimelineFlow({repositories, lifeEventFlow, clock, idGenerator, transaction})
+        ? createTimelineFlow({repositories, lifeEventFlow, clock, idGenerator, transaction, effectAdapter})
         : null);
     const relationshipFlow = options.relationshipFlow ?? (repositories.relationship || repositories.relationshipRepository
-        ? createRelationshipFlow({repositories, clock, idGenerator, transaction, evaluator: options.relationshipEvaluator})
+        ? createRelationshipFlow({repositories, clock, idGenerator, transaction, evaluator: options.relationshipEvaluator, effectAdapter})
         : null);
-    return {lifeEventFlow, timelineFlow, relationshipFlow};
+    const pendingReady = repositories.pending || repositories.pendingEvent;
+    const pendingEventFlow = options.pendingEventFlow ?? (pendingReady && effectAdapter
+        ? createPendingEventFlow({repositories, clock, idGenerator, transaction, effectAdapter, normalizeCall: options.normalizePendingEventCall})
+        : null);
+    const sceneEventFlow = options.sceneEventFlow ?? (repositories.state
+        ? createSceneEventFlow({repositories, clock, idGenerator, transaction, normalizeCall: options.normalizeSceneEventCall, scheduledState: options.scheduledState})
+        : null);
+    const memoryService = options.memoryService ?? (repositories.memory
+        ? createMemoryService({repositories, clock})
+        : null);
+    const memoryEventFlow = options.memoryEventFlow ?? (repositories.memory
+        ? createMemoryEventFlow({repositories, clock, idGenerator, transaction, memoryService})
+        : null);
+    const affectFlow = options.affectFlow ?? (repositories.affect
+        ? createAffectFlow({repositories, clock, idGenerator, transaction})
+        : null);
+    return {
+        lifeEventFlow,
+        timelineFlow,
+        relationshipFlow,
+        pendingEventFlow,
+        sceneEventFlow,
+        memoryService,
+        memoryEventFlow,
+        affectFlow,
+        effectAdapter,
+        flowRegistry: options.flowRegistry
+    };
 }
 
 function resolveMaintenanceHandlers(options, repositories, flows = {}) {
@@ -956,6 +1129,7 @@ export function createRuntime(options = {}) {
     if (!isRecord(options)) throw new TypeError('Runtime options must be an object');
     const environment = options.environment ?? options.env ?? process.env;
     if (!isRecord(environment)) throw new TypeError('Runtime environment must be an object');
+    const flowRegistry = options.flowRegistry ?? createFlowRegistry();
     const startup = resolveStartup({...options, environment});
     const repositories = resolveRepositories(options, startup);
     const hasExplicitProviders = options.providerRegistry !== undefined
@@ -965,12 +1139,24 @@ export function createRuntime(options = {}) {
     const providers = options.defaultProductionComposition === true && !hasExplicitProviders
         ? defaultProductionProviders(options, environment, repositories)
         : resolveProviders(options, environment, repositories);
+    const interviewProvider = typeof providers?.find === 'function'
+        ? providers.find('mtplx', {portType: 'llm-streaming'})
+        : providers?.get?.('mtplx', {portType: 'llm-streaming'});
+    const interviewJsonCompletion = options.interviewJsonCompletion
+        ?? (interviewProvider ? createMtplxJsonCompletionPort({
+            provider: interviewProvider,
+            settings: options.settings ?? repositories.settings,
+            timeoutMs: options.interviewAnalyzerTimeoutMs
+        }) : null);
+    const interviewAnalyzer = options.personaAnalyzer
+        ?? options.interviewAnalyzer
+        ?? (interviewJsonCompletion ? createInterviewAnalyzer({jsonCompletion: interviewJsonCompletion}) : null);
     const jobRepository = options.jobRepository ?? repositories.jobRepository ?? repositories.job;
     const mediaComposition = resolveMediaComposition(options, repositories, providers, startup);
     const mediaJobService = mediaComposition.mediaJobService;
     const mediaObservability = mediaComposition.observability;
     const transaction = runtimeTransaction(options, startup);
-    const applicationFlows = resolveApplicationFlows(options, repositories, startup);
+    const applicationFlows = resolveApplicationFlows({...options, flowRegistry}, repositories, startup);
     const explicitChatPorts = options.chatProductionPorts
         ?? options.productionChatPorts
         ?? options.chatOptions
@@ -984,6 +1170,7 @@ export function createRuntime(options = {}) {
             : null);
     const proactiveJobService = resolveProactiveJobService({
         ...options,
+        flowRegistry,
         contextReader: options.contextReader ?? chatProductionPorts?.contextReader
     }, repositories, startup, providers);
     const mediaCapabilityOptions = options.defaultProductionComposition === true
@@ -1004,6 +1191,7 @@ export function createRuntime(options = {}) {
     }, startup, repositories);
     const application = options.application ?? options.applicationFactory?.({
         ...options,
+        flowRegistry,
         transaction,
         repositories,
         ...applicationFlows,
@@ -1015,7 +1203,8 @@ export function createRuntime(options = {}) {
         proactiveJobService,
         chatProductionPorts,
         settingsPolicy,
-        ...mediaCapabilityOptions
+        ...mediaCapabilityOptions,
+        interviewAnalyzer
     });
     const worker = resolveWorker({...options, jobRepository, jobDispatcher}, startup, repositories);
     const app = resolveApp({...options, application, routeHandlers: options.routeHandlers ?? application?.routeHandlers}, startup, worker);
@@ -1090,6 +1279,7 @@ export function createRuntime(options = {}) {
         repositories,
         jobRepository,
         providers,
+        flowRegistry,
         jobDispatcher,
         mediaObservability,
         mediaJobService,
@@ -1200,9 +1390,10 @@ export function createCompanionRuntime(options = {}) {
                     personaLifecycle: options.personaLifecycle,
                     personaLifecycleService: options.personaLifecycleService,
                     interviewService: options.interviewService,
+                    personaAnalyzer: options.personaAnalyzer ?? resolved.interviewAnalyzer,
                     foundationService: options.foundationService,
                     scheduleService: options.scheduleService,
-                    memoryService: options.memoryService,
+                    memoryService: options.memoryService ?? resolved.memoryService,
                     debugService: debugApplication,
                     mediaDebugService,
                     mediaService: options.mediaService ?? mediaDebugService,

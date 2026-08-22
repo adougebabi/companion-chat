@@ -423,6 +423,45 @@ export function createCompanionMigrations({environment = process.env, dataDir = 
         migrationDefinition(13, 'prompt-run-response-observability', database => {
             const columns = database.prepare('PRAGMA table_info(companion_prompt_runs)').all().map(column => column.name);
             if (!columns.includes('response_json')) database.exec('ALTER TABLE companion_prompt_runs ADD COLUMN response_json TEXT');
+        }),
+        migrationDefinition(14, 'persona-affect-and-drive-state', database => {
+            database.exec(`
+                CREATE TABLE companion_persona_affect_states (
+                    persona_id TEXT PRIMARY KEY REFERENCES companion_personas(id) ON DELETE CASCADE,
+                    pleasure REAL NOT NULL DEFAULT 0,
+                    arousal REAL NOT NULL DEFAULT 0,
+                    dominance REAL NOT NULL DEFAULT 0,
+                    drives_json TEXT NOT NULL DEFAULT '{}',
+                    revision INTEGER NOT NULL DEFAULT 0 CHECK(revision >= 0),
+                    effective_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    source_event_id TEXT,
+                    model_version TEXT NOT NULL DEFAULT 'affect.v1'
+                );
+                CREATE TABLE companion_persona_affect_events (
+                    id TEXT PRIMARY KEY,
+                    persona_id TEXT NOT NULL REFERENCES companion_personas(id) ON DELETE CASCADE,
+                    event_type TEXT NOT NULL,
+                    effective_at TEXT NOT NULL,
+                    causation_id TEXT,
+                    source_message_id TEXT REFERENCES companion_messages(id) ON DELETE SET NULL,
+                    idempotency_key TEXT NOT NULL,
+                    pleasure_delta REAL NOT NULL,
+                    arousal_delta REAL NOT NULL,
+                    dominance_delta REAL NOT NULL,
+                    drives_delta_json TEXT NOT NULL DEFAULT '{}',
+                    payload_json TEXT NOT NULL DEFAULT '{}',
+                    model_version TEXT NOT NULL DEFAULT 'affect.v1',
+                    created_at TEXT NOT NULL,
+                    UNIQUE(persona_id, idempotency_key)
+                );
+                CREATE INDEX companion_persona_affect_events_persona_time_idx
+                    ON companion_persona_affect_events(persona_id, effective_at DESC, id DESC);
+                CREATE INDEX companion_persona_affect_events_persona_causation_idx
+                    ON companion_persona_affect_events(persona_id, causation_id, effective_at DESC);
+                CREATE INDEX companion_persona_affect_events_source_message_idx
+                    ON companion_persona_affect_events(source_message_id, effective_at DESC);
+            `);
         })
     ];
 }

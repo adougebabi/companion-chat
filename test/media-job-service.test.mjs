@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
     MEDIA_POLL_JOB_TYPES,
     MEDIA_SUBMIT_JOB_TYPES,
+    MEDIA_COMPENSATION_JOB_TYPES,
     createMediaJobService
 } from '../server/application/media-job-service.js';
 
@@ -42,6 +43,14 @@ function fixture(overrides = {}) {
         find(input) {
             const id = typeof input === 'string' ? input : input.id;
             return jobs.get(id) || null;
+        },
+        findByPayload(input) {
+            return [...jobs.values()].find(candidate => {
+                if (candidate.jobType !== input.jobType || candidate.personaId !== input.personaId) return false;
+                const value = candidate.payload?.idempotencyKey
+                    ?? candidate.payload?.capabilityCall?.idempotencyKey;
+                return value === input.value;
+            }) || null;
         },
         findLeased(input) {
             calls.push(['findLeased', input]);
@@ -117,6 +126,9 @@ function fixture(overrides = {}) {
             targets.push(input);
             return {changed: true};
         },
+        targetStatus() {
+            return 'processing';
+        },
         persistAssets(input) {
             calls.push(['persistAssets', input]);
             return input.files.map((file, index) => ({id: `asset_${index + 1}`, kind: 'image', file}));
@@ -141,7 +153,8 @@ function fixture(overrides = {}) {
             accept(input) {
                 calls.push(['accept', input]);
                 return {verdict: 'pass', observedFacts: {sceneMatches: true}};
-            }
+            },
+            ...overrides.acceptance
         },
         clock: () => NOW
     });
@@ -152,10 +165,11 @@ function fixture(overrides = {}) {
 
 test('media job service exposes one registration map for submit and poll jobs', () => {
     const {service} = fixture();
-    assert.deepEqual(service.list(), [...MEDIA_SUBMIT_JOB_TYPES, ...MEDIA_POLL_JOB_TYPES]);
+    assert.deepEqual(service.list(), [...MEDIA_SUBMIT_JOB_TYPES, ...MEDIA_POLL_JOB_TYPES, ...MEDIA_COMPENSATION_JOB_TYPES]);
     assert.deepEqual(service.list().map(type => service.operationFor(type)), [
         ...MEDIA_SUBMIT_JOB_TYPES.map(() => 'submit'),
-        ...MEDIA_POLL_JOB_TYPES.map(() => 'poll')
+        ...MEDIA_POLL_JOB_TYPES.map(() => 'poll'),
+        ...MEDIA_COMPENSATION_JOB_TYPES.map(() => 'compensate')
     ]);
     const registered = [];
     const target = {register(type, handler, receiver) { registered.push([type, handler, receiver]); }};
@@ -180,6 +194,134 @@ test('submit freezes the prompt result, settles the source, and enqueues one pol
     assert.equal(submitCall[1].prompt, 'A bounded provider prompt');
     assert.equal(fixtureValue.targets.at(-1).status, 'processing');
     assert.equal(fixtureValue.calls.some(([kind]) => kind === 'observability.settle'), true);
+});
+
+test('poll enqueue failure leaves a durable compensation that repairs one poll without resubmitting', async () => {
+    let failPollEnqueue = true;
+    const fixtureValue = fixture({
+        mediaFlow: {
+            enqueuePoll({job: sourceJob, payload}) {
+                if (failPollEnqueue) throw new Error('poll outbox unavailable');
+                return fixtureValue.repo.enqueue({
+                    jobType: 'chat_media_poll',
+                    personaId: sourceJob.persona_id,
+                    messageId: sourceJob.message_id,
+                    payload,
+                    runAfter: NOW,
+                    now: NOW
+                });
+            }
+        }
+    });
+
+    const first = await fixtureValue.service.submit(fixtureValue.source, {leaseOwner: 'worker_1'});
+    assert.equal(first.status, 'complete');
+    assert.equal(first.result.pollCompensationQueued, true);
+    assert.equal(fixtureValue.source.status, 'complete');
+    assert.equal(fixtureValue.calls.filter(([kind]) => kind === 'submit').length, 1);
+    assert.equal([...fixtureValue.jobs.values()].filter(item => item.jobType === 'chat_media_poll').length, 0);
+
+    const compensation = [...fixtureValue.jobs.values()].find(item => item.jobType === 'media_poll_compensation');
+    assert.ok(compensation);
+    failPollEnqueue = false;
+    compensation.status = 'leased';
+    compensation.lease_owner = 'worker_2';
+    compensation.lease_expires_at = '2026-08-21T00:01:00.000Z';
+    const repaired = await fixtureValue.service.compensatePoll(compensation, {leaseOwner: 'worker_2'});
+
+    assert.equal(repaired.status, 'complete');
+    assert.equal([...fixtureValue.jobs.values()].filter(item => item.jobType === 'chat_media_poll').length, 1);
+    assert.equal(fixtureValue.calls.filter(([kind]) => kind === 'submit').length, 1);
+});
+
+test('terminal compensation failures retain target association and mark the target failed', async () => {
+    const fixtureValue = fixture();
+    fixtureValue.source.status = 'complete';
+    fixtureValue.source.result_json = JSON.stringify({provider: 'fixture'});
+    const compensation = {
+        id: 'compensation_missing_locator',
+        job_type: 'media_poll_compensation',
+        status: 'leased',
+        lease_owner: 'worker_2',
+        lease_expires_at: '2026-08-21T00:01:00.000Z',
+        attempt_count: 1,
+        max_attempts: 3,
+        persona_id: fixtureValue.source.persona_id,
+        message_id: fixtureValue.source.message_id,
+        payload: {sourceJobId: fixtureValue.source.id, provider: 'fixture', kind: 'image'}
+    };
+    fixtureValue.jobs.set(compensation.id, compensation);
+
+    const result = await fixtureValue.service.compensatePoll(compensation, {leaseOwner: 'worker_2'});
+
+    assert.equal(result.status, 'failed');
+    assert.equal(compensation.status, 'failed');
+    assert.equal(fixtureValue.targets.at(-1).status, 'failed');
+    assert.equal(fixtureValue.calls.some(([kind]) => kind === 'poll' || kind === 'submit'), false);
+});
+
+test('activity compensation failures use the source activity association', async () => {
+    const fixtureValue = fixture();
+    const source = job({
+        id: 'activity_source_1',
+        job_type: 'activity_image',
+        activity_id: 'activity_1',
+        result_json: JSON.stringify({provider: 'fixture'})
+    });
+    source.status = 'complete';
+    fixtureValue.jobs.set(source.id, source);
+    const compensation = {
+        id: 'activity_compensation_1',
+        job_type: 'media_poll_compensation',
+        status: 'leased',
+        lease_owner: 'worker_2',
+        lease_expires_at: '2026-08-21T00:01:00.000Z',
+        attempt_count: 1,
+        max_attempts: 3,
+        persona_id: source.persona_id,
+        activity_id: source.activity_id,
+        payload: {
+            sourceJobId: source.id,
+            sourceJobType: source.job_type,
+            provider: 'fixture',
+            externalId: 'external_1',
+            kind: 'image'
+        }
+    };
+    fixtureValue.jobs.set(compensation.id, compensation);
+
+    const result = await fixtureValue.service.compensatePoll(compensation, {leaseOwner: 'worker_2'});
+
+    assert.equal(result.status, 'failed');
+    assert.equal(fixtureValue.targets.at(-1).job.activity_id, 'activity_1');
+    assert.equal(fixtureValue.targets.at(-1).status, 'failed');
+});
+
+test('quality retry successor uses one deterministic key across repeated poll completion', async () => {
+    const fixtureValue = fixture({acceptance: {
+        accept() { return {verdict: 'retry', violations: ['scene'], retryGuidance: 'adjust scene'}; }
+    }});
+    const firstPoll = job({
+        id: 'poll_quality_1',
+        job_type: 'chat_media_poll',
+        payload_json: JSON.stringify({kind: 'image', provider: 'fixture', externalId: 'external_1', sourceJobId: 'job_media_1'})
+    });
+    fixtureValue.jobs.set(firstPoll.id, firstPoll);
+    const first = await fixtureValue.service.poll(firstPoll, {leaseOwner: 'worker_1'});
+    assert.equal(first.status, 'complete');
+
+    const secondPoll = job({
+        id: 'poll_quality_2',
+        job_type: 'chat_media_poll',
+        payload_json: JSON.stringify({kind: 'image', provider: 'fixture', externalId: 'external_1', sourceJobId: 'job_media_1'})
+    });
+    fixtureValue.jobs.set(secondPoll.id, secondPoll);
+    const second = await fixtureValue.service.poll(secondPoll, {leaseOwner: 'worker_1'});
+    assert.equal(second.status, 'complete');
+
+    const successors = [...fixtureValue.jobs.values()].filter(item => item.payload?.qualityRetryKey === 'media:quality-retry:job_media_1:1');
+    assert.equal(successors.length, 1);
+    assert.equal(successors[0].payload.idempotencyKey, 'media:quality-retry:job_media_1:1');
 });
 
 test('dispatcher-owned settlement defers the media repository transition', async () => {

@@ -39,7 +39,7 @@ function restoreAnchor(container: HTMLElement | null, anchor: ScrollAnchor | nul
 export function useMessageHistory(
   personaId: MaybeRef<string | null | undefined>,
   containerRef: Ref<HTMLElement | null>,
-  options: {threshold?: number; autoLoad?: boolean} = {}
+  options: {threshold?: number; autoLoad?: boolean; loadInitial?: boolean} = {}
 ) {
   const conversations = useConversationsStore();
   const topSentinel = ref<HTMLElement | null>(null);
@@ -57,6 +57,8 @@ export function useMessageHistory(
     loading.value = true;
     try {
       await conversations.loadInitial(id, {signal});
+      await nextTick();
+      observeSentinel();
     } finally {
       loading.value = false;
     }
@@ -73,6 +75,7 @@ export function useMessageHistory(
       await conversations.loadOlder(id, {signal});
       await nextTick();
       restoreAnchor(containerRef.value, anchor);
+      observeSentinel();
     } finally {
       loading.value = false;
     }
@@ -104,11 +107,15 @@ export function useMessageHistory(
 
   onMounted(() => {
     observeSentinel();
-    if (options.autoLoad !== false) void loadInitial().catch(() => {});
+    if (options.loadInitial !== false) void loadInitial().catch(() => {});
   });
 
-  stopPersonaWatch = watch(() => resolve(personaId), () => {
-    if (typeof window !== 'undefined') void loadInitial().catch(() => {});
+  stopPersonaWatch = watch(() => resolve(personaId), async () => {
+    if (typeof window !== 'undefined') {
+      await nextTick();
+      observeSentinel();
+      if (options.loadInitial !== false) void loadInitial().catch(() => {});
+    }
   });
 
   onBeforeUnmount(() => {
@@ -132,4 +139,3 @@ export function useMessageHistory(
 }
 
 export default useMessageHistory;
-

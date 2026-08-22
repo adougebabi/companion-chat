@@ -8,6 +8,7 @@ import {
 } from '../application/proactive/worker-flows.js';
 import {splitChatAssistantReply} from '../application/chat-production-adapter.js';
 import {serializePromptMessages} from '../application/context-pipeline.js';
+import {createFlowEffectAdapter} from '../application/flow-effect-adapter.js';
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -208,45 +209,66 @@ function createReplyProjection({database, conversationRepository, id, now}) {
     };
 }
 
-function createActivityProjection({activityRepository, jobRepository, id, now}) {
+function createActivityProjection({activityRepository, jobRepository, effectAdapter, id, now, transaction}) {
+    function inTransaction(work) {
+        if (transaction?.inTransaction === true) return work();
+        if (typeof transaction === 'function') {
+            const result = transaction(work);
+            return typeof result === 'function' ? result() : result;
+        }
+        if (isRecord(transaction) && typeof transaction.transaction === 'function') {
+            const result = transaction.transaction(work);
+            return typeof result === 'function' ? result() : result;
+        }
+        if (isRecord(transaction) && typeof transaction.run === 'function') return transaction.run(work);
+        return work();
+    }
+
     return {
         findByEvent({personaId, eventId}) {
             return activityRepository.findActivityByEvent?.({eventId, personaId})
                 ?? activityRepository.findActivity({id: eventId, personaId})
                 ?? activityRepository.findActivity({activityId: eventId, personaId});
         },
-        publish({personaId, eventId, content, media, createdAt = now()}) {
-            const activity = activityRepository.insertActivity({
-                id: id('activity'), personaId, eventId, content,
-                mediaMode: media?.kind && media.kind !== 'none' ? media.kind : 'none',
-                mediaStatus: media?.kind && media.kind !== 'none' ? 'queued' : 'none',
-                createdAt
-            });
-            const frozen = media?.kind && media.kind !== 'none'
-                && isRecord(media.personaMediaConcept)
-                && Object.hasOwn(media, 'currentEvent')
-                && Object.hasOwn(media, 'temporaryAppearance');
-            if (activity?.id && media?.kind && media.kind !== 'none' && !frozen) {
-                activityRepository.updateActivity?.({id: activity.id, activityId: activity.id, personaId, mediaStatus: 'failed'});
-            }
-            if (activity?.id && frozen && jobRepository?.enqueue) {
-                jobRepository.enqueue({
-                    id: id('job'), jobType: media.kind === 'video' ? 'activity_video' : 'activity_image',
-                    personaId, activityId: activity.id, priority: 3, maxAttempts: 4,
-                    runAfter: createdAt,
-                    payload: {
-                        activityId: activity.id, eventId, personaId, kind: media.kind,
-                        request: media.request ?? '', count: media.count ?? 1,
-                        personaMediaConcept: media.personaMediaConcept, capabilityCall: media
-                    }
+        publish({personaId, eventId, content, media, createdAt = now(), id: activityId} = {}) {
+            return inTransaction(() => {
+                const activity = activityRepository.insertActivity({
+                    id: activityId ?? id('activity'), personaId, eventId, content,
+                    mediaMode: media?.kind && media.kind !== 'none' ? media.kind : 'none',
+                    mediaStatus: media?.kind && media.kind !== 'none' ? 'queued' : 'none',
+                    createdAt
                 });
-            }
-            return activity;
+                const frozen = media?.kind && media.kind !== 'none'
+                    && isRecord(media.personaMediaConcept)
+                    && Object.hasOwn(media, 'currentEvent')
+                    && Object.hasOwn(media, 'temporaryAppearance');
+                if (activity?.id && media?.kind && media.kind !== 'none' && !frozen) {
+                    activityRepository.updateActivity?.({id: activity.id, activityId: activity.id, personaId, mediaStatus: 'failed'});
+                }
+                if (activity?.id && frozen && (effectAdapter || jobRepository?.enqueue)) {
+                    const queued = (effectAdapter ?? createFlowEffectAdapter({jobRepository, clock: now, idGenerator: id})).publish({
+                        id: id('job'), jobType: media.kind === 'video' ? 'activity_video' : 'activity_image',
+                        effectId: `effect_activity_media_${activity.id}`,
+                        kind: media.kind === 'video' ? 'activity_video' : 'activity_image',
+                        capability: 'media',
+                        idempotencyKey: `activity:${activity.id}:media`,
+                        personaId, activityId: activity.id, priority: 3, maxAttempts: 4,
+                        runAfter: createdAt,
+                        payload: {
+                            activityId: activity.id, eventId, personaId, kind: media.kind,
+                            request: media.request ?? '', count: media.count ?? 1,
+                            personaMediaConcept: media.personaMediaConcept, capabilityCall: media
+                        }
+                    }, {personaId, causationId: eventId, now: createdAt});
+                    return {...activity, queuedJob: queued?.job ?? queued};
+                }
+                return activity;
+            });
         }
     };
 }
 
-function createDeferredBatchPort(database, now, {jobRepository, id} = {}) {
+function createDeferredBatchPort(database, now, {jobRepository, effectAdapter, id} = {}) {
     const nextId = typeof id === 'function' ? id : prefix => `${prefix}_${randomUUID()}`;
     return {
         findById({batchId, personaId}) {
@@ -298,7 +320,16 @@ function createDeferredBatchPort(database, now, {jobRepository, id} = {}) {
                     input.deliverAt, JSON.stringify(decision), JSON.stringify(messageIds), createdAt, updatedAt
                 );
                 const jobInput = input.job;
-                job = jobInput && jobRepository?.enqueue ? jobRepository.enqueue(jobInput) : null;
+                if (jobInput && (effectAdapter || jobRepository?.enqueue)) {
+                    const queued = (effectAdapter ?? createFlowEffectAdapter({jobRepository, clock: now, idGenerator: nextId})).publish({
+                        ...jobInput,
+                        effectId: `effect_deferred_batch_${input.id}`,
+                        kind: 'deferred_chat_reply',
+                        capability: 'conversation',
+                        idempotencyKey: `deferred:${input.id}`
+                    }, {personaId: input.personaId, causationId: input.id, now: createdAt});
+                    job = queued?.job ?? queued;
+                }
             })();
             const batch = database.prepare('SELECT * FROM companion_chat_deferred_batches WHERE id = ?').get(input.id);
             return {batch: {...batch, messageIds}, job, created: true};
@@ -322,7 +353,9 @@ function createDeferredBatchPort(database, now, {jobRepository, id} = {}) {
 
 export function createProductionDeferredChatBatchRepository({database, jobRepository, clock, id} = {}) {
     const now = clockFor(clock);
-    return createDeferredBatchPort(requireDatabase(database), now, {jobRepository, id: idFor(id)});
+    const nextId = idFor(id);
+    const effectAdapter = jobRepository ? createFlowEffectAdapter({jobRepository, clock: now, idGenerator: nextId}) : null;
+    return createDeferredBatchPort(requireDatabase(database), now, {jobRepository, effectAdapter, id: nextId});
 }
 
 function createConversationMessages(conversationRepository) {
@@ -334,7 +367,7 @@ function createConversationMessages(conversationRepository) {
 }
 
 /** Compose the application flows used by the default proactive worker. */
-export function createProductionProactiveFlows({database, repositories, provider, settings, clock, id, lifeWorld, contextReader} = {}) {
+export function createProductionProactiveFlows({database, repositories, provider, settings, clock, id, lifeWorld, contextReader, transaction} = {}) {
     const openDatabase = requireDatabase(database);
     const now = clockFor(clock);
     const generateId = idFor(id);
@@ -344,11 +377,13 @@ export function createProductionProactiveFlows({database, repositories, provider
     const lifeEvent = repositories.lifeEvent ?? repositories.lifeEventRepository;
     const activity = repositories.activity ?? repositories.activityRepository;
     const pending = createPendingPort(openDatabase, repositories.job ?? repositories.jobRepository, now);
+    const effectsPort = createFlowEffectAdapter({jobRepository: repositories.job ?? repositories.jobRepository, clock: now, idGenerator: generateId});
     const decision = createDecisionPort({database: openDatabase, jobRepository: repositories.job ?? repositories.jobRepository, completion, now, contextReader});
     const reply = createReplyProjection({database: openDatabase, conversationRepository: conversation, id: generateId, now});
-    const activityProjection = createActivityProjection({activityRepository: activity, jobRepository: repositories.job ?? repositories.jobRepository, id: generateId, now});
+    const activityProjection = createActivityProjection({activityRepository: activity, jobRepository: repositories.job ?? repositories.jobRepository, effectAdapter: effectsPort, id: generateId, now, transaction: transaction ?? openDatabase});
     const deferredBatch = createDeferredBatchPort(openDatabase, now, {
         jobRepository: repositories.job ?? repositories.jobRepository,
+        effectAdapter: effectsPort,
         id: generateId
     });
     const conversationMessages = createConversationMessages(conversation);

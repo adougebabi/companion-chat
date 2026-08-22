@@ -32,6 +32,14 @@ function errorText(value) {
     return value;
 }
 
+function publicErrorText(value) {
+    const message = compactText(errorText(value), 'Chat turn failed');
+    if (/fetch failed|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNRESET/i.test(message)) {
+        return '模型服务暂时不可达，请检查模型服务地址、服务状态和网络连接';
+    }
+    return message;
+}
+
 function sinkLooksClosed(sink) {
     return Boolean(sink?.closed)
         || Boolean(sink?.destroyed)
@@ -135,7 +143,7 @@ async function mappedError(error, errorMapper, invocation) {
     try {
         mapped = typeof errorMapper === 'function'
             ? await errorMapper(error, invocation)
-            : compactText(errorText(error), 'Chat turn failed');
+            : publicErrorText(error);
     } catch {
         mapped = 'Chat turn failed';
     }
@@ -166,7 +174,7 @@ function isSignal(value) {
  * `token`, `done`, or `error` events. The adapter never parses provider
  * chunks or dispatches capabilities.
  */
-export function createChatTurnSseAdapter({chatTurnFlow, sendSse, end, errorMapper, isRequestAborted, requestAborted} = {}) {
+export function createChatTurnSseAdapter({chatTurnFlow, sendSse, end, errorMapper, isRequestAborted, requestAborted, heartbeatIntervalMs = 15_000} = {}) {
     const runFlow = resolveFlowRun(chatTurnFlow);
     if (typeof sendSse !== 'function') throw new TypeError('ChatTurnSseAdapter requires sendSse()');
     if (typeof end !== 'function') throw new TypeError('ChatTurnSseAdapter requires end()');
@@ -190,6 +198,7 @@ export function createChatTurnSseAdapter({chatTurnFlow, sendSse, end, errorMappe
         let ended = false;
         let transportFailure = null;
         let streamedTokenCount = 0;
+        let heartbeatTimer = null;
 
         const markClientClosed = () => {
             clientClosed = true;
@@ -198,8 +207,14 @@ export function createChatTurnSseAdapter({chatTurnFlow, sendSse, end, errorMappe
         addListener(sink, 'close', markClientClosed, listeners);
         addListener(sink, 'aborted', markClientClosed, listeners);
         addListener(requestTarget, 'aborted', markClientClosed, listeners);
-        addListener(requestTarget, 'close', markClientClosed, listeners);
         if (isSignal(inputSignal)) inputSignal.addEventListener?.('abort', markClientClosed, {once: true});
+        if (Number(heartbeatIntervalMs) > 0 && typeof sink.write === 'function') {
+            heartbeatTimer = setInterval(() => {
+                if (clientHasClosed()) return;
+                try { sink.write(': keep-alive\n\n'); } catch { markClientClosed(); }
+            }, Number(heartbeatIntervalMs));
+            heartbeatTimer.unref?.();
+        }
 
         const clientHasClosed = () => {
             if (clientClosed || sinkLooksClosed(sink)) {
@@ -238,6 +253,8 @@ export function createChatTurnSseAdapter({chatTurnFlow, sendSse, end, errorMappe
         const endOnce = async () => {
             if (ended) return;
             ended = true;
+            if (heartbeatTimer) clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
             removeListeners(listeners);
             if (isSignal(inputSignal)) inputSignal.removeEventListener?.('abort', markClientClosed);
             try {

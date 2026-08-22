@@ -76,6 +76,17 @@ export function useChatStream() {
   const isSending = ref(false);
   const error = ref<string | null>(null);
   let activePersonaId: string | null = null;
+  let activeAbortController: AbortController | null = null;
+
+  function signalFor(inputSignal?: AbortSignal): AbortSignal {
+    const controller = new AbortController();
+    activeAbortController = controller;
+    if (!inputSignal) return controller.signal;
+    if (typeof AbortSignal?.any === 'function') return AbortSignal.any([inputSignal, controller.signal]);
+    if (inputSignal.aborted) controller.abort();
+    else inputSignal.addEventListener('abort', () => controller.abort(), {once: true});
+    return controller.signal;
+  }
 
   async function send(input: ChatStreamInput): Promise<SseDoneEvent> {
     const text = input.text.trim();
@@ -84,6 +95,7 @@ export function useChatStream() {
     isSending.value = true;
     error.value = null;
     activePersonaId = input.personaId;
+    const requestSignal = signalFor(input.signal);
     const userId = input.userMessageId ?? idFor('local-user');
     const pendingId = idFor('pending-assistant');
     conversations.addOptimistic(input.personaId, {
@@ -96,7 +108,7 @@ export function useChatStream() {
       id: pendingId,
       role: 'assistant',
       text: '',
-      transient: true
+      transient: 'typing'
     });
     conversations.startStream(input.personaId, pendingId);
 
@@ -120,7 +132,7 @@ export function useChatStream() {
     };
 
     try {
-      const response = await sendChat({personaId: input.personaId, text, attachments: input.attachments}, {signal: input.signal});
+      const response = await sendChat({personaId: input.personaId, text, attachments: input.attachments, userMessageId: userId}, {signal: requestSignal});
       let done: SseDoneEvent | null = null;
       for await (const event of readSse(response)) {
         if (!event) continue;
@@ -139,21 +151,31 @@ export function useChatStream() {
     } catch (caught) {
       cancelScheduled();
       tokenBuffer = '';
-      const message = caught instanceof Error ? caught.message : '发送失败';
+      const message = caught instanceof Error && caught.name === 'AbortError'
+        ? '已取消'
+        : caught instanceof Error ? caught.message : '发送失败';
       conversations.failStream(input.personaId, pendingId, message);
       error.value = message;
       throw caught instanceof ChatStreamError ? caught : new ChatStreamError(message);
     } finally {
       isSending.value = false;
+      activeAbortController = null;
       activePersonaId = null;
     }
   }
 
   function cancel(): void {
-    if (activePersonaId) conversations.setStreamStatus(activePersonaId, 'error', '已取消');
+    if (activePersonaId) {
+      activeAbortController?.abort();
+      conversations.setStreamStatus(activePersonaId, 'error', '已取消');
+    }
   }
 
-  return {isSending, error, send, cancel};
+  function clearError(): void {
+    error.value = null;
+  }
+
+  return {isSending, error, send, cancel, clearError};
 }
 
 export default useChatStream;

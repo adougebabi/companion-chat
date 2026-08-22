@@ -63,14 +63,14 @@ test('resolves DATA_DIR and DATABASE_PATH with COMPANION_* compatibility', () =>
     }
 });
 
-test('default startup applies the complete v1-v13 companion schema', () => {
+test('default startup applies the complete v1-v14 companion schema', () => {
     withRuntime({
         environment: {DATA_DIR: '/ignored-by-explicit-option'},
         now: () => '2026-01-01T00:00:00.000Z',
         id: prefix => `${prefix}_fixture`
     }, (runtime, dataDir) => {
         assert.equal(runtime.dataDir, dataDir);
-        assert.equal(runtime.database.prepare('SELECT COUNT(*) AS count FROM companion_schema_migrations').get().count, 13);
+        assert.equal(runtime.database.prepare('SELECT COUNT(*) AS count FROM companion_schema_migrations').get().count, 14);
         assert.deepEqual(
             runtime.database.prepare('SELECT version, name FROM companion_schema_migrations ORDER BY version').all(),
             [
@@ -86,12 +86,15 @@ test('default startup applies the complete v1-v13 companion schema', () => {
                 [10, 'natural-language-interview-provenance'],
                 [11, 'shared-scene-and-image-generation-policy'],
                 [12, 'prompt-run-observability'],
-                [13, 'prompt-run-response-observability']
+                [13, 'prompt-run-response-observability'],
+                [14, 'persona-affect-and-drive-state']
             ].map(([version, name]) => ({version, name}))
         );
         assert.equal(runtime.database.prepare('PRAGMA table_info(companion_prompt_runs)').all().some(column => column.name === 'response_json'), true);
         assert.equal(runtime.database.prepare('PRAGMA table_info(companion_personas)').all().some(column => column.name === 'group_id'), true);
         assert.equal(runtime.database.prepare('PRAGMA table_info(companion_messages)').all().some(column => column.name === 'proactive_pending_event_id'), true);
+        assert.equal(runtime.database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'companion_persona_affect_states'").get().name, 'companion_persona_affect_states');
+        assert.equal(runtime.database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'companion_persona_affect_events'").get().name, 'companion_persona_affect_events');
         assert.equal(runtime.database.prepare('SELECT payload_json FROM companion_settings WHERE id = 1').get().payload_json.includes('http://127.0.0.1:8000/v1'), true);
     });
 });
@@ -112,13 +115,37 @@ test('startup exposes composition-root database/runtime wiring and idempotent re
         assert.strictEqual(first.database, first.runtimeConfig.database);
         assert.strictEqual(first.runMigrations, first.runtime.runMigrations);
         assert.strictEqual(first.close, first.runtime.close);
-        assert.deepEqual(first.databaseConfig.migrationVersions, Array.from({length: 13}, (_, index) => index + 1));
+        assert.deepEqual(first.databaseConfig.migrationVersions, Array.from({length: 14}, (_, index) => index + 1));
         first.close();
 
         const second = createStartupRuntime(options);
-        assert.equal(second.database.prepare('SELECT COUNT(*) AS count FROM companion_schema_migrations').get().count, 13);
+        assert.equal(second.database.prepare('SELECT COUNT(*) AS count FROM companion_schema_migrations').get().count, 14);
         assert.equal(second.database.prepare('SELECT COUNT(*) AS count FROM companion_groups').get().count, 1);
         second.close();
+    } finally {
+        rmSync(dataDir, {recursive: true, force: true});
+    }
+});
+
+test('v14 affect migration upgrades a database that already has v1-v13 applied', () => {
+    const dataDir = temporaryDirectory();
+    const databasePath = join(dataDir, 'upgrade.sqlite');
+    const baseOptions = {
+        Database,
+        dataDir,
+        databasePath,
+        now: () => '2026-01-01T00:00:00.000Z',
+        id: prefix => `${prefix}_fixture`
+    };
+    try {
+        const before = createStartupRuntime({...baseOptions, migrations: createCompanionMigrations({environment: {}, dataDir}).slice(0, 13)});
+        assert.equal(before.database.prepare('SELECT MAX(version) AS version FROM companion_schema_migrations').get().version, 13);
+        before.close();
+
+        const after = createStartupRuntime(baseOptions);
+        assert.equal(after.database.prepare('SELECT MAX(version) AS version FROM companion_schema_migrations').get().version, 14);
+        assert.equal(after.database.prepare('SELECT COUNT(*) AS count FROM companion_persona_affect_events').get().count, 0);
+        after.close();
     } finally {
         rmSync(dataDir, {recursive: true, force: true});
     }
@@ -148,7 +175,7 @@ test('accepts explicit migrations, clock, and id dependencies without server sid
 
     assert.strictEqual(createRuntimeConfig, createStartupRuntime);
     assert.strictEqual(createServerStartup, createStartupRuntime);
-    assert.equal(createCompanionMigrations({environment: {}, dataDir: '/tmp/data'}).length, 13);
+    assert.equal(createCompanionMigrations({environment: {}, dataDir: '/tmp/data'}).length, 14);
     assert.equal(STARTUP_DEFAULT_PATHS.databaseFilename, 'companion.sqlite');
 
     const source = readFileSync(new URL('../server/runtime/startup.js', import.meta.url), 'utf8');

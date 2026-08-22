@@ -3,14 +3,48 @@ import {contextPromptFor} from './context-contracts.js';
 const DEFAULT_MAX_CHARS = 12_000;
 const DEFAULT_MAX_FRAGMENTS = 24;
 const DEFAULT_MAX_HISTORY = 18;
+const MAX_SECTION_LENGTH = 120;
+const MAX_PROVENANCE_KEYS = 8;
 
 function isRecord(value) { return Boolean(value) && typeof value === 'object' && !Array.isArray(value); }
-function boundedText(value, limit = 2_000) { const text = String(value ?? '').replace(/\s+/g, ' ').trim(); return text.length <= limit ? text : `${text.slice(0, limit - 3)}...`; }
-function fragment(value, source, priority = 0) {
+function boundedText(value, limit = 2_000) {
+    const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+    return text.length <= limit ? text : `${text.slice(0, limit - 3)}...`;
+}
+function boundedSection(value, fallback) {
+    const section = boundedText(value || fallback, MAX_SECTION_LENGTH);
+    return section || fallback;
+}
+function normalizeProvenance(value, fallbackSource) {
+    if (isRecord(value)) {
+        return Object.freeze(Object.fromEntries(Object.entries(value).slice(0, MAX_PROVENANCE_KEYS).map(([key, item]) => [String(key), boundedText(item, 240)])));
+    }
+    return Object.freeze({source: boundedSection(fallbackSource, 'context')});
+}
+function fragment(value, source, priority = 0, options = {}) {
     if (value === undefined || value === null || value === '') return null;
-    const text = typeof value === 'string' ? value : JSON.stringify(value);
-    if (!text.trim()) return null;
-    return Object.freeze({source, priority: Number(priority) || 0, text: boundedText(text)});
+    const sourceValue = isRecord(value) ? value : null;
+    const suppliedText = sourceValue?.text ?? sourceValue?.value ?? value;
+    const text = typeof suppliedText === 'string' ? suppliedText : JSON.stringify(suppliedText);
+    if (!text || !text.trim()) return null;
+    const bounded = boundedText(text);
+    const configuredBudget = sourceValue?.budget ?? options.budget;
+    const budget = configuredBudget === undefined || configuredBudget === null || configuredBudget === ''
+        ? bounded.length
+        : Math.max(0, Math.floor(Number(configuredBudget) || 0));
+    const section = boundedSection(sourceValue?.section ?? options.section ?? source, source || 'context');
+    const numericPriority = Number(sourceValue?.priority ?? options.priority ?? priority);
+    return Object.freeze({
+        // `source` is retained as a compatibility alias while `section` is the
+        // canonical structured context location.
+        source: section,
+        section,
+        priority: Number.isFinite(numericPriority) ? numericPriority : 0,
+        required: sourceValue?.required === true || options.required === true,
+        budget,
+        provenance: normalizeProvenance(sourceValue?.provenance ?? options.provenance, source),
+        text: bounded
+    });
 }
 function sourceList(sources) {
     if (Array.isArray(sources)) return sources;
@@ -48,11 +82,7 @@ function modelMessage(message) {
     return mapped;
 }
 
-/**
- * Serialize the context reader result and ordered history into provider
- * messages. In particular, assistant tool-call metadata and tool result
- * correlation are retained for the single continuation request.
- */
+/** Serialize ordered context and history into provider messages. */
 export function serializePromptMessages({context, messages = [], instruction, maxHistory = DEFAULT_MAX_HISTORY} = {}) {
     const system = contextPromptFor(context);
     const output = system ? [{role: 'system', content: system}] : [];
@@ -62,32 +92,58 @@ export function serializePromptMessages({context, messages = [], instruction, ma
     return output;
 }
 
-/** Shared prompt context pipeline: normalize fragments, budget them, serialize once. */
+/**
+ * Shared prompt context pipeline. Collection normalizes metadata, budget()
+ * selects required sections first and optional sections within the total
+ * budget, and serialize() only renders the already-selected sections.
+ */
 export function createContextPipeline({maxChars = DEFAULT_MAX_CHARS, maxFragments = DEFAULT_MAX_FRAGMENTS, serializer} = {}) {
     const charLimit = Math.max(512, Number(maxChars) || DEFAULT_MAX_CHARS);
     const fragmentLimit = Math.max(1, Math.min(DEFAULT_MAX_FRAGMENTS, Number(maxFragments) || DEFAULT_MAX_FRAGMENTS));
     function collect(input = {}) {
         const values = sourceList(input.fragments ?? input.sources);
         return values.map((item, index) => {
-            if (isRecord(item) && item.text !== undefined) return fragment(item.text, item.source ?? `fragment_${index}`, item.priority);
-            return fragment(item.value, item.source ?? `fragment_${index}`, item.priority);
-        }).filter(Boolean).sort((left, right) => right.priority - left.priority || left.source.localeCompare(right.source));
+            const supplied = isRecord(item) && (item.text !== undefined || item.value !== undefined) ? item : {value: item};
+            const source = supplied.source ?? supplied.section ?? `fragment_${index}`;
+            return fragment(supplied, source, supplied.priority, supplied);
+        }).filter(Boolean).sort((left, right) => Number(right.required) - Number(left.required) || right.priority - left.priority || left.section.localeCompare(right.section));
     }
-    function budget(fragments) {
+    function budget(fragments = []) {
+        if (!Array.isArray(fragments)) throw new TypeError('Context fragments must be an array');
+        const normalized = fragments.map((item, index) => fragment(item, item?.section ?? item?.source ?? `fragment_${index}`, item?.priority, item)).filter(Boolean);
+        const required = normalized.filter(item => item.required);
+        const optional = normalized.filter(item => !item.required);
         const selected = [];
         let used = 0;
-        for (const item of fragments.slice(0, fragmentLimit)) {
-            const extra = item.text.length + (selected.length ? 2 : 0);
-            if (used + extra > charLimit) continue;
+        for (const item of required) {
+            if (selected.length >= fragmentLimit && required.length > fragmentLimit) {
+                // Required context is never discarded because the optional
+                // cap is a performance guard, not a correctness policy.
+            }
             selected.push(item);
-            used += extra;
+            used += item.budget;
         }
-        return Object.freeze({fragments: Object.freeze(selected), used, limit: charLimit});
+        for (const item of optional) {
+            if (selected.length >= fragmentLimit) break;
+            if (used + item.budget > charLimit) continue;
+            selected.push(item);
+            used += item.budget;
+        }
+        return Object.freeze({
+            fragments: Object.freeze(selected),
+            required: Object.freeze(required.slice()),
+            optional: Object.freeze(selected.filter(item => !item.required)),
+            used,
+            limit: charLimit,
+            remaining: Math.max(0, charLimit - used)
+        });
     }
     function serialize(input = {}) {
-        const selected = input.budget?.fragments ?? budget(collect(input)).fragments;
+        const selected = Array.isArray(input?.budget?.fragments)
+            ? input.budget.fragments
+            : Array.isArray(input?.fragments) ? input.fragments : [];
         if (typeof serializer === 'function') return serializer(selected, input);
-        return selected.map(item => `[${item.source}]\n${item.text}`).join('\n\n');
+        return selected.map(item => `[${item.section ?? item.source}]\n${item.text}`).join('\n\n');
     }
     return Object.freeze({collect, budget, serialize, maxChars: charLimit, maxFragments: fragmentLimit});
 }

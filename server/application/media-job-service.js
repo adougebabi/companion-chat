@@ -15,6 +15,7 @@ export const MEDIA_SUBMIT_JOB_TYPES = Object.freeze([
 ]);
 
 export const MEDIA_POLL_JOB_TYPES = Object.freeze(['activity_media_poll', 'chat_media_poll']);
+export const MEDIA_COMPENSATION_JOB_TYPES = Object.freeze(['media_poll_compensation']);
 export const MEDIA_JOB_SERVICE_VERSION = 1;
 
 const DEFAULT_RETRY_DELAY_MS = 1_000;
@@ -128,6 +129,7 @@ function kindFor(job, payload = payloadFor(job)) {
 function operationFor(type) {
     if (MEDIA_SUBMIT_JOB_TYPES.includes(type)) return 'submit';
     if (MEDIA_POLL_JOB_TYPES.includes(type)) return 'poll';
+    if (MEDIA_COMPENSATION_JOB_TYPES.includes(type)) return 'compensate';
     return null;
 }
 
@@ -243,7 +245,11 @@ function associationError(job, payload) {
     const type = jobType(job);
     const activityId = activityIdFor(job);
     const payloadActivityId = payload?.activityId ?? payload?.activity_id ?? null;
-    if (type.startsWith('activity_')) {
+    const sourceType = type === 'media_poll_compensation'
+        ? payload?.sourceJobType ?? payload?.source_job_type
+        : null;
+    const activityJob = type.startsWith('activity_') || String(sourceType || '').startsWith('activity_');
+    if (activityJob) {
         if (!activityId) return new Error('Activity media job requires top-level activityId');
         if (payloadActivityId !== null && payloadActivityId !== undefined && payloadActivityId !== activityId) {
             return new Error('Activity media job activityId does not match its payload');
@@ -289,13 +295,17 @@ export function createMediaJobService({
     const findLeased = methodPort(jobRepository, ['findLeased', 'getLeased', 'isClaimed'], 'job repository lease guard');
     const patchResult = methodPort(jobRepository, ['patchResult', 'recordResult'], 'job repository result writer', {optional: true});
     const findJob = methodPort(jobRepository, ['find', 'findById', 'get'], 'job repository lookup', {optional: true});
+    const findByPayload = methodPort(jobRepository, ['findByPayload', 'findByIdempotencyKey'], 'job repository idempotency lookup', {optional: true});
     const enqueue = methodPort(jobRepository, ['enqueue', 'create', 'insert'], 'job repository enqueue', {optional: true});
     const repositorySettle = methodPort(jobRepository, ['settle', 'settleJob'], 'job repository settlement', {optional: true});
     const repositoryRetry = methodPort(jobRepository, ['retry', 'retryJob'], 'job repository retry', {optional: true});
     const flowRecordResult = methodPort(mediaFlow, ['recordResult', 'recordJobResult', 'patchResult'], 'media flow result writer', {optional: true});
     const flowUpdateTarget = methodPort(mediaFlow, ['updateTarget', 'updateMediaTarget', 'settleTarget'], 'media flow target writer', {optional: true});
+    const flowTargetStatus = methodPort(mediaFlow, ['targetStatus', 'getTargetStatus', 'readTargetStatus'], 'media flow target reader', {optional: true});
     const flowPersistAssets = methodPort(mediaFlow, ['persistAssets', 'mediaAssets', 'saveAssets'], 'media flow asset writer', {optional: true});
     const flowEnqueuePoll = methodPort(mediaFlow, ['enqueuePoll', 'schedulePoll', 'createPollJob'], 'media flow poll enqueue', {optional: true});
+    const flowFindPoll = methodPort(mediaFlow, ['findPoll', 'findPollJob'], 'media flow poll lookup', {optional: true});
+    const flowEnqueueCompensation = methodPort(mediaFlow, ['enqueuePollCompensation', 'schedulePollCompensation'], 'media flow poll compensation enqueue', {optional: true});
     const flowQualityRetry = methodPort(mediaFlow, ['enqueueQualityRetry', 'scheduleQualityRetry'], 'media flow quality retry', {optional: true});
     const observeSettle = methodPort(observability, ['settle'], 'observability settlement', {optional: true});
     const makeReporter = methodPort(observability, ['createReporter'], 'observability reporter', {optional: true});
@@ -453,17 +463,34 @@ export function createMediaJobService({
     }
 
     async function queuePoll(job, provider, externalId, kind, context = {}) {
+        const sourceJobId = jobId(job);
         const payload = payloadFor(job);
+        const idempotencyKey = `media:poll:${sourceJobId}:${externalId}`;
         const pollPayload = {
-            sourceJobId: jobId(job),
+            ...payload,
+            sourceJobId,
             provider: provider.id,
             externalId,
             promptId: externalId,
-            kind
+            kind,
+            idempotencyKey
         };
-        if (flowEnqueuePoll) return methodResult(flowEnqueuePoll({job, payload: pollPayload, now: context.now ?? now()}));
+        if (flowEnqueuePoll) {
+            const queued = await methodResult(flowEnqueuePoll({job, payload: pollPayload, now: context.now ?? now()}));
+            if (!queued) throw new Error('Media poll enqueue returned no job');
+            return queued;
+        }
         if (!enqueue) return null;
         const type = valueFor(job, 'jobType', 'job_type').startsWith('activity_') ? 'activity_media_poll' : 'chat_media_poll';
+        const existing = findByPayload
+            ? await methodResult(findByPayload({
+                personaId: personaId(job),
+                jobType: type,
+                path: '$.idempotencyKey',
+                value: idempotencyKey
+            }))
+            : null;
+        if (existing) return {job: existing, created: false, replayed: true};
         return methodResult(enqueue({
             jobType: type,
             personaId: personaId(job),
@@ -477,15 +504,65 @@ export function createMediaJobService({
         }));
     }
 
+    async function queuePollCompensation(job, provider, externalId, kind, context = {}) {
+        const sourceJobId = jobId(job);
+        const idempotencyKey = `media:poll-compensation:${sourceJobId}:${externalId}`;
+        const sourceJobType = jobType(job);
+        const activityId = valueFor(job, 'activityId', 'activity_id') ?? null;
+        const messageId = valueFor(job, 'messageId', 'message_id') ?? null;
+        const payload = {
+            sourceJobId,
+            sourceJobType,
+            provider: provider.id,
+            externalId,
+            promptId: externalId,
+            kind,
+            ...(activityId ? {activityId} : {}),
+            ...(messageId ? {messageId} : {}),
+            idempotencyKey
+        };
+        if (flowEnqueueCompensation) {
+            const queued = await methodResult(flowEnqueueCompensation({job, payload, now: context.now ?? now()}));
+            if (!queued) throw new Error('Media poll compensation enqueue returned no job');
+            return queued;
+        }
+        if (!enqueue) throw new Error('Media poll compensation enqueue is unavailable');
+        const existing = findByPayload
+            ? await methodResult(findByPayload({
+                personaId: personaId(job),
+                jobType: 'media_poll_compensation',
+                path: '$.idempotencyKey',
+                value: idempotencyKey
+            }))
+            : null;
+        if (existing) return {job: existing, created: false, replayed: true};
+        return methodResult(enqueue({
+            jobType: 'media_poll_compensation',
+            personaId: personaId(job),
+            activityId,
+            messageId,
+            priority: 5,
+            maxAttempts: 60,
+            runAfter: context.now ?? now(),
+            payload,
+            now: context.now ?? now()
+        }));
+    }
+
     async function qualityRetry(job, acceptanceResult, context = {}) {
         const payload = payloadFor(job);
         const used = Number(payload.qualityRetryCount || 0);
         const limit = Number(payload.maxQualityRetries ?? 1);
         if (acceptanceResult.verdict !== 'retry' || used >= limit) return null;
+        const sourceJobId = jobId(job);
+        const retryCount = used + 1;
+        const idempotencyKey = `media:quality-retry:${sourceJobId}:${retryCount}`;
         const retryPayload = {
             ...payload,
-            qualityRetryCount: used + 1,
+            qualityRetryCount: retryCount,
             maxQualityRetries: limit,
+            qualityRetryKey: idempotencyKey,
+            idempotencyKey,
             priorAcceptance: {
                 violations: acceptanceResult.violations || [],
                 retryGuidance: acceptanceResult.retryGuidance || ''
@@ -493,6 +570,15 @@ export function createMediaJobService({
         };
         if (flowQualityRetry) return methodResult(flowQualityRetry({job, payload: retryPayload, acceptance: acceptanceResult, now: context.now ?? now()}));
         if (!enqueue) return null;
+        const existing = findByPayload
+            ? await methodResult(findByPayload({
+                personaId: personaId(job),
+                jobType: jobType(job),
+                path: '$.idempotencyKey',
+                value: idempotencyKey
+            }))
+            : null;
+        if (existing) return {job: existing, created: false, replayed: true};
         return methodResult(enqueue({
             jobType: jobType(job),
             personaId: personaId(job),
@@ -504,6 +590,106 @@ export function createMediaJobService({
             runAfter: context.now ?? now(),
             now: context.now ?? now()
         }));
+    }
+
+    async function targetStatusFor(job, context = {}) {
+        if (!flowTargetStatus) return null;
+        return methodResult(flowTargetStatus({job, now: context.now ?? now()}));
+    }
+
+    async function existingPollFor(sourceJob, externalId) {
+        if (flowFindPoll) {
+            return methodResult(flowFindPoll({job: sourceJob, sourceJobId: jobId(sourceJob), externalId}));
+        }
+        if (!findByPayload) return null;
+        const type = valueFor(sourceJob, 'jobType', 'job_type').startsWith('activity_')
+            ? 'activity_media_poll'
+            : 'chat_media_poll';
+        return methodResult(findByPayload({
+            personaId: personaId(sourceJob),
+            jobType: type,
+            path: '$.idempotencyKey',
+            value: `media:poll:${jobId(sourceJob)}:${externalId}`
+        }));
+    }
+
+    async function settlePendingSubmission(job, provider, externalId, kind, context = {}) {
+        let followUp;
+        try {
+            followUp = await queuePoll(job, provider, externalId, kind, context);
+        } catch (error) {
+            // The source result is already frozen locally. A durable
+            // compensation job is the recovery record for the window between
+            // provider submission and poll insertion.
+            followUp = await queuePollCompensation(job, provider, externalId, kind, context);
+            followUp = {...(followUp || {}), compensation: true, enqueueError: errorText(error)};
+        }
+        const result = {
+            provider: provider.id,
+            externalId,
+            promptId: externalId,
+            pending: true,
+            ...(followUp?.compensation ? {pollCompensationQueued: true} : {pollQueued: true})
+        };
+        const transition = await settle(job, {status: 'complete', result}, context);
+        if (!transition.changed) return {result, transition, stale: true};
+        return {result, transition, stale: false};
+    }
+
+    async function compensatePoll(job, context = {}) {
+        requiredRecord(job, 'job');
+        if (!(await activeLease(job, context))) return outcome('stale', null, null, {changed: false, reason: 'lease_rejected'});
+        const payload = payloadFor(job);
+        const sourceId = payload.sourceJobId ?? payload.source_job_id;
+        if (!sourceId || !findJob) return fail(job, new Error('Media compensation has no source job'), context, {terminal: true, failedStage: 'missing_source_job'});
+        const source = await methodResult(findJob({id: sourceId, personaId: personaId(job)}));
+        if (!source) return fail(job, new Error('Media compensation source job was not found'), context, {terminal: true, failedStage: 'source_job_not_found'});
+        if (valueFor(source, 'status', 'status') !== 'complete') {
+            return fail(job, new Error('Media compensation is waiting for source completion'), context, {failedStage: 'source_not_complete'});
+        }
+        const sourceResult = resultFor(source);
+        const sourceExternalId = sourceResult.externalId ?? sourceResult.promptId;
+        if (typeof sourceExternalId !== 'string' || !sourceExternalId.trim()) {
+            return fail(job, new Error('Media compensation source has no frozen external locator'), context, {terminal: true, failedStage: 'missing_external_locator'});
+        }
+        const payloadExternalId = payload.externalId ?? payload.promptId;
+        if (payloadExternalId !== undefined && payloadExternalId !== sourceExternalId) {
+            return fail(job, new Error('Media compensation locator does not match the source result'), context, {terminal: true, failedStage: 'external_locator_mismatch'});
+        }
+        const externalId = text(sourceExternalId, 'Media compensation external id', MAX_EXTERNAL_ID_LENGTH);
+        const kind = payload.kind === 'video' || payload.kind === 'image'
+            ? payload.kind
+            : kindFor(source, payload);
+        const status = await targetStatusFor(source, context);
+        if (status === null || status === undefined) {
+            return fail(job, new Error('Media compensation target was not found'), context, {terminal: true, failedStage: 'target_not_found'});
+        }
+        if (['ready', 'failed', 'none'].includes(status)) {
+            const result = {skipped: `target_${status}`, sourceJobId: sourceId, externalId};
+            const transition = await settle(job, {status: 'complete', result}, context);
+            return outcome(transition.status ?? 'complete', result, null, {changed: transition.changed, settlement: transition});
+        }
+        if (status !== 'processing') {
+            return fail(job, new Error('Media compensation target is not processing'), context, {terminal: true, failedStage: 'target_not_processing'});
+        }
+        const existing = await existingPollFor(source, externalId);
+        if (existing) {
+            const result = {sourceJobId: sourceId, externalId, pollJobId: jobId(existing), replayed: true};
+            const transition = await settle(job, {status: 'complete', result}, context);
+            return outcome(transition.status ?? 'complete', result, null, {changed: transition.changed, settlement: transition});
+        }
+        const provider = providerFor(providers, kind, payload.provider ?? sourceResult.provider);
+        const queued = await queuePoll(source, provider, externalId, kind, context);
+        const pollJob = queued?.job ?? queued;
+        const result = {
+            sourceJobId: sourceId,
+            externalId,
+            pollJobId: pollJob?.id ?? null,
+            pollQueued: Boolean(queued?.created ?? true),
+            replayed: Boolean(queued?.replayed)
+        };
+        const transition = await settle(job, {status: 'complete', result}, context);
+        return outcome(transition.status ?? 'complete', result, null, {changed: transition.changed, settlement: transition});
     }
 
     async function completeGenerated(job, provider, externalId, files, context = {}, sourceJob = job) {
@@ -544,6 +730,18 @@ export function createMediaJobService({
             return fail(job, new Error('Media job has no valid frozen media concept'), context, {terminal: true, failedStage: 'missing_frozen_media_concept'});
         }
         if (!(await activeLease(job, context))) return outcome('stale', null, null, {changed: false, reason: 'lease_rejected'});
+        const previous = resultFor(job);
+        if (previous.pending === true && (previous.externalId || previous.promptId)) {
+            try {
+                const provider = providerFor(providers, kind, previous.provider ?? payload.provider);
+                await updateTarget(job, {status: 'processing', provider: provider.id, externalId: previous.externalId ?? previous.promptId, promptId: previous.promptId ?? previous.externalId}, context);
+                const recovered = await settlePendingSubmission(job, provider, previous.externalId ?? previous.promptId, kind, context);
+                if (recovered.stale) return outcome('stale', recovered.result, null, {changed: false, reason: 'lease_rejected'});
+                return outcome(recovered.transition.status ?? 'complete', recovered.result, null, {changed: recovered.transition.changed, settlement: recovered.transition, recovered: true});
+            } catch (error) {
+                return fail(job, error, context, {failedStage: 'poll_follow_up'});
+            }
+        }
         let provider;
         let reporter;
         let prompt;
@@ -570,11 +768,12 @@ export function createMediaJobService({
                 return completeGenerated(job, provider, externalId, submitted.files, context, job);
             }
             const result = {...promptResult, externalId, promptId: externalId, pending: true};
+            const savedPending = await writeResult(job, result, context);
+            if (!savedPending.changed) return outcome('stale', null, null, {changed: false, reason: 'lease_rejected'});
             await updateTarget(job, {status: 'processing', provider: provider.id, externalId, promptId: externalId}, context);
-            const transition = await settle(job, {status: 'complete', result}, context);
-            if (!transition.changed) return outcome('stale', result, null, {changed: false, reason: 'lease_rejected'});
-            await queuePoll(job, provider, externalId, kind, context);
-            return outcome('complete', result, null, {changed: true, settlement: transition});
+            const followUp = await settlePendingSubmission(job, provider, externalId, kind, context);
+            if (followUp.stale) return outcome('stale', followUp.result, null, {changed: false, reason: 'lease_rejected'});
+            return outcome(followUp.transition.status ?? 'complete', followUp.result, null, {changed: followUp.transition.changed, settlement: followUp.transition});
         } catch (error) {
             reporter?.flush?.();
             return fail(job, error, context, {failedStage: provider ? 'provider' : 'prompt_master', result: prompt ? {finalPrompt: prompt.finalPrompt} : undefined});
@@ -601,12 +800,17 @@ export function createMediaJobService({
     }
 
     function handlerFor(type, operation) {
-        return async (job, context = {}) => (operation === 'submit' ? submit(job, context) : poll(job, context));
+        return async (job, context = {}) => {
+            if (operation === 'submit') return submit(job, context);
+            if (operation === 'poll') return poll(job, context);
+            return compensatePoll(job, context);
+        };
     }
 
     const handlerMap = {};
     for (const type of MEDIA_SUBMIT_JOB_TYPES) handlerMap[type] = handlerFor(type, 'submit');
     for (const type of MEDIA_POLL_JOB_TYPES) handlerMap[type] = handlerFor(type, 'poll');
+    for (const type of MEDIA_COMPENSATION_JOB_TYPES) handlerMap[type] = handlerFor(type, 'compensate');
     Object.freeze(handlerMap);
 
     function register(target, options = {}) {
@@ -625,6 +829,7 @@ export function createMediaJobService({
         handlerMap,
         submit,
         poll,
+        compensatePoll,
         settle,
         register,
         list() { return Object.keys(handlerMap); },

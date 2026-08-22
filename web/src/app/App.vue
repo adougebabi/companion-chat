@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue';
 import { useAppStore } from '../stores/app';
 import { useConversationsStore } from '../stores/conversations';
 import { useActivitiesStore } from '../stores/activities';
@@ -11,15 +11,17 @@ import AppDialog from '../components/shell/AppDialog.vue';
 import AppRail from '../components/shell/AppRail.vue';
 import AppSidebar from '../components/shell/AppSidebar.vue';
 import MobileNav from '../components/shell/MobileNav.vue';
-import InspectorPanel from '../components/inspector/InspectorPanel.vue';
-import PersonaDetail from '../components/persona/PersonaDetail.vue';
-import PersonaWizard from '../components/persona/PersonaWizard.vue';
-import SettingsForm from '../components/settings/SettingsForm.vue';
-import type { ContactGroup, Message, PersonaDetailData, PersonaSummary, SettingsSnapshot, ViewName } from '../components/types';
+import HiddenActivitiesPanel from '../components/activity/HiddenActivitiesPanel.vue';
+import type { ContactGroup, H3PreflightResult, InspectorActionResult, Message, PersonaDetailData, PersonaSummary, SettingsSnapshot, ViewName } from '../components/types';
 import ActivityView from '../views/ActivityView.vue';
 import ChatView from '../views/ChatView.vue';
 import ContactsView from '../views/ContactsView.vue';
-import SettingsView from '../views/SettingsView.vue';
+
+const InspectorPanel = defineAsyncComponent(() => import('../components/inspector/InspectorPanel.vue'));
+const PersonaDetail = defineAsyncComponent(() => import('../components/persona/PersonaDetail.vue'));
+const PersonaWizard = defineAsyncComponent(() => import('../components/persona/PersonaWizard.vue'));
+const SettingsForm = defineAsyncComponent(() => import('../components/settings/SettingsForm.vue'));
+const SettingsView = defineAsyncComponent(() => import('../views/SettingsView.vue'));
 
 // Stores own API calls and stream/history side effects. This shell only maps
 // store snapshots to views and turns user intent into store actions.
@@ -61,9 +63,17 @@ const settingsError = ref<string | null>(null);
 const inspectorOpen = ref(false);
 const inspectorLoading = ref(false);
 const inspectorError = ref<string | null>(null);
+const inspectorActionError = ref<string | null>(null);
+const inspectorActionBusy = ref(false);
+const inspectorPreflight = ref<H3PreflightResult | null>(null);
+const inspectorActionResult = ref<InspectorActionResult | null>(null);
+const hiddenOpen = ref(false);
+const hiddenPersonaId = ref<string | null>(null);
+const draftByPersona = reactive<Record<string, string>>({});
 const draft = composer.draft;
 const isComposing = composer.isComposing;
 const isSending = composer.isSending;
+const sendError = computed(() => composer.error.value || chatStream.error.value);
 
 const boot = computed(() => app.boot);
 const personas = computed<PersonaSummary[]>(() => app.personas);
@@ -78,6 +88,9 @@ const currentConversation = computed(() => {
 const conversationMessages = computed<Message[]>(() => currentConversation.value.items as unknown as Message[] || []);
 const wizardPreviewData = computed(() => wizardPreview.value || undefined);
 const activityState = activityFeed.state;
+const hiddenActivityState = computed(() => hiddenPersonaId.value ? activities.getHidden(hiddenPersonaId.value) : {
+  items: [], nextCursor: null, hasMore: false, loading: false, loadingMore: false, error: null, pagesLoaded: 0
+});
 
 function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -92,9 +105,11 @@ function navigate(nextView: ViewName) {
 }
 
 async function selectPersona(id: string) {
+  const previousId = activePersonaId.value;
+  if (previousId) draftByPersona[previousId] = draft.value;
   view.value = 'chat';
-  composer.setDraft('');
   app.selectPersona(id);
+  composer.setDraft(draftByPersona[id] ?? '');
   await conversations.loadInitial(id).catch(() => undefined);
 }
 
@@ -149,7 +164,7 @@ async function createPersona(values: Record<string, unknown>) {
   wizardBusy.value = true;
   wizardError.value = null;
   try {
-    const created = await app.createPersona({ ...values, description: wizardDescription.value });
+    const created = await app.createPersona(values);
     wizardOpen.value = false;
     if (created?.id) await selectPersona(created.id);
     else await app.bootstrap({force: true});
@@ -167,6 +182,11 @@ async function saveSettings(nextSettings: SettingsSnapshot) {
 
 async function sendMessage() {
   await composer.submit().catch(() => undefined);
+}
+
+function dismissSendError() {
+  composer.clearError();
+  chatStream.clearError();
 }
 
 async function loadOlder() { if (activePersonaId.value) await conversations.loadOlder(activePersonaId.value).catch(() => undefined); }
@@ -198,6 +218,9 @@ async function openInspector(id: string) {
   inspectorOpen.value = true;
   inspectorLoading.value = true;
   inspectorError.value = null;
+  inspectorActionError.value = null;
+  inspectorPreflight.value = null;
+  inspectorActionResult.value = null;
   try { await app.loadInspector(id); }
   catch (error) { inspectorError.value = error instanceof Error ? error.message : '检查器暂时不可用。'; }
   finally { inspectorLoading.value = false; }
@@ -205,7 +228,20 @@ async function openInspector(id: string) {
 
 async function refreshInspector() { if (activePersonaId.value) await openInspector(activePersonaId.value); }
 function openPersonaActivity(id: string) { detailOpen.value = false; activityPersonaId.value = id; view.value = 'activity'; void refreshActivities().catch(() => {}); }
-function deletePersona(id: string) { void app.deletePersona(id).then(() => { detailOpen.value = false; }).catch(() => {}); }
+async function deletePersona(id: string) {
+  const deletingActive = activePersonaId.value === id;
+  try {
+    await app.deletePersona(id);
+    detailOpen.value = false;
+    if (deletingActive) {
+      view.value = 'contacts';
+      composer.setDraft('');
+    }
+  } catch {
+    // The detail view owns its existing action feedback; deletion failure must
+    // not navigate away from the current persona.
+  }
+}
 function screenPersona(id: string) { void app.screenPersona(id).catch(() => {}); }
 function saveGroup(id: string, groupId: string | null) { void app.assignPersonaGroup(id, groupId).catch(() => {}); }
 function savePolicy(id: string, policy: string) { void app.updateImageGenerationPolicy(id, policy).catch(() => {}); }
@@ -215,7 +251,52 @@ function restoreFoundation(personaId: string, revisionId: string) { void app.res
 function editFoundation(id: string) { void app.editFoundation(id).catch(() => {}); }
 function rescheduleSchedule(personaId: string, scheduleId: string) { void app.rescheduleSchedule(personaId, scheduleId).catch(() => {}); }
 function cancelSchedule(personaId: string, scheduleId: string) { void app.cancelSchedule(personaId, scheduleId).catch(() => {}); }
-function hiddenActivities(id: string) { void app.loadHiddenActivities(id).catch(() => {}); }
+async function hiddenActivities(id: string) {
+  hiddenPersonaId.value = id;
+  hiddenOpen.value = true;
+  await activities.loadHiddenInitial(id).catch(() => undefined);
+}
+async function loadMoreHiddenActivities() {
+  if (hiddenPersonaId.value) await activities.loadHiddenMore(hiddenPersonaId.value).catch(() => undefined);
+}
+async function retryHiddenActivities() {
+  if (hiddenPersonaId.value) await activities.loadHiddenInitial(hiddenPersonaId.value).catch(() => undefined);
+}
+async function restoreHiddenActivity(id: string) {
+  if (!hiddenPersonaId.value) return;
+  try { await activities.restore(id, hiddenPersonaId.value); }
+  catch (error) { inspectorActionError.value = error instanceof Error ? error.message : '恢复动态失败。'; }
+}
+function closeHiddenActivities() { hiddenOpen.value = false; hiddenPersonaId.value = null; }
+
+async function runH3Preflight() {
+  if (!activePersonaId.value) return;
+  inspectorActionBusy.value = true;
+  inspectorActionError.value = null;
+  try { inspectorPreflight.value = await app.runH3Preflight(); }
+  catch (error) { inspectorActionError.value = error instanceof Error ? error.message : 'h3 预检失败。'; }
+  finally { inspectorActionBusy.value = false; }
+}
+async function simulateInspector(input: Record<string, unknown>) {
+  if (!activePersonaId.value) return;
+  inspectorActionBusy.value = true;
+  inspectorActionError.value = null;
+  try { inspectorActionResult.value = await app.simulatePersona(activePersonaId.value, {...input, publish: true}); await app.bootstrap({force: true}); }
+  catch (error) { inspectorActionError.value = error instanceof Error ? error.message : '模拟事件失败。'; }
+  finally { inspectorActionBusy.value = false; }
+}
+async function debugMedia(input: Record<string, unknown>) {
+  if (!activePersonaId.value) return;
+  inspectorActionBusy.value = true;
+  inspectorActionError.value = null;
+  try {
+    const result = await app.debugMedia(activePersonaId.value, input);
+    await refreshInspector();
+    inspectorActionResult.value = result;
+  }
+  catch (error) { inspectorActionError.value = error instanceof Error ? error.message : '测试媒体作业失败。'; }
+  finally { inspectorActionBusy.value = false; }
+}
 function activityLike(id: string) {
   const item = activityState.value.items.find(activity => activity.id === id);
   void activities.like(id, !(item?.liked ?? false), activityPersonaId.value).catch(() => {});
@@ -232,6 +313,11 @@ function showAllActivities() { activityPersonaId.value = null; void refreshActiv
 onMounted(() => {
   void bootstrap.start().catch(() => {}).finally(() => bootstrap.startPolling());
 });
+
+watch(draft, value => {
+  const id = activePersonaId.value;
+  if (id) draftByPersona[id] = value;
+});
 </script>
 
 <template>
@@ -241,7 +327,7 @@ onMounted(() => {
     <main class="main-pane">
       <div v-if="boot === 'error'" class="startup-error" role="alert"><h1>联系人暂时无法加载</h1><p>请检查服务状态后重试。</p><button class="primary" type="button" @click="bootstrap.start().catch(() => {})">重试</button></div>
       <ContactsView v-else-if="view === 'contacts'" :personas="personas" :groups="groups" :selected-group-id="selectedGroupId" :loading="boot === 'loading'" @select-persona="selectPersona" @create="openWizard" @select-group="openGroups" />
-      <ChatView v-else-if="view === 'chat' && activePersona" :persona="activePersona" :messages="conversationMessages" :draft="draft" :loading="currentConversation.loadingInitial" :loading-older="currentConversation.loadingOlder" :history-error="currentConversation.historyError" :has-more="currentConversation.hasMore" :is-sending="isSending || currentConversation.stream?.status === 'sending'" :is-composing="isComposing" :debug-inspector="Boolean(app.debugInspector)" :simplified-media="Boolean(settings.simplifiedMediaMode)" @back="navigate('contacts')" @profile="openDetail(activePersona.id)" @tools="app.debugInspector ? openInspector(activePersona.id) : openSettings()" @load-older="loadOlder" @retry-history="retryHistory" @prompt="prompt" @update:draft="composer.setDraft($event)" @submit="sendMessage" @composition-start="composer.onCompositionStart" @composition-end="composer.onCompositionEnd" />
+      <ChatView v-else-if="view === 'chat' && activePersona" :persona="activePersona" :messages="conversationMessages" :draft="draft" :loading="currentConversation.loadingInitial" :loading-older="currentConversation.loadingOlder" :history-error="currentConversation.historyError" :has-more="currentConversation.hasMore" :is-sending="isSending || currentConversation.stream?.status === 'sending'" :is-composing="isComposing" :send-error="sendError" :debug-inspector="Boolean(app.debugInspector)" :simplified-media="Boolean(settings.simplifiedMediaMode)" @back="navigate('contacts')" @profile="openDetail(activePersona.id)" @tools="app.debugInspector ? openInspector(activePersona.id) : openSettings()" @load-older="loadOlder" @retry-history="retryHistory" @prompt="prompt" @update:draft="composer.setDraft($event)" @submit="sendMessage" @composition-start="composer.onCompositionStart" @composition-end="composer.onCompositionEnd" @selection-change="composer.setSelection" @dismiss-send-error="dismissSendError" />
       <ActivityView v-else-if="view === 'activity'" :items="activityState.items" :personas="personas" :persona-id="activityPersonaId" :next-cursor="activityState.nextCursor" :loading="activityState.loading" :loading-more="activityState.loadingMore" :error="activityState.error" :commenting-id="activities.commentingId" :simplified-media="Boolean(settings.simplifiedMediaMode)" @refresh="refreshActivities" @load-more="loadMoreActivities" @retry="retryActivities" @open-persona="openDetail" @like="activityLike" @hide="activityHide" @comment="activityComment" @cancel-comment="cancelComment" @submit-comment="activitySubmitComment" @chat="selectPersona" @all="showAllActivities" />
       <SettingsView v-else @system="openSettings" @create="openWizard" @personas="navigate('contacts')" />
     </main>
@@ -250,6 +336,7 @@ onMounted(() => {
     <AppDialog v-model:open="wizardOpen" size="large" labelled-by="persona-dialog-title"><PersonaWizard :stage="wizardStage" :description="wizardDescription" :preview="wizardPreviewData" :analyzing="wizardBusy && wizardStage === 'description'" :creating="wizardBusy && wizardStage === 'preview'" :error="wizardError" @close="wizardOpen = false" @analyze="analyzePersona" @back="wizardStage = 'description'" @create="createPersona" /></AppDialog>
     <AppDialog v-model:open="detailOpen" size="large" labelled-by="persona-detail-title"><PersonaDetail v-if="detail" :detail="detail" :groups="groups" :loading="detailLoading" @close="closeDetail" @chat="selectPersona" @activity="openPersonaActivity" @delete="deletePersona" @screen="screenPersona" @save-group="saveGroup" @save-policy="savePolicy" @delete-memory="deleteMemory" @rollback="rollbackEvolution" @restore-foundation="restoreFoundation" @edit-foundation="editFoundation" @reschedule="rescheduleSchedule" @cancel-schedule="cancelSchedule" @hidden-activities="hiddenActivities" /></AppDialog>
     <AppDialog v-model:open="settingsOpen" size="medium" labelled-by="settings-dialog-title"><SettingsForm :settings="settings" :saving="settingsBusy" :error="settingsError" @close="settingsOpen = false" @save="saveSettings" /></AppDialog>
-    <AppDialog v-model:open="inspectorOpen" size="large" labelled-by="inspector-dialog-title"><InspectorPanel :persona="detail" :media-jobs="app.inspector?.mediaJobs || []" :lifecycle="app.inspector?.lifecycle" :debug-context="app.inspector?.debugContext" :loading="inspectorLoading" :error="inspectorError" @close="inspectorOpen = false" @refresh="refreshInspector" @retry="refreshInspector" /></AppDialog>
+    <AppDialog v-model:open="inspectorOpen" size="large" labelled-by="inspector-dialog-title"><InspectorPanel :persona="detail" :media-jobs="app.inspector?.mediaJobs || []" :lifecycle="app.inspector?.lifecycle" :debug-context="app.inspector?.debugContext" :loading="inspectorLoading" :error="inspectorError || inspectorActionError" :action-busy="inspectorActionBusy" :h3-result="inspectorPreflight" :action-result="inspectorActionResult" @close="inspectorOpen = false" @refresh="refreshInspector" @retry="refreshInspector" @h3-preflight="runH3Preflight" @simulate="simulateInspector" @debug-media="debugMedia" /></AppDialog>
+    <AppDialog v-model:open="hiddenOpen" size="medium" labelled-by="hidden-activities-title"><HiddenActivitiesPanel :persona-id="hiddenPersonaId" :items="hiddenActivityState.items" :next-cursor="hiddenActivityState.nextCursor" :loading="hiddenActivityState.loading" :loading-more="hiddenActivityState.loadingMore" :error="hiddenActivityState.error || inspectorActionError" @close="closeHiddenActivities" @load-more="loadMoreHiddenActivities" @retry="retryHiddenActivities" @restore="restoreHiddenActivity" /></AppDialog>
   </div>
 </template>

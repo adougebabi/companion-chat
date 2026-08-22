@@ -1,4 +1,5 @@
 import {randomUUID} from 'node:crypto';
+import {createFlowEffectAdapter} from './flow-effect-adapter.js';
 
 export const PENDING_EVENT_FLOW_VERSION = 1;
 export const PENDING_EVENT_SCHEMA_VERSION = 1;
@@ -259,7 +260,7 @@ function transactionRunner(transaction, work) {
     throw new TypeError('Pending-event transaction must be a function or provide transaction()/run()');
 }
 
-export function createPendingEventFlow({repositories, clock, idGenerator, normalizeCall, normalizePendingEventCall: injectedNormalizer, transaction} = {}) {
+export function createPendingEventFlow({repositories, clock, idGenerator, normalizeCall, normalizePendingEventCall: injectedNormalizer, transaction, effectAdapter} = {}) {
     if (!isRecord(repositories)) throw new TypeError('Pending-event flow repositories must be an object');
     const pendingRepository = resolveRepository(repositories, ['pendingEventRepository', 'pendingRepository', 'pendingEvent', 'pending'], 'pending event repository');
     const pendingFind = methodFor(pendingRepository, ['findByDedupeKey'], 'pending event repository');
@@ -268,6 +269,7 @@ export function createPendingEventFlow({repositories, clock, idGenerator, normal
     const pendingEnsure = methodFor(pendingRepository, ['ensureLinkedJob'], 'pending event repository', {optional: true});
     const jobRepository = resolveRepository(repositories, ['jobRepository', 'job', 'effectRepository'], 'job repository', {optional: true});
     const jobEnqueue = jobRepository ? methodFor(jobRepository, ['enqueue'], 'job repository', {optional: true}) : null;
+    const effectsPort = effectAdapter ?? (jobEnqueue ? createFlowEffectAdapter({jobRepository, clock, idGenerator}) : null);
     const sourceLookup = sourceLookupFor(repositories);
     // Keep the life-event port in the composition dependency set without using
     // it to persist pending authorization: pending rows are not life facts.
@@ -276,7 +278,7 @@ export function createPendingEventFlow({repositories, clock, idGenerator, normal
     const generateId = idFunction(idGenerator);
     const normalizer = normalizeCall ?? injectedNormalizer;
     if (normalizer !== undefined && typeof normalizer !== 'function') throw new TypeError('Pending-event flow normalizeCall must be a function');
-    if (!pendingEnsure && !jobEnqueue) throw new TypeError('Pending-event flow requires pending.ensureLinkedJob() or job.enqueue()');
+    if (!pendingEnsure && !effectsPort) throw new TypeError('Pending-event flow requires pending.ensureLinkedJob() or a flow effect adapter');
 
     function plan(first, value, sourceMessageId, provenance = {}) {
         const command = typeof first === 'string'
@@ -362,15 +364,21 @@ export function createPendingEventFlow({repositories, clock, idGenerator, normal
             }
         };
         let linked;
-        if (pendingEnsure) {
+        if (pendingEnsure && !effectAdapter) {
             linked = pendingEnsure({personaId: planValue.personaId, pendingEventId: row.id, job: jobInput});
         } else {
             const prior = pendingLinked({personaId: planValue.personaId, pendingEventId: row.id});
             if (prior) linked = {job: prior, created: false};
             else {
-                const queued = jobEnqueue(jobInput);
+                const queued = effectsPort.publish({
+                    ...jobInput,
+                    effectId: `effect_pending_${row.id}`,
+                    kind: 'pending_event',
+                    capability: 'pending',
+                    idempotencyKey: state.provenance.idempotencyKey ?? `pending:${row.id}`
+                }, {personaId: planValue.personaId, causationId: state.provenance.idempotencyKey ?? row.id, now: row.updatedAt ?? now()});
                 const persisted = pendingLinked({personaId: planValue.personaId, pendingEventId: row.id});
-                linked = {job: persisted || queued || null, created: true};
+                linked = {job: persisted || queued?.job || queued || null, created: queued?.created ?? true};
             }
         }
         if (linked && typeof linked.then === 'function') throw new TypeError('Pending-event job settlement must be synchronous');

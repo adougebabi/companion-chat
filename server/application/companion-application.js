@@ -7,6 +7,8 @@ import {createTimelineFlow} from './timeline-flow.js';
 import {createRelationshipFlow} from './relationship-flow.js';
 import {createCompanionChatService} from './chat-service.js';
 import {createCapabilityHandoffAdapter, createFlowCapabilityRegistry} from './capability-handoff-adapter.js';
+import {createFlowEffectAdapter, registerFlowAdapter} from './flow-effect-adapter.js';
+import {createFlowRegistry} from './flow-registry.js';
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -36,6 +38,8 @@ const CHAT_PORT_NAMES = Object.freeze([
     'conversationCommitAdapter',
     'assistantCommitAdapter',
     'chatCommitBoundary',
+    'affectFlow',
+    'structuredTurnControl',
     'sendSse',
     'end',
     'errorMapper'
@@ -106,7 +110,11 @@ export function createCompanionApplication(options = {}) {
     const repositories = isRecord(options.repositories) ? options.repositories : {};
     const clock = options.clock;
     const idGenerator = options.idGenerator ?? options.id;
-    const flowOptions = {repositories, clock, idGenerator};
+    const flowRegistry = options.flowRegistry ?? createFlowRegistry();
+    const jobRepository = repositories.job ?? repositories.jobRepository;
+    const effectAdapter = options.effectAdapter
+        ?? (jobRepository?.enqueue ? createFlowEffectAdapter({jobRepository, clock, idGenerator}) : null);
+    const flowOptions = {repositories, clock, idGenerator, effectAdapter};
     const lifeEventFlow = options.lifeEventFlow ?? (repositories.lifeEvent || repositories.life
         ? optionalFactory(createLifeEventFlow, {...flowOptions, transaction: options.transaction})
         : null);
@@ -117,7 +125,8 @@ export function createCompanionApplication(options = {}) {
         ? optionalFactory(createPendingEventFlow, {
             ...flowOptions,
             normalizeCall: options.normalizePendingEventCall,
-            transaction: options.transaction
+            transaction: options.transaction,
+            effectAdapter
         })
         : null);
     const sceneEventFlow = options.sceneEventFlow ?? (options.stateRepository || repositories.state
@@ -147,11 +156,17 @@ export function createCompanionApplication(options = {}) {
             mediaMessagePlaceholder: options.mediaMessagePlaceholder,
             messageShape: options.messageShape,
             providerFor: options.providerFor,
-            transaction: options.transaction
+            transaction: options.transaction,
+            effectAdapter
         })
         : null);
     const capabilityRegistry = options.capabilityRegistry ?? options.registry
-        ?? createFlowCapabilityRegistry({pendingEventFlow, sceneEventFlow, mediaFlow});
+        ?? createFlowCapabilityRegistry({
+            pendingEventFlow,
+            sceneEventFlow,
+            mediaFlow,
+            memoryEventFlow: options.memoryEventFlow ?? options.memoryFlow
+        });
     const capabilityDispatcher = options.capabilityDispatcher
         ?? (Object.keys(capabilityRegistry).length
             ? createCapabilityHandoffAdapter({registry: capabilityRegistry})
@@ -160,8 +175,30 @@ export function createCompanionApplication(options = {}) {
         const chatOptions = chatOptionsFrom(options);
         if (!chatOptions) return null;
         if (chatOptions.capabilityDispatcher === undefined && capabilityDispatcher) chatOptions.capabilityDispatcher = capabilityDispatcher;
+        if (chatOptions.registry === undefined) chatOptions.registry = flowRegistry;
         return createCompanionChatService(chatOptions);
     })();
+    registerFlowAdapter(flowRegistry, {id: 'life-event', flow: lifeEventFlow, execute: lifeEventFlow?.record?.bind(lifeEventFlow), version: lifeEventFlow?.version ?? 1});
+    registerFlowAdapter(flowRegistry, {id: 'timeline', flow: timelineFlow, execute: timelineFlow?.evaluate?.bind(timelineFlow), version: timelineFlow?.version ?? 1});
+    registerFlowAdapter(flowRegistry, {id: 'relationship', flow: relationshipFlow, execute: relationshipFlow?.evolve?.bind(relationshipFlow), version: relationshipFlow?.version ?? 1});
+    registerFlowAdapter(flowRegistry, {
+        id: 'pending-event-capability',
+        flow: pendingEventFlow,
+        execute: pendingEventFlow ? command => pendingEventFlow.apply(pendingEventFlow.plan(command)) : null,
+        version: pendingEventFlow?.version ?? 1
+    });
+    registerFlowAdapter(flowRegistry, {
+        id: 'scene-event',
+        flow: sceneEventFlow,
+        execute: sceneEventFlow ? command => sceneEventFlow.apply(sceneEventFlow.plan(command)) : null,
+        version: sceneEventFlow?.version ?? 1
+    });
+    registerFlowAdapter(flowRegistry, {
+        id: 'media',
+        flow: mediaFlow,
+        execute: mediaFlow ? command => mediaFlow.apply(mediaFlow.plan(command)) : null,
+        version: mediaFlow?.version ?? 1
+    });
     const services = {
         ...(isRecord(options.services) ? options.services : {}),
         ...(chatService ? {chat: chatService} : {}),
@@ -192,6 +229,9 @@ export function createCompanionApplication(options = {}) {
         timelineFlow,
         relationshipFlow,
         mediaFlow,
+        flowRegistry,
+        flows: flowRegistry,
+        effectAdapter,
         capabilityDispatcher,
         chatService,
         chatRoute,

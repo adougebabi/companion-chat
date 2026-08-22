@@ -98,7 +98,9 @@ export function createCapabilityHandoffStep({dispatcher}) {
         layer: 'application',
         dependencies: [{id: 'capability-contract', layer: 'contracts'}],
         async run(context = {}, command = {}) {
-            const calls = Array.isArray(command.capabilityCalls) ? command.capabilityCalls.map(normalizeCapabilityCall) : [];
+            const calls = Array.isArray(command.capabilityCalls)
+                ? command.capabilityCalls.map(call => normalizeCapabilityCall(call, {allowStructured: true}))
+                : [];
             const rawOutcome = await dispatcher.dispatch({
                 mode: command.mode ?? command.completion?.capabilityMode ?? 'execute',
                 calls,
@@ -110,7 +112,7 @@ export function createCapabilityHandoffStep({dispatcher}) {
                     correlationId: context.correlationId || command.correlationId || null
                 }
             });
-            const outcome = normalizeCapabilityDispatch(rawOutcome);
+            const outcome = normalizeCapabilityDispatch(rawOutcome, {allowStructured: true});
             return {
                 facts: [],
                 projections: [],

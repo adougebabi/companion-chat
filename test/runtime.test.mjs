@@ -53,7 +53,7 @@ test('runtime composes temporary SQLite, HTTP app, and worker lifecycle', async 
     });
     try {
         assert.equal(runtime.state, 'created');
-        assert.equal(runtime.database.prepare('SELECT COUNT(*) AS count FROM companion_schema_migrations').get().count, 13);
+        assert.equal(runtime.database.prepare('SELECT COUNT(*) AS count FROM companion_schema_migrations').get().count, 14);
         await runtime.start();
         assert.equal(runtime.state, 'running');
         assert.equal(runtime.server, listener);

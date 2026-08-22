@@ -1,6 +1,7 @@
 import express from 'express';
 import {basename, dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {brotliCompressSync, constants as zlibConstants, gzipSync} from 'node:zlib';
 
 const DEFAULT_JSON_LIMIT = '12mb';
 const DEFAULT_API_CACHE_CONTROL = 'no-store, max-age=0';
@@ -138,8 +139,56 @@ function staticHeaders(options) {
         } else if (pathParts.includes('assets')) {
             responseHeaders(res, {'Cache-Control': VERSIONED_STATIC_CACHE_CONTROL});
         }
+        if (options.staticCompression !== false) installStaticCompression(res, filePath);
         if (typeof configured === 'function') configured(res, filePath);
     };
+}
+
+function installStaticCompression(res, filePath) {
+    const req = res?.req;
+    const path = String(filePath).split('?')[0];
+    const encoding = acceptedStaticEncoding(req);
+    if (req?.method === 'HEAD' || req?.method !== 'GET' || !path.split(/[\\/]/).includes('assets') || !/\.(?:css|html|js|json|map|svg|wasm)$/i.test(path) || !encoding || res?.__companionStaticCompression) return;
+    if (!res) return;
+    res.__companionStaticCompression = true;
+    const chunks = [];
+    const originalEnd = res.end.bind(res);
+    res.write = (chunk, chunkEncoding, callback) => {
+        if (chunk !== undefined && chunk !== null) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, chunkEncoding));
+        if (typeof callback === 'function') process.nextTick(callback);
+        return true;
+    };
+    res.end = (chunk, chunkEncoding, callback) => {
+        if (typeof chunkEncoding === 'function') {
+            callback = chunkEncoding;
+            chunkEncoding = undefined;
+        }
+        if (chunk !== undefined && chunk !== null) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, chunkEncoding));
+        const body = chunks.length ? Buffer.concat(chunks) : Buffer.alloc(0);
+        const existingEncoding = res.getHeader?.('Content-Encoding');
+        if (body.length && !existingEncoding) {
+            const compressed = compressStaticBody(body, encoding);
+            res.setHeader?.('Content-Encoding', encoding);
+            res.setHeader?.('Vary', 'Accept-Encoding');
+            res.removeHeader?.('Content-Length');
+            return originalEnd(compressed, callback);
+        }
+        return originalEnd(body.length ? body : undefined, callback);
+    };
+}
+
+function acceptedStaticEncoding(req) {
+    const header = String(req?.headers?.['accept-encoding'] ?? req?.get?.('accept-encoding') ?? '').toLowerCase();
+    if (/\bbr\b/.test(header)) return 'br';
+    if (/\bgzip\b/.test(header)) return 'gzip';
+    return null;
+}
+
+function compressStaticBody(body, encoding) {
+    if (encoding === 'br') {
+        return brotliCompressSync(body, {params: {[zlibConstants.BROTLI_PARAM_QUALITY]: 5}});
+    }
+    return gzipSync(body, {level: 6});
 }
 
 function apiCacheMiddleware(options) {
@@ -258,7 +307,7 @@ export function createHttpApp(options = {}) {
     app.use(expressFactory.json({limit: options.jsonLimit ?? DEFAULT_JSON_LIMIT}));
     app.use('/api', apiCacheMiddleware(options));
     app.use(expressFactory.static(resolveStaticRoot(options), {
-        setHeaders: staticHeaders(options)
+        setHeaders: options.staticCompression === false ? staticHeaders({...options, staticCompression: false}) : staticHeaders(options)
     }));
 
     registerHealthRoute({app, options});

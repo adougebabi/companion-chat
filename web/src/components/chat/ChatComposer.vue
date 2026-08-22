@@ -11,7 +11,7 @@ const emit = defineEmits<{
   (event: 'update:modelValue', value: string): void;
   (event: 'submit'): void;
   (event: 'composition-start'): void;
-  (event: 'composition-end'): void;
+  (event: 'composition-end', value: CompositionEvent): void;
   (event: 'selection-change', start: number, end: number): void;
 }>();
 
@@ -37,6 +37,10 @@ function onSelection(event: Event) {
   emit('selection-change', target.selectionStart || 0, target.selectionEnd || 0);
 }
 
+function onCompositionEnd(event: CompositionEvent) {
+  emit('composition-end', event);
+}
+
 async function focus() {
   await nextTick();
   textarea.value?.focus({ preventScroll: true });
@@ -59,9 +63,8 @@ defineExpose({ textarea, focus });
       @select="onSelection"
       @keyup="onSelection"
       @compositionstart="emit('composition-start')"
-      @compositionend="emit('composition-end')"
+      @compositionend="onCompositionEnd"
     />
     <button class="send-button" type="submit" aria-label="发送" title="发送" :disabled="disabled || !localValue.trim()">↑</button>
   </form>
 </template>
-

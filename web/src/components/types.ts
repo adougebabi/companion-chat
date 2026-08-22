@@ -65,7 +65,54 @@ export interface ActivityItem {
   comments?: ActivityComment[] | null;
 }
 
+export interface H3ConfigCheck {
+  configured: boolean;
+  valid: boolean;
+  displayName?: string;
+  error?: string;
+}
+
+export interface H3ConfigSummary {
+  executable?: H3ConfigCheck;
+  modelDir?: H3ConfigCheck;
+  outputDir?: H3ConfigCheck;
+}
+
+export interface MediaProviderSummary {
+  id: string;
+  label?: string;
+  capabilities?: string[];
+  portType?: string;
+  configured?: boolean;
+}
+
 export interface SettingsSnapshot {
+  lmStudioUrl?: string;
+  lmStudioApiKey?: string;
+  model?: string;
+  imageProvider?: string;
+  videoProvider?: string;
+  comfyUrl?: string;
+  imageWorkflow?: string;
+  videoWorkflow?: string;
+  h3Executable?: string;
+  h3ModelDir?: string;
+  h3Profile?: string;
+  h3OutputDir?: string;
+  h3AllowedRoot?: string;
+  h3TimeoutMs?: number;
+  h3Defaults?: Record<string, unknown>;
+  h3Width?: number;
+  h3Height?: number;
+  h3Frames?: number;
+  h3Steps?: number;
+  h3Layers?: number;
+  h3Reuse?: number;
+  h3SsdStreaming?: boolean;
+  h3ConfigSummary?: H3ConfigSummary;
+  mediaProviders?: MediaProviderSummary[];
+  hasH3Configuration?: boolean;
+  hasLmStudioApiKey?: boolean;
   simplifiedMediaMode?: boolean;
   debugInspector?: boolean;
   [key: string]: unknown;
@@ -140,3 +187,17 @@ export interface MediaJob {
   [key: string]: unknown;
 }
 
+export interface H3PreflightCheck extends H3ConfigCheck {}
+
+export interface H3PreflightResult {
+  ok: boolean;
+  stage?: 'filesystem' | 'process' | string;
+  checks?: Record<string, H3PreflightCheck>;
+  process?: { started?: boolean; error?: string; output?: Array<{stream?: string; text?: string}> };
+}
+
+export interface InspectorActionResult {
+  id?: string;
+  status?: string;
+  [key: string]: unknown;
+}

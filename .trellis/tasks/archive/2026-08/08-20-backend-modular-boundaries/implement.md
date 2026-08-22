@@ -104,3 +104,7 @@ Per the latest user direction, this continuation explicitly excludes old/new nor
 The modular hardening pass also completed route/debug fail-closed wiring, shared provider-message serialization with tool-call correlation, timeline stale-slot safety, life-state recovery idempotency, strict activity-media association checks, and duplicate job-registration detection. The boundary audit now records these as `partial` legacy cutover boundaries rather than `blocked` missing modular implementations; `readyForLegacyDeletion` remains false until the old root, hooks, and duplicate paths are removed.
 
 Legacy cutover is now applied: `server.js`, direct `server.js`/`companionTestHooks` imports, the compatibility harness, legacy fixtures, and the legacy boundary inventory/test were removed. `server/index.js` is the only package start/dev entrypoint. The deleted compatibility suite is no longer part of the regression surface; remaining tests exercise the modular contracts, applications, runtime, providers, workers, and routes directly.
+
+## Follow-up Closure (2026-08-22)
+
+The migration follow-up added a shared flow-effect adapter for life/timeline/relationship/pending/media effects, structured context-fragment metadata with required-section budgeting, and regression coverage. Automated verification now reports 310 passing tests, typecheck/build/syntax success, and temporary Express/API/browser smoke. Real external-provider execution remains an environment-dependent follow-up rather than an unverified claim.

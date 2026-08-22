@@ -53,6 +53,21 @@ function normalizeAnswers(value) {
     return {...value};
 }
 
+function analysisResult(value) {
+    if (!isRecord(value)) throw statusError('人格分析未返回有效结果', 502);
+    const answers = normalizeAnswers(value.answers ?? value.preview?.answers);
+    const blueprint = isRecord(value.blueprint)
+        ? value.blueprint
+        : isRecord(value.preview?.blueprint) ? value.preview.blueprint : undefined;
+    const inferredFields = value.inferredFields === undefined ? [] : value.inferredFields;
+    if (!Array.isArray(inferredFields) || inferredFields.some(field => typeof field !== 'string')) {
+        throw statusError('人格分析字段来源无效', 502);
+    }
+    const fieldSources = value.fieldSources === undefined ? {} : value.fieldSources;
+    if (!isRecord(fieldSources)) throw statusError('人格分析字段来源无效', 502);
+    return {answers, blueprint, inferredFields: [...new Set(inferredFields)], fieldSources};
+}
+
 /**
  * Application boundary for persona interviews. Interview persistence,
  * analysis/model calls, and activation/life-model generation are all ports;
@@ -60,7 +75,7 @@ function normalizeAnswers(value) {
  */
 export function createInterviewService(options = {}) {
     if (!isRecord(options)) throw new TypeError('Interview service options must be an object');
-    const repository = sourceFor(options, ['interview', 'interviews', 'interviewRepository', 'interviewPort']);
+    const repository = sourceFor(options, ['repository', 'interview', 'interviews', 'interviewRepository', 'interviewPort']);
     const previewPort = sourceFor(options, ['preview', 'interviewPreview', 'previewPort']);
     const analyzer = sourceFor(options, ['analyzer', 'analysis', 'analysisPort', 'interviewAnalyzer']);
     const activation = sourceFor(options, ['activation', 'activationPort', 'personaLifecycle', 'personaLifecycleService']);
@@ -83,10 +98,56 @@ export function createInterviewService(options = {}) {
     function analyze(command = {}) {
         const input = record(command, '人格分析请求');
         const description = requiredText(input.description, '人格描述', MAX_DESCRIPTION_LENGTH);
-        const operation = configured(['analyze', 'analyzeDescription', 'extract'], [analyzer, repository], 'analyze');
-        return mapMaybe(operation({description, ...input}), value => {
-            if (value === undefined || value === null) throw new Error('人格分析未返回结果');
-            return value;
+        const operation = configured(['analyze', 'analyzeDescription', 'extract'], [analyzer], 'analyze');
+        const persist = methodFor(repository, ['createReadyInterview'], 'createReadyInterview', {optional: true});
+        const create = methodFor(repository, ['createInterview', 'create', 'start'], 'create', {optional: true});
+        const answer = methodFor(repository, ['answerInterview', 'answer', 'saveAnswer', 'update'], 'answer', {optional: true});
+        if (!persist && (!create || !answer)) throw statusError('访谈服务缺少 ready session persistence port', 501);
+        return mapMaybe(operation({description, signal: input.signal, personaId: input.personaId, trace: input.trace}), value => {
+            const normalized = analysisResult(value);
+            const storedAnswers = {
+                ...normalized.answers,
+                ...(normalized.blueprint ? {blueprint: normalized.blueprint} : {}),
+                fieldSources: normalized.fieldSources,
+                source: 'llm'
+            };
+            const inputForRepository = {
+                id: input.interviewId ?? input.id,
+                answers: storedAnswers,
+                source: 'llm',
+                inferredFields: normalized.inferredFields
+            };
+            const ready = persist
+                ? persist(inputForRepository)
+                : mapMaybe(create(inputForRepository), draft => answer({
+                    interviewId: draft?.id ?? draft?.interviewId,
+                    id: draft?.id ?? draft?.interviewId,
+                    answers: storedAnswers,
+                    inferredFields: normalized.inferredFields
+                }));
+            return mapMaybe(ready, session => {
+                if (!session) throw statusError('访谈 session 创建失败', 502);
+                const interviewIdValue = session.interviewId ?? session.id;
+                if (typeof interviewIdValue !== 'string' || !interviewIdValue) throw statusError('访谈 session 缺少 ID', 502);
+                const preview = value.preview ?? {
+                    ...normalized.answers,
+                    ...(normalized.blueprint ? {blueprint: normalized.blueprint} : {}),
+                    fieldSources: normalized.fieldSources,
+                    inferredFields: normalized.inferredFields
+                };
+                return {
+                    ...session,
+                    id: session.id ?? interviewIdValue,
+                    interviewId: interviewIdValue,
+                    status: 'ready',
+                    source: 'llm',
+                    answers: normalized.answers,
+                    inferredFields: normalized.inferredFields,
+                    fieldSources: normalized.fieldSources,
+                    preview,
+                    ...(normalized.blueprint ? {blueprint: normalized.blueprint} : {})
+                };
+            });
         });
     }
 

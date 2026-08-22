@@ -1,6 +1,6 @@
 import {encodePath, requestJson} from './client';
 import type {PersonaSummary, PublicSettings} from '../types';
-import type {MediaJob, PersonaDetailData} from '../components/types';
+import type {H3PreflightResult, InspectorActionResult, MediaJob, PersonaDetailData} from '../components/types';
 
 export interface PersonaAnalysis {
   id?: string;
@@ -92,6 +92,40 @@ export function createGroup(name: string, signal?: AbortSignal): Promise<unknown
 
 export function updateSettings(settings: PublicSettings, signal?: AbortSignal): Promise<PublicSettings> {
   return requestJson('/api/companion/settings', {method: 'PUT', signal, body: JSON.stringify(settings)});
+}
+
+export interface PersonaSimulationInput {
+  kind?: string;
+  situation?: string;
+  mood?: string;
+  scene?: string;
+  visual?: boolean;
+  publish?: boolean;
+  [key: string]: unknown;
+}
+
+export interface DebugMediaInput {
+  kind: 'image' | 'video';
+  request?: string;
+  count?: number;
+  provider?: string;
+  [key: string]: unknown;
+}
+
+export function h3Preflight(signal?: AbortSignal): Promise<H3PreflightResult> {
+  return requestJson('/api/companion/h3-preflight', {method: 'POST', signal, body: JSON.stringify({} )}) as Promise<H3PreflightResult>;
+}
+
+export function simulatePersona(personaId: string, input: PersonaSimulationInput, signal?: AbortSignal): Promise<InspectorActionResult> {
+  return requestJson(`/api/companion/personas/${encodePath(personaId)}/simulate`, {
+    method: 'POST', signal, body: JSON.stringify(input)
+  }) as Promise<InspectorActionResult>;
+}
+
+export function debugMedia(personaId: string, input: DebugMediaInput, signal?: AbortSignal): Promise<InspectorActionResult> {
+  return requestJson(`/api/companion/personas/${encodePath(personaId)}/debug-media`, {
+    method: 'POST', signal, body: JSON.stringify(input)
+  }) as Promise<InspectorActionResult>;
 }
 
 export function assignPersonaGroup(personaId: string, groupId: string, signal?: AbortSignal): Promise<unknown> {

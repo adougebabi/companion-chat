@@ -1,6 +1,11 @@
 import {createHash} from 'node:crypto';
 
 import {cleanUrl, boundedProviderError} from './provider-ports.js';
+import {
+    STRUCTURED_TURN_SCHEMA_VERSION,
+    STRUCTURED_TURN_LIMITS,
+    normalizeStructuredTurnSafely
+} from '../contracts/index.js';
 
 const MAX_DIAGNOSTICS = 8;
 const MAX_DIAGNOSTIC_LENGTH = 240;
@@ -12,6 +17,118 @@ function boundedText(value, fallback = '') {
 
 function diagnostic(list, value) {
     if (list.length < MAX_DIAGNOSTICS) list.push(boundedText(value));
+}
+
+function isRecord(value) {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function sidecarCandidate(payload) {
+    const choice = payload?.choices?.[0] || {};
+    const delta = choice.delta || {};
+    const message = choice.message || {};
+    const fields = [
+        isRecord(delta.content) ? delta.content : undefined,
+        delta.structuredTurn,
+        delta.structured_turn,
+        delta.structuredSidecar,
+        delta.structured,
+        delta.controlPayload,
+        delta.control_payload,
+        delta.parsed,
+        delta.control,
+        message.structuredTurn,
+        message.structured_turn,
+        message.structuredSidecar,
+        message.structured,
+        message.controlPayload,
+        message.control_payload,
+        message.parsed,
+        message.control,
+        choice.structuredTurn,
+        choice.structured_turn,
+        choice.structuredSidecar,
+        choice.structured,
+        choice.controlPayload,
+        choice.control_payload,
+        choice.parsed,
+        choice.control,
+        payload?.structuredTurn,
+        payload?.structured_turn,
+        payload?.structuredSidecar,
+        payload?.structured,
+        payload?.controlPayload,
+        payload?.control_payload,
+        payload?.parsed,
+        payload?.control,
+        payload?.metadata?.structuredTurn,
+        payload?.metadata?.control
+    ];
+    return fields.find(candidate => candidate !== undefined && candidate !== null) ?? null;
+}
+
+function parseSidecar(value, diagnostics) {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'string') {
+        try { return JSON.parse(value); }
+        catch { diagnostic(diagnostics, 'structured sidecar contains invalid JSON'); return null; }
+    }
+    if (!isRecord(value)) {
+        diagnostic(diagnostics, 'structured sidecar must be an object');
+        return null;
+    }
+    return value;
+}
+
+function sidecarText(sidecar, fallback) {
+    if (typeof sidecar?.text === 'string') return sidecar.text;
+    if (Array.isArray(sidecar?.messages)) {
+        const text = sidecar.messages
+            .filter(message => !message?.role || message.role === 'assistant')
+            .map(message => message?.text ?? message?.content)
+            .filter(value => typeof value === 'string')
+            .join('');
+        if (text) return text;
+    }
+    return fallback;
+}
+
+function normalizeTurnRecord({text, tokens, toolCalls, sidecar, parseErrors, doneSeen, personaId, causationId, sourceMode} = {}) {
+    const candidateSidecar = isRecord(sidecar) ? sidecar : {};
+    const control = isRecord(candidateSidecar.control)
+        ? candidateSidecar.control
+        : {
+            affectEvents: candidateSidecar.affectEvents,
+            driveSignals: candidateSidecar.driveSignals,
+            memoryWrites: candidateSidecar.memoryWrites,
+            capabilityCalls: candidateSidecar.capabilityCalls
+        };
+    const visible = sidecarText(candidateSidecar, text || '');
+    const candidate = {
+        schemaVersion: isRecord(sidecar) ? candidateSidecar.schemaVersion : STRUCTURED_TURN_SCHEMA_VERSION,
+        text: visible,
+        tokens: Array.isArray(candidateSidecar.tokens) ? candidateSidecar.tokens : (tokens || []),
+        messages: Array.isArray(candidateSidecar.messages) ? candidateSidecar.messages : [],
+        control: {
+            affectEvents: control.affectEvents ?? [],
+            driveSignals: control.driveSignals ?? [],
+            memoryWrites: control.memoryWrites ?? [],
+            capabilityCalls: [
+                ...(Array.isArray(toolCalls) ? toolCalls : []),
+                ...(Array.isArray(control.capabilityCalls) ? control.capabilityCalls : [])
+            ].slice(0, STRUCTURED_TURN_LIMITS.capabilityCalls)
+        },
+        parseDiagnostics: Array.isArray(parseErrors) ? parseErrors.slice(0, MAX_DIAGNOSTICS) : [],
+        sourceMode: sourceMode
+            ?? (isRecord(sidecar) ? 'structured_sidecar' : toolCalls?.length ? 'native_tools' : 'text')
+    };
+    const result = normalizeStructuredTurnSafely(candidate, {personaId, causationId});
+    if (result.ok) return result.value;
+    return {
+        ...result.value,
+        parseDiagnostics: [...result.value.parseDiagnostics, ...(Array.isArray(parseErrors) ? parseErrors : [])].slice(0, MAX_DIAGNOSTICS),
+        sourceMode: sourceMode ?? (toolCalls?.length ? 'native_tools' : 'text')
+    };
 }
 
 function appendToolCallFragment(toolCalls, fragment, diagnostics) {
@@ -112,11 +229,14 @@ export async function consumeMtplxStream(response, {onText, personaId, causation
     let finishReason = null;
     let doneSeen = false;
     let firstSeen = 0;
+    let structuredSidecar = null;
     const processPayload = async raw => {
         if (!raw) return;
         if (raw === '[DONE]') { doneSeen = true; return; }
         let payload;
         try { payload = JSON.parse(raw); } catch { diagnostic(parseErrors, '模型流包含无效 SSE JSON'); return; }
+        const sidecar = parseSidecar(sidecarCandidate(payload), parseErrors);
+        if (sidecar) structuredSidecar = sidecar;
         const choice = payload?.choices?.[0] || {};
         const delta = choice.delta || {};
         if (choice.finish_reason) finishReason = boundedText(choice.finish_reason);
@@ -152,20 +272,83 @@ export async function consumeMtplxStream(response, {onText, personaId, causation
     const incompleteToolIndexes = normalized
         .filter(call => (!doneSeen || !call.name || !call.argumentsText || call.incomplete))
         .map(call => call.index);
-    return {text, tokens: text ? [text] : [], toolCalls: normalized, finishReason, doneSeen, parseErrors, incompleteToolIndexes};
+    const turn = normalizeTurnRecord({
+        text,
+        tokens: text ? [text] : [],
+        toolCalls: normalized,
+        sidecar: structuredSidecar,
+        parseErrors,
+        doneSeen,
+        personaId,
+        causationId,
+        sourceMode: structuredSidecar ? 'structured_sidecar' : normalized.length ? 'native_tools' : undefined
+    });
+    return {
+        text: turn.text,
+        tokens: text ? [text] : turn.tokens,
+        toolCalls: normalized,
+        finishReason,
+        doneSeen,
+        parseErrors: turn.parseDiagnostics,
+        incompleteToolIndexes,
+        structuredTurn: turn,
+        control: turn.control,
+        sourceMode: turn.sourceMode
+    };
 }
 
 function completionFromJson(payload, {personaId, causationId} = {}) {
     const choice = payload?.choices?.[0] || {};
     const message = choice.message || {};
-    const text = typeof message.content === 'string' ? message.content : '';
+    const parseErrors = [];
+    let sidecar = parseSidecar(sidecarCandidate(payload), parseErrors);
+    if (!sidecar && isRecord(message.content)
+        && (message.content.schemaVersion || message.content.control || message.content.affectEvents || message.content.memoryWrites)) {
+        sidecar = message.content;
+    }
+    if (!sidecar && typeof message.content === 'string' && message.content.trim().startsWith('{')) {
+        try {
+            const parsed = JSON.parse(message.content);
+            if (isRecord(parsed) && (parsed.schemaVersion || parsed.control || parsed.affectEvents || parsed.memoryWrites || parsed.capabilityCalls)) {
+                sidecar = parsed;
+            }
+        } catch {
+            // A normal text completion may begin with a brace; only the
+            // structured envelope shape is treated as a control sidecar.
+        }
+    }
+    const messageText = typeof message.content === 'string' ? message.content : '';
+    const text = sidecar ? sidecarText(sidecar, messageText) : messageText;
     const calls = (Array.isArray(message.tool_calls) ? message.tool_calls : []).map((call, index) => ({
         ...call,
         index: Number.isInteger(call?.index) ? call.index : index,
         name: call?.function?.name,
         argumentsText: call?.function?.arguments || ''
     }));
-    return {text, tokens: text ? [text] : [], toolCalls: normalizeToolCalls(calls, {personaId, causationId}), finishReason: choice.finish_reason || null, doneSeen: true, parseErrors: [], incompleteToolIndexes: []};
+    const toolCalls = normalizeToolCalls(calls, {personaId, causationId});
+    const turn = normalizeTurnRecord({
+        text,
+        tokens: text ? [text] : [],
+        toolCalls,
+        sidecar,
+        parseErrors,
+        doneSeen: true,
+        personaId,
+        causationId,
+        sourceMode: sidecar ? 'structured_sidecar' : toolCalls.length ? 'native_tools' : undefined
+    });
+    return {
+        text: turn.text,
+        tokens: turn.tokens,
+        toolCalls,
+        finishReason: choice.finish_reason || null,
+        doneSeen: true,
+        parseErrors: turn.parseDiagnostics,
+        incompleteToolIndexes: [],
+        structuredTurn: turn,
+        control: turn.control,
+        sourceMode: turn.sourceMode
+    };
 }
 
 function assertSettings(settings) {
@@ -191,7 +374,7 @@ export function createMtplxProvider({settings, fetchImpl, promptRuns, clock = ()
         : prefix => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     function startTrace(payload = {}) {
-        if (!promptRuns) return null;
+        if (!promptRuns || payload.trace === false) return null;
         try {
             const trace = payload.trace && typeof payload.trace === 'object' ? payload.trace : {};
             return promptRuns.start?.({
@@ -341,5 +524,106 @@ export function createMtplxCompletionPort({provider, settings, tools = [], toolC
 }
 
 export const createMtplxStreamingPort = createMtplxCompletionPort;
+
+const JSON_COMPLETION_TIMEOUT_MS = 20_000;
+const MAX_JSON_COMPLETION_CONTENT = 24_000;
+
+function jsonCompletionError(message, status = 502, code = 'MODEL_JSON_COMPLETION_FAILED') {
+    return Object.assign(new Error(boundedText(message, '模型服务请求失败')), {status, code});
+}
+
+function jsonContentFromResponse(payload) {
+    if (typeof payload === 'string') return payload;
+    const choice = payload?.choices?.[0] ?? {};
+    const message = choice.message ?? {};
+    if (typeof message.content === 'string') return message.content;
+    if (typeof choice.content === 'string') return choice.content;
+    if (typeof payload?.content === 'string') return payload.content;
+    if (isRecord(message.content)) return JSON.stringify(message.content);
+    if (isRecord(payload) && (payload.answers || payload.inferredFields || payload.blueprint)) return JSON.stringify(payload);
+    return '';
+}
+
+/**
+ * Dedicated non-streaming JSON transport for application-owned extraction
+ * ports. It deliberately returns assistant content and leaves schema parsing
+ * to the application layer.
+ */
+export function createMtplxJsonCompletionPort({provider, settings, timeoutMs = JSON_COMPLETION_TIMEOUT_MS} = {}) {
+    if (!provider || typeof provider.stream !== 'function') throw new TypeError('MTPLX JSON completion port requires provider.stream()');
+    const readSettings = typeof settings === 'function' ? settings : () => ({});
+    const boundedTimeout = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
+        ? Math.min(Number(timeoutMs), 120_000)
+        : JSON_COMPLETION_TIMEOUT_MS;
+
+    async function complete(input = {}) {
+        const controller = new AbortController();
+        const callerSignal = input.signal;
+        let callerAbort;
+        let callerAbortListener;
+        if (callerSignal?.aborted) controller.abort(callerSignal.reason);
+        else if (callerSignal?.addEventListener) {
+            callerAbort = () => controller.abort(callerSignal.reason);
+            callerSignal.addEventListener('abort', callerAbort, {once: true});
+        }
+        let timeoutHandle;
+        const timeoutPromise = new Promise((_, reject) => {
+            timeoutHandle = setTimeout(() => {
+                controller.abort();
+                reject(jsonCompletionError('模型分析请求超时', 502, 'MODEL_JSON_COMPLETION_TIMEOUT'));
+            }, boundedTimeout);
+        });
+        const abortPromise = callerSignal?.aborted
+            ? Promise.reject(jsonCompletionError('模型分析请求已取消', 502, 'MODEL_JSON_COMPLETION_ABORTED'))
+            : callerSignal?.addEventListener
+                ? new Promise((_, reject) => {
+                    callerAbortListener = () => reject(jsonCompletionError('模型分析请求已取消', 502, 'MODEL_JSON_COMPLETION_ABORTED'));
+                    callerSignal.addEventListener('abort', callerAbortListener, {once: true});
+                })
+                : null;
+        try {
+            const {signal: _signal, trace, stream: _stream, ...rest} = input;
+            const payload = {
+                ...rest,
+                model: input.model || readSettings().model || '',
+                stream: false,
+                signal: controller.signal,
+                trace: trace === undefined ? false : trace
+            };
+            const operation = (async () => {
+                const response = await provider.stream(payload);
+                if (response?.ok === false) {
+                    let body = null;
+                    try { body = await response.json?.(); } catch { /* bounded fallback */ }
+                    throw jsonCompletionError(responseError(response.status || 502, body).message);
+                }
+                const body = typeof response?.json === 'function' ? await response.json() : response;
+                const content = jsonContentFromResponse(body).trim();
+                if (!content) throw jsonCompletionError('模型服务返回空内容');
+                if (content.length > MAX_JSON_COMPLETION_CONTENT) throw jsonCompletionError('模型服务返回内容过长');
+                return content;
+            })();
+            const content = await Promise.race([
+                operation,
+                timeoutPromise,
+                ...(abortPromise ? [abortPromise] : [])
+            ]);
+            return Object.freeze({content, text: content});
+        } catch (error) {
+            if (controller.signal.aborted) {
+                if (callerSignal?.aborted) throw jsonCompletionError('模型分析请求已取消', 502, 'MODEL_JSON_COMPLETION_ABORTED');
+                throw jsonCompletionError('模型分析请求超时', 502, 'MODEL_JSON_COMPLETION_TIMEOUT');
+            }
+            if (error?.status === 502) throw error;
+            throw jsonCompletionError(error?.message || '模型服务请求失败');
+        } finally {
+            clearTimeout(timeoutHandle);
+            if (callerAbort && callerSignal?.removeEventListener) callerSignal.removeEventListener('abort', callerAbort);
+            if (callerAbortListener && callerSignal?.removeEventListener) callerSignal.removeEventListener('abort', callerAbortListener);
+        }
+    }
+
+    return Object.freeze({complete, completeJson: complete, json: complete});
+}
 
 export default createMtplxProvider;

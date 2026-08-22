@@ -1,0 +1,5 @@
+{"file":".trellis/tasks/08-22-migration-cutover-regression-fixes/prd.md","reason":"Acceptance criteria for migration regressions and deferred gates."}
+{"file":".trellis/tasks/08-22-migration-cutover-regression-fixes/design.md","reason":"Frontend/backend closure boundaries and smoke strategy."}
+{"file":".trellis/tasks/08-22-migration-cutover-regression-fixes/implement.md","reason":"Execution, validation and final completion gate."}
+{"file":".trellis/spec/frontend/state-management.md","reason":"Review composer, history and polling invariants after fixes."}
+{"file":".trellis/spec/backend/quality-guidelines.md","reason":"Review API/SSE/worker/restart behavior after backend fixes."}

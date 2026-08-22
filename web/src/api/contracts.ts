@@ -57,6 +57,46 @@ function booleanValue(value: unknown, fallback = false): boolean {
   return fallback;
 }
 
+const PRIVATE_SETTINGS_KEYS = new Set([
+  'lmStudioApiKey',
+  'h3Executable',
+  'h3ModelDir',
+  'h3OutputDir',
+  'h3AllowedRoot'
+]);
+
+/** Keep the browser DTO explicitly free of provider credentials and raw paths. */
+export function normalizePublicSettings(value: unknown): PublicSettings {
+  if (!isRecord(value)) return {};
+  const output: PublicSettings = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (PRIVATE_SETTINGS_KEYS.has(key)) continue;
+    output[key] = item;
+  }
+  if (typeof value.lmStudioUrl === 'string') output.lmStudioUrl = value.lmStudioUrl;
+  if (typeof value.model === 'string') output.model = value.model;
+  if (typeof value.comfyUrl === 'string') output.comfyUrl = value.comfyUrl;
+  if (typeof value.imageWorkflow === 'string') output.imageWorkflow = value.imageWorkflow;
+  if (typeof value.videoWorkflow === 'string') output.videoWorkflow = value.videoWorkflow;
+  if (typeof value.imageProvider === 'string') output.imageProvider = value.imageProvider;
+  if (typeof value.videoProvider === 'string') output.videoProvider = value.videoProvider;
+  if (typeof value.h3TimeoutMs === 'number' && Number.isFinite(value.h3TimeoutMs)) output.h3TimeoutMs = value.h3TimeoutMs;
+  if (typeof value.hasH3Configuration === 'boolean') output.hasH3Configuration = value.hasH3Configuration;
+  if (typeof value.hasLmStudioApiKey === 'boolean') output.hasLmStudioApiKey = value.hasLmStudioApiKey;
+  if (Array.isArray(value.mediaProviders)) {
+    output.mediaProviders = value.mediaProviders.filter(isRecord).map(provider => ({
+      id: stringValue(provider.id),
+      ...(typeof provider.label === 'string' ? {label: provider.label} : {}),
+      ...(Array.isArray(provider.capabilities) ? {capabilities: provider.capabilities.filter(item => typeof item === 'string')} : {}),
+      ...(typeof provider.portType === 'string' ? {portType: provider.portType} : {}),
+      ...(typeof provider.configured === 'boolean' ? {configured: provider.configured} : {})
+    })).filter(provider => provider.id);
+  }
+  if (isRecord(value.h3ConfigSummary)) output.h3ConfigSummary = value.h3ConfigSummary;
+  if (isRecord(value.h3Defaults)) output.h3Defaults = value.h3Defaults;
+  return output;
+}
+
 function normalizeAttachment(value: unknown): Attachment | null {
   if (!isRecord(value)) return null;
   const url = stringValue(value.url);
@@ -160,7 +200,7 @@ export function normalizeBootstrap(value: unknown): BootstrapResponse {
   const groups = Array.isArray(source.groups)
     ? source.groups.map(normalizeGroup).filter((item): item is ContactGroup => item !== null)
     : [];
-  const settings: PublicSettings = isRecord(source.settings) ? source.settings : {};
+  const settings = normalizePublicSettings(source.settings);
   return {
     settings,
     personas,
