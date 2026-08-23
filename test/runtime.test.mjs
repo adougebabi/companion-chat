@@ -358,6 +358,38 @@ test('companion runtime mounts the complete contract with bounded unconfigured h
     }
 });
 
+test('persisted debug setting restores debug routes and bootstrap visibility after runtime recreation', async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), 'local-ai-companion-debug-setting-'));
+    const first = createCompanionRuntime({
+        Database,
+        dataDir,
+        workerRuntime: false,
+        environment: {DATA_DIR: dataDir},
+        debugInspectorEnabled: false
+    });
+    try {
+        first.repositories.settings.write({debugInspector: true});
+    } finally {
+        await first.stop();
+    }
+
+    const second = createCompanionRuntime({
+        Database,
+        dataDir,
+        workerRuntime: false,
+        environment: {DATA_DIR: dataDir},
+        debugInspectorEnabled: false
+    });
+    try {
+        assert.equal(second.application.services.bootstrap.read().debugInspector, true);
+        const paths = second.app.router.stack.map(layer => layer.route?.path).filter(Boolean);
+        assert.equal(paths.includes('/api/companion/personas/:personaId/debug-context'), true);
+    } finally {
+        await second.stop();
+        rmSync(dataDir, {recursive: true, force: true});
+    }
+});
+
 test('companion runtime provides a real repository-backed bootstrap slice', async () => {
     const dataDir = temporaryDirectory();
     const runtime = createCompanionRuntime({Database, dataDir, workerRuntime: false, environment: {DATA_DIR: dataDir}});

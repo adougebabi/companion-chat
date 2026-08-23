@@ -73,6 +73,15 @@ function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+function persistedDebugInspector(settings) {
+    try {
+        const value = typeof settings?.read === 'function' ? settings.read() : typeof settings === 'function' ? settings() : null;
+        return isRecord(value) && value.debugInspector === true;
+    } catch {
+        return false;
+    }
+}
+
 // Keep the transport-facing tool schema in the composition layer. Capability
 // validation and persistence remain owned by the registered application flows.
 const COMPANION_CAPABILITY_TOOLS = Object.freeze([
@@ -1165,6 +1174,9 @@ export function createRuntime(options = {}) {
     const flowRegistry = options.flowRegistry ?? createFlowRegistry();
     const startup = resolveStartup({...options, environment});
     const repositories = resolveRepositories(options, startup);
+    const debugInspectorEnabled = options.debugInspectorEnabled === true
+        || options.httpOptions?.debugInspectorEnabled === true
+        || persistedDebugInspector(options.settings ?? repositories.settings);
     const hasExplicitProviders = options.providerRegistry !== undefined
         || options.providerAdapters !== undefined
         || options.mediaProviderAdapters !== undefined
@@ -1225,6 +1237,7 @@ export function createRuntime(options = {}) {
     }, startup, repositories);
     const application = options.application ?? options.applicationFactory?.({
         ...options,
+        debugInspectorEnabled,
         flowRegistry,
         transaction,
         repositories,
@@ -1241,7 +1254,7 @@ export function createRuntime(options = {}) {
         interviewAnalyzer
     });
     const worker = resolveWorker({...options, jobRepository, jobDispatcher}, startup, repositories);
-    const app = resolveApp({...options, application, routeHandlers: options.routeHandlers ?? application?.routeHandlers}, startup, worker);
+    const app = resolveApp({...options, debugInspectorEnabled, application, routeHandlers: options.routeHandlers ?? application?.routeHandlers}, startup, worker);
     const auxiliaryRuntimes = resolveAuxiliaryRuntimes(options);
     const port = resolvePort(options.port, environment);
     const host = nonEmpty(options.host ?? environment.HOST, DEFAULT_HOST);
@@ -1313,6 +1326,7 @@ export function createRuntime(options = {}) {
         repositories,
         jobRepository,
         providers,
+        debugInspectorEnabled,
         flowRegistry,
         jobDispatcher,
         mediaObservability,
