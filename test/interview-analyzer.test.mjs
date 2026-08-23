@@ -99,6 +99,40 @@ test('interview analyzer rejects unknown or oversized structured list items', as
     }
 });
 
+test('interview analyzer normalizes every supported alternate field shape', async () => {
+    const analyzer = createInterviewAnalyzer({jsonCompletion: {complete: async () => modelContent({
+        ...validResult(),
+        blueprint: {
+            identity: {name: '林晚', role: '设计师', age: 24, gender: '女', occupation: '设计师'},
+            background: [{label: '在小城长大'}, {description: '后来独自求学'}],
+            languageStyle: {tone: '短句、克制', vocabulary: [{word: '嗯'}]},
+            relationship: {note: '把用户视为重要的长期朋友', kind: 'close'},
+            majorEvents: [{event: '搬到新城市'}],
+            strengths: [{trait: '善于倾听'}],
+            weaknesses: [{description: '容易犹豫'}],
+            quirks: [{quirk: '整理桌面'}],
+            obsessions: [{interest: '旧书'}],
+            catchphrases: [{phrase: '让我想想'}],
+            signatureBehaviors: [{behavior: '先停顿再回答'}],
+            coreBeliefs: [{belief: '真诚比效率重要'}],
+            boundariesAndTaboos: [{taboo: '被强迫替别人做决定'}],
+            personalityCoordinates: {type: 'INFJ', traits: {openness: 'high'}},
+            interactionBoundaries: [{boundary: '不要伪造事实'}]
+        }
+    })}});
+
+    const result = await analyzer.analyze({description: '一段完整的人格描述'});
+
+    assert.equal(result.answers.growthExperience, '在小城长大；后来独自求学');
+    assert.equal(result.answers.languageStyle, undefined);
+    assert.deepEqual(result.answers.toneAndVocabulary, {tone: '短句、克制', vocabulary: ['嗯']});
+    assert.equal(result.answers.relationshipNote, '把用户视为重要的长期朋友');
+    assert.equal(result.answers.relationshipKind, 'close');
+    assert.deepEqual(result.answers.personalityCoordinates, {framework: 'custom', values: {openness: 'high', type: 'INFJ'}});
+    assert.deepEqual(result.answers.boundariesAndTaboos, ['被强迫替别人做决定']);
+    assert.deepEqual(result.answers.interactionBoundaries, ['不要伪造事实']);
+});
+
 test('interview analyzer rejects missing required fields and unknown fields', async () => {
     for (const payload of [
         {answers: {name: '林晚', role: '学生'}, inferredFields: []},

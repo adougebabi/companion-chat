@@ -42,21 +42,31 @@ const ANSWER_KEYS = new Set([
 const BLUEPRINT_KEYS = new Set([
     'name', 'role', 'foundation', 'interests', 'visualBaseline', 'supportingCast',
     'routine', 'languageStyle', 'relationshipNote', 'relationshipKind', 'relationship', 'interactionBoundaries', 'identity',
+    'background', 'tone',
     'age', 'gender', 'occupation', 'growthExperience', 'majorEvents', 'personalityCoordinates',
     'strengths', 'weaknesses', 'quirks', 'obsessions', 'toneAndVocabulary', 'catchphrases',
     'signatureBehaviors', 'coreBeliefs', 'boundariesAndTaboos'
 ]);
 
+const ANSWER_INPUT_KEYS = new Set([...ANSWER_KEYS, 'background', 'tone']);
+
+const FIELD_ALIASES = Object.freeze({
+    background: 'growthExperience',
+    tone: 'languageStyle'
+});
+
 const NEW_STRING_LIST_SCHEMAS = Object.freeze({
-    majorEvents: Object.freeze({maxLength: MAX_MAJOR_EVENT_LENGTH, label: '重大事件'}),
-    strengths: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '优点'}),
-    weaknesses: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '缺点'}),
-    quirks: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '怪癖'}),
-    obsessions: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '执念'}),
-    catchphrases: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '口癖'}),
-    signatureBehaviors: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '标志性行为'}),
-    coreBeliefs: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '核心信仰'}),
-    boundariesAndTaboos: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '底线与禁忌'})
+    majorEvents: Object.freeze({maxLength: MAX_MAJOR_EVENT_LENGTH, label: '重大事件', textKeys: ['event', 'milestone', 'summary', 'description', 'text', 'value', 'name', 'label']}),
+    strengths: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '优点', textKeys: ['strength', 'trait', 'summary', 'description', 'text', 'value', 'name', 'label']}),
+    weaknesses: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '缺点', textKeys: ['weakness', 'trait', 'summary', 'description', 'text', 'value', 'name', 'label']}),
+    quirks: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '怪癖', textKeys: ['quirk', 'trait', 'summary', 'description', 'text', 'value', 'name', 'label']}),
+    obsessions: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '执念', textKeys: ['obsession', 'interest', 'summary', 'description', 'text', 'value', 'name', 'label']}),
+    catchphrases: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '口癖', textKeys: ['catchphrase', 'phrase', 'summary', 'description', 'text', 'value', 'name', 'label']}),
+    signatureBehaviors: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '标志性行为', textKeys: ['behavior', 'action', 'summary', 'description', 'text', 'value', 'name', 'label']}),
+    coreBeliefs: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '核心信仰', textKeys: ['belief', 'principle', 'summary', 'description', 'text', 'value', 'name', 'label']}),
+    boundariesAndTaboos: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '底线与禁忌', textKeys: ['boundary', 'taboo', 'rule', 'summary', 'description', 'text', 'value', 'name', 'label']}),
+    interactionBoundaries: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '互动边界', textKeys: ['boundary', 'rule', 'summary', 'description', 'text', 'value', 'name', 'label']}),
+    vocabulary: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '词汇', textKeys: ['word', 'term', 'phrase', 'summary', 'description', 'text', 'value', 'name', 'label']})
 });
 
 const LIST_ITEM_SCHEMAS = Object.freeze({
@@ -79,6 +89,14 @@ const LIST_ITEM_SCHEMAS = Object.freeze({
             name: 'text', label: 'text', person: 'text', character: 'text', text: 'text', value: 'text',
             role: 'text', relationship: 'text', description: 'text'
         })
+    }),
+    ...Object.fromEntries(Object.entries(NEW_STRING_LIST_SCHEMAS).map(([key, schema]) => [key, Object.freeze({
+        textKeys: Object.freeze(schema.textKeys),
+        fields: Object.freeze(Object.fromEntries(schema.textKeys.map(textKey => [textKey, 'text'])))
+    })])),
+    vocabulary: Object.freeze({
+        textKeys: Object.freeze(NEW_STRING_LIST_SCHEMAS.vocabulary.textKeys),
+        fields: Object.freeze(Object.fromEntries(NEW_STRING_LIST_SCHEMAS.vocabulary.textKeys.map(textKey => [textKey, 'text'])))
     })
 });
 
@@ -162,10 +180,17 @@ function boundedAge(value, field) {
     return boundedText(value, field, 32);
 }
 
-function boundedStringList(value, field, maxLength, label) {
-    if (!Array.isArray(value)) throw analysisError(`${label}必须是字符串数组`);
-    if (value.length > MAX_LIST_ITEMS) throw analysisError(`${label}项目过多`);
-    return value.map(item => boundedText(item, `${field}项目`, maxLength));
+function normalizeScalarText(value, field, maxLength) {
+    if (typeof value === 'string') return boundedText(value, field, maxLength);
+    if (Array.isArray(value)) {
+        const list = stringList(value, field, maxLength, 'majorEvents');
+        return boundedText(list.join('；'), field, maxLength);
+    }
+    if (isRecord(value)) {
+        const key = ['summary', 'description', 'text', 'value', 'narrative', 'note'].find(name => typeof value[name] === 'string');
+        if (key) return boundedText(value[key], `${field}.${key}`, maxLength);
+    }
+    throw analysisError(`${field}必须是字符串、字符串数组或带明确文本的对象`);
 }
 
 function normalizeCoordinateValues(value, field) {
@@ -183,17 +208,23 @@ function normalizeCoordinateValues(value, field) {
 }
 
 function normalizePersonalityCoordinates(value, field) {
-    unknownKeys(value, new Set(['framework', 'values']), field);
-    const framework = boundedText(value.framework, `${field}.framework`, 64);
-    const values = normalizeCoordinateValues(value.values, `${field}.values`);
+    unknownKeys(value, new Set(['framework', 'values', 'model', 'type', 'traits', 'scores', 'mbti', 'bigFive']), field);
+    const framework = boundedText(value.framework ?? value.model ?? 'custom', `${field}.framework`, 64);
+    const sourceValues = value.values ?? value.traits ?? value.scores ?? {};
+    const values = normalizeCoordinateValues(sourceValues, `${field}.values`);
+    if (value.type !== undefined) values.type = boundedText(value.type, `${field}.type`, MAX_COORDINATE_VALUE_LENGTH);
+    if (value.mbti !== undefined) values.mbti = boundedText(value.mbti, `${field}.mbti`, MAX_COORDINATE_VALUE_LENGTH);
+    if (value.bigFive !== undefined) values.bigFive = normalizeCoordinateValues(value.bigFive, `${field}.bigFive`);
     return {framework, values};
 }
 
 function normalizeToneAndVocabulary(value, field) {
-    unknownKeys(value, new Set(['tone', 'vocabulary']), field);
+    unknownKeys(value, new Set(['tone', 'style', 'vocabulary', 'words']), field);
     const normalized = {};
-    if (value.tone !== undefined) normalized.tone = boundedText(value.tone, `${field}.tone`, MAX_PROFILE_TEXT_LENGTH);
-    if (value.vocabulary !== undefined) normalized.vocabulary = boundedStringList(value.vocabulary, `${field}.vocabulary`, MAX_PROFILE_TEXT_LENGTH, '词汇');
+    const tone = value.tone ?? value.style;
+    const vocabulary = value.vocabulary ?? value.words;
+    if (tone !== undefined) normalized.tone = normalizeScalarText(tone, `${field}.tone`, MAX_PROFILE_TEXT_LENGTH);
+    if (vocabulary !== undefined) normalized.vocabulary = stringList(vocabulary, `${field}.vocabulary`, MAX_PROFILE_TEXT_LENGTH, 'vocabulary');
     return normalized;
 }
 
@@ -202,25 +233,61 @@ function normalizeNewField(key, raw, field) {
     if (key === 'personalityCoordinates') return normalizePersonalityCoordinates(raw, `${field}.personalityCoordinates`);
     if (key === 'toneAndVocabulary') return normalizeToneAndVocabulary(raw, `${field}.toneAndVocabulary`);
     const listSchema = NEW_STRING_LIST_SCHEMAS[key];
-    if (listSchema) return boundedStringList(raw, `${field}.${key}`, listSchema.maxLength, listSchema.label);
+    if (listSchema) return stringList(raw, `${field}.${key}`, listSchema.maxLength, key);
     return undefined;
 }
 
-function normalizeInteractionBoundaries(raw, field) {
-    return Array.isArray(raw)
-        ? boundedStringList(raw, `${field}.interactionBoundaries`, MAX_PROFILE_TEXT_LENGTH, '互动边界')
-        : boundedText(raw, `${field}.interactionBoundaries`, MAX_RELATIONSHIP_NOTE_LENGTH);
+function normalizeRelationshipObject(value, field) {
+    unknownKeys(value, new Set(['note', 'kind', 'relationship', 'summary', 'description', 'text', 'value']), field);
+    const note = value.note ?? value.relationship ?? value.summary ?? value.description ?? value.text ?? value.value;
+    if (typeof note !== 'string') throw analysisError(`${field}缺少可显示文本`);
+    return {
+        note: boundedText(note, `${field}.note`, MAX_RELATIONSHIP_NOTE_LENGTH),
+        ...(value.kind === undefined ? {} : {kind: boundedText(value.kind, `${field}.kind`, 80)})
+    };
+}
+
+function canonicalizeAliases(value, field) {
+    const source = {...value};
+    for (const [alias, canonical] of Object.entries(FIELD_ALIASES)) {
+        if (source[alias] !== undefined) {
+            if (source[canonical] === undefined) source[canonical] = source[alias];
+            delete source[alias];
+        }
+    }
+    if (isRecord(source.identity)) {
+        unknownKeys(source.identity, new Set(['name', 'role', 'age', 'gender', 'occupation']), `${field}.identity`);
+        for (const key of ['name', 'role', 'age', 'gender', 'occupation']) {
+            if (source[key] === undefined && source.identity[key] !== undefined) source[key] = source.identity[key];
+        }
+        delete source.identity;
+    }
+    if (isRecord(source.relationship)) {
+        const relationship = normalizeRelationshipObject(source.relationship, `${field}.relationship`);
+        if (source.relationshipNote === undefined) source.relationshipNote = relationship.note;
+        if (source.relationshipKind === undefined && relationship.kind !== undefined) source.relationshipKind = relationship.kind;
+        delete source.relationship;
+    }
+    if (isRecord(source.languageStyle)) {
+        if (source.toneAndVocabulary === undefined) source.toneAndVocabulary = normalizeToneAndVocabulary(source.languageStyle, `${field}.languageStyle`);
+        delete source.languageStyle;
+    }
+    return source;
 }
 
 function normalizeAnswers(value, field = 'answers') {
-    unknownKeys(value, ANSWER_KEYS, field);
+    unknownKeys(value, ANSWER_INPUT_KEYS, field);
+    const source = canonicalizeAliases(value, field);
     const answers = {};
-    for (const key of Object.keys(value)) {
-        const raw = value[key];
+    for (const key of Object.keys(source)) {
+        const raw = source[key];
         if (key === 'interests') answers.interests = stringList(raw, `${field}.interests`, MAX_INTEREST_LENGTH, key);
         else if (key === 'routine') answers.routine = stringList(raw, `${field}.routine`, MAX_ROUTINE_ITEM_LENGTH, key);
         else if (key === 'supportingCast') answers.supportingCast = stringList(raw, `${field}.supportingCast`, MAX_SUPPORTING_CAST_ITEM_LENGTH, key);
-        else if (key === 'interactionBoundaries') answers.interactionBoundaries = normalizeInteractionBoundaries(raw, field);
+        else if (key === 'interactionBoundaries') answers.interactionBoundaries = Array.isArray(raw)
+            ? stringList(raw, `${field}.interactionBoundaries`, MAX_PROFILE_TEXT_LENGTH, key)
+            : boundedText(raw, `${field}.interactionBoundaries`, MAX_RELATIONSHIP_NOTE_LENGTH);
+        else if (key === 'growthExperience') answers.growthExperience = normalizeScalarText(raw, `${field}.growthExperience`, MAX_BACKGROUND_LENGTH);
         else if (ANSWER_KEYS.has(key) && (key === 'age' || NEW_STRING_LIST_SCHEMAS[key] || key === 'personalityCoordinates' || key === 'toneAndVocabulary')) answers[key] = normalizeNewField(key, raw, field);
         else answers[key] = boundedText(raw, `${field}.${key}`, ANSWER_LIMITS[key]);
     }
@@ -232,14 +299,8 @@ function normalizeAnswers(value, field = 'answers') {
 
 function normalizeBlueprint(value) {
     if (value === undefined) return {};
-    unknownKeys(value, BLUEPRINT_KEYS, 'blueprint');
-    const source = {...value};
-    if (isRecord(source.identity)) {
-        unknownKeys(source.identity, new Set(['name', 'role']), 'blueprint.identity');
-        source.name = source.name ?? source.identity.name;
-        source.role = source.role ?? source.identity.role;
-        delete source.identity;
-    }
+    unknownKeys(value, new Set([...BLUEPRINT_KEYS, ...ANSWER_INPUT_KEYS]), 'blueprint');
+    const source = canonicalizeAliases(value, 'blueprint');
     return normalizeOptionalFields(source, 'blueprint');
 }
 
@@ -250,7 +311,10 @@ function normalizeOptionalFields(value, field) {
         if (key === 'interests') normalized.interests = stringList(raw, `${field}.interests`, MAX_INTEREST_LENGTH, key);
         else if (key === 'routine') normalized.routine = stringList(raw, `${field}.routine`, MAX_ROUTINE_ITEM_LENGTH, key);
         else if (key === 'supportingCast') normalized.supportingCast = stringList(raw, `${field}.supportingCast`, MAX_SUPPORTING_CAST_ITEM_LENGTH, key);
-        else if (key === 'interactionBoundaries') normalized.interactionBoundaries = normalizeInteractionBoundaries(raw, field);
+        else if (key === 'interactionBoundaries') normalized.interactionBoundaries = Array.isArray(raw)
+            ? stringList(raw, `${field}.interactionBoundaries`, MAX_PROFILE_TEXT_LENGTH, key)
+            : boundedText(raw, `${field}.interactionBoundaries`, MAX_RELATIONSHIP_NOTE_LENGTH);
+        else if (key === 'growthExperience') normalized.growthExperience = normalizeScalarText(raw, `${field}.growthExperience`, MAX_BACKGROUND_LENGTH);
         else if (ANSWER_KEYS.has(key) && (key === 'age' || NEW_STRING_LIST_SCHEMAS[key] || key === 'personalityCoordinates' || key === 'toneAndVocabulary')) normalized[key] = normalizeNewField(key, raw, field);
         else normalized[key] = boundedText(raw, `${field}.${key}`, ANSWER_LIMITS[key]);
     }
