@@ -7,6 +7,7 @@ import {
 } from '../contracts/index.js';
 
 const MARKER_PATTERN = /<(?:media-intent|pending-event|scene-event)>[\s\S]*?<\/(?:media-intent|pending-event|scene-event)>/i;
+const TOOL_CALL_ARTIFACT_PATTERN = /<\s*\/?\s*TOOL[_ -]?CALL\s*>/gi;
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -29,18 +30,19 @@ function diagnosticsFrom(value) {
 }
 
 function visibleTextFrom(completion, sidecar) {
-    if (typeof sidecar?.text === 'string') return sidecar.text;
-    if (typeof completion?.text === 'string') return completion.text;
-    if (typeof completion?.content === 'string') return completion.content;
-    if (typeof completion?.message?.text === 'string') return completion.message.text;
-    if (typeof completion?.message?.content === 'string') return completion.message.content;
-    if (Array.isArray(completion?.tokens)) return completion.tokens.filter(token => typeof token === 'string').join('');
+    const clean = value => String(value ?? '').replace(TOOL_CALL_ARTIFACT_PATTERN, '').trim();
+    if (typeof sidecar?.text === 'string') return clean(sidecar.text);
+    if (typeof completion?.text === 'string') return clean(completion.text);
+    if (typeof completion?.content === 'string') return clean(completion.content);
+    if (typeof completion?.message?.text === 'string') return clean(completion.message.text);
+    if (typeof completion?.message?.content === 'string') return clean(completion.message.content);
+    if (Array.isArray(completion?.tokens)) return clean(completion.tokens.filter(token => typeof token === 'string').join(''));
     if (Array.isArray(sidecar?.messages)) {
         return sidecar.messages
             .filter(message => message?.role === undefined || message?.role === 'assistant')
             .map(message => typeof message?.text === 'string' ? message.text : message?.content)
             .filter(text => typeof text === 'string')
-            .join('');
+            .join('').replace(TOOL_CALL_ARTIFACT_PATTERN, '').trim();
     }
     return '';
 }

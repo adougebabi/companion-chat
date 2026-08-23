@@ -139,6 +139,43 @@ test('native appearance_event persists the current outfit through the capability
     services().persona.delete({personaId: subject.id});
 });
 
+test('native media_event creates a durable chat image job instead of visible tool text', () => {
+    const subject = persona({name: '媒体工具测试人格'});
+    const source = userMessage(subject.id, '请发一张照片。');
+    const personaMediaConcept = {
+        schemaVersion: 1,
+        mediaKind: 'image',
+        scene: '窗边',
+        action: '自然地看向镜头',
+        mood: '平静',
+        narrative: '人格主动分享一张照片。',
+        humanSubjects: [],
+        nonHumanObjects: [],
+        capture: {mode: 'other', operator: '', deviceVisibility: 'unspecified', framingIntent: ''},
+        compositionIntent: ''
+    };
+    const call = {
+        id: 'media_call_1',
+        index: 0,
+        name: 'media_event',
+        source: 'native',
+        personaId: subject.id,
+        causationUserMessageId: source.id,
+        idempotencyKey: 'media_dispatch_1',
+        arguments: {kind: 'image', request: '窗边的自然肖像', count: 1, personaMediaConcept},
+        argumentsText: JSON.stringify({kind: 'image', request: '窗边的自然肖像', count: 1, personaMediaConcept})
+    };
+    const output = runtime.application.capabilityDispatcher.dispatch({
+        mode: 'plan', personaId: subject.id, causationUserMessageId: source.id,
+        calls: [call], completion: {doneSeen: true}
+    });
+    assert.equal(output.results[0].ok, true);
+    assert.equal(output.results[0].result.kind, 'image');
+    output.effects[0].payload.apply();
+    assert.equal(runtime.repositories.job.listForPersona({personaId: subject.id, jobTypes: ['chat_image']}).length, 1);
+    services().persona.delete({personaId: subject.id});
+});
+
 async function dispatchClaimed({owner = 'modular-worker', at = now, jobType} = {}) {
     const job = runtime.repositories.job.claim({
         leaseOwner: owner,

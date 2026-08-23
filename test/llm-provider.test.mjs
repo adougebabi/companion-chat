@@ -41,6 +41,25 @@ test('MTPLX provider bounds upstream errors', async () => {
     });
 });
 
+test('provider removes pseudo TOOL_CALL tags from visible completion text', async () => {
+    const stream = new Response([
+        'data: {"choices":[{"delta":{"content":"<TOOL_CALL>"}}]}\n',
+        'data: [DONE]\n\n'
+    ].join(''), {headers: {'content-type': 'text/event-stream'}});
+    const completion = await consumeMtplxStream(stream);
+    assert.equal(completion.text, '');
+
+    const provider = createMtplxProvider({
+        settings: () => ({lmStudioUrl: 'http://fixture/v1'}),
+        fetchImpl: async () => new Response(JSON.stringify({choices: [{message: {content: '<TOOL_CALL>'}}]}), {
+            headers: {'content-type': 'application/json'}
+        })
+    });
+    const port = createMtplxCompletionPort({provider, settings: () => ({model: 'fixture'})});
+    const completionJson = await port.stream({model: 'fixture', stream: false, messages: []});
+    assert.equal(completionJson.text, '');
+});
+
 test('MTPLX prompt trace keeps one request paired with its response', async () => {
     const runs = new Map();
     let finished;

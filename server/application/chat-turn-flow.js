@@ -19,6 +19,18 @@ const MAX_MESSAGE_TEXT = 12_000;
 const MAX_TOKEN_TEXT = 12_000;
 const FLOW_RUNTIME = Symbol('chat-turn-runtime');
 const CONTINUATION_FALLBACK = '我已经记下这件事，但暂时没能组织出更多回复。';
+const TOOL_CALL_ARTIFACT_PATTERN = /<\s*\/?\s*TOOL[_ -]?CALL\s*>/gi;
+
+function cleanToolCallArtifacts(value) {
+    return String(value ?? '').replace(TOOL_CALL_ARTIFACT_PATTERN, '').trim();
+}
+
+function continuationFallbackFor(calls) {
+    const names = new Set((Array.isArray(calls) ? calls : []).map(call => call?.name));
+    if (names.has('media_event')) return '好的，我已经安排好了。';
+    if (names.has('appearance_event') || names.has('scene_event')) return '好的，我已经更新好了。';
+    return CONTINUATION_FALLBACK;
+}
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -552,6 +564,7 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                     const continuation = continuationMessages(runtime.history, completion, previous.presentation);
                     if (!continuation.calls.length) return emptyStepResult();
                     runtime.continuationUsed = true;
+                    const continuationFallback = continuationFallbackFor(continuation.calls);
 
                     try {
                         const response = await llmStream({
@@ -568,17 +581,22 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                             continuation: true
                         });
                         const next = await completionFromStream(response);
-                        if (next.toolCalls.length) {
+                        const nextText = cleanToolCallArtifacts(next.text);
+                        if (next.toolCalls.length || !nextText) {
                             runtime.completion = normalizeCompletion({
                                 ...next,
-                                text: CONTINUATION_FALLBACK,
-                                tokens: [CONTINUATION_FALLBACK],
+                                text: continuationFallback,
+                                tokens: [continuationFallback],
                                 toolCalls: [],
                                 doneSeen: true,
                                 parseErrors: [...(next.parseErrors || []), 'Continuation attempted another capability call']
                             });
                         } else {
-                            runtime.completion = next;
+                            runtime.completion = normalizeCompletion({
+                                ...next,
+                                text: nextText,
+                                tokens: [nextText]
+                            });
                         }
                     } catch (error) {
                         void error;
@@ -586,8 +604,8 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         // their flow adapters; a continuation failure only
                         // changes the bounded user-visible fallback.
                         runtime.completion = normalizeCompletion({
-                            text: CONTINUATION_FALLBACK,
-                            tokens: [CONTINUATION_FALLBACK],
+                            text: continuationFallback,
+                            tokens: [continuationFallback],
                             toolCalls: [],
                             doneSeen: true
                         });

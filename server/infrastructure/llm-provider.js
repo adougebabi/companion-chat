@@ -240,7 +240,7 @@ export async function consumeMtplxStream(response, {onText, personaId, causation
         const choice = payload?.choices?.[0] || {};
         const delta = choice.delta || {};
         if (choice.finish_reason) finishReason = boundedText(choice.finish_reason);
-        const token = typeof delta.content === 'string' ? delta.content : '';
+        const token = typeof delta.content === 'string' ? cleanToolCallArtifacts(delta.content) : '';
         if (token) { text += token; await onText?.(token); }
         for (const fragment of (Array.isArray(delta.tool_calls) ? delta.tool_calls : [])) {
             const call = appendToolCallFragment(toolCalls, fragment, parseErrors);
@@ -318,7 +318,7 @@ function completionFromJson(payload, {personaId, causationId} = {}) {
         }
     }
     const messageText = typeof message.content === 'string' ? message.content : '';
-    const text = sidecar ? sidecarText(sidecar, messageText) : messageText;
+    const text = cleanToolCallArtifacts(sidecar ? sidecarText(sidecar, messageText) : messageText);
     const calls = (Array.isArray(message.tool_calls) ? message.tool_calls : []).map((call, index) => ({
         ...call,
         index: Number.isInteger(call?.index) ? call.index : index,
@@ -529,6 +529,13 @@ export function createMtplxCompletionPort({provider, settings, tools = [], toolC
 export const createMtplxStreamingPort = createMtplxCompletionPort;
 
 const MAX_JSON_COMPLETION_CONTENT = 24_000;
+const TOOL_CALL_ARTIFACT_PATTERN = /<\s*\/?\s*TOOL[_ -]?CALL\s*>/gi;
+
+function cleanToolCallArtifacts(value) {
+    // Preserve streaming whitespace; the application-level normalizer trims
+    // only after all visible fragments have been joined.
+    return String(value ?? '').replace(TOOL_CALL_ARTIFACT_PATTERN, '');
+}
 
 function jsonCompletionError(message, status = 502, code = 'MODEL_JSON_COMPLETION_FAILED') {
     return Object.assign(new Error(boundedText(message, '模型服务请求失败')), {status, code});

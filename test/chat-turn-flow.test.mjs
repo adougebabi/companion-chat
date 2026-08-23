@@ -140,6 +140,41 @@ test('ChatTurnFlow preserves the ordered context, stream, native handoff, and pr
     assert.deepEqual(result.presentation[1].result, {name: 'scene_event', ok: true, callId: 'call_test', idempotencyKey: 'capability_test', result: {eventId: 'event_test'}, error: null});
 });
 
+test('tool-only media calls are dispatched and provider TOOL_CALL artifacts never become visible text', async () => {
+    const nativeCall = call({
+        name: 'media_event',
+        argumentsText: JSON.stringify({kind: 'image', request: 'a portrait', count: 1, personaMediaConcept: {mediaKind: 'image'}}),
+        arguments: {kind: 'image', request: 'a portrait', count: 1, personaMediaConcept: {mediaKind: 'image'}}
+    });
+    let llmCalls = 0;
+    let dispatchCalls = 0;
+    const flow = createChatTurnFlow({
+        ...dependencies({mapper: input => ({messages: [{id: 'assistant_tool', role: 'assistant', text: input.completion.text, attachments: [], jobs: []}]}), dispatcher: {
+            supportsContinuation: true,
+            async dispatch(input) {
+                dispatchCalls += 1;
+                assert.deepEqual(input.calls, [nativeCall]);
+                return {results: [{name: 'media_event', ok: true, callId: nativeCall.id, idempotencyKey: nativeCall.idempotencyKey, result: {jobId: 'media_job_1'}, error: null}], effects: []};
+            }
+        }}),
+        llmStreamingPort: {
+            async stream() {
+                llmCalls += 1;
+                return llmCalls === 1
+                    ? {text: '', tokens: [], toolCalls: [nativeCall], doneSeen: true}
+                    : {text: '<TOOL_CALL>', tokens: ['<TOOL_CALL>'], toolCalls: [], doneSeen: true};
+            }
+        }
+    });
+
+    const result = await flow.run({personaId: 'persona_test', text: '请发一张照片'});
+    assert.equal(dispatchCalls, 1);
+    assert.equal(llmCalls, 2);
+    assert.doesNotMatch(result.message.text, /TOOL_CALL/i);
+    assert.equal(result.message.text, '好的，我已经安排好了。');
+    assert.equal(result.presentation.some(event => event.type === 'capability-result'), true);
+});
+
 test('ChatTurnFlow presents raw repository history oldest-first to the model', async () => {
     let modelHistory;
     const flow = createChatTurnFlow({
