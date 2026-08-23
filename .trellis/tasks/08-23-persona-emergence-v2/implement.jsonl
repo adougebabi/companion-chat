@@ -1,2 +1,3 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
 {"id":"seed-v2-design","type":"research","summary":"规划白纸人格的 appraisal、记忆沉淀、自我模型和主体性边界，复用现有 flow/capability/revision 机制。","source":"user-requirements","status":"ready"}
+{"id":"runtime-contracts","type":"spec","file":".trellis/spec/backend/structured-turn-contract.md","reason":"复用结构化回合、server-owned affect reducer、memory_event、幂等和 CAS 边界。","status":"ready"}
+{"id":"proactive-lifecycle","type":"spec","file":".trellis/spec/backend/debug-observability.md","reason":"复用 persona-scoped debug、redaction 和后台作业诊断边界。","status":"ready"}

@@ -1,2 +1,3 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
 {"id":"seed-v2-quality","type":"check","summary":"验证 v2 不引入关键词人格判断，白纸与预定义人格共享运行时协议，并覆盖事件回放、冲突、回滚和主动行为门控。","source":"acceptance-criteria","status":"ready"}
+{"id":"cross-layer-contract","type":"spec","file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查初始化模式、候选 schema、SSE/debug DTO、持久化和前端消费者的 producer/consumer 同步。","status":"ready"}
+{"id":"frontend-quality","type":"spec","file":".trellis/spec/frontend/quality-guidelines.md","reason":"验证调试入口、普通 persona 视图、权限门控和浏览器回归行为。","status":"ready"}
