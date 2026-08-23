@@ -461,6 +461,13 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         structuredTurn: runtime.turn,
                         control: runtime.turn.control
                     });
+                    const hasVisibleText = Boolean(runtime.completion.text?.trim())
+                        || (Array.isArray(runtime.completion.messages) && runtime.completion.messages.length > 0);
+                    const hasCapabilityCall = runtime.completion.toolCalls.length > 0
+                        || (Array.isArray(runtime.turn?.control?.capabilityCalls) && runtime.turn.control.capabilityCalls.length > 0);
+                    if (!hasVisibleText && !hasCapabilityCall) {
+                        throw new Error(runtime.completion.doneSeen === false ? '模型流未完成' : '模型未返回可见回复');
+                    }
                     const tokens = runtime.completion.tokens.length
                         ? runtime.completion.tokens
                         : runtime.completion.text ? [runtime.completion.text] : [];

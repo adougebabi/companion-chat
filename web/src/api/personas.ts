@@ -1,6 +1,6 @@
 import {encodePath, requestJson} from './client';
 import type {PersonaSummary, PublicSettings} from '../types';
-import type {H3PreflightResult, InspectorActionResult, MediaJob, PersonaDetailData} from '../components/types';
+import type {DebugInspectorSnapshot, H3PreflightResult, InspectorActionResult, PersonaDetailData, PromptRun} from '../components/types';
 
 export interface PersonaAnalysis {
   id?: string;
@@ -168,7 +168,7 @@ export function cancelSchedule(personaId: string, scheduleId: string, signal?: A
   return requestJson(`/api/companion/personas/${encodePath(personaId)}/schedule/${encodePath(scheduleId)}/cancel`, {method: 'POST', signal}).then(() => undefined);
 }
 
-export async function loadInspector(personaId: string, signal?: AbortSignal): Promise<{persona: PersonaDetailData; debugContext: Record<string, unknown> | null; lifecycle: Record<string, unknown> | null; mediaJobs: MediaJob[]}> {
+export async function loadInspector(personaId: string, signal?: AbortSignal): Promise<{persona: PersonaDetailData; inspector: DebugInspectorSnapshot}> {
   const encoded = encodePath(personaId);
   const [personaPayload, debugContext, lifecycle, promptRuns] = await Promise.all([
     requestJson(`/api/companion/personas/${encoded}`, {signal}),
@@ -176,7 +176,17 @@ export async function loadInspector(personaId: string, signal?: AbortSignal): Pr
     requestJson(`/api/companion/personas/${encoded}/lifecycle`, {signal}),
     requestJson(`/api/companion/prompt-runs?personaId=${encoded}`, {signal})
   ]);
-  const runs = record(promptRuns);
-  const mediaJobs = (Array.isArray(runs.mediaJobs) ? runs.mediaJobs : Array.isArray(runs.jobs) ? runs.jobs : []) as MediaJob[];
-  return {persona: normalizePersonaDetail(personaPayload), debugContext: record(debugContext), lifecycle: record(lifecycle), mediaJobs};
+  const runs = Array.isArray(promptRuns) ? promptRuns : record(promptRuns).items;
+  const promptRunItems = Array.isArray(runs) ? runs as PromptRun[] : [];
+  const contextRecord = record(debugContext);
+  const mediaJobs = Array.isArray(contextRecord.mediaJobs) ? contextRecord.mediaJobs : [];
+  return {
+    persona: normalizePersonaDetail(personaPayload),
+    inspector: {
+      debugContext: contextRecord,
+      lifecycle: record(lifecycle),
+      mediaJobs: mediaJobs as DebugInspectorSnapshot['mediaJobs'],
+      promptRuns: promptRunItems
+    }
+  };
 }

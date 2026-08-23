@@ -1,4 +1,4 @@
-export type ViewName = 'contacts' | 'chat' | 'activity' | 'settings';
+export type ViewName = 'contacts' | 'chat' | 'activity' | 'settings' | 'debug';
 
 export interface MediaAsset {
   id?: string;
@@ -200,4 +200,28 @@ export interface InspectorActionResult {
   id?: string;
   status?: string;
   [key: string]: unknown;
+}
+
+export interface PromptRun {
+  id?: string;
+  personaId?: string | null;
+  personaName?: string | null;
+  jobId?: string | null;
+  messageId?: string | null;
+  operation?: string | null;
+  status?: string | null;
+  model?: string | null;
+  request?: unknown;
+  response?: unknown;
+  error?: string | null;
+  createdAt?: string | null;
+  completedAt?: string | null;
+  [key: string]: unknown;
+}
+
+export interface DebugInspectorSnapshot {
+  mediaJobs: MediaJob[];
+  lifecycle: Record<string, unknown> | null;
+  debugContext: Record<string, unknown> | null;
+  promptRuns: PromptRun[];
 }

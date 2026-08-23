@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ViewName } from '../types';
 
-withDefaults(defineProps<{ currentView: ViewName; activityUnread?: boolean }>(), { activityUnread: false });
+withDefaults(defineProps<{ currentView: ViewName; activityUnread?: boolean; debugInspector?: boolean }>(), { activityUnread: false, debugInspector: false });
 const emit = defineEmits<{ (event: 'navigate', view: ViewName): void; (event: 'brand'): void }>();
 </script>
 
@@ -12,6 +12,7 @@ const emit = defineEmits<{ (event: 'navigate', view: ViewName): void; (event: 'b
     <button class="rail-action" :class="{ active: currentView === 'activity' }" type="button" aria-label="动态" title="动态" @click="emit('navigate', 'activity')">
       ◉<i v-if="activityUnread" class="unread-dot" aria-label="有未读动态" />
     </button>
+    <button v-if="debugInspector" class="rail-action" :class="{ active: currentView === 'debug' }" type="button" aria-label="调试" title="调试" @click="emit('navigate', 'debug')">⌘</button>
     <span class="rail-spacer" />
     <button class="rail-action" :class="{ active: currentView === 'settings' }" type="button" aria-label="设置" title="设置" @click="emit('navigate', 'settings')">⚙</button>
   </aside>

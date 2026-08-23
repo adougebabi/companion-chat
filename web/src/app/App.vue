@@ -16,6 +16,7 @@ import type { ContactGroup, H3PreflightResult, InspectorActionResult, Message, P
 import ActivityView from '../views/ActivityView.vue';
 import ChatView from '../views/ChatView.vue';
 import ContactsView from '../views/ContactsView.vue';
+import DebugView from '../views/DebugView.vue';
 
 const InspectorPanel = defineAsyncComponent(() => import('../components/inspector/InspectorPanel.vue'));
 const PersonaDetail = defineAsyncComponent(() => import('../components/persona/PersonaDetail.vue'));
@@ -97,11 +98,13 @@ function objectValue(value: unknown): Record<string, unknown> {
 }
 
 function navigate(nextView: ViewName) {
+  if (nextView === 'debug' && !app.debugInspector) return;
   view.value = nextView;
   if (nextView === 'activity') {
     activityPersonaId.value = null;
     void refreshActivities().catch(() => {});
   }
+  if (nextView === 'debug') void refreshDebug().catch(() => {});
 }
 
 async function selectPersona(id: string) {
@@ -227,6 +230,16 @@ async function openInspector(id: string) {
 }
 
 async function refreshInspector() { if (activePersonaId.value) await openInspector(activePersonaId.value); }
+async function refreshDebug() {
+  const id = activePersonaId.value || personas.value[0]?.id;
+  if (!id) return;
+  if (!activePersonaId.value) app.selectPersona(id);
+  inspectorLoading.value = true;
+  inspectorError.value = null;
+  try { await app.loadInspector(id); }
+  catch (error) { inspectorError.value = error instanceof Error ? error.message : '调试数据暂时不可用。'; }
+  finally { inspectorLoading.value = false; }
+}
 function openPersonaActivity(id: string) { detailOpen.value = false; activityPersonaId.value = id; view.value = 'activity'; void refreshActivities().catch(() => {}); }
 async function deletePersona(id: string) {
   const deletingActive = activePersonaId.value === id;
@@ -322,16 +335,17 @@ watch(draft, value => {
 
 <template>
   <div class="app-frame" :class="{ 'app-frame--chat': view === 'chat' }">
-    <AppRail :current-view="view" :activity-unread="Boolean(app.activityUnread)" @navigate="navigate" @brand="navigate('contacts')" />
+    <AppRail :current-view="view" :activity-unread="Boolean(app.activityUnread)" :debug-inspector="Boolean(app.debugInspector)" @navigate="navigate" @brand="navigate('contacts')" />
     <AppSidebar :personas="personas" :groups="groups" :active-persona-id="activePersonaId" :active-group-id="selectedGroupId" :current-view="view" :loading="boot === 'loading'" @navigate="navigate" @select-persona="selectPersona" @create="openWizard" @open-groups="openGroups" />
     <main class="main-pane">
       <div v-if="boot === 'error'" class="startup-error" role="alert"><h1>联系人暂时无法加载</h1><p>请检查服务状态后重试。</p><button class="primary" type="button" @click="bootstrap.start().catch(() => {})">重试</button></div>
       <ContactsView v-else-if="view === 'contacts'" :personas="personas" :groups="groups" :selected-group-id="selectedGroupId" :loading="boot === 'loading'" @select-persona="selectPersona" @create="openWizard" @select-group="openGroups" />
       <ChatView v-else-if="view === 'chat' && activePersona" :persona="activePersona" :messages="conversationMessages" :draft="draft" :loading="currentConversation.loadingInitial" :loading-older="currentConversation.loadingOlder" :history-error="currentConversation.historyError" :has-more="currentConversation.hasMore" :is-sending="isSending || currentConversation.stream?.status === 'sending'" :is-composing="isComposing" :send-error="sendError" :debug-inspector="Boolean(app.debugInspector)" :simplified-media="Boolean(settings.simplifiedMediaMode)" @back="navigate('contacts')" @profile="openDetail(activePersona.id)" @tools="app.debugInspector ? openInspector(activePersona.id) : openSettings()" @load-older="loadOlder" @retry-history="retryHistory" @prompt="prompt" @update:draft="composer.setDraft($event)" @submit="sendMessage" @composition-start="composer.onCompositionStart" @composition-end="composer.onCompositionEnd" @selection-change="composer.setSelection" @dismiss-send-error="dismissSendError" />
       <ActivityView v-else-if="view === 'activity'" :items="activityState.items" :personas="personas" :persona-id="activityPersonaId" :next-cursor="activityState.nextCursor" :loading="activityState.loading" :loading-more="activityState.loadingMore" :error="activityState.error" :commenting-id="activities.commentingId" :simplified-media="Boolean(settings.simplifiedMediaMode)" @refresh="refreshActivities" @load-more="loadMoreActivities" @retry="retryActivities" @open-persona="openDetail" @like="activityLike" @hide="activityHide" @comment="activityComment" @cancel-comment="cancelComment" @submit-comment="activitySubmitComment" @chat="selectPersona" @all="showAllActivities" />
+      <DebugView v-else-if="view === 'debug'" :persona="activePersona" :inspector="app.inspector" :loading="inspectorLoading" :error="inspectorError" @refresh="refreshDebug" />
       <SettingsView v-else @system="openSettings" @create="openWizard" @personas="navigate('contacts')" />
     </main>
-    <MobileNav :current-view="view" :activity-unread="Boolean(app.activityUnread)" @navigate="navigate" />
+    <MobileNav :current-view="view" :activity-unread="Boolean(app.activityUnread)" :debug-inspector="Boolean(app.debugInspector)" @navigate="navigate" />
 
     <AppDialog v-model:open="wizardOpen" size="large" labelled-by="persona-dialog-title"><PersonaWizard :stage="wizardStage" :description="wizardDescription" :preview="wizardPreviewData" :analyzing="wizardBusy && wizardStage === 'description'" :creating="wizardBusy && wizardStage === 'preview'" :error="wizardError" @close="wizardOpen = false" @analyze="analyzePersona" @back="wizardStage = 'description'" @create="createPersona" /></AppDialog>
     <AppDialog v-model:open="detailOpen" size="large" labelled-by="persona-detail-title"><PersonaDetail v-if="detail" :detail="detail" :groups="groups" :loading="detailLoading" @close="closeDetail" @chat="selectPersona" @activity="openPersonaActivity" @delete="deletePersona" @screen="screenPersona" @save-group="saveGroup" @save-policy="savePolicy" @delete-memory="deleteMemory" @rollback="rollbackEvolution" @restore-foundation="restoreFoundation" @edit-foundation="editFoundation" @reschedule="rescheduleSchedule" @cancel-schedule="cancelSchedule" @hidden-activities="hiddenActivities" /></AppDialog>

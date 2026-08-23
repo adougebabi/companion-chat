@@ -58,8 +58,7 @@ test('companion application exposes the validated chat route for explicit chat p
     const request = {body: {personaId: 'persona_test', text: 'hello'}};
     return application.chatRoute(request, sink).then(() => {
         assert.deepEqual(calls, [
-            'commit',
-            {type: 'done', messages: [], message: null, learned: [], jobs: []}
+            {type: 'error', error: 'step failed for flow chat-turn step llm-stream: 模型未返回可见回复'}
         ]);
         assert.equal(sink.ended, true);
     });

@@ -66,7 +66,7 @@ function ensureSentenceEnding(value) {
  * deliberately independent from persistence and only creates deterministic
  * message intents for the commit adapter to materialize.
  */
-export function splitChatAssistantReply(value, fallback = '我刚刚想了一下，但还没有组织好回复。') {
+export function splitChatAssistantReply(value, fallback = '') {
     const source = String(value || '').replace(/\s+/g, ' ').trim() || fallback;
     const sentences = [];
     let remaining = source;

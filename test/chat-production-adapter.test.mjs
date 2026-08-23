@@ -118,7 +118,7 @@ test('presentation mapper creates ordered assistant facts and capability present
     assert.deepEqual(result.chatResult.messages.map(message => message.text), ['第一句。', '第二句！']);
     assert.deepEqual(result.chatResult.sceneEvent, {operation: 'switch'});
     assert.equal(result.facts[0].messages[1].createdAt, '2026-08-21T00:00:00.001Z');
-    assert.deepEqual(splitChatAssistantReply(''), ['我刚刚想了一下，但还没有组织好回复。']);
+    assert.deepEqual(splitChatAssistantReply(''), []);
 });
 
 test('conversation commit adapter materializes assistant facts idempotently', () => {

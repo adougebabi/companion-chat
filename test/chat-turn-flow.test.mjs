@@ -184,6 +184,21 @@ test('ChatTurnFlow does not commit or persist a partial result after a provider 
     assert.deepEqual(events.map(([type]) => type), ['conversation', 'context', 'llm']);
 });
 
+test('ChatTurnFlow rejects an empty model completion instead of fabricating an assistant reply', async () => {
+    let commits = 0;
+    const flow = createChatTurnFlow({
+        ...dependencies(),
+        llmStreamingPort: {async stream() { return {text: '', tokens: [], toolCalls: [], doneSeen: true}; }},
+        commitBoundary: async () => { commits += 1; }
+    });
+
+    await assert.rejects(
+        flow.run({personaId: 'persona_test'}, {personaId: 'persona_test', text: 'hello'}),
+        error => error.code === 'FLOW_EXECUTION_FAILED' && error.stepId === 'llm-stream' && /模型未返回可见回复/.test(error.message)
+    );
+    assert.equal(commits, 0);
+});
+
 test('ChatTurnFlow propagates commit failure after successful steps without rerunning provider or dispatcher', async () => {
     const events = [];
     const flow = createChatTurnFlow({

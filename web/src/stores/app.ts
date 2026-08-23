@@ -26,9 +26,9 @@ import {
   updateSettings as updateSettingsRequest
 } from '../api/personas';
 import type {BootstrapResponse, ContactGroup, PersonaSummary, PublicSettings} from '../types';
-import type {MediaJob, PersonaDetailData} from '../components/types';
+import type {DebugInspectorSnapshot, PersonaDetailData} from '../components/types';
 
-export type AppView = 'contacts' | 'chat' | 'activity' | 'settings';
+export type AppView = 'contacts' | 'chat' | 'activity' | 'settings' | 'debug';
 export type BootStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 const ACTIVE_PERSONA_KEY = 'companion-active-persona';
@@ -60,7 +60,7 @@ export const useAppStore = defineStore('app', () => {
   const activePersonaId = ref<string | null>(readStorage(ACTIVE_PERSONA_KEY));
   const activeGroupId = ref<string | null>(readStorage(ACTIVE_GROUP_KEY));
   const detail = ref<PersonaDetailData | null>(null);
-  const inspector = ref<{mediaJobs: MediaJob[]; lifecycle: Record<string, unknown> | null; debugContext: Record<string, unknown> | null} | null>(null);
+  const inspector = ref<DebugInspectorSnapshot | null>(null);
   const lastInterviewId = ref<string | null>(null);
   let bootstrapRequest: Promise<BootstrapResponse> | null = null;
 
@@ -242,7 +242,7 @@ export const useAppStore = defineStore('app', () => {
   async function loadInspector(personaId: string): Promise<void> {
     const result = await loadInspectorRequest(personaId);
     detail.value = result.persona;
-    inspector.value = {mediaJobs: result.mediaJobs, lifecycle: result.lifecycle, debugContext: result.debugContext};
+    inspector.value = result.inspector;
   }
 
   async function runH3Preflight() {
