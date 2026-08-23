@@ -16,6 +16,13 @@ export const PROACTIVE_JOB_TYPES = Object.freeze([
     'deferred_chat_reply'
 ]);
 
+// Timeline effects written before the canonical activity job name was wired
+// into the runtime may still be queued. Keep that persisted spelling as an
+// alias while exposing one application flow and one settlement path.
+export const PROACTIVE_JOB_ALIASES = Object.freeze({
+    'timeline.activity_decision': 'activity_decision'
+});
+
 const FLOW_ALIASES = Object.freeze({
     proactive_message: Object.freeze(['proactive_message', 'proactiveMessage', 'proactive', 'proactiveFlow', 'proactiveMessageFlow']),
     pending_event: Object.freeze(['pending_event', 'pendingEvent', 'pending', 'pendingEventFlow']),
@@ -111,6 +118,10 @@ function personaIdFor(job) {
 
 function jobIdFor(job) {
     return requiredText(job?.id, 'Proactive job id', 160);
+}
+
+function canonicalJobType(type) {
+    return PROACTIVE_JOB_ALIASES[type] ?? type;
 }
 
 function repositoryPorts(repositories) {
@@ -242,7 +253,7 @@ function commandFor(type, job, context, ports) {
 }
 
 /**
- * Create application-side handlers for the four legacy proactive job types.
+ * Create application-side handlers for the proactive job types.
  *
  * A flow is intentionally optional during the migration. Missing flows are
  * reported by audit() and fail closed as terminal input rather than silently
@@ -255,12 +266,13 @@ export function createProactiveJobService(options = {}) {
     const blockers = Object.freeze(PROACTIVE_JOB_TYPES.map(type => blockerFor(type, resolved[type])).filter(Boolean));
 
     async function run(type, job, context = {}) {
-        const expected = requiredText(type, 'Proactive job type', 80);
+        const requested = requiredText(type, 'Proactive job type', 120);
+        const expected = canonicalJobType(requested);
         if (!PROACTIVE_JOB_TYPES.includes(expected)) throw terminalError(`Unsupported proactive job type: ${expected}`);
         requiredRecord(job, 'Proactive job');
         requiredRecord(context, 'Proactive job context');
         const actual = jobTypeFor(job);
-        if (actual !== expected) throw terminalError(`Proactive job type mismatch: expected ${expected}, got ${actual}`);
+        if (canonicalJobType(actual) !== expected) throw terminalError(`Proactive job type mismatch: expected ${expected}, got ${actual}`);
         const flow = resolved[expected];
         if (!flow) {
             const blocker = blockers.find(item => item.type === expected);
@@ -280,9 +292,13 @@ export function createProactiveJobService(options = {}) {
         }
     }
 
-    const handlerMap = Object.freeze(Object.fromEntries(
+    const canonicalHandlers = Object.fromEntries(
         PROACTIVE_JOB_TYPES.map(type => [type, (job, context = {}) => run(type, job, context)])
-    ));
+    );
+    const handlerMap = Object.freeze({
+        ...canonicalHandlers,
+        ...Object.fromEntries(Object.entries(PROACTIVE_JOB_ALIASES).map(([alias, type]) => [alias, canonicalHandlers[type]]))
+    });
 
     const service = {
         version: PROACTIVE_JOB_SERVICE_VERSION,
@@ -304,7 +320,7 @@ export function createProactiveJobService(options = {}) {
             return [...PROACTIVE_JOB_TYPES];
         },
         has(type) {
-            return PROACTIVE_JOB_TYPES.includes(type);
+            return PROACTIVE_JOB_TYPES.includes(type) || Object.hasOwn(PROACTIVE_JOB_ALIASES, type);
         },
         get(type) {
             return handlerMap[type] ?? null;
@@ -319,12 +335,15 @@ export function createProactiveJobService(options = {}) {
             });
         },
         registrations() {
-            return Object.freeze(PROACTIVE_JOB_TYPES.map(type => Object.freeze({
+            return Object.freeze([...PROACTIVE_JOB_TYPES, ...Object.keys(PROACTIVE_JOB_ALIASES)].map(type => {
+                const canonical = canonicalJobType(type);
+                return Object.freeze({
                 type,
-                available: Boolean(resolved[type]),
+                available: Boolean(resolved[canonical]),
                 handler: handlerMap[type],
-                blocker: blockerFor(type, resolved[type])
-            })));
+                blocker: blockerFor(canonical, resolved[canonical])
+                });
+            }));
         }
     };
     return Object.freeze(service);

@@ -312,7 +312,13 @@ function normalizePlanSlot(value, index, planDate, timezone = 'UTC') {
 }
 
 function normalizeDailyPlan(plan, planDate) {
-    const raw = plan?.timeline ?? plan?.plan?.timeline ?? plan?.items ?? plan?.plan?.items ?? [];
+    const items = plan?.items ?? plan?.plan?.items;
+    const timeline = plan?.timeline ?? plan?.plan?.timeline;
+    // The production daily-plan repository exposes both the source items and
+    // its currently projected slots. Prefer non-empty source items so a plan
+    // retry can replace stale slots; fall back to projected slots for callers
+    // that already provide a timeline snapshot.
+    const raw = Array.isArray(items) && items.length ? items : timeline ?? items ?? [];
     if (!Array.isArray(raw)) throw new TypeError('Daily plan slots must be an array');
     const timezone = plan?.timezone ?? plan?.timeZone ?? plan?.plan?.timezone ?? 'UTC';
     const slots = raw.slice(0, MAX_SLOTS).map((item, index) => normalizePlanSlot(item, index, planDate, timezone)).filter(Boolean)
@@ -323,6 +329,48 @@ function normalizeDailyPlan(plan, planDate) {
         }
     }
     return slots;
+}
+
+function candidateForSlot(slot) {
+    const durationMinutes = (Date.parse(slot.endsAt) - Date.parse(slot.startsAt)) / 60_000;
+    return {
+        templateId: slot.slotKey,
+        type: slot.slotKind || 'planned',
+        situation: slot.situation || slot.title,
+        scene: slot.scene,
+        sceneRef: slot.sceneRef,
+        location: slot.location,
+        room: slot.room,
+        ...(Number.isFinite(durationMinutes) && durationMinutes > 0 ? {durationMinutes} : {}),
+        priority: slot.priority,
+        preemptionMode: 'none',
+        reversible: true
+    };
+}
+
+function candidateEffectForSlot({personaId, planDate, slot}) {
+    const candidate = candidateForSlot(slot);
+    return {
+        effectId: `effect_timeline_candidate_${personaId}_${planDate}_${slot.slotKey}`,
+        kind: 'timeline_candidate',
+        capability: 'timeline',
+        idempotencyKey: `timeline:candidate:${personaId}:${planDate}:${slot.slotKey}`,
+        causationId: slot.id ?? slot.slotId ?? slot.slotKey,
+        priority: 2,
+        maxAttempts: 4,
+        runAfter: slot.startsAt,
+        payload: {
+            type: 'timeline_candidate',
+            personaId,
+            planDate,
+            slotId: slot.id ?? slot.slotId ?? null,
+            slotKey: slot.slotKey,
+            at: slot.startsAt,
+            expiresAt: slot.endsAt,
+            allowIdle: true,
+            candidate
+        }
+    };
 }
 
 function resultEnvelope(result) {
@@ -689,7 +737,8 @@ export function createTimelineFlow({
             decisionId: planValue.decisionId,
             slotId: planValue.slotId,
             publish: false,
-            requestActivityDecision: false
+            requestActivityDecision: false,
+            proactive: true
         }), 'life-event creation');
         const eventId = eventResult?.eventId ?? eventResult?.event?.id ?? planValue.eventId;
         if (decisionUpdate) sync(decisionUpdate({id: planValue.decisionId, decisionId: planValue.decisionId, personaId: planValue.personaId, status: 'executed', eventId, updatedAt: shape.at}), 'decision update');
@@ -725,7 +774,7 @@ export function createTimelineFlow({
             replayed: false,
             facts: [{type: 'life_event', event}, {type: 'timeline_decision_executed', decisionId: planValue.decisionId, eventId}],
             projections: [{type: 'timeline_decision', decisionId: planValue.decisionId, status: 'executed', eventId}, ...(planValue.slotId ? [{type: 'timeline_slot', slotId: planValue.slotId, status: 'active', eventId}] : [])],
-            effects: [{effectId: `effect_timeline_activity_${planValue.decisionId}`, kind: 'timeline.activity_decision', capability: 'timeline', idempotencyKey: `timeline:${planValue.decisionId}`, causationId: planValue.decisionId, payload: {eventId, decisionId: planValue.decisionId}}],
+            effects: [],
             presentation: [{type: 'timeline_event', eventId, decisionId: planValue.decisionId}]
         });
         if (effectsPort && result.effects.length) {
@@ -781,12 +830,22 @@ export function createTimelineFlow({
                 updatedAt: input.updatedAt ?? now(),
                 createdAt: input.createdAt ?? now()
             }), 'daily-plan slot upsert')));
-            return resultEnvelope({
+            const result = resultEnvelope({
                 type: 'daily_plan_slots', personaId, planDate, slots: persisted,
                 facts: [],
                 projections: persisted.map(slot => ({type: 'timeline_slot', slot})),
                 presentation: [{type: 'daily_plan_slots', personaId, planDate, count: persisted.length}]
             });
+            result.effects = persisted.map(slot => candidateEffectForSlot({personaId, planDate, slot}));
+            if (effectsPort && result.effects.length) {
+                const published = effectsPort.publishMany(result.effects, {
+                    personaId,
+                    causationId: `daily-plan:${personaId}:${planDate}`,
+                    now: input.updatedAt ?? at
+                });
+                result.effects.forEach((effect, index) => { effect.job = published[index]?.job ?? published[index]; });
+            }
+            return result;
         };
         return transactionRunner(input.transaction ?? transaction, persist);
     }

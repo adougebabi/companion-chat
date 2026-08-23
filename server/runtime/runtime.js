@@ -1009,10 +1009,12 @@ function resolveMaintenanceHandlers(options, repositories, flows = {}) {
     return {
         daily_plan: async job => {
             const payload = typeof job.payload_json === 'string' ? JSON.parse(job.payload_json || '{}') : (job.payload ?? {});
+            const updatedAt = job.updated_at ?? job.updatedAt ?? new Date().toISOString();
+            const plan = repositories.dailyPlan?.markReady?.({dailyPlanId: payload.dailyPlanId ?? payload.id, updatedAt});
+            const planInput = isRecord(payload.plan) ? {...payload.plan, status: 'ready'} : undefined;
             const slots = timelineFlow?.syncDailyPlanSlots
-                ? await timelineFlow.syncDailyPlanSlots({personaId: job.persona_id ?? job.personaId, planDate: payload.planDate ?? payload.plan_date, plan: payload.plan, at: job.updated_at ?? new Date().toISOString()})
+                ? await timelineFlow.syncDailyPlanSlots({personaId: job.persona_id ?? job.personaId, planDate: payload.planDate ?? payload.plan_date, plan: planInput, at: updatedAt})
                 : null;
-            const plan = repositories.dailyPlan?.markReady?.({dailyPlanId: payload.dailyPlanId ?? payload.id, updatedAt: job.updated_at ?? new Date().toISOString()});
             return {status: 'complete', result: {dailyPlanId: payload.dailyPlanId ?? payload.id, status: plan?.status ?? 'ready', slots: slots?.slots ?? []}};
         },
         timeline_candidate: async (job, context) => {

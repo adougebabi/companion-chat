@@ -130,3 +130,63 @@ const poll = enqueuePoll(sourceJob);
 if (!poll) enqueuePollCompensation(sourceJob);
 settle(sourceJob, {status: 'complete'});
 ```
+
+## Scenario: LLM-Gated Proactive Trigger
+
+### 1. Scope / Trigger
+
+- Trigger: a ready daily-plan slot reaches `startsAt` and should become an opportunity for the persona to decide whether to contact the user.
+- Scheduling a candidate is not a semantic decision. The server may schedule a durable candidate from persisted timeline facts, but only the proactive LLM decision may choose `send` or `skip` and compose the user-visible message.
+
+### 2. Signatures
+
+```js
+timelineFlow.syncDailyPlanSlots({personaId, planDate, plan, at})
+timelineFlow.handleJob({jobType: 'timeline_candidate', payload}, {now})
+createProactiveJobService().run('proactive_message', job, context)
+```
+
+### 3. Contracts
+
+- `syncDailyPlanSlots()` persists slots and creates one idempotent `timeline_candidate` job per slot with `runAfter = slot.startsAt`.
+- A due candidate creates a life-event fact with `proactive: true`; the life-event flow owns anti-spam, screening, safety and source idempotency checks, then publishes one `proactive_message` job when eligible.
+- `proactive_message` freezes the LLM decision before delivery. `send=false` creates no visible message; `send=true` uses the existing reply projection and may later hand off a validated media capability.
+- Historical `timeline.activity_decision` job names resolve to the canonical `activity_decision` handler and do not create a second flow.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Replaying the same ready plan | one slot and one candidate job per idempotency key |
+| Candidate is not due | worker does not invoke the proactive LLM |
+| Candidate reaches the life-event flow | one LLM-gated proactive job, subject to existing safety/quiet/active-chat guards |
+| Proactive decision returns `send=false` | job completes with a bounded skip result and no user-visible message |
+| Legacy timeline job spelling | canonical handler runs under the same lease/settlement owner |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a daily-plan slot becomes an opportunity; the model decides it is not a natural time to interrupt and returns `send=false`.
+- Base: the model returns `send=true`; the existing proactive message flow persists one reply and freezes the decision for retries.
+- Bad: a server keyword rule directly sends a message or image, or a timeline effect is written under an unregistered job type.
+
+### 6. Tests Required
+
+- Assert daily-plan replay produces one candidate per slot and due execution passes `proactive: true` to life-event creation.
+- Assert the resulting life-event path creates a `proactive_message` job and not an unknown timeline job.
+- Assert legacy `timeline.activity_decision` jobs resolve to the canonical handler.
+- Assert the existing proactive flow tests still cover frozen LLM decisions, `send=false`, retries and lease recovery.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+if (slot.startsAt <= now) sendMessage('该主动联系用户了');
+```
+
+#### Correct
+
+```js
+enqueue({jobType: 'timeline_candidate', runAfter: slot.startsAt, payload: {candidate}});
+// The due candidate creates a proactive_message job; the LLM decides send/skip.
+```
