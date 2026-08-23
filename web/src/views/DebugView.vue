@@ -26,13 +26,19 @@ function display(value: unknown, fallback = '未提供'): string {
 
 function json(value: unknown): string { return display(value); }
 
+function dateTime(value: unknown, fallback = '未知时间'): string {
+  if (typeof value !== 'string' || !value.trim()) return fallback;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? fallback : date.toLocaleString('zh-CN');
+}
+
 function runLabel(run: PromptRun): string {
   return `${run.operation || 'unknown'}${run.model ? ` · ${run.model}` : ''}`;
 }
 
 function runMeta(run: PromptRun): string {
-  const parts = [run.status || 'unknown', run.createdAt || '未知时间'];
-  if (run.completedAt) parts.push(`完成 ${run.completedAt}`);
+  const parts = [run.status || 'unknown', dateTime(run.createdAt)];
+  if (run.completedAt) parts.push(`完成 ${dateTime(run.completedAt)}`);
   if (run.jobId) parts.push(`job ${run.jobId}`);
   if (run.messageId) parts.push(`message ${run.messageId}`);
   return parts.join(' · ');
@@ -48,12 +54,12 @@ function jobStatusClass(status: unknown): string {
 
 function jobMeta(job: DurableJob): string {
   const attempts = `${job.attemptCount ?? 0}/${job.maxAttempts ?? 0}`;
-  const times = [job.createdAt ? `创建 ${job.createdAt}` : '', job.completedAt ? `完成 ${job.completedAt}` : ''].filter(Boolean);
+  const times = [job.createdAt ? `创建 ${dateTime(job.createdAt)}` : '', job.completedAt ? `完成 ${dateTime(job.completedAt)}` : ''].filter(Boolean);
   return [`尝试 ${attempts}`, ...times].join(' · ');
 }
 
 function mediaMeta(job: MediaJob): string {
-  return [job.provider || 'provider 未知', job.createdAt || '未知时间'].join(' · ');
+  return [job.provider || 'provider 未知', dateTime(job.createdAt)].join(' · ');
 }
 </script>
 
@@ -97,7 +103,7 @@ function mediaMeta(job: MediaJob): string {
         <div v-if="!jobs.length" class="debug-empty debug-empty--inline">暂无后台作业。</div>
         <div v-for="(job, index) in jobs" :key="job.id || `job-${index}`" class="debug-job-row">
           <div class="debug-job-main"><div><b>{{ job.jobType || 'unknown' }}</b><small>{{ job.id || '无 ID' }} · {{ jobMeta(job) }}</small></div><span :class="`debug-job-status debug-job-status--${jobStatusClass(job.status)}`">{{ job.status || 'unknown' }}</span></div>
-          <small class="debug-job-links">{{ job.messageId ? `message ${job.messageId}` : '' }}{{ job.activityId ? `activity ${job.activityId}` : '' }}{{ job.runAfter ? ` · 排期 ${job.runAfter}` : '' }}</small>
+          <small class="debug-job-links">{{ job.messageId ? `message ${job.messageId}` : '' }}{{ job.activityId ? `activity ${job.activityId}` : '' }}{{ job.runAfter ? ` · 排期 ${dateTime(job.runAfter)}` : '' }}</small>
           <details v-if="job.payloadSummary || job.resultSummary || job.error"><summary>查看作业详情</summary><div class="debug-job-details"><p v-if="job.error" class="debug-error">{{ job.error }}</p><div v-if="job.payloadSummary"><b>输入摘要</b><pre>{{ job.payloadSummary }}</pre></div><div v-if="job.resultSummary"><b>结果摘要</b><pre>{{ job.resultSummary }}</pre></div></div></details>
         </div>
       </section>
