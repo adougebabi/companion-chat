@@ -131,7 +131,9 @@ function normalizeProactiveDecision(value) {
     const message = text(value.message ?? '', 'Proactive decision message', PROACTIVE_DECISION_MAX_MESSAGE, {allowEmpty: true});
     if (!value.send && message) throw terminal('Proactive decision send=false cannot include a message');
     if (value.send && !message) throw terminal('Proactive decision send=true requires a message');
-    return Object.freeze({schemaVersion: PROACTIVE_DECISION_SCHEMA_VERSION, send: value.send, reason, message});
+    if (value.media !== undefined && value.media !== null && !isRecord(value.media)) throw terminal('Proactive decision media must be an object');
+    if (!value.send && value.media) throw terminal('Proactive decision send=false cannot include media');
+    return Object.freeze({schemaVersion: PROACTIVE_DECISION_SCHEMA_VERSION, send: value.send, reason, message, media: value.media ?? null});
 }
 
 function decodeDecision(value) {
@@ -292,7 +294,7 @@ function buildProactiveSource(kind, row, personaId) {
     };
 }
 
-function buildProactiveMessageFlow({lifeEvent, pendingEvent, decision, reply, lifeWorld, conversation, clock, idGenerator, flowId = 'proactive-message', stepId = 'proactive-reply-projection'} = {}) {
+function buildProactiveMessageFlow({lifeEvent, pendingEvent, decision, reply, mediaFlow, transaction, lifeWorld, conversation, clock, idGenerator, flowId = 'proactive-message', stepId = 'proactive-reply-projection'} = {}) {
     const events = lifeEvent ? createLifeEventPort(lifeEvent) : null;
     const pending = pendingEvent ? createPendingEventPort(pendingEvent) : null;
     const decisions = createDecisionPort(decision);
@@ -360,6 +362,30 @@ function buildProactiveMessageFlow({lifeEvent, pendingEvent, decision, reply, li
             });
         }
         const payload = jobPayload(command);
+        let mediaResult = null;
+        if (decisionValue.media) {
+            if (!mediaFlow || typeof mediaFlow.plan !== 'function' || typeof mediaFlow.apply !== 'function') {
+                throw terminal('Proactive media capability is unavailable');
+            }
+            if (!isRecord(decisionValue.media.personaMediaConcept)) {
+                throw terminal('Proactive media capability has no frozen persona concept');
+            }
+            const sourceIdValue = sourceId(source);
+            const mediaPlan = mediaFlow.plan({
+                personaId,
+                call: {
+                    ...decisionValue.media,
+                    currentEvent: decisionValue.media.currentEvent ?? source.event ?? null,
+                    temporaryAppearance: decisionValue.media.temporaryAppearance ?? source.event?.appearance ?? {}
+                },
+                provenance: {
+                    source: 'proactive_message',
+                    idempotencyKey: `proactive-media:${sourceIdValue}`,
+                    causationId: sourceIdValue
+                }
+            });
+            mediaResult = mediaFlow.apply(mediaPlan, {transaction});
+        }
         const projected = normalizeReplyMessages(await replies.project({personaId, text: decisionValue.message, source: {...source, ...(payload.replyMessageId ? {replyMessageId: payload.replyMessageId} : {})}, fallback: payload.fallbackText || '刚好想和你说一声。'}));
         if (kind === 'pending_event') await transitionPending(pending, transitionInput({personaId, row, id: pendingId(row), from: pendingStatus(row), to: 'consumed', at, reason: 'delivered'}));
         const result = {
@@ -367,7 +393,14 @@ function buildProactiveMessageFlow({lifeEvent, pendingEvent, decision, reply, li
             sourceId: sourceId(source),
             messageId: projected[0].id,
             messageIds: projected.map(message => message.id),
-            reason: decisionValue.reason
+            reason: decisionValue.reason,
+            ...(mediaResult ? {
+                media: {
+                    jobId: mediaResult.jobId ?? mediaResult.jobs?.[0]?.id ?? null,
+                    jobIds: mediaResult.jobIds ?? mediaResult.jobs?.map(job => job?.id).filter(Boolean) ?? [],
+                    messageIds: mediaResult.messages?.map(message => message?.id).filter(Boolean) ?? []
+                }
+            } : {})
         };
         if (kind === 'pending_event') result.pendingEventId = pendingId(row); else result.eventId = row.id;
         return channelResult({

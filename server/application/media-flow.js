@@ -374,7 +374,9 @@ export function createMediaFlow({
                 kind: normalized.call.kind,
                 request: normalized.call.request || '',
                 count: 1,
-                trigger: normalized.trigger
+                trigger: normalized.trigger,
+                currentEvent: normalized.call.currentEvent ?? null,
+                temporaryAppearance: normalized.call.temporaryAppearance ?? {}
             }), 'mediaConceptEnvelopeFor');
             if (!isRecord(envelope)) throw new TypeError('Media concept envelope must be an object');
             return envelope;

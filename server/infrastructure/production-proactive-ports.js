@@ -148,7 +148,7 @@ function createDecisionPort({database, jobRepository, completion, now, contextRe
                 messages: serializePromptMessages({
                     context,
                     messages: input.recentMessages ?? [],
-                    instruction: 'Return strict JSON for this proactive decision. Use send/publish booleans as requested by the caller and never invent facts.'
+                    instruction: 'Return strict JSON for this proactive decision. Use send/publish booleans as requested by the caller and never invent facts. For a proactive message, return optional media only when an image or video is genuinely useful; media must be a complete capability call with kind, count, request, personaMediaConcept, currentEvent, and temporaryAppearance. Never return media when send is false.'
                 }).concat([
                     {role: 'user', content: JSON.stringify({source, recentMessages: input.recentMessages ?? [], lifeWorld: input.lifeWorld ?? null})}
                 ]),
@@ -367,7 +367,7 @@ function createConversationMessages(conversationRepository) {
 }
 
 /** Compose the application flows used by the default proactive worker. */
-export function createProductionProactiveFlows({database, repositories, provider, settings, clock, id, lifeWorld, contextReader, transaction} = {}) {
+export function createProductionProactiveFlows({database, repositories, provider, settings, clock, id, lifeWorld, contextReader, mediaFlow, transaction} = {}) {
     const openDatabase = requireDatabase(database);
     const now = clockFor(clock);
     const generateId = idFor(id);
@@ -404,8 +404,8 @@ export function createProductionProactiveFlows({database, repositories, provider
         }
     };
     return {
-        proactive_message: createProactiveMessageFlow({lifeEvent, pendingEvent: pending, decision, reply, lifeWorld, clock: now, idGenerator: generateId}),
-        pending_event: createPendingEventWorkerFlow({lifeEvent, pendingEvent: pending, decision, reply, lifeWorld, clock: now, idGenerator: generateId}),
+        proactive_message: createProactiveMessageFlow({lifeEvent, pendingEvent: pending, decision, reply, mediaFlow, transaction, lifeWorld, clock: now, idGenerator: generateId}),
+        pending_event: createPendingEventWorkerFlow({lifeEvent, pendingEvent: pending, decision, reply, mediaFlow, transaction, lifeWorld, clock: now, idGenerator: generateId}),
         activity_decision: createActivityDecisionFlow({lifeEvent, decision, activity: activityProjection, lifeWorld, clock: now, idGenerator: generateId}),
         deferred_chat_reply: createDeferredChatReplyFlow({
             deferredBatch,

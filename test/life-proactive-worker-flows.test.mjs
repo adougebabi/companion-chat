@@ -133,6 +133,46 @@ test('proactive life-event retry reuses the frozen decision and does not evaluat
     assert.equal(calls.filter(item => Array.isArray(item) && item[0] === 'project').length, 2);
 });
 
+test('proactive LLM media decisions use the existing media flow instead of server-side heuristics', async () => {
+    const calls = [];
+    const mediaFlow = {
+        plan(input) {
+            calls.push(['media-plan', input]);
+            return {id: 'media-plan-1'};
+        },
+        apply(plan) {
+            calls.push(['media-apply', plan]);
+            return {jobId: 'chat-image-job-1', jobIds: ['chat-image-job-1'], messages: [{id: 'media-message-1'}]};
+        }
+    };
+    const flow = createProactiveMessageFlow({
+        lifeEvent: {findById() { return {id: 'event_media_1', persona_id: 'persona_1', type: 'social', payload_json: '{"situation":"在窗边"}'}; }},
+        decision: decisionPort({calls, decision: {
+            schemaVersion: 1,
+            send: true,
+            reason: '适合分享当下的片刻',
+            message: '我想把窗边的光分享给你。',
+            media: {
+                kind: 'image',
+                count: 1,
+                request: '窗边的自然光',
+                personaMediaConcept: {mediaKind: 'image', scene: '窗边', action: '看向窗外'},
+                currentEvent: null,
+                temporaryAppearance: {}
+            }
+        }}),
+        reply: replyPort(calls),
+        mediaFlow,
+        clock: () => NOW
+    });
+
+    const output = await flow.run(command('proactive_message', {eventId: 'event_media_1'}), {now: NOW});
+
+    assert.equal(output.result.media.jobId, 'chat-image-job-1');
+    assert.equal(calls.find(item => item[0] === 'media-plan')[1].call.personaMediaConcept.scene, '窗边');
+    assert.equal(calls.findIndex(item => item[0] === 'media-plan') < calls.findIndex(item => item[0] === 'project'), true);
+});
+
 test('activity decision publishes a projection and emits a media effect intent without calling a provider', async () => {
     const calls = [];
     const flow = createActivityDecisionFlow({

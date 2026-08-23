@@ -598,11 +598,19 @@ function createDefaultMediaCapabilityOptions(options, repositories) {
             compositionIntent: ''
         };
         if (concept.mediaKind !== kind) throw new TypeError('media_event.personaMediaConcept.mediaKind 必须与 kind 一致');
-        return {kind, count, request: typeof value.request === 'string' ? value.request.trim().slice(0, 500) : '', personaMediaConcept: concept};
+        return {
+            kind,
+            count,
+            request: typeof value.request === 'string' ? value.request.trim().slice(0, 500) : '',
+            personaMediaConcept: concept,
+            ...(value.currentEvent === null || isRecord(value.currentEvent) ? {currentEvent: value.currentEvent ?? null} : {}),
+            ...(isRecord(value.temporaryAppearance) ? {temporaryAppearance: value.temporaryAppearance} : {})
+        };
     };
     return {
         normalizeMediaCapabilityCall,
         mediaConceptEnvelopeFor(persona, input = {}) {
+            const blueprint = repositories.blueprint?.read?.({personaId: persona?.id}) ?? {};
             return {
                 schemaVersion: 1,
                 mediaKind: input.kind,
@@ -610,8 +618,14 @@ function createDefaultMediaCapabilityOptions(options, repositories) {
                 personaName: persona?.name ?? '',
                 personaRole: persona?.role ?? '',
                 request: input.request ?? '',
-                currentEvent: null,
-                temporaryAppearance: {}
+                currentEvent: input.currentEvent ?? null,
+                temporaryAppearance: input.temporaryAppearance ?? {},
+                immutableIdentity: {
+                    foundation: blueprint.foundation ?? '',
+                    identityProfile: blueprint.identityProfile ?? blueprint.identity ?? {},
+                    appearance: blueprint.appearance ?? blueprint.visualBaseline ?? {},
+                    style: blueprint.style ?? {}
+                }
             };
         },
         providerFor(kind) {
@@ -729,6 +743,22 @@ function resolveProactiveJobService(options, repositories, startup, providers) {
     const lifeWorld = lifeWorldReader
         ? {read({personaId, at} = {}) { return resolveLifeState(lifeWorldReader.readResolverInput({personaId, at})); }}
         : null;
+    const proactiveMediaFlow = options.mediaFlow
+        ?? (options.defaultProductionComposition === true
+            && typeof options.normalizeMediaCapabilityCall === 'function'
+            && repositories.conversation
+            && repositories.job
+            ? createMediaFlow({
+                repositories,
+                clock: options.clock,
+                idGenerator: options.idGenerator ?? options.id,
+                normalizeMediaCapabilityCall: options.normalizeMediaCapabilityCall,
+                mediaConceptEnvelopeFor: options.mediaConceptEnvelopeFor,
+                providerFor: options.providerFor,
+                transaction: runtimeTransaction(options, startup),
+                effectAdapter: options.effectAdapter
+            })
+            : null);
     const canComposeDefaultFlows = options.defaultProductionComposition === true
         && isOpenDatabase(startup?.database)
         && repositories.conversation
@@ -748,6 +778,7 @@ function resolveProactiveJobService(options, repositories, startup, providers) {
             id: options.idGenerator ?? options.id,
             lifeWorld,
             contextReader: options.contextReader,
+            mediaFlow: proactiveMediaFlow,
             transaction: runtimeTransaction(options, startup)
         })
         : undefined;
@@ -1170,14 +1201,15 @@ export function createRuntime(options = {}) {
         ?? (options.defaultProductionComposition === true && !explicitChatPorts
             ? createDefaultChatProductionPorts(options, repositories, providers)
             : null);
-    const proactiveJobService = resolveProactiveJobService({
-        ...options,
-        flowRegistry,
-        contextReader: options.contextReader ?? chatProductionPorts?.contextReader
-    }, repositories, startup, providers);
     const mediaCapabilityOptions = options.defaultProductionComposition === true
         ? createDefaultMediaCapabilityOptions(options, repositories)
         : {};
+    const proactiveJobService = resolveProactiveJobService({
+        ...options,
+        flowRegistry,
+        ...mediaCapabilityOptions,
+        contextReader: options.contextReader ?? chatProductionPorts?.contextReader
+    }, repositories, startup, providers);
     const h3Helpers = h3RuntimeHelpers({id: runtimeId(options.idGenerator ?? options.id)});
     const settingsPolicy = options.settingsPolicy ?? createSettingsPolicy({
         providers,

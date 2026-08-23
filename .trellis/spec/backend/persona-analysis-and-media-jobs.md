@@ -151,6 +151,7 @@ createProactiveJobService().run('proactive_message', job, context)
 - `syncDailyPlanSlots()` persists slots and creates one idempotent `timeline_candidate` job per slot with `runAfter = slot.startsAt`.
 - A due candidate creates a life-event fact with `proactive: true`; the life-event flow owns anti-spam, screening, safety and source idempotency checks, then publishes one `proactive_message` job when eligible.
 - `proactive_message` freezes the LLM decision before delivery. `send=false` creates no visible message; `send=true` uses the existing reply projection and may later hand off a validated media capability.
+- When the frozen proactive decision includes `media`, the flow must pass that complete capability (including `personaMediaConcept`) to the existing `mediaFlow.plan/apply` boundary. The server may attach authoritative source event and temporary appearance facts, but it must not invent the media concept or decide whether media is useful.
 - Historical `timeline.activity_decision` job names resolve to the canonical `activity_decision` handler and do not create a second flow.
 
 ### 4. Validation & Error Matrix
@@ -161,12 +162,14 @@ createProactiveJobService().run('proactive_message', job, context)
 | Candidate is not due | worker does not invoke the proactive LLM |
 | Candidate reaches the life-event flow | one LLM-gated proactive job, subject to existing safety/quiet/active-chat guards |
 | Proactive decision returns `send=false` | job completes with a bounded skip result and no user-visible message |
+| Proactive decision includes an invalid/missing media concept | proactive media is rejected terminally; no provider or fallback prompt is called |
 | Legacy timeline job spelling | canonical handler runs under the same lease/settlement owner |
 
 ### 5. Good/Base/Bad Cases
 
 - Good: a daily-plan slot becomes an opportunity; the model decides it is not a natural time to interrupt and returns `send=false`.
 - Base: the model returns `send=true`; the existing proactive message flow persists one reply and freezes the decision for retries.
+- Good media: the model returns `send=true` with a complete media capability; the existing media flow creates the placeholder/job and the media worker owns provider execution.
 - Bad: a server keyword rule directly sends a message or image, or a timeline effect is written under an unregistered job type.
 
 ### 6. Tests Required
@@ -175,6 +178,7 @@ createProactiveJobService().run('proactive_message', job, context)
 - Assert the resulting life-event path creates a `proactive_message` job and not an unknown timeline job.
 - Assert legacy `timeline.activity_decision` jobs resolve to the canonical handler.
 - Assert the existing proactive flow tests still cover frozen LLM decisions, `send=false`, retries and lease recovery.
+- Assert a proactive media decision calls `mediaFlow.plan/apply` with the model-supplied concept and does not use server-side keyword logic.
 
 ### 7. Wrong vs Correct
 
