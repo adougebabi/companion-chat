@@ -525,7 +525,6 @@ export function createMtplxCompletionPort({provider, settings, tools = [], toolC
 
 export const createMtplxStreamingPort = createMtplxCompletionPort;
 
-const JSON_COMPLETION_TIMEOUT_MS = 20_000;
 const MAX_JSON_COMPLETION_CONTENT = 24_000;
 
 function jsonCompletionError(message, status = 502, code = 'MODEL_JSON_COMPLETION_FAILED') {
@@ -549,12 +548,12 @@ function jsonContentFromResponse(payload) {
  * ports. It deliberately returns assistant content and leaves schema parsing
  * to the application layer.
  */
-export function createMtplxJsonCompletionPort({provider, settings, timeoutMs = JSON_COMPLETION_TIMEOUT_MS} = {}) {
+export function createMtplxJsonCompletionPort({provider, settings, timeoutMs} = {}) {
     if (!provider || typeof provider.stream !== 'function') throw new TypeError('MTPLX JSON completion port requires provider.stream()');
     const readSettings = typeof settings === 'function' ? settings : () => ({});
-    const boundedTimeout = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
-        ? Math.min(Number(timeoutMs), 120_000)
-        : JSON_COMPLETION_TIMEOUT_MS;
+    const requestTimeout = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
+        ? Number(timeoutMs)
+        : null;
 
     async function complete(input = {}) {
         const controller = new AbortController();
@@ -567,12 +566,14 @@ export function createMtplxJsonCompletionPort({provider, settings, timeoutMs = J
             callerSignal.addEventListener('abort', callerAbort, {once: true});
         }
         let timeoutHandle;
-        const timeoutPromise = new Promise((_, reject) => {
-            timeoutHandle = setTimeout(() => {
-                controller.abort();
-                reject(jsonCompletionError('模型分析请求超时', 502, 'MODEL_JSON_COMPLETION_TIMEOUT'));
-            }, boundedTimeout);
-        });
+        const timeoutPromise = requestTimeout === null
+            ? null
+            : new Promise((_, reject) => {
+                timeoutHandle = setTimeout(() => {
+                    controller.abort();
+                    reject(jsonCompletionError('模型分析请求超时', 502, 'MODEL_JSON_COMPLETION_TIMEOUT'));
+                }, requestTimeout);
+            });
         const abortPromise = callerSignal?.aborted
             ? Promise.reject(jsonCompletionError('模型分析请求已取消', 502, 'MODEL_JSON_COMPLETION_ABORTED'))
             : callerSignal?.addEventListener
@@ -603,11 +604,8 @@ export function createMtplxJsonCompletionPort({provider, settings, timeoutMs = J
                 if (content.length > MAX_JSON_COMPLETION_CONTENT) throw jsonCompletionError('模型服务返回内容过长');
                 return content;
             })();
-            const content = await Promise.race([
-                operation,
-                timeoutPromise,
-                ...(abortPromise ? [abortPromise] : [])
-            ]);
+            const races = [operation, ...(timeoutPromise ? [timeoutPromise] : []), ...(abortPromise ? [abortPromise] : [])];
+            const content = await Promise.race(races);
             return Object.freeze({content, text: content});
         } catch (error) {
             if (controller.signal.aborted) {

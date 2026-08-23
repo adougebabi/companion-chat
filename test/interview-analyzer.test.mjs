@@ -73,6 +73,22 @@ test('json completion port forces non-streaming transport and bounds timeout', a
     assert.match(result.content, /answers/);
 });
 
+test('json completion port has no automatic timeout by default', async () => {
+    const started = Date.now();
+    const port = createMtplxJsonCompletionPort({
+        settings: () => ({model: 'fixture'}),
+        provider: {
+            async stream() {
+                await new Promise(resolve => setTimeout(resolve, 35));
+                return {ok: true, json: async () => ({choices: [{message: {content: JSON.stringify(validResult())}}]})};
+            }
+        }
+    });
+    const result = await port.complete({messages: []});
+    assert.match(result.content, /answers/);
+    assert.ok(Date.now() - started >= 30);
+});
+
 test('persona JSON completion disables prompt tracing for raw descriptions', async () => {
     let request;
     const port = createMtplxJsonCompletionPort({

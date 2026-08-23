@@ -11,7 +11,7 @@
 
 ```js
 createInterviewAnalyzer({jsonCompletion}).analyze({description, signal})
-createMtplxJsonCompletionPort({provider, settings, timeoutMs}).complete({model, messages, signal, trace})
+createMtplxJsonCompletionPort({provider, settings, timeoutMs?}).complete({model, messages, signal, trace})
 createInterviewRepository({database}).createReadyInterview({answers, source, inferredFields})
 ```
 
@@ -21,6 +21,7 @@ createInterviewRepository({database}).createReadyInterview({answers, source, inf
 - Model result: exactly `{answers, inferredFields, blueprint}`. `answers.name`, `answers.role`, and `answers.foundation` are required strings. List fields are bounded string arrays.
 - Success response: `{status:'ready', source:'llm', interviewId, answers, preview, inferredFields}`. The raw description is request-scoped and must not be in `companion_interview_sessions.answers_json`, API DTOs, or prompt-run traces.
 - Activation consumes only the persisted structured answers plus explicit user overrides.
+- `timeoutMs` is optional. Production leaves it unset, so slow local models are not killed by an automatic deadline. Explicit positive values are available for tests or deployments that need a bounded request.
 
 ### 4. Validation & Error Matrix
 
