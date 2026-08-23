@@ -44,6 +44,49 @@ test('interview analyzer accepts fenced JSON and builds an llm blueprint', async
     assert.equal(result.fieldSources.role, 'inferred');
 });
 
+test('interview analyzer normalizes structured persona lists to short strings', async () => {
+    const analyzer = createInterviewAnalyzer({jsonCompletion: {complete: async () => modelContent({
+        ...validResult(),
+        blueprint: {
+            interests: [{name: '摄影', category: '视觉创作'}],
+            routine: [{from: 8, to: 10, label: '在工作室画画', scene: '工作室'}],
+            supportingCast: [{name: '顾老师', role: '导师'}]
+        }
+    })}});
+
+    const result = await analyzer.analyze({description: '她喜欢摄影，早晨会在工作室画画。'});
+
+    assert.deepEqual(result.answers.interests, ['摄影']);
+    assert.deepEqual(result.answers.routine, ['在工作室画画']);
+    assert.deepEqual(result.answers.supportingCast, ['顾老师']);
+    assert.deepEqual(result.blueprint.routine, ['在工作室画画']);
+});
+
+test('interview analyzer preserves valid string persona lists', async () => {
+    const analyzer = createInterviewAnalyzer({jsonCompletion: {complete: async () => modelContent(validResult({
+        interests: ['摄影', '散步'],
+        routine: ['上午在工作室创作'],
+        supportingCast: ['顾老师']
+    }))}});
+
+    const result = await analyzer.analyze({description: '她的生活节奏很稳定。'});
+
+    assert.deepEqual(result.answers.interests, ['摄影', '散步']);
+    assert.deepEqual(result.answers.routine, ['上午在工作室创作']);
+    assert.deepEqual(result.answers.supportingCast, ['顾老师']);
+});
+
+test('interview analyzer rejects unknown or oversized structured list items', async () => {
+    for (const payload of [
+        {...validResult(), blueprint: {routine: [{label: '工作', unexpected: '不允许'}]}},
+        {...validResult(), blueprint: {routine: [{label: '过长'.repeat(81)}]}},
+        {...validResult(), blueprint: {routine: [{from: 8, to: 10}]}}
+    ]) {
+        const analyzer = createInterviewAnalyzer({jsonCompletion: {complete: async () => modelContent(payload)}});
+        await assert.rejects(() => analyzer.analyze({description: '描述'}), error => error.status === 502);
+    }
+});
+
 test('interview analyzer rejects missing required fields and unknown fields', async () => {
     for (const payload of [
         {answers: {name: '林晚', role: '学生'}, inferredFields: []},

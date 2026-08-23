@@ -32,13 +32,36 @@ const BLUEPRINT_KEYS = new Set([
     'routine', 'languageStyle', 'relationshipNote', 'relationshipKind', 'relationship', 'interactionBoundaries', 'identity'
 ]);
 
+const LIST_ITEM_SCHEMAS = Object.freeze({
+    interests: Object.freeze({
+        textKeys: Object.freeze(['name', 'label', 'interest', 'topic', 'text', 'value']),
+        fields: Object.freeze({
+            name: 'text', label: 'text', interest: 'text', topic: 'text', text: 'text', value: 'text', category: 'text'
+        })
+    }),
+    routine: Object.freeze({
+        textKeys: Object.freeze(['label', 'activity', 'description', 'text', 'value']),
+        fields: Object.freeze({
+            label: 'text', activity: 'text', description: 'text', text: 'text', value: 'text',
+            from: 'time', to: 'time', start: 'time', end: 'time', time: 'text', scene: 'text'
+        })
+    }),
+    supportingCast: Object.freeze({
+        textKeys: Object.freeze(['name', 'label', 'person', 'character', 'text', 'value']),
+        fields: Object.freeze({
+            name: 'text', label: 'text', person: 'text', character: 'text', text: 'text', value: 'text',
+            role: 'text', relationship: 'text', description: 'text'
+        })
+    })
+});
+
 const ANALYZER_PROMPT = [
     'You extract a bounded companion persona blueprint from the user description.',
     'Return only one JSON object with exactly these top-level keys: answers, inferredFields, blueprint.',
     'answers must include non-empty name, role, and foundation strings.',
     'Use only allowed fields: name, role, foundation, interests, visualBaseline, supportingCast, routine, languageStyle, relationshipNote, relationshipKind, relationship, interactionBoundaries.',
     'inferredFields is an array of allowed field names that the model inferred rather than directly stated.',
-    'interests, routine, and supportingCast must be arrays of concise strings; all scalar persona fields must be strings.',
+    'interests, routine, and supportingCast must be arrays of concise strings; structured list items may use their explicit name/label/activity fields and are normalized to strings; all scalar persona fields must be strings.',
     'blueprint is an object containing only the same allowed persona fields and may be {}.',
     'Do not include the original description, explanations, markdown, or any other keys.',
     `Prompt contract version: ${ANALYZER_PROMPT_VERSION}.`
@@ -71,10 +94,34 @@ function unknownKeys(value, allowed, field) {
     if (unknown.length) throw analysisError(`${field}包含不支持的字段`);
 }
 
-function stringList(value, field, maxLength) {
+function structuredField(value, field, type) {
+    if (type === 'text') return boundedText(value, field, 160);
+    if ((typeof value === 'number' && Number.isFinite(value)) || (typeof value === 'string' && value.trim())) {
+        if (typeof value === 'string' && value.trim().length > 80) throw analysisError(`${field}不能超过 80 个字符`);
+        return value;
+    }
+    throw analysisError(`${field}必须是字符串或有限数字`);
+}
+
+function structuredListItem(item, field, maxLength, listType) {
+    const schema = LIST_ITEM_SCHEMAS[listType];
+    unknownKeys(item, new Set(Object.keys(schema.fields)), `${field}项目`);
+    for (const [key, value] of Object.entries(item)) {
+        structuredField(value, `${field}项目.${key}`, schema.fields[key]);
+    }
+    const textKey = schema.textKeys.find(key => Object.hasOwn(item, key));
+    if (!textKey) throw analysisError(`${field}项目缺少可显示文本`);
+    return boundedText(item[textKey], `${field}项目.${textKey}`, maxLength);
+}
+
+function stringList(value, field, maxLength, listType) {
     if (!Array.isArray(value)) throw analysisError(`${field}必须是字符串数组`);
     if (value.length > MAX_LIST_ITEMS) throw analysisError(`${field}项目过多`);
-    return value.map(item => boundedText(item, `${field}项目`, maxLength));
+    return value.map(item => {
+        if (typeof item === 'string') return boundedText(item, `${field}项目`, maxLength);
+        if (!isRecord(item)) throw analysisError(`${field}项目必须是字符串或支持的结构化对象`);
+        return structuredListItem(item, field, maxLength, listType);
+    });
 }
 
 function normalizeAnswers(value, field = 'answers') {
@@ -82,9 +129,9 @@ function normalizeAnswers(value, field = 'answers') {
     const answers = {};
     for (const key of Object.keys(value)) {
         const raw = value[key];
-        if (key === 'interests') answers.interests = stringList(raw, `${field}.interests`, MAX_INTEREST_LENGTH);
-        else if (key === 'routine') answers.routine = stringList(raw, `${field}.routine`, MAX_ROUTINE_ITEM_LENGTH);
-        else if (key === 'supportingCast') answers.supportingCast = stringList(raw, `${field}.supportingCast`, MAX_SUPPORTING_CAST_ITEM_LENGTH);
+        if (key === 'interests') answers.interests = stringList(raw, `${field}.interests`, MAX_INTEREST_LENGTH, key);
+        else if (key === 'routine') answers.routine = stringList(raw, `${field}.routine`, MAX_ROUTINE_ITEM_LENGTH, key);
+        else if (key === 'supportingCast') answers.supportingCast = stringList(raw, `${field}.supportingCast`, MAX_SUPPORTING_CAST_ITEM_LENGTH, key);
         else answers[key] = boundedText(raw, `${field}.${key}`, ANSWER_LIMITS[key]);
     }
     for (const key of ['name', 'role', 'foundation']) {
@@ -110,9 +157,9 @@ function normalizeOptionalFields(value, field) {
     const normalized = {};
     for (const key of Object.keys(value)) {
         const raw = value[key];
-        if (key === 'interests') normalized.interests = stringList(raw, `${field}.interests`, MAX_INTEREST_LENGTH);
-        else if (key === 'routine') normalized.routine = stringList(raw, `${field}.routine`, MAX_ROUTINE_ITEM_LENGTH);
-        else if (key === 'supportingCast') normalized.supportingCast = stringList(raw, `${field}.supportingCast`, MAX_SUPPORTING_CAST_ITEM_LENGTH);
+        if (key === 'interests') normalized.interests = stringList(raw, `${field}.interests`, MAX_INTEREST_LENGTH, key);
+        else if (key === 'routine') normalized.routine = stringList(raw, `${field}.routine`, MAX_ROUTINE_ITEM_LENGTH, key);
+        else if (key === 'supportingCast') normalized.supportingCast = stringList(raw, `${field}.supportingCast`, MAX_SUPPORTING_CAST_ITEM_LENGTH, key);
         else normalized[key] = boundedText(raw, `${field}.${key}`, ANSWER_LIMITS[key]);
     }
     return normalized;

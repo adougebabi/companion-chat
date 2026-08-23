@@ -19,6 +19,7 @@ createInterviewRepository({database}).createReadyInterview({answers, source, inf
 
 - Request: `{description: string}` with 1-6000 trimmed characters.
 - Model result: exactly `{answers, inferredFields, blueprint}`. `answers.name`, `answers.role`, and `answers.foundation` are required strings. List fields are bounded string arrays.
+- List fields (`interests`, `routine`, and `supportingCast`) are persisted and exposed as bounded short-string arrays. The analyzer may accept an explicit structured item from the model and project its supported text field (`name`/`label`/field-specific equivalent) to one string; unknown keys, missing text, wrong types, item-count overflow, and text-length overflow still fail closed. This is schema normalization only: it must not infer or rewrite meaning from the description.
 - Success response: `{status:'ready', source:'llm', interviewId, answers, preview, inferredFields}`. The raw description is request-scoped and must not be in `companion_interview_sessions.answers_json`, API DTOs, or prompt-run traces.
 - Activation consumes only the persisted structured answers plus explicit user overrides.
 - `timeoutMs` is optional. Production leaves it unset, so slow local models are not killed by an automatic deadline. Explicit positive values are available for tests or deployments that need a bounded request.
