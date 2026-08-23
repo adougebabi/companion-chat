@@ -31,6 +31,25 @@ function mergeHead(current: Message[], incoming: Message[]): Message[] {
   return [...incoming.filter(item => !seen.has(item.id)), ...replaced];
 }
 
+/**
+ * Initial pages are authoritative for IDs they contain. Keep local-only
+ * optimistic/previously loaded messages, but never let an older in-memory
+ * placeholder overwrite a fresher server projection with the same ID.
+ */
+function mergeInitial(serverPage: Message[], current: Message[]): Message[] {
+  const serverIds = new Set(serverPage.map(item => item.id));
+  const localOnly = current.filter(item => !serverIds.has(item.id));
+  const merged = [...serverPage, ...localOnly];
+  return merged
+    .map((item, index) => ({item, index}))
+    .sort((left, right) => {
+      const leftTime = Date.parse(left.item.createdAt || '') || 0;
+      const rightTime = Date.parse(right.item.createdAt || '') || 0;
+      return leftTime - rightTime || left.index - right.index;
+    })
+    .map(entry => entry.item);
+}
+
 function now(): string {
   return new Date().toISOString();
 }
@@ -58,7 +77,7 @@ export const useConversationsStore = defineStore('conversations', () => {
 
   function applyPage(state: ConversationState, page: MessagePage, mode: 'initial' | 'older'): void {
     if (mode === 'older') state.items = mergeHead(state.items, page.items);
-    else state.items = mergeTail(page.items, state.items);
+    else state.items = mergeInitial(page.items, state.items);
     state.nextCursor = page.nextCursor;
     state.hasMore = page.nextCursor !== null;
   }

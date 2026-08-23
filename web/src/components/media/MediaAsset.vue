@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { MediaAsset as MediaAssetData } from '../types';
 
 const props = withDefaults(defineProps<{
@@ -19,6 +19,14 @@ const ratioStyle = computed(() => {
 function activate() {
   if (isVideo.value) activated.value = true;
 }
+
+// A provider read can fail transiently while the worker is still settling.
+// The conversation refresh replaces the attachment object; allow that fresh
+// server projection to retry instead of keeping the stale error state.
+watch(() => props.asset, () => {
+  failed.value = false;
+  activated.value = false;
+});
 </script>
 
 <template>
@@ -59,4 +67,3 @@ function activate() {
     >
   </div>
 </template>
-

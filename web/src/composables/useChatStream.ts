@@ -77,23 +77,38 @@ export function useChatStream() {
   const error = ref<string | null>(null);
   let activePersonaId: string | null = null;
   let activeAbortController: AbortController | null = null;
-  const mediaRefreshes = new Map<string, Promise<void>>();
+  const mediaRefreshes = new Map<string, {messageIds: Set<string>; promise: Promise<void>}>();
 
   async function refreshMediaConversation(personaId: string, messageId?: string | null): Promise<void> {
     const existing = mediaRefreshes.get(personaId);
-    if (existing) return existing;
+    if (existing) {
+      if (messageId) existing.messageIds.add(messageId);
+      return existing.promise;
+    }
+    const state = {messageIds: new Set<string>(messageId ? [messageId] : []), promise: Promise.resolve()};
     const refresh = (async () => {
-      for (const delay of [800, 1_600, 3_200, 6_400]) {
-        await new Promise(resolve => setTimeout(resolve, delay));
+      // Providers can legitimately take tens of seconds. Keep this bounded so
+      // a failed worker cannot leave a refresh loop running forever.
+      const delays = [0, 800, 1_600, 3_200, 6_400, 10_000, 10_000, 10_000, 10_000, 10_000, 10_000, 10_000];
+      for (const delay of delays) {
+        if (delay) await new Promise(resolve => setTimeout(resolve, delay));
         let page;
         try { page = await conversations.loadInitial(personaId); } catch { continue; }
-        const target = messageId
-          ? page.items.find(item => item.id === messageId)
-          : page.items.find(item => item.generation && item.attachments.length === 0);
-        if (!target || target.attachments.length > 0 || target.generation?.status === 'failed') return;
+        const targets = state.messageIds.size
+          ? [...state.messageIds]
+            .map(id => page.items.find(item => item.id === id))
+            .filter((item): item is Message => Boolean(item))
+          : page.items.filter(item => item.generation && item.attachments.length === 0);
+        if (!targets.length) {
+          if (state.messageIds.size === 0) return;
+          continue;
+        }
+        const settled = targets.every(item => item.attachments.length > 0 || item.generation?.status === 'failed');
+        if (settled && targets.length === state.messageIds.size) return;
       }
     })().finally(() => mediaRefreshes.delete(personaId));
-    mediaRefreshes.set(personaId, refresh);
+    state.promise = refresh;
+    mediaRefreshes.set(personaId, state);
     return refresh;
   }
 

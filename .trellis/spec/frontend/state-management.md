@@ -18,7 +18,7 @@ and history pagination requests older pages by cursor. Background refresh must
 not eagerly fetch or replace the active conversation page. Polling is disabled
 while sending, composing, or while the document is hidden.
 
-Do not treat optimistic messages as persisted until the server stream emits `done` or a later refresh returns them. A streamed chat may end in several separately persisted assistant records: read ordered `payload.messages` first, then fall back to `[payload.message]` for a pre-migration server. Replace the one transient typing entry with that whole collection in order; do not leave the transient entry between or after persisted messages. History pages merge by message ID at the head; new messages merge at the tail. Generation jobs are queued through the server chat contract and restored from conversation state after a refresh.
+Do not treat optimistic messages as persisted until the server stream emits `done` or a later refresh returns them. A streamed chat may end in several separately persisted assistant records: read ordered `payload.messages` first, then fall back to `[payload.message]` for a pre-migration server. Replace the one transient typing entry with that whole collection in order; do not leave the transient entry between or after persisted messages. History pages merge by message ID at the head; new messages merge at the tail. An initial or background page is authoritative for any matching message ID, while local-only optimistic messages are retained and ordered by timestamp. This prevents a queued media placeholder from overwriting the server's later ready projection. Generation jobs are queued through the server chat contract and restored from conversation state after a refresh.
 
 ## Derived UI
 
