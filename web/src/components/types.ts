@@ -150,6 +150,8 @@ export interface EvolutionItem {
 
 export interface PersonaDetailData extends PersonaSummary {
   foundation?: string | null;
+  blueprint?: Record<string, unknown> | null;
+  foundationSummary?: Record<string, unknown> | null;
   foundationRevisions?: FoundationRevision[] | null;
   memories?: MemoryItem[] | null;
   evolutions?: EvolutionItem[] | null;

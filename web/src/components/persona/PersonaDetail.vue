@@ -24,6 +24,21 @@ const emit = defineEmits<{
 const state = computed(() => props.detail.state || {});
 const sourceText = computed(() => typeof state.value.source === 'string' ? state.value.source : state.value.source?.label || '当前生活状态');
 const foundationLines = computed(() => (props.detail.foundation || '').split(/\r?\n/).filter(Boolean));
+const blueprint = computed(() => props.detail.blueprint || {});
+const listValue = (key: string) => Array.isArray(blueprint.value[key]) ? blueprint.value[key].map(item => typeof item === 'string' ? item : (item as Record<string, unknown>)?.label || (item as Record<string, unknown>)?.name).filter(Boolean).join('；') : '';
+const personalityText = computed(() => {
+  const value = blueprint.value.personalityCoordinates;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+  const record = value as Record<string, unknown>;
+  const traits = record.values && typeof record.values === 'object' && !Array.isArray(record.values) ? Object.entries(record.values as Record<string, unknown>).map(([key, item]) => `${key}=${item}`).join('、') : '';
+  return `${String(record.framework || '')}${traits ? `：${traits}` : ''}`;
+});
+const toneText = computed(() => {
+  const value = blueprint.value.toneAndVocabulary;
+  return value && typeof value === 'object' && !Array.isArray(value) && typeof (value as Record<string, unknown>).tone === 'string'
+    ? String((value as Record<string, unknown>).tone)
+    : '';
+});
 </script>
 
 <template>
@@ -34,6 +49,7 @@ const foundationLines = computed(() => (props.detail.foundation || '').split(/\r
       <section><h3>现在</h3><p class="state-line">{{ state.situation || detail.currentSituation || '正在过自己的日常' }}<small>{{ state.mood || detail.mood || '平静' }}</small></p><p class="state-source">{{ state.scene || state.room || '日常场景' }}<template v-if="state.location"> · {{ state.location }}</template></p><p class="state-source">{{ sourceText }}</p><p v-if="state.appearance && Object.keys(state.appearance).length" class="state-source">当前外观：{{ Object.values(state.appearance).join(' · ') }}</p></section>
       <section><h3>近期安排</h3><ul v-if="detail.schedule?.length" class="schedule-list"><li v-for="item in detail.schedule" :key="item.id"><span><b>{{ item.title }}</b><small>{{ item.startsAt ? new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(item.startsAt)) : '' }}</small></span><button class="schedule-reschedule" type="button" aria-label="改期" @click="emit('reschedule', detail.id, item.id)">↻</button><button class="schedule-cancel" type="button" aria-label="取消这项安排" @click="emit('cancel-schedule', detail.id, item.id)">×</button></li></ul><p v-else class="muted">暂无公开的近期安排</p></section>
       <section><h3>生活设定</h3><p class="detail-text">{{ foundationLines.join('\n') || '还没有记录身份核心。' }}</p><p class="state-source">{{ detail.inferredFields?.length ? `AI 推断：${detail.inferredFields.join('、')}` : '所有初始设定均由你提供' }}</p><button class="quiet" type="button" @click="emit('edit-foundation', detail.id)">修订身份核心</button><ul v-if="detail.foundationRevisions?.length && detail.foundationRevisions.length > 1" class="foundation-list"><li v-for="(revision, index) in detail.foundationRevisions" :key="revision.id"><span><b>版本 {{ revision.version }}</b><small>{{ revision.reason }} · {{ revision.createdAt ? new Date(revision.createdAt).toLocaleString('zh-CN') : '' }}</small></span><button v-if="index" class="quiet" type="button" @click="emit('restore-foundation', detail.id, revision.id)">恢复此版本</button><small v-else>当前版本</small></li></ul></section>
+      <section v-if="detail.blueprint"><h3>人格定义</h3><p class="detail-text">{{ [blueprint.age && `${blueprint.age}岁`, blueprint.gender, blueprint.occupation].filter(Boolean).join(' · ') }}</p><p v-if="blueprint.growthExperience" class="detail-text">成长经历：{{ blueprint.growthExperience }}</p><p v-if="listValue('majorEvents')" class="detail-text">重要经历：{{ listValue('majorEvents') }}</p><p v-if="personalityText" class="detail-text">性格坐标：{{ personalityText }}</p><p v-if="listValue('strengths') || listValue('weaknesses')" class="detail-text">优缺点：{{ [listValue('strengths'), listValue('weaknesses')].filter(Boolean).join('；') }}</p><p v-if="listValue('quirks') || listValue('obsessions')" class="detail-text">怪癖与执念：{{ [listValue('quirks'), listValue('obsessions')].filter(Boolean).join('；') }}</p><p v-if="toneText" class="detail-text">语气与词汇：{{ toneText }}</p><p v-if="listValue('catchphrases') || listValue('signatureBehaviors')" class="detail-text">口癖与标志行为：{{ [listValue('catchphrases'), listValue('signatureBehaviors')].filter(Boolean).join('；') }}</p><p v-if="listValue('coreBeliefs') || listValue('boundariesAndTaboos')" class="detail-text">信仰与边界：{{ [listValue('coreBeliefs'), listValue('boundariesAndTaboos')].filter(Boolean).join('；') }}</p></section>
       <section><h3>她认识的你</h3><ul v-if="detail.memories?.length" class="memory-list"><li v-for="memory in detail.memories" :key="memory.id"><span>{{ memory.key }}</span><p>{{ memory.value }}</p><button type="button" :aria-label="`删除记忆 ${memory.key}`" @click="emit('delete-memory', detail.id, memory.id)">×</button></li></ul><p v-else class="muted">她还在慢慢了解你。</p></section>
       <section><h3>关系变化</h3><ul v-if="detail.evolutions?.length" class="evolution-list"><li v-for="(item, index) in detail.evolutions" :key="item.id"><b>{{ item.reason }}</b><small>{{ item.createdAt ? new Date(item.createdAt).toLocaleString('zh-CN') : '' }}</small><span>{{ item.evidenceSummary }}</span><p v-for="change in item.changes || []" :key="change.field" class="evolution-diff">{{ change.field }}：{{ change.before }} → {{ change.after }}</p><button v-if="item.status === 'applied' && index === 0" class="quiet" type="button" @click="emit('rollback', detail.id, item.id)">撤销这次变化</button></li></ul><p v-else class="muted">还没有需要保留的关系变化。</p></section>
       <section><h3>身边的人</h3><p class="supporting-names">{{ detail.supportingCharacters?.map(item => item.name).join(' · ') || '会在生活里慢慢认识新朋友' }}</p></section>
@@ -43,4 +59,3 @@ const foundationLines = computed(() => (props.detail.foundation || '').split(/\r
     </div>
   </section>
 </template>
-

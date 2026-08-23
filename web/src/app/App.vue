@@ -139,6 +139,13 @@ async function analyzePersona(description: string) {
     const blueprint = objectValue(preview.blueprint);
     const card = objectValue(objectValue(blueprint.characterCard).roleCore);
     const answers = objectValue(analysis.answers);
+    const profile = {...answers, ...blueprint};
+    const listValue = (key: string): string[] => {
+      const value = profile[key];
+      return Array.isArray(value)
+        ? value.map(item => typeof item === 'string' ? item : objectValue(item).label || objectValue(item).name).filter((item): item is string => Boolean(item))
+        : [];
+    };
     const cast = Array.isArray(blueprint.supportingCast)
       ? blueprint.supportingCast.map(item => typeof item === 'string' ? item : objectValue(item).name).filter(Boolean)
       : [];
@@ -151,11 +158,26 @@ async function analyzePersona(description: string) {
     wizardPreview.value = {
       name: card.name || answers.name || preview.name || '',
       role: answers.role || preview.role || '',
+      age: profile.age ?? '',
+      gender: profile.gender || '',
+      occupation: profile.occupation || answers.role || '',
       foundation: preview.foundation || '',
-      interests: Array.isArray(blueprint.interests) ? blueprint.interests : [],
+      growthExperience: profile.growthExperience || '',
+      majorEvents: listValue('majorEvents'),
+      personalityCoordinates: objectValue(profile.personalityCoordinates),
+      strengths: listValue('strengths'),
+      weaknesses: listValue('weaknesses'),
+      quirks: listValue('quirks'),
+      obsessions: listValue('obsessions'),
+      toneAndVocabulary: objectValue(profile.toneAndVocabulary),
+      catchphrases: listValue('catchphrases'),
+      signatureBehaviors: listValue('signatureBehaviors'),
+      coreBeliefs: listValue('coreBeliefs'),
+      boundariesAndTaboos: listValue('boundariesAndTaboos'),
+      interests: listValue('interests'),
       visualBaseline: blueprint.visualBaseline || preview.visualBaseline || '',
       supportingCast: cast,
-      routine,
+      routine: routine.length ? routine : listValue('routine'),
       inferred: inferredFields.length > 0
     };
     wizardStage.value = 'preview';

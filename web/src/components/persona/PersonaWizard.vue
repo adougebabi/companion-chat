@@ -6,7 +6,22 @@ interface PreviewData {
   [key: string]: unknown;
   name?: string;
   role?: string;
+  age?: string | number;
+  gender?: string;
+  occupation?: string;
   foundation?: string;
+  growthExperience?: string;
+  majorEvents?: string[];
+  personalityCoordinates?: Record<string, unknown>;
+  strengths?: string[];
+  weaknesses?: string[];
+  quirks?: string[];
+  obsessions?: string[];
+  toneAndVocabulary?: Record<string, unknown>;
+  catchphrases?: string[];
+  signatureBehaviors?: string[];
+  coreBeliefs?: string[];
+  boundariesAndTaboos?: string[];
   interests?: string[];
   visualBaseline?: string;
   supportingCast?: string[];
@@ -56,7 +71,7 @@ function submitPreview(event: Event) {
   </form>
   <form v-else class="persona-wizard" @submit.prevent="submitPreview">
     <header><div><small>FLUCTLIGHT INSTANCE PREVIEW</small><h2 id="persona-dialog-title">{{ title }}</h2></div><button class="close-dialog" type="button" aria-label="关闭创建流程" @click="emit('close')">×</button></header>
-    <div class="wizard-body"><p class="wizard-intro">确认前可以修改核心摘要。AI 推断的字段会保留来源标记，原始描述只用于这次分析。</p><p v-if="error" class="wizard-error" role="alert">{{ error }}</p><div class="preview-card"><b>{{ previewDraft.inferred ? 'AI 推断' : '你的设定' }}</b><p><strong>日常作息</strong>{{ previewDraft.routine?.join(' · ') || '将由生活模型生成' }}</p></div><label>名字<input name="name" maxlength="30" required :value="previewDraft.name || ''" /></label><label>身份<input name="role" maxlength="80" required :value="previewDraft.role || ''" /></label><label>身份核心<textarea name="foundation" rows="5" maxlength="3000" required>{{ previewDraft.foundation || '' }}</textarea></label><label>兴趣<input name="interests" maxlength="180" :value="previewDraft.interests?.join('、') || ''" /></label><label>外观和日常穿衣印象<input name="visualBaseline" maxlength="240" :value="previewDraft.visualBaseline || ''" /></label><label>身边最早出现的人<input name="supportingCast" maxlength="180" :value="previewDraft.supportingCast?.join('、') || ''" /></label></div>
+    <div class="wizard-body"><p class="wizard-intro">确认前可以修改核心摘要。AI 推断的字段会保留来源标记，原始描述只用于这次分析。</p><p v-if="error" class="wizard-error" role="alert">{{ error }}</p><div class="preview-card"><b>{{ previewDraft.inferred ? 'AI 推断' : '你的设定' }}</b><p><strong>社会标签</strong>{{ [previewDraft.age ? `${previewDraft.age}岁` : '', previewDraft.gender, previewDraft.occupation].filter(Boolean).join(' · ') || '未填写' }}</p><p><strong>背景</strong>{{ previewDraft.growthExperience || '未填写' }}<template v-if="previewDraft.majorEvents?.length">；{{ previewDraft.majorEvents.join('、') }}</template></p><p><strong>性格坐标</strong>{{ previewDraft.personalityCoordinates?.framework || '未指定' }}<template v-if="previewDraft.personalityCoordinates?.values">：{{ Object.entries(previewDraft.personalityCoordinates.values as Record<string, unknown>).map(([key, value]) => `${key}=${value}`).join('、') }}</template></p><p><strong>优缺点</strong>{{ [...(previewDraft.strengths || []), ...(previewDraft.weaknesses || [])].join('；') || '未填写' }}</p><p><strong>怪癖与执念</strong>{{ [...(previewDraft.quirks || []), ...(previewDraft.obsessions || [])].join('；') || '未填写' }}</p><p><strong>语气与标志</strong>{{ previewDraft.toneAndVocabulary?.tone || '' }}<template v-if="previewDraft.catchphrases?.length">；{{ previewDraft.catchphrases.join('、') }}</template><template v-if="previewDraft.signatureBehaviors?.length">；{{ previewDraft.signatureBehaviors.join('、') }}</template></p><p><strong>信仰与边界</strong>{{ [...(previewDraft.coreBeliefs || []), ...(previewDraft.boundariesAndTaboos || [])].join('；') || '未填写' }}</p><p><strong>日常作息</strong>{{ previewDraft.routine?.join(' · ') || '将由生活模型生成' }}</p></div><label>名字<input name="name" maxlength="30" required :value="previewDraft.name || ''" /></label><label>身份<input name="role" maxlength="80" required :value="previewDraft.role || ''" /></label><label>身份核心<textarea name="foundation" rows="5" maxlength="3000" required>{{ previewDraft.foundation || '' }}</textarea></label><label>兴趣<input name="interests" maxlength="180" :value="previewDraft.interests?.join('、') || ''" /></label><label>外观和日常穿衣印象<input name="visualBaseline" maxlength="240" :value="previewDraft.visualBaseline || ''" /></label><label>身边最早出现的人<input name="supportingCast" maxlength="180" :value="previewDraft.supportingCast?.join('、') || ''" /></label></div>
     <footer class="wizard-footer"><button class="quiet" type="button" @click="emit('back')">返回修改</button><button class="primary" type="submit" :disabled="creating">{{ creating ? '创建中…' : '确认并创建' }}</button></footer>
   </form>
 </template>

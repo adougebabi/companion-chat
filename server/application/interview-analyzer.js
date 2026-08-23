@@ -5,6 +5,11 @@ const MAX_FOUNDATION_LENGTH = 6_000;
 const MAX_VISUAL_BASELINE_LENGTH = 240;
 const MAX_LANGUAGE_STYLE_LENGTH = 240;
 const MAX_RELATIONSHIP_NOTE_LENGTH = 400;
+const MAX_PROFILE_TEXT_LENGTH = 160;
+const MAX_BACKGROUND_LENGTH = 1_200;
+const MAX_MAJOR_EVENT_LENGTH = 320;
+const MAX_COORDINATE_KEY_LENGTH = 64;
+const MAX_COORDINATE_VALUE_LENGTH = 80;
 const MAX_ROUTINE_ITEM_LENGTH = 160;
 const MAX_INTEREST_LENGTH = 80;
 const MAX_SUPPORTING_CAST_ITEM_LENGTH = 160;
@@ -19,18 +24,40 @@ const ANSWER_LIMITS = Object.freeze({
     relationshipNote: MAX_RELATIONSHIP_NOTE_LENGTH,
     relationshipKind: 80,
     relationship: MAX_RELATIONSHIP_NOTE_LENGTH,
-    interactionBoundaries: MAX_RELATIONSHIP_NOTE_LENGTH
+    interactionBoundaries: MAX_RELATIONSHIP_NOTE_LENGTH,
+    gender: MAX_PROFILE_TEXT_LENGTH,
+    occupation: MAX_PROFILE_TEXT_LENGTH,
+    growthExperience: MAX_BACKGROUND_LENGTH,
+    tone: MAX_PROFILE_TEXT_LENGTH
 });
 
 const ANSWER_KEYS = new Set([
     'name', 'role', 'foundation', 'interests', 'visualBaseline', 'supportingCast',
-    'routine', 'languageStyle', 'relationshipNote', 'relationshipKind', 'relationship', 'interactionBoundaries'
+    'routine', 'languageStyle', 'relationshipNote', 'relationshipKind', 'relationship', 'interactionBoundaries',
+    'age', 'gender', 'occupation', 'growthExperience', 'majorEvents', 'personalityCoordinates',
+    'strengths', 'weaknesses', 'quirks', 'obsessions', 'toneAndVocabulary', 'catchphrases',
+    'signatureBehaviors', 'coreBeliefs', 'boundariesAndTaboos'
 ]);
 
 const BLUEPRINT_KEYS = new Set([
     'name', 'role', 'foundation', 'interests', 'visualBaseline', 'supportingCast',
-    'routine', 'languageStyle', 'relationshipNote', 'relationshipKind', 'relationship', 'interactionBoundaries', 'identity'
+    'routine', 'languageStyle', 'relationshipNote', 'relationshipKind', 'relationship', 'interactionBoundaries', 'identity',
+    'age', 'gender', 'occupation', 'growthExperience', 'majorEvents', 'personalityCoordinates',
+    'strengths', 'weaknesses', 'quirks', 'obsessions', 'toneAndVocabulary', 'catchphrases',
+    'signatureBehaviors', 'coreBeliefs', 'boundariesAndTaboos'
 ]);
+
+const NEW_STRING_LIST_SCHEMAS = Object.freeze({
+    majorEvents: Object.freeze({maxLength: MAX_MAJOR_EVENT_LENGTH, label: '重大事件'}),
+    strengths: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '优点'}),
+    weaknesses: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '缺点'}),
+    quirks: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '怪癖'}),
+    obsessions: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '执念'}),
+    catchphrases: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '口癖'}),
+    signatureBehaviors: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '标志性行为'}),
+    coreBeliefs: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '核心信仰'}),
+    boundariesAndTaboos: Object.freeze({maxLength: MAX_PROFILE_TEXT_LENGTH, label: '底线与禁忌'})
+});
 
 const LIST_ITEM_SCHEMAS = Object.freeze({
     interests: Object.freeze({
@@ -59,9 +86,12 @@ const ANALYZER_PROMPT = [
     'You extract a bounded companion persona blueprint from the user description.',
     'Return only one JSON object with exactly these top-level keys: answers, inferredFields, blueprint.',
     'answers must include non-empty name, role, and foundation strings.',
-    'Use only allowed fields: name, role, foundation, interests, visualBaseline, supportingCast, routine, languageStyle, relationshipNote, relationshipKind, relationship, interactionBoundaries.',
+    'Use only allowed fields: name, role, foundation, age, gender, occupation, growthExperience, majorEvents, personalityCoordinates, strengths, weaknesses, quirks, obsessions, toneAndVocabulary, catchphrases, signatureBehaviors, coreBeliefs, boundariesAndTaboos, interests, visualBaseline, supportingCast, routine, languageStyle, relationshipNote, relationshipKind, relationship, interactionBoundaries.',
     'inferredFields is an array of allowed field names that the model inferred rather than directly stated.',
-    'interests, routine, and supportingCast must be arrays of concise strings; structured list items may use their explicit name/label/activity fields and are normalized to strings; all scalar persona fields must be strings.',
+    'majorEvents, strengths, weaknesses, quirks, obsessions, catchphrases, signatureBehaviors, coreBeliefs, and boundariesAndTaboos must be bounded arrays of concise strings.',
+    'personalityCoordinates must be an extensible object {framework, values}; framework identifies Big Five, MBTI, or another declared coordinate system, and values is an object of bounded numeric or string coordinates. Do not flatten or infer coordinates.',
+    'toneAndVocabulary must be an object with optional bounded string tone and vocabulary string array.',
+    'interests, routine, and supportingCast must be arrays of concise strings; structured list items may use their explicit name/label/activity fields and are normalized to strings; all other scalar persona fields must be strings, except age which may be a finite integer or bounded string.',
     'blueprint is an object containing only the same allowed persona fields and may be {}.',
     'Do not include the original description, explanations, markdown, or any other keys.',
     `Prompt contract version: ${ANALYZER_PROMPT_VERSION}.`
@@ -124,6 +154,58 @@ function stringList(value, field, maxLength, listType) {
     });
 }
 
+function boundedAge(value, field) {
+    if (typeof value === 'number') {
+        if (!Number.isInteger(value) || value < 0 || value > 150) throw analysisError(`${field}必须是 0 到 150 的整数`);
+        return value;
+    }
+    return boundedText(value, field, 32);
+}
+
+function boundedStringList(value, field, maxLength, label) {
+    if (!Array.isArray(value)) throw analysisError(`${label}必须是字符串数组`);
+    if (value.length > MAX_LIST_ITEMS) throw analysisError(`${label}项目过多`);
+    return value.map(item => boundedText(item, `${field}项目`, maxLength));
+}
+
+function normalizeCoordinateValues(value, field) {
+    if (!isRecord(value)) throw analysisError(`${field}必须是 JSON 对象`);
+    const entries = Object.entries(value);
+    if (entries.length > MAX_LIST_ITEMS) throw analysisError(`${field}项目过多`);
+    return Object.fromEntries(entries.map(([key, coordinate]) => {
+        const normalizedKey = boundedText(key, `${field}键`, MAX_COORDINATE_KEY_LENGTH);
+        if (typeof coordinate === 'number') {
+            if (!Number.isFinite(coordinate)) throw analysisError(`${field}.${normalizedKey}必须是有限数字或字符串`);
+            return [normalizedKey, coordinate];
+        }
+        return [normalizedKey, boundedText(coordinate, `${field}.${normalizedKey}`, MAX_COORDINATE_VALUE_LENGTH)];
+    }));
+}
+
+function normalizePersonalityCoordinates(value, field) {
+    unknownKeys(value, new Set(['framework', 'values']), field);
+    const framework = boundedText(value.framework, `${field}.framework`, 64);
+    const values = normalizeCoordinateValues(value.values, `${field}.values`);
+    return {framework, values};
+}
+
+function normalizeToneAndVocabulary(value, field) {
+    unknownKeys(value, new Set(['tone', 'vocabulary']), field);
+    const normalized = {};
+    if (value.tone !== undefined) normalized.tone = boundedText(value.tone, `${field}.tone`, MAX_PROFILE_TEXT_LENGTH);
+    if (value.vocabulary !== undefined) normalized.vocabulary = boundedStringList(value.vocabulary, `${field}.vocabulary`, MAX_PROFILE_TEXT_LENGTH, '词汇');
+    return normalized;
+}
+
+function normalizeNewField(key, raw, field) {
+    if (key === 'age') return boundedAge(raw, `${field}.age`);
+    if (key === 'personalityCoordinates') return normalizePersonalityCoordinates(raw, `${field}.personalityCoordinates`);
+    if (key === 'toneAndVocabulary') return normalizeToneAndVocabulary(raw, `${field}.toneAndVocabulary`);
+    const listSchema = NEW_STRING_LIST_SCHEMAS[key];
+    if (listSchema) return boundedStringList(raw, `${field}.${key}`, listSchema.maxLength, listSchema.label);
+    return undefined;
+}
+
 function normalizeAnswers(value, field = 'answers') {
     unknownKeys(value, ANSWER_KEYS, field);
     const answers = {};
@@ -132,6 +214,7 @@ function normalizeAnswers(value, field = 'answers') {
         if (key === 'interests') answers.interests = stringList(raw, `${field}.interests`, MAX_INTEREST_LENGTH, key);
         else if (key === 'routine') answers.routine = stringList(raw, `${field}.routine`, MAX_ROUTINE_ITEM_LENGTH, key);
         else if (key === 'supportingCast') answers.supportingCast = stringList(raw, `${field}.supportingCast`, MAX_SUPPORTING_CAST_ITEM_LENGTH, key);
+        else if (ANSWER_KEYS.has(key) && (key === 'age' || NEW_STRING_LIST_SCHEMAS[key] || key === 'personalityCoordinates' || key === 'toneAndVocabulary')) answers[key] = normalizeNewField(key, raw, field);
         else answers[key] = boundedText(raw, `${field}.${key}`, ANSWER_LIMITS[key]);
     }
     for (const key of ['name', 'role', 'foundation']) {
@@ -160,6 +243,7 @@ function normalizeOptionalFields(value, field) {
         if (key === 'interests') normalized.interests = stringList(raw, `${field}.interests`, MAX_INTEREST_LENGTH, key);
         else if (key === 'routine') normalized.routine = stringList(raw, `${field}.routine`, MAX_ROUTINE_ITEM_LENGTH, key);
         else if (key === 'supportingCast') normalized.supportingCast = stringList(raw, `${field}.supportingCast`, MAX_SUPPORTING_CAST_ITEM_LENGTH, key);
+        else if (ANSWER_KEYS.has(key) && (key === 'age' || NEW_STRING_LIST_SCHEMAS[key] || key === 'personalityCoordinates' || key === 'toneAndVocabulary')) normalized[key] = normalizeNewField(key, raw, field);
         else normalized[key] = boundedText(raw, `${field}.${key}`, ANSWER_LIMITS[key]);
     }
     return normalized;
@@ -199,11 +283,17 @@ function parseModelPayload(value) {
 }
 
 function blueprintFor(answers, fieldSources) {
+    const structuredFields = [
+        'age', 'gender', 'occupation', 'growthExperience', 'majorEvents', 'personalityCoordinates',
+        'strengths', 'weaknesses', 'quirks', 'obsessions', 'toneAndVocabulary', 'catchphrases',
+        'signatureBehaviors', 'coreBeliefs', 'boundariesAndTaboos'
+    ];
     return {
         schemaVersion: 2,
         timezone: 'Asia/Shanghai',
         foundation: answers.foundation,
         identity: {name: answers.name, role: answers.role},
+        ...Object.fromEntries(structuredFields.filter(key => answers[key] !== undefined).map(key => [key, answers[key]])),
         ...(answers.interests ? {interests: answers.interests} : {interests: []}),
         ...(answers.routine ? {routine: answers.routine} : {routine: []}),
         ...(answers.visualBaseline ? {visualBaseline: answers.visualBaseline} : {}),
