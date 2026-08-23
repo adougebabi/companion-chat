@@ -42,6 +42,7 @@ export interface PersonaSummary {
   id: string;
   name: string;
   role: string;
+  initializationMode?: 'llm_defined' | 'blank_slate' | string;
   color?: string;
   groupId: string | null;
   groupName: string | null;

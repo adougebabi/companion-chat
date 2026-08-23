@@ -111,6 +111,21 @@ test('modular persona lifecycle creates isolated durable rows and deletes one id
     }
 });
 
+test('blank-slate persona creation keeps identity anchors empty and skips personality foundation input', async () => {
+    const response = await invoke('/api/companion/personas', 'POST', {body: {initializationMode: 'blank_slate'}});
+    assert.equal(response.statusCode, 201);
+    const personaId = response.body.id;
+    try {
+        assert.equal(response.body.initializationMode, 'blank_slate');
+        assert.equal(response.body.name, '');
+        assert.equal(response.body.role, '');
+        assert.equal(database.prepare('SELECT initialization_mode FROM companion_personas WHERE id = ?').get(personaId).initialization_mode, 'blank_slate');
+        assert.equal(database.prepare('SELECT foundation FROM companion_persona_foundation_revisions WHERE persona_id = ?').get(personaId).foundation, '');
+    } finally {
+        await deletePersona(personaId);
+    }
+});
+
 test('modular contact groups keep membership and counts persona-scoped', async () => {
     const first = await createPersona({name: '分组人格甲'});
     const second = await createPersona({name: '分组人格乙'});

@@ -16,6 +16,7 @@ const promptRuns = computed<PromptRun[]>(() => props.inspector?.promptRuns || []
 const jobs = computed<DurableJob[]>(() => props.inspector?.lifecycle?.jobs || []);
 const mediaJobs = computed<MediaJob[]>(() => props.inspector?.mediaJobs || []);
 const state = computed<DebugContextState>(() => props.inspector?.debugContext?.state || {});
+const emergence = computed(() => props.inspector?.debugContext?.emergence || props.inspector?.lifecycle?.emergence || null);
 
 function display(value: unknown, fallback = '未提供'): string {
   if (value === null || value === undefined || value === '') return fallback;
@@ -116,6 +117,12 @@ function mediaMeta(job: MediaJob): string {
           <p v-if="job.finalPrompt || job.prompt" class="debug-media-prompt">{{ job.finalPrompt || job.prompt }}</p>
           <p v-if="job.error" class="debug-error">{{ job.error }}</p>
         </div>
+      </section>
+
+      <section class="debug-section">
+        <div class="debug-section-heading"><div><h2>人格涌现链路</h2><p>这里显示经过脱敏的 appraisal、记忆候选、自我模型和主体性状态，以及关联证据与失败原因。</p></div></div>
+        <div v-if="!emergence" class="debug-empty debug-empty--inline">暂无涌现记录。</div>
+        <pre v-else class="debug-emergence-summary">{{ json(emergence) }}</pre>
       </section>
     </div>
   </section>

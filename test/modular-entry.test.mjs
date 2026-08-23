@@ -35,7 +35,7 @@ test('server/index.js exposes a side-effect-free modular start factory', async (
     });
     try {
         assert.equal(runtime.state, 'running');
-        assert.equal(runtime.database.prepare('SELECT COUNT(*) AS count FROM companion_schema_migrations').get().count, 14);
+        assert.equal(runtime.database.prepare('SELECT COUNT(*) AS count FROM companion_schema_migrations').get().count, 19);
         await runtime.stop();
         assert.equal(runtime.state, 'stopped');
     } finally {

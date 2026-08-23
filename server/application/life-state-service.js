@@ -42,6 +42,8 @@ export function createLifeStateService({reader, resolver, stateRepository, lifeE
             resolved_ends_at: resolved.endsAt ?? null,
             resolved_time_fact: resolved.timeFact ?? (resolved.endsAt ? 'known' : 'unknown'),
             resolved_next_boundary_at: resolved.nextBoundaryAt ?? resolved.endsAt ?? null,
+            slotKind: resolved.slotKind ?? null,
+            sleeping: resolved.sleeping === true,
             source: resolved.source,
             sourceId: resolved.sourceId ?? resolved.eventId ?? resolved.scheduleId ?? null,
             startsAt: resolved.startsAt ?? null,
@@ -89,7 +91,10 @@ export function createLifeStateService({reader, resolver, stateRepository, lifeE
     function scheduledState(command = {}) { return project(command); }
     function sleepAvailability(command = {}) {
         const value = project(command);
-        const sleeping = /睡|休息|躺|寝室|卧室/i.test(String(value.situation || '')) || value.resolved_source === 'shared_scene';
+        const sleeping = value.sleeping === true
+            || value.isSleeping === true
+            || value.slotKind === 'baseline_sleep'
+            || value.slotKind === 'sleep';
         return {sleeping, available: sleeping, nextBoundaryAt: value.resolved_next_boundary_at ?? null, endsAt: value.resolved_ends_at ?? null, timeFact: value.resolved_time_fact};
     }
     function reconcile(command = {}) {

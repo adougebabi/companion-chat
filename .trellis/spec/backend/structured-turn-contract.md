@@ -10,7 +10,11 @@
 ### 2. Signatures
 
 - Provider normalized completion: `{text, tokens, toolCalls, structuredTurn?, control?, parseErrors?, doneSeen}`.
-- Canonical turn schema: `schemaVersion: 'companion.turn.v1'` with `control.affectEvents[]`, `control.driveSignals[]`, `control.memoryWrites[]`, and `control.capabilityCalls[]`.
+- Canonical turn schema: `schemaVersion: 'companion.turn.v1'` with `control.affectEvents[]`, `control.driveSignals[]`, `control.memoryWrites[]`, `control.appraisals[]`, `control.memoryConsolidations[]`, `control.selfModelClaims[]`, `control.agencyIntentions[]`, and `control.capabilityCalls[]`.
+- Appraisal candidate: `companion.appraisal.v1` with model rationale, confidence, evidence references, optional `interactionFactId`, and only allowlisted reducer candidates. The application must validate an optional fact link against the current persona and source message before persistence.
+- Memory consolidation candidate: `companion.memory-consolidation.v1` with exactly one bounded `key`/`value` claim or free-form `claim`, evidence/source-fact references, revision/status, and optional `interactionFactId`. It is an auditable candidate ledger entry, not an automatic write to `companion_memories`.
+- Self-model claim: `companion.self-model.v1` with LLM-owned category/claim/summary, uncertainty, evidence refs, revision/status and optional decay policy. Active claims are a separate projection and never mutate foundation.
+- Agency intention: `companion.agency-intention.v1` with LLM-owned intent/topic/explanation, evidence refs and lifecycle status. Candidate persistence does not deliver a message; qualification, freeze, lease and delivery remain owned by proactive flows.
 - Supported first-release drives: `social`, `exploration`, `rest`; pressure is `0..1`, where higher means more unmet need.
 - Memory capability: `memory_event({memory: {operation, key, value, confidence, sourceMessageId?, idempotencyKey}})`.
 - Appearance capability: `appearance_event({operation: 'set'|'clear', outfit?, reason?})`; it is persona-scoped, source-message-bound, idempotent, and persists the current outfit in the normalized state projection while retaining an auditable `appearance_change` life event.
@@ -26,6 +30,9 @@
 - Native-capable providers receive the catalog directly. Legacy marker adapters remain compatibility fallbacks and must not be advertised in the normal prompt. A future provider-specific capability profile may filter tools, but the current base implementation sends the universal catalog unchanged.
 - Scene and appearance are separate facts. When a scene transition also changes clothing, the model may issue one `scene_event` and one `appearance_event` in the same turn; an explicit clothing change in an unchanged scene may issue only `appearance_event`. Ordinary prose or transient gestures never update clothing state.
 - `memory_event` is the only ordinary-chat path to long-term memory. It is persona-private, source-message-bound, idempotent, and committed with the assistant facts when the turn succeeds.
+- Appraisal and memory-consolidation sidecars are LLM-owned semantic candidates. The server may reject invalid schema, missing evidence, source ownership, idempotency, or CAS state, but must not infer a replacement from visible text or a rejected candidate. A candidate's `interactionFactId`, when present, must resolve to an existing fact owned by the same persona and bound to the same source message.
+- Appraisal, memory-consolidation, and affect effects are applied through the existing caller-owned chat commit transaction. They remain distinct effect capability identifiers and never create a second SSE/control stream or a second chat commit boundary.
+- Self-model and agency intention effects use the same caller-owned transaction and distinct effect capability identifiers; they remain candidate/projection writes and cannot create a second SSE/control stream or bypass proactive delivery gates.
 - Affect state uses persona baselines and lazy exponential decay; normal decay does not create timer events. Unknown future drive keys may be retained but are inactive until a server policy exists.
 - Raw PAD values, hidden reasoning, prompts, credentials, and unbounded provider diagnostics never enter user-visible chat or ordinary API DTOs.
 
@@ -36,6 +43,8 @@
 | Unknown schema version or oversized/unknown control field | Drop optional control effects, retain valid visible text, store a bounded diagnostic |
 | Invalid memory source/persona/confidence/idempotency | Reject memory plan; do not write memory or claim `learned` success |
 | Invalid affect event or arbitrary model delta | Reject the event; server reducer remains the only delta owner |
+| Invalid appraisal/consolidation schema, required evidence, or interaction-fact ownership | Drop the optional semantic candidate, retain visible text, and record a bounded diagnostic; never synthesize a semantic fallback |
+| Invalid self-model/agency schema, evidence, or source ownership | Drop the optional semantic candidate, retain visible text, and record a bounded diagnostic; never synthesize a self/agency fallback |
 | Duplicate `(persona_id, idempotency_key)` | Replay existing result; do not duplicate rows or effects |
 | Snapshot revision/CAS conflict | Refuse stale update; do not overwrite newer state |
 | Provider text-only completion | Normalize with empty control channels and preserve existing chat behavior |

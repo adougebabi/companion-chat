@@ -102,6 +102,9 @@ function normalizeTurnRecord({text, tokens, toolCalls, sidecar, parseErrors, don
             affectEvents: candidateSidecar.affectEvents,
             driveSignals: candidateSidecar.driveSignals,
             memoryWrites: candidateSidecar.memoryWrites,
+            memoryConsolidations: candidateSidecar.memoryConsolidations,
+            selfModelClaims: candidateSidecar.selfModelClaims ?? candidateSidecar.self_model_claims,
+            agencyIntentions: candidateSidecar.agencyIntentions ?? candidateSidecar.agency,
             capabilityCalls: candidateSidecar.capabilityCalls
         };
     const visible = stripHiddenReasoning(sidecarText(candidateSidecar, text || ''));
@@ -114,6 +117,10 @@ function normalizeTurnRecord({text, tokens, toolCalls, sidecar, parseErrors, don
             affectEvents: control.affectEvents ?? [],
             driveSignals: control.driveSignals ?? [],
             memoryWrites: control.memoryWrites ?? [],
+            appraisals: control.appraisals ?? control.appraisal ?? [],
+            memoryConsolidations: control.memoryConsolidations ?? [],
+            selfModelClaims: control.selfModelClaims ?? control.self_model_claims ?? [],
+            agencyIntentions: control.agencyIntentions ?? control.agency ?? [],
             capabilityCalls: [
                 ...(Array.isArray(toolCalls) ? toolCalls : []),
                 ...(Array.isArray(control.capabilityCalls) ? control.capabilityCalls : [])
@@ -309,13 +316,13 @@ function completionFromJson(payload, {personaId, causationId} = {}) {
     const parseErrors = [];
     let sidecar = parseSidecar(sidecarCandidate(payload), parseErrors);
     if (!sidecar && isRecord(message.content)
-        && (message.content.schemaVersion || message.content.control || message.content.affectEvents || message.content.memoryWrites)) {
+        && (message.content.schemaVersion || message.content.control || message.content.affectEvents || message.content.memoryWrites || message.content.appraisals || message.content.appraisal || message.content.memoryConsolidations || message.content.selfModelClaims || message.content.self_model_claims || message.content.agencyIntentions || message.content.agency)) {
         sidecar = message.content;
     }
     if (!sidecar && typeof message.content === 'string' && message.content.trim().startsWith('{')) {
         try {
             const parsed = JSON.parse(message.content);
-            if (isRecord(parsed) && (parsed.schemaVersion || parsed.control || parsed.affectEvents || parsed.memoryWrites || parsed.capabilityCalls)) {
+            if (isRecord(parsed) && (parsed.schemaVersion || parsed.control || parsed.affectEvents || parsed.memoryWrites || parsed.appraisals || parsed.appraisal || parsed.memoryConsolidations || parsed.selfModelClaims || parsed.self_model_claims || parsed.agencyIntentions || parsed.agency || parsed.capabilityCalls)) {
                 sidecar = parsed;
             }
         } catch {

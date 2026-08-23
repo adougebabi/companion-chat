@@ -1,3 +1,5 @@
 {"id":"seed-v2-design","type":"research","summary":"规划白纸人格的 appraisal、记忆沉淀、自我模型和主体性边界，复用现有 flow/capability/revision 机制。","source":"user-requirements","status":"ready"}
 {"id":"runtime-contracts","type":"spec","file":".trellis/spec/backend/structured-turn-contract.md","reason":"复用结构化回合、server-owned affect reducer、memory_event、幂等和 CAS 边界。","status":"ready"}
 {"id":"proactive-lifecycle","type":"spec","file":".trellis/spec/backend/debug-observability.md","reason":"复用 persona-scoped debug、redaction 和后台作业诊断边界。","status":"ready"}
+{"id":"database-and-lifecycle","type":"spec","file":".trellis/spec/backend/database-guidelines.md","reason":"约束初始化模式、persona-private ledger、SQLite migrations、CAS 和 caller-owned transactions。","status":"ready"}
+{"id":"emergence-contract","type":"spec","file":".trellis/spec/backend/emergence-contract.md","reason":"固化四类 LLM-first 候选、两种初始化模式、失败关闭、debug redaction 和回归测试边界。","status":"ready"}

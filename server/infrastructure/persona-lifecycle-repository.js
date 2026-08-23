@@ -22,6 +22,75 @@ function idFor(id) {
     return prefix => `${prefix}_${randomUUID()}`;
 }
 
+function localDateFor(value, timezone = 'UTC') {
+    try {
+        const parts = new Intl.DateTimeFormat('en-CA', {timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit'}).formatToParts(new Date(value));
+        const fields = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+        return `${fields.year}-${fields.month}-${fields.day}`;
+    } catch {
+        return new Date(value).toISOString().slice(0, 10);
+    }
+}
+
+function nextDate(planDate) {
+    const value = new Date(`${planDate}T00:00:00.000Z`);
+    value.setUTCDate(value.getUTCDate() + 1);
+    return value.toISOString().slice(0, 10);
+}
+
+function zonedInstant(planDate, clockText, timezone = 'UTC') {
+    const match = /^(\d{2}):(\d{2})$/.exec(String(clockText || ''));
+    if (!match) return null;
+    const hour = Number(match[1]);
+    const minute = Number(match[2]);
+    if (hour > 24 || minute > 59 || (hour === 24 && minute !== 0)) return null;
+    const target = hour === 24
+        ? new Date(`${nextDate(planDate)}T00:00:00.000Z`).getTime()
+        : Date.UTC(Number(planDate.slice(0, 4)), Number(planDate.slice(5, 7)) - 1, Number(planDate.slice(8, 10)), hour, minute);
+    let candidate = target;
+    for (let index = 0; index < 3; index += 1) {
+        const parts = new Intl.DateTimeFormat('en-US', {timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false}).formatToParts(new Date(candidate));
+        const fields = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
+        const represented = Date.UTC(fields.year, fields.month - 1, fields.day, fields.hour === 24 ? 0 : fields.hour, fields.minute);
+        candidate += target - represented;
+    }
+    return new Date(candidate).toISOString();
+}
+
+function initialDailyBaseline({blueprint, planId, planDate}) {
+    const world = blueprint?.world && typeof blueprint.world === 'object' ? blueprint.world : {};
+    const locations = Array.isArray(world.locations) ? world.locations : [];
+    const defaultRef = world.defaultSceneRef ?? blueprint.defaultSceneRef ?? null;
+    const location = locations.find(item => item?.id === defaultRef?.locationId) ?? locations.find(item => item?.isDefault) ?? locations[0] ?? {};
+    const rooms = Array.isArray(location.rooms) ? location.rooms : [];
+    const room = rooms.find(item => item?.id === defaultRef?.roomId) ?? rooms.find(item => item?.isDefault) ?? rooms[0] ?? {};
+    const scene = String(room.scene ?? location.scene ?? blueprint.defaultScene ?? '日常场景').trim() || '日常场景';
+    const locationName = String(location.name ?? location.title ?? '家中').trim() || '家中';
+    const roomName = String(room.name ?? room.title ?? '自己的房间').trim() || '自己的房间';
+    const timezone = typeof blueprint?.timezone === 'string' && blueprint.timezone.trim() ? blueprint.timezone : 'UTC';
+    const startsAt = zonedInstant(planDate, '00:00', timezone) ?? `${planDate}T00:00:00.000Z`;
+    const endsAt = zonedInstant(planDate, '24:00', timezone) ?? `${nextDate(planDate)}T00:00:00.000Z`;
+    return {
+        id: `${planId}:baseline:initial`,
+        slotKey: `${planId}:baseline:initial`,
+        slotKind: 'baseline_idle',
+        title: '日常休息',
+        situation: '正在自己的空间里休息',
+        scene,
+        sceneRef: defaultRef,
+        location: locationName,
+        room: roomName,
+        startsAt,
+        endsAt,
+        planDate,
+        source: 'daily_plan_baseline',
+        status: 'confirmed',
+        priority: 0,
+        constraints: {title: '日常休息', situation: '正在自己的空间里休息', scene, sceneRef: defaultRef, location: locationName, room: roomName},
+        outcome: {}
+    };
+}
+
 function defaultBlueprint(name, role, foundation) {
     return {
         schemaVersion: 2,
@@ -59,10 +128,20 @@ export function createPersonaLifecycleRepository({database, clock, id, foundatio
         const color = /^#[0-9a-f]{6}$/i.test(String(input.color || '')) ? input.color : '#3593d2';
         const createdAt = input.createdAt ?? now();
         const personaId = text(input.id ?? nextId('persona'), 'Persona.id');
+        const dailyPlanId = nextId('daily_plan');
         const group = db.prepare(`SELECT * FROM companion_groups WHERE is_default = 1 ORDER BY created_at, id LIMIT 1`).get();
         if (!group) throw new Error('默认分组不存在');
         const blueprintValue = input.blueprint && typeof input.blueprint === 'object' ? input.blueprint : (blueprintFactory?.(input) ?? defaultBlueprint(name, role, foundationText));
-        const planDate = new Date(createdAt).toISOString().slice(0, 10);
+        const timezone = typeof blueprintValue.timezone === 'string' && blueprintValue.timezone.trim() ? blueprintValue.timezone : 'Asia/Shanghai';
+        const planDate = localDateFor(createdAt, timezone);
+        const initialBaseline = initialDailyBaseline({blueprint: blueprintValue, planId: dailyPlanId, planDate});
+        const initialPlan = {
+            schemaVersion: 1,
+            timezone,
+            planDate,
+            items: [],
+            timeline: [initialBaseline]
+        };
         db.transaction(() => {
             db.prepare(`INSERT INTO companion_personas (id, name, role, color, group_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`).run(personaId, name, role, color, group.id, createdAt, createdAt);
             db.prepare(`INSERT INTO companion_persona_foundation_revisions (id, persona_id, version, foundation, reason, created_at) VALUES (?, ?, 1, ?, ?, ?)`).run(nextId('foundation'), personaId, foundationText, '初始化人格', createdAt);
@@ -72,9 +151,18 @@ export function createPersonaLifecycleRepository({database, clock, id, foundatio
             }
             db.prepare(`INSERT INTO companion_persona_states (persona_id, situation, mood, appearance_json, checkpoint_at, updated_at) VALUES (?, ?, ?, '{}', ?, ?)`).run(personaId, '正在开始自己的日常', '平静', createdAt, createdAt);
             db.prepare(`INSERT INTO companion_conversations (id, persona_id, created_at, updated_at) VALUES (?, ?, ?, ?)`).run(nextId('conversation'), personaId, createdAt, createdAt);
-            db.prepare(`INSERT OR IGNORE INTO companion_daily_plans (id, persona_id, plan_date, status, plan_json, source, created_at, updated_at) VALUES (?, ?, ?, 'queued', '[]', 'modular-default', ?, ?)`).run(nextId('daily_plan'), personaId, planDate, createdAt, createdAt);
+            // A new persona must have a durable day-one life-world projection.
+            // The maintenance job may later replace the timeline with an LLM
+            // plan, but initialization itself cannot leave state resolution
+            // dependent on a worker tick.
+            db.prepare(`INSERT OR IGNORE INTO companion_daily_plans (id, persona_id, plan_date, status, plan_json, source, created_at, updated_at) VALUES (?, ?, ?, 'ready', ?, 'modular-default', ?, ?)`).run(dailyPlanId, personaId, planDate, JSON.stringify(initialPlan), createdAt, createdAt);
+            db.prepare(`INSERT OR IGNORE INTO companion_timeline_slots (id, persona_id, plan_date, slot_key, slot_kind, starts_at, ends_at, status, source, priority, schedule_id, plan_revision, constraints_json, outcome_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+                initialBaseline.id, personaId, planDate, initialBaseline.slotKey, initialBaseline.slotKind,
+                initialBaseline.startsAt, initialBaseline.endsAt, initialBaseline.status, initialBaseline.source,
+                initialBaseline.priority, null, 1, JSON.stringify(initialBaseline.constraints), JSON.stringify(initialBaseline.outcome), createdAt, createdAt
+            );
         })();
-        jobRepository?.enqueue?.({id: nextId('job'), jobType: 'daily_plan', personaId, priority: 2, maxAttempts: 12, runAfter: createdAt, payload: {planDate}});
+        jobRepository?.enqueue?.({id: nextId('job'), jobType: 'daily_plan', personaId, priority: 2, maxAttempts: 12, runAfter: createdAt, payload: {dailyPlanId, planDate}});
         return getPersona({personaId});
     }
 

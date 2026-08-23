@@ -35,6 +35,10 @@ export {
     systemCapabilityMediaContract,
     systemCapabilityPendingEventContract,
     systemCapabilityMemoryContract,
+    systemCapabilityMemoryConsolidationContract,
+    systemCapabilityAppraisalContract,
+    systemCapabilitySelfModelContract,
+    systemCapabilityAgencyContract,
     systemCapabilityStateContract,
     systemCapabilityTimeFact,
     systemCapabilitySceneContract,
@@ -66,15 +70,51 @@ export {createScheduleService} from './application/schedule-service.js';
 export {createMemoryService} from './application/memory-service.js';
 export {createMemoryEventFlow, createMemoryFlow} from './application/memory-flow.js';
 export {createAffectFlow, createAffectStateFlow} from './application/affect-flow.js';
+export {createAppraisalFlow, createInteractionAppraisalFlow, createCompanionAppraisalFlow} from './application/appraisal-flow.js';
+export {
+    createMemoryConsolidationFlow,
+    createMemoryConsolidationCandidateFlow,
+    createCompanionMemoryConsolidationFlow
+} from './application/memory-consolidation-flow.js';
+export {
+    createSelfModelFlow,
+    createSelfModelClaimFlow,
+    createCompanionSelfModelFlow
+} from './application/self-model-flow.js';
+export {createAgencyIntentionFlow, createAgencyFlow, createCompanionAgencyIntentionFlow} from './application/agency-intention-flow.js';
 export {createAffectRepository} from './infrastructure/affect-repository.js';
+export {createInteractionFactRepository} from './infrastructure/interaction-fact-repository.js';
+export {createAppraisalRepository} from './infrastructure/appraisal-repository.js';
+export {
+    createMemoryConsolidationRepository,
+    createCompanionMemoryConsolidationRepository
+} from './infrastructure/memory-consolidation-repository.js';
+export {
+    createSelfModelRepository,
+    createSelfModelClaimRepository,
+    createCompanionSelfModelRepository
+} from './infrastructure/self-model-repository.js';
+export {createAgencyIntentionRepository, createCompanionAgencyIntentionRepository} from './infrastructure/agency-intention-repository.js';
 export {
     STRUCTURED_TURN_SCHEMA_VERSION,
+    INTERACTION_FACT_SCHEMA_VERSION,
+    APPRAISAL_SCHEMA_VERSION,
+    MEMORY_CONSOLIDATION_SCHEMA_VERSION,
+    SELF_MODEL_CLAIM_SCHEMA_VERSION,
+    SELF_MODEL_SCHEMA_VERSION,
+    AGENCY_INTENTION_SCHEMA_VERSION,
     STRUCTURED_TURN_SCHEMA,
     normalizeStructuredTurnEnvelope,
     normalizeStructuredTurnSafely,
     normalizeMemoryEventCandidate,
     normalizeAffectEventCandidate,
-    normalizeDriveSignalCandidate
+    normalizeDriveSignalCandidate,
+    normalizeInteractionFact,
+    normalizeAppraisalCandidate,
+    normalizeMemoryConsolidationCandidate,
+    normalizeSelfModelClaim,
+    normalizeSelfModelClaimCandidate,
+    normalizeAgencyIntention
 } from './contracts/index.js';
 export {normalizeStructuredTurn, readStructuredSidecar} from './application/structured-turn.js';
 export {createFoundationRepository} from './infrastructure/foundation-repository.js';

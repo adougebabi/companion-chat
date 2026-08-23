@@ -4,6 +4,8 @@
 
 Persistence uses one `better-sqlite3` database file in WAL mode. `companion_schema_migrations` is the authoritative version ledger. New companion resources are normalized `companion_*` tables: personas and immutable foundation revisions, life blueprints and state, events and activities, persona-private memories, conversations/messages, media references, and durable jobs.
 
+Persona rows carry an explicit `initialization_mode`: `llm_defined` preserves the strict analyzer/blueprint path, while `blank_slate` permits empty identity anchors and an empty emergence container. The mode is persisted with the persona and must not be inferred from nullable name/role values.
+
 `companion_settings` is the only low-frequency JSON settings row. Do not put independently queried or high-growth data in it.
 
 ## Read And Write Rules
@@ -96,6 +98,7 @@ return assignPersonaGroup(personaId, groupId);
 ### 3. Contracts
 
 - A ready plan owns the entire local day. Legacy routine applies only when no ready plan exists for that persona/date.
+- Persona creation must atomically create the current local day's ready plan and at least one durable `daily_plan_baseline` timeline slot; the initial maintenance job may rebuild it but must not be the only source of the first schedule.
 - Explicit user schedules override only their overlap; generated plan slots resume before and after that interval.
 - Baseline slots use the blueprint default room. A first activity that means sleep or lying in produces a pre-first sleep baseline.
 - Plan item overlap is invalid. A projected state has exactly one authoritative source and a trusted time fact.
@@ -147,6 +150,7 @@ return assignPersonaGroup(personaId, groupId);
 
 - `companion_life_events` remains the immutable fact record; future slots and choices do not masquerade as facts.
 - A queued sleep batch accepts later message IDs into the same JSON array but cannot be replaced by a new immediate-reply decision.
+- Sleep deferral is eligible only when the resolved state explicitly indicates sleep (or an equivalent explicit sleeping flag); clock hour, ordinary rest, an empty daily plan, and a shared scene never imply sleep by themselves. The first sleep reply decision is an LLM-gated bounded choice using relationship/affect/random facts, with a deterministic fallback when the optional decision call is unavailable.
 - A deferred-reply job rechecks its lease and batch status before creating its one assistant reply.
 - Delete a persona's deferred batches, links, decisions, slots, and blueprint revisions before deleting their referenced conversations, events, jobs, schedules, or persona.
 

@@ -34,6 +34,17 @@ function optionalText(value, field, maxLength = MAX_TEXT) {
     return requiredText(value, field, maxLength);
 }
 
+function sceneRefValue(value, field = 'Daily-plan slot.sceneRef') {
+    if (value === undefined || value === null || value === '') return null;
+    if (isRecord(value)) {
+        const locationId = optionalText(value.locationId ?? value.location_id, `${field}.locationId`, 80);
+        const roomId = optionalText(value.roomId ?? value.room_id, `${field}.roomId`, 80);
+        if (!locationId || !roomId) throw new TypeError(`${field} object requires locationId and roomId`);
+        return `${locationId}:${roomId}`;
+    }
+    return optionalText(value, field, 120);
+}
+
 function timestamp(value, field) {
     const normalized = value instanceof Date ? value.toISOString() : value;
     if (typeof normalized !== 'string' || !normalized.trim() || !Number.isFinite(Date.parse(normalized))) {
@@ -297,7 +308,7 @@ function normalizePlanSlot(value, index, planDate, timezone = 'UTC') {
         title,
         situation: optionalText(value.situation ?? title, 'Daily-plan slot.situation', 240) || title,
         scene: optionalText(value.scene, 'Daily-plan slot.scene', 160) || '日常场景',
-        sceneRef: optionalText(value.sceneRef ?? value.scene_ref, 'Daily-plan slot.sceneRef', 120),
+        sceneRef: sceneRefValue(value.sceneRef ?? value.scene_ref),
         location: optionalText(value.location, 'Daily-plan slot.location', 160) || '',
         room: optionalText(value.room, 'Daily-plan slot.room', 120) || '',
         startsAt,
@@ -836,7 +847,11 @@ export function createTimelineFlow({
                 projections: persisted.map(slot => ({type: 'timeline_slot', slot})),
                 presentation: [{type: 'daily_plan_slots', personaId, planDate, count: persisted.length}]
             });
-            result.effects = persisted.map(slot => candidateEffectForSlot({personaId, planDate, slot}));
+            // Baseline slots are continuous state projections, not life-event
+            // opportunities. Publishing them as candidate jobs would turn an
+            // ordinary empty window into unsolicited activity on every sync.
+            const candidates = persisted.filter(slot => slot.source !== 'daily_plan_baseline' && !String(slot.slotKind || '').startsWith('baseline_'));
+            result.effects = candidates.map(slot => candidateEffectForSlot({personaId, planDate, slot}));
             if (effectsPort && result.effects.length) {
                 const published = effectsPort.publishMany(result.effects, {
                     personaId,

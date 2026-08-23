@@ -3,6 +3,7 @@ const MAX_NAME_LENGTH = 160;
 const MAX_ROLE_LENGTH = 160;
 const MAX_FOUNDATION_LENGTH = 6_000;
 const IMAGE_POLICIES = new Set(['ask', 'always', 'important', 'user_only', 'autonomous']);
+const INITIALIZATION_MODES = new Set(['llm_defined', 'blank_slate']);
 
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -67,6 +68,7 @@ function summaryDto(row, group) {
     const screenedAt = valueFor(row, ['screenedAt', 'screened_at', 'screened'], null);
     return {
         id: row.id,
+        initializationMode: valueFor(row, ['initializationMode', 'initialization_mode'], 'llm_defined'),
         name: row.name,
         role: row.role,
         color: row.color,
@@ -121,15 +123,22 @@ export function createPersonaLifecycleService(options = {}) {
 
     function normalizeCreate(command) {
         const input = record(command, '人格请求');
-        const name = requiredText(input.name, '人格名称', MAX_NAME_LENGTH);
-        const role = requiredText(input.role, '人格角色', MAX_ROLE_LENGTH);
+        const initializationMode = input.initializationMode ?? input.initialization_mode ?? 'llm_defined';
+        if (!INITIALIZATION_MODES.has(initializationMode)) throw statusError('人格初始化模式无效', 400);
+        const name = initializationMode === 'blank_slate'
+            ? (input.name === undefined || input.name === null ? '' : String(input.name).trim().slice(0, MAX_NAME_LENGTH))
+            : requiredText(input.name, '人格名称', MAX_NAME_LENGTH);
+        const role = initializationMode === 'blank_slate'
+            ? (input.role === undefined || input.role === null ? '' : String(input.role).trim().slice(0, MAX_ROLE_LENGTH))
+            : requiredText(input.role, '人格角色', MAX_ROLE_LENGTH);
         const foundation = input.foundation === undefined
             ? undefined
             : requiredText(input.foundation, '基础设定', MAX_FOUNDATION_LENGTH);
+        if (initializationMode === 'blank_slate' && foundation) throw statusError('白纸模式不能提供基础人格设定', 400);
         if (input.color !== undefined && (typeof input.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(input.color))) {
             throw statusError('人格颜色无效', 400);
         }
-        return {...input, name, role, ...(foundation === undefined ? {} : {foundation})};
+        return { ...input, initializationMode, name, role, ...(foundation === undefined ? {} : {foundation}) };
     }
 
     function createPersona(command = {}) {

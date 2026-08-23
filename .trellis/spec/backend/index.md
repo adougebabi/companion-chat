@@ -14,6 +14,7 @@ The backend is a modular Node control plane rooted at [`server/index.js`](../../
 | [Shared Scene Contract](./shared-scene-contract.md) | Native scene-event tool, durable single-persona scene projection, and policy settings |
 | [Quality Guidelines](./quality-guidelines.md) | Safe changes and verification |
 | [Structured Turn Contract](./structured-turn-contract.md) | Provider JSON/tool control, affect/drives state, explicit memory, and chat commit boundaries |
+| [Persona Emergence Contract](./emergence-contract.md) | LLM-first appraisal, memory consolidation, self-model, agency intention, initialization modes, and debug boundaries |
 | [Logging Guidelines](./logging-guidelines.md) | Operational and debug output |
 | [Persona Analysis And Media Jobs](./persona-analysis-and-media-jobs.md) | MTPLX persona extraction, ready interview sessions, and deterministic media follow-up compensation |
 

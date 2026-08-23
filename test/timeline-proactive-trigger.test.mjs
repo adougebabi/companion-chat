@@ -117,6 +117,32 @@ test('ready daily plans schedule one idempotent candidate and an LLM-gated proac
     assert.equal(jobs[1].jobType, 'proactive_message');
 });
 
+test('baseline timeline slots persist state without creating proactive candidate jobs', () => {
+    const {flow, jobs} = timelineFixture();
+    const result = flow.syncDailyPlanSlots({
+        personaId: 'persona_fixture',
+        planDate: '2026-08-23',
+        at: NOW,
+        plan: {
+            status: 'ready',
+            timeline: [{
+                slotKey: 'baseline-rest',
+                slotKind: 'baseline_idle',
+                title: '日常休息',
+                situation: '正在自己的空间里休息',
+                scene: '自己的房间',
+                startsAt: '2026-08-23T00:00:00.000Z',
+                endsAt: '2026-08-24T00:00:00.000Z',
+                source: 'daily_plan_baseline'
+            }]
+        }
+    });
+    assert.equal(result.slots.length, 1);
+    assert.equal(result.slots[0].source, 'daily_plan_baseline');
+    assert.equal(result.effects.length, 0);
+    assert.equal(jobs.length, 0);
+});
+
 test('legacy timeline.activity_decision jobs use the canonical activity flow registration', async () => {
     const seen = [];
     const service = createProactiveJobService({

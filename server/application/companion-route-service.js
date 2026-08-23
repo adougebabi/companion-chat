@@ -102,6 +102,7 @@ function personaDto(row, group) {
     const screened = row.screened_at ?? row.screenedAt ?? row.screened;
     return {
         id: row.id,
+        initializationMode: row.initialization_mode ?? row.initializationMode ?? 'llm_defined',
         name: row.name,
         role: row.role,
         color: row.color,
@@ -119,7 +120,7 @@ function personaDetailDto(row, group) {
     if (!isRecord(row)) throw new TypeError('人格 repository 未返回人格详情');
     if (isRecord(row.persona)) {
         const nested = row.persona;
-        const hasSummaryFields = ['name', 'role', 'color', 'groupId', 'group_id', 'screened', 'screened_at', 'currentSituation', 'current_situation', 'mood', 'unreadCount', 'unread_count', 'updatedAt', 'updated_at', 'imageGenerationPolicy', 'image_generation_policy']
+        const hasSummaryFields = ['name', 'role', 'color', 'groupId', 'group_id', 'initializationMode', 'initialization_mode', 'screened', 'screened_at', 'currentSituation', 'current_situation', 'mood', 'unreadCount', 'unread_count', 'updatedAt', 'updated_at', 'imageGenerationPolicy', 'image_generation_policy']
             .some(field => Object.hasOwn(nested, field) || Object.hasOwn(row, field));
         if (!hasSummaryFields) return row;
         const nestedGroup = group ?? (nested.groupName || nested.group_name ? {name: nested.groupName ?? nested.group_name} : undefined);
@@ -258,17 +259,24 @@ function normalizeGroupName(value) {
 
 function normalizePersonaCreate(command) {
     const input = assertRecord(command, '人格请求');
-    const name = requiredText(input.name, '人格名称', MAX_PERSONA_NAME_LENGTH);
-    const role = requiredText(input.role, '人格角色', MAX_PERSONA_ROLE_LENGTH);
+    const initializationMode = input.initializationMode ?? input.initialization_mode ?? 'llm_defined';
+    if (!['llm_defined', 'blank_slate'].includes(initializationMode)) throw badRequest('人格初始化模式无效');
+    const name = initializationMode === 'blank_slate'
+        ? (input.name === undefined || input.name === null ? '' : String(input.name).trim().slice(0, MAX_PERSONA_NAME_LENGTH))
+        : requiredText(input.name, '人格名称', MAX_PERSONA_NAME_LENGTH);
+    const role = initializationMode === 'blank_slate'
+        ? (input.role === undefined || input.role === null ? '' : String(input.role).trim().slice(0, MAX_PERSONA_ROLE_LENGTH))
+        : requiredText(input.role, '人格角色', MAX_PERSONA_ROLE_LENGTH);
     // Foundation/life-model defaults are lifecycle policy. Keep an optional
     // bounded field here, but let the explicit adapter derive or reject it.
     const foundation = input.foundation === undefined
         ? undefined
         : requiredText(input.foundation, '基础设定', MAX_FOUNDATION_LENGTH);
+    if (initializationMode === 'blank_slate' && foundation) throw badRequest('白纸模式不能提供基础人格设定');
     if (input.color !== undefined && (typeof input.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(input.color))) {
         throw badRequest('人格颜色无效');
     }
-    return {...input, name, role, ...(foundation === undefined ? {} : {foundation})};
+    return {...input, initializationMode, name, role, ...(foundation === undefined ? {} : {foundation})};
 }
 
 function findActivePersona(personas, personaId) {

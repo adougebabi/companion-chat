@@ -157,17 +157,21 @@ export const trustedTimeReplyForMessage = trustedTimeFacts;
 export const resolveTrustedTimeFacts = trustedTimeFacts;
 
 function defaultSleepAvailability({state = {}, at} = {}) {
-    const situation = String(stateValue(state, 'situation', 'situation', '') || '');
     const source = stateValue(state, 'resolvedSource', 'resolved_source', stateValue(state, 'source', 'source', ''));
     const sleeping = state?.sleeping === true
         || state?.isSleeping === true
-        || (source === 'daily_plan_baseline' && /睡|赖床|自然醒|起床前/.test(situation));
+        || (source === 'daily_plan_baseline' && (
+            state?.slotKind === 'baseline_sleep'
+            || state?.slot_kind === 'baseline_sleep'
+            || state?.slotKind === 'sleep'
+            || state?.slot_kind === 'sleep'
+        ));
     if (!sleeping) return {sleeping: false, immediate: true};
     return {
         sleeping: true,
         immediate: state?.immediate === true,
-        intimacy: Number.isFinite(state?.intimacy) ? state.intimacy : 0,
-        draw: Number.isFinite(state?.draw) ? state.draw : 0,
+        intimacy: Number.isFinite(state?.intimacy) ? state.intimacy : null,
+        draw: Number.isFinite(state?.draw) ? state.draw : null,
         nextBoundaryAt: stateValue(state, 'nextBoundaryAt', 'next_boundary_at', stateValue(state, 'resolvedNextBoundaryAt', 'resolved_next_boundary_at', null)),
         timezone: timezoneFor(state)
     };
@@ -265,6 +269,7 @@ export function createDeferredChatPolicy({
     conversationRepository,
     lifeWorld,
     sleepAvailability,
+    sleepDecision,
     clock,
     idGenerator,
     timezone,
@@ -306,9 +311,9 @@ export function createDeferredChatPolicy({
             status: 'queued',
             deliverAt,
             decision: {
-                intimacy: Number.isFinite(availability?.intimacy) ? availability.intimacy : 0,
+                intimacy: Number.isFinite(availability?.intimacy) ? availability.intimacy : null,
                 draw: Number.isFinite(availability?.draw) ? availability.draw : 0,
-                reason: 'sleep_deferred'
+                reason: availability?.reason || 'sleep_deferred'
             },
             messageIds: userMessage?.id ? [userMessage.id] : [],
             createdAt: at,
@@ -357,7 +362,16 @@ export function createDeferredChatPolicy({
             });
         }
 
-        const availability = await resolveSleep({personaId, at, state, command: input.command ?? input, userMessage});
+        let availability = await resolveSleep({personaId, at, state, command: input.command ?? input, userMessage});
+        if (availability?.sleeping === true && sleepDecision) {
+            try {
+                const decision = await sleepDecision({personaId, at, state, availability, userMessage, text: input.text ?? input.command?.text ?? ''});
+                if (decision && typeof decision.immediate === 'boolean') availability = {...availability, ...decision};
+            } catch {
+                // Without a valid semantic decision, keep the turn deferred;
+                // do not replace the missing LLM result with a rule decision.
+            }
+        }
         if (availability?.sleeping === true && availability?.immediate !== true) {
             const created = await createDeferredBatch({personaId, userMessage, at, availability});
             return policyResult({

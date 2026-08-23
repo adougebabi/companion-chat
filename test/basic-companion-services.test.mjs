@@ -82,7 +82,7 @@ test('basic bootstrap maps legacy persona/group fields without inventing persist
     });
 
     assert.deepEqual(services.bootstrap.read().personas[0], {
-        id: 'p1', name: 'P1', role: 'tester', color: '#fff', groupId: 'g1', groupName: 'Default',
+        id: 'p1', initializationMode: 'llm_defined', name: 'P1', role: 'tester', color: '#fff', groupId: 'g1', groupName: 'Default',
         screened: false, currentSituation: '在窗边看书', mood: '安静', unreadCount: 2, updatedAt: 'now'
     });
     assert.deepEqual(services.bootstrap.read().groups[0], {

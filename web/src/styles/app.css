@@ -214,6 +214,8 @@ dialog { width: min(620px, calc(100vw - 28px)); max-height: min(780px, calc(100d
   .debug-job-row, .debug-media-row { padding: 11px; }
 }
 
+.debug-emergence-summary { max-height: 540px; margin: 0; padding: 14px; overflow: auto; border: 1px solid #dce6ee; border-radius: 8px; background: #fff; color: #435b6b; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+
 @media (prefers-color-scheme: dark) {
   .debug-persona-select, .debug-state-item small, .debug-run-summary small, .debug-job-main small, .debug-job-links { color: var(--dark-text-muted); }
   .debug-persona-select select, .debug-state-item, .debug-job-row, .debug-media-row, .debug-run { border-color: var(--dark-border); background: var(--dark-panel); color: var(--dark-text); }
@@ -222,6 +224,7 @@ dialog { width: min(620px, calc(100vw - 28px)); max-height: min(780px, calc(100d
   .debug-run-body, .debug-run-body section, .debug-job-row details { border-color: var(--dark-border-soft); }
   .debug-run-body h3, .debug-job-details b { color: var(--dark-text-muted); }
   .debug-run-body pre, .debug-job-details pre, .debug-media-prompt { color: #c4d5df; }
+  .debug-emergence-summary { border-color: var(--dark-border); background: var(--dark-panel); color: #c4d5df; }
   .debug-job-status { background: #1d4560; color: #bde6ff; }
   .debug-job-status--failed { background: #4a2928; color: #ffaea1; }
   .debug-job-status--complete { background: #214b37; color: #b8e6c4; }

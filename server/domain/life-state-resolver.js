@@ -257,6 +257,13 @@ function commonProjection({blueprint, source, sourceId = null, sourceEvent = nul
         sourceEvent: eventMetadata,
         sourceEventId: eventId,
         eventId,
+        slotKind: firstText(merged.slotKind, merged.slot_kind, merged.kind) || null,
+        sleeping: merged.sleeping === true
+            || merged.isSleeping === true
+            || merged.slotKind === 'baseline_sleep'
+            || merged.slotKind === 'sleep'
+            || merged.slot_kind === 'baseline_sleep'
+            || merged.slot_kind === 'sleep',
         scheduleId: firstText(merged.scheduleId, merged.schedule_id) || null,
         slotId: firstText(merged.slotId, merged.slot_id) || null,
         planId: firstText(merged.planId, merged.plan_id) || null
@@ -384,13 +391,32 @@ function generatedPlanBaseline(slots, plan, blueprint, nowMs) {
     const dayStart = zonedInstant(planDate, '00:00', blueprint.timezone);
     const dayEnd = zonedInstant(nextDate(planDate), '00:00', blueprint.timezone);
     const now = nowMs;
+    if (!slots.length) {
+        return {
+            slotKey: `${firstText(plan?.id, plan?.planId, 'daily-plan')}:baseline:empty`,
+            slotKind: 'baseline_idle',
+            source: 'daily_plan_baseline',
+            situation: '正在自己的空间里休息',
+            scene: typeof blueprint.defaultScene === 'string' ? blueprint.defaultScene : typeof blueprint.world?.defaultScene === 'string' ? blueprint.world.defaultScene : '日常场景',
+            location: typeof blueprint.world?.defaultLocation === 'string' ? blueprint.world.defaultLocation : '家中',
+            room: typeof blueprint.world?.defaultRoom === 'string' ? blueprint.world.defaultRoom : '自己的房间',
+            startsAt: dayStart,
+            endsAt: dayEnd,
+            timeFact: 'known'
+        };
+    }
     const previous = slots.filter(slot => timeValue(slot.startsAt) <= now && timeValue(slot.endsAt) <= now).at(-1);
     const next = slots.find(slot => timeValue(slot.startsAt) > now);
     const startsAt = previous?.endsAt || dayStart;
     const endsAt = next?.startsAt || dayEnd;
     if (!startsAt || !endsAt || timeValue(startsAt) > now || timeValue(endsAt) <= now) return null;
     const firstSlot = slots[0];
-    const sleeping = !previous && firstSlot && /睡|赖床|自然醒|起床|醒来/.test(`${firstSlot.title || ''} ${firstSlot.situation || ''}`);
+    const sleeping = !previous && firstSlot && (
+        firstSlot.slotKind === 'baseline_sleep'
+        || firstSlot.slotKind === 'sleep'
+        || firstSlot.sleeping === true
+        || firstSlot.isSleeping === true
+    );
     return {
         slotKey: `${firstText(plan?.id, plan?.planId, 'daily-plan')}:baseline:resolver:${startsAt}`,
         slotKind: sleeping ? 'baseline_sleep' : previous ? 'baseline_idle' : 'baseline_idle',

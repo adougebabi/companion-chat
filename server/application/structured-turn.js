@@ -95,6 +95,10 @@ function sidecarEnvelope(sidecar, completion) {
             affectEvents: sidecar.affectEvents,
             driveSignals: sidecar.driveSignals,
             memoryWrites: sidecar.memoryWrites,
+            appraisals: sidecar.appraisals ?? sidecar.appraisal,
+            memoryConsolidations: sidecar.memoryConsolidations,
+            selfModelClaims: sidecar.selfModelClaims ?? sidecar.self_model_claims,
+            agencyIntentions: sidecar.agencyIntentions ?? sidecar.agency,
             capabilityCalls: sidecar.capabilityCalls
         }
     };
@@ -127,7 +131,7 @@ export function normalizeStructuredTurn(completion = {}, context = {}) {
     if (sidecarResult.error) diagnostics.push(boundedDiagnostic(sidecarResult.error));
     const nativeCalls = normalizeNativeCalls(input.toolCalls ?? input.capabilityCalls, context, diagnostics);
     let sidecar = null;
-    let sidecarControl = {affectEvents: [], driveSignals: [], memoryWrites: [], capabilityCalls: []};
+    let sidecarControl = {affectEvents: [], driveSignals: [], memoryWrites: [], appraisals: [], memoryConsolidations: [], selfModelClaims: [], capabilityCalls: []};
     if (sidecarResult.present && !sidecarResult.error) {
         try {
             const candidate = sidecarEnvelope(sidecarResult.value, input);
@@ -156,6 +160,10 @@ export function normalizeStructuredTurn(completion = {}, context = {}) {
             affectEvents: sidecar?.control.affectEvents ?? [],
             driveSignals: sidecar?.control.driveSignals ?? [],
             memoryWrites: sidecar?.control.memoryWrites ?? [],
+            appraisals: sidecar?.control.appraisals ?? [],
+            memoryConsolidations: sidecar?.control.memoryConsolidations ?? [],
+            selfModelClaims: sidecar?.control.selfModelClaims ?? [],
+            agencyIntentions: sidecar?.control.agencyIntentions ?? [],
             capabilityCalls
         },
         parseDiagnostics: diagnostics,
@@ -171,6 +179,10 @@ export function normalizeStructuredTurn(completion = {}, context = {}) {
             affectEvents: [],
             driveSignals: [],
             memoryWrites: [],
+            appraisals: [],
+            memoryConsolidations: [],
+            selfModelClaims: [],
+            agencyIntentions: [],
             capabilityCalls: nativeCalls
         },
         parseDiagnostics: [...diagnostics, boundedDiagnostic(normalized.error)].slice(0, STRUCTURED_TURN_LIMITS.diagnostics),

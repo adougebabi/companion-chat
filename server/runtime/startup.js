@@ -462,6 +462,168 @@ export function createCompanionMigrations({environment = process.env, dataDir = 
                 CREATE INDEX companion_persona_affect_events_source_message_idx
                     ON companion_persona_affect_events(source_message_id, effective_at DESC);
             `);
+        }),
+        migrationDefinition(15, 'interaction-facts-and-appraisals', database => {
+            database.exec(`
+                CREATE TABLE companion_interaction_facts (
+                    id TEXT PRIMARY KEY,
+                    schema_version TEXT NOT NULL,
+                    persona_id TEXT NOT NULL REFERENCES companion_personas(id) ON DELETE CASCADE,
+                    fact_type TEXT NOT NULL,
+                    source_message_id TEXT REFERENCES companion_messages(id) ON DELETE SET NULL,
+                    causation_id TEXT,
+                    idempotency_key TEXT NOT NULL,
+                    payload_json TEXT NOT NULL DEFAULT '{}',
+                    source TEXT NOT NULL,
+                    model_version TEXT,
+                    evidence_refs_json TEXT NOT NULL DEFAULT '[]',
+                    revision INTEGER NOT NULL DEFAULT 1 CHECK(revision >= 1),
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(persona_id, idempotency_key)
+                );
+                CREATE INDEX companion_interaction_facts_persona_time_idx
+                    ON companion_interaction_facts(persona_id, created_at DESC, id DESC);
+                CREATE INDEX companion_interaction_facts_source_message_idx
+                    ON companion_interaction_facts(source_message_id, created_at DESC);
+                CREATE TABLE companion_appraisals (
+                    id TEXT PRIMARY KEY,
+                    schema_version TEXT NOT NULL,
+                    persona_id TEXT NOT NULL REFERENCES companion_personas(id) ON DELETE CASCADE,
+                    interaction_fact_id TEXT REFERENCES companion_interaction_facts(id) ON DELETE SET NULL,
+                    source_message_id TEXT REFERENCES companion_messages(id) ON DELETE SET NULL,
+                    causation_id TEXT,
+                    category TEXT NOT NULL,
+                    confidence REAL NOT NULL CHECK(confidence >= 0 AND confidence <= 1),
+                    rationale TEXT NOT NULL DEFAULT '',
+                    evidence_refs_json TEXT NOT NULL DEFAULT '[]',
+                    affect_events_json TEXT NOT NULL DEFAULT '[]',
+                    drive_signals_json TEXT NOT NULL DEFAULT '[]',
+                    idempotency_key TEXT NOT NULL,
+                    model_version TEXT,
+                    source TEXT NOT NULL DEFAULT 'llm',
+                    status TEXT NOT NULL DEFAULT 'candidate',
+                    error TEXT,
+                    revision INTEGER NOT NULL DEFAULT 1 CHECK(revision >= 1),
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(persona_id, idempotency_key)
+                );
+                CREATE INDEX companion_appraisals_persona_time_idx
+                    ON companion_appraisals(persona_id, created_at DESC, id DESC);
+                CREATE INDEX companion_appraisals_interaction_idx
+                    ON companion_appraisals(interaction_fact_id, created_at DESC);
+                CREATE INDEX companion_appraisals_source_message_idx
+                    ON companion_appraisals(source_message_id, created_at DESC);
+            `);
+        }),
+        migrationDefinition(16, 'memory-consolidation-candidate-ledger', database => {
+            database.exec(`
+                CREATE TABLE companion_memory_consolidation_candidates (
+                    id TEXT PRIMARY KEY,
+                    schema_version TEXT NOT NULL,
+                    persona_id TEXT NOT NULL REFERENCES companion_personas(id) ON DELETE CASCADE,
+                    layer TEXT NOT NULL,
+                    memory_key TEXT,
+                    value_json TEXT,
+                    claim TEXT,
+                    confidence REAL NOT NULL CHECK(confidence >= 0 AND confidence <= 1),
+                    evidence_refs_json TEXT NOT NULL DEFAULT '[]',
+                    source_fact_refs_json TEXT NOT NULL DEFAULT '[]',
+                    source_message_id TEXT REFERENCES companion_messages(id) ON DELETE SET NULL,
+                    causation_id TEXT,
+                    idempotency_key TEXT NOT NULL,
+                    source TEXT NOT NULL DEFAULT 'llm',
+                    model_version TEXT,
+                    interaction_fact_id TEXT REFERENCES companion_interaction_facts(id) ON DELETE SET NULL,
+                    status TEXT NOT NULL DEFAULT 'candidate',
+                    error TEXT,
+                    revision INTEGER NOT NULL DEFAULT 1 CHECK(revision >= 1),
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    CHECK ((memory_key IS NOT NULL AND value_json IS NOT NULL AND claim IS NULL) OR (memory_key IS NULL AND value_json IS NULL AND claim IS NOT NULL)),
+                    UNIQUE(persona_id, idempotency_key)
+                );
+                CREATE INDEX companion_memory_consolidation_persona_status_idx
+                    ON companion_memory_consolidation_candidates(persona_id, status, created_at DESC, id DESC);
+                CREATE INDEX companion_memory_consolidation_source_message_idx
+                    ON companion_memory_consolidation_candidates(source_message_id, created_at DESC);
+                CREATE INDEX companion_memory_consolidation_layer_idx
+                    ON companion_memory_consolidation_candidates(persona_id, layer, created_at DESC);
+            `);
+        }),
+        migrationDefinition(17, 'self-model-claim-ledger', database => {
+            database.exec(`
+                CREATE TABLE companion_self_model_claims (
+                    id TEXT PRIMARY KEY,
+                    schema_version TEXT NOT NULL,
+                    persona_id TEXT NOT NULL REFERENCES companion_personas(id) ON DELETE CASCADE,
+                    category TEXT NOT NULL,
+                    claim TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    confidence REAL NOT NULL CHECK(confidence >= 0 AND confidence <= 1),
+                    evidence_refs_json TEXT NOT NULL DEFAULT '[]',
+                    source TEXT NOT NULL DEFAULT 'llm',
+                    uncertainty_json TEXT,
+                    source_message_id TEXT REFERENCES companion_messages(id) ON DELETE SET NULL,
+                    causation_id TEXT,
+                    idempotency_key TEXT NOT NULL,
+                    model_version TEXT,
+                    interaction_fact_id TEXT REFERENCES companion_interaction_facts(id) ON DELETE SET NULL,
+                    decay_policy_json TEXT,
+                    status TEXT NOT NULL DEFAULT 'candidate',
+                    error TEXT,
+                    revision INTEGER NOT NULL DEFAULT 1 CHECK(revision >= 1),
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(persona_id, idempotency_key)
+                );
+                CREATE INDEX companion_self_model_claims_persona_status_idx
+                    ON companion_self_model_claims(persona_id, status, created_at DESC, id DESC);
+                CREATE INDEX companion_self_model_claims_persona_category_idx
+                    ON companion_self_model_claims(persona_id, category, created_at DESC, id DESC);
+                CREATE INDEX companion_self_model_claims_source_message_idx
+                    ON companion_self_model_claims(source_message_id, created_at DESC);
+                CREATE INDEX companion_self_model_claims_interaction_fact_idx
+                    ON companion_self_model_claims(interaction_fact_id, created_at DESC);
+            `);
+        }),
+        migrationDefinition(18, 'agency-intention-ledger', database => {
+            database.exec(`
+                CREATE TABLE companion_agency_intentions (
+                    id TEXT PRIMARY KEY,
+                    schema_version TEXT NOT NULL,
+                    persona_id TEXT NOT NULL REFERENCES companion_personas(id) ON DELETE CASCADE,
+                    intent TEXT NOT NULL,
+                    topic TEXT,
+                    explanation TEXT NOT NULL DEFAULT '',
+                    reason_category TEXT,
+                    confidence REAL NOT NULL CHECK(confidence >= 0 AND confidence <= 1),
+                    evidence_refs_json TEXT NOT NULL DEFAULT '[]',
+                    source TEXT NOT NULL DEFAULT 'llm',
+                    source_message_id TEXT REFERENCES companion_messages(id) ON DELETE SET NULL,
+                    causation_id TEXT,
+                    idempotency_key TEXT NOT NULL,
+                    model_version TEXT,
+                    interaction_fact_id TEXT REFERENCES companion_interaction_facts(id) ON DELETE SET NULL,
+                    decision_json TEXT,
+                    status TEXT NOT NULL DEFAULT 'candidate',
+                    error TEXT,
+                    revision INTEGER NOT NULL DEFAULT 1 CHECK(revision >= 1),
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(persona_id, idempotency_key)
+                );
+                CREATE INDEX companion_agency_intentions_persona_status_idx
+                    ON companion_agency_intentions(persona_id, status, created_at DESC, id DESC);
+                CREATE INDEX companion_agency_intentions_source_message_idx
+                    ON companion_agency_intentions(source_message_id, created_at DESC);
+            `);
+        }),
+        migrationDefinition(19, 'persona-initialization-mode', database => {
+            const columns = database.prepare('PRAGMA table_info(companion_personas)').all().map(column => column.name);
+            if (!columns.includes('initialization_mode')) database.exec("ALTER TABLE companion_personas ADD COLUMN initialization_mode TEXT NOT NULL DEFAULT 'llm_defined'");
+            database.exec("UPDATE companion_personas SET initialization_mode = 'llm_defined' WHERE initialization_mode IS NULL OR initialization_mode NOT IN ('llm_defined', 'blank_slate')");
         })
     ];
 }

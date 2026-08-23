@@ -136,6 +136,24 @@ test('trusted boundaries are exposed consistently for event, schedule, and plan 
     assert.equal(scheduleState.timeFact, 'known');
 });
 
+test('sleep availability follows explicit slot facts instead of situation wording', () => {
+    const wordingOnly = resolveLifeState(input({
+        currentTime: '2026-08-20T00:47:00.000Z',
+        dailyPlan: readyPlan({items: [{title: 'sleeping', situation: 'sleeping before the day begins', startsAt: '10:00', endsAt: '13:00'}]})
+    }));
+    assert.equal(wordingOnly.source, 'daily_plan_baseline');
+    assert.equal(wordingOnly.slotKind, 'baseline_idle');
+    assert.equal(wordingOnly.sleeping, false);
+
+    const explicit = resolveLifeState(input({
+        currentTime: '2026-08-20T00:47:00.000Z',
+        dailyPlan: readyPlan({items: [{slotKind: 'baseline_sleep', title: 'sleeping', situation: 'sleeping before the day begins', startsAt: '10:00', endsAt: '13:00'}]})
+    }));
+    assert.equal(explicit.source, 'daily_plan_baseline');
+    assert.equal(explicit.slotKind, 'baseline_sleep');
+    assert.equal(explicit.sleeping, true);
+});
+
 test('row-shaped daily plans decode array payloads before resolving slots', () => {
     const state = resolveLifeState(input({
         dailyPlan: {

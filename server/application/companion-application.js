@@ -6,6 +6,10 @@ import {createAppearanceEventFlow} from './appearance-event-flow.js';
 import {createLifeEventFlow} from './life-event-flow.js';
 import {createTimelineFlow} from './timeline-flow.js';
 import {createRelationshipFlow} from './relationship-flow.js';
+import {createAppraisalFlow} from './appraisal-flow.js';
+import {createMemoryConsolidationFlow} from './memory-consolidation-flow.js';
+import {createAgencyIntentionFlow} from './agency-intention-flow.js';
+import {createSelfModelFlow} from './self-model-flow.js';
 import {createCompanionChatService} from './chat-service.js';
 import {createCapabilityHandoffAdapter, createFlowCapabilityRegistry} from './capability-handoff-adapter.js';
 import {createFlowEffectAdapter, registerFlowAdapter} from './flow-effect-adapter.js';
@@ -40,6 +44,10 @@ const CHAT_PORT_NAMES = Object.freeze([
     'assistantCommitAdapter',
     'chatCommitBoundary',
     'affectFlow',
+    'appraisalFlow',
+    'memoryConsolidationFlow',
+    'selfModelFlow',
+    'agencyIntentionFlow',
     'structuredTurnControl',
     'sendSse',
     'end',
@@ -152,6 +160,23 @@ export function createCompanionApplication(options = {}) {
     const relationshipFlow = options.relationshipFlow ?? (repositories.relationship || repositories.relationshipRepository
         ? optionalFactory(createRelationshipFlow, {...flowOptions, transaction: options.transaction})
         : null);
+    const appraisalFlow = options.appraisalFlow ?? (repositories.interactionFact && repositories.appraisal
+        ? optionalFactory(createAppraisalFlow, {
+            ...flowOptions,
+            affectFlow: options.affectFlow,
+            transaction: options.transaction
+        })
+        : null);
+    const memoryConsolidationFlow = options.memoryConsolidationFlow
+        ?? (repositories.memoryConsolidation || repositories.memoryConsolidationRepository
+            ? optionalFactory(createMemoryConsolidationFlow, {...flowOptions, transaction: options.transaction})
+            : null);
+    const selfModelFlow = options.selfModelFlow ?? (repositories.selfModel || repositories.selfModelRepository || repositories.selfModelClaims
+        ? optionalFactory(createSelfModelFlow, {...flowOptions, transaction: options.transaction})
+        : null);
+    const agencyIntentionFlow = options.agencyIntentionFlow ?? (repositories.agencyIntention || repositories.agencyIntentionRepository
+        ? optionalFactory(createAgencyIntentionFlow, {...flowOptions, transaction: options.transaction})
+        : null);
     const mediaFlow = options.mediaFlow ?? (options.normalizeMediaCapabilityCall || options.mediaNormalizer
         ? optionalFactory(createMediaFlow, {
             ...flowOptions,
@@ -187,6 +212,18 @@ export function createCompanionApplication(options = {}) {
     registerFlowAdapter(flowRegistry, {id: 'timeline', flow: timelineFlow, execute: timelineFlow?.evaluate?.bind(timelineFlow), version: timelineFlow?.version ?? 1});
     registerFlowAdapter(flowRegistry, {id: 'relationship', flow: relationshipFlow, execute: relationshipFlow?.evolve?.bind(relationshipFlow), version: relationshipFlow?.version ?? 1});
     registerFlowAdapter(flowRegistry, {
+        id: 'appraisal',
+        flow: appraisalFlow,
+        execute: appraisalFlow ? command => appraisalFlow.apply(appraisalFlow.plan(command)) : null,
+        version: appraisalFlow?.version ?? 1
+    });
+    registerFlowAdapter(flowRegistry, {
+        id: 'memory-consolidation',
+        flow: memoryConsolidationFlow,
+        execute: memoryConsolidationFlow ? command => memoryConsolidationFlow.apply(memoryConsolidationFlow.plan(command)) : null,
+        version: memoryConsolidationFlow?.version ?? 1
+    });
+    registerFlowAdapter(flowRegistry, {
         id: 'pending-event-capability',
         flow: pendingEventFlow,
         execute: pendingEventFlow ? command => pendingEventFlow.apply(pendingEventFlow.plan(command)) : null,
@@ -210,12 +247,28 @@ export function createCompanionApplication(options = {}) {
         execute: mediaFlow ? command => mediaFlow.apply(mediaFlow.plan(command)) : null,
         version: mediaFlow?.version ?? 1
     });
+    registerFlowAdapter(flowRegistry, {
+        id: 'self-model',
+        flow: selfModelFlow,
+        execute: selfModelFlow ? command => selfModelFlow.apply(selfModelFlow.plan(command)) : null,
+        version: selfModelFlow?.version ?? 1
+    });
+    registerFlowAdapter(flowRegistry, {
+        id: 'agency-intention',
+        flow: agencyIntentionFlow,
+        execute: agencyIntentionFlow ? command => agencyIntentionFlow.apply(agencyIntentionFlow.plan(command)) : null,
+        version: agencyIntentionFlow?.version ?? 1
+    });
     const services = {
         ...(isRecord(options.services) ? options.services : {}),
         ...(chatService ? {chat: chatService} : {}),
         ...(lifeEventFlow ? {lifeEvent: lifeEventFlow, events: lifeEventFlow} : {}),
         ...(timelineFlow ? {timeline: timelineFlow, lifeTimeline: timelineFlow} : {}),
-        ...(relationshipFlow ? {relationship: relationshipFlow, evolution: relationshipFlow} : {})
+        ...(relationshipFlow ? {relationship: relationshipFlow, evolution: relationshipFlow} : {}),
+        ...(appraisalFlow ? {appraisal: appraisalFlow} : {}),
+        ...(memoryConsolidationFlow ? {memoryConsolidation: memoryConsolidationFlow} : {}),
+        ...(selfModelFlow ? {selfModel: selfModelFlow} : {}),
+        ...(agencyIntentionFlow ? {agencyIntention: agencyIntentionFlow} : {})
     };
     const defaultRouteHandlers = createCompanionRouteHandlers({
         repositories,
@@ -240,6 +293,10 @@ export function createCompanionApplication(options = {}) {
         lifeEventFlow,
         timelineFlow,
         relationshipFlow,
+        appraisalFlow,
+        memoryConsolidationFlow,
+        selfModelFlow,
+        agencyIntentionFlow,
         mediaFlow,
         flowRegistry,
         flows: flowRegistry,

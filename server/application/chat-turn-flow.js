@@ -193,6 +193,68 @@ function affectEffectFor(plan, affectFlow, personaId, causationId, events) {
     };
 }
 
+function appraisalEffectFor(plan, appraisalFlow, personaId, causationId) {
+    if (!plan || !appraisalFlow) return null;
+    const sourceMessageId = plan.sourceMessageId ?? causationId ?? personaId;
+    const idempotencyKey = `appraisal:${personaId}:${sourceMessageId}`.slice(0, 240);
+    return {
+        effectId: `effect_${idempotencyKey}`.slice(0, 240),
+        kind: 'appraisal',
+        capability: 'appraisal',
+        idempotencyKey,
+        causationId: causationId ?? personaId,
+        payload: {plan, apply: () => appraisalFlow.apply(plan)}
+    };
+}
+
+function memoryConsolidationEffectFor(plan, memoryConsolidationFlow, personaId, causationId) {
+    if (!plan || !memoryConsolidationFlow) return null;
+    const sourceMessageId = plan.sourceMessageId ?? causationId ?? personaId;
+    const idempotencyKey = `memory-consolidation:${personaId}:${sourceMessageId}`.slice(0, 240);
+    return {
+        effectId: `effect_${idempotencyKey}`.slice(0, 240),
+        kind: 'memory_consolidation',
+        capability: 'memory_consolidation',
+        idempotencyKey,
+        causationId: causationId ?? personaId,
+        payload: {
+            plan,
+            apply: options => memoryConsolidationFlow.apply(plan, options)
+        }
+    };
+}
+
+function selfModelEffectFor(plan, selfModelFlow, personaId, causationId) {
+    if (!plan || !selfModelFlow) return null;
+    const sourceMessageId = plan.sourceMessageId ?? causationId ?? personaId;
+    const idempotencyKey = `self-model:${personaId}:${sourceMessageId}`.slice(0, 240);
+    return {
+        effectId: `effect_${idempotencyKey}`.slice(0, 240),
+        kind: 'self_model',
+        capability: 'self_model',
+        idempotencyKey,
+        causationId: causationId ?? personaId,
+        payload: {
+            plan,
+            apply: options => selfModelFlow.apply(plan, options)
+        }
+    };
+}
+
+function agencyIntentionEffectFor(plan, agencyIntentionFlow, personaId, causationId) {
+    if (!plan || !agencyIntentionFlow) return null;
+    const sourceMessageId = plan.sourceMessageId ?? causationId ?? personaId;
+    const idempotencyKey = `agency-intention:${personaId}:${sourceMessageId}`.slice(0, 240);
+    return {
+        effectId: `effect_${idempotencyKey}`.slice(0, 240),
+        kind: 'agency_intention',
+        capability: 'agency_intention',
+        idempotencyKey,
+        causationId: causationId ?? personaId,
+        payload: {plan, apply: options => agencyIntentionFlow.apply(plan, options)}
+    };
+}
+
 /**
  * Consume an already-normalized LLM stream. The transport adapter owns SSE
  * decoding and provider chunk parsing; this helper only joins normalized
@@ -382,7 +444,7 @@ async function repositoryHistory(repository, input) {
     return Array.isArray(rows) ? rows.slice(-MAX_HISTORY).reverse() : [];
 }
 
-function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDispatcher, conversationRepository, presentationMapper, userMessageWriter, chatPolicy, affectFlow, structuredTurnControl = true, enableContinuation = false, flowId}) {
+function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDispatcher, conversationRepository, presentationMapper, userMessageWriter, chatPolicy, affectFlow, appraisalFlow, memoryConsolidationFlow, selfModelFlow, agencyIntentionFlow, structuredTurnControl = true, enableContinuation = false, flowId}) {
     const capabilityHandoff = createCapabilityHandoffStep({dispatcher: capabilityDispatcher});
     registry.register({
         id: flowId,
@@ -487,7 +549,7 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                             text: runtime.completion.text,
                             tokens: runtime.completion.tokens,
                             messages: [],
-                            control: {affectEvents: [], driveSignals: [], memoryWrites: [], capabilityCalls: []},
+                            control: {affectEvents: [], driveSignals: [], memoryWrites: [], appraisals: [], memoryConsolidations: [], selfModelClaims: [], agencyIntentions: [], capabilityCalls: []},
                             parseDiagnostics: [],
                             sourceMode: 'text'
                         }
@@ -550,7 +612,25 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         ...(runtime.turn?.control?.affectEvents ?? []),
                         ...(runtime.turn?.control?.driveSignals ?? [])
                     ];
-                    const affectPlan = affectFlow && affectEvents.length
+                    const appraisalPlan = appraisalFlow && (runtime.userMessage?.id ?? causationId)
+                        ? appraisalFlow.plan({
+                            personaId: command.personaId,
+                            sourceMessageId: runtime.userMessage?.id ?? causationId,
+                            causationId,
+                            modelVersion: runtime.completion?.modelVersion ?? null,
+                            appraisals: runtime.turn?.control?.appraisals ?? [],
+                            affectEvents: runtime.turn?.control?.affectEvents ?? [],
+                            driveSignals: runtime.turn?.control?.driveSignals ?? [],
+                            interactionFact: {
+                                factType: 'user_message',
+                                source: 'chat',
+                                idempotencyKey: `interaction:${runtime.userMessage?.id ?? causationId}`,
+                                payload: {messageId: runtime.userMessage?.id ?? causationId, role: 'user'}
+                            },
+                            at: context.chatAt ?? command.chatAt
+                        })
+                        : null;
+                    const affectPlan = !appraisalFlow && affectFlow && affectEvents.length
                         ? affectFlow.plan({
                             personaId: command.personaId,
                             sourceMessageId: runtime.userMessage?.id ?? causationId,
@@ -562,9 +642,74 @@ function registerChatTurnFlow({registry, contextReader, llmStream, capabilityDis
                         })
                         : null;
                     const affectEffect = affectEffectFor(affectPlan, affectFlow, command.personaId, causationId, affectEvents);
-                    const handoffResult = affectEffect
-                        ? {...result, effects: [...result.effects, affectEffect]}
-                        : result;
+                    const appraisalEffect = appraisalEffectFor(appraisalPlan, appraisalFlow, command.personaId, causationId);
+                    let memoryConsolidationPlan = null;
+                    const memoryConsolidations = runtime.turn?.control?.memoryConsolidations ?? [];
+                    if (memoryConsolidationFlow && memoryConsolidations.length && (runtime.userMessage?.id ?? causationId)) {
+                        try {
+                            memoryConsolidationPlan = memoryConsolidationFlow.plan({
+                                personaId: command.personaId,
+                                sourceMessageId: runtime.userMessage?.id ?? causationId,
+                                causationId,
+                                modelVersion: runtime.completion?.modelVersion ?? null,
+                                memoryConsolidations,
+                                sourceMessage: runtime.userMessage
+                            });
+                        } catch (error) {
+                            // Candidate ownership/storage rejection is fail-closed:
+                            // the visible assistant reply remains valid and no
+                            // rule-based or implicit memory write is attempted.
+                            runtime.memoryConsolidationDiagnostic = String(error?.message ?? error).slice(0, 240);
+                        }
+                    }
+                    const memoryConsolidationEffect = memoryConsolidationEffectFor(
+                        memoryConsolidationPlan,
+                        memoryConsolidationFlow,
+                        command.personaId,
+                        causationId
+                    );
+                    let selfModelPlan = null;
+                    const selfModelClaims = runtime.turn?.control?.selfModelClaims ?? [];
+                    if (selfModelFlow && selfModelClaims.length && (runtime.userMessage?.id ?? causationId)) {
+                        try {
+                            selfModelPlan = selfModelFlow.plan({
+                                personaId: command.personaId,
+                                sourceMessageId: runtime.userMessage?.id ?? causationId,
+                                causationId,
+                                modelVersion: runtime.completion?.modelVersion ?? null,
+                                selfModelClaims,
+                                sourceMessage: runtime.userMessage
+                            });
+                        } catch (error) {
+                            runtime.selfModelDiagnostic = String(error?.message ?? error).slice(0, 240);
+                        }
+                    }
+                    const selfModelEffect = selfModelEffectFor(selfModelPlan, selfModelFlow, command.personaId, causationId);
+                    let agencyIntentionPlan = null;
+                    const agencyIntentions = runtime.turn?.control?.agencyIntentions ?? [];
+                    if (agencyIntentionFlow && agencyIntentions.length && (runtime.userMessage?.id ?? causationId)) {
+                        try {
+                            agencyIntentionPlan = agencyIntentionFlow.plan({
+                                personaId: command.personaId,
+                                sourceMessageId: runtime.userMessage?.id ?? causationId,
+                                causationId,
+                                modelVersion: runtime.completion?.modelVersion ?? null,
+                                agencyIntentions
+                            });
+                        } catch (error) {
+                            runtime.agencyIntentionDiagnostic = String(error?.message ?? error).slice(0, 240);
+                        }
+                    }
+                    const agencyIntentionEffect = agencyIntentionEffectFor(agencyIntentionPlan, agencyIntentionFlow, command.personaId, causationId);
+                    const effects = [
+                        ...result.effects,
+                        ...(affectEffect ? [affectEffect] : []),
+                        ...(appraisalEffect ? [appraisalEffect] : []),
+                        ...(memoryConsolidationEffect ? [memoryConsolidationEffect] : []),
+                        ...(selfModelEffect ? [selfModelEffect] : []),
+                        ...(agencyIntentionEffect ? [agencyIntentionEffect] : [])
+                    ];
+                    const handoffResult = effects.length === result.effects.length ? result : {...result, effects};
                     runtime.capabilityPresentation = handoffResult.presentation.slice();
                     const visible = handoffResult.presentation.find(event => event?.type === 'capability-visible-text');
                     if (visible) runtime.visibleText = visible.text;
@@ -712,6 +857,10 @@ export function createChatTurnFlow({
     conversationRepository,
     presentationMapper,
     affectFlow,
+    appraisalFlow,
+    memoryConsolidationFlow,
+    selfModelFlow,
+    agencyIntentionFlow,
     structuredTurnControl = true,
     commit,
     commitBoundary,
@@ -747,6 +896,10 @@ export function createChatTurnFlow({
         userMessageWriter,
         chatPolicy: resolveChatPolicy(chatPolicy),
         affectFlow,
+        appraisalFlow,
+        memoryConsolidationFlow,
+        selfModelFlow,
+        agencyIntentionFlow,
         structuredTurnControl,
         enableContinuation: continuationEnabled,
         flowId

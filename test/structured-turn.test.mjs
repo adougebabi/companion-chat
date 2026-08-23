@@ -3,7 +3,11 @@ import test from 'node:test';
 
 import {
     AFFECT_EVENT_TYPES,
+    AGENCY_INTENTION_SCHEMA_VERSION,
+    APPRAISAL_SCHEMA_VERSION,
     DRIVE_NAMES,
+    MEMORY_CONSOLIDATION_SCHEMA_VERSION,
+    SELF_MODEL_CLAIM_SCHEMA_VERSION,
     STRUCTURED_TURN_SCHEMA_VERSION,
     normalizeAffectEventCandidate,
     normalizeDriveSignalCandidate,
@@ -74,6 +78,67 @@ test('structured sidecar normalizes affect, extensible drives, memory, and messa
     assert.deepEqual(result.messages, [{role: 'assistant', text: '收到。'}]);
 });
 
+test('structured sidecar carries appraisal and consolidation candidates through the shared contract', () => {
+    const result = normalizeStructuredTurn({
+        text: '我会继续记得这次交流。',
+        structuredSidecar: {
+            schemaVersion: STRUCTURED_TURN_SCHEMA_VERSION,
+            control: {
+                appraisals: [{
+                    schemaVersion: APPRAISAL_SCHEMA_VERSION,
+                    category: 'comfort',
+                    confidence: 0.8,
+                    rationale: '模型给出有来源的短期评价。',
+                    evidenceRefs: ['message_1'],
+                    affectEvents: [],
+                    driveSignals: [],
+                    idempotencyKey: 'appraisal_sidecar_1',
+                    sourceMessageId: 'message_1'
+                }],
+                memoryConsolidations: [{
+                    schemaVersion: MEMORY_CONSOLIDATION_SCHEMA_VERSION,
+                    layer: 'preference',
+                    key: 'favorite.drink',
+                    value: 'tea',
+                    confidence: 0.8,
+                    evidenceRefs: ['message_1'],
+                    sourceFactRefs: ['message_1'],
+                    idempotencyKey: 'consolidation_sidecar_1',
+                    sourceMessageId: 'message_1'
+                }],
+                selfModelClaims: [{
+                    schemaVersion: SELF_MODEL_CLAIM_SCHEMA_VERSION,
+                    category: 'preference',
+                    claim: '我更喜欢提前约定。',
+                    summary: '更偏好提前约定。',
+                    confidence: 0.8,
+                    evidenceRefs: ['message_1'],
+                    source: 'llm',
+                    uncertainty: {kind: 'candidate'},
+                    idempotencyKey: 'self-model-sidecar-1',
+                    sourceMessageId: 'message_1'
+                }],
+                agencyIntentions: [{
+                    schemaVersion: AGENCY_INTENTION_SCHEMA_VERSION,
+                    intent: 'defer_response',
+                    explanation: '我想先整理一下。',
+                    confidence: 0.7,
+                    evidenceRefs: ['message_1'],
+                    source: 'llm',
+                    idempotencyKey: 'agency-sidecar-1',
+                    sourceMessageId: 'message_1'
+                }]
+            }
+        }
+    }, {...context, sourceMessageId: 'message_1'});
+
+    assert.equal(result.control.appraisals[0].schemaVersion, APPRAISAL_SCHEMA_VERSION);
+    assert.equal(result.control.memoryConsolidations[0].schemaVersion, MEMORY_CONSOLIDATION_SCHEMA_VERSION);
+    assert.equal(result.control.memoryConsolidations[0].key, 'favorite.drink');
+    assert.equal(result.control.selfModelClaims[0].schemaVersion, SELF_MODEL_CLAIM_SCHEMA_VERSION);
+    assert.equal(result.control.agencyIntentions[0].schemaVersion, AGENCY_INTENTION_SCHEMA_VERSION);
+});
+
 test('memory and state candidates reject invalid confidence, values, and unsupported affect types', () => {
     assert.throws(() => normalizeAffectEventCandidate({
         type: 'not-registered', confidence: 0.5, idempotencyKey: 'a'
@@ -93,7 +158,7 @@ test('malformed optional sidecar fails closed while preserving visible text and 
     }, context);
     assert.equal(malformed.text, '已经处理。<pending-event>{"summary":"later"}</pending-event>');
     assert.equal(malformed.sourceMode, 'legacy_marker');
-    assert.deepEqual(malformed.control, {affectEvents: [], driveSignals: [], memoryWrites: [], capabilityCalls: []});
+    assert.deepEqual(malformed.control, {affectEvents: [], driveSignals: [], memoryWrites: [], appraisals: [], memoryConsolidations: [], selfModelClaims: [], agencyIntentions: [], capabilityCalls: []});
     assert.ok(malformed.parseDiagnostics.length > 0);
     assert.equal(validateStructuredTurn(malformed, context).ok, true);
 });

@@ -30,6 +30,7 @@ export interface PersonaSummary {
   id: string;
   name: string;
   role?: string | null;
+  initializationMode?: 'llm_defined' | 'blank_slate' | string | null;
   color?: string | null;
   currentSituation?: string | null;
   mood?: string | null;
@@ -237,6 +238,7 @@ export interface DebugContext {
   layers?: Record<string, unknown> | null;
   recentRequests?: Array<Record<string, unknown>>;
   mediaJobs?: MediaJob[];
+  emergence?: Record<string, unknown> | null;
   [key: string]: unknown;
 }
 
@@ -266,6 +268,7 @@ export interface DebugLifecycle {
   personaId?: string | null;
   events?: unknown[];
   affectEvents?: unknown[];
+  emergence?: Record<string, unknown> | null;
   jobs?: DurableJob[];
   [key: string]: unknown;
 }

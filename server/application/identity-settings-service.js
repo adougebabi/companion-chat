@@ -127,6 +127,7 @@ function personaDto(row, groupsById) {
     const screened = firstValue(row, ['screened_at', 'screenedAt', 'screened'], false);
     return {
         id: row.id,
+        initializationMode: firstValue(row, ['initialization_mode', 'initializationMode'], 'llm_defined'),
         name: row.name,
         role: row.role,
         color: row.color,

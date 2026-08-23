@@ -81,10 +81,10 @@ test('bootstrap returns stable identity/group DTOs from injected repositories', 
             mediaProviders: [{id: 'comfyui', capabilities: ['image']}]
         },
         personas: [{
-            id: 'persona_a', name: 'A', role: 'tester', color: '#fff', groupId: 'group_a', groupName: '工作',
+            id: 'persona_a', initializationMode: 'llm_defined', name: 'A', role: 'tester', color: '#fff', groupId: 'group_a', groupName: '工作',
             screened: true, currentSituation: '在窗边看书', mood: '安静', unreadCount: 2, updatedAt: '2026-08-21T00:00:00.000Z'
         }, {
-            id: 'persona_b', name: 'B', role: 'writer', color: '#000', groupId: null, groupName: null,
+            id: 'persona_b', initializationMode: 'llm_defined', name: 'B', role: 'writer', color: '#000', groupId: null, groupName: null,
             screened: false, currentSituation: '在路上', mood: '轻快', unreadCount: 0, updatedAt: 'now'
         }],
         groups: [{id: 'group_a', name: '工作', isDefault: true, personaCount: 1}],

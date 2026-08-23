@@ -15,6 +15,11 @@ import {createJobRepository} from '../infrastructure/job-repository.js';
 import {createLifeEventRepository} from '../infrastructure/life-event-repository.js';
 import {createMemoryRepository} from '../infrastructure/memory-repository.js';
 import {createAffectRepository} from '../infrastructure/affect-repository.js';
+import {createInteractionFactRepository} from '../infrastructure/interaction-fact-repository.js';
+import {createAppraisalRepository} from '../infrastructure/appraisal-repository.js';
+import {createMemoryConsolidationRepository} from '../infrastructure/memory-consolidation-repository.js';
+import {createSelfModelRepository} from '../infrastructure/self-model-repository.js';
+import {createAgencyIntentionRepository} from '../infrastructure/agency-intention-repository.js';
 import {createPendingEventRepository} from '../infrastructure/pending-event-repository.js';
 import {createPersonaRepository} from '../infrastructure/persona-repository.js';
 import {createRelationshipRepository} from '../infrastructure/relationship-repository.js';
@@ -43,6 +48,10 @@ import {createContextPipeline} from '../application/context-pipeline.js';
 import {createTimelineFlow} from '../application/timeline-flow.js';
 import {createRelationshipFlow} from '../application/relationship-flow.js';
 import {createAffectFlow} from '../application/affect-flow.js';
+import {createAppraisalFlow} from '../application/appraisal-flow.js';
+import {createMemoryConsolidationFlow} from '../application/memory-consolidation-flow.js';
+import {createSelfModelFlow} from '../application/self-model-flow.js';
+import {createAgencyIntentionFlow} from '../application/agency-intention-flow.js';
 import {createMemoryEventFlow} from '../application/memory-flow.js';
 import {createMemoryService} from '../application/memory-service.js';
 import {createDeferredChatPolicy} from '../application/deferred-chat-policy.js';
@@ -269,38 +278,79 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
     const resolveDeferredSleep = ({personaId, at, state} = {}) => {
         const life = repositories.blueprint?.read?.({personaId}) ?? {};
         const timezone = life.timezone || 'Asia/Shanghai';
-        const rawHour = Number(new Intl.DateTimeFormat('en-US', {hour: 'numeric', hour12: false, timeZone: timezone}).format(new Date(at)));
-        const hour = rawHour === 24 ? 0 : rawHour;
-        const planSleep = state?.source === 'daily_plan_baseline'
-            && /睡|赖床|自然醒|起床前/.test(String(state?.situation || ''));
-        if (!planSleep && hour >= 8 && hour < 23) return {sleeping: false, immediate: true, timezone};
-        const rows = repositories.conversation?.listMessages?.({personaId, limit: 1_000}) ?? [];
-        const userCount = (Array.isArray(rows) ? rows : rows?.items ?? []).filter(row => (row.role ?? row.role_name) === 'user').length;
+        const sleeping = state?.sleeping === true
+            || state?.isSleeping === true
+            || state?.slotKind === 'baseline_sleep'
+            || state?.slot_kind === 'baseline_sleep'
+            || state?.slotKind === 'sleep'
+            || state?.slot_kind === 'sleep';
+        // Clock time alone is not evidence of sleep. A newly created persona
+        // may be in a normal rest/baseline state at 23:00 without being asleep.
+        if (!sleeping) return {sleeping: false, immediate: true, timezone};
         const relationship = repositories.relationship?.activePatch?.({personaId});
-        const intimacy = Math.max(0, Math.min(4,
-            (userCount >= 30 ? 3 : userCount >= 10 ? 2 : userCount >= 3 ? 1 : 0)
-            + (relationship?.communicationStyle || relationship?.communication_style ? 1 : 0)));
+        const relationshipIntimacy = relationship?.intimacy
+            ?? relationship?.intimacyScore
+            ?? relationship?.intimacy_score;
+        const intimacyNumber = Number(relationshipIntimacy);
+        const intimacy = Number.isFinite(intimacyNumber) ? Math.max(0, Math.min(4, intimacyNumber)) : null;
         const affect = repositories.affect?.readSnapshot?.({personaId, at: at}) ?? null;
         const socialPressure = Math.max(0, Math.min(1, Number(affect?.drives?.social ?? 0.5)));
         const restPressure = Math.max(0, Math.min(1, Number(affect?.drives?.rest ?? 0.5)));
-        const key = `${personaId}:${String(at).slice(0, 13)}:${hour}:${userCount}`;
+        const key = `${personaId}:${String(at).slice(0, 13)}`;
         const draw = Array.from(key).reduce((sum, char) => (sum * 33 + char.charCodeAt(0)) >>> 0, 17) % 100;
         return {
             sleeping: true,
-            intimacy,
+            ...(intimacy === null ? {} : {intimacy}),
             draw,
-            immediate: draw < 8 + intimacy * 10 + Math.round((socialPressure - restPressure) * 8),
             nextBoundaryAt: state?.nextBoundaryAt ?? state?.next_boundary_at ?? null,
             timezone,
             socialPressure,
             restPressure
         };
     };
+    const sleepDecisionCompletion = createMtplxJsonCompletionPort({provider: mtplx, settings: readSettings, timeoutMs: 15_000});
+    const sleepDecision = async ({personaId, at, state, availability, userMessage, text} = {}) => {
+        const response = await sleepDecisionCompletion.complete({
+            model: readSettings().model,
+            messages: [
+                {role: 'system', content: '你只负责判断睡眠中的聊天请求是否现在回复。只输出 JSON：{"immediate":true或false,"deliverAt":ISO时间或null,"reason":"简短原因"}。当前状态必须明确是睡眠；不要把普通休息当成睡眠。综合关系亲密度、情绪/驱动力、随机值和用户消息重要性做判断，不生成回复正文。'},
+                {role: 'user', content: JSON.stringify({
+                    at,
+                    state: {
+                        source: state?.source ?? null,
+                        slotKind: state?.slotKind ?? state?.slot_kind ?? null,
+                        sleeping: state?.sleeping === true || state?.isSleeping === true,
+                        situation: state?.situation ?? '',
+                        scene: state?.scene ?? '',
+                        endsAt: state?.endsAt ?? state?.nextBoundaryAt ?? null
+                    },
+                    relationship: {intimacy: availability?.intimacy ?? null},
+                    affect: {socialPressure: availability?.socialPressure ?? 0.5, restPressure: availability?.restPressure ?? 0.5},
+                    randomDraw: availability?.draw ?? 0,
+                    userMessage: String(userMessage?.text ?? text ?? '').slice(0, 1_000)
+                })}
+            ],
+            trace: {personaId, messageId: userMessage?.id ?? null, operation: 'sleep-decision'}
+        });
+        const raw = response?.content ?? response?.text ?? '';
+        const parsed = JSON.parse(String(raw).replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim());
+        if (!isRecord(parsed) || typeof parsed.immediate !== 'boolean') throw new Error('Sleep decision schema is invalid');
+        const deliverAt = typeof parsed.deliverAt === 'string' && Number.isFinite(Date.parse(parsed.deliverAt))
+            && Date.parse(parsed.deliverAt) > Date.parse(at)
+            && Date.parse(parsed.deliverAt) <= Date.parse(at) + 24 * 60 * 60_000
+            ? new Date(parsed.deliverAt).toISOString()
+            : null;
+        const reason = typeof parsed.reason === 'string' && parsed.reason.trim()
+            ? parsed.reason.trim().slice(0, 160)
+            : 'sleep_decision';
+        return {immediate: parsed.immediate, reason, ...(deliverAt ? {deliverAt} : {})};
+    };
     const deferredChatPolicy = options.deferredChatPolicy ?? createDeferredChatPolicy({
         deferredBatch: repositories.deferredChatBatch,
         conversationRepository: repositories.conversation,
         lifeWorld: deferredLifeWorld,
         sleepAvailability: resolveDeferredSleep,
+        sleepDecision,
         clock,
         idGenerator
     });
@@ -316,6 +366,19 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
                 ? `${resolved.situation}（${resolved.scene || '日常场景'}；地点：${resolved.location || '未确认'}；房间：${resolved.room || '未确认'}；心情：${resolved.mood || '平静'}）`
                 : '当前没有额外的已确认生活事件。';
             const memories = repositories.memory?.listActive?.({personaId, limit: 12}) ?? [];
+            const selfModelClaims = repositories.selfModel?.listActive?.({personaId, limit: 12})
+                ?? repositories.selfModelRepository?.listActive?.({personaId, limit: 12})
+                ?? [];
+            const boundedSelfModelClaims = (Array.isArray(selfModelClaims) ? selfModelClaims : [])
+                .filter(claim => isRecord(claim) && typeof claim.summary === 'string' && claim.summary.trim())
+                .slice(0, 12)
+                .map(claim => ({
+                    id: claim.id ?? null,
+                    category: String(claim.category ?? '').slice(0, 80),
+                    summary: claim.summary.trim().slice(0, 1_000),
+                    status: claim.status ?? 'active',
+                    revision: claim.revision ?? 1
+                }));
             const relationship = repositories.relationship?.activePatch?.({personaId}) ?? null;
             let relationshipPatch = {};
             try { relationshipPatch = relationship?.next_patch ? JSON.parse(relationship.next_patch) : {}; } catch { relationshipPatch = {}; }
@@ -347,6 +410,9 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
             ].join('\n');
             const identityLayer = `人格：${persona.name}；角色：${persona.role || '陪伴者'}；基础设定：${foundation?.foundation || '暂无'}。`;
             const relationshipLayer = `长期了解：${memories.map(memory => `${memory.memory_key ?? memory.memoryKey}:${memory.value}`).join('；') || '暂无'}。关系补丁：${JSON.stringify(relationshipPatch)}。`;
+            const selfModelLayer = boundedSelfModelClaims.length
+                ? `当前自我摘要：\n${boundedSelfModelClaims.map(claim => `${claim.category ? `${claim.category}：` : ''}${claim.summary}`).join('\n')}`
+                : '当前没有已确认的自我模型摘要。';
             const capabilityLayer = [
                 systemCapabilityPromptFor(),
                 `【系统能力层：人格生图频率】当前人格偏好为“${imageGenerationPolicyLabels[imagePolicy]}”（${imagePolicy}）：${imagePolicyMeaning}。这是行为偏好，不是服务器关键词触发器。`,
@@ -357,7 +423,8 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
                 {source: 'life_state', priority: 90, value: lifeLayer},
                 {source: 'memory', priority: 50, value: memories.slice(0, 12)},
                 {source: 'relationship', priority: 40, value: relationshipPatch},
-                {source: 'affect', priority: 45, value: replyPosture}
+                {source: 'affect', priority: 45, value: replyPosture},
+                {source: 'self_model', priority: 55, text: selfModelLayer}
             ]});
             const serializedContext = contextPipeline.serialize({budget: contextPipeline.budget(contextFragments)});
             return {
@@ -368,6 +435,7 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
                     memory: JSON.stringify(memories.slice(0, 12)),
                     immutableIdentity: identityLayer,
                     relationship: relationshipLayer,
+                    selfModel: selfModelLayer,
                     affect: JSON.stringify(replyPosture),
                     timeFacts,
                     systemCapability: capabilityLayer
@@ -378,6 +446,8 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
                 state: resolved,
                 lifeWorld: worldInput,
                 memories,
+                selfModelClaims: boundedSelfModelClaims,
+                selfModelSummary: selfModelLayer,
                 relationship: relationshipPatch,
                 affect,
                 drives: affect?.drives ?? {},
@@ -714,6 +784,11 @@ function resolveRepositories(options, startup) {
     const timeline = createTimelineRepository({database, clock, id});
     const blueprint = createBlueprintRepository({database});
     const memory = createMemoryRepository({database, clock});
+    const interactionFact = createInteractionFactRepository({database, clock, id});
+    const appraisal = createAppraisalRepository({database, clock, id});
+    const memoryConsolidation = createMemoryConsolidationRepository({database, clock, id});
+    const selfModel = createSelfModelRepository({database, clock, id});
+    const agencyIntention = createAgencyIntentionRepository({database, clock, id});
     return Object.freeze({
         conversation: createConversationRepository({database}),
         activity: createActivityRepository({database}),
@@ -734,6 +809,16 @@ function resolveRepositories(options, startup) {
         group: createGroupRepository({database, clock, id}),
         memory,
         affect: createAffectRepository({database, clock, id, blueprintRepository: blueprint}),
+        interactionFact,
+        interactionFactRepository: interactionFact,
+        appraisal,
+        appraisalRepository: appraisal,
+        memoryConsolidation,
+        memoryConsolidationRepository: memoryConsolidation,
+        selfModel,
+        selfModelRepository: selfModel,
+        agencyIntention,
+        agencyIntentionRepository: agencyIntention,
         relationship: createRelationshipRepository({database, clock, id}),
         settings,
         personaLifecycle,
@@ -891,6 +976,21 @@ function resolveApplicationFlows(options, repositories, startup) {
     const affectFlow = options.affectFlow ?? (repositories.affect
         ? createAffectFlow({repositories, clock, idGenerator, transaction})
         : null);
+    const appraisalFlow = options.appraisalFlow ?? (repositories.interactionFact && repositories.appraisal
+        ? createAppraisalFlow({repositories, affectFlow, clock, idGenerator, transaction})
+        : null);
+    const memoryConsolidationFlow = options.memoryConsolidationFlow
+        ?? (repositories.memoryConsolidation || repositories.memoryConsolidationRepository
+            ? createMemoryConsolidationFlow({repositories, clock, idGenerator, transaction})
+            : null);
+    const selfModelFlow = options.selfModelFlow
+        ?? (repositories.selfModel || repositories.selfModelRepository || repositories.selfModelClaims
+            ? createSelfModelFlow({repositories, clock, idGenerator, transaction})
+            : null);
+    const agencyIntentionFlow = options.agencyIntentionFlow
+        ?? (repositories.agencyIntention || repositories.agencyIntentionRepository
+            ? createAgencyIntentionFlow({repositories, clock, idGenerator, transaction})
+            : null);
     return {
         lifeEventFlow,
         timelineFlow,
@@ -901,6 +1001,10 @@ function resolveApplicationFlows(options, repositories, startup) {
         memoryService,
         memoryEventFlow,
         affectFlow,
+        appraisalFlow,
+        memoryConsolidationFlow,
+        selfModelFlow,
+        agencyIntentionFlow,
         effectAdapter,
         flowRegistry: options.flowRegistry
     };
@@ -915,12 +1019,23 @@ function resolveMaintenanceHandlers(options, repositories, flows = {}) {
         daily_plan: async job => {
             const payload = typeof job.payload_json === 'string' ? JSON.parse(job.payload_json || '{}') : (job.payload ?? {});
             const updatedAt = job.updated_at ?? job.updatedAt ?? new Date().toISOString();
-            const plan = repositories.dailyPlan?.markReady?.({dailyPlanId: payload.dailyPlanId ?? payload.id, updatedAt});
-            const planInput = isRecord(payload.plan) ? {...payload.plan, status: 'ready'} : undefined;
+            const personaId = job.persona_id ?? job.personaId;
+            const payloadPlanId = payload.dailyPlanId ?? payload.id;
+            const stored = payloadPlanId
+                ? (repositories.dailyPlan?.readById?.({personaId, dailyPlanId: payloadPlanId})
+                    ?? repositories.dailyPlan?.findById?.({personaId, id: payloadPlanId})
+                    ?? repositories.dailyPlan?.read?.({personaId, at: updatedAt})
+                    ?? null)
+                : repositories.dailyPlan?.read?.({personaId, at: updatedAt}) ?? null;
+            const resolvedDailyPlanId = payloadPlanId ?? stored?.id;
+            const plan = resolvedDailyPlanId ? repositories.dailyPlan?.markReady?.({dailyPlanId: resolvedDailyPlanId, updatedAt}) : stored;
+            const planInput = isRecord(payload.plan)
+                ? {...payload.plan, status: 'ready'}
+                : isRecord(stored?.plan) ? {...stored.plan, status: 'ready'} : undefined;
             const slots = timelineFlow?.syncDailyPlanSlots
-                ? await timelineFlow.syncDailyPlanSlots({personaId: job.persona_id ?? job.personaId, planDate: payload.planDate ?? payload.plan_date, plan: planInput, at: updatedAt})
+                ? await timelineFlow.syncDailyPlanSlots({personaId, planDate: payload.planDate ?? payload.plan_date, plan: planInput, at: updatedAt})
                 : null;
-            return {status: 'complete', result: {dailyPlanId: payload.dailyPlanId ?? payload.id, status: plan?.status ?? 'ready', slots: slots?.slots ?? []}};
+            return {status: 'complete', result: {dailyPlanId: resolvedDailyPlanId, status: plan?.status ?? 'ready', slots: slots?.slots ?? []}};
         },
         timeline_candidate: async (job, context) => {
             if (typeof timelineFlow?.handleJob === 'function') return timelineFlow.handleJob(job, context);

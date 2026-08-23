@@ -7,7 +7,15 @@ export const systemCapabilityPendingEventContract = 'pending_event：仅登记�
 
 export const systemCapabilityMemoryContract = 'memory_event：仅记录用户当前明确表达、稳定且未来有用的事实；不要从猜测或系统状态创建记忆。';
 
+export const systemCapabilityMemoryConsolidationContract = 'memory consolidation（结构化候选通道）：只为有证据、可回溯且可能长期有用的经历提出候选；保留不确定性和来源引用，不要把单次猜测直接升级为长期记忆，也不要把候选 JSON 写进用户可见回复。';
+
 export const systemCapabilityStateContract = 'affect_event/drive_signal：仅报告已确认的情绪或需求压力变化；数值幅度由服务器决定，工具信息不写入用户回复。';
+
+export const systemCapabilityAppraisalContract = 'appraisal（结构化控制通道）：基于本回合已确认的 interaction facts 提出主观评价、证据引用、不确定性，以及需要交给 affect/drive reducer 的候选；不要从关键词猜测，不要提交 PAD 数值或任意 delta，不要把 appraisal JSON 写进用户可见回复。';
+
+export const systemCapabilitySelfModelContract = 'self-model（结构化控制通道）：仅基于可回溯证据提出版本化自我模型 claim，必须同时提供 category、claim、summary、confidence、evidenceRefs、source 和 uncertainty；不要从关键词猜测，不要把 claim JSON 写进用户可见回复。';
+
+export const systemCapabilityAgencyContract = 'agency_intention（结构化候选通道）：由你根据上下文提出想询问、继续话题、暂缓、拒绝或主动联系等意愿，并给出自然解释、证据和不确定性；不要让意愿单独触发投递，资格、冻结、租约和安全边界由应用治理。';
 
 export const systemCapabilityTimeFact = '时间：只能引用应用提供的可信时间事实；只有 timeFact=known 才能说具体结束时间，不得猜测课程或时长。';
 
@@ -27,7 +35,11 @@ export const systemCapabilityContracts = Object.freeze([
     systemCapabilityMediaContract,
     systemCapabilityPendingEventContract,
     systemCapabilityMemoryContract,
+    systemCapabilityMemoryConsolidationContract,
     systemCapabilityStateContract,
+    systemCapabilityAppraisalContract,
+    systemCapabilitySelfModelContract,
+    systemCapabilityAgencyContract,
     systemCapabilityTimeFact,
     systemCapabilitySceneContract,
     systemCapabilityAppearanceContract,
@@ -63,6 +75,7 @@ export function contextPromptFor(context = {}) {
             layers.lifeState,
             layers.memory,
             layers.relationship,
+            layers.selfModel,
             layers.timeFacts
         ].filter(value => typeof value === 'string' && value.trim()).join('\n\n');
     const capability = systemCapabilityPromptFor(context);

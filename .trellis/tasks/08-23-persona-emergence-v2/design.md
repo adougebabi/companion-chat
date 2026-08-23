@@ -14,7 +14,7 @@ shared runtime (both initialization modes)
   -> durable projection + prompt summary
 ```
 
-各层只消费上游的结构化事实，不从用户可见回复重新解析意图。模型负责提出受限候选和理由，服务端负责校验范围、证据门槛、幂等、冲突、衰减、权限和事务。
+各层只消费上游的结构化事实，不从用户可见回复重新解析意图。LLM 负责提出 appraisal、记忆沉淀、自我模型、主体性和解释候选及其理由/不确定性；服务端只负责 schema/范围校验、安全与权限边界、幂等、冲突记录、衰减执行、事务、CAS、租约、redaction 和回放。不得以关键词、正则、固定阈值或启发式规则替代语义判断。
 
 情感反馈、记忆沉淀、自我模型和主体性属于共享运行时能力，不属于某一种初始化模式。初始化模式只决定初始 blueprint/identity anchors、初始涌现容器和候选证据门槛。
 
@@ -39,6 +39,12 @@ shared runtime (both initialization modes)
 - LLM 可以自由生成符合上下文的拒绝/延迟解释，但必须与结构化 agency decision 同步提交，不能让自然语言单独触发副作用。
 - 服务端保存有限的 `reasonCategory`、`evidenceRefs`、`gateResults`、`status` 和 redacted `explanationSummary`；不保存完整 hidden reasoning 或内部提示词。
 - 普通聊天仅展示经过安全筛选的 LLM 解释；专用查看入口可以展示原因摘要、证据和门控结果，但仍不展示凭证、内部数值或完整推理。
+
+## LLM-First Failure Boundary
+
+- LLM 是 appraisal、consolidation、self-model、agency 和 refusal explanation 的语义决策源；每一类输出都必须使用版本化结构化 schema，并保留 model/version/provenance。
+- 服务端可以拒绝越权、越界、重复、无证据或不符合 schema 的候选，但不能在拒绝后用规则猜测替代候选。
+- provider 不可用、schema 解析失败或证据不足时，结果只能是 `deferred`、`candidate`、`no_op` 或安全拒绝；不得回退到默认人格、固定 PAD/drive、关键词偏好或伪造用户可见消息。
 
 ## Initialization Modes
 

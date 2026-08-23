@@ -42,6 +42,14 @@ function summary(value, limit = 2_000) {
     return textValue.length <= limit ? textValue : `${textValue.slice(0, Math.max(0, limit - 3))}...`;
 }
 
+function boundedRedacted(value, limit = 2_000) {
+    const safe = redact(value);
+    let serialized;
+    try { serialized = JSON.stringify(safe); } catch { return '[unavailable]'; }
+    if (serialized.length <= limit) return safe;
+    return summary(safe, limit);
+}
+
 function jobDto(row) {
     const payload = parse(row?.payload_json ?? row?.payload, {});
     const result = parse(row?.result_json ?? row?.result, {});
@@ -151,12 +159,28 @@ export function createDebugService({repositories = {}, promptRuns, settings, h3P
         const affectEvents = repositories.affect?.listEvents
             ? sync(repositories.affect.listEvents({personaId, limit: 10}), 'debug affect events')
             : [];
+        const appraisals = repositories.appraisal?.list
+            ? sync(repositories.appraisal.list({personaId, limit: 10}), 'debug appraisals')
+            : [];
+        const memoryConsolidations = repositories.memoryConsolidation?.list
+            ? sync(repositories.memoryConsolidation.list({personaId, limit: 10}), 'debug memory consolidations')
+            : [];
+        const selfModelClaims = repositories.selfModel?.list
+            ? sync(repositories.selfModel.list({personaId, limit: 10}), 'debug self-model claims')
+            : [];
+        const agencyIntentions = repositories.agencyIntention?.list
+            ? sync(repositories.agencyIntention.list({personaId, limit: 10}), 'debug agency intentions')
+            : [];
         const layers = {
             identity: summary(context?.layers?.immutableIdentity ?? context?.layers?.identity ?? ''),
             immutableIdentity: summary(context?.layers?.immutableIdentity ?? ''),
             lifeState: summary(context?.layers?.lifeState ?? context?.state ?? ''),
             relationship: summary(context?.layers?.relationship ?? ''),
-            affect: redact({snapshot: affectSnapshot, recentEvents: affectEvents}),
+            affect: boundedRedacted({snapshot: affectSnapshot, recentEvents: affectEvents}),
+            appraisal: boundedRedacted(appraisals),
+            memoryConsolidation: boundedRedacted(memoryConsolidations),
+            selfModel: boundedRedacted(selfModelClaims),
+            agency: boundedRedacted(agencyIntentions),
             systemCapability: summary(context?.layers?.systemCapability ?? ''),
             provider: {model: summary(settingsValue.model || '自动选择', 240), lmStudioConfigured: Boolean(settingsValue.lmStudioUrl), comfyConfigured: Boolean(settingsValue.comfyUrl)}
         };
@@ -164,7 +188,8 @@ export function createDebugService({repositories = {}, promptRuns, settings, h3P
             layers,
             state: debugStateFor(context),
             recentRequests,
-            mediaJobs
+            mediaJobs,
+            emergence: boundedRedacted({appraisals, memoryConsolidations, selfModelClaims, agencyIntentions}, 8_000)
         };
     }
 
@@ -178,7 +203,17 @@ export function createDebugService({repositories = {}, promptRuns, settings, h3P
         const affectEvents = repositories.affect?.listEvents
             ? repositories.affect.listEvents({personaId, limit: 20})
             : [];
-        return {personaId, events: redact(sync(events, 'lifecycle events')), affectEvents: redact(affectEvents), jobs: rows.map(jobDto)};
+        const appraisals = repositories.appraisal?.list ? repositories.appraisal.list({personaId, limit: 20}) : [];
+        const memoryConsolidations = repositories.memoryConsolidation?.list ? repositories.memoryConsolidation.list({personaId, limit: 20}) : [];
+        const selfModelClaims = repositories.selfModel?.list ? repositories.selfModel.list({personaId, limit: 20}) : [];
+        const agencyIntentions = repositories.agencyIntention?.list ? repositories.agencyIntention.list({personaId, limit: 20}) : [];
+        return {
+            personaId,
+            events: redact(sync(events, 'lifecycle events')),
+            affectEvents: redact(affectEvents),
+            emergence: boundedRedacted({appraisals, memoryConsolidations, selfModelClaims, agencyIntentions}, 8_000),
+            jobs: rows.map(jobDto)
+        };
     }
 
     function simulatePersona(command = {}) {

@@ -45,6 +45,7 @@ test('resolvedStateFor uses explicit Asia/Shanghai time through the pure resolve
         assert.equal(beforePlan.resolved_source_id, 'integration-plan-slot');
         assert.equal(beforePlan.endsAt, '2024-01-01T02:00:00.000Z');
         assert.equal(beforePlan.timeFact, 'known');
+        assert.equal(sleepAvailability(persona, new Date('2024-01-01T00:47:00.000Z')).sleeping, true);
 
         database.prepare('INSERT INTO companion_schedule_items (id, persona_id, kind, title, starts_at, ends_at, status, source, details_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
             'integration-schedule', persona.id, 'plan', 'explicit meeting',
@@ -132,7 +133,7 @@ test('state and sleep projections use shared-scene precedence without changing s
         assert.equal(projected.endsAt, null);
 
         const availability = sleepAvailability(persona, at);
-        assert.equal(availability.sleeping, true);
+        assert.equal(availability.sleeping, false);
         assert.equal(availability.nextBoundaryAt, null);
 
         const eventCountBeforeReconcile = database.prepare('SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ?').get(persona.id).count;
@@ -146,6 +147,66 @@ test('state and sleep projections use shared-scene precedence without changing s
         assert.equal(recovered.source, 'shared_scene');
         assert.equal(recovered.sharedScene.eventId, 'integration-shared-scene');
         assert.equal(database.prepare('SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ?').get(persona.id).count, eventCountBeforeReconcile);
+    } finally {
+        deletePersona(persona.id);
+    }
+});
+
+test('new personas get an initialized daily plan and durable ordinary-rest baseline', async () => {
+    const persona = createPersona({name: 'Fresh plan', role: 'companion', foundation: 'Integration fixture.'});
+    try {
+        const plan = database.prepare('SELECT id, plan_date, status, plan_json FROM companion_daily_plans WHERE persona_id = ?').get(persona.id);
+        const job = database.prepare("SELECT payload_json FROM companion_jobs WHERE persona_id = ? AND job_type = 'daily_plan'").get(persona.id);
+        assert.ok(plan?.id);
+        assert.equal(plan.status, 'ready');
+        assert.equal(JSON.parse(job.payload_json).dailyPlanId, plan.id);
+
+        const storedPlan = JSON.parse(plan.plan_json);
+        assert.equal(storedPlan.planDate, plan.plan_date);
+        assert.equal(storedPlan.timeline.length, 1);
+        assert.equal(storedPlan.timeline[0].slotKind, 'baseline_idle');
+        const slot = database.prepare('SELECT slot_key, slot_kind, source, starts_at, ends_at, constraints_json FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ?').get(persona.id, plan.plan_date);
+        assert.equal(slot.slot_key, `${plan.id}:baseline:initial`);
+        assert.equal(slot.slot_kind, 'baseline_idle');
+        assert.equal(slot.source, 'daily_plan_baseline');
+        assert.deepEqual(JSON.parse(slot.constraints_json).situation, '正在自己的空间里休息');
+
+        const jobNow = new Date(Date.now() + 1_000).toISOString();
+        const claimed = runtime.jobRepository.claim({personaId: persona.id, jobTypes: ['daily_plan'], now: jobNow, leaseOwner: 'life-state-test', leaseMs: 60_000});
+        assert.ok(claimed);
+        const execution = await runtime.jobDispatcher.runJob(claimed, {leaseOwner: 'life-state-test', owner: 'life-state-test', now: jobNow});
+        assert.equal(execution.status, 'complete');
+        assert.equal(database.prepare("SELECT status FROM companion_jobs WHERE id = ?").get(claimed.id).status, 'complete');
+        assert.equal(database.prepare("SELECT COUNT(*) AS count FROM companion_jobs WHERE persona_id = ? AND job_type = 'timeline_candidate'").get(persona.id).count, 0);
+        assert.equal(JSON.parse(database.prepare('SELECT constraints_json FROM companion_timeline_slots WHERE id = ?').get(slot.slot_key).constraints_json).sceneRef, 'home:private_room');
+
+        const baselineAt = new Date(Date.parse(slot.starts_at) + 60 * 60 * 1_000);
+        const state = resolvedStateFor(persona.id, baselineAt);
+        assert.equal(state.source, 'daily_plan_baseline');
+        assert.equal(state.situation, '正在自己的空间里休息');
+        assert.equal(sleepAvailability(persona, baselineAt).sleeping, false);
+    } finally {
+        deletePersona(persona.id);
+    }
+});
+
+test('initial daily baseline follows the blueprint timezone and remains the resolved source', () => {
+    const persona = createPersona({
+        name: 'Timezone baseline',
+        role: 'companion',
+        foundation: 'Integration fixture.',
+        createdAt: '2026-08-22T17:00:00.000Z'
+    });
+    try {
+        const plan = database.prepare('SELECT id, plan_date FROM companion_daily_plans WHERE persona_id = ?').get(persona.id);
+        const slot = database.prepare('SELECT id, starts_at, ends_at FROM companion_timeline_slots WHERE persona_id = ? AND plan_date = ?').get(persona.id, plan.plan_date);
+        assert.equal(plan.plan_date, '2026-08-23');
+        assert.equal(slot.starts_at, '2026-08-22T16:00:00.000Z');
+        assert.equal(slot.ends_at, '2026-08-23T16:00:00.000Z');
+        const state = resolvedStateFor(persona.id, new Date('2026-08-22T17:00:00.000Z'));
+        assert.equal(state.sourceId, slot.id);
+        assert.equal(state.startsAt, slot.starts_at);
+        assert.equal(state.endsAt, slot.ends_at);
     } finally {
         deletePersona(persona.id);
     }
