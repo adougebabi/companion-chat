@@ -76,6 +76,18 @@ test('interview analyzer preserves valid string persona lists', async () => {
     assert.deepEqual(result.answers.supportingCast, ['顾老师']);
 });
 
+test('interview analyzer accepts interaction boundaries as an explicit string list', async () => {
+    const analyzer = createInterviewAnalyzer({jsonCompletion: {complete: async () => modelContent({
+        ...validResult({interactionBoundaries: ['不要替我确认未经证实的事实', '需要独处时请先询问']}),
+        blueprint: {interactionBoundaries: ['不接受强迫式追问']}
+    })}});
+
+    const result = await analyzer.analyze({description: '她有明确的互动边界。'});
+
+    assert.deepEqual(result.answers.interactionBoundaries, ['不要替我确认未经证实的事实', '需要独处时请先询问']);
+    assert.deepEqual(result.blueprint.interactionBoundaries, ['不要替我确认未经证实的事实', '需要独处时请先询问']);
+});
+
 test('interview analyzer rejects unknown or oversized structured list items', async () => {
     for (const payload of [
         {...validResult(), blueprint: {routine: [{label: '工作', unexpected: '不允许'}]}},

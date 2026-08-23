@@ -91,7 +91,7 @@ const ANALYZER_PROMPT = [
     'majorEvents, strengths, weaknesses, quirks, obsessions, catchphrases, signatureBehaviors, coreBeliefs, and boundariesAndTaboos must be bounded arrays of concise strings.',
     'personalityCoordinates must be an extensible object {framework, values}; framework identifies Big Five, MBTI, or another declared coordinate system, and values is an object of bounded numeric or string coordinates. Do not flatten or infer coordinates.',
     'toneAndVocabulary must be an object with optional bounded string tone and vocabulary string array.',
-    'interests, routine, and supportingCast must be arrays of concise strings; structured list items may use their explicit name/label/activity fields and are normalized to strings; all other scalar persona fields must be strings, except age which may be a finite integer or bounded string.',
+    'interests, routine, supportingCast, and interactionBoundaries may be arrays of concise strings; structured list items may use their explicit name/label/activity fields and are normalized to strings; all other scalar persona fields must be strings, except age which may be a finite integer or bounded string.',
     'blueprint is an object containing only the same allowed persona fields and may be {}.',
     'Do not include the original description, explanations, markdown, or any other keys.',
     `Prompt contract version: ${ANALYZER_PROMPT_VERSION}.`
@@ -206,6 +206,12 @@ function normalizeNewField(key, raw, field) {
     return undefined;
 }
 
+function normalizeInteractionBoundaries(raw, field) {
+    return Array.isArray(raw)
+        ? boundedStringList(raw, `${field}.interactionBoundaries`, MAX_PROFILE_TEXT_LENGTH, '互动边界')
+        : boundedText(raw, `${field}.interactionBoundaries`, MAX_RELATIONSHIP_NOTE_LENGTH);
+}
+
 function normalizeAnswers(value, field = 'answers') {
     unknownKeys(value, ANSWER_KEYS, field);
     const answers = {};
@@ -214,6 +220,7 @@ function normalizeAnswers(value, field = 'answers') {
         if (key === 'interests') answers.interests = stringList(raw, `${field}.interests`, MAX_INTEREST_LENGTH, key);
         else if (key === 'routine') answers.routine = stringList(raw, `${field}.routine`, MAX_ROUTINE_ITEM_LENGTH, key);
         else if (key === 'supportingCast') answers.supportingCast = stringList(raw, `${field}.supportingCast`, MAX_SUPPORTING_CAST_ITEM_LENGTH, key);
+        else if (key === 'interactionBoundaries') answers.interactionBoundaries = normalizeInteractionBoundaries(raw, field);
         else if (ANSWER_KEYS.has(key) && (key === 'age' || NEW_STRING_LIST_SCHEMAS[key] || key === 'personalityCoordinates' || key === 'toneAndVocabulary')) answers[key] = normalizeNewField(key, raw, field);
         else answers[key] = boundedText(raw, `${field}.${key}`, ANSWER_LIMITS[key]);
     }
@@ -243,6 +250,7 @@ function normalizeOptionalFields(value, field) {
         if (key === 'interests') normalized.interests = stringList(raw, `${field}.interests`, MAX_INTEREST_LENGTH, key);
         else if (key === 'routine') normalized.routine = stringList(raw, `${field}.routine`, MAX_ROUTINE_ITEM_LENGTH, key);
         else if (key === 'supportingCast') normalized.supportingCast = stringList(raw, `${field}.supportingCast`, MAX_SUPPORTING_CAST_ITEM_LENGTH, key);
+        else if (key === 'interactionBoundaries') normalized.interactionBoundaries = normalizeInteractionBoundaries(raw, field);
         else if (ANSWER_KEYS.has(key) && (key === 'age' || NEW_STRING_LIST_SCHEMAS[key] || key === 'personalityCoordinates' || key === 'toneAndVocabulary')) normalized[key] = normalizeNewField(key, raw, field);
         else normalized[key] = boundedText(raw, `${field}.${key}`, ANSWER_LIMITS[key]);
     }
