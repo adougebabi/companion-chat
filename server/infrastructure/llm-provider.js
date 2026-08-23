@@ -6,6 +6,7 @@ import {
     STRUCTURED_TURN_LIMITS,
     normalizeStructuredTurnSafely
 } from '../contracts/index.js';
+import {createHiddenReasoningFilter, stripHiddenReasoning} from '../contracts/hidden-reasoning.js';
 
 const MAX_DIAGNOSTICS = 8;
 const MAX_DIAGNOSTIC_LENGTH = 240;
@@ -103,7 +104,7 @@ function normalizeTurnRecord({text, tokens, toolCalls, sidecar, parseErrors, don
             memoryWrites: candidateSidecar.memoryWrites,
             capabilityCalls: candidateSidecar.capabilityCalls
         };
-    const visible = sidecarText(candidateSidecar, text || '');
+    const visible = stripHiddenReasoning(sidecarText(candidateSidecar, text || ''));
     const candidate = {
         schemaVersion: isRecord(sidecar) ? candidateSidecar.schemaVersion : STRUCTURED_TURN_SCHEMA_VERSION,
         text: visible,
@@ -230,6 +231,11 @@ export async function consumeMtplxStream(response, {onText, personaId, causation
     let doneSeen = false;
     let firstSeen = 0;
     let structuredSidecar = null;
+    const reasoningFilter = createHiddenReasoningFilter();
+    const emitVisible = async raw => {
+        const token = stripHiddenReasoning(cleanToolCallArtifacts(reasoningFilter.push(raw)));
+        if (token) { text += token; await onText?.(token); }
+    };
     const processPayload = async raw => {
         if (!raw) return;
         if (raw === '[DONE]') { doneSeen = true; return; }
@@ -240,8 +246,7 @@ export async function consumeMtplxStream(response, {onText, personaId, causation
         const choice = payload?.choices?.[0] || {};
         const delta = choice.delta || {};
         if (choice.finish_reason) finishReason = boundedText(choice.finish_reason);
-        const token = typeof delta.content === 'string' ? cleanToolCallArtifacts(delta.content) : '';
-        if (token) { text += token; await onText?.(token); }
+        if (typeof delta.content === 'string') await emitVisible(delta.content);
         for (const fragment of (Array.isArray(delta.tool_calls) ? delta.tool_calls : [])) {
             const call = appendToolCallFragment(toolCalls, fragment, parseErrors);
             if (call && call.firstSeen === undefined) call.firstSeen = firstSeen++;
@@ -264,6 +269,7 @@ export async function consumeMtplxStream(response, {onText, personaId, causation
         }
         buffer += decoder.decode();
         if (buffer.startsWith('data:')) await processPayload(buffer.slice(5).trim());
+        await emitVisible(reasoningFilter.finish());
     } finally {
         signal?.removeEventListener?.('abort', abort);
     }
@@ -318,7 +324,7 @@ function completionFromJson(payload, {personaId, causationId} = {}) {
         }
     }
     const messageText = typeof message.content === 'string' ? message.content : '';
-    const text = cleanToolCallArtifacts(sidecar ? sidecarText(sidecar, messageText) : messageText);
+    const text = stripHiddenReasoning(cleanToolCallArtifacts(sidecar ? sidecarText(sidecar, messageText) : messageText));
     const calls = (Array.isArray(message.tool_calls) ? message.tool_calls : []).map((call, index) => ({
         ...call,
         index: Number.isInteger(call?.index) ? call.index : index,

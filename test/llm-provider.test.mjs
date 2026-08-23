@@ -60,6 +60,45 @@ test('provider removes pseudo TOOL_CALL tags from visible completion text', asyn
     assert.equal(completionJson.text, '');
 });
 
+test('provider removes embedded reasoning wrappers across streaming chunks and JSON responses', async () => {
+    const tokens = [];
+    const stream = new Response([
+        'data: {"choices":[{"delta":{"content":"<thi"}}]}\n',
+        'data: {"choices":[{"delta":{"content":"nk>private reasoning"}}]}\n',
+        'data: {"choices":[{"delta":{"content":"</think>visible answer"}}]}\n',
+        'data: [DONE]\n\n'
+    ].join(''), {headers: {'content-type': 'text/event-stream'}});
+    const completion = await consumeMtplxStream(stream, {onText: token => tokens.push(token)});
+    assert.deepEqual(tokens, ['visible answer']);
+    assert.equal(completion.text, 'visible answer');
+    assert.doesNotMatch(completion.text, /private reasoning|think/);
+
+    const provider = createMtplxProvider({
+        settings: () => ({lmStudioUrl: 'http://fixture/v1'}),
+        fetchImpl: async () => new Response(JSON.stringify({choices: [{message: {content: '<analysis>private</analysis>回答。'}}]}), {
+            headers: {'content-type': 'application/json'}
+        })
+    });
+    const port = createMtplxCompletionPort({provider, settings: () => ({model: 'fixture'})});
+    const jsonCompletion = await port.stream({model: 'fixture', messages: []});
+    assert.equal(jsonCompletion.text, '回答。');
+
+    const attributeStream = new Response([
+        'data: {"choices":[{"delta":{"content":"<think t"}}]}\n',
+        'data: {"choices":[{"delta":{"content":"ype=\\\"hidden\\\">private"}}]}\n',
+        'data: {"choices":[{"delta":{"content":"</think>visible"}}]}\n',
+        'data: [DONE]\n\n'
+    ].join(''), {headers: {'content-type': 'text/event-stream'}});
+    const attributeCompletion = await consumeMtplxStream(attributeStream);
+    assert.equal(attributeCompletion.text, 'visible');
+
+    const literal = await consumeMtplxStream(new Response([
+        'data: {"choices":[{"delta":{"content":"Use <analysis> as a literal tag."}}]}\n',
+        'data: [DONE]\n\n'
+    ].join(''), {headers: {'content-type': 'text/event-stream'}}));
+    assert.equal(literal.text, 'Use <analysis> as a literal tag.');
+});
+
 test('MTPLX prompt trace keeps one request paired with its response', async () => {
     const runs = new Map();
     let finished;

@@ -139,6 +139,53 @@ test('native appearance_event persists the current outfit through the capability
     services().persona.delete({personaId: subject.id});
 });
 
+test('scene and appearance capabilities planned in one turn commit in either order', () => {
+    now = BASE;
+    for (const reverse of [false, true]) {
+        const subject = persona({name: reverse ? '同回合能力反向提交' : '同回合能力顺序提交'});
+        try {
+            const source = userMessage(subject.id, '我们一起去咖啡馆，我换一身衣服。');
+            const scene = {
+                id: `scene_turn_${reverse ? 'reverse' : 'forward'}`,
+                index: 0,
+                name: 'scene_event',
+                source: 'native',
+                personaId: subject.id,
+                causationUserMessageId: source.id,
+                idempotencyKey: `scene_turn_${reverse ? 'reverse' : 'forward'}`,
+                arguments: {operation: 'start', location: '咖啡馆', room: '窗边', activity: '一起聊天', situation: '正在咖啡馆窗边聊天', mood: '放松'},
+                argumentsText: JSON.stringify({operation: 'start', location: '咖啡馆', room: '窗边', activity: '一起聊天', situation: '正在咖啡馆窗边聊天', mood: '放松'})
+            };
+            const appearance = {
+                id: `appearance_turn_${reverse ? 'reverse' : 'forward'}`,
+                index: 1,
+                name: 'appearance_event',
+                source: 'native',
+                personaId: subject.id,
+                causationUserMessageId: source.id,
+                idempotencyKey: `appearance_turn_${reverse ? 'reverse' : 'forward'}`,
+                arguments: {operation: 'set', outfit: '白色衬衫'},
+                argumentsText: JSON.stringify({operation: 'set', outfit: '白色衬衫'})
+            };
+            const output = runtime.application.capabilityDispatcher.dispatch({
+                mode: 'plan', personaId: subject.id, causationUserMessageId: source.id,
+                calls: [scene, appearance], completion: {doneSeen: true}
+            });
+            assert.equal(output.effects.length, 2);
+            const effects = reverse ? [...output.effects].reverse() : output.effects;
+            assert.doesNotThrow(() => effects.forEach(effect => effect.payload.apply()));
+
+            const state = runtime.repositories.state.read({personaId: subject.id});
+            const sceneEffect = output.effects.find(effect => effect.capability === 'scene_event');
+            assert.equal(state.source_event_id, sceneEffect.payload.plan.eventId);
+            assert.equal(JSON.parse(state.appearance_json).outfit, '白色衬衫');
+            assert.equal(runtime.database.prepare('SELECT COUNT(*) AS count FROM companion_life_events WHERE persona_id = ?').get(subject.id).count, 2);
+        } finally {
+            deletePersona(subject.id);
+        }
+    }
+});
+
 test('native media_event creates a durable chat image job instead of visible tool text', () => {
     const subject = persona({name: '媒体工具测试人格'});
     const source = userMessage(subject.id, '请发一张照片。');

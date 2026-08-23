@@ -415,7 +415,7 @@ export function normalizeStructuredTurnEnvelope(value = {}, context = {}) {
         throw new TypeError(`Structured turn schemaVersion must be ${STRUCTURED_TURN_SCHEMA_VERSION}`);
     }
     const tokens = boundedStructuredArray(value.tokens, 'Structured turn tokens', STRUCTURED_TURN_LIMITS.tokens)
-        .map((token, index) => boundedStructuredText(token, `Structured turn token ${index}`, STRUCTURED_TURN_LIMITS.token, {allowEmpty: true}));
+        .map((token, index) => boundedRawText(token, `Structured turn token ${index}`, STRUCTURED_TURN_LIMITS.token));
     const text = value.text === undefined || value.text === null
         ? tokens.join('')
         : boundedStructuredText(value.text, 'Structured turn text', STRUCTURED_TURN_LIMITS.text, {allowEmpty: true});
@@ -837,7 +837,7 @@ export function normalizeChatResult(value = {}) {
 export function normalizeSseEvent(value) {
     if (!isRecord(value)) throw new TypeError('SseEvent must be an object');
     const type = assertOneOf(value.type, SSE_EVENT_TYPES, 'SseEvent.type');
-    if (type === 'token') return {type, token: boundedText(value.token, 'SseEvent.token', 12_000, {allowEmpty: true})};
+    if (type === 'token') return {type, token: boundedRawText(value.token, 'SseEvent.token', 12_000)};
     if (type === 'error') return {type, error: boundedText(value.error, 'SseEvent.error', 480)};
     return normalizeChatResult({...value, type});
 }

@@ -19,6 +19,37 @@ function clockFor(clock) {
     return () => new Date().toISOString();
 }
 
+function expectedProjectionWhere(expected = {}) {
+    if (!expected || typeof expected !== 'object' || Array.isArray(expected)) return {sql: '', values: []};
+    const clauses = [];
+    const values = [];
+    if (Object.hasOwn(expected, 'sourceEventId') || Object.hasOwn(expected, 'source_event_id')) {
+        clauses.push('source_event_id IS ?');
+        values.push(expected.sourceEventId ?? expected.source_event_id ?? null);
+    }
+    if (Object.hasOwn(expected, 'sharedSceneJson') || Object.hasOwn(expected, 'shared_scene_json')) {
+        clauses.push('shared_scene_json = ?');
+        values.push(expected.sharedSceneJson ?? expected.shared_scene_json ?? '{}');
+    }
+    if (Object.hasOwn(expected, 'appearanceJson') || Object.hasOwn(expected, 'appearance_json')) {
+        clauses.push('appearance_json = ?');
+        values.push(expected.appearanceJson ?? expected.appearance_json ?? '{}');
+    } else if (Object.hasOwn(expected, 'appearance')) {
+        clauses.push('appearance_json = ?');
+        values.push(JSON.stringify(expected.appearance ?? {}));
+    }
+    return clauses.length ? {sql: ` AND ${clauses.join(' AND ')}`, values} : {sql: '', values: []};
+}
+
+function updateResult(row, changes) {
+    const value = row ?? {};
+    Object.defineProperties(value, {
+        changes: {value: changes, enumerable: false},
+        changed: {value: changes === 1, enumerable: false}
+    });
+    return value;
+}
+
 export function createStateRepository({database, clock} = {}) {
     const db = assertDatabase(database);
     const now = clockFor(clock);
@@ -32,13 +63,15 @@ export function createStateRepository({database, clock} = {}) {
         const owner = text(input.personaId, 'Persona.id');
         const at = input.updatedAt ?? now();
         const current = read({personaId: owner}) ?? {};
-        db.prepare(`
+        const expected = expectedProjectionWhere(input.expected);
+        const result = db.prepare(`
             INSERT INTO companion_persona_states (persona_id, situation, mood, appearance_json, checkpoint_at, updated_at, source_event_id, shared_scene_json)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(persona_id) DO UPDATE SET
                 situation = excluded.situation, mood = excluded.mood, appearance_json = excluded.appearance_json,
                 checkpoint_at = excluded.checkpoint_at, updated_at = excluded.updated_at,
                 source_event_id = excluded.source_event_id, shared_scene_json = excluded.shared_scene_json
+            WHERE companion_persona_states.persona_id = excluded.persona_id${expected.sql}
         `).run(
             owner,
             input.situation ?? current.situation ?? '',
@@ -53,9 +86,10 @@ export function createStateRepository({database, clock} = {}) {
                     : Object.hasOwn(input, 'shared_scene')
                         ? input.shared_scene
                         : json(current.shared_scene_json, null) ?? {}
-            )
+            ),
+            ...expected.values
         );
-        return read({personaId: owner});
+        return updateResult(read({personaId: owner}), result.changes);
     }
     return Object.freeze({read, get: read, findByPersona: read, updateProjection, update: updateProjection, updateState: updateProjection, applyProjection: updateProjection});
 }

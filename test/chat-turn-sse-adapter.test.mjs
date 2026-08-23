@@ -61,7 +61,7 @@ test('emits token presentation in order and sends one done with an authoritative
 
     assert.deepEqual(sink.events, [
         {type: 'token', token: 'One'},
-        {type: 'token', token: 'two'},
+        {type: 'token', token: ' two'},
         {type: 'done', messages: [message], message, learned: [], jobs: [], pendingEvent: {id: 'pending_1'}}
     ]);
     assert.equal(sink.events.filter(event => event.type === 'done').length, 1);

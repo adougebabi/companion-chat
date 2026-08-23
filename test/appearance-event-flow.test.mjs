@@ -9,9 +9,9 @@ import {
 
 const NOW = '2026-08-23T00:00:00.000Z';
 
-function setup({appearance = {coat: 'blue', shoes: 'white'}} = {}) {
+function setup({appearance = {coat: 'blue', shoes: 'white'}, sourceEventId = null} = {}) {
     const stateRows = new Map([['persona_1', {
-        sourceEventId: null,
+        sourceEventId,
         situation: 'reading',
         mood: 'calm',
         appearance: {...appearance},
@@ -43,13 +43,14 @@ function setup({appearance = {coat: 'blue', shoes: 'white'}} = {}) {
             updateProjection(input) {
                 calls.push(['state', input]);
                 const row = stateRows.get(input.personaId);
-                if (row.sourceEventId !== (input.expected.sourceEventId || null)
-                    || JSON.stringify(row.appearance) !== JSON.stringify(input.expected.appearance)) return {changes: 0};
+                if (input.expected.appearanceJson !== undefined && row.appearanceJson !== input.expected.appearanceJson) return {changes: 0};
+                if (input.expected.appearance !== undefined
+                    && JSON.stringify(row.appearance) !== JSON.stringify(input.expected.appearance)) return {changes: 0};
                 row.situation = input.situation;
                 row.mood = input.mood;
                 row.appearance = {...input.appearance};
                 row.appearanceJson = input.appearanceJson;
-                row.sourceEventId = input.sourceEventId;
+                if (input.sourceEventId !== undefined) row.sourceEventId = input.sourceEventId;
                 return {changes: 1};
             }
         }
@@ -165,4 +166,14 @@ test('source ownership and stale projection guards reject writes', () => {
     fixture.stateRows.get('persona_1').appearance = {coat: 'changed'};
     assert.throws(() => fixture.flow.apply(stale), /current appearance projection/);
     assert.equal(fixture.lifeEvents.length, 0);
+});
+
+test('appearance-only audit preserves the authoritative scene source', () => {
+    const fixture = setup({sourceEventId: 'scene_authority'});
+    const plan = fixture.flow.plan(command());
+
+    fixture.flow.apply(plan);
+
+    assert.equal(fixture.stateRows.get('persona_1').sourceEventId, 'scene_authority');
+    assert.equal(fixture.lifeEvents[0].type, 'appearance_change');
 });

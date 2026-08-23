@@ -175,6 +175,44 @@ test('tool-only media calls are dispatched and provider TOOL_CALL artifacts neve
     assert.equal(result.presentation.some(event => event.type === 'capability-result'), true);
 });
 
+test('ChatTurnFlow strips embedded reasoning from normalized provider tokens', async () => {
+    const flow = createChatTurnFlow({
+        ...dependencies({mapper: input => ({messages: [{
+            id: 'assistant_reasoning', role: 'assistant', text: input.completion.text, attachments: [], jobs: []
+        }]})}),
+        llmStreamingPort: {
+            async stream() {
+                return {tokens: ['<thi', 'nk>private', '</think>visible ', 'answer'], toolCalls: [], doneSeen: true};
+            }
+        }
+    });
+
+    const result = await flow.run({personaId: 'persona_test', text: 'hello'});
+    assert.equal(result.message.text, 'visible answer');
+    assert.deepEqual(result.presentation, [{type: 'token', token: 'visible '}, {type: 'token', token: 'answer'}]);
+});
+
+test('ChatTurnFlow strips hidden reasoning from structured assistant messages', async () => {
+    const flow = createChatTurnFlow({
+        ...dependencies({mapper: input => ({messages: input.messages})}),
+        llmStreamingPort: {
+            async stream() {
+                return {
+                    text: 'visible',
+                    tokens: ['visible'],
+                    messages: [{id: 'structured_message', role: 'assistant', text: '<think>private</think>visible', attachments: [], jobs: []}],
+                    toolCalls: [],
+                    doneSeen: true
+                };
+            }
+        }
+    });
+
+    const result = await flow.run({personaId: 'persona_test', text: 'hello'});
+    assert.equal(result.message.text, 'visible');
+    assert.doesNotMatch(result.message.text, /private|think/);
+});
+
 test('ChatTurnFlow presents raw repository history oldest-first to the model', async () => {
     let modelHistory;
     const flow = createChatTurnFlow({

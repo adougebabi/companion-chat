@@ -334,7 +334,6 @@ export function createAppearanceEventFlow({
             nextAppearance
         };
         const expected = {
-            sourceEventId: projection.sourceEventId,
             appearanceJson: projection.appearanceJson,
             appearance: projection.appearance
         };
@@ -381,7 +380,10 @@ export function createAppearanceEventFlow({
         if (existing) return replayResult(existing);
         const current = appearanceFor(sync(stateRead(planValue.personaId), 'Appearance-event state lookup'));
         const expected = state.expected;
-        if (current.sourceEventId !== (expected.sourceEventId || null) || !sameAppearance(current.appearance, expected.appearance)) {
+        // An appearance audit may be committed in the same turn as a scene
+        // event. The scene projection is authoritative for sourceEventId, so
+        // appearance CAS must only guard the appearance fields it owns.
+        if (!sameAppearance(current.appearance, expected.appearance)) {
             throw new Error('appearance_event plan does not match the current appearance projection');
         }
         if (!state.eventId || !state.createdAt || !state.operation || !isRecord(state.payload)) throw new TypeError('appearance_event plan contents are invalid');
@@ -408,7 +410,9 @@ export function createAppearanceEventFlow({
             appearanceJson: JSON.stringify(nextAppearance),
             checkpointAt: state.createdAt,
             updatedAt: state.createdAt,
-            sourceEventId: state.eventId,
+            // appearance_change is an audit/overlay and must not become the
+            // authoritative scene source for the persona state.
+            sourceEventId: current.sourceEventId,
             expected
         });
         sync(update, 'Appearance-event state write');

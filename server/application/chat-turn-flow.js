@@ -8,6 +8,7 @@ import {
 import {createCapabilityHandoffStep, createFlowRegistry} from './flow-registry.js';
 import {createFlowExecutor} from './flow-executor.js';
 import {normalizeStructuredTurn} from './structured-turn.js';
+import {createHiddenReasoningFilter, stripHiddenReasoning} from '../contracts/hidden-reasoning.js';
 
 export const CHAT_TURN_FLOW_ID = 'chat-turn';
 export const CHAT_TURN_FLOW_VERSION = 1;
@@ -22,7 +23,19 @@ const CONTINUATION_FALLBACK = '我已经记下这件事，但暂时没能组织�
 const TOOL_CALL_ARTIFACT_PATTERN = /<\s*\/?\s*TOOL[_ -]?CALL\s*>/gi;
 
 function cleanToolCallArtifacts(value) {
-    return String(value ?? '').replace(TOOL_CALL_ARTIFACT_PATTERN, '').trim();
+    return stripHiddenReasoning(String(value ?? '').replace(TOOL_CALL_ARTIFACT_PATTERN, '')).trim();
+}
+
+function visibleTokens(value) {
+    const filter = createHiddenReasoningFilter();
+    const output = [];
+    for (const token of value) {
+        const visible = stripHiddenReasoning(filter.push(token).replace(TOOL_CALL_ARTIFACT_PATTERN, ''));
+        if (visible) output.push(visible);
+    }
+    const tail = stripHiddenReasoning(filter.finish().replace(TOOL_CALL_ARTIFACT_PATTERN, ''));
+    if (tail) output.push(tail);
+    return output;
 }
 
 function continuationFallbackFor(calls) {
@@ -44,6 +57,12 @@ function boundedText(value, field, maxLength, {allowEmpty = false} = {}) {
     if (typeof value !== 'string') throw new TypeError(`${field} must be a string`);
     if (value.length > maxLength) throw new RangeError(`${field} exceeds ${maxLength} characters`);
     if (!allowEmpty && !value.trim()) throw new TypeError(`${field} must not be empty`);
+    return value;
+}
+
+function boundedRawText(value, field, maxLength) {
+    if (typeof value !== 'string') throw new TypeError(`${field} must be a string`);
+    if (value.length > maxLength) throw new RangeError(`${field} exceeds ${maxLength} characters`);
     return value;
 }
 
@@ -94,13 +113,23 @@ function normalizeCallList(value) {
 
 function normalizeCompletion(value = {}) {
     const completion = requiredObject(value, 'LLM completion');
-    const tokens = Array.isArray(completion.tokens)
-        ? completion.tokens.map((token, index) => boundedText(token, `LLM completion token ${index}`, MAX_TOKEN_TEXT, {allowEmpty: true}))
+    const rawTokens = Array.isArray(completion.tokens)
+        ? completion.tokens.map((token, index) => boundedRawText(token, `LLM completion token ${index}`, MAX_TOKEN_TEXT))
         : [];
-    const text = completion.text === undefined || completion.text === null
-        ? tokens.join('')
+    const tokens = visibleTokens(rawTokens);
+    const rawText = completion.text === undefined || completion.text === null
+        ? rawTokens.join('')
         : boundedText(completion.text, 'LLM completion text', MAX_MESSAGE_TEXT, {allowEmpty: true});
+    const text = stripHiddenReasoning(rawText);
     const toolCalls = normalizeCallList(completion.toolCalls ?? completion.capabilityCalls);
+    const messages = Array.isArray(completion.messages)
+        ? completion.messages.map(message => {
+            if (!isRecord(message)) return message;
+            const source = typeof message.text === 'string' ? message.text : message.content;
+            if (typeof source !== 'string') return message;
+            return {...message, text: stripHiddenReasoning(source)};
+        })
+        : completion.messages;
     const stepResult = isRecord(completion.stepResult)
         ? normalizeStepResult(completion.stepResult)
         : emptyStepResult();
@@ -108,6 +137,7 @@ function normalizeCompletion(value = {}) {
         ...completion,
         text,
         tokens,
+        messages,
         toolCalls,
         stepResult,
         doneSeen: completion.doneSeen === undefined ? true : Boolean(completion.doneSeen)
