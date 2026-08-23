@@ -241,6 +241,10 @@ export const useAppStore = defineStore('app', () => {
 
   async function loadInspector(personaId: string): Promise<void> {
     const result = await loadInspectorRequest(personaId);
+    // A debug request can finish after the user has switched instances. Keep
+    // the shared snapshot persona-scoped so stale responses cannot repaint the
+    // current inspector with another instance's data.
+    if (activePersonaId.value !== personaId) return;
     detail.value = result.persona;
     inspector.value = result.inspector;
   }

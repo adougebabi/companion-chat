@@ -11,7 +11,15 @@
 
 - Environment gate: `COMPANION_DEBUG_INSPECTOR=1`
 - `GET /api/companion/personas/:personaId/debug-context`
-  - Success: `{layers, recentRequests, mediaJobs}`.
+  - Success: `{state, layers, recentRequests, mediaJobs}`. `state` is the small
+    resolver read model used by the inspector: `{situation, scene, outfit,
+    special, mood}`. It must be derived from the persona-scoped life-state
+    resolver, not from a stale state projection alone.
+- `GET /api/companion/personas/:personaId/lifecycle`
+  - Success includes normalized `jobs[]` records with `jobType`, `status`,
+    attempt/time fields, optional message/activity links, and bounded
+    `payloadSummary`/`resultSummary`; raw SQLite `payload_json` and
+    `result_json` are never part of the browser contract.
 - `POST /api/companion/personas/:personaId/debug-media`
   - Request: `{kind: "image" | "video", request?: string, prompt?: string}`.
   - Success: existing `createChatMediaRequest()` response containing the queued placeholder message.
@@ -21,6 +29,11 @@
 - Do not register either debug route unless `COMPANION_DEBUG_INSPECTOR === '1'`. Bootstrap exposes `debugInspector: true` only with the same condition, so ordinary UI never requests or renders diagnostics.
 - Resolve the requested persona first and use `persona_id = ?` in every debug query. Do not parse/summarize another persona's rows and filter afterward.
 - Return at most 10 recent request records and 10 media jobs. Limit every rendered summary to 2,000 characters.
+- The browser debug workspace treats prompt-run records as the authoritative
+  request/response pair. `layers` and `recentRequests` remain compatibility
+  fields in the bounded context DTO, but are not rendered as a second prompt
+  summary. Flow runs are not persisted as a separate read model; the UI must
+  label the durable job list accordingly instead of presenting jobs as flows.
 - Apply recursive redaction before truncating. Redact values stored under keys matching `apiKey`, `authorization`, `token`, `secret`, `password`, `credential`, or `cookie`, and redact bearer/key-like values embedded in strings.
 - Never expose `settings()` or raw provider headers. Provider state is represented only by safe configuration booleans or model identifiers.
 

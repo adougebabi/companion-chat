@@ -68,6 +68,7 @@ const inspectorActionError = ref<string | null>(null);
 const inspectorActionBusy = ref(false);
 const inspectorPreflight = ref<H3PreflightResult | null>(null);
 const inspectorActionResult = ref<InspectorActionResult | null>(null);
+let debugRequestToken = 0;
 const hiddenOpen = ref(false);
 const hiddenPersonaId = ref<string | null>(null);
 const draftByPersona = reactive<Record<string, string>>({});
@@ -230,15 +231,29 @@ async function openInspector(id: string) {
 }
 
 async function refreshInspector() { if (activePersonaId.value) await openInspector(activePersonaId.value); }
-async function refreshDebug() {
-  const id = activePersonaId.value || personas.value[0]?.id;
+async function selectDebugPersona(id: string) {
+  if (!personas.value.some(persona => persona.id === id)) return;
+  app.selectPersona(id);
+  view.value = 'debug';
+  await refreshDebug(id);
+}
+async function refreshDebug(requestedId?: string) {
+  const id = requestedId || activePersonaId.value || personas.value[0]?.id;
   if (!id) return;
   if (!activePersonaId.value) app.selectPersona(id);
+  const token = ++debugRequestToken;
   inspectorLoading.value = true;
   inspectorError.value = null;
-  try { await app.loadInspector(id); }
-  catch (error) { inspectorError.value = error instanceof Error ? error.message : '调试数据暂时不可用。'; }
-  finally { inspectorLoading.value = false; }
+  try {
+    await app.loadInspector(id);
+    if (token !== debugRequestToken || activePersonaId.value !== id) return;
+  } catch (error) {
+    if (token === debugRequestToken && activePersonaId.value === id) {
+      inspectorError.value = error instanceof Error ? error.message : '调试数据暂时不可用。';
+    }
+  } finally {
+    if (token === debugRequestToken) inspectorLoading.value = false;
+  }
 }
 function openPersonaActivity(id: string) { detailOpen.value = false; activityPersonaId.value = id; view.value = 'activity'; void refreshActivities().catch(() => {}); }
 async function deletePersona(id: string) {
@@ -342,7 +357,7 @@ watch(draft, value => {
       <ContactsView v-else-if="view === 'contacts'" :personas="personas" :groups="groups" :selected-group-id="selectedGroupId" :loading="boot === 'loading'" @select-persona="selectPersona" @create="openWizard" @select-group="openGroups" />
       <ChatView v-else-if="view === 'chat' && activePersona" :persona="activePersona" :messages="conversationMessages" :draft="draft" :loading="currentConversation.loadingInitial" :loading-older="currentConversation.loadingOlder" :history-error="currentConversation.historyError" :has-more="currentConversation.hasMore" :is-sending="isSending || currentConversation.stream?.status === 'sending'" :is-composing="isComposing" :send-error="sendError" :debug-inspector="Boolean(app.debugInspector)" :simplified-media="Boolean(settings.simplifiedMediaMode)" @back="navigate('contacts')" @profile="openDetail(activePersona.id)" @tools="app.debugInspector ? openInspector(activePersona.id) : openSettings()" @load-older="loadOlder" @retry-history="retryHistory" @prompt="prompt" @update:draft="composer.setDraft($event)" @submit="sendMessage" @composition-start="composer.onCompositionStart" @composition-end="composer.onCompositionEnd" @selection-change="composer.setSelection" @dismiss-send-error="dismissSendError" />
       <ActivityView v-else-if="view === 'activity'" :items="activityState.items" :personas="personas" :persona-id="activityPersonaId" :next-cursor="activityState.nextCursor" :loading="activityState.loading" :loading-more="activityState.loadingMore" :error="activityState.error" :commenting-id="activities.commentingId" :simplified-media="Boolean(settings.simplifiedMediaMode)" @refresh="refreshActivities" @load-more="loadMoreActivities" @retry="retryActivities" @open-persona="openDetail" @like="activityLike" @hide="activityHide" @comment="activityComment" @cancel-comment="cancelComment" @submit-comment="activitySubmitComment" @chat="selectPersona" @all="showAllActivities" />
-      <DebugView v-else-if="view === 'debug'" :persona="activePersona" :inspector="app.inspector" :loading="inspectorLoading" :error="inspectorError" @refresh="refreshDebug" />
+      <DebugView v-else-if="view === 'debug'" :persona="activePersona" :personas="personas" :inspector="app.inspector" :loading="inspectorLoading" :error="inspectorError" @refresh="refreshDebug" @select-persona="selectDebugPersona" />
       <SettingsView v-else @system="openSettings" @create="openWizard" @personas="navigate('contacts')" />
     </main>
     <MobileNav :current-view="view" :activity-unread="Boolean(app.activityUnread)" :debug-inspector="Boolean(app.debugInspector)" @navigate="navigate" />
@@ -350,7 +365,7 @@ watch(draft, value => {
     <AppDialog v-model:open="wizardOpen" size="large" labelled-by="persona-dialog-title"><PersonaWizard :stage="wizardStage" :description="wizardDescription" :preview="wizardPreviewData" :analyzing="wizardBusy && wizardStage === 'description'" :creating="wizardBusy && wizardStage === 'preview'" :error="wizardError" @close="wizardOpen = false" @analyze="analyzePersona" @back="wizardStage = 'description'" @create="createPersona" /></AppDialog>
     <AppDialog v-model:open="detailOpen" size="large" labelled-by="persona-detail-title"><PersonaDetail v-if="detail" :detail="detail" :groups="groups" :loading="detailLoading" @close="closeDetail" @chat="selectPersona" @activity="openPersonaActivity" @delete="deletePersona" @screen="screenPersona" @save-group="saveGroup" @save-policy="savePolicy" @delete-memory="deleteMemory" @rollback="rollbackEvolution" @restore-foundation="restoreFoundation" @edit-foundation="editFoundation" @reschedule="rescheduleSchedule" @cancel-schedule="cancelSchedule" @hidden-activities="hiddenActivities" /></AppDialog>
     <AppDialog v-model:open="settingsOpen" size="medium" labelled-by="settings-dialog-title"><SettingsForm :settings="settings" :saving="settingsBusy" :error="settingsError" @close="settingsOpen = false" @save="saveSettings" /></AppDialog>
-    <AppDialog v-model:open="inspectorOpen" size="large" labelled-by="inspector-dialog-title"><InspectorPanel :persona="detail" :media-jobs="app.inspector?.mediaJobs || []" :lifecycle="app.inspector?.lifecycle" :debug-context="app.inspector?.debugContext" :loading="inspectorLoading" :error="inspectorError || inspectorActionError" :action-busy="inspectorActionBusy" :h3-result="inspectorPreflight" :action-result="inspectorActionResult" @close="inspectorOpen = false" @refresh="refreshInspector" @retry="refreshInspector" @h3-preflight="runH3Preflight" @simulate="simulateInspector" @debug-media="debugMedia" /></AppDialog>
+    <AppDialog v-model:open="inspectorOpen" size="large" labelled-by="inspector-dialog-title"><InspectorPanel :persona="detail" :media-jobs="app.inspector?.mediaJobs || []" :loading="inspectorLoading" :error="inspectorError || inspectorActionError" :action-busy="inspectorActionBusy" :h3-result="inspectorPreflight" :action-result="inspectorActionResult" @close="inspectorOpen = false" @refresh="refreshInspector" @retry="refreshInspector" @h3-preflight="runH3Preflight" @simulate="simulateInspector" @debug-media="debugMedia" /></AppDialog>
     <AppDialog v-model:open="hiddenOpen" size="medium" labelled-by="hidden-activities-title"><HiddenActivitiesPanel :persona-id="hiddenPersonaId" :items="hiddenActivityState.items" :next-cursor="hiddenActivityState.nextCursor" :loading="hiddenActivityState.loading" :loading-more="hiddenActivityState.loadingMore" :error="hiddenActivityState.error || inspectorActionError" @close="closeHiddenActivities" @load-more="loadMoreHiddenActivities" @retry="retryHiddenActivities" @restore="restoreHiddenActivity" /></AppDialog>
   </div>
 </template>

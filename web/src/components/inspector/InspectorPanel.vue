@@ -6,14 +6,12 @@ import type { H3PreflightResult, InspectorActionResult, MediaJob, PersonaDetailD
 const props = withDefaults(defineProps<{
   persona?: PersonaDetailData | null;
   mediaJobs?: MediaJob[];
-  lifecycle?: Record<string, unknown> | null;
-  debugContext?: Record<string, unknown> | null;
   loading?: boolean;
   error?: string | null;
   actionBusy?: boolean;
   h3Result?: H3PreflightResult | null;
   actionResult?: InspectorActionResult | null;
-}>(), { persona: null, mediaJobs: () => [], lifecycle: null, debugContext: null, loading: false, error: null, actionBusy: false, h3Result: null, actionResult: null });
+}>(), { persona: null, mediaJobs: () => [], loading: false, error: null, actionBusy: false, h3Result: null, actionResult: null });
 
 const emit = defineEmits<{
   (event: 'close'): void;
@@ -95,8 +93,6 @@ const preflightStatus = computed(() => {
           </form>
           <p v-if="actionResult" class="h3-preflight-result" role="status" aria-live="polite">动作已提交：{{ summary(actionResult) }}</p>
         </section>
-        <section><h3>生命周期摘要</h3><pre class="debug-list-pre">{{ summary(lifecycle) }}</pre></section>
-        <section><h3>调试上下文</h3><pre class="debug-list-pre">{{ summary(debugContext) }}</pre></section>
         <section class="inspector-media-region" id="inspector-media-jobs"><h3>媒体任务</h3><div class="media-job-list"><MediaJobCard v-for="(job, index) in mediaJobs" :key="job.id || `media-job-${index}`" :job="job" /><p v-if="!mediaJobs.length" class="media-job-empty">暂无媒体作业。</p></div></section>
       </template>
     </div>

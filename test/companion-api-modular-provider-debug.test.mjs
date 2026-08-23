@@ -384,6 +384,29 @@ test('settings validation, public DTOs, debug redaction, and explicit debug rout
     assert.equal(JSON.stringify(context.body).includes('secret-token'), false);
     assert.equal(JSON.stringify(context.body).length <= 12_000, true);
 
+    const statePersona = runtime.application.services.persona.create({name: '状态调试人格', role: '测试者', foundation: '用于状态 DTO。'});
+    runtime.application.services.debug.simulatePersona({
+        personaId: statePersona.id,
+        type: 'debug_state',
+        situation: '在窗边整理照片',
+        scene: '卧室',
+        mood: '专注',
+        appearance: {outfit: '蓝色衬衫'},
+        occurredAt: now
+    });
+    const stateContext = await invoke(runtime, '/api/companion/personas/:personaId/debug-context', 'GET', {params: {personaId: statePersona.id}});
+    assert.deepEqual(stateContext.body.state, {
+        situation: '在窗边整理照片',
+        scene: '卧室',
+        outfit: '蓝色衬衫',
+        special: '专注',
+        mood: '专注'
+    });
+    const lifecycle = await invoke(runtime, '/api/companion/personas/:personaId/lifecycle', 'GET', {params: {personaId: statePersona.id}});
+    assert.equal(Array.isArray(lifecycle.body.jobs), true);
+    assert.equal(Object.hasOwn(lifecycle.body.jobs[0] || {}, 'jobType'), true);
+    assert.equal(Object.hasOwn(lifecycle.body.jobs[0] || {}, 'attemptCount'), true);
+
     const settings = await invoke(runtime, '/api/companion/settings', 'PUT', {body: {model: 'public-model', lmStudioApiKey: 'public-secret'}});
     assert.equal(settings.statusCode, 200);
     assert.equal(settings.body.hasLmStudioApiKey, true);

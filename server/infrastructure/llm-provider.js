@@ -491,6 +491,9 @@ export function createMtplxCompletionPort({provider, settings, tools = [], toolC
                 ...input,
                 model,
                 stream: true,
+                trace: input.trace === undefined
+                    ? {personaId, messageId: causationId || null, operation: 'chat'}
+                    : input.trace,
                 ...(Array.isArray(requestedTools) && requestedTools.length ? {tools: requestedTools} : {}),
                 ...(requestedToolChoice === undefined ? {} : {tool_choice: requestedToolChoice}),
                 ...(temperature === undefined ? {} : {temperature})

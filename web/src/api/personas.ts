@@ -1,6 +1,6 @@
 import {encodePath, requestJson} from './client';
 import type {PersonaSummary, PublicSettings} from '../types';
-import type {DebugInspectorSnapshot, H3PreflightResult, InspectorActionResult, PersonaDetailData, PromptRun} from '../components/types';
+import type {DebugContext, DebugInspectorSnapshot, DebugLifecycle, DurableJob, H3PreflightResult, InspectorActionResult, PersonaDetailData, PromptRun} from '../components/types';
 
 export interface PersonaAnalysis {
   id?: string;
@@ -168,23 +168,87 @@ export function cancelSchedule(personaId: string, scheduleId: string, signal?: A
   return requestJson(`/api/companion/personas/${encodePath(personaId)}/schedule/${encodePath(scheduleId)}/cancel`, {method: 'POST', signal}).then(() => undefined);
 }
 
+function normalizeDebugContext(value: unknown): DebugContext {
+  const source = record(value);
+  const state = record(source.state);
+  const normalizeState = (key: string): string | null => {
+    const candidate = state[key];
+    if (typeof candidate === 'string') return candidate;
+    if (candidate === null || candidate === undefined) return null;
+    if (typeof candidate === 'number' || typeof candidate === 'boolean') return String(candidate);
+    const nested = record(candidate);
+    for (const field of ['label', 'name', 'title', 'description', 'rationale', 'kind', 'type']) {
+      if (typeof nested[field] === 'string') return nested[field] as string;
+    }
+    try { return JSON.stringify(candidate); } catch { return null; }
+  };
+  return {
+    ...source,
+    ...(Object.keys(state).length ? {
+      state: {
+        situation: normalizeState('situation'),
+        scene: normalizeState('scene'),
+        outfit: normalizeState('outfit'),
+        special: normalizeState('special'),
+        mood: normalizeState('mood')
+      }
+    } : {state: null}),
+    mediaJobs: Array.isArray(source.mediaJobs) ? source.mediaJobs as DebugContext['mediaJobs'] : []
+  };
+}
+
+function normalizeDurableJob(value: unknown): DurableJob {
+  const source = record(value);
+  const number = (key: string, fallback = 0): number => typeof source[key] === 'number' && Number.isFinite(source[key] as number)
+    ? source[key] as number
+    : Number(source[key] ?? fallback) || fallback;
+  return {
+    ...source,
+    id: typeof source.id === 'string' ? source.id : null,
+    jobType: typeof source.jobType === 'string' ? source.jobType : typeof source.job_type === 'string' ? source.job_type : 'unknown',
+    status: typeof source.status === 'string' ? source.status : 'unknown',
+    priority: number('priority', 0),
+    runAfter: typeof source.runAfter === 'string' ? source.runAfter : typeof source.run_after === 'string' ? source.run_after : null,
+    leaseExpiresAt: typeof source.leaseExpiresAt === 'string' ? source.leaseExpiresAt : typeof source.lease_expires_at === 'string' ? source.lease_expires_at : null,
+    attemptCount: number('attemptCount', number('attempt_count', 0)),
+    maxAttempts: number('maxAttempts', number('max_attempts', 0)),
+    personaId: typeof source.personaId === 'string' ? source.personaId : typeof source.persona_id === 'string' ? source.persona_id : null,
+    activityId: typeof source.activityId === 'string' ? source.activityId : typeof source.activity_id === 'string' ? source.activity_id : null,
+    messageId: typeof source.messageId === 'string' ? source.messageId : typeof source.message_id === 'string' ? source.message_id : null,
+    traceId: typeof source.traceId === 'string' ? source.traceId : typeof source.trace_id === 'string' ? source.trace_id : null,
+    createdAt: typeof source.createdAt === 'string' ? source.createdAt : typeof source.created_at === 'string' ? source.created_at : null,
+    updatedAt: typeof source.updatedAt === 'string' ? source.updatedAt : typeof source.updated_at === 'string' ? source.updated_at : null,
+    completedAt: typeof source.completedAt === 'string' ? source.completedAt : typeof source.completed_at === 'string' ? source.completed_at : null,
+    error: typeof source.error === 'string' ? source.error : null,
+    payloadSummary: typeof source.payloadSummary === 'string' ? source.payloadSummary : null,
+    resultSummary: typeof source.resultSummary === 'string' ? source.resultSummary : null
+  };
+}
+
+function normalizeLifecycle(value: unknown): DebugLifecycle {
+  const source = record(value);
+  const rows = Array.isArray(source.jobs) ? source.jobs : [];
+  return {...source, jobs: rows.map(normalizeDurableJob)};
+}
+
 export async function loadInspector(personaId: string, signal?: AbortSignal): Promise<{persona: PersonaDetailData; inspector: DebugInspectorSnapshot}> {
   const encoded = encodePath(personaId);
   const [personaPayload, debugContext, lifecycle, promptRuns] = await Promise.all([
     requestJson(`/api/companion/personas/${encoded}`, {signal}),
     requestJson(`/api/companion/personas/${encoded}/debug-context`, {signal}),
     requestJson(`/api/companion/personas/${encoded}/lifecycle`, {signal}),
-    requestJson(`/api/companion/prompt-runs?personaId=${encoded}`, {signal})
+    requestJson(`/api/companion/prompt-runs?personaId=${encodeURIComponent(personaId)}`, {signal})
   ]);
   const runs = Array.isArray(promptRuns) ? promptRuns : record(promptRuns).items;
   const promptRunItems = Array.isArray(runs) ? runs as PromptRun[] : [];
-  const contextRecord = record(debugContext);
+  const contextRecord = normalizeDebugContext(debugContext);
   const mediaJobs = Array.isArray(contextRecord.mediaJobs) ? contextRecord.mediaJobs : [];
   return {
     persona: normalizePersonaDetail(personaPayload),
     inspector: {
+      personaId,
       debugContext: contextRecord,
-      lifecycle: record(lifecycle),
+      lifecycle: normalizeLifecycle(lifecycle),
       mediaJobs: mediaJobs as DebugInspectorSnapshot['mediaJobs'],
       promptRuns: promptRunItems
     }

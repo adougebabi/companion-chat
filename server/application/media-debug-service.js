@@ -1,3 +1,5 @@
+import {debugStateFor} from './debug-context.js';
+
 /**
  * Application boundary for media diagnostics and asset delivery.
  *
@@ -572,6 +574,7 @@ export function createMediaDebugService({
     mediaFlow,
     mediaRequestPort,
     mediaJobService,
+    contextReader,
     observability,
     clock = () => new Date().toISOString(),
     enabled,
@@ -611,7 +614,21 @@ export function createMediaDebugService({
         const source = listJobs(jobRepository, personaId, MEDIA_SOURCE_JOB_TYPES, MAX_JOBS_LIMIT);
         const polls = listJobs(jobRepository, personaId, [...MEDIA_POLL_JOB_TYPES, ...MEDIA_COMPENSATION_JOB_TYPES], MAX_POLL_ITEMS);
         const safeSettings = readSafeSettings();
-        return allMaybe([persona, recent, source, polls, safeSettings], ([resolvedPersona, recentRows, sourceRows, pollRows, resolvedSettings]) => {
+        let context = null;
+        if (contextReader) {
+            try {
+                const read = typeof contextReader === 'function'
+                    ? contextReader
+                    : contextReader.read ?? contextReader.readContext;
+                if (typeof read === 'function') {
+                    context = read.call(contextReader, {command: {personaId, chatAt: at()}, messages: []});
+                    if (isPromise(context)) context = context.catch(() => null);
+                }
+            } catch {
+                context = null;
+            }
+        }
+        return allMaybe([persona, recent, source, polls, safeSettings, context], ([resolvedPersona, recentRows, sourceRows, pollRows, resolvedSettings, resolvedContext]) => {
             const mediaJobs = buildMediaDtos({
                 sources: sourceRows,
                 polls: pollRows,
@@ -645,6 +662,7 @@ export function createMediaDebugService({
                     }),
                     provider: mediaDebugSummary({configured: Boolean(providers), providers: providerSummaries(providers)})
                 },
+                state: debugStateFor(resolvedContext),
                 recentRequests,
                 mediaJobs: jobs
             }));

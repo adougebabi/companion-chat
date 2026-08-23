@@ -41,6 +41,38 @@ test('MTPLX provider bounds upstream errors', async () => {
     });
 });
 
+test('MTPLX prompt trace keeps one request paired with its response', async () => {
+    const runs = new Map();
+    let finished;
+    const finishSignal = new Promise(resolve => { finished = resolve; });
+    const provider = createMtplxProvider({
+        settings: () => ({lmStudioUrl: 'http://fixture/v1', model: 'fixture'}),
+        idGenerator: () => 'prompt_pair_1',
+        promptRuns: {
+            start(input) { runs.set(input.id, {...input}); return input.id; },
+            finish(id, patch) { runs.set(id, {...runs.get(id), ...patch}); finished(); }
+        },
+        fetchImpl: async () => new Response(JSON.stringify({choices: [{message: {content: '已完成。'}}]}), {
+            headers: {'content-type': 'application/json'}
+        })
+    });
+
+    const response = await provider.stream({
+        model: 'fixture',
+        stream: false,
+        messages: [{role: 'user', content: '检查这一条'}],
+        trace: {personaId: 'persona_1', messageId: 'message_1', operation: 'chat'}
+    });
+    await response.json();
+    await finishSignal;
+    const run = runs.get('prompt_pair_1');
+    assert.equal(run.status, 'completed');
+    assert.equal(run.personaId, 'persona_1');
+    assert.equal(run.messageId, 'message_1');
+    assert.equal(run.request.messages[0].content, '检查这一条');
+    assert.equal(run.response.choices[0].message.content, '已完成。');
+});
+
 test('completion port exposes one normalized turn for a parsed structured sidecar', async () => {
     const provider = {
         async stream() {

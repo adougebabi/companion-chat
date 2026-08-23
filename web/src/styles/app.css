@@ -163,6 +163,71 @@ dialog { width: min(620px, calc(100vw - 28px)); max-height: min(780px, calc(100d
 @media (max-width: 780px) { .debug-view { height: calc(100dvh - var(--mobile-nav-height)); }.debug-header { padding: 0 15px; }.debug-scroll { padding: 14px 12px 28px; }.debug-summary-grid { grid-template-columns: 1fr 1fr; gap: 8px; }.debug-card { padding: 11px; }.debug-card strong { font-size: 21px; }.debug-section-heading { align-items: start; }.debug-run > header { display: block; }.debug-run > header small { display: block; margin-top: 4px; }.debug-large-pre { max-height: 420px; } }
 @media (max-width: 780px) { .mobile-nav.mobile-nav--debug { grid-template-columns: repeat(4, 1fr); } }
 
+/* Debug workspace: dense, readable diagnostics with no dashboard counters. */
+.debug-header { gap: 14px; }
+.debug-persona-select { display: flex; min-width: min(280px, 42%); align-items: center; gap: 8px; margin-left: auto; color: #62798b; font-size: 11px; font-weight: 650; }
+.debug-persona-select select { min-width: 0; width: 100%; border: 1px solid #d5e1e9; border-radius: 7px; padding: 8px 10px; background: #f9fcfe; color: #29465a; font-size: 12px; }
+.debug-state-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; max-width: 1320px; margin: 0 auto 20px; }
+.debug-state-item { min-width: 0; min-height: 84px; padding: 13px 14px; border: 1px solid #dce6ee; border-radius: 8px; background: #fff; }
+.debug-state-item small { display: block; color: #7b8d9b; font-size: 10px; font-weight: 700; }
+.debug-state-item b { display: block; margin-top: 8px; overflow: hidden; color: #2b617f; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.debug-run { margin-bottom: 9px; }
+.debug-run details { border: 0; }
+.debug-run-summary { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 14px; color: #2b7098; cursor: pointer; list-style: none; }
+.debug-run-summary::-webkit-details-marker { display: none; }
+.debug-run-summary > span { display: grid; min-width: 0; gap: 4px; }
+.debug-run-summary b { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.debug-run-summary small { overflow: hidden; color: #8797a4; font-size: 10px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+.debug-run-summary i { flex: 0 0 auto; color: #8093a1; font-size: 16px; font-style: normal; transition: transform .16s ease; }
+.debug-run details[open] .debug-run-summary i { transform: rotate(180deg); }
+.debug-run-body { border-top: 1px solid #e5edf2; }
+.debug-run-body section { padding: 10px 14px; border-bottom: 1px solid #edf2f6; }
+.debug-run-body h3 { margin: 0 0 7px; color: #617b8d; font-size: 11px; }
+.debug-run-body pre, .debug-job-details pre { max-height: 360px; margin: 0; overflow: auto; color: #435b6b; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.debug-job-row, .debug-media-row { min-width: 0; margin-bottom: 8px; padding: 12px 14px; border: 1px solid #dce6ee; border-radius: 8px; background: #fff; }
+.debug-job-main { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.debug-job-main > div { min-width: 0; }
+.debug-job-main b, .debug-job-main small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.debug-job-main b { color: #2f6f9e; font-size: 12px; }
+.debug-job-main small { margin-top: 4px; color: #8797a4; font-size: 10px; }
+.debug-job-status { flex: 0 0 auto; padding: 3px 7px; border-radius: 999px; background: #eaf5fc; color: #3875a0; font-size: 10px; font-weight: 700; }
+.debug-job-status--failed { background: #fff0ed; color: #ae5c4d; }
+.debug-job-status--complete { background: #eaf8ee; color: #468257; }
+.debug-job-status--leased { background: #fff7e5; color: #987022; }
+.debug-job-links { display: block; margin-top: 8px; color: #80919d; font-size: 10px; overflow-wrap: anywhere; }
+.debug-job-row details { margin-top: 10px; border-top: 1px solid #edf2f6; padding-top: 9px; }
+.debug-job-row summary { color: #607e90; cursor: pointer; font-size: 11px; font-weight: 650; }
+.debug-job-details { display: grid; gap: 9px; margin-top: 9px; }
+.debug-job-details b { display: block; margin-bottom: 4px; color: #718596; font-size: 10px; }
+.debug-media-prompt { margin: 10px 0 0; color: #40596b; font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media (max-width: 780px) {
+  .debug-header { align-items: flex-start; padding-top: 11px; padding-bottom: 11px; }
+  .debug-persona-select { min-width: 0; flex: 1; align-items: flex-start; flex-direction: column; gap: 3px; margin-left: 0; }
+  .debug-persona-select select { padding: 7px 8px; }
+  .debug-state-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .debug-state-item { min-height: 76px; padding: 11px; }
+  .debug-state-item b { margin-top: 6px; font-size: 13px; }
+  .debug-run-summary { padding: 11px; }
+  .debug-run-body section { padding: 9px 11px; }
+  .debug-run-body pre, .debug-job-details pre { max-height: 300px; }
+  .debug-job-row, .debug-media-row { padding: 11px; }
+}
+
+@media (prefers-color-scheme: dark) {
+  .debug-persona-select, .debug-state-item small, .debug-run-summary small, .debug-job-main small, .debug-job-links { color: var(--dark-text-muted); }
+  .debug-persona-select select, .debug-state-item, .debug-job-row, .debug-media-row, .debug-run { border-color: var(--dark-border); background: var(--dark-panel); color: var(--dark-text); }
+  .debug-persona-select select { background: var(--dark-control); color: var(--dark-text); }
+  .debug-state-item b, .debug-run-summary b, .debug-job-main b { color: #8fd0fa; }
+  .debug-run-body, .debug-run-body section, .debug-job-row details { border-color: var(--dark-border-soft); }
+  .debug-run-body h3, .debug-job-details b { color: var(--dark-text-muted); }
+  .debug-run-body pre, .debug-job-details pre, .debug-media-prompt { color: #c4d5df; }
+  .debug-job-status { background: #1d4560; color: #bde6ff; }
+  .debug-job-status--failed { background: #4a2928; color: #ffaea1; }
+  .debug-job-status--complete { background: #214b37; color: #b8e6c4; }
+  .debug-job-status--leased { background: #4a3a20; color: #ffe0a0; }
+}
+
 /* System dark appearance for the active companion UI. Persona hues remain
    data-driven through --avatar; only their surrounding surfaces are adapted. */
 :root { color-scheme: light dark; }

@@ -1400,6 +1400,7 @@ export function createCompanionRuntime(options = {}) {
                 providers: resolved.providers,
                 mediaFlow,
                 mediaJobService: resolved.mediaJobService,
+                contextReader: resolved.chatProductionPorts?.contextReader,
                 observability: resolved.mediaObservability,
                 clock: resolved.clock,
                 enabled: resolved.debugInspectorEnabled === true

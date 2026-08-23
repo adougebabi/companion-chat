@@ -219,9 +219,59 @@ export interface PromptRun {
   [key: string]: unknown;
 }
 
+export interface DebugContextState {
+  situation?: string | null;
+  scene?: string | null;
+  outfit?: string | null;
+  special?: string | null;
+  mood?: string | null;
+}
+
+export interface DebugContext {
+  version?: number;
+  personaId?: string | null;
+  persona?: { id?: string; name?: string } | null;
+  state?: DebugContextState | null;
+  layers?: Record<string, unknown> | null;
+  recentRequests?: Array<Record<string, unknown>>;
+  mediaJobs?: MediaJob[];
+  [key: string]: unknown;
+}
+
+export interface DurableJob {
+  id?: string | null;
+  jobType?: string | null;
+  status?: string | null;
+  priority?: number | null;
+  runAfter?: string | null;
+  leaseExpiresAt?: string | null;
+  attemptCount?: number | null;
+  maxAttempts?: number | null;
+  personaId?: string | null;
+  activityId?: string | null;
+  messageId?: string | null;
+  traceId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  completedAt?: string | null;
+  error?: string | null;
+  payloadSummary?: string | null;
+  resultSummary?: string | null;
+  [key: string]: unknown;
+}
+
+export interface DebugLifecycle {
+  personaId?: string | null;
+  events?: unknown[];
+  affectEvents?: unknown[];
+  jobs?: DurableJob[];
+  [key: string]: unknown;
+}
+
 export interface DebugInspectorSnapshot {
   mediaJobs: MediaJob[];
-  lifecycle: Record<string, unknown> | null;
-  debugContext: Record<string, unknown> | null;
+  personaId?: string | null;
+  lifecycle: DebugLifecycle | null;
+  debugContext: DebugContext | null;
   promptRuns: PromptRun[];
 }

@@ -1,3 +1,5 @@
+import {debugStateFor} from './debug-context.js';
+
 function isRecord(value) {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -38,6 +40,31 @@ function summary(value, limit = 2_000) {
     try { serialized = typeof safe === 'string' ? safe : JSON.stringify(safe); } catch { serialized = '[unavailable]'; }
     const textValue = String(serialized ?? '');
     return textValue.length <= limit ? textValue : `${textValue.slice(0, Math.max(0, limit - 3))}...`;
+}
+
+function jobDto(row) {
+    const payload = parse(row?.payload_json ?? row?.payload, {});
+    const result = parse(row?.result_json ?? row?.result, {});
+    return {
+        id: row?.id ?? null,
+        jobType: row?.job_type ?? row?.jobType ?? 'unknown',
+        status: row?.status ?? 'unknown',
+        priority: row?.priority ?? null,
+        runAfter: row?.run_after ?? row?.runAfter ?? null,
+        leaseExpiresAt: row?.lease_expires_at ?? row?.leaseExpiresAt ?? null,
+        attemptCount: Number(row?.attempt_count ?? row?.attemptCount ?? 0) || 0,
+        maxAttempts: Number(row?.max_attempts ?? row?.maxAttempts ?? 0) || 0,
+        personaId: row?.persona_id ?? row?.personaId ?? null,
+        activityId: row?.activity_id ?? row?.activityId ?? null,
+        messageId: row?.message_id ?? row?.messageId ?? null,
+        traceId: row?.trace_id ?? row?.traceId ?? null,
+        createdAt: row?.created_at ?? row?.createdAt ?? null,
+        updatedAt: row?.updated_at ?? row?.updatedAt ?? null,
+        completedAt: row?.completed_at ?? row?.completedAt ?? null,
+        error: summary(row?.error ?? '', 500),
+        payloadSummary: summary(payload, 900),
+        resultSummary: summary(result, 900)
+    };
 }
 
 function requirePersona(personas, personaId) {
@@ -133,7 +160,12 @@ export function createDebugService({repositories = {}, promptRuns, settings, h3P
             systemCapability: summary(context?.layers?.systemCapability ?? ''),
             provider: {model: summary(settingsValue.model || '自动选择', 240), lmStudioConfigured: Boolean(settingsValue.lmStudioUrl), comfyConfigured: Boolean(settingsValue.comfyUrl)}
         };
-        return {layers, recentRequests, mediaJobs};
+        return {
+            layers,
+            state: debugStateFor(context),
+            recentRequests,
+            mediaJobs
+        };
     }
 
     function getLifecycle(command = {}) {
@@ -146,7 +178,7 @@ export function createDebugService({repositories = {}, promptRuns, settings, h3P
         const affectEvents = repositories.affect?.listEvents
             ? repositories.affect.listEvents({personaId, limit: 20})
             : [];
-        return {personaId, events: redact(sync(events, 'lifecycle events')), affectEvents: redact(affectEvents), jobs: redact(rows)};
+        return {personaId, events: redact(sync(events, 'lifecycle events')), affectEvents: redact(affectEvents), jobs: rows.map(jobDto)};
     }
 
     function simulatePersona(command = {}) {
