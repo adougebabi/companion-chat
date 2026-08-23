@@ -12,6 +12,8 @@ test('capability guidance stays concise and omits marker fallback instructions',
     assert.equal(guidance, systemCapabilityContracts.join('\n'));
     assert.ok(guidance.length < 1_200);
     assert.doesNotMatch(guidance, /media-intent|pending-event|scene-event/);
+    assert.match(guidance, /scene_event.*同一回合分别调用/);
+    assert.match(guidance, /当前场景内聊天明确换装/);
 });
 
 test('an explicit prompt with an included capability layer is not appended twice', () => {

@@ -13,7 +13,7 @@ export const systemCapabilityTimeFact = '时间：只能引用应用提供的可
 
 export const systemCapabilitySceneContract = 'scene_event：仅在共同地点或活动真正开始、切换或结束时调用；普通动作不改变生活事实。';
 
-export const systemCapabilityAppearanceContract = 'appearance_event：仅在服装或外观实际变化时调用；普通动作描述不改变当前服装状态。';
+export const systemCapabilityAppearanceContract = 'appearance_event：服装实际变化时调用；场景开始或切换且服装随之改变时，可与 scene_event 在同一回合分别调用；当前场景内聊天明确换装时也可单独调用。普通动作描写不改变服装状态。';
 
 export const imageGenerationPolicyLabels = Object.freeze({
     ask: '始终询问',
