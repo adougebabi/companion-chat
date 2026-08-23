@@ -26,3 +26,16 @@ test('conversation service rejects malformed cursors and invalid roles', () => {
     assert.throws(() => service.list({personaId: 'p1', cursor: 'bad'}), /会话游标无效/);
     assert.throws(() => service.appendMessage({personaId: 'p1', role: 'system'}), /消息角色无效/);
 });
+
+test('conversation DTO restores the canonical media URL for legacy id-only attachments', () => {
+    const repository = {
+        getConversation: () => ({id: 'conversation_1'}),
+        listMessages: () => [{
+            id: 'message_media', role: 'assistant', text: '', created_at: '2026-08-21T00:00:00.000Z',
+            attachments_json: JSON.stringify([{id: 'asset with space', kind: 'image'}]), jobs_json: '[]'
+        }]
+    };
+    const service = createConversationService({repository});
+    const [message] = service.list({personaId: 'persona_1', markRead: false}).items;
+    assert.equal(message.attachments[0].url, '/api/companion/media/asset%20with%20space');
+});

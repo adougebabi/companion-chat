@@ -157,6 +157,7 @@ function capabilityPresentation(value) {
             ok: true,
             jobId: raw.jobId ?? null,
             jobIds: Array.isArray(raw.jobIds) ? raw.jobIds.slice(0, 3) : [],
+            messageId: raw.message?.id ?? raw.messageId ?? null,
             kind: raw.kind ?? null,
             provider: raw.provider ?? null,
             count: raw.count ?? 1,

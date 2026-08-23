@@ -356,6 +356,26 @@ test('poll accepts completed provider output and projects ready assets', async (
     assert.equal(fixtureValue.calls.find(([kind]) => kind === 'accept')[1].sourceJob.id, 'job_media_1');
 });
 
+test('poll does not settle complete when the message target projection fails', async () => {
+    const fixtureValue = fixture({mediaFlow: {
+        updateTarget(input) {
+            fixtureValue.targets.push(input);
+            return {changed: false, reason: 'message_not_found'};
+        }
+    }});
+    const poll = job({
+        id: 'poll_missing_target',
+        job_type: 'chat_media_poll',
+        payload_json: JSON.stringify({kind: 'image', provider: 'fixture', externalId: 'external_1', sourceJobId: 'job_media_1'})
+    });
+    fixtureValue.jobs.set(poll.id, poll);
+
+    const result = await fixtureValue.service.handlers.chat_media_poll(poll, {leaseOwner: 'worker_1'});
+    assert.equal(result.status, 'retry');
+    assert.equal(poll.status, 'queued');
+    assert.equal(fixtureValue.targets.at(-1).status, 'ready');
+});
+
 test('provider failures share bounded retry and terminal settlement behavior', async () => {
     const fixtureValue = fixture({provider: {
         async submit() { throw new Error(`provider secret ${'x'.repeat(900)}`); }

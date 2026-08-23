@@ -77,6 +77,25 @@ export function useChatStream() {
   const error = ref<string | null>(null);
   let activePersonaId: string | null = null;
   let activeAbortController: AbortController | null = null;
+  const mediaRefreshes = new Map<string, Promise<void>>();
+
+  async function refreshMediaConversation(personaId: string, messageId?: string | null): Promise<void> {
+    const existing = mediaRefreshes.get(personaId);
+    if (existing) return existing;
+    const refresh = (async () => {
+      for (const delay of [800, 1_600, 3_200, 6_400]) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        let page;
+        try { page = await conversations.loadInitial(personaId); } catch { continue; }
+        const target = messageId
+          ? page.items.find(item => item.id === messageId)
+          : page.items.find(item => item.generation && item.attachments.length === 0);
+        if (!target || target.attachments.length > 0 || target.generation?.status === 'failed') return;
+      }
+    })().finally(() => mediaRefreshes.delete(personaId));
+    mediaRefreshes.set(personaId, refresh);
+    return refresh;
+  }
 
   function signalFor(inputSignal?: AbortSignal): AbortSignal {
     const controller = new AbortController();
@@ -147,6 +166,12 @@ export function useChatStream() {
       flush();
       if (!done) throw new ChatStreamError('流式响应未完成');
       conversations.reconcileStream(input.personaId, pendingId, done.messages, done.message);
+      const mediaEvent = done && typeof done.mediaEvent === 'object' && done.mediaEvent !== null
+        ? done.mediaEvent as {messageId?: string | null}
+        : null;
+      if (mediaEvent || done.messages.some(message => message.generation || message.jobs.length > 0)) {
+        void refreshMediaConversation(input.personaId, mediaEvent?.messageId).catch(() => {});
+      }
       return done;
     } catch (caught) {
       cancelScheduled();

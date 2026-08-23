@@ -18,13 +18,17 @@ function createConversationState(): ConversationState {
 }
 
 function mergeTail(current: Message[], incoming: Message[]): Message[] {
+  const incomingById = new Map(incoming.map(item => [item.id, item]));
   const seen = new Set(current.map(item => item.id));
-  return [...current, ...incoming.filter(item => !seen.has(item.id))];
+  const replaced = current.map(item => incomingById.get(item.id) ?? item);
+  return [...replaced, ...incoming.filter(item => !seen.has(item.id))];
 }
 
 function mergeHead(current: Message[], incoming: Message[]): Message[] {
+  const incomingById = new Map(incoming.map(item => [item.id, item]));
   const seen = new Set(current.map(item => item.id));
-  return [...incoming.filter(item => !seen.has(item.id)), ...current];
+  const replaced = current.map(item => incomingById.get(item.id) ?? item);
+  return [...incoming.filter(item => !seen.has(item.id)), ...replaced];
 }
 
 function now(): string {

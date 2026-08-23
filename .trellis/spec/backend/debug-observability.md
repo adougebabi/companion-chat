@@ -157,6 +157,7 @@ const record = item => {
 - `createMediaProgressReporter(job)` exposes `stage()`, `output()`, and `flush()`.
 - `companion_jobs.result_json.progress` contains `{schemaVersion, attempt, stage, percent, startedAt, updatedAt, elapsedMs, latestOutput, latestStream, outputSeen, outputLineCount}`.
 - `GET /api/companion/personas/:personaId/debug-context` includes `mediaJobs[].finalPrompt` and `mediaJobs[].progress`.
+- Media asset URLs are served through the provider-owned `readAsset({asset, settings, res})` boundary. The HTTP response object must remain inside that input so provider adapters can stream the stored asset to the browser.
 
 ### 3. Contracts
 

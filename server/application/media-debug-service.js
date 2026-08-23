@@ -386,10 +386,11 @@ function providerSummaries(providers) {
 }
 
 function invokeReadAsset(providers, provider, providerId, input, response) {
-    if (typeof providers?.readAsset === 'function') return providers.readAsset(providerId, input, response);
+    const request = {...input, res: response};
+    if (typeof providers?.readAsset === 'function') return providers.readAsset(providerId, request, response);
     const read = method(provider, ['readAsset', 'read', 'readCandidate']);
     if (!read) throw providerError(providerId, 'readAsset is unavailable');
-    return read({...input, res: response});
+    return read(request);
 }
 
 function findPersona(personas, personaId) {

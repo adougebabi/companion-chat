@@ -715,7 +715,11 @@ export function createMediaJobService({
         const assets = await persistAssets(job, provider, files, context);
         const result = {provider: provider.id, externalId, promptId: externalId, pending: false, files: files || [], assets, acceptance: acceptanceResult};
         await writeResult(job, result, context);
-        await updateTarget(job, {status: 'ready', provider: provider.id, externalId, promptId: externalId, attachments: assets}, context);
+        const target = await updateTarget(job, {status: 'ready', provider: provider.id, externalId, promptId: externalId, attachments: assets}, context);
+        if (!target?.changed) {
+            const reason = target?.reason || 'target_projection_failed';
+            throw new Error(`Media target projection failed: ${reason}`);
+        }
         const transition = await settle(job, {status: 'complete', result}, context);
         return outcome(transition.status ?? 'complete', result, null, {changed: transition.changed, settlement: transition});
     }
@@ -765,7 +769,7 @@ export function createMediaJobService({
             }));
             const externalId = externalIdOf(submitted);
             if (submitted?.pending === false && Array.isArray(submitted.files)) {
-                return completeGenerated(job, provider, externalId, submitted.files, context, job);
+                return await completeGenerated(job, provider, externalId, submitted.files, context, job);
             }
             const result = {...promptResult, externalId, promptId: externalId, pending: true};
             const savedPending = await writeResult(job, result, context);
@@ -791,7 +795,7 @@ export function createMediaJobService({
             const selected = providerFor(providers, kind, payload.provider);
             const externalId = text(payload.externalId ?? payload.promptId, 'Media external id', MAX_EXTERNAL_ID_LENGTH);
             const polled = await methodResult(selected.provider.poll({kind, externalId, settings: context.settings ?? payload.settings, payload, job}));
-            if (polled?.status === 'complete') return completeGenerated(job, selected, externalId, polled.files || [], context, await sourceJobFor(job));
+            if (polled?.status === 'complete') return await completeGenerated(job, selected, externalId, polled.files || [], context, await sourceJobFor(job));
             if (polled?.status === 'failed') throw new Error(polled.error || `Media provider ${selected.id} failed`);
             throw new Error(`Media provider ${selected.id} has not returned a result`);
         } catch (error) {

@@ -28,12 +28,23 @@ function decodeJson(value, fallback) {
     try { return value ? JSON.parse(value) : fallback; } catch { return fallback; }
 }
 
+function attachmentsDto(value) {
+    const rows = Array.isArray(value) ? value : [];
+    return rows.filter(isRecord).map(item => {
+        const id = typeof item.id === 'string' ? item.id : '';
+        return {
+            ...item,
+            ...(id && typeof item.url !== 'string' ? {url: `/api/companion/media/${encodeURIComponent(id)}`} : {})
+        };
+    });
+}
+
 function messageDto(row) {
     return {
         id: row.id,
         role: row.role,
         text: row.text,
-        attachments: decodeJson(row.attachments ?? row.attachments_json, []),
+        attachments: attachmentsDto(decodeJson(row.attachments ?? row.attachments_json, [])),
         generation: row.generation ?? (row.generation_json ? decodeJson(row.generation_json, {}) : undefined),
         jobs: decodeJson(row.jobs ?? row.jobs_json, []),
         proactiveEventId: row.proactive_event_id || row.proactiveEventId || undefined,
