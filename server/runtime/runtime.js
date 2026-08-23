@@ -46,11 +46,12 @@ import {createAffectFlow} from '../application/affect-flow.js';
 import {createMemoryEventFlow} from '../application/memory-flow.js';
 import {createMemoryService} from '../application/memory-service.js';
 import {createDeferredChatPolicy} from '../application/deferred-chat-policy.js';
-import {systemCapabilityContracts, imageGenerationPolicyLabels} from '../application/context-contracts.js';
+import {imageGenerationPolicyLabels, systemCapabilityPromptFor} from '../application/context-contracts.js';
 import {createProviderRegistry} from '../infrastructure/provider-ports.js';
 import {createProductionProviderRegistry} from '../infrastructure/production-media-providers.js';
 import {createMtplxCompletionPort} from '../infrastructure/llm-provider.js';
 import {createMtplxJsonCompletionPort} from '../infrastructure/llm-provider.js';
+import {getAllCapabilityTools} from '../application/capability-catalog.js';
 import {createInterviewAnalyzer} from '../application/interview-analyzer.js';
 import {createMediaJobRepository} from '../infrastructure/media-job-repository.js';
 import {createMediaPromptMaster, createSkippedMediaAcceptance} from '../infrastructure/media-prompt-master.js';
@@ -82,148 +83,9 @@ function persistedDebugInspector(settings) {
     }
 }
 
-// Keep the transport-facing tool schema in the composition layer. Capability
-// validation and persistence remain owned by the registered application flows.
-const COMPANION_CAPABILITY_TOOLS = Object.freeze([
-    Object.freeze({
-        type: 'function',
-        function: Object.freeze({
-            name: 'scene_event',
-            description: 'Persist a material shared-scene start, switch, or end.',
-            parameters: Object.freeze({
-                type: 'object',
-                additionalProperties: false,
-                required: ['operation'],
-                properties: Object.freeze({
-                    operation: Object.freeze({type: 'string', enum: Object.freeze(['start', 'switch', 'end'])}),
-                    location: Object.freeze({type: 'string', maxLength: 160}),
-                    room: Object.freeze({type: 'string', maxLength: 120}),
-                    activity: Object.freeze({type: 'string', maxLength: 160}),
-                    situation: Object.freeze({type: 'string', maxLength: 240}),
-                    mood: Object.freeze({type: 'string', maxLength: 80}),
-                    objects: Object.freeze({type: 'array', maxItems: 12, items: Object.freeze({type: 'string', maxLength: 80})}),
-                    participants: Object.freeze({type: 'array', maxItems: 2, items: Object.freeze({type: 'string', enum: Object.freeze(['user', 'persona'])})})
-                })
-            })
-        })
-    }),
-    Object.freeze({
-        type: 'function',
-        function: Object.freeze({
-            name: 'media_event',
-            description: 'Queue a validated image or video delivery.',
-            parameters: Object.freeze({
-                type: 'object',
-                additionalProperties: false,
-                required: ['kind', 'request', 'count', 'personaMediaConcept'],
-                properties: Object.freeze({
-                    kind: Object.freeze({type: 'string', enum: Object.freeze(['image', 'video'])}),
-                    request: Object.freeze({type: 'string', maxLength: 500}),
-                    count: Object.freeze({type: 'integer', minimum: 1, maximum: 3}),
-                    personaMediaConcept: Object.freeze({type: 'object'})
-                })
-            })
-        })
-    }),
-    Object.freeze({
-        type: 'function',
-        function: Object.freeze({
-            name: 'pending_event',
-            description: 'Register one bounded, explicit follow-up fact for durable later evaluation.',
-            parameters: Object.freeze({
-                type: 'object',
-                additionalProperties: false,
-                required: Object.freeze(['schemaVersion', 'summary', 'notBefore', 'expiresAt', 'dedupeKey']),
-                properties: Object.freeze({
-                    schemaVersion: Object.freeze({type: 'integer', enum: Object.freeze([1])}),
-                    summary: Object.freeze({type: 'string', minLength: 1, maxLength: 280}),
-                    notBefore: Object.freeze({type: 'string', maxLength: 80}),
-                    expiresAt: Object.freeze({type: 'string', maxLength: 80}),
-                    dedupeKey: Object.freeze({type: 'string', minLength: 1, maxLength: 120})
-                })
-            })
-        })
-    }),
-    Object.freeze({
-        type: 'function',
-        function: Object.freeze({
-            name: 'memory_event',
-            description: 'Explicitly record one persona-private memory from the current user message.',
-            parameters: Object.freeze({
-                type: 'object',
-                additionalProperties: false,
-                required: ['memory'],
-                properties: Object.freeze({
-                    memory: Object.freeze({
-                        type: 'object',
-                        additionalProperties: false,
-                        required: ['operation', 'key', 'value', 'confidence', 'idempotencyKey'],
-                        properties: Object.freeze({
-                            schemaVersion: Object.freeze({type: 'integer', enum: Object.freeze([1])}),
-                            operation: Object.freeze({type: 'string', enum: Object.freeze(['insert', 'upsert'])}),
-                            key: Object.freeze({type: 'string', minLength: 1, maxLength: 120}),
-                            value: Object.freeze({type: 'string', minLength: 1, maxLength: 2_000}),
-                            confidence: Object.freeze({type: 'number', minimum: 0, maximum: 1}),
-                            sourceType: Object.freeze({type: 'string', maxLength: 80}),
-                            sourceId: Object.freeze({type: 'string', maxLength: 240}),
-                            sourceMessageId: Object.freeze({type: 'string', maxLength: 160}),
-                            idempotencyKey: Object.freeze({type: 'string', minLength: 1, maxLength: 240})
-                        })
-                    })
-                })
-            })
-        })
-    }),
-    Object.freeze({
-        type: 'function',
-        function: Object.freeze({
-            name: 'affect_event',
-            description: 'Report one bounded hidden affect event; the server owns PAD deltas.',
-            parameters: Object.freeze({
-                type: 'object',
-                additionalProperties: false,
-                required: ['event'],
-                properties: Object.freeze({
-                    event: Object.freeze({
-                        type: 'object',
-                        additionalProperties: false,
-                        required: ['type', 'confidence', 'idempotencyKey'],
-                        properties: Object.freeze({
-                            type: Object.freeze({type: 'string', enum: Object.freeze(['social_connection', 'social_friction', 'exploration_discovery', 'exploration_blocked', 'restored', 'fatigue'])}),
-                            confidence: Object.freeze({type: 'number', minimum: 0, maximum: 1}),
-                            idempotencyKey: Object.freeze({type: 'string', minLength: 1, maxLength: 240})
-                        })
-                    })
-                })
-            })
-        })
-    }),
-    Object.freeze({
-        type: 'function',
-        function: Object.freeze({
-            name: 'drive_signal',
-            description: 'Report one bounded drive pressure change; the server owns the magnitude.',
-            parameters: Object.freeze({
-                type: 'object',
-                additionalProperties: false,
-                required: ['signal'],
-                properties: Object.freeze({
-                    signal: Object.freeze({
-                        type: 'object',
-                        additionalProperties: false,
-                        required: ['drive', 'direction', 'confidence', 'idempotencyKey'],
-                        properties: Object.freeze({
-                            drive: Object.freeze({type: 'string', pattern: '^[a-z][a-z0-9_:-]{0,79}$'}),
-                            direction: Object.freeze({type: 'string', enum: Object.freeze(['increase_pressure', 'decrease_pressure', 'neutral'])}),
-                            confidence: Object.freeze({type: 'number', minimum: 0, maximum: 1}),
-                            idempotencyKey: Object.freeze({type: 'string', minLength: 1, maxLength: 240})
-                        })
-                    })
-                })
-            })
-        })
-    })
-]);
+// All current capabilities are universal. Filtering can be introduced later
+// without changing the transport or application dispatcher contract.
+const COMPANION_CAPABILITY_TOOLS = getAllCapabilityTools();
 
 function nonEmpty(value, fallback) {
     if (typeof value === 'string' && value.trim() !== '') return value.trim();
@@ -484,13 +346,10 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
             ].join('\n');
             const identityLayer = `人格：${persona.name}；角色：${persona.role || '陪伴者'}；基础设定：${foundation?.foundation || '暂无'}。`;
             const relationshipLayer = `长期了解：${memories.map(memory => `${memory.memory_key ?? memory.memoryKey}:${memory.value}`).join('；') || '暂无'}。关系补丁：${JSON.stringify(relationshipPatch)}。`;
-            const [mediaContract, pendingContract, memoryContract, stateContract, timeContract, sceneContract, replyContract] = systemCapabilityContracts;
             const capabilityLayer = [
-                mediaContract, pendingContract, memoryContract, stateContract, timeContract, sceneContract,
+                systemCapabilityPromptFor(),
                 `【系统能力层：人格生图频率】当前人格偏好为“${imageGenerationPolicyLabels[imagePolicy]}”（${imagePolicy}）：${imagePolicyMeaning}。这是行为偏好，不是服务器关键词触发器。`,
-                '能力调用必须通过应用提供的 capability dispatcher，不要把工具 JSON 或内部标识写入用户可见文本。',
-                '当前状态只能由日程、生活事件或 scene_event 改变；普通聊天动作不写入生活事实。',
-                replyContract
+                '工具调用由应用校验并提交；不要把工具参数、内部状态或系统标识写入用户可见回复。'
             ].join('\n');
             const contextFragments = contextPipeline.collect({fragments: [
                 {source: 'identity', priority: 100, text: identityLayer},
@@ -510,8 +369,9 @@ function createDefaultChatProductionPorts(options, repositories, providers) {
                     relationship: relationshipLayer,
                     affect: JSON.stringify(replyPosture),
                     timeFacts,
-                    systemCapability: `只输出用户可见的自然回复；${capabilityLayer}`
+                    systemCapability: capabilityLayer
                 },
+                capabilityPromptIncluded: true,
                 settings: readSettings(),
                 history: messages,
                 state: resolved,

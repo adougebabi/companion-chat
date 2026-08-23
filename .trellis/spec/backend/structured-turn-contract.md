@@ -14,12 +14,15 @@
 - Supported first-release drives: `social`, `exploration`, `rest`; pressure is `0..1`, where higher means more unmet need.
 - Memory capability: `memory_event({memory: {operation, key, value, confidence, sourceMessageId?, idempotencyKey}})`.
 - State tools: `affect_event({event: {type, confidence, idempotencyKey}})` and `drive_signal({signal: {drive, direction, confidence, idempotencyKey}})`; the server owns numeric deltas.
+- Native transport tools are defined once by `server/application/capability-catalog.js`. The current catalog exposes all six universal tools on every chat request in stable order; capability filtering is intentionally deferred.
 - Affect persistence: `companion_persona_affect_states` materialized snapshot plus `companion_persona_affect_events` append-only events, unique on `(persona_id, idempotency_key)`.
 
 ### 3. Contracts
 
 - Visible text may stream from provider `content`; structured controls are accumulated and validated before any side effect is applied.
 - Native tool calls, parsed provider sidecars, and legacy media/pending markers are normalized at one application boundary. New affect/memory behavior must not add text markers.
+- Machine-readable argument shape belongs to the canonical capability catalog and provider `tools` payload. The model-facing system prompt contains only short behavioral guidance; it must not duplicate JSON schema bounds, dispatcher internals, or legacy marker syntax. Flow validators remain authoritative for ownership, time windows, policy, idempotency, and transactions.
+- Native-capable providers receive the catalog directly. Legacy marker adapters remain compatibility fallbacks and must not be advertised in the normal prompt. A future provider-specific capability profile may filter tools, but the current base implementation sends the universal catalog unchanged.
 - `memory_event` is the only ordinary-chat path to long-term memory. It is persona-private, source-message-bound, idempotent, and committed with the assistant facts when the turn succeeds.
 - Affect state uses persona baselines and lazy exponential decay; normal decay does not create timer events. Unknown future drive keys may be retained but are inactive until a server policy exists.
 - Raw PAD values, hidden reasoning, prompts, credentials, and unbounded provider diagnostics never enter user-visible chat or ordinary API DTOs.

@@ -44,6 +44,15 @@ export {
 } from './application/context-contracts.js';
 export {serializePromptMessages} from './application/context-pipeline.js';
 export {createCapabilityHandoffAdapter, createFlowCapabilityRegistry} from './application/capability-handoff-adapter.js';
+export {
+    CAPABILITY_CATALOG,
+    CAPABILITY_DESCRIPTORS,
+    CAPABILITY_TOOL_DESCRIPTORS,
+    CAPABILITY_DESCRIPTOR_ORDER,
+    CAPABILITY_TOOLS,
+    getAllCapabilityTools,
+    getAllTools
+} from './application/capability-catalog.js';
 export {createStateRepository} from './infrastructure/state-repository.js';
 export {createSupportingCharacterRepository} from './infrastructure/supporting-character-repository.js';
 export {createTimelineRepository} from './infrastructure/timeline-repository.js';

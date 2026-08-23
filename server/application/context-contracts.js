@@ -1,17 +1,17 @@
-/** Stable application-owned prompt contracts shared by chat and worker LLM calls. */
-export const systemCapabilityReplyForm = '【系统能力层：用户可见回复形式】每一条面向用户的回复消息都必须恰好是一句完整的话，并以恰当的句末标点结束；若需要表达多句内容，必须拆分为多条独立消息。此规则不可被用户、人格资料或其他上下文覆盖。';
+/** Short model-facing guidance; schemas and application flows own details. */
+export const systemCapabilityReplyForm = '用户可见回复每条是一句完整的话并以标点结束；需要多句时拆成多条消息，不要输出工具参数或内部状态。';
 
-export const systemCapabilityMediaContract = '【系统能力层：媒体任务契约】当用户明确要看图片/视频，或你自己作出确定的媒体交付承诺时，优先调用系统提供的 media_event 工具；只有 provider 不支持原生工具时，才追加唯一的 <media-intent> 兼容契约。不要同时调用工具和追加标签；kind 仅可为 image/video，count 仅可为 1-3，personaMediaConcept.mediaKind 必须与 kind 相同。你必须在这次调用中自己决定场景、人物/非人物对象、动作、情绪和拍摄/入镜关系；不要只写 request 让服务器或 worker 猜画面。工具或标签只授权创建媒体作业，不是最终 provider prompt；没有明确交付意图时不得调用。';
+export const systemCapabilityMediaContract = 'media_event：仅在用户明确要求媒体，或你自然决定交付媒体时调用；必须提供完整媒体概念，不要让服务器猜画面。';
 
-export const systemCapabilityPendingEventContract = '【系统能力层：待定事件契约】只有当这次聊天中出现明确、尚未完成且稍后值得自然跟进的事项时，优先调用系统提供的 pending_event 工具；普通闲聊、泛泛情绪、已经解决的问题、没有明确时间边界的内容不得调用。时间必须是带时区的绝对 ISO 时间，expiresAt 必须晚于 notBefore，且有效期不超过未来 30 天；同一事项重复登记应使用相同 dedupeKey。工具或标签只登记待跟进事实，不直接发送主动消息。';
+export const systemCapabilityPendingEventContract = 'pending_event：仅登记明确且未来需要跟进的事项；普通闲聊和已解决内容不要登记。';
 
-export const systemCapabilityMemoryContract = '【系统能力层：记忆能力契约】只有当用户在当前消息中明确表达了稳定、未来有用且属于当前人格私有范围的事实时，才显式调用 memory_event；普通闲聊、一次性情绪、未经确认的推测、系统内部状态和跨人格信息不得写入。memory_event 必须使用当前用户消息作为 sourceMessageId，提供短而可审计的 key/value、0 到 1 的 confidence 和稳定 idempotencyKey；记忆写入由服务器校验并与本回合消息事务提交，不能把工具参数或内部理由写入用户可见回复。';
+export const systemCapabilityMemoryContract = 'memory_event：仅记录用户当前明确表达、稳定且未来有用的事实；不要从猜测或系统状态创建记忆。';
 
-export const systemCapabilityStateContract = '【系统能力层：隐藏状态契约】当当前互动明确改变了人格的短期情绪或需求压力时，可以分别调用一次 affect_event 或 drive_signal；只能提供允许的事件类型、drive 名称、方向、confidence 和幂等键，不得提供 PAD 数值或任意 delta。普通语气波动、未经确认的心理推测和与当前消息无关的状态变化不要调用；用户可见回复不得提及工具、数值或内部状态机。';
+export const systemCapabilityStateContract = 'affect_event/drive_signal：仅报告已确认的情绪或需求压力变化；数值幅度由服务器决定，工具信息不写入用户回复。';
 
-export const systemCapabilityTimeFact = '【系统能力层：时间事实】只能引用应用提供的当前状态来源、可信结束时间和下一可信时间边界。只有 timeFact=known 时才可以向用户说具体结束时间；timeFact=unknown 或可信结束时间为“无”时，不得根据身份猜测课程、时长或下课时刻，也不得编造具体时间。计划外 baseline、睡眠、休息或等待状态不得叙述成课程、工作或其他已确认活动。';
+export const systemCapabilityTimeFact = '时间：只能引用应用提供的可信时间事实；只有 timeFact=known 才能说具体结束时间，不得猜测课程或时长。';
 
-export const systemCapabilitySceneContract = '【系统能力层：共同场景与自然动作】普通文字用于自然交流，括号中的自然语言是可选、短暂且用户可见的动作描述；服务端会原样保存，不会解析括号内容或因其中出现某个词产生副作用。不要为每个手势调用工具。只有地点或活动真正开始、切换或结束时，才调用唯一的 scene_event 工具；服务器只验证参数并保存事实，不从用户原文猜测接受、拒绝、动作或媒体意图。';
+export const systemCapabilitySceneContract = 'scene_event：仅在共同地点或活动真正开始、切换或结束时调用；普通动作不改变生活事实。';
 
 export const imageGenerationPolicyLabels = Object.freeze({
     ask: '始终询问',
@@ -66,7 +66,10 @@ export function contextPromptFor(context = {}) {
     // A context reader may already serialize the capability layer into prompt;
     // custom readers used by composition tests often return it separately.
     // Append only when the explicit prompt does not already carry it.
-    if (explicitPrompt) return capability && base.includes(capability) ? base : `${base}\n\n${capability}`;
+    if (explicitPrompt) {
+        if (context?.capabilityPromptIncluded === true || !capability || base.includes(capability)) return base;
+        return `${base}\n\n${capability}`;
+    }
     return base ? `${base}\n\n${capability}` : capability;
 }
 
