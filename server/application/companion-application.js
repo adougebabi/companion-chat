@@ -2,6 +2,7 @@ import {createCompanionRouteHandlers} from './companion-route-handlers.js';
 import {createMediaFlow} from './media-flow.js';
 import {createPendingEventFlow} from './pending-event-flow.js';
 import {createSceneEventFlow} from './scene-event-flow.js';
+import {createAppearanceEventFlow} from './appearance-event-flow.js';
 import {createLifeEventFlow} from './life-event-flow.js';
 import {createTimelineFlow} from './timeline-flow.js';
 import {createRelationshipFlow} from './relationship-flow.js';
@@ -137,6 +138,9 @@ export function createCompanionApplication(options = {}) {
             transaction: options.transaction
         })
         : null);
+    const appearanceEventFlow = options.appearanceEventFlow ?? (options.stateRepository || repositories.state
+        ? optionalFactory(createAppearanceEventFlow, {...flowOptions, transaction: options.transaction})
+        : null);
     const timelineRepositoryReady = repositories.eventDecisionRepository
         || repositories.timelineDecisionRepository
         || repositories.decisionRepository
@@ -164,6 +168,7 @@ export function createCompanionApplication(options = {}) {
         ?? createFlowCapabilityRegistry({
             pendingEventFlow,
             sceneEventFlow,
+            appearanceEventFlow,
             mediaFlow,
             memoryEventFlow: options.memoryEventFlow ?? options.memoryFlow
         });
@@ -192,6 +197,12 @@ export function createCompanionApplication(options = {}) {
         flow: sceneEventFlow,
         execute: sceneEventFlow ? command => sceneEventFlow.apply(sceneEventFlow.plan(command)) : null,
         version: sceneEventFlow?.version ?? 1
+    });
+    registerFlowAdapter(flowRegistry, {
+        id: 'appearance-event',
+        flow: appearanceEventFlow,
+        execute: appearanceEventFlow ? command => appearanceEventFlow.apply(appearanceEventFlow.plan(command)) : null,
+        version: appearanceEventFlow?.version ?? 1
     });
     registerFlowAdapter(flowRegistry, {
         id: 'media',
@@ -225,6 +236,7 @@ export function createCompanionApplication(options = {}) {
         adapters: options.adapters ?? Object.freeze({}),
         pendingEventFlow,
         sceneEventFlow,
+        appearanceEventFlow,
         lifeEventFlow,
         timelineFlow,
         relationshipFlow,

@@ -10,13 +10,14 @@ export const BACKEND_CONTRACT_VERSION = 1;
 
 export const CAPABILITY_NAMES = Object.freeze([
     'scene_event',
+    'appearance_event',
     'media_event',
     'pending_event'
 ]);
 
-// Native capability calls remain restricted to the three transport-facing
-// tools. Effect intents also represent internal application work, so their
-// capability namespace includes the registered domain effect owners.
+// Native capability calls use the universal transport-facing tool set. Effect
+// intents also represent internal application work, so their capability
+// namespace includes the registered domain effect owners.
 export const EFFECT_CAPABILITY_NAMES = Object.freeze([
     ...CAPABILITY_NAMES,
     'memory_event',
@@ -38,7 +39,7 @@ export const SSE_EVENT_TYPES = Object.freeze(['token', 'done', 'error']);
  * The structured turn contract is deliberately additive to the legacy
  * capability contract above. Existing chat flows still dispatch the three
  * transport capabilities from CAPABILITY_NAMES; structured control candidates
- * may additionally carry the application-owned memory_event capability.
+ * may additionally carry the application-owned affect/drive controls.
  */
 export const STRUCTURED_TURN_SCHEMA_VERSION = 'companion.turn.v1';
 export const TURN_SCHEMA_VERSION = STRUCTURED_TURN_SCHEMA_VERSION;
@@ -621,7 +622,7 @@ export const STRUCTURED_TURN_SCHEMA = deepFreeze({
 });
 
 /**
- * @typedef {'scene_event'|'media_event'|'pending_event'} CapabilityName
+ * @typedef {'scene_event'|'appearance_event'|'media_event'|'pending_event'} CapabilityName
  * @typedef {'native'|'marker'} CapabilitySource
  * @typedef {{
  *   id: string|null,

@@ -176,6 +176,7 @@ function presentationByCapability(value) {
         const presentation = capabilityPresentation(event);
         if (!capability || presentation === null) continue;
         if (capability === 'scene_event') result.sceneEvent = presentation;
+        if (capability === 'appearance_event') result.appearanceEvent = presentation;
         if (capability === 'media_event') result.mediaEvent = presentation;
         if (capability === 'pending_event') result.pendingEvent = presentation;
     }

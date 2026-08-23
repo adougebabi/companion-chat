@@ -405,14 +405,16 @@ export function createLifeWorldReader({repositories = {}, blueprintReader, scene
         }
         const state = personaState(request);
         const plan = dailyPlan(request);
+        const events = lifeEvents(request).filter(row => !['appearance_change', 'wardrobe_change'].includes(String(row.type ?? row.eventType ?? row.event_type ?? '')));
         return {
             blueprint: clone(effectiveBlueprint),
             personaId: request.personaId,
             scheduleItems: scheduleItems(request),
-            lifeEvents: lifeEvents(request),
+            lifeEvents: events,
             dailyPlan: clone(plan.plan),
             dailyPlanProjection: clone(plan.projection),
             presence: presence(request, state),
+            state: clone(state),
             currentTime: clone(request.date)
         };
     }

@@ -125,7 +125,7 @@ test('resolver input remains policy-free and feeds the pure resolver', () => {
     const {reader} = fixture({sceneReader: () => null});
     const input = reader.readResolverInput('persona_a', NOW);
     assert.deepEqual(Object.keys(input), [
-        'blueprint', 'personaId', 'scheduleItems', 'lifeEvents', 'dailyPlan', 'dailyPlanProjection', 'presence', 'currentTime'
+        'blueprint', 'personaId', 'scheduleItems', 'lifeEvents', 'dailyPlan', 'dailyPlanProjection', 'presence', 'state', 'currentTime'
     ]);
     assert.equal(resolveLifeState(input).source, 'event');
 });

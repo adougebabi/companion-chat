@@ -9,6 +9,7 @@ export {createCompositionRoot as createProductionCompositionRoot} from './compos
 export {createCompanionRouteHandlers} from './application/companion-route-handlers.js';
 export {createPendingEventFlow} from './application/pending-event-flow.js';
 export {createSceneEventFlow} from './application/scene-event-flow.js';
+export {createAppearanceEventFlow} from './application/appearance-event-flow.js';
 export {createMediaFlow} from './application/media-flow.js';
 export {createCompanionApplication} from './application/companion-application.js';
 export {createBasicCompanionServices} from './application/basic-companion-services.js';
@@ -37,6 +38,7 @@ export {
     systemCapabilityStateContract,
     systemCapabilityTimeFact,
     systemCapabilitySceneContract,
+    systemCapabilityAppearanceContract,
     imageGenerationPolicyLabels,
     systemCapabilityContracts,
     systemCapabilityPromptFor,

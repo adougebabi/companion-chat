@@ -12,6 +12,7 @@ import {
 
 const TOOL_NAMES = [
     'scene_event',
+    'appearance_event',
     'media_event',
     'pending_event',
     'memory_event',
@@ -25,7 +26,7 @@ function assertDeeplyFrozen(value) {
     for (const child of Object.values(value)) assertDeeplyFrozen(child);
 }
 
-test('catalog exposes the six universal native tools in stable order', () => {
+test('catalog exposes the seven universal native tools in stable order', () => {
     assert.deepEqual(Object.keys(CAPABILITY_DESCRIPTORS), TOOL_NAMES);
     assert.deepEqual(CAPABILITY_DESCRIPTOR_ORDER.map(descriptor => descriptor.name), TOOL_NAMES);
     assert.deepEqual(CAPABILITY_TOOLS.map(tool => tool.function.name), TOOL_NAMES);
@@ -68,6 +69,23 @@ test('catalog preserves the current native tool schema semantics', () => {
                         mood: {type: 'string', maxLength: 80},
                         objects: {type: 'array', maxItems: 12, items: {type: 'string', maxLength: 80}},
                         participants: {type: 'array', maxItems: 2, items: {type: 'string', enum: ['user', 'persona']}}
+                    }
+                }
+            }
+        },
+        {
+            type: 'function',
+            function: {
+                name: 'appearance_event',
+                description: 'Persist a material outfit change for the current persona.',
+                parameters: {
+                    type: 'object',
+                    additionalProperties: false,
+                    required: ['operation'],
+                    properties: {
+                        operation: {type: 'string', enum: ['set', 'clear']},
+                        outfit: {type: 'string', maxLength: 240},
+                        reason: {type: 'string', maxLength: 240}
                     }
                 }
             }

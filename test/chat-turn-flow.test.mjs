@@ -242,5 +242,5 @@ test('ChatTurnFlow rejects missing ports before any side effect can occur', () =
         conversationRepository: {},
         presentationMapper: () => ({messages: []})
     }), /CapabilityDispatcherPort/);
-    assert.deepEqual(CAPABILITY_NAMES, ['scene_event', 'media_event', 'pending_event']);
+    assert.deepEqual(CAPABILITY_NAMES, ['scene_event', 'appearance_event', 'media_event', 'pending_event']);
 });

@@ -34,6 +34,20 @@ const DESCRIPTORS = {
             }
         }
     },
+    appearance_event: {
+        name: 'appearance_event',
+        description: 'Persist a material outfit change for the current persona.',
+        parameters: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['operation'],
+            properties: {
+                operation: {type: 'string', enum: ['set', 'clear']},
+                outfit: {type: 'string', maxLength: 240},
+                reason: {type: 'string', maxLength: 240}
+            }
+        }
+    },
     media_event: {
         name: 'media_event',
         description: 'Queue a validated image or video delivery.',
@@ -139,6 +153,7 @@ const DESCRIPTORS = {
 
 const DESCRIPTOR_ORDER = [
     'scene_event',
+    'appearance_event',
     'media_event',
     'pending_event',
     'memory_event',

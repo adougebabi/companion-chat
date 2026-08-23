@@ -58,12 +58,15 @@ export function createLifeStateService({reader, resolver, stateRepository, lifeE
     function resolvedStateFor(command = {}) { return project(command); }
     function stateShape(command = {}) {
         const value = project(command);
-        const appearance = parse(value.appearance_json, {});
+        let appearance = parse(value.appearance_json, {});
         const persisted = state?.read?.({personaId: value.personaId}) ?? {};
         const persistedAppearance = parse(persisted.appearance_json, {});
         const expired = value.resolved_ends_at && Date.parse(value.resolved_ends_at) <= value.currentTime.getTime();
-        if ((value.resolved_source !== 'event' || expired) && (persisted.source_event_id || persisted.sourceEventId) && Object.keys(persistedAppearance).length && state?.updateProjection) {
+        const hasDurableOutfit = typeof persistedAppearance.outfit === 'string' && persistedAppearance.outfit.trim() !== '';
+        if ((value.resolved_source !== 'event' || expired) && !hasDurableOutfit
+            && (persisted.source_event_id || persisted.sourceEventId) && Object.keys(persistedAppearance).length && state?.updateProjection) {
             state.updateProjection({personaId: value.personaId, situation: value.situation, mood: value.mood, appearance: {}, checkpointAt: value.currentTime.toISOString(), updatedAt: value.currentTime.toISOString(), sourceEventId: value.source_event_id, sharedScene: value.sharedScene});
+            appearance = {};
         }
         const sourceId = value.resolved_source_id ?? null;
         return {

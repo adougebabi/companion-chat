@@ -60,6 +60,7 @@ import {createMediaJobApplication} from '../application/media-job-composition.js
 import {createMediaFlow} from '../application/media-flow.js';
 import {createPendingEventFlow} from '../application/pending-event-flow.js';
 import {createSceneEventFlow} from '../application/scene-event-flow.js';
+import {createAppearanceEventFlow} from '../application/appearance-event-flow.js';
 import {createFlowRegistry} from '../application/flow-registry.js';
 import {registerFlowAdapter} from '../application/flow-effect-adapter.js';
 import {createFlowEffectAdapter} from '../application/flow-effect-adapter.js';
@@ -878,6 +879,9 @@ function resolveApplicationFlows(options, repositories, startup) {
     const sceneEventFlow = options.sceneEventFlow ?? (repositories.state
         ? createSceneEventFlow({repositories, clock, idGenerator, transaction, normalizeCall: options.normalizeSceneEventCall, scheduledState: options.scheduledState})
         : null);
+    const appearanceEventFlow = options.appearanceEventFlow ?? (repositories.state
+        ? createAppearanceEventFlow({repositories, clock, idGenerator, transaction, normalizeCall: options.normalizeAppearanceEventCall})
+        : null);
     const memoryService = options.memoryService ?? (repositories.memory
         ? createMemoryService({repositories, clock})
         : null);
@@ -893,6 +897,7 @@ function resolveApplicationFlows(options, repositories, startup) {
         relationshipFlow,
         pendingEventFlow,
         sceneEventFlow,
+        appearanceEventFlow,
         memoryService,
         memoryEventFlow,
         affectFlow,

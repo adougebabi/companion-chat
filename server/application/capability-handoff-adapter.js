@@ -15,7 +15,7 @@ function argumentsFor(call) {
 function resultFor(attempt) {
     const call = attempt?.call || {};
     const name = call.name || attempt?.name || 'pending_event';
-    if (!['scene_event', 'media_event', 'pending_event', 'memory_event'].includes(name)) return null;
+    if (!['scene_event', 'appearance_event', 'media_event', 'pending_event', 'memory_event'].includes(name)) return null;
     return {
         name,
         ok: !attempt?.error,
@@ -128,13 +128,17 @@ export function createCapabilityHandoffAdapter({registry, capabilityRegistry} = 
     });
 }
 
-export function createFlowCapabilityRegistry({pendingEventFlow, sceneEventFlow, mediaFlow, memoryEventFlow, memoryFlow} = {}) {
+export function createFlowCapabilityRegistry({pendingEventFlow, sceneEventFlow, appearanceEventFlow, mediaFlow, memoryEventFlow, memoryFlow} = {}) {
     const registry = {};
     const pending = entryFor(pendingEventFlow, ({args, call, personaId, causationUserMessageId}) => ({
         personaId, call: args, sourceMessageId: causationUserMessageId ?? call.causationUserMessageId,
         provenance: provenanceForCall(call, causationUserMessageId)
     }));
     const scene = entryFor(sceneEventFlow, ({args, call, personaId, causationUserMessageId}) => ({
+        personaId, call: args, sourceMessageId: causationUserMessageId ?? call.causationUserMessageId,
+        provenance: provenanceForCall(call, causationUserMessageId)
+    }));
+    const appearance = entryFor(appearanceEventFlow, ({args, call, personaId, causationUserMessageId}) => ({
         personaId, call: args, sourceMessageId: causationUserMessageId ?? call.causationUserMessageId,
         provenance: provenanceForCall(call, causationUserMessageId)
     }));
@@ -150,6 +154,7 @@ export function createFlowCapabilityRegistry({pendingEventFlow, sceneEventFlow, 
     }));
     if (pending) registry.pending_event = {...pending, markerAdapter: markerAdapterFor('pending-event')};
     if (scene) registry.scene_event = {...scene, markerAdapter: markerAdapterFor('scene-event')};
+    if (appearance) registry.appearance_event = appearance;
     if (media) registry.media_event = {...media, markerAdapter: markerAdapterFor('media-intent')};
     if (memory) registry.memory_event = memory;
     return registry;

@@ -13,8 +13,9 @@
 - Canonical turn schema: `schemaVersion: 'companion.turn.v1'` with `control.affectEvents[]`, `control.driveSignals[]`, `control.memoryWrites[]`, and `control.capabilityCalls[]`.
 - Supported first-release drives: `social`, `exploration`, `rest`; pressure is `0..1`, where higher means more unmet need.
 - Memory capability: `memory_event({memory: {operation, key, value, confidence, sourceMessageId?, idempotencyKey}})`.
+- Appearance capability: `appearance_event({operation: 'set'|'clear', outfit?, reason?})`; it is persona-scoped, source-message-bound, idempotent, and persists the current outfit in the normalized state projection while retaining an auditable `appearance_change` life event.
 - State tools: `affect_event({event: {type, confidence, idempotencyKey}})` and `drive_signal({signal: {drive, direction, confidence, idempotencyKey}})`; the server owns numeric deltas.
-- Native transport tools are defined once by `server/application/capability-catalog.js`. The current catalog exposes all six universal tools on every chat request in stable order; capability filtering is intentionally deferred.
+- Native transport tools are defined once by `server/application/capability-catalog.js`. The current catalog exposes all seven universal tools on every chat request in stable order; capability filtering is intentionally deferred.
 - Affect persistence: `companion_persona_affect_states` materialized snapshot plus `companion_persona_affect_events` append-only events, unique on `(persona_id, idempotency_key)`.
 
 ### 3. Contracts

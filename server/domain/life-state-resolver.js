@@ -263,6 +263,13 @@ function commonProjection({blueprint, source, sourceId = null, sourceEvent = nul
     };
 }
 
+function persistedAppearanceProjection(projection, input) {
+    const persisted = isRecord(input?.state?.appearance) ? input.state.appearance : {};
+    if (!Object.keys(persisted).length) return projection;
+    const source = isRecord(projection?.appearance) ? projection.appearance : {};
+    return {...projection, appearance: {...persisted, ...source}};
+}
+
 function activePresence(input, personaId, nowMs) {
     const candidates = [input.presence, input.presenceSnapshot, input.sharedScene, input.sharedSceneSnapshot];
     for (const raw of candidates) {
@@ -459,12 +466,12 @@ export function resolveLifeState(input = {}) {
     const presence = activePresence(input, personaId, nowMs);
     if (presence) {
         const metadata = sourceEventMetadata(presence, 'shared_scene');
-        return commonProjection({blueprint, source: 'shared_scene', sourceId: metadata?.id, sourceEvent: metadata, record: presence, nowMs, fallback});
+        return persistedAppearanceProjection(commonProjection({blueprint, source: 'shared_scene', sourceId: metadata?.id, sourceEvent: metadata, record: presence, nowMs, fallback}), input);
     }
 
     const event = activeLifeEvent(input, personaId, nowMs);
     if (event) {
-        return commonProjection({blueprint, source: 'event', sourceId: event.event?.id, sourceEvent: event.event, record: event.merged, nowMs, fallback});
+        return persistedAppearanceProjection(commonProjection({blueprint, source: 'event', sourceId: event.event?.id, sourceEvent: event.event, record: event.merged, nowMs, fallback}), input);
     }
 
     const schedules = explicitSchedules(input, personaId, nowMs);
@@ -474,17 +481,17 @@ export function resolveLifeState(input = {}) {
             || String(left.merged.id || left.index).localeCompare(String(right.merged.id || right.index)))[0];
         const next = selected.endsMs === null ? nextExplicitScheduleStart(input, personaId, nowMs) : null;
         const record = {...selected.merged, scheduleId: firstText(selected.merged.scheduleId, selected.merged.schedule_id, selected.merged.id) || null, nextBoundaryAt: next === null ? null : new Date(next).toISOString()};
-        return commonProjection({blueprint, source: 'schedule', sourceId: firstText(record.scheduleId) || null, record, nowMs, fallback});
+        return persistedAppearanceProjection(commonProjection({blueprint, source: 'schedule', sourceId: firstText(record.scheduleId) || null, record, nowMs, fallback}), input);
     }
 
     const planSlot = activeDailyPlan(input, blueprint, nowMs, personaId);
     if (planSlot) {
         const source = planSlot.source === 'daily_plan_baseline' ? 'daily_plan_baseline' : 'daily_plan';
-        return commonProjection({blueprint, source, sourceId: firstText(planSlot.slotId, planSlot.slot_id, planSlot.slotKey) || null, record: planSlot, nowMs, fallback});
+        return persistedAppearanceProjection(commonProjection({blueprint, source, sourceId: firstText(planSlot.slotId, planSlot.slot_id, planSlot.slotKey) || null, record: planSlot, nowMs, fallback}), input);
     }
 
     const routine = routineProjection(blueprint, nowMs);
-    return commonProjection({blueprint, source: routine.source, sourceId: routine.sourceId, record: routine.record, nowMs, fallback});
+    return persistedAppearanceProjection(commonProjection({blueprint, source: routine.source, sourceId: routine.sourceId, record: routine.record, nowMs, fallback}), input);
 }
 
 /**

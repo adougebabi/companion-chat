@@ -107,6 +107,38 @@ function enqueueJob(input) {
     });
 }
 
+test('native appearance_event persists the current outfit through the capability dispatcher', () => {
+    const subject = persona({name: '换装测试人格'});
+    const source = userMessage(subject.id, '我想看看你今天穿什么。');
+    const output = runtime.application.capabilityDispatcher.dispatch({
+        mode: 'plan',
+        personaId: subject.id,
+        causationUserMessageId: source.id,
+        calls: [{
+            id: 'appearance_call_1',
+            index: 0,
+            name: 'appearance_event',
+            source: 'native',
+            personaId: subject.id,
+            causationUserMessageId: source.id,
+            idempotencyKey: 'appearance_dispatch_1',
+            argumentsText: JSON.stringify({operation: 'set', outfit: '白色衬衫和深色长裙'}),
+            arguments: {operation: 'set', outfit: '白色衬衫和深色长裙'}
+        }],
+        completion: {doneSeen: true}
+    });
+    assert.equal(output.effects.length, 1);
+    const result = output.effects[0].payload.apply();
+    assert.equal(result.outfit, '白色衬衫和深色长裙');
+    const state = runtime.repositories.state.read({personaId: subject.id});
+    assert.equal(JSON.parse(state.appearance_json).outfit, '白色衬衫和深色长裙');
+    const resolved = services().life.resolvedStateFor({personaId: subject.id, at: new Date(now)});
+    assert.equal(JSON.parse(resolved.appearance_json).outfit, '白色衬衫和深色长裙');
+    const shaped = services().life.stateShape({personaId: subject.id, at: new Date(now)});
+    assert.equal(shaped.appearance.outfit, '白色衬衫和深色长裙');
+    services().persona.delete({personaId: subject.id});
+});
+
 async function dispatchClaimed({owner = 'modular-worker', at = now, jobType} = {}) {
     const job = runtime.repositories.job.claim({
         leaseOwner: owner,
