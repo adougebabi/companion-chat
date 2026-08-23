@@ -91,7 +91,7 @@ function initialDailyBaseline({blueprint, planId, planDate}) {
     };
 }
 
-function defaultBlueprint(name, role, foundation) {
+function defaultBlueprint(name, role, foundation, initializationMode = 'llm_defined') {
     return {
         schemaVersion: 2,
         timezone: 'Asia/Shanghai',
@@ -108,7 +108,7 @@ function defaultBlueprint(name, role, foundation) {
         randomPositiveEvents: [],
         randomNegativeEvents: [],
         supportingCast: [],
-        generation: {source: 'modular-default', usedFallback: true, validationWarnings: []}
+        generation: {source: initializationMode === 'blank_slate' ? 'blank-slate' : 'modular-default', usedFallback: initializationMode !== 'blank_slate', validationWarnings: []}
     };
 }
 
@@ -122,16 +122,22 @@ export function createPersonaLifecycleRepository({database, clock, id, foundatio
     }
 
     function createPersona(input = {}) {
-        const name = text(input.name, 'Persona.name');
-        const role = text(input.role, 'Persona.role');
-        const foundationText = text(input.foundation ?? `${name}的基础人格设定`, 'Persona.foundation');
+        const initializationMode = input.initializationMode ?? input.initialization_mode ?? 'llm_defined';
+        if (!['llm_defined', 'blank_slate'].includes(initializationMode)) throw new TypeError('Persona.initializationMode must be llm_defined or blank_slate');
+        const name = initializationMode === 'blank_slate' ? String(input.name ?? '').trim() : text(input.name, 'Persona.name');
+        const role = initializationMode === 'blank_slate' ? String(input.role ?? '').trim() : text(input.role, 'Persona.role');
+        const foundationText = initializationMode === 'blank_slate'
+            ? ''
+            : text(input.foundation ?? `${name}的基础人格设定`, 'Persona.foundation');
         const color = /^#[0-9a-f]{6}$/i.test(String(input.color || '')) ? input.color : '#3593d2';
         const createdAt = input.createdAt ?? now();
         const personaId = text(input.id ?? nextId('persona'), 'Persona.id');
         const dailyPlanId = nextId('daily_plan');
         const group = db.prepare(`SELECT * FROM companion_groups WHERE is_default = 1 ORDER BY created_at, id LIMIT 1`).get();
         if (!group) throw new Error('默认分组不存在');
-        const blueprintValue = input.blueprint && typeof input.blueprint === 'object' ? input.blueprint : (blueprintFactory?.(input) ?? defaultBlueprint(name, role, foundationText));
+        const blueprintValue = initializationMode === 'blank_slate'
+            ? (input.blueprint && typeof input.blueprint === 'object' ? input.blueprint : defaultBlueprint(name, role, foundationText, initializationMode))
+            : (input.blueprint && typeof input.blueprint === 'object' ? input.blueprint : (blueprintFactory?.(input) ?? defaultBlueprint(name, role, foundationText, initializationMode)));
         const timezone = typeof blueprintValue.timezone === 'string' && blueprintValue.timezone.trim() ? blueprintValue.timezone : 'Asia/Shanghai';
         const planDate = localDateFor(createdAt, timezone);
         const initialBaseline = initialDailyBaseline({blueprint: blueprintValue, planId: dailyPlanId, planDate});
@@ -143,13 +149,13 @@ export function createPersonaLifecycleRepository({database, clock, id, foundatio
             timeline: [initialBaseline]
         };
         db.transaction(() => {
-            db.prepare(`INSERT INTO companion_personas (id, name, role, color, group_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`).run(personaId, name, role, color, group.id, createdAt, createdAt);
+            db.prepare(`INSERT INTO companion_personas (id, name, role, color, group_id, initialization_mode, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(personaId, name, role, color, group.id, initializationMode, createdAt, createdAt);
             db.prepare(`INSERT INTO companion_persona_foundation_revisions (id, persona_id, version, foundation, reason, created_at) VALUES (?, ?, 1, ?, ?, ?)`).run(nextId('foundation'), personaId, foundationText, '初始化人格', createdAt);
             db.prepare(`INSERT INTO companion_persona_life_blueprints (persona_id, blueprint_json, created_at, updated_at) VALUES (?, ?, ?, ?)`).run(personaId, JSON.stringify(blueprintValue), createdAt, createdAt);
             if (db.prepare('SELECT name FROM sqlite_master WHERE type = \'table\' AND name = \'companion_persona_life_blueprint_revisions\'').get()) {
                 db.prepare(`INSERT INTO companion_persona_life_blueprint_revisions (id, persona_id, version, blueprint_json, reason, schema_version, source, prompt_version, model, used_fallback, validation_warnings_json, created_at) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(nextId('life_blueprint'), personaId, JSON.stringify(blueprintValue), '初始化生活模型', Number(blueprintValue.schemaVersion || 2), 'modular-default', null, null, 1, JSON.stringify([]), createdAt);
             }
-            db.prepare(`INSERT INTO companion_persona_states (persona_id, situation, mood, appearance_json, checkpoint_at, updated_at) VALUES (?, ?, ?, '{}', ?, ?)`).run(personaId, '正在开始自己的日常', '平静', createdAt, createdAt);
+            db.prepare(`INSERT INTO companion_persona_states (persona_id, situation, mood, appearance_json, checkpoint_at, updated_at) VALUES (?, ?, ?, '{}', ?, ?)`).run(personaId, initializationMode === 'blank_slate' ? '' : '正在开始自己的日常', '平静', createdAt, createdAt);
             db.prepare(`INSERT INTO companion_conversations (id, persona_id, created_at, updated_at) VALUES (?, ?, ?, ?)`).run(nextId('conversation'), personaId, createdAt, createdAt);
             // A new persona must have a durable day-one life-world projection.
             // The maintenance job may later replace the timeline with an LLM
