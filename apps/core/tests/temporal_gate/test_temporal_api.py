@@ -19,8 +19,12 @@ from fluctlight_core.temporal_gate.worker_entrypoint import deployment_config
 class FakeClient:
     def __init__(self) -> None:
         self.started: list[dict[str, object]] = []
+        self.fail_first_start = False
 
     async def start_workflow(self, workflow, payload, *, id: str, task_queue: str) -> None:
+        if self.fail_first_start:
+            self.fail_first_start = False
+            raise RuntimeError("temporary Temporal connection failure")
         self.started.append(
             {"workflow": workflow, "payload": payload, "id": id, "task_queue": task_queue}
         )
@@ -89,6 +93,45 @@ def test_api_routes_can_be_invoked_without_starting_temporal() -> None:
     with pytest.raises(HTTPException) as error:
         run(endpoints["/gate/intents"](IntentRequest(intent_key="bad-api-queue", queue="unknown")))
     assert error.value.status_code == 422
+
+
+def test_duplicate_start_retries_after_start_failure_with_committed_payload() -> None:
+    temporal_client = FakeClient()
+    temporal_client.fail_first_start = True
+    store = InMemoryGateStore()
+    app = create_app(temporal_client=temporal_client, store=store)
+    endpoints: dict[str, Any] = {
+        getattr(route, "path"): getattr(route, "endpoint")
+        for route in app.routes
+        if hasattr(route, "endpoint")
+    }
+
+    with pytest.raises(HTTPException) as error:
+        run(endpoints["/gate/intents"](IntentRequest(intent_key="retry-start", queue="media")))
+    assert error.value.status_code == 503
+
+    retry = run(
+        endpoints["/gate/intents"](
+            IntentRequest(intent_key="retry-start", queue="interaction", sleep_seconds=30)
+        )
+    )
+
+    assert retry["task_queue"] == "media"
+    assert len(temporal_client.started) == 1
+    assert temporal_client.started[0]["task_queue"] == "media"
+    payload = temporal_client.started[0]["payload"]
+    assert isinstance(payload, dict)
+    assert payload["sleep_seconds"] == 0.0
+
+
+def test_api_exposes_all_temporal_management_control_routes() -> None:
+    temporal_client = FakeClient()
+    app = create_app(temporal_client=temporal_client, store=InMemoryGateStore())
+    paths = {getattr(route, "path") for route in app.routes}
+
+    assert "/gate/workflows/{execution_id}/terminate" in paths
+    assert "/gate/workflows/{execution_id}/restart" in paths
+    assert "/gate/workflows/{execution_id}/reset" in paths
 
 
 def run(awaitable: Awaitable[Any]) -> Any:

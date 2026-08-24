@@ -33,6 +33,14 @@ class RepairRequest(BaseModel):
     expected_version: str | None = None
 
 
+class TerminateRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=512)
+
+
+class ResetRequest(BaseModel):
+    history_point: int = Field(gt=0)
+
+
 def _database_url() -> str:
     return os.environ.get(
         "GATE_DATABASE_URL",
@@ -96,23 +104,29 @@ def create_app(*, temporal_client: Any | None = None, store: GateStore | None = 
             execution_id,
             request,
         )
-        if committed:
-            try:
-                await client.start_workflow(
-                    GateWorkflow.run,
-                    request.as_dict(),
-                    id=execution_id,
-                    task_queue=request.queue,
-                )
-            except Exception as exc:
-                # A duplicate stable ID reuses the existing Temporal execution.
-                if (
-                    "already started" not in str(exc).lower()
-                    and "already exists" not in str(exc).lower()
-                ):
-                    raise HTTPException(
-                        status_code=503, detail="Temporal workflow start failed"
-                    ) from exc
+        if not committed:
+            persisted_request = await asyncio.to_thread(gate_store.get_intent, committed_intent)
+            if persisted_request is None:
+                raise HTTPException(status_code=503, detail="committed intent is unavailable")
+            # A duplicate request must reuse the original committed payload. This
+            # keeps a retry after a start crash from changing workflow input.
+            request = persisted_request
+        try:
+            await client.start_workflow(
+                GateWorkflow.run,
+                request.as_dict(),
+                id=execution_id,
+                task_queue=request.queue,
+            )
+        except Exception as exc:
+            # A duplicate stable ID reuses the existing Temporal execution.
+            if (
+                "already started" not in str(exc).lower()
+                and "already exists" not in str(exc).lower()
+            ):
+                raise HTTPException(
+                    status_code=503, detail="Temporal workflow start failed"
+                ) from exc
         return {
             "intent_id": committed_intent,
             "intent_key": request.intent_key,
@@ -187,6 +201,40 @@ def create_app(*, temporal_client: Any | None = None, store: GateStore | None = 
         try:
             await management().cancel(execution_id, actor)
             return {"workflow_id": execution_id, "operation": "cancel"}
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    @app.post("/gate/workflows/{execution_id}/terminate", status_code=202)
+    async def terminate(
+        execution_id: str,
+        payload: TerminateRequest,
+        actor: str = Header(default="owner:local", alias="x-gate-actor"),
+    ) -> dict[str, str]:
+        try:
+            await management().terminate(execution_id, actor, payload.reason)
+            return {"workflow_id": execution_id, "operation": "terminate"}
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    @app.post("/gate/workflows/{execution_id}/restart", status_code=202)
+    async def restart(
+        execution_id: str, actor: str = Header(default="owner:local", alias="x-gate-actor")
+    ) -> dict[str, str]:
+        try:
+            await management().restart(execution_id, actor)
+            return {"workflow_id": execution_id, "operation": "restart"}
+        except PermissionError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    @app.post("/gate/workflows/{execution_id}/reset", status_code=202)
+    async def reset(
+        execution_id: str,
+        payload: ResetRequest,
+        actor: str = Header(default="owner:local", alias="x-gate-actor"),
+    ) -> dict[str, str]:
+        try:
+            await management().reset(execution_id, actor, payload.history_point)
+            return {"workflow_id": execution_id, "operation": "reset"}
         except PermissionError as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc
 

@@ -54,10 +54,12 @@ EXIT trap. The 12-hour command intentionally refuses to claim PASS unless
 ## Topology
 
 Live `docker compose ps` showed healthy PostgreSQL, grouped Temporal Server,
-API and Worker. The visibility database is created in the PostgreSQL service
-before Temporal starts. The API never polls application queues. The Worker
-creates one bounded Temporal Worker per `interaction`, `lifecycle` and `media`
-queue, with official Worker Deployment Versioning enabled.
+API and Worker. A one-shot `postgres-visibility` helper creates the
+`temporal_visibility` database on that PostgreSQL service before Temporal
+starts; it has no persistent data or runtime role. The API never polls
+application queues. The Worker creates one bounded Temporal Worker per
+`interaction`, `lifecycle` and `media` queue, with official Worker Deployment
+Versioning enabled.
 
 Temporal Server 1.27.2 was rejected during the gate because deployments were
 disabled. The clean gate now pins 1.29.7, where deployment routing is enabled.
