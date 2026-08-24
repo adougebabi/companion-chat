@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"authoritative DBOS gate, queue, recovery, operations, upgrade and failure contract"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t01-dbos-runtime-gate-brief.md","reason":"exact child decisions, paths, scope slices, thresholds, operations and escalation"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/workflow-engine-candidate.md","reason":"official-doc evidence, non-guarantees, prototype gates and rejection conditions"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/evidence-baseline.md","reason":"old worker long-task/lease/idempotency evidence motivating the gate"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/dbos-runtime-gate-report-template.md","reason":"mandatory reproducible PASS/FAIL report structure"}

@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"verify runtime-neutral durability, domain ownership, idempotency and upgrade rules"}
+{"file":".trellis/spec/backend/fluctlight-temporal-gate-contract.md","reason":"verify every Temporal topology/history/activity/management/resource gate"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t01b-temporal-runtime-gate-brief.md","reason":"verify exact scope/paths/operations/thresholds and no optional stack expansion"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/temporal-runtime-candidate.md","reason":"verify Temporal remains conditional and sizing claims are measured"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/dbos-runtime-gate-report.md","reason":"verify Temporal tests close both DBOS core failures"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/temporal-runtime-gate-report-template.md","reason":"verify complete evidence, versions, commands, resource/disk and PASS/FAIL decision"}

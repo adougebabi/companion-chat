@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"verify every DBOS gate, no second runtime and deterministic failure escalation"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t01-dbos-runtime-gate-brief.md","reason":"verify exact manifest/paths/scopes/operations/resources and no OTLP expansion"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/workflow-engine-candidate.md","reason":"verify DBOS remains conditional and rejection returns to Temporal"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/evidence-baseline.md","reason":"verify failure tests address the actual old worker risks"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/dbos-runtime-gate-report-template.md","reason":"verify report evidence, exact commands, resource results and PASS/FAIL decision"}

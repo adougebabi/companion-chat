@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"general durable workflow/domain/idempotency/versioning contract"}
+{"file":".trellis/spec/backend/fluctlight-temporal-gate-contract.md","reason":"authoritative grouped Temporal/history/signals/activity/resource gate"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t01b-temporal-runtime-gate-brief.md","reason":"exact decisions, manifests, paths, topology, operations, thresholds and escalation"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/temporal-runtime-candidate.md","reason":"official-doc evidence, topology, sizing and rejection conditions"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/dbos-runtime-gate-report.md","reason":"verified DBOS failure boundaries Temporal must solve"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/temporal-runtime-gate-report-template.md","reason":"mandatory reproducible PASS/FAIL report structure"}
