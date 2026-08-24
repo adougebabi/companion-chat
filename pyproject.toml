@@ -1,0 +1,28 @@
+[project]
+name = "local-ai-companion-runtime"
+version = "0.1.0"
+description = "Fluctlight clean-start Python runtime workspace"
+requires-python = ">=3.13,<3.14"
+dependencies = ["fluctlight-core"]
+
+[dependency-groups]
+dev = ["pytest==8.4.1"]
+
+[tool.uv.sources]
+fluctlight-core = { workspace = true }
+
+[tool.uv.workspace]
+members = ["apps/core"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+markers = [
+  "compose: checks that require or validate the DBOS Compose gate topology",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

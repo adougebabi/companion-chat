@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dbos}
+      POSTGRES_USER: ${POSTGRES_USER:-dbos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dbos}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - dbos_gate_postgres:/var/lib/postgresql/data
+
+  api:
+    image: ghcr.io/astral-sh/uv:0.8.9-python3.13-bookworm-slim
+    working_dir: /workspace
+    environment:
+      DBOS_APP_NAME: ${DBOS_APP_NAME:-fluctlight-gate}
+      DBOS_SYSTEM_DATABASE_URL: ${DBOS_SYSTEM_DATABASE_URL:-postgresql://dbos:dbos@postgres:5432/dbos}
+      DBOS_APPLICATION_DATABASE_URL: ${DBOS_APPLICATION_DATABASE_URL:-postgresql://dbos:dbos@postgres:5432/dbos}
+      DBOS_LOG_LEVEL: ${DBOS_LOG_LEVEL:-INFO}
+      GATE_API_HOST: 0.0.0.0
+      GATE_API_PORT: 8080
+      PYTHONPATH: /workspace/apps/core/src
+      DBOS_GATE_QUEUES: interaction,lifecycle,media
+    volumes:
+      - ../..:/workspace:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["uv", "run", "--project", "/workspace", "--locked", "serve-api"]
+    ports:
+      - "127.0.0.1:18080:8080"
+
+  worker:
+    image: ghcr.io/astral-sh/uv:0.8.9-python3.13-bookworm-slim
+    working_dir: /workspace
+    environment:
+      DBOS_APP_NAME: ${DBOS_APP_NAME:-fluctlight-gate}
+      DBOS_SYSTEM_DATABASE_URL: ${DBOS_SYSTEM_DATABASE_URL:-postgresql://dbos:dbos@postgres:5432/dbos}
+      DBOS_APPLICATION_DATABASE_URL: ${DBOS_APPLICATION_DATABASE_URL:-postgresql://dbos:dbos@postgres:5432/dbos}
+      DBOS_LOG_LEVEL: ${DBOS_LOG_LEVEL:-INFO}
+      PYTHONPATH: /workspace/apps/core/src
+      DBOS_GATE_QUEUES: interaction,lifecycle,media
+    volumes:
+      - ../..:/workspace:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["uv", "run", "--project", "/workspace", "--locked", "run-worker"]
+
+volumes:
+  dbos_gate_postgres:
