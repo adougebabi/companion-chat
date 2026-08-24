@@ -4,24 +4,31 @@
 
 `FAIL`
 
-The deterministic gate and a real DBOS SQLite smoke pass, but the required
-PostgreSQL/Compose gate did not run because the local Docker daemon is down.
-The installed DBOS 2.30.0 client also has no workflow pause operation. Either
-condition blocks T02 and returns the parent task to planning for a Temporal
-evaluation; this report does not authorize a workaround runtime.
+The PostgreSQL/Compose gate is now runnable and most bounded runtime checks
+pass. T01 still fails the mandatory core gate because DBOS 2.30.0 has no
+official workflow pause operation, active history does not replay when the
+Worker application version changes, and the full 15-minute fake-h3 run plus
+provider-success-before-checkpoint fault boundary were not completed in the
+bounded local run. T02 and later children remain blocked.
 
 ## Environment
 
-- Date: 2026-08-24T05:18:36Z
+- Date: 2026-08-24 (Asia/Shanghai)
 - Host: Darwin MacBook-Pro-16.local, arm64
-- Python: 3.13.7 (`.venv/bin/python`)
-- uv: 0.10.12
+- Docker: 29.4.0, OrbStack server 29.4.0
+- Python host: 3.13.7 (`.venv/bin/python`)
+- Python Compose image: 3.13.6
+- uv host: 0.10.12; Compose image uv: 0.8.9
 - DBOS dependency: 2.30.0 (package does not expose `__version__`)
-- Docker CLI: 29.4.0
-- Commit at measurement: `6e52536`
+- PostgreSQL image: 16.4-alpine
+- Base implementation commit: `d70879b`
 - Child: `08-24-dbos-runtime-gate`
-- Docker socket: `unix:///Users/vinson/.orbstack/run/docker.sock` (not present)
-- Resource constraints: NAS thresholds from `research/t01-dbos-runtime-gate-brief.md`; no NAS measurement was possible on this host.
+- PostgreSQL database size during gate: `8484 kB`
+
+The Compose entrypoints use `--python 3.13` and
+`UV_PROJECT_ENVIRONMENT=/tmp/fluctlight-venv`; this is required because the
+repository pins `.python-version=3.13.7`, while the uv image ships 3.13.6 and
+the mounted workspace is read-only.
 
 ## Reproduction Commands
 
@@ -34,17 +41,15 @@ uv run pytest apps/core/tests/workflow_gate -m compose -q
 docker compose -f infra/compose/dbos-gate.compose.yml down
 ```
 
-Additional local API smoke used while Docker was unavailable:
+Live evidence was collected while the stack was running:
 
 ```bash
 PYTHONPATH=apps/core/src ./.venv/bin/python -m pytest apps/core/tests/workflow_gate -q
 ```
 
-Result: `17 passed, 1 skipped` after the review fixes for stable API
-IDs, queue ownership, persisted durable-sleep deadlines, and explicit Compose
-daemon detection. The one skipped test is the Compose service check because the
-Docker daemon is unavailable. This remains a deterministic fixture result; it
-is not evidence of a PostgreSQL/Compose run.
+Result: `18 passed` on the host fixture. The explicitly escalated live Compose
+test passed (`1 passed`); a restricted host-side run may skip the Docker check
+because the socket is inaccessible from that shell.
 
 ## Topology
 
@@ -56,17 +61,18 @@ and enqueue a stable workflow ID; it never starts queue listeners. Both DBOS
 system and application URLs point at PostgreSQL in the fixture. OTLP is
 disabled and no external telemetry stack is started.
 
+The entrypoints use a writable `/tmp/fluctlight-venv` and select the image's
+Python 3.13.6 explicitly so the read-only source bind does not cause uv to
+mutate the host `.venv`.
+
 The topology is statically valid:
 
 ```bash
 docker compose -f infra/compose/dbos-gate.compose.yml config
 ```
 
-Result: configuration rendered successfully. Container startup was not
-possible because the Docker daemon socket was unavailable. The static config
-check does not prove that the read-only `/workspace` bind can support `uv run`
-environment creation inside the image, so that startup path remains
-unverified.
+Result: configuration rendered successfully. The live stack reached healthy
+PostgreSQL, API readiness, and Worker queue listening.
 
 ## Gate Matrix
 
@@ -80,45 +86,68 @@ Result: `False True True False True` for DBOS 2.30.0. The wrapper therefore
 cannot satisfy the canonical pause or restart operation without inventing a
 non-official operation; the report records this as a core failure.
 
-| Gate | Result | Automated test/command | Evidence/artifact | Notes |
-| --- | --- | --- | --- | --- |
-| Three queue isolation and limits | PASS (fixture) / NOT RUN (PostgreSQL) | `uv run pytest apps/core/tests/workflow_gate -q` | `test_contract.py`; `queues.py` | Independent policies are covered in deterministic tests; Compose execution not measured. |
-| API/Worker separate entrypoints | PASS (fixture) / NOT RUN (Compose) | `test_compose.py`; SQLite DBOS smoke | `api_entrypoint.py`, `worker_entrypoint.py` | Compose check explicitly skipped because the Docker daemon was unavailable; real container readiness not measured. |
-| Durable sleep across restart | PASS (deterministic fixture) / NOT RUN (PostgreSQL) | `test_recovery.py` | `runtime.py` | SQLite smoke used zero sleep only. |
-| 15-minute fake h3 heartbeat | PASS (deterministic fixture) / NOT RUN (Compose) | `test_recovery.py` | `runtime.py`, `provider.py` | No 15-minute container run. |
-| Timeout and cooperative cancellation | PASS (deterministic fixture) / NOT RUN (Compose) | `test_recovery.py` | `runtime.py` | No PostgreSQL/Worker failure run. |
-| Crash/restart recovery | PASS (deterministic fixture) / NOT RUN (Compose) | `test_recovery.py` | `runtime.py` | Input rehydration after a new runtime instance is covered. |
-| Provider success before checkpoint | PASS (deterministic fixture) / NOT RUN (Compose) | `test_recovery.py`, `test_diagnostics.py` | `provider.py`, `diagnostics.py` | Exactly one fake provider effect is asserted. |
-| Stable workflow/Provider idempotency | PASS (deterministic fixture) / NOT RUN (DBOS crash/restart) | `test_contract.py`, `test_recovery.py`, SQLite DBOS smoke | `ids.py`, `dbos_runtime.py` | Stable API workflow/provider IDs and DBOS deduplication options are exercised; the real DBOS crash/restart provider window was not run. |
-| List/get/pause/resume/cancel/restart/fork-from-step | FAIL | DBOSClient surface inspection; management tests | `management.py` | `pause_workflow` is absent in DBOS 2.30.0. Restart is represented by official `fork_workflow(..., 0)`; pause has no equivalent official API. |
-| Active-history code/schema upgrade | NOT RUN | Compose gate required | report template | Docker unavailable. |
-| Backup/restore system state | NOT RUN | Compose gate required | report template | Docker unavailable. |
-| Diagnostics/correlation chain | PASS (deterministic fixture) / NOT RUN (Compose) | `test_diagnostics.py` | `diagnostics.py` | Structured stdout chain is reconstructed in memory. |
-| All quantified NAS resource thresholds in T01 brief | NOT RUN | Three Compose measurements required | report template | No NAS/Docker runtime available. |
+| Gate | Result | Evidence | Notes |
+| --- | --- | --- | --- |
+| Three queue isolation and limits | PASS | PostgreSQL `dbos.queues`; `test_contract.py` | interaction `2 / 4 per 1s`, lifecycle `1 / 1 per 1s`, media `1 / 1 per 2s`. |
+| API/Worker separate entrypoints | PASS | Live `docker compose ps`, API readiness, Worker logs | API has no queue listener; Worker listens to 3 queues. |
+| Durable sleep across Worker restart | PASS | `wf_e4f4565d4256fd636a04edc7`: `PENDING` during restart, then `SUCCESS` | Stable workflow ID preserved. |
+| Durable sleep across PostgreSQL restart | PASS | `wf_58bc8ef5f8805bcebf552dbb`: `SUCCESS` after PostgreSQL restart | DBOS reconnected and resumed timer. |
+| Fake-h3 heartbeat | PARTIAL | `wf_61e58bfeadeafbfe164f96f9`: 2/4/6/8/10 second structured heartbeat records | Bounded proof passed; full 15-minute run was not executed. |
+| Timeout | PASS | `wf_ce0cc9f69232e1c3f710298e`: `workflow_timeout_ms=5000`, final `CANCELLED` | Timeout is propagated through official `workflow_timeout`. |
+| Cooperative cancellation | PASS | `wf_d1a7351a2db2ab7af13e7dd8`: official `DBOSClient.cancel_workflow`, final `CANCELLED`, no completed step output | No duplicate external effect observed. |
+| Crash/restart recovery | PASS (deterministic) / NOT RUN (live kill) | `test_recovery.py`, `test_diagnostics.py` | Deterministic checkpoint windows pass; live process-death injection remains unrun. |
+| Provider success before checkpoint | PASS (deterministic) / NOT RUN (live) | `test_recovery.py`, stable provider lookup | Live DBOS provider checkpoint fault injection remains unrun. |
+| Stable workflow/provider idempotency | PASS | Duplicate API POST returned `wf_b77d5a160880593f9a2f4ed4`; one intent and one result remained | Stable IDs and DBOS deduplication are live. |
+| List/get/pause/resume/cancel/restart/fork-from-step | FAIL | DBOSClient surface: `False True True False True` for pause/resume/cancel/restart/fork | `pause_workflow` is absent; the complete canonical set is unavailable. |
+| Active-history code/schema upgrade/replay | FAIL | v1 workflow `wf_6d40ec16100277ae4bb829a7` stayed `PENDING` under v2 Worker and later became `CANCELLED` | v2 logged no workflows to recover from v2 history. |
+| Backup/restore system state | PASS (fixture) | `pg_dump`/`pg_restore` into `gate_restore_v2`: 11 workflows, 11 intents, 2 final results restored | Empty database restore verified. |
+| Diagnostics/correlation chain | PASS (deterministic + live heartbeat) | `test_diagnostics.py`; structured Worker stdout | Full diagnostics tables/UI are out of scope. |
+| NAS resource thresholds | PASS for measured values; full 15-minute run incomplete | Ten 30-second idle samples plus recovery samples | All measured RSS/CPU/connection/readiness thresholds pass; full 15-minute workload remains required. |
 
 ## Failure Injection
 
 Deterministic tests cover provider success before checkpoint, crash after the
 provider checkpoint, crash before result commit, timeout, cancellation and
-worker restart. Each successful recovery reuses the stable provider request ID
-and asserts one provider effect plus one final result ID. PostgreSQL connection
-loss, database restart and container kill boundaries were not run.
+Worker restart. Each successful recovery reuses the stable provider request ID
+and asserts one provider effect plus one final result ID. Live tests covered
+Worker restart, PostgreSQL restart, timeout, official cancellation, durable
+sleep and structured heartbeat. Live provider-success-before-checkpoint and
+process-kill-during-provider boundaries remain unrun.
 
 ## Resource Measurements
 
-No measurements were recorded. The required three-run median/max values for
-RSS, CPU, PostgreSQL connections, readiness and due-workflow recovery require
-the Compose stack and therefore remain `NOT RUN`.
+Ten idle samples, in MiB and Docker CPU percent:
+
+| Metric | Samples | Median | Maximum | Threshold |
+| --- | --- | ---: | ---: | ---: |
+| API RSS | 71.86, 71.59, 73.2, 73.2, 71.76, 72.64, 71.97, 71.97, 71.73, 72.1 | 71.97 | 73.2 | n/a |
+| Worker RSS | 61.99, 62.3, 60.48, 60.48, 62.79, 60.39, 62.8, 62.8, 60.86, 62.09 | 62.04 | 62.8 | n/a |
+| PostgreSQL RSS | 63.43, 65.71, 62.23, 62.86, 65.25, 61.94, 65.89, 65.12, 61.9, 65.72 | 64.28 | 65.89 | n/a |
+| API + Worker idle RSS | 133.85, 133.89, 133.68, 133.68, 134.55, 133.03, 134.77, 134.77, 132.59, 134.19 | 133.87 | 134.77 | <= 512 MiB |
+| PostgreSQL + API + Worker idle RSS | 197.28, 199.6, 195.91, 196.54, 199.8, 194.97, 200.66, 199.89, 194.49, 199.91 | 198.44 | 200.66 | <= 1 GiB |
+| API + Worker idle CPU | 4.15, 4.86, 4.19, 4.07, 4.79, 3.62, 4.16, 4.36, 2.53, 4.01 | 4.16 | 4.86 | <= 5% of one CPU |
+| PostgreSQL connections | 8, 8, 8 | 8 | 8 | <= 20 |
+
+During the bounded recovery workload, API + Worker peak RSS was `192.71 MiB`
+(threshold `<= 1 GiB`). API readiness after restart was `2 s` (threshold
+`<= 30 s`). A due workflow was already eligible when the Worker became ready
+and settled within the first sample (`<= 1 s`, threshold `<= 30 s`). The ten
+samples span five minutes and keep combined API + Worker idle CPU below 5%;
+this resource threshold passes. The full 15-minute fake-h3 workload still
+remains outstanding.
 
 ## Upgrade And Recovery
 
-The deterministic fixture has no DBOS PostgreSQL history to upgrade. The
-required active-history replay and backup/restore drills remain `NOT RUN`.
+PostgreSQL backup/restore passed into an empty `gate_restore_v2` database. The
+active-history upgrade gate failed: a workflow created under `t01-gate-v1` was
+not recovered by a `t01-gate-v2` Worker. Returning to v1 did not rescue it
+before its timeout. An explicit DBOS patch/continuation strategy or a Temporal
+evaluation is required; no custom queue workaround is allowed.
 
 ## Decision
 
 `FAIL`. T02 and all later children remain blocked. The parent task must return
-to planning, resolve the missing pause management capability and rerun the
-PostgreSQL/Compose gate on a host with a running Docker daemon before choosing
-DBOS or evaluating Temporal. No Celery, custom queue, OTLP collector or other
-second runtime was introduced.
+to planning to resolve the missing pause management operation and active-history
+upgrade strategy, then rerun the full 15-minute/5-minute and live provider-fault
+gates. No Celery, custom queue, OTLP collector or second workflow runtime was
+introduced.

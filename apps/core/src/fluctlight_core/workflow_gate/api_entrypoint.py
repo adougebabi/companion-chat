@@ -6,6 +6,7 @@ DBOS queue listeners, so only the Worker consumes background work.
 
 from __future__ import annotations
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
@@ -35,8 +36,8 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         nonlocal client
-        store.initialize()
-        client = DBOSGateClient()
+        await asyncio.to_thread(store.initialize)
+        client = await asyncio.to_thread(DBOSGateClient)
         yield
         if client is not None:
             client.close()

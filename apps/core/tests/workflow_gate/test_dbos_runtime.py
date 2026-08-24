@@ -3,7 +3,11 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from dbos import DBOS
-from fluctlight_core.workflow_gate.dbos_runtime import DBOSGateClient, _queue_options
+from fluctlight_core.workflow_gate.dbos_runtime import (
+    DBOSGateClient,
+    _queue_options,
+    make_dbos_config,
+)
 from fluctlight_core.workflow_gate.models import GateInput
 
 
@@ -32,6 +36,11 @@ def test_api_client_uses_client_supported_queue_conflict_policy() -> None:
     )
 
 
+def test_dbos_application_version_is_explicit(monkeypatch) -> None:
+    monkeypatch.setenv("DBOS_APPLICATION_VERSION", "t01-test-v2")
+    assert make_dbos_config()["application_version"] == "t01-test-v2"
+
+
 def test_enqueue_uses_the_same_stable_ids_as_the_gate_runtime() -> None:
     class EnqueueClient(FakeClient):
         def enqueue(self, options, payload):
@@ -45,6 +54,9 @@ def test_enqueue_uses_the_same_stable_ids_as_the_gate_runtime() -> None:
     client.enqueue(GateInput(intent_key="api-id-consistency"))
     assert client._client.enqueue_options["workflow_id"].startswith("wf_")
     assert client._client.enqueue_options["deduplication_id"].startswith("intent_")
+    assert client._client.enqueue_options["workflow_timeout"] == 900.0
+    assert client._client.enqueue_payload["intent_id"].startswith("intent_")
+    assert client._client.enqueue_payload["workflow_id"].startswith("wf_")
     assert client._client.enqueue_payload["provider_request_id"].startswith("provider_")
 
 
@@ -81,6 +93,7 @@ def test_dbos_worker_and_client_smoke_with_sqlite(tmp_path) -> None:
         )
         result = handle.get_result(polling_interval_sec=0.05)
         assert result["step"]["request_id"].startswith("provider_")
+        assert result["persisted_result"]["status"] == "skipped"
     finally:
         if client is not None:
             client.close()

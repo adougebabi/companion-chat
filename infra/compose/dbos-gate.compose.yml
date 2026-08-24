@@ -18,6 +18,7 @@ services:
     working_dir: /workspace
     environment:
       DBOS_APP_NAME: ${DBOS_APP_NAME:-fluctlight-gate}
+      DBOS_APPLICATION_VERSION: ${DBOS_APPLICATION_VERSION:-t01-gate-v1}
       DBOS_SYSTEM_DATABASE_URL: ${DBOS_SYSTEM_DATABASE_URL:-postgresql://dbos:dbos@postgres:5432/dbos}
       DBOS_APPLICATION_DATABASE_URL: ${DBOS_APPLICATION_DATABASE_URL:-postgresql://dbos:dbos@postgres:5432/dbos}
       DBOS_LOG_LEVEL: ${DBOS_LOG_LEVEL:-INFO}
@@ -25,12 +26,13 @@ services:
       GATE_API_PORT: 8080
       PYTHONPATH: /workspace/apps/core/src
       DBOS_GATE_QUEUES: interaction,lifecycle,media
+      UV_PROJECT_ENVIRONMENT: /tmp/fluctlight-venv
     volumes:
       - ../..:/workspace:ro
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["uv", "run", "--project", "/workspace", "--locked", "serve-api"]
+    command: ["uv", "run", "--project", "/workspace", "--locked", "--python", "3.13", "serve-api"]
     ports:
       - "127.0.0.1:18080:8080"
 
@@ -39,17 +41,19 @@ services:
     working_dir: /workspace
     environment:
       DBOS_APP_NAME: ${DBOS_APP_NAME:-fluctlight-gate}
+      DBOS_APPLICATION_VERSION: ${DBOS_APPLICATION_VERSION:-t01-gate-v1}
       DBOS_SYSTEM_DATABASE_URL: ${DBOS_SYSTEM_DATABASE_URL:-postgresql://dbos:dbos@postgres:5432/dbos}
       DBOS_APPLICATION_DATABASE_URL: ${DBOS_APPLICATION_DATABASE_URL:-postgresql://dbos:dbos@postgres:5432/dbos}
       DBOS_LOG_LEVEL: ${DBOS_LOG_LEVEL:-INFO}
       PYTHONPATH: /workspace/apps/core/src
       DBOS_GATE_QUEUES: interaction,lifecycle,media
+      UV_PROJECT_ENVIRONMENT: /tmp/fluctlight-venv
     volumes:
       - ../..:/workspace:ro
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["uv", "run", "--project", "/workspace", "--locked", "run-worker"]
+    command: ["uv", "run", "--project", "/workspace", "--locked", "--python", "3.13", "run-worker"]
 
 volumes:
   dbos_gate_postgres:

@@ -17,13 +17,17 @@ def database_url() -> str:
 
 def make_dbos_config() -> dict[str, Any]:
     url = database_url()
-    return {
+    config: dict[str, Any] = {
         "name": os.environ.get("DBOS_APP_NAME", "fluctlight-gate"),
         "system_database_url": url,
         "application_database_url": os.environ.get("DBOS_APPLICATION_DATABASE_URL", url),
         "log_level": os.environ.get("DBOS_LOG_LEVEL", "INFO"),
         "enable_otlp": False,
     }
+    application_version = os.environ.get("DBOS_APPLICATION_VERSION")
+    if application_version:
+        config["application_version"] = application_version
+    return config
 
 
 def launch_worker():
@@ -59,7 +63,11 @@ class DBOSGateClient:
         intent_id = stable_id("intent", request.intent_key)
         stable_workflow_id = workflow_id(intent_id)
         request_id = provider_request_id(intent_id)
-        payload = asdict(request) | {"provider_request_id": request_id}
+        payload = asdict(request) | {
+            "intent_id": intent_id,
+            "workflow_id": stable_workflow_id,
+            "provider_request_id": request_id,
+        }
         from dbos import EnqueueOptions
 
         options: EnqueueOptions = {
@@ -68,6 +76,7 @@ class DBOSGateClient:
             "workflow_id": stable_workflow_id,
             "deduplication_id": intent_id,
             "duplication_policy": "return-existing",
+            "workflow_timeout": request.timeout_seconds,
         }
         return self._client.enqueue(options, payload)
 
