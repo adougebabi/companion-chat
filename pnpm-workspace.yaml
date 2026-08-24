@@ -1,0 +1,8 @@
+packages:
+  - apps/bff
+  - apps/web
+  - packages/*
+
+allowBuilds:
+  esbuild: true
+  better-sqlite3: false

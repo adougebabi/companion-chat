@@ -1,0 +1,24 @@
+{
+  "name": "@fluctlight/bff",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "generate:browser-client": "node scripts/generate-browser-openapi.mjs"
+  },
+  "dependencies": {
+    "@fluctlight/core-client": "workspace:*",
+    "@sinclair/typebox": "0.34.40",
+    "fastify": "5.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "tsx": "4.20.5",
+    "typescript": "5.9.3"
+  }
+}

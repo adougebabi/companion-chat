@@ -17,7 +17,8 @@ members = ["apps/core"]
 [tool.pytest.ini_options]
 addopts = "-ra"
 markers = [
-  "compose: checks that require or validate the Temporal Compose gate topology",
+    "compose: checks that require the local platform Compose topology",
+    "integration: checks that require PostgreSQL or other local platform services",
 ]
 
 [tool.ruff]

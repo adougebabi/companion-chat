@@ -1,0 +1,162 @@
+name: fluctlight
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fluctlight}
+      POSTGRES_USER: ${POSTGRES_USER:-fluctlight}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fluctlight-local-only}
+    volumes:
+      - fluctlight_postgres:/var/lib/postgresql/data
+      - ../postgres/10-temporal-databases.sql:/docker-entrypoint-initdb.d/10-temporal-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [platform]
+
+  redis:
+    image: redis:8.0.4-alpine
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - fluctlight_redis:/data
+      - ../redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [platform]
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-fluctlight}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-fluctlight-local-only}
+    volumes:
+      - fluctlight_minio:/data
+    networks: [platform]
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on:
+      minio:
+        condition: service_started
+    environment:
+      MC_HOST_local: http://${S3_ACCESS_KEY:-fluctlight}:${S3_SECRET_KEY:-fluctlight-local-only}@minio:9000
+    command: ["mb", "--ignore-existing", "--with-versioning", "local/${S3_BUCKET:-fluctlight-media}"]
+    networks: [platform]
+
+  temporal:
+    image: temporalio/auto-setup:1.29.7
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_SEEDS: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-fluctlight}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-fluctlight-local-only}
+      DBNAME: temporal
+      VISIBILITY_DB: postgres12
+      VISIBILITY_DBNAME: temporal_visibility
+      ENABLE_ES: "false"
+      ENABLE_ES_SETTINGS: "false"
+      DEFAULT_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      SERVICES: frontend,history,matching,worker
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health --address 127.0.0.1:7233 >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [platform]
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: apps/core/Dockerfile
+    command: ["uv", "run", "--no-sync", "run-migrations"]
+    environment: &core_environment
+      FLUCTLIGHT_ENV: ${FLUCTLIGHT_ENV:-development}
+      FLUCTLIGHT_ROLE: api
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fluctlight}:${POSTGRES_PASSWORD:-fluctlight-local-only}@postgres:5432/${POSTGRES_DB:-fluctlight}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: ${S3_BUCKET:-fluctlight-media}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-fluctlight}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-fluctlight-local-only}
+      S3_USE_SSL: "false"
+      FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:-fluctlight-local-service-key}
+      FLUCTLIGHT_SETTINGS_KEY: ${FLUCTLIGHT_SETTINGS_KEY:-fluctlight-local-settings-key}
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      FLUCTLIGHT_API_PORT: ${FLUCTLIGHT_API_PORT:-8080}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [platform]
+
+  core:
+    build:
+      context: ../..
+      dockerfile: apps/core/Dockerfile
+    environment: *core_environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [platform]
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/core/Dockerfile
+    command: ["uv", "run", "--no-sync", "run-worker"]
+    environment:
+      <<: *core_environment
+      FLUCTLIGHT_ROLE: worker
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_healthy
+    networks: [platform]
+
+  bff:
+    build:
+      context: ../..
+      dockerfile: apps/bff/Dockerfile
+    environment:
+      CORE_BASE_URL: http://core:8080
+      FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:-fluctlight-local-service-key}
+      BFF_PORT: 3000
+    depends_on:
+      core:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:13000:3000"
+    networks: [platform]
+
+networks:
+  platform:
+    internal: true
+
+volumes:
+  fluctlight_postgres:
+  fluctlight_redis:
+  fluctlight_minio:

@@ -1,4 +1,8 @@
 node_modules/
+.pnpm-store/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
 dist/
 data/
 .env

@@ -1,0 +1,25 @@
+{
+  "name": "@fluctlight/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "lint": "vue-tsc --noEmit",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@fluctlight/browser-client": "workspace:*",
+    "pinia": "3.0.3",
+    "vue": "3.5.22"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "@vitejs/plugin-vue": "6.0.1",
+    "typescript": "5.9.3",
+    "vite": "7.1.5",
+    "vue-tsc": "3.0.6"
+  }
+}
