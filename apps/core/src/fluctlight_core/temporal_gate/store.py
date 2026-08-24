@@ -1,19 +1,18 @@
-"""Minimal intent/result store used by the fixture.
+"""Gate-only intent/result persistence.
 
-The in-memory implementation makes failure-injection tests deterministic. The
-PostgreSQL implementation is intentionally small and gate-specific; it proves
-the required commit-before-start and one-result invariants without introducing
-the production Unit of Work or domain schema owned by later tasks.
+Temporal owns execution history. This store contains only the committed intent
+and the one-result external-effect boundary needed to prove idempotency.
 """
 
 from __future__ import annotations
 
+import json
 import threading
-from dataclasses import asdict, replace
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Protocol
 
-from .models import GateInput, GateResult, ProviderResult, WorkflowRecord, WorkflowStatus
+from .models import GateInput, GateResult, ProviderResult, WorkflowRecord
 
 
 class GateStore(Protocol):
@@ -59,8 +58,8 @@ class InMemoryGateStore:
 
     def get_intent(self, intent_id: str) -> GateInput | None:
         with self._lock:
-            stored = self.intents.get(intent_id)
-            return None if stored is None else stored[1]
+            value = self.intents.get(intent_id)
+            return value[1] if value else None
 
     def get_workflow(self, workflow_id: str) -> WorkflowRecord | None:
         with self._lock:
@@ -72,11 +71,11 @@ class InMemoryGateStore:
 
     def put_provider_result(self, workflow_id: str, result: ProviderResult) -> None:
         with self._lock:
-            self.provider_results.setdefault(workflow_id, result)
-            record = self.workflows[workflow_id]
+            existing = self.provider_results.setdefault(workflow_id, result)
+            current = self.workflows[workflow_id]
             self.workflows[workflow_id] = replace(
-                record,
-                provider_result=self.provider_results[workflow_id],
+                current,
+                provider_result=existing,
                 checkpoint="provider_result",
             )
 
@@ -90,8 +89,8 @@ class InMemoryGateStore:
             if existing is not None:
                 return existing
             self.results[workflow_id] = result
-            record = self.workflows[workflow_id]
-            self.workflows[workflow_id] = replace(record, result=result, status=result.status)
+            current = self.workflows[workflow_id]
+            self.workflows[workflow_id] = replace(current, result=result, status=result.status)
             return result
 
     def list_workflows(self) -> list[WorkflowRecord]:
@@ -100,7 +99,7 @@ class InMemoryGateStore:
 
 
 class PostgresGateStore:
-    """Gate-only PostgreSQL persistence, suitable for the Compose proof."""
+    """Small PostgreSQL boundary used by the Compose API process."""
 
     def __init__(self, database_url: str) -> None:
         self.database_url = database_url
@@ -108,8 +107,8 @@ class PostgresGateStore:
     def _connect(self):
         try:
             import psycopg
-        except ImportError as exc:  # pragma: no cover - exercised only in bad deployment
-            raise RuntimeError("psycopg is required for the PostgreSQL gate store") from exc
+        except ImportError as exc:  # pragma: no cover
+            raise RuntimeError("psycopg is required for the Temporal gate store") from exc
         return psycopg.connect(self.database_url)
 
     def initialize(self) -> None:
@@ -131,8 +130,6 @@ class PostgresGateStore:
             )
 
     def commit_intent(self, intent_id: str, workflow_id: str, request: GateInput) -> bool:
-        import json
-
         with self._connect() as connection:
             cursor = connection.execute(
                 """
@@ -141,19 +138,20 @@ class PostgresGateStore:
                 ON CONFLICT (intent_id) DO NOTHING
                 RETURNING intent_id
                 """,
-                (intent_id, workflow_id, json.dumps(asdict(request)), datetime.now(UTC)),
+                (intent_id, workflow_id, json.dumps(request.as_dict()), datetime.now(UTC)),
             )
             return cursor.fetchone() is not None
 
     def intent_exists(self, intent_id: str) -> bool:
         with self._connect() as connection:
-            return connection.execute(
-                "SELECT 1 FROM gate_intents WHERE intent_id = %s", (intent_id,)
-            ).fetchone() is not None
+            return (
+                connection.execute(
+                    "SELECT 1 FROM gate_intents WHERE intent_id = %s", (intent_id,)
+                ).fetchone()
+                is not None
+            )
 
     def get_intent(self, intent_id: str) -> GateInput | None:
-        import json
-
         with self._connect() as connection:
             row = connection.execute(
                 "SELECT intent_json FROM gate_intents WHERE intent_id = %s", (intent_id,)
@@ -161,23 +159,10 @@ class PostgresGateStore:
         if row is None:
             return None
         payload = row[0] if isinstance(row[0], dict) else json.loads(row[0])
-        failure = payload.get("failure", {})
-        from .models import FailureInjection
-
-        return GateInput(
-            intent_key=payload["intent_key"],
-            queue=payload.get("queue", "media"),
-            sleep_seconds=payload.get("sleep_seconds", 0.0),
-            h3_duration_seconds=payload.get("h3_duration_seconds", 0.0),
-            heartbeat_interval_seconds=payload.get("heartbeat_interval_seconds", 5.0),
-            timeout_seconds=payload.get("timeout_seconds", 900.0),
-            decision_version=payload.get("decision_version", "gate-v1"),
-            failure=FailureInjection(**failure),
-        )
+        return GateInput.from_dict(payload)
 
     def get_workflow(self, workflow_id: str) -> WorkflowRecord | None:
-        # DBOS owns execution history. The gate store only persists the domain
-        # intent/result boundary, so workflow inspection belongs to DBOSClient.
+        del workflow_id
         return None
 
     def put_workflow(self, record: WorkflowRecord) -> None:
@@ -191,8 +176,6 @@ class PostgresGateStore:
         return None
 
     def put_result_once(self, workflow_id: str, result: GateResult) -> GateResult:
-        import json
-
         with self._connect() as connection:
             cursor = connection.execute(
                 """
@@ -201,25 +184,25 @@ class PostgresGateStore:
                 ON CONFLICT (workflow_id) DO NOTHING
                 RETURNING result_json
                 """,
-                (workflow_id, json.dumps(asdict(result)), datetime.now(UTC)),
+                (workflow_id, json.dumps(result.as_dict()), datetime.now(UTC)),
             )
             row = cursor.fetchone()
             if row is None:
                 row = connection.execute(
                     "SELECT result_json FROM gate_results WHERE workflow_id = %s", (workflow_id,)
                 ).fetchone()
-            if row is None:
-                return result
-            payload = row[0] if isinstance(row[0], dict) else json.loads(row[0])
-            return GateResult(
-                intent_id=payload["intent_id"],
-                workflow_id=payload["workflow_id"],
-                provider_request_id=payload["provider_request_id"],
-                result_id=payload["result_id"],
-                status=WorkflowStatus(payload["status"]),
-                output=payload.get("output"),
-                recovery_count=payload.get("recovery_count", 0),
-            )
+        if row is None:
+            return result
+        payload = row[0] if isinstance(row[0], dict) else json.loads(row[0])
+        return GateResult(
+            intent_id=payload["intent_id"],
+            workflow_id=payload["workflow_id"],
+            provider_request_id=payload["provider_request_id"],
+            result_id=payload["result_id"],
+            status=payload["status"],
+            output=payload.get("output"),
+            recovery_count=payload.get("recovery_count", 0),
+        )
 
     def list_workflows(self) -> list[WorkflowRecord]:
         return []

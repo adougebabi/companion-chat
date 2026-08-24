@@ -1,4 +1,4 @@
-"""Idempotent fake h3 provider used by the long-task gate."""
+"""Idempotent fake h3 provider for heartbeat and recovery tests."""
 
 from __future__ import annotations
 
@@ -8,15 +8,15 @@ from .models import ProviderResult
 
 
 class CooperativeCancellation(Exception):
-    """Raised when a fake provider observes an authorized cancellation."""
+    """The provider observed Temporal's cooperative cancellation request."""
 
 
 class ProviderTimeout(TimeoutError):
-    """Raised when a fake provider reaches its workflow deadline."""
+    """The fake provider exceeded the activity deadline."""
 
 
 class FakeH3Provider:
-    """A fake external system with stable request-key idempotency."""
+    """A fake external system keyed by the stable Provider request ID."""
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -30,11 +30,7 @@ class FakeH3Provider:
             existing = self._results.get(request_id)
             if existing is not None:
                 return existing
-            result = ProviderResult(
-                request_id=request_id,
-                output=f"fake-h3-output:{request_id}",
-                effect_count=1,
-            )
+            result = ProviderResult(request_id, f"fake-h3-output:{request_id}")
             self._results[request_id] = result
             return result
 
@@ -45,3 +41,10 @@ class FakeH3Provider:
     def lookup(self, request_id: str) -> ProviderResult | None:
         with self._lock:
             return self._results.get(request_id)
+
+
+_WORKER_PROVIDER = FakeH3Provider()
+
+
+def worker_provider() -> FakeH3Provider:
+    return _WORKER_PROVIDER

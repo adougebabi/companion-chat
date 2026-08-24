@@ -1,4 +1,4 @@
-"""Structured stdout diagnostics for the T01 correlation gate."""
+"""Structured stdout correlation for the runtime gate."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ class DiagnosticRecord:
     timestamp: float = 0.0
 
     def as_dict(self) -> dict[str, Any]:
-        value = {
+        values = {
             "event": self.event,
             "intent_id": self.intent_id,
             "workflow_id": self.workflow_id,
@@ -36,11 +36,11 @@ class DiagnosticRecord:
             "details": self.details or {},
             "timestamp": self.timestamp,
         }
-        return {key: item for key, item in value.items() if item is not None}
+        return {key: value for key, value in values.items() if value is not None}
 
 
 class Diagnostics:
-    """Write one JSON object per line and retain a queryable in-memory view."""
+    """Emit one JSON object per line and retain a queryable local view."""
 
     def __init__(self, stream: TextIO | None = None) -> None:
         self.stream = stream or sys.stdout

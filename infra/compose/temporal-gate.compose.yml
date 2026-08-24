@@ -1,0 +1,119 @@
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-temporal}
+      POSTGRES_USER: ${POSTGRES_USER:-temporal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-temporal}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - temporal_gate_postgres:/var/lib/postgresql/data
+
+  postgres-visibility:
+    image: postgres:16.4-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-temporal}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-temporal}
+      VISIBILITY_DB: ${VISIBILITY_DB:-temporal_visibility}
+    command:
+      - sh
+      - -ec
+      - >-
+        until pg_isready -h postgres -U "$${PGUSER}"; do sleep 1; done;
+        psql -d temporal -tc "SELECT 1 FROM pg_database WHERE datname = '$${VISIBILITY_DB}'"
+        | grep -q 1 || createdb -T template0 "$${VISIBILITY_DB}";
+        echo 'temporal visibility database ready'
+
+  temporal:
+    image: temporalio/auto-setup:1.29.7
+    restart: unless-stopped
+    depends_on:
+      postgres-visibility:
+        condition: service_completed_successfully
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-temporal}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-temporal}
+      POSTGRES_SEEDS: postgres
+      DBNAME: ${POSTGRES_DB:-temporal}
+      VISIBILITY_DBNAME: ${VISIBILITY_DB:-temporal_visibility}
+      VISIBILITY_DB: postgres12
+      SQL_MAX_CONNS: ${TEMPORAL_SQL_MAX_CONNS:-4}
+      SQL_MAX_IDLE_CONNS: ${TEMPORAL_SQL_MAX_IDLE_CONNS:-4}
+      SQL_VIS_MAX_CONNS: ${TEMPORAL_SQL_VIS_MAX_CONNS:-2}
+      SQL_VIS_MAX_IDLE_CONNS: ${TEMPORAL_SQL_VIS_MAX_IDLE_CONNS:-2}
+      ENABLE_ES: "false"
+      ENABLE_ES_SETTINGS: "false"
+      SKIP_DEFAULT_NAMESPACE_CREATION: "false"
+      DEFAULT_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      DEFAULT_NAMESPACE_RETENTION: ${TEMPORAL_RETENTION:-168h}
+      SERVICES: frontend,history,matching,worker
+      BIND_ON_IP: 0.0.0.0
+      TEMPORAL_ADDRESS: 0.0.0.0:7233
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health --address 127.0.0.1:7233 >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    image: ghcr.io/astral-sh/uv:0.8.9-python3.13-bookworm-slim
+    restart: unless-stopped
+    working_dir: /workspace
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_WORKER_DEPLOYMENT_VERSION: ${TEMPORAL_WORKER_DEPLOYMENT_VERSION:-gate-v1}
+      TEMPORAL_WORKER_DEPLOYMENT_NAME: ${TEMPORAL_WORKER_DEPLOYMENT_NAME:-fluctlight-gate}
+      GATE_DATABASE_URL: postgresql://${POSTGRES_USER:-temporal}:${POSTGRES_PASSWORD:-temporal}@postgres:5432/${POSTGRES_DB:-temporal}
+      GATE_API_HOST: 0.0.0.0
+      GATE_API_PORT: 8080
+      PYTHONPATH: /workspace/apps/core/src
+      UV_PROJECT_ENVIRONMENT: /tmp/fluctlight-venv
+    volumes:
+      - ../..:/workspace:ro
+    depends_on:
+      temporal:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: ["uv", "run", "--project", "/workspace", "--locked", "--python", "3.13", "serve-api"]
+    ports:
+      - "127.0.0.1:18080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8080/readyz\")'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  worker:
+    image: ghcr.io/astral-sh/uv:0.8.9-python3.13-bookworm-slim
+    restart: unless-stopped
+    working_dir: /workspace
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_WORKER_DEPLOYMENT_VERSION: ${TEMPORAL_WORKER_DEPLOYMENT_VERSION:-gate-v1}
+      TEMPORAL_WORKER_DEPLOYMENT_NAME: ${TEMPORAL_WORKER_DEPLOYMENT_NAME:-fluctlight-gate}
+      GATE_DATABASE_URL: postgresql://${POSTGRES_USER:-temporal}:${POSTGRES_PASSWORD:-temporal}@postgres:5432/${POSTGRES_DB:-temporal}
+      PYTHONPATH: /workspace/apps/core/src
+      UV_PROJECT_ENVIRONMENT: /tmp/fluctlight-venv
+    volumes:
+      - ../..:/workspace:ro
+    depends_on:
+      temporal:
+        condition: service_healthy
+    command: ["uv", "run", "--project", "/workspace", "--locked", "--python", "3.13", "run-worker"]
+
+volumes:
+  temporal_gate_postgres:

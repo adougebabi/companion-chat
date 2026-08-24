@@ -1,19 +1,19 @@
 [project]
 name = "fluctlight-core"
 version = "0.1.0"
-description = "Fluctlight DBOS runtime gate fixture"
+description = "Fluctlight Temporal runtime gate fixture"
 requires-python = ">=3.13,<3.14"
 dependencies = [
-  "dbos==2.30.0",
   "fastapi==0.116.1",
   "psycopg[binary]==3.2.9",
   "pydantic==2.11.7",
+  "temporalio==1.20.0",
   "uvicorn[standard]==0.35.0",
 ]
 
 [project.scripts]
-serve-api = "fluctlight_core.workflow_gate.api_entrypoint:main"
-run-worker = "fluctlight_core.workflow_gate.worker_entrypoint:main"
+serve-api = "fluctlight_core.temporal_gate.api_entrypoint:main"
+run-worker = "fluctlight_core.temporal_gate.worker_entrypoint:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fluctlight_core"]

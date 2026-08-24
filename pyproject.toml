@@ -6,7 +6,7 @@ requires-python = ">=3.13,<3.14"
 dependencies = ["fluctlight-core"]
 
 [dependency-groups]
-dev = ["pytest==8.4.1"]
+dev = ["mypy==1.17.1", "pytest==8.4.1", "ruff==0.12.10"]
 
 [tool.uv.sources]
 fluctlight-core = { workspace = true }
@@ -17,7 +17,7 @@ members = ["apps/core"]
 [tool.pytest.ini_options]
 addopts = "-ra"
 markers = [
-  "compose: checks that require or validate the DBOS Compose gate topology",
+  "compose: checks that require or validate the Temporal Compose gate topology",
 ]
 
 [tool.ruff]

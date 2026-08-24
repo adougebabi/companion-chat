@@ -1,4 +1,4 @@
-"""Independent queue policies for the three DBOS logical queues."""
+"""Independent application task queue policies."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from .models import QueuePolicy
+from .models import QUEUES, QueuePolicy
 
 QUEUE_POLICIES: dict[str, QueuePolicy] = {
     "interaction": QueuePolicy("interaction", concurrency=2, rate_limit_per_second=4.0),
@@ -21,7 +21,7 @@ class QueuePolicyError(ValueError):
 
 
 class LocalQueueLimits:
-    """Small deterministic policy harness used by contract tests."""
+    """Deterministic policy harness; Temporal remains the production queue owner."""
 
     def __init__(self, policies: dict[str, QueuePolicy] | None = None) -> None:
         self.policies = policies or QUEUE_POLICIES
@@ -53,21 +53,5 @@ class LocalQueueLimits:
             semaphore.release()
 
 
-def build_dbos_queues():
-    """Build official DBOS Queue objects without starting consumers."""
-
-    try:
-        from dbos import Queue
-    except ImportError as exc:  # pragma: no cover - deployment diagnostic
-        raise RuntimeError("DBOS is required to construct worker queues") from exc
-    return {
-        name: Queue(
-            name,
-            concurrency=policy.concurrency,
-            limiter={
-                "limit": max(1, int(policy.rate_limit_per_second)),
-                "period": max(1.0, 1.0 / policy.rate_limit_per_second),
-            },
-        )
-        for name, policy in QUEUE_POLICIES.items()
-    }
+def task_queues() -> tuple[str, ...]:
+    return QUEUES
