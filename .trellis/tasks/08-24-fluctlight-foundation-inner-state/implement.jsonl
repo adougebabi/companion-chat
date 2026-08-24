@@ -1,0 +1,8 @@
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"implement from: semantic/numeric ownership and anti-heuristic rules"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implement from: table ownership, revisions and Unit of Work"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"implement from: Goal/Intention lifecycle state consumed later"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"implement from: complete identity/personality/affect/drives/goals source requirements"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implement from: foundation and governance closure scope"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t04-fluctlight-foundation-inner-state-brief.md","reason":"implement from: T04 owned paths, forbidden boundaries, focused validation and deferred runtime gates"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t04-fluctlight-foundation-inner-state-dry-run.md","reason":"implement from: no-history handoff result and explicit T03/runtime carry-forward risks"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/decisions.md","reason":"implement from: parent decisions including the explicit D038 implementation exception"}
