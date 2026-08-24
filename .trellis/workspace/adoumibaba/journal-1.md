@@ -445,3 +445,37 @@ Completed modular backend cutover: removed server.js, legacy compatibility harne
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: 恢复摇光实例跨日自动安排
+
+**Date**: 2026-08-24
+**Task**: 恢复摇光实例跨日自动安排
+**Branch**: `master`
+
+### Summary
+
+补齐按 persona 本地日期幂等生成 daily plan、baseline slot 和 durable daily_plan job 的跨日追赶链路；新增停机补偿、DST/时区和重复执行验证，并更新 backend daily-plan code-spec。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ead2dbc` | (see git log) |
+| `e142d40` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
