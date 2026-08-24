@@ -1,0 +1,4 @@
+{"source":".trellis/spec/backend/database-guidelines.md:87-125","kind":"spec","summary":"ready daily plan 是当天权威来源；创建必须有 ready plan 和 baseline；旧日期不得覆盖当前日期，routine 只能 fallback。","check":"验证跨日计划 ready 状态、baseline 连续性和 resolver 日期过滤。"}
+{"source":".trellis/spec/backend/persona-analysis-and-media-jobs.md:153-169","kind":"spec","summary":"每 persona/date 计划和 daily_plan job 必须幂等复用，worker 重试不重复写入。","check":"验证重复 ensure、job replay、lease recovery 和停机追赶。"}
+{"source":"test/life-state-integration.test.mjs:150-220","kind":"regression","summary":"现有创建日 ready plan、baseline slot、payload dailyPlanId 和 handler settlement 断言。","check":"确保共享 helper 与新 handler 不回归创建日和 timezone 行为。"}
+{"source":"test/timeline-proactive-trigger.test.mjs:89-143","kind":"regression","summary":"ready plan slot 投影和 baseline 不创建 candidate 的现有契约。","check":"确保逐日同步不重复 candidate，不删除已有 slot。"}

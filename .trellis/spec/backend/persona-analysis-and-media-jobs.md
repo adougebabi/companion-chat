@@ -133,6 +133,73 @@ if (!poll) enqueuePollCompensation(sourceJob);
 settle(sourceJob, {status: 'complete'});
 ```
 
+## Scenario: Cross-Day Daily-Plan Continuity
+
+### 1. Scope / Trigger
+
+- Trigger: a persona crosses a local calendar day and its previous `daily_plan` job has completed, been delayed, or been replayed after worker recovery.
+- The worker must restore the durable plan/job chain for each missing local date; it must not rely on an in-process timer or the browser polling loop.
+
+### 2. Signatures
+
+```js
+dailyPlanRepository.read({personaId, planDate?, at?})
+dailyPlanRepository.ensure({personaId, planDate?, at?, runAfter?, blueprint?})
+daily_plan({personaId, planDate, dailyPlanId}, {now})
+```
+
+### 3. Contracts
+
+- `ensure()` is persona-scoped and idempotent on `(personaId, planDate)`. A missing date creates one `ready` plan with a continuous `daily_plan_baseline` slot; an existing plan is reused without overwriting items, event decisions, or user schedule bindings.
+- When `at` is provided without `planDate`, reads resolve the persona's local date from the blueprint timezone. A latest-plan compatibility read is allowed only when no date/time is supplied.
+- Each plan date has at most one logical `daily_plan` job. The payload contains `{personaId, dailyPlanId, planDate, idempotencyKey}`; replay checks the stable date key before enqueueing.
+- The maintenance handler uses dispatcher `context.now`, ensures every missing date from the job's source date through the current local date, syncs each plan through `timelineFlow.syncDailyPlanSlots()`, then ensures the next date's job.
+- Newly created future jobs use the target local midnight as `runAfter`; this prevents a catch-up worker from immediately generating an unbounded chain of future plans in one tick.
+- The catch-up span is bounded (currently 366 local days). An over-limit or failed write returns a retryable/terminal bounded job error; it must not report `ready` when no ready row exists.
+- Existing non-baseline slots and baseline-linked event decisions remain protected by the timeline repository and current candidate idempotency rules.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Same persona/date is ensured repeatedly | one plan, baseline slot, and logical daily-plan job are reused |
+| Worker is offline across multiple local dates | next claimed job catches up every missing date up to the bounded span |
+| `dailyPlan` row is missing, not ready, or belongs to another persona | handler fails/retries; it never returns synthetic `ready` |
+| Plan/job payload has an invalid calendar date | bounded validation failure; no new rows are written |
+| Existing schedule/event-decision-bound slot is replayed | slot is preserved and no duplicate candidate is created |
+| Catch-up creates a future job | `runAfter` is the future date's local midnight, not the current tick time |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a Shanghai persona created on D is first processed on D+2; D+1 and D+2 each receive one ready baseline plan, and D+3 is queued for its local midnight.
+- Base: replaying the D+1 job after lease recovery returns the same plan/job identities and does not overwrite a user-confirmed slot.
+- Bad: reading the latest D plan on D+2, marking an absent row ready by default, or enqueueing D+3 with `runAfter=now` so the worker advances forever in one day.
+
+### 6. Tests Required
+
+- Assert D -> D+2 catch-up creates exactly one plan, baseline slot, and logical job per date and one future job at local midnight.
+- Assert repeated ensure/replay/lease recovery preserves row and candidate counts.
+- Assert Asia/Shanghai and a DST transition calculate local dates and baseline boundaries correctly.
+- Assert missing/foreign/not-ready rows and invalid dates fail without synthetic success.
+- Assert existing non-baseline/event-bound slots survive replay.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+const plan = dailyPlan.read({personaId});
+return {status: 'complete', result: {status: plan?.status ?? 'ready'}};
+```
+
+#### Correct
+
+```js
+const plan = dailyPlan.ensure({personaId, planDate, at: context.now});
+if (plan.status !== 'ready') throw new Error('Daily plan is not ready');
+enqueue({jobType: 'daily_plan', runAfter: localMidnight(nextPlanDate)});
+```
+
 ## Scenario: LLM-Gated Proactive Trigger
 
 ### 1. Scope / Trigger

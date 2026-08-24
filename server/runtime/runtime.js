@@ -70,6 +70,7 @@ import {createMediaFlow} from '../application/media-flow.js';
 import {createPendingEventFlow} from '../application/pending-event-flow.js';
 import {createSceneEventFlow} from '../application/scene-event-flow.js';
 import {createAppearanceEventFlow} from '../application/appearance-event-flow.js';
+import {isPlanDate, localDateFor, nextDate, timezoneFor, zonedInstant} from '../domain/daily-plan-defaults.js';
 import {createFlowRegistry} from '../application/flow-registry.js';
 import {registerFlowAdapter} from '../application/flow-effect-adapter.js';
 import {createFlowEffectAdapter} from '../application/flow-effect-adapter.js';
@@ -829,7 +830,7 @@ function resolveRepositories(options, startup) {
         promptRun: createPromptRunRepository({database, clock}),
         state: createStateRepository({database, clock}),
         blueprint,
-        dailyPlan: createDailyPlanRepository({database}),
+        dailyPlan: createDailyPlanRepository({database, blueprintRepository: blueprint, jobRepository: job, clock, id}),
         presence: createPresenceRepository({database})
     });
 }
@@ -1016,26 +1017,107 @@ function resolveMaintenanceHandlers(options, repositories, flows = {}) {
     const timelineFlow = flows.timelineFlow ?? options.timelineFlow;
     const relationshipFlow = flows.relationshipFlow ?? options.relationshipFlow;
     return {
-        daily_plan: async job => {
+        daily_plan: async (job, context = {}) => {
             const payload = typeof job.payload_json === 'string' ? JSON.parse(job.payload_json || '{}') : (job.payload ?? {});
-            const updatedAt = job.updated_at ?? job.updatedAt ?? new Date().toISOString();
-            const personaId = job.persona_id ?? job.personaId;
-            const payloadPlanId = payload.dailyPlanId ?? payload.id;
-            const stored = payloadPlanId
-                ? (repositories.dailyPlan?.readById?.({personaId, dailyPlanId: payloadPlanId})
-                    ?? repositories.dailyPlan?.findById?.({personaId, id: payloadPlanId})
-                    ?? repositories.dailyPlan?.read?.({personaId, at: updatedAt})
-                    ?? null)
-                : repositories.dailyPlan?.read?.({personaId, at: updatedAt}) ?? null;
-            const resolvedDailyPlanId = payloadPlanId ?? stored?.id;
-            const plan = resolvedDailyPlanId ? repositories.dailyPlan?.markReady?.({dailyPlanId: resolvedDailyPlanId, updatedAt}) : stored;
-            const planInput = isRecord(payload.plan)
-                ? {...payload.plan, status: 'ready'}
-                : isRecord(stored?.plan) ? {...stored.plan, status: 'ready'} : undefined;
-            const slots = timelineFlow?.syncDailyPlanSlots
-                ? await timelineFlow.syncDailyPlanSlots({personaId, planDate: payload.planDate ?? payload.plan_date, plan: planInput, at: updatedAt})
+            const at = context.now ?? runtimeClock(options.clock)();
+            const personaId = job.persona_id ?? job.personaId ?? payload.personaId ?? payload.persona_id;
+            const dailyPlan = repositories.dailyPlan;
+            const ensure = dailyPlan?.ensure ?? dailyPlan?.ensureDailyPlan;
+            const payloadPlanId = payload.dailyPlanId ?? payload.daily_plan_id ?? payload.id;
+
+            // External compositions written before ensure() existed still own
+            // their repository and plan lifecycle. Keep that adapter path, but
+            // only report success after a real ready row is returned.
+            if (typeof ensure !== 'function') {
+                const stored = payloadPlanId
+                    ? (dailyPlan?.readById?.({personaId, dailyPlanId: payloadPlanId})
+                        ?? dailyPlan?.findById?.({personaId, id: payloadPlanId})
+                        ?? dailyPlan?.read?.({personaId, at})
+                        ?? null)
+                    : dailyPlan?.read?.({personaId, at}) ?? null;
+                const resolvedDailyPlanId = payloadPlanId ?? stored?.id;
+                const plan = resolvedDailyPlanId ? dailyPlan?.markReady?.({personaId, dailyPlanId: resolvedDailyPlanId, updatedAt: at}) : stored;
+                if (!plan || plan.status !== 'ready') throw new Error('Daily plan is not ready');
+                const rawPlanInput = isRecord(plan.plan)
+                    ? plan.plan
+                    : isRecord(payload.plan) ? payload.plan : isRecord(stored?.plan) ? stored.plan : undefined;
+                const planInput = isRecord(rawPlanInput) ? {...rawPlanInput, status: 'ready'} : rawPlanInput;
+                const slots = timelineFlow?.syncDailyPlanSlots
+                    ? await timelineFlow.syncDailyPlanSlots({personaId, planDate: payload.planDate ?? payload.plan_date ?? plan.planDate ?? plan.plan_date, plan: planInput, at})
+                    : null;
+                if (slots && (slots.skipped || !Array.isArray(slots.slots))) throw new Error('Daily plan slots were not synced');
+                return {status: 'complete', result: {dailyPlanId: resolvedDailyPlanId, status: plan.status, slots: slots?.slots ?? []}};
+            }
+
+            const blueprint = repositories.blueprint?.read?.({personaId});
+            if (!isRecord(blueprint) || typeof blueprint.timezone !== 'string' || !blueprint.timezone.trim()) throw new Error('Daily plan blueprint is missing');
+            const timezone = timezoneFor(blueprint);
+            const localToday = localDateFor(at, timezone);
+            const requestedDate = payload.planDate ?? payload.plan_date;
+            const sourcePlan = payloadPlanId
+                ? (dailyPlan.readById?.({personaId, dailyPlanId: payloadPlanId}) ?? dailyPlan.findById?.({personaId, id: payloadPlanId}))
                 : null;
-            return {status: 'complete', result: {dailyPlanId: resolvedDailyPlanId, status: plan?.status ?? 'ready', slots: slots?.slots ?? []}};
+            const startDate = requestedDate ?? sourcePlan?.planDate ?? sourcePlan?.plan_date ?? localToday;
+            if (!isPlanDate(startDate)) throw new TypeError('Daily plan job requires a valid planDate');
+            const endDate = startDate > localToday ? startDate : localToday;
+            const distance = Math.floor((Date.parse(`${endDate}T00:00:00.000Z`) - Date.parse(`${startDate}T00:00:00.000Z`)) / 86_400_000);
+            const maxCatchUpDays = 366;
+            if (!Number.isFinite(distance) || distance < 0) throw new TypeError('Daily plan job date range is invalid');
+            if (distance > maxCatchUpDays) return {status: 'retry', error: 'Daily plan catch-up span exceeds limit', result: {startDate, endDate, maxCatchUpDays}};
+
+            const ensured = [];
+            const syncedSlots = [];
+            let date = startDate;
+            for (let index = 0; index <= distance; index += 1) {
+                const plan = await ensure.call(dailyPlan, {
+                    personaId,
+                    planDate: date,
+                    at,
+                    runAfter: zonedInstant(date, '00:00', timezone) ?? at,
+                    blueprint
+                });
+                const planOwner = plan?.persona_id ?? plan?.personaId;
+                const planDate = plan?.plan_date ?? plan?.planDate;
+                if (!plan || plan.status !== 'ready' || planOwner !== personaId || planDate !== date) throw new Error(`Daily plan is not ready for ${date}`);
+                if (typeof timelineFlow?.syncDailyPlanSlots !== 'function') throw new Error('Daily plan timeline sync is unavailable');
+                const slots = await timelineFlow.syncDailyPlanSlots({personaId, planDate: date, plan: plan.plan ?? plan.dailyPlan ?? plan, at});
+                if (!slots || slots.skipped || !Array.isArray(slots.slots)) throw new Error(`Daily plan slots were not synced for ${date}`);
+                const restored = await ensure.call(dailyPlan, {
+                    personaId,
+                    planDate: date,
+                    at,
+                    runAfter: zonedInstant(date, '00:00', timezone) ?? at,
+                    blueprint
+                });
+                const restoredOwner = restored?.persona_id ?? restored?.personaId;
+                const restoredDate = restored?.plan_date ?? restored?.planDate;
+                if (!restored || restored.status !== 'ready' || restoredOwner !== personaId || restoredDate !== date) throw new Error(`Daily plan baseline is not ready for ${date}`);
+                ensured.push({dailyPlanId: plan.id ?? plan.planId, planDate: date});
+                syncedSlots.push(...slots.slots);
+                date = nextDate(date);
+            }
+
+            const nextPlan = await ensure.call(dailyPlan, {
+                personaId,
+                planDate: date,
+                at,
+                runAfter: zonedInstant(date, '00:00', timezone) ?? at,
+                blueprint
+            });
+            const nextPlanOwner = nextPlan?.persona_id ?? nextPlan?.personaId;
+            const nextPlanDate = nextPlan?.plan_date ?? nextPlan?.planDate;
+            if (!nextPlan || nextPlan.status !== 'ready' || nextPlanOwner !== personaId || nextPlanDate !== date) throw new Error(`Next daily plan is not ready for ${date}`);
+            return {
+                status: 'complete',
+                result: {
+                    dailyPlanId: ensured[ensured.length - 1]?.dailyPlanId ?? nextPlan.id ?? nextPlan.planId,
+                    planDate: endDate,
+                    status: 'ready',
+                    caughtUpDates: ensured.map(item => item.planDate),
+                    nextPlanDate: date,
+                    slots: syncedSlots
+                }
+            };
         },
         timeline_candidate: async (job, context) => {
             if (typeof timelineFlow?.handleJob === 'function') return timelineFlow.handleJob(job, context);

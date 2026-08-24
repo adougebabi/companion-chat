@@ -1,4 +1,5 @@
 import {randomUUID} from 'node:crypto';
+import {clockFor, dailyPlanFor, dailyPlanJobPayload, initialDailyBaseline, localDateFor} from '../domain/daily-plan-defaults.js';
 
 function assertDatabase(database) {
     if (!database || typeof database.prepare !== 'function' || typeof database.transaction !== 'function') throw new TypeError('Persona lifecycle repository requires an open database');
@@ -10,85 +11,10 @@ function text(value, field) {
     return value.trim();
 }
 
-function clockFor(clock) {
-    if (typeof clock === 'function') return clock;
-    if (clock && typeof clock.now === 'function') return clock.now.bind(clock);
-    return () => new Date().toISOString();
-}
-
 function idFor(id) {
     if (typeof id === 'function') return id;
     if (id && typeof id.next === 'function') return id.next.bind(id);
     return prefix => `${prefix}_${randomUUID()}`;
-}
-
-function localDateFor(value, timezone = 'UTC') {
-    try {
-        const parts = new Intl.DateTimeFormat('en-CA', {timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit'}).formatToParts(new Date(value));
-        const fields = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
-        return `${fields.year}-${fields.month}-${fields.day}`;
-    } catch {
-        return new Date(value).toISOString().slice(0, 10);
-    }
-}
-
-function nextDate(planDate) {
-    const value = new Date(`${planDate}T00:00:00.000Z`);
-    value.setUTCDate(value.getUTCDate() + 1);
-    return value.toISOString().slice(0, 10);
-}
-
-function zonedInstant(planDate, clockText, timezone = 'UTC') {
-    const match = /^(\d{2}):(\d{2})$/.exec(String(clockText || ''));
-    if (!match) return null;
-    const hour = Number(match[1]);
-    const minute = Number(match[2]);
-    if (hour > 24 || minute > 59 || (hour === 24 && minute !== 0)) return null;
-    const target = hour === 24
-        ? new Date(`${nextDate(planDate)}T00:00:00.000Z`).getTime()
-        : Date.UTC(Number(planDate.slice(0, 4)), Number(planDate.slice(5, 7)) - 1, Number(planDate.slice(8, 10)), hour, minute);
-    let candidate = target;
-    for (let index = 0; index < 3; index += 1) {
-        const parts = new Intl.DateTimeFormat('en-US', {timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false}).formatToParts(new Date(candidate));
-        const fields = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
-        const represented = Date.UTC(fields.year, fields.month - 1, fields.day, fields.hour === 24 ? 0 : fields.hour, fields.minute);
-        candidate += target - represented;
-    }
-    return new Date(candidate).toISOString();
-}
-
-function initialDailyBaseline({blueprint, planId, planDate}) {
-    const world = blueprint?.world && typeof blueprint.world === 'object' ? blueprint.world : {};
-    const locations = Array.isArray(world.locations) ? world.locations : [];
-    const defaultRef = world.defaultSceneRef ?? blueprint.defaultSceneRef ?? null;
-    const location = locations.find(item => item?.id === defaultRef?.locationId) ?? locations.find(item => item?.isDefault) ?? locations[0] ?? {};
-    const rooms = Array.isArray(location.rooms) ? location.rooms : [];
-    const room = rooms.find(item => item?.id === defaultRef?.roomId) ?? rooms.find(item => item?.isDefault) ?? rooms[0] ?? {};
-    const scene = String(room.scene ?? location.scene ?? blueprint.defaultScene ?? '日常场景').trim() || '日常场景';
-    const locationName = String(location.name ?? location.title ?? '家中').trim() || '家中';
-    const roomName = String(room.name ?? room.title ?? '自己的房间').trim() || '自己的房间';
-    const timezone = typeof blueprint?.timezone === 'string' && blueprint.timezone.trim() ? blueprint.timezone : 'UTC';
-    const startsAt = zonedInstant(planDate, '00:00', timezone) ?? `${planDate}T00:00:00.000Z`;
-    const endsAt = zonedInstant(planDate, '24:00', timezone) ?? `${nextDate(planDate)}T00:00:00.000Z`;
-    return {
-        id: `${planId}:baseline:initial`,
-        slotKey: `${planId}:baseline:initial`,
-        slotKind: 'baseline_idle',
-        title: '日常休息',
-        situation: '正在自己的空间里休息',
-        scene,
-        sceneRef: defaultRef,
-        location: locationName,
-        room: roomName,
-        startsAt,
-        endsAt,
-        planDate,
-        source: 'daily_plan_baseline',
-        status: 'confirmed',
-        priority: 0,
-        constraints: {title: '日常休息', situation: '正在自己的空间里休息', scene, sceneRef: defaultRef, location: locationName, room: roomName},
-        outcome: {}
-    };
 }
 
 function defaultBlueprint(name, role, foundation, initializationMode = 'llm_defined') {
@@ -138,16 +64,15 @@ export function createPersonaLifecycleRepository({database, clock, id, foundatio
         const blueprintValue = initializationMode === 'blank_slate'
             ? (input.blueprint && typeof input.blueprint === 'object' ? input.blueprint : defaultBlueprint(name, role, foundationText, initializationMode))
             : (input.blueprint && typeof input.blueprint === 'object' ? input.blueprint : (blueprintFactory?.(input) ?? defaultBlueprint(name, role, foundationText, initializationMode)));
-        const timezone = typeof blueprintValue.timezone === 'string' && blueprintValue.timezone.trim() ? blueprintValue.timezone : 'Asia/Shanghai';
+        // Persona creation has historically defaulted missing blueprint timezones
+        // to Asia/Shanghai. Normalize once so the plan JSON and persisted
+        // baseline use the exact same local-day boundary.
+        const configuredTimezone = typeof blueprintValue.timezone === 'string' ? blueprintValue.timezone.trim() : '';
+        const timezone = configuredTimezone || 'Asia/Shanghai';
+        const effectiveBlueprint = {...blueprintValue, timezone};
         const planDate = localDateFor(createdAt, timezone);
-        const initialBaseline = initialDailyBaseline({blueprint: blueprintValue, planId: dailyPlanId, planDate});
-        const initialPlan = {
-            schemaVersion: 1,
-            timezone,
-            planDate,
-            items: [],
-            timeline: [initialBaseline]
-        };
+        const initialBaseline = initialDailyBaseline({blueprint: effectiveBlueprint, planId: dailyPlanId, planDate});
+        const initialPlan = dailyPlanFor({blueprint: effectiveBlueprint, planId: dailyPlanId, planDate});
         db.transaction(() => {
             db.prepare(`INSERT INTO companion_personas (id, name, role, color, group_id, initialization_mode, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(personaId, name, role, color, group.id, initializationMode, createdAt, createdAt);
             db.prepare(`INSERT INTO companion_persona_foundation_revisions (id, persona_id, version, foundation, reason, created_at) VALUES (?, ?, 1, ?, ?, ?)`).run(nextId('foundation'), personaId, foundationText, '初始化人格', createdAt);
@@ -167,8 +92,10 @@ export function createPersonaLifecycleRepository({database, clock, id, foundatio
                 initialBaseline.startsAt, initialBaseline.endsAt, initialBaseline.status, initialBaseline.source,
                 initialBaseline.priority, null, 1, JSON.stringify(initialBaseline.constraints), JSON.stringify(initialBaseline.outcome), createdAt, createdAt
             );
+            // Keep the first maintenance job atomic with the day-one plan and
+            // baseline. The production job repository reuses this transaction.
+            jobRepository?.enqueue?.({id: nextId('job'), jobType: 'daily_plan', personaId, priority: 2, maxAttempts: 12, runAfter: createdAt, payload: dailyPlanJobPayload({personaId, dailyPlanId, planDate})});
         })();
-        jobRepository?.enqueue?.({id: nextId('job'), jobType: 'daily_plan', personaId, priority: 2, maxAttempts: 12, runAfter: createdAt, payload: {dailyPlanId, planDate}});
         return getPersona({personaId});
     }
 
