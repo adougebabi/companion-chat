@@ -141,8 +141,11 @@ remains outstanding.
 PostgreSQL backup/restore passed into an empty `gate_restore_v2` database. The
 active-history upgrade gate failed: a workflow created under `t01-gate-v1` was
 not recovered by a `t01-gate-v2` Worker. Returning to v1 did not rescue it
-before its timeout. An explicit DBOS patch/continuation strategy or a Temporal
-evaluation is required; no custom queue workaround is allowed.
+before its timeout. An additional official `resume_workflow` attempt only
+changed the old record to `ENQUEUED`; it retained the old `app_version` and was
+not consumed by the newer Worker. Preserving the stable workflow ID therefore
+needs an explicit DBOS patch/version strategy that this gate has not proven, or
+a Temporal evaluation; no custom queue workaround is allowed.
 
 ## Decision
 
