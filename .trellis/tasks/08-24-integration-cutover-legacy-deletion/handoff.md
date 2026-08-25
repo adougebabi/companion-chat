@@ -79,6 +79,11 @@ independent of the private Compose environment.
   but the successful configured Provider conversation, client disconnect/no
   later write, viewport/a11y and logout/revocation flows remain manual
   acceptance work.
+- Deployment-owner validation: real Docker + ComfyUI + MinIO Media Activity
+  e2e and a Provider-success-before-database-commit crash-recovery drill are
+  explicitly deferred to the Owner's post-deployment test. Local tests cover
+  the ComfyUI HTTP protocol, stable IDs, Activity cancellation and settlement
+  boundaries but do not claim those external results.
 - `legacy-scope-guard.sh` intentionally fails while the frozen legacy tree is
   still present. CI now asserts that expected pre-cutover failure; after the
   one-time deletion it will require the guard to pass.

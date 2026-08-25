@@ -62,3 +62,33 @@ test("translator rejects unknown event types and invalid UTF-8", async () => {
   const invalidEvents = invalidOutput.trim().split("\n").map((line) => JSON.parse(line) as { type: string; payload: { code: string } });
   assert.equal(invalidEvents.at(-1)?.payload.code, "core_stream_invalid");
 });
+
+test("translator cancels the Core reader and emits no later frame after browser abort", async () => {
+  let upstreamCancelled = false;
+  let release: (() => void) | undefined;
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  const core = new Response(
+    new ReadableStream<Uint8Array>({
+      async start(controller) {
+        controller.enqueue(new TextEncoder().encode(`${JSON.stringify({ type: "token", turn_id: "turn-1", sequence: 0, payload: { text: "first" } })}\n`));
+        await pending;
+        controller.enqueue(new TextEncoder().encode(`${JSON.stringify({ type: "completed", turn_id: "turn-1", sequence: 1, payload: {} })}\n`));
+        controller.close();
+      },
+      cancel() {
+        upstreamCancelled = true;
+      },
+    }),
+  );
+  const controller = new AbortController();
+  const reader = translateCoreNdjson(core, controller.signal).getReader();
+  const first = await reader.read();
+  assert.equal(new TextDecoder().decode(first.value).includes("first"), true);
+
+  controller.abort();
+  release?.();
+  const afterAbort = await reader.read();
+
+  assert.equal(afterAbort.done, true);
+  assert.equal(upstreamCancelled, true);
+});
