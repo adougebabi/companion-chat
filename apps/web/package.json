@@ -8,6 +8,7 @@
     "lint": "vue-tsc --noEmit",
     "typecheck": "vue-tsc --noEmit",
     "test": "node --test test/*.test.mjs",
+    "test:platform": "node --test test/*.test.mjs",
     "build": "vite build"
   },
   "dependencies": {
