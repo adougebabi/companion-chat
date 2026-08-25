@@ -63,6 +63,11 @@ class CognitionService:
         self._clock = clock or (lambda: datetime.now(UTC))
         self._lease_seconds = lease_seconds
 
+    @staticmethod
+    def _lease_is_active(head: Any, now: datetime) -> bool:
+        lease_until = head["writer_lease_until"]
+        return bool(head["writer_owner"] and lease_until is not None and lease_until > now)
+
     @asynccontextmanager
     async def _transaction(
         self, tx: UnitOfWork | None, command_id: str
@@ -195,13 +200,7 @@ class CognitionService:
             )
             if head is None:
                 return None
-            lease_until = head["writer_lease_until"]
-            if (
-                head["writer_owner"]
-                and head["writer_owner"] != worker_id
-                and lease_until is not None
-                and lease_until > now
-            ):
+            if self._lease_is_active(head, now):
                 return None
             next_sequence = int(head["last_processed_sequence"]) + 1
             row = (

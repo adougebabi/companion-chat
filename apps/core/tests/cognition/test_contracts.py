@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fluctlight_core.cognition.contracts import (
@@ -10,6 +10,7 @@ from fluctlight_core.cognition.contracts import (
     stable_action_id,
     stable_provider_request_id,
 )
+from fluctlight_core.cognition.service import CognitionService
 from fluctlight_core.inner_state.contracts import (
     AffectDirection,
     Appraisal,
@@ -93,3 +94,12 @@ def test_action_and_provider_ids_are_stable() -> None:
 def test_reflection_windows_reject_invalid_ranges() -> None:
     with pytest.raises(ValueError):
         ReflectionWindow("fl-1", from_sequence=3, to_sequence=2, base_state_revision=1, watermark=2)
+
+
+def test_active_cognition_writer_lease_blocks_same_and_different_worker_reclaim() -> None:
+    now = datetime.now(UTC)
+    active = {"writer_owner": "worker-a", "writer_lease_until": now + timedelta(seconds=1)}
+    expired = {"writer_owner": "worker-a", "writer_lease_until": now - timedelta(seconds=1)}
+
+    assert CognitionService._lease_is_active(active, now) is True
+    assert CognitionService._lease_is_active(expired, now) is False

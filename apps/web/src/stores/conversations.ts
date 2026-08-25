@@ -23,6 +23,10 @@ function createLocalMessage(conversationId: string, text: string, sequence: numb
   };
 }
 
+function lastSequence(messages: BrowserMessage[]): number {
+  return messages.reduce((highest, message) => Math.max(highest, message.sequence), 0);
+}
+
 export const useConversationStore = defineStore("conversations", {
   state: () => ({
     conversation: null as BrowserConversation | null,
@@ -92,10 +96,12 @@ export const useConversationStore = defineStore("conversations", {
           const page = await client.createConversation({ title: "New conversation" });
           this.conversation = page.conversation;
           this.messages = page.messages;
+          await this.reportReadPosition();
         } else {
           const page = await client.messages(this.conversation.id);
           this.conversation = page.conversation;
           this.messages = page.messages;
+          await this.reportReadPosition();
         }
       } catch {
         this.error = "The conversation could not be loaded.";
@@ -113,6 +119,7 @@ export const useConversationStore = defineStore("conversations", {
         });
         this.conversation = page.conversation;
         this.messages = page.messages;
+        await this.reportReadPosition();
       } catch {
         this.error = "The conversation could not be created.";
       } finally {
@@ -166,7 +173,17 @@ export const useConversationStore = defineStore("conversations", {
               assistantDraft.text = assistantText;
             }
           }
-          if (event.type === "message" && payload.message) this.messages.push(payload.message);
+          if (event.type === "message" && payload.message) {
+            const optimisticIndex = this.messages.findIndex(
+              (message) =>
+                message.id.startsWith("local-") &&
+                message.kind === "user" &&
+                message.conversationId === payload.message!.conversationId &&
+                message.text === payload.message!.text,
+            );
+            if (optimisticIndex >= 0) this.messages.splice(optimisticIndex, 1, payload.message);
+            else this.messages.push(payload.message);
+          }
           if (event.type === "error") throw new Error(payload.code ?? "turn_failed");
         };
         while (true) {
@@ -187,6 +204,7 @@ export const useConversationStore = defineStore("conversations", {
         const page = await client.messages(this.conversation.id);
         this.conversation = page.conversation;
         this.messages = page.messages;
+        await this.reportReadPosition();
         this.attachmentRef = "";
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
@@ -201,6 +219,19 @@ export const useConversationStore = defineStore("conversations", {
     },
     cancel() {
       this.abortController?.abort();
+    },
+    async reportReadPosition() {
+      if (!this.conversation) return;
+      const sequence = lastSequence(this.messages);
+      if (!sequence) return;
+      try {
+        await client.markRead(this.conversation.id, {
+          readSequence: sequence,
+          deliveredSequence: sequence,
+        });
+      } catch {
+        this.error = "The conversation read position could not be saved.";
+      }
     },
   },
 });
