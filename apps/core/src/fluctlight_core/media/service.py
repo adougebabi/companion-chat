@@ -49,6 +49,26 @@ class MediaService:
 
     async def request_generation(self, intent: MediaIntent) -> MediaIntent:
         async with self._unit_of_work.begin(command_id=f"media-intent:{intent.id}") as tx:
+            existing = (
+                (
+                    await tx.session.execute(
+                        select(schema.intents).where(schema.intents.c.id == intent.id)
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if existing is not None:
+                if (
+                    existing["owner_fluctlight_id"] != intent.owner_fluctlight_id
+                    or existing["prompt"] != intent.prompt
+                    or existing["provider_request_id"] != intent.provider_request_id
+                    or existing["workflow_id"] != intent.workflow_id
+                ):
+                    raise ValueError(
+                        "media intent ID was reused with different authoritative content"
+                    )
+                return self._intent_from_row(existing)
             await tx.session.execute(
                 insert(schema.intents).values(
                     id=intent.id,
@@ -97,6 +117,71 @@ class MediaService:
             )
             await tx.commit()
         return intent
+
+    async def get_intent(self, intent_id: str) -> MediaIntent:
+        async with self._unit_of_work.begin(command_id=f"media-intent-read:{intent_id}") as tx:
+            row = (
+                (
+                    await tx.session.execute(
+                        select(schema.intents).where(schema.intents.c.id == intent_id)
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        if row is None:
+            raise KeyError(intent_id)
+        return self._intent_from_row(row)
+
+    @staticmethod
+    def _intent_from_row(row: Any) -> MediaIntent:
+        return MediaIntent(
+            id=row["id"],
+            owner_fluctlight_id=row["owner_fluctlight_id"],
+            kind=row["kind"],
+            mime_type=row["mime_type"],
+            prompt=row["prompt"],
+            provider_request_id=row["provider_request_id"],
+            workflow_id=row["workflow_id"],
+            status=row["status"],
+            revision=int(row["revision"]),
+            created_at=row["created_at"],
+        )
+
+    async def mark_intent_running(self, intent_id: str) -> None:
+        async with self._unit_of_work.begin(command_id=f"media-intent-running:{intent_id}") as tx:
+            await tx.session.execute(
+                update(schema.intents)
+                .where(
+                    schema.intents.c.id == intent_id,
+                    schema.intents.c.status == MediaIntentStatus.PENDING.value,
+                )
+                .values(status=MediaIntentStatus.RUNNING.value)
+            )
+            await tx.commit()
+
+    async def settle_provider_output(
+        self, intent: MediaIntent, *, content: bytes, content_type: str
+    ) -> MediaAsset:
+        descriptor = self._storage.put(
+            asset_id=f"asset_{intent.id}", version="v1", content=content, content_type=content_type
+        )
+        return await self.record_uploaded(intent, descriptor)
+
+    async def settle_provider_failure(self, intent_id: str, *, cancelled: bool = False) -> None:
+        status = MediaIntentStatus.CANCELLED if cancelled else MediaIntentStatus.FAILED
+        async with self._unit_of_work.begin(command_id=f"media-intent-settle:{intent_id}") as tx:
+            await tx.session.execute(
+                update(schema.intents)
+                .where(
+                    schema.intents.c.id == intent_id,
+                    schema.intents.c.status.in_(
+                        [MediaIntentStatus.PENDING.value, MediaIntentStatus.RUNNING.value]
+                    ),
+                )
+                .values(status=status.value)
+            )
+            await tx.commit()
 
     async def record_uploaded(
         self, intent: MediaIntent, descriptor: ObjectDescriptor, *, byte_size: int | None = None
@@ -359,6 +444,7 @@ class MediaWorkflowAdapter:
         heartbeat: Callable[[str], Awaitable[None] | None] | None = None,
         cancelled: Callable[[], bool] | None = None,
         max_polls: int = 120,
+        poll_interval_seconds: float = 1.0,
     ) -> MediaWorkflowResult:
         request_id = await provider.submit(intent)
         if request_id != intent.provider_request_id:
@@ -376,7 +462,7 @@ class MediaWorkflowAdapter:
                 return MediaWorkflowResult(request_id, True, dict(result))
             if result and result.get("status") == "failed":
                 return MediaWorkflowResult(request_id, False, dict(result))
-            await asyncio.sleep(0)
+            await asyncio.sleep(poll_interval_seconds)
         return MediaWorkflowResult(
             request_id, False, {"status": "deferred", "reason": "poll_limit"}
         )

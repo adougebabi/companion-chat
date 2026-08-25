@@ -109,6 +109,17 @@ class SettingsService:
             raise SecretConfigurationError("provider secret is not configured")
         return self._codec.decrypt(EncryptedSecret(row["ciphertext"], row["nonce"], purpose))
 
+    async def runtime_value(self, key: str) -> object | None:
+        """Return one non-secret runtime setting for a trusted in-process adapter."""
+
+        async with self._unit_of_work.begin(command_id=f"settings-runtime:{key}") as tx:
+            value = await tx.session.scalar(
+                select(schema.runtime_settings.c.value_json).where(
+                    schema.runtime_settings.c.key == key
+                )
+            )
+        return json.loads(value) if value is not None else None
+
     async def _require_owner(self, actor: ResolvedHumanActor) -> None:
         if not await self._auth.is_owner(actor):
             raise SettingsError("forbidden")

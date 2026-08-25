@@ -8,6 +8,7 @@ import os
 import signal
 from hashlib import sha256
 
+import boto3  # type: ignore[import-untyped]
 from redis.asyncio import Redis
 from sqlalchemy import insert
 from temporalio.api.workflowservice.v1 import (
@@ -19,25 +20,39 @@ from temporalio.common import VersioningBehavior
 from temporalio.worker import Worker, WorkerDeploymentConfig, WorkerDeploymentVersion
 
 from fluctlight_core.actors.service import AuthService
-from fluctlight_core.autonomy.workflows import AutonomyActionWorkflow
+from fluctlight_core.autonomy import AutonomyExecutor, AutonomyService
+from fluctlight_core.autonomy.workflows import (
+    AutonomyActionWorkflow,
+    configure_autonomy_service,
+    process_autonomy_action,
+)
 from fluctlight_core.cognition.service import CognitionService
 from fluctlight_core.cognition.workflows import (
     CognitionProcessingWorkflow,
     configure_cognition_service,
     process_cognition,
 )
+from fluctlight_core.conversations.service import ConversationService
 from fluctlight_core.diagnostics.service import DiagnosticsService
 from fluctlight_core.inner_state import CognitionStateApplier, InnerStateService
-from fluctlight_core.media.workflows import MediaGenerationWorkflow
+from fluctlight_core.life_world.service import LifeWorldService
+from fluctlight_core.media.service import MediaService
+from fluctlight_core.media.workflows import (
+    MediaGenerationWorkflow,
+    configure_media_service,
+    process_media_generation,
+)
 from fluctlight_core.memory.service import MemoryService
 from fluctlight_core.memory.workflows import (
     MemoryEmbeddingWorkflow,
     configure_embedding_service,
     process_memory_embedding,
 )
+from fluctlight_core.moments.service import MomentsService
 from fluctlight_core.platform import schema as platform_schema
 from fluctlight_core.platform.configuration import PlatformSettings, RuntimeRole
 from fluctlight_core.platform.dispatcher import CommittedIntentDispatcher
+from fluctlight_core.platform.object_storage import S3ObjectStorage
 from fluctlight_core.platform.persistence import UnitOfWorkFactory, create_engine, verify_revision
 from fluctlight_core.platform.redis_streams import DURABLE_CONSUMER_GROUPS, RedisStreams
 from fluctlight_core.platform.temporal import TASK_QUEUES
@@ -128,7 +143,32 @@ async def run_worker(settings: PlatformSettings) -> None:
     relationships = RelationshipService(unit_of_work)
     inner_state = InnerStateService(unit_of_work)
     diagnostics = DiagnosticsService(unit_of_work)
+    object_client = boto3.client(
+        "s3",
+        endpoint_url=settings.s3_endpoint,
+        region_name=settings.s3_region,
+        aws_access_key_id=settings.s3_access_key,
+        aws_secret_access_key=settings.s3_secret_key,
+        use_ssl=settings.s3_use_ssl,
+    )
+    media_service = MediaService(
+        unit_of_work,
+        S3ObjectStorage(object_client, settings.s3_bucket),
+    )
+    autonomy_service = AutonomyService(unit_of_work)
     configure_embedding_service(memory_service, provider_runtime, unit_of_work)
+    configure_media_service(media_service, settings_service)
+    configure_autonomy_service(
+        autonomy_service,
+        AutonomyExecutor(
+            conversations=ConversationService(unit_of_work),
+            memory=memory_service,
+            relationships=relationships,
+            life_world=LifeWorldService(unit_of_work),
+            media=media_service,
+            moments=MomentsService(unit_of_work),
+        ),
+    )
     configure_cognition_service(
         CognitionService(
             unit_of_work,
@@ -173,7 +213,12 @@ async def run_worker(settings: PlatformSettings) -> None:
         Worker(
             client,
             task_queue=queue,
-            activities=[process_cognition, process_memory_embedding],
+            activities=[
+                process_cognition,
+                process_memory_embedding,
+                process_media_generation,
+                process_autonomy_action,
+            ],
             workflows=[
                 PlatformControlWorkflow,
                 CognitionProcessingWorkflow,

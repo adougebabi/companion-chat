@@ -25,6 +25,24 @@ class MomentsService:
 
     async def create(self, moment: Moment) -> Moment:
         async with self._unit_of_work.begin(command_id=f"moment-create:{moment.id}") as tx:
+            existing = (
+                (
+                    await tx.session.execute(
+                        select(schema.moments).where(schema.moments.c.id == moment.id)
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if existing is not None:
+                persisted = self._from_row(existing)
+                if (
+                    persisted.owner_fluctlight_id != moment.owner_fluctlight_id
+                    or persisted.author_actor_id != moment.author_actor_id
+                    or persisted.text != moment.text
+                ):
+                    raise ValueError("moment ID was reused with different authoritative content")
+                return persisted
             await tx.session.execute(
                 insert(schema.moments).values(
                     id=moment.id,

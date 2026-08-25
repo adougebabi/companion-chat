@@ -2,9 +2,27 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
-from temporalio import workflow
+from temporalio import activity, workflow
+
+_autonomy_service: Any | None = None
+_autonomy_executor: Any | None = None
+
+
+def configure_autonomy_service(service: Any, executor: Any) -> None:
+    global _autonomy_service, _autonomy_executor
+    _autonomy_service = service
+    _autonomy_executor = executor
+
+
+@activity.defn(name="process_autonomy_action")
+async def process_autonomy_action(payload: dict[str, Any]) -> dict[str, str]:
+    if _autonomy_service is None or _autonomy_executor is None:
+        raise RuntimeError("autonomy action activity is not configured")
+    action = await _autonomy_service.execute(str(payload["action_id"]), _autonomy_executor)
+    return {"action_id": action.id, "status": action.status.value}
 
 
 @workflow.defn(name="AutonomyActionWorkflow")
@@ -14,4 +32,8 @@ class AutonomyActionWorkflow:
         action_id = str(payload.get("action_id", "")).strip()
         if not action_id:
             raise ValueError("autonomy workflow requires action_id")
-        return {"action_id": action_id, "status": "accepted"}
+        return await workflow.execute_activity(
+            process_autonomy_action,
+            payload,
+            start_to_close_timeout=timedelta(minutes=5),
+        )

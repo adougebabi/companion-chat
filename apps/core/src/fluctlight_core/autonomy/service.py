@@ -82,6 +82,41 @@ class AutonomyService:
             await tx.commit()
         return AutonomyDecision(True, "frozen", action)
 
+    async def get_action(self, action_id: str) -> FrozenAutonomousAction:
+        async with self._unit_of_work.begin(command_id=f"autonomy-read:{action_id}") as tx:
+            row = (
+                (
+                    await tx.session.execute(
+                        select(schema.actions).where(schema.actions.c.id == action_id)
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        if row is None:
+            raise KeyError(action_id)
+        return self._from_row(row)
+
+    async def execute(self, action_id: str, executor: Any) -> FrozenAutonomousAction:
+        action = await self.get_action(action_id)
+        if action.status not in {ActionStatus.FROZEN, ActionStatus.DEFERRED}:
+            return action
+        try:
+            result = await executor.execute(action)
+        except Exception as exc:
+            return await self.govern(
+                action.id,
+                to_status=ActionStatus.FAILED,
+                actor_id=action.fluctlight_id,
+                reason=f"executor_{type(exc).__name__}",
+            )
+        return await self.govern(
+            action.id,
+            to_status=result.status,
+            actor_id=action.fluctlight_id,
+            reason=result.reason,
+        )
+
     async def govern(
         self, action_id: str, *, to_status: ActionStatus, actor_id: str, reason: str
     ) -> FrozenAutonomousAction:
