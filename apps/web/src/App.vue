@@ -16,6 +16,8 @@ const modelId = ref("");
 const role = ref("cognitive_assessment");
 const tokenBudget = ref(2048);
 const timeoutSeconds = ref(60);
+const comfyUiUrl = ref("");
+const comfyUiWorkflow = ref("");
 const newFluctlightName = ref("Browser Acceptance Fluctlight");
 const draft = ref("");
 const authPassword = ref("");
@@ -45,11 +47,32 @@ async function selectView(next: typeof view.value) {
   if (next === "settings") {
     await controlCenter.loadSettings();
     providerUrl.value = String(controlCenter.settings?.values.providerUrl ?? "");
+    const comfy = controlCenter.settings?.values["media.comfyui"];
+    if (comfy && typeof comfy === "object" && !Array.isArray(comfy)) {
+      comfyUiUrl.value = String((comfy as Record<string, unknown>).baseUrl ?? "");
+      const workflow = (comfy as Record<string, unknown>).workflow;
+      comfyUiWorkflow.value = workflow && typeof workflow === "object" ? JSON.stringify(workflow, null, 2) : "";
+    }
   }
 }
 
 async function saveSettings() {
-  await controlCenter.saveSettings({ providerUrl: providerUrl.value }, providerSecret.value);
+  const values: Record<string, unknown> = { providerUrl: providerUrl.value };
+  if (comfyUiUrl.value.trim() || comfyUiWorkflow.value.trim()) {
+    if (!comfyUiUrl.value.trim() || !comfyUiWorkflow.value.trim()) {
+      controlCenter.error = "ComfyUI URL and API workflow are both required.";
+      return;
+    }
+    try {
+      const workflow = JSON.parse(comfyUiWorkflow.value);
+      if (!workflow || typeof workflow !== "object" || Array.isArray(workflow)) throw new Error("workflow_not_object");
+      values["media.comfyui"] = { baseUrl: comfyUiUrl.value.trim(), workflow };
+    } catch {
+      controlCenter.error = "ComfyUI API workflow must be a JSON object.";
+      return;
+    }
+  }
+  await controlCenter.saveSettings(values, providerSecret.value);
   if (modelId.value.trim()) {
     await controlCenter.configureProvider({
       endpointId: endpointId.value,
@@ -214,6 +237,8 @@ onMounted(() => void store.initialize());
       <form class="settings-form" @submit.prevent="saveSettings">
         <label>Provider URL<input v-model="providerUrl" type="url" placeholder="https://provider.internal" /></label>
         <label>Provider secret<input v-model="providerSecret" type="password" autocomplete="new-password" placeholder="Write-only secret" /></label>
+        <label>ComfyUI URL<input v-model="comfyUiUrl" type="url" placeholder="http://comfyui:8188" /></label>
+        <label>ComfyUI API workflow<textarea v-model="comfyUiWorkflow" rows="8" spellcheck="false" placeholder='{"node": {"inputs": {"text": "{{prompt}}"}}}' /></label>
         <div class="settings-grid">
           <label>Endpoint ID<input v-model="endpointId" type="text" maxlength="128" /></label>
           <label>Provider kind<input v-model="providerKind" type="text" maxlength="64" /></label>

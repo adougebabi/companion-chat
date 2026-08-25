@@ -16,4 +16,6 @@ test("control center exposes the required product views", async () => {
   assert.match(source, /Diagnostics/);
   assert.match(source, /Settings/);
   assert.match(source, /Actors/);
+  assert.match(source, /media\.comfyui/);
+  assert.match(source, /ComfyUI API workflow/);
 });
