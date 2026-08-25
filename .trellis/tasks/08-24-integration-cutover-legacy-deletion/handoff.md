@@ -18,12 +18,12 @@ Status: final acceptance pending; cutover and legacy deletion **not executed**.
 | T03-T11 handoffs/manifests | evidence present, dependency gate pending | `validate-handoffs.sh` checks every handoff's T12 owner/status, concrete coverage IDs, exclusions and rollback; JSONL validation passes, but task metadata is still in progress |
 | Core format/lint | pass | `.venv/bin/ruff format --check`, `.venv/bin/ruff check` |
 | Core typecheck | pass | `.venv/bin/mypy --follow-imports=skip apps/core/src apps/core/tests`, 170 files |
-| Core tests | pass | `.venv/bin/pytest -q apps/core/tests`: `126 passed, 1 skipped` (the skip is the opt-in loopback test); streaming order/cancellation regression coverage is included |
+| Core tests | pass | `.venv/bin/pytest -q apps/core/tests`: `127 passed, 1 skipped` (the skip is the opt-in loopback test); streaming order/cancellation and cognition-state-CAS composition regressions are included |
 | Core client generation/typecheck | pass | generate + `tsc --noEmit` |
 | BFF typecheck/build/tests | pass | typecheck/build; external `tsx --test`, 12 passed |
 | Browser client generation/typecheck | pass | generate + `tsc --noEmit` |
 | Web test/typecheck/build | pass | 3 tests passed (keyboard/live-region/form boundary included); `vue-tsc`; `vite build` |
-| Live browser DOM smoke | partial | In-app Browser verified the Owner boundary and, after the generated-client URL/bound-fetch fixes, authenticated `New conversation` shell; create-and-chat, successful token stream, disconnect cancellation, a11y/mobile and logout/revocation remain pending for manual follow-up |
+| Live browser DOM smoke | partial | In-app Browser verified the Owner login and authenticated `New conversation` shell after the generated-client URL/bound-fetch fixes; create-and-chat, successful token stream, disconnect cancellation, a11y/mobile and logout/revocation remain pending for manual follow-up |
 | Generated artifact determinism | pass | second generation produced identical SHA-256 values |
 | Compose config | pass | `docker compose ... config` |
 | Compose readiness/smoke | pass | Disposable private env override; guarded PID-unique project started migration/minio-init/PostgreSQL/Redis/Temporal/Core/Worker/BFF/Web and container-internal BFF health fallback passed |
@@ -65,6 +65,23 @@ the exact pgvector operator path and FTS GIN index remain authoritative.
 present. `infra/acceptance/legacy-scope-guard.sh` must pass only after the
 approved final deletion step and the post-cutover content scan; it is
 independent of the private Compose environment.
+
+## Current Cutover Blocks
+
+- Dependency metadata remains non-final: T02 has no handoff/PASS report and
+  T02-T11 task metadata still reads `in_progress` with no merge/commit
+  completion evidence. T12 cannot create that evidence on their behalf.
+- The current runtime execution entitlement rejected a new disposable Docker
+  drill after the code changes. Existing historical runtime evidence is kept as
+  historical only; `run-active-workflow.sh`, backup/restore, Redis and Provider
+  drills must be rerun when local Docker execution is available.
+- Browser authentication is now verified through the actual browser client,
+  but the successful configured Provider conversation, client disconnect/no
+  later write, viewport/a11y and logout/revocation flows remain manual
+  acceptance work.
+- `legacy-scope-guard.sh` intentionally fails while the frozen legacy tree is
+  still present. CI now asserts that expected pre-cutover failure; after the
+  one-time deletion it will require the guard to pass.
 
 ## Remaining Risks
 
