@@ -17,12 +17,12 @@ Status: final acceptance pending; cutover and legacy deletion **not executed**.
 | --- | --- | --- |
 | T03-T11 handoffs/manifests | evidence present, dependency gate pending | `validate-handoffs.sh` checks every handoff's T12 owner/status, concrete coverage IDs, exclusions and rollback; JSONL validation passes, but task metadata is still in progress |
 | Core format/lint | pass | `.venv/bin/ruff format --check`, `.venv/bin/ruff check` |
-| Core typecheck | pass | `.venv/bin/mypy --follow-imports=skip apps/core/src apps/core/tests`, 170 files |
-| Core tests | pass | `.venv/bin/pytest -q apps/core/tests`: `127 passed, 1 skipped` (the skip is the opt-in loopback test); streaming order/cancellation and cognition-state-CAS composition regressions are included |
+| Core typecheck | pass | `.venv/bin/mypy --follow-imports=skip apps/core/src apps/core/tests`, 176 files |
+| Core tests | pass | `.venv/bin/pytest -q apps/core/tests`: `136 passed, 1 skipped` (the skip is the opt-in loopback test); streaming, state-CAS, reflection, autonomy executor, ComfyUI and backup-inventory regressions are included |
 | Core client generation/typecheck | pass | generate + `tsc --noEmit` |
-| BFF typecheck/build/tests | pass | typecheck/build; external `tsx --test`, 12 passed |
-| Browser client generation/typecheck | pass | generate + `tsc --noEmit` |
-| Web test/typecheck/build | pass | 3 tests passed (keyboard/live-region/form boundary included); `vue-tsc`; `vite build` |
+| BFF typecheck/build/tests | pass | typecheck/build; external `tsx --test`, 13 passed including abort/no-later-write reader cancellation |
+| Browser client generation/typecheck | pass | generate + `tsc --noEmit`; 1 executable same-origin URL regression |
+| Web test/typecheck/build | pass | 3 tests passed (keyboard/live-region/form boundary and ComfyUI configuration included); `vue-tsc`; `vite build` |
 | Live browser DOM smoke | partial | In-app Browser verified the Owner login and authenticated `New conversation` shell after the generated-client URL/bound-fetch fixes; create-and-chat, successful token stream, disconnect cancellation, a11y/mobile and logout/revocation remain pending for manual follow-up |
 | Generated artifact determinism | pass | second generation produced identical SHA-256 values |
 | Compose config | pass | `docker compose ... config` |
