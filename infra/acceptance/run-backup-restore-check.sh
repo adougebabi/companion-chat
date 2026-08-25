@@ -95,6 +95,6 @@ fi
 object_digest=$(printf 't12-backup-object' | sha256sum | awk '{print $1}')
 "${compose[@]}" exec -T -e OBJECT_DIGEST="$object_digest" core sh -c \
   'printf "[{\"key\":\"t12-backup-object.txt\",\"version_id\":null,\"byte_size\":17,\"sha256\":\"%s\"}]\n" "$OBJECT_DIGEST" > /tmp/t12-object-inventory.json'
-"${compose[@]}" exec -T core uv run --no-sync fluctlight-backup manifest /tmp/t12-manifest.json --object-inventory /tmp/t12-object-inventory.json --active-workflow-id t12-backup-workflow
+"${compose[@]}" exec -T -e FLUCTLIGHT_SCHEMA_REVISION="$schema_revision" core uv run --no-sync fluctlight-backup manifest /tmp/t12-manifest.json --object-inventory /tmp/t12-object-inventory.json --active-workflow-id t12-backup-workflow
 "${compose[@]}" exec -T core uv run --no-sync fluctlight-backup verify /tmp/t12-manifest.json --expected-schema-revision "$schema_revision" --observed-object-count 1 --required-env-field DATABASE_URL --required-env-field FLUCTLIGHT_SETTINGS_KEY
 echo "backup-restore-check: head=$schema_revision application tables=${restored_tables//[[:space:]]/} and row counts matched; pgvector=${vector_version//[[:space:]]/}/$vector_type with FTS GIN; temporal_tables=$temporal_tables visibility_tables=$visibility_tables; MinIO object restore and manifest verify passed"

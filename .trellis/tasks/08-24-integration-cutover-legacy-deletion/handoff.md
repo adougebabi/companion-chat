@@ -33,7 +33,7 @@ Status: final acceptance pending; cutover and legacy deletion **not executed**.
 | Redis recovery | pass, disposable volume loss | Guarded `run-redis-recovery-check.sh`: one committed outbox event consumed by exactly 3 groups, Redis volume removed/recreated, replay stream length exactly 1, inbox count preserved, and Worker publisher/replay ran outside the PostgreSQL read transaction |
 | Redis failure policy | pass for bounded unit and disposable runtime behavior | `run-redis-poison-check.sh` injected a failing event with `max_attempts=1`, verified `platform_consumer_failures.status=quarantined`, attempt `1`, and ACK only after quarantine |
 | Redis aggregate gap | pass, disposable out-of-order drill | `run-redis-gap-check.sh` delivered sequence `2` before `1`, verified the gap stayed pending, then replayed sequence `2` after the head advanced and observed both ACKs |
-| pgvector benchmark | pass, representative disposable table | Guarded `run-pgvector-benchmark.sh`: 2,000 `vector(3)` rows, HNSW index scan and measured execution time `0.102 ms`; cutover deliberately keeps HNSW disabled until a stable production model dimension/workload is approved |
+| pgvector benchmark | pass, representative disposable table | Guarded `run-pgvector-benchmark.sh`: 2,000 `vector(3)` rows, HNSW index scan and measured execution time `0.106 ms`; cutover deliberately keeps HNSW disabled until a stable production model dimension/workload is approved |
 | Real PostgreSQL/MinIO/Temporal recovery | pass for disposable smoke | Guarded Compose active-workflow gate completed `PlatformControlWorkflow` with `COMPLETED`, history length 10, no pending activities and `fluctlight.platform-v1` deployment metadata |
 | Backup/restore/upgrade | pass, disposable storage restore checks | Guarded `run-backup-restore-check.sh`: final `0012` app schema (68 public tables) and row counts matched, pgvector `0.8.6/vector` plus FTS GIN, Temporal restore-check databases had 39/3 public tables, MinIO object copy matched and manifest create/verify passed; active-workflow resume is recorded by the separate Temporal gate |
 | Auth/domain smoke | pass for explicit failure boundary | Guarded Owner setup/Core login, Fluctlight creation with materialized Actor, exact Conversation participant linkage and unconfigured-Provider error stream passed |
@@ -73,9 +73,9 @@ independent of the private Compose environment.
   completion evidence. T12 cannot create that evidence on their behalf.
 - Current-session disposable Docker evidence has been rerun for platform
   readiness, active Temporal workflow, auth/domain, media proxy and Redis
-  volume-loss recovery after the Worker sandbox fix. Redis poison/gap,
-  backup/restore, pgvector and configured-Provider fixture drills remain to be
-  rerun for this exact source state before cutover.
+  volume-loss recovery, poison/gap quarantine, backup/restore, pgvector and
+  configured-Provider fixture after the Worker sandbox fix. All automated
+  disposable Docker runtime drills now pass for this exact source state.
 - Browser authentication is now verified through the actual browser client,
   but the successful configured Provider conversation, client disconnect/no
   later write, viewport/a11y and logout/revocation flows remain manual
@@ -149,5 +149,13 @@ independent of the private Compose environment.
   disposable smokes were also rerun successfully. Redis volume-loss recovery
   was rerun as well: one outbox event replayed to exactly three inbox/effect
   groups and the rebuilt stream length was exactly one.
+- Current-session Redis poison and aggregate-gap drills passed: a first-attempt
+  failure is persisted as quarantined before ACK, and sequence 2 stays pending
+  until sequence 1 advances the aggregate head. Backup/restore passed after
+  the acceptance script began injecting its observed Alembic revision into the
+  manifest creation process; this fixes the prior false `unknown` revision and
+  confirms the manifest's schema-revision check. The current pgvector HNSW
+  plan measured `0.106 ms`, and the configured Provider fixture again produced
+  the persisted conversation reply, ready embedding and provenance evidence.
 
 Acceptance owner remains T12. No production readiness or cutover is claimed.
