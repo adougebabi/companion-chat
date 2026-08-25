@@ -103,6 +103,22 @@ export const useConversationStore = defineStore("conversations", {
         this.loading = false;
       }
     },
+    async startConversation(participantActorIds: string[] = []) {
+      this.loading = true;
+      this.error = "";
+      try {
+        const page = await client.createConversation({
+          title: "New conversation",
+          participantActorIds,
+        });
+        this.conversation = page.conversation;
+        this.messages = page.messages;
+      } catch {
+        this.error = "The conversation could not be created.";
+      } finally {
+        this.loading = false;
+      }
+    },
     async send(text: string) {
       const normalized = text.trim();
       if (!normalized || !this.conversation || this.sending) return;

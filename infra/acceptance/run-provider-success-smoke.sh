@@ -141,7 +141,14 @@ call(
     },
     session,
 )
-for role in ("cognitive_assessment", "action_realization", "embedding"):
+for role in (
+    "initialization",
+    "cognitive_assessment",
+    "action_realization",
+    "reflection",
+    "embedding",
+    "media_prompt",
+):
     status, raw = call(
         "/internal/providers/roles",
         "PUT",

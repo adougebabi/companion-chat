@@ -33,6 +33,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: uv sync --locked
+      - run: infra/acceptance/check-core-openapi.sh
       - run: uv run ruff format --check apps/core/src apps/core/tests
       - run: uv run ruff check apps/core/src apps/core/tests
       - run: uv run mypy --follow-imports=skip apps/core/src apps/core/tests

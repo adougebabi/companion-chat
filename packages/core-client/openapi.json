@@ -1,6 +1,6 @@
 {
   "openapi": "3.1.0",
-  "info": { "title": "Fluctlight Core Platform", "version": "0.2.0" },
+  "info": { "title": "Fluctlight Core Platform", "version": "0.1.0" },
   "paths": {
     "/health/live": { "get": { "operationId": "live" } },
     "/health/ready": { "get": { "operationId": "ready" } },
@@ -10,17 +10,18 @@
     "/internal/auth/session": { "get": { "operationId": "session" } },
     "/internal/auth/revoke-all": { "post": { "operationId": "revokeAll" } },
     "/internal/auth/revoke-current": { "post": { "operationId": "revokeCurrent" } },
+    "/internal/auth/reset-password": { "post": { "operationId": "resetPassword" } },
     "/internal/settings": { "get": { "operationId": "readSettings" }, "put": { "operationId": "updateSettings" } },
     "/internal/providers/endpoints": { "put": { "operationId": "configureProviderEndpoint" } },
     "/internal/providers/roles": { "put": { "operationId": "configureModelRole" } },
     "/internal/conversations": { "post": { "operationId": "createConversation" } },
     "/internal/fluctlights": { "get": { "operationId": "listFluctlights" }, "post": { "operationId": "createFluctlight" } },
-    "/internal/fluctlights/{fluctlightId}": { "get": { "operationId": "getFluctlight" } },
-    "/internal/conversations/{conversationId}/history": { "get": { "operationId": "conversationHistory" } },
-    "/internal/conversations/{conversationId}/read": { "post": { "operationId": "markConversationRead" } },
-    "/internal/conversations/{conversationId}/turn": { "post": { "operationId": "acceptConversationTurn" } },
+    "/internal/fluctlights/{fluctlight_id}": { "get": { "operationId": "getFluctlight" } },
+    "/internal/conversations/{conversation_id}/history": { "get": { "operationId": "conversationHistory" } },
+    "/internal/conversations/{conversation_id}/read": { "post": { "operationId": "markConversationRead" } },
+    "/internal/conversations/{conversation_id}/turn": { "post": { "operationId": "acceptConversationTurn" } },
     "/internal/diagnostics": { "get": { "operationId": "readDiagnostics" }, "delete": { "operationId": "clearDiagnostics" } }
-    ,"/internal/media/{assetId}": { "get": { "operationId": "readMedia" } }
+    ,"/internal/media/{asset_id}": { "get": { "operationId": "readMedia" } }
   },
   "components": {
     "schemas": {

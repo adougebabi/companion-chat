@@ -1,5 +1,6 @@
 import asyncio
 from datetime import UTC, datetime
+from typing import Any, cast
 
 import pytest
 from fluctlight_core.cognition.contracts import (
@@ -19,6 +20,7 @@ from fluctlight_core.conversations.contracts import (
     MessageKind,
     TurnStreamEvent,
 )
+from fluctlight_core.conversations.service import ConversationService
 from fluctlight_core.transport.conversations import stream_turn
 
 
@@ -129,9 +131,9 @@ class BlockingStreamingProvider(StreamingProvider):
 
 def _service(provider: object) -> CognitionService:
     service = CognitionService.__new__(CognitionService)
-    service._assessment_provider = object()
-    service._realization_provider = provider
-    service._diagnostics = None
+    setattr(service, "_assessment_provider", object())
+    setattr(service, "_realization_provider", provider)
+    setattr(service, "_diagnostics", None)
     return service
 
 
@@ -232,7 +234,11 @@ def test_transport_stream_preserves_order_and_single_terminal() -> None:
         return [
             chunk
             async for chunk in stream_turn(
-                Service(), ConversationTurn("conversation-1", "human-1", "hello", turn_id="turn-1")
+                cast(
+                    ConversationService,
+                    cast(Any, Service()),
+                ),
+                ConversationTurn("conversation-1", "human-1", "hello", turn_id="turn-1"),
             )
         ]
 

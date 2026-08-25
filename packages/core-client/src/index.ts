@@ -1,5 +1,5 @@
 // Generated from packages/core-client/openapi.json. Do not edit by hand.
-export const coreOperations = ["/health/live","/health/ready","/internal/auth/login","/internal/auth/revoke-all","/internal/auth/revoke-current","/internal/auth/session","/internal/auth/setup","/internal/conversations","/internal/conversations/{conversationId}/history","/internal/conversations/{conversationId}/read","/internal/conversations/{conversationId}/turn","/internal/diagnostics","/internal/fluctlights","/internal/fluctlights/{fluctlightId}","/internal/media/{assetId}","/internal/platform/ping","/internal/providers/endpoints","/internal/providers/roles","/internal/settings"] as const;
+export const coreOperations = ["/health/live","/health/ready","/internal/auth/login","/internal/auth/reset-password","/internal/auth/revoke-all","/internal/auth/revoke-current","/internal/auth/session","/internal/auth/setup","/internal/conversations","/internal/conversations/{conversation_id}/history","/internal/conversations/{conversation_id}/read","/internal/conversations/{conversation_id}/turn","/internal/diagnostics","/internal/fluctlights","/internal/fluctlights/{fluctlight_id}","/internal/media/{asset_id}","/internal/platform/ping","/internal/providers/endpoints","/internal/providers/roles","/internal/settings"] as const;
 
 export type CoreHealth = { status: string; role: string };
 export type CoreSession = { authenticated: boolean; actorId?: string };
@@ -50,6 +50,10 @@ export class CoreClient {
   async revokeCurrent(humanSession: string): Promise<void> {
     const response = await this.fetcher(new URL("/internal/auth/revoke-current", this.baseUrl), { method: "POST", headers: { "x-fluctlight-service-key": this.serviceKey, "x-fluctlight-human-session": humanSession } });
     if (!response.ok) throw new Error(`Core revoke-current request failed: ${response.status}`);
+  }
+  async resetPassword(humanSession: string, password: string): Promise<void> {
+    const response = await this.fetcher(new URL("/internal/auth/reset-password", this.baseUrl), { method: "POST", headers: { "x-fluctlight-service-key": this.serviceKey, "x-fluctlight-human-session": humanSession, "content-type": "application/json" }, body: JSON.stringify({ password }) });
+    if (!response.ok) throw new Error(`Core reset-password request failed: ${response.status}`);
   }
   async readSettings(humanSession: string): Promise<CoreSafeSettings> { return this.settings("GET", humanSession); }
   async updateSettings(humanSession: string, patch: object): Promise<CoreSafeSettings> { return this.settings("PUT", humanSession, patch); }

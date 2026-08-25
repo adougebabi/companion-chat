@@ -18,18 +18,18 @@ Status: final acceptance pending; cutover and legacy deletion **not executed**.
 | T03-T11 handoffs/manifests | evidence present, dependency gate pending | `validate-handoffs.sh` checks every handoff's T12 owner/status, concrete coverage IDs, exclusions and rollback; JSONL validation passes, but task metadata is still in progress |
 | Core format/lint | pass | `.venv/bin/ruff format --check`, `.venv/bin/ruff check` |
 | Core typecheck | pass | `.venv/bin/mypy --follow-imports=skip apps/core/src apps/core/tests`, 170 files |
-| Core tests | pass | `.venv/bin/pytest -q apps/core/tests`: `123 passed, 1 skipped` (the skip is the opt-in loopback test); the external Provider socket test passed separately outside the sandbox |
+| Core tests | pass | `.venv/bin/pytest -q apps/core/tests`: `126 passed, 1 skipped` (the skip is the opt-in loopback test); streaming order/cancellation regression coverage is included |
 | Core client generation/typecheck | pass | generate + `tsc --noEmit` |
 | BFF typecheck/build/tests | pass | typecheck/build; external `tsx --test`, 12 passed |
 | Browser client generation/typecheck | pass | generate + `tsc --noEmit` |
 | Web test/typecheck/build | pass | 3 tests passed (keyboard/live-region/form boundary included); `vue-tsc`; `vite build` |
-| Live browser DOM smoke | pass for local unauthenticated/auth boundary shell | Vite dev page was inspected through the in-app browser; Owner sign-in form, navigation, alert region, Message textbox and Attachment reference textbox were visible and named; BFF-backed authenticated flows remain pending |
+| Live browser DOM smoke | partial | In-app Browser verified the Owner boundary and, after the generated-client URL/bound-fetch fixes, authenticated `New conversation` shell; create-and-chat, successful token stream, disconnect cancellation, a11y/mobile and logout/revocation remain pending for manual follow-up |
 | Generated artifact determinism | pass | second generation produced identical SHA-256 values |
 | Compose config | pass | `docker compose ... config` |
 | Compose readiness/smoke | pass | Disposable private env override; guarded PID-unique project started migration/minio-init/PostgreSQL/Redis/Temporal/Core/Worker/BFF/Web and container-internal BFF health fallback passed |
 | Excluded scope guard | pass | no excluded production capability references |
 | Legacy deletion guard | fail as expected | exact legacy targets remain (`server/`, legacy `web/`, `test/`, root Docker/Compose, npm lock, `.env.example`, `.nvmrc`); the content scan also reports the frozen README/env references |
-| Provider success | pass, disposable configured endpoint | Guarded `run-provider-success-smoke.sh`: real HTTP fixture container, strict structured/stream preflight, SSE realization, conversation reply and 2 provenance rows passed |
+| Provider success | pass, disposable configured endpoint | Guarded `run-provider-success-smoke.sh`: real HTTP fixture container, six-role preflight, two independently flushed SSE token frames before terminal, conversation reply, embedding=`ready`, and 3 provenance rows passed |
 | Redis recovery | pass, disposable volume loss | Guarded `run-redis-recovery-check.sh`: one committed outbox event consumed by exactly 3 groups, Redis volume removed/recreated, replay stream length exactly 1, inbox count preserved, and Worker publisher/replay ran outside the PostgreSQL read transaction |
 | Redis failure policy | pass for bounded unit and disposable runtime behavior | `run-redis-poison-check.sh` injected a failing event with `max_attempts=1`, verified `platform_consumer_failures.status=quarantined`, attempt `1`, and ACK only after quarantine |
 | Redis aggregate gap | pass, disposable out-of-order drill | `run-redis-gap-check.sh` delivered sequence `2` before `1`, verified the gap stayed pending, then replayed sequence `2` after the head advanced and observed both ACKs |
@@ -75,9 +75,10 @@ independent of the private Compose environment.
 - T07 creates the real pgvector extension, vector column, FTS GIN index and
   embedding workflow; JSONB remains a rebuildable projection. Embedding work
   now records pending/failed/stale states, validates target revisions and
-  model-wide dimensions. A representative HNSW benchmark passes, but HNSW is
-  intentionally disabled until a stable production model dimension/workload
-  contract exists; a full configured embedding workflow smoke is still pending.
+  model-wide dimensions. The configured Provider smoke now creates a real
+  Memory and observes embedding=`ready`; a representative HNSW benchmark passes,
+  but HNSW is intentionally disabled until a stable production model
+  dimension/workload contract exists.
 - T10 local HTTP secure-cookie behavior follows the Web trusted-origin scheme
   (`13001`) and double-submit CSRF is tested; the login boundary and
   unauthenticated live DOM smoke passed, but full authenticated browser/a11y/
@@ -107,10 +108,9 @@ independent of the private Compose environment.
   aggregate head/gap handling and three durable group effect records are now
   persisted and tested, with Redis recovery proving exactly 3 effects after
   replay; the poison and out-of-order drills prove bounded quarantine and gap
-  replay. Provider
-  realization remains buffered at
-  the adapter boundary, so live abort and incremental chunk delivery are not
-  claimed by the fixture smoke.
+  replay. Provider realization now forwards flushed chunks through the Core
+  NDJSON stream and the fixture smoke proves incremental token ordering; the
+  browser/BFF disconnect and no-later-write acceptance remains pending.
 - Worker long-running task supervision now detects unexpected Temporal task
   exit and logs bounded error classes; deployment build IDs can be supplied
   through `FLUCTLIGHT_BUILD_ID` while preserving the `platform-v1` default.

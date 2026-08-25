@@ -6,9 +6,11 @@
   "exports": "./src/index.ts",
   "scripts": {
     "generate": "node scripts/generate.mjs",
+    "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "tsx": "4.20.5",
     "typescript": "5.9.3"
   }
 }

@@ -16,6 +16,7 @@ const modelId = ref("");
 const role = ref("cognitive_assessment");
 const tokenBudget = ref(2048);
 const timeoutSeconds = ref(60);
+const newFluctlightName = ref("Browser Acceptance Fluctlight");
 const draft = ref("");
 const authPassword = ref("");
 const composer = ref<HTMLTextAreaElement | null>(null);
@@ -62,6 +63,15 @@ async function saveSettings() {
     });
   }
   providerSecret.value = "";
+}
+
+async function createFluctlightAndConversation() {
+  const name = newFluctlightName.value.trim() || "New Fluctlight";
+  const created = await controlCenter.createFluctlight(name);
+  if (created?.id) {
+    await store.startConversation([created.id]);
+    view.value = "chat";
+  }
 }
 
 function prettyPayload(payload: Record<string, unknown>) {
@@ -169,6 +179,13 @@ onMounted(() => void store.initialize());
 
     <section v-else-if="view === 'actors'" class="control-panel" aria-labelledby="actors-title">
       <div class="panel-heading"><p class="eyebrow">ACTORS</p><h2 id="actors-title">Conversation participants</h2></div>
+      <form class="actor-create-form" @submit.prevent="createFluctlightAndConversation">
+        <label for="fluctlight-name">Create Fluctlight</label>
+        <div class="actor-create-row">
+          <input id="fluctlight-name" v-model="newFluctlightName" type="text" maxlength="256" />
+          <button class="send-button" type="submit" :disabled="controlCenter.saving || controlCenter.loading">Create and chat</button>
+        </div>
+      </form>
       <div v-if="controlCenter.fluctlights.length" class="actor-list">
         <div v-for="fluctlight in controlCenter.fluctlights" :key="fluctlight.id" class="actor-row"><span class="avatar">F</span><div><strong>{{ String(fluctlight.identity.name ?? fluctlight.id) }}</strong><small>{{ fluctlight.id }}</small></div><span class="state-label">{{ fluctlight.status }}</span></div>
       </div>
@@ -201,7 +218,7 @@ onMounted(() => void store.initialize());
           <label>Endpoint ID<input v-model="endpointId" type="text" maxlength="128" /></label>
           <label>Provider kind<input v-model="providerKind" type="text" maxlength="64" /></label>
           <label>Model ID<input v-model="modelId" type="text" maxlength="256" placeholder="Configured model" /></label>
-          <label>Model role<select v-model="role"><option value="cognitive_assessment">Assessment</option><option value="action_realization">Realization</option><option value="reflection">Reflection</option><option value="embedding">Embedding</option></select></label>
+          <label>Model role<select v-model="role"><option value="initialization">Initialization</option><option value="cognitive_assessment">Assessment</option><option value="action_realization">Realization</option><option value="reflection">Reflection</option><option value="embedding">Embedding</option><option value="media_prompt">Media prompt</option></select></label>
           <label>Token budget<input v-model.number="tokenBudget" type="number" min="1" step="1" /></label>
           <label>Timeout seconds<input v-model.number="timeoutSeconds" type="number" min="1" step="1" /></label>
         </div>
@@ -258,6 +275,9 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .tab { flex: 0 0 auto; padding: 8px 10px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #647480; cursor: pointer; font-size: .83rem; }
 .tab:hover, .tab.selected { border-bottom-color: #326b75; color: #245763; }
 .control-panel { min-height: 420px; overflow-y: auto; padding: 24px 8px; border-bottom: 1px solid #d8dfe4; }
+.actor-create-form { display: grid; gap: 8px; max-width: 620px; margin-bottom: 18px; color: #42535d; font-size: .86rem; }
+.actor-create-row { display: flex; gap: 8px; }
+.actor-create-row input { flex: 1; min-height: 36px; padding: 0 10px; border: 1px solid #cbd5db; border-radius: 4px; color: #17232c; }
 .panel-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
 .panel-heading h2 { margin: 0; color: #1f2b35; font-size: 1.25rem; }
 .panel-actions { align-items: center; }

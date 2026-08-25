@@ -17,7 +17,11 @@ export type BrowserConversationPage = { conversation: BrowserConversation; parti
 export type BrowserTurnEvent = { type: "token" | "message" | "media" | "completed" | "error" | "heartbeat"; turnId: string; sequence: number; payload: Record<string, unknown> };
 
 export class BrowserClient {
-  constructor(private readonly baseUrl = "", private readonly fetcher: typeof fetch = fetch) {}
+  constructor(private readonly baseUrl = "", private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis)) {}
+  private url(path: string): URL {
+    const origin = this.baseUrl || (typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:13000");
+    return new URL(path, origin);
+  }
   async health(path: "/health/live" | "/health/ready"): Promise<BrowserHealth> { return this.json(path) as Promise<BrowserHealth>; }
   async session(): Promise<BrowserSession> { return this.json("/auth/session") as Promise<BrowserSession>; }
   async login(password: string): Promise<BrowserSession> { return this.json("/auth/login", { method: "POST", body: { password } }) as Promise<BrowserSession>; }
@@ -40,7 +44,7 @@ export class BrowserClient {
     await this.json(\`/api/conversations/\${encodeURIComponent(conversationId)}/read\`, { method: "POST", body });
   }
   async turn(conversationId: string, body: { text: string; fluctlightId?: string; attachmentRefs?: string[]; idempotencyKey: string; turnId?: string }, signal?: AbortSignal): Promise<Response> {
-    const response = await this.fetcher(new URL(\`/api/conversations/\${encodeURIComponent(conversationId)}/turn\`, this.baseUrl), {
+    const response = await this.fetcher(this.url(\`/api/conversations/\${encodeURIComponent(conversationId)}/turn\`), {
       method: "POST", credentials: "include", headers: { "content-type": "application/json", accept: "application/x-ndjson", ...this.csrfHeaders() }, body: JSON.stringify(body), signal,
     });
     if (!response.ok) throw new Error(\`Browser conversation turn failed: \${response.status}\`);
@@ -59,7 +63,7 @@ export class BrowserClient {
   async media(assetId: string, range?: string, signal?: AbortSignal): Promise<Response> {
     const headers: Record<string, string> = {};
     if (range) headers.Range = range;
-    const response = await this.fetcher(new URL(\`/api/media/\${encodeURIComponent(assetId)}\`, this.baseUrl), { headers, credentials: "include", signal });
+    const response = await this.fetcher(this.url(\`/api/media/\${encodeURIComponent(assetId)}\`), { headers, credentials: "include", signal });
     if (!response.ok) throw new Error(\`Browser media request failed: \${response.status}\`);
     return response;
   }
@@ -71,7 +75,7 @@ export class BrowserClient {
   }
   private async json(path: string, options: { method?: string; body?: unknown } = {}): Promise<unknown> {
     const method = options.method ?? "GET";
-    const response = await this.fetcher(new URL(path, this.baseUrl), {
+    const response = await this.fetcher(this.url(path), {
       method, credentials: "include",
       headers: { ...(options.body ? { "content-type": "application/json" } : {}), ...(method !== "GET" ? this.csrfHeaders() : {}) },
       body: options.body ? JSON.stringify(options.body) : undefined,

@@ -27,10 +27,12 @@ export const useControlCenterStore = defineStore("control-center", {
     async createFluctlight(name: string) {
       this.error = "";
       try {
-        await client.createFluctlight({ name });
+        const created = await client.createFluctlight({ name });
         await this.loadFluctlights();
+        return created;
       } catch {
         this.error = "Fluctlight could not be created.";
+        return null;
       }
     },
     async loadDiagnostics() {

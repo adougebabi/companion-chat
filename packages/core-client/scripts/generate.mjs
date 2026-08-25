@@ -57,6 +57,10 @@ export class CoreClient {
     const response = await this.fetcher(new URL("/internal/auth/revoke-current", this.baseUrl), { method: "POST", headers: { "x-fluctlight-service-key": this.serviceKey, "x-fluctlight-human-session": humanSession } });
     if (!response.ok) throw new Error(\`Core revoke-current request failed: \${response.status}\`);
   }
+  async resetPassword(humanSession: string, password: string): Promise<void> {
+    const response = await this.fetcher(new URL("/internal/auth/reset-password", this.baseUrl), { method: "POST", headers: { "x-fluctlight-service-key": this.serviceKey, "x-fluctlight-human-session": humanSession, "content-type": "application/json" }, body: JSON.stringify({ password }) });
+    if (!response.ok) throw new Error(\`Core reset-password request failed: \${response.status}\`);
+  }
   async readSettings(humanSession: string): Promise<CoreSafeSettings> { return this.settings("GET", humanSession); }
   async updateSettings(humanSession: string, patch: object): Promise<CoreSafeSettings> { return this.settings("PUT", humanSession, patch); }
   async configureProviderEndpoint(humanSession: string, endpoint: object): Promise<void> { await this.provider("/internal/providers/endpoints", humanSession, endpoint); }
