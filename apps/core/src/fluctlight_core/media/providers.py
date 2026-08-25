@@ -50,6 +50,7 @@ class ComfyUiPlugin:
 
     base_url: str
     workflow: Mapping[str, Any]
+    transport: httpx.AsyncBaseTransport | None = None
 
     @classmethod
     def from_config(cls, value: object) -> ComfyUiPlugin:
@@ -68,7 +69,7 @@ class ComfyUiPlugin:
 
     async def submit(self, intent: MediaIntent) -> str:
         workflow = self._replace_prompt(self.workflow, intent.prompt)
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, transport=self.transport) as client:
             response = await client.post(
                 f"{self.base_url}/prompt",
                 json={"prompt": workflow, "prompt_id": intent.provider_request_id},
@@ -81,7 +82,7 @@ class ComfyUiPlugin:
         return prompt_id
 
     async def poll(self, provider_request_id: str) -> Mapping[str, Any] | None:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, transport=self.transport) as client:
             response = await client.get(f"{self.base_url}/history/{provider_request_id}")
             if response.status_code == 404:
                 return None
@@ -100,7 +101,7 @@ class ComfyUiPlugin:
         return {"status": "completed", "output": output}
 
     async def cancel(self, provider_request_id: str) -> None:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, transport=self.transport) as client:
             queue = await client.post(
                 f"{self.base_url}/queue", json={"delete": [provider_request_id]}
             )
@@ -117,7 +118,9 @@ class ComfyUiPlugin:
             "subfolder": str(output.get("subfolder", "")),
             "type": str(output.get("type", "output")),
         }
-        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=60.0, follow_redirects=True, transport=self.transport
+        ) as client:
             response = await client.get(f"{self.base_url}/view", params=params)
             response.raise_for_status()
         content_type = response.headers.get("content-type", "application/octet-stream").split(
