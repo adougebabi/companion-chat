@@ -1,12 +1,8 @@
-"""Private Media lifecycle and Provider recovery seams."""
+"""Private Media lifecycle and Provider recovery seams.
 
-from .providers import DEFAULT_MEDIA_PROVIDERS, ComfyUiPlugin, MediaProviderRegistry
-from .service import MediaService, MediaWorkflowAdapter
+Workflow validation imports ``fluctlight_core.media.workflows`` through this
+package. Do not import HTTP Provider implementations here: they belong to
+activities and are not valid workflow-sandbox dependencies.
+"""
 
-__all__ = [
-    "ComfyUiPlugin",
-    "DEFAULT_MEDIA_PROVIDERS",
-    "MediaProviderRegistry",
-    "MediaService",
-    "MediaWorkflowAdapter",
-]
+__all__: list[str] = []

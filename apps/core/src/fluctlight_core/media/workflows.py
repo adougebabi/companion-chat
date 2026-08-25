@@ -8,8 +8,11 @@ from typing import Any, cast
 
 from temporalio import activity, workflow
 
-from .providers import DEFAULT_MEDIA_PROVIDERS, DownloadableMediaProvider
-from .service import MediaService, MediaWorkflowAdapter
+# These imports are only used by the Activity. Passing them through keeps HTTP
+# and persistence dependencies out of Temporal's deterministic workflow reload.
+with workflow.unsafe.imports_passed_through():
+    from .providers import DEFAULT_MEDIA_PROVIDERS, DownloadableMediaProvider
+    from .service import MediaService, MediaWorkflowAdapter
 
 _media_service: MediaService | None = None
 _settings_service: Any | None = None

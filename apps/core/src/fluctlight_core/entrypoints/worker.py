@@ -20,7 +20,8 @@ from temporalio.common import VersioningBehavior
 from temporalio.worker import Worker, WorkerDeploymentConfig, WorkerDeploymentVersion
 
 from fluctlight_core.actors.service import AuthService
-from fluctlight_core.autonomy import AutonomyExecutor, AutonomyService
+from fluctlight_core.autonomy.executors import AutonomyExecutor
+from fluctlight_core.autonomy.service import AutonomyService
 from fluctlight_core.autonomy.workflows import (
     AutonomyActionWorkflow,
     configure_autonomy_service,

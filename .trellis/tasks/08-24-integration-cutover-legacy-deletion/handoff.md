@@ -17,8 +17,8 @@ Status: final acceptance pending; cutover and legacy deletion **not executed**.
 | --- | --- | --- |
 | T03-T11 handoffs/manifests | evidence present, dependency gate pending | `validate-handoffs.sh` checks every handoff's T12 owner/status, concrete coverage IDs, exclusions and rollback; JSONL validation passes, but task metadata is still in progress |
 | Core format/lint | pass | `.venv/bin/ruff format --check`, `.venv/bin/ruff check` |
-| Core typecheck | pass | `.venv/bin/mypy --follow-imports=skip apps/core/src apps/core/tests`, 176 files |
-| Core tests | pass | `.venv/bin/pytest -q apps/core/tests`: `136 passed, 1 skipped` (the skip is the opt-in loopback test); streaming, state-CAS, reflection, autonomy executor, ComfyUI and backup-inventory regressions are included |
+| Core typecheck | pass | `.venv/bin/mypy --follow-imports=skip apps/core/src apps/core/tests`, 177 files |
+| Core tests | pass | `.venv/bin/pytest -q apps/core/tests`: `137 passed, 1 skipped` (the skip is the opt-in loopback test); streaming, state-CAS, reflection, autonomy executor, ComfyUI, Temporal sandbox and backup-inventory regressions are included |
 | Core client generation/typecheck | pass | generate + `tsc --noEmit` |
 | BFF typecheck/build/tests | pass | typecheck/build; external `tsx --test`, 13 passed including abort/no-later-write reader cancellation |
 | Browser client generation/typecheck | pass | generate + `tsc --noEmit`; 1 executable same-origin URL regression |
@@ -71,10 +71,11 @@ independent of the private Compose environment.
 - Dependency metadata remains non-final: T02 has no handoff/PASS report and
   T02-T11 task metadata still reads `in_progress` with no merge/commit
   completion evidence. T12 cannot create that evidence on their behalf.
-- The current runtime execution entitlement rejected a new disposable Docker
-  drill after the code changes. Existing historical runtime evidence is kept as
-  historical only; `run-active-workflow.sh`, backup/restore, Redis and Provider
-  drills must be rerun when local Docker execution is available.
+- Current-session disposable Docker evidence has been rerun for platform
+  readiness, active Temporal workflow, auth/domain and media proxy after the
+  Worker sandbox fix. Redis recovery/poison/gap, backup/restore, pgvector and
+  configured-Provider fixture drills remain to be rerun for this exact source
+  state before cutover.
 - Browser authentication is now verified through the actual browser client,
   but the successful configured Provider conversation, client disconnect/no
   later write, viewport/a11y and logout/revocation flows remain manual
@@ -138,5 +139,13 @@ independent of the private Compose environment.
 - Worker long-running task supervision now detects unexpected Temporal task
   exit and logs bounded error classes; deployment build IDs can be supplied
   through `FLUCTLIGHT_BUILD_ID` while preserving the `platform-v1` default.
+- Current-session Temporal startup initially exposed a real Worker crash during
+  workflow sandbox validation: `AutonomyActionWorkflow` reached the ComfyUI
+  HTTP client through package imports. Activity-only Media Provider and service
+  imports are now passed through the Temporal sandbox, and package initializers
+  no longer import autonomy executors or Media Provider implementations. The
+  real active-workflow drill was rerun and completed with history length 10 and
+  deployment `fluctlight/platform-v1`; platform, auth/domain and media proxy
+  disposable smokes were also rerun successfully.
 
 Acceptance owner remains T12. No production readiness or cutover is claimed.
