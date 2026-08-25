@@ -58,3 +58,19 @@ def test_manifest_reports_missing_components_and_file_hash(tmp_path: Path) -> No
         observed_object_count=1,
         required_env_fields={"DATABASE_URL"},
     )
+
+
+def test_manifest_keeps_operator_supplied_object_and_active_workflow_inventory() -> None:
+    manifest = build_manifest(
+        manifest_id="manifest-2",
+        schema_revision="0012_t12_consumer_effects",
+        postgres_snapshot_id="snapshot-2",
+        object_bucket="bucket",
+        objects=(ObjectManifestEntry("media/a/v1", "v1", 3, "a" * 64),),
+        env={"DATABASE_URL": "postgres://...", "FLUCTLIGHT_SETTINGS_KEY": "configured"},
+        temporal=TemporalRestorePlan("temporal", "visibility", "default", ("workflow-active-1",)),
+        application_version="0.1.0",
+    )
+
+    assert manifest.objects[0].sha256 == "a" * 64
+    assert manifest.temporal.active_workflow_ids == ("workflow-active-1",)
