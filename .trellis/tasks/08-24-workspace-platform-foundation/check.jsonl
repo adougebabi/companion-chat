@@ -1,0 +1,9 @@
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"verify database/migration/UoW/recovery foundation"}
+{"file":".trellis/spec/backend/fluctlight-event-contract.md","reason":"verify Redis/outbox/inbox transport foundation"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"verify Temporal management/history integration and no second runtime"}
+{"file":".trellis/spec/backend/fluctlight-api-contract.md","reason":"verify Core OpenAPI/NDJSON/framework isolation"}
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"verify BFF generated contracts and no storage/domain access"}
+{"file":".trellis/spec/backend/fluctlight-media-contract.md","reason":"verify private MinIO/S3 platform slice"}
+{"file":".trellis/spec/backend/fluctlight-configuration-contract.md","reason":"verify env/config platform boundary"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t02-platform-foundation-brief.md","reason":"verify exact T02 scope/paths/commands and no product implementation"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/temporal-runtime-acceptance.md","reason":"verify deferred checks and no resource-duration blocker"}

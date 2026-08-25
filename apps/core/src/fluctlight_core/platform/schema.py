@@ -49,6 +49,55 @@ consumer_inbox = Table(
     UniqueConstraint("consumer_group", "event_id", name="consumer_event"),
 )
 
+consumer_failures = Table(
+    "platform_consumer_failures",
+    metadata,
+    Column("id", String(128), primary_key=True),
+    Column("consumer_group", String(96), nullable=False),
+    Column("event_id", String(128), nullable=False),
+    Column("stream_id", String(128), nullable=False),
+    Column("attempt", Integer, nullable=False),
+    Column("max_attempts", Integer, nullable=False),
+    Column("status", String(32), nullable=False),
+    Column("error_code", String(128), nullable=False),
+    Column("details", JSONB, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    UniqueConstraint("consumer_group", "event_id", "attempt", name="consumer_failure_attempt"),
+)
+
+consumer_heads = Table(
+    "platform_consumer_heads",
+    metadata,
+    Column("consumer_group", String(96), nullable=False),
+    Column("aggregate_type", String(96), nullable=False),
+    Column("aggregate_id", String(128), nullable=False),
+    Column("last_sequence", Integer, nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    UniqueConstraint(
+        "consumer_group",
+        "aggregate_type",
+        "aggregate_id",
+        name="consumer_aggregate_head",
+    ),
+)
+
+consumer_effects = Table(
+    "platform_consumer_effects",
+    metadata,
+    Column("id", String(128), primary_key=True),
+    Column("consumer_group", String(96), nullable=False),
+    Column("event_id", String(128), nullable=False),
+    Column("effect_type", String(64), nullable=False),
+    Column("aggregate_type", String(96), nullable=False),
+    Column("aggregate_id", String(128), nullable=False),
+    Column("aggregate_sequence", Integer, nullable=False),
+    Column("correlation_id", String(128), nullable=False),
+    Column("fluctlight_id", String(128)),
+    Column("payload_digest", String(64), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    UniqueConstraint("consumer_group", "event_id", name="consumer_effect_once"),
+)
+
 workflow_management_audit = Table(
     "platform_workflow_management_audit",
     metadata,

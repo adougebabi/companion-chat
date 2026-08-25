@@ -5,8 +5,11 @@ description = "Fluctlight clean-start Core platform"
 requires-python = ">=3.13,<3.14"
 dependencies = [
   "alembic==1.16.5",
+  "argon2-cffi>=25.1.0",
   "boto3==1.40.0",
+  "cryptography>=50.0.0",
   "fastapi==0.116.1",
+  "httpx==0.28.1",
   "psycopg[binary,pool]==3.2.9",
   "pydantic==2.11.7",
   "redis==6.4.0",
@@ -19,9 +22,15 @@ dependencies = [
 serve-api = "fluctlight_core.entrypoints.api:main"
 run-worker = "fluctlight_core.entrypoints.worker:main"
 run-migrations = "fluctlight_core.entrypoints.migrate:main"
+fluctlight = "fluctlight_core.entrypoints.owner:main"
+fluctlight-backup = "fluctlight_core.entrypoints.backup:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fluctlight_core"]
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
 
 [build-system]
 requires = ["hatchling==1.27.0"]

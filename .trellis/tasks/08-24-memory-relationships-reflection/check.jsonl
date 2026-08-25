@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/fluctlight-memory-contract.md","reason":"implementation context only; T12 final acceptance: typed Memory and hybrid retrieval"}
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"implementation context only; T12 final acceptance: reflection semantic ownership and evidence"}
+{"file":".trellis/spec/backend/fluctlight-provider-contract.md","reason":"implementation context only; T12 final acceptance: reflection/embedding model roles"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implementation context only; T12 final acceptance: revisions, CAS and async embedding intent"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"implementation context only; T12 final acceptance: Memory/Relationship/reflection source requirements"}
+{"file":".trellis/spec/backend/fluctlight-event-contract.md","reason":"implementation context only; T12 final acceptance: embedding and reflection outbox replay"}

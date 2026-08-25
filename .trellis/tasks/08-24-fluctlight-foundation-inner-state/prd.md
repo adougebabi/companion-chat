@@ -12,15 +12,14 @@
 - 旧实现/旧测试只读冻结；不兼容、不双写、不分批切换。
 - 本 child 在 start 前必须由父任务补齐 child-specific brief、exact decisions/manifests/owned paths/commands/handoff，并通过 no-history dry run。
 
-## Acceptance Criteria
+## Implementation Evidence (Not Acceptance)
 
-- [ ] 所有前置 child 完成、合并并通过父任务检查（D038 明确将 T03 未完成状态作为 carry-forward risk）。
-- [x] Child-specific brief/manifests/owned paths/validation 已由父任务批准，dry run 无文档歧义。
-- [x] 仅本 child 拥有的 spec 条款/scenarios 及直接受本 child 修改影响的 shared contracts targeted regression 通过。
-- [x] 已运行 child brief 允许的 focused unit/architecture/contract 类别，未重跑前置任务或全系统 suite；real-PG/runtime 类别按 Owner 指令 deferred。
+- [ ] 所有前置 child 状态、D038 carry-forward risk、child brief、owned/forbidden paths、implementation-check commands、T12 coverage IDs 和 handoff 模板已记录。
+- [x] 已完成实现授权文档和 no-history dry run；该结果只证明 implementation readiness，不证明 child acceptance。
+- [x] 已记录 focused implementation evidence，未将其标记为 product PASS；real-PG/runtime、cross-module、failure/security 和 full-product acceptance 均 pending T12。
 - [x] 未修改冻结旧实现，未触发产品分批交付或 cutover。
-- [x] 已在 `research/t04-fluctlight-foundation-inner-state-report.md` 提供可供 cognitive runtime orchestration and user-facing flows 使用的明确 handoff，并列出 deferred gates。
+- [x] 已在 `research/t04-fluctlight-foundation-inner-state-report.md` 提供 implementation handoff，列出 deferred gates、T12 coverage IDs、`acceptance_owner=T12` 和 `acceptance=pending`。
 
 ## Planning State
 
-The parent program outline was expanded into a child-specific brief and no-history dry run under parent decision D038. The Owner explicitly authorized implementation while T03 remains `in_progress`; this exception does not mark T03 complete or merged. Docker, Compose, long-running process, and full-stack runtime acceptance are explicitly deferred for this session and remain open acceptance items.
+The parent program outline was expanded into a child-specific brief and no-history dry run under parent decision D038. The Owner explicitly authorized implementation while T03 remains `in_progress`; this exception does not mark T03/T04 PASS or production readiness. Docker, Compose, long-running process, real-PostgreSQL, full-stack and final functional acceptance are T12-owned and remain pending.

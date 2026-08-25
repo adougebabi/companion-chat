@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/fluctlight-api-contract.md","reason":"implement from: Core commands and internal NDJSON"}
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"implement from: browser contract/stream/error boundary"}
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"implement from: two-stage visible action contract"}
+{"file":".trellis/spec/backend/fluctlight-auth-contract.md","reason":"implement from: Actor/session authorization"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implement from: message sequencing and short transaction boundaries"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implement from: complete Conversation/chat user scenarios"}

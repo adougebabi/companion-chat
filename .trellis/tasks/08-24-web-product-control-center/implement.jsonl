@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"implement from: browser generated contract and BFF boundary"}
+{"file":".trellis/spec/backend/fluctlight-auth-contract.md","reason":"implement from: Owner-only product/diagnostic access"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"implement from: Control Center/log/prompt/turn UX requirements"}
+{"file":".trellis/spec/backend/fluctlight-configuration-contract.md","reason":"implement from: settings UI and write-only secrets"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implement from: all required browser flows"}

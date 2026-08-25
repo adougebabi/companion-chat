@@ -2,14 +2,15 @@
 
 ## Status
 
-`FOCUSED ACCEPTANCE PASS WITH DEFERRED RUNTIME GATES` - 2026-08-24.
+`CHILD-LOCAL IMPLEMENTATION EVIDENCE — T12 ACCEPTANCE PENDING` - 2026-08-24.
 
 The T04 domain slice is implemented and passes its local contract, architecture,
 property-style numeric, revision/governance, and focused migration-definition
-checks. This is not a full product-readiness or cutover claim. Parent decision
+checks. These are implementation evidence, not T04 acceptance or a product
+readiness claim. Parent decision
 D038 explicitly authorized implementation while T03 remains `in_progress` and
-deferred Docker, Compose, long-running process, real PostgreSQL, and full-stack
-runtime acceptance.
+deferred Docker, Compose, long-running process, real PostgreSQL, full-stack
+and final functional acceptance to T12.
 
 ## Entry Evidence
 
@@ -88,14 +89,14 @@ PYTHONPATH=src ../../.venv/bin/alembic upgrade 0003_t04_fluctlight --sql
 offline SQL generation completed through 0003_t04_fluctlight
 ```
 
-The focused tests cover canonical numeric ranges and non-finite rejection,
+The recorded implementation checks cover canonical numeric ranges and non-finite rejection,
 wall-time decay, raw/empty numeric-delta rejection, typed enum/trigger input,
 personality evidence window/max delta/cooldown/confidence, stale revision, one
 revision per assessment, mood/drive audit deltas, goal/intention lifecycle and
 expiry, module boundaries, single metadata graph, actor audit FKs, and
 composite goal ownership.
 
-## Deferred Acceptance
+## Deferred T12 Final Acceptance
 
 The following were intentionally not run and must not be reported as PASS:
 
@@ -105,7 +106,7 @@ The following were intentionally not run and must not be reported as PASS:
   transaction rollback/concurrency, and database constraint integration.
 - Docker/Compose config/startup/readiness, long-running API/Worker processes,
   BFF/Core/browser integration, and full-product suites.
-- T03's owner-skipped acceptance, merge/archive, and production handoff.
+- T03's owner-skipped local verification, merge/archive, and production handoff.
 
 ## Handoff And Risks
 
@@ -114,6 +115,6 @@ The following were intentionally not run and must not be reported as PASS:
 - The current T03 worktree remains unmerged and its public Actor handoff is a
   carry-forward risk. Resolve that risk before product cutover or before
   relying on real cross-module authorization.
-- Run the deferred real-PostgreSQL and runtime gates before archiving T04 as a
-  fully accepted child. No product traffic was cut over and no frozen old code
+- T12 must re-run the deferred real-PostgreSQL, runtime and cross-module gates
+  before final acceptance. No product traffic was cut over and no frozen old code
   was changed.

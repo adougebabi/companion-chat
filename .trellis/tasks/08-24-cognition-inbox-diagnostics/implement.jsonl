@@ -1,0 +1,7 @@
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"implement from: authoritative cognition, semantic failure and ordering contract"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"implement from: built-in prompt/log/turn diagnostics"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"implement from: Temporal orchestration and stable IDs"}
+{"file":".trellis/spec/backend/fluctlight-provider-contract.md","reason":"implement from: assessment/realization/reflection roles"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implement from: short Unit of Work phases and external I/O boundaries"}
+{"file":".trellis/spec/backend/fluctlight-event-contract.md","reason":"implement from: durable inbox, replay, sequence and commit-before-ack rules"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"implement from: cognitive runtime source requirements"}

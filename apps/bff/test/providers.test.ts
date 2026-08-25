@@ -1,0 +1,57 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { createBff } from "../src/app.js";
+
+test("provider endpoint configuration forwards session without a secret response", async () => {
+  let receivedSession = "";
+  let body = "";
+  const app = createBff({
+    coreBaseUrl: "http://core.invalid",
+    coreServiceKey: "internal",
+    trustedOrigin: "https://fluctlight.local",
+    fetcher: async (_url, init) => {
+      receivedSession = new Headers(init?.headers).get("x-fluctlight-human-session") ?? "";
+      body = typeof init?.body === "string" ? init.body : "";
+      return new Response(null, { status: 204 });
+    },
+  });
+  const response = await app.inject({
+    method: "PUT",
+    url: "/api/providers/endpoints",
+    headers: { origin: "https://fluctlight.local", "x-csrf-token": "csrf-token" },
+    cookies: { fluctlight_session: "opaque-session", fluctlight_csrf: "csrf-token" },
+    payload: { endpointId: "local", kind: "openai", baseUrl: "http://provider", secretPurpose: "provider:local" },
+  });
+  assert.equal(response.statusCode, 204);
+  assert.equal(receivedSession, "opaque-session");
+  assert.match(body, /secret_purpose/);
+  assert.doesNotMatch(response.body, /provider:local/);
+  const blocked = await app.inject({
+    method: "PUT",
+    url: "/api/providers/endpoints",
+    cookies: { fluctlight_session: "opaque-session" },
+    payload: { endpointId: "local", kind: "openai", baseUrl: "http://provider", secretPurpose: "provider:local" },
+  });
+  assert.equal(blocked.statusCode, 403);
+  await app.close();
+});
+
+test("provider role maps Core preflight metadata to browser-safe camelCase", async () => {
+  const app = createBff({
+    coreBaseUrl: "http://core.invalid",
+    coreServiceKey: "internal",
+    trustedOrigin: "https://fluctlight.local",
+    fetcher: async () => Response.json({ role: "embedding", available: true, capability_version: "dimensions:768" }),
+  });
+  const response = await app.inject({
+    method: "PUT",
+    url: "/api/providers/roles",
+    headers: { origin: "https://fluctlight.local", "x-csrf-token": "csrf-token" },
+    cookies: { fluctlight_session: "opaque-session", fluctlight_csrf: "csrf-token" },
+    payload: { role: "embedding", endpointId: "local", modelId: "embed", tokenBudget: 100, timeoutSeconds: 10 },
+  });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.json(), { role: "embedding", available: true, capabilityVersion: "dimensions:768" });
+  await app.close();
+});

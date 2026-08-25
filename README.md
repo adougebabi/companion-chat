@@ -1,91 +1,39 @@
-# 摇光（Fluctlight）
+# Fluctlight Workspace
 
-面向 MTPLX 与 ComfyUI 的本地 AI 个体聊天服务，目标是让每个摇光实例拥有连续的身份、生活上下文、记忆和关系。项目不运行或复制任何模型，所有推理仍由已启动的 MTPLX 和 ComfyUI 进程承担。
+This repository contains the clean-start Fluctlight system:
 
-## 运行
+- `apps/core`: Python 3.13 FastAPI/Core and Temporal Worker. It owns Actors,
+  Fluctlights, cognition, conversations, Memory, Relationships, Life World,
+  Moments, Media, persistence and authorization.
+- `apps/bff`: Node 24/Fastify browser boundary. It owns cookies, CSRF/origin
+  transport, generated browser DTOs, NDJSON translation and media proxying.
+- `apps/web`: Vue 3/Vite/Pinia product UI and Control Center.
+- `packages/core-client` and `packages/browser-client`: generated contract
+  clients whose OpenAPI artifacts must be regenerated together.
+- `infra/compose`: PostgreSQL/pgvector, Redis Streams, MinIO, Temporal, Core,
+  Worker, BFF and Web deployment topology.
 
-运行时固定为 Node.js `22.23.2`。使用与 `.nvmrc` 一致的 Node 版本后再安装依赖：
+## Local Checks
 
 ```bash
-nvm use
-npm install
-npm start
+pnpm install --frozen-lockfile
+pnpm generate
+pnpm typecheck
+pnpm test
+pnpm build
+
+uv sync --locked
+.venv/bin/ruff format --check apps/core/src apps/core/tests
+.venv/bin/ruff check apps/core/src apps/core/tests
+.venv/bin/mypy --follow-imports=skip apps/core/src apps/core/tests
+.venv/bin/pytest -q apps/core/tests
 ```
 
-默认打开 `http://localhost:4178`。服务地址、数据目录、MTPLX 与 ComfyUI 地址均可由环境变量配置，见 [`.env.example`](.env.example)。设置页面中的地址会覆盖首次启动时的环境变量默认值。
+The full disposable Compose smoke and recovery checks are under
+`infra/acceptance/`. They accept a private env file through
+`FLUCTLIGHT_ENV_FILE`; do not commit credentials. PostgreSQL, object storage,
+Temporal default/visibility databases and `.env` are backed up together using
+the manifest tooling under `infra/backup/`.
 
-## Docker / NAS 部署
-
-```bash
-cp .env.example .env
-# 修改 .env 中的 MTPLX_URL、MTPLX_API_KEY 与 COMFYUI_URL
-docker compose up -d --build
-```
-
-应用数据会保存在 `companion-data` Docker volume 中的 SQLite 数据库。当前摇光系统以空数据启动，不读取、迁移或删除旧的 `data/state.json` / `app_state` 内容；旧文件会原样保留在本地。
-
-容器中的 `localhost` 指向容器自身：MTPLX 位于宿主机时填写 `http://host.docker.internal:8000/v1`；位于局域网其他机器时填写该机器的局域网地址。ComfyUI 也在 Compose 网络中时使用服务名，例如 `http://comfyui:8188`。
-
-GitHub 推送到 `main`、`master` 或推送 `v*` 标签时，[`docker-publish.yml`](.github/workflows/docker-publish.yml) 会构建并发布 `companion-chat` 镜像。仓库需要设置两个 Actions Secrets：`DOCKER_HUB_USERNAME` 和 `DOCKER_HUB_ACCESS_TOKEN`。
-
-## 摇光实例、生活与记忆
-
-首次打开没有示例摇光实例。用户通过简短问答创建一个有自己名字的摇光实例，可以预览或跳过预览；身份核心、生活蓝图、与用户的私有关系记忆和当前生活状态分别保存。身份核心的人工修订是版本化记录，自动状态/事件不会覆盖它。
-
-创建摇光实例时，服务先构造可用的确定性生活模型，再同步请求本地 LLM 生成受限的生活模型；模型不可用、超时或返回不合格 JSON 时会完整回退，不会阻断创建流程。生活模型包含默认住处/房间、固定时间安排、每日可偏移安排、随机正向机会和仅限轻微且可恢复的负向机会。模型不能自动生成重大伤害、医疗、违法、重大财务、不可逆关系或身份改变。
-
-每天的时间线将固定/弹性安排投影为稳定槽位；随机机会先成为可审计决策，`no_event` 是正常结果，不会为了制造动态强行发生事件。实际发生的事件仍先写入生活事件事实，再按策略投影为状态、动态、媒体或主动消息。开发检查器可查看时间线、候选决策、事件和作业。
-
-聊天可以在任何场景中发生，是对当前生活状态的叠加互动而不是替代事件。睡眠中系统会按关系亲密度、睡眠状态和确定性随机结果选择立即回复或延迟批次；一旦进入延迟批次，后续用户消息只合并到同一批次，不能重新唤醒该摇光实例。到内部 `deliverAt` 后，系统将合并理解并投递一条普通助手消息，界面不会显示睡眠占位或预计回复时间。
-
-每个摇光实例有独立的对话、记忆、支持角色、日程、事件和 Moments 动态。服务按本地时区以有限的日常作息推进状态；轻度可恢复事件可以在开发检查器中按同一白名单模拟。摇光实例之间不共享用户信息或社交世界。
-
-当天计划生成完成后，它会被服务端补齐为连续的睡眠、活动、空闲与休息时间线，并成为当天状态的唯一事实来源。用户明确日程只覆盖自身的时间区间；计划前后仍会回到已确认的日计划或默认房间，而不会因为摇光实例的身份是学生就自动显示为上课。聊天和媒体上下文使用同一状态来源及可信时间边界；没有可信结束时间时，系统不会根据身份猜测课程或下课时间。
-
-动态支持评论、点赞与非破坏性隐藏。评论会成为**该动态作者**的关系证据；屏蔽该摇光实例只隐藏之后的动态并阻止主动私聊，不会停止其生活或产生惩罚。
-
-## AI 自主的生图与生视频
-
-在设置中从 ComfyUI 使用 `File -> Export Workflow (API)` 导出工作流 JSON。将正向提示词节点的文本写为 `{{prompt}}`，粘贴到对应工作流配置。
-
-摇光实例可在视觉事件中自主请求图片；用户也可以在自然语言聊天中表达想看的内容，由服务端决定是否创建媒体意图。系统会把不可变视觉基线、当前外观、当前场景和心情组合进工作流提示词。图片和视频任务都会以原消息中的占位卡片开始，完成后原位替换，不会额外产生新消息或未读数。
-
-活动文字先持久化，再以耐久作业排队生成可选图片。第一版每条动态最多一张图片，界面会在原动态中保留骨架占位；图片失败不会删除文字事件。服务端一次只租约处理一个生成任务，以便为 MTPLX 与 ComfyUI 保留资源。
-
-### 媒体 Provider
-
-服务端内置 `comfyui`（图片、视频）与 `h3`（视频）provider。默认仍为 `comfyui`，现有 `COMFYUI_URL`、图片工作流和视频工作流配置不需要迁移。设置 API 使用 `imageProvider` 和 `videoProvider` 选择 provider，并只接受已注册且具备对应能力的 ID；任务创建时会保存选中的 provider，因此之后修改默认值不会影响已排队的任务。
-
-`h3` 只由服务端执行。配置 `H3_EXECUTABLE`、`H3_MODEL_DIR`、`H3_OUTPUT_DIR`，可选 `H3_ALLOWED_ROOT` 和 `H3_TIMEOUT_MS`；设置保存还可传入结构化 `h3Defaults`，例如：
-
-```json
-{
-  "videoProvider": "h3",
-  "h3Defaults": {
-    "width": 1280,
-    "height": 720,
-    "frames": 81,
-    "steps": 30,
-    "layers": 16,
-    "reuse": 2,
-    "ssdStreaming": true
-  }
-}
-```
-
-服务器将这些值映射为固定白名单参数（`-d`、`-p`、`--width`、`--height`、`--frames`、`--steps`、`--layers`、`--reuse`、`--ssd-streaming`、`-o`），使用参数数组启动进程，不会执行配置提供的 shell 字符串。保存 h3 路径或切换到 h3 视频 provider 时，服务会验证可执行文件为存在且可执行的绝对路径、模型目录存在，以及输出目录位于允许根内且可创建写入；验证失败不会写入 SQLite。设置页只显示 `…/h3`、`…/MiniMax-H3`、`…/outputs` 一类的安全末段摘要和校验状态，不会回显完整路径。已完成 MP4 仍通过现有 `/api/companion/media/:mediaId` 代理读取。
-
-## 资源策略
-
-- 服务使用单文件 SQLite 与版本化 `companion_*` 表，没有额外数据库守护进程、向量库或后台 embedding 任务。
-- 只有聊天或明确的耐久作业需要时才请求 MTPLX / ComfyUI；日常作息推进在提供方不可用时仍可运行。
-- 作业以 SQLite 租约、重试时间和尝试次数持久化，重启不会静默丢失它们。
-- 生产启动不含 Vite、热更新或文件监听。
-
-`data/` 是运行时数据，包含 SQLite 数据库、完整本地聊天上下文和调试追踪，已被 `.gitignore` 排除。不要将它提交到 Git 或公开共享。
-
-## 本地开发检查器
-
-默认不提供调试入口，也不会注册调试 API。仅在本地开发时设置 `COMPANION_DEBUG_INSPECTOR=1`，聊天页才会出现开发检查器；它按当前选中的摇光实例显示经过截断和凭据脱敏的提示词组合、最近请求/响应、事件和耐久作业。媒体任务会优先显示最终送入 provider 的提示词；h3 视频任务还会显示真实阶段、尝试次数、耗时、h3 明确输出的百分比（没有则显示未报告）和最新一条经过路径/凭据脱敏的本地输出。检查器还可调用仅在该开关下注册的 h3 预检：它检查当前服务的 h3 文件配置，再以 8 秒超时和无 shell 的 `h3 --help` 启动探测，不提交 prompt、不加载模型、不创建耐久作业或媒体资产；若二进制与当前服务环境不兼容，结果会明确提示检查运行环境。检查器中的“测试媒体作业”会实际入队，因此不应在部署环境中开启该开关。
-
-设置页的“简化媒体模式”只影响聊天窗口：开启后不会加载消息中的图片或视频资源，而是用简洁状态提示替代。生成任务、消息附件记录和开发检查器中的触发、最终提示词与进度查看仍照常工作，适合集中调试本地 provider。
+The old Node/SQLite implementation remains frozen until T12's final gates pass.
+It is not a compatibility runtime and must not be used for new development.

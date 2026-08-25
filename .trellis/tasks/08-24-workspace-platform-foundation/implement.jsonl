@@ -1,0 +1,9 @@
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"database, migration, Unit of Work and recovery baseline"}
+{"file":".trellis/spec/backend/fluctlight-event-contract.md","reason":"Redis Streams/outbox/inbox platform contract"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"accepted Temporal runtime and management/history integration"}
+{"file":".trellis/spec/backend/fluctlight-api-contract.md","reason":"FastAPI/OpenAPI/NDJSON Core transport foundation"}
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"Fastify/generated-client BFF foundation"}
+{"file":".trellis/spec/backend/fluctlight-media-contract.md","reason":"S3/MinIO private adapter/grant platform slice"}
+{"file":".trellis/spec/backend/fluctlight-configuration-contract.md","reason":"startup env/platform configuration foundation"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t02-platform-foundation-brief.md","reason":"exact T02 decisions, ownership, deliverables, commands and exit"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/temporal-runtime-acceptance.md","reason":"authoritative Temporal acceptance and carry-forward checks"}

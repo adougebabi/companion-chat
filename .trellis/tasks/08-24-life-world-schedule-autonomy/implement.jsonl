@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"implement from: Schedule/Event/Context authority"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"implement from: Goal/Intention/Action and governance"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"implement from: durable triggers/timers/recovery"}
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"implement from: semantic trigger and frozen decision boundary"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"implement from: context/schedule/goals/intentions runtime source"}

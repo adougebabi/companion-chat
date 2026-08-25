@@ -38,13 +38,18 @@ services:
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-fluctlight-local-only}
     volumes:
       - fluctlight_minio:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:9000/minio/health/live >/dev/null"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
     networks: [platform]
 
   minio-init:
     image: minio/mc:RELEASE.2025-04-16T18-13-26Z
     depends_on:
       minio:
-        condition: service_started
+        condition: service_healthy
     environment:
       MC_HOST_local: http://${S3_ACCESS_KEY:-fluctlight}:${S3_SECRET_KEY:-fluctlight-local-only}@minio:9000
     command: ["mb", "--ignore-existing", "--with-versioning", "local/${S3_BUCKET:-fluctlight-media}"]
@@ -69,7 +74,7 @@ services:
       DEFAULT_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
       SERVICES: frontend,history,matching,worker
     healthcheck:
-      test: ["CMD-SHELL", "temporal operator cluster health --address 127.0.0.1:7233 >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "temporal operator cluster health --address temporal:7233 >/dev/null 2>&1"]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -92,7 +97,7 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:-fluctlight-local-only}
       S3_USE_SSL: "false"
       FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:-fluctlight-local-service-key}
-      FLUCTLIGHT_SETTINGS_KEY: ${FLUCTLIGHT_SETTINGS_KEY:-fluctlight-local-settings-key}
+      FLUCTLIGHT_SETTINGS_KEY: ${FLUCTLIGHT_SETTINGS_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
       FLUCTLIGHT_API_PORT: ${FLUCTLIGHT_API_PORT:-8080}
@@ -144,12 +149,28 @@ services:
     environment:
       CORE_BASE_URL: http://core:8080
       FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:-fluctlight-local-service-key}
+      FLUCTLIGHT_TRUSTED_ORIGIN: ${FLUCTLIGHT_TRUSTED_ORIGIN:-http://127.0.0.1:13001}
       BFF_PORT: 3000
     depends_on:
       core:
         condition: service_healthy
     ports:
       - "127.0.0.1:13000:3000"
+    networks: [platform]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_BFF_ORIGIN: ${VITE_BFF_ORIGIN:-http://127.0.0.1:13000}
+    depends_on:
+      bff:
+        condition: service_started
+    environment:
+      VITE_BFF_ORIGIN: http://127.0.0.1:13000
+    ports:
+      - "127.0.0.1:13001:4173"
     networks: [platform]
 
 networks:

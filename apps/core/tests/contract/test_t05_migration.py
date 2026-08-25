@@ -1,0 +1,15 @@
+from fluctlight_core.transport.api import EXPECTED_REVISION
+
+
+def test_t05_advances_the_linear_readiness_revision() -> None:
+    assert EXPECTED_REVISION in {
+        "0004_t05_cognition_diagnostics",
+        "0005_t06_conversations",
+        "0006_t07_memory_relationships",
+        "0007_t08_life_world_autonomy",
+        "0008_t09_moments_media",
+        "0009_t12_vector_column",
+        "0010_t12_event_failures",
+        "0011_t12_consumer_heads",
+        "0012_t12_consumer_effects",
+    }

@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/fluctlight-media-contract.md","reason":"implementation context only; T12 final acceptance: private object storage/media lifecycle and proxy"}
+{"file":".trellis/spec/backend/fluctlight-event-contract.md","reason":"implementation context only; T12 final acceptance: progress and durable event transport"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"implementation context only; T12 final acceptance: long media tasks and recovery"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"implementation context only; T12 final acceptance: authorized Moment/media actions"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implementation context only; T12 final acceptance: Required Moments/image/video/h3 scope and exclusions"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implementation context only; T12 final acceptance: media intent and object result transactions"}

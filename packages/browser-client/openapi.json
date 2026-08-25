@@ -19,6 +19,95 @@
       "get": {
         "operationId": "platformPing"
       }
+    },
+    "/auth/setup": {
+      "post": {
+        "operationId": "authSetup"
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "authLogin"
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "authLogout"
+      }
+    },
+    "/auth/session": {
+      "get": {
+        "operationId": "authSession"
+      }
+    },
+    "/auth/revoke-all": {
+      "post": {
+        "operationId": "authRevokeAll"
+      }
+    },
+    "/api/settings": {
+      "get": {
+        "operationId": "readSettings"
+      },
+      "put": {
+        "operationId": "updateSettings"
+      }
+    },
+    "/api/providers/endpoints": {
+      "put": {
+        "operationId": "configureProviderEndpoint"
+      }
+    },
+    "/api/providers/roles": {
+      "put": {
+        "operationId": "configureModelRole"
+      }
+    },
+    "/api/conversations": {
+      "post": {
+        "operationId": "createConversation"
+      }
+    },
+    "/api/fluctlights": {
+      "get": {
+        "operationId": "listFluctlights"
+      },
+      "post": {
+        "operationId": "createFluctlight"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}": {
+      "get": {
+        "operationId": "getFluctlight"
+      }
+    },
+    "/api/conversations/{conversationId}/messages": {
+      "get": {
+        "operationId": "conversationMessages"
+      }
+    },
+    "/api/conversations/{conversationId}/read": {
+      "post": {
+        "operationId": "markConversationRead"
+      }
+    },
+    "/api/conversations/{conversationId}/turn": {
+      "post": {
+        "operationId": "conversationTurn"
+      }
+    },
+    "/api/diagnostics": {
+      "get": {
+        "operationId": "readDiagnostics"
+      },
+      "delete": {
+        "operationId": "clearDiagnostics"
+      }
+    },
+    "/api/media/{assetId}": {
+      "get": {
+        "operationId": "readMedia"
+      }
     }
   }
 }

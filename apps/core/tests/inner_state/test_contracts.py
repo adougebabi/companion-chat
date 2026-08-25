@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 from fluctlight_core.inner_state.contracts import (
@@ -20,7 +21,7 @@ from fluctlight_core.inner_state.contracts import (
 
 
 def assessment(**overrides) -> SemanticAssessment:
-    values = {
+    values: dict[str, Any] = {
         "schema_version": "semantic.assessment.v1",
         "perception": SemanticPerception(
             event_kind="message",

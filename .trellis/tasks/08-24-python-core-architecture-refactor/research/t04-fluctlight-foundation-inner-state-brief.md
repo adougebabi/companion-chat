@@ -2,9 +2,9 @@
 
 ## Authorization And Entry
 
-This brief is the child-specific implementation record for T04. Parent decision D038 records the Owner instruction on 2026-08-24 to continue T04 implementation while T03 is still `in_progress` and to defer Docker, Compose, long-running process, and full-stack runtime acceptance. The exception is serialized: T04 is the only writing child in this session. It consumes only the current public T03 HumanActor reference and does not claim T03 completion, merge, or production readiness.
+This brief is the child-specific implementation record for T04. Parent decision D038 records the Owner instruction on 2026-08-24 to continue T04 implementation while T03 is still `in_progress` and to defer Docker, Compose, long-running process, and full-stack/final functional acceptance to T12. The exception is serialized: T04 is the only writing child in this session. It consumes only the current public T03 HumanActor reference and does not claim T03/T04 acceptance, merge, or production readiness.
 
-T03's skipped acceptance and unmerged worktree are carry-forward risks. Any conflict in the actor reference, migration graph, metadata ownership, or security boundary returns this task to parent planning rather than creating a compatibility path.
+T03's skipped local work and unmerged worktree are carry-forward risks. Any conflict in the actor reference, migration graph, metadata ownership, or security boundary returns this task to parent planning rather than creating a compatibility path.
 
 ## Required Inputs
 
@@ -39,7 +39,7 @@ T03's skipped acceptance and unmerged worktree are carry-forward risks. Any conf
 - Do not import FastAPI, Temporal, Redis, Provider clients, object storage, or another domain's private repository from `fluctlights` or `inner_state`.
 - Do not infer semantic meaning from text, keywords, regexes, fixed phrase tables, or default appraisals.
 - Do not let a model-provided raw numeric delta update PAD, momentum, drives, goals, or personality.
-- Do not execute Docker/Compose, start long-running services, or claim full-stack runtime acceptance in this session.
+- Do not execute Docker/Compose, start long-running services, or claim full-stack runtime acceptance in this session; T12 owns those final gates.
 
 ## Contracts To Deliver
 
@@ -50,9 +50,9 @@ T03's skipped acceptance and unmerged worktree are carry-forward risks. Any conf
 - Goal and intention candidates/lifecycle with evidence, typed triggers, expiration, revisions, governance history, and no free-form keyword triggers.
 - Append-only inner-state event history with idempotency and revision checks.
 
-## Focused Validation
+## Implementation Checks (Non-Authoritative)
 
-Run only the following commands in this session, subject to locally available dependencies:
+If needed for safe implementation, run only the following local checks, subject to locally available dependencies. They are evidence inputs only; T12 owns and re-runs final acceptance:
 
 ```bash
 uv sync --locked
@@ -62,8 +62,8 @@ uv run mypy apps/core/src/fluctlight_core/fluctlights apps/core/src/fluctlight_c
 uv run pytest apps/core/tests/fluctlights apps/core/tests/inner_state apps/core/tests/contract/test_t04_*.py apps/core/tests/architecture/test_t04_*.py -q
 ```
 
-The focused tests must cover canonical ranges, wall-time decay, malformed semantic input, evidence authorization, raw-delta rejection, idempotency, stale revision/CAS, personality evidence windows/cooldown, goal/intention lifecycle and typed-trigger rejection, migration imports, and module boundary scans. Docker/Compose, real PostgreSQL, long-running process, full BFF/Core/browser, and full-product tests are deferred and must be listed as unverified.
+The implementation checks may cover canonical ranges, wall-time decay, malformed semantic input, evidence authorization, raw-delta rejection, idempotency, stale revision/CAS, personality evidence windows/cooldown, goal/intention lifecycle and typed-trigger rejection, migration imports, and module boundary scans. Docker/Compose, real PostgreSQL, long-running process, full BFF/Core/browser, cross-module and full-product acceptance are T12-owned and must be listed as pending.
 
 ## Rollback And Handoff
 
-Rollback is limited to reverting the T04-owned files and migration/readiness integration while preserving the unmodified T03 worktree. The report must list exact commands/results, changed paths, migration revision, focused test coverage, T03 carry-forward risk, and every deferred runtime gate. No task archive or production-readiness claim is implied by this implementation exception.
+Rollback is limited to reverting the T04-owned files and migration/readiness integration while preserving the unmodified T03 worktree. The report must list exact commands/results, changed paths, migration revision, implementation evidence, T03 carry-forward risk, T12 coverage IDs and every deferred final gate. No child acceptance or production-readiness claim is implied by this implementation exception.

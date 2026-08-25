@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"implementation context only; T12 final acceptance: browser generated contract and BFF boundary"}
+{"file":".trellis/spec/backend/fluctlight-auth-contract.md","reason":"implementation context only; T12 final acceptance: Owner-only product/diagnostic access"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"implementation context only; T12 final acceptance: Control Center/log/prompt/turn UX requirements"}
+{"file":".trellis/spec/backend/fluctlight-configuration-contract.md","reason":"implementation context only; T12 final acceptance: settings UI and write-only secrets"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implementation context only; T12 final acceptance: Required browser flows and excluded scope"}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"implementation context only; T12 final acceptance: Vue/API/store ownership"}

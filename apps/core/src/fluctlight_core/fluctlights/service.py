@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from sqlalchemy import insert, select, update
 
+from fluctlight_core.actors.service import ensure_actor
 from fluctlight_core.platform.persistence import UnitOfWork, UnitOfWorkFactory
 
 from . import schema
@@ -136,6 +137,7 @@ class FluctlightService:
             )
             if existing is not None:
                 raise FluctlightLifecycleError("fluctlight already exists")
+            await ensure_actor(tx, actor_id=snapshot.id, actor_type="fluctlight")
             await tx.session.execute(
                 insert(schema.fluctlights).values(
                     id=snapshot.id,
@@ -189,6 +191,32 @@ class FluctlightService:
         if row is None:
             raise FluctlightNotFoundError(fluctlight_id)
         return _snapshot_from_row(row)
+
+    async def can_actor_access(self, fluctlight_id: str, actor_id: str) -> bool:
+        async with self._unit_of_work.begin(
+            command_id=f"fluctlight-authorize:{fluctlight_id}:{actor_id}"
+        ) as tx:
+            owner = await tx.session.scalar(
+                select(schema.fluctlights.c.created_by_actor_id).where(
+                    schema.fluctlights.c.id == fluctlight_id
+                )
+            )
+        return owner == actor_id
+
+    async def list_for_actor(self, actor_id: str) -> list[FluctlightSnapshot]:
+        async with self._unit_of_work.begin(command_id=f"fluctlight-list:{actor_id}") as tx:
+            rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.fluctlights)
+                        .where(schema.fluctlights.c.created_by_actor_id == actor_id)
+                        .order_by(schema.fluctlights.c.created_at)
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        return [_snapshot_from_row(row) for row in rows]
 
     async def submit_revision(
         self, request: FoundationRevisionRequest, *, tx: UnitOfWork | None = None

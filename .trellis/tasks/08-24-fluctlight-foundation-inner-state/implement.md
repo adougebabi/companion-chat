@@ -17,9 +17,9 @@ fluctlights/inner_state modules：identity、personality、behavioral policy、r
 - D038 and the T04 child-specific brief/dry run in the parent research directory.
 - Exact curated implement/check manifests (including the brief, dry run, and T04 contract inputs).
 - Exact owned/forbidden paths and shared-file integration owner.
-- Focused validation commands and report/handoff template; Docker/full-stack runtime checks are deferred by explicit Owner instruction.
+- Focused implementation-check commands, T12 coverage IDs and report/handoff template; Docker/full-stack/runtime/functional acceptance is owned by T12.
 - Explicit `task.py start` for this child and exclusive writer check.
 
-## Program Exit
+## Implementation Evidence Handoff
 
-Child-owned tests and targeted regression pass, handoff records the T03/runtime carry-forward risks, and parent may prepare the next child. Predecessor/full-product suites are not rerun here; no product cutover occurs. Deferred Docker/full-stack acceptance is not reported as passed.
+Record focused implementation evidence, T03/runtime carry-forward risks, changed paths, migration/readiness artifacts, T12 coverage IDs, excluded Future-only/reserved/placeholder-only scope and rollback point. This evidence is not child acceptance; T12 must re-run the required Fluctlight/inner-state, real-PostgreSQL, runtime and cross-module matrix. No production readiness or cutover is established here.

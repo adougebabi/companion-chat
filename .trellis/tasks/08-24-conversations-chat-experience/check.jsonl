@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/fluctlight-api-contract.md","reason":"implementation context only; T12 final acceptance: Core commands and internal NDJSON"}
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"implementation context only; T12 final acceptance: browser contract/stream/error boundary"}
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"implementation context only; T12 final acceptance: two-stage visible action contract"}
+{"file":".trellis/spec/backend/fluctlight-auth-contract.md","reason":"implementation context only; T12 final acceptance: Actor/session authorization"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implementation context only; T12 final acceptance: ordering and idempotency"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implementation context only; T12 final acceptance: Required Conversation/chat scenarios and excluded scope"}

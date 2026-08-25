@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"implementation context only; T12 final acceptance: Schedule/Event/Context authority"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"implementation context only; T12 final acceptance: Goal/Intention/Action and governance"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"implementation context only; T12 final acceptance: durable triggers/timers/recovery"}
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"implementation context only; T12 final acceptance: semantic trigger and frozen decision boundary"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"implementation context only; T12 final acceptance: context/schedule/goals/intentions runtime source"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implementation context only; T12 final acceptance: immutable versions and action transaction boundaries"}

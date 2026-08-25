@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implementation context only; T12 final acceptance: database migration/backup/recovery consistency"}
+{"file":".trellis/spec/backend/fluctlight-media-contract.md","reason":"implementation context only; T12 final acceptance: object backup/restore/integrity"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"implementation context only; T12 final acceptance: active history upgrade/recovery"}
+{"file":".trellis/spec/backend/fluctlight-configuration-contract.md","reason":"implementation context only; T12 final acceptance: env/settings backup boundary"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implementation context only; T12 final acceptance: operator/backup delivery scope and exclusions"}
+{"file":".trellis/spec/backend/fluctlight-temporal-gate-contract.md","reason":"implementation context only; T12 final acceptance: restored Temporal default/visibility and active workflow resume"}

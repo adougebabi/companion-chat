@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/fluctlight-media-contract.md","reason":"implement from: private object storage/media lifecycle and proxy"}
+{"file":".trellis/spec/backend/fluctlight-event-contract.md","reason":"implement from: progress and durable event transport"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"implement from: long media tasks and recovery"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"implement from: authorized Moment/media actions"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implement from: Moments/image/video/h3 product scope"}

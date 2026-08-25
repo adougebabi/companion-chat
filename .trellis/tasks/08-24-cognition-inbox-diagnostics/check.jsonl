@@ -1,0 +1,7 @@
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"implementation context only; T12 final acceptance: cognition, semantic failure and ordering contract"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"implementation context only; T12 final acceptance: built-in prompt/log/turn diagnostics"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"implementation context only; T12 final acceptance: Temporal orchestration and stable IDs"}
+{"file":".trellis/spec/backend/fluctlight-provider-contract.md","reason":"implementation context only; T12 final acceptance: assessment/realization/reflection roles"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implementation context only; T12 final acceptance: transaction and recovery boundaries"}
+{"file":".trellis/spec/backend/fluctlight-event-contract.md","reason":"implementation context only; T12 final acceptance: inbox ordering, replay and acknowledgement"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"implementation context only; T12 final acceptance: cognitive runtime source requirements"}

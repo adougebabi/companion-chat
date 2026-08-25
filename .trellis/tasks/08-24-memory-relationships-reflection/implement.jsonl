@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/fluctlight-memory-contract.md","reason":"implement from: typed Memory and hybrid retrieval"}
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"implement from: reflection semantic ownership and evidence"}
+{"file":".trellis/spec/backend/fluctlight-provider-contract.md","reason":"implement from: reflection/embedding model roles"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implement from: revisions, CAS and async embedding intent"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"implement from: Memory/Relationship/reflection source requirements"}

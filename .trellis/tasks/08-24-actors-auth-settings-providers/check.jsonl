@@ -1,0 +1,7 @@
+{"file":".trellis/spec/backend/fluctlight-auth-contract.md","reason":"implementation context only; T12 final acceptance: Owner Actor authentication/session/authorization"}
+{"file":".trellis/spec/backend/fluctlight-configuration-contract.md","reason":"implementation context only; T12 final acceptance: env/settings and encrypted secret behavior"}
+{"file":".trellis/spec/backend/fluctlight-provider-contract.md","reason":"implementation context only; T12 final acceptance: Provider endpoints/model roles/capabilities/provenance"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"implementation context only; T12 final acceptance: Actor and Fluctlight source terminology/model context"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implementation context only; T12 final acceptance: Required settings/auth/provider capabilities and excluded scope"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t03-actors-auth-settings-providers-brief.md","reason":"implementation context only; T12 final acceptance: approved T03 scope and coverage IDs"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t03-actors-auth-settings-providers-report-template.md","reason":"implementation context only; T12 final acceptance: T03 evidence input, not a child PASS"}

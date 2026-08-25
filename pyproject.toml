@@ -6,10 +6,19 @@ requires-python = ">=3.13,<3.14"
 dependencies = ["fluctlight-core"]
 
 [dependency-groups]
-dev = ["mypy==1.17.1", "pytest==8.4.1", "ruff==0.12.10"]
+dev = [
+    "httpx>=0.28.1",
+    "mypy==1.17.1",
+    "pytest==8.4.1",
+    "ruff==0.12.10",
+]
 
 [tool.uv.sources]
 fluctlight-core = { workspace = true }
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
 
 [tool.uv.workspace]
 members = ["apps/core"]

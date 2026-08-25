@@ -1,0 +1,18 @@
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implement from: T12 final Required/cleanup/excluded scope"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/evidence-baseline.md","reason":"implement from: T12 final deletion/scope proof"}
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"implement from: T12 final semantic and anti-drift gate"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implement from: T12 final state/transaction/recovery gate"}
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"implement from: T12 final browser/BFF contract and no old DTO path"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"implement from: T12 final workflow/recovery/no-second-runtime gate"}
+{"file":".trellis/spec/backend/fluctlight-media-contract.md","reason":"implement from: T12 final media/object integrity gate"}
+{"file":".trellis/spec/backend/fluctlight-auth-contract.md","reason":"implement from: T12 final union for Owner auth/session/authorization"}
+{"file":".trellis/spec/backend/fluctlight-configuration-contract.md","reason":"implement from: T12 final union for settings encryption/backup boundary"}
+{"file":".trellis/spec/backend/fluctlight-provider-contract.md","reason":"implement from: T12 final union for roles/preflight/provenance"}
+{"file":".trellis/spec/backend/fluctlight-api-contract.md","reason":"implement from: T12 final union for Core API/NDJSON/cancellation"}
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"implement from: T12 final union for Schedule/Event/Context"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"implement from: T12 final union for Goal/Intention/Action governance"}
+{"file":".trellis/spec/backend/fluctlight-event-contract.md","reason":"implement from: T12 final union for durable event recovery"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"implement from: T12 final union for redaction/correlation/retention"}
+{"file":".trellis/spec/backend/fluctlight-temporal-gate-contract.md","reason":"implement from: T12 final union for runtime topology/activity recovery/history/versioning"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"implement from: T12 final union for domain state/lifecycle consumption"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/multi-session-handoff-dry-run.md","reason":"implement from: T12 final union for T03-T11 handoff evidence and exclusions"}

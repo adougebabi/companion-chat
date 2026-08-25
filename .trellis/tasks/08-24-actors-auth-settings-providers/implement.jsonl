@@ -1,0 +1,7 @@
+{"file":".trellis/spec/backend/fluctlight-auth-contract.md","reason":"implement from: Owner Actor authentication/session/authorization"}
+{"file":".trellis/spec/backend/fluctlight-configuration-contract.md","reason":"implement from: env/settings and encrypted secret behavior"}
+{"file":".trellis/spec/backend/fluctlight-provider-contract.md","reason":"implement from: Provider endpoints/model roles/capabilities/provenance"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"implement from: Actor and Fluctlight source terminology/model context"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implement from: required settings/auth/provider user capabilities"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t03-actors-auth-settings-providers-brief.md","reason":"implement from: approved T03 scope, owned paths, entry gates and validation plan"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t03-actors-auth-settings-providers-report-template.md","reason":"implement from: required T03 evidence and handoff record"}

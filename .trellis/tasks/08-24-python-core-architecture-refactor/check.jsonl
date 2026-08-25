@@ -1,0 +1,29 @@
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"T12 final acceptance union: Temporal recovery, management, history versioning and no second runtime"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"T12 final acceptance union: transaction/outbox atomicity, ownership and crash recovery"}
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"T12 final acceptance union: LLM-first semantics, no heuristics, two-stage and concurrency contracts"}
+{"file":".trellis/spec/backend/fluctlight-api-contract.md","reason":"T12 final acceptance union: generated Core API, NDJSON ordering/cancellation and health boundaries"}
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"T12 final acceptance union: BFF validation, generated browser contract, stream/media mapping and no domain access"}
+{"file":".trellis/spec/backend/fluctlight-auth-contract.md","reason":"T12 final acceptance union: Owner auth, session/CSRF/service identity and Actor authorization"}
+{"file":".trellis/spec/backend/fluctlight-configuration-contract.md","reason":"T12 final acceptance union: env/settings boundaries, encryption and plaintext-leak prevention"}
+{"file":".trellis/spec/backend/fluctlight-provider-contract.md","reason":"T12 final acceptance union: role capability/preflight/provenance and no silent fallback"}
+{"file":".trellis/spec/backend/fluctlight-memory-contract.md","reason":"T12 final acceptance union: Memory authority, permissions, embeddings and hybrid retrieval"}
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"T12 final acceptance union: Schedule/Context authority, DST/replan/pending and no heuristic routine"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"T12 final acceptance union: Goal/Intention/action policy, idempotency and immutable governance history"}
+{"file":".trellis/spec/backend/fluctlight-media-contract.md","reason":"T12 final acceptance union: private object lifecycle, proxy, failure recovery and backup integrity"}
+{"file":".trellis/spec/backend/fluctlight-event-contract.md","reason":"T12 final acceptance union: outbox/inbox, duplicate delivery, reclaim, trim and Redis-loss recovery"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"T12 final acceptance union: prompt/log visibility, typed redaction, retention and sink failure isolation"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"T12 final acceptance union: required Fluctlight fields and cognitive stage closed loops"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"T12 final acceptance scope: Required capabilities, cleanup proof and future/reserved/placeholder exclusions"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/evidence-baseline.md","reason":"check claims against verified old-system evidence without rereading all frozen code"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/workflow-engine-candidate.md","reason":"check historical DBOS rejection conditions remain preserved"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/dbos-runtime-gate-report-template.md","reason":"check T01 report records every gate, exact command, failure injection, resource result and PASS/FAIL decision"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t01-dbos-runtime-gate-brief.md","reason":"check T01 stays within exact context/paths/slices and passes canonical operations/resources without OTLP scope creep"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/multi-session-handoff-dry-run.md","reason":"check cross-session documentation remains unambiguous and normal authorization blockers are preserved"}
+{"file":".trellis/spec/backend/fluctlight-temporal-gate-contract.md","reason":"check all Temporal gate, history, Activity, operation and resource requirements"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t01b-temporal-runtime-gate-brief.md","reason":"check T01B exact scope/paths/manifests and no optional infrastructure scope creep"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/temporal-runtime-candidate.md","reason":"check Temporal facts versus estimates and conditional status"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/dbos-runtime-gate-report.md","reason":"check both DBOS failures are covered before unblocking T02"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/temporal-runtime-gate-report-template.md","reason":"check T01B report completeness and PASS/FAIL evidence"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/temporal-runtime-acceptance.md","reason":"check carry-forward functional gates and no resource-duration blocker reappears"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t02-platform-foundation-brief.md","reason":"check T02 exact paths/commands/scope and no product/legacy/resource scope creep"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/t02-platform-foundation-report-template.md","reason":"check complete T02 evidence and PASS/FAIL handoff"}

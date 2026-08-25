@@ -37,7 +37,7 @@ def test_foundation_request_copies_changes_and_requires_unique_evidence() -> Non
         actor_id="human-owner",
         source=RevisionSource.HUMAN,
         changes={"name": "Mira"},
-        evidence_refs=["owner:form"],
+        evidence_refs=("owner:form",),
         expected_revision=0,
         idempotency_key="request-1",
         requested_at=datetime(2026, 8, 24, tzinfo=UTC),
@@ -52,7 +52,7 @@ def test_foundation_request_copies_changes_and_requires_unique_evidence() -> Non
             actor_id="human-owner",
             source=RevisionSource.HUMAN,
             changes={"name": "Mira"},
-            evidence_refs=["same", "same"],
+            evidence_refs=("same", "same"),
             expected_revision=0,
             idempotency_key="request-2",
         )

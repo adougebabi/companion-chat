@@ -1,9 +1,45 @@
 {
   "openapi": "3.1.0",
-  "info": {"title": "Fluctlight Core Platform", "version": "0.1.0"},
+  "info": { "title": "Fluctlight Core Platform", "version": "0.2.0" },
   "paths": {
-    "/health/live": {"get": {"operationId": "live"}},
-    "/health/ready": {"get": {"operationId": "ready"}},
-    "/internal/platform/ping": {"get": {"operationId": "ping"}}
+    "/health/live": { "get": { "operationId": "live" } },
+    "/health/ready": { "get": { "operationId": "ready" } },
+    "/internal/platform/ping": { "get": { "operationId": "ping" } },
+    "/internal/auth/setup": { "post": { "operationId": "setup" } },
+    "/internal/auth/login": { "post": { "operationId": "login" } },
+    "/internal/auth/session": { "get": { "operationId": "session" } },
+    "/internal/auth/revoke-all": { "post": { "operationId": "revokeAll" } },
+    "/internal/auth/revoke-current": { "post": { "operationId": "revokeCurrent" } },
+    "/internal/settings": { "get": { "operationId": "readSettings" }, "put": { "operationId": "updateSettings" } },
+    "/internal/providers/endpoints": { "put": { "operationId": "configureProviderEndpoint" } },
+    "/internal/providers/roles": { "put": { "operationId": "configureModelRole" } },
+    "/internal/conversations": { "post": { "operationId": "createConversation" } },
+    "/internal/fluctlights": { "get": { "operationId": "listFluctlights" }, "post": { "operationId": "createFluctlight" } },
+    "/internal/fluctlights/{fluctlightId}": { "get": { "operationId": "getFluctlight" } },
+    "/internal/conversations/{conversationId}/history": { "get": { "operationId": "conversationHistory" } },
+    "/internal/conversations/{conversationId}/read": { "post": { "operationId": "markConversationRead" } },
+    "/internal/conversations/{conversationId}/turn": { "post": { "operationId": "acceptConversationTurn" } },
+    "/internal/diagnostics": { "get": { "operationId": "readDiagnostics" }, "delete": { "operationId": "clearDiagnostics" } }
+    ,"/internal/media/{assetId}": { "get": { "operationId": "readMedia" } }
+  },
+  "components": {
+    "schemas": {
+      "SafeSettings": {
+        "type": "object",
+        "required": ["values", "configuredSecrets"],
+        "properties": {
+          "values": { "type": "object", "additionalProperties": true },
+          "configuredSecrets": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "Session": {
+        "type": "object",
+        "required": ["authenticated"],
+        "properties": {
+          "authenticated": { "type": "boolean" },
+          "actorId": { "type": "string" }
+        }
+      }
+    }
   }
 }

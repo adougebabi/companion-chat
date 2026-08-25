@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"implement from: database migration/backup/recovery consistency"}
+{"file":".trellis/spec/backend/fluctlight-media-contract.md","reason":"implement from: object backup/restore/integrity"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"implement from: active history upgrade/recovery"}
+{"file":".trellis/spec/backend/fluctlight-configuration-contract.md","reason":"implement from: env/settings backup boundary"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"implement from: operator/backup delivery scope"}

@@ -66,6 +66,7 @@ class S3ObjectStorage:
     ) -> InternalObjectGrant:
         if ttl_seconds < 1 or ttl_seconds > 300:
             raise ValueError("object grant ttl must be between 1 and 300 seconds")
+        self._validate_range(allowed_range, descriptor.byte_size)
         request = {"Bucket": descriptor.bucket, "Key": descriptor.key}
         if descriptor.version_id:
             request["VersionId"] = descriptor.version_id
@@ -76,3 +77,25 @@ class S3ObjectStorage:
             allowed_range=allowed_range,
             request=request,
         )
+
+    def read(self, grant: InternalObjectGrant) -> tuple[bytes, str | None]:
+        request = dict(grant.request)
+        if grant.allowed_range != "full":
+            request["Range"] = grant.allowed_range
+        response = self.client.get_object(**request)
+        return response["Body"].read(), response.get("ETag")
+
+    @staticmethod
+    def _validate_range(policy: str, byte_size: int) -> None:
+        if policy == "full":
+            return
+        if not policy.startswith("bytes=") or "-" not in policy:
+            raise ValueError("object range policy is invalid")
+        start_text, end_text = policy[6:].split("-", 1)
+        try:
+            start = int(start_text)
+            end = int(end_text)
+        except ValueError as exc:
+            raise ValueError("object range policy is invalid") from exc
+        if start < 0 or end < start or end >= byte_size:
+            raise ValueError("object range is outside the asset")

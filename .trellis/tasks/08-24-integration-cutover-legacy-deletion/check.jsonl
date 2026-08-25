@@ -1,0 +1,18 @@
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/capability-inventory.md","reason":"T12 final acceptance: authoritative Required/cleanup/excluded scope"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/evidence-baseline.md","reason":"T12 final deletion/scope proof: legacy ownership and risk surfaces"}
+{"file":".trellis/spec/backend/fluctlight-cognitive-runtime.md","reason":"T12 final acceptance: semantic and anti-drift gate"}
+{"file":".trellis/spec/backend/fluctlight-persistence-contract.md","reason":"T12 final acceptance: state/transaction/recovery gate"}
+{"file":".trellis/spec/backend/fluctlight-bff-contract.md","reason":"T12 final acceptance: browser/BFF contract and no old DTO path"}
+{"file":".trellis/spec/backend/fluctlight-workflow-contract.md","reason":"T12 final acceptance: workflow/recovery/no-second-runtime gate"}
+{"file":".trellis/spec/backend/fluctlight-media-contract.md","reason":"T12 final acceptance: media/object integrity gate"}
+{"file":".trellis/spec/backend/fluctlight-auth-contract.md","reason":"T12 final union: Owner auth/session/authorization and no scope leakage"}
+{"file":".trellis/spec/backend/fluctlight-configuration-contract.md","reason":"T12 final union: settings encryption, backup boundary and no plaintext secrets"}
+{"file":".trellis/spec/backend/fluctlight-provider-contract.md","reason":"T12 final union: explicit roles/preflight/provenance and no silent fallback"}
+{"file":".trellis/spec/backend/fluctlight-api-contract.md","reason":"T12 final union: Core API, NDJSON ordering, terminal and cancellation contract"}
+{"file":".trellis/spec/backend/fluctlight-life-world-contract.md","reason":"T12 final union: Schedule/Event/Context authority, timezone and replan"}
+{"file":".trellis/spec/backend/fluctlight-autonomy-contract.md","reason":"T12 final union: Goal/Intention/Action policy, budgets and governance"}
+{"file":".trellis/spec/backend/fluctlight-event-contract.md","reason":"T12 final union: outbox/inbox, duplicate delivery, reclaim and Redis-loss rebuild"}
+{"file":".trellis/spec/backend/fluctlight-diagnostics-contract.md","reason":"T12 final union: redaction, retention, correlation and sink isolation"}
+{"file":".trellis/spec/backend/fluctlight-temporal-gate-contract.md","reason":"T12 final union: runtime topology, activity recovery, history replay and versioning"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/fluctlight-domain-model.md","reason":"T12 final union: authoritative domain states, evidence and lifecycle consumption"}
+{"file":".trellis/tasks/08-24-python-core-architecture-refactor/research/multi-session-handoff-dry-run.md","reason":"T12 final union: T03-T11 handoff evidence, coverage IDs, exclusions and pending acceptance"}

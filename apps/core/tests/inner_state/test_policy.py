@@ -9,6 +9,7 @@ from fluctlight_core.inner_state.contracts import (
     DriveName,
     DriveState,
     GoalEvidence,
+    GoalSource,
     GoalStatus,
     InnerStateSnapshot,
     IntentionEvidence,
@@ -146,7 +147,7 @@ def test_goal_and_intention_lifecycle_requires_qualification_before_execution() 
     goal = propose_goal(
         GoalEvidence(
             fluctlight_id="fluctlight-1",
-            source="human",
+            source=GoalSource.HUMAN,
             description="finish a draft",
             evidence_refs=("human:1",),
             importance=0.8,

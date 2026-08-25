@@ -7,7 +7,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -68,6 +68,9 @@ async def commit_workflow_intent(
 
 
 async def add_outbox_event(session: AsyncSession, event: OutboxEvent) -> None:
+    sequence = event.payload.get("aggregate_sequence")
+    if not isinstance(sequence, int) or sequence < 1:
+        raise ValueError("outbox event requires a positive aggregate_sequence")
     await session.execute(insert(outbox_events).values(**asdict(event)))
 
 
@@ -77,23 +80,79 @@ async def claim_inbox_once(
     statement = (
         pg_insert(consumer_inbox)
         .values(consumer_group=consumer_group, event_id=event_id, result=result)
-        .on_conflict_do_nothing(constraint="uq_platform_consumer_inbox_consumer_event")
+        .on_conflict_do_nothing(constraint="consumer_event")
         .returning(consumer_inbox.c.id)
     )
     return (await session.execute(statement)).scalar_one_or_none() is not None
 
 
+async def begin_inbox_once(
+    session: AsyncSession, *, consumer_group: str, event_id: str
+) -> tuple[bool, dict[str, Any] | None]:
+    """Reserve an event before applying its effect in the same transaction."""
+
+    statement = (
+        pg_insert(consumer_inbox)
+        .values(
+            consumer_group=consumer_group,
+            event_id=event_id,
+            result={"status": "processing"},
+        )
+        .on_conflict_do_nothing(constraint="consumer_event")
+        .returning(consumer_inbox.c.id)
+    )
+    inserted = (await session.execute(statement)).scalar_one_or_none() is not None
+    if inserted:
+        return True, None
+    existing = (
+        (
+            await session.execute(
+                select(consumer_inbox.c.result)
+                .where(
+                    consumer_inbox.c.consumer_group == consumer_group,
+                    consumer_inbox.c.event_id == event_id,
+                )
+                .with_for_update()
+            )
+        )
+        .mappings()
+        .one_or_none()
+    )
+    return False, dict(existing["result"]) if existing else None
+
+
+async def complete_inbox(
+    session: AsyncSession,
+    *,
+    consumer_group: str,
+    event_id: str,
+    result: dict[str, Any],
+) -> None:
+    await session.execute(
+        update(consumer_inbox)
+        .where(
+            consumer_inbox.c.consumer_group == consumer_group,
+            consumer_inbox.c.event_id == event_id,
+        )
+        .values(result=result)
+    )
+
+
 def event_envelope(event: OutboxEvent) -> dict[str, str]:
+    sequence = event.payload.get("aggregate_sequence")
+    if not isinstance(sequence, int) or sequence < 1:
+        raise ValueError("outbox event requires a positive aggregate_sequence")
     return {
         "event_id": event.id,
         "event_type": event.kind,
         "schema_version": "v1",
         "aggregate_type": event.aggregate_type,
         "aggregate_id": event.aggregate_id,
-        "aggregate_sequence": "0",
+        "aggregate_sequence": str(sequence),
         "fluctlight_id": event.fluctlight_id or "",
         "causation_id": event.causation_id,
         "correlation_id": event.correlation_id,
         "occurred_at": datetime.now(UTC).isoformat(),
+        "attempt_policy": json.dumps(event.attempt_policy, separators=(",", ":"), sort_keys=True),
         "payload": json.dumps(event.payload, separators=(",", ":"), sort_keys=True),
     }

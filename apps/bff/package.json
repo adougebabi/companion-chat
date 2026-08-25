@@ -12,6 +12,7 @@
     "generate:browser-client": "node scripts/generate-browser-openapi.mjs"
   },
   "dependencies": {
+    "@fastify/cookie": "^10.0.1",
     "@fluctlight/core-client": "workspace:*",
     "@sinclair/typebox": "0.34.40",
     "fastify": "5.6.2"
