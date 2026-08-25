@@ -72,10 +72,10 @@ independent of the private Compose environment.
   T02-T11 task metadata still reads `in_progress` with no merge/commit
   completion evidence. T12 cannot create that evidence on their behalf.
 - Current-session disposable Docker evidence has been rerun for platform
-  readiness, active Temporal workflow, auth/domain and media proxy after the
-  Worker sandbox fix. Redis recovery/poison/gap, backup/restore, pgvector and
-  configured-Provider fixture drills remain to be rerun for this exact source
-  state before cutover.
+  readiness, active Temporal workflow, auth/domain, media proxy and Redis
+  volume-loss recovery after the Worker sandbox fix. Redis poison/gap,
+  backup/restore, pgvector and configured-Provider fixture drills remain to be
+  rerun for this exact source state before cutover.
 - Browser authentication is now verified through the actual browser client,
   but the successful configured Provider conversation, client disconnect/no
   later write, viewport/a11y and logout/revocation flows remain manual
@@ -146,6 +146,8 @@ independent of the private Compose environment.
   no longer import autonomy executors or Media Provider implementations. The
   real active-workflow drill was rerun and completed with history length 10 and
   deployment `fluctlight/platform-v1`; platform, auth/domain and media proxy
-  disposable smokes were also rerun successfully.
+  disposable smokes were also rerun successfully. Redis volume-loss recovery
+  was rerun as well: one outbox event replayed to exactly three inbox/effect
+  groups and the rebuilt stream length was exactly one.
 
 Acceptance owner remains T12. No production readiness or cutover is claimed.
