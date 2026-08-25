@@ -284,6 +284,10 @@ class ReflectionProvider(Protocol):
     ) -> ReflectionProposal: ...
 
 
+class ReflectionApplier(Protocol):
+    async def apply(self, proposal: ReflectionProposal) -> Any: ...
+
+
 class StateApplier(Protocol):
     async def apply_assessment(
         self, fluctlight_id: str, assessment: SemanticAssessment, *, tx: Any

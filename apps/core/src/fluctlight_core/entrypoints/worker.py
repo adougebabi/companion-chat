@@ -45,6 +45,8 @@ from fluctlight_core.platform.workflows import PlatformControlWorkflow
 from fluctlight_core.providers.adapters import OpenAICompatibleAdapter
 from fluctlight_core.providers.runtime import ConfiguredProviderRuntime
 from fluctlight_core.providers.service import ProviderConfigurationService
+from fluctlight_core.reflection.service import ReflectionCoordinator
+from fluctlight_core.relationships.service import RelationshipService
 from fluctlight_core.settings.crypto import SecretCodec
 from fluctlight_core.settings.service import SettingsService
 
@@ -123,6 +125,7 @@ async def run_worker(settings: PlatformSettings) -> None:
         provenance_recorder=provider_service.record_provenance,
     )
     memory_service = MemoryService(unit_of_work)
+    relationships = RelationshipService(unit_of_work)
     inner_state = InnerStateService(unit_of_work)
     diagnostics = DiagnosticsService(unit_of_work)
     configure_embedding_service(memory_service, provider_runtime, unit_of_work)
@@ -132,6 +135,7 @@ async def run_worker(settings: PlatformSettings) -> None:
             provider_runtime,
             provider_runtime,
             reflection_provider=provider_runtime,
+            reflection_applier=ReflectionCoordinator(memory_service, relationships),
             state_applier=CognitionStateApplier(inner_state),
             diagnostics=diagnostics,
         )

@@ -29,6 +29,7 @@ from fluctlight_core.fluctlights.contracts import CreateFluctlight, Identity
 from fluctlight_core.fluctlights.service import FluctlightService
 from fluctlight_core.inner_state import CognitionStateApplier, InnerStateService
 from fluctlight_core.media.service import MediaService
+from fluctlight_core.memory.service import MemoryService
 from fluctlight_core.platform.configuration import ConfigurationError, PlatformSettings, RuntimeRole
 from fluctlight_core.platform.object_storage import S3ObjectStorage
 from fluctlight_core.platform.persistence import (
@@ -46,6 +47,8 @@ from fluctlight_core.providers.service import (
     ProviderConfigurationService,
     RoleAssignment,
 )
+from fluctlight_core.reflection.service import ReflectionCoordinator
+from fluctlight_core.relationships.service import RelationshipService
 from fluctlight_core.settings.crypto import SecretCodec, SecretConfigurationError
 from fluctlight_core.settings.service import SafeSettingsView, SettingsError, SettingsService
 from fluctlight_core.transport.conversations import (
@@ -179,6 +182,9 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             )
             inner_state = InnerStateService(unit_of_work)
             diagnostics = DiagnosticsService(unit_of_work)
+            memory = MemoryService(unit_of_work)
+            relationships = RelationshipService(unit_of_work)
+            reflection = ReflectionCoordinator(memory, relationships)
 
             async def initialize_inner_state(fluctlight_id: str, tx: UnitOfWork) -> None:
                 await inner_state.initialize(fluctlight_id, tx=tx)
@@ -188,6 +194,7 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 provider_runtime,
                 provider_runtime,
                 reflection_provider=provider_runtime,
+                reflection_applier=reflection,
                 state_applier=CognitionStateApplier(inner_state),
                 diagnostics=diagnostics,
             )

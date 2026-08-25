@@ -47,6 +47,36 @@ class RelationshipService:
         async with self._unit_of_work.begin(
             command_id=f"relationship-update:{command.idempotency_key}"
         ) as tx:
+            prior_revision = (
+                (
+                    await tx.session.execute(
+                        select(schema.relationship_revisions).where(
+                            schema.relationship_revisions.c.idempotency_key
+                            == command.idempotency_key
+                        )
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if prior_revision is not None:
+                prior = (
+                    (
+                        await tx.session.execute(
+                            select(schema.relationships).where(
+                                schema.relationships.c.id == prior_revision["relationship_id"]
+                            )
+                        )
+                    )
+                    .mappings()
+                    .one()
+                )
+                if (
+                    prior["owner_fluctlight_id"] != command.owner_fluctlight_id
+                    or prior["target_actor_id"] != command.target_actor_id
+                ):
+                    raise ValueError("relationship idempotency key targets another relationship")
+                return self._from_row(prior)
             row = (
                 (
                     await tx.session.execute(

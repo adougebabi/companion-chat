@@ -29,6 +29,7 @@ from .contracts import (
     ProviderExecutionError,
     RealizationProvider,
     RealizationResult,
+    ReflectionApplier,
     ReflectionProposal,
     ReflectionProvider,
     ReflectionWindow,
@@ -49,6 +50,7 @@ class CognitionService:
         realization_provider: RealizationProvider,
         *,
         reflection_provider: ReflectionProvider | None = None,
+        reflection_applier: ReflectionApplier | None = None,
         state_applier: StateApplier | None = None,
         diagnostics: Any | None = None,
         clock: Callable[[], datetime] | None = None,
@@ -58,6 +60,7 @@ class CognitionService:
         self._assessment_provider = assessment_provider
         self._realization_provider = realization_provider
         self._reflection_provider = reflection_provider
+        self._reflection_applier = reflection_applier
         self._state_applier = state_applier
         self._diagnostics = diagnostics
         self._clock = clock or (lambda: datetime.now(UTC))
@@ -436,6 +439,8 @@ class CognitionService:
             ):
                 raise CognitionConflictError("reflection provider returned an unexpected window")
             await self.commit_reflection(proposal, expected_watermark=window.watermark)
+            if self._reflection_applier is not None:
+                await self._reflection_applier.apply(proposal)
             return proposal
         except Exception:
             await self._reset_reflection(fluctlight_id)

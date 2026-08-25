@@ -53,6 +53,24 @@ class MemoryService:
 
     async def record(self, memory: MemoryRecord, *, tx: UnitOfWork | None = None) -> MemoryRecord:
         async with self._transaction(tx, f"memory-record:{memory.id}") as transaction:
+            existing = (
+                (
+                    await transaction.session.execute(
+                        select(schema.memories).where(schema.memories.c.id == memory.id)
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if existing is not None:
+                persisted = self._memory_from_row(existing)
+                if (
+                    persisted.owner_fluctlight_id != memory.owner_fluctlight_id
+                    or persisted.type is not memory.type
+                    or persisted.content != memory.content
+                ):
+                    raise ValueError("memory id was reused with different authoritative content")
+                return persisted
             await transaction.session.execute(
                 insert(schema.memories).values(
                     id=memory.id,

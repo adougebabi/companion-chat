@@ -66,6 +66,7 @@ class ReflectionCoordinator:
                 trend=RelationshipTrend(raw.get("trend", RelationshipTrend.STABLE.value)),
                 summary=raw.get("summary"),
                 emotional_association=dict(raw.get("emotional_association", {})),
+                idempotency_key=f"reflection:{proposal.proposal_id}:relationship:{len(relationship_ids)}",
             )
             relationship = await self._relationships.record_update(update)
             relationship_ids.append(relationship.id)
