@@ -26,6 +26,8 @@ from fluctlight_core.cognition.workflows import (
     configure_cognition_service,
     process_cognition,
 )
+from fluctlight_core.diagnostics.service import DiagnosticsService
+from fluctlight_core.inner_state import CognitionStateApplier, InnerStateService
 from fluctlight_core.media.workflows import MediaGenerationWorkflow
 from fluctlight_core.memory.service import MemoryService
 from fluctlight_core.memory.workflows import (
@@ -121,6 +123,8 @@ async def run_worker(settings: PlatformSettings) -> None:
         provenance_recorder=provider_service.record_provenance,
     )
     memory_service = MemoryService(unit_of_work)
+    inner_state = InnerStateService(unit_of_work)
+    diagnostics = DiagnosticsService(unit_of_work)
     configure_embedding_service(memory_service, provider_runtime, unit_of_work)
     configure_cognition_service(
         CognitionService(
@@ -128,6 +132,8 @@ async def run_worker(settings: PlatformSettings) -> None:
             provider_runtime,
             provider_runtime,
             reflection_provider=provider_runtime,
+            state_applier=CognitionStateApplier(inner_state),
+            diagnostics=diagnostics,
         )
     )
     redis = Redis.from_url(settings.redis_url, decode_responses=True)

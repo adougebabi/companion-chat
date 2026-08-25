@@ -28,7 +28,7 @@ from .contracts import (
     TriggerType,
 )
 from .policy import NumericStatePolicy
-from .service import InnerStateService
+from .service import CognitionStateApplier, InnerStateService
 
 __all__ = [
     "AffectDirection",
@@ -51,6 +51,7 @@ __all__ = [
     "Momentum",
     "NumericStatePolicy",
     "InnerStateService",
+    "CognitionStateApplier",
     "PAD",
     "Regulation",
     "SemanticAssessment",

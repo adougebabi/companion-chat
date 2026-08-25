@@ -506,3 +506,22 @@ class InnerStateService:
         )
         if result.rowcount != 1:
             raise NumericPolicyError("intention compare-and-set failed")
+
+
+class CognitionStateApplier:
+    """Adapt authoritative inner-state CAS updates to the cognition application port."""
+
+    def __init__(self, service: InnerStateService) -> None:
+        self._service = service
+
+    async def apply_assessment(
+        self, fluctlight_id: str, assessment: SemanticAssessment, *, tx: UnitOfWork
+    ) -> int:
+        snapshot = await self._service.read(fluctlight_id, tx=tx)
+        transition = await self._service.apply_assessment(
+            fluctlight_id,
+            assessment,
+            expected_revision=snapshot.revision,
+            tx=tx,
+        )
+        return transition.current.revision

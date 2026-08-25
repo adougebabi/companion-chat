@@ -27,11 +27,13 @@ from fluctlight_core.conversations.service import ConversationService
 from fluctlight_core.diagnostics.service import DiagnosticsAuthorizationError, DiagnosticsService
 from fluctlight_core.fluctlights.contracts import CreateFluctlight, Identity
 from fluctlight_core.fluctlights.service import FluctlightService
+from fluctlight_core.inner_state import CognitionStateApplier, InnerStateService
 from fluctlight_core.media.service import MediaService
 from fluctlight_core.platform.configuration import ConfigurationError, PlatformSettings, RuntimeRole
 from fluctlight_core.platform.object_storage import S3ObjectStorage
 from fluctlight_core.platform.persistence import (
     MigrationRevisionError,
+    UnitOfWork,
     UnitOfWorkFactory,
     create_engine,
     verify_revision,
@@ -175,13 +177,21 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 adapter=provider_adapter,
                 provenance_recorder=provider_service.record_provenance,
             )
+            inner_state = InnerStateService(unit_of_work)
+            diagnostics = DiagnosticsService(unit_of_work)
+
+            async def initialize_inner_state(fluctlight_id: str, tx: UnitOfWork) -> None:
+                await inner_state.initialize(fluctlight_id, tx=tx)
+
             cognition = CognitionService(
                 unit_of_work,
                 provider_runtime,
                 provider_runtime,
                 reflection_provider=provider_runtime,
+                state_applier=CognitionStateApplier(inner_state),
+                diagnostics=diagnostics,
             )
-            fluctlights = FluctlightService(unit_of_work)
+            fluctlights = FluctlightService(unit_of_work, state_initializer=initialize_inner_state)
             object_client = boto3.client(
                 "s3",
                 endpoint_url=settings.s3_endpoint,
@@ -198,7 +208,7 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 auth=auth,
                 settings_service=settings_service,
                 providers=provider_service,
-                diagnostics=DiagnosticsService(unit_of_work),
+                diagnostics=diagnostics,
                 conversations=ConversationService(unit_of_work, CognitionTurnResponder(cognition)),
                 media=MediaService(
                     unit_of_work,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -39,6 +39,9 @@ class FluctlightNotFoundError(LookupError):
 
 class FluctlightLifecycleError(RuntimeError):
     """Raised when a lifecycle transition is not allowed."""
+
+
+StateInitializer = Callable[[str, UnitOfWork], Awaitable[None]]
 
 
 def _parse_datetime(value: datetime | str | None, field_name: str) -> datetime:
@@ -102,8 +105,14 @@ def _snapshot_from_row(row: Any) -> FluctlightSnapshot:
 class FluctlightService:
     """Own lifecycle persistence while exposing only domain value objects."""
 
-    def __init__(self, unit_of_work: UnitOfWorkFactory) -> None:
+    def __init__(
+        self,
+        unit_of_work: UnitOfWorkFactory,
+        *,
+        state_initializer: StateInitializer | None = None,
+    ) -> None:
         self._unit_of_work = unit_of_work
+        self._state_initializer = state_initializer
 
     @asynccontextmanager
     async def _transaction(
@@ -175,6 +184,8 @@ class FluctlightService:
                     accepted_at=now,
                 )
             )
+            if self._state_initializer is not None:
+                await self._state_initializer(snapshot.id, tx)
         return snapshot
 
     async def get(self, fluctlight_id: str, *, tx: UnitOfWork | None = None) -> FluctlightSnapshot:

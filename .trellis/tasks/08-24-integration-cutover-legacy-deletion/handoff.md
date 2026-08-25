@@ -46,7 +46,9 @@ T03-T11 logic and contracts are present through Alembic head
 Web Control Center, authenticated login boundary, CSRF/CORS transport,
 Provider/embedding workflows, visible NDJSON token drafts, Redis outbox/replay
 consumers with split read/publish/mark phases, backup manifest tooling and
-acceptance/scope scripts.
+acceptance/scope scripts. Core/Worker composition now initializes each new
+Fluctlight's inner state in the creation UoW and applies cognitive assessments
+through the authoritative state-revision CAS before freezing a realization.
 Child-local evidence remains non-authoritative by design.
 
 ## Cutover Decision
