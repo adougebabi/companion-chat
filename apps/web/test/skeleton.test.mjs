@@ -9,6 +9,7 @@ test("web chat keeps the generated browser client at its boundary", async () => 
   assert.match(source, /expectedSequence/);
   assert.match(source, /markRead/);
   assert.match(source, /optimisticIndex/);
+  assert.match(source, /fluctlightId: this\.fluctlightId/);
 });
 
 test("control center exposes the required product views", async () => {

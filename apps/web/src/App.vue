@@ -166,7 +166,7 @@ onMounted(() => void store.initialize());
         <div class="avatar" aria-hidden="true">{{ message.kind === "user" ? "Y" : "F" }}</div>
         <div class="message-bubble">
           <p>{{ message.text }}</p>
-          <span v-if="message.attachmentRefs.length" class="attachment-chip">Attachment reference</span>
+          <span v-if="message.attachmentRefs?.length" class="attachment-chip">Attachment reference</span>
         </div>
       </article>
       </section>

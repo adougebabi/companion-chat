@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from hashlib import sha256
 from typing import Any
 
 from sqlalchemy import insert, select, update
@@ -489,7 +490,12 @@ class CognitionService:
     async def _freeze(self, claim: InboxClaim, envelope: AssessmentEnvelope) -> FrozenAction:
         assessment = envelope.assessment
         decision = envelope.decision
-        action_id = stable_action_id(claim.fact.id, decision.decision_id)
+        # Provider decision IDs are opaque metadata, not globally unique database keys.
+        # Scope them to the immutable inbox fact so retries remain idempotent while
+        # repeated provider IDs cannot poison later turns.
+        decision_key = f"{claim.fact.id}:{decision.decision_id}"
+        decision_id = f"decision_{sha256(decision_key.encode()).hexdigest()}"
+        action_id = stable_action_id(claim.fact.id, decision_id)
         provider_request_id = stable_provider_request_id(action_id)
         assessment_id = f"assessment_{assessment.idempotency_key}"
         async with self._unit_of_work.begin(command_id=f"cognition-freeze:{action_id}") as tx:
@@ -525,7 +531,7 @@ class CognitionService:
             )
             await tx.session.execute(
                 insert(schema.decision_proposals).values(
-                    id=decision.decision_id,
+                    id=decision_id,
                     assessment_id=assessment_id,
                     fluctlight_id=claim.fact.fluctlight_id,
                     action_type=decision.action_type.value,
@@ -538,7 +544,7 @@ class CognitionService:
             await tx.session.execute(
                 insert(schema.frozen_actions).values(
                     id=action_id,
-                    decision_id=decision.decision_id,
+                    decision_id=decision_id,
                     inbox_id=claim.fact.id,
                     fluctlight_id=claim.fact.fluctlight_id,
                     action_type=decision.action_type.value,
@@ -575,7 +581,7 @@ class CognitionService:
             await tx.commit()
         return FrozenAction(
             action_id,
-            decision.decision_id,
+            decision_id,
             claim.fact.id,
             claim.fact.fluctlight_id,
             decision.action_type,

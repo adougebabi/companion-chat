@@ -46,6 +46,40 @@ test("translator closes with a bounded error on a sequence violation", async () 
   assert.equal(events.at(-1)?.payload.code, "core_sequence_invalid");
 });
 
+test("translator normalizes streamed Core messages for the browser contract", async () => {
+  const core = `${JSON.stringify({
+    type: "action_result",
+    turn_id: "turn-1",
+    sequence: 0,
+    payload: {
+      message: {
+        id: "message-1",
+        conversation_id: "conversation-1",
+        sequence: 1,
+        author_actor_id: "human-1",
+        kind: "user",
+        text: "hello",
+        attachment_refs: [],
+        created_at: "2026-08-25T00:00:00+00:00",
+      },
+    },
+  })}\n${JSON.stringify({ type: "completed", turn_id: "turn-1", sequence: 1, payload: {} })}\n`;
+  const output = await readStream(translateCoreNdjson(response([core])));
+  const event = JSON.parse(output.trim().split("\n")[0]!) as { type: string; payload: { message: Record<string, unknown> } };
+
+  assert.equal(event.type, "message");
+  assert.deepEqual(event.payload.message, {
+    id: "message-1",
+    conversationId: "conversation-1",
+    sequence: 1,
+    authorActorId: "human-1",
+    kind: "user",
+    text: "hello",
+    attachmentRefs: [],
+    createdAt: "2026-08-25T00:00:00+00:00",
+  });
+});
+
 test("translator rejects unknown event types and invalid UTF-8", async () => {
   const unknown = `${JSON.stringify({ type: "unknown", turn_id: "turn-1", sequence: 0, payload: {} })}\n`;
   const unknownOutput = await readStream(translateCoreNdjson(response([unknown])));

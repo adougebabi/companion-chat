@@ -23,7 +23,7 @@ Status: final acceptance pending; cutover and legacy deletion **not executed**.
 | BFF typecheck/build/tests | pass | typecheck/build; external `tsx --test`, 13 passed including abort/no-later-write reader cancellation |
 | Browser client generation/typecheck | pass | generate + `tsc --noEmit`; 1 executable same-origin URL regression |
 | Web test/typecheck/build | pass | 3 tests passed (keyboard/live-region/form boundary and ComfyUI configuration included); `vue-tsc`; `vite build` |
-| Live browser DOM smoke | partial | In-app Browser verified the Owner login and authenticated `New conversation` shell after the generated-client URL/bound-fetch fixes; create-and-chat, successful token stream, disconnect cancellation, a11y/mobile and logout/revocation remain pending for manual follow-up |
+| Live browser DOM smoke | pass for disposable configured fixture | In-app Browser verified unauthenticated login, Owner sign-in, Settings-based six-role Provider configuration, Fluctlight conversation creation, first token before terminal, completed reply, cancellation with no later DOM write, narrow `390x844` layout without horizontal overflow, keyboard focus progression, and logout followed by reload/session revocation |
 | Generated artifact determinism | pass | second generation produced identical SHA-256 values |
 | Compose config | pass | `docker compose ... config` |
 | Compose readiness/smoke | pass | Disposable private env override; guarded PID-unique project started migration/minio-init/PostgreSQL/Redis/Temporal/Core/Worker/BFF/Web and container-internal BFF health fallback passed |
@@ -77,9 +77,11 @@ independent of the private Compose environment.
   configured-Provider fixture after the Worker sandbox fix. All automated
   disposable Docker runtime drills now pass for this exact source state.
 - Browser authentication is now verified through the actual browser client,
-  but the successful configured Provider conversation, client disconnect/no
-  later write, viewport/a11y and logout/revocation flows remain manual
-  acceptance work.
+  and the disposable configured-Provider browser flow is complete. The browser
+  suite verified first-token-before-terminal rendering, a cancelled stream with
+  no later DOM write, keyboard focus, narrow viewport layout and logout/session
+  revocation. Production-browser acceptance against deployment credentials
+  remains an operator concern, not a claim about external Providers.
 - Deployment-owner validation: real Docker + ComfyUI + MinIO Media Activity
   e2e and a Provider-success-before-database-commit crash-recovery drill are
   explicitly deferred to the Owner's post-deployment test. Local tests cover
@@ -157,5 +159,14 @@ independent of the private Compose environment.
   confirms the manifest's schema-revision check. The current pgvector HNSW
   plan measured `0.106 ms`, and the configured Provider fixture again produced
   the persisted conversation reply, ready embedding and provenance evidence.
+- Current-session browser acceptance exposed and fixed three cross-layer
+  defects before it passed: a normal BFF `401 {authenticated:false}` session
+  response was treated as a platform outage; streamed Core action-result
+  messages bypassed the BFF camelCase/default-array projection and crashed the
+  Vue render; and the Web conversation store did not retain/pass the selected
+  Fluctlight ID on turns. The BFF NDJSON reader now suppresses expected upstream
+  cancellation rejection after a downstream disconnect, so cancel no longer
+  exits the BFF process. Provider decision IDs are now scoped to their immutable
+  inbox fact, preventing repeated external IDs from colliding across turns.
 
 Acceptance owner remains T12. No production readiness or cutover is claimed.

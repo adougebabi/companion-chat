@@ -25,3 +25,14 @@ test("BrowserClient resolves an empty base URL against the browser origin", asyn
     });
   }
 });
+
+test("BrowserClient maps an unauthenticated session response without treating it as a platform failure", async () => {
+  const client = new BrowserClient("http://fluctlight.local", async () =>
+    new Response(JSON.stringify({ authenticated: false }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    }),
+  );
+
+  assert.deepEqual(await client.session(), { authenticated: false });
+});

@@ -30,6 +30,7 @@ function lastSequence(messages: BrowserMessage[]): number {
 export const useConversationStore = defineStore("conversations", {
   state: () => ({
     conversation: null as BrowserConversation | null,
+    fluctlightId: null as string | null,
     messages: [] as BrowserMessage[],
     authenticated: null as boolean | null,
     authLoading: false,
@@ -119,6 +120,7 @@ export const useConversationStore = defineStore("conversations", {
         });
         this.conversation = page.conversation;
         this.messages = page.messages;
+        this.fluctlightId = participantActorIds[0] ?? null;
         await this.reportReadPosition();
       } catch {
         this.error = "The conversation could not be created.";
@@ -140,6 +142,7 @@ export const useConversationStore = defineStore("conversations", {
           this.conversation.id,
           {
             text: normalized,
+            fluctlightId: this.fluctlightId ?? undefined,
             attachmentRefs: this.attachmentRef ? [this.attachmentRef] : [],
             idempotencyKey: `turn-${crypto.randomUUID()}`,
           },

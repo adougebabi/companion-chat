@@ -78,7 +78,7 @@ class Handler(BaseHTTPRequestHandler):
             ):
                 self.wfile.write(line)
                 self.wfile.flush()
-                time.sleep(0.25)
+                time.sleep(self.server.stream_delay_seconds)
             return
         self._json(
             {
@@ -101,8 +101,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=18081)
+    parser.add_argument("--stream-delay-seconds", type=float, default=0.25)
     args = parser.parse_args()
-    ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
+    server = ThreadingHTTPServer((args.host, args.port), Handler)
+    server.stream_delay_seconds = args.stream_delay_seconds
+    server.serve_forever()
 
 
 if __name__ == "__main__":

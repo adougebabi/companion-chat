@@ -17,7 +17,12 @@ export class BrowserClient {
     return new URL(path, origin);
   }
   async health(path: "/health/live" | "/health/ready"): Promise<BrowserHealth> { return this.json(path) as Promise<BrowserHealth>; }
-  async session(): Promise<BrowserSession> { return this.json("/auth/session") as Promise<BrowserSession>; }
+  async session(): Promise<BrowserSession> {
+    const response = await this.fetcher(this.url("/auth/session"), { credentials: "include" });
+    if (response.status === 401) return { authenticated: false };
+    if (!response.ok) throw new Error(`Browser request failed: ${response.status}`);
+    return response.json() as Promise<BrowserSession>;
+  }
   async login(password: string): Promise<BrowserSession> { return this.json("/auth/login", { method: "POST", body: { password } }) as Promise<BrowserSession>; }
   async setup(setupToken: string, password: string): Promise<BrowserSession> { return this.json("/auth/setup", { method: "POST", body: { setupToken, password } }) as Promise<BrowserSession>; }
   async logout(): Promise<void> { await this.json("/auth/logout", { method: "POST" }); }

@@ -40,6 +40,19 @@ function encode(event: BrowserStreamEvent): Uint8Array {
   return new TextEncoder().encode(`${JSON.stringify(event)}\n`);
 }
 
+function browserMessage(message: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: message.id,
+    conversationId: message.conversation_id,
+    sequence: message.sequence,
+    authorActorId: message.author_actor_id,
+    kind: message.kind,
+    text: message.text,
+    attachmentRefs: Array.isArray(message.attachment_refs) ? message.attachment_refs : [],
+    createdAt: message.created_at,
+  };
+}
+
 function browserEvent(core: CoreStreamEvent): BrowserStreamEvent {
   if (
     !coreTypes.has(core.type) ||
@@ -57,6 +70,14 @@ function browserEvent(core: CoreStreamEvent): BrowserStreamEvent {
   if (core.type === "action_result") {
     const message = core.payload.message;
     type = message && typeof message === "object" && (message as { kind?: string }).kind === "media_reference" ? "media" : "message";
+    if (message && typeof message === "object" && !Array.isArray(message)) {
+      return {
+        type,
+        turnId: core.turn_id,
+        sequence: core.sequence,
+        payload: { ...core.payload, message: browserMessage(message as Record<string, unknown>) },
+      };
+    }
   }
   return { type, turnId: core.turn_id, sequence: core.sequence, payload: core.payload };
 }
@@ -76,15 +97,22 @@ export function translateCoreNdjson(response: Response, signal?: AbortSignal): R
   let terminal = false;
   let ended = false;
   let aborted = false;
+  const cancelReader = async () => {
+    try {
+      await reader.cancel();
+    } catch {
+      // The upstream fetch rejects cancellation after a downstream disconnect.
+    }
+  };
   const abort = () => {
     aborted = true;
-    void reader.cancel();
+    void cancelReader();
   };
   const cleanup = () => signal?.removeEventListener("abort", abort);
   signal?.addEventListener("abort", abort, { once: true });
 
   if (signal?.aborted) {
-    void reader.cancel();
+    void cancelReader();
     return new ReadableStream<Uint8Array>({ start(controller) { controller.close(); } });
   }
 
@@ -113,7 +141,7 @@ export function translateCoreNdjson(response: Response, signal?: AbortSignal): R
             if (terminal) {
               ended = true;
               controller.close();
-              void reader.cancel();
+              void cancelReader();
               cleanup();
             }
             return;
@@ -139,7 +167,7 @@ export function translateCoreNdjson(response: Response, signal?: AbortSignal): R
         }
       } catch (error) {
         const code = error instanceof NdjsonTranslationError ? error.message : "core_stream_invalid";
-        await reader.cancel();
+        await cancelReader();
         cleanup();
         if (aborted) {
           controller.close();
@@ -153,7 +181,7 @@ export function translateCoreNdjson(response: Response, signal?: AbortSignal): R
     async cancel() {
       aborted = true;
       cleanup();
-      await reader.cancel();
+      await cancelReader();
     },
   });
 }
