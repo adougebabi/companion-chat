@@ -17,7 +17,7 @@ if [[ "${#scan_paths[@]}" == 0 ]]; then
   exit 1
 fi
 set +e
-grep -n -r --exclude-dir=".git" --exclude-dir=".mypy_cache" --exclude-dir=".ruff_cache" --exclude-dir=".pytest_cache" --exclude-dir=".trellis" --exclude-dir="server" --exclude-dir="web" --exclude-dir="test" --exclude-dir="acceptance" -E "$patterns" "${scan_paths[@]}"
+grep -n -r --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir=".mypy_cache" --exclude-dir=".ruff_cache" --exclude-dir=".pytest_cache" --exclude-dir=".trellis" --exclude-dir="server" --exclude-dir="web" --exclude-dir="test" --exclude-dir="acceptance" -E "$patterns" "${scan_paths[@]}"
 status=$?
 set -e
 if [[ "$status" == 0 ]]; then
