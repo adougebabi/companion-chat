@@ -312,8 +312,8 @@ async function completeSetup() {
 }
 
 async function changeOwnerPassword() {
-  await store.changePassword(changedOwnerPassword.value);
-  changedOwnerPassword.value = "";
+  const changed = await store.changePassword(changedOwnerPassword.value);
+  if (changed) changedOwnerPassword.value = "";
 }
 
 onMounted(() => void store.initialize());
@@ -581,9 +581,11 @@ onMounted(() => void store.initialize());
       </form>
       <form class="settings-form" @submit.prevent="changeOwnerPassword">
         <div class="settings-section-heading"><p class="eyebrow">OWNER</p><h3>修改所有者密码</h3></div>
-        <label>新密码<input v-model="changedOwnerPassword" type="password" autocomplete="new-password" minlength="12" required /></label>
-        <p class="field-note">修改后会撤销当前所有会话，需要使用新密码重新登录。</p>
-        <button class="send-button" type="submit" :disabled="store.authLoading || changedOwnerPassword.length < 12">{{ store.authLoading ? "正在修改..." : "修改密码" }}</button>
+        <label for="owner-password">新密码</label>
+        <input id="owner-password" v-model="changedOwnerPassword" type="password" autocomplete="new-password" minlength="12" required aria-describedby="owner-password-requirements" />
+        <p id="owner-password-requirements" class="field-note">新密码至少 12 个字符。修改后会撤销当前所有会话，需要使用新密码重新登录。</p>
+        <p v-if="store.authError" class="error-banner" role="alert">{{ store.authError }}</p>
+        <button class="send-button" type="submit" :disabled="store.authLoading || !changedOwnerPassword">{{ store.authLoading ? "正在修改..." : "修改密码" }}</button>
       </form>
     </section>
     </template>

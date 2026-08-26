@@ -23,3 +23,12 @@ test("control center exposes the required product views", async () => {
   assert.match(source, /media\.comfyui/);
   assert.match(source, /MEDIA PROVIDER/);
 });
+
+test("owner password change explains its policy without trapping the submit button", async () => {
+  const source = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
+  assert.match(source, /id="owner-password"/);
+  assert.match(source, /新密码至少 12 个字符/);
+  assert.match(source, /v-if="store\.authError"/);
+  assert.match(source, /:disabled="store\.authLoading \|\| !changedOwnerPassword"/);
+  assert.doesNotMatch(source, /changedOwnerPassword\.length < 12/);
+});

@@ -41,9 +41,7 @@ class FakeProviders:
     def __init__(self) -> None:
         self.requested: tuple[ResolvedHumanActor, str] | None = None
 
-    async def list_models(
-        self, actor: ResolvedHumanActor, *, endpoint_id: str
-    ) -> tuple[str, ...]:
+    async def list_models(self, actor: ResolvedHumanActor, *, endpoint_id: str) -> tuple[str, ...]:
         self.requested = (actor, endpoint_id)
         return ("embedding-model", "general-model")
 

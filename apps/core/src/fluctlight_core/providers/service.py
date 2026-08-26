@@ -188,9 +188,7 @@ class ProviderConfigurationService:
             await tx.commit()
         return report
 
-    async def list_models(
-        self, actor: ResolvedHumanActor, *, endpoint_id: str
-    ) -> tuple[str, ...]:
+    async def list_models(self, actor: ResolvedHumanActor, *, endpoint_id: str) -> tuple[str, ...]:
         """Return only model identifiers for one Owner-configured endpoint."""
 
         await self._require_owner(actor)
@@ -207,16 +205,20 @@ class ProviderConfigurationService:
         await self._require_owner(actor)
         async with self._unit_of_work.begin(command_id=f"provider-bindings:{uuid4()}") as tx:
             rows = (
-                await tx.session.execute(
-                    select(schema.model_roles, schema.provider_endpoints)
-                    .join(
-                        schema.provider_endpoints,
-                        schema.provider_endpoints.c.id
-                        == schema.model_roles.c.provider_endpoint_id,
+                (
+                    await tx.session.execute(
+                        select(schema.model_roles, schema.provider_endpoints)
+                        .join(
+                            schema.provider_endpoints,
+                            schema.provider_endpoints.c.id
+                            == schema.model_roles.c.provider_endpoint_id,
+                        )
+                        .order_by(schema.model_roles.c.role)
                     )
-                    .order_by(schema.model_roles.c.role)
                 )
-            ).mappings().all()
+                .mappings()
+                .all()
+            )
         return [
             {
                 "role": row["role"],
@@ -235,19 +237,27 @@ class ProviderConfigurationService:
         await self._require_owner(actor)
         async with self._unit_of_work.begin(command_id=f"provider-endpoints:{uuid4()}") as tx:
             endpoints = (
-                await tx.session.execute(
-                    select(schema.provider_endpoints).order_by(schema.provider_endpoints.c.id)
-                )
-            ).mappings().all()
-            roles = (
-                await tx.session.execute(
-                    select(schema.model_roles).order_by(schema.model_roles.c.role)
-                )
-            ).mappings().all()
-            secret_purposes = set(
                 (
-                    await tx.session.execute(select(settings_schema.setting_secrets.c.purpose))
-                ).scalars().all()
+                    await tx.session.execute(
+                        select(schema.provider_endpoints).order_by(schema.provider_endpoints.c.id)
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            roles = (
+                (
+                    await tx.session.execute(
+                        select(schema.model_roles).order_by(schema.model_roles.c.role)
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            secret_purposes = set(
+                (await tx.session.execute(select(settings_schema.setting_secrets.c.purpose)))
+                .scalars()
+                .all()
             )
         roles_by_endpoint: dict[str, list[dict[str, object]]] = {}
         for role in roles:

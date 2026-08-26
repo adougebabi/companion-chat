@@ -187,15 +187,15 @@ async def run_worker(settings: PlatformSettings) -> None:
         ),
     )
     cognition_service = CognitionService(
-            unit_of_work,
-            provider_runtime,
-            provider_runtime,
-            reflection_provider=provider_runtime,
-            reflection_applier=ReflectionCoordinator(memory_service, relationships),
-            state_applier=CognitionStateApplier(inner_state),
-            autonomy_freezer=CognitionAutonomyBridge(autonomy_service, settings_service),
-            diagnostics=diagnostics,
-        )
+        unit_of_work,
+        provider_runtime,
+        provider_runtime,
+        reflection_provider=provider_runtime,
+        reflection_applier=ReflectionCoordinator(memory_service, relationships),
+        state_applier=CognitionStateApplier(inner_state),
+        autonomy_freezer=CognitionAutonomyBridge(autonomy_service, settings_service),
+        diagnostics=diagnostics,
+    )
     configure_cognition_service(cognition_service)
     configure_reflection_service(cognition_service)
     redis = Redis.from_url(settings.redis_url, decode_responses=True)

@@ -95,9 +95,7 @@ class LifeWorldService:
                 raise KeyError(event_id)
             await tx.commit()
 
-    async def set_presence(
-        self, fluctlight_id: str, presence: PresenceOverlay
-    ) -> PresenceOverlay:
+    async def set_presence(self, fluctlight_id: str, presence: PresenceOverlay) -> PresenceOverlay:
         async with self._unit_of_work.begin(command_id=f"life-presence:{fluctlight_id}") as tx:
             await tx.session.execute(
                 insert(schema.presence_overlays).values(

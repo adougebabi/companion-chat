@@ -36,9 +36,7 @@ direct_conversations = Table(
     "fluctlight_direct_conversations",
     metadata,
     Column("owner_actor_id", String(128), ForeignKey("public.actors.id"), primary_key=True),
-    Column(
-        "fluctlight_actor_id", String(128), ForeignKey("public.actors.id"), primary_key=True
-    ),
+    Column("fluctlight_actor_id", String(128), ForeignKey("public.actors.id"), primary_key=True),
     Column(
         "conversation_id",
         String(128),

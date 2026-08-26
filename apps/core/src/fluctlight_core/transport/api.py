@@ -565,9 +565,7 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             raise HTTPException(status_code=503, detail="Core autonomy is starting")
         return current.autonomy
 
-    async def require_workflow_runtime(
-        current: ApiDependencies, actor_id: str
-    ) -> TemporalRuntime:
+    async def require_workflow_runtime(current: ApiDependencies, actor_id: str) -> TemporalRuntime:
         client = await Client.connect(
             current.settings.temporal_address,
             namespace=current.settings.temporal_namespace,
@@ -586,12 +584,16 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 command_id=f"workflow-restart-spec:{workflow_id}"
             ) as tx:
                 row = (
-                    await tx.session.execute(
-                        select(platform_schema.workflow_intents).where(
-                            platform_schema.workflow_intents.c.workflow_id == workflow_id
+                    (
+                        await tx.session.execute(
+                            select(platform_schema.workflow_intents).where(
+                                platform_schema.workflow_intents.c.workflow_id == workflow_id
+                            )
                         )
                     )
-                ).mappings().one_or_none()
+                    .mappings()
+                    .one_or_none()
+                )
             if row is None:
                 raise KeyError("workflow has no committed restart intent")
             prefix = str(row["intent_type"]).split(".", 1)[0]
@@ -951,6 +953,7 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             raise HTTPException(status_code=403, detail="forbidden") from exc
         except Exception as exc:
             raise HTTPException(status_code=502, detail="workflow_runtime_unavailable") from exc
+
         def execution_ids(value: object) -> tuple[str | None, str | None]:
             if not isinstance(value, dict):
                 return None, None
@@ -969,9 +972,7 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             value = item.to_json_dict() if hasattr(item, "to_json_dict") else {}
             workflow_id, run_id = execution_ids(value)
             workflow_id = (
-                workflow_id
-                or getattr(item, "id", None)
-                or getattr(item, "workflow_id", None)
+                workflow_id or getattr(item, "id", None) or getattr(item, "workflow_id", None)
             )
             if not isinstance(workflow_id, str) or not workflow_id:
                 continue

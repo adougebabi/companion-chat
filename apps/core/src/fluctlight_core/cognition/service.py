@@ -508,9 +508,7 @@ class CognitionService:
     ) -> ReflectionProposal | None:
         """Reflect over the latest settled cognition window, or explicitly no-op."""
 
-        async with self._unit_of_work.begin(
-            command_id=f"reflection-bounds:{fluctlight_id}"
-        ) as tx:
+        async with self._unit_of_work.begin(command_id=f"reflection-bounds:{fluctlight_id}") as tx:
             to_sequence = await tx.session.scalar(
                 select(schema.inbox_heads.c.last_processed_sequence).where(
                     schema.inbox_heads.c.fluctlight_id == fluctlight_id
@@ -707,9 +705,7 @@ class CognitionService:
             await freezer(action)
 
     @staticmethod
-    def _action_after_realization(
-        action: FrozenAction, result: RealizationResult
-    ) -> FrozenAction:
+    def _action_after_realization(action: FrozenAction, result: RealizationResult) -> FrozenAction:
         if action.action_type is not ActionType.MEDIA_REQUEST:
             return action
         media_request = result.payload.get("media_request")

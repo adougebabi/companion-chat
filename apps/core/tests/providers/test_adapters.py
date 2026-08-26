@@ -149,8 +149,6 @@ def test_openai_adapter_does_not_infer_runtime_capabilities_during_preflight() -
     assert report.available is True
 
 
-
-
 def test_openai_adapter_executes_structured_realization_and_embedding_ports() -> None:
     calls: list[tuple[str, str, bytes]] = []
 
@@ -254,6 +252,7 @@ def test_openai_adapter_collects_sse_media_tool_call_arguments() -> None:
         method: str, url: str, headers: dict[str, str], body: bytes, timeout: float
     ) -> HttpResult:
         assert b'"stream": true' in body
+
         def frame(delta: dict[str, object]) -> bytes:
             return f"data: {json.dumps({'choices': [{'delta': delta}]})}\n".encode()
 

@@ -132,8 +132,10 @@ export const useConversationStore = defineStore("conversations", {
         this.conversation = null;
         this.messages = [];
         this.fluctlightId = null;
+        return true;
       } catch {
-        this.error = "无法修改所有者密码。";
+        this.authError = "无法修改所有者密码。请确认当前登录会话仍有效后重试。";
+        return false;
       } finally {
         this.authLoading = false;
       }

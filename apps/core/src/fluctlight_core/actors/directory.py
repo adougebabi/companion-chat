@@ -29,15 +29,19 @@ class ActorDirectoryService:
         await self._require_owner(actor)
         async with self._unit_of_work.begin(command_id=f"actor-groups:{actor.actor_id}") as tx:
             groups = (
-                await tx.session.execute(
-                    select(schema.actor_groups)
-                    .where(schema.actor_groups.c.owner_actor_id == actor.actor_id)
-                    .order_by(schema.actor_groups.c.name)
+                (
+                    await tx.session.execute(
+                        select(schema.actor_groups)
+                        .where(schema.actor_groups.c.owner_actor_id == actor.actor_id)
+                        .order_by(schema.actor_groups.c.name)
+                    )
                 )
-            ).mappings().all()
+                .mappings()
+                .all()
+            )
             members = (
-                await tx.session.execute(select(schema.actor_group_members))
-            ).mappings().all()
+                (await tx.session.execute(select(schema.actor_group_members))).mappings().all()
+            )
         by_group: dict[str, list[str]] = {}
         for member in members:
             by_group.setdefault(str(member["group_id"]), []).append(str(member["actor_id"]))

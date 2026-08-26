@@ -184,38 +184,51 @@ class ConversationService:
             return {}
         async with self._unit_of_work.begin(command_id=f"direct-unread:{owner_actor_id}") as tx:
             rows = (
-                await tx.session.execute(
-                    select(
-                        schema.direct_conversations.c.fluctlight_actor_id,
-                        func.count(schema.messages.c.id).label("unread_count"),
+                (
+                    await tx.session.execute(
+                        select(
+                            schema.direct_conversations.c.fluctlight_actor_id,
+                            func.count(schema.messages.c.id).label("unread_count"),
+                        )
+                        .select_from(schema.direct_conversations)
+                        .join(
+                            schema.read_positions,
+                            (
+                                schema.read_positions.c.conversation_id
+                                == schema.direct_conversations.c.conversation_id
+                            )
+                            & (schema.read_positions.c.actor_id == owner_actor_id),
+                        )
+                        .outerjoin(
+                            schema.messages,
+                            (
+                                schema.messages.c.conversation_id
+                                == schema.direct_conversations.c.conversation_id
+                            )
+                            & (
+                                schema.messages.c.author_actor_id
+                                == schema.direct_conversations.c.fluctlight_actor_id
+                            )
+                            & (
+                                schema.messages.c.sequence
+                                > schema.read_positions.c.last_read_sequence
+                            ),
+                        )
+                        .where(
+                            schema.direct_conversations.c.owner_actor_id == owner_actor_id,
+                            schema.direct_conversations.c.fluctlight_actor_id.in_(
+                                fluctlight_actor_ids
+                            ),
+                        )
+                        .group_by(schema.direct_conversations.c.fluctlight_actor_id)
                     )
-                    .select_from(schema.direct_conversations)
-                    .join(
-                        schema.read_positions,
-                        (schema.read_positions.c.conversation_id
-                         == schema.direct_conversations.c.conversation_id)
-                        & (schema.read_positions.c.actor_id == owner_actor_id),
-                    )
-                    .outerjoin(
-                        schema.messages,
-                        (schema.messages.c.conversation_id
-                         == schema.direct_conversations.c.conversation_id)
-                        & (schema.messages.c.author_actor_id
-                           == schema.direct_conversations.c.fluctlight_actor_id)
-                        & (schema.messages.c.sequence
-                           > schema.read_positions.c.last_read_sequence),
-                    )
-                    .where(
-                        schema.direct_conversations.c.owner_actor_id == owner_actor_id,
-                        schema.direct_conversations.c.fluctlight_actor_id.in_(fluctlight_actor_ids),
-                    )
-                    .group_by(schema.direct_conversations.c.fluctlight_actor_id)
                 )
-            ).mappings().all()
+                .mappings()
+                .all()
+            )
         counts = {str(row["fluctlight_actor_id"]): int(row["unread_count"]) for row in rows}
         return {
-            fluctlight_id: counts.get(fluctlight_id, 0)
-            for fluctlight_id in fluctlight_actor_ids
+            fluctlight_id: counts.get(fluctlight_id, 0) for fluctlight_id in fluctlight_actor_ids
         }
 
     async def history(

@@ -150,7 +150,7 @@ class ConfiguredProviderRuntime:
                     },
                     sort_keys=True,
                 ),
-            }
+            },
         ]
         try:
             payload = await self._adapter.complete_structured(

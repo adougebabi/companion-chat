@@ -328,20 +328,22 @@ class MediaService:
     async def read_object(self, authorized: AuthorizedMediaRead) -> tuple[bytes, str | None]:
         return self._storage.read(authorized.grant)
 
-    async def summaries(
-        self, asset_ids: tuple[str, ...], *, actor_id: str
-    ) -> list[dict[str, str]]:
+    async def summaries(self, asset_ids: tuple[str, ...], *, actor_id: str) -> list[dict[str, str]]:
         if not asset_ids:
             return []
         async with self._unit_of_work.begin(command_id=f"media-summaries:{len(asset_ids)}") as tx:
             rows = (
-                await tx.session.execute(
-                    select(schema.assets).where(
-                        schema.assets.c.id.in_(asset_ids),
-                        schema.assets.c.status == MediaStatus.READY.value,
+                (
+                    await tx.session.execute(
+                        select(schema.assets).where(
+                            schema.assets.c.id.in_(asset_ids),
+                            schema.assets.c.status == MediaStatus.READY.value,
+                        )
                     )
                 )
-            ).mappings().all()
+                .mappings()
+                .all()
+            )
         result: list[dict[str, str]] = []
         for row in rows:
             if await self._authorized(row["owner_fluctlight_id"], actor_id):
