@@ -10,6 +10,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
 
 _PASSWORD_HASHER = PasswordHasher()
+MIN_OWNER_PASSWORD_LENGTH = 6
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,8 +30,8 @@ def issue_opaque_token() -> OpaqueToken:
 
 
 def hash_password(password: str) -> str:
-    if not password:
-        raise ValueError("password must not be empty")
+    if len(password) < MIN_OWNER_PASSWORD_LENGTH:
+        raise ValueError(f"password must contain at least {MIN_OWNER_PASSWORD_LENGTH} characters")
     return _PASSWORD_HASHER.hash(password)
 
 

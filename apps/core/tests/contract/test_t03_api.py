@@ -106,6 +106,15 @@ def test_internal_routes_require_service_identity_and_keep_settings_safe() -> No
         assert "opaque-token" not in settings.text
 
 
+def test_owner_password_transport_accepts_six_characters_and_rejects_five() -> None:
+    with TestClient(create_app(dependencies())) as client:
+        headers = {"x-fluctlight-service-key": "service-key"}
+        rejected = client.post("/internal/auth/login", headers=headers, json={"password": "12345"})
+        accepted = client.post("/internal/auth/login", headers=headers, json={"password": "123456"})
+    assert rejected.status_code == 422
+    assert accepted.status_code == 200
+
+
 def test_provider_model_listing_requires_internal_and_human_identity() -> None:
     dependencies_for_models = dependencies()
     providers = FakeProviders()

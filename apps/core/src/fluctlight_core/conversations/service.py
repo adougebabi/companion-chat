@@ -231,6 +231,43 @@ class ConversationService:
             fluctlight_id: counts.get(fluctlight_id, 0) for fluctlight_id in fluctlight_actor_ids
         }
 
+    async def direct_last_activity(
+        self, *, owner_actor_id: str, fluctlight_actor_ids: tuple[str, ...]
+    ) -> dict[str, datetime | None]:
+        """Project direct-conversation activity for the Fluctlight directory."""
+
+        if not fluctlight_actor_ids:
+            return {}
+        async with self._unit_of_work.begin(command_id=f"direct-activity:{owner_actor_id}") as tx:
+            rows = (
+                (
+                    await tx.session.execute(
+                        select(
+                            schema.direct_conversations.c.fluctlight_actor_id,
+                            schema.conversations.c.updated_at,
+                        )
+                        .select_from(schema.direct_conversations)
+                        .join(
+                            schema.conversations,
+                            schema.conversations.c.id
+                            == schema.direct_conversations.c.conversation_id,
+                        )
+                        .where(
+                            schema.direct_conversations.c.owner_actor_id == owner_actor_id,
+                            schema.direct_conversations.c.fluctlight_actor_id.in_(
+                                fluctlight_actor_ids
+                            ),
+                        )
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        activity = {str(row["fluctlight_actor_id"]): row["updated_at"] for row in rows}
+        return {
+            fluctlight_id: activity.get(fluctlight_id) for fluctlight_id in fluctlight_actor_ids
+        }
+
     async def history(
         self,
         conversation_id: str,

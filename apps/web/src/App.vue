@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from "vue";
+import type { BrowserMessage } from "@fluctlight/browser-client";
 
 import { useConversationStore } from "./stores/conversations";
 import { useControlCenterStore } from "./stores/control-center";
@@ -7,7 +8,7 @@ import { useControlCenterStore } from "./stores/control-center";
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
 type View = "chat" | "fluctlights" | "moments" | "diagnostics" | "settings";
-const view = ref<View>("chat");
+const view = ref<View>("fluctlights");
 const providerRoles = [
   { value: "initialization", label: "初始化" },
   { value: "cognitive_assessment", label: "认知判断" },
@@ -33,6 +34,9 @@ const creationMode = ref<"blank_slate" | "llm_defined">("blank_slate");
 const creationDescription = ref("");
 const creationPreviewJson = ref("");
 const creationRequestId = ref<string | null>(null);
+const instanceSearch = ref("");
+const showCreateForm = ref(false);
+const showInstanceDetails = ref(false);
 const draft = ref("");
 const authPassword = ref("");
 const setupToken = ref("");
@@ -237,9 +241,15 @@ async function activatePreview() {
 
 async function openFluctlight(fluctlightId: string) {
   await store.selectFluctlight(fluctlightId);
-  await controlCenter.loadFluctlightDetail(fluctlightId);
-  await controlCenter.loadAutonomyActions(fluctlightId);
-  if (store.hasConversation) view.value = "chat";
+  if (store.hasConversation) {
+    view.value = "chat";
+    await nextTick();
+    transcript.value?.scrollTo({ top: transcript.value.scrollHeight, behavior: "auto" });
+  }
+  await Promise.all([
+    controlCenter.loadFluctlightDetail(fluctlightId),
+    controlCenter.loadAutonomyActions(fluctlightId),
+  ]);
 }
 
 function prettyPayload(payload: Record<string, unknown>) {
@@ -272,6 +282,11 @@ const roleLabels: Record<string, string> = {
 };
 function labelFor(key: string) { return displayLabels[key] ?? key; }
 function roleLabel(role: string) { return roleLabels[role] ?? role; }
+function deliveryStatus(message: BrowserMessage): "pending" | "sent" | "none" {
+  if (message.kind !== "user") return "none";
+  const latestUserMessage = [...store.messages].reverse().find((item) => item.kind === "user");
+  return store.sending && latestUserMessage?.id === message.id ? "pending" : "sent";
+}
 function diagnosticFailureReason(errorCode: string) {
   const explanations: Record<string, string> = {
     cognitive_provider_response_is_missing_decision: "认知模型没有返回必需的 decision 对象，无法生成下一步动作。",
@@ -281,9 +296,20 @@ function diagnosticFailureReason(errorCode: string) {
 }
 function filteredFluctlights() {
   const groupId = controlCenter.selectedActorGroupId;
-  if (!groupId) return store.fluctlights;
+  const query = instanceSearch.value.trim().toLowerCase();
+  const visible = store.fluctlights.filter((item) => {
+    if (!query) return true;
+    const name = String(item.identity.name ?? "").toLowerCase();
+    return name.includes(query) || item.id.toLowerCase().includes(query);
+  });
+  const newestFirst = (items: typeof visible) => [...items].sort((left, right) => {
+    const leftActivity = Date.parse(left.last_conversation_at ?? "") || 0;
+    const rightActivity = Date.parse(right.last_conversation_at ?? "") || 0;
+    return rightActivity - leftActivity;
+  });
+  if (!groupId) return newestFirst(visible);
   const group = controlCenter.actorGroups.find((item) => item.id === groupId);
-  return group ? store.fluctlights.filter((item) => group.actor_ids.includes(item.id)) : store.fluctlights;
+  return newestFirst(group ? visible.filter((item) => group.actor_ids.includes(item.id)) : visible);
 }
 function workflowIdFor(value: Record<string, unknown>) {
   const findId = (candidate: unknown): string => {
@@ -320,7 +346,7 @@ onMounted(() => void store.initialize());
 </script>
 
 <template>
-  <main class="shell">
+  <main class="shell" :class="{ 'chat-shell': view === 'chat' }">
     <section v-if="store.authenticated !== true" class="auth-panel" aria-labelledby="auth-title">
       <p class="eyebrow">FLUCTLIGHT</p>
       <h1 id="auth-title">{{ store.setupAvailable ? "创建所有者" : "所有者登录" }}</h1>
@@ -329,45 +355,24 @@ onMounted(() => void store.initialize());
         <label for="setup-token">设置令牌</label>
         <input id="setup-token" v-model="setupToken" type="password" autocomplete="one-time-code" required :disabled="store.authLoading" />
         <label for="setup-password">所有者密码</label>
-        <input id="setup-password" v-model="newOwnerPassword" type="password" autocomplete="new-password" minlength="12" required :disabled="store.authLoading" />
+        <input id="setup-password" v-model="newOwnerPassword" type="password" autocomplete="new-password" minlength="6" required :disabled="store.authLoading" />
         <p v-if="store.authError" class="error-banner" role="alert">{{ store.authError }}</p>
-        <button class="send-button" type="submit" :disabled="store.authLoading || !setupToken || newOwnerPassword.length < 12">{{ store.authLoading ? "正在创建..." : "创建所有者" }}</button>
+        <button class="send-button" type="submit" :disabled="store.authLoading || !setupToken || newOwnerPassword.length < 6">{{ store.authLoading ? "正在创建..." : "创建所有者" }}</button>
       </form>
       <form v-else class="auth-form" @submit.prevent="signIn">
         <label for="auth-password">密码</label>
-        <input id="auth-password" v-model="authPassword" type="password" autocomplete="current-password" required :disabled="store.authLoading" />
+        <input id="auth-password" v-model="authPassword" type="password" autocomplete="current-password" minlength="6" required :disabled="store.authLoading" />
         <p v-if="store.authError" class="error-banner" role="alert">{{ store.authError }}</p>
-        <button class="send-button" type="submit" :disabled="store.authLoading || !authPassword">{{ store.authLoading ? "正在登录..." : "登录" }}</button>
+        <button class="send-button" type="submit" :disabled="store.authLoading || authPassword.length < 6">{{ store.authLoading ? "正在登录..." : "登录" }}</button>
       </form>
     </section>
     <template v-else>
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">FLUCTLIGHT</p>
-        <h1>{{ store.selectedFluctlightName ?? "Fluctlight" }}</h1>
-      </div>
-      <div class="topbar-actions">
-        <span class="status" :class="{ active: store.sending }">
-          <span class="status-dot" aria-hidden="true" />
-          {{ store.sending ? "正在思考" : "就绪" }}
-        </span>
-        <button class="secondary-button" type="button" @click="store.logout">退出登录</button>
-      </div>
-    </header>
-
-    <nav class="tabbar" aria-label="Fluctlight 控制中心">
-      <button v-for="item in [
-        { id: 'chat', label: '对话' },
-        { id: 'fluctlights', label: 'Fluctlight 实例' },
-        { id: 'moments', label: '动态' },
-        { id: 'diagnostics', label: '诊断' },
-        { id: 'settings', label: '设置' },
-      ]" :key="item.id" class="tab" :class="{ selected: view === item.id }" type="button" @click="selectView(item.id as View)">
-        {{ item.label }}
-      </button>
-    </nav>
-
     <template v-if="view === 'chat'">
+      <header class="chat-header">
+        <button class="chat-back" type="button" aria-label="返回实例" @click="view = 'fluctlights'">‹</button>
+        <span class="chat-avatar" aria-hidden="true">{{ String(store.selectedFluctlightName ?? 'F').slice(0, 1) }}</span>
+        <div class="chat-header-copy"><strong>{{ store.selectedFluctlightName ?? '对话' }}</strong><small>摇光当前状态：{{ store.sending ? '思考中' : '就绪' }}</small></div>
+      </header>
       <section ref="transcript" class="transcript" aria-live="polite" aria-label="对话记录">
       <div v-if="store.loading" class="empty-state">正在加载对话...</div>
       <button v-else-if="store.nextBeforeSequence" class="secondary-button load-older" type="button" @click="store.loadOlder">加载更早记录</button>
@@ -392,6 +397,7 @@ onMounted(() => void store.initialize());
         <div class="message-bubble">
           <p>{{ message.text }}</p>
           <div v-if="message.attachmentRefs?.length" class="message-media"><img v-for="assetId in message.attachmentRefs" :key="assetId" :src="mediaUrl(assetId)" :alt="store.selectedFluctlightName + ' 生成的图片'" loading="lazy" /></div>
+          <div class="message-meta"><time>{{ new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</time><span v-if="deliveryStatus(message) !== 'none'" class="delivery-status" :class="deliveryStatus(message)" :aria-label="deliveryStatus(message) === 'pending' ? '已接收，处理中' : '已回复'">✓<span v-if="deliveryStatus(message) === 'sent'">✓</span></span></div>
         </div>
       </article>
       </section>
@@ -425,8 +431,10 @@ onMounted(() => void store.initialize());
       </form>
     </template>
 
-    <section v-else-if="view === 'fluctlights'" class="control-panel" aria-labelledby="fluctlights-title">
-      <div class="panel-heading"><p class="eyebrow">FLUCTLIGHT</p><h2 id="fluctlights-title">Fluctlight 实例</h2></div>
+    <section v-else-if="view === 'fluctlights'" class="control-panel fluctlights-panel" aria-labelledby="fluctlights-title">
+      <div class="list-header"><div><p class="eyebrow">ECHO</p><h2 id="fluctlights-title">聊天</h2></div><button class="round-action" type="button" aria-label="新建 Fluctlight" @click="showCreateForm = !showCreateForm">＋</button></div>
+      <label class="search-box" for="instance-search"><span aria-hidden="true">⌕</span><input id="instance-search" v-model="instanceSearch" type="search" placeholder="搜索" /></label>
+      <div v-if="showCreateForm" class="create-drawer">
       <div class="creation-mode" role="group" aria-label="Fluctlight 创建方式">
         <button class="secondary-button" :class="{ selected: creationMode === 'blank_slate' }" type="button" @click="creationMode = 'blank_slate'">白纸创建</button>
         <button class="secondary-button" :class="{ selected: creationMode === 'llm_defined' }" type="button" @click="creationMode = 'llm_defined'">从描述创建</button>
@@ -449,11 +457,13 @@ onMounted(() => void store.initialize());
         <button class="send-button" type="submit" :disabled="controlCenter.saving">确认激活并对话</button>
       </form>
       <form class="actor-create-form" @submit.prevent="controlCenter.createActorGroup"><label for="actor-group-name">实例分组</label><div class="actor-create-row"><input id="actor-group-name" v-model="controlCenter.newActorGroupName" maxlength="128" placeholder="新分组名称" /><button class="secondary-button" type="submit" :disabled="controlCenter.saving || !controlCenter.newActorGroupName.trim()">创建分组</button></div></form>
+      </div>
       <label class="toggle-row">筛选分组<select v-model="controlCenter.selectedActorGroupId"><option value="">全部实例</option><option v-for="group in controlCenter.actorGroups" :key="group.id" :value="group.id">{{ group.name }}</option></select></label>
       <div v-if="store.fluctlights.length" class="actor-list">
-        <div v-for="fluctlight in filteredFluctlights()" :key="fluctlight.id" class="actor-directory-row"><button class="actor-row" :class="{ selected: fluctlight.id === store.fluctlightId }" type="button" @click="openFluctlight(fluctlight.id)"><span class="avatar">F</span><span class="actor-row-copy"><strong>{{ String(fluctlight.identity.name ?? fluctlight.id) }}</strong><small>{{ fluctlight.id }}</small></span><span class="state-label">{{ fluctlight.id === store.fluctlightId ? '当前对话' : fluctlight.status }}<span v-if="fluctlight.unread_count"> · {{ fluctlight.unread_count }} 未读</span></span></button><select v-if="controlCenter.actorGroups.length" :aria-label="'为 ' + fluctlight.id + ' 指定分组'" @change="($event) => { const groupId = ($event.target as HTMLSelectElement).value; if (groupId) controlCenter.assignActorGroupMember(groupId, fluctlight.id) }"><option value="">加入分组...</option><option v-for="group in controlCenter.actorGroups.filter((item) => !item.actor_ids.includes(fluctlight.id))" :key="group.id" :value="group.id">{{ group.name }}</option></select><button v-for="group in controlCenter.actorGroups.filter((item) => item.actor_ids.includes(fluctlight.id))" :key="group.id" class="secondary-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.removeActorGroupMember(group.id, fluctlight.id)">移出 {{ group.name }}</button></div>
+        <div v-for="fluctlight in filteredFluctlights()" :key="fluctlight.id" class="actor-directory-row"><button class="actor-row" :class="{ selected: fluctlight.id === store.fluctlightId }" type="button" @click="openFluctlight(fluctlight.id)"><span class="avatar">{{ String(fluctlight.identity.name ?? 'F').slice(0, 1) }}</span><span class="actor-row-copy"><strong>{{ String(fluctlight.identity.name ?? fluctlight.id) }}</strong><small>摇光当前状态：{{ fluctlight.status }}</small></span><span class="row-trailing"><time>{{ fluctlight.id === store.fluctlightId ? '现在' : '—' }}</time><span v-if="fluctlight.unread_count" class="unread-badge">{{ fluctlight.unread_count }}</span></span></button><select v-if="controlCenter.actorGroups.length" :aria-label="'为 ' + fluctlight.id + ' 指定分组'" @change="($event) => { const groupId = ($event.target as HTMLSelectElement).value; if (groupId) controlCenter.assignActorGroupMember(groupId, fluctlight.id) }"><option value="">加入分组...</option><option v-for="group in controlCenter.actorGroups.filter((item) => !item.actor_ids.includes(fluctlight.id))" :key="group.id" :value="group.id">{{ group.name }}</option></select><button v-for="group in controlCenter.actorGroups.filter((item) => item.actor_ids.includes(fluctlight.id))" :key="group.id" class="secondary-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.removeActorGroupMember(group.id, fluctlight.id)">移出 {{ group.name }}</button></div>
       </div>
-      <section v-if="store.selectedFluctlight" class="fluctlight-detail" aria-labelledby="detail-title">
+      <button v-if="store.selectedFluctlight" class="detail-toggle" type="button" @click="showInstanceDetails = !showInstanceDetails">{{ showInstanceDetails ? '收起实例详情' : '管理实例详情' }}</button>
+      <section v-if="store.selectedFluctlight && showInstanceDetails" class="fluctlight-detail" aria-labelledby="detail-title">
         <h3 id="detail-title">{{ store.selectedFluctlightName }} 的身份设定</h3>
         <dl><template v-for="(value, key) in store.selectedFluctlight.identity" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ Array.isArray(value) ? value.join('、') : String(value ?? '未设定') }}</dd></template></dl>
         <template v-if="controlCenter.fluctlightDetail">
@@ -497,11 +507,11 @@ onMounted(() => void store.initialize());
           <form class="governance-form" @submit.prevent="controlCenter.setFluctlightStatus(store.fluctlightId, controlCenter.fluctlightDetail?.status === 'paused' ? 'active' : 'paused')"><input v-model="controlCenter.governanceReason" aria-label="状态治理原因" maxlength="1024" placeholder="填写暂停或恢复的原因" /><button class="secondary-button" type="submit" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()">{{ controlCenter.fluctlightDetail.status === 'paused' ? '恢复自主性' : '暂停自主性' }}</button></form>
         </template>
       </section>
-      <div v-else class="empty-state compact"><h2>还没有 Fluctlight 实例</h2><p>使用上方输入框创建第一个实例。</p></div>
+      <div v-else-if="!store.fluctlights.length" class="empty-state compact"><h2>还没有 Fluctlight 实例</h2><p>使用上方输入框创建第一个实例。</p></div>
     </section>
 
-    <section v-else-if="view === 'moments'" class="control-panel" aria-labelledby="moments-title">
-      <div class="panel-heading"><p class="eyebrow">MOMENTS</p><h2 id="moments-title">动态</h2></div>
+    <section v-else-if="view === 'moments'" class="control-panel moments-panel" aria-labelledby="moments-title">
+      <div class="panel-heading"><div><p class="eyebrow">MOMENTS</p><h2 id="moments-title">动态</h2></div><div class="dashboard-legend"><span><i class="legend-dot online" />{{ controlCenter.moments.length }} 条动态</span><span>最近同步 · 刚刚</span></div></div>
       <div class="creation-mode" role="group" aria-label="动态范围"><button class="secondary-button" :class="{ selected: controlCenter.momentsScope === 'global' }" type="button" @click="controlCenter.momentsScope = 'global'; controlCenter.loadMoments(store.fluctlightId)">全部动态</button><button class="secondary-button" :class="{ selected: controlCenter.momentsScope === 'fluctlight' }" type="button" :disabled="!store.selectedFluctlight" @click="controlCenter.momentsScope = 'fluctlight'; controlCenter.loadMoments(store.fluctlightId)">当前实例</button></div>
       <label class="toggle-row"><input v-model="controlCenter.includeHiddenMoments" type="checkbox" @change="controlCenter.loadMoments(store.fluctlightId)" /> 显示已隐藏动态</label>
       <div v-if="controlCenter.loading" class="empty-state compact">正在加载动态...</div>
@@ -513,7 +523,7 @@ onMounted(() => void store.initialize());
     </section>
 
     <section v-else-if="view === 'diagnostics'" class="control-panel" aria-labelledby="diagnostics-title">
-      <div class="panel-heading panel-actions"><div><p class="eyebrow">CONTROL CENTER</p><h2 id="diagnostics-title">诊断</h2></div><div class="diagnostic-actions"><button class="secondary-button" type="button" @click="controlCenter.exportDiagnostics">导出</button><button class="secondary-button" type="button" @click="controlCenter.clearDiagnostics">清空</button></div></div>
+      <div class="panel-heading panel-actions"><div><button class="back-link" type="button" @click="view = 'settings'">← 返回设置</button><p class="eyebrow">CONTROL CENTER</p><h2 id="diagnostics-title">诊断</h2></div><div class="diagnostic-actions"><button class="secondary-button" type="button" @click="controlCenter.exportDiagnostics">导出</button><button class="secondary-button" type="button" @click="controlCenter.clearDiagnostics">清空</button></div></div>
       <form class="diagnostic-filter" @submit.prevent="controlCenter.loadDiagnostics"><input v-model="controlCenter.diagnosticsCorrelationFilter" aria-label="Correlation ID 过滤" placeholder="按 Correlation ID 过滤" /><button class="secondary-button" type="submit">筛选</button></form>
       <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
       <div v-if="controlCenter.loading" class="empty-state compact">正在加载诊断信息...</div>
@@ -523,7 +533,7 @@ onMounted(() => void store.initialize());
     </section>
 
     <section v-else class="control-panel" aria-labelledby="settings-title">
-      <div class="panel-heading"><p class="eyebrow">SYSTEM</p><h2 id="settings-title">设置</h2></div>
+      <div class="panel-heading"><div><p class="eyebrow">SYSTEM</p><h2 id="settings-title">设置</h2></div><div class="settings-actions"><span class="status" :class="{ active: store.sending }"><span class="status-dot" aria-hidden="true" />{{ store.sending ? '正在思考' : '就绪' }}</span><button class="secondary-button" type="button" @click="store.logout">退出登录</button><button class="secondary-button" type="button" @click="view = 'diagnostics'">打开诊断中心</button></div></div>
       <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
       <section class="settings-form" aria-labelledby="model-role-title">
         <div class="settings-section-heading"><p class="eyebrow">MODEL ROLES</p><h3 id="model-role-title">模型角色绑定</h3></div>
@@ -582,77 +592,131 @@ onMounted(() => void store.initialize());
       <form class="settings-form" @submit.prevent="changeOwnerPassword">
         <div class="settings-section-heading"><p class="eyebrow">OWNER</p><h3>修改所有者密码</h3></div>
         <label for="owner-password">新密码</label>
-        <input id="owner-password" v-model="changedOwnerPassword" type="password" autocomplete="new-password" minlength="12" required aria-describedby="owner-password-requirements" />
-        <p id="owner-password-requirements" class="field-note">新密码至少 12 个字符。修改后会撤销当前所有会话，需要使用新密码重新登录。</p>
+        <input id="owner-password" v-model="changedOwnerPassword" type="password" autocomplete="new-password" minlength="6" required aria-describedby="owner-password-requirements" />
+        <p id="owner-password-requirements" class="field-note">新密码至少 6 个字符。修改后会撤销当前所有会话，需要使用新密码重新登录。</p>
         <p v-if="store.authError" class="error-banner" role="alert">{{ store.authError }}</p>
         <button class="send-button" type="submit" :disabled="store.authLoading || !changedOwnerPassword">{{ store.authLoading ? "正在修改..." : "修改密码" }}</button>
       </form>
     </section>
     </template>
+
+    <nav v-if="view !== 'chat'" class="tabbar" aria-label="Fluctlight 控制中心">
+      <button v-for="item in [
+        { id: 'fluctlights', label: '实例', icon: '◉' },
+        { id: 'moments', label: '动态', icon: '✦' },
+        { id: 'settings', label: '设置', icon: '⌘' },
+      ]" :key="item.id" class="tab" :class="{ selected: view === item.id }" type="button" @click="selectView(item.id as View)">
+        <span class="tab-icon" aria-hidden="true">{{ item.icon }}</span>{{ item.label }}
+      </button>
+    </nav>
   </main>
 </template>
 
 <style>
 :root {
-  color: #16202a;
-  background: #eef1f4;
+  --page-bg: #edf4f6;
+  --surface-glass: rgb(255 255 255 / 56%);
+  --surface-glass-strong: rgb(255 255 255 / 72%);
+  --surface-border: rgb(255 255 255 / 82%);
+  --surface-shadow: 0 20px 48px rgb(44 69 80 / 10%);
+  --glass-blur: 20px;
+  --ink: #182532;
+  --muted-ink: #71838c;
+  --accent: #2aabee;
+  color: var(--ink);
+  background: var(--page-bg);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
+body { margin: 0; min-width: 320px; background: radial-gradient(circle at 12% 0%, #dff0f1 0, transparent 34%), radial-gradient(circle at 90% 12%, #f8e8dd 0, transparent 32%), var(--page-bg); }
 button, textarea, input { font: inherit; }
 .shell {
-  width: min(940px, calc(100% - 32px));
+  width: min(1100px, calc(100% - 32px));
   min-height: 100vh;
   margin: 0 auto;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
-  gap: 18px;
-  padding: 30px 0 24px;
+  gap: 16px;
+  padding: 24px 0 104px;
 }
+.shell.chat-shell { padding-bottom: 22px; }
 .auth-panel {
   align-self: center;
   width: min(100%, 420px);
   margin: 0 auto;
   padding: 28px;
-  border: 1px solid #d8e0e4;
-  border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 12px 32px rgb(27 45 58 / 8%);
+  border: 1px solid rgb(255 255 255 / 80%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 58%);
+  box-shadow: 0 24px 70px rgb(41 67 79 / 14%);
+  backdrop-filter: blur(22px);
 }
 .auth-panel h1 { margin: 0 0 8px; }
 .auth-copy { color: #61717f; line-height: 1.5; }
 .auth-form { display: grid; gap: 10px; margin-top: 22px; }
 .auth-form label { color: #42535d; font-size: .86rem; }
-.auth-form input { width: 100%; padding: 11px 12px; border: 1px solid #c7d2d9; border-radius: 5px; }
+.auth-form input { width: 100%; padding: 11px 12px; border: 1px solid rgb(160 184 190 / 48%); border-radius: 10px; background: rgb(255 255 255 / 46%); }
 .topbar-actions { display: flex; align-items: center; gap: 12px; }
-.topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 6px; }
 .eyebrow { margin: 0 0 5px; color: #5b6c7b; font-size: 11px; font-weight: 750; letter-spacing: .14em; }
 h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-spacing: 0; }
 .status { display: inline-flex; align-items: center; gap: 8px; color: #61717f; font-size: .86rem; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #a9b5be; }
 .status.active .status-dot { background: #e59050; box-shadow: 0 0 0 4px #f8dfc9; }
-.tabbar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; border-bottom: 1px solid #d8dfe4; }
-.tab { flex: 0 0 auto; padding: 8px 10px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #647480; cursor: pointer; font-size: .83rem; }
-.tab:hover, .tab.selected { border-bottom-color: #326b75; color: #245763; }
-.control-panel { min-height: 420px; overflow-y: auto; padding: 24px 8px; border-bottom: 1px solid #d8dfe4; }
+.tabbar { position: fixed; z-index: 20; right: 50%; bottom: 16px; display: flex; width: min(520px, calc(100% - 28px)); gap: 8px; padding: 7px; border: 1px solid rgb(255 255 255 / 82%); border-radius: 22px; background: rgb(255 255 255 / 66%); box-shadow: 0 14px 34px rgb(44 69 80 / 16%); transform: translateX(50%); backdrop-filter: blur(22px); }
+.tab { flex: 1 1 0; min-height: 46px; padding: 8px 14px; border: 0; border-radius: 15px; background: transparent; color: #6d7e88; cursor: pointer; font-size: .88rem; font-weight: 650; transition: .2s ease; }
+.tab-icon { margin-right: 8px; color: #88a0a9; }
+.tab:hover, .tab.selected { background: rgb(255 255 255 / 78%); color: #245763; box-shadow: 0 5px 14px rgb(43 75 84 / 10%); }
+.tab.selected .tab-icon { color: #326b75; }
+.control-panel { min-height: 420px; overflow-y: auto; padding: 26px 10px; border: 1px solid var(--surface-border); border-radius: 24px; background: var(--surface-glass); box-shadow: var(--surface-shadow); backdrop-filter: blur(var(--glass-blur)); }
+.moments-panel { min-height: 0; max-height: calc(100vh - 150px); overflow: hidden; }
+.moments-panel .moment-list { min-height: 0; max-height: calc(100vh - 330px); overflow-y: auto; padding: 2px 8px 8px 2px; overscroll-behavior: contain; }
 .actor-create-form { display: grid; gap: 8px; max-width: 620px; margin-bottom: 18px; color: #42535d; font-size: .86rem; }
 .actor-create-row { display: flex; gap: 8px; }
 .actor-create-row input { flex: 1; min-height: 36px; padding: 0 10px; border: 1px solid #cbd5db; border-radius: 4px; color: #17232c; }
 .actor-create-form textarea { width: 100%; min-height: 96px; padding: 10px; border: 1px solid #cbd5db; border-radius: 4px; color: #17232c; resize: vertical; }
 .creation-mode { display: flex; gap: 8px; margin-bottom: 14px; }
-.creation-mode .selected { border-color: #326b75; background: #e7f2f1; color: #245763; }
+.creation-mode .selected { border-color: #8cc4c4; background: rgb(224 244 242 / 78%); color: #245763; }
 .panel-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
 .panel-heading h2 { margin: 0; color: #1f2b35; font-size: 1.25rem; }
 .panel-actions { align-items: center; }
+.settings-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.dashboard-legend { display: flex; align-items: center; gap: 14px; color: #71838c; font-size: .76rem; }
+.dashboard-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; background: #99a8ae; }
+.legend-dot.online { background: #4d9ba0; box-shadow: 0 0 0 4px rgb(77 155 160 / 12%); }
+.legend-dot.unread { background: #d89667; box-shadow: 0 0 0 4px rgb(216 150 103 / 12%); }
+.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 24px; }
+.metric-card { min-width: 0; padding: 16px; border: 1px solid rgb(255 255 255 / 84%); border-radius: 17px; background: rgb(255 255 255 / 48%); box-shadow: inset 0 1px rgb(255 255 255 / 70%); }
+.metric-card span, .metric-card small { display: block; color: #71838c; font-size: .72rem; }
+.metric-card strong { display: block; overflow: hidden; margin: 7px 0 5px; color: #254954; font-size: 1.2rem; text-overflow: ellipsis; white-space: nowrap; }
+.metric-card.accent { background: linear-gradient(145deg, rgb(225 244 241 / 72%), rgb(255 255 255 / 44%)); }
+.list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.list-header h2 { margin: 0; color: #202b35; font-size: 1.55rem; }
+.round-action { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%; background: #2aabee; color: #fff; cursor: pointer; font-size: 1.45rem; line-height: 1; box-shadow: 0 5px 14px rgb(42 171 238 / 25%); }
+.search-box { display: flex; align-items: center; gap: 8px; height: 40px; margin-bottom: 10px; padding: 0 13px; border: 1px solid rgb(213 221 226 / 80%); border-radius: 21px; background: rgb(255 255 255 / 75%); color: #9aa6ad; }
+.search-box input { width: 100%; border: 0; outline: 0; background: transparent; color: #25343d; }
+.archive-row { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 9px; padding: 9px 12px; border: 1px solid rgb(224 230 233 / 80%); border-radius: 12px; background: rgb(255 255 255 / 48%); color: #87949a; cursor: pointer; text-align: left; }
+.archive-row span:nth-child(2) { flex: 1; }
+.archive-icon { color: #9ea9ae; }
+.create-drawer { margin-bottom: 14px; padding: 14px; border: 1px solid rgb(255 255 255 / 80%); border-radius: 16px; background: rgb(255 255 255 / 48%); }
+.detail-toggle { margin: 14px auto 0; display: block; border: 0; background: transparent; color: #557980; cursor: pointer; font-size: .8rem; }
+.row-trailing { display: grid; justify-items: end; gap: 5px; margin-left: 8px; color: #8b969c; font-size: .72rem; }
+.unread-badge { display: grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 11px; background: #b9bbc2; color: #fff; font-size: .68rem; font-weight: 700; }
+.chat-header { display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 7px 10px; border: 1px solid var(--surface-border); border-radius: 18px 18px 0 0; background: rgb(255 255 255 / 40%); box-shadow: 0 8px 20px rgb(44 69 80 / 7%); backdrop-filter: blur(var(--glass-blur)); }
+.chat-back { border: 0; background: transparent; color: #2aabee; cursor: pointer; font-size: 2rem; line-height: 1; }
+.chat-avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(145deg, #5bc1ca, #3d8e98); color: #fff; font-weight: 750; }
+.chat-header-copy { display: grid; flex: 1; gap: 2px; }
+.chat-header-copy strong { color: #23313a; font-size: .94rem; }
+.chat-header-copy small { color: #84939a; font-size: .7rem; }
 .empty-state.compact { min-height: 260px; }
 .actor-list, .diagnostic-list { display: grid; gap: 10px; }
 .actor-directory-row { display: flex; align-items: center; gap: 8px; }
 .actor-directory-row .actor-row { flex: 1; min-width: 0; }
-.actor-directory-row select { min-width: 124px; min-height: 36px; padding: 0 8px; border: 1px solid #cbd5db; border-radius: 4px; background: #fff; color: #17232c; }
-.actor-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #d8e0e4; border-radius: 6px; background: #fff; color: inherit; text-align: left; cursor: pointer; }
-.actor-row:hover, .actor-row.selected { border-color: #326b75; background: #f3faf9; }
+.actor-directory-row select { min-width: 124px; min-height: 36px; padding: 0 8px; border: 1px solid rgb(160 184 190 / 48%); border-radius: 10px; background: rgb(255 255 255 / 46%); color: #17232c; }
+.actor-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid rgb(255 255 255 / 84%); border-radius: 18px; background: rgb(255 255 255 / 58%); color: inherit; text-align: left; cursor: pointer; box-shadow: 0 8px 22px rgb(44 69 80 / 6%); transition: .2s ease; }
+.actor-row:hover, .actor-row.selected { border-color: #8ec7c6; background: rgb(240 251 249 / 82%); transform: translateY(-1px); }
 .actor-row-copy { display: grid; gap: 3px; flex: 1; min-width: 0; }
 .fluctlight-detail { margin-top: 24px; padding-top: 18px; border-top: 1px solid #d8e0e4; }
 .fluctlight-detail h3 { margin: 0 0 12px; font-size: 1rem; }
@@ -668,7 +732,7 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .revision-accept { margin-left: 8px; }
 .load-older { display: block; margin: 0 auto 12px; }
 .moment-list { display: grid; gap: 12px; }
-.moment-row { padding: 14px; border: 1px solid #d8e0e4; border-radius: 6px; background: #fff; }
+.moment-row { padding: 18px; border: 1px solid rgb(255 255 255 / 84%); border-radius: 18px; background: rgb(255 255 255 / 58%); box-shadow: 0 10px 26px rgb(44 69 80 / 6%); }
 .moment-row p { margin: 0 0 10px; line-height: 1.55; white-space: pre-wrap; }
 .moment-row small { color: #778690; }
 .moment-media { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin: 10px 0; }
@@ -683,7 +747,7 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .moment-actions input { flex: 1; min-width: 0; min-height: 34px; padding: 0 9px; border: 1px solid #cbd5db; border-radius: 4px; }
 .actor-row small, .diagnostic-meta small { color: #7b8992; font-size: .76rem; }
 .state-label { color: #36707b; font-size: .78rem; }
-.diagnostic-row { padding: 12px; border: 1px solid #d8e0e4; border-radius: 6px; background: #fff; }
+.diagnostic-row { padding: 14px; border: 1px solid rgb(255 255 255 / 82%); border-radius: 16px; background: rgb(255 255 255 / 56%); }
 .diagnostic-meta { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .diagnostic-meta span { color: #8e5c2e; font-size: .75rem; text-transform: uppercase; }
 .diagnostic-row pre { max-height: 180px; overflow: auto; margin: 10px 0 0; padding: 10px; background: #f5f7f8; color: #41515c; font: .76rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -694,18 +758,18 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .diagnostic-actions, .diagnostic-filter { display: flex; gap: 8px; }
 .diagnostic-filter { margin: -10px 0 14px; }
 .diagnostic-filter input { flex: 1; min-width: 0; min-height: 36px; padding: 0 10px; border: 1px solid #cbd5db; border-radius: 4px; }
-.settings-form { display: grid; gap: 16px; max-width: 620px; margin-bottom: 16px; padding: 18px; border: 1px solid #d8e0e4; border-radius: 6px; background: #fff; }
+.settings-form { display: grid; gap: 16px; max-width: 720px; margin-bottom: 16px; padding: 20px; border: 1px solid rgb(255 255 255 / 82%); border-radius: 18px; background: rgb(255 255 255 / 56%); box-shadow: 0 10px 26px rgb(44 69 80 / 5%); }
 .settings-section-heading h3 { margin: 0; color: #1f2b35; font-size: 1rem; }
 .binding-list { display: grid; gap: 8px; max-width: 620px; margin: 0 0 16px; }
 .binding-list h3 { margin: 0 0 4px; font-size: 1rem; }
 .binding-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 3px 12px; padding: 10px 12px; border: 1px solid #d8e0e4; border-radius: 6px; background: #fff; }
 .binding-row small { grid-column: 1 / -1; color: #778690; overflow-wrap: anywhere; }
 .settings-form label { display: grid; gap: 7px; color: #42535d; font-size: .86rem; }
-.settings-form input { min-height: 40px; padding: 0 10px; border: 1px solid #cbd5db; border-radius: 4px; color: #17232c; }
-.settings-form select { min-height: 40px; padding: 0 10px; border: 1px solid #cbd5db; border-radius: 4px; background: #fff; color: #17232c; }
+.settings-form input { min-height: 40px; padding: 0 10px; border: 1px solid rgb(160 184 190 / 48%); border-radius: 10px; background: rgb(255 255 255 / 46%); color: #17232c; }
+.settings-form select { min-height: 40px; padding: 0 10px; border: 1px solid rgb(160 184 190 / 48%); border-radius: 10px; background: rgb(255 255 255 / 46%); color: #17232c; }
 .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .field-note { margin: -3px 0 0; color: #778690; font-size: .78rem; }
-.transcript { min-height: 420px; max-height: calc(100vh - 260px); overflow-y: auto; padding: 24px 8px; border-top: 1px solid #d8dfe4; border-bottom: 1px solid #d8dfe4; }
+.transcript { min-height: 420px; max-height: calc(100vh - 260px); overflow-y: auto; padding: 20px 10px; border: 1px solid rgb(255 255 255 / 78%); border-radius: 24px; background: rgb(255 255 255 / 30%); box-shadow: 0 22px 54px rgb(44 69 80 / 9%); backdrop-filter: blur(20px); }
 .empty-state { min-height: 360px; display: grid; place-content: center; justify-items: center; color: #5d6d7b; text-align: center; }
 .empty-mark { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 16px; border: 1px solid #a7b6c0; border-radius: 50%; color: #3c7080; font-size: 1.5rem; }
 .empty-state h2 { margin: 0; color: #1f2b35; font-size: 1.2rem; }
@@ -714,12 +778,12 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .from-user { margin-left: auto; flex-direction: row-reverse; }
 .avatar { flex: 0 0 30px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: #d4e6e7; color: #27545e; font-size: .72rem; font-weight: 800; }
 .from-user .avatar { background: #f5dfcf; color: #805033; }
-.message-bubble { padding: 12px 15px; border: 1px solid #d8e0e4; border-radius: 6px 14px 14px 14px; background: #fff; box-shadow: 0 3px 12px rgb(39 55 66 / 5%); }
-.from-user .message-bubble { border-color: #e7d2c0; border-radius: 14px 6px 14px 14px; background: #fffaf6; }
+.message-bubble { padding: 12px 15px 9px; border: 1px solid rgb(255 255 255 / 90%); border-radius: 8px 18px 18px 18px; background: rgb(255 255 255 / 78%); box-shadow: 0 6px 18px rgb(39 55 66 / 6%); }
+.from-user .message-bubble { border-color: #e8d6c8; border-radius: 18px 8px 18px 18px; background: rgb(255 249 244 / 82%); }
 .message-bubble p { margin: 0; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .attachment-chip { display: inline-block; margin-top: 9px; color: #36707b; font-size: .75rem; }
 .error-banner { margin: 0; padding: 10px 12px; border-left: 3px solid #bd584f; background: #fff3f1; color: #8b3933; font-size: .88rem; }
-.composer { padding: 14px; border: 1px solid #cbd5db; border-radius: 8px; background: #fff; box-shadow: 0 8px 24px rgb(39 55 66 / 7%); }
+.composer { padding: 14px 16px; border: 1px solid rgb(255 255 255 / 88%); border-radius: 20px; background: rgb(255 255 255 / 64%); box-shadow: 0 16px 34px rgb(39 55 66 / 9%); backdrop-filter: blur(18px); }
 .composer textarea { display: block; width: 100%; min-height: 56px; resize: vertical; border: 0; outline: 0; color: #17232c; line-height: 1.5; }
 .composer textarea::placeholder { color: #9aa7b0; }
 .composer-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
@@ -727,19 +791,71 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .attachment-input > span { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid #b8c5cc; border-radius: 50%; color: #47717c; }
 .attachment-input input { width: min(260px, 35vw); border: 0; outline: 0; color: #41515c; font-size: .8rem; }
 .composer-actions { display: flex; gap: 8px; }
-.send-button, .secondary-button { min-height: 36px; padding: 0 14px; border-radius: 5px; cursor: pointer; }
-.send-button { border: 1px solid #326b75; background: #326b75; color: #fff; }
+.send-button, .secondary-button { min-height: 36px; padding: 0 14px; border-radius: 11px; cursor: pointer; transition: .2s ease; }
+.send-button { border: 1px solid #326b75; background: linear-gradient(135deg, #367b84, #245763); color: #fff; box-shadow: 0 7px 16px rgb(43 98 105 / 20%); }
 .send-button:disabled { cursor: not-allowed; opacity: .45; }
-.secondary-button { border: 1px solid #bfccd2; background: #fff; color: #435661; }
+.secondary-button { border: 1px solid rgb(255 255 255 / 90%); background: rgb(255 255 255 / 58%); color: #435661; box-shadow: 0 5px 14px rgb(44 69 80 / 5%); }
+.secondary-button:hover { background: rgb(255 255 255 / 82%); transform: translateY(-1px); }
+.back-link { display: inline-flex; margin: 0 0 12px; padding: 0; border: 0; background: transparent; color: #50747c; cursor: pointer; font-size: .82rem; }
+.message-meta { display: flex; justify-content: flex-end; align-items: center; gap: 7px; margin-top: 7px; color: #8a999f; font-size: .68rem; }
+.delivery-status { color: #8a999f; letter-spacing: -2px; font-size: .72rem; line-height: 1; }
+.delivery-status.pending { color: #d49564; letter-spacing: -1px; }
+.delivery-status.sent { color: #3d8e98; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 @media (max-width: 640px) {
-  .shell { width: min(100% - 20px, 940px); padding-top: 18px; gap: 12px; }
-  .transcript { min-height: 0; max-height: calc(100vh - 230px); padding: 16px 2px; }
+  body { background: #eef3f7; }
+  .shell { width: 100%; min-height: 100dvh; margin: 0; padding: 0 0 96px; gap: 0; display: flex; flex-direction: column; }
+  .shell.chat-shell { padding-bottom: 12px; }
+  .settings-actions { gap: 5px; }
+  .settings-actions .status { font-size: .72rem; }
+  .settings-actions .secondary-button { min-height: 32px; padding: 0 9px; font-size: .72rem; }
+  .transcript { flex: 1; min-height: 0; max-height: none; padding: 14px 10px 18px; border: 0; border-radius: 0; background: radial-gradient(circle at 20% 10%, rgb(255 255 255 / 52%) 0, transparent 32%), #dfe9f1; box-shadow: none; }
+  .chat-header { flex: 0 0 auto; min-height: 58px; border: 0; border-radius: 0; background: rgb(255 255 255 / 42%); box-shadow: 0 1px rgb(217 224 229 / 65%); backdrop-filter: blur(18px); }
+  .chat-header + .transcript { min-height: 0; }
   .message-row { max-width: 92%; }
-  .control-panel { min-height: 0; padding: 16px 2px; }
-  .composer-footer { align-items: flex-end; }
+  .chat-shell .topbar { display: none; }
+  .chat-shell .message-row .avatar { display: grid; width: 32px; height: 32px; flex-basis: 32px; font-size: .68rem; }
+  .chat-shell .message-row { max-width: 90%; margin: 5px 0; gap: 7px; }
+  .chat-shell .from-user { margin-left: auto; }
+  .chat-shell .message-bubble { border: 0; border-radius: 5px 14px 14px 14px; padding: 8px 10px 6px; box-shadow: 0 1px 2px rgb(68 91 105 / 12%); background: #fff; font-size: .9rem; }
+  .chat-shell .from-user .message-bubble { border-radius: 14px 5px 14px 14px; background: #effdde; }
+  .control-panel { flex: 1; min-height: 0; padding: 16px 12px; border: 0; border-radius: 0; box-shadow: none; }
+  .fluctlights-panel { padding: 12px 0 0; background: #fff; }
+  .fluctlights-panel .list-header, .fluctlights-panel .search-box, .fluctlights-panel .archive-row { margin-left: 14px; margin-right: 14px; width: calc(100% - 28px); }
+  .fluctlights-panel .list-header { margin-bottom: 10px; }
+  .fluctlights-panel .list-header h2 { font-size: 1.45rem; }
+  .fluctlights-panel .actor-list { margin-top: 4px; }
+  .fluctlights-panel .actor-directory-row { gap: 0; border-bottom: 1px solid #edf0f2; }
+  .fluctlights-panel .actor-row { min-height: 72px; padding: 10px 14px; border: 0; border-radius: 0; background: #fff; box-shadow: none; transform: none; }
+  .fluctlights-panel .actor-row:hover, .fluctlights-panel .actor-row.selected { background: #f5f8fa; }
+  .fluctlights-panel .avatar { width: 48px; height: 48px; flex-basis: 48px; background: linear-gradient(145deg, #dc8aed, #c64be6); color: #fff; font-size: 1rem; }
+  .fluctlights-panel .actor-row-copy strong { color: #20262b; font-size: .94rem; }
+  .fluctlights-panel .actor-row-copy small { color: #929da4; font-size: .78rem; }
+  .fluctlights-panel .actor-directory-row > select, .fluctlights-panel .actor-directory-row > .secondary-button, .fluctlights-panel .toggle-row, .fluctlights-panel .metric-grid, .fluctlights-panel .fluctlight-detail, .fluctlights-panel .detail-toggle { display: none; }
+  .row-trailing { margin-left: auto; }
+  .composer { flex: 0 0 auto; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); border: 0; border-radius: 0; background: #f5f7f9; box-shadow: 0 -1px #d5dce2; }
+  .composer textarea { min-height: 40px; max-height: 120px; padding: 9px 12px; border: 1px solid #d0d8df; border-radius: 20px; background: #fff; }
+  .composer-footer { align-items: center; margin-top: 6px; }
+  .attachment-input input { display: none; }
+  .attachment-input > span { width: 32px; height: 32px; border: 1px solid #d0d8df; background: #fff; }
+  .composer-actions .send-button { min-width: 40px; width: 40px; height: 40px; padding: 0; border-radius: 50%; font-size: 0; }
+  .composer-actions .send-button::after { content: '➤'; font-size: 1rem; }
+  .settings-actions { width: 100%; justify-content: flex-start; padding-top: 8px; border-top: 1px solid rgb(199 211 217 / 45%); }
+  .settings-form { width: 100%; max-width: none; margin-bottom: 12px; padding: 16px; }
+  .settings-form .settings-form { padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .settings-form textarea { max-width: 100%; }
+  .binding-list { width: 100%; max-width: none; }
+  .binding-row { grid-template-columns: 1fr; gap: 4px; }
+  .binding-row small { grid-column: auto; }
+  .settings-form .creation-mode { flex-wrap: wrap; }
+  .settings-form .creation-mode .secondary-button { flex: 1 1 42%; min-width: 0; }
   .attachment-input input { width: min(180px, 45vw); }
   .settings-grid { grid-template-columns: 1fr; }
+  .metric-grid { grid-template-columns: 1fr; }
+  .dashboard-legend { display: none; }
+  .tabbar { bottom: 10px; width: calc(100% - 20px); }
+  .moments-panel { max-height: calc(100vh - 132px); padding-inline: 6px; }
+  .moments-panel .moment-list { max-height: calc(100vh - 320px); }
   .send-button, .secondary-button { min-height: 40px; }
 }
 </style>

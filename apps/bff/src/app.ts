@@ -2,7 +2,7 @@ import { CoreClient } from "@fluctlight/core-client";
 import { Type } from "@sinclair/typebox";
 import cookie from "@fastify/cookie";
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import { translateCoreNdjson } from "./ndjson.js";
 
 export type BffOptions = {
@@ -24,7 +24,7 @@ const sessionResponse = Type.Object({
 });
 const setupStatusResponse = Type.Object({ setupAvailable: Type.Boolean() });
 const serviceUnavailableResponse = Type.Object({ code: Type.String(), message: Type.String() });
-const passwordRequest = Type.Object({ password: Type.String({ minLength: 12 }) });
+const passwordRequest = Type.Object({ password: Type.String({ minLength: 6 }) });
 const setupRequest = Type.Intersect([passwordRequest, Type.Object({ setupToken: Type.String({ minLength: 16 }) })]);
 const settingsPatchRequest = Type.Object({
   values: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
@@ -125,6 +125,16 @@ function newCsrfToken(): string {
   return randomBytes(32).toString("base64url");
 }
 
+function issueCsrfCookie(reply: FastifyReply, secure: boolean): void {
+  reply.setCookie(csrfCookie, newCsrfToken(), {
+    httpOnly: false,
+    secure,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24,
+  });
+}
+
 function browserPage(page: Record<string, any>) {
   const conversation = page.conversation;
   return {
@@ -171,13 +181,7 @@ export function createBff(options: BffOptions): FastifyInstance {
       reply.header("vary", "Origin");
     }
     if (!request.cookies?.[csrfCookie]) {
-      reply.setCookie(csrfCookie, newCsrfToken(), {
-        httpOnly: false,
-        secure: secureCookies,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 60 * 24,
-      });
+      issueCsrfCookie(reply, secureCookies);
     }
   });
   app.options("/*", async (request, reply) => {
@@ -250,7 +254,7 @@ export function createBff(options: BffOptions): FastifyInstance {
       }
     }
     reply.clearCookie(sessionCookie, { path: "/", httpOnly: true, sameSite: "lax", secure: secureCookies });
-    reply.clearCookie(csrfCookie, { path: "/", httpOnly: false, sameSite: "lax", secure: secureCookies });
+    issueCsrfCookie(reply, secureCookies);
     return reply.code(204).send();
   });
 
@@ -263,7 +267,7 @@ export function createBff(options: BffOptions): FastifyInstance {
     try {
       await core.revokeAll(session);
       reply.clearCookie(sessionCookie, { path: "/", httpOnly: true, sameSite: "lax", secure: secureCookies });
-      reply.clearCookie(csrfCookie, { path: "/", httpOnly: false, sameSite: "lax", secure: secureCookies });
+      issueCsrfCookie(reply, secureCookies);
       return reply.code(204).send();
     } catch {
       return reply.code(403).send({ code: "revoke_failed", message: "Session revocation failed" });
@@ -280,7 +284,7 @@ export function createBff(options: BffOptions): FastifyInstance {
       const body = request.body as { password: string };
       await core.resetPassword(session, body.password);
       reply.clearCookie(sessionCookie, { path: "/", httpOnly: true, sameSite: "lax", secure: secureCookies });
-      reply.clearCookie(csrfCookie, { path: "/", httpOnly: false, sameSite: "lax", secure: secureCookies });
+      issueCsrfCookie(reply, secureCookies);
       return reply.code(204).send();
     } catch {
       return reply.code(403).send({ code: "password_change_failed", message: "Password could not be changed" });
@@ -295,7 +299,7 @@ export function createBff(options: BffOptions): FastifyInstance {
       const body = request.body as { setupToken: string; password: string };
       const session = await core.setup(body.setupToken, body.password);
       reply.setCookie(sessionCookie, session.sessionToken, { httpOnly: true, secure: secureCookies, sameSite: "lax", path: "/" });
-      reply.setCookie(csrfCookie, newCsrfToken(), { httpOnly: false, secure: secureCookies, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 });
+      issueCsrfCookie(reply, secureCookies);
       return { authenticated: true, actorId: session.actorId };
     } catch {
       return reply.code(401).send({ authenticated: false });
@@ -310,7 +314,7 @@ export function createBff(options: BffOptions): FastifyInstance {
       const body = request.body as { password: string };
       const session = await core.login(body.password);
       reply.setCookie(sessionCookie, session.sessionToken, { httpOnly: true, secure: secureCookies, sameSite: "lax", path: "/" });
-      reply.setCookie(csrfCookie, newCsrfToken(), { httpOnly: false, secure: secureCookies, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 });
+      issueCsrfCookie(reply, secureCookies);
       return { authenticated: true, actorId: session.actorId };
     } catch {
       return reply.code(401).send({ authenticated: false });

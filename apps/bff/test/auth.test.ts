@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
+import type { OutgoingHttpHeaders } from "node:http";
 import test from "node:test";
 
 import { createBff } from "../src/app.js";
+
+function cookieValue(response: { headers: OutgoingHttpHeaders }, name: string): string {
+  const raw = response.headers["set-cookie"];
+  const values = Array.isArray(raw) ? raw : [raw ?? ""];
+  return values
+    .map((value) => value.match(new RegExp(`${name}=([^;]+)`))?.[1] ?? "")
+    .find(Boolean) ?? "";
+}
 
 test("session forwards only the opaque cookie and logout enforces trusted origin", async () => {
   let receivedSession = "";
@@ -60,7 +69,7 @@ test("revoke-all requires Origin and clears the session after Core accepts it", 
   await app.close();
 });
 
-test("setup status reveals no token and password change clears all browser sessions", async () => {
+test("password change clears the session and issues CSRF for the required next login", async () => {
   const requests: Array<{ path: string; session: string }> = [];
   const app = createBff({
     coreBaseUrl: "http://core.invalid",
@@ -70,6 +79,9 @@ test("setup status reveals no token and password change clears all browser sessi
       const path = new URL(typeof url === "string" ? url : url.toString()).pathname;
       requests.push({ path, session: new Headers(init?.headers).get("x-fluctlight-human-session") ?? "" });
       if (path === "/internal/auth/setup-status") return Response.json({ setup_available: true });
+      if (path === "/internal/auth/login") {
+        return Response.json({ authenticated: true, actor_id: "human-owner", session_token: "next-session" });
+      }
       return new Response(null, { status: 204 });
     },
   });
@@ -83,10 +95,44 @@ test("setup status reveals no token and password change clears all browser sessi
     payload: { password: "a-long-enough-password" },
   });
   assert.equal(password.statusCode, 204);
+  const nextCsrf = cookieValue(password, "fluctlight_csrf");
+  assert.notEqual(nextCsrf, "");
+  const login = await app.inject({
+    method: "POST",
+    url: "/auth/login",
+    headers: { origin: "https://fluctlight.local", "x-csrf-token": nextCsrf },
+    cookies: { fluctlight_csrf: nextCsrf },
+    payload: { password: "123456" },
+  });
+  assert.equal(login.statusCode, 200);
   assert.deepEqual(requests, [
     { path: "/internal/auth/setup-status", session: "" },
     { path: "/internal/auth/reset-password", session: "opaque" },
+    { path: "/internal/auth/login", session: "" },
   ]);
   assert.match(String(password.headers["set-cookie"]), /fluctlight_session=;/);
+  await app.close();
+});
+
+test("password endpoints reject fewer than six characters before calling Core", async () => {
+  let called = false;
+  const app = createBff({
+    coreBaseUrl: "http://core.invalid",
+    coreServiceKey: "internal",
+    trustedOrigin: "https://fluctlight.local",
+    fetcher: async () => {
+      called = true;
+      return new Response(null, { status: 204 });
+    },
+  });
+  const response = await app.inject({
+    method: "POST",
+    url: "/auth/password",
+    headers: { origin: "https://fluctlight.local", "x-csrf-token": "csrf-token" },
+    cookies: { fluctlight_session: "opaque", fluctlight_csrf: "csrf-token" },
+    payload: { password: "12345" },
+  });
+  assert.equal(response.statusCode, 400);
+  assert.equal(called, false);
   await app.close();
 });

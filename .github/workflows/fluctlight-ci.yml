@@ -87,4 +87,6 @@ jobs:
           context: .
           file: apps/web/Dockerfile
           push: true
+          build-args: |
+            VITE_BFF_ORIGIN=${{ vars.PROD_BFF_ORIGIN }}
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-web:latest

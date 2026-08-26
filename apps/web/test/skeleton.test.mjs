@@ -27,8 +27,10 @@ test("control center exposes the required product views", async () => {
 test("owner password change explains its policy without trapping the submit button", async () => {
   const source = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
   assert.match(source, /id="owner-password"/);
-  assert.match(source, /新密码至少 12 个字符/);
+  assert.match(source, /新密码至少 6 个字符/);
+  assert.match(source, /id="setup-password"[^>]*minlength="6"/);
+  assert.match(source, /id="auth-password"[^>]*minlength="6"/);
   assert.match(source, /v-if="store\.authError"/);
   assert.match(source, /:disabled="store\.authLoading \|\| !changedOwnerPassword"/);
-  assert.doesNotMatch(source, /changedOwnerPassword\.length < 12/);
+  assert.doesNotMatch(source, /changedOwnerPassword\.length < 6/);
 });

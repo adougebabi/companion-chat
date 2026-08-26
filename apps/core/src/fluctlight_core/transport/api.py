@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from temporalio.client import Client
 
 from fluctlight_core.actors.directory import ActorDirectoryService
+from fluctlight_core.actors.security import MIN_OWNER_PASSWORD_LENGTH
 from fluctlight_core.actors.service import AuthError, AuthService
 from fluctlight_core.autonomy.bridge import CognitionAutonomyBridge
 from fluctlight_core.autonomy.service import AutonomyService
@@ -166,15 +167,15 @@ class PlatformPingResponse(BaseModel):
 
 class SetupRequest(BaseModel):
     setup_token: str = Field(min_length=16)
-    password: str = Field(min_length=12)
+    password: str = Field(min_length=MIN_OWNER_PASSWORD_LENGTH)
 
 
 class LoginRequest(BaseModel):
-    password: str = Field(min_length=12)
+    password: str = Field(min_length=MIN_OWNER_PASSWORD_LENGTH)
 
 
 class PasswordResetRequest(BaseModel):
-    password: str = Field(min_length=12)
+    password: str = Field(min_length=MIN_OWNER_PASSWORD_LENGTH)
 
 
 class FluctlightCreateRequest(BaseModel):
@@ -1283,8 +1284,16 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 owner_actor_id=actor.actor_id,
                 fluctlight_actor_ids=tuple(snapshot.id for snapshot in snapshots),
             )
+            last_activity = await require_conversation_service(current).direct_last_activity(
+                owner_actor_id=actor.actor_id,
+                fluctlight_actor_ids=tuple(snapshot.id for snapshot in snapshots),
+            )
         except AuthError as exc:
             raise HTTPException(status_code=401, detail="unauthenticated") from exc
+        last_activity_iso = {
+            fluctlight_id: occurred_at.isoformat() if occurred_at is not None else None
+            for fluctlight_id, occurred_at in last_activity.items()
+        }
         return [
             {
                 "id": snapshot.id,
@@ -1294,6 +1303,7 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 "status": snapshot.status.value,
                 "current_revision": snapshot.current_revision,
                 "unread_count": unread_counts.get(snapshot.id, 0),
+                "last_conversation_at": last_activity_iso.get(snapshot.id),
             }
             for snapshot in snapshots
         ]

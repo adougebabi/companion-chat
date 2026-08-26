@@ -14,6 +14,7 @@ export type FluctlightListItem = {
   identity: Record<string, unknown>;
   status: string;
   unread_count?: number;
+  last_conversation_at?: string | null;
 };
 
 const selectedFluctlightStorageKey = "fluctlight.selected-instance-id";
