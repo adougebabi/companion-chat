@@ -7,10 +7,7 @@ from types import ModuleType
 
 def _migration_module() -> ModuleType:
     path = (
-        Path(__file__).parents[2]
-        / "migrations"
-        / "versions"
-        / "0016_media_intent_conversation.py"
+        Path(__file__).parents[2] / "migrations" / "versions" / "0016_media_intent_conversation.py"
     )
     specification = importlib.util.spec_from_file_location("migration_0016", path)
     assert specification and specification.loader
@@ -78,14 +75,17 @@ def test_0016_repairs_a_partially_applied_schema_without_readding_the_column(mon
 
 
 def test_0016_is_a_noop_after_the_column_and_foreign_key_exist(monkeypatch) -> None:
-    assert _run_upgrade(
-        monkeypatch,
-        columns=["id", "conversation_id"],
-        foreign_keys=[
-            {
-                "constrained_columns": ["conversation_id"],
-                "referred_table": "conversations",
-                "referred_schema": "public",
-            }
-        ],
-    ) == []
+    assert (
+        _run_upgrade(
+            monkeypatch,
+            columns=["id", "conversation_id"],
+            foreign_keys=[
+                {
+                    "constrained_columns": ["conversation_id"],
+                    "referred_table": "conversations",
+                    "referred_schema": "public",
+                }
+            ],
+        )
+        == []
+    )
