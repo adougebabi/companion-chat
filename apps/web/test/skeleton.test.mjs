@@ -34,3 +34,15 @@ test("owner password change explains its policy without trapping the submit butt
   assert.match(source, /:disabled="store\.authLoading \|\| !changedOwnerPassword"/);
   assert.doesNotMatch(source, /changedOwnerPassword\.length < 6/);
 });
+
+test("web uses the secure random-ID compatibility helper instead of randomUUID directly", async () => {
+  const appSource = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
+  const storeSource = await readFile(new URL("../src/stores/conversations.ts", import.meta.url), "utf8");
+  const helperSource = await readFile(new URL("../src/random-id.ts", import.meta.url), "utf8");
+  assert.match(appSource, /randomId\(\)/);
+  assert.match(storeSource, /randomId\(\)/);
+  assert.doesNotMatch(appSource, /crypto\.randomUUID/);
+  assert.doesNotMatch(storeSource, /crypto\.randomUUID/);
+  assert.match(helperSource, /crypto\?\.randomUUID/);
+  assert.match(helperSource, /crypto\?\.getRandomValues/);
+});

@@ -6,6 +6,7 @@ import {
   type BrowserTurnEvent,
 } from "@fluctlight/browser-client";
 import { bffOrigin } from "../runtime-config";
+import { randomId } from "../random-id";
 
 const client = new BrowserClient(bffOrigin);
 
@@ -33,7 +34,7 @@ function persistSelection(fluctlightId: string | null): void {
 
 function createLocalMessage(conversationId: string, text: string, sequence: number, authorActorId = "human") : BrowserMessage {
   return {
-    id: `local-${crypto.randomUUID()}`,
+    id: `local-${randomId()}`,
     conversationId,
     sequence,
     authorActorId,
@@ -219,7 +220,7 @@ export const useConversationStore = defineStore("conversations", {
             text: normalized,
             fluctlightId,
             attachmentRefs: this.attachmentRef ? [this.attachmentRef] : [],
-            idempotencyKey: `turn-${crypto.randomUUID()}`,
+            idempotencyKey: `turn-${randomId()}`,
           },
           this.abortController.signal,
         );
@@ -237,7 +238,7 @@ export const useConversationStore = defineStore("conversations", {
             assistantText += payload.text ?? "";
             if (!assistantDraft) {
               const streamedMessage: BrowserMessage = {
-                id: `stream-${crypto.randomUUID()}`,
+                id: `stream-${randomId()}`,
                 conversationId,
                 sequence: this.messages.length + 1,
                 authorActorId: fluctlightId,

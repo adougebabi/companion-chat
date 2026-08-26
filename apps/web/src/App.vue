@@ -4,6 +4,7 @@ import type { BrowserMessage } from "@fluctlight/browser-client";
 
 import { useConversationStore } from "./stores/conversations";
 import { useControlCenterStore } from "./stores/control-center";
+import { randomId } from "./random-id";
 import { bffOrigin } from "./runtime-config";
 
 const store = useConversationStore();
@@ -196,7 +197,7 @@ async function activateCreatedFluctlight(body: {
   personality?: Record<string, unknown>;
   behavioralPolicy?: Record<string, unknown>;
 }) {
-  const requestId = creationRequestId.value ?? crypto.randomUUID();
+  const requestId = creationRequestId.value ?? randomId();
   creationRequestId.value = requestId;
   const created = await controlCenter.activateFluctlight({ requestId, ...body });
   if (created?.id) {
@@ -223,7 +224,7 @@ async function analyzeFluctlightDescription() {
   const foundation = result?.foundation;
   if (foundation && typeof foundation === "object" && !Array.isArray(foundation)) {
     creationPreviewJson.value = JSON.stringify(foundation, null, 2);
-    creationRequestId.value = crypto.randomUUID();
+    creationRequestId.value = randomId();
   } else if (result) {
     controlCenter.error = "初始化模型返回了不包含 Foundation 的无效结果。";
   }
