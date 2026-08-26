@@ -1,7 +1,8 @@
 import asyncio
 
 import pytest
-from fluctlight_core.cognition.contracts import CognitionFact, FrozenAction
+from fluctlight_core.cognition.contracts import CognitionFact, FrozenAction, ActionType
+from typing import Any
 from fluctlight_core.providers.contracts import ModelRole
 from fluctlight_core.providers.runtime import ConfiguredProviderRuntime
 from fluctlight_core.providers.service import ProviderEndpoint, RoleAssignment
@@ -14,7 +15,7 @@ class InvalidAssessmentAdapter:
 
 class DiagnosticsRecorder:
     def __init__(self) -> None:
-        self.runs = []
+        self.runs: list[Any] = []
 
     async def emit_model_run(self, run) -> None:
         self.runs.append(run)
@@ -23,8 +24,8 @@ class DiagnosticsRecorder:
 def test_invalid_cognitive_response_records_a_redacted_failed_model_run() -> None:
     runtime = ConfiguredProviderRuntime.__new__(ConfiguredProviderRuntime)
     diagnostics = DiagnosticsRecorder()
-    runtime._adapter = InvalidAssessmentAdapter()
-    runtime._diagnostics = diagnostics
+    runtime._adapter = InvalidAssessmentAdapter()  # type: ignore[assignment]
+    runtime._diagnostics = diagnostics  # type: ignore[assignment]
     runtime._provenance_recorder = None
 
     async def resolve(_role):
@@ -34,7 +35,7 @@ def test_invalid_cognitive_response_records_a_redacted_failed_model_run() -> Non
             None,
         )
 
-    runtime._resolve = resolve
+    runtime._resolve = resolve  # type: ignore[method-assign]
     fact = CognitionFact(
         id="turn-1",
         fluctlight_id="fluctlight-1",
@@ -69,7 +70,7 @@ def test_realization_uses_the_factual_source_message_not_cognitive_payload_text(
         decision_id="decision-1",
         inbox_id="inbox-1",
         fluctlight_id="fluctlight-1",
-        action_type="reply",
+        action_type=ActionType.REPLY,
         payload={
             "source_text": "请告诉我现在的状态",
             "text": "this must never become the realization input",
@@ -80,5 +81,6 @@ def test_realization_uses_the_factual_source_message_not_cognitive_payload_text(
 
     messages = ConfiguredProviderRuntime._realization_messages(action)
 
-    assert "请告诉我现在的状态" in messages[1]["content"]
-    assert "this must never become the realization input" not in messages[1]["content"]
+    content = str(messages[1]["content"])
+    assert "请告诉我现在的状态" in content
+    assert "this must never become the realization input" not in content

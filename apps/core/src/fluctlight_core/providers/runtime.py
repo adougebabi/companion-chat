@@ -138,7 +138,7 @@ class ConfiguredProviderRuntime:
 
     async def assess(self, fact: CognitionFact, *, correlation_id: str) -> AssessmentEnvelope:
         assignment, endpoint, secret = await self._resolve(ModelRole.COGNITIVE_ASSESSMENT)
-        messages = [
+        messages: list[dict[str, Any]] = [
             {"role": "system", "content": COGNITIVE_ASSESSMENT_SYSTEM_PROMPT},
             {
                 "role": "user",
@@ -224,7 +224,7 @@ class ConfiguredProviderRuntime:
     async def analyze_initialization(self, description: str) -> dict[str, Any]:
         assignment, endpoint, secret = await self._resolve(ModelRole.INITIALIZATION)
         request_id = f"initialization:{sha256(description.encode()).hexdigest()}"
-        messages = [
+        messages: list[dict[str, Any]] = [
             {
                 "role": "system",
                 "content": (
@@ -264,13 +264,13 @@ class ConfiguredProviderRuntime:
         self,
         *,
         fluctlight_id: str,
-        identity: dict[str, Any],
+        identity: Mapping[str, Any],
         local_date: date,
         timezone: str,
     ) -> dict[str, Any]:
         assignment, endpoint, secret = await self._resolve(ModelRole.COGNITIVE_ASSESSMENT)
         correlation_id = f"schedule-initialization:{fluctlight_id}:{local_date.isoformat()}"
-        messages = [
+        messages: list[dict[str, Any]] = [
             {"role": "system", "content": INITIAL_SCHEDULE_SYSTEM_PROMPT},
             {
                 "role": "user",
@@ -320,7 +320,7 @@ class ConfiguredProviderRuntime:
         self, *, media_request: Mapping[str, Any], correlation_id: str
     ) -> str:
         assignment, endpoint, secret = await self._resolve(ModelRole.MEDIA_PROMPT)
-        messages = [
+        messages: list[dict[str, Any]] = [
             {"role": "system", "content": MEDIA_PROMPT_SYSTEM_PROMPT},
             {
                 "role": "user",
@@ -351,7 +351,7 @@ class ConfiguredProviderRuntime:
         return prompt.strip()
 
     @staticmethod
-    def _realization_messages(action: FrozenAction) -> list[dict[str, object]]:
+    def _realization_messages(action: FrozenAction) -> list[dict[str, Any]]:
         source_text = action.payload.get("source_text")
         if not isinstance(source_text, str) or not source_text.strip():
             raise RuntimeError("frozen action has no source message")
@@ -375,7 +375,7 @@ class ConfiguredProviderRuntime:
         assignment, endpoint, secret = await self._resolve(ModelRole.ACTION_REALIZATION)
         messages = self._realization_messages(action)
         if action.action_type.value == "media_request":
-            media_messages = [
+            media_messages: list[dict[str, Any]] = [
                 {"role": "system", "content": MEDIA_RESPONSE_SYSTEM_PROMPT},
                 messages[1],
             ]
@@ -493,7 +493,7 @@ class ConfiguredProviderRuntime:
 
     async def reflect(self, window: ReflectionWindow, *, correlation_id: str) -> ReflectionProposal:
         assignment, endpoint, secret = await self._resolve(ModelRole.REFLECTION)
-        messages = [
+        messages: list[dict[str, Any]] = [
             {
                 "role": "user",
                 "content": json.dumps(

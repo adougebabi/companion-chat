@@ -1,5 +1,6 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 from fluctlight_core.autonomy.bridge import CognitionAutonomyBridge
@@ -115,7 +116,7 @@ class _BridgeSettings:
 
 class _BridgeAutonomy:
     def __init__(self) -> None:
-        self.request = None
+        self.request: Any = None
 
     async def freeze_action(self, request):
         self.request = request
@@ -123,7 +124,7 @@ class _BridgeAutonomy:
 
 def test_cognition_autonomy_bridge_routes_only_explicit_candidate_actions() -> None:
     autonomy = _BridgeAutonomy()
-    bridge = CognitionAutonomyBridge(autonomy, _BridgeSettings())
+    bridge = CognitionAutonomyBridge(autonomy, _BridgeSettings())  # type: ignore[arg-type]
     action = FrozenAction(
         action_id="action-1",
         decision_id="decision-1",
@@ -136,6 +137,7 @@ def test_cognition_autonomy_bridge_routes_only_explicit_candidate_actions() -> N
     )
 
     asyncio.run(bridge(action))
+    assert autonomy.request is not None
     assert autonomy.request.action_id == "autonomy_action-1"
     assert autonomy.request.expected_revisions == {"cognition": 4}
 
@@ -153,4 +155,5 @@ def test_cognition_autonomy_bridge_routes_only_explicit_candidate_actions() -> N
             )
         )
     )
+    assert autonomy.request is not None
     assert autonomy.request.action_id == "autonomy_action-1"

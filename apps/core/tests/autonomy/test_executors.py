@@ -125,6 +125,7 @@ def test_media_action_uses_media_prompt_and_persists_the_target_conversation() -
             "correlation_id": "media-prompt:action-media",
         }
     ]
+    assert media.intent is not None
     assert media.intent.prompt == "final image prompt"
     assert media.intent.conversation_id == "conversation-1"
     assert media.intent.mime_type == "image/png"

@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 from fluctlight_core.providers.contracts import ModelRole
 from fluctlight_core.providers.runtime import ConfiguredProviderRuntime
@@ -7,7 +8,7 @@ from fluctlight_core.providers.service import ProviderEndpoint, RoleAssignment
 
 class Recorder:
     def __init__(self) -> None:
-        self.runs = []
+        self.runs: list[Any] = []
 
     async def emit_model_run(self, run) -> str:
         self.runs.append(run)

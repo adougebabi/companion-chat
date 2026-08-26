@@ -1,7 +1,7 @@
 import asyncio
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
-
+from typing import Any
 from fluctlight_core.fluctlights.contracts import (
     BehavioralPolicy,
     FluctlightSnapshot,
@@ -15,7 +15,7 @@ from fluctlight_core.life_world.bootstrap import InitialScheduleService
 
 class LifeWorldRecorder:
     def __init__(self) -> None:
-        self.accepted = []
+        self.accepted: list[Any] = []
 
     async def accepted_schedule(self, *_args):
         return None
@@ -27,7 +27,7 @@ class LifeWorldRecorder:
 
 class ScheduleGenerator:
     def __init__(self) -> None:
-        self.calls = []
+        self.calls: list[Any] = []
 
     async def generate_initial_schedule(self, **kwargs):
         self.calls.append(kwargs)
@@ -54,8 +54,8 @@ def test_initial_schedule_is_generated_by_model_and_covers_the_local_day() -> No
     life_world = LifeWorldRecorder()
     generator = ScheduleGenerator()
     service = InitialScheduleService(
-        life_world,
-        generator,
+        life_world,  # type: ignore[arg-type]
+        generator,  # type: ignore[arg-type]
         clock=lambda: datetime(2026, 8, 26, 4, tzinfo=UTC),
     )
     fluctlight = FluctlightSnapshot(
