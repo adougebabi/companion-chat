@@ -38,7 +38,7 @@ jobs:
       - run: uv run ruff check apps/core/src apps/core/tests
       - run: uv run mypy --follow-imports=skip apps/core/src apps/core/tests
       - run: uv run pytest -q apps/core/tests
-      - run: docker compose -f infra/compose/fluctlight.compose.yml config
+      - run: POSTGRES_PASSWORD=dummy S3_SECRET_KEY=dummy FLUCTLIGHT_CORE_SERVICE_KEY=dummy FLUCTLIGHT_SETTINGS_KEY=dummy docker compose -f infra/compose/fluctlight.compose.yml config
       - run: bash -n infra/acceptance/*.sh
       - run: infra/acceptance/validate-handoffs.sh
       - run: infra/acceptance/excluded-scope-guard.sh
