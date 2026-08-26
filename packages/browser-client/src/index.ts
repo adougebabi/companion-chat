@@ -15,7 +15,8 @@ export type BrowserTurnEvent = { type: "token" | "message" | "media" | "complete
 export class BrowserClient {
   constructor(private readonly baseUrl = "", private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis)) {}
   private url(path: string): URL {
-    const origin = this.baseUrl || (typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:13000");
+    const origin = this.baseUrl || (typeof window !== "undefined" ? window.location.origin : "");
+    if (!origin) throw new Error("BrowserClient requires a base URL outside the browser");
     return new URL(path, origin);
   }
   async health(path: "/health/live" | "/health/ready"): Promise<BrowserHealth> { return this.json(path) as Promise<BrowserHealth>; }

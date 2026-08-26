@@ -151,15 +151,15 @@ services:
       context: ../..
       dockerfile: apps/bff/Dockerfile
     environment:
-      CORE_BASE_URL: http://core:8080
+      CORE_BASE_URL: ${CORE_BASE_URL:-http://core:8080}
       FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:?set FLUCTLIGHT_CORE_SERVICE_KEY in private env}
-      FLUCTLIGHT_TRUSTED_ORIGIN: ${FLUCTLIGHT_TRUSTED_ORIGIN:-http://127.0.0.1:13001}
-      BFF_PORT: 3000
+      FLUCTLIGHT_TRUSTED_ORIGIN: ${FLUCTLIGHT_TRUSTED_ORIGIN:?set FLUCTLIGHT_TRUSTED_ORIGIN in private env}
+      BFF_PORT: ${BFF_PORT:-3000}
     depends_on:
       core:
         condition: service_healthy
     ports:
-      - "${BFF_HOST_PORT:-13000}:3000"
+      - "${BFF_HOST_PORT:-13000}:${BFF_PORT:-3000}"
     networks: [platform]
 
   web:
@@ -168,12 +168,10 @@ services:
       context: ../..
       dockerfile: apps/web/Dockerfile
       args:
-        VITE_BFF_ORIGIN: ${VITE_BFF_ORIGIN:-http://127.0.0.1:13000}
+        VITE_BFF_ORIGIN: ${VITE_BFF_ORIGIN:?set VITE_BFF_ORIGIN in private env}
     depends_on:
       bff:
         condition: service_started
-    environment:
-      VITE_BFF_ORIGIN: http://127.0.0.1:13000
     ports:
       - "${WEB_HOST_PORT:-13001}:4173"
     networks: [platform]

@@ -36,3 +36,18 @@ test("BrowserClient maps an unauthenticated session response without treating it
 
   assert.deepEqual(await client.session(), { authenticated: false });
 });
+
+test("BrowserClient requires an explicit base URL outside the browser", async () => {
+  const previousWindow = globalThis.window;
+  // @ts-expect-error This test deliberately exercises the non-browser boundary.
+  delete globalThis.window;
+  try {
+    const client = new BrowserClient("", async () => Response.json({ authenticated: false }));
+    await assert.rejects(() => client.session(), /requires a base URL outside the browser/);
+  } finally {
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: previousWindow,
+    });
+  }
+});

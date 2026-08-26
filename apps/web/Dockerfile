@@ -9,9 +9,10 @@ RUN pnpm install --frozen-lockfile
 
 COPY apps/web apps/web
 COPY packages/browser-client packages/browser-client
-ARG VITE_BFF_ORIGIN=http://127.0.0.1:13000
+ARG VITE_BFF_ORIGIN
 ENV VITE_BFF_ORIGIN=$VITE_BFF_ORIGIN
-RUN pnpm --filter @fluctlight/browser-client generate \
+RUN test -n "$VITE_BFF_ORIGIN" \
+  && pnpm --filter @fluctlight/browser-client generate \
   && pnpm --filter @fluctlight/web build
 
 EXPOSE 4173

@@ -50,19 +50,13 @@ diagnose() {
 }
 
 check_bff_ready() {
-  if curl --fail --silent --show-error http://127.0.0.1:13000/health/ready >/dev/null 2>&1; then
-    return 0
-  fi
   compose exec -T bff node -e \
-    'fetch("http://127.0.0.1:3000/health/ready").then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))'
+    'fetch(`http://127.0.0.1:${process.env.BFF_PORT}/health/ready`).then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))'
 }
 
 check_bff_ping() {
-  if curl --fail --silent --show-error http://127.0.0.1:13000/api/platform/ping >/dev/null 2>&1; then
-    return 0
-  fi
   compose exec -T bff node -e \
-    'fetch("http://127.0.0.1:3000/api/platform/ping").then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))'
+    'fetch(`http://127.0.0.1:${process.env.BFF_PORT}/api/platform/ping`).then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))'
 }
 
 trap cleanup EXIT INT TERM
