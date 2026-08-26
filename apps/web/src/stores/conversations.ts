@@ -5,8 +5,9 @@ import {
   type BrowserMessage,
   type BrowserTurnEvent,
 } from "@fluctlight/browser-client";
+import { bffOrigin } from "../runtime-config";
 
-const client = new BrowserClient(import.meta.env.VITE_BFF_ORIGIN ?? "");
+const client = new BrowserClient(bffOrigin);
 
 type StreamPayload = { text?: string; message?: BrowserMessage; message_id?: string; code?: string };
 export type FluctlightListItem = {

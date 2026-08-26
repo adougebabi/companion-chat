@@ -5,8 +5,9 @@ import {
   type BrowserDiagnosticModelRun,
   type BrowserSafeSettings,
 } from "@fluctlight/browser-client";
+import { bffOrigin } from "../runtime-config";
 
-const client = new BrowserClient(import.meta.env.VITE_BFF_ORIGIN ?? "");
+const client = new BrowserClient(bffOrigin);
 
 export const useControlCenterStore = defineStore("control-center", {
   state: () => ({

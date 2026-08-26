@@ -9,11 +9,8 @@ RUN pnpm install --frozen-lockfile
 
 COPY apps/web apps/web
 COPY packages/browser-client packages/browser-client
-ARG VITE_BFF_ORIGIN="__VITE_BFF_ORIGIN_PLACEHOLDER__"
-ENV VITE_BFF_ORIGIN=$VITE_BFF_ORIGIN
 RUN pnpm --filter @fluctlight/browser-client generate \
   && pnpm --filter @fluctlight/web build
 
 EXPOSE 4173
-CMD find apps/web/dist -type f -name "*.js" -exec sed -i "s|__VITE_BFF_ORIGIN_PLACEHOLDER__|${VITE_BFF_ORIGIN}|g" {} + \
-    && pnpm --filter @fluctlight/web exec vite preview --host 0.0.0.0 --port 4173
+CMD ["node", "apps/web/scripts/serve-preview.mjs"]

@@ -40,10 +40,11 @@ The repository contains only the clean-start Fluctlight runtime. Deploy with
 file based on `infra/compose/fluctlight.env.example`.
 
 For a NAS or another machine, set both public browser-facing URLs in that
-private file before building the Web image: `FLUCTLIGHT_TRUSTED_ORIGIN` is the
-exact URL used to open the Web application, while `VITE_BFF_ORIGIN` is the
-browser-reachable BFF URL. `VITE_BFF_ORIGIN` is embedded into Vite's static
-build, so changing it requires rebuilding the `web` image. Do not use a
-container hostname or `127.0.0.1` unless the browser itself runs on that same
-machine. `CORE_BASE_URL` remains the BFF-to-Core internal address and normally
-uses the Compose service name `http://core:8080`.
+private file: `FLUCTLIGHT_TRUSTED_ORIGIN` is the exact URL used to open the
+Web application, while `FLUCTLIGHT_BFF_ORIGIN` is the browser-reachable BFF
+URL. The Web container reads `FLUCTLIGHT_BFF_ORIGIN` at startup and writes a
+public runtime config file, so changing the BFF address requires only
+recreating `web`, not rebuilding its image. Do not use a container hostname or
+`127.0.0.1` unless the browser itself runs on that same machine.
+`CORE_BASE_URL` remains the BFF-to-Core internal address and normally uses the
+Compose service name `http://core:8080`.

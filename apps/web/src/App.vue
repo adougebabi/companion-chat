@@ -4,6 +4,7 @@ import type { BrowserMessage } from "@fluctlight/browser-client";
 
 import { useConversationStore } from "./stores/conversations";
 import { useControlCenterStore } from "./stores/control-center";
+import { bffOrigin } from "./runtime-config";
 
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
@@ -257,8 +258,7 @@ function prettyPayload(payload: Record<string, unknown>) {
 }
 
 function mediaUrl(assetId: string) {
-  const base = import.meta.env.VITE_BFF_ORIGIN ?? window.location.origin;
-  return new URL(`/api/media/${encodeURIComponent(assetId)}`, base).toString();
+  return new URL(`/api/media/${encodeURIComponent(assetId)}`, bffOrigin).toString();
 }
 
 const displayLabels: Record<string, string> = {

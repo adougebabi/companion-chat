@@ -38,7 +38,7 @@ jobs:
       - run: uv run ruff check apps/core/src apps/core/tests
       - run: uv run mypy --follow-imports=skip apps/core/src apps/core/tests
       - run: uv run pytest -q apps/core/tests
-      - run: POSTGRES_PASSWORD=dummy S3_SECRET_KEY=dummy FLUCTLIGHT_CORE_SERVICE_KEY=dummy FLUCTLIGHT_SETTINGS_KEY=dummy FLUCTLIGHT_TRUSTED_ORIGIN=dummy VITE_BFF_ORIGIN=dummy docker compose -f infra/compose/fluctlight.compose.yml config
+      - run: POSTGRES_PASSWORD=dummy S3_SECRET_KEY=dummy FLUCTLIGHT_CORE_SERVICE_KEY=dummy FLUCTLIGHT_SETTINGS_KEY=dummy FLUCTLIGHT_TRUSTED_ORIGIN=dummy FLUCTLIGHT_BFF_ORIGIN=http://bff.invalid docker compose -f infra/compose/fluctlight.compose.yml config
       - run: bash -n infra/acceptance/*.sh
       - run: infra/acceptance/validate-handoffs.sh
       - run: infra/acceptance/excluded-scope-guard.sh
@@ -87,6 +87,4 @@ jobs:
           context: .
           file: apps/web/Dockerfile
           push: true
-          build-args: |
-            VITE_BFF_ORIGIN=${{ vars.PROD_BFF_ORIGIN }}
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-web:latest
