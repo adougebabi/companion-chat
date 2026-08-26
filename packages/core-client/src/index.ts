@@ -18,6 +18,13 @@ export type CoreFluctlight = { id: string; identity: Record<string, unknown>; st
 export type CoreDiagnosticEvent = { id: string; event_type: string; severity: string; fluctlight_id?: string | null; causation_id?: string | null; correlation_id: string; payload: Record<string, unknown>; created_at?: string | null };
 export type CoreDiagnosticModelRun = { id: string; role: string; endpoint_id?: string | null; model_id: string; prompt: Record<string, unknown>; response?: Record<string, unknown> | null; status: string; error_code?: string | null; correlation_id: string; created_at: string };
 
+export class CoreApiError extends Error {
+  constructor(readonly status: number, readonly code: string) {
+    super(`Core request failed: ${status} ${code}`);
+    this.name = "CoreApiError";
+  }
+}
+
 export class CoreClient {
   private readonly baseUrl: string;
   private readonly serviceKey: string;
@@ -157,7 +164,15 @@ export class CoreClient {
     if (humanSession) headers["x-fluctlight-human-session"] = humanSession;
     if (body) headers["content-type"] = "application/json";
     const response = await this.fetcher(new URL(path, this.baseUrl), { method, headers, body: body ? JSON.stringify(body) : undefined });
-    if (!response.ok) throw new Error(`Core request failed: ${response.status}`);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null) as { detail?: unknown; code?: unknown } | null;
+      const code = typeof payload?.detail === "string"
+        ? payload.detail
+        : typeof payload?.code === "string"
+          ? payload.code
+          : "core_request_failed";
+      throw new CoreApiError(response.status, code);
+    }
     if (response.status === 204) return undefined;
     return response.json();
   }

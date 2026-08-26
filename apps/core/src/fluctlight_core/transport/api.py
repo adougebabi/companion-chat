@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from hashlib import sha256
 from uuid import uuid4
 
 import boto3  # type: ignore[import-untyped]
@@ -32,6 +33,7 @@ from fluctlight_core.conversations.contracts import (
     ConversationTurn,
 )
 from fluctlight_core.conversations.service import ConversationService
+from fluctlight_core.diagnostics.contracts import DiagnosticEvent, DiagnosticSeverity
 from fluctlight_core.diagnostics.service import DiagnosticsAuthorizationError, DiagnosticsService
 from fluctlight_core.fluctlights.contracts import (
     CreateFluctlight,
@@ -80,7 +82,7 @@ from fluctlight_core.platform.temporal import RestartSpec, TemporalRuntime
 from fluctlight_core.platform.workflows import PlatformControlWorkflow
 from fluctlight_core.providers.adapters import OpenAICompatibleAdapter
 from fluctlight_core.providers.contracts import ModelRole
-from fluctlight_core.providers.runtime import ConfiguredProviderRuntime
+from fluctlight_core.providers.runtime import ConfiguredProviderRuntime, InitializationAnalysisError
 from fluctlight_core.providers.service import (
     ProviderConfigurationError,
     ProviderConfigurationService,
@@ -1241,8 +1243,23 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             ).as_payload()
         except AuthError as exc:
             raise HTTPException(status_code=401, detail="unauthenticated") from exc
-        except (CreationError, RuntimeError) as exc:
-            raise HTTPException(status_code=422, detail="fluctlight_analysis_failed") from exc
+        except InitializationAnalysisError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.code) from exc
+        except CreationError as exc:
+            await require_diagnostics_service(current).emit_event(
+                DiagnosticEvent(
+                    event_type="fluctlight.initialization.failed",
+                    severity=DiagnosticSeverity.ERROR,
+                    correlation_id=f"initialization:{sha256(request.description.encode()).hexdigest()}",
+                    payload={"error_code": exc.code},
+                )
+            )
+            raise HTTPException(status_code=422, detail=exc.code) from exc
+        except RuntimeError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="initialization_provider_unavailable",
+            ) from exc
 
     @app.post("/internal/fluctlight-creations/activate")
     async def activate_fluctlight_creation(

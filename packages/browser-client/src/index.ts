@@ -12,6 +12,13 @@ export type BrowserMessage = { id: string; conversationId: string; sequence: num
 export type BrowserConversationPage = { conversation: BrowserConversation; participants: BrowserParticipant[]; messages: BrowserMessage[]; nextBeforeSequence?: number | null };
 export type BrowserTurnEvent = { type: "token" | "message" | "media" | "completed" | "error" | "heartbeat"; turnId: string; sequence: number; payload: Record<string, unknown> };
 
+export class BrowserApiError extends Error {
+  constructor(readonly status: number, readonly code: string, readonly userMessage: string) {
+    super(userMessage);
+    this.name = "BrowserApiError";
+  }
+}
+
 export class BrowserClient {
   constructor(private readonly baseUrl = "", private readonly fetcher: typeof fetch = globalThis.fetch.bind(globalThis)) {}
   private url(path: string): URL {
@@ -23,7 +30,12 @@ export class BrowserClient {
   async session(): Promise<BrowserSession> {
     const response = await this.fetcher(this.url("/auth/session"), { credentials: "include" });
     if (response.status === 401) return { authenticated: false };
-    if (!response.ok) throw new Error(`Browser request failed: ${response.status}`);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown } | null;
+      const code = typeof payload?.code === "string" ? payload.code : "browser_request_failed";
+      const message = typeof payload?.message === "string" ? payload.message : `Browser request failed: ${response.status}`;
+      throw new BrowserApiError(response.status, code, message);
+    }
     return response.json() as Promise<BrowserSession>;
   }
   async login(password: string): Promise<BrowserSession> { return this.json("/auth/login", { method: "POST", body: { password } }) as Promise<BrowserSession>; }
@@ -132,7 +144,12 @@ export class BrowserClient {
       headers: { ...(options.body ? { "content-type": "application/json" } : {}), ...(method !== "GET" ? this.csrfHeaders() : {}) },
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
-    if (!response.ok) throw new Error(`Browser request failed: ${response.status}`);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown } | null;
+      const code = typeof payload?.code === "string" ? payload.code : "browser_request_failed";
+      const message = typeof payload?.message === "string" ? payload.message : `Browser request failed: ${response.status}`;
+      throw new BrowserApiError(response.status, code, message);
+    }
     if (response.status === 204) return undefined;
     return response.json();
   }

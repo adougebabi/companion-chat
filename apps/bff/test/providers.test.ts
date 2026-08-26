@@ -79,3 +79,53 @@ test("provider model list is an authenticated safe endpoint lookup", async () =>
   assert.deepEqual(response.json(), { endpointId: "lmstudio", models: ["embedding", "general"] });
   await app.close();
 });
+
+test("creation analysis preserves initialization errors instead of masking them as generic failures", async () => {
+  const app = createBff({
+    coreBaseUrl: "http://core.invalid",
+    coreServiceKey: "internal",
+    trustedOrigin: "https://fluctlight.local",
+    fetcher: async () => new Response(JSON.stringify({ detail: "initialization_foundation_invalid" }), {
+      status: 422,
+      headers: { "content-type": "application/json" },
+    }),
+  });
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/fluctlight-creations/analysis",
+    headers: { origin: "https://fluctlight.local", "x-csrf-token": "csrf-token" },
+    cookies: { fluctlight_session: "opaque-session", fluctlight_csrf: "csrf-token" },
+    payload: { description: "一位喜欢摄影和散步的人" },
+  });
+  assert.equal(response.statusCode, 422);
+  assert.deepEqual(response.json(), {
+    code: "initialization_foundation_invalid",
+    message: "Fluctlight analysis was rejected",
+  });
+  await app.close();
+});
+
+test("creation analysis returns unauthenticated when Core rejects an expired session", async () => {
+  const app = createBff({
+    coreBaseUrl: "http://core.invalid",
+    coreServiceKey: "internal",
+    trustedOrigin: "https://fluctlight.local",
+    fetcher: async () => new Response(JSON.stringify({ detail: "unauthenticated" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    }),
+  });
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/fluctlight-creations/analysis",
+    headers: { origin: "https://fluctlight.local", "x-csrf-token": "csrf-token" },
+    cookies: { fluctlight_session: "expired-session", fluctlight_csrf: "csrf-token" },
+    payload: { description: "一位喜欢摄影和散步的人" },
+  });
+  assert.equal(response.statusCode, 401);
+  assert.deepEqual(response.json(), {
+    code: "unauthenticated",
+    message: "Authentication is required",
+  });
+  await app.close();
+});

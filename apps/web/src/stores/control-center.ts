@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import {
   BrowserClient,
+  BrowserApiError,
   type BrowserDiagnosticEvent,
   type BrowserDiagnosticModelRun,
   type BrowserSafeSettings,
@@ -56,8 +57,8 @@ export const useControlCenterStore = defineStore("control-center", {
       this.error = "";
       try {
         return await client.analyzeFluctlightCreation(description);
-      } catch {
-        this.error = "无法完成 Fluctlight 分析，请检查初始化模型角色和 Provider 配置。";
+      } catch (error) {
+        this.error = creationAnalysisFailureMessage(error);
         return null;
       }
     },
@@ -536,3 +537,14 @@ export const useControlCenterStore = defineStore("control-center", {
     },
   },
 });
+
+function creationAnalysisFailureMessage(error: unknown): string {
+  if (!(error instanceof BrowserApiError)) return "Fluctlight 分析服务暂时不可用。";
+  if (error.code === "unauthenticated") return "登录会话已失效，请重新登录后再分析。";
+  if (error.code === "initialization_role_unconfigured") return "初始化模型角色未配置或预检未通过。";
+  if (error.code === "initialization_response_invalid_json") return "初始化模型没有返回合法 JSON。";
+  if (error.code === "initialization_response_invalid") return "初始化模型返回的 JSON 结构无效。";
+  if (error.code === "initialization_foundation_invalid") return "初始化模型返回的 Foundation 结构不符合要求。";
+  if (error.code === "initialization_provider_unavailable") return "初始化模型 Provider 不可用或请求超时。";
+  return error.userMessage || "Fluctlight 分析失败。";
+}

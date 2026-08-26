@@ -1,4 +1,4 @@
-import { CoreClient } from "@fluctlight/core-client";
+import { CoreApiError, CoreClient } from "@fluctlight/core-client";
 import { Type } from "@sinclair/typebox";
 import cookie from "@fastify/cookie";
 import { randomBytes, timingSafeEqual } from "node:crypto";
@@ -455,8 +455,25 @@ export function createBff(options: BffOptions): FastifyInstance {
     if (rejectUntrustedMutation(request.headers.origin, options.trustedOrigin, request.cookies[csrfCookie], request.headers["x-csrf-token"])) return reply.code(403).send({ code: "invalid_origin", message: "Origin is not allowed" });
     const session = request.cookies[sessionCookie];
     if (!session) return reply.code(401).send({ code: "unauthenticated", message: "Authentication is required" });
-    try { return await core.analyzeFluctlightCreation(session, (request.body as { description: string }).description); }
-    catch { return reply.code(422).send({ code: "fluctlight_analysis_failed", message: "Fluctlight analysis could not be completed" }); }
+    try {
+      return await core.analyzeFluctlightCreation(
+        session,
+        (request.body as { description: string }).description,
+      );
+    } catch (error) {
+      if (error instanceof CoreApiError) {
+        if (error.status === 401) {
+          return reply.code(401).send({ code: "unauthenticated", message: "Authentication is required" });
+        }
+        if (error.status === 422) {
+          return reply.code(422).send({ code: error.code, message: "Fluctlight analysis was rejected" });
+        }
+        if (error.status >= 500) {
+          return reply.code(503).send({ code: error.code, message: "Fluctlight analysis service is unavailable" });
+        }
+      }
+      return reply.code(502).send({ code: "fluctlight_analysis_unavailable", message: "Fluctlight analysis service is unavailable" });
+    }
   });
 
   app.post("/api/fluctlight-creations/activate", { schema: { body: fluctlightCreationActivationRequest } }, async (request, reply) => {

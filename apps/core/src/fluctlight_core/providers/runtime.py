@@ -20,7 +20,11 @@ from fluctlight_core.cognition.contracts import (
     ReflectionProposal,
     ReflectionWindow,
 )
-from fluctlight_core.diagnostics.contracts import DiagnosticModelRun
+from fluctlight_core.diagnostics.contracts import (
+    DiagnosticEvent,
+    DiagnosticModelRun,
+    DiagnosticSeverity,
+)
 from fluctlight_core.diagnostics.service import DiagnosticsService
 from fluctlight_core.inner_state.contracts import (
     AffectDirection,
@@ -91,6 +95,46 @@ gaps or overlaps. Do not return prose, markdown, hidden reasoning, or a partial 
 def _diagnostic_error_code(exc: Exception, fallback: str) -> str:
     value = str(exc).strip().lower().replace(" ", "_")
     return value[:120] or fallback
+
+
+class InitializationAnalysisError(RuntimeError):
+    def __init__(self, code: str, *, status_code: int) -> None:
+        super().__init__(code)
+        self.code = code
+        self.status_code = status_code
+
+
+INITIALIZATION_SYSTEM_PROMPT = """Return JSON only. Return exactly this object shape and no
+markdown or prose:
+{
+  "foundation": {
+    "identity": {
+      "name": null, "age": null, "gender": null, "occupation": null,
+      "residence": null, "timezone": null, "birthday": null,
+      "background": null, "biography": null, "core_values": [],
+      "worldview": null, "notes": null
+    },
+    "personality": {
+      "openness": 0.5, "conscientiousness": 0.5, "extraversion": 0.5,
+      "agreeableness": 0.5, "neuroticism": 0.5, "curiosity": 0.5,
+      "independence": 0.5, "patience": 0.5, "empathy": 0.5,
+      "assertiveness": 0.5, "humor": 0.5, "sociability": 0.5,
+      "risk_tolerance": 0.5
+    },
+    "behavioral_policy": {
+      "response_style": null, "message_length": null, "emoji_frequency": 0.0,
+      "punctuation_style": null, "humor_style": null, "sarcasm_tendency": 0.0,
+      "directness": 0.5, "initiative": 0.5, "topic_initiation": 0.5,
+      "silence_tolerance": 0.5, "response_delay": 0.0,
+      "emotional_expression": 0.5, "conflict_style": null,
+      "refusal_style": null, "intimacy_expression": null
+    }
+  }
+}
+Use null for omitted identity and behavioral text facts. core_values must be an array of text.
+Every personality value and bounded behavioral-policy value must be a finite number from 0 to 1.
+response_delay must be a finite number greater than or equal to 0. Do not include identity.id,
+personality.update_policy, provenance, hidden reasoning, or extra keys."""
 
 
 class ConfiguredProviderRuntime:
@@ -222,28 +266,43 @@ class ConfiguredProviderRuntime:
         )
 
     async def analyze_initialization(self, description: str) -> dict[str, Any]:
-        assignment, endpoint, secret = await self._resolve(ModelRole.INITIALIZATION)
         request_id = f"initialization:{sha256(description.encode()).hexdigest()}"
+        try:
+            assignment, endpoint, secret = await self._resolve(ModelRole.INITIALIZATION)
+        except Exception:
+            await self._record_initialization_event(
+                request_id,
+                "initialization_role_unconfigured",
+            )
+            raise InitializationAnalysisError(
+                "initialization_role_unconfigured",
+                status_code=422,
+            ) from None
         messages: list[dict[str, Any]] = [
-            {
-                "role": "system",
-                "content": (
-                    "Return JSON only. Propose a Fluctlight foundation from the user's "
-                    "description. The object must contain foundation.identity, "
-                    "foundation.personality and foundation.behavioral_policy. Do not "
-                    "invent omitted facts; use null or neutral bounded numeric values."
-                ),
-            },
+            {"role": "system", "content": INITIALIZATION_SYSTEM_PROMPT},
             {"role": "user", "content": description},
         ]
-        payload = await self._adapter.complete_structured(
-            assignment,
-            endpoint,
-            secret,
-            messages=messages,
-            schema_version="fluctlight.initialization.v1",
-            request_id=request_id,
-        )
+        try:
+            payload = await self._adapter.complete_structured(
+                assignment,
+                endpoint,
+                secret,
+                messages=messages,
+                schema_version="fluctlight.initialization.v1",
+                request_id=request_id,
+            )
+        except Exception as exc:
+            code = self._initialization_error_code(exc)
+            await self._record_model_run(
+                assignment=assignment,
+                endpoint=endpoint,
+                prompt={"messages": messages, "schema_version": "fluctlight.initialization.v1"},
+                response=None,
+                correlation_id=request_id,
+                status="failed",
+                error_code=code,
+            )
+            raise InitializationAnalysisError(code, status_code=503) from exc
         payload["provenance"] = {
             "role": ModelRole.INITIALIZATION.value,
             "endpoint_id": endpoint.endpoint_id,
@@ -259,6 +318,27 @@ class ConfiguredProviderRuntime:
             correlation_id=request_id,
         )
         return payload
+
+    async def _record_initialization_event(self, correlation_id: str, error_code: str) -> None:
+        if self._diagnostics is None:
+            return
+        await self._diagnostics.emit_event(
+            DiagnosticEvent(
+                event_type="fluctlight.initialization.failed",
+                severity=DiagnosticSeverity.ERROR,
+                correlation_id=correlation_id,
+                payload={"error_code": error_code},
+            )
+        )
+
+    @staticmethod
+    def _initialization_error_code(exc: Exception) -> str:
+        message = str(exc).lower()
+        if "not valid json" in message:
+            return "initialization_response_invalid_json"
+        if "no json content" in message or "must be an object" in message:
+            return "initialization_response_invalid"
+        return "initialization_provider_unavailable"
 
     async def generate_initial_schedule(
         self,

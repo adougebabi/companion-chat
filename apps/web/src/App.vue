@@ -224,6 +224,8 @@ async function analyzeFluctlightDescription() {
   if (foundation && typeof foundation === "object" && !Array.isArray(foundation)) {
     creationPreviewJson.value = JSON.stringify(foundation, null, 2);
     creationRequestId.value = crypto.randomUUID();
+  } else if (result) {
+    controlCenter.error = "初始化模型返回了不包含 Foundation 的无效结果。";
   }
 }
 

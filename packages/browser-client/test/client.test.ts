@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { BrowserClient } from "../src/index.ts";
+import { BrowserApiError, BrowserClient } from "../src/index.ts";
 
 test("BrowserClient resolves an empty base URL against the browser origin", async () => {
   const previousWindow = globalThis.window;
@@ -50,4 +50,23 @@ test("BrowserClient requires an explicit base URL outside the browser", async ()
       value: previousWindow,
     });
   }
+});
+
+test("BrowserClient preserves safe BFF failure codes", async () => {
+  const client = new BrowserClient("http://fluctlight.local", async () =>
+    new Response(JSON.stringify({
+      code: "initialization_response_invalid_json",
+      message: "Fluctlight analysis was rejected",
+    }), {
+      status: 422,
+      headers: { "content-type": "application/json" },
+    }),
+  );
+  await assert.rejects(
+    () => client.analyzeFluctlightCreation("测试描述"),
+    (error: unknown) =>
+      error instanceof BrowserApiError
+      && error.status === 422
+      && error.code === "initialization_response_invalid_json",
+  );
 });
