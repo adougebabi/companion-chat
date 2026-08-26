@@ -483,7 +483,20 @@ export function createBff(options: BffOptions): FastifyInstance {
     const body = request.body as { requestId: string; initializationMode: string; identity: Record<string, unknown>; personality?: Record<string, unknown>; behavioralPolicy?: Record<string, unknown> };
     try {
       return await core.activateFluctlightCreation(session, { request_id: body.requestId, initialization_mode: body.initializationMode, identity: body.identity, personality: body.personality, behavioral_policy: body.behavioralPolicy });
-    } catch { return reply.code(422).send({ code: "fluctlight_activation_failed", message: "Fluctlight activation could not be completed" }); }
+    } catch (error) {
+      if (error instanceof CoreApiError) {
+        if (error.status === 401) {
+          return reply.code(401).send({ code: "unauthenticated", message: "Authentication is required" });
+        }
+        if (error.status === 422) {
+          return reply.code(422).send({ code: error.code, message: "Fluctlight activation was rejected" });
+        }
+        if (error.status >= 500) {
+          return reply.code(503).send({ code: error.code, message: "Fluctlight activation service is unavailable" });
+        }
+      }
+      return reply.code(502).send({ code: "fluctlight_activation_unavailable", message: "Fluctlight activation service is unavailable" });
+    }
   });
 
   app.get("/api/fluctlights", async (request, reply) => {

@@ -14,6 +14,7 @@ from .contracts import (
     Identity,
     InitializationMode,
     Personality,
+    PersonalityUpdatePolicy,
 )
 from .service import FluctlightLifecycleError, FluctlightNotFoundError, FluctlightService
 
@@ -59,6 +60,16 @@ def _without_id(payload: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _personality_from_payload(payload: dict[str, Any]) -> Personality:
+    values = dict(payload)
+    update_policy = values.pop("update_policy", None)
+    if update_policy is not None:
+        if not isinstance(update_policy, dict):
+            raise FoundationValidationError("personality.update_policy must be an object")
+        values["update_policy"] = PersonalityUpdatePolicy(**update_policy)
+    return Personality(**values)
+
+
 class CreationLifecycleService:
     """Analyze without persistence; activate one validated foundation atomically."""
 
@@ -81,7 +92,7 @@ class CreationLifecycleService:
             raise CreationError("initialization response has no foundation")
         try:
             identity = Identity(id="preview", **_without_id(dict(foundation["identity"])))
-            personality = Personality(**dict(foundation["personality"]))
+            personality = _personality_from_payload(dict(foundation["personality"]))
             policy = BehavioralPolicy(**dict(foundation["behavioral_policy"]))
         except (KeyError, TypeError, FoundationValidationError) as exc:
             raise CreationError(
@@ -109,19 +120,20 @@ class CreationLifecycleService:
         behavioral_policy: dict[str, Any] | None = None,
     ) -> FluctlightSnapshot:
         if not isinstance(request_id, str) or not request_id.strip() or len(request_id) > 256:
-            raise CreationError("request_id is required")
+            raise CreationError("request_id is required", code="activation_request_invalid")
         fluctlight_id = f"fluctlight_{sha256(f'{actor_id}:{request_id}'.encode()).hexdigest()[:32]}"
         mode = InitializationMode(initialization_mode)
         if mode is InitializationMode.BLANK_SLATE and (
             personality is not None or behavioral_policy is not None
         ):
             raise CreationError(
-                "blank_slate does not accept personality or behavioral policy input"
+                "blank_slate does not accept personality or behavioral policy input",
+                code="activation_mode_invalid",
             )
         try:
             resolved_identity = Identity(id=fluctlight_id, **_without_id(identity))
             resolved_personality = (
-                Personality(**personality)
+                _personality_from_payload(personality)
                 if mode is InitializationMode.LLM_DEFINED and personality is not None
                 else Personality.neutral()
             )
@@ -131,11 +143,17 @@ class CreationLifecycleService:
                 else BehavioralPolicy()
             )
         except (TypeError, FoundationValidationError) as exc:
-            raise CreationError("activation foundation is invalid") from exc
+            raise CreationError(
+                "activation foundation is invalid",
+                code="activation_foundation_invalid",
+            ) from exc
         if mode is InitializationMode.LLM_DEFINED and (
             personality is None or behavioral_policy is None
         ):
-            raise CreationError("llm_defined activation requires the reviewed complete foundation")
+            raise CreationError(
+                "llm_defined activation requires the reviewed complete foundation",
+                code="activation_foundation_incomplete",
+            )
         try:
             existing = await self._fluctlights.get(fluctlight_id)
         except FluctlightNotFoundError:
@@ -147,7 +165,10 @@ class CreationLifecycleService:
                 or existing.personality != resolved_personality
                 or existing.behavioral_policy != resolved_policy
             ):
-                raise CreationError("request_id was reused with different foundation data")
+                raise CreationError(
+                    "request_id was reused with different foundation data",
+                    code="activation_request_conflict",
+                )
             if self._schedule_initializer is not None:
                 await self._schedule_initializer.ensure_for(existing)
             return existing
@@ -166,4 +187,7 @@ class CreationLifecycleService:
                 await self._schedule_initializer.ensure_for(created)
             return created
         except FluctlightLifecycleError as exc:
-            raise CreationError("activation could not be completed") from exc
+            raise CreationError(
+                "activation could not be completed",
+                code="activation_persistence_failed",
+            ) from exc

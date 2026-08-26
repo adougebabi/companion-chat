@@ -96,7 +96,7 @@ export const useControlCenterStore = defineStore("control-center", {
       this.saving = true;
       this.error = "";
       try { return await client.activateFluctlightCreation(body); }
-      catch { this.error = "无法激活 Fluctlight 实例，请检查预览内容。"; return null; }
+      catch (error) { this.error = creationActivationFailureMessage(error); return null; }
       finally { this.saving = false; }
     },
     async loadDiagnostics() {
@@ -547,4 +547,14 @@ function creationAnalysisFailureMessage(error: unknown): string {
   if (error.code === "initialization_foundation_invalid") return "初始化模型返回的 Foundation 结构不符合要求。";
   if (error.code === "initialization_provider_unavailable") return "初始化模型 Provider 不可用或请求超时。";
   return error.userMessage || "Fluctlight 分析失败。";
+}
+
+function creationActivationFailureMessage(error: unknown): string {
+  if (!(error instanceof BrowserApiError)) return "Fluctlight 激活服务暂时不可用。";
+  if (error.code === "unauthenticated") return "登录会话已失效，请重新登录后再激活。";
+  if (error.code === "activation_foundation_invalid") return "预览中的 Foundation 结构无效。";
+  if (error.code === "activation_foundation_incomplete") return "预览缺少完整人格或行为策略。";
+  if (error.code === "activation_request_conflict") return "该激活请求已被不同的预览内容占用。";
+  if (error.code === "activation_persistence_failed") return "Fluctlight 数据无法保存，请查看诊断信息。";
+  return error.userMessage || "Fluctlight 激活失败。";
 }

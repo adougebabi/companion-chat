@@ -1285,7 +1285,7 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
         except AuthError as exc:
             raise HTTPException(status_code=401, detail="unauthenticated") from exc
         except CreationError as exc:
-            raise HTTPException(status_code=422, detail="fluctlight_activation_failed") from exc
+            raise HTTPException(status_code=422, detail=exc.code) from exc
         return snapshot.as_payload()
 
     @app.get("/internal/fluctlights")

@@ -129,3 +129,34 @@ test("creation analysis returns unauthenticated when Core rejects an expired ses
   });
   await app.close();
 });
+
+test("creation activation preserves a rejected Foundation error", async () => {
+  const app = createBff({
+    coreBaseUrl: "http://core.invalid",
+    coreServiceKey: "internal",
+    trustedOrigin: "https://fluctlight.local",
+    fetcher: async () => new Response(JSON.stringify({ detail: "activation_foundation_invalid" }), {
+      status: 422,
+      headers: { "content-type": "application/json" },
+    }),
+  });
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/fluctlight-creations/activate",
+    headers: { origin: "https://fluctlight.local", "x-csrf-token": "csrf-token" },
+    cookies: { fluctlight_session: "opaque-session", fluctlight_csrf: "csrf-token" },
+    payload: {
+      requestId: "request-1",
+      initializationMode: "llm_defined",
+      identity: { name: "测试" },
+      personality: {},
+      behavioralPolicy: {},
+    },
+  });
+  assert.equal(response.statusCode, 422);
+  assert.deepEqual(response.json(), {
+    code: "activation_foundation_invalid",
+    message: "Fluctlight activation was rejected",
+  });
+  await app.close();
+});
