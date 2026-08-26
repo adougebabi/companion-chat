@@ -25,15 +25,15 @@ for entry in "${tasks[@]}"; do
     echo "handoff validation: missing $handoff" >&2
     exit 1
   fi
-  if ! rg -q 'acceptance_owner=T12' "$handoff" || ! rg -q 'acceptance=pending' "$handoff"; then
+  if ! grep -qE 'acceptance_owner=T12' "$handoff" || ! grep -qE 'acceptance=pending' "$handoff"; then
     echo "handoff validation: $handoff is missing T12 acceptance ownership" >&2
     exit 1
   fi
-  if ! rg -q '^## T12 Coverage' "$handoff" || ! rg -q "${task_prefix}-[A-Z0-9]+-[0-9]+" "$handoff"; then
+  if ! grep -qE '^## T12 Coverage' "$handoff" || ! grep -qE "${task_prefix}-[A-Z0-9]+-[0-9]+" "$handoff"; then
     echo "handoff validation: $handoff is missing concrete ${task_prefix} coverage IDs" >&2
     exit 1
   fi
-  if ! rg -q '^## Remaining Risks / Excluded Scope' "$handoff" || ! rg -q '^Rollback point:' "$handoff"; then
+  if ! grep -qE '^## Remaining Risks / Excluded Scope' "$handoff" || ! grep -qE '^Rollback point:' "$handoff"; then
     echo "handoff validation: $handoff is missing risk/exclusion or rollback evidence" >&2
     exit 1
   fi
