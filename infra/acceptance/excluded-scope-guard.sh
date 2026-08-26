@@ -14,7 +14,7 @@ for root in "${roots[@]}"; do
   fi
 done
 set +e
-grep -n -i -r --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir=".mypy_cache" --exclude-dir=".ruff_cache" --exclude-dir=".pytest_cache" --exclude-dir=".trellis" --exclude-dir="acceptance" -E "$patterns" "${roots[@]}"
+grep -I -n -i -r --exclude-dir="__pycache__" --exclude-dir="node_modules" --exclude-dir="dist" --exclude-dir="build" --exclude-dir=".git" --exclude-dir=".mypy_cache" --exclude-dir=".ruff_cache" --exclude-dir=".pytest_cache" --exclude-dir=".trellis" --exclude-dir="acceptance" -E "$patterns" "${roots[@]}"
 status=$?
 set -e
 if [[ "$status" == 0 ]]; then
