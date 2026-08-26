@@ -1,7 +1,8 @@
 import asyncio
 from datetime import UTC, date, datetime
-from zoneinfo import ZoneInfo
 from typing import Any
+from zoneinfo import ZoneInfo
+
 from fluctlight_core.fluctlights.contracts import (
     BehavioralPolicy,
     FluctlightSnapshot,

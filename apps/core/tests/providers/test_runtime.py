@@ -1,8 +1,8 @@
 import asyncio
+from typing import Any
 
 import pytest
-from fluctlight_core.cognition.contracts import CognitionFact, FrozenAction, ActionType
-from typing import Any
+from fluctlight_core.cognition.contracts import ActionType, CognitionFact, FrozenAction
 from fluctlight_core.providers.contracts import ModelRole
 from fluctlight_core.providers.runtime import ConfiguredProviderRuntime
 from fluctlight_core.providers.service import ProviderEndpoint, RoleAssignment
