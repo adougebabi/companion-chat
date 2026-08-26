@@ -44,19 +44,19 @@ description=""
 for _ in $(seq 1 30); do
   description=$("${compose[@]}" exec -T temporal temporal --address temporal:7233 --namespace default workflow describe \
     --output json --workflow-id t12-active-workflow)
-  if printf '%s\n' "$description" | rg -qi '"status"[[:space:]]*:[[:space:]]*"COMPLETED"'; then
+  if printf '%s\n' "$description" | grep -qiE '"status"[[:space:]]*:[[:space:]]*"COMPLETED"'; then
     break
   fi
   sleep 1
 done
 printf '%s\n' "$description"
-if ! printf '%s\n' "$description" | rg -qi '"status"[[:space:]]*:[[:space:]]*"COMPLETED"'; then
+if ! printf '%s\n' "$description" | grep -qiE '"status"[[:space:]]*:[[:space:]]*"COMPLETED"'; then
   "${compose[@]}" ps >&2 || true
   "${compose[@]}" logs --no-color worker redis 2>&1 | tail -n 120 >&2 || true
   echo "active workflow did not reach COMPLETED" >&2
   exit 1
 fi
-if printf '%s\n' "$description" | rg -qi '"status"[[:space:]]*:[[:space:]]*"(FAILED|CANCELED|TERMINATED|TIMED_OUT)"'; then
+if printf '%s\n' "$description" | grep -qiE '"status"[[:space:]]*:[[:space:]]*"(FAILED|CANCELED|TERMINATED|TIMED_OUT)"'; then
   echo "active workflow reached a terminal failure state" >&2
   exit 1
 fi

@@ -17,7 +17,7 @@ if [[ "${#scan_paths[@]}" == 0 ]]; then
   exit 1
 fi
 set +e
-rg -n --hidden --glob '!.trellis/**' --glob '!server/**' --glob '!web/**' --glob '!test/**' --glob '!infra/acceptance/**' "$patterns" "${scan_paths[@]}"
+grep -n -r --exclude-dir=".git" --exclude-dir=".mypy_cache" --exclude-dir=".ruff_cache" --exclude-dir=".pytest_cache" --exclude-dir=".trellis" --exclude-dir="server" --exclude-dir="web" --exclude-dir="test" --exclude-dir="acceptance" -E "$patterns" "${scan_paths[@]}"
 status=$?
 set -e
 if [[ "$status" == 0 ]]; then

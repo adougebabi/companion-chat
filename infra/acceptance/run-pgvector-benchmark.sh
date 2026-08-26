@@ -56,10 +56,10 @@ plan=$("${compose[@]}" exec -T postgres psql -U "$db_user" -d "$db_name" -Atc \
    SELECT id FROM vector_benchmark_t12
    ORDER BY embedding <=> '[0.1,0.2,0.3]'::vector
    LIMIT 10")
-if ! printf '%s\n' "$plan" | rg -qi 'Index Scan using vector_benchmark_t12_hnsw'; then
+if ! printf '%s\n' "$plan" | grep -qiE 'Index Scan using vector_benchmark_t12_hnsw'; then
   echo "$plan" >&2
   echo "HNSW benchmark did not use the expected index" >&2
   exit 1
 fi
-latency=$(printf '%s\n' "$plan" | rg -o 'Execution Time: [0-9.]+ ms' | tail -n 1)
+latency=$(printf '%s\n' "$plan" | grep -oE 'Execution Time: [0-9.]+ ms' | tail -n 1)
 echo "pgvector-benchmark: HNSW index scan passed; $latency"

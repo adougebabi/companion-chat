@@ -82,7 +82,7 @@ stream=$("${compose[@]}" exec -T -e SESSION_COOKIE="$session_cookie" -e SERVICE_
 const response = await fetch(`http://core:8080/internal/conversations/${process.env.CONVERSATION_ID}/turn`, {method: "POST", headers: {"x-fluctlight-service-key": process.env.SERVICE_KEY, "x-fluctlight-human-session": process.env.SESSION_COOKIE, "content-type": "application/json"}, body: JSON.stringify({fluctlight_id: process.env.FLUCTLIGHT_ID, text: "Provider is intentionally unconfigured", idempotency_key: "t12-smoke-turn"})});
 console.log(await response.text());
 ')
-printf '%s\n' "$stream" | rg '"type":"error"' >/dev/null
+printf '%s\n' "$stream" | grep -E '"type":"error"' >/dev/null
 
 actor_count=$("${compose[@]}" exec -T postgres psql -U "$postgres_user" -d "$postgres_db" -Atc "SELECT count(*) FROM actors WHERE actor_type = 'fluctlight'")
 actor_match=$("${compose[@]}" exec -T postgres psql -U "$postgres_user" -d "$postgres_db" -Atc "SELECT count(*) FROM actors WHERE id = '$fluctlight_id' AND actor_type = 'fluctlight'" | tr -d '[:space:]')
