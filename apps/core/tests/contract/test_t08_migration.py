@@ -12,4 +12,5 @@ def test_t08_advances_the_linear_readiness_revision() -> None:
         "0013_direct_conversation",
         "0014_foundation_reason",
         "0015_actor_groups",
+        "0016_media_intent_conversation",
     }
