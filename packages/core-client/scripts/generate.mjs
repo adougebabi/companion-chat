@@ -25,9 +25,14 @@ export type CoreDiagnosticEvent = { id: string; event_type: string; severity: st
 export type CoreDiagnosticModelRun = { id: string; role: string; endpoint_id?: string | null; model_id: string; prompt: Record<string, unknown>; response?: Record<string, unknown> | null; status: string; error_code?: string | null; correlation_id: string; created_at: string };
 
 export class CoreApiError extends Error {
-  constructor(readonly status: number, readonly code: string) {
+  readonly status: number;
+  readonly code: string;
+
+  constructor(status: number, code: string) {
     super(\`Core request failed: \${status} \${code}\`);
     this.name = "CoreApiError";
+    this.status = status;
+    this.code = code;
   }
 }
 

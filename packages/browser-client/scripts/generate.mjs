@@ -19,9 +19,16 @@ export type BrowserConversationPage = { conversation: BrowserConversation; parti
 export type BrowserTurnEvent = { type: "token" | "message" | "media" | "completed" | "error" | "heartbeat"; turnId: string; sequence: number; payload: Record<string, unknown> };
 
 export class BrowserApiError extends Error {
-  constructor(readonly status: number, readonly code: string, readonly userMessage: string) {
+  readonly status: number;
+  readonly code: string;
+  readonly userMessage: string;
+
+  constructor(status: number, code: string, userMessage: string) {
     super(userMessage);
     this.name = "BrowserApiError";
+    this.status = status;
+    this.code = code;
+    this.userMessage = userMessage;
   }
 }
 
