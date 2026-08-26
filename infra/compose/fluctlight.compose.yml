@@ -81,6 +81,7 @@ services:
     networks: [platform]
 
   migrate:
+    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-core:latest
     build:
       context: ../..
       dockerfile: apps/core/Dockerfile
@@ -107,6 +108,7 @@ services:
     networks: [platform]
 
   core:
+    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-core:latest
     build:
       context: ../..
       dockerfile: apps/core/Dockerfile
@@ -128,6 +130,7 @@ services:
     networks: [platform]
 
   worker:
+    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-core:latest
     build:
       context: ../..
       dockerfile: apps/core/Dockerfile
@@ -143,6 +146,7 @@ services:
     networks: [platform]
 
   bff:
+    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-bff:latest
     build:
       context: ../..
       dockerfile: apps/bff/Dockerfile
@@ -159,6 +163,7 @@ services:
     networks: [platform]
 
   web:
+    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-web:latest
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
