@@ -20,3 +20,5 @@ def test_t05_diagnostics_tables_are_registered_and_owner_check_is_explicit() -> 
     else:
         raise AssertionError("non-owner diagnostics access was accepted")
     assert diagnostics_schema.diagnostic_events.c.payload is not None
+    assert diagnostics_schema.diagnostic_model_runs.c.prompt is not None
+    assert diagnostics_schema.diagnostic_model_runs.c.response is not None

@@ -9,4 +9,7 @@ def test_t08_advances_the_linear_readiness_revision() -> None:
         "0010_t12_event_failures",
         "0011_t12_consumer_heads",
         "0012_t12_consumer_effects",
+        "0013_direct_conversation",
+        "0014_foundation_reason",
+        "0015_actor_groups",
     }

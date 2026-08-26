@@ -28,6 +28,7 @@ class ScheduleStatus(StrEnum):
     PROPOSED = "proposed"
     ACCEPTED = "accepted"
     SUPERSEDED = "superseded"
+    CANCELLED = "cancelled"
 
 
 class ContextSource(StrEnum):

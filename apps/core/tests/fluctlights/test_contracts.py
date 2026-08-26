@@ -58,6 +58,31 @@ def test_foundation_request_copies_changes_and_requires_unique_evidence() -> Non
         )
 
 
+def test_foundation_revision_reason_is_bounded_and_retained() -> None:
+    request = FoundationRevisionRequest(
+        fluctlight_id="fluctlight-1",
+        actor_id="human-owner",
+        source=RevisionSource.HUMAN,
+        changes={"name": "Mira"},
+        evidence_refs=("owner-governance:1",),
+        expected_revision=0,
+        idempotency_key="request-with-reason",
+        reason="Correct the chosen display name",
+    )
+    assert request.reason == "Correct the chosen display name"
+    with pytest.raises(FoundationValidationError):
+        FoundationRevisionRequest(
+            fluctlight_id="fluctlight-1",
+            actor_id="human-owner",
+            source=RevisionSource.HUMAN,
+            changes={"name": "Mira"},
+            evidence_refs=("owner-governance:2",),
+            expected_revision=0,
+            idempotency_key="request-with-long-reason",
+            reason="x" * 1025,
+        )
+
+
 def test_personality_update_policy_has_explicit_slow_change_defaults() -> None:
     personality = Personality(
         update_policy=PersonalityUpdatePolicy(

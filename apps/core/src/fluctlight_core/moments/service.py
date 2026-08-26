@@ -16,6 +16,7 @@ from .contracts import (
     MomentReaction,
     MomentStatus,
     MomentVisibility,
+    ReactionKind,
 )
 
 
@@ -59,7 +60,12 @@ class MomentsService:
         return moment
 
     async def feed(
-        self, *, owner_fluctlight_id: str, actor_id: str, limit: int = 50
+        self,
+        *,
+        owner_fluctlight_id: str,
+        actor_id: str,
+        limit: int = 50,
+        include_hidden: bool = False,
     ) -> list[Moment]:
         async with self._unit_of_work.begin(
             command_id=f"moment-feed:{owner_fluctlight_id}:{actor_id}"
@@ -68,12 +74,11 @@ class MomentsService:
                 (
                     await tx.session.execute(
                         select(schema.moments)
+                        .where(schema.moments.c.owner_fluctlight_id == owner_fluctlight_id)
                         .where(
-                            schema.moments.c.owner_fluctlight_id == owner_fluctlight_id,
-                            schema.moments.c.status == MomentStatus.VISIBLE.value,
                             schema.moments.c.visibility.in_(
                                 [MomentVisibility.OWNER.value, MomentVisibility.PARTICIPANTS.value]
-                            ),
+                            )
                         )
                         .order_by(schema.moments.c.created_at.desc())
                         .limit(min(max(limit, 1), 200))
@@ -82,12 +87,134 @@ class MomentsService:
                 .mappings()
                 .all()
             )
+            if not include_hidden:
+                rows = [row for row in rows if row["status"] == MomentStatus.VISIBLE.value]
+        # Core has already authorized the Owner for this Fluctlight. Visibility
+        # governs what the feed projects, not whether its own Owner may read it.
+        return [self._from_row(row) for row in rows]
+
+    async def global_feed(
+        self,
+        *,
+        owner_fluctlight_ids: tuple[str, ...],
+        limit: int = 50,
+        include_hidden: bool = False,
+    ) -> list[Moment]:
+        """Read a single feed across the caller's already-authorized instances."""
+
+        if not owner_fluctlight_ids:
+            return []
+        async with self._unit_of_work.begin(command_id="moment-global-feed") as tx:
+            rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.moments)
+                        .where(schema.moments.c.owner_fluctlight_id.in_(owner_fluctlight_ids))
+                        .where(
+                            schema.moments.c.visibility.in_(
+                                [MomentVisibility.OWNER.value, MomentVisibility.PARTICIPANTS.value]
+                            )
+                        )
+                        .order_by(schema.moments.c.created_at.desc())
+                        .limit(min(max(limit, 1), 200))
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            if not include_hidden:
+                rows = [row for row in rows if row["status"] == MomentStatus.VISIBLE.value]
+        return [self._from_row(row) for row in rows]
+
+    async def unread_counts(
+        self, *, owner_fluctlight_ids: tuple[str, ...], actor_id: str
+    ) -> dict[str, int]:
+        """Count visible Moments after each persisted per-instance marker."""
+
+        if not owner_fluctlight_ids:
+            return {}
+        async with self._unit_of_work.begin(command_id=f"moment-unread:{actor_id}") as tx:
+            markers = {
+                str(row["owner_fluctlight_id"]): row["last_seen_at"]
+                for row in (
+                    await tx.session.execute(
+                        select(schema.unread_markers).where(
+                            schema.unread_markers.c.actor_id == actor_id,
+                            schema.unread_markers.c.owner_fluctlight_id.in_(owner_fluctlight_ids),
+                        )
+                    )
+                ).mappings()
+            }
+            counts: dict[str, int] = {}
+            for fluctlight_id in owner_fluctlight_ids:
+                statement = select(schema.moments.c.id).where(
+                    schema.moments.c.owner_fluctlight_id == fluctlight_id,
+                    schema.moments.c.status == MomentStatus.VISIBLE.value,
+                )
+                if marker := markers.get(fluctlight_id):
+                    statement = statement.where(schema.moments.c.created_at > marker)
+                counts[fluctlight_id] = len((await tx.session.execute(statement)).all())
+        return counts
+
+    async def comments(self, moment_id: str) -> list[MomentComment]:
+        async with self._unit_of_work.begin(command_id=f"moment-comments:{moment_id}") as tx:
+            rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.comments)
+                        .where(schema.comments.c.moment_id == moment_id)
+                        .order_by(schema.comments.c.created_at)
+                    )
+                )
+                .mappings()
+                .all()
+            )
         return [
-            self._from_row(row)
+            MomentComment(
+                id=row["id"],
+                moment_id=row["moment_id"],
+                author_actor_id=row["author_actor_id"],
+                text=row["text"],
+                created_at=row["created_at"],
+            )
             for row in rows
-            if row["author_actor_id"] == actor_id
-            or row["visibility"] == MomentVisibility.PARTICIPANTS.value
         ]
+
+    async def reaction_summary(
+        self, moment_id: str, actor_id: str
+    ) -> tuple[int, ReactionKind | None]:
+        async with self._unit_of_work.begin(command_id=f"moment-reactions:{moment_id}") as tx:
+            rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.reactions).where(schema.reactions.c.moment_id == moment_id)
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        own = next((row for row in rows if row["actor_id"] == actor_id), None)
+        return len(rows), ReactionKind(own["kind"]) if own is not None else None
+
+    async def set_status(self, moment_id: str, status: MomentStatus) -> None:
+        async with self._unit_of_work.begin(command_id=f"moment-status:{moment_id}:{status}") as tx:
+            result = await tx.session.execute(
+                update(schema.moments)
+                .where(schema.moments.c.id == moment_id)
+                .values(status=status.value)
+            )
+            if result.rowcount != 1:
+                raise KeyError(moment_id)
+            await tx.commit()
+
+    async def owner_fluctlight_id(self, moment_id: str) -> str:
+        async with self._unit_of_work.begin(command_id=f"moment-owner:{moment_id}") as tx:
+            owner = await tx.session.scalar(
+                select(schema.moments.c.owner_fluctlight_id).where(schema.moments.c.id == moment_id)
+            )
+        if owner is None:
+            raise KeyError(moment_id)
+        return str(owner)
 
     async def comment(self, comment: MomentComment, *, actor_id: str) -> MomentComment:
         if comment.author_actor_id != actor_id:

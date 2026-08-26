@@ -11,7 +11,7 @@ from fluctlight_core.providers.service import ProviderEndpoint, RoleAssignment
 from fluctlight_core.settings.crypto import SecretValue
 
 
-def test_openai_adapter_probes_structured_stream_and_embedding_capabilities() -> None:
+def test_openai_adapter_preflight_only_checks_authenticated_model_availability() -> None:
     calls: list[tuple[str, str, dict[str, str], bytes]] = []
 
     def fake(
@@ -20,38 +20,95 @@ def test_openai_adapter_probes_structured_stream_and_embedding_capabilities() ->
         calls.append((method, url, headers, body))
         if url.endswith("/models"):
             return HttpResult(200, json.dumps({"data": [{"id": "model"}]}).encode())
-        if url.endswith("/embeddings"):
-            return HttpResult(200, json.dumps({"data": [{"embedding": [0.1, 0.2]}]}).encode())
-        if b'"stream": true' in body:
-            return HttpResult(
-                200,
-                b'data: {"choices":[{"delta":{"content":"ok"}}]}\ndata: [DONE]\n\n',
-            )
-        return HttpResult(200, json.dumps({"choices": [{"message": {"content": "{}"}}]}).encode())
+        return HttpResult(200, b"{}")
 
     adapter = OpenAICompatibleAdapter(fake)
     endpoint = ProviderEndpoint("endpoint", "openai-compatible", "http://provider", "provider:key")
     secret = SecretValue("super-secret")
-    structured = asyncio.run(
-        adapter.preflight(
-            RoleAssignment(ModelRole.REFLECTION, "endpoint", "model", 10, 1), endpoint, secret
+    reports = [
+        asyncio.run(
+            adapter.preflight(RoleAssignment(role, "endpoint", "model", 10, 1), endpoint, secret)
         )
-    )
-    stream = asyncio.run(
-        adapter.preflight(
-            RoleAssignment(ModelRole.ACTION_REALIZATION, "endpoint", "model", 10, 1),
-            endpoint,
-            secret,
-        )
-    )
-    embedding = asyncio.run(
-        adapter.preflight(
-            RoleAssignment(ModelRole.EMBEDDING, "endpoint", "model", 10, 1), endpoint, secret
-        )
-    )
-    assert structured.available and stream.available and embedding.available
-    assert embedding.capability_version == "dimensions:2"
+        for role in ModelRole
+    ]
+    assert all(report.available for report in reports)
+    assert {report.capability_version for report in reports} == {"model-listed"}
     assert all(headers["authorization"] == "Bearer super-secret" for _, _, headers, _ in calls)
+
+
+def test_openai_adapter_lists_only_available_model_ids() -> None:
+    calls: list[tuple[str, str, dict[str, str], bytes]] = []
+
+    def fake(
+        method: str, url: str, headers: dict[str, str], body: bytes, timeout: float
+    ) -> HttpResult:
+        calls.append((method, url, headers, body))
+        return HttpResult(
+            200,
+            json.dumps(
+                {
+                    "data": [
+                        {"id": "model-b", "created": 1},
+                        {"id": "model-a", "owned_by": "provider"},
+                        {"id": "model-a"},
+                        {"id": "  "},
+                        {"id": 42},
+                        "not-a-model",
+                    ]
+                }
+            ).encode(),
+        )
+
+    models = asyncio.run(
+        OpenAICompatibleAdapter(fake).list_models(
+            ProviderEndpoint("endpoint", "openai-compatible", "http://provider", "provider:key"),
+            SecretValue("super-secret"),
+        )
+    )
+
+    assert models == ("model-a", "model-b")
+    assert calls == [("GET", "http://provider/models", calls[0][2], b"")]
+    assert calls[0][2]["authorization"] == "Bearer super-secret"
+
+
+def test_openai_adapter_rejects_invalid_model_list_without_exposing_payload() -> None:
+    adapter = OpenAICompatibleAdapter(lambda *_: HttpResult(200, b'{"data": {}}'))
+    with pytest.raises(RuntimeError, match="Provider model list was invalid"):
+        asyncio.run(
+            adapter.list_models(
+                ProviderEndpoint(
+                    "endpoint", "openai-compatible", "http://provider", "provider:key"
+                ),
+                SecretValue("super-secret"),
+            )
+        )
+
+
+def test_openai_adapter_supports_an_explicitly_secretless_local_endpoint() -> None:
+    calls: list[tuple[str, str, dict[str, str]]] = []
+
+    def fake(
+        method: str, url: str, headers: dict[str, str], body: bytes, timeout: float
+    ) -> HttpResult:
+        calls.append((method, url, headers))
+        if url.endswith("/models"):
+            return HttpResult(200, json.dumps({"data": [{"id": "local-embedding"}]}).encode())
+        return HttpResult(200, json.dumps({"data": [{"embedding": [0.5, -0.25]}]}).encode())
+
+    adapter = OpenAICompatibleAdapter(fake)
+    endpoint = ProviderEndpoint(
+        "local", "openai-compatible", "http://provider/v1", "provider:local"
+    )
+    assert asyncio.run(adapter.list_models(endpoint, None)) == ("local-embedding",)
+    assert asyncio.run(
+        adapter.embed(
+            RoleAssignment(ModelRole.EMBEDDING, "local", "local-embedding", 100, 10),
+            endpoint,
+            None,
+            text="local embedding",
+        )
+    ) == (0.5, -0.25)
+    assert all("authorization" not in headers for _, _, headers in calls)
 
 
 def test_openai_adapter_rejects_unknown_model_without_fallback() -> None:
@@ -68,14 +125,12 @@ def test_openai_adapter_rejects_unknown_model_without_fallback() -> None:
     assert report.available is False
 
 
-def test_openai_adapter_rejects_empty_stream_and_invalid_structured_payload() -> None:
+def test_openai_adapter_does_not_infer_runtime_capabilities_during_preflight() -> None:
     def fake(
         method: str, url: str, headers: dict[str, str], body: bytes, timeout: float
     ) -> HttpResult:
         if url.endswith("/models"):
             return HttpResult(200, json.dumps({"data": [{"id": "model"}]}).encode())
-        if b'"stream": true' in body:
-            return HttpResult(200, b'data: {"choices":[]}\ndata: [DONE]\n')
         return HttpResult(
             200,
             json.dumps({"choices": [{"message": {"content": "not-json"}}]}).encode(),
@@ -84,22 +139,16 @@ def test_openai_adapter_rejects_empty_stream_and_invalid_structured_payload() ->
     adapter = OpenAICompatibleAdapter(fake)
     endpoint = ProviderEndpoint("endpoint", "openai-compatible", "http://provider", "provider:key")
     secret = SecretValue("secret")
-    stream = asyncio.run(
-        adapter.preflight(
-            RoleAssignment(ModelRole.ACTION_REALIZATION, "endpoint", "model", 10, 1),
-            endpoint,
-            secret,
-        )
-    )
-    structured = asyncio.run(
+    report = asyncio.run(
         adapter.preflight(
             RoleAssignment(ModelRole.REFLECTION, "endpoint", "model", 10, 1),
             endpoint,
             secret,
         )
     )
-    assert stream.available is False
-    assert structured.available is False
+    assert report.available is True
+
+
 
 
 def test_openai_adapter_executes_structured_realization_and_embedding_ports() -> None:
@@ -118,7 +167,7 @@ def test_openai_adapter_executes_structured_realization_and_embedding_ports() ->
                 b'data: {"choices":[{"delta":{"content":"text"}}]}\n'
                 b"data: [DONE]\n",
             )
-        if b"assessment.v1" in body:
+        if b'"stream": true' not in body:
             return HttpResult(
                 200,
                 json.dumps(
@@ -133,9 +182,7 @@ def test_openai_adapter_executes_structured_realization_and_embedding_ports() ->
                     }
                 ).encode(),
             )
-        return HttpResult(
-            200, json.dumps({"choices": [{"message": {"content": "realized text"}}]}).encode()
-        )
+        raise AssertionError("unexpected provider request")
 
     adapter = OpenAICompatibleAdapter(fake)
     endpoint = ProviderEndpoint("endpoint", "openai-compatible", "http://provider", "provider:key")
@@ -148,6 +195,16 @@ def test_openai_adapter_executes_structured_realization_and_embedding_ports() ->
             secret,
             messages=[{"role": "user", "content": "assess"}],
             schema_version="assessment.v1",
+            request_id="provider-request-1",
+        )
+    )
+    media_response = asyncio.run(
+        adapter.complete_structured(
+            RoleAssignment(ModelRole.ACTION_REALIZATION, "endpoint", "model", 100, 10),
+            endpoint,
+            secret,
+            messages=[{"role": "user", "content": "prepare media response"}],
+            schema_version="action.realization.media.v1",
             request_id="provider-request-1",
         )
     )
@@ -185,7 +242,64 @@ def test_openai_adapter_executes_structured_realization_and_embedding_ports() ->
     assert realized == "stream text"
     assert realized_chunks == ["stream text"]
     assert vector == (0.25, -0.5)
-    assert len(calls) == 4
+    assert structured == {"ok": True, "schema": "assessment.v1"}
+    assert media_response == {"ok": True, "schema": "assessment.v1"}
+    assert len(calls) == 5
+    embedding_payload = json.loads(calls[-1][2])
+    assert embedding_payload["input"] == ["embed"]
+
+
+def test_openai_adapter_collects_sse_media_tool_call_arguments() -> None:
+    def fake(
+        method: str, url: str, headers: dict[str, str], body: bytes, timeout: float
+    ) -> HttpResult:
+        assert b'"stream": true' in body
+        def frame(delta: dict[str, object]) -> bytes:
+            return f"data: {json.dumps({'choices': [{'delta': delta}]})}\n".encode()
+
+        return HttpResult(
+            200,
+            b"".join(
+                [
+                    frame({"content": "I will take one. "}),
+                    frame(
+                        {
+                            "tool_calls": [
+                                {
+                                    "index": 0,
+                                    "function": {
+                                        "name": "request_media",
+                                        "arguments": '{"subject":"man"',
+                                    },
+                                }
+                            ]
+                        }
+                    ),
+                    frame(
+                        {
+                            "tool_calls": [
+                                {
+                                    "index": 0,
+                                    "function": {"arguments": ',"kind":"image"}'},
+                                }
+                            ]
+                        }
+                    ),
+                    b"data: [DONE]\n",
+                ]
+            ),
+        )
+
+    result = asyncio.run(
+        OpenAICompatibleAdapter(fake).stream_media_tool_call(
+            RoleAssignment(ModelRole.ACTION_REALIZATION, "endpoint", "model", 100, 10),
+            ProviderEndpoint("endpoint", "openai-compatible", "http://provider", "provider:key"),
+            SecretValue("secret"),
+            messages=[{"role": "user", "content": "take a photo"}],
+        )
+    )
+    assert result.text == "I will take one. "
+    assert result.arguments == {"subject": "man", "kind": "image"}
 
 
 def test_openai_adapter_executes_against_a_real_local_http_endpoint() -> None:

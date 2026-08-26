@@ -42,6 +42,23 @@ class RelationshipService:
             )
         return self._from_row(row) if row else None
 
+    async def list_for_fluctlight(self, owner_fluctlight_id: str) -> list[RelationshipSnapshot]:
+        async with self._unit_of_work.begin(
+            command_id=f"relationship-list:{owner_fluctlight_id}"
+        ) as tx:
+            rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.relationships)
+                        .where(schema.relationships.c.owner_fluctlight_id == owner_fluctlight_id)
+                        .order_by(schema.relationships.c.updated_at.desc())
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        return [self._from_row(row) for row in rows]
+
     async def record_update(self, command: RelationshipUpdate) -> RelationshipSnapshot:
         now = self._clock()
         async with self._unit_of_work.begin(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
@@ -21,10 +22,27 @@ from . import schema
 
 
 class AutonomyService:
-    def __init__(self, unit_of_work: UnitOfWorkFactory) -> None:
+    def __init__(
+        self,
+        unit_of_work: UnitOfWorkFactory,
+        *,
+        status_resolver: Callable[[str], Awaitable[str]] | None = None,
+    ) -> None:
         self._unit_of_work = unit_of_work
+        self._status_resolver = status_resolver
+
+    async def _activity_allowed(self, fluctlight_id: str) -> tuple[bool, str]:
+        if self._status_resolver is None:
+            return True, "active"
+        status = await self._status_resolver(fluctlight_id)
+        if status == "active":
+            return True, status
+        return False, f"fluctlight_{status}"
 
     async def freeze_action(self, request: AutonomousActionRequest) -> AutonomyDecision:
+        active, status_reason = await self._activity_allowed(request.fluctlight_id)
+        if not active:
+            return AutonomyDecision(False, status_reason)
         allowed, reason = request.policy.allows(
             request.action_type, request.requested_at, request.cost
         )
@@ -97,10 +115,36 @@ class AutonomyService:
             raise KeyError(action_id)
         return self._from_row(row)
 
+    async def list_for_fluctlight(
+        self, fluctlight_id: str, *, limit: int = 100
+    ) -> list[FrozenAutonomousAction]:
+        async with self._unit_of_work.begin(command_id=f"autonomy-list:{fluctlight_id}") as tx:
+            rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.actions)
+                        .where(schema.actions.c.fluctlight_id == fluctlight_id)
+                        .order_by(schema.actions.c.created_at.desc())
+                        .limit(min(max(limit, 1), 200))
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        return [self._from_row(row) for row in rows]
+
     async def execute(self, action_id: str, executor: Any) -> FrozenAutonomousAction:
         action = await self.get_action(action_id)
         if action.status not in {ActionStatus.FROZEN, ActionStatus.DEFERRED}:
             return action
+        active, status_reason = await self._activity_allowed(action.fluctlight_id)
+        if not active:
+            return await self.govern(
+                action.id,
+                to_status=ActionStatus.DEFERRED,
+                actor_id=action.fluctlight_id,
+                reason=status_reason,
+            )
         try:
             result = await executor.execute(action)
         except Exception as exc:
@@ -108,7 +152,7 @@ class AutonomyService:
                 action.id,
                 to_status=ActionStatus.FAILED,
                 actor_id=action.fluctlight_id,
-                reason=f"executor_{type(exc).__name__}",
+                reason=self._executor_failure_reason(exc),
             )
         return await self.govern(
             action.id,
@@ -183,6 +227,17 @@ class AutonomyService:
                 .all()
             )
         return [self._from_row(row) for row in rows]
+
+    @staticmethod
+    def _executor_failure_reason(exc: Exception) -> str:
+        detail = str(exc).strip().replace("\n", " ")
+        if len(detail) > 240:
+            detail = detail[:240] + "..."
+        return (
+            f"executor_{type(exc).__name__}:{detail}"
+            if detail
+            else f"executor_{type(exc).__name__}"
+        )
 
     @staticmethod
     def _from_row(row: Any) -> FrozenAutonomousAction:

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from datetime import date
 from hashlib import sha256
 from typing import Any
 from uuid import uuid4
@@ -19,6 +20,8 @@ from fluctlight_core.cognition.contracts import (
     ReflectionProposal,
     ReflectionWindow,
 )
+from fluctlight_core.diagnostics.contracts import DiagnosticModelRun
+from fluctlight_core.diagnostics.service import DiagnosticsService
 from fluctlight_core.inner_state.contracts import (
     AffectDirection,
     Appraisal,
@@ -36,6 +39,60 @@ from .service import ProviderEndpoint, RoleAssignment
 ProviderRecorder = Callable[[ProviderProvenance], Awaitable[None]]
 
 
+COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
+    "Return JSON only, matching this shape:\n"
+    '{"assessment":{"perception":{"event_kind":"conversation.message",'
+    '"observed_intent":null,"sentiment":null,"social_signals":[],'
+    '"environment_meaning":null},"appraisal":{"relevance":0.0,'
+    '"goal_congruence":0.0,"reward":0.0,"loss":0.0,"social_threat":0.0,'
+    '"controllability":0.0,"responsibility":0.0,'
+    '"relationship_significance":0.0,"expected_effect":0.0},'
+    '"direction":"neutral","strength":0.0,"confidence":0.0},'
+    '"decision":{"action_type":"reply","payload":{"response_intent":{}},'
+    '"confidence":0.0}}\n'
+    "Use only positive, negative, mixed, or neutral for direction. All numbers are 0 to 1. "
+    "social_signals is always an array of strings, using [] when empty. For a conversation "
+    "message, choose reply, media_request, or no_op. reply and no_op payloads may contain only "
+    "response_intent, never visible reply text. "
+    "Choose media_request only when the user explicitly requests a visual; its payload must be "
+    '{"response_intent":{}} and must not contain visible reply text or final media parameters. '
+    "Do not write a visible reply in this JSON."
+)
+
+ACTION_REALIZATION_SYSTEM_PROMPT = (
+    "Write the visible reply to the user's message. The action type is already frozen by a "
+    "separate cognitive decision; never explain implementation limits or invent a body. When "
+    "action_type is media_request, acknowledge the requested image concisely while it is being "
+    "generated. Return visible reply text only."
+)
+
+MEDIA_PROMPT_SYSTEM_PROMPT = (
+    'Return JSON only: {"prompt":"final image-generation prompt"}. '
+    "Convert the supplied visual request into a concrete image prompt. Do not return prose, "
+    "markdown, hidden reasoning, or any key other than prompt."
+)
+
+MEDIA_RESPONSE_SYSTEM_PROMPT = (
+    "Write a concise visible acknowledgement of the user's request. Then call the provided "
+    "request_media tool with every image parameter needed by a generic media prompt optimizer. "
+    "Do not write an image prompt, hidden reasoning, or Fluctlight IDs."
+)
+
+INITIAL_SCHEDULE_SYSTEM_PROMPT = """Return one JSON object only with items and reschedule_policy.
+You are creating a Fluctlight's initial daily Schedule from the supplied identity facts.
+Choose the activities and scenes yourself; do not invent unsupported biographical facts.
+items must be a non-empty array. Each item must have start_at, end_at, activity, scene,
+item_type, status, priority, flexibility, interruption_cost. All numeric values must be
+between 0 and 1. Times must use RFC3339 offsets in the requested timezone. The items must
+exactly cover the complete requested local date from 00:00:00 to the next 00:00:00 with no
+gaps or overlaps. Do not return prose, markdown, hidden reasoning, or a partial schedule."""
+
+
+def _diagnostic_error_code(exc: Exception, fallback: str) -> str:
+    value = str(exc).strip().lower().replace(" ", "_")
+    return value[:120] or fallback
+
+
 class ConfiguredProviderRuntime:
     """Resolve explicit role assignments and execute only the requested role."""
 
@@ -45,55 +102,101 @@ class ConfiguredProviderRuntime:
         settings: SettingsService,
         adapter: OpenAICompatibleAdapter | None = None,
         provenance_recorder: ProviderRecorder | None = None,
+        diagnostics: DiagnosticsService | None = None,
     ) -> None:
         self._unit_of_work = unit_of_work
         self._settings = settings
         self._adapter = adapter or OpenAICompatibleAdapter()
         self._provenance_recorder = provenance_recorder
+        self._diagnostics = diagnostics
+
+    async def _record_model_run(
+        self,
+        *,
+        assignment: RoleAssignment,
+        endpoint: ProviderEndpoint,
+        prompt: dict[str, Any],
+        response: dict[str, Any] | None,
+        correlation_id: str,
+        status: str = "completed",
+        error_code: str | None = None,
+    ) -> None:
+        if self._diagnostics is None:
+            return
+        await self._diagnostics.emit_model_run(
+            DiagnosticModelRun(
+                role=assignment.role.value,
+                endpoint_id=endpoint.endpoint_id,
+                model_id=assignment.model_id,
+                prompt=prompt,
+                response=response,
+                correlation_id=correlation_id,
+                status=status,
+                error_code=error_code,
+            )
+        )
 
     async def assess(self, fact: CognitionFact, *, correlation_id: str) -> AssessmentEnvelope:
         assignment, endpoint, secret = await self._resolve(ModelRole.COGNITIVE_ASSESSMENT)
-        payload = await self._adapter.complete_structured(
-            assignment,
-            endpoint,
-            secret,
-            messages=[
-                {
-                    "role": "user",
-                    "content": json.dumps(
-                        {"event_type": fact.event_type, "payload": fact.payload},
-                        sort_keys=True,
-                    ),
-                }
-            ],
-            schema_version="semantic.assessment.v1",
-            request_id=f"assessment:{fact.idempotency_key}",
-        )
-        assessment_payload = payload.get("assessment", payload)
-        decision_payload = payload.get("decision")
-        if not isinstance(decision_payload, dict):
-            raise RuntimeError("cognitive Provider response is missing decision")
-        assessment = SemanticAssessment(
-            schema_version="semantic.assessment.v1",
-            perception=SemanticPerception(**dict(assessment_payload["perception"])),
-            appraisal=Appraisal(**dict(assessment_payload["appraisal"])),
-            direction=AffectDirection(assessment_payload["direction"]),
-            strength=float(assessment_payload["strength"]),
-            confidence=float(assessment_payload["confidence"]),
-            evidence_refs=tuple(assessment_payload.get("evidence_refs", (fact.id,))),
-            model=assignment.model_id,
-            model_version=str(payload.get("model_version", "configured")),
-            prompt_version=str(payload.get("prompt_version", "cognition.v1")),
-            source_event_id=fact.id,
-            idempotency_key=fact.idempotency_key,
-        )
-        decision = DecisionProposal(
-            action_type=decision_payload["action_type"],
-            payload=dict(decision_payload.get("payload", {})),
-            confidence=float(decision_payload["confidence"]),
-            evidence_refs=tuple(decision_payload.get("evidence_refs", (fact.id,))),
-            decision_id=str(decision_payload.get("decision_id", f"decision_{fact.id}")),
-        )
+        messages = [
+            {"role": "system", "content": COGNITIVE_ASSESSMENT_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "observation_id": fact.id,
+                        "event_type": fact.event_type,
+                        "payload": fact.payload,
+                    },
+                    sort_keys=True,
+                ),
+            }
+        ]
+        try:
+            payload = await self._adapter.complete_structured(
+                assignment,
+                endpoint,
+                secret,
+                messages=messages,
+                schema_version="semantic.assessment.v1",
+                request_id=f"assessment:{fact.idempotency_key}",
+            )
+            assessment_payload = payload.get("assessment", payload)
+            decision_payload = payload.get("decision")
+            if not isinstance(decision_payload, dict):
+                raise RuntimeError("cognitive Provider response is missing decision")
+            assessment = SemanticAssessment(
+                schema_version="semantic.assessment.v1",
+                perception=SemanticPerception(**dict(assessment_payload["perception"])),
+                appraisal=Appraisal(**dict(assessment_payload["appraisal"])),
+                direction=AffectDirection(assessment_payload["direction"]),
+                strength=float(assessment_payload["strength"]),
+                confidence=float(assessment_payload["confidence"]),
+                evidence_refs=tuple(assessment_payload.get("evidence_refs", (fact.id,))),
+                model=assignment.model_id,
+                model_version=str(payload.get("model_version", "configured")),
+                prompt_version=str(payload.get("prompt_version", "cognition.v1")),
+                source_event_id=fact.id,
+                idempotency_key=fact.idempotency_key,
+            )
+            decision = DecisionProposal(
+                action_type=decision_payload["action_type"],
+                payload=dict(decision_payload.get("payload", {})),
+                confidence=float(decision_payload["confidence"]),
+                evidence_refs=tuple(decision_payload.get("evidence_refs", (fact.id,))),
+                decision_id=str(decision_payload.get("decision_id", f"decision_{fact.id}")),
+            )
+        except Exception as exc:
+            await self._record_model_run(
+                assignment=assignment,
+                endpoint=endpoint,
+                prompt={"messages": messages, "schema_version": "semantic.assessment.v1"},
+                response=None,
+                correlation_id=correlation_id,
+                status="failed",
+                error_code=_diagnostic_error_code(exc, "assessment_response_invalid"),
+            )
+            raise
         provenance = ProviderProvenance(
             role=assignment.role,
             endpoint_id=endpoint.endpoint_id,
@@ -104,6 +207,13 @@ class ConfiguredProviderRuntime:
             token_budget=assignment.token_budget,
         )
         await self._record(provenance)
+        await self._record_model_run(
+            assignment=assignment,
+            endpoint=endpoint,
+            prompt={"messages": messages, "schema_version": "semantic.assessment.v1"},
+            response=payload,
+            correlation_id=correlation_id,
+        )
         return AssessmentEnvelope(
             assessment=assessment,
             decision=decision,
@@ -111,18 +221,213 @@ class ConfiguredProviderRuntime:
             correlation_id=correlation_id,
         )
 
+    async def analyze_initialization(self, description: str) -> dict[str, Any]:
+        assignment, endpoint, secret = await self._resolve(ModelRole.INITIALIZATION)
+        request_id = f"initialization:{sha256(description.encode()).hexdigest()}"
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "Return JSON only. Propose a Fluctlight foundation from the user's "
+                    "description. The object must contain foundation.identity, "
+                    "foundation.personality and foundation.behavioral_policy. Do not "
+                    "invent omitted facts; use null or neutral bounded numeric values."
+                ),
+            },
+            {"role": "user", "content": description},
+        ]
+        payload = await self._adapter.complete_structured(
+            assignment,
+            endpoint,
+            secret,
+            messages=messages,
+            schema_version="fluctlight.initialization.v1",
+            request_id=request_id,
+        )
+        payload["provenance"] = {
+            "role": ModelRole.INITIALIZATION.value,
+            "endpoint_id": endpoint.endpoint_id,
+            "model_id": assignment.model_id,
+            "prompt_version": "fluctlight.initialization.v1",
+            "schema_version": "fluctlight.initialization.v1",
+        }
+        await self._record_model_run(
+            assignment=assignment,
+            endpoint=endpoint,
+            prompt={"messages": messages, "schema_version": "fluctlight.initialization.v1"},
+            response=payload,
+            correlation_id=request_id,
+        )
+        return payload
+
+    async def generate_initial_schedule(
+        self,
+        *,
+        fluctlight_id: str,
+        identity: dict[str, Any],
+        local_date: date,
+        timezone: str,
+    ) -> dict[str, Any]:
+        assignment, endpoint, secret = await self._resolve(ModelRole.COGNITIVE_ASSESSMENT)
+        correlation_id = f"schedule-initialization:{fluctlight_id}:{local_date.isoformat()}"
+        messages = [
+            {"role": "system", "content": INITIAL_SCHEDULE_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "fluctlight_id": fluctlight_id,
+                        "identity": identity,
+                        "local_date": local_date.isoformat(),
+                        "timezone": timezone,
+                    },
+                    sort_keys=True,
+                ),
+            },
+        ]
+        try:
+            payload = await self._adapter.complete_structured(
+                assignment,
+                endpoint,
+                secret,
+                messages=messages,
+                schema_version="life.schedule.initial.v1",
+                request_id=correlation_id,
+            )
+            if not isinstance(payload.get("items"), list):
+                raise RuntimeError("initial schedule response is missing items")
+        except Exception as exc:
+            await self._record_model_run(
+                assignment=assignment,
+                endpoint=endpoint,
+                prompt={"messages": messages, "schema_version": "life.schedule.initial.v1"},
+                response=None,
+                correlation_id=correlation_id,
+                status="failed",
+                error_code=_diagnostic_error_code(exc, "initial_schedule_response_invalid"),
+            )
+            raise
+        await self._record_model_run(
+            assignment=assignment,
+            endpoint=endpoint,
+            prompt={"messages": messages, "schema_version": "life.schedule.initial.v1"},
+            response=payload,
+            correlation_id=correlation_id,
+        )
+        return payload
+
+    async def generate_media_prompt(
+        self, *, media_request: Mapping[str, Any], correlation_id: str
+    ) -> str:
+        assignment, endpoint, secret = await self._resolve(ModelRole.MEDIA_PROMPT)
+        messages = [
+            {"role": "system", "content": MEDIA_PROMPT_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {"media_request": media_request},
+                    sort_keys=True,
+                ),
+            },
+        ]
+        payload = await self._adapter.complete_structured(
+            assignment,
+            endpoint,
+            secret,
+            messages=messages,
+            schema_version="media.prompt.v1",
+            request_id=correlation_id,
+        )
+        prompt = payload.get("prompt")
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise RuntimeError("media prompt response is missing prompt")
+        await self._record_model_run(
+            assignment=assignment,
+            endpoint=endpoint,
+            prompt={"messages": messages, "schema_version": "media.prompt.v1"},
+            response=payload,
+            correlation_id=correlation_id,
+        )
+        return prompt.strip()
+
+    @staticmethod
+    def _realization_messages(action: FrozenAction) -> list[dict[str, object]]:
+        source_text = action.payload.get("source_text")
+        if not isinstance(source_text, str) or not source_text.strip():
+            raise RuntimeError("frozen action has no source message")
+        return [
+            {"role": "system", "content": ACTION_REALIZATION_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "user_message": source_text,
+                        "action_type": action.action_type.value,
+                        "response_intent": action.payload.get("response_intent", {}),
+                    },
+                    sort_keys=True,
+                    ensure_ascii=False,
+                ),
+            },
+        ]
+
     async def realize(self, action: FrozenAction, *, correlation_id: str) -> RealizationResult:
         assignment, endpoint, secret = await self._resolve(ModelRole.ACTION_REALIZATION)
+        messages = self._realization_messages(action)
+        if action.action_type.value == "media_request":
+            media_messages = [
+                {"role": "system", "content": MEDIA_RESPONSE_SYSTEM_PROMPT},
+                messages[1],
+            ]
+            try:
+                tool_result = await self._adapter.stream_media_tool_call(
+                    assignment,
+                    endpoint,
+                    secret,
+                    messages=media_messages,
+                    request_id=action.provider_request_id,
+                )
+                if not tool_result.arguments:
+                    raise RuntimeError("media response is missing media request")
+            except Exception as exc:
+                await self._record_model_run(
+                    assignment=assignment,
+                    endpoint=endpoint,
+                    prompt={
+                        "messages": media_messages,
+                        "schema_version": "action.realization.media.v1",
+                    },
+                    response={"tool_call_failed": True},
+                    correlation_id=correlation_id,
+                    status="failed",
+                    error_code=_diagnostic_error_code(exc, "media_response_invalid"),
+                )
+                raise
+            await self._record_model_run(
+                assignment=assignment,
+                endpoint=endpoint,
+                prompt={
+                    "messages": media_messages,
+                    "schema_version": "action.realization.media.v1",
+                },
+                response={
+                    "tool_call": "request_media",
+                    "argument_keys": sorted(tool_result.arguments),
+                },
+                correlation_id=correlation_id,
+            )
+            return RealizationResult(
+                action.provider_request_id,
+                {
+                    "text": tool_result.text.strip() or "我来准备一张给你。",
+                    "media_request": tool_result.arguments,
+                },
+            )
         text = await self._adapter.stream_realization(
             assignment,
             endpoint,
             secret,
-            messages=[
-                {
-                    "role": "user",
-                    "content": str(action.payload.get("prompt", action.payload.get("text", ""))),
-                }
-            ],
+            messages=messages,
             request_id=action.provider_request_id,
         )
         await self._record(
@@ -136,6 +441,13 @@ class ConfiguredProviderRuntime:
                 token_budget=assignment.token_budget,
             )
         )
+        await self._record_model_run(
+            assignment=assignment,
+            endpoint=endpoint,
+            prompt={"messages": messages, "schema_version": "realization.v1"},
+            response={"text": text},
+            correlation_id=correlation_id,
+        )
         return RealizationResult(
             action.provider_request_id, {"text": text, "correlation_id": correlation_id}
         )
@@ -145,16 +457,12 @@ class ConfiguredProviderRuntime:
     ) -> AsyncIterator[str]:
         assignment, endpoint, secret = await self._resolve(ModelRole.ACTION_REALIZATION)
         chunks: list[str] = []
+        messages = self._realization_messages(action)
         async for chunk in self._adapter.stream_realization_chunks(
             assignment,
             endpoint,
             secret,
-            messages=[
-                {
-                    "role": "user",
-                    "content": str(action.payload.get("prompt", action.payload.get("text", ""))),
-                }
-            ],
+            messages=messages,
             request_id=action.provider_request_id,
         ):
             if not isinstance(chunk, str) or not chunk:
@@ -175,22 +483,30 @@ class ConfiguredProviderRuntime:
                 token_budget=assignment.token_budget,
             )
         )
+        await self._record_model_run(
+            assignment=assignment,
+            endpoint=endpoint,
+            prompt={"messages": messages, "schema_version": "realization.v1"},
+            response={"text": text},
+            correlation_id=correlation_id,
+        )
 
     async def reflect(self, window: ReflectionWindow, *, correlation_id: str) -> ReflectionProposal:
         assignment, endpoint, secret = await self._resolve(ModelRole.REFLECTION)
+        messages = [
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {"from_sequence": window.from_sequence, "to_sequence": window.to_sequence},
+                    sort_keys=True,
+                ),
+            }
+        ]
         payload = await self._adapter.complete_structured(
             assignment,
             endpoint,
             secret,
-            messages=[
-                {
-                    "role": "user",
-                    "content": json.dumps(
-                        {"from_sequence": window.from_sequence, "to_sequence": window.to_sequence},
-                        sort_keys=True,
-                    ),
-                }
-            ],
+            messages=messages,
             schema_version="reflection.v1",
             request_id=f"reflection:{window.fluctlight_id}:{window.to_sequence}",
         )
@@ -204,6 +520,13 @@ class ConfiguredProviderRuntime:
             token_budget=assignment.token_budget,
         )
         await self._record(provenance)
+        await self._record_model_run(
+            assignment=assignment,
+            endpoint=endpoint,
+            prompt={"messages": messages, "schema_version": "reflection.v1"},
+            response=payload,
+            correlation_id=correlation_id,
+        )
         return ReflectionProposal(
             proposal_id=str(payload.get("proposal_id", f"reflection_{uuid4().hex}")),
             fluctlight_id=window.fluctlight_id,
@@ -235,6 +558,13 @@ class ConfiguredProviderRuntime:
                 token_budget=assignment.token_budget,
             )
         )
+        await self._record_model_run(
+            assignment=assignment,
+            endpoint=endpoint,
+            prompt={"text": text, "schema_version": "embedding.v1"},
+            response={"dimensions": len(vector)},
+            correlation_id=request_id,
+        )
         return vector
 
     async def _record(self, provenance: ProviderProvenance) -> None:
@@ -253,6 +583,7 @@ class ConfiguredProviderRuntime:
                             == schema.model_roles.c.provider_endpoint_id,
                         )
                         .where(schema.model_roles.c.role == role.value)
+                        .where(schema.provider_endpoints.c.capability_status == "available")
                     )
                 )
                 .mappings()
@@ -276,5 +607,5 @@ class ConfiguredProviderRuntime:
         return (
             assignment,
             endpoint,
-            await self._settings.resolve_provider_secret(endpoint.secret_purpose),
+            await self._settings.resolve_optional_provider_secret(endpoint.secret_purpose),
         )

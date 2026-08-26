@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import insert, select, update
+from sqlalchemy import func, insert, select, text, update
 
 from fluctlight_core.platform.persistence import UnitOfWork, UnitOfWorkFactory
 
@@ -64,14 +64,17 @@ class ConversationService:
         actor_id: str,
         participant_actor_ids: Iterable[str] = (),
         title: str | None = None,
+        tx: UnitOfWork | None = None,
     ) -> ConversationPage:
         now = self._clock()
         conversation_id = f"conversation_{uuid4().hex}"
         participant_ids = tuple(dict.fromkeys((actor_id, *participant_actor_ids)))
-        async with self._unit_of_work.begin(
-            command_id=f"conversation-create:{conversation_id}"
-        ) as tx:
-            await tx.session.execute(
+        if len(participant_ids) < 2:
+            raise ConversationConflictError(
+                "a conversation requires an explicit Fluctlight participant"
+            )
+        async with self._transaction(tx, f"conversation-create:{conversation_id}") as transaction:
+            await transaction.session.execute(
                 insert(schema.conversations).values(
                     id=conversation_id,
                     created_by_actor_id=actor_id,
@@ -81,13 +84,13 @@ class ConversationService:
                     updated_at=now,
                 )
             )
-            await tx.session.execute(
+            await transaction.session.execute(
                 insert(schema.conversation_heads).values(
                     conversation_id=conversation_id, next_sequence=1
                 )
             )
             for index, participant_id in enumerate(participant_ids):
-                await tx.session.execute(
+                await transaction.session.execute(
                     insert(schema.participants).values(
                         conversation_id=conversation_id,
                         actor_id=participant_id,
@@ -98,7 +101,7 @@ class ConversationService:
                         joined_at=now,
                     )
                 )
-                await tx.session.execute(
+                await transaction.session.execute(
                     insert(schema.read_positions).values(
                         conversation_id=conversation_id,
                         actor_id=participant_id,
@@ -107,7 +110,6 @@ class ConversationService:
                         updated_at=now,
                     )
                 )
-            await tx.commit()
         return ConversationPage(
             conversation=Conversation(
                 conversation_id, actor_id, title=title, created_at=now, updated_at=now
@@ -123,6 +125,98 @@ class ConversationService:
             ),
             messages=(),
         )
+
+    async def get_or_create_direct(
+        self, *, owner_actor_id: str, fluctlight_actor_id: str
+    ) -> ConversationPage:
+        """Return the one Owner-to-Fluctlight conversation for product entry.
+
+        PostgreSQL advisory locking serializes first-open requests for the pair.
+        The durable unique mapping is the authority after the transaction commits.
+        """
+
+        if owner_actor_id == fluctlight_actor_id:
+            raise ConversationConflictError("a direct Fluctlight conversation requires two actors")
+        lock_key = f"fluctlight-direct:{owner_actor_id}:{fluctlight_actor_id}"
+        created_page: ConversationPage | None = None
+        existing_conversation_id: str | None = None
+        async with self._unit_of_work.begin(
+            command_id=f"conversation-direct:{owner_actor_id}:{fluctlight_actor_id}"
+        ) as tx:
+            await tx.session.execute(
+                text("SELECT pg_advisory_xact_lock(hashtext(:lock_key))"),
+                {"lock_key": lock_key},
+            )
+            existing_conversation_id = await tx.session.scalar(
+                select(schema.direct_conversations.c.conversation_id).where(
+                    schema.direct_conversations.c.owner_actor_id == owner_actor_id,
+                    schema.direct_conversations.c.fluctlight_actor_id == fluctlight_actor_id,
+                )
+            )
+            if existing_conversation_id is None:
+                created_page = await self.create(
+                    actor_id=owner_actor_id,
+                    participant_actor_ids=(fluctlight_actor_id,),
+                    title=None,
+                    tx=tx,
+                )
+                await tx.session.execute(
+                    insert(schema.direct_conversations).values(
+                        owner_actor_id=owner_actor_id,
+                        fluctlight_actor_id=fluctlight_actor_id,
+                        conversation_id=created_page.conversation.id,
+                        created_at=self._clock(),
+                    )
+                )
+            await tx.commit()
+        if created_page is not None:
+            return created_page
+        if existing_conversation_id is None:
+            raise ConversationConflictError("direct conversation was not created")
+        return await self.history(existing_conversation_id, actor_id=owner_actor_id)
+
+    async def direct_unread_counts(
+        self, *, owner_actor_id: str, fluctlight_actor_ids: tuple[str, ...]
+    ) -> dict[str, int]:
+        """Project persisted Owner read positions for the instance directory."""
+
+        if not fluctlight_actor_ids:
+            return {}
+        async with self._unit_of_work.begin(command_id=f"direct-unread:{owner_actor_id}") as tx:
+            rows = (
+                await tx.session.execute(
+                    select(
+                        schema.direct_conversations.c.fluctlight_actor_id,
+                        func.count(schema.messages.c.id).label("unread_count"),
+                    )
+                    .select_from(schema.direct_conversations)
+                    .join(
+                        schema.read_positions,
+                        (schema.read_positions.c.conversation_id
+                         == schema.direct_conversations.c.conversation_id)
+                        & (schema.read_positions.c.actor_id == owner_actor_id),
+                    )
+                    .outerjoin(
+                        schema.messages,
+                        (schema.messages.c.conversation_id
+                         == schema.direct_conversations.c.conversation_id)
+                        & (schema.messages.c.author_actor_id
+                           == schema.direct_conversations.c.fluctlight_actor_id)
+                        & (schema.messages.c.sequence
+                           > schema.read_positions.c.last_read_sequence),
+                    )
+                    .where(
+                        schema.direct_conversations.c.owner_actor_id == owner_actor_id,
+                        schema.direct_conversations.c.fluctlight_actor_id.in_(fluctlight_actor_ids),
+                    )
+                    .group_by(schema.direct_conversations.c.fluctlight_actor_id)
+                )
+            ).mappings().all()
+        counts = {str(row["fluctlight_actor_id"]): int(row["unread_count"]) for row in rows}
+        return {
+            fluctlight_id: counts.get(fluctlight_id, 0)
+            for fluctlight_id in fluctlight_actor_ids
+        }
 
     async def history(
         self,
@@ -303,6 +397,7 @@ class ConversationService:
             await tx.commit()
 
     async def accept_turn(self, turn: ConversationTurn) -> TurnResult:
+        await self._require_turn_target(turn)
         user_message = await self.append_message(
             turn.conversation_id,
             MessageDraft(
@@ -334,6 +429,7 @@ class ConversationService:
         return TurnResult(turn, user_message, tuple(assistant_messages), events)
 
     async def stream_accept_turn(self, turn: ConversationTurn) -> AsyncIterator[TurnStreamEvent]:
+        await self._require_turn_target(turn)
         user_message = await self.append_message(
             turn.conversation_id,
             MessageDraft(
@@ -403,6 +499,16 @@ class ConversationService:
             row["created_at"],
             row["updated_at"],
         )
+
+    async def _require_turn_target(self, turn: ConversationTurn) -> None:
+        if not turn.fluctlight_id:
+            raise ConversationAuthorizationError("turn requires an explicit Fluctlight participant")
+        async with self._unit_of_work.begin(
+            command_id=f"conversation-turn-target:{turn.conversation_id}:{turn.turn_id}"
+        ) as tx:
+            participants = await self._participants(tx, turn.conversation_id)
+            self._require_member(participants, turn.actor_id)
+            self._require_member(participants, turn.fluctlight_id)
 
     async def _participants(self, tx: UnitOfWork, conversation_id: str) -> list[Participant]:
         rows = (

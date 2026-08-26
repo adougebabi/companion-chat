@@ -3,15 +3,21 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Any
 
 from sqlalchemy import insert, select, update
 
-from fluctlight_core.platform.outbox import OutboxEvent, add_outbox_event
+from fluctlight_core.platform.outbox import (
+    CommittedWorkflowIntent,
+    OutboxEvent,
+    add_outbox_event,
+    commit_workflow_intent,
+)
 from fluctlight_core.platform.persistence import UnitOfWork, UnitOfWorkFactory
 
 from . import schema
@@ -53,6 +59,7 @@ class CognitionService:
         reflection_provider: ReflectionProvider | None = None,
         reflection_applier: ReflectionApplier | None = None,
         state_applier: StateApplier | None = None,
+        autonomy_freezer: Callable[[FrozenAction], Awaitable[None]] | None = None,
         diagnostics: Any | None = None,
         clock: Callable[[], datetime] | None = None,
         lease_seconds: int = 30,
@@ -63,6 +70,7 @@ class CognitionService:
         self._reflection_provider = reflection_provider
         self._reflection_applier = reflection_applier
         self._state_applier = state_applier
+        self._autonomy_freezer = autonomy_freezer
         self._diagnostics = diagnostics
         self._clock = clock or (lambda: datetime.now(UTC))
         self._lease_seconds = lease_seconds
@@ -186,7 +194,36 @@ class CognitionService:
                     attempt_policy={"max_attempts": 8},
                 ),
             )
-            return EnqueuedFact(fact, sequence)
+        return EnqueuedFact(fact, sequence)
+
+    async def recent_history(
+        self, fluctlight_id: str, *, limit: int = 20
+    ) -> list[dict[str, object]]:
+        bounded = min(max(limit, 1), 50)
+        async with self._unit_of_work.begin(command_id=f"cognition-history:{fluctlight_id}") as tx:
+            rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.frozen_actions)
+                        .where(schema.frozen_actions.c.fluctlight_id == fluctlight_id)
+                        .order_by(schema.frozen_actions.c.frozen_at.desc())
+                        .limit(bounded)
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        return [
+            {
+                "id": row["id"],
+                "action_type": row["action_type"],
+                "status": row["status"],
+                "error_code": row["error_code"],
+                "frozen_at": row["frozen_at"].isoformat(),
+                "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
+            }
+            for row in rows
+        ]
 
     async def claim_next(self, fluctlight_id: str, *, worker_id: str) -> InboxClaim | None:
         now = self._clock()
@@ -296,6 +333,8 @@ class CognitionService:
                 )
                 if result.provider_request_id != action.provider_request_id:
                     raise ProviderExecutionError("realization returned an unexpected request id")
+                action = self._action_after_realization(action, result)
+                await self._freeze_autonomy(action)
             except Exception as exc:
                 code = self._error_code(exc, "realization_failed")
                 await self._settle_failure(claim, code, action=action)
@@ -333,7 +372,22 @@ class CognitionService:
         stream_realize = getattr(self._realization_provider, "stream_realize", None)
         chunks: list[str] = []
         try:
-            if stream_realize is None:
+            if action.action_type is ActionType.MEDIA_REQUEST:
+                result = await self._realization_provider.realize(
+                    action, correlation_id=claim.fact.correlation_id
+                )
+                if result.provider_request_id != action.provider_request_id:
+                    raise ProviderExecutionError("realization returned an unexpected request id")
+                text = result.payload.get("text")
+                if not isinstance(text, str) or not text.strip():
+                    raise ProviderExecutionError("media realization returned no visible text")
+                chunks.append(text)
+                yield text
+                action = self._action_after_realization(action, result)
+                await self._freeze_autonomy(action)
+                await self._settle_success(claim, action, result)
+                return
+            elif stream_realize is None:
                 result = await self._realization_provider.realize(
                     action, correlation_id=claim.fact.correlation_id
                 )
@@ -355,6 +409,8 @@ class CognitionService:
                 action.provider_request_id,
                 {"text": text, "correlation_id": claim.fact.correlation_id},
             )
+            action = self._action_after_realization(action, result)
+            await self._freeze_autonomy(action)
             await self._settle_success(claim, action, result)
         except asyncio.CancelledError:
             await self._settle_failure(claim, "realization_cancelled", action=action)
@@ -447,6 +503,50 @@ class CognitionService:
             await self._reset_reflection(fluctlight_id)
             raise
 
+    async def run_current_reflection(
+        self, fluctlight_id: str, *, correlation_id: str
+    ) -> ReflectionProposal | None:
+        """Reflect over the latest settled cognition window, or explicitly no-op."""
+
+        async with self._unit_of_work.begin(
+            command_id=f"reflection-bounds:{fluctlight_id}"
+        ) as tx:
+            to_sequence = await tx.session.scalar(
+                select(schema.inbox_heads.c.last_processed_sequence).where(
+                    schema.inbox_heads.c.fluctlight_id == fluctlight_id
+                )
+            )
+            action = (
+                (
+                    await tx.session.execute(
+                        select(schema.frozen_actions.c.state_revision)
+                        .join(
+                            schema.inbox,
+                            schema.frozen_actions.c.inbox_id == schema.inbox.c.id,
+                        )
+                        .where(
+                            schema.frozen_actions.c.fluctlight_id == fluctlight_id,
+                            schema.inbox.c.status == InboxStatus.COMPLETED.value,
+                        )
+                        .order_by(schema.inbox.c.sequence.desc())
+                        .limit(1)
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        if not to_sequence or action is None:
+            return None
+        try:
+            return await self.run_reflection(
+                fluctlight_id,
+                to_sequence=int(to_sequence),
+                base_state_revision=int(action["state_revision"]),
+                correlation_id=correlation_id,
+            )
+        except CognitionConflictError:
+            return None
+
     async def commit_reflection(
         self, proposal: ReflectionProposal, *, expected_watermark: int
     ) -> None:
@@ -490,6 +590,17 @@ class CognitionService:
     async def _freeze(self, claim: InboxClaim, envelope: AssessmentEnvelope) -> FrozenAction:
         assessment = envelope.assessment
         decision = envelope.decision
+        action_payload = dict(decision.payload)
+        if claim.fact.event_type == "conversation.message":
+            source_text = claim.fact.payload.get("text")
+            if not isinstance(source_text, str) or not source_text:
+                raise ProviderExecutionError("conversation action has no source message")
+            action_payload["source_text"] = source_text
+        if decision.action_type is ActionType.MEDIA_REQUEST:
+            conversation_id = claim.fact.payload.get("conversation_id")
+            if not isinstance(conversation_id, str) or not conversation_id:
+                raise ProviderExecutionError("media request has no conversation target")
+            action_payload["conversation_id"] = conversation_id
         # Provider decision IDs are opaque metadata, not globally unique database keys.
         # Scope them to the immutable inbox fact so retries remain idempotent while
         # repeated provider IDs cannot poison later turns.
@@ -535,7 +646,7 @@ class CognitionService:
                     assessment_id=assessment_id,
                     fluctlight_id=claim.fact.fluctlight_id,
                     action_type=decision.action_type.value,
-                    payload=dict(decision.payload),
+                    payload=action_payload,
                     confidence=str(decision.confidence),
                     evidence_refs=list(decision.evidence_refs),
                     expires_at=decision.expires_at,
@@ -548,7 +659,7 @@ class CognitionService:
                     inbox_id=claim.fact.id,
                     fluctlight_id=claim.fact.fluctlight_id,
                     action_type=decision.action_type.value,
-                    payload=dict(decision.payload),
+                    payload=action_payload,
                     state_revision=state_revision,
                     provider_request_id=provider_request_id,
                     status=ActionStatus.FROZEN.value,
@@ -585,10 +696,28 @@ class CognitionService:
             claim.fact.id,
             claim.fact.fluctlight_id,
             decision.action_type,
-            decision.payload,
+            action_payload,
             state_revision,
             provider_request_id,
         )
+
+    async def _freeze_autonomy(self, action: FrozenAction) -> None:
+        freezer = getattr(self, "_autonomy_freezer", None)
+        if freezer is not None:
+            await freezer(action)
+
+    @staticmethod
+    def _action_after_realization(
+        action: FrozenAction, result: RealizationResult
+    ) -> FrozenAction:
+        if action.action_type is not ActionType.MEDIA_REQUEST:
+            return action
+        media_request = result.payload.get("media_request")
+        if not isinstance(media_request, dict) or not media_request:
+            raise ProviderExecutionError("media realization returned no media request")
+        payload = dict(action.payload)
+        payload["media_request"] = media_request
+        return replace(action, payload=payload)
 
     async def _settle_success(
         self, claim: InboxClaim, action: FrozenAction, result: RealizationResult
@@ -626,7 +755,37 @@ class CognitionService:
                     attempt_policy={"max_attempts": 8},
                 ),
             )
+            await commit_workflow_intent(
+                tx.session,
+                CommittedWorkflowIntent(
+                    intent_id=f"reflection_intent:{action.action_id}",
+                    workflow_id=f"reflection:{claim.fact.fluctlight_id}:{action.action_id}",
+                    task_queue="lifecycle",
+                    intent_type="reflection.run",
+                    payload={
+                        "fluctlight_id": claim.fact.fluctlight_id,
+                        "correlation_id": claim.fact.correlation_id,
+                    },
+                ),
+            )
             await tx.commit()
+        if self._diagnostics is not None:
+            from fluctlight_core.diagnostics.contracts import (
+                DiagnosticEvent,
+                DiagnosticSeverity,
+            )
+
+            await self._diagnostics.emit_turn(self._diagnostics_turn(claim, status="completed"))
+            await self._diagnostics.emit_event(
+                DiagnosticEvent(
+                    event_type="cognition.turn.completed",
+                    severity=DiagnosticSeverity.INFO,
+                    fluctlight_id=claim.fact.fluctlight_id,
+                    causation_id=claim.fact.id,
+                    correlation_id=claim.fact.correlation_id,
+                    payload={"status": "completed", "action_type": action.action_type.value},
+                )
+            )
 
     async def _settle_failure(
         self, claim: InboxClaim, error_code: str, *, action: FrozenAction | None = None
@@ -643,6 +802,23 @@ class CognitionService:
                 )
             await self._mark_processed(tx, claim, InboxStatus.FAILED, error_code, now)
             await tx.commit()
+        if self._diagnostics is not None:
+            from fluctlight_core.diagnostics.contracts import (
+                DiagnosticEvent,
+                DiagnosticSeverity,
+            )
+
+            await self._diagnostics.emit_turn(self._diagnostics_turn(claim, status="failed"))
+            await self._diagnostics.emit_event(
+                DiagnosticEvent(
+                    event_type="cognition.turn.failed",
+                    severity=DiagnosticSeverity.ERROR,
+                    fluctlight_id=claim.fact.fluctlight_id,
+                    causation_id=claim.fact.id,
+                    correlation_id=claim.fact.correlation_id,
+                    payload={"status": "failed", "error_code": error_code},
+                )
+            )
 
     async def _mark_processed(
         self,

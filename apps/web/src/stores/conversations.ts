@@ -9,6 +9,25 @@ import {
 const client = new BrowserClient(import.meta.env.VITE_BFF_ORIGIN ?? "");
 
 type StreamPayload = { text?: string; message?: BrowserMessage; message_id?: string; code?: string };
+export type FluctlightListItem = {
+  id: string;
+  identity: Record<string, unknown>;
+  status: string;
+  unread_count?: number;
+};
+
+const selectedFluctlightStorageKey = "fluctlight.selected-instance-id";
+
+function persistedSelection(): string | null {
+  if (typeof localStorage === "undefined") return null;
+  return localStorage.getItem(selectedFluctlightStorageKey);
+}
+
+function persistSelection(fluctlightId: string | null): void {
+  if (typeof localStorage === "undefined") return;
+  if (fluctlightId) localStorage.setItem(selectedFluctlightStorageKey, fluctlightId);
+  else localStorage.removeItem(selectedFluctlightStorageKey);
+}
 
 function createLocalMessage(conversationId: string, text: string, sequence: number, authorActorId = "human") : BrowserMessage {
   return {
@@ -31,8 +50,11 @@ export const useConversationStore = defineStore("conversations", {
   state: () => ({
     conversation: null as BrowserConversation | null,
     fluctlightId: null as string | null,
+    fluctlights: [] as FluctlightListItem[],
     messages: [] as BrowserMessage[],
+    nextBeforeSequence: null as number | null,
     authenticated: null as boolean | null,
+    setupAvailable: false,
     authLoading: false,
     authError: "" as string,
     loading: false,
@@ -43,6 +65,12 @@ export const useConversationStore = defineStore("conversations", {
   }),
   getters: {
     hasConversation: (state) => Boolean(state.conversation?.id),
+    selectedFluctlight: (state) =>
+      state.fluctlights.find((fluctlight) => fluctlight.id === state.fluctlightId) ?? null,
+    selectedFluctlightName(): string | null {
+      const name = this.selectedFluctlight?.identity.name;
+      return typeof name === "string" && name.trim() ? name : this.selectedFluctlight?.id ?? null;
+    },
   },
   actions: {
     async initialize() {
@@ -51,11 +79,12 @@ export const useConversationStore = defineStore("conversations", {
       try {
         const session = await client.session();
         this.authenticated = session.authenticated;
-        if (this.authenticated) await this.openConversation();
+        if (this.authenticated) await this.bootstrap();
+        else this.setupAvailable = (await client.setupStatus()).setupAvailable;
       } catch {
         if (this.authenticated !== true) {
           this.authenticated = false;
-          this.authError = "The Core platform is unavailable.";
+          this.authError = "Fluctlight 服务暂时不可用。";
         }
       } finally {
         this.authLoading = false;
@@ -67,14 +96,44 @@ export const useConversationStore = defineStore("conversations", {
       try {
         const session = await client.login(password);
         this.authenticated = session.authenticated;
-        if (this.authenticated) await this.openConversation();
+        if (this.authenticated) await this.bootstrap();
       } catch {
         if (this.authenticated !== true) {
           this.authenticated = false;
-          this.authError = "The password was not accepted.";
+          this.authError = "密码未被接受。";
         } else {
-          this.error = "The conversation could not be loaded.";
+          this.error = "无法加载 Fluctlight 对话。";
         }
+      } finally {
+        this.authLoading = false;
+      }
+    },
+    async setup(setupToken: string, password: string) {
+      this.authLoading = true;
+      this.authError = "";
+      try {
+        const session = await client.setup(setupToken, password);
+        this.authenticated = session.authenticated;
+        this.setupAvailable = false;
+        if (this.authenticated) await this.bootstrap();
+      } catch {
+        this.authenticated = false;
+        this.authError = "设置令牌或密码未被接受。";
+      } finally {
+        this.authLoading = false;
+      }
+    },
+    async changePassword(password: string) {
+      this.authLoading = true;
+      this.authError = "";
+      try {
+        await client.changePassword(password);
+        this.authenticated = false;
+        this.conversation = null;
+        this.messages = [];
+        this.fluctlightId = null;
+      } catch {
+        this.error = "无法修改所有者密码。";
       } finally {
         this.authLoading = false;
       }
@@ -85,64 +144,76 @@ export const useConversationStore = defineStore("conversations", {
       } finally {
         this.authenticated = false;
         this.conversation = null;
+        this.fluctlightId = null;
+        this.fluctlights = [];
         this.messages = [];
+        this.nextBeforeSequence = null;
       }
     },
-    async openConversation() {
+    async bootstrap() {
       if (this.authenticated === false) return;
       this.loading = true;
       this.error = "";
       try {
-        if (!this.conversation) {
-          const page = await client.createConversation({ title: "New conversation" });
-          this.conversation = page.conversation;
-          this.messages = page.messages;
-          await this.reportReadPosition();
-        } else {
-          const page = await client.messages(this.conversation.id);
-          this.conversation = page.conversation;
-          this.messages = page.messages;
-          await this.reportReadPosition();
-        }
+        this.fluctlights = await client.listFluctlights();
+        const restoredId = persistedSelection();
+        const selectedId = this.fluctlights.some((item) => item.id === restoredId)
+          ? restoredId
+          : this.fluctlights[0]?.id ?? null;
+        if (selectedId) await this.selectFluctlight(selectedId, { loading: false });
+        else this.clearActiveConversation();
       } catch {
-        this.error = "The conversation could not be loaded.";
+        this.error = "无法加载 Fluctlight 实例目录。";
       } finally {
         this.loading = false;
       }
     },
-    async startConversation(participantActorIds: string[] = []) {
-      this.loading = true;
+    async selectFluctlight(fluctlightId: string, options: { loading?: boolean } = {}) {
+      if (!this.fluctlights.some((item) => item.id === fluctlightId)) {
+        this.error = "所选 Fluctlight 实例不可用。";
+        return;
+      }
+      if (options.loading !== false) this.loading = true;
       this.error = "";
       try {
-        const page = await client.createConversation({
-          title: "New conversation",
-          participantActorIds,
-        });
+        const page = await client.directConversation(fluctlightId);
         this.conversation = page.conversation;
         this.messages = page.messages;
-        this.fluctlightId = participantActorIds[0] ?? null;
+        this.nextBeforeSequence = page.nextBeforeSequence ?? null;
+        this.fluctlightId = fluctlightId;
+        persistSelection(fluctlightId);
         await this.reportReadPosition();
       } catch {
-        this.error = "The conversation could not be created.";
+        this.clearActiveConversation();
+        this.error = "无法打开该 Fluctlight 的对话。";
       } finally {
-        this.loading = false;
+        if (options.loading !== false) this.loading = false;
       }
+    },
+    clearActiveConversation() {
+      this.conversation = null;
+      this.fluctlightId = null;
+      this.messages = [];
+      this.nextBeforeSequence = null;
+      persistSelection(null);
     },
     async send(text: string) {
       const normalized = text.trim();
-      if (!normalized || !this.conversation || this.sending) return;
+      const conversationId = this.conversation?.id;
+      const fluctlightId = this.fluctlightId;
+      if (!normalized || !conversationId || !fluctlightId || this.sending) return;
       this.error = "";
       this.sending = true;
       this.abortController = new AbortController();
-      const userMessage = createLocalMessage(this.conversation.id, normalized, this.messages.length + 1);
+      const userMessage = createLocalMessage(conversationId, normalized, this.messages.length + 1);
       this.messages.push(userMessage);
       let assistantDraft: BrowserMessage | null = null;
       try {
         const response = await client.turn(
-          this.conversation.id,
+          conversationId,
           {
             text: normalized,
-            fluctlightId: this.fluctlightId ?? undefined,
+            fluctlightId,
             attachmentRefs: this.attachmentRef ? [this.attachmentRef] : [],
             idempotencyKey: `turn-${crypto.randomUUID()}`,
           },
@@ -161,17 +232,18 @@ export const useConversationStore = defineStore("conversations", {
           if (event.type === "token") {
             assistantText += payload.text ?? "";
             if (!assistantDraft) {
-              assistantDraft = {
+              const streamedMessage: BrowserMessage = {
                 id: `stream-${crypto.randomUUID()}`,
-                conversationId: this.conversation!.id,
+                conversationId,
                 sequence: this.messages.length + 1,
-                authorActorId: "fluctlight",
+                authorActorId: fluctlightId,
                 kind: "assistant",
                 text: assistantText,
                 attachmentRefs: [],
                 createdAt: new Date().toISOString(),
               };
-              this.messages.push(assistantDraft);
+              assistantDraft = streamedMessage;
+              this.messages.push(streamedMessage);
             } else {
               assistantDraft.text = assistantText;
             }
@@ -204,16 +276,17 @@ export const useConversationStore = defineStore("conversations", {
         if (buffer.trim()) {
           applyEvent(JSON.parse(buffer) as BrowserTurnEvent);
         }
-        const page = await client.messages(this.conversation.id);
+        const page = await client.messages(conversationId);
         this.conversation = page.conversation;
         this.messages = page.messages;
+        this.nextBeforeSequence = page.nextBeforeSequence ?? null;
         await this.reportReadPosition();
         this.attachmentRef = "";
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           if (assistantDraft) this.messages = this.messages.filter((message) => message.id !== assistantDraft?.id);
         } else {
-          this.error = "The turn could not be completed. Your message is saved.";
+          this.error = "回复未完成，但你的消息已保存。";
         }
       } finally {
         this.abortController = null;
@@ -222,6 +295,20 @@ export const useConversationStore = defineStore("conversations", {
     },
     cancel() {
       this.abortController?.abort();
+    },
+    async loadOlder() {
+      if (!this.conversation || !this.nextBeforeSequence || this.loading) return;
+      this.loading = true;
+      try {
+        const page = await client.messages(this.conversation.id, this.nextBeforeSequence);
+        const existing = new Set(this.messages.map((message) => message.id));
+        this.messages = [...page.messages.filter((message) => !existing.has(message.id)), ...this.messages];
+        this.nextBeforeSequence = page.nextBeforeSequence ?? null;
+      } catch {
+        this.error = "无法加载更早的对话记录。";
+      } finally {
+        this.loading = false;
+      }
     },
     async reportReadPosition() {
       if (!this.conversation) return;
@@ -233,7 +320,7 @@ export const useConversationStore = defineStore("conversations", {
           deliveredSequence: sequence,
         });
       } catch {
-        this.error = "The conversation read position could not be saved.";
+        this.error = "无法保存已读位置。";
       }
     },
   },

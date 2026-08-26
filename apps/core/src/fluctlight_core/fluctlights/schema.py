@@ -54,6 +54,7 @@ foundation_revisions = Table(
     Column("personality", JSONB, nullable=False),
     Column("behavioral_policy", JSONB, nullable=False),
     Column("evidence_refs", JSONB, nullable=False),
+    Column("reason", Text),
     Column("idempotency_key", String(256), nullable=False, unique=True),
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
     Column("accepted_at", DateTime(timezone=True)),

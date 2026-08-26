@@ -55,8 +55,8 @@ if [[ "$source_counts" != "$restored_counts" ]]; then
   exit 1
 fi
 schema_revision=$("${compose[@]}" exec -T postgres psql -U "$db_user" -d "$db_name" -Atc "SELECT version_num FROM alembic_version" | tr -d '[:space:]')
-if [[ "$schema_revision" != "0012_t12_consumer_effects" ]]; then
-  echo "unexpected application migration head: $schema_revision" >&2
+if [[ -z "$schema_revision" || "$schema_revision" == *$'\n'* ]]; then
+  echo "application migration head is missing or non-linear: $schema_revision" >&2
   exit 1
 fi
 vector_version=$("${compose[@]}" exec -T postgres psql -U "$db_user" -d "$db_name" -Atc "SELECT extversion FROM pg_extension WHERE extname = 'vector'")

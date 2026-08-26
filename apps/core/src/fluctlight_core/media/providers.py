@@ -16,6 +16,13 @@ class MediaProviderConfigurationError(ValueError):
     pass
 
 
+class MediaProviderRequestError(RuntimeError):
+    def __init__(self, status_code: int, detail: str) -> None:
+        super().__init__(f"ComfyUI request failed with HTTP {status_code}: {detail}")
+        self.status_code = status_code
+        self.detail = detail
+
+
 @dataclass(frozen=True, slots=True)
 class DownloadedMedia:
     content: bytes
@@ -72,13 +79,15 @@ class ComfyUiPlugin:
         async with httpx.AsyncClient(timeout=30.0, transport=self.transport) as client:
             response = await client.post(
                 f"{self.base_url}/prompt",
-                json={"prompt": workflow, "prompt_id": intent.provider_request_id},
+                json={"prompt": workflow},
             )
-            response.raise_for_status()
+            if response.is_error:
+                detail = response.text.strip().replace("\n", " ")[:1_000]
+                raise MediaProviderRequestError(response.status_code, detail)
             payload = response.json()
         prompt_id = payload.get("prompt_id") if isinstance(payload, dict) else None
-        if prompt_id != intent.provider_request_id:
-            raise RuntimeError("ComfyUI did not accept the stable provider request ID")
+        if not isinstance(prompt_id, str) or not prompt_id:
+            raise RuntimeError("ComfyUI did not return a prompt ID")
         return prompt_id
 
     async def poll(self, provider_request_id: str) -> Mapping[str, Any] | None:

@@ -1,12 +1,12 @@
 # T12 conditional legacy deletion manifest
-# Generated: 2026-08-24T21:41:53Z
-PRESENT server
-PRESENT web
-PRESENT test
-PRESENT Dockerfile
-PRESENT compose.yaml
-PRESENT package-lock.json
-PRESENT .env.example
-PRESENT .nvmrc
+# Generated: 2026-08-25T14:54:43Z
+ABSENT server
+ABSENT web
+ABSENT test
+ABSENT Dockerfile
+ABSENT compose.yaml
+ABSENT package-lock.json
+ABSENT .env.example
+ABSENT .nvmrc
 ABSENT .github/workflows/docker-publish.yml
 # Deletion is permitted only after all Required gates pass.

@@ -357,6 +357,7 @@ class FoundationRevisionRequest:
     idempotency_key: str
     confidence: float = 1.0
     requested_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    reason: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -381,6 +382,7 @@ class FoundationRevisionRequest:
             raise FoundationValidationError("evidence_refs must be unique")
         object.__setattr__(self, "evidence_refs", refs)
         object.__setattr__(self, "changes", MappingProxyType(dict(self.changes)))
+        object.__setattr__(self, "reason", _text(self.reason, "revision.reason", limit=1024))
         _aware(self.requested_at, "requested_at")
 
 
@@ -400,6 +402,7 @@ class FoundationRevision:
     created_at: datetime
     accepted_at: datetime | None = None
     confidence: float = 1.0
+    reason: str | None = None
 
     def __post_init__(self) -> None:
         if self.revision < self.base_revision or (
@@ -418,6 +421,7 @@ class FoundationRevision:
         object.__setattr__(self, "source", RevisionSource(self.source))
         object.__setattr__(self, "status", RevisionStatus(self.status))
         bounded(self.confidence, "revision.confidence")
+        object.__setattr__(self, "reason", _text(self.reason, "revision.reason", limit=1024))
 
 
 IDENTITY_FIELDS = frozenset(

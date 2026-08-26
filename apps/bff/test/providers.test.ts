@@ -55,3 +55,27 @@ test("provider role maps Core preflight metadata to browser-safe camelCase", asy
   assert.deepEqual(response.json(), { role: "embedding", available: true, capabilityVersion: "dimensions:768" });
   await app.close();
 });
+
+test("provider model list is an authenticated safe endpoint lookup", async () => {
+  let requestedPath = "";
+  const app = createBff({
+    coreBaseUrl: "http://core.invalid",
+    coreServiceKey: "internal",
+    trustedOrigin: "https://fluctlight.local",
+    fetcher: async (url) => {
+      requestedPath = new URL(
+        typeof url === "string" ? url : url instanceof URL ? url : url.url,
+      ).pathname;
+      return Response.json({ endpoint_id: "lmstudio", models: ["embedding", "general"] });
+    },
+  });
+  const response = await app.inject({
+    method: "GET",
+    url: "/api/providers/endpoints/lmstudio/models",
+    cookies: { fluctlight_session: "opaque-session" },
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(requestedPath, "/internal/providers/endpoints/lmstudio/models");
+  assert.deepEqual(response.json(), { endpointId: "lmstudio", models: ["embedding", "general"] });
+  await app.close();
+});

@@ -47,6 +47,29 @@ def assessment_payload() -> dict[str, object]:
     }
 
 
+def preflight_payload(schema_version: str) -> dict[str, object]:
+    contracts: dict[str, dict[str, object]] = {
+        "fluctlight.initialization.v1": {
+            "schema": "fluctlight.initialization.v1",
+            "foundation": {},
+        },
+        "semantic.assessment.v1": {
+            "schema": "semantic.assessment.v1",
+            "assessment": {},
+            "decision": {},
+        },
+        "fluctlight.reflection.v1": {
+            "schema": "fluctlight.reflection.v1",
+            "proposal": {},
+        },
+        "fluctlight.media-prompt.v1": {
+            "schema": "fluctlight.media-prompt.v1",
+            "prompt": {},
+        },
+    }
+    return contracts.get(schema_version, assessment_payload())
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: object) -> None:
         return
@@ -80,13 +103,19 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.flush()
                 time.sleep(self.server.stream_delay_seconds)
             return
-        self._json(
-            {
-                "choices": [
-                    {"message": {"content": json.dumps(assessment_payload())}}
-                ]
-            }
+        messages = payload.get("messages", [])
+        first_content = (
+            messages[0].get("content", "")
+            if isinstance(messages, list) and messages and isinstance(messages[0], dict)
+            else ""
         )
+        schema_version = str(payload.get("metadata", {}).get("schema_version", ""))
+        response = (
+            preflight_payload(schema_version)
+            if isinstance(first_content, str) and first_content.startswith("Return JSON only for")
+            else assessment_payload()
+        )
+        self._json({"choices": [{"message": {"content": json.dumps(response)}}]})
 
     def _json(self, payload: dict[str, object]) -> None:
         body = json.dumps(payload).encode("utf-8")

@@ -185,6 +185,45 @@ class DiagnosticsService:
             rows = (await tx.session.execute(statement)).mappings().all()
         return [self._event_view(row) for row in rows]
 
+    async def query_model_runs(
+        self,
+        *,
+        actor_id: str,
+        owner_actor_id: str,
+        correlation_id: str | None = None,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        self._require_owner(actor_id, owner_actor_id)
+        bounded_limit = min(max(limit, 1), 500)
+        async with self._unit_of_work.begin(
+            command_id=f"diagnostic-model-query:{uuid4().hex}"
+        ) as tx:
+            statement = (
+                select(schema.diagnostic_model_runs)
+                .order_by(schema.diagnostic_model_runs.c.created_at.desc())
+                .limit(bounded_limit)
+            )
+            if correlation_id:
+                statement = statement.where(
+                    schema.diagnostic_model_runs.c.correlation_id == correlation_id
+                )
+            rows = (await tx.session.execute(statement)).mappings().all()
+        return [
+            {
+                "id": row["id"],
+                "role": row["role"],
+                "endpoint_id": row["endpoint_id"],
+                "model_id": row["model_id"],
+                "prompt": redact(row["prompt"]),
+                "response": redact(row["response"]) if row["response"] is not None else None,
+                "status": row["status"],
+                "error_code": row["error_code"],
+                "correlation_id": row["correlation_id"],
+                "created_at": row["created_at"].isoformat(),
+            }
+            for row in rows
+        ]
+
     async def export_events(
         self, *, actor_id: str, owner_actor_id: str, limit: int = 500
     ) -> list[dict[str, Any]]:
@@ -195,12 +234,18 @@ class DiagnosticsService:
     async def clear_events(self, *, actor_id: str, owner_actor_id: str) -> int:
         self._require_owner(actor_id, owner_actor_id)
         async with self._unit_of_work.begin(command_id=f"diagnostic-clear:{uuid4().hex}") as tx:
-            count = await tx.session.scalar(
+            event_count = await tx.session.scalar(
                 select(func.count()).select_from(schema.diagnostic_events)
             )
+            model_count = await tx.session.scalar(
+                select(func.count()).select_from(schema.diagnostic_model_runs)
+            )
             await tx.session.execute(delete(schema.diagnostic_events))
+            await tx.session.execute(delete(schema.diagnostic_model_runs))
+            await tx.session.execute(delete(schema.diagnostic_turns))
+            await tx.session.execute(delete(schema.diagnostic_workflow_links))
             await tx.commit()
-        return int(count or 0)
+        return int(event_count or 0) + int(model_count or 0)
 
     async def enforce_retention(
         self,
@@ -214,29 +259,37 @@ class DiagnosticsService:
         if retention_days < 1 or max_rows < 1:
             raise ValueError("diagnostic retention bounds must be positive")
         cutoff = self._clock() - timedelta(days=retention_days)
+        resources = (
+            schema.diagnostic_events,
+            schema.diagnostic_model_runs,
+            schema.diagnostic_turns,
+            schema.diagnostic_workflow_links,
+        )
+        removed = 0
         async with self._unit_of_work.begin(command_id=f"diagnostic-retention:{uuid4().hex}") as tx:
-            await tx.session.execute(
-                delete(schema.diagnostic_events).where(
-                    schema.diagnostic_events.c.created_at < cutoff
+            for resource in resources:
+                expired = await tx.session.execute(
+                    delete(resource).where(resource.c.created_at < cutoff)
                 )
-            )
-            ids = (
-                (
-                    await tx.session.execute(
-                        select(schema.diagnostic_events.c.id)
-                        .order_by(schema.diagnostic_events.c.created_at.desc())
-                        .offset(max_rows)
+                removed += int(expired.rowcount or 0)
+                ids = (
+                    (
+                        await tx.session.execute(
+                            select(resource.c.id)
+                            .order_by(resource.c.created_at.desc())
+                            .offset(max_rows)
+                        )
                     )
+                    .scalars()
+                    .all()
                 )
-                .scalars()
-                .all()
-            )
-            if ids:
-                await tx.session.execute(
-                    delete(schema.diagnostic_events).where(schema.diagnostic_events.c.id.in_(ids))
-                )
+                if ids:
+                    surplus = await tx.session.execute(
+                        delete(resource).where(resource.c.id.in_(ids))
+                    )
+                    removed += int(surplus.rowcount or 0)
             await tx.commit()
-        return len(ids)
+        return removed
 
     def _require_owner(self, actor_id: str, owner_actor_id: str) -> None:
         if not actor_id or actor_id != owner_actor_id:

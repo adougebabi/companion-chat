@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Protocol
 
 from fluctlight_core.conversations.contracts import MessageDraft, MessageKind
 from fluctlight_core.conversations.service import ConversationService
@@ -26,6 +26,12 @@ class ActionExecutionResult:
     reason: str
 
 
+class MediaPromptGenerator(Protocol):
+    async def generate_media_prompt(
+        self, *, media_request: dict[str, Any], correlation_id: str
+    ) -> str: ...
+
+
 class AutonomyExecutor:
     """Consume only explicitly typed frozen payloads through public service ports."""
 
@@ -38,6 +44,7 @@ class AutonomyExecutor:
         life_world: LifeWorldService,
         media: MediaService,
         moments: MomentsService,
+        media_prompt: MediaPromptGenerator,
     ) -> None:
         self._conversations = conversations
         self._memory = memory
@@ -45,6 +52,7 @@ class AutonomyExecutor:
         self._life_world = life_world
         self._media = media
         self._moments = moments
+        self._media_prompt = media_prompt
 
     async def execute(self, action: Any) -> ActionExecutionResult:
         handlers = {
@@ -143,15 +151,22 @@ class AutonomyExecutor:
 
     async def _media_request(self, action: Any) -> None:
         payload = action.payload
+        media_request = self._object(payload, "media_request")
+        conversation_id = self._text(payload, "conversation_id")
+        prompt = await self._media_prompt.generate_media_prompt(
+            media_request=media_request,
+            correlation_id=f"media-prompt:{action.id}",
+        )
         await self._media.request_generation(
             MediaIntent(
                 id=f"media_intent_{action.id}",
                 owner_fluctlight_id=action.fluctlight_id,
-                kind=MediaKind(self._text(payload, "kind")),
-                mime_type=self._text(payload, "mime_type"),
-                prompt=self._text(payload, "prompt"),
+                kind=MediaKind.IMAGE,
+                mime_type="image/png",
+                prompt=prompt,
                 provider_request_id=action.provider_request_id,
-                workflow_id=action.workflow_id,
+                workflow_id=f"media_workflow_{action.id}",
+                conversation_id=conversation_id,
             )
         )
 

@@ -9,14 +9,17 @@ test("web chat keeps the generated browser client at its boundary", async () => 
   assert.match(source, /expectedSequence/);
   assert.match(source, /markRead/);
   assert.match(source, /optimisticIndex/);
-  assert.match(source, /fluctlightId: this\.fluctlightId/);
+  assert.match(source, /directConversation/);
+  assert.match(source, /persistSelection/);
+  assert.match(source, /fluctlightId,/);
 });
 
 test("control center exposes the required product views", async () => {
   const source = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
   assert.match(source, /Diagnostics/);
   assert.match(source, /Settings/);
-  assert.match(source, /Actors/);
+  assert.match(source, /Fluctlight 实例/);
+  assert.match(source, /创建 Fluctlight/);
   assert.match(source, /media\.comfyui/);
-  assert.match(source, /ComfyUI API workflow/);
+  assert.match(source, /MEDIA PROVIDER/);
 });

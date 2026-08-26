@@ -9,6 +9,7 @@ def test_t06_conversation_tables_share_public_metadata_and_order_keys() -> None:
         "conversation_heads",
         "conversation_messages",
         "conversation_read_positions",
+        "fluctlight_direct_conversations",
     }
     assert {f"public.{name}" for name in expected} <= set(metadata.tables)
     assert any(
@@ -19,3 +20,5 @@ def test_t06_conversation_tables_share_public_metadata_and_order_keys() -> None:
         constraint.name == "conversation_message_idempotency"
         for constraint in conversation_schema.messages.constraints
     )
+    assert conversation_schema.direct_conversations.c.owner_actor_id.primary_key
+    assert conversation_schema.direct_conversations.c.fluctlight_actor_id.primary_key

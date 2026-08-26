@@ -1,6 +1,6 @@
 """Actor and Owner-auth tables owned by the actors module."""
 
-from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Text, func
+from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Text, UniqueConstraint, func
 
 from fluctlight_core.platform.persistence import metadata
 
@@ -54,4 +54,23 @@ auth_audit = Table(
     Column("result", String(16), nullable=False),
     Column("details", Text, nullable=False, server_default="{}"),
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+)
+
+actor_groups = Table(
+    "actor_groups",
+    metadata,
+    Column("id", String(128), primary_key=True),
+    Column("owner_actor_id", String(128), ForeignKey("public.actors.id"), nullable=False),
+    Column("name", String(128), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    UniqueConstraint("owner_actor_id", "name", name="actor_group_owner_name"),
+)
+
+actor_group_members = Table(
+    "actor_group_members",
+    metadata,
+    Column("group_id", String(128), ForeignKey("public.actor_groups.id"), nullable=False),
+    Column("actor_id", String(128), ForeignKey("public.actors.id"), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    UniqueConstraint("group_id", "actor_id", name="actor_group_member"),
 )

@@ -226,6 +226,21 @@ class MemoryService:
             await tx.commit()
         return revision
 
+    async def get(self, memory_id: str) -> MemoryRecord:
+        async with self._unit_of_work.begin(command_id=f"memory-read:{memory_id}") as tx:
+            row = (
+                (
+                    await tx.session.execute(
+                        select(schema.memories).where(schema.memories.c.id == memory_id)
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        if row is None:
+            raise KeyError(memory_id)
+        return self._memory_from_row(row)
+
     async def forget(
         self,
         memory_id: str,
@@ -504,6 +519,17 @@ class MemoryService:
             scored.append((score, memory))
         scored.sort(key=lambda item: (item[0], item[1].created_at), reverse=True)
         return [memory for _, memory in scored[: query.limit]]
+
+    async def recent_for_detail(
+        self, *, owner_fluctlight_id: str, authorized_actor_ids: tuple[str, ...], limit: int = 20
+    ) -> list[MemoryRecord]:
+        return await self.retrieve(
+            MemoryQuery(
+                owner_fluctlight_id=owner_fluctlight_id,
+                authorized_actor_ids=authorized_actor_ids,
+                limit=min(max(limit, 1), 50),
+            )
+        )
 
     async def prompt_context(self, query: MemoryQuery) -> list[MemoryContextItem]:
         if any(status is not MemoryStatus.ACTIVE for status in query.statuses):

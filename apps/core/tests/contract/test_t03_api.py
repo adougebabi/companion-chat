@@ -37,6 +37,17 @@ class FakeSettings:
         return await self.read(actor)
 
 
+class FakeProviders:
+    def __init__(self) -> None:
+        self.requested: tuple[ResolvedHumanActor, str] | None = None
+
+    async def list_models(
+        self, actor: ResolvedHumanActor, *, endpoint_id: str
+    ) -> tuple[str, ...]:
+        self.requested = (actor, endpoint_id)
+        return ("embedding-model", "general-model")
+
+
 def dependencies() -> ApiDependencies:
     settings = PlatformSettings(
         environment="test",
@@ -95,3 +106,24 @@ def test_internal_routes_require_service_identity_and_keep_settings_safe() -> No
             "configured_secrets": ["provider:key"],
         }
         assert "opaque-token" not in settings.text
+
+
+def test_provider_model_listing_requires_internal_and_human_identity() -> None:
+    dependencies_for_models = dependencies()
+    providers = FakeProviders()
+    dependencies_for_models.providers = cast(object, providers)  # type: ignore[assignment]
+    with TestClient(create_app(dependencies_for_models)) as client:
+        assert client.get("/internal/providers/endpoints/local/models").status_code == 401
+        response = client.get(
+            "/internal/providers/endpoints/local/models",
+            headers={
+                "x-fluctlight-service-key": "service-key",
+                "x-fluctlight-human-session": "opaque-token",
+            },
+        )
+    assert response.status_code == 200
+    assert response.json() == {
+        "endpoint_id": "local",
+        "models": ["embedding-model", "general-model"],
+    }
+    assert providers.requested == (ResolvedHumanActor("human-owner", "session-1"), "local")

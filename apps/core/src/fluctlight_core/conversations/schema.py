@@ -29,6 +29,27 @@ conversations = Table(
 )
 
 
+# A direct conversation is a product-level projection over the general
+# Actor/Participant model. It gives the Owner and one Fluctlight a stable chat
+# entry without constraining future multi-participant conversations.
+direct_conversations = Table(
+    "fluctlight_direct_conversations",
+    metadata,
+    Column("owner_actor_id", String(128), ForeignKey("public.actors.id"), primary_key=True),
+    Column(
+        "fluctlight_actor_id", String(128), ForeignKey("public.actors.id"), primary_key=True
+    ),
+    Column(
+        "conversation_id",
+        String(128),
+        ForeignKey("public.conversations.id"),
+        nullable=False,
+        unique=True,
+    ),
+    Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+)
+
+
 participants = Table(
     "conversation_participants",
     metadata,

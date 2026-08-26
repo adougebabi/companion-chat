@@ -239,6 +239,35 @@ class InnerStateService:
             raise InnerStateNotFoundError(fluctlight_id)
         return _snapshot_from_row(row)
 
+    async def goals_and_intentions(self, fluctlight_id: str) -> tuple[list[Goal], list[Intention]]:
+        async with self._unit_of_work.begin(command_id=f"inner-state-detail:{fluctlight_id}") as tx:
+            goal_rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.goals)
+                        .where(schema.goals.c.fluctlight_id == fluctlight_id)
+                        .order_by(schema.goals.c.updated_at.desc())
+                    )
+                )
+                .mappings()
+                .all()
+            )
+            intention_rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.intentions)
+                        .where(schema.intentions.c.fluctlight_id == fluctlight_id)
+                        .order_by(schema.intentions.c.updated_at.desc())
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        return (
+            [_goal_from_row(row) for row in goal_rows],
+            [_intention_from_row(row) for row in intention_rows],
+        )
+
     async def apply_assessment(
         self,
         fluctlight_id: str,

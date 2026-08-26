@@ -43,7 +43,7 @@ async def commit_workflow_intent(
     statement = (
         pg_insert(workflow_intents)
         .values(**asdict(intent))
-        .on_conflict_do_nothing(index_elements=[workflow_intents.c.intent_id])
+        .on_conflict_do_nothing()
         .returning(workflow_intents)
     )
     row = (await session.execute(statement)).mappings().one_or_none()
@@ -51,12 +51,17 @@ async def commit_workflow_intent(
         existing = (
             (
                 await session.execute(
-                    select(workflow_intents).where(workflow_intents.c.intent_id == intent.intent_id)
+                    select(workflow_intents).where(
+                        (workflow_intents.c.intent_id == intent.intent_id)
+                        | (workflow_intents.c.workflow_id == intent.workflow_id)
+                    )
                 )
             )
             .mappings()
             .one()
         )
+        if existing["intent_id"] != intent.intent_id:
+            raise RuntimeError("workflow id is already assigned to another intent")
         return CommittedWorkflowIntent(
             intent_id=existing["intent_id"],
             workflow_id=existing["workflow_id"],

@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-fluctlight}
       POSTGRES_USER: ${POSTGRES_USER:-fluctlight}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fluctlight-local-only}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in private env}
     volumes:
       - fluctlight_postgres:/var/lib/postgresql/data
       - ../postgres/10-temporal-databases.sql:/docker-entrypoint-initdb.d/10-temporal-databases.sql:ro
@@ -35,7 +35,7 @@ services:
     command: server /data --console-address :9001
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-fluctlight}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-fluctlight-local-only}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?set S3_SECRET_KEY in private env}
     volumes:
       - fluctlight_minio:/data
     healthcheck:
@@ -51,7 +51,7 @@ services:
       minio:
         condition: service_healthy
     environment:
-      MC_HOST_local: http://${S3_ACCESS_KEY:-fluctlight}:${S3_SECRET_KEY:-fluctlight-local-only}@minio:9000
+      MC_HOST_local: http://${S3_ACCESS_KEY:-fluctlight}:${S3_SECRET_KEY:?set S3_SECRET_KEY in private env}@minio:9000
     command: ["mb", "--ignore-existing", "--with-versioning", "local/${S3_BUCKET:-fluctlight-media}"]
     networks: [platform]
 
@@ -65,7 +65,7 @@ services:
       DB_PORT: 5432
       POSTGRES_SEEDS: postgres
       POSTGRES_USER: ${POSTGRES_USER:-fluctlight}
-      POSTGRES_PWD: ${POSTGRES_PASSWORD:-fluctlight-local-only}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in private env}
       DBNAME: temporal
       VISIBILITY_DB: postgres12
       VISIBILITY_DBNAME: temporal_visibility
@@ -88,16 +88,16 @@ services:
     environment: &core_environment
       FLUCTLIGHT_ENV: ${FLUCTLIGHT_ENV:-development}
       FLUCTLIGHT_ROLE: api
-      DATABASE_URL: postgresql://${POSTGRES_USER:-fluctlight}:${POSTGRES_PASSWORD:-fluctlight-local-only}@postgres:5432/${POSTGRES_DB:-fluctlight}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fluctlight}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in private env}@postgres:5432/${POSTGRES_DB:-fluctlight}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
       S3_BUCKET: ${S3_BUCKET:-fluctlight-media}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-fluctlight}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:-fluctlight-local-only}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY in private env}
       S3_USE_SSL: "false"
-      FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:-fluctlight-local-service-key}
-      FLUCTLIGHT_SETTINGS_KEY: ${FLUCTLIGHT_SETTINGS_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+      FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:?set FLUCTLIGHT_CORE_SERVICE_KEY in private env}
+      FLUCTLIGHT_SETTINGS_KEY: ${FLUCTLIGHT_SETTINGS_KEY:?set FLUCTLIGHT_SETTINGS_KEY in private env}
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
       FLUCTLIGHT_API_PORT: ${FLUCTLIGHT_API_PORT:-8080}
@@ -148,14 +148,14 @@ services:
       dockerfile: apps/bff/Dockerfile
     environment:
       CORE_BASE_URL: http://core:8080
-      FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:-fluctlight-local-service-key}
+      FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:?set FLUCTLIGHT_CORE_SERVICE_KEY in private env}
       FLUCTLIGHT_TRUSTED_ORIGIN: ${FLUCTLIGHT_TRUSTED_ORIGIN:-http://127.0.0.1:13001}
       BFF_PORT: 3000
     depends_on:
       core:
         condition: service_healthy
     ports:
-      - "127.0.0.1:13000:3000"
+      - "${BFF_HOST_PORT:-13000}:3000"
     networks: [platform]
 
   web:
@@ -170,12 +170,12 @@ services:
     environment:
       VITE_BFF_ORIGIN: http://127.0.0.1:13000
     ports:
-      - "127.0.0.1:13001:4173"
+      - "${WEB_HOST_PORT:-13001}:4173"
     networks: [platform]
 
 networks:
   platform:
-    internal: true
+    internal: false
 
 volumes:
   fluctlight_postgres:

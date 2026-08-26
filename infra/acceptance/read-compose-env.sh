@@ -33,3 +33,8 @@ assert_disposable_compose_project() {
     return 2
   fi
 }
+
+# Disposable validation projects must not contend with the user's long-running
+# local/NAS BFF and Web ports. Service-to-service checks use the Compose network.
+export BFF_HOST_PORT="${BFF_HOST_PORT:-0}"
+export WEB_HOST_PORT="${WEB_HOST_PORT:-0}"

@@ -1,6 +1,8 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from fluctlight_core.autonomy.bridge import CognitionAutonomyBridge
 from fluctlight_core.cognition.contracts import (
     ActionType,
     CognitionFact,
@@ -103,3 +105,52 @@ def test_active_cognition_writer_lease_blocks_same_and_different_worker_reclaim(
 
     assert CognitionService._lease_is_active(active, now) is True
     assert CognitionService._lease_is_active(expired, now) is False
+
+
+class _BridgeSettings:
+    async def runtime_value(self, key: str):
+        assert key == "product.autonomy"
+        return {"mode": "active", "allowed_actions": ["memory_candidate"]}
+
+
+class _BridgeAutonomy:
+    def __init__(self) -> None:
+        self.request = None
+
+    async def freeze_action(self, request):
+        self.request = request
+
+
+def test_cognition_autonomy_bridge_routes_only_explicit_candidate_actions() -> None:
+    autonomy = _BridgeAutonomy()
+    bridge = CognitionAutonomyBridge(autonomy, _BridgeSettings())
+    action = FrozenAction(
+        action_id="action-1",
+        decision_id="decision-1",
+        inbox_id="fact-1",
+        fluctlight_id="fl-1",
+        action_type=ActionType.MEMORY_CANDIDATE,
+        payload={"content": "explicit", "cost": 0.2},
+        state_revision=4,
+        provider_request_id="provider-1",
+    )
+
+    asyncio.run(bridge(action))
+    assert autonomy.request.action_id == "autonomy_action-1"
+    assert autonomy.request.expected_revisions == {"cognition": 4}
+
+    asyncio.run(
+        bridge(
+            FrozenAction(
+                action_id="action-2",
+                decision_id="decision-2",
+                inbox_id="fact-2",
+                fluctlight_id="fl-1",
+                action_type=ActionType.REPLY,
+                payload={"text": "visible"},
+                state_revision=5,
+                provider_request_id="provider-2",
+            )
+        )
+    )
+    assert autonomy.request.action_id == "autonomy_action-1"

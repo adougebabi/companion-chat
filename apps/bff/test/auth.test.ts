@@ -59,3 +59,34 @@ test("revoke-all requires Origin and clears the session after Core accepts it", 
   assert.match(String(response.headers["set-cookie"]), /fluctlight_session=;/);
   await app.close();
 });
+
+test("setup status reveals no token and password change clears all browser sessions", async () => {
+  const requests: Array<{ path: string; session: string }> = [];
+  const app = createBff({
+    coreBaseUrl: "http://core.invalid",
+    coreServiceKey: "internal",
+    trustedOrigin: "https://fluctlight.local",
+    fetcher: async (url, init) => {
+      const path = new URL(typeof url === "string" ? url : url.toString()).pathname;
+      requests.push({ path, session: new Headers(init?.headers).get("x-fluctlight-human-session") ?? "" });
+      if (path === "/internal/auth/setup-status") return Response.json({ setup_available: true });
+      return new Response(null, { status: 204 });
+    },
+  });
+  const status = await app.inject({ method: "GET", url: "/auth/setup-status" });
+  assert.deepEqual(status.json(), { setupAvailable: true });
+  const password = await app.inject({
+    method: "POST",
+    url: "/auth/password",
+    headers: { origin: "https://fluctlight.local", "x-csrf-token": "csrf-token" },
+    cookies: { fluctlight_session: "opaque", fluctlight_csrf: "csrf-token" },
+    payload: { password: "a-long-enough-password" },
+  });
+  assert.equal(password.statusCode, 204);
+  assert.deepEqual(requests, [
+    { path: "/internal/auth/setup-status", session: "" },
+    { path: "/internal/auth/reset-password", session: "opaque" },
+  ]);
+  assert.match(String(password.headers["set-cookie"]), /fluctlight_session=;/);
+  await app.close();
+});

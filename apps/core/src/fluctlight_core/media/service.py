@@ -64,6 +64,7 @@ class MediaService:
                     or existing["prompt"] != intent.prompt
                     or existing["provider_request_id"] != intent.provider_request_id
                     or existing["workflow_id"] != intent.workflow_id
+                    or existing["conversation_id"] != intent.conversation_id
                 ):
                     raise ValueError(
                         "media intent ID was reused with different authoritative content"
@@ -78,6 +79,7 @@ class MediaService:
                     prompt=intent.prompt,
                     provider_request_id=intent.provider_request_id,
                     workflow_id=intent.workflow_id,
+                    conversation_id=intent.conversation_id,
                     status=intent.status.value,
                     revision=intent.revision,
                     created_at=intent.created_at,
@@ -143,6 +145,7 @@ class MediaService:
             prompt=row["prompt"],
             provider_request_id=row["provider_request_id"],
             workflow_id=row["workflow_id"],
+            conversation_id=row["conversation_id"],
             status=row["status"],
             revision=int(row["revision"]),
             created_at=row["created_at"],
@@ -325,6 +328,32 @@ class MediaService:
     async def read_object(self, authorized: AuthorizedMediaRead) -> tuple[bytes, str | None]:
         return self._storage.read(authorized.grant)
 
+    async def summaries(
+        self, asset_ids: tuple[str, ...], *, actor_id: str
+    ) -> list[dict[str, str]]:
+        if not asset_ids:
+            return []
+        async with self._unit_of_work.begin(command_id=f"media-summaries:{len(asset_ids)}") as tx:
+            rows = (
+                await tx.session.execute(
+                    select(schema.assets).where(
+                        schema.assets.c.id.in_(asset_ids),
+                        schema.assets.c.status == MediaStatus.READY.value,
+                    )
+                )
+            ).mappings().all()
+        result: list[dict[str, str]] = []
+        for row in rows:
+            if await self._authorized(row["owner_fluctlight_id"], actor_id):
+                result.append(
+                    {
+                        "id": str(row["id"]),
+                        "kind": str(row["kind"]),
+                        "mime_type": str(row["mime_type"]),
+                    }
+                )
+        return result
+
     async def tombstone(self, asset_id: str, *, actor_id: str, reason: str) -> None:
         now = datetime.now(UTC)
         async with self._unit_of_work.begin(command_id=f"media-tombstone:{asset_id}") as tx:
@@ -447,8 +476,8 @@ class MediaWorkflowAdapter:
         poll_interval_seconds: float = 1.0,
     ) -> MediaWorkflowResult:
         request_id = await provider.submit(intent)
-        if request_id != intent.provider_request_id:
-            raise ValueError("Provider returned an unexpected stable request ID")
+        if not request_id:
+            raise ValueError("Provider returned no request ID")
         for _ in range(max_polls):
             if cancelled and cancelled():
                 await provider.cancel(request_id)

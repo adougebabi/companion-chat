@@ -25,6 +25,11 @@
         "operationId": "authSetup"
       }
     },
+    "/auth/setup-status": {
+      "get": {
+        "operationId": "authSetupStatus"
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "authLogin"
@@ -45,6 +50,11 @@
         "operationId": "authRevokeAll"
       }
     },
+    "/auth/password": {
+      "post": {
+        "operationId": "authChangePassword"
+      }
+    },
     "/api/settings": {
       "get": {
         "operationId": "readSettings"
@@ -54,8 +64,21 @@
       }
     },
     "/api/providers/endpoints": {
+      "get": {
+        "operationId": "listProviderEndpoints"
+      },
       "put": {
         "operationId": "configureProviderEndpoint"
+      }
+    },
+    "/api/providers/endpoints/{endpointId}/models": {
+      "get": {
+        "operationId": "listProviderEndpointModels"
+      }
+    },
+    "/api/providers": {
+      "get": {
+        "operationId": "providerBindings"
       }
     },
     "/api/providers/roles": {
@@ -76,9 +99,197 @@
         "operationId": "createFluctlight"
       }
     },
+    "/api/actor-groups": {
+      "get": {
+        "operationId": "listActorGroups"
+      },
+      "post": {
+        "operationId": "createActorGroup"
+      }
+    },
+    "/api/actor-groups/{groupId}/members": {
+      "post": {
+        "operationId": "assignActorGroupMember"
+      }
+    },
+    "/api/actor-groups/{groupId}/members/{actorId}": {
+      "delete": {
+        "operationId": "removeActorGroupMember"
+      }
+    },
     "/api/fluctlights/{fluctlightId}": {
       "get": {
         "operationId": "getFluctlight"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/conversation": {
+      "get": {
+        "operationId": "fluctlightDirectConversation"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/moments": {
+      "get": {
+        "operationId": "fluctlightMoments"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/moments/read": {
+      "post": {
+        "operationId": "markFluctlightMomentsRead"
+      }
+    },
+    "/api/moments": {
+      "get": {
+        "operationId": "globalMoments"
+      }
+    },
+    "/api/memories/{memoryId}": {
+      "put": {
+        "operationId": "reviseMemory"
+      }
+    },
+    "/api/memories/{memoryId}/forget": {
+      "post": {
+        "operationId": "forgetMemory"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/relationships/rollback": {
+      "post": {
+        "operationId": "rollbackRelationship"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/autonomy-actions": {
+      "get": {
+        "operationId": "listAutonomyActions"
+      }
+    },
+    "/api/autonomy-actions/{actionId}/govern": {
+      "post": {
+        "operationId": "governAutonomyAction"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/events": {
+      "post": {
+        "operationId": "createLifeEvent"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/events/{eventId}/cancel": {
+      "post": {
+        "operationId": "cancelLifeEvent"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/presence": {
+      "put": {
+        "operationId": "setLifePresence"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/schedules": {
+      "post": {
+        "operationId": "acceptLifeSchedule"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/schedules/{scheduleId}/cancel": {
+      "post": {
+        "operationId": "cancelLifeSchedule"
+      }
+    },
+    "/api/diagnostics/workflows": {
+      "get": {
+        "operationId": "listWorkflows"
+      }
+    },
+    "/api/diagnostics/workflows/{workflowId}/status": {
+      "get": {
+        "operationId": "workflowStatus"
+      }
+    },
+    "/api/diagnostics/workflows/{workflowId}/history": {
+      "get": {
+        "operationId": "workflowHistory"
+      }
+    },
+    "/api/diagnostics/workflows/{workflowId}/pause": {
+      "post": {
+        "operationId": "pauseWorkflow"
+      }
+    },
+    "/api/diagnostics/workflows/{workflowId}/resume": {
+      "post": {
+        "operationId": "resumeWorkflow"
+      }
+    },
+    "/api/diagnostics/workflows/{workflowId}/cancel": {
+      "post": {
+        "operationId": "cancelWorkflow"
+      }
+    },
+    "/api/diagnostics/workflows/{workflowId}/reset": {
+      "post": {
+        "operationId": "resetWorkflow"
+      }
+    },
+    "/api/diagnostics/workflows/{workflowId}/restart": {
+      "post": {
+        "operationId": "restartWorkflow"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/detail": {
+      "get": {
+        "operationId": "fluctlightDetail"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/status": {
+      "put": {
+        "operationId": "setFluctlightStatus"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/foundation-revisions": {
+      "post": {
+        "operationId": "submitFoundationRevision"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/foundation-revisions/{revisionId}/accept": {
+      "post": {
+        "operationId": "acceptFoundationRevision"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/foundation-revisions/{revisionId}/reject": {
+      "post": {
+        "operationId": "rejectFoundationRevision"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/foundation-revisions/rollback": {
+      "post": {
+        "operationId": "rollbackFoundationRevision"
+      }
+    },
+    "/api/moments/{momentId}/comments": {
+      "post": {
+        "operationId": "commentOnMoment"
+      }
+    },
+    "/api/moments/{momentId}/reactions": {
+      "post": {
+        "operationId": "reactToMoment"
+      }
+    },
+    "/api/moments/{momentId}/hide": {
+      "post": {
+        "operationId": "hideMoment"
+      }
+    },
+    "/api/moments/{momentId}/restore": {
+      "post": {
+        "operationId": "restoreMoment"
+      }
+    },
+    "/api/fluctlight-creations/analysis": {
+      "post": {
+        "operationId": "analyzeFluctlightCreation"
+      }
+    },
+    "/api/fluctlight-creations/activate": {
+      "post": {
+        "operationId": "activateFluctlightCreation"
       }
     },
     "/api/conversations/{conversationId}/messages": {
@@ -102,6 +313,16 @@
       },
       "delete": {
         "operationId": "clearDiagnostics"
+      }
+    },
+    "/api/diagnostics/model-runs": {
+      "get": {
+        "operationId": "readDiagnosticModelRuns"
+      }
+    },
+    "/api/diagnostics/export": {
+      "get": {
+        "operationId": "exportDiagnostics"
       }
     },
     "/api/media/{assetId}": {

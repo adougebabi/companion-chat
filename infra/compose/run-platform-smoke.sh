@@ -4,6 +4,8 @@ set -eu
 compose_file="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/fluctlight.compose.yml"
 env_file="${FLUCTLIGHT_ENV_FILE:-$(dirname "$compose_file")/fluctlight.env}"
 project_name="fluctlight-smoke-$$"
+export BFF_HOST_PORT="${BFF_HOST_PORT:-0}"
+export WEB_HOST_PORT="${WEB_HOST_PORT:-0}"
 
 if [ ! -f "$env_file" ]; then
   printf '%s\n' "Missing private environment file: $env_file" >&2

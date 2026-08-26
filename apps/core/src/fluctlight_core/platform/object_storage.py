@@ -9,6 +9,14 @@ from typing import Any
 from uuid import uuid4
 
 
+class RangeNotSatisfiable(ValueError):
+    """Raised when a requested byte range cannot address this object version."""
+
+    def __init__(self, byte_size: int) -> None:
+        super().__init__("object range is outside the asset")
+        self.byte_size = byte_size
+
+
 @dataclass(frozen=True, slots=True)
 class ObjectDescriptor:
     bucket: str
@@ -66,7 +74,7 @@ class S3ObjectStorage:
     ) -> InternalObjectGrant:
         if ttl_seconds < 1 or ttl_seconds > 300:
             raise ValueError("object grant ttl must be between 1 and 300 seconds")
-        self._validate_range(allowed_range, descriptor.byte_size)
+        normalized_range = self._normalize_range(allowed_range, descriptor.byte_size)
         request = {"Bucket": descriptor.bucket, "Key": descriptor.key}
         if descriptor.version_id:
             request["VersionId"] = descriptor.version_id
@@ -74,7 +82,7 @@ class S3ObjectStorage:
             grant_id=str(uuid4()),
             descriptor=descriptor,
             expires_at=datetime.now(UTC) + timedelta(seconds=ttl_seconds),
-            allowed_range=allowed_range,
+            allowed_range=normalized_range,
             request=request,
         )
 
@@ -86,16 +94,31 @@ class S3ObjectStorage:
         return response["Body"].read(), response.get("ETag")
 
     @staticmethod
-    def _validate_range(policy: str, byte_size: int) -> None:
+    def _normalize_range(policy: str, byte_size: int) -> str:
         if policy == "full":
-            return
+            return policy
+        if byte_size < 1:
+            raise RangeNotSatisfiable(byte_size)
         if not policy.startswith("bytes=") or "-" not in policy:
-            raise ValueError("object range policy is invalid")
+            raise RangeNotSatisfiable(byte_size)
         start_text, end_text = policy[6:].split("-", 1)
+        if "," in start_text or "," in end_text:
+            # Multiple ranges are not part of the proxy contract.
+            raise RangeNotSatisfiable(byte_size)
         try:
-            start = int(start_text)
-            end = int(end_text)
+            if not start_text and not end_text:
+                raise ValueError
+            if start_text:
+                start = int(start_text)
+                end = int(end_text) if end_text else byte_size - 1
+            else:
+                suffix_length = int(end_text)
+                if suffix_length <= 0:
+                    raise ValueError
+                start = max(byte_size - suffix_length, 0)
+                end = byte_size - 1
         except ValueError as exc:
-            raise ValueError("object range policy is invalid") from exc
+            raise RangeNotSatisfiable(byte_size) from exc
         if start < 0 or end < start or end >= byte_size:
-            raise ValueError("object range is outside the asset")
+            raise RangeNotSatisfiable(byte_size)
+        return f"bytes={start}-{end}"

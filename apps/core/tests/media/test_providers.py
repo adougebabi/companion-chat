@@ -4,7 +4,11 @@ import json
 import httpx
 import pytest
 from fluctlight_core.media.contracts import MediaIntent, MediaKind
-from fluctlight_core.media.providers import ComfyUiPlugin, MediaProviderConfigurationError
+from fluctlight_core.media.providers import (
+    ComfyUiPlugin,
+    MediaProviderConfigurationError,
+    MediaProviderRequestError,
+)
 
 
 def test_comfyui_plugin_replaces_exactly_one_configured_prompt_placeholder() -> None:
@@ -37,21 +41,21 @@ def test_comfyui_plugin_rejects_ambiguous_prompt_configuration(workflow: object)
         ComfyUiPlugin.from_config({"baseUrl": "http://comfyui:8188", "workflow": workflow})
 
 
-def test_comfyui_plugin_submits_polls_downloads_and_cancels_with_stable_prompt_id() -> None:
+def test_comfyui_plugin_submits_workflow_and_uses_comfyui_prompt_id() -> None:
     calls: list[tuple[str, str]] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         calls.append((request.method, request.url.path))
         if request.method == "POST" and request.url.path == "/prompt":
             body = json.loads(request.content)
-            assert body["prompt_id"] == "provider-1"
+            assert "prompt_id" not in body
             assert body["prompt"]["3"]["inputs"]["text"] == "frozen prompt"
-            return httpx.Response(200, json={"prompt_id": "provider-1"})
-        if request.method == "GET" and request.url.path == "/history/provider-1":
+            return httpx.Response(200, json={"prompt_id": "comfyui-1"})
+        if request.method == "GET" and request.url.path == "/history/comfyui-1":
             return httpx.Response(
                 200,
                 json={
-                    "provider-1": {
+                    "comfyui-1": {
                         "outputs": {
                             "9": {
                                 "images": [
@@ -85,8 +89,8 @@ def test_comfyui_plugin_submits_polls_downloads_and_cancels_with_stable_prompt_i
         "workflow-1",
     )
 
-    assert asyncio.run(plugin.submit(intent)) == "provider-1"
-    outcome = asyncio.run(plugin.poll("provider-1"))
+    assert asyncio.run(plugin.submit(intent)) == "comfyui-1"
+    outcome = asyncio.run(plugin.poll("comfyui-1"))
     assert outcome is not None and outcome["status"] == "completed"
     downloaded = asyncio.run(plugin.download(outcome["output"]))
     asyncio.run(plugin.cancel("provider-1"))
@@ -95,8 +99,33 @@ def test_comfyui_plugin_submits_polls_downloads_and_cancels_with_stable_prompt_i
     assert downloaded.content_type == "image/png"
     assert calls == [
         ("POST", "/prompt"),
-        ("GET", "/history/provider-1"),
+        ("GET", "/history/comfyui-1"),
         ("GET", "/view"),
         ("POST", "/queue"),
         ("POST", "/interrupt"),
     ]
+
+
+def test_comfyui_plugin_exposes_a_bounded_validation_error() -> None:
+    plugin = ComfyUiPlugin(
+        "http://comfyui:8188",
+        {"3": {"inputs": {"text": "{{prompt}}"}}},
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(400, text="invalid node input: resolution")
+        ),
+    )
+    intent = MediaIntent(
+        "intent-invalid",
+        "fl-1",
+        MediaKind.IMAGE,
+        "image/png",
+        "prompt",
+        "provider-invalid",
+        "workflow-invalid",
+    )
+
+    with pytest.raises(MediaProviderRequestError, match="HTTP 400") as error:
+        asyncio.run(plugin.submit(intent))
+
+    assert error.value.status_code == 400
+    assert error.value.detail == "invalid node input: resolution"

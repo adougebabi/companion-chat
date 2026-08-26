@@ -19,6 +19,25 @@ class SettingsError(RuntimeError):
     pass
 
 
+def _validate_runtime_setting(key: str, value: object) -> None:
+    """Keep runtime settings explicit rather than accepting a silent KV bag."""
+
+    if key == "media.comfyui":
+        if not isinstance(value, dict):
+            raise SettingsError("media.comfyui must be an object")
+        base_url, workflow = value.get("baseUrl"), value.get("workflow")
+        if not isinstance(base_url, str) or not base_url.startswith(("http://", "https://")):
+            raise SettingsError("media.comfyui.baseUrl must be an HTTP URL")
+        if not isinstance(workflow, dict) or not workflow:
+            raise SettingsError("media.comfyui.workflow must be a non-empty object")
+        return
+    if key in {"product.autonomy", "diagnostics.retention", "media.h3"}:
+        if not isinstance(value, dict):
+            raise SettingsError(f"{key} must be an object")
+        return
+    raise SettingsError(f"{key} is not a registered runtime setting")
+
+
 @dataclass(frozen=True, slots=True)
 class SafeSettingsView:
     values: dict[str, object]
@@ -59,12 +78,14 @@ class SettingsService:
         await self._require_owner(actor)
         async with self._unit_of_work.begin(command_id=f"settings-update:{uuid4()}") as tx:
             for key, value in values.items():
+                _validate_runtime_setting(key, value)
                 await tx.session.execute(
                     delete(schema.runtime_settings).where(schema.runtime_settings.c.key == key)
                 )
                 await tx.session.execute(
                     insert(schema.runtime_settings).values(key=key, value_json=json.dumps(value))
                 )
+                await self._audit(tx, actor.actor_id, key, "updated")
             for purpose, plaintext in secrets.items():
                 if purpose in clear_secrets:
                     raise SettingsError("a secret cannot be set and cleared in one patch")
@@ -93,6 +114,14 @@ class SettingsService:
         return await self.read(actor)
 
     async def resolve_provider_secret(self, purpose: str) -> SecretValue:
+        secret = await self.resolve_optional_provider_secret(purpose)
+        if secret is None:
+            raise SecretConfigurationError("provider secret is not configured")
+        return secret
+
+    async def resolve_optional_provider_secret(self, purpose: str) -> SecretValue | None:
+        """Resolve a configured Provider key, or explicitly allow no authentication."""
+
         async with self._unit_of_work.begin(command_id=f"settings-secret:{uuid4()}") as tx:
             row = (
                 (
@@ -106,7 +135,7 @@ class SettingsService:
                 .one_or_none()
             )
         if row is None:
-            raise SecretConfigurationError("provider secret is not configured")
+            return None
         return self._codec.decrypt(EncryptedSecret(row["ciphertext"], row["nonce"], purpose))
 
     async def runtime_value(self, key: str) -> object | None:

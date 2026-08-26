@@ -74,6 +74,17 @@ class AuthService:
             await tx.commit()
         return token
 
+    async def setup_available(self) -> bool:
+        """Expose only whether first-run setup can be attempted.
+
+        The one-time token remains a local-only secret. The atomic setup command
+        remains the authority if two browser requests race after this read.
+        """
+
+        async with self._unit_of_work.begin(command_id=f"setup-status:{uuid4()}") as tx:
+            owner = await tx.session.scalar(select(schema.owner_accounts.c.human_actor_id))
+        return owner is None
+
     async def setup(self, *, setup_token: str, password: str) -> SessionResult:
         now = datetime.now(UTC)
         token_hash = sha256(setup_token.encode()).hexdigest()
@@ -221,6 +232,11 @@ class AuthService:
         async with self._unit_of_work.begin(command_id=f"owner-check:{uuid4()}") as tx:
             owner = await tx.session.scalar(select(schema.owner_accounts.c.human_actor_id))
         return owner == actor.actor_id
+
+    async def owner_actor_id(self) -> str | None:
+        async with self._unit_of_work.begin(command_id=f"owner-read:{uuid4()}") as tx:
+            owner = await tx.session.scalar(select(schema.owner_accounts.c.human_actor_id))
+        return str(owner) if owner is not None else None
 
     async def _insert_session(
         self,

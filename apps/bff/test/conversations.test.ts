@@ -29,7 +29,7 @@ test("conversation routes map Core fields and preserve the browser session bound
     url: "/api/conversations",
     headers: { origin: "https://fluctlight.local", "x-csrf-token": "csrf-token" },
     cookies: { fluctlight_session: "opaque-session", fluctlight_csrf: "csrf-token" },
-    payload: { title: "Chat" },
+    payload: { title: "Chat", participantActorIds: ["fl-1"] },
   });
   assert.equal(created.statusCode, 200);
   assert.equal(created.json().conversation.createdByActorId, "human-1");
@@ -38,12 +38,20 @@ test("conversation routes map Core fields and preserve the browser session bound
     url: "/api/conversations/conversation-1/turn",
     headers: { origin: "https://fluctlight.local", "x-csrf-token": "csrf-token" },
     cookies: { fluctlight_session: "opaque-session", fluctlight_csrf: "csrf-token" },
-    payload: { text: "hello", idempotencyKey: "turn-1" },
+    payload: { text: "hello", fluctlightId: "fl-1", idempotencyKey: "turn-1" },
   });
   assert.equal(stream.statusCode, 200);
   assert.match(stream.headers["content-type"] ?? "", /application\/x-ndjson/);
   assert.match(stream.body, /completed/);
   assert.ok(seen.some((value) => value.includes("/internal/conversations/conversation-1/turn")));
+  const direct = await app.inject({
+    method: "GET",
+    url: "/api/fluctlights/fl-1/conversation",
+    cookies: { fluctlight_session: "opaque-session" },
+  });
+  assert.equal(direct.statusCode, 200);
+  assert.equal(direct.json().conversation.id, "conversation-1");
+  assert.ok(seen.some((value) => value.includes("/internal/fluctlights/fl-1/conversation")));
   const preflight = await app.inject({
     method: "OPTIONS",
     url: "/api/conversations/conversation-1/turn",

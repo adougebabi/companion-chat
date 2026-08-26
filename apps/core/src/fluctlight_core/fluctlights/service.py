@@ -229,6 +229,26 @@ class FluctlightService:
             )
         return [_snapshot_from_row(row) for row in rows]
 
+    async def revision_history(
+        self, fluctlight_id: str, *, limit: int = 50
+    ) -> list[FoundationRevision]:
+        async with self._unit_of_work.begin(
+            command_id=f"fluctlight-revisions:{fluctlight_id}"
+        ) as tx:
+            rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.foundation_revisions)
+                        .where(schema.foundation_revisions.c.fluctlight_id == fluctlight_id)
+                        .order_by(schema.foundation_revisions.c.revision.desc())
+                        .limit(min(max(limit, 1), 100))
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        return [_revision_from_row(row) for row in rows]
+
     async def submit_revision(
         self, request: FoundationRevisionRequest, *, tx: UnitOfWork | None = None
     ) -> FoundationRevision:
@@ -321,6 +341,7 @@ class FluctlightService:
                     personality=candidate.personality.as_payload(),
                     behavioral_policy=candidate.behavioral_policy.as_payload(),
                     evidence_refs=list(request.evidence_refs),
+                    reason=request.reason,
                     idempotency_key=request.idempotency_key,
                     created_at=now,
                 )
@@ -339,6 +360,7 @@ class FluctlightService:
             idempotency_key=request.idempotency_key,
             created_at=now,
             confidence=request.confidence,
+            reason=request.reason,
         )
 
     async def accept_revision(
@@ -347,6 +369,7 @@ class FluctlightService:
         revision_id: str,
         actor_id: str,
         expected_revision: int,
+        reason: str | None = None,
         tx: UnitOfWork | None = None,
     ) -> FluctlightSnapshot:
         now = datetime.now(UTC)
@@ -394,6 +417,7 @@ class FluctlightService:
                     revision_id=revision_id,
                     action="accept",
                     actor_id=actor_id,
+                    reason=reason.strip()[:1024] if reason and reason.strip() else None,
                     created_at=now,
                 )
             )
@@ -404,6 +428,7 @@ class FluctlightService:
         *,
         revision_id: str,
         actor_id: str,
+        expected_revision: int,
         reason: str,
         tx: UnitOfWork | None = None,
     ) -> FoundationRevision:
@@ -414,6 +439,9 @@ class FluctlightService:
                 raise FluctlightLifecycleError("only a proposed revision can be rejected")
             if actor_id != row["actor_id"]:
                 raise FluctlightLifecycleError("only the revision actor may reject this revision")
+            current_row = await self._fluctlight_row(tx, row["fluctlight_id"], for_update=True)
+            if current_row["current_revision"] != expected_revision:
+                raise RevisionConflictError("revision rejection expected revision is stale")
             await tx.session.execute(
                 update(schema.foundation_revisions)
                 .where(schema.foundation_revisions.c.id == revision_id)
@@ -580,6 +608,59 @@ class FluctlightService:
             updated_at=now,
         )
 
+    async def set_activity_status(
+        self,
+        *,
+        fluctlight_id: str,
+        actor_id: str,
+        expected_revision: int,
+        status: FluctlightStatus,
+        reason: str,
+    ) -> FluctlightSnapshot:
+        """Pause or resume without erasing lifecycle/revision history."""
+
+        next_status = FluctlightStatus(status)
+        if next_status not in {FluctlightStatus.ACTIVE, FluctlightStatus.PAUSED}:
+            raise FluctlightLifecycleError("activity status must be active or paused")
+        if not reason.strip():
+            raise FluctlightLifecycleError("status governance requires a reason")
+        now = datetime.now(UTC)
+        async with self._unit_of_work.begin(
+            command_id=f"fluctlight-status:{fluctlight_id}:{next_status.value}"
+        ) as tx:
+            current = await self._fluctlight_row(tx, fluctlight_id, for_update=True)
+            if current["status"] == FluctlightStatus.RETIRED.value:
+                raise FluctlightLifecycleError("a retired Fluctlight cannot be resumed")
+            if int(current["current_revision"]) != expected_revision:
+                raise RevisionConflictError("status governance expected revision is stale")
+            revision_id = await tx.session.scalar(
+                select(schema.foundation_revisions.c.id).where(
+                    schema.foundation_revisions.c.fluctlight_id == fluctlight_id,
+                    schema.foundation_revisions.c.revision == expected_revision,
+                    schema.foundation_revisions.c.status == RevisionStatus.ACCEPTED.value,
+                )
+            )
+            if revision_id is None:
+                raise FluctlightLifecycleError("current foundation revision is not auditable")
+            await tx.session.execute(
+                update(schema.fluctlights)
+                .where(schema.fluctlights.c.id == fluctlight_id)
+                .values(status=next_status.value, updated_at=now)
+            )
+            await tx.session.execute(
+                insert(schema.foundation_governance).values(
+                    id=f"foundation_governance_{uuid4().hex}",
+                    fluctlight_id=fluctlight_id,
+                    revision_id=revision_id,
+                    action=next_status.value,
+                    actor_id=actor_id,
+                    reason=reason.strip()[:1024],
+                    created_at=now,
+                )
+            )
+            await tx.commit()
+        return replace(_snapshot_from_row(current), status=next_status, updated_at=now)
+
     async def _fluctlight_row(self, tx, fluctlight_id: str, *, for_update: bool = False):
         statement = select(schema.fluctlights).where(schema.fluctlights.c.id == fluctlight_id)
         if for_update:
@@ -632,4 +713,5 @@ def _revision_from_row(row: Any) -> FoundationRevision:
         created_at=_parse_datetime(row["created_at"], "created_at"),
         accepted_at=_parse_optional_datetime(row.get("accepted_at")),
         confidence=float(row.get("confidence", 1.0)),
+        reason=row.get("reason"),
     )

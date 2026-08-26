@@ -20,6 +20,7 @@ from temporalio.common import VersioningBehavior
 from temporalio.worker import Worker, WorkerDeploymentConfig, WorkerDeploymentVersion
 
 from fluctlight_core.actors.service import AuthService
+from fluctlight_core.autonomy.bridge import CognitionAutonomyBridge
 from fluctlight_core.autonomy.executors import AutonomyExecutor
 from fluctlight_core.autonomy.service import AutonomyService
 from fluctlight_core.autonomy.workflows import (
@@ -35,6 +36,7 @@ from fluctlight_core.cognition.workflows import (
 )
 from fluctlight_core.conversations.service import ConversationService
 from fluctlight_core.diagnostics.service import DiagnosticsService
+from fluctlight_core.fluctlights.service import FluctlightService
 from fluctlight_core.inner_state import CognitionStateApplier, InnerStateService
 from fluctlight_core.life_world.service import LifeWorldService
 from fluctlight_core.media.service import MediaService
@@ -62,16 +64,21 @@ from fluctlight_core.providers.adapters import OpenAICompatibleAdapter
 from fluctlight_core.providers.runtime import ConfiguredProviderRuntime
 from fluctlight_core.providers.service import ProviderConfigurationService
 from fluctlight_core.reflection.service import ReflectionCoordinator
+from fluctlight_core.reflection.workflows import (
+    ReflectionWorkflow,
+    configure_reflection_service,
+    run_reflection,
+)
 from fluctlight_core.relationships.service import RelationshipService
 from fluctlight_core.settings.crypto import SecretCodec
 from fluctlight_core.settings.service import SettingsService
 
-EXPECTED_REVISION = "0012_t12_consumer_effects"
+EXPECTED_REVISION = "0016_media_intent_conversation"
 logger = logging.getLogger(__name__)
 
 
 def deployment_config(build_id: str | None = None) -> WorkerDeploymentConfig:
-    resolved_build_id = build_id or os.environ.get("FLUCTLIGHT_BUILD_ID", "platform-v1")
+    resolved_build_id = build_id or os.environ.get("FLUCTLIGHT_BUILD_ID") or "platform-v1"
     return WorkerDeploymentConfig(
         version=WorkerDeploymentVersion(deployment_name="fluctlight", build_id=resolved_build_id),
         use_worker_versioning=True,
@@ -101,7 +108,7 @@ async def bootstrap_streams_with_retry(
 
 async def activate_deployment_version(client: Client, build_id: str | None = None) -> None:
     deployment_name = "fluctlight"
-    build_id = build_id or os.environ.get("FLUCTLIGHT_BUILD_ID", "platform-v1")
+    build_id = build_id or os.environ.get("FLUCTLIGHT_BUILD_ID") or "platform-v1"
     description = await client.workflow_service.describe_worker_deployment(
         DescribeWorkerDeploymentRequest(
             namespace=client.namespace,
@@ -133,17 +140,19 @@ async def run_worker(settings: PlatformSettings) -> None:
         auth,
         settings_service,
         provider_adapter.preflight,
+        provider_adapter.list_models,
     )
+    diagnostics = DiagnosticsService(unit_of_work)
     provider_runtime = ConfiguredProviderRuntime(
         unit_of_work,
         settings_service,
         adapter=provider_adapter,
         provenance_recorder=provider_service.record_provenance,
+        diagnostics=diagnostics,
     )
     memory_service = MemoryService(unit_of_work)
     relationships = RelationshipService(unit_of_work)
     inner_state = InnerStateService(unit_of_work)
-    diagnostics = DiagnosticsService(unit_of_work)
     object_client = boto3.client(
         "s3",
         endpoint_url=settings.s3_endpoint,
@@ -156,31 +165,39 @@ async def run_worker(settings: PlatformSettings) -> None:
         unit_of_work,
         S3ObjectStorage(object_client, settings.s3_bucket),
     )
-    autonomy_service = AutonomyService(unit_of_work)
+    conversation_service = ConversationService(unit_of_work)
+    fluctlight_service = FluctlightService(unit_of_work)
+
+    async def fluctlight_activity_status(fluctlight_id: str) -> str:
+        return (await fluctlight_service.get(fluctlight_id)).status.value
+
+    autonomy_service = AutonomyService(unit_of_work, status_resolver=fluctlight_activity_status)
     configure_embedding_service(memory_service, provider_runtime, unit_of_work)
-    configure_media_service(media_service, settings_service)
+    configure_media_service(media_service, settings_service, conversation_service, diagnostics)
     configure_autonomy_service(
         autonomy_service,
         AutonomyExecutor(
-            conversations=ConversationService(unit_of_work),
+            conversations=conversation_service,
             memory=memory_service,
             relationships=relationships,
             life_world=LifeWorldService(unit_of_work),
             media=media_service,
             moments=MomentsService(unit_of_work),
+            media_prompt=provider_runtime,
         ),
     )
-    configure_cognition_service(
-        CognitionService(
+    cognition_service = CognitionService(
             unit_of_work,
             provider_runtime,
             provider_runtime,
             reflection_provider=provider_runtime,
             reflection_applier=ReflectionCoordinator(memory_service, relationships),
             state_applier=CognitionStateApplier(inner_state),
+            autonomy_freezer=CognitionAutonomyBridge(autonomy_service, settings_service),
             diagnostics=diagnostics,
         )
-    )
+    configure_cognition_service(cognition_service)
+    configure_reflection_service(cognition_service)
     redis = Redis.from_url(settings.redis_url, decode_responses=True)
     streams = RedisStreams(redis)
     await bootstrap_streams_with_retry(streams)
@@ -208,6 +225,7 @@ async def run_worker(settings: PlatformSettings) -> None:
             "autonomy": AutonomyActionWorkflow,
             "media": MediaGenerationWorkflow,
             "memory": MemoryEmbeddingWorkflow,
+            "reflection": ReflectionWorkflow,
         },
     )
     workers = [
@@ -219,6 +237,7 @@ async def run_worker(settings: PlatformSettings) -> None:
                 process_memory_embedding,
                 process_media_generation,
                 process_autonomy_action,
+                run_reflection,
             ],
             workflows=[
                 PlatformControlWorkflow,
@@ -226,6 +245,7 @@ async def run_worker(settings: PlatformSettings) -> None:
                 AutonomyActionWorkflow,
                 MediaGenerationWorkflow,
                 MemoryEmbeddingWorkflow,
+                ReflectionWorkflow,
             ],
             max_concurrent_workflow_tasks=1 if queue != "interaction" else 2,
             max_cached_workflows=50,
@@ -265,6 +285,25 @@ async def run_worker(settings: PlatformSettings) -> None:
                 except Exception as exc:
                     logger.warning("worker outbox loop retry: error=%s", type(exc).__name__)
             await asyncio.sleep(1)
+
+    async def diagnostics_retention_loop() -> None:
+        while not stop.is_set():
+            try:
+                owner_actor_id = await auth.owner_actor_id()
+                if owner_actor_id is not None:
+                    value = await settings_service.runtime_value("diagnostics.retention")
+                    config = value if isinstance(value, dict) else {}
+                    days = int(config.get("retention_days", 30))
+                    max_rows = int(config.get("max_rows", 10_000))
+                    await diagnostics.enforce_retention(
+                        actor_id=owner_actor_id,
+                        owner_actor_id=owner_actor_id,
+                        retention_days=days,
+                        max_rows=max_rows,
+                    )
+            except Exception as exc:
+                logger.warning("diagnostics retention retry: error=%s", type(exc).__name__)
+            await asyncio.sleep(60 * 60)
 
     async def consume_loop(group: str) -> None:
         effect_types = {
@@ -319,6 +358,7 @@ async def run_worker(settings: PlatformSettings) -> None:
     await activate_deployment_version(client, build_id)
     tasks.append(asyncio.create_task(dispatch_loop()))
     tasks.append(asyncio.create_task(outbox_loop()))
+    tasks.append(asyncio.create_task(diagnostics_retention_loop()))
     tasks.extend(asyncio.create_task(consume_loop(group)) for group in DURABLE_CONSUMER_GROUPS)
     stop_wait = asyncio.create_task(stop.wait())
     done, _ = await asyncio.wait([*tasks, stop_wait], return_when=asyncio.FIRST_COMPLETED)

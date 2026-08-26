@@ -20,12 +20,12 @@ from fluctlight_core.transport.ndjson import NdjsonProducer
 
 class ConversationCreateRequest(BaseModel):
     title: str | None = Field(default=None, max_length=256)
-    participant_actor_ids: list[str] = Field(default_factory=list, max_length=1)
+    participant_actor_ids: list[str] = Field(min_length=1, max_length=1)
 
 
 class ConversationTurnRequest(BaseModel):
     text: str = Field(min_length=1, max_length=32_000)
-    fluctlight_id: str | None = Field(default=None, min_length=1, max_length=128)
+    fluctlight_id: str = Field(min_length=1, max_length=128)
     attachment_refs: list[str] = Field(default_factory=list, max_length=16)
     idempotency_key: str = Field(min_length=1, max_length=256)
     turn_id: str | None = Field(default=None, min_length=1, max_length=256)
