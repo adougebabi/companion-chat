@@ -7,3 +7,10 @@ def test_moment_contract_has_explicit_visibility_and_status() -> None:
     assert moment.status is MomentStatus.VISIBLE
     with pytest.raises(ValueError):
         Moment("moment-1", "fl-1", "fl-1", "")
+
+
+def test_moment_defaults_to_shared_participant_visibility() -> None:
+    assert (
+        Moment("moment-2", "fl-1", "fl-1", "A shared note").visibility
+        is MomentVisibility.PARTICIPANTS
+    )

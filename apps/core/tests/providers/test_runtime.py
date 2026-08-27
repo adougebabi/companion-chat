@@ -2,7 +2,13 @@ import asyncio
 from typing import Any
 
 import pytest
-from fluctlight_core.cognition.contracts import ActionType, CognitionFact, FrozenAction
+from fluctlight_core.cognition.contracts import (
+    ActionType,
+    CognitionFact,
+    FrozenAction,
+    RealizationResult,
+)
+from fluctlight_core.cognition.service import CognitionService
 from fluctlight_core.providers.contracts import ModelRole
 from fluctlight_core.providers.runtime import ConfiguredProviderRuntime
 from fluctlight_core.providers.service import ProviderEndpoint, RoleAssignment
@@ -114,3 +120,47 @@ def test_realization_receives_the_frozen_persona_expression_profile() -> None:
     assert '"persona_profile"' in content
     assert "简洁、温和" in content
     assert '"humor": 0.7' in content
+
+
+def test_background_realization_uses_frozen_daily_context_without_a_user_message() -> None:
+    action = FrozenAction(
+        action_id="action-background",
+        decision_id="decision-background",
+        inbox_id="background-1",
+        fluctlight_id="fluctlight-1",
+        action_type=ActionType.MOMENT,
+        payload={
+            "background_context": {"kind": "daily_schedule_ready", "local_date": "2026-08-27"},
+            "persona_profile": {"behavioral_policy": {"response_style": "简洁"}},
+        },
+        state_revision=1,
+        provider_request_id="request-background",
+    )
+
+    messages = ConfiguredProviderRuntime._realization_messages(action)
+
+    content = str(messages[1]["content"])
+    assert '"background_context"' in content
+    assert "daily_schedule_ready" in content
+
+
+def test_moment_realization_keeps_the_frozen_image_concept_for_later_media_execution() -> None:
+    action = FrozenAction(
+        action_id="action-moment",
+        decision_id="decision-moment",
+        inbox_id="background-1",
+        fluctlight_id="fluctlight-1",
+        action_type=ActionType.MOMENT,
+        payload={
+            "background_context": {"kind": "daily_schedule_ready"},
+            "moment_media_request": {"subject": "窗边的照片和咖啡"},
+        },
+        state_revision=1,
+        provider_request_id="request-moment",
+    )
+    result = RealizationResult(action.provider_request_id, {"text": "今天想留下一点光。"})
+
+    finalized = CognitionService._action_after_realization(action, result)
+
+    assert finalized.payload["text"] == "今天想留下一点光。"
+    assert finalized.payload["moment_media_request"] == {"subject": "窗边的照片和咖啡"}

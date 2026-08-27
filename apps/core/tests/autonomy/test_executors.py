@@ -43,10 +43,20 @@ class Conversations:
         )
 
 
+class Moments:
+    def __init__(self) -> None:
+        self.created = None
+
+    async def create(self, moment: Any) -> Any:
+        self.created = moment
+        return moment
+
+
 def executor(
     conversations: Conversations,
     media: Any = None,
     media_prompt: Any = None,
+    moments: Any = None,
 ) -> AutonomyExecutor:
     return AutonomyExecutor(
         conversations=cast(Any, conversations),
@@ -54,7 +64,7 @@ def executor(
         relationships=cast(Any, EmptyService()),
         life_world=cast(Any, EmptyService()),
         media=cast(Any, media or EmptyService()),
-        moments=cast(Any, EmptyService()),
+        moments=cast(Any, moments or EmptyService()),
         media_prompt=cast(Any, media_prompt or MediaPrompt()),
     )
 
@@ -130,3 +140,48 @@ def test_media_action_uses_media_prompt_and_persists_the_target_conversation() -
     assert media.intent.conversation_id == "conversation-1"
     assert media.intent.mime_type == "image/png"
     assert media.intent.workflow_id == "media_workflow_action-media"
+
+
+def test_moment_action_persists_realized_text_with_shared_visibility() -> None:
+    moments = Moments()
+    media = Media()
+    media_prompt = MediaPrompt()
+    result = asyncio.run(
+        executor(Conversations(), moments=moments, media=media, media_prompt=media_prompt).execute(
+            FrozenAutonomousAction(
+                id="action-moment",
+                fluctlight_id="fluctlight-1",
+                action_type="moment",
+                payload={
+                    "text": "今天整理了几张很喜欢的照片",
+                    "moment_media_request": {
+                        "subject": "整理照片后的自然桌面一角",
+                        "scene": "家中书桌",
+                    },
+                },
+                policy_snapshot={},
+                expected_revisions={},
+                workflow_id="workflow-moment",
+                provider_request_id="provider-moment",
+            )
+        )
+    )
+
+    assert result.status is ActionStatus.COMPLETED
+    assert moments.created is not None
+    assert moments.created.text == "今天整理了几张很喜欢的照片"
+    assert moments.created.visibility.value == "participants"
+    assert moments.created.media_asset_ids == ()
+    assert media_prompt.calls == [
+        {
+            "media_request": {
+                "subject": "整理照片后的自然桌面一角",
+                "scene": "家中书桌",
+            },
+            "correlation_id": "media-prompt:action-moment",
+        }
+    ]
+    assert media.intent is not None
+    assert media.intent.kind.value == "image"
+    assert media.intent.moment_id == "moment_action-moment"
+    assert media.intent.conversation_id is None

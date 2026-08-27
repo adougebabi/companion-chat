@@ -40,7 +40,7 @@ class Moment:
     owner_fluctlight_id: str
     author_actor_id: str
     text: str
-    visibility: MomentVisibility = MomentVisibility.OWNER
+    visibility: MomentVisibility = MomentVisibility.PARTICIPANTS
     status: MomentStatus = MomentStatus.VISIBLE
     media_asset_ids: tuple[str, ...] = ()
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))

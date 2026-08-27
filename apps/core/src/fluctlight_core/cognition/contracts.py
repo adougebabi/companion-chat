@@ -53,6 +53,7 @@ class ActionType(StrEnum):
     MEMORY_CANDIDATE = "memory_candidate"
     RELATIONSHIP_CANDIDATE = "relationship_candidate"
     MEDIA_REQUEST = "media_request"
+    MOMENT = "moment"
     SCHEDULE_PROPOSAL = "schedule_proposal"
 
 

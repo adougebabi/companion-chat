@@ -144,6 +144,23 @@ def test_cognition_autonomy_bridge_routes_only_explicit_candidate_actions() -> N
     asyncio.run(
         bridge(
             FrozenAction(
+                action_id="action-moment",
+                decision_id="decision-moment",
+                inbox_id="fact-moment",
+                fluctlight_id="fl-1",
+                action_type=ActionType.MOMENT,
+                payload={"text": "已冻结的动态", "cost": 0.1},
+                state_revision=5,
+                provider_request_id="provider-moment",
+            )
+        )
+    )
+    assert autonomy.request.action_type == "moment"
+    assert autonomy.request.expected_revisions == {"cognition": 5}
+
+    asyncio.run(
+        bridge(
+            FrozenAction(
                 action_id="action-2",
                 decision_id="decision-2",
                 inbox_id="fact-2",
@@ -156,4 +173,4 @@ def test_cognition_autonomy_bridge_routes_only_explicit_candidate_actions() -> N
         )
     )
     assert autonomy.request is not None
-    assert autonomy.request.action_id == "autonomy_action-1"
+    assert autonomy.request.action_id == "autonomy_action-moment"

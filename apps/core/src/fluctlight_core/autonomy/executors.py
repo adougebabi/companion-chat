@@ -172,15 +172,38 @@ class AutonomyExecutor:
 
     async def _moment(self, action: Any) -> None:
         payload = action.payload
-        await self._moments.create(
+        moment = await self._moments.create(
             Moment(
                 id=f"moment_{action.id}",
                 owner_fluctlight_id=action.fluctlight_id,
                 author_actor_id=action.fluctlight_id,
                 text=self._text(payload, "text"),
-                visibility=MomentVisibility(self._text(payload, "visibility")),
+                visibility=MomentVisibility(
+                    str(payload.get("visibility", MomentVisibility.PARTICIPANTS))
+                ),
                 status=MomentStatus.VISIBLE,
-                media_asset_ids=tuple(self._texts(payload, "media_asset_ids")),
+                media_asset_ids=(),
+            )
+        )
+        media_request = payload.get("moment_media_request")
+        if media_request is None:
+            return
+        if not isinstance(media_request, dict) or not media_request:
+            raise ValueError("moment media request must be an object")
+        prompt = await self._media_prompt.generate_media_prompt(
+            media_request=media_request,
+            correlation_id=f"media-prompt:{action.id}",
+        )
+        await self._media.request_generation(
+            MediaIntent(
+                id=f"media_intent_{action.id}",
+                owner_fluctlight_id=action.fluctlight_id,
+                kind=MediaKind.IMAGE,
+                mime_type="image/png",
+                prompt=prompt,
+                provider_request_id=action.provider_request_id,
+                workflow_id=f"media_workflow_{action.id}",
+                moment_id=moment.id,
             )
         )
 
@@ -191,10 +214,14 @@ class AutonomyExecutor:
         return payload[name]
 
     @classmethod
-    def _texts(cls, payload: Any, name: str) -> list[str]:
-        if not isinstance(payload, dict) or not isinstance(payload.get(name), list):
+    def _texts(cls, payload: Any, name: str, *, required: bool = True) -> list[str]:
+        if not isinstance(payload, dict):
             raise ValueError(f"autonomy payload requires {name}")
-        values = payload[name]
+        values = payload.get(name)
+        if values is None and not required:
+            return []
+        if not isinstance(values, list):
+            raise ValueError(f"autonomy payload requires {name}")
         if not all(isinstance(value, str) for value in values):
             raise ValueError(f"autonomy payload {name} must contain text")
         return list(values)

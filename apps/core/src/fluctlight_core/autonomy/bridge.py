@@ -18,6 +18,7 @@ class CognitionAutonomyBridge:
     _ACTION_TYPES = frozenset(
         {
             ActionType.PROACTIVE_MESSAGE,
+            ActionType.MOMENT,
             ActionType.MEMORY_CANDIDATE,
             ActionType.RELATIONSHIP_CANDIDATE,
             ActionType.MEDIA_REQUEST,

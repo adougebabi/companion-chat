@@ -28,6 +28,7 @@ from fluctlight_core.autonomy.workflows import (
     configure_autonomy_service,
     process_autonomy_action,
 )
+from fluctlight_core.cognition.background import DailyLifeReviewRegistrar, DailyLifeReviewService
 from fluctlight_core.cognition.service import CognitionService
 from fluctlight_core.cognition.workflows import (
     CognitionProcessingWorkflow,
@@ -43,8 +44,10 @@ from fluctlight_core.life_world.lifecycle import ScheduleLifecycleRegistrar
 from fluctlight_core.life_world.service import LifeWorldService
 from fluctlight_core.life_world.workflows import (
     CurrentDayScheduleWorkflow,
+    DailyLifeReviewWorkflow,
     configure_current_day_schedule_service,
     ensure_current_day_schedule,
+    process_daily_life_review,
 )
 from fluctlight_core.media.service import MediaService
 from fluctlight_core.media.workflows import (
@@ -80,7 +83,7 @@ from fluctlight_core.relationships.service import RelationshipService
 from fluctlight_core.settings.crypto import SecretCodec
 from fluctlight_core.settings.service import SettingsService
 
-EXPECTED_REVISION = "0016_media_intent_conversation"
+EXPECTED_REVISION = "0017_media_intent_moment"
 logger = logging.getLogger(__name__)
 
 
@@ -163,6 +166,7 @@ async def run_worker(settings: PlatformSettings) -> None:
     life_world = LifeWorldService(unit_of_work)
     schedule_initializer = InitialScheduleService(life_world, provider_runtime, diagnostics)
     schedule_lifecycle = ScheduleLifecycleRegistrar(unit_of_work)
+    daily_review_lifecycle = DailyLifeReviewRegistrar(unit_of_work)
     object_client = boto3.client(
         "s3",
         endpoint_url=settings.s3_endpoint,
@@ -175,6 +179,7 @@ async def run_worker(settings: PlatformSettings) -> None:
         unit_of_work,
         S3ObjectStorage(object_client, settings.s3_bucket),
     )
+    moments_service = MomentsService(unit_of_work)
     conversation_service = ConversationService(unit_of_work)
     fluctlight_service = FluctlightService(unit_of_work)
 
@@ -183,7 +188,13 @@ async def run_worker(settings: PlatformSettings) -> None:
 
     autonomy_service = AutonomyService(unit_of_work, status_resolver=fluctlight_activity_status)
     configure_embedding_service(memory_service, provider_runtime, unit_of_work)
-    configure_media_service(media_service, settings_service, conversation_service, diagnostics)
+    configure_media_service(
+        media_service,
+        settings_service,
+        conversation_service,
+        diagnostics,
+        moments_service,
+    )
     configure_autonomy_service(
         autonomy_service,
         AutonomyExecutor(
@@ -192,7 +203,7 @@ async def run_worker(settings: PlatformSettings) -> None:
             relationships=relationships,
             life_world=life_world,
             media=media_service,
-            moments=MomentsService(unit_of_work),
+            moments=moments_service,
             media_prompt=provider_runtime,
         ),
     )
@@ -208,8 +219,20 @@ async def run_worker(settings: PlatformSettings) -> None:
     )
     configure_cognition_service(cognition_service)
     configure_reflection_service(cognition_service)
-    configure_current_day_schedule_service(fluctlight_service, schedule_initializer)
-    await schedule_lifecycle.register_active(await fluctlight_service.list_active())
+    configure_current_day_schedule_service(
+        fluctlight_service,
+        schedule_initializer,
+        DailyLifeReviewService(
+            fluctlight_service,
+            conversation_service,
+            inner_state,
+            cognition_service,
+        ),
+        life_world,
+    )
+    active_fluctlights = await fluctlight_service.list_active()
+    await schedule_lifecycle.register_active(active_fluctlights)
+    await daily_review_lifecycle.register_active(active_fluctlights)
     redis = Redis.from_url(settings.redis_url, decode_responses=True)
     streams = RedisStreams(redis)
     await bootstrap_streams_with_retry(streams)
@@ -239,6 +262,7 @@ async def run_worker(settings: PlatformSettings) -> None:
             "memory": MemoryEmbeddingWorkflow,
             "reflection": ReflectionWorkflow,
             "schedule": CurrentDayScheduleWorkflow,
+            "daily_review": DailyLifeReviewWorkflow,
         },
     )
     workers = [
@@ -252,6 +276,7 @@ async def run_worker(settings: PlatformSettings) -> None:
                 process_autonomy_action,
                 run_reflection,
                 ensure_current_day_schedule,
+                process_daily_life_review,
             ],
             workflows=[
                 PlatformControlWorkflow,
@@ -261,6 +286,7 @@ async def run_worker(settings: PlatformSettings) -> None:
                 MemoryEmbeddingWorkflow,
                 ReflectionWorkflow,
                 CurrentDayScheduleWorkflow,
+                DailyLifeReviewWorkflow,
             ],
             max_concurrent_workflow_tasks=1 if queue != "interaction" else 2,
             max_cached_workflows=50,

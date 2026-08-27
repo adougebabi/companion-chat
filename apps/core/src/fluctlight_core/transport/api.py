@@ -61,7 +61,7 @@ from fluctlight_core.life_world.contracts import (
 )
 from fluctlight_core.life_world.lifecycle import ScheduleLifecycleRegistrar
 from fluctlight_core.life_world.service import LifeWorldService
-from fluctlight_core.life_world.workflows import CurrentDayScheduleWorkflow
+from fluctlight_core.life_world.workflows import CurrentDayScheduleWorkflow, DailyLifeReviewWorkflow
 from fluctlight_core.media.service import MediaService
 from fluctlight_core.media.workflows import MediaGenerationWorkflow
 from fluctlight_core.memory.service import MemoryService
@@ -106,7 +106,7 @@ from fluctlight_core.transport.conversations import (
     turn_stream_response,
 )
 
-EXPECTED_REVISION = "0016_media_intent_conversation"
+EXPECTED_REVISION = "0017_media_intent_moment"
 
 
 class _OwnerWorkflowAuthorizer:
@@ -598,6 +598,7 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             "memory": MemoryEmbeddingWorkflow,
             "reflection": ReflectionWorkflow,
             "schedule": CurrentDayScheduleWorkflow,
+            "daily_review": DailyLifeReviewWorkflow,
         }
 
         async def restart_spec(workflow_id: str) -> RestartSpec:

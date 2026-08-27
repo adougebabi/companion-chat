@@ -214,6 +214,19 @@ class FluctlightService:
             )
         return owner == actor_id
 
+    async def owner_actor_id(self, fluctlight_id: str) -> str:
+        """Return the authoritative Owner Actor for public cross-module work."""
+
+        async with self._unit_of_work.begin(command_id=f"fluctlight-owner:{fluctlight_id}") as tx:
+            owner = await tx.session.scalar(
+                select(schema.fluctlights.c.created_by_actor_id).where(
+                    schema.fluctlights.c.id == fluctlight_id
+                )
+            )
+        if not isinstance(owner, str) or not owner:
+            raise FluctlightNotFoundError(fluctlight_id)
+        return owner
+
     async def list_for_actor(self, actor_id: str) -> list[FluctlightSnapshot]:
         async with self._unit_of_work.begin(command_id=f"fluctlight-list:{actor_id}") as tx:
             rows = (

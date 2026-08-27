@@ -28,6 +28,12 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
 - Goal source is `drive | event | human | self`. A Human request is evidence, not automatic forced execution.
 - Goal has no side effect. A concrete qualified Intention and frozen final decision are required before Action.
 - Time triggers use Temporal durable timers; Event triggers use inbox facts; semantic triggers re-enter LLM assessment and are not keyword listeners.
+- A ready current-local-day Schedule is one typed lifecycle fact. The Worker may
+  enqueue a stable `life_world.daily_review` inbox fact containing the accepted
+  Schedule, active Goals/Intentions, existing direct-conversation target when
+  present, and the frozen Foundation profile. The model decides `no_op`,
+  `proactive_message`, or `moment`; Python never derives an action from idle
+  duration or Schedule text.
 - Execution rechecks current permission, per-action budget, quiet hours, cooldown, concurrency, Context, Schedule, Relationship, state revisions, and expiration.
 - Python freezes the accepted final decision. Retry reuses it and stable IDs rather than re-assessing implicitly.
 - Allowed pre-authorized Actions: proactive/delayed message, Moment, media request, Schedule proposal, governed life Event/Context change, Memory/Relationship candidate, and follow-up Goal/Intention.
@@ -35,6 +41,12 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
 - Owner may inspect/pause/resume/cancel pending Goal/Intention/workflow and set `autonomy_mode` plus per-action policy. Governance appends history and audit; it does not erase facts.
 - Paused mode blocks new autonomous external Actions but allows time, Context, Schedule, affect/drive decay, inbox facts, and explicit Human interaction.
 - Screen/mute blocks proactive visibility/delivery according to policy without punishing Relationship or stopping internal life.
+- A proactive message requires an already-existing direct Conversation ID at
+  freeze time. A model proposal without that factual target is rejected; code
+  never creates a conversation merely to make a proactive message possible.
+- A Moment is shared-feed content by default (`participants`). The current
+  product exposes the Owner's authorized instances only; future Fluctlight
+  cross-feed/group readers extend consumption without changing Moment history.
 
 ### 4. Validation & Error Matrix
 
@@ -48,6 +60,8 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
 | Owner pauses/cancels | Append lifecycle/audit transition, cancel cooperative workflow, preserve history. |
 | Paused Fluctlight receives direct Human message | Process explicit interaction; do not create unrelated autonomous external Actions. |
 | Action targets forbidden infrastructure/destructive capability | Hard reject regardless of LLM confidence. |
+| Proactive proposal has no direct Conversation target | Reject before autonomy freeze; do not create a conversation or fallback message. |
+| Daily review is retried/replayed | Reuse the stable local-date fact ID; do not create duplicate Moment or proactive Action. |
 
 ### 5. Good / Base / Bad Cases
 

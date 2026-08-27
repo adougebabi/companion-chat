@@ -59,6 +59,38 @@ class MomentsService:
             await tx.commit()
         return moment
 
+    async def attach_media_asset(self, moment_id: str, asset_id: str) -> Moment:
+        """Idempotently add one ready asset to the durable Moment projection."""
+
+        async with self._unit_of_work.begin(
+            command_id=f"moment-media:{moment_id}:{asset_id}"
+        ) as tx:
+            row = (
+                (
+                    await tx.session.execute(
+                        select(schema.moments)
+                        .where(schema.moments.c.id == moment_id)
+                        .with_for_update()
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if row is None:
+                raise KeyError(moment_id)
+            asset_ids = [str(value) for value in row["media_asset_ids"] or ()]
+            if asset_id not in asset_ids:
+                asset_ids.append(asset_id)
+                await tx.session.execute(
+                    update(schema.moments)
+                    .where(schema.moments.c.id == moment_id)
+                    .values(media_asset_ids=asset_ids)
+                )
+            updated = dict(row)
+            updated["media_asset_ids"] = asset_ids
+            await tx.commit()
+        return self._from_row(updated)
+
     async def feed(
         self,
         *,

@@ -33,6 +33,21 @@ created_at / ready_at / tombstoned_at / deleted_at
 
 `InternalMediaGrant` contains asset/version identity, authorized range policy, short expiry, content metadata, and an internal presigned/object request that is not returned directly to the browser in the default NAS mode.
 
+### Moment Image Contract
+
+- A text Moment is published first. Its optional image starts only from an
+  already-frozen `moment_media_request` decided by cognition, never from an
+  existing asset list, a keyword branch, or a renderer inference.
+- `MediaIntent.moment_id` is the durable target reference. It is nullable for
+  conversation media and mandatory for Moment-image work; it is backed by the
+  `media_intents.moment_id -> moments.id` foreign key.
+- The media workflow generates only an image for this branch. Video/h3 does not
+  share this target or create a video intent while video capability is deferred.
+- Provider success records one ready asset, creates a `MediaReference` with
+  `target_type="moment"`, then idempotently adds the asset ID to the original
+  Moment. Provider failure preserves the published text Moment and no fake
+  asset reference is created.
+
 ### 3. Contracts
 
 - Buckets are private. Browser requests use the Node BFF media endpoint; Python performs Actor/Conversation/reference authorization before issuing a short-lived internal grant.

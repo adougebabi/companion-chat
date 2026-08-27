@@ -14,7 +14,7 @@ moments = Table(
     Column("owner_fluctlight_id", String(128), ForeignKey("public.fluctlights.id"), nullable=False),
     Column("author_actor_id", String(128), ForeignKey("public.actors.id"), nullable=False),
     Column("text", Text, nullable=False),
-    Column("visibility", String(32), nullable=False, server_default="owner"),
+    Column("visibility", String(32), nullable=False, server_default="participants"),
     Column("status", String(32), nullable=False, server_default="visible"),
     Column("media_asset_ids", JSONB, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),

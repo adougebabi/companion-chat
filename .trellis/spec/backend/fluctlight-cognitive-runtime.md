@@ -91,6 +91,20 @@ Interactive work uses two model stages. `assess` / `propose_decision` return no 
   properties are rejected instead of being silently normalized to neutral
   dataclass defaults.
 
+#### Background Autonomy Facts
+
+- `life_world.daily_review` is a deterministic Schedule-ready fact, not an
+  inference about user inactivity. Its idempotency key is stable for one
+  Fluctlight/local date/lifecycle trigger and it re-enters the same ordered
+  cognition inbox as a conversation fact.
+- Assessment for that fact may choose only `no_op`, `proactive_message`, or
+  `moment`. The decision contains no visible text. It may include a
+  `moment_media_request` only when the model judges that the Moment needs an
+  image; it is a complete frozen visual concept, not an asset ID or video job.
+- Realization writes the visible direct-message or Moment text from the frozen
+  action. It cannot decide whether to request an image. The frozen image
+  concept, when present, remains unchanged for the media-prompt role.
+
 ### 3. Contracts
 
 #### Semantic Ownership Matrix

@@ -65,6 +65,7 @@ class MediaService:
                     or existing["provider_request_id"] != intent.provider_request_id
                     or existing["workflow_id"] != intent.workflow_id
                     or existing["conversation_id"] != intent.conversation_id
+                    or existing["moment_id"] != intent.moment_id
                 ):
                     raise ValueError(
                         "media intent ID was reused with different authoritative content"
@@ -80,6 +81,7 @@ class MediaService:
                     provider_request_id=intent.provider_request_id,
                     workflow_id=intent.workflow_id,
                     conversation_id=intent.conversation_id,
+                    moment_id=intent.moment_id,
                     status=intent.status.value,
                     revision=intent.revision,
                     created_at=intent.created_at,
@@ -146,6 +148,7 @@ class MediaService:
             provider_request_id=row["provider_request_id"],
             workflow_id=row["workflow_id"],
             conversation_id=row["conversation_id"],
+            moment_id=row["moment_id"],
             status=row["status"],
             revision=int(row["revision"]),
             created_at=row["created_at"],

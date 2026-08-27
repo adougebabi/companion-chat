@@ -13,9 +13,11 @@ from fluctlight_core.fluctlights.contracts import (
 from fluctlight_core.life_world.lifecycle import schedule_lifecycle_intent
 from fluctlight_core.life_world.workflows import (
     CurrentDayScheduleWorkflow,
+    DailyLifeReviewWorkflow,
     _next_local_midnight_delay,
     configure_current_day_schedule_service,
     ensure_current_day_schedule,
+    process_daily_life_review,
 )
 from temporalio.worker.workflow_sandbox import SandboxedWorkflowRunner
 from temporalio.workflow import _Definition
@@ -50,6 +52,23 @@ class _Schedules:
     async def ensure_for(self, fluctlight: FluctlightSnapshot) -> object | None:
         self.ensured.append(fluctlight)
         return self.result
+
+
+class _DailyReview:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, object]] = []
+
+    async def review_current_day(self, fluctlight_id: str, schedule: object) -> dict[str, str]:
+        self.calls.append((fluctlight_id, schedule))
+        return {"status": "completed", "action_type": "moment"}
+
+
+class _LifeWorld:
+    def __init__(self, schedule: object | None) -> None:
+        self.schedule = schedule
+
+    async def accepted_schedule(self, _fluctlight_id: str, _instant: datetime) -> object | None:
+        return self.schedule
 
 
 def test_schedule_lifecycle_intent_is_stable_per_fluctlight() -> None:
@@ -94,6 +113,42 @@ def test_current_day_schedule_activity_reports_pending_when_current_day_is_still
     asyncio.run(verify())
 
 
+def test_current_day_schedule_activity_reenters_background_cognition_after_schedule_ready() -> None:
+    async def verify() -> None:
+        fluctlights = _Fluctlights(_fluctlight())
+        schedule = object()
+        schedules = _Schedules(result=schedule)
+        daily_review = _DailyReview()
+        configure_current_day_schedule_service(fluctlights, schedules, daily_review)
+
+        result = await ensure_current_day_schedule({"fluctlight_id": "fluctlight-1"})
+
+        assert result["daily_review_status"] == "completed"
+        assert result["daily_review_action_type"] == "moment"
+        assert daily_review.calls == [("fluctlight-1", schedule)]
+
+    asyncio.run(verify())
+
+
+def test_daily_review_activity_waits_for_schedule_then_uses_the_same_review_service() -> None:
+    async def verify() -> None:
+        daily_review = _DailyReview()
+        schedule = object()
+        configure_current_day_schedule_service(
+            _Fluctlights(_fluctlight()),
+            _Schedules(),
+            daily_review,
+            _LifeWorld(schedule),
+        )
+
+        result = await process_daily_life_review({"fluctlight_id": "fluctlight-1"})
+
+        assert result == {"status": "completed", "action_type": "moment"}
+        assert daily_review.calls == [("fluctlight-1", schedule)]
+
+    asyncio.run(verify())
+
+
 def test_current_day_schedule_activity_does_not_plan_for_an_inactive_fluctlight() -> None:
     async def verify() -> None:
         fluctlights = _Fluctlights(_fluctlight(status=FluctlightStatus.PAUSED))
@@ -131,5 +186,6 @@ def test_current_day_schedule_workflow_loads_in_temporal_sandbox() -> None:
         SandboxedWorkflowRunner().prepare_workflow(
             _Definition.from_class(CurrentDayScheduleWorkflow)
         )
+        SandboxedWorkflowRunner().prepare_workflow(_Definition.from_class(DailyLifeReviewWorkflow))
 
     asyncio.run(prepare())

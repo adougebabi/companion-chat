@@ -27,6 +27,7 @@ intents = Table(
     Column("provider_request_id", String(128), nullable=False, unique=True),
     Column("workflow_id", String(128), nullable=False, unique=True),
     Column("conversation_id", String(128), ForeignKey("public.conversations.id")),
+    Column("moment_id", String(128), ForeignKey("public.moments.id")),
     Column("status", String(32), nullable=False, server_default="pending"),
     Column("revision", Integer, nullable=False, server_default="0"),
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),

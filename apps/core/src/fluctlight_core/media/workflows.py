@@ -15,7 +15,9 @@ with workflow.unsafe.imports_passed_through():
     from fluctlight_core.conversations.service import ConversationService
     from fluctlight_core.diagnostics.contracts import DiagnosticEvent, DiagnosticSeverity
     from fluctlight_core.diagnostics.service import DiagnosticsService
+    from fluctlight_core.moments.service import MomentsService
 
+    from .contracts import MediaReference
     from .providers import DEFAULT_MEDIA_PROVIDERS, DownloadableMediaProvider
     from .service import MediaService, MediaWorkflowAdapter
 
@@ -23,6 +25,7 @@ _media_service: MediaService | None = None
 _settings_service: Any | None = None
 _conversation_service: ConversationService | None = None
 _diagnostics: DiagnosticsService | None = None
+_moments_service: MomentsService | None = None
 
 
 def configure_media_service(
@@ -30,12 +33,14 @@ def configure_media_service(
     settings_service: Any,
     conversation_service: ConversationService,
     diagnostics: DiagnosticsService,
+    moments_service: MomentsService,
 ) -> None:
-    global _conversation_service, _diagnostics, _media_service, _settings_service
+    global _conversation_service, _diagnostics, _media_service, _moments_service, _settings_service
     _media_service = media_service
     _settings_service = settings_service
     _conversation_service = conversation_service
     _diagnostics = diagnostics
+    _moments_service = moments_service
 
 
 @activity.defn(name="process_media_generation")
@@ -80,6 +85,20 @@ async def process_media_generation(payload: dict[str, Any]) -> dict[str, str]:
                 ),
                 actor_id=intent.owner_fluctlight_id,
             )
+        if intent.moment_id is not None:
+            if _moments_service is None:
+                raise RuntimeError("Moments service is not configured")
+            await _media_service.attach(
+                MediaReference(
+                    id=f"media_reference_{intent.id}",
+                    asset_id=asset.id,
+                    owner_fluctlight_id=intent.owner_fluctlight_id,
+                    target_type="moment",
+                    target_id=intent.moment_id,
+                ),
+                actor_id=intent.owner_fluctlight_id,
+            )
+            await _moments_service.attach_media_asset(intent.moment_id, asset.id)
         return {"intent_id": intent.id, "asset_id": asset.id, "status": "ready"}
     except asyncio.CancelledError:
         if provider is not None:

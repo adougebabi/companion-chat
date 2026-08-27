@@ -175,6 +175,22 @@ class ConversationService:
             raise ConversationConflictError("direct conversation was not created")
         return await self.history(existing_conversation_id, actor_id=owner_actor_id)
 
+    async def direct_conversation_id(
+        self, *, owner_actor_id: str, fluctlight_actor_id: str
+    ) -> str | None:
+        """Read an existing direct conversation without creating a new social target."""
+
+        async with self._unit_of_work.begin(
+            command_id=f"conversation-direct-read:{owner_actor_id}:{fluctlight_actor_id}"
+        ) as tx:
+            value = await tx.session.scalar(
+                select(schema.direct_conversations.c.conversation_id).where(
+                    schema.direct_conversations.c.owner_actor_id == owner_actor_id,
+                    schema.direct_conversations.c.fluctlight_actor_id == fluctlight_actor_id,
+                )
+            )
+        return value if isinstance(value, str) and value else None
+
     async def direct_unread_counts(
         self, *, owner_actor_id: str, fluctlight_actor_ids: tuple[str, ...]
     ) -> dict[str, int]:

@@ -28,6 +28,17 @@ def test_media_identity_has_stable_provider_and_object_fields() -> None:
         "intent-long", "fl-1", MediaKind.IMAGE, "image/png", "p" * 2_000, "provider-2", "workflow-2"
     )
     assert len(long_prompt.prompt) == 2_000
+    moment_intent = MediaIntent(
+        "intent-moment",
+        "fl-1",
+        MediaKind.IMAGE,
+        "image/png",
+        "a moment prompt",
+        "provider-moment",
+        "workflow-moment",
+        moment_id="moment-1",
+    )
+    assert moment_intent.moment_id == "moment-1"
     assert asset.object_key.startswith("media/")
     with pytest.raises(ValueError):
         MediaAsset(

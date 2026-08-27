@@ -14,12 +14,21 @@ with workflow.unsafe.imports_passed_through():
 
 _fluctlights: Any | None = None
 _schedules: Any | None = None
+_daily_review: Any | None = None
+_life_world: Any | None = None
 
 
-def configure_current_day_schedule_service(fluctlights: Any, schedules: Any) -> None:
-    global _fluctlights, _schedules
+def configure_current_day_schedule_service(
+    fluctlights: Any,
+    schedules: Any,
+    daily_review: Any | None = None,
+    life_world: Any | None = None,
+) -> None:
+    global _daily_review, _fluctlights, _life_world, _schedules
     _fluctlights = fluctlights
     _schedules = schedules
+    _daily_review = daily_review
+    _life_world = life_world or getattr(schedules, "life_world", None)
 
 
 def _next_local_midnight_delay(now: datetime, timezone: str) -> timedelta:
@@ -47,11 +56,29 @@ async def ensure_current_day_schedule(payload: dict[str, Any]) -> dict[str, str]
         life_world = getattr(_schedules, "life_world", None)
         if life_world is not None:
             schedule = await life_world.accepted_schedule(fluctlight_id, datetime.now(UTC))
-    return {
+    result = {
         "fluctlight_id": fluctlight_id,
         "timezone": timezone,
         "status": "ready" if schedule is not None else "pending",
     }
+    if schedule is not None and _daily_review is not None:
+        review = await _daily_review.review_current_day(fluctlight_id, schedule)
+        result["daily_review_status"] = str(review.get("status", "unknown"))
+        result["daily_review_action_type"] = str(review.get("action_type", "no_op"))
+    return result
+
+
+@activity.defn(name="process_daily_life_review")
+async def process_daily_life_review(payload: dict[str, Any]) -> dict[str, str]:
+    if _daily_review is None or _life_world is None:
+        raise RuntimeError("daily life review activity is not configured")
+    fluctlight_id = str(payload.get("fluctlight_id", "")).strip()
+    if not fluctlight_id:
+        raise ValueError("daily life review requires fluctlight_id")
+    schedule = await _life_world.accepted_schedule(fluctlight_id, datetime.now(UTC))
+    if schedule is None:
+        return {"status": "pending"}
+    return await _daily_review.review_current_day(fluctlight_id, schedule)
 
 
 @workflow.defn(name="CurrentDayScheduleWorkflow")
@@ -79,3 +106,25 @@ class CurrentDayScheduleWorkflow:
         await workflow.sleep(_next_local_midnight_delay(workflow.now(), result["timezone"]))
         workflow.continue_as_new(payload)
         raise AssertionError("workflow.continue_as_new must not return")
+
+
+@workflow.defn(name="DailyLifeReviewWorkflow")
+class DailyLifeReviewWorkflow:
+    """Run one current-day review or retry only until its Schedule becomes ready."""
+
+    @workflow.run
+    async def run(self, payload: dict[str, Any]) -> dict[str, str]:
+        if not str(payload.get("fluctlight_id", "")).strip():
+            raise ValueError("daily life review workflow requires fluctlight_id")
+        if not str(payload.get("intent_id", "")).strip():
+            raise ValueError("daily life review workflow requires intent_id")
+        result = await workflow.execute_activity(
+            process_daily_life_review,
+            payload,
+            start_to_close_timeout=timedelta(minutes=10),
+        )
+        if result.get("status") == "pending":
+            await workflow.sleep(timedelta(minutes=5))
+            workflow.continue_as_new(payload)
+            raise AssertionError("workflow.continue_as_new must not return")
+        return result

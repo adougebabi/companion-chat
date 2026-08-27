@@ -53,6 +53,7 @@ class MediaIntent:
     provider_request_id: str
     workflow_id: str
     conversation_id: str | None = None
+    moment_id: str | None = None
     status: MediaIntentStatus = MediaIntentStatus.PENDING
     revision: int = 0
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
@@ -72,6 +73,8 @@ class MediaIntent:
             object.__setattr__(
                 self, "conversation_id", _text(self.conversation_id, "conversation_id")
             )
+        if self.moment_id is not None:
+            object.__setattr__(self, "moment_id", _text(self.moment_id, "moment_id"))
         object.__setattr__(self, "status", MediaIntentStatus(self.status))
         if self.revision < 0:
             raise ValueError("media intent revision cannot be negative")

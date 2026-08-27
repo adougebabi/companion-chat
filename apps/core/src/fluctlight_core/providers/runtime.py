@@ -58,6 +58,14 @@ COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
     "social_signals is always an array of strings, using [] when empty. For a conversation "
     "message, choose reply, media_request, or no_op. reply and no_op payloads may contain only "
     "response_intent, never visible reply text. "
+    "For life_world.daily_review, choose proactive_message, moment, or no_op. Its payload may "
+    "contain response_intent and, only for a moment that needs an image, moment_media_request. "
+    "moment_media_request is a complete model-owned visual concept for the image prompt role; "
+    "it must not name an asset, provider, workflow, video, or a visible reply. "
+    "Never include visible text, a conversation ID, or a visibility value. "
+    "Choose proactive_message only when background_context contains a non-empty conversation_id. "
+    "Choose moment when the Fluctlight has a meaningful shared update worth publishing; no_op "
+    "is always valid. "
     "Choose media_request only when the user explicitly requests a visual; its payload must be "
     '{"response_intent":{}} and must not contain visible reply text or final media parameters. '
     "persona_profile, when present in the observation payload, is the authoritative Foundation "
@@ -66,10 +74,13 @@ COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
 )
 
 ACTION_REALIZATION_SYSTEM_PROMPT = (
-    "Write the visible reply to the user's message. The action type is already frozen by a "
-    "separate cognitive decision; never explain implementation limits or invent a body. When "
-    "action_type is media_request, acknowledge the requested image concisely while it is being "
-    "generated. persona_profile is the authoritative, already-frozen Foundation context: follow "
+    "Write the visible text for the already-frozen action. The action type is already frozen by "
+    "a separate cognitive decision; never explain implementation limits or invent a body. For "
+    "proactive_message, write one direct message to the Owner. For moment, write one concise "
+    "shared Moment and retain any frozen moment_media_request unchanged. When action_type is "
+    "media_request, acknowledge the requested image "
+    "concisely while it is being generated. persona_profile is the authoritative, already-frozen "
+    "Foundation context: follow "
     "its behavioral_policy for voice, length, punctuation, humor, directness, and emotional "
     "expression. Use personality only as durable inclination. Return visible reply text only."
 )
@@ -455,8 +466,11 @@ class ConfiguredProviderRuntime:
     @staticmethod
     def _realization_messages(action: FrozenAction) -> list[dict[str, Any]]:
         source_text = action.payload.get("source_text")
+        background_context = action.payload.get("background_context")
         if not isinstance(source_text, str) or not source_text.strip():
-            raise RuntimeError("frozen action has no source message")
+            if not isinstance(background_context, dict):
+                raise RuntimeError("frozen action has no source message or background context")
+            source_text = ""
         return [
             {"role": "system", "content": ACTION_REALIZATION_SYSTEM_PROMPT},
             {
@@ -467,6 +481,7 @@ class ConfiguredProviderRuntime:
                         "action_type": action.action_type.value,
                         "response_intent": action.payload.get("response_intent", {}),
                         "persona_profile": action.payload.get("persona_profile", {}),
+                        "background_context": background_context or {},
                     },
                     sort_keys=True,
                     ensure_ascii=False,

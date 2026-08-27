@@ -597,6 +597,20 @@ class CognitionService:
             persona_profile = claim.fact.payload.get("persona_profile")
             if isinstance(persona_profile, dict):
                 action_payload["persona_profile"] = dict(persona_profile)
+        else:
+            background_context = claim.fact.payload.get("background_context")
+            if isinstance(background_context, dict):
+                action_payload["background_context"] = dict(background_context)
+                conversation_id = background_context.get("conversation_id")
+                if isinstance(conversation_id, str) and conversation_id:
+                    action_payload["conversation_id"] = conversation_id
+            persona_profile = claim.fact.payload.get("persona_profile")
+            if isinstance(persona_profile, dict):
+                action_payload["persona_profile"] = dict(persona_profile)
+        if decision.action_type is ActionType.PROACTIVE_MESSAGE and not isinstance(
+            action_payload.get("conversation_id"), str
+        ):
+            raise ProviderExecutionError("proactive message has no direct conversation target")
         if decision.action_type is ActionType.MEDIA_REQUEST:
             conversation_id = claim.fact.payload.get("conversation_id")
             if not isinstance(conversation_id, str) or not conversation_id:
@@ -709,13 +723,24 @@ class CognitionService:
 
     @staticmethod
     def _action_after_realization(action: FrozenAction, result: RealizationResult) -> FrozenAction:
-        if action.action_type is not ActionType.MEDIA_REQUEST:
-            return action
-        media_request = result.payload.get("media_request")
-        if not isinstance(media_request, dict) or not media_request:
-            raise ProviderExecutionError("media realization returned no media request")
         payload = dict(action.payload)
-        payload["media_request"] = media_request
+        if action.action_type is ActionType.MEDIA_REQUEST:
+            media_request = result.payload.get("media_request")
+            if not isinstance(media_request, dict) or not media_request:
+                raise ProviderExecutionError("media realization returned no media request")
+            payload["media_request"] = media_request
+        elif action.action_type in {ActionType.PROACTIVE_MESSAGE, ActionType.MOMENT}:
+            text = result.payload.get("text")
+            if not isinstance(text, str) or not text.strip():
+                raise ProviderExecutionError("background realization returned no visible text")
+            payload["text"] = text
+            if action.action_type is ActionType.MOMENT:
+                media_request = payload.get("moment_media_request")
+                if media_request is not None:
+                    if not isinstance(media_request, dict) or not media_request:
+                        raise ProviderExecutionError("moment has an invalid frozen media request")
+        else:
+            return action
         return replace(action, payload=payload)
 
     async def _settle_success(
