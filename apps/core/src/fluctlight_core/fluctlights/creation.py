@@ -42,15 +42,12 @@ class InitializationAnalyzer(Protocol):
     async def analyze_initialization(self, description: str) -> dict[str, Any]: ...
 
 
-class InitialScheduleInitializer(Protocol):
-    async def ensure_for(self, fluctlight: FluctlightSnapshot) -> object: ...
-
-
 class InitialAgencyInitializer(Protocol):
     async def ensure_for(
         self,
         fluctlight: FluctlightSnapshot,
         *,
+        actor_id: str,
         goals: list[dict[str, Any]],
         intentions: list[dict[str, Any]],
     ) -> object: ...
@@ -163,6 +160,7 @@ class InitialAgencyService:
         self,
         fluctlight: FluctlightSnapshot,
         *,
+        actor_id: str,
         goals: list[dict[str, Any]],
         intentions: list[dict[str, Any]],
     ) -> None:
@@ -191,6 +189,7 @@ class InitialAgencyService:
                     goal.id,
                     target=GoalStatus.ACTIVE,
                     expected_revision=goal.revision,
+                    actor_id=actor_id,
                     reason="initialization",
                 )
             )
@@ -222,6 +221,7 @@ class InitialAgencyService:
             await self.inner_state.qualify_intention(
                 intention.id,
                 expected_revision=intention.revision,
+                actor_id=actor_id,
                 reason="initialization",
             )
 
@@ -233,12 +233,10 @@ class CreationLifecycleService:
         self,
         fluctlights: FluctlightService,
         analyzer: InitializationAnalyzer,
-        schedule_initializer: InitialScheduleInitializer | None = None,
         agency_initializer: InitialAgencyInitializer | None = None,
     ) -> None:
         self._fluctlights = fluctlights
         self._analyzer = analyzer
-        self._schedule_initializer = schedule_initializer
         self._agency_initializer = agency_initializer
 
     async def analyze_description(self, description: str) -> CreationPreview:
@@ -344,11 +342,12 @@ class CreationLifecycleService:
                     "request_id was reused with different foundation data",
                     code="activation_request_conflict",
                 )
-            if self._schedule_initializer is not None:
-                await self._schedule_initializer.ensure_for(existing)
             if self._agency_initializer is not None:
                 await self._agency_initializer.ensure_for(
-                    existing, goals=resolved_goals, intentions=resolved_intentions
+                    existing,
+                    actor_id=actor_id,
+                    goals=resolved_goals,
+                    intentions=resolved_intentions,
                 )
             return existing
         try:
@@ -362,11 +361,12 @@ class CreationLifecycleService:
                     behavioral_policy=resolved_policy,
                 )
             )
-            if self._schedule_initializer is not None:
-                await self._schedule_initializer.ensure_for(created)
             if self._agency_initializer is not None:
                 await self._agency_initializer.ensure_for(
-                    created, goals=resolved_goals, intentions=resolved_intentions
+                    created,
+                    actor_id=actor_id,
+                    goals=resolved_goals,
+                    intentions=resolved_intentions,
                 )
             return created
         except FluctlightLifecycleError as exc:

@@ -39,7 +39,13 @@ from fluctlight_core.diagnostics.service import DiagnosticsService
 from fluctlight_core.fluctlights.service import FluctlightService
 from fluctlight_core.inner_state import CognitionStateApplier, InnerStateService
 from fluctlight_core.life_world.bootstrap import InitialScheduleService
+from fluctlight_core.life_world.lifecycle import ScheduleLifecycleRegistrar
 from fluctlight_core.life_world.service import LifeWorldService
+from fluctlight_core.life_world.workflows import (
+    CurrentDayScheduleWorkflow,
+    configure_current_day_schedule_service,
+    ensure_current_day_schedule,
+)
 from fluctlight_core.media.service import MediaService
 from fluctlight_core.media.workflows import (
     MediaGenerationWorkflow,
@@ -156,6 +162,7 @@ async def run_worker(settings: PlatformSettings) -> None:
     inner_state = InnerStateService(unit_of_work)
     life_world = LifeWorldService(unit_of_work)
     schedule_initializer = InitialScheduleService(life_world, provider_runtime, diagnostics)
+    schedule_lifecycle = ScheduleLifecycleRegistrar(unit_of_work)
     object_client = boto3.client(
         "s3",
         endpoint_url=settings.s3_endpoint,
@@ -201,7 +208,8 @@ async def run_worker(settings: PlatformSettings) -> None:
     )
     configure_cognition_service(cognition_service)
     configure_reflection_service(cognition_service)
-    await schedule_initializer.recover_current_day(await fluctlight_service.list_active())
+    configure_current_day_schedule_service(fluctlight_service, schedule_initializer)
+    await schedule_lifecycle.register_active(await fluctlight_service.list_active())
     redis = Redis.from_url(settings.redis_url, decode_responses=True)
     streams = RedisStreams(redis)
     await bootstrap_streams_with_retry(streams)
@@ -230,6 +238,7 @@ async def run_worker(settings: PlatformSettings) -> None:
             "media": MediaGenerationWorkflow,
             "memory": MemoryEmbeddingWorkflow,
             "reflection": ReflectionWorkflow,
+            "schedule": CurrentDayScheduleWorkflow,
         },
     )
     workers = [
@@ -242,6 +251,7 @@ async def run_worker(settings: PlatformSettings) -> None:
                 process_media_generation,
                 process_autonomy_action,
                 run_reflection,
+                ensure_current_day_schedule,
             ],
             workflows=[
                 PlatformControlWorkflow,
@@ -250,6 +260,7 @@ async def run_worker(settings: PlatformSettings) -> None:
                 MediaGenerationWorkflow,
                 MemoryEmbeddingWorkflow,
                 ReflectionWorkflow,
+                CurrentDayScheduleWorkflow,
             ],
             max_concurrent_workflow_tasks=1 if queue != "interaction" else 2,
             max_cached_workflows=50,

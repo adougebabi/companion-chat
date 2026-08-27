@@ -16,6 +16,8 @@ class _InnerState:
     def __init__(self) -> None:
         self.goals: list[object] = []
         self.intentions: list[object] = []
+        self.goal_transition_actor_ids: list[str] = []
+        self.intention_qualification_actor_ids: list[str] = []
 
     async def goals_and_intentions(self, _fluctlight_id: str):
         return self.goals, self.intentions
@@ -25,7 +27,8 @@ class _InnerState:
         self.goals.append(goal)
         return goal
 
-    async def transition_goal(self, goal_id, **_kwargs):
+    async def transition_goal(self, goal_id, **kwargs):
+        self.goal_transition_actor_ids.append(kwargs["actor_id"])
         return next(goal for goal in self.goals if goal.id == goal_id)
 
     async def create_intention(self, evidence):
@@ -33,7 +36,8 @@ class _InnerState:
         self.intentions.append(intention)
         return intention
 
-    async def qualify_intention(self, intention_id, **_kwargs):
+    async def qualify_intention(self, intention_id, **kwargs):
+        self.intention_qualification_actor_ids.append(kwargs["actor_id"])
         return next(intention for intention in self.intentions if intention.id == intention_id)
 
 
@@ -53,6 +57,7 @@ def test_initial_agency_persists_model_owned_goal_and_pending_intention() -> Non
         )
         await service.ensure_for(
             fluctlight,
+            actor_id="human-owner",
             goals=[{"description": "完成摄影练习", "importance": 0.8, "urgency": 0.4}],
             intentions=[
                 {
@@ -65,5 +70,7 @@ def test_initial_agency_persists_model_owned_goal_and_pending_intention() -> Non
         )
         assert len(inner_state.goals) == 1
         assert len(inner_state.intentions) == 1
+        assert inner_state.goal_transition_actor_ids == ["human-owner"]
+        assert inner_state.intention_qualification_actor_ids == ["human-owner"]
 
     asyncio.run(verify())

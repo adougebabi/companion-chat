@@ -51,7 +51,6 @@ from fluctlight_core.fluctlights.creation import (
 from fluctlight_core.fluctlights.policy import RevisionConflictError
 from fluctlight_core.fluctlights.service import FluctlightLifecycleError, FluctlightService
 from fluctlight_core.inner_state import CognitionStateApplier, InnerStateService
-from fluctlight_core.life_world.bootstrap import InitialScheduleService
 from fluctlight_core.life_world.contracts import (
     ActionStatus,
     PresenceOverlay,
@@ -60,7 +59,9 @@ from fluctlight_core.life_world.contracts import (
     ScheduleVersion,
     WorldEvent,
 )
+from fluctlight_core.life_world.lifecycle import ScheduleLifecycleRegistrar
 from fluctlight_core.life_world.service import LifeWorldService
+from fluctlight_core.life_world.workflows import CurrentDayScheduleWorkflow
 from fluctlight_core.media.service import MediaService
 from fluctlight_core.media.workflows import MediaGenerationWorkflow
 from fluctlight_core.memory.service import MemoryService
@@ -419,12 +420,14 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 diagnostics=diagnostics,
             )
             inner_state = InnerStateService(unit_of_work)
+            schedule_lifecycle = ScheduleLifecycleRegistrar(unit_of_work)
             memory = MemoryService(unit_of_work)
             relationships = RelationshipService(unit_of_work)
             reflection = ReflectionCoordinator(memory, relationships)
 
             async def initialize_inner_state(fluctlight_id: str, tx: UnitOfWork) -> None:
                 await inner_state.initialize(fluctlight_id, tx=tx)
+                await schedule_lifecycle.register(fluctlight_id, tx=tx)
 
             fluctlights = FluctlightService(unit_of_work, state_initializer=initialize_inner_state)
 
@@ -472,7 +475,6 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 creations=CreationLifecycleService(
                     fluctlights,
                     provider_runtime,
-                    InitialScheduleService(life_world, provider_runtime, diagnostics),
                     InitialAgencyService(inner_state),
                 ),
                 moments=MomentsService(unit_of_work),
@@ -592,6 +594,7 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             "media": MediaGenerationWorkflow,
             "memory": MemoryEmbeddingWorkflow,
             "reflection": ReflectionWorkflow,
+            "schedule": CurrentDayScheduleWorkflow,
         }
 
         async def restart_spec(workflow_id: str) -> RestartSpec:
