@@ -158,6 +158,10 @@ def event_envelope(event: OutboxEvent) -> dict[str, str]:
         "causation_id": event.causation_id,
         "correlation_id": event.correlation_id,
         "occurred_at": datetime.now(UTC).isoformat(),
-        "attempt_policy": json.dumps(event.attempt_policy, separators=(",", ":"), sort_keys=True),
-        "payload": json.dumps(event.payload, separators=(",", ":"), sort_keys=True),
+        "attempt_policy": json.dumps(
+            event.attempt_policy, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ),
+        "payload": json.dumps(
+            event.payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ),
     }

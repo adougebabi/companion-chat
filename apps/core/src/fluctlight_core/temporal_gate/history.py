@@ -27,7 +27,9 @@ class SavedHistory:
 
 
 def save_history(history: SavedHistory, path: str | Path) -> None:
-    Path(path).write_text(json.dumps(history.as_dict(), indent=2, sort_keys=True) + "\n")
+    Path(path).write_text(
+        json.dumps(history.as_dict(), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    )
 
 
 def load_history(path: str | Path) -> SavedHistory:

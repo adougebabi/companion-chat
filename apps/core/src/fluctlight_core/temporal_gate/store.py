@@ -138,7 +138,12 @@ class PostgresGateStore:
                 ON CONFLICT (intent_id) DO NOTHING
                 RETURNING intent_id
                 """,
-                (intent_id, workflow_id, json.dumps(request.as_dict()), datetime.now(UTC)),
+                (
+                    intent_id,
+                    workflow_id,
+                    json.dumps(request.as_dict(), ensure_ascii=False),
+                    datetime.now(UTC),
+                ),
             )
             return cursor.fetchone() is not None
 
@@ -184,7 +189,7 @@ class PostgresGateStore:
                 ON CONFLICT (workflow_id) DO NOTHING
                 RETURNING result_json
                 """,
-                (workflow_id, json.dumps(result.as_dict()), datetime.now(UTC)),
+                (workflow_id, json.dumps(result.as_dict(), ensure_ascii=False), datetime.now(UTC)),
             )
             row = cursor.fetchone()
             if row is None:

@@ -83,4 +83,6 @@ async def parse_ndjson(chunks: AsyncIterator[bytes]) -> AsyncIterator[VisibleStr
 
 
 def encode_event(event: VisibleStreamEventV1) -> bytes:
-    return json.dumps(event.model_dump(), separators=(",", ":")).encode("utf-8") + b"\n"
+    return json.dumps(
+        event.model_dump(), ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8") + b"\n"

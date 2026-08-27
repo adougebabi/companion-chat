@@ -465,7 +465,9 @@ class OpenAICompatibleAdapter:
                 "POST",
                 f"{endpoint.base_url.rstrip('/')}/chat/completions",
                 headers=headers,
-                json=payload,
+                content=json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode(
+                    "utf-8"
+                ),
             ) as response:
                 response.raise_for_status()
                 async for raw in response.aiter_bytes():
@@ -558,7 +560,9 @@ class OpenAICompatibleAdapter:
                 "POST",
                 f"{endpoint.base_url.rstrip('/')}/chat/completions",
                 headers=headers,
-                json=payload,
+                content=json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode(
+                    "utf-8"
+                ),
             ) as response:
                 response.raise_for_status()
                 async for raw in response.aiter_bytes():
@@ -749,6 +753,10 @@ class OpenAICompatibleAdapter:
     async def _call_raw(
         self, method: str, url: str, headers: dict[str, str], payload: object, timeout: float
     ) -> HttpResult | None:
-        encoded = b"" if method == "GET" else json.dumps(payload).encode("utf-8")
+        encoded = (
+            b""
+            if method == "GET"
+            else json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        )
         result = await asyncio.to_thread(self._request, method, url, headers, encoded, timeout)
         return result if 200 <= result.status < 300 else None

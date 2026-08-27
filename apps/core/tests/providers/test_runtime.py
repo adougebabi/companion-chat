@@ -95,7 +95,7 @@ def test_invalid_cognitive_response_records_a_redacted_failed_model_run() -> Non
         id="turn-1",
         fluctlight_id="fluctlight-1",
         event_type="conversation.message",
-        payload={"text": "hello"},
+        payload={"text": "你好🙂"},
         causation_id="cause-1",
         correlation_id="corr-1",
         idempotency_key="turn-1",
@@ -110,14 +110,12 @@ def test_invalid_cognitive_response_records_a_redacted_failed_model_run() -> Non
     assert run.error_code == "cognitive_provider_response_is_missing_decision"
     messages = run.prompt["messages"]
     assert messages[0]["role"] == "system"
-    assert '"assessment"' in messages[0]["content"]
-    assert '"social_signals":[]' in messages[0]["content"]
-    assert "semantic.assessment.v1" not in messages[0]["content"]
-    assert "evidence_refs" in messages[0]["content"]
+    assert "semantic.assessment.v1" in messages[0]["content"]
     assert "at least one source reference" in messages[0]["content"]
     assert "decision_id" not in messages[0]["content"]
-    assert 'response_intent":{}' in messages[0]["content"]
     assert "visible reply text" in messages[0]["content"]
+    assert "你好🙂" in messages[1]["content"]
+    assert "\\u4f60" not in messages[1]["content"]
 
 
 def test_cognitive_assessment_parses_ordered_compound_effects() -> None:

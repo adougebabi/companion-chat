@@ -297,7 +297,9 @@ class DiagnosticsService:
 
     def _fallback(self, payload: Mapping[str, Any]) -> None:
         try:
-            self._fallback_writer(json.dumps(redact(payload), sort_keys=True, default=str))
+            self._fallback_writer(
+                json.dumps(redact(payload), ensure_ascii=False, sort_keys=True, default=str)
+            )
         except Exception:
             return
 

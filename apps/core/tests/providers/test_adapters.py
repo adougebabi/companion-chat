@@ -158,14 +158,14 @@ def test_openai_adapter_executes_structured_realization_and_embedding_ports() ->
         calls.append((method, url, body))
         if url.endswith("/embeddings"):
             return HttpResult(200, json.dumps({"data": [{"embedding": [0.25, -0.5]}]}).encode())
-        if b'"stream": true' in body:
+        if b'"stream":true' in body:
             return HttpResult(
                 200,
                 b'data: {"choices":[{"delta":{"content":"stream "}}]}\n'
                 b'data: {"choices":[{"delta":{"content":"text"}}]}\n'
                 b"data: [DONE]\n",
             )
-        if b'"stream": true' not in body:
+        if b'"stream":true' not in body:
             return HttpResult(
                 200,
                 json.dumps(
@@ -258,7 +258,7 @@ def test_openai_adapter_collects_sse_media_tool_call_arguments() -> None:
     def fake(
         method: str, url: str, headers: dict[str, str], body: bytes, timeout: float
     ) -> HttpResult:
-        assert b'"stream": true' in body
+        assert b'"stream":true' in body
 
         def frame(delta: dict[str, object]) -> bytes:
             return f"data: {json.dumps({'choices': [{'delta': delta}]})}\n".encode()

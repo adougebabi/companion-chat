@@ -138,7 +138,8 @@ def sha256_file(path: Path) -> str:
 
 def write_manifest(path: Path, manifest: BackupManifest) -> None:
     path.write_text(
-        json.dumps(manifest.as_dict(), indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(manifest.as_dict(), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
 
 

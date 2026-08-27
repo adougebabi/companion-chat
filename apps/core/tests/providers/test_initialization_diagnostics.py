@@ -68,7 +68,7 @@ def test_initialization_invalid_json_is_recorded_as_a_failed_model_run() -> None
         assert run.status == "failed"
         assert run.error_code == "initialization_response_invalid_json"
         assert "behavioral_policy" in str(run.prompt["messages"])
-        assert "Field routing is mandatory" in str(run.prompt["messages"])
+        assert "tone/voice/cadence" in str(run.prompt["messages"])
 
     asyncio.run(verify())
 

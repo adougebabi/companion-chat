@@ -57,7 +57,7 @@ class Diagnostics:
             **kwargs,
         )
         self.records.append(record)
-        self.stream.write(json.dumps(record.as_dict(), sort_keys=True) + "\n")
+        self.stream.write(json.dumps(record.as_dict(), ensure_ascii=False, sort_keys=True) + "\n")
         self.stream.flush()
         return record
 

@@ -83,7 +83,9 @@ class SettingsService:
                     delete(schema.runtime_settings).where(schema.runtime_settings.c.key == key)
                 )
                 await tx.session.execute(
-                    insert(schema.runtime_settings).values(key=key, value_json=json.dumps(value))
+                    insert(schema.runtime_settings).values(
+                        key=key, value_json=json.dumps(value, ensure_ascii=False)
+                    )
                 )
                 await self._audit(tx, actor.actor_id, key, "updated")
             for purpose, plaintext in secrets.items():

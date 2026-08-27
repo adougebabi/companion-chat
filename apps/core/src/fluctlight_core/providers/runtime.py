@@ -45,21 +45,9 @@ ProviderRecorder = Callable[[ProviderProvenance], Awaitable[None]]
 
 
 COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
-    "Return JSON only, matching this shape:\n"
-    '{"assessment":{"perception":{"event_kind":"conversation.message",'
-    '"observed_intent":null,"sentiment":null,"social_signals":[],'
-    '"environment_meaning":null},"appraisal":{"relevance":0.0,'
-    '"goal_congruence":0.0,"reward":0.0,"loss":0.0,"social_threat":0.0,'
-    '"controllability":0.0,"responsibility":0.0,'
-    '"relationship_significance":0.0,"expected_effect":0.0},'
-    '"direction":"neutral","strength":0.0,"confidence":0.0,"evidence_refs":["observation_id"]},'
-    '"decision":{"effects":[{"id":"reply","action_type":"reply","payload":{"response_intent":{}}}],'
-    '"confidence":0.0,"evidence_refs":["observation_id"]}}\n'
-    "Use only positive, negative, mixed, or neutral for direction. All numbers are 0 to 1. "
-    "social_signals is always an array of strings, using [] when empty. Both "
-    "assessment.evidence_refs and decision.evidence_refs must contain at least one source "
-    "reference; use observation_id when "
-    "no more specific event reference exists. For a conversation "
+    "Return one JSON object matching the semantic.assessment.v1 response schema. Use only "
+    "positive, negative, mixed, or neutral for direction. For every assessment and decision, "
+    "cite at least one source reference, normally observation_id. For a conversation "
     "message, return ordered decision.effects. The first effect must be reply or no_op; "
     "later effects "
     "may be media_request or moment. reply and no_op payloads may contain only "
@@ -73,8 +61,9 @@ COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
     "Choose proactive_message only when background_context contains a non-empty conversation_id. "
     "Choose moment when the Fluctlight has a meaningful shared update worth publishing; no_op "
     "is always valid. Every effect needs a unique id. "
-    "Choose media_request only when the user explicitly requests a visual; its payload must be "
-    '{"response_intent":{}} and must not contain visible reply text or final media parameters. '
+    "Choose media_request only when the user explicitly requests a visual; its payload may carry "
+    "only a response_intent object and must not contain visible reply text or final media "
+    "parameters. "
     "persona_profile, when present in the observation payload, is the authoritative Foundation "
     "context for interpreting this Fluctlight's stable inclinations and expression policy. Do not "
     "write visible text in this JSON."
@@ -93,9 +82,9 @@ ACTION_REALIZATION_SYSTEM_PROMPT = (
 )
 
 MEDIA_PROMPT_SYSTEM_PROMPT = (
-    'Return JSON only: {"prompt":"final image-generation prompt"}. '
-    "Convert the supplied visual request into a concrete image prompt. Do not return prose, "
-    "markdown, hidden reasoning, or any key other than prompt."
+    "Return one JSON object matching the media.prompt.v1 response schema. Convert the supplied "
+    "visual request into a concrete final image-generation prompt. Do not return prose, markdown, "
+    "hidden reasoning, or additional semantic decisions."
 )
 
 MEDIA_RESPONSE_SYSTEM_PROMPT = (
@@ -104,14 +93,12 @@ MEDIA_RESPONSE_SYSTEM_PROMPT = (
     "Do not write an image prompt, hidden reasoning, or Fluctlight IDs."
 )
 
-INITIAL_SCHEDULE_SYSTEM_PROMPT = """Return one JSON object only with items and reschedule_policy.
-You are creating a Fluctlight's initial daily Schedule from the supplied identity facts.
-Choose the activities and scenes yourself; do not invent unsupported biographical facts.
-items must be a non-empty array. Each item must have start_at, end_at, activity, scene,
-item_type, status, priority, flexibility, interruption_cost. All numeric values must be
-between 0 and 1. Times must use RFC3339 offsets in the requested timezone. The items must
-exactly cover the complete requested local date from 00:00:00 to the next 00:00:00 with no
-gaps or overlaps. Do not return prose, markdown, hidden reasoning, or a partial schedule."""
+INITIAL_SCHEDULE_SYSTEM_PROMPT = """Return one JSON object matching the life.schedule.initial.v1
+response schema. Create a complete initial daily Schedule from the supplied identity facts and
+life context. Choose activities and scenes yourself, but never invent unsupported biographical
+facts. Times must be RFC3339 values in the requested IANA timezone and must cover the complete
+requested local date from 00:00:00 to the next 00:00:00 without gaps or overlaps. Do not return
+prose, markdown, hidden reasoning, or a partial schedule."""
 
 
 def _diagnostic_error_code(exc: Exception, fallback: str) -> str:
@@ -126,78 +113,29 @@ class InitializationAnalysisError(RuntimeError):
         self.status_code = status_code
 
 
-INITIALIZATION_SYSTEM_PROMPT = """Return JSON only. Return exactly this object shape and no
-markdown or prose:
-{
-  "foundation": {
-    "identity": {
-      "name": null, "age": null, "gender": null, "occupation": null,
-      "residence": null, "timezone": null, "birthday": null,
-      "background": null, "biography": null, "core_values": [],
-      "worldview": null, "notes": null
-    },
-    "personality": {
-      "openness": 0.5, "conscientiousness": 0.5, "extraversion": 0.5,
-      "agreeableness": 0.5, "neuroticism": 0.5, "curiosity": 0.5,
-      "independence": 0.5, "patience": 0.5, "empathy": 0.5,
-      "assertiveness": 0.5, "humor": 0.5, "sociability": 0.5,
-      "risk_tolerance": 0.5
-    },
-    "behavioral_policy": {
-      "response_style": null, "message_length": null, "emoji_frequency": 0.0,
-      "punctuation_style": null, "humor_style": null, "sarcasm_tendency": 0.0,
-      "directness": 0.5, "initiative": 0.5, "topic_initiation": 0.5,
-      "silence_tolerance": 0.5, "response_delay": 0.0,
-      "emotional_expression": 0.5, "conflict_style": null,
-      "refusal_style": null, "intimacy_expression": null
-    },
-    "life_profile": {
-      "appearance": {}, "social_background": {}, "preferences": {},
-      "life_habits": [], "recurring_commitments": [],
-      "relationship_seeds": [], "character_constraints": []
-    },
-    "provenance": {
-      "field_sources": {}
-    },
-    "initial_goals": [
-      {"description": "", "importance": 0.5, "urgency": 0.5}
-    ],
-    "initial_intentions": [
-      {"goal_index": 0, "action": "", "confidence": 0.5, "expiration_hours": 24}
-    ]
-  }
-}
-Use null for omitted identity and behavioral text facts. timezone must be an IANA timezone such as
-Asia/Shanghai, never an offset label such as UTC+8. core_values must be an array of text.
-Every personality value and bounded behavioral-policy value must be a finite number from 0 to 1.
-response_delay must be a finite number greater than or equal to 0. Do not include identity.id,
-personality.update_policy, hidden reasoning, or extra keys. For description-based
-creation, initial_goals must contain one to three concrete model-owned goals and
-initial_intentions must contain at least one concrete action for every goal. goal_index references
-the zero-based initial_goals array. expiration_hours must be a finite number greater than 0 and
-no more than 168. Do not leave semantic fields blank or invent a generic routine.
+INITIALIZATION_SYSTEM_PROMPT = """Return one JSON object matching the
+fluctlight.initialization.v1 response schema. Do not return markdown, prose, hidden reasoning,
+or keys outside that schema.
 
-Field routing is mandatory. identity is only stable biography, values, worldview, and residual
-identity facts. personality is only durable inclinations. behavioral_policy is the only home for
-tone, voice, cadence, wording habits, message length, punctuation, humor, sarcasm, directness,
-emotional expression, initiative, boundaries, and relationship expression. Never put those traits
-in identity.notes, and do not omit any personality or behavioral_policy field from the object.
+Generate a coherent Foundation from the description. Keep stable biography and values in
+identity, durable inclinations in personality, and all tone/voice/cadence/wording/relationship
+expression rules in behavioral_policy. Keep appearance, social context, enduring preferences,
+repeated habits, real commitments, relationship seeds, and long-lived constraints in life_profile.
+Do not put behavioral traits in identity.notes.
 
-life_profile is long-lived life context: appearance is the image/person continuity baseline;
-social_background is family/important support context; preferences are enduring interests and
-aversions; life_habits are repeated self-directed practices; recurring_commitments are real
-schedule constraints; relationship_seeds define the Owner and other initial social contexts;
-character_constraints are long-lived role facts/boundaries. Return every life_profile field.
-The four collection fields life_habits, recurring_commitments, relationship_seeds, and
-character_constraints must always be JSON arrays of objects, even when there is only one entry;
-never emit a single object for those fields.
-
-Every semantic field must be filled. If the user explicitly describes a field, preserve it and set
-its exact path in provenance.field_sources to user_explicit. If it is directly constrained by the
-description, use user_inferred. If absent, generate a coherent initial value and mark it
-model_generated. Do not use empty objects, empty arrays, neutral placeholders, or identity.notes
-as a way to avoid generating life context. The only server-owned defaults are identifiers and
-personality.update_policy."""
+Use a real IANA timezone such as Asia/Shanghai, never an offset label such as UTC+8. For every
+semantic field, preserve explicit user facts and mark provenance.field_sources as user_explicit;
+mark direct consequences as user_inferred; otherwise generate a coherent value and mark it
+model_generated. Do not leave semantic fields blank or use empty objects, empty arrays, neutral
+placeholders, or identity.notes to avoid making a decision. Keep initial_goals concrete (one to
+three) and provide at least one concrete initial_intentions action for every goal; goal_index is
+zero-based. The server owns identifiers and personality.update_policy; do not return either.
+The four life_profile collection fields must remain arrays of objects, including when there is one
+entry. Return every life_profile field with its intended meaning: appearance for visual continuity,
+social_background for support context, preferences for enduring interests, life_habits for repeated
+practices, recurring_commitments for schedule constraints, and relationship_seeds for initial social
+contexts. character_constraints contain long-lived boundaries. The generated Foundation must be
+usable as an initial state, not a generic template."""
 
 
 class ConfiguredProviderRuntime:
@@ -255,6 +193,8 @@ class ConfiguredProviderRuntime:
                         "event_type": fact.event_type,
                         "payload": fact.payload,
                     },
+                    ensure_ascii=False,
+                    separators=(",", ":"),
                     sort_keys=True,
                 ),
             },
@@ -442,6 +382,8 @@ class ConfiguredProviderRuntime:
                         "local_date": local_date.isoformat(),
                         "timezone": timezone,
                     },
+                    ensure_ascii=False,
+                    separators=(",", ":"),
                     sort_keys=True,
                 ),
             },
@@ -487,6 +429,8 @@ class ConfiguredProviderRuntime:
                 "role": "user",
                 "content": json.dumps(
                     {"media_request": media_request},
+                    ensure_ascii=False,
+                    separators=(",", ":"),
                     sort_keys=True,
                 ),
             },
@@ -664,6 +608,8 @@ class ConfiguredProviderRuntime:
                 "role": "user",
                 "content": json.dumps(
                     {"from_sequence": window.from_sequence, "to_sequence": window.to_sequence},
+                    ensure_ascii=False,
+                    separators=(",", ":"),
                     sort_keys=True,
                 ),
             }
