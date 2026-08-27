@@ -46,7 +46,8 @@ ProviderRecorder = Callable[[ProviderProvenance], Awaitable[None]]
 
 
 COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
-    "Return one JSON object matching the semantic.assessment.v1 response schema. Use only "
+    "Return one JSON object matching the semantic.assessment.v1 response schema. Always include "
+    "decision.media_evaluation with a concise reason and a boolean needed value. Use only "
     "positive, negative, mixed, or neutral for direction. For every assessment and decision, "
     "cite at least one source reference, normally observation_id. For a conversation "
     "message, return ordered decision.effects. The first effect must be reply or no_op; "
@@ -66,10 +67,15 @@ COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
     "response; do not require a magic phrase or use a keyword rule. An explicit request is strong "
     "evidence, but a contextual need can also justify media_request. A media_request effect must "
     "carry a non-empty media_request visual concept with scene, action, mood, subject/object and "
-    "capture details. Keep response_intent limited to the visible acknowledgement; never put the "
+    "capture details. If media_evaluation.needed is true, include a media_request effect; "
+    "if false, "
+    "do not include one. Keep response_intent limited to the visible acknowledgement; never put "
+    "the "
     "visual concept there or emit final provider/workflow parameters. "
     "persona_profile, when present in the observation payload, is the authoritative Foundation "
-    "context for interpreting this Fluctlight's stable inclinations and expression policy. Do not "
+    "context for interpreting this Fluctlight's stable inclinations and expression policy. "
+    "conversation_history, when present, is the recent ordered dialogue context; use it to "
+    "resolve references and preserve continuity. Do not "
     "write visible text in this JSON."
 )
 
@@ -82,7 +88,9 @@ ACTION_REALIZATION_SYSTEM_PROMPT = (
     "concisely while it is being generated. persona_profile is the authoritative, already-frozen "
     "Foundation context: follow "
     "its behavioral_policy for voice, length, punctuation, humor, directness, and emotional "
-    "expression. Use personality only as durable inclination. Return visible reply text only."
+    "expression. Use personality only as durable inclination. Use conversation_history as the "
+    "authoritative recent dialogue context and do not answer as if this were a new conversation. "
+    "Return visible reply text only."
 )
 
 MEDIA_PROMPT_SYSTEM_PROMPT = (
@@ -268,6 +276,22 @@ class ConfiguredProviderRuntime:
                         raise RuntimeError(
                             "cognitive media_request effect is missing a visual concept"
                         )
+            media_evaluation = decision_payload.get("media_evaluation")
+            media_effects = [
+                effect for effect in effects if effect.action_type is ActionType.MEDIA_REQUEST
+            ]
+            if isinstance(media_evaluation, dict):
+                needed = media_evaluation.get("needed")
+                if not isinstance(needed, bool):
+                    raise RuntimeError("cognitive media evaluation has no boolean needed value")
+                if needed and not media_effects:
+                    raise RuntimeError(
+                        "cognitive media evaluation requires a media_request effect"
+                    )
+                if not needed and media_effects:
+                    raise RuntimeError(
+                        "cognitive media_request effect contradicts media evaluation"
+                    )
             decision = DecisionProposal(
                 action_type=effects[0].action_type,
                 payload=effects[0].payload,
@@ -506,6 +530,7 @@ class ConfiguredProviderRuntime:
                         "action_type": action.action_type.value,
                         "response_intent": action.payload.get("response_intent", {}),
                         "persona_profile": action.payload.get("persona_profile", {}),
+                        "conversation_history": action.payload.get("conversation_history", []),
                         "background_context": background_context or {},
                     },
                     sort_keys=True,

@@ -226,6 +226,16 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
                 "confidence": {"type": "number", "minimum": 0, "maximum": 1},
                 "evidence_refs": {"type": "array", "items": {"type": "string"}, "minItems": 1},
                 "decision_id": {"type": "string"},
+                "media_evaluation": _object(
+                    {
+                        "needed": {"type": "boolean"},
+                        "reason": {"type": "string", "minLength": 1},
+                        "visual_concept": {
+                            "type": ["object", "null"],
+                            "additionalProperties": True,
+                        },
+                    }
+                ),
             }
         )
         return _object(

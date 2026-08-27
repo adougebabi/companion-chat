@@ -18,6 +18,9 @@ from .service import CognitionService
 
 
 class CognitionTurnResponder:
+    _HISTORY_LIMIT = 12
+    _HISTORY_TEXT_LIMIT = 800
+
     def __init__(
         self,
         cognition: CognitionService,
@@ -45,6 +48,18 @@ class CognitionTurnResponder:
         }
 
     async def _fact(self, turn: ConversationTurn, history, fluctlight_id: str) -> CognitionFact:
+        history_context = [
+            {
+                "sequence": message.sequence,
+                "speaker": "fluctlight"
+                if message.author_actor_id == fluctlight_id
+                else "user",
+                "kind": message.kind.value,
+                "text": message.text[: self._HISTORY_TEXT_LIMIT],
+                "truncated": len(message.text) > self._HISTORY_TEXT_LIMIT,
+            }
+            for message in history[-self._HISTORY_LIMIT :]
+        ]
         return CognitionFact(
             id=turn.turn_id,
             fluctlight_id=fluctlight_id,
@@ -52,7 +67,7 @@ class CognitionTurnResponder:
             payload={
                 "text": turn.text,
                 "conversation_id": turn.conversation_id,
-                "history_message_ids": [message.id for message in history],
+                "conversation_history": history_context,
                 "persona_profile": await self._persona_profile(fluctlight_id),
             },
             causation_id=turn.idempotency_key,

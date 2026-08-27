@@ -8,6 +8,7 @@ from fluctlight_core.cognition.contracts import (
     ActionType,
     AssessmentEnvelope,
     CognitionFact,
+    DecisionEffect,
     DecisionProposal,
     FrozenAction,
     InboxClaim,
@@ -175,12 +176,10 @@ def test_stream_next_yields_provider_chunks_before_success_settlement(monkeypatc
 def test_stream_next_processes_secondary_media_after_primary_no_op(monkeypatch) -> None:
     service = _service(StreamingProvider())
     envelope = _envelope()
-    secondary = DecisionProposal(
-        action_type=ActionType.MEDIA_REQUEST,
-        payload={"media_request": {"scene": "室内"}, "conversation_id": "conversation-1"},
-        confidence=0.9,
-        evidence_refs=("turn-1",),
-        decision_id="decision-1:media",
+    secondary = DecisionEffect(
+        "media",
+        ActionType.MEDIA_REQUEST,
+        {"media_request": {"scene": "室内"}, "conversation_id": "conversation-1"},
     )
     no_op = DecisionProposal(
         action_type=ActionType.NO_OP,
@@ -188,7 +187,7 @@ def test_stream_next_processes_secondary_media_after_primary_no_op(monkeypatch) 
         confidence=0.9,
         evidence_refs=("turn-1",),
         decision_id="decision-1",
-        effects=(replace(envelope.decision.effects[0], action_type=ActionType.NO_OP), secondary),
+        effects=(DecisionEffect("no-op", ActionType.NO_OP, {}), secondary),
     )
     envelope = replace(envelope, decision=no_op)
     processed: list[str] = []
@@ -200,7 +199,7 @@ def test_stream_next_processes_secondary_media_after_primary_no_op(monkeypatch) 
         return envelope
 
     async def freeze(*_args, **_kwargs):
-        return _action()
+        return replace(_action(), action_type=ActionType.NO_OP, payload={})
 
     async def secondary_effects(*_args, **_kwargs):
         processed.append("media")
@@ -218,7 +217,10 @@ def test_stream_next_processes_secondary_media_after_primary_no_op(monkeypatch) 
     monkeypatch.setattr(service, "_settle_success", settle_success)
 
     async def collect() -> list[str]:
-        return [chunk async for chunk in service.stream_next("fluctlight-1", worker_id="interaction")]
+        return [
+            chunk
+            async for chunk in service.stream_next("fluctlight-1", worker_id="interaction")
+        ]
 
     assert asyncio.run(collect()) == []
     assert processed == ["media", "settled"]
