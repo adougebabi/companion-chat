@@ -1,6 +1,21 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
+
+async function readVueSources(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const sources = [];
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) sources.push(...await readVueSources(path));
+    else if (entry.name.endsWith(".vue")) sources.push(await readFile(path, "utf8"));
+  }
+  return sources;
+}
+
+const vueSource = (await readVueSources(fileURLToPath(new URL("../src", import.meta.url)))).join("\n");
 
 test("web chat keeps the generated browser client at its boundary", async () => {
   const source = await readFile(new URL("../src/stores/conversations.ts", import.meta.url), "utf8");
@@ -15,7 +30,7 @@ test("web chat keeps the generated browser client at its boundary", async () => 
 });
 
 test("control center exposes the required product views", async () => {
-  const source = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
+  const source = vueSource;
   assert.match(source, /Diagnostics/);
   assert.match(source, /Settings/);
   assert.match(source, /Fluctlight 实例/);
@@ -25,7 +40,7 @@ test("control center exposes the required product views", async () => {
 });
 
 test("owner password change explains its policy without trapping the submit button", async () => {
-  const source = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
+  const source = vueSource;
   assert.match(source, /id="owner-password"/);
   assert.match(source, /新密码至少 6 个字符/);
   assert.match(source, /id="setup-password"[^>]*minlength="6"/);
@@ -36,7 +51,7 @@ test("owner password change explains its policy without trapping the submit butt
 });
 
 test("web uses the secure random-ID compatibility helper instead of randomUUID directly", async () => {
-  const appSource = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
+  const appSource = vueSource;
   const storeSource = await readFile(new URL("../src/stores/conversations.ts", import.meta.url), "utf8");
   const helperSource = await readFile(new URL("../src/random-id.ts", import.meta.url), "utf8");
   assert.match(appSource, /randomId\(\)/);
@@ -48,14 +63,14 @@ test("web uses the secure random-ID compatibility helper instead of randomUUID d
 });
 
 test("creation drawer presents activation failures where the user can act on them", async () => {
-  const source = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
-  assert.match(source, /class="create-drawer"[\s\S]*controlCenter\.error/);
-  assert.match(source, /activation_foundation_invalid/);
+  const source = vueSource;
+  assert.match(source, /class="create-surface"[\s\S]*controlCenter\.error/);
+  assert.match(source, /预览必须包含 identity/);
 });
 
 test("diagnostics entry loads records and creation keeps a direct correlation link", async () => {
-  const source = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
-  assert.match(source, /@click="selectView\('diagnostics'\)"/);
+  const source = vueSource;
+  assert.match(source, /@diagnostics=/);
   assert.match(source, /creationDiagnosticsCorrelationId/);
   assert.match(source, /查看本次分析诊断/);
   assert.match(source, /fluctlightDetail\.behavioral_policy/);
