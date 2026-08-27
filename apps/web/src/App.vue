@@ -256,6 +256,12 @@ async function openFluctlight(fluctlightId: string) {
   ]);
 }
 
+function openSelectedFluctlightDetails() {
+  if (!store.selectedFluctlight) return;
+  showInstanceDetails.value = true;
+  view.value = "fluctlights";
+}
+
 function prettyPayload(payload: Record<string, unknown>) {
   return JSON.stringify(payload, null, 2);
 }
@@ -377,8 +383,10 @@ onMounted(() => void store.initialize());
     <template v-if="view === 'chat'">
       <header class="chat-header">
         <button class="chat-back" type="button" aria-label="返回实例" @click="view = 'fluctlights'">‹</button>
-        <span class="chat-avatar" aria-hidden="true">{{ String(store.selectedFluctlightName ?? 'F').slice(0, 1) }}</span>
-        <div class="chat-header-copy"><strong>{{ store.selectedFluctlightName ?? '对话' }}</strong><small>摇光当前状态：{{ store.sending ? '思考中' : '就绪' }}</small></div>
+        <button class="chat-profile" type="button" :disabled="!store.selectedFluctlight" @click="openSelectedFluctlightDetails">
+          <span class="chat-avatar" aria-hidden="true">{{ String(store.selectedFluctlightName ?? 'F').slice(0, 1) }}</span>
+          <span class="chat-header-copy"><strong>{{ store.selectedFluctlightName ?? '对话' }}</strong><small>摇光当前状态：{{ store.sending ? '思考中' : '就绪' }}</small></span>
+        </button>
       </header>
       <section ref="transcript" class="transcript" aria-live="polite" aria-label="对话记录">
       <div v-if="store.loading" class="empty-state">正在加载对话...</div>
@@ -424,10 +432,6 @@ onMounted(() => void store.initialize());
         @keydown="onKeydown"
       />
       <div class="composer-footer">
-        <label class="attachment-input" for="attachment-reference">
-          <span aria-hidden="true">+</span>
-          <input id="attachment-reference" v-model="store.attachmentRef" aria-label="附件引用" type="text" placeholder="附件引用" maxlength="512" :disabled="!store.hasConversation" />
-        </label>
         <div class="composer-actions">
           <button v-if="store.sending" class="secondary-button" type="button" @click="store.cancel">取消</button>
           <button class="send-button" type="submit" :disabled="store.sending || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">
@@ -438,7 +442,7 @@ onMounted(() => void store.initialize());
       </form>
     </template>
 
-    <section v-else-if="view === 'fluctlights'" class="control-panel fluctlights-panel" aria-labelledby="fluctlights-title">
+    <section v-else-if="view === 'fluctlights'" class="control-panel fluctlights-panel" :class="{ 'details-open': showInstanceDetails }" aria-labelledby="fluctlights-title">
       <div class="list-header"><div><p class="eyebrow">ECHO</p><h2 id="fluctlights-title">聊天</h2></div><button class="round-action" type="button" aria-label="新建 Fluctlight" @click="showCreateForm = !showCreateForm">＋</button></div>
       <label class="search-box" for="instance-search"><span aria-hidden="true">⌕</span><input id="instance-search" v-model="instanceSearch" type="search" placeholder="搜索" /></label>
       <div v-if="showCreateForm" class="create-drawer">
@@ -530,7 +534,7 @@ onMounted(() => void store.initialize());
       <div v-else class="moment-list"><article v-for="moment in controlCenter.moments" :key="moment.id" class="moment-row" :class="{ hidden: moment.status === 'hidden' }"><p>{{ moment.text }}</p><div v-if="moment.media.length" class="moment-media"><template v-for="asset in moment.media" :key="asset.id"><video v-if="asset.kind === 'video'" :src="mediaUrl(asset.id)" controls preload="metadata" /><audio v-else-if="asset.kind === 'audio'" :src="mediaUrl(asset.id)" controls preload="metadata" /><img v-else :src="mediaUrl(asset.id)" :alt="store.selectedFluctlightName + ' 的动态媒体'" loading="lazy" /></template></div><small>{{ moment.created_at }} · {{ moment.reaction_count }} 个反应<span v-if="controlCenter.momentsScope === 'global'"> · {{ moment.owner_fluctlight_id }}<span v-if="moment.unread_count"> · {{ moment.unread_count }} 条未读</span></span></small><div v-if="moment.comments.length" class="comment-list"><p v-for="comment in moment.comments" :key="comment.id"><strong>{{ comment.author_actor_id }}</strong> {{ comment.text }}</p></div><div class="moment-actions"><button class="secondary-button" type="button" @click="controlCenter.reactToMoment(moment.id, store.fluctlightId)">{{ moment.viewer_reaction ? '已赞' : '赞' }}</button><button class="secondary-button" type="button" @click="controlCenter.setMomentStatus(moment.id, moment.status === 'hidden' ? 'restore' : 'hide', store.fluctlightId)">{{ moment.status === 'hidden' ? '恢复' : '隐藏' }}</button><form @submit.prevent="controlCenter.commentOnMoment(moment.id, store.fluctlightId)"><input v-model="controlCenter.momentDrafts[moment.id]" :aria-label="'评论动态 ' + moment.id" maxlength="32000" placeholder="写评论..." :disabled="moment.status === 'hidden'" /><button class="secondary-button" type="submit" :disabled="moment.status === 'hidden' || !controlCenter.momentDrafts[moment.id]?.trim()">评论</button></form></div></article></div>
     </section>
 
-    <section v-else-if="view === 'diagnostics'" class="control-panel" aria-labelledby="diagnostics-title">
+    <section v-else-if="view === 'diagnostics'" class="control-panel diagnostics-panel" aria-labelledby="diagnostics-title">
       <div class="panel-heading panel-actions"><div><button class="back-link" type="button" @click="view = 'settings'">← 返回设置</button><p class="eyebrow">CONTROL CENTER</p><h2 id="diagnostics-title">诊断</h2></div><div class="diagnostic-actions"><button class="secondary-button" type="button" @click="controlCenter.exportDiagnostics">导出</button><button class="secondary-button" type="button" @click="controlCenter.clearDiagnostics">清空</button></div></div>
       <form class="diagnostic-filter" @submit.prevent="controlCenter.loadDiagnostics"><input v-model="controlCenter.diagnosticsCorrelationFilter" aria-label="Correlation ID 过滤" placeholder="按 Correlation ID 过滤" /><button class="secondary-button" type="submit">筛选</button></form>
       <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
@@ -714,6 +718,10 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .unread-badge { display: grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 11px; background: #b9bbc2; color: #fff; font-size: .68rem; font-weight: 700; }
 .chat-header { display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 7px 10px; border: 1px solid var(--surface-border); border-radius: 18px 18px 0 0; background: rgb(255 255 255 / 40%); box-shadow: 0 8px 20px rgb(44 69 80 / 7%); backdrop-filter: blur(var(--glass-blur)); }
 .chat-back { border: 0; background: transparent; color: #2aabee; cursor: pointer; font-size: 2rem; line-height: 1; }
+.chat-profile { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.chat-profile:disabled { cursor: default; }
+.chat-profile:not(:disabled):hover .chat-header-copy strong { color: #2aabee; }
+.chat-profile:focus-visible { outline: 2px solid #2aabee; outline-offset: 3px; border-radius: 10px; }
 .chat-avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(145deg, #5bc1ca, #3d8e98); color: #fff; font-weight: 750; }
 .chat-header-copy { display: grid; flex: 1; gap: 2px; }
 .chat-header-copy strong { color: #23313a; font-size: .94rem; }
@@ -795,9 +803,6 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .composer textarea { display: block; width: 100%; min-height: 56px; resize: vertical; border: 0; outline: 0; color: #17232c; line-height: 1.5; }
 .composer textarea::placeholder { color: #9aa7b0; }
 .composer-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
-.attachment-input { display: flex; align-items: center; gap: 7px; min-width: 0; color: #637582; }
-.attachment-input > span { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid #b8c5cc; border-radius: 50%; color: #47717c; }
-.attachment-input input { width: min(260px, 35vw); border: 0; outline: 0; color: #41515c; font-size: .8rem; }
 .composer-actions { display: flex; gap: 8px; }
 .send-button, .secondary-button { min-height: 36px; padding: 0 14px; border-radius: 11px; cursor: pointer; transition: .2s ease; }
 .send-button { border: 1px solid #326b75; background: linear-gradient(135deg, #367b84, #245763); color: #fff; box-shadow: 0 7px 16px rgb(43 98 105 / 20%); }
@@ -839,13 +844,13 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
   .fluctlights-panel .avatar { width: 48px; height: 48px; flex-basis: 48px; background: linear-gradient(145deg, #dc8aed, #c64be6); color: #fff; font-size: 1rem; }
   .fluctlights-panel .actor-row-copy strong { color: #20262b; font-size: .94rem; }
   .fluctlights-panel .actor-row-copy small { color: #929da4; font-size: .78rem; }
-  .fluctlights-panel .actor-directory-row > select, .fluctlights-panel .actor-directory-row > .secondary-button, .fluctlights-panel .toggle-row, .fluctlights-panel .metric-grid, .fluctlights-panel .fluctlight-detail, .fluctlights-panel .detail-toggle { display: none; }
+  .fluctlights-panel:not(.details-open) .actor-directory-row > select, .fluctlights-panel:not(.details-open) .actor-directory-row > .secondary-button, .fluctlights-panel:not(.details-open) .toggle-row, .fluctlights-panel:not(.details-open) .metric-grid, .fluctlights-panel:not(.details-open) .fluctlight-detail, .fluctlights-panel:not(.details-open) .detail-toggle { display: none; }
+  .fluctlights-panel.details-open .fluctlight-detail { display: block; margin: 18px 14px 0; padding: 18px 0 0; border-top: 8px solid #eef2f4; }
+  .fluctlights-panel.details-open .detail-toggle { display: block; }
   .row-trailing { margin-left: auto; }
   .composer { flex: 0 0 auto; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); border: 0; border-radius: 0; background: #f5f7f9; box-shadow: 0 -1px #d5dce2; }
   .composer textarea { min-height: 40px; max-height: 120px; padding: 9px 12px; border: 1px solid #d0d8df; border-radius: 20px; background: #fff; }
-  .composer-footer { align-items: center; margin-top: 6px; }
-  .attachment-input input { display: none; }
-  .attachment-input > span { width: 32px; height: 32px; border: 1px solid #d0d8df; background: #fff; }
+  .composer-footer { justify-content: flex-end; align-items: center; margin-top: 6px; }
   .composer-actions .send-button { min-width: 40px; width: 40px; height: 40px; padding: 0; border-radius: 50%; font-size: 0; }
   .composer-actions .send-button::after { content: '➤'; font-size: 1rem; }
   .settings-actions { width: 100%; justify-content: flex-start; padding-top: 8px; border-top: 1px solid rgb(199 211 217 / 45%); }
@@ -857,7 +862,6 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
   .binding-row small { grid-column: auto; }
   .settings-form .creation-mode { flex-wrap: wrap; }
   .settings-form .creation-mode .secondary-button { flex: 1 1 42%; min-width: 0; }
-  .attachment-input input { width: min(180px, 45vw); }
   .settings-grid { grid-template-columns: 1fr; }
   .metric-grid { grid-template-columns: 1fr; }
   .dashboard-legend { display: none; }
@@ -865,5 +869,23 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
   .moments-panel { max-height: calc(100vh - 132px); padding-inline: 6px; }
   .moments-panel .moment-list { max-height: calc(100vh - 320px); }
   .send-button, .secondary-button { min-height: 40px; }
+  .diagnostics-panel { overflow-y: auto; padding: 16px 12px 112px; background: var(--surface-glass); }
+  .diagnostics-panel .panel-heading { align-items: flex-start; margin-bottom: 16px; }
+  .diagnostics-panel .panel-heading > div { min-width: 0; }
+  .diagnostics-panel .diagnostic-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .diagnostics-panel .diagnostic-actions .secondary-button { flex: 0 1 auto; }
+  .diagnostics-panel .diagnostic-filter { display: grid; grid-template-columns: minmax(0, 1fr) auto; margin: 0 0 14px; }
+  .diagnostics-panel .diagnostic-filter input { min-width: 0; width: 100%; }
+  .diagnostics-panel .diagnostic-list { gap: 8px; }
+  .diagnostics-panel .diagnostic-list h3 { margin: 8px 0 2px; font-size: .94rem; }
+  .diagnostics-panel .diagnostic-row { min-width: 0; padding: 12px; border-radius: 14px; }
+  .diagnostics-panel .diagnostic-meta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; }
+  .diagnostics-panel .diagnostic-meta small { grid-column: 1 / -1; overflow-wrap: anywhere; }
+  .diagnostics-panel .diagnostic-row pre { max-height: 140px; padding: 8px; font-size: .7rem; }
+  .diagnostics-panel .fluctlight-detail { margin-top: 18px; padding-top: 16px; }
+  .diagnostics-panel .revision-form { min-width: 0; }
+  .diagnostics-panel .revision-form input { min-width: 0; width: 100%; }
+  .diagnostics-panel .revision-form .diagnostic-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .diagnostics-panel .revision-form .diagnostic-actions .secondary-button { width: 100%; min-width: 0; padding-inline: 8px; }
 }
 </style>
