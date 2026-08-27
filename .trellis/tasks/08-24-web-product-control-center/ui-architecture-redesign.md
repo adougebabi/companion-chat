@@ -2,21 +2,22 @@
 
 ## Decision
 
-The active `apps/web` client uses one workspace shell with four primary
-surfaces: Chat, Moments, Instances, and Settings. Diagnostics is a secondary
-Settings surface. A selected Fluctlight provides context for a read-only detail
-dialog and a separate full governance work surface.
+The active `apps/web` client uses one workspace shell with three primary
+surfaces: Instances, Moments, and Settings. Chat is a focused surface opened
+from the instance/contact list; Diagnostics is a secondary Settings surface. A
+selected Fluctlight provides context for a read-only detail dialog and a
+separate full governance work surface.
 
 ```text
 AppShell
 ├── AuthPanel
 └── Workspace
-    ├── ChatView
-    ├── MomentsView
     ├── InstancesView
     │   ├── InstanceDirectory
     │   ├── InstanceCreateSurface
     │   └── GovernanceView
+    ├── ChatView
+    ├── MomentsView
     ├── SettingsView
     └── DiagnosticsView
         └── Advanced workflow controls
