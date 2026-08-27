@@ -588,6 +588,18 @@ function creationAnalysisFailureMessage(error: unknown): string {
       ? `初始化模型返回的 Foundation 不符合要求：${detail}`
       : "初始化模型返回的 Foundation 结构不符合要求，请查看诊断中的 Prompt 和 Response。";
   }
+  if (error.code === "core_request_validation_failed") {
+    const errors = error.details.validation_errors;
+    if (Array.isArray(errors)) {
+      const paths = errors.map((item) => {
+        if (!item || typeof item !== "object") return "未知字段";
+        const location = (item as Record<string, unknown>).location;
+        return Array.isArray(location) ? location.join(".") : "未知字段";
+      }).join("、");
+      return `Core 请求校验失败：${paths || "请查看诊断日志"}`;
+    }
+    return "Core 请求校验失败，请查看诊断日志。";
+  }
   if (error.code === "initialization_provider_unavailable") return "初始化模型 Provider 不可用或请求超时。";
   return error.userMessage || "Fluctlight 分析失败。";
 }

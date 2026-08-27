@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -11,7 +12,8 @@ from uuid import uuid4
 
 import boto3  # type: ignore[import-untyped]
 from fastapi import FastAPI, Header, HTTPException, Path
-from fastapi.responses import Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import insert, select, text
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -107,6 +109,7 @@ from fluctlight_core.transport.conversations import (
 )
 
 EXPECTED_REVISION = "0018_foundation_v2_life_profile"
+logger = logging.getLogger(__name__)
 
 
 class _OwnerWorkflowAuthorizer:
@@ -495,6 +498,28 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             await resolved.engine.dispose()
 
     app = FastAPI(title="Fluctlight Core Platform", version="0.1.0", lifespan=lifespan)
+
+    @app.exception_handler(RequestValidationError)
+    async def request_validation_error_handler(_, exc: RequestValidationError) -> JSONResponse:
+        errors = [
+            {
+                "location": [str(part) for part in error.get("loc", ())],
+                "type": str(error.get("type", "validation_error")),
+                "message": str(error.get("msg", "request validation failed")),
+            }
+            for error in exc.errors()
+        ]
+        logger.error("core.request_validation_failed errors=%s", errors)
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": {
+                    "code": "core_request_validation_failed",
+                    "message": "Core request validation failed",
+                    "details": {"validation_errors": errors},
+                }
+            },
+        )
 
     def require_dependencies() -> ApiDependencies:
         if resolved is None:
@@ -1265,8 +1290,19 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
         except AuthError as exc:
             raise HTTPException(status_code=401, detail="unauthenticated") from exc
         except InitializationAnalysisError as exc:
+            logger.error(
+                "fluctlight.creation.analysis_failed code=%s status=%s",
+                exc.code,
+                exc.status_code,
+            )
             raise HTTPException(status_code=exc.status_code, detail=exc.code) from exc
         except CreationError as exc:
+            logger.error(
+                "fluctlight.creation.analysis_rejected code=%s message=%s details=%s",
+                exc.code,
+                str(exc),
+                exc.details,
+            )
             await require_diagnostics_service(current).emit_event(
                 DiagnosticEvent(
                     event_type="fluctlight.initialization.failed",
@@ -1280,9 +1316,26 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 detail={"code": exc.code, "message": str(exc), "details": exc.details},
             ) from exc
         except RuntimeError as exc:
+            logger.exception(
+                "fluctlight.creation.analysis_unexpected error_type=%s",
+                type(exc).__name__,
+            )
             raise HTTPException(
                 status_code=503,
                 detail="initialization_provider_unavailable",
+            ) from exc
+        except Exception as exc:
+            logger.exception(
+                "fluctlight.creation.analysis_unhandled error_type=%s",
+                type(exc).__name__,
+            )
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "code": "initialization_unhandled_error",
+                    "message": "Fluctlight analysis failed unexpectedly",
+                    "details": {"error_type": type(exc).__name__},
+                },
             ) from exc
 
     @app.post("/internal/fluctlight-creations/activate")
