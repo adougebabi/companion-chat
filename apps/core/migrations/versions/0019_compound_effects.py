@@ -1,11 +1,8 @@
-"""Allow more than one decision proposal for a single assessment.
-
-Compound cognition decisions persist one assessment and one proposal per effect.
-"""
+"""Allow more than one decision proposal for a single assessment."""
 
 from alembic import op
 
-revision = "0019_allow_compound_decision_effects"
+revision = "0019_compound_effects"
 down_revision = "0018_foundation_v2_life_profile"
 branch_labels = None
 depends_on = None

@@ -108,7 +108,7 @@ from fluctlight_core.transport.conversations import (
     turn_stream_response,
 )
 
-EXPECTED_REVISION = "0019_allow_compound_decision_effects"
+EXPECTED_REVISION = "0019_compound_effects"
 logger = logging.getLogger(__name__)
 
 
