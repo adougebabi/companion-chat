@@ -33,6 +33,243 @@ class ToolCallResult:
     arguments: dict[str, object]
 
 
+def _nullable(kind: str) -> dict[str, object]:
+    return {"type": [kind, "null"]}
+
+
+def _object(
+    properties: dict[str, object], required: list[str] | None = None, *, open_object: bool = False
+) -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": properties,
+        "required": required if required is not None else list(properties),
+        "additionalProperties": open_object,
+    }
+
+
+def _structured_schema(schema_version: str) -> dict[str, object]:
+    """Return the wire schema for a structured role response.
+
+    This is intentionally owned by the transport boundary: prompts explain intent,
+    while the provider receives an executable contract. Unknown versions retain a
+    minimal object contract so diagnostics/tests can still exercise the adapter;
+    production runtimes use one of the explicit versions below.
+    """
+    if schema_version == "fluctlight.initialization.v1":
+        scalar_identity = {
+            key: _nullable("string")
+            for key in (
+                "name",
+                "gender",
+                "occupation",
+                "residence",
+                "timezone",
+                "birthday",
+                "background",
+                "biography",
+                "worldview",
+                "notes",
+            )
+        }
+        identity = _object(
+            scalar_identity
+            | {
+                "age": {"type": ["number", "null"]},
+                "core_values": {"type": "array", "items": {"type": "string"}},
+            }
+        )
+        personality = _object(
+            {
+                key: {"type": "number", "minimum": 0, "maximum": 1}
+                for key in (
+                    "openness",
+                    "conscientiousness",
+                    "extraversion",
+                    "agreeableness",
+                    "neuroticism",
+                    "curiosity",
+                    "independence",
+                    "patience",
+                    "empathy",
+                    "assertiveness",
+                    "humor",
+                    "sociability",
+                    "risk_tolerance",
+                )
+            }
+        )
+        policy = _object(
+            {
+                "response_style": _nullable("string"),
+                "message_length": _nullable("string"),
+                "emoji_frequency": {"type": "number", "minimum": 0, "maximum": 1},
+                "punctuation_style": _nullable("string"),
+                "humor_style": _nullable("string"),
+                "sarcasm_tendency": {"type": "number", "minimum": 0, "maximum": 1},
+                "directness": {"type": "number", "minimum": 0, "maximum": 1},
+                "initiative": {"type": "number", "minimum": 0, "maximum": 1},
+                "topic_initiation": {"type": "number", "minimum": 0, "maximum": 1},
+                "silence_tolerance": {"type": "number", "minimum": 0, "maximum": 1},
+                "response_delay": {"type": "number", "minimum": 0},
+                "emotional_expression": {"type": "number", "minimum": 0, "maximum": 1},
+                "conflict_style": _nullable("string"),
+                "refusal_style": _nullable("string"),
+                "intimacy_expression": _nullable("string"),
+            }
+        )
+        free_item = {"type": "object", "additionalProperties": True}
+        life_profile = _object(
+            {
+                "appearance": {"type": "object", "additionalProperties": True},
+                "social_background": {"type": "object", "additionalProperties": True},
+                "preferences": {"type": "object", "additionalProperties": True},
+                **{
+                    key: {"type": "array", "items": free_item}
+                    for key in (
+                        "life_habits",
+                        "recurring_commitments",
+                        "relationship_seeds",
+                        "character_constraints",
+                    )
+                },
+            }
+        )
+        provenance = {"type": "object", "additionalProperties": True}
+        goal = _object(
+            {
+                "description": {"type": "string"},
+                "importance": {"type": "number", "minimum": 0, "maximum": 1},
+                "urgency": {"type": "number", "minimum": 0, "maximum": 1},
+            }
+        )
+        intention = _object(
+            {
+                "goal_index": {"type": "integer", "minimum": 0},
+                "action": {"type": "string"},
+                "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                "expiration_hours": {"type": "number", "exclusiveMinimum": 0, "maximum": 168},
+            }
+        )
+        return _object(
+            {
+                "foundation": _object(
+                    {
+                        "identity": identity,
+                        "personality": personality,
+                        "behavioral_policy": policy,
+                        "life_profile": life_profile,
+                        "provenance": provenance,
+                        "initial_goals": {
+                            "type": "array",
+                            "items": goal,
+                            "minItems": 1,
+                            "maxItems": 3,
+                        },
+                        "initial_intentions": {"type": "array", "items": intention, "minItems": 1},
+                    }
+                )
+            }
+        )
+    if schema_version == "semantic.assessment.v1":
+        perception = _object(
+            {
+                "event_kind": {"type": "string"},
+                "observed_intent": _nullable("string"),
+                "sentiment": _nullable("string"),
+                "social_signals": {"type": "array", "items": {"type": "string"}},
+                "environment_meaning": _nullable("string"),
+            }
+        )
+        appraisal = _object(
+            {
+                key: {"type": "number", "minimum": 0, "maximum": 1}
+                for key in (
+                    "relevance",
+                    "goal_congruence",
+                    "reward",
+                    "loss",
+                    "social_threat",
+                    "controllability",
+                    "responsibility",
+                    "relationship_significance",
+                    "expected_effect",
+                )
+            }
+        )
+        effect = _object(
+            {
+                "id": {"type": "string"},
+                "action_type": {"type": "string"},
+                "payload": {"type": "object", "additionalProperties": True},
+            }
+        )
+        assessment = _object(
+            {
+                "perception": perception,
+                "appraisal": appraisal,
+                "direction": {"type": "string"},
+                "strength": {"type": "number", "minimum": 0, "maximum": 1},
+                "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                "evidence_refs": {"type": "array", "items": {"type": "string"}},
+            }
+        )
+        decision = _object(
+            {
+                "effects": {"type": "array", "items": effect, "minItems": 1},
+                "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                "evidence_refs": {"type": "array", "items": {"type": "string"}},
+                "decision_id": {"type": "string"},
+            }
+        )
+        return _object(
+            {
+                "assessment": assessment,
+                "decision": decision,
+                "model_version": {"type": "string"},
+                "prompt_version": {"type": "string"},
+            }
+        )
+    if schema_version == "life.schedule.initial.v1":
+        item = _object(
+            {
+                "start_at": {"type": "string"},
+                "end_at": {"type": "string"},
+                "activity": {"type": "string"},
+                "scene": {"type": "string"},
+                "item_type": {"type": "string"},
+                "status": {"type": "string"},
+                "priority": {"type": "number", "minimum": 0, "maximum": 1},
+                "flexibility": {"type": "number", "minimum": 0, "maximum": 1},
+                "interruption_cost": {"type": "number", "minimum": 0, "maximum": 1},
+            }
+        )
+        return _object(
+            {
+                "items": {"type": "array", "items": item, "minItems": 1},
+                "reschedule_policy": {"type": "object", "additionalProperties": True},
+            }
+        )
+    if schema_version == "media.prompt.v1":
+        return _object({"prompt": {"type": "string", "minLength": 1}})
+    if schema_version == "reflection.v1":
+        return _object(
+            {
+                "proposal_id": {"type": "string"},
+                "evidence_refs": {"type": "array", "items": {"type": "string"}},
+                "memory_candidates": {
+                    "type": "array",
+                    "items": {"type": "object", "additionalProperties": True},
+                },
+                "relationship_candidates": {
+                    "type": "array",
+                    "items": {"type": "object", "additionalProperties": True},
+                },
+            }
+        )
+    return {"type": "object", "additionalProperties": True}
+
+
 def _request(
     method: str, url: str, headers: dict[str, str], body: bytes, timeout: float
 ) -> HttpResult:
@@ -117,6 +354,7 @@ class OpenAICompatibleAdapter:
         *,
         messages: list[dict[str, object]],
         schema_version: str,
+        json_schema: dict[str, object] | None = None,
         request_id: str | None = None,
     ) -> dict:
         if assignment.role not in {
@@ -130,7 +368,14 @@ class OpenAICompatibleAdapter:
         payload = {
             "model": assignment.model_id,
             "messages": messages,
-            "response_format": {"type": "json_object"},
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": schema_version.replace(".", "_"),
+                    "strict": True,
+                    "schema": json_schema or _structured_schema(schema_version),
+                },
+            },
             "stream": False,
             "metadata": {"schema_version": schema_version},
         }

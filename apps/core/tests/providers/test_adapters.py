@@ -192,7 +192,7 @@ def test_openai_adapter_executes_structured_realization_and_embedding_ports() ->
             endpoint,
             secret,
             messages=[{"role": "user", "content": "assess"}],
-            schema_version="assessment.v1",
+            schema_version="semantic.assessment.v1",
             request_id="provider-request-1",
         )
     )
@@ -245,6 +245,13 @@ def test_openai_adapter_executes_structured_realization_and_embedding_ports() ->
     assert len(calls) == 5
     embedding_payload = json.loads(calls[-1][2])
     assert embedding_payload["input"] == ["embed"]
+    structured_payload = json.loads(calls[0][2])
+    response_format = structured_payload["response_format"]
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["name"] == "semantic_assessment_v1"
+    assert response_format["json_schema"]["strict"] is True
+    assert response_format["json_schema"]["schema"]["properties"]["assessment"]["type"] == "object"
+    assert structured_payload["metadata"]["schema_version"] == "semantic.assessment.v1"
 
 
 def test_openai_adapter_collects_sse_media_tool_call_arguments() -> None:
