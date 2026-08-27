@@ -294,6 +294,10 @@ function diagnosticFailureReason(errorCode: string) {
   const explanations: Record<string, string> = {
     cognitive_provider_response_is_missing_decision: "认知模型没有返回必需的 decision 对象，无法生成下一步动作。",
     perception_social_signals_must_be_a_list_of_references: "认知模型将 social_signals 返回成了非数组类型；该字段必须是字符串数组，空值应为 []。",
+    activation_foundation_invalid: "预览 Foundation 的字段或嵌套值不符合合同。",
+    activation_foundation_incomplete: "预览缺少完整人格或行为策略。",
+    activation_persistence_failed: "Foundation 已通过校验，但无法写入 Fluctlight 数据。",
+    initialization_foundation_invalid: "初始化模型返回的 Foundation 字段不符合合同。",
   };
   return explanations[errorCode] ?? "模型响应未通过结构化合同校验，详情见错误码。";
 }
@@ -442,6 +446,7 @@ onMounted(() => void store.initialize());
         <button class="secondary-button" :class="{ selected: creationMode === 'blank_slate' }" type="button" @click="creationMode = 'blank_slate'">白纸创建</button>
         <button class="secondary-button" :class="{ selected: creationMode === 'llm_defined' }" type="button" @click="creationMode = 'llm_defined'">从描述创建</button>
       </div>
+      <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
       <form v-if="creationMode === 'blank_slate'" class="actor-create-form" @submit.prevent="createFluctlightAndConversation">
         <label for="fluctlight-name">创建 Fluctlight</label>
         <div class="actor-create-row">

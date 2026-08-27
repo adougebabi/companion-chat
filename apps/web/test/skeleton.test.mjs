@@ -46,3 +46,9 @@ test("web uses the secure random-ID compatibility helper instead of randomUUID d
   assert.match(helperSource, /crypto\?\.randomUUID/);
   assert.match(helperSource, /crypto\?\.getRandomValues/);
 });
+
+test("creation drawer presents activation failures where the user can act on them", async () => {
+  const source = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
+  assert.match(source, /class="create-drawer"[\s\S]*controlCenter\.error/);
+  assert.match(source, /activation_foundation_invalid/);
+});

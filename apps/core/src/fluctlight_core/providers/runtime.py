@@ -131,7 +131,8 @@ markdown or prose:
     }
   }
 }
-Use null for omitted identity and behavioral text facts. core_values must be an array of text.
+Use null for omitted identity and behavioral text facts. timezone must be an IANA timezone such as
+Asia/Shanghai, never an offset label such as UTC+8. core_values must be an array of text.
 Every personality value and bounded behavioral-policy value must be a finite number from 0 to 1.
 response_delay must be a finite number greater than or equal to 0. Do not include identity.id,
 personality.update_policy, provenance, hidden reasoning, or extra keys."""

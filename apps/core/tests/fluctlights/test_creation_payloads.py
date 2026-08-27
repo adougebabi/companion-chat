@@ -10,7 +10,7 @@ class _Analyzer:
     async def analyze_initialization(self, _description: str) -> dict[str, object]:
         return {
             "foundation": {
-                "identity": {"name": "测试"},
+                "identity": {"name": "测试", "timezone": "UTC+8"},
                 "personality": Personality(openness=0.8).as_payload(),
                 "behavioral_policy": BehavioralPolicy(directness=0.7).as_payload(),
             }
@@ -63,5 +63,6 @@ def test_creation_preview_json_round_trips_personality_update_policy_for_activat
         assert created.id.startswith("fluctlight_")
         assert fluctlights.created is not None
         assert fluctlights.created.personality.update_policy.max_delta == 0.05
+        assert fluctlights.created.identity.timezone == "Asia/Shanghai"
 
     asyncio.run(verify())

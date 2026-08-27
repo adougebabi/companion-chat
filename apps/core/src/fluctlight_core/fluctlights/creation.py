@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 from typing import Any, Protocol
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .contracts import (
     BehavioralPolicy,
@@ -60,6 +61,27 @@ def _without_id(payload: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _identity_from_payload(identity_id: str, payload: dict[str, Any]) -> Identity:
+    values = _without_id(payload)
+    timezone = values.get("timezone")
+    if timezone is not None:
+        if not isinstance(timezone, str):
+            raise FoundationValidationError("identity.timezone must be text")
+        normalized = {
+            "UTC+8": "Asia/Shanghai",
+            "UTC+08:00": "Asia/Shanghai",
+            "GMT+8": "Asia/Shanghai",
+            "GMT+08:00": "Asia/Shanghai",
+            "China Standard Time": "Asia/Shanghai",
+        }.get(timezone.strip(), timezone.strip())
+        try:
+            ZoneInfo(normalized)
+        except ZoneInfoNotFoundError as exc:
+            raise FoundationValidationError("identity.timezone must be an IANA timezone") from exc
+        values["timezone"] = normalized
+    return Identity(id=identity_id, **values)
+
+
 def _personality_from_payload(payload: dict[str, Any]) -> Personality:
     values = dict(payload)
     update_policy = values.pop("update_policy", None)
@@ -91,7 +113,7 @@ class CreationLifecycleService:
         if not isinstance(foundation, dict):
             raise CreationError("initialization response has no foundation")
         try:
-            identity = Identity(id="preview", **_without_id(dict(foundation["identity"])))
+            identity = _identity_from_payload("preview", dict(foundation["identity"]))
             personality = _personality_from_payload(dict(foundation["personality"]))
             policy = BehavioralPolicy(**dict(foundation["behavioral_policy"]))
         except (KeyError, TypeError, FoundationValidationError) as exc:
@@ -131,7 +153,7 @@ class CreationLifecycleService:
                 code="activation_mode_invalid",
             )
         try:
-            resolved_identity = Identity(id=fluctlight_id, **_without_id(identity))
+            resolved_identity = _identity_from_payload(fluctlight_id, identity)
             resolved_personality = (
                 _personality_from_payload(personality)
                 if mode is InitializationMode.LLM_DEFINED and personality is not None

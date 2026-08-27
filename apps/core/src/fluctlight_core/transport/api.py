@@ -1285,6 +1285,14 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
         except AuthError as exc:
             raise HTTPException(status_code=401, detail="unauthenticated") from exc
         except CreationError as exc:
+            await require_diagnostics_service(current).emit_event(
+                DiagnosticEvent(
+                    event_type="fluctlight.activation.failed",
+                    severity=DiagnosticSeverity.ERROR,
+                    correlation_id=f"activation:{actor.actor_id}:{request.request_id}",
+                    payload={"error_code": exc.code},
+                )
+            )
             raise HTTPException(status_code=422, detail=exc.code) from exc
         return snapshot.as_payload()
 
