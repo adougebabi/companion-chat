@@ -21,14 +21,12 @@ export type CoreDiagnosticModelRun = { id: string; role: string; endpoint_id?: s
 export class CoreApiError extends Error {
   readonly status: number;
   readonly code: string;
-  readonly details: Record<string, unknown>;
 
-  constructor(status: number, code: string, message?: string, details: Record<string, unknown> = {}) {
-    super(message ?? `Core request failed: ${status} ${code}`);
+  constructor(status: number, code: string) {
+    super(`Core request failed: ${status} ${code}`);
     this.name = "CoreApiError";
     this.status = status;
     this.code = code;
-    this.details = details;
   }
 }
 
@@ -173,21 +171,13 @@ export class CoreClient {
     if (body) headers["content-type"] = "application/json";
     const response = await this.fetcher(new URL(path, this.baseUrl), { method, headers, body: body ? JSON.stringify(body) : undefined });
     if (!response.ok) {
-      const payload = await response.json().catch(() => null) as { detail?: unknown; code?: unknown; message?: unknown; details?: unknown } | null;
-      const detail = payload?.detail;
-      const detailObject = detail && typeof detail === "object" && !Array.isArray(detail) ? detail as { code?: unknown; message?: unknown; details?: unknown } : null;
-      const code: string = typeof detailObject?.code === "string"
-        ? detailObject.code
-        : typeof detail === "string"
-        ? detail
+      const payload = await response.json().catch(() => null) as { detail?: unknown; code?: unknown } | null;
+      const code = typeof payload?.detail === "string"
+        ? payload.detail
         : typeof payload?.code === "string"
           ? payload.code
           : "core_request_failed";
-      const message = typeof detailObject?.message === "string" ? detailObject.message : undefined;
-      const details = detailObject?.details && typeof detailObject.details === "object" && !Array.isArray(detailObject.details)
-        ? detailObject.details as Record<string, unknown>
-        : {};
-      throw new CoreApiError(response.status, code, message, details);
+      throw new CoreApiError(response.status, code);
     }
     if (response.status === 204) return undefined;
     return response.json();
