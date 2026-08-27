@@ -21,6 +21,11 @@ export const useControlCenterStore = defineStore("control-center", {
     workflowHistoryPoint: "",
     diagnosticsCorrelationFilter: "",
     diagnosticsWarning: "",
+    diagnosticsNotice: "",
+    diagnosticsLoaded: false,
+    diagnosticsLastLoadedAt: "",
+    diagnosticsRequestId: 0,
+    analysisFailureCorrelationId: "",
     moments: [] as Array<{ id: string; owner_fluctlight_id?: string; text: string; author_actor_id: string; created_at: string; media_asset_ids: string[]; media: Array<{ id: string; kind: string; mime_type: string }>; status: string; comments: Array<{ id: string; author_actor_id: string; text: string; created_at: string }>; reaction_count: number; viewer_reaction?: string | null; unread_count?: number }>,
     momentsScope: "global" as "global" | "fluctlight",
     includeHiddenMoments: false,
@@ -56,9 +61,11 @@ export const useControlCenterStore = defineStore("control-center", {
   actions: {
     async analyzeFluctlight(description: string) {
       this.error = "";
+      this.analysisFailureCorrelationId = "";
       try {
         return await client.analyzeFluctlightCreation(description);
       } catch (error) {
+        if (error instanceof BrowserApiError && typeof error.details.correlation_id === "string") this.analysisFailureCorrelationId = error.details.correlation_id;
         this.error = creationAnalysisFailureMessage(error);
         return null;
       }
@@ -69,10 +76,14 @@ export const useControlCenterStore = defineStore("control-center", {
     },
     async createActorGroup() {
       const name = this.newActorGroupName.trim();
-      if (!name) return;
+      if (!name) return null;
       this.saving = true;
-      try { await client.createActorGroup(name); this.newActorGroupName = ""; await this.loadActorGroups(); }
-      catch { this.error = "无法创建实例分组。"; }
+      try {
+        const created = await client.createActorGroup(name);
+        this.newActorGroupName = "";
+        await this.loadActorGroups();
+        return created;
+      } catch { this.error = "无法创建实例分组。"; return null; }
       finally { this.saving = false; }
     },
     async assignActorGroupMember(groupId: string, actorId: string) {
@@ -105,9 +116,12 @@ export const useControlCenterStore = defineStore("control-center", {
       finally { this.saving = false; }
     },
     async loadDiagnostics() {
+      const requestId = this.diagnosticsRequestId + 1;
+      this.diagnosticsRequestId = requestId;
       this.loading = true;
       this.error = "";
       this.diagnosticsWarning = "";
+      this.diagnosticsNotice = "";
       try {
         const correlationId = this.diagnosticsCorrelationFilter.trim() || undefined;
         const [events, modelRuns, workflows] = await Promise.allSettled([
@@ -115,19 +129,24 @@ export const useControlCenterStore = defineStore("control-center", {
           client.diagnosticModelRuns({ limit: 100, correlationId }),
           client.listWorkflows(),
         ]);
-        this.diagnostics = events.status === "fulfilled" ? events.value : [];
-        this.diagnosticModelRuns = modelRuns.status === "fulfilled" ? modelRuns.value : [];
-        this.workflows = workflows.status === "fulfilled" ? workflows.value : [];
+        if (requestId !== this.diagnosticsRequestId) return;
+        if (events.status === "fulfilled") this.diagnostics = events.value;
+        if (modelRuns.status === "fulfilled") this.diagnosticModelRuns = modelRuns.value;
+        if (workflows.status === "fulfilled") this.workflows = workflows.value;
         const readFailure = [events, modelRuns].find((result) => result.status === "rejected");
         if (readFailure?.status === "rejected") this.error = diagnosticsFailureMessage(readFailure.reason);
         if (workflows.status === "rejected") {
           this.diagnosticsWarning = "工作流运行时暂不可用；模型运行和系统事件仍可查看。";
         }
+        this.diagnosticsLoaded = true;
+        this.diagnosticsLastLoadedAt = new Date().toISOString();
+        if (!this.error) this.diagnosticsNotice = correlationId ? `已刷新 ${correlationId} 的诊断记录。` : "诊断记录已刷新。";
       } finally {
-        this.loading = false;
+        if (requestId === this.diagnosticsRequestId) this.loading = false;
       }
     },
     async exportDiagnostics() {
+      this.saving = true;
       this.error = "";
       try {
         const payload = await client.exportDiagnostics({
@@ -140,7 +159,9 @@ export const useControlCenterStore = defineStore("control-center", {
         link.download = "fluctlight-diagnostics.json";
         link.click();
         URL.revokeObjectURL(link.href);
+        this.diagnosticsNotice = "诊断记录已导出。";
       } catch { this.error = "无法导出诊断信息。"; }
+      finally { this.saving = false; }
     },
     async queryWorkflowStatus() {
       const workflowId = this.workflowId.trim();
@@ -472,6 +493,7 @@ export const useControlCenterStore = defineStore("control-center", {
       } catch { this.error = "无法保存评论。"; }
     },
     async clearDiagnostics() {
+      this.saving = true;
       this.error = "";
       try {
         await client.clearDiagnostics();
@@ -479,9 +501,10 @@ export const useControlCenterStore = defineStore("control-center", {
         this.diagnosticModelRuns = [];
         this.workflows = [];
         this.diagnosticsWarning = "";
+        this.diagnosticsNotice = "诊断记录已清空。";
       } catch {
         this.error = "无法清空诊断信息。";
-      }
+      } finally { this.saving = false; }
     },
     async loadSettings() {
       this.loading = true;
@@ -618,6 +641,7 @@ function diagnosticsFailureMessage(error: unknown): string {
   if (error instanceof BrowserApiError) {
     if (error.status === 401) return "登录状态已失效，请重新登录后查看诊断。";
     if (error.status === 403) return "诊断信息仅对所有者可用。";
+    if (error.status >= 500) return "诊断运行时暂时不可用，请确认 Core、数据库和 Worker 正在运行。";
     return `无法读取诊断信息：${error.message}`;
   }
   return "无法读取诊断信息，请确认 BFF 与 Core 均在运行。";

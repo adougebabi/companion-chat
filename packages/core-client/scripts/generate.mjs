@@ -27,12 +27,14 @@ export type CoreDiagnosticModelRun = { id: string; role: string; endpoint_id?: s
 export class CoreApiError extends Error {
   readonly status: number;
   readonly code: string;
+  readonly details: Record<string, unknown>;
 
-  constructor(status: number, code: string) {
-    super(\`Core request failed: \${status} \${code}\`);
+  constructor(status: number, code: string, message?: string, details: Record<string, unknown> = {}) {
+    super(message ?? \`Core request failed: \${status} \${code}\`);
     this.name = "CoreApiError";
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -177,13 +179,36 @@ export class CoreClient {
     if (body) headers["content-type"] = "application/json";
     const response = await this.fetcher(new URL(path, this.baseUrl), { method, headers, body: body ? JSON.stringify(body) : undefined });
     if (!response.ok) {
-      const payload = await response.json().catch(() => null) as { detail?: unknown; code?: unknown } | null;
-      const code = typeof payload?.detail === "string"
-        ? payload.detail
-        : typeof payload?.code === "string"
-          ? payload.code
-          : "core_request_failed";
-      throw new CoreApiError(response.status, code);
+      const payload = await response.json().catch(() => null) as { detail?: unknown; code?: unknown; message?: unknown; details?: unknown } | null;
+      const detail = payload?.detail;
+      const detailObject = detail && typeof detail === "object" && !Array.isArray(detail)
+        ? detail as { code?: unknown; message?: unknown; details?: unknown }
+        : null;
+      const validationErrors = Array.isArray(detail) ? detail as Array<Record<string, unknown>> : [];
+      const code: string = typeof detailObject?.code === "string"
+        ? detailObject.code
+        : typeof detail === "string"
+          ? detail
+          : typeof payload?.code === "string"
+            ? payload.code
+            : validationErrors.length
+              ? "core_request_validation_failed"
+              : "core_request_failed";
+      const details: Record<string, unknown> = detailObject?.details && typeof detailObject.details === "object" && !Array.isArray(detailObject.details)
+        ? detailObject.details as Record<string, unknown>
+        : validationErrors.length
+          ? { validation_errors: validationErrors }
+          : payload?.details && typeof payload.details === "object" && !Array.isArray(payload.details)
+            ? payload.details as Record<string, unknown>
+            : {};
+      const message = typeof detailObject?.message === "string"
+        ? detailObject.message
+        : typeof payload?.message === "string"
+          ? payload.message
+          : validationErrors.length
+            ? "Core request validation failed"
+            : undefined;
+      throw new CoreApiError(response.status, code, message, details);
     }
     if (response.status === 204) return undefined;
     return response.json();

@@ -23,8 +23,15 @@ function viewFromLocation(): WorkspaceView {
   return "instances";
 }
 
-function pathForView(next: WorkspaceView) {
-  return next === "chat" ? "/chat" : next === "moments" ? "/moments" : next === "diagnostics" ? "/settings/diagnostics" : next === "settings" ? "/settings" : "/instances";
+function syncDiagnosticsFilterFromLocation() {
+  if (window.location.pathname.startsWith("/settings/diagnostics")) {
+    controlCenter.diagnosticsCorrelationFilter = new URLSearchParams(window.location.search).get("correlation_id") ?? "";
+  }
+}
+
+function pathForView(next: WorkspaceView, correlationId = "") {
+  const path = next === "chat" ? "/chat" : next === "moments" ? "/moments" : next === "diagnostics" ? "/settings/diagnostics" : next === "settings" ? "/settings" : "/instances";
+  return next === "diagnostics" && correlationId.trim() ? `${path}?correlation_id=${encodeURIComponent(correlationId.trim())}` : path;
 }
 
 const view = ref<WorkspaceView>(viewFromLocation());
@@ -32,14 +39,15 @@ const showDetails = ref(false);
 const governanceRequest = ref(false);
 const activeViewLabel = computed(() => ({ chat: "聊天", moments: "动态", instances: "实例", diagnostics: "诊断中心", settings: "设置" })[view.value]);
 
-async function navigate(next: WorkspaceView) {
+async function navigate(next: WorkspaceView, correlationId = "") {
   view.value = next;
-  const path = pathForView(next);
-  if (window.location.pathname !== path) window.history.pushState({ view: next }, "", path);
+  if (next === "diagnostics") controlCenter.diagnosticsCorrelationFilter = correlationId;
+  const path = pathForView(next, correlationId);
+  if (`${window.location.pathname}${window.location.search}` !== path) window.history.pushState({ view: next }, "", path);
   if (next === "instances") await controlCenter.loadActorGroups();
 }
 
-function onPopState() { view.value = viewFromLocation(); }
+function onPopState() { view.value = viewFromLocation(); syncDiagnosticsFilterFromLocation(); }
 
 async function openDetails() {
   if (!store.fluctlightId) return;
@@ -48,6 +56,11 @@ async function openDetails() {
     controlCenter.loadFluctlightDetail(store.fluctlightId),
     controlCenter.loadAutonomyActions(store.fluctlightId),
   ]);
+}
+
+async function openDesktopChat(fluctlightId: string) {
+  await store.selectFluctlight(fluctlightId);
+  await navigate("chat");
 }
 
 async function openGovernance() {
@@ -74,13 +87,14 @@ watch(() => store.authenticated, (authenticated) => {
 
 onMounted(() => {
   window.addEventListener("popstate", onPopState);
+  syncDiagnosticsFilterFromLocation();
   void store.initialize();
 });
 onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
 </script>
 
 <template>
-  <AppShell :active-view="view" :show-navigation="store.authenticated === true" @navigate="navigate">
+  <AppShell :active-view="view" :show-navigation="store.authenticated === true" @navigate="navigate" @select-instance="openDesktopChat">
     <AuthPanel
       v-if="store.authenticated !== true"
       :setup-available="store.setupAvailable"
@@ -93,7 +107,7 @@ onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
     <template v-else>
       <ChatView v-if="view === 'chat'" @back="navigate('instances')" @open-details="openDetails" @open-instances="navigate('instances')" />
       <MomentsView v-else-if="view === 'moments'" />
-      <InstancesView v-else-if="view === 'instances'" :open-governance="governanceRequest" @open-chat="navigate('chat')" @open-details="openDetails" @open-diagnostics="() => navigate('diagnostics')" />
+      <InstancesView v-else-if="view === 'instances'" :open-governance="governanceRequest" @open-chat="navigate('chat')" @open-details="openDetails" @open-diagnostics="(correlationId) => navigate('diagnostics', correlationId)" />
       <DiagnosticsView v-else-if="view === 'diagnostics'" @back="navigate('settings')" />
       <SettingsView v-else @diagnostics="navigate('diagnostics')" @logout="store.logout" />
     </template>

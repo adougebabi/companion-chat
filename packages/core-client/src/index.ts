@@ -178,9 +178,7 @@ export class CoreClient {
       const detailObject = detail && typeof detail === "object" && !Array.isArray(detail)
         ? detail as { code?: unknown; message?: unknown; details?: unknown }
         : null;
-      const validationErrors = Array.isArray(detail)
-        ? detail as Array<Record<string, unknown>>
-        : [];
+      const validationErrors = Array.isArray(detail) ? detail as Array<Record<string, unknown>> : [];
       const code: string = typeof detailObject?.code === "string"
         ? detailObject.code
         : typeof detail === "string"

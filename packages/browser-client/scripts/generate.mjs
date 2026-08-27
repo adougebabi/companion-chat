@@ -22,13 +22,15 @@ export class BrowserApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly userMessage: string;
+  readonly details: Record<string, unknown>;
 
-  constructor(status: number, code: string, userMessage: string) {
+  constructor(status: number, code: string, userMessage: string, details: Record<string, unknown> = {}) {
     super(userMessage);
     this.name = "BrowserApiError";
     this.status = status;
     this.code = code;
     this.userMessage = userMessage;
+    this.details = details;
   }
 }
 
@@ -44,10 +46,13 @@ export class BrowserClient {
     const response = await this.fetcher(this.url("/auth/session"), { credentials: "include" });
     if (response.status === 401) return { authenticated: false };
     if (!response.ok) {
-      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown } | null;
+      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown; details?: unknown } | null;
       const code = typeof payload?.code === "string" ? payload.code : "browser_request_failed";
       const message = typeof payload?.message === "string" ? payload.message : \`Browser request failed: \${response.status}\`;
-      throw new BrowserApiError(response.status, code, message);
+      const details = payload?.details && typeof payload.details === "object" && !Array.isArray(payload.details)
+        ? payload.details as Record<string, unknown>
+        : {};
+      throw new BrowserApiError(response.status, code, message, details);
     }
     return response.json() as Promise<BrowserSession>;
   }
@@ -66,7 +71,7 @@ export class BrowserClient {
   async createConversation(body: { title?: string; participantActorIds: string[] }): Promise<BrowserConversationPage> { return this.json("/api/conversations", { method: "POST", body }) as Promise<BrowserConversationPage>; }
   async createFluctlight(body: { id?: string; name?: string }): Promise<{ id: string; identity: Record<string, unknown>; status: string }> { return this.json("/api/fluctlights", { method: "POST", body }) as Promise<{ id: string; identity: Record<string, unknown>; status: string }>; }
   async analyzeFluctlightCreation(description: string): Promise<Record<string, unknown>> { return this.json("/api/fluctlight-creations/analysis", { method: "POST", body: { description } }) as Promise<Record<string, unknown>>; }
-  async activateFluctlightCreation(body: { requestId: string; initializationMode: "blank_slate" | "llm_defined"; identity: Record<string, unknown>; personality?: Record<string, unknown>; behavioralPolicy?: Record<string, unknown>; initialGoals?: Array<Record<string, unknown>>; initialIntentions?: Array<Record<string, unknown>> }): Promise<{ id: string; identity: Record<string, unknown>; status: string }> { return this.json("/api/fluctlight-creations/activate", { method: "POST", body }) as Promise<{ id: string; identity: Record<string, unknown>; status: string }>; }
+  async activateFluctlightCreation(body: { requestId: string; initializationMode: "blank_slate" | "llm_defined"; identity: Record<string, unknown>; personality?: Record<string, unknown>; behavioralPolicy?: Record<string, unknown>; lifeProfile?: Record<string, unknown>; foundationProvenance?: Record<string, unknown>; initialGoals?: Array<Record<string, unknown>>; initialIntentions?: Array<Record<string, unknown>> }): Promise<{ id: string; identity: Record<string, unknown>; status: string }> { return this.json("/api/fluctlight-creations/activate", { method: "POST", body }) as Promise<{ id: string; identity: Record<string, unknown>; status: string }>; }
   async listFluctlights(): Promise<Array<{ id: string; identity: Record<string, unknown>; status: string; unread_count?: number; last_conversation_at?: string | null }>> { return this.json("/api/fluctlights") as Promise<Array<{ id: string; identity: Record<string, unknown>; status: string; unread_count?: number; last_conversation_at?: string | null }>>; }
   async listActorGroups(): Promise<Array<{ id: string; name: string; actor_ids: string[] }>> { return this.json("/api/actor-groups") as Promise<Array<{ id: string; name: string; actor_ids: string[] }>>; }
   async createActorGroup(name: string): Promise<{ id: string; name: string; actor_ids: string[] }> { return this.json("/api/actor-groups", { method: "POST", body: { name } }) as Promise<{ id: string; name: string; actor_ids: string[] }>; }
@@ -159,10 +164,13 @@ export class BrowserClient {
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
     if (!response.ok) {
-      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown } | null;
+      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown; details?: unknown } | null;
       const code = typeof payload?.code === "string" ? payload.code : "browser_request_failed";
       const message = typeof payload?.message === "string" ? payload.message : \`Browser request failed: \${response.status}\`;
-      throw new BrowserApiError(response.status, code, message);
+      const details = payload?.details && typeof payload.details === "object" && !Array.isArray(payload.details)
+        ? payload.details as Record<string, unknown>
+        : {};
+      throw new BrowserApiError(response.status, code, message, details);
     }
     if (response.status === 204) return undefined;
     return response.json();

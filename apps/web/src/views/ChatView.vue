@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref } from "vue";
+import { nextTick, onMounted, ref, watch } from "vue";
 import type { BrowserMessage } from "@fluctlight/browser-client";
 
 import { bffOrigin } from "../runtime-config";
@@ -21,9 +21,19 @@ async function send() {
   if (!text) return;
   draft.value = "";
   await store.send(text);
-  await nextTick();
-  transcript.value?.scrollTo({ top: transcript.value.scrollHeight, behavior: "smooth" });
+  scrollToLatest("smooth");
   composer.value?.focus();
+}
+
+function scrollToLatest(behavior: ScrollBehavior = "auto") {
+  void nextTick().then(() => {
+    requestAnimationFrame(() => {
+      const element = transcript.value;
+      if (!element) return;
+      element.scrollTo({ top: element.scrollHeight, behavior });
+      window.setTimeout(() => element.scrollTo({ top: element.scrollHeight, behavior: "auto" }), 120);
+    });
+  });
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -42,6 +52,12 @@ function deliveryStatus(message: BrowserMessage): "pending" | "sent" | "none" {
   const latestUserMessage = [...store.messages].reverse().find((item) => item.kind === "user");
   return store.sending && latestUserMessage?.id === message.id ? "pending" : "sent";
 }
+
+onMounted(() => scrollToLatest());
+watch(() => store.fluctlightId, () => scrollToLatest());
+watch(() => store.messages.length, (messageCount, previousCount) => {
+  if (messageCount && previousCount === 0 && !store.loading) scrollToLatest();
+});
 </script>
 
 <template>
@@ -55,6 +71,7 @@ function deliveryStatus(message: BrowserMessage): "pending" | "sent" | "none" {
           <small>{{ store.sending ? "正在思考" : "已准备好回复" }}</small>
         </span>
       </button>
+      <button class="icon-button chat-more" type="button" aria-label="查看对话详情" @click="emit('openDetails')">⋯</button>
     </header>
 
     <section ref="transcript" class="message-timeline" aria-live="polite" aria-label="对话记录">

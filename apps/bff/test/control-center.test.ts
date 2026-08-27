@@ -27,6 +27,18 @@ test("control center maps redacted diagnostics and keeps mutation origin checks"
   await app.close();
 });
 
+test("diagnostics runtime failures are not misreported as owner authorization failures", async () => {
+  const app = createBff({
+    coreBaseUrl: "http://core.invalid",
+    coreServiceKey: "internal",
+    fetcher: async () => Response.json({ detail: "diagnostics_store_unavailable" }, { status: 503 }),
+  });
+  const response = await app.inject({ method: "GET", url: "/api/diagnostics", cookies: { fluctlight_session: "opaque" } });
+  assert.equal(response.statusCode, 503);
+  assert.equal(response.json().code, "diagnostics_runtime_unavailable");
+  await app.close();
+});
+
 test("retiring a Fluctlight requires CSRF and forwards an auditable reason", async () => {
   let forwardedBody: unknown;
   const app = createBff({

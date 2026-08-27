@@ -1295,7 +1295,10 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 exc.code,
                 exc.status_code,
             )
-            raise HTTPException(status_code=exc.status_code, detail=exc.code) from exc
+            raise HTTPException(
+                status_code=exc.status_code,
+                detail={"code": exc.code, "details": exc.details},
+            ) from exc
         except CreationError as exc:
             logger.error(
                 "fluctlight.creation.analysis_rejected code=%s message=%s details=%s",

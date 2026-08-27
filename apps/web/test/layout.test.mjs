@@ -5,6 +5,8 @@ import test from "node:test";
 const navigationSource = await readFile(new URL("../src/app/navigation.ts", import.meta.url), "utf8");
 const stylesSource = await readFile(new URL("../src/styles/app.css", import.meta.url), "utf8");
 const shellSource = await readFile(new URL("../src/components/layout/AppShell.vue", import.meta.url), "utf8");
+const appSource = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
+const instancesSource = await readFile(new URL("../src/views/InstancesView.vue", import.meta.url), "utf8");
 
 test("Telegram-style workspace keeps exactly three primary tabs", () => {
   assert.match(navigationSource, /id: "instances"/);
@@ -13,6 +15,9 @@ test("Telegram-style workspace keeps exactly three primary tabs", () => {
   assert.doesNotMatch(navigationSource, /id: "chat"/);
   assert.match(navigationSource, /primaryNavigation[\s\S]*id: "instances"[\s\S]*id: "moments"[\s\S]*id: "settings"/);
   assert.match(shellSource, /activeView !== 'chat'/);
+  assert.match(appSource, /correlation_id/);
+  assert.doesNotMatch(instancesSource, /instance-search/);
+  assert.doesNotMatch(instancesSource, /全部实例/);
 });
 
 test("chat owns a fixed-height work surface with an internal message scroller", () => {

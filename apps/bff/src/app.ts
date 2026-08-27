@@ -114,6 +114,16 @@ const readPositionRequest = Type.Object({
 const sessionCookie = "fluctlight_session";
 const csrfCookie = "fluctlight_csrf";
 
+function diagnosticsErrorResponse(reply: FastifyReply, error: unknown) {
+  if (error instanceof CoreApiError) {
+    if (error.status === 401) return reply.code(401).send({ code: "unauthenticated", message: "Authentication is required" });
+    if (error.status === 403) return reply.code(403).send({ code: "diagnostics_forbidden", message: "Diagnostics are available to the owner only" });
+    if (error.status >= 500) return reply.code(503).send({ code: "diagnostics_runtime_unavailable", message: "Diagnostics runtime is unavailable" });
+    return reply.code(error.status === 422 ? 422 : 502).send({ code: error.code, message: "Diagnostics request failed", ...(Object.keys(error.details).length ? { details: error.details } : {}) });
+  }
+  return reply.code(502).send({ code: "diagnostics_unavailable", message: "Diagnostics are unavailable" });
+}
+
 function rejectUntrustedMutation(
   origin: string | undefined,
   trustedOrigin: string | undefined,
@@ -480,7 +490,7 @@ export function createBff(options: BffOptions): FastifyInstance {
           });
         }
         if (error.status >= 500) {
-          return reply.code(503).send({ code: error.code, message: "Fluctlight analysis service is unavailable" });
+          return reply.code(503).send({ code: error.code, message: "Fluctlight analysis service is unavailable", ...(Object.keys(error.details).length ? { details: error.details } : {}) });
         }
       }
       return reply.code(502).send({ code: "fluctlight_analysis_unavailable", message: "Fluctlight analysis service is unavailable" });
@@ -921,8 +931,8 @@ export function createBff(options: BffOptions): FastifyInstance {
         payload: event.payload,
         createdAt: event.created_at,
       }));
-    } catch {
-      return reply.code(403).send({ code: "diagnostics_unavailable", message: "Diagnostics are unavailable" });
+    } catch (error) {
+      return diagnosticsErrorResponse(reply, error);
     }
   });
 
@@ -953,7 +963,7 @@ export function createBff(options: BffOptions): FastifyInstance {
         prompt: row.prompt, response: row.response, status: row.status, errorCode: row.error_code,
         correlationId: row.correlation_id, createdAt: row.created_at,
       }));
-    } catch { return reply.code(403).send({ code: "diagnostics_unavailable", message: "Diagnostics are unavailable" }); }
+    } catch (error) { return diagnosticsErrorResponse(reply, error); }
   });
 
   app.get("/api/diagnostics/export", async (request, reply) => {
@@ -965,7 +975,7 @@ export function createBff(options: BffOptions): FastifyInstance {
         limit: query.limit ? Number(query.limit) : 500,
         correlation_id: query.correlationId,
       });
-    } catch { return reply.code(403).send({ code: "diagnostics_unavailable", message: "Diagnostics are unavailable" }); }
+    } catch (error) { return diagnosticsErrorResponse(reply, error); }
   });
 
   app.get("/api/media/:assetId", async (request, reply) => {

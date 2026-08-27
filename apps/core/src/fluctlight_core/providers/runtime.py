@@ -121,7 +121,13 @@ def _structured_prompt(messages: list[dict[str, Any]], schema_version: str) -> d
 
 
 class InitializationAnalysisError(RuntimeError):
-    def __init__(self, code: str, *, status_code: int, details: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        code: str,
+        *,
+        status_code: int,
+        details: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__(code)
         self.code = code
         self.status_code = status_code
@@ -343,7 +349,11 @@ class ConfiguredProviderRuntime:
                 status="failed",
                 error_code=code,
             )
-            raise InitializationAnalysisError(code, status_code=503, details={"correlation_id": request_id}) from exc
+            raise InitializationAnalysisError(
+                code,
+                status_code=503,
+                details={"correlation_id": request_id},
+            ) from exc
         payload["provenance"] = {
             "role": ModelRole.INITIALIZATION.value,
             "endpoint_id": endpoint.endpoint_id,

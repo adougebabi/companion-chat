@@ -80,3 +80,22 @@ pnpm --filter @fluctlight/web test
 pnpm --filter @fluctlight/web typecheck
 pnpm --filter @fluctlight/web build
 ```
+
+## Telegram / PC Skin Decision
+
+The product keeps three primary tabs—Instances, Moments, and Settings. Chat is
+a focused surface opened from an instance and hides the primary tab bar. On
+desktop, the authenticated chat shell uses a three-column workspace (dark
+navigation rail, conversation list, message pane) inspired by the supplied
+messaging reference. On mobile, the rail and conversation list collapse and the
+three tabs become a full-width safe-area-aware bottom bar.
+
+Chat height is owned by the viewport: the shell and chat page use a definite
+`100dvh`-based height, the message timeline is the only scrolling region, and
+the composer remains the final visible row. Entering a conversation schedules a
+post-layout scroll to the latest message after the initial store load.
+
+Diagnostics is reachable from Settings and preserves a `correlation_id` query
+parameter. Refreshes are request-ordered, retain the last successful snapshot
+when one source fails, and distinguish runtime unavailability from owner
+authorization failures.

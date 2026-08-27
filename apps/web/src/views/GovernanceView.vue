@@ -71,8 +71,6 @@ async function retire() {
         <dl class="governance-facts"><template v-for="(value, key) in controlCenter.fluctlightDetail.personality as Record<string, unknown>" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ typeof value === "object" ? "已配置" : stringify(value) }}</dd></template></dl>
         <h3>表达策略</h3>
         <dl class="governance-facts"><template v-for="(value, key) in controlCenter.fluctlightDetail.behavioral_policy as Record<string, unknown>" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ stringify(value) }}</dd></template></dl>
-        <h3>初始化字段来源</h3>
-        <dl class="provenance-list"><template v-for="(value, key) in ((controlCenter.fluctlightDetail.provenance as Record<string, any>)?.field_sources ?? {})" :key="String(key)"><dt>{{ String(key) }}</dt><dd><span class="source-badge" :class="String(value).replace('_', '-')">{{ String(value) }}</span></dd></template></dl>
       </details>
 
       <details class="governance-section">

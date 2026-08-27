@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import BottomNav from "./BottomNav.vue";
+import DesktopConversationList from "./DesktopConversationList.vue";
+import DesktopRail from "./DesktopRail.vue";
 import type { WorkspaceView } from "../../app/navigation";
 
 defineProps<{ activeView: WorkspaceView; showNavigation?: boolean }>();
-const emit = defineEmits<{ navigate: [view: WorkspaceView] }>();
+const emit = defineEmits<{ navigate: [view: WorkspaceView]; selectInstance: [fluctlightId: string] }>();
 </script>
 
 <template>
-  <main class="app-shell" :class="{ 'chat-shell': activeView === 'chat' }">
-    <slot />
+  <main class="app-shell" :class="{ 'chat-shell': activeView === 'chat', 'desktop-workspace': showNavigation }">
+    <DesktopRail v-if="showNavigation" :active-view="activeView" @navigate="emit('navigate', $event)" />
+    <DesktopConversationList v-if="showNavigation && activeView === 'chat'" @select="emit('selectInstance', $event)" />
+    <section class="app-main-pane"><slot /></section>
     <BottomNav
       v-if="showNavigation !== false && activeView !== 'chat'"
       :active-view="activeView"

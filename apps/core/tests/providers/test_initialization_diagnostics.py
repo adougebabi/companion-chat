@@ -89,6 +89,7 @@ def test_initialization_role_unconfigured_is_recorded_as_a_diagnostic_event() ->
 
         assert raised.value.code == "initialization_role_unconfigured"
         assert raised.value.status_code == 422
+        assert str(raised.value.details["correlation_id"]).startswith("initialization:")
         assert len(diagnostics.events) == 1
         assert diagnostics.events[0].payload["error_code"] == "initialization_role_unconfigured"
 

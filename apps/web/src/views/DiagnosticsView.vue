@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 
 import { useControlCenterStore } from "../stores/control-center";
 
 const emit = defineEmits<{ back: [] }>();
 const controlCenter = useControlCenterStore();
+const refreshing = ref(false);
 const roleLabels: Record<string, string> = { initialization: "初始化", cognitive_assessment: "认知判断", action_realization: "回复生成", reflection: "反思", embedding: "Embedding", media_prompt: "媒体提示词" };
 function roleLabel(role: string) { return roleLabels[role] ?? role; }
 function pretty(value: Record<string, unknown>) { return JSON.stringify(value, null, 2); }
@@ -14,18 +15,37 @@ function workflowIdFor(value: Record<string, unknown>): string {
   for (const nested of Object.values(value)) if (nested && typeof nested === "object" && !Array.isArray(nested)) { const id: string = workflowIdFor(nested as Record<string, unknown>); if (id) return id; }
   return "";
 }
-onMounted(() => void controlCenter.loadDiagnostics());
+async function refresh() {
+  refreshing.value = true;
+  try { await controlCenter.loadDiagnostics(); } finally { refreshing.value = false; }
+}
+
+function applyFilter() {
+  const params = new URLSearchParams(window.location.search);
+  const correlationId = controlCenter.diagnosticsCorrelationFilter.trim();
+  if (correlationId) params.set("correlation_id", correlationId);
+  else params.delete("correlation_id");
+  window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? `?${params}` : ""}`);
+  void refresh();
+}
+
+onMounted(() => {
+  const correlationId = new URLSearchParams(window.location.search).get("correlation_id") ?? "";
+  controlCenter.diagnosticsCorrelationFilter = correlationId;
+  void refresh();
+});
 </script>
 
 <template>
   <section class="page diagnostics-page" aria-labelledby="diagnostics-title">
     <header class="page-header">
       <div><button class="back-link" type="button" @click="emit('back')">← 返回设置</button><p class="eyebrow">SYSTEM OBSERVABILITY</p><h1 id="diagnostics-title">诊断中心</h1><p class="page-lede">只显示经过脱敏的模型运行、系统事件和工作流状态。</p></div>
-      <div class="header-actions"><button class="secondary-button" type="button" @click="controlCenter.exportDiagnostics">导出</button><button class="secondary-button" type="button" @click="controlCenter.clearDiagnostics">清空</button></div>
+      <div class="header-actions"><button class="secondary-button" type="button" :disabled="refreshing || controlCenter.loading || controlCenter.saving" @click="refresh">{{ refreshing || controlCenter.loading ? "刷新中..." : "刷新" }}</button><button class="secondary-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.exportDiagnostics">导出</button><button class="secondary-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.clearDiagnostics">清空</button></div>
     </header>
-    <form class="filter-bar" @submit.prevent="controlCenter.loadDiagnostics"><label for="diagnostics-filter">Correlation ID<input id="diagnostics-filter" v-model="controlCenter.diagnosticsCorrelationFilter" placeholder="按 Correlation ID 过滤" /></label><button class="primary-button" type="submit">筛选</button></form>
+    <form class="filter-bar" @submit.prevent="applyFilter"><label for="diagnostics-filter">Correlation ID<input id="diagnostics-filter" v-model="controlCenter.diagnosticsCorrelationFilter" placeholder="按 Correlation ID 过滤" /></label><button class="primary-button" type="submit" :disabled="refreshing || controlCenter.loading">筛选</button></form>
     <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
     <p v-if="controlCenter.diagnosticsWarning" class="notice-banner" role="status">{{ controlCenter.diagnosticsWarning }}</p>
+    <p v-if="controlCenter.diagnosticsNotice" class="notice-banner" role="status">{{ controlCenter.diagnosticsNotice }}<span v-if="controlCenter.diagnosticsLastLoadedAt"> · {{ new Date(controlCenter.diagnosticsLastLoadedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) }}</span></p>
     <div v-if="controlCenter.loading" class="empty-panel compact">正在加载诊断信息...</div>
     <div v-else-if="!controlCenter.diagnostics.length && !controlCenter.diagnosticModelRuns.length" class="empty-panel compact"><h2>暂无诊断记录</h2><p>经脱敏的模型运行和系统事件会显示在这里。</p></div>
     <div v-else class="diagnostics-groups">
