@@ -12,6 +12,7 @@ from uuid import uuid4
 from sqlalchemy import select
 
 from fluctlight_core.cognition.contracts import (
+    ActionType,
     AssessmentEnvelope,
     CognitionFact,
     DecisionEffect,
@@ -37,7 +38,7 @@ from fluctlight_core.platform.persistence import UnitOfWorkFactory
 from fluctlight_core.settings.service import SettingsService
 
 from . import schema
-from .adapters import OpenAICompatibleAdapter
+from .adapters import OpenAICompatibleAdapter, structured_schema
 from .contracts import ModelRole, ProviderProvenance
 from .service import ProviderEndpoint, RoleAssignment
 
@@ -61,9 +62,12 @@ COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
     "Choose proactive_message only when background_context contains a non-empty conversation_id. "
     "Choose moment when the Fluctlight has a meaningful shared update worth publishing; no_op "
     "is always valid. Every effect needs a unique id. "
-    "Choose media_request only when the user explicitly requests a visual; its payload may carry "
-    "only a response_intent object and must not contain visible reply text or final media "
-    "parameters. "
+    "Decide from the whole situation whether a visual artifact would materially improve the "
+    "response; do not require a magic phrase or use a keyword rule. An explicit request is strong "
+    "evidence, but a contextual need can also justify media_request. A media_request effect must "
+    "carry a non-empty media_request visual concept with scene, action, mood, subject/object and "
+    "capture details. Keep response_intent limited to the visible acknowledgement; never put the "
+    "visual concept there or emit final provider/workflow parameters. "
     "persona_profile, when present in the observation payload, is the authoritative Foundation "
     "context for interpreting this Fluctlight's stable inclinations and expression policy. Do not "
     "write visible text in this JSON."
@@ -104,6 +108,22 @@ prose, markdown, hidden reasoning, or a partial schedule."""
 def _diagnostic_error_code(exc: Exception, fallback: str) -> str:
     value = str(exc).strip().lower().replace(" ", "_")
     return value[:120] or fallback
+
+
+def _structured_prompt(messages: list[dict[str, Any]], schema_version: str) -> dict[str, Any]:
+    """Persist the complete structured request contract for diagnostics."""
+    return {
+        "messages": messages,
+        "schema_version": schema_version,
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": schema_version.replace(".", "_"),
+                "strict": True,
+                "schema": structured_schema(schema_version),
+            },
+        },
+    }
 
 
 class InitializationAnalysisError(RuntimeError):
@@ -240,6 +260,13 @@ class ConfiguredProviderRuntime:
             )
             if len(effects) != len(raw_effects):
                 raise RuntimeError("cognitive Provider decision effects must be objects")
+            for effect in effects:
+                if effect.action_type is ActionType.MEDIA_REQUEST:
+                    concept = effect.payload.get("media_request")
+                    if not isinstance(concept, dict) or not concept:
+                        raise RuntimeError(
+                            "cognitive media_request effect is missing a visual concept"
+                        )
             decision = DecisionProposal(
                 action_type=effects[0].action_type,
                 payload=effects[0].payload,
@@ -252,7 +279,7 @@ class ConfiguredProviderRuntime:
             await self._record_model_run(
                 assignment=assignment,
                 endpoint=endpoint,
-                prompt={"messages": messages, "schema_version": "semantic.assessment.v1"},
+                prompt=_structured_prompt(messages, "semantic.assessment.v1"),
                 response=None,
                 correlation_id=correlation_id,
                 status="failed",
@@ -272,7 +299,7 @@ class ConfiguredProviderRuntime:
         await self._record_model_run(
             assignment=assignment,
             endpoint=endpoint,
-            prompt={"messages": messages, "schema_version": "semantic.assessment.v1"},
+            prompt=_structured_prompt(messages, "semantic.assessment.v1"),
             response=payload,
             correlation_id=correlation_id,
         )
@@ -314,7 +341,7 @@ class ConfiguredProviderRuntime:
             await self._record_model_run(
                 assignment=assignment,
                 endpoint=endpoint,
-                prompt={"messages": messages, "schema_version": "fluctlight.initialization.v1"},
+                prompt=_structured_prompt(messages, "fluctlight.initialization.v1"),
                 response=None,
                 correlation_id=request_id,
                 status="failed",
@@ -332,7 +359,7 @@ class ConfiguredProviderRuntime:
         await self._record_model_run(
             assignment=assignment,
             endpoint=endpoint,
-            prompt={"messages": messages, "schema_version": "fluctlight.initialization.v1"},
+            prompt=_structured_prompt(messages, "fluctlight.initialization.v1"),
             response=payload,
             correlation_id=request_id,
         )
@@ -403,7 +430,7 @@ class ConfiguredProviderRuntime:
             await self._record_model_run(
                 assignment=assignment,
                 endpoint=endpoint,
-                prompt={"messages": messages, "schema_version": "life.schedule.initial.v1"},
+                prompt=_structured_prompt(messages, "life.schedule.initial.v1"),
                 response=None,
                 correlation_id=correlation_id,
                 status="failed",
@@ -413,7 +440,7 @@ class ConfiguredProviderRuntime:
         await self._record_model_run(
             assignment=assignment,
             endpoint=endpoint,
-            prompt={"messages": messages, "schema_version": "life.schedule.initial.v1"},
+            prompt=_structured_prompt(messages, "life.schedule.initial.v1"),
             response=payload,
             correlation_id=correlation_id,
         )
@@ -449,7 +476,7 @@ class ConfiguredProviderRuntime:
         await self._record_model_run(
             assignment=assignment,
             endpoint=endpoint,
-            prompt={"messages": messages, "schema_version": "media.prompt.v1"},
+            prompt=_structured_prompt(messages, "media.prompt.v1"),
             response=payload,
             correlation_id=correlation_id,
         )
@@ -635,7 +662,7 @@ class ConfiguredProviderRuntime:
         await self._record_model_run(
             assignment=assignment,
             endpoint=endpoint,
-            prompt={"messages": messages, "schema_version": "reflection.v1"},
+            prompt=_structured_prompt(messages, "reflection.v1"),
             response=payload,
             correlation_id=correlation_id,
         )

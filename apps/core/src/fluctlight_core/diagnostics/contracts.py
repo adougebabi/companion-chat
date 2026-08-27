@@ -40,7 +40,7 @@ def _key_class(key: str) -> str | None:
     return None
 
 
-def redact(value: Any, *, max_string_length: int = 12_000) -> Any:
+def redact(value: Any, *, max_string_length: int = 64_000) -> Any:
     """Recursively redact secrets and hidden reasoning before persistence/export."""
 
     if isinstance(value, Mapping):

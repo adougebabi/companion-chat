@@ -200,7 +200,19 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
         effect = _object(
             {
                 "id": {"type": "string"},
-                "action_type": {"type": "string"},
+                "action_type": {
+                    "type": "string",
+                    "enum": [
+                        "reply",
+                        "proactive_message",
+                        "no_op",
+                        "memory_candidate",
+                        "relationship_candidate",
+                        "media_request",
+                        "moment",
+                        "schedule_proposal",
+                    ],
+                },
                 "payload": {"type": "object", "additionalProperties": True},
             }
         )
@@ -268,6 +280,11 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
             }
         )
     return {"type": "object", "additionalProperties": True}
+
+
+def structured_schema(schema_version: str) -> dict[str, object]:
+    """Expose a copy of the executable schema for diagnostics and inspection."""
+    return _structured_schema(schema_version)
 
 
 def _request(
