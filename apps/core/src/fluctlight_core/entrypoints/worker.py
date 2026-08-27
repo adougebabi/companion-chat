@@ -214,7 +214,9 @@ async def run_worker(settings: PlatformSettings) -> None:
         reflection_provider=provider_runtime,
         reflection_applier=ReflectionCoordinator(memory_service, relationships),
         state_applier=CognitionStateApplier(inner_state),
-        autonomy_freezer=CognitionAutonomyBridge(autonomy_service, settings_service),
+        autonomy_freezer=CognitionAutonomyBridge(
+            autonomy_service, settings_service, diagnostics
+        ),
         diagnostics=diagnostics,
     )
     configure_cognition_service(cognition_service)

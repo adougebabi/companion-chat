@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fluctlight_core.cognition.contracts import ActionType, FrozenAction
+from fluctlight_core.diagnostics.contracts import DiagnosticEvent, DiagnosticSeverity
+from fluctlight_core.diagnostics.service import DiagnosticsService
 from fluctlight_core.life_world.contracts import AutonomousActionRequest, AutonomyPolicy
 from fluctlight_core.settings.service import SettingsService
 
@@ -26,14 +28,20 @@ class CognitionAutonomyBridge:
         }
     )
 
-    def __init__(self, autonomy: AutonomyService, settings: SettingsService) -> None:
+    def __init__(
+        self,
+        autonomy: AutonomyService,
+        settings: SettingsService,
+        diagnostics: DiagnosticsService | None = None,
+    ) -> None:
         self._autonomy = autonomy
         self._settings = settings
+        self._diagnostics = diagnostics
 
     async def __call__(self, action: FrozenAction) -> None:
         if action.action_type not in self._ACTION_TYPES:
             return
-        await self._autonomy.freeze_action(
+        decision = await self._autonomy.freeze_action(
             AutonomousActionRequest(
                 fluctlight_id=action.fluctlight_id,
                 action_id=f"autonomy_{action.action_id}",
@@ -45,6 +53,30 @@ class CognitionAutonomyBridge:
                 requested_at=datetime.now(UTC),
             )
         )
+        if self._diagnostics is not None:
+            await self._diagnostics.emit_event(
+                DiagnosticEvent(
+                    event_type=(
+                        "cognition.autonomy_action_frozen"
+                        if decision.accepted
+                        else "cognition.autonomy_action_rejected"
+                    ),
+                    severity=(
+                        DiagnosticSeverity.INFO
+                        if decision.accepted
+                        else DiagnosticSeverity.WARNING
+                    ),
+                    fluctlight_id=action.fluctlight_id,
+                    correlation_id=action.inbox_id,
+                    causation_id=action.inbox_id,
+                    payload={
+                        "action_id": f"autonomy_{action.action_id}",
+                        "action_type": action.action_type.value,
+                        "accepted": decision.accepted,
+                        "reason_code": decision.reason_code,
+                    },
+                )
+            )
 
     async def _policy(self) -> AutonomyPolicy:
         value = await self._settings.runtime_value("product.autonomy")

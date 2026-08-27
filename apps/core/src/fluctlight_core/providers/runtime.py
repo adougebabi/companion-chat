@@ -91,12 +91,6 @@ MEDIA_PROMPT_SYSTEM_PROMPT = (
     "hidden reasoning, or additional semantic decisions."
 )
 
-MEDIA_RESPONSE_SYSTEM_PROMPT = (
-    "Write a concise visible acknowledgement of the user's request. Then call the provided "
-    "request_media tool with every image parameter needed by a generic media prompt optimizer. "
-    "Do not write an image prompt, hidden reasoning, or Fluctlight IDs."
-)
-
 INITIAL_SCHEDULE_SYSTEM_PROMPT = """Return one JSON object matching the life.schedule.initial.v1
 response schema. Create a complete initial daily Schedule from the supplied identity facts and
 life context. Choose activities and scenes yourself, but never invent unsupported biographical
@@ -127,10 +121,11 @@ def _structured_prompt(messages: list[dict[str, Any]], schema_version: str) -> d
 
 
 class InitializationAnalysisError(RuntimeError):
-    def __init__(self, code: str, *, status_code: int) -> None:
+    def __init__(self, code: str, *, status_code: int, details: dict[str, Any] | None = None) -> None:
         super().__init__(code)
         self.code = code
         self.status_code = status_code
+        self.details = details or {}
 
 
 INITIALIZATION_SYSTEM_PROMPT = """Return one JSON object matching the
@@ -322,6 +317,7 @@ class ConfiguredProviderRuntime:
             raise InitializationAnalysisError(
                 "initialization_role_unconfigured",
                 status_code=422,
+                details={"correlation_id": request_id},
             ) from None
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": INITIALIZATION_SYSTEM_PROMPT},
@@ -347,7 +343,7 @@ class ConfiguredProviderRuntime:
                 status="failed",
                 error_code=code,
             )
-            raise InitializationAnalysisError(code, status_code=503) from exc
+            raise InitializationAnalysisError(code, status_code=503, details={"correlation_id": request_id}) from exc
         payload["provenance"] = {
             "role": ModelRole.INITIALIZATION.value,
             "endpoint_id": endpoint.endpoint_id,
@@ -512,53 +508,21 @@ class ConfiguredProviderRuntime:
         assignment, endpoint, secret = await self._resolve(ModelRole.ACTION_REALIZATION)
         messages = self._realization_messages(action)
         if action.action_type.value == "media_request":
-            media_messages: list[dict[str, Any]] = [
-                {"role": "system", "content": MEDIA_RESPONSE_SYSTEM_PROMPT},
-                messages[1],
-            ]
-            try:
-                tool_result = await self._adapter.stream_media_tool_call(
-                    assignment,
-                    endpoint,
-                    secret,
-                    messages=media_messages,
-                    request_id=action.provider_request_id,
-                )
-                if not tool_result.arguments:
-                    raise RuntimeError("media response is missing media request")
-            except Exception as exc:
-                await self._record_model_run(
-                    assignment=assignment,
-                    endpoint=endpoint,
-                    prompt={
-                        "messages": media_messages,
-                        "schema_version": "action.realization.media.v1",
-                    },
-                    response={"tool_call_failed": True},
-                    correlation_id=correlation_id,
-                    status="failed",
-                    error_code=_diagnostic_error_code(exc, "media_response_invalid"),
-                )
-                raise
+            concept = action.payload.get("media_request")
+            if not isinstance(concept, dict) or not concept:
+                raise RuntimeError("media action has no frozen visual concept")
+            text = "我来准备一张给你。"
             await self._record_model_run(
                 assignment=assignment,
                 endpoint=endpoint,
-                prompt={
-                    "messages": media_messages,
-                    "schema_version": "action.realization.media.v1",
-                },
-                response={
-                    "tool_call": "request_media",
-                    "argument_keys": sorted(tool_result.arguments),
-                },
+                prompt={"messages": messages, "schema_version": "realization.v1"},
+                response={"text": text, "media_request": {"frozen": True}},
                 correlation_id=correlation_id,
             )
             return RealizationResult(
                 action.provider_request_id,
-                {
-                    "text": tool_result.text.strip() or "我来准备一张给你。",
-                    "media_request": tool_result.arguments,
-                },
+                {"text": text, "media_request": concept},
+                status="media_requested",
             )
         text = await self._adapter.stream_realization(
             assignment,

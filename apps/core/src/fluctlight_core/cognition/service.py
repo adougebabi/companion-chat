@@ -363,11 +363,20 @@ class CognitionService:
             raise
 
         if action.action_type is ActionType.NO_OP:
-            await self._settle_success(
-                claim,
-                action,
-                RealizationResult(action.provider_request_id, {}, status="no_op"),
-            )
+            try:
+                await self._process_secondary_effects(claim, envelope)
+                await self._settle_success(
+                    claim,
+                    action,
+                    RealizationResult(action.provider_request_id, {}, status="no_op"),
+                )
+            except asyncio.CancelledError:
+                await self._settle_failure(claim, "secondary_effects_cancelled", action=action)
+                raise
+            except Exception as exc:
+                code = self._error_code(exc, "secondary_effects_failed")
+                await self._settle_failure(claim, code, action=action)
+                raise
             return
 
         stream_realize = getattr(self._realization_provider, "stream_realize", None)

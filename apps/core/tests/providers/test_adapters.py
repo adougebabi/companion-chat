@@ -254,60 +254,6 @@ def test_openai_adapter_executes_structured_realization_and_embedding_ports() ->
     assert structured_payload["metadata"]["schema_version"] == "semantic.assessment.v1"
 
 
-def test_openai_adapter_collects_sse_media_tool_call_arguments() -> None:
-    def fake(
-        method: str, url: str, headers: dict[str, str], body: bytes, timeout: float
-    ) -> HttpResult:
-        assert b'"stream":true' in body
-
-        def frame(delta: dict[str, object]) -> bytes:
-            return f"data: {json.dumps({'choices': [{'delta': delta}]})}\n".encode()
-
-        return HttpResult(
-            200,
-            b"".join(
-                [
-                    frame({"content": "I will take one. "}),
-                    frame(
-                        {
-                            "tool_calls": [
-                                {
-                                    "index": 0,
-                                    "function": {
-                                        "name": "request_media",
-                                        "arguments": '{"subject":"man"',
-                                    },
-                                }
-                            ]
-                        }
-                    ),
-                    frame(
-                        {
-                            "tool_calls": [
-                                {
-                                    "index": 0,
-                                    "function": {"arguments": ',"kind":"image"}'},
-                                }
-                            ]
-                        }
-                    ),
-                    b"data: [DONE]\n",
-                ]
-            ),
-        )
-
-    result = asyncio.run(
-        OpenAICompatibleAdapter(fake).stream_media_tool_call(
-            RoleAssignment(ModelRole.ACTION_REALIZATION, "endpoint", "model", 100, 10),
-            ProviderEndpoint("endpoint", "openai-compatible", "http://provider", "provider:key"),
-            SecretValue("secret"),
-            messages=[{"role": "user", "content": "take a photo"}],
-        )
-    )
-    assert result.text == "I will take one. "
-    assert result.arguments == {"subject": "man", "kind": "image"}
-
-
 def test_openai_adapter_executes_against_a_real_local_http_endpoint() -> None:
     if os.environ.get("FLUCTLIGHT_PROVIDER_SOCKET_TEST") != "1":
         pytest.skip("local socket execution requires the external integration environment")

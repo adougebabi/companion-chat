@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any, cast
 
@@ -169,6 +170,58 @@ def test_stream_next_yields_provider_chunks_before_success_settlement(monkeypatc
     events = asyncio.run(collect())
     assert events == ["hello ", "world"]
     assert settled == [("success", "completed")]
+
+
+def test_stream_next_processes_secondary_media_after_primary_no_op(monkeypatch) -> None:
+    service = _service(StreamingProvider())
+    envelope = _envelope()
+    secondary = DecisionProposal(
+        action_type=ActionType.MEDIA_REQUEST,
+        payload={"media_request": {"scene": "室内"}, "conversation_id": "conversation-1"},
+        confidence=0.9,
+        evidence_refs=("turn-1",),
+        decision_id="decision-1:media",
+    )
+    no_op = DecisionProposal(
+        action_type=ActionType.NO_OP,
+        payload={},
+        confidence=0.9,
+        evidence_refs=("turn-1",),
+        decision_id="decision-1",
+        effects=(replace(envelope.decision.effects[0], action_type=ActionType.NO_OP), secondary),
+    )
+    envelope = replace(envelope, decision=no_op)
+    processed: list[str] = []
+
+    async def claim_next(*_args, **_kwargs):
+        return _claim()
+
+    async def assess(*_args, **_kwargs):
+        return envelope
+
+    async def freeze(*_args, **_kwargs):
+        return _action()
+
+    async def secondary_effects(*_args, **_kwargs):
+        processed.append("media")
+        return ()
+
+    async def settle_success(*_args, **_kwargs):
+        processed.append("settled")
+
+    monkeypatch.setattr(service, "claim_next", claim_next)
+    monkeypatch.setattr(
+        service, "_assessment_provider", type("Assessment", (), {"assess": assess})()
+    )
+    monkeypatch.setattr(service, "_freeze", freeze)
+    monkeypatch.setattr(service, "_process_secondary_effects", secondary_effects)
+    monkeypatch.setattr(service, "_settle_success", settle_success)
+
+    async def collect() -> list[str]:
+        return [chunk async for chunk in service.stream_next("fluctlight-1", worker_id="interaction")]
+
+    assert asyncio.run(collect()) == []
+    assert processed == ["media", "settled"]
 
 
 def test_stream_next_marks_realization_cancelled_and_propagates_cancel(monkeypatch) -> None:
