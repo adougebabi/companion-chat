@@ -582,7 +582,12 @@ function creationAnalysisFailureMessage(error: unknown): string {
   if (error.code === "initialization_role_unconfigured") return "初始化模型角色未配置或预检未通过。";
   if (error.code === "initialization_response_invalid_json") return "初始化模型没有返回合法 JSON。";
   if (error.code === "initialization_response_invalid") return "初始化模型返回的 JSON 结构无效。";
-  if (error.code === "initialization_foundation_invalid") return "初始化模型返回的 Foundation 结构不符合要求。";
+  if (error.code === "initialization_foundation_invalid") {
+    const detail = error.details.validation_error;
+    return typeof detail === "string"
+      ? `初始化模型返回的 Foundation 不符合要求：${detail}`
+      : "初始化模型返回的 Foundation 结构不符合要求，请查看诊断中的 Prompt 和 Response。";
+  }
   if (error.code === "initialization_provider_unavailable") return "初始化模型 Provider 不可用或请求超时。";
   return error.userMessage || "Fluctlight 分析失败。";
 }

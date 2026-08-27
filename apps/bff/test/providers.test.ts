@@ -105,6 +105,40 @@ test("creation analysis preserves initialization errors instead of masking them 
   await app.close();
 });
 
+test("creation analysis preserves field-level Foundation validation details", async () => {
+  const app = createBff({
+    coreBaseUrl: "http://core.invalid",
+    coreServiceKey: "internal",
+    trustedOrigin: "https://fluctlight.local",
+    fetcher: async () => new Response(JSON.stringify({
+      detail: {
+        code: "initialization_foundation_invalid",
+        message: "initialization response is not a valid Fluctlight foundation",
+        details: {
+          validation_error: "provenance.field_sources is missing required paths: life_profile.life_habits",
+          error_type: "FoundationValidationError",
+        },
+      },
+    }), { status: 422, headers: { "content-type": "application/json" } }),
+  });
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/fluctlight-creations/analysis",
+    headers: { origin: "https://fluctlight.local", "x-csrf-token": "csrf-token" },
+    cookies: { fluctlight_session: "opaque-session", fluctlight_csrf: "csrf-token" },
+    payload: { description: "一个主播" },
+  });
+  assert.deepEqual(response.json(), {
+    code: "initialization_foundation_invalid",
+    message: "initialization response is not a valid Fluctlight foundation",
+    details: {
+      validation_error: "provenance.field_sources is missing required paths: life_profile.life_habits",
+      error_type: "FoundationValidationError",
+    },
+  });
+  await app.close();
+});
+
 test("creation analysis returns unauthenticated when Core rejects an expired session", async () => {
   const app = createBff({
     coreBaseUrl: "http://core.invalid",

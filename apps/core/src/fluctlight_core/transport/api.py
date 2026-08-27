@@ -1275,7 +1275,10 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                     payload={"error_code": exc.code},
                 )
             )
-            raise HTTPException(status_code=422, detail=exc.code) from exc
+            raise HTTPException(
+                status_code=422,
+                detail={"code": exc.code, "message": str(exc), "details": exc.details},
+            ) from exc
         except RuntimeError as exc:
             raise HTTPException(
                 status_code=503,
@@ -1328,7 +1331,10 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                     payload={"error_code": exc.code},
                 )
             )
-            raise HTTPException(status_code=422, detail=exc.code) from exc
+            raise HTTPException(
+                status_code=422,
+                detail={"code": exc.code, "message": str(exc), "details": exc.details},
+            ) from exc
         return snapshot.as_payload()
 
     @app.get("/internal/fluctlights")

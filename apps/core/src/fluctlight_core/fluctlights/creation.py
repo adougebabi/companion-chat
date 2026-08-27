@@ -35,9 +35,12 @@ from .service import FluctlightLifecycleError, FluctlightNotFoundError, Fluctlig
 class CreationError(RuntimeError):
     """Raised when an analysis or activation request is not valid."""
 
-    def __init__(self, message: str, *, code: str | None = None) -> None:
+    def __init__(
+        self, message: str, *, code: str | None = None, details: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(message)
         self.code = code or "creation_invalid"
+        self.details = details or {}
 
 
 class InitializationAnalyzer(Protocol):
@@ -362,6 +365,7 @@ class CreationLifecycleService:
             raise CreationError(
                 "initialization response is not a valid Fluctlight foundation",
                 code="initialization_foundation_invalid",
+                details={"validation_error": str(exc), "error_type": type(exc).__name__},
             ) from exc
         provenance = result.get("provenance", {})
         if not isinstance(provenance, dict):
@@ -435,6 +439,7 @@ class CreationLifecycleService:
             raise CreationError(
                 "activation foundation is invalid",
                 code="activation_foundation_invalid",
+                details={"validation_error": str(exc), "error_type": type(exc).__name__},
             ) from exc
         if mode is InitializationMode.LLM_DEFINED and (
             personality is None

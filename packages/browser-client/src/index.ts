@@ -16,13 +16,15 @@ export class BrowserApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly userMessage: string;
+  readonly details: Record<string, unknown>;
 
-  constructor(status: number, code: string, userMessage: string) {
+  constructor(status: number, code: string, userMessage: string, details: Record<string, unknown> = {}) {
     super(userMessage);
     this.name = "BrowserApiError";
     this.status = status;
     this.code = code;
     this.userMessage = userMessage;
+    this.details = details;
   }
 }
 
@@ -38,10 +40,13 @@ export class BrowserClient {
     const response = await this.fetcher(this.url("/auth/session"), { credentials: "include" });
     if (response.status === 401) return { authenticated: false };
     if (!response.ok) {
-      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown } | null;
+      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown; details?: unknown } | null;
       const code = typeof payload?.code === "string" ? payload.code : "browser_request_failed";
       const message = typeof payload?.message === "string" ? payload.message : `Browser request failed: ${response.status}`;
-      throw new BrowserApiError(response.status, code, message);
+      const details = payload?.details && typeof payload.details === "object" && !Array.isArray(payload.details)
+        ? payload.details as Record<string, unknown>
+        : {};
+      throw new BrowserApiError(response.status, code, message, details);
     }
     return response.json() as Promise<BrowserSession>;
   }
@@ -153,10 +158,13 @@ export class BrowserClient {
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
     if (!response.ok) {
-      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown } | null;
+      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown; details?: unknown } | null;
       const code = typeof payload?.code === "string" ? payload.code : "browser_request_failed";
       const message = typeof payload?.message === "string" ? payload.message : `Browser request failed: ${response.status}`;
-      throw new BrowserApiError(response.status, code, message);
+      const details = payload?.details && typeof payload.details === "object" && !Array.isArray(payload.details)
+        ? payload.details as Record<string, unknown>
+        : {};
+      throw new BrowserApiError(response.status, code, message, details);
     }
     if (response.status === 204) return undefined;
     return response.json();

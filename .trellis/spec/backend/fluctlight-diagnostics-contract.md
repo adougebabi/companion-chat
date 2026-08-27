@@ -50,6 +50,10 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 - Description analysis response provenance includes the diagnostic correlation
   ID. The creation review surface retains it and can open a pre-filtered
   diagnostic view for that exact initialization run.
+- Foundation validation failures expose a bounded structured detail object at
+  the Core/BFF boundary, including `details.validation_error` and a safe error
+  type. Clients must preserve this detail; a stable top-level code alone is not
+  sufficient to diagnose missing or misrouted model fields.
 
 ### 4. Validation & Error Matrix
 

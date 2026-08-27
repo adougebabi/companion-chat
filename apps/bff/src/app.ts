@@ -472,7 +472,11 @@ export function createBff(options: BffOptions): FastifyInstance {
           return reply.code(401).send({ code: "unauthenticated", message: "Authentication is required" });
         }
         if (error.status === 422) {
-          return reply.code(422).send({ code: error.code, message: "Fluctlight analysis was rejected" });
+          return reply.code(422).send({
+            code: error.code,
+            message: Object.keys(error.details).length ? error.message : "Fluctlight analysis was rejected",
+            ...(Object.keys(error.details).length ? { details: error.details } : {}),
+          });
         }
         if (error.status >= 500) {
           return reply.code(503).send({ code: error.code, message: "Fluctlight analysis service is unavailable" });
@@ -495,7 +499,11 @@ export function createBff(options: BffOptions): FastifyInstance {
           return reply.code(401).send({ code: "unauthenticated", message: "Authentication is required" });
         }
         if (error.status === 422) {
-          return reply.code(422).send({ code: error.code, message: "Fluctlight activation was rejected" });
+          return reply.code(422).send({
+            code: error.code,
+            message: Object.keys(error.details).length ? error.message : "Fluctlight activation was rejected",
+            ...(Object.keys(error.details).length ? { details: error.details } : {}),
+          });
         }
         if (error.status >= 500) {
           return reply.code(503).send({ code: error.code, message: "Fluctlight activation service is unavailable" });
