@@ -13,6 +13,17 @@ class _Analyzer:
                 "identity": {"name": "测试", "timezone": "UTC+8"},
                 "personality": Personality(openness=0.8).as_payload(),
                 "behavioral_policy": BehavioralPolicy(directness=0.7).as_payload(),
+                "initial_goals": [
+                    {"description": "完成一组街头摄影练习", "importance": 0.8, "urgency": 0.4}
+                ],
+                "initial_intentions": [
+                    {
+                        "goal_index": 0,
+                        "action": "整理今天想记录的街头画面",
+                        "confidence": 0.7,
+                        "expiration_hours": 24,
+                    }
+                ],
             }
         }
 
@@ -58,11 +69,14 @@ def test_creation_preview_json_round_trips_personality_update_policy_for_activat
             identity=preview.identity,
             personality=preview.personality,
             behavioral_policy=preview.behavioral_policy,
+            initial_goals=preview.initial_goals,
+            initial_intentions=preview.initial_intentions,
         )
 
         assert created.id.startswith("fluctlight_")
         assert fluctlights.created is not None
         assert fluctlights.created.personality.update_policy.max_delta == 0.05
         assert fluctlights.created.identity.timezone == "Asia/Shanghai"
+        assert preview.initial_goals[0]["description"] == "完成一组街头摄影练习"
 
     asyncio.run(verify())

@@ -232,6 +232,21 @@ class FluctlightService:
             )
         return [_snapshot_from_row(row) for row in rows]
 
+    async def list_active(self) -> list[FluctlightSnapshot]:
+        async with self._unit_of_work.begin(command_id="fluctlight-list-active") as tx:
+            rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.fluctlights)
+                        .where(schema.fluctlights.c.status == FluctlightStatus.ACTIVE.value)
+                        .order_by(schema.fluctlights.c.created_at)
+                    )
+                )
+                .mappings()
+                .all()
+            )
+        return [_snapshot_from_row(row) for row in rows]
+
     async def revision_history(
         self, fluctlight_id: str, *, limit: int = 50
     ) -> list[FoundationRevision]:

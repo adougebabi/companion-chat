@@ -35,6 +35,8 @@ const newFluctlightName = ref("");
 const creationMode = ref<"blank_slate" | "llm_defined">("blank_slate");
 const creationDescription = ref("");
 const creationPreviewJson = ref("");
+const creationInitialGoals = ref<Array<Record<string, unknown>>>([]);
+const creationInitialIntentions = ref<Array<Record<string, unknown>>>([]);
 const creationRequestId = ref<string | null>(null);
 const instanceSearch = ref("");
 const showCreateForm = ref(false);
@@ -199,6 +201,8 @@ async function activateCreatedFluctlight(body: {
   identity: Record<string, unknown>;
   personality?: Record<string, unknown>;
   behavioralPolicy?: Record<string, unknown>;
+  initialGoals?: Array<Record<string, unknown>>;
+  initialIntentions?: Array<Record<string, unknown>>;
 }) {
   const requestId = creationRequestId.value ?? randomId();
   creationRequestId.value = requestId;
@@ -209,6 +213,8 @@ async function activateCreatedFluctlight(body: {
     newFluctlightName.value = "";
     creationDescription.value = "";
     creationPreviewJson.value = "";
+    creationInitialGoals.value = [];
+    creationInitialIntentions.value = [];
     creationRequestId.value = null;
     view.value = "chat";
   }
@@ -227,6 +233,13 @@ async function analyzeFluctlightDescription() {
   const foundation = result?.foundation;
   if (foundation && typeof foundation === "object" && !Array.isArray(foundation)) {
     creationPreviewJson.value = JSON.stringify(foundation, null, 2);
+    const previewFoundation = foundation as Record<string, unknown>;
+    creationInitialGoals.value = Array.isArray(previewFoundation.initial_goals)
+      ? previewFoundation.initial_goals.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+      : [];
+    creationInitialIntentions.value = Array.isArray(previewFoundation.initial_intentions)
+      ? previewFoundation.initial_intentions.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+      : [];
     creationRequestId.value = randomId();
   } else if (result) {
     controlCenter.error = "初始化模型返回了不包含 Foundation 的无效结果。";
@@ -240,7 +253,7 @@ async function activatePreview() {
     const personality = foundation.personality;
     const behavioralPolicy = foundation.behavioral_policy;
     if (!identity || typeof identity !== "object" || Array.isArray(identity) || !personality || typeof personality !== "object" || Array.isArray(personality) || !behavioralPolicy || typeof behavioralPolicy !== "object" || Array.isArray(behavioralPolicy)) throw new Error("invalid_preview");
-    await activateCreatedFluctlight({ initializationMode: "llm_defined", identity: identity as Record<string, unknown>, personality: personality as Record<string, unknown>, behavioralPolicy: behavioralPolicy as Record<string, unknown> });
+    await activateCreatedFluctlight({ initializationMode: "llm_defined", identity: identity as Record<string, unknown>, personality: personality as Record<string, unknown>, behavioralPolicy: behavioralPolicy as Record<string, unknown>, initialGoals: creationInitialGoals.value, initialIntentions: creationInitialIntentions.value });
   } catch {
     controlCenter.error = "预览必须包含 identity、personality 和 behavioral_policy 三个对象。";
   }
@@ -495,6 +508,12 @@ onMounted(() => void store.initialize());
       <form v-if="creationMode === 'llm_defined' && creationPreviewJson" class="actor-create-form" @submit.prevent="activatePreview">
         <label for="fluctlight-preview">可编辑的基础预览</label>
         <textarea id="fluctlight-preview" v-model="creationPreviewJson" rows="14" spellcheck="false" />
+        <div v-if="creationInitialGoals.length" class="initial-agency-preview">
+          <strong>初始目的</strong>
+          <p v-for="(goal, index) in creationInitialGoals" :key="index">{{ String(goal.description) }}</p>
+          <strong>初始意图</strong>
+          <p v-for="(intention, index) in creationInitialIntentions" :key="index">{{ String(intention.action) }}</p>
+        </div>
         <button class="send-button" type="submit" :disabled="controlCenter.saving">确认激活并对话</button>
       </form>
       <form class="actor-create-form" @submit.prevent="controlCenter.createActorGroup"><label for="actor-group-name">实例分组</label><div class="actor-create-row"><input id="actor-group-name" v-model="controlCenter.newActorGroupName" maxlength="128" placeholder="新分组名称" /><button class="secondary-button" type="submit" :disabled="controlCenter.saving || !controlCenter.newActorGroupName.trim()">创建分组</button></div></form>
@@ -504,8 +523,9 @@ onMounted(() => void store.initialize());
         <div v-for="fluctlight in filteredFluctlights()" :key="fluctlight.id" class="actor-directory-row"><button class="actor-row" :class="{ selected: fluctlight.id === store.fluctlightId }" type="button" @click="openFluctlight(fluctlight.id)"><span class="avatar">{{ String(fluctlight.identity.name ?? 'F').slice(0, 1) }}</span><span class="actor-row-copy"><strong>{{ String(fluctlight.identity.name ?? fluctlight.id) }}</strong><small>摇光当前状态：{{ fluctlight.status }}</small></span><span class="row-trailing"><time>{{ fluctlight.id === store.fluctlightId ? '现在' : '—' }}</time><span v-if="fluctlight.unread_count" class="unread-badge">{{ fluctlight.unread_count }}</span></span></button><select v-if="controlCenter.actorGroups.length" :aria-label="'为 ' + fluctlight.id + ' 指定分组'" @change="($event) => { const groupId = ($event.target as HTMLSelectElement).value; if (groupId) controlCenter.assignActorGroupMember(groupId, fluctlight.id) }"><option value="">加入分组...</option><option v-for="group in controlCenter.actorGroups.filter((item) => !item.actor_ids.includes(fluctlight.id))" :key="group.id" :value="group.id">{{ group.name }}</option></select><button v-for="group in controlCenter.actorGroups.filter((item) => item.actor_ids.includes(fluctlight.id))" :key="group.id" class="secondary-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.removeActorGroupMember(group.id, fluctlight.id)">移出 {{ group.name }}</button></div>
       </div>
       <button v-if="store.selectedFluctlight" class="detail-toggle" type="button" @click="showManagementDetails = !showManagementDetails">{{ showManagementDetails ? '收起实例详情' : '管理实例详情' }}</button>
-      <section v-if="store.selectedFluctlight && showManagementDetails" class="fluctlight-detail" aria-labelledby="detail-title">
-        <h3 id="detail-title">{{ store.selectedFluctlightName }} 的身份设定</h3>
+      <section v-if="store.selectedFluctlight && showManagementDetails" class="fluctlight-detail management-detail" aria-labelledby="detail-title">
+        <header class="management-header"><div><p class="eyebrow">EDIT & GOVERN</p><h2 id="detail-title">{{ store.selectedFluctlightName }} 的编辑与治理</h2><p>修改会影响摇光后续状态；查看信息请从对话标题栏打开详情。</p></div><button class="modal-close" type="button" aria-label="关闭编辑与治理" @click="showManagementDetails = false">×</button></header>
+        <h3>身份设定</h3>
         <dl><template v-for="(value, key) in store.selectedFluctlight.identity" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ Array.isArray(value) ? value.join('、') : String(value ?? '未设定') }}</dd></template></dl>
         <template v-if="controlCenter.fluctlightDetail">
           <h3>人格与表达</h3>
@@ -800,11 +820,13 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .archive-row span:nth-child(2) { flex: 1; }
 .archive-icon { color: #9ea9ae; }
 .create-drawer { margin-bottom: 14px; padding: 14px; border: 1px solid rgb(255 255 255 / 80%); border-radius: 16px; background: rgb(255 255 255 / 48%); }
+.initial-agency-preview { display: grid; gap: 4px; padding: 10px 12px; border-left: 3px solid #7fb8b6; background: rgb(230 245 243 / 58%); color: #38555b; font-size: .82rem; }
+.initial-agency-preview p { margin: 0; }
 .detail-toggle { margin: 14px auto 0; display: block; border: 0; background: transparent; color: #557980; cursor: pointer; font-size: .8rem; }
 .row-trailing { display: grid; justify-items: end; gap: 5px; margin-left: 8px; color: #8b969c; font-size: .72rem; }
 .unread-badge { display: grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 11px; background: #b9bbc2; color: #fff; font-size: .68rem; font-weight: 700; }
-.fluctlight-modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 24px; background: rgb(39 57 66 / 30%); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-.fluctlight-modal { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: min(620px, 100%); max-height: min(760px, calc(100dvh - 48px)); overflow: hidden; border: 1px solid rgb(255 255 255 / 88%); border-radius: 24px; background: rgb(251 254 255 / 78%); box-shadow: 0 28px 80px rgb(26 45 56 / 28%); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); }
+.fluctlight-modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; overflow-y: auto; padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); background: rgb(39 57 66 / 30%); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.fluctlight-modal { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: min(620px, 100%); max-width: calc(100vw - 32px); max-height: calc(100dvh - 40px); overflow: hidden; border: 1px solid rgb(255 255 255 / 88%); border-radius: 24px; background: rgb(251 254 255 / 78%); box-shadow: 0 28px 80px rgb(26 45 56 / 28%); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); }
 .fluctlight-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 22px 16px; border-bottom: 1px solid rgb(191 211 217 / 55%); }
 .modal-identity { display: flex; align-items: center; min-width: 0; gap: 12px; }
 .modal-identity h2 { overflow: hidden; margin: 0; color: #20313a; font-size: 1.18rem; text-overflow: ellipsis; white-space: nowrap; }
@@ -857,6 +879,13 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .fluctlight-detail dl { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 8px 14px; margin: 0; }
 .fluctlight-detail dt { color: #667783; font-size: .82rem; }
 .fluctlight-detail dd { margin: 0; overflow-wrap: anywhere; }
+.management-detail { max-width: 780px; margin: 26px auto; padding: 24px; border: 1px solid var(--surface-border); border-radius: 24px; background: var(--surface-glass); box-shadow: var(--surface-shadow); backdrop-filter: blur(var(--glass-blur)); }
+.management-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin: -2px 0 24px; padding-bottom: 18px; border-bottom: 1px solid rgb(191 211 217 / 55%); }
+.management-header h2 { margin: 0; color: #243740; font-size: 1.16rem; }
+.management-header p:not(.eyebrow) { max-width: 560px; margin: 7px 0 0; color: #70828a; font-size: .82rem; line-height: 1.5; }
+.management-detail h3 { margin-top: 26px; color: #304a54; }
+.management-detail .revision-form, .management-detail .governance-form { padding: 14px; border: 1px solid rgb(255 255 255 / 78%); border-radius: 14px; background: rgb(255 255 255 / 36%); }
+.management-detail .detail-list { padding: 12px 14px 12px 28px; border: 1px solid rgb(255 255 255 / 72%); border-radius: 14px; background: rgb(255 255 255 / 32%); }
 .detail-list { display: grid; gap: 6px; margin: 8px 0 16px; padding-left: 20px; }
 .detail-list li { overflow-wrap: anywhere; }
 .governance-form { display: flex; gap: 8px; margin: 8px 0 16px; }
@@ -1013,14 +1042,21 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
   .diagnostics-panel .revision-form .diagnostic-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .diagnostics-panel .revision-form .diagnostic-actions .secondary-button { width: 100%; min-width: 0; padding-inline: 8px; }
   .fluctlight-modal-backdrop { align-items: end; padding: 0; }
-  .fluctlight-modal { width: 100%; max-height: min(82dvh, 720px); border-width: 1px 0 0; border-radius: 22px 22px 0 0; }
+  .fluctlight-modal { width: 100%; max-width: 100%; height: min(86dvh, 760px); max-height: calc(100dvh - env(safe-area-inset-top)); border-width: 1px 0 0; border-radius: 22px 22px 0 0; }
   .fluctlight-modal-header { padding: 16px 16px 14px; }
-  .fluctlight-modal-body { padding: 14px 16px 18px; }
+  .fluctlight-modal-body { min-height: 0; padding: 14px 16px 18px; overscroll-behavior: contain; }
   .fluctlight-modal-footer { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
   .fluctlight-modal-footer .secondary-button, .fluctlight-modal-footer .send-button { flex: 1; min-width: 0; padding-inline: 8px; }
   .detail-status-strip { align-items: flex-start; flex-direction: column; gap: 5px; }
   .detail-stat-grid { grid-template-columns: 1fr; }
   .identity-facts { grid-template-columns: 88px minmax(0, 1fr); padding: 13px; }
   .modal-detail-list li { align-items: flex-start; flex-direction: column; gap: 2px; }
+  .management-detail { width: calc(100% - 24px); max-width: none; margin: 12px; padding: 18px 14px; border-radius: 20px; }
+  .management-header { gap: 12px; margin-bottom: 18px; padding-bottom: 14px; }
+  .management-header h2 { font-size: 1rem; }
+  .management-detail .fluctlight-detail dl, .management-detail dl { grid-template-columns: 92px minmax(0, 1fr); gap: 8px 10px; }
+  .management-detail .governance-form { display: grid; }
+  .management-detail .revision-form, .management-detail .governance-form { padding: 12px; }
+  .management-detail .detail-list { padding: 10px 12px 10px 25px; }
 }
 </style>

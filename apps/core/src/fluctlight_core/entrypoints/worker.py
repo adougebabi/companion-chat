@@ -38,6 +38,7 @@ from fluctlight_core.conversations.service import ConversationService
 from fluctlight_core.diagnostics.service import DiagnosticsService
 from fluctlight_core.fluctlights.service import FluctlightService
 from fluctlight_core.inner_state import CognitionStateApplier, InnerStateService
+from fluctlight_core.life_world.bootstrap import InitialScheduleService
 from fluctlight_core.life_world.service import LifeWorldService
 from fluctlight_core.media.service import MediaService
 from fluctlight_core.media.workflows import (
@@ -153,6 +154,8 @@ async def run_worker(settings: PlatformSettings) -> None:
     memory_service = MemoryService(unit_of_work)
     relationships = RelationshipService(unit_of_work)
     inner_state = InnerStateService(unit_of_work)
+    life_world = LifeWorldService(unit_of_work)
+    schedule_initializer = InitialScheduleService(life_world, provider_runtime, diagnostics)
     object_client = boto3.client(
         "s3",
         endpoint_url=settings.s3_endpoint,
@@ -180,7 +183,7 @@ async def run_worker(settings: PlatformSettings) -> None:
             conversations=conversation_service,
             memory=memory_service,
             relationships=relationships,
-            life_world=LifeWorldService(unit_of_work),
+            life_world=life_world,
             media=media_service,
             moments=MomentsService(unit_of_work),
             media_prompt=provider_runtime,
@@ -198,6 +201,7 @@ async def run_worker(settings: PlatformSettings) -> None:
     )
     configure_cognition_service(cognition_service)
     configure_reflection_service(cognition_service)
+    await schedule_initializer.recover_current_day(await fluctlight_service.list_active())
     redis = Redis.from_url(settings.redis_url, decode_responses=True)
     streams = RedisStreams(redis)
     await bootstrap_streams_with_retry(streams)

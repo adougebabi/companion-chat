@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from typing import Any, Protocol
 
+from fluctlight_core.inner_state import (
+    GoalEvidence,
+    GoalSource,
+    GoalStatus,
+    InnerStateService,
+    IntentionEvidence,
+    SemanticTrigger,
+)
 from fluctlight_core.platform.timezones import canonical_timezone
 
 from .contracts import (
@@ -37,11 +46,23 @@ class InitialScheduleInitializer(Protocol):
     async def ensure_for(self, fluctlight: FluctlightSnapshot) -> object: ...
 
 
+class InitialAgencyInitializer(Protocol):
+    async def ensure_for(
+        self,
+        fluctlight: FluctlightSnapshot,
+        *,
+        goals: list[dict[str, Any]],
+        intentions: list[dict[str, Any]],
+    ) -> object: ...
+
+
 @dataclass(frozen=True, slots=True)
 class CreationPreview:
     identity: dict[str, Any]
     personality: dict[str, Any]
     behavioral_policy: dict[str, Any]
+    initial_goals: list[dict[str, Any]]
+    initial_intentions: list[dict[str, Any]]
     provenance: dict[str, Any]
 
     def as_payload(self) -> dict[str, Any]:
@@ -51,6 +72,8 @@ class CreationPreview:
                 "identity": self.identity,
                 "personality": self.personality,
                 "behavioral_policy": self.behavioral_policy,
+                "initial_goals": self.initial_goals,
+                "initial_intentions": self.initial_intentions,
             },
             "provenance": self.provenance,
         }
@@ -86,6 +109,123 @@ def _personality_from_payload(payload: dict[str, Any]) -> Personality:
     return Personality(**values)
 
 
+def _agency_list(payload: Any, name: str) -> list[dict[str, Any]]:
+    if payload is None:
+        return []
+    if not isinstance(payload, list) or not all(isinstance(item, dict) for item in payload):
+        raise FoundationValidationError(f"{name} must be an array of objects")
+    if len(payload) > 8:
+        raise FoundationValidationError(f"{name} cannot exceed 8 entries")
+    return [dict(item) for item in payload]
+
+
+def _validate_initial_agency(goals: list[dict[str, Any]], intentions: list[dict[str, Any]]) -> None:
+    if not goals or not intentions:
+        raise FoundationValidationError(
+            "description creation requires initial goals and intentions"
+        )
+    for item in goals:
+        if not isinstance(item.get("description"), str) or not item["description"].strip():
+            raise FoundationValidationError("initial goal description is required")
+        for field in ("importance", "urgency"):
+            value = item.get(field)
+            if not isinstance(value, int | float) or isinstance(value, bool) or not 0 <= value <= 1:
+                raise FoundationValidationError(f"initial goal {field} must be between 0 and 1")
+    for item in intentions:
+        goal_index = item.get("goal_index")
+        if not isinstance(goal_index, int) or goal_index < 0 or goal_index >= len(goals):
+            raise FoundationValidationError("initial intention goal_index is required")
+        if not isinstance(item.get("action"), str) or not item["action"].strip():
+            raise FoundationValidationError("initial intention action is required")
+        confidence = item.get("confidence")
+        if (
+            not isinstance(confidence, int | float)
+            or isinstance(confidence, bool)
+            or not 0 <= confidence <= 1
+        ):
+            raise FoundationValidationError("initial intention confidence must be between 0 and 1")
+        expiration_hours = item.get("expiration_hours", 24)
+        if (
+            not isinstance(expiration_hours, int | float)
+            or isinstance(expiration_hours, bool)
+            or not 0 < expiration_hours <= 168
+        ):
+            raise FoundationValidationError(
+                "initial intention expiration_hours must be between 0 and 168"
+            )
+
+
+@dataclass(slots=True)
+class InitialAgencyService:
+    inner_state: InnerStateService
+
+    async def ensure_for(
+        self,
+        fluctlight: FluctlightSnapshot,
+        *,
+        goals: list[dict[str, Any]],
+        intentions: list[dict[str, Any]],
+    ) -> None:
+        if not goals and not intentions:
+            return
+        existing_goals, _ = await self.inner_state.goals_and_intentions(fluctlight.id)
+        if existing_goals:
+            return
+        now = datetime.now(UTC)
+        evidence_ref = f"foundation:{fluctlight.id}"
+        created_goals = []
+        for index, item in enumerate(goals):
+            goal = await self.inner_state.create_goal(
+                GoalEvidence(
+                    fluctlight_id=fluctlight.id,
+                    source=GoalSource.SELF,
+                    description=str(item["description"]),
+                    importance=float(item["importance"]),
+                    urgency=float(item["urgency"]),
+                    evidence_refs=(evidence_ref,),
+                    goal_id=f"goal_initial_{fluctlight.id}_{index}",
+                )
+            )
+            created_goals.append(
+                await self.inner_state.transition_goal(
+                    goal.id,
+                    target=GoalStatus.ACTIVE,
+                    expected_revision=goal.revision,
+                    reason="initialization",
+                )
+            )
+        for index, item in enumerate(intentions):
+            goal_index = item.get("goal_index")
+            if (
+                not isinstance(goal_index, int)
+                or goal_index < 0
+                or goal_index >= len(created_goals)
+            ):
+                raise FoundationValidationError("initial intention goal_index is invalid")
+            expiration_hours = item.get("expiration_hours", 24)
+            if not isinstance(expiration_hours, int | float) or isinstance(expiration_hours, bool):
+                raise FoundationValidationError(
+                    "initial intention expiration_hours must be numeric"
+                )
+            intention = await self.inner_state.create_intention(
+                IntentionEvidence(
+                    fluctlight_id=fluctlight.id,
+                    goal_id=created_goals[goal_index].id,
+                    action=str(item["action"]),
+                    trigger=SemanticTrigger("semantic.trigger.v1", (evidence_ref,)),
+                    confidence=float(item["confidence"]),
+                    expiration=now + timedelta(hours=float(expiration_hours)),
+                    evidence_refs=(evidence_ref,),
+                    intention_id=f"intention_initial_{fluctlight.id}_{index}",
+                )
+            )
+            await self.inner_state.qualify_intention(
+                intention.id,
+                expected_revision=intention.revision,
+                reason="initialization",
+            )
+
+
 class CreationLifecycleService:
     """Analyze without persistence; activate one validated foundation atomically."""
 
@@ -94,10 +234,12 @@ class CreationLifecycleService:
         fluctlights: FluctlightService,
         analyzer: InitializationAnalyzer,
         schedule_initializer: InitialScheduleInitializer | None = None,
+        agency_initializer: InitialAgencyInitializer | None = None,
     ) -> None:
         self._fluctlights = fluctlights
         self._analyzer = analyzer
         self._schedule_initializer = schedule_initializer
+        self._agency_initializer = agency_initializer
 
     async def analyze_description(self, description: str) -> CreationPreview:
         if not isinstance(description, str) or not description.strip() or len(description) > 12_000:
@@ -110,6 +252,11 @@ class CreationLifecycleService:
             identity = _identity_from_payload("preview", dict(foundation["identity"]))
             personality = _personality_from_payload(dict(foundation["personality"]))
             policy = BehavioralPolicy(**dict(foundation["behavioral_policy"]))
+            initial_goals = _agency_list(foundation.get("initial_goals"), "initial_goals")
+            initial_intentions = _agency_list(
+                foundation.get("initial_intentions"), "initial_intentions"
+            )
+            _validate_initial_agency(initial_goals, initial_intentions)
         except (KeyError, TypeError, FoundationValidationError) as exc:
             raise CreationError(
                 "initialization response is not a valid Fluctlight foundation",
@@ -122,6 +269,8 @@ class CreationLifecycleService:
             _without_id(identity.as_payload()),
             personality.as_payload(),
             policy.as_payload(),
+            initial_goals,
+            initial_intentions,
             dict(provenance),
         )
 
@@ -134,6 +283,8 @@ class CreationLifecycleService:
         identity: dict[str, Any],
         personality: dict[str, Any] | None = None,
         behavioral_policy: dict[str, Any] | None = None,
+        initial_goals: list[dict[str, Any]] | None = None,
+        initial_intentions: list[dict[str, Any]] | None = None,
     ) -> FluctlightSnapshot:
         if not isinstance(request_id, str) or not request_id.strip() or len(request_id) > 256:
             raise CreationError("request_id is required", code="activation_request_invalid")
@@ -158,6 +309,10 @@ class CreationLifecycleService:
                 if mode is InitializationMode.LLM_DEFINED and behavioral_policy is not None
                 else BehavioralPolicy()
             )
+            resolved_goals = _agency_list(initial_goals, "initial_goals")
+            resolved_intentions = _agency_list(initial_intentions, "initial_intentions")
+            if mode is InitializationMode.LLM_DEFINED:
+                _validate_initial_agency(resolved_goals, resolved_intentions)
         except (TypeError, FoundationValidationError) as exc:
             raise CreationError(
                 "activation foundation is invalid",
@@ -169,6 +324,10 @@ class CreationLifecycleService:
             raise CreationError(
                 "llm_defined activation requires the reviewed complete foundation",
                 code="activation_foundation_incomplete",
+            )
+        if mode is InitializationMode.BLANK_SLATE and (resolved_goals or resolved_intentions):
+            raise CreationError(
+                "blank_slate cannot accept initial agency", code="activation_mode_invalid"
             )
         try:
             existing = await self._fluctlights.get(fluctlight_id)
@@ -187,6 +346,10 @@ class CreationLifecycleService:
                 )
             if self._schedule_initializer is not None:
                 await self._schedule_initializer.ensure_for(existing)
+            if self._agency_initializer is not None:
+                await self._agency_initializer.ensure_for(
+                    existing, goals=resolved_goals, intentions=resolved_intentions
+                )
             return existing
         try:
             created = await self._fluctlights.create(
@@ -201,6 +364,10 @@ class CreationLifecycleService:
             )
             if self._schedule_initializer is not None:
                 await self._schedule_initializer.ensure_for(created)
+            if self._agency_initializer is not None:
+                await self._agency_initializer.ensure_for(
+                    created, goals=resolved_goals, intentions=resolved_intentions
+                )
             return created
         except FluctlightLifecycleError as exc:
             raise CreationError(

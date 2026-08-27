@@ -98,3 +98,29 @@ def test_initial_schedule_normalizes_existing_utc_plus_eight_foundations() -> No
 
     assert schedule is not None
     assert generator.calls[0]["timezone"] == "Asia/Shanghai"
+
+
+def test_schedule_recovery_only_generates_missing_current_day_schedules() -> None:
+    life_world = LifeWorldRecorder()
+    generator = ScheduleGenerator()
+    service = InitialScheduleService(
+        life_world,  # type: ignore[arg-type]
+        generator,  # type: ignore[arg-type]
+        clock=lambda: datetime(2026, 8, 26, 4, tzinfo=UTC),
+    )
+    fluctlights = [
+        FluctlightSnapshot(
+            id=f"fluctlight-{index}",
+            initialization_mode=InitializationMode.BLANK_SLATE,
+            status=FluctlightStatus.ACTIVE,
+            identity=Identity(id=f"fluctlight-{index}", timezone="Asia/Shanghai"),
+            personality=Personality.neutral(),
+            behavioral_policy=BehavioralPolicy(),
+        )
+        for index in range(2)
+    ]
+
+    recovered = asyncio.run(service.recover_current_day(fluctlights))
+
+    assert recovered == 2
+    assert [call["local_date"] for call in generator.calls] == [date(2026, 8, 26)] * 2

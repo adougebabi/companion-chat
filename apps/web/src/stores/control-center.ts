@@ -92,6 +92,8 @@ export const useControlCenterStore = defineStore("control-center", {
       identity: Record<string, unknown>;
       personality?: Record<string, unknown>;
       behavioralPolicy?: Record<string, unknown>;
+      initialGoals?: Array<Record<string, unknown>>;
+      initialIntentions?: Array<Record<string, unknown>>;
     }) {
       this.saving = true;
       this.error = "";

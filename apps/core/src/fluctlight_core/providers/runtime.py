@@ -128,14 +128,24 @@ markdown or prose:
       "silence_tolerance": 0.5, "response_delay": 0.0,
       "emotional_expression": 0.5, "conflict_style": null,
       "refusal_style": null, "intimacy_expression": null
-    }
+    },
+    "initial_goals": [
+      {"description": "", "importance": 0.5, "urgency": 0.5}
+    ],
+    "initial_intentions": [
+      {"goal_index": 0, "action": "", "confidence": 0.5, "expiration_hours": 24}
+    ]
   }
 }
 Use null for omitted identity and behavioral text facts. timezone must be an IANA timezone such as
 Asia/Shanghai, never an offset label such as UTC+8. core_values must be an array of text.
 Every personality value and bounded behavioral-policy value must be a finite number from 0 to 1.
 response_delay must be a finite number greater than or equal to 0. Do not include identity.id,
-personality.update_policy, provenance, hidden reasoning, or extra keys."""
+personality.update_policy, provenance, hidden reasoning, or extra keys. For description-based
+creation, initial_goals must contain one to three concrete model-owned goals and
+initial_intentions must contain at least one concrete action for every goal. goal_index references
+the zero-based initial_goals array. expiration_hours must be a finite number greater than 0 and
+no more than 168. Do not leave semantic fields blank or invent a generic routine."""
 
 
 class ConfiguredProviderRuntime:

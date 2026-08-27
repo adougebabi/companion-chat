@@ -76,6 +76,13 @@ class InitialScheduleService:
             )
         return schedule
 
+    async def recover_current_day(self, fluctlights: list[FluctlightSnapshot]) -> int:
+        recovered = 0
+        for fluctlight in fluctlights:
+            if await self.ensure_for(fluctlight) is not None:
+                recovered += 1
+        return recovered
+
     @staticmethod
     def _proposal(
         *,

@@ -43,7 +43,11 @@ from fluctlight_core.fluctlights.contracts import (
     InitializationMode,
     RevisionSource,
 )
-from fluctlight_core.fluctlights.creation import CreationError, CreationLifecycleService
+from fluctlight_core.fluctlights.creation import (
+    CreationError,
+    CreationLifecycleService,
+    InitialAgencyService,
+)
 from fluctlight_core.fluctlights.policy import RevisionConflictError
 from fluctlight_core.fluctlights.service import FluctlightLifecycleError, FluctlightService
 from fluctlight_core.inner_state import CognitionStateApplier, InnerStateService
@@ -195,6 +199,8 @@ class FluctlightCreationActivationRequest(BaseModel):
     identity: dict[str, object]
     personality: dict[str, object] | None = None
     behavioral_policy: dict[str, object] | None = None
+    initial_goals: list[dict[str, object]] | None = None
+    initial_intentions: list[dict[str, object]] | None = None
 
 
 class MomentCommentRequest(BaseModel):
@@ -467,6 +473,7 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                     fluctlights,
                     provider_runtime,
                     InitialScheduleService(life_world, provider_runtime, diagnostics),
+                    InitialAgencyService(inner_state),
                 ),
                 moments=MomentsService(unit_of_work),
                 inner_state=inner_state,
@@ -1286,6 +1293,12 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                     if request.behavioral_policy is not None
                     else None
                 ),
+                initial_goals=[dict(item) for item in request.initial_goals]
+                if request.initial_goals is not None
+                else None,
+                initial_intentions=[dict(item) for item in request.initial_intentions]
+                if request.initial_intentions is not None
+                else None,
             )
         except AuthError as exc:
             raise HTTPException(status_code=401, detail="unauthenticated") from exc
