@@ -1,8 +1,9 @@
 import asyncio
+from typing import Any, cast
 
-from fluctlight_core.fluctlights.contracts import BehavioralPolicy, Personality
+from fluctlight_core.fluctlights.contracts import BehavioralPolicy, InitializationMode, Personality
 from fluctlight_core.fluctlights.creation import CreationLifecycleService
-
+from fluctlight_core.fluctlights.service import FluctlightService
 
 class _Analyzer:
     async def analyze_initialization(self, _description: str) -> dict[str, object]:
@@ -44,13 +45,13 @@ class _Fluctlights:
 def test_creation_preview_json_round_trips_personality_update_policy_for_activation() -> None:
     async def verify() -> None:
         fluctlights = _Fluctlights()
-        service = CreationLifecycleService(fluctlights, _Analyzer())
+        service = CreationLifecycleService(cast(FluctlightService, fluctlights), cast(Any, _Analyzer()))
         preview = await service.analyze_description("测试描述")
 
         created = await service.activate(
             actor_id="human-owner",
             request_id="request-1",
-            initialization_mode="llm_defined",
+            initialization_mode=InitializationMode.LLM_DEFINED,
             identity=preview.identity,
             personality=preview.personality,
             behavioral_policy=preview.behavioral_policy,
