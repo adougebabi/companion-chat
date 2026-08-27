@@ -448,7 +448,9 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 reflection_provider=provider_runtime,
                 reflection_applier=reflection,
                 state_applier=CognitionStateApplier(inner_state),
-                autonomy_freezer=CognitionAutonomyBridge(autonomy, settings_service),
+                autonomy_freezer=CognitionAutonomyBridge(
+                    autonomy, settings_service, diagnostics
+                ),
                 diagnostics=diagnostics,
             )
             object_client = boto3.client(

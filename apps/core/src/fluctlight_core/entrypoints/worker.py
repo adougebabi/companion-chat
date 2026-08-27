@@ -428,4 +428,9 @@ async def run_worker(settings: PlatformSettings) -> None:
 
 
 def main() -> None:
+    level_name = os.environ.get("FLUCTLIGHT_LOG_LEVEL", "INFO").upper()
+    logging.basicConfig(
+        level=getattr(logging, level_name, logging.INFO),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
     asyncio.run(run_worker(PlatformSettings.from_environ()))

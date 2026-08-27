@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
@@ -12,6 +13,8 @@ from fluctlight_core.life_world.contracts import AutonomousActionRequest, Autono
 from fluctlight_core.settings.service import SettingsService
 
 from .service import AutonomyService
+
+logger = logging.getLogger(__name__)
 
 
 class CognitionAutonomyBridge:
@@ -53,6 +56,14 @@ class CognitionAutonomyBridge:
                 requested_at=datetime.now(UTC),
             )
         )
+        if decision is not None:
+            logger.info(
+                "cognition.autonomy_action.%s action_id=%s action_type=%s reason=%s",
+                "accepted" if decision.accepted else "rejected",
+                f"autonomy_{action.action_id}",
+                action.action_type.value,
+                decision.reason_code,
+            )
         if self._diagnostics is not None:
             await self._diagnostics.emit_event(
                 DiagnosticEvent(

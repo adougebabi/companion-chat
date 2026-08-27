@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import replace
@@ -46,6 +47,8 @@ from .contracts import (
     stable_action_id,
     stable_provider_request_id,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class CognitionService:
@@ -313,6 +316,15 @@ class CognitionService:
                 claim.fact, correlation_id=claim.fact.correlation_id
             )
             self._validate_envelope(claim, envelope)
+            logger.info(
+                "cognition.assessment.completed fact_id=%s fluctlight_id=%s correlation_id=%s "
+                "effect_count=%d effect_types=%s",
+                claim.fact.id,
+                claim.fact.fluctlight_id,
+                claim.fact.correlation_id,
+                len(envelope.decision.effects),
+                ",".join(effect.action_type.value for effect in envelope.decision.effects),
+            )
         except Exception as exc:
             code = self._error_code(exc, "assessment_failed")
             await self._settle_failure(claim, code)
@@ -320,6 +332,12 @@ class CognitionService:
 
         try:
             action = await self._freeze(claim, envelope)
+            logger.info(
+                "cognition.action.frozen action_id=%s action_type=%s fact_id=%s",
+                action.action_id,
+                action.action_type.value,
+                claim.fact.id,
+            )
         except Exception as exc:
             code = self._error_code(exc, "freeze_failed")
             await self._settle_failure(claim, code)
@@ -357,6 +375,21 @@ class CognitionService:
             )
             self._validate_envelope(claim, envelope)
             action = await self._freeze(claim, envelope)
+            logger.info(
+                "cognition.assessment.completed fact_id=%s fluctlight_id=%s correlation_id=%s "
+                "effect_count=%d effect_types=%s",
+                claim.fact.id,
+                claim.fact.fluctlight_id,
+                claim.fact.correlation_id,
+                len(envelope.decision.effects),
+                ",".join(effect.action_type.value for effect in envelope.decision.effects),
+            )
+            logger.info(
+                "cognition.action.frozen action_id=%s action_type=%s fact_id=%s",
+                action.action_id,
+                action.action_type.value,
+                claim.fact.id,
+            )
         except Exception as exc:
             code = self._error_code(exc, "assessment_failed")
             await self._settle_failure(claim, code)
@@ -749,6 +782,12 @@ class CognitionService:
 
     async def _freeze_autonomy(self, action: FrozenAction) -> None:
         freezer = getattr(self, "_autonomy_freezer", None)
+        logger.info(
+            "cognition.autonomy.dispatch action_id=%s action_type=%s configured=%s",
+            action.action_id,
+            action.action_type.value,
+            freezer is not None,
+        )
         if freezer is not None:
             await freezer(action)
 
@@ -777,6 +816,12 @@ class CognitionService:
             return ()
         actions: list[FrozenAction] = []
         for effect in effects[1:]:
+            logger.info(
+                "cognition.secondary_effect.start fact_id=%s effect_id=%s action_type=%s",
+                claim.fact.id,
+                effect.effect_id,
+                effect.action_type.value,
+            )
             if effect.action_type in {ActionType.REPLY, ActionType.NO_OP}:
                 raise ProviderExecutionError(
                     "secondary effect must produce an autonomous side effect"
@@ -794,6 +839,14 @@ class CognitionService:
             )
             if action.action_type is not ActionType.NO_OP:
                 _, action = await self._realize_and_freeze_autonomy(action, claim)
+            logger.info(
+                "cognition.secondary_effect.dispatched fact_id=%s effect_id=%s action_id=%s "
+                "action_type=%s",
+                claim.fact.id,
+                effect.effect_id,
+                action.action_id,
+                action.action_type.value,
+            )
             actions.append(action)
         return tuple(actions)
 
