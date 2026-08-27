@@ -185,6 +185,9 @@ social_background is family/important support context; preferences are enduring 
 aversions; life_habits are repeated self-directed practices; recurring_commitments are real
 schedule constraints; relationship_seeds define the Owner and other initial social contexts;
 character_constraints are long-lived role facts/boundaries. Return every life_profile field.
+The four collection fields life_habits, recurring_commitments, relationship_seeds, and
+character_constraints must always be JSON arrays of objects, even when there is only one entry;
+never emit a single object for those fields.
 
 Every semantic field must be filled. If the user explicitly describes a field, preserve it and set
 its exact path in provenance.field_sources to user_explicit. If it is directly constrained by the

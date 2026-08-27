@@ -147,6 +147,16 @@ def _life_profile_from_payload(
     payload: dict[str, Any], *, require_complete_model_profile: bool = False
 ) -> LifeProfile:
     values = dict(payload)
+    # Canonicalize a single model-emitted entry to the declared array shape.
+    # This preserves semantic content and does not invent a habit.
+    for name in (
+        "life_habits",
+        "recurring_commitments",
+        "relationship_seeds",
+        "character_constraints",
+    ):
+        if isinstance(values.get(name), dict):
+            values[name] = [values[name]]
     if require_complete_model_profile:
         _require_profile_fields(
             values,
