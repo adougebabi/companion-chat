@@ -278,6 +278,102 @@ class BehavioralPolicy:
         return {item.name: getattr(self, item.name) for item in fields(self)}
 
 
+def _object(
+    value: Mapping[str, Any] | None, name: str, *, required: bool = False
+) -> dict[str, Any]:
+    if value is None:
+        if required:
+            raise FoundationValidationError(f"{name} is required")
+        return {}
+    if not isinstance(value, Mapping):
+        raise FoundationValidationError(f"{name} must be an object")
+    result = dict(value)
+    if required and not result:
+        raise FoundationValidationError(f"{name} cannot be empty")
+    return result
+
+
+def _object_tuple(
+    value: tuple[Mapping[str, Any], ...] | list[Mapping[str, Any]] | None,
+    name: str,
+    *,
+    required: bool = False,
+) -> tuple[dict[str, Any], ...]:
+    if value is None:
+        if required:
+            raise FoundationValidationError(f"{name} is required")
+        return ()
+    if not isinstance(value, tuple | list) or not all(isinstance(item, Mapping) for item in value):
+        raise FoundationValidationError(f"{name} must be an array of objects")
+    result = tuple(dict(item) for item in value)
+    if required and not result:
+        raise FoundationValidationError(f"{name} cannot be empty")
+    if len(result) > 32:
+        raise FoundationValidationError(f"{name} cannot exceed 32 entries")
+    return result
+
+
+@dataclass(frozen=True, slots=True)
+class LifeProfile:
+    """Long-lived life facts consumed by Schedule, cognition and media concepts."""
+
+    appearance: Mapping[str, Any] = field(default_factory=dict)
+    social_background: Mapping[str, Any] = field(default_factory=dict)
+    preferences: Mapping[str, Any] = field(default_factory=dict)
+    life_habits: tuple[Mapping[str, Any], ...] = ()
+    recurring_commitments: tuple[Mapping[str, Any], ...] = ()
+    relationship_seeds: tuple[Mapping[str, Any], ...] = ()
+    character_constraints: tuple[Mapping[str, Any], ...] = ()
+
+    def __post_init__(self) -> None:
+        for name in ("appearance", "social_background", "preferences"):
+            object.__setattr__(self, name, _object(getattr(self, name), f"life_profile.{name}"))
+        for name in (
+            "life_habits",
+            "recurring_commitments",
+            "relationship_seeds",
+            "character_constraints",
+        ):
+            object.__setattr__(
+                self,
+                name,
+                _object_tuple(getattr(self, name), f"life_profile.{name}"),
+            )
+
+    def as_payload(self) -> dict[str, Any]:
+        return {
+            "appearance": dict(self.appearance),
+            "social_background": dict(self.social_background),
+            "preferences": dict(self.preferences),
+            "life_habits": [dict(item) for item in self.life_habits],
+            "recurring_commitments": [dict(item) for item in self.recurring_commitments],
+            "relationship_seeds": [dict(item) for item in self.relationship_seeds],
+            "character_constraints": [dict(item) for item in self.character_constraints],
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class FoundationProvenance:
+    """Field-level source attribution for the initialized Foundation."""
+
+    field_sources: Mapping[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        values = _object(self.field_sources, "provenance.field_sources")
+        if not all(
+            isinstance(path, str)
+            and path
+            and isinstance(source, str)
+            and source in {"user_explicit", "user_inferred", "model_generated", "user_override"}
+            for path, source in values.items()
+        ):
+            raise FoundationValidationError("provenance.field_sources contains an invalid source")
+        object.__setattr__(self, "field_sources", values)
+
+    def as_payload(self) -> dict[str, Any]:
+        return {"field_sources": dict(self.field_sources)}
+
+
 @dataclass(frozen=True, slots=True)
 class FluctlightSnapshot:
     id: str
@@ -286,6 +382,8 @@ class FluctlightSnapshot:
     identity: Identity
     personality: Personality
     behavioral_policy: BehavioralPolicy
+    life_profile: LifeProfile = field(default_factory=LifeProfile)
+    provenance: FoundationProvenance = field(default_factory=FoundationProvenance)
     current_revision: int = 0
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
@@ -316,6 +414,8 @@ class FluctlightSnapshot:
             "identity": self.identity.as_payload(),
             "personality": self.personality.as_payload(),
             "behavioral_policy": self.behavioral_policy.as_payload(),
+            "life_profile": self.life_profile.as_payload(),
+            "provenance": self.provenance.as_payload(),
             "current_revision": self.current_revision,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
@@ -331,6 +431,8 @@ class CreateFluctlight:
     identity: Identity | None = None
     personality: Personality = field(default_factory=Personality.neutral)
     behavioral_policy: BehavioralPolicy = field(default_factory=BehavioralPolicy)
+    life_profile: LifeProfile = field(default_factory=LifeProfile)
+    provenance: FoundationProvenance = field(default_factory=FoundationProvenance)
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -440,6 +542,7 @@ IDENTITY_FIELDS = frozenset(
         "notes",
     }
 )
+LIFE_PROFILE_FIELDS = frozenset({"life_profile"})
 PERSONALITY_FIELDS = frozenset(
     {
         "openness",

@@ -10,6 +10,7 @@ from typing import Any
 from .contracts import (
     BEHAVIORAL_POLICY_FIELDS,
     IDENTITY_FIELDS,
+    LIFE_PROFILE_FIELDS,
     PERSONALITY_FIELDS,
     BehavioralPolicy,
     FluctlightSnapshot,
@@ -33,7 +34,11 @@ def classify_field(field_name: str) -> MutabilityClass:
         return MutabilityClass.IMMUTABLE
     if field_name in PERSONALITY_FIELDS:
         return MutabilityClass.LIVED
-    if field_name in IDENTITY_FIELDS or field_name in BEHAVIORAL_POLICY_FIELDS:
+    if (
+        field_name in IDENTITY_FIELDS
+        or field_name in BEHAVIORAL_POLICY_FIELDS
+        or field_name in LIFE_PROFILE_FIELDS
+    ):
         return MutabilityClass.HUMAN_GOVERNED
     raise RevisionGovernanceError(f"unknown foundation field: {field_name}")
 
@@ -72,6 +77,7 @@ def apply_changes(
     identity_changes: dict[str, Any] = {}
     personality_changes: dict[str, Any] = {}
     behavior_changes: dict[str, Any] = {}
+    life_profile_changes: dict[str, Any] = {}
     for key, value in changes.items():
         if key in IDENTITY_FIELDS:
             identity_changes[key] = value
@@ -79,6 +85,8 @@ def apply_changes(
             personality_changes[key] = value
         elif key in BEHAVIORAL_POLICY_FIELDS:
             behavior_changes[key] = value
+        elif key in LIFE_PROFILE_FIELDS:
+            life_profile_changes[key] = value
         else:
             raise RevisionGovernanceError(f"unknown foundation field: {key}")
     return replace(
@@ -92,6 +100,11 @@ def apply_changes(
         behavioral_policy=_apply_behavior(snapshot.behavioral_policy, behavior_changes)
         if behavior_changes
         else snapshot.behavioral_policy,
+        life_profile=(
+            type(snapshot.life_profile)(**life_profile_changes["life_profile"])
+            if life_profile_changes
+            else snapshot.life_profile
+        ),
         current_revision=revision,
         updated_at=now,
     )

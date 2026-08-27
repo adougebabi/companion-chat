@@ -57,6 +57,22 @@ class ActionType(StrEnum):
     SCHEDULE_PROPOSAL = "schedule_proposal"
 
 
+@dataclass(frozen=True, slots=True)
+class DecisionEffect:
+    """One independently frozen effect from a compound cognitive decision."""
+
+    effect_id: str
+    action_type: ActionType
+    payload: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "effect_id", _required_text(self.effect_id, "effect_id"))
+        object.__setattr__(self, "action_type", ActionType(self.action_type))
+        if not isinstance(self.payload, Mapping):
+            raise ValueError("effect.payload must be an object")
+        object.__setattr__(self, "payload", dict(self.payload))
+
+
 def _required_text(value: str, name: str, limit: int = 512) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{name} is required")
@@ -137,6 +153,7 @@ class DecisionProposal:
     evidence_refs: tuple[str, ...]
     decision_id: str = field(default_factory=lambda: f"decision_{uuid4().hex}")
     expires_at: datetime | None = None
+    effects: tuple[DecisionEffect, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "action_type", ActionType(self.action_type))
@@ -149,6 +166,13 @@ class DecisionProposal:
             self, "evidence_refs", _refs(self.evidence_refs, "decision.evidence_refs")
         )
         object.__setattr__(self, "decision_id", _required_text(self.decision_id, "decision_id"))
+        effects = tuple(self.effects)
+        if effects:
+            if effects[0].action_type is not self.action_type or effects[0].payload != self.payload:
+                raise ValueError("decision primary effect must match action_type and payload")
+            if len({effect.effect_id for effect in effects}) != len(effects):
+                raise ValueError("decision effects must have unique IDs")
+        object.__setattr__(self, "effects", effects)
         if self.expires_at is not None:
             object.__setattr__(self, "expires_at", _aware(self.expires_at, "expires_at"))
 
@@ -224,6 +248,7 @@ class ProcessOutcome:
     action: FrozenAction | None = None
     realization: RealizationResult | None = None
     error_code: str | None = None
+    secondary_actions: tuple[FrozenAction, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

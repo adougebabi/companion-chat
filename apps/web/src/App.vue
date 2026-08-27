@@ -39,6 +39,7 @@ const creationInitialGoals = ref<Array<Record<string, unknown>>>([]);
 const creationInitialIntentions = ref<Array<Record<string, unknown>>>([]);
 const creationRequestId = ref<string | null>(null);
 const creationDiagnosticsCorrelationId = ref("");
+const creationFoundationProvenance = ref<Record<string, unknown>>({});
 const instanceSearch = ref("");
 const showCreateForm = ref(false);
 const showInstanceDetails = ref(false);
@@ -202,6 +203,8 @@ async function activateCreatedFluctlight(body: {
   identity: Record<string, unknown>;
   personality?: Record<string, unknown>;
   behavioralPolicy?: Record<string, unknown>;
+  lifeProfile?: Record<string, unknown>;
+  foundationProvenance?: Record<string, unknown>;
   initialGoals?: Array<Record<string, unknown>>;
   initialIntentions?: Array<Record<string, unknown>>;
 }) {
@@ -218,6 +221,7 @@ async function activateCreatedFluctlight(body: {
     creationInitialIntentions.value = [];
     creationRequestId.value = null;
     creationDiagnosticsCorrelationId.value = "";
+    creationFoundationProvenance.value = {};
     view.value = "chat";
   }
 }
@@ -246,6 +250,14 @@ async function analyzeFluctlightDescription() {
     creationDiagnosticsCorrelationId.value = provenance && typeof provenance === "object"
       ? String((provenance as Record<string, unknown>).correlation_id ?? "")
       : "";
+    creationFoundationProvenance.value = provenance
+      && typeof provenance === "object"
+      && !Array.isArray(provenance)
+      && (provenance as Record<string, unknown>).foundation
+      && typeof (provenance as Record<string, unknown>).foundation === "object"
+      && !Array.isArray((provenance as Record<string, unknown>).foundation)
+      ? (provenance as Record<string, unknown>).foundation as Record<string, unknown>
+      : {};
     creationRequestId.value = randomId();
   } else if (result) {
     controlCenter.error = "初始化模型返回了不包含 Foundation 的无效结果。";
@@ -264,8 +276,10 @@ async function activatePreview() {
     const identity = foundation.identity;
     const personality = foundation.personality;
     const behavioralPolicy = foundation.behavioral_policy;
-    if (!identity || typeof identity !== "object" || Array.isArray(identity) || !personality || typeof personality !== "object" || Array.isArray(personality) || !behavioralPolicy || typeof behavioralPolicy !== "object" || Array.isArray(behavioralPolicy)) throw new Error("invalid_preview");
-    await activateCreatedFluctlight({ initializationMode: "llm_defined", identity: identity as Record<string, unknown>, personality: personality as Record<string, unknown>, behavioralPolicy: behavioralPolicy as Record<string, unknown>, initialGoals: creationInitialGoals.value, initialIntentions: creationInitialIntentions.value });
+    const lifeProfile = foundation.life_profile;
+    const foundationProvenance = foundation.provenance ?? creationFoundationProvenance.value;
+    if (!identity || typeof identity !== "object" || Array.isArray(identity) || !personality || typeof personality !== "object" || Array.isArray(personality) || !behavioralPolicy || typeof behavioralPolicy !== "object" || Array.isArray(behavioralPolicy) || !lifeProfile || typeof lifeProfile !== "object" || Array.isArray(lifeProfile) || !foundationProvenance || typeof foundationProvenance !== "object" || Array.isArray(foundationProvenance)) throw new Error("invalid_preview");
+    await activateCreatedFluctlight({ initializationMode: "llm_defined", identity: identity as Record<string, unknown>, personality: personality as Record<string, unknown>, behavioralPolicy: behavioralPolicy as Record<string, unknown>, lifeProfile: lifeProfile as Record<string, unknown>, foundationProvenance: foundationProvenance as Record<string, unknown>, initialGoals: creationInitialGoals.value, initialIntentions: creationInitialIntentions.value });
   } catch {
     controlCenter.error = "预览必须包含 identity、personality 和 behavioral_policy 三个对象。";
   }
@@ -338,6 +352,9 @@ const displayLabels: Record<string, string> = {
   topic_initiation: "发起话题", silence_tolerance: "沉默容忍度",
   response_delay: "回复延迟", emotional_expression: "情绪表达",
   conflict_style: "冲突风格", refusal_style: "拒绝风格", intimacy_expression: "亲密表达",
+  life_profile: "长期生活设定", appearance: "外貌与日常穿搭", social_background: "社会与成长背景",
+  preferences: "长期偏好", life_habits: "生活习惯", recurring_commitments: "固定承诺",
+  relationship_seeds: "初始关系设定", character_constraints: "角色约束",
 };
 const roleLabels: Record<string, string> = {
   initialization: "初始化", cognitive_assessment: "认知判断", action_realization: "回复生成",
@@ -545,6 +562,10 @@ onMounted(() => void store.initialize());
           <dl><template v-for="(value, key) in controlCenter.fluctlightDetail.personality as Record<string, unknown>" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ typeof value === 'object' ? '已配置' : String(value) }}</dd></template></dl>
           <h3>表达策略</h3>
           <dl><template v-for="(value, key) in controlCenter.fluctlightDetail.behavioral_policy as Record<string, unknown>" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ String(value ?? '未设定') }}</dd></template></dl>
+          <h3>长期生活设定</h3>
+          <dl><template v-for="(value, key) in controlCenter.fluctlightDetail.life_profile as Record<string, unknown>" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><pre>{{ prettyPayload({ value }) }}</pre></dd></template></dl>
+          <h3>初始化字段来源</h3>
+          <dl><template v-for="(value, key) in ((controlCenter.fluctlightDetail.provenance as Record<string, any>)?.field_sources ?? {})" :key="String(key)"><dt>{{ String(key) }}</dt><dd>{{ String(value) }}</dd></template></dl>
           <h3>当前内在状态</h3>
           <dl><template v-for="(value, key) in (controlCenter.fluctlightDetail.inner_state as Record<string, unknown>).pad as Record<string, unknown>" :key="String(key)"><dt>PAD · {{ String(key) }}</dt><dd>{{ String(value) }}</dd></template><dt>情绪</dt><dd>{{ String(((controlCenter.fluctlightDetail.inner_state as Record<string, any>).mood?.label) ?? '未形成') }}</dd><dt>Context</dt><dd>{{ String((controlCenter.fluctlightDetail.context as Record<string, any>)?.scene ?? '待确认') }} · {{ String((controlCenter.fluctlightDetail.context as Record<string, any>)?.activity ?? '待规划') }}</dd></dl>
           <h3>目标与意图</h3>

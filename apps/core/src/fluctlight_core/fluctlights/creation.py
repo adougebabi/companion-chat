@@ -21,9 +21,11 @@ from .contracts import (
     BehavioralPolicy,
     CreateFluctlight,
     FluctlightSnapshot,
+    FoundationProvenance,
     FoundationValidationError,
     Identity,
     InitializationMode,
+    LifeProfile,
     Personality,
     PersonalityUpdatePolicy,
 )
@@ -58,6 +60,8 @@ class CreationPreview:
     identity: dict[str, Any]
     personality: dict[str, Any]
     behavioral_policy: dict[str, Any]
+    life_profile: dict[str, Any]
+    foundation_provenance: dict[str, Any]
     initial_goals: list[dict[str, Any]]
     initial_intentions: list[dict[str, Any]]
     provenance: dict[str, Any]
@@ -69,10 +73,11 @@ class CreationPreview:
                 "identity": self.identity,
                 "personality": self.personality,
                 "behavioral_policy": self.behavioral_policy,
+                "life_profile": self.life_profile,
                 "initial_goals": self.initial_goals,
                 "initial_intentions": self.initial_intentions,
             },
-            "provenance": self.provenance,
+            "provenance": {**self.provenance, "foundation": self.foundation_provenance},
         }
 
 
@@ -133,6 +138,61 @@ def _behavioral_policy_from_payload(
             name="behavioral_policy",
         )
     return BehavioralPolicy(**values)
+
+
+def _life_profile_from_payload(
+    payload: dict[str, Any], *, require_complete_model_profile: bool = False
+) -> LifeProfile:
+    values = dict(payload)
+    if require_complete_model_profile:
+        _require_profile_fields(
+            values,
+            required={item.name for item in fields(LifeProfile)},
+            name="life_profile",
+        )
+    return LifeProfile(**values)
+
+
+def _foundation_provenance_from_payload(
+    payload: dict[str, Any], *, require_complete: bool = False
+) -> FoundationProvenance:
+    values = dict(payload)
+    if require_complete and not isinstance(values.get("field_sources"), dict):
+        raise FoundationValidationError("provenance.field_sources is required")
+    return FoundationProvenance(**values)
+
+
+def _validate_field_sources(
+    provenance: FoundationProvenance,
+    identity: Identity,
+    personality: Personality,
+    policy: BehavioralPolicy,
+    life_profile: LifeProfile,
+) -> None:
+    required = {
+        *(f"identity.{item.name}" for item in fields(Identity) if item.name != "id"),
+        *(
+            f"personality.{item.name}"
+            for item in fields(Personality)
+            if item.name != "update_policy"
+        ),
+        *(f"behavioral_policy.{item.name}" for item in fields(BehavioralPolicy)),
+        *(f"life_profile.{item.name}" for item in fields(LifeProfile)),
+    }
+    missing = sorted(required - set(provenance.field_sources))
+    if missing:
+        raise FoundationValidationError(
+            f"provenance.field_sources is missing required paths: {', '.join(missing)}"
+        )
+
+
+def _validate_life_profile_semantics(life_profile: LifeProfile) -> None:
+    payload = life_profile.as_payload()
+    missing = [name for name, value in payload.items() if not value]
+    if missing:
+        raise FoundationValidationError(
+            f"life_profile cannot contain empty generated fields: {', '.join(missing)}"
+        )
 
 
 def _agency_list(payload: Any, name: str) -> list[dict[str, Any]]:
@@ -283,6 +343,16 @@ class CreationLifecycleService:
             policy = _behavioral_policy_from_payload(
                 dict(foundation["behavioral_policy"]), require_complete_model_profile=True
             )
+            life_profile = _life_profile_from_payload(
+                dict(foundation["life_profile"]), require_complete_model_profile=True
+            )
+            foundation_provenance = _foundation_provenance_from_payload(
+                dict(foundation["provenance"]), require_complete=True
+            )
+            _validate_field_sources(
+                foundation_provenance, identity, personality, policy, life_profile
+            )
+            _validate_life_profile_semantics(life_profile)
             initial_goals = _agency_list(foundation.get("initial_goals"), "initial_goals")
             initial_intentions = _agency_list(
                 foundation.get("initial_intentions"), "initial_intentions"
@@ -300,6 +370,8 @@ class CreationLifecycleService:
             _without_id(identity.as_payload()),
             personality.as_payload(),
             policy.as_payload(),
+            life_profile.as_payload(),
+            foundation_provenance.as_payload(),
             initial_goals,
             initial_intentions,
             dict(provenance),
@@ -314,6 +386,8 @@ class CreationLifecycleService:
         identity: dict[str, Any],
         personality: dict[str, Any] | None = None,
         behavioral_policy: dict[str, Any] | None = None,
+        life_profile: dict[str, Any] | None = None,
+        foundation_provenance: dict[str, Any] | None = None,
         initial_goals: list[dict[str, Any]] | None = None,
         initial_intentions: list[dict[str, Any]] | None = None,
     ) -> FluctlightSnapshot:
@@ -322,7 +396,10 @@ class CreationLifecycleService:
         fluctlight_id = f"fluctlight_{sha256(f'{actor_id}:{request_id}'.encode()).hexdigest()[:32]}"
         mode = InitializationMode(initialization_mode)
         if mode is InitializationMode.BLANK_SLATE and (
-            personality is not None or behavioral_policy is not None
+            personality is not None
+            or behavioral_policy is not None
+            or life_profile is not None
+            or foundation_provenance is not None
         ):
             raise CreationError(
                 "blank_slate does not accept personality or behavioral policy input",
@@ -340,6 +417,16 @@ class CreationLifecycleService:
                 if mode is InitializationMode.LLM_DEFINED and behavioral_policy is not None
                 else BehavioralPolicy()
             )
+            resolved_life_profile = (
+                _life_profile_from_payload(life_profile)
+                if mode is InitializationMode.LLM_DEFINED and life_profile is not None
+                else LifeProfile()
+            )
+            resolved_provenance = (
+                _foundation_provenance_from_payload(foundation_provenance)
+                if mode is InitializationMode.LLM_DEFINED and foundation_provenance is not None
+                else FoundationProvenance()
+            )
             resolved_goals = _agency_list(initial_goals, "initial_goals")
             resolved_intentions = _agency_list(initial_intentions, "initial_intentions")
             if mode is InitializationMode.LLM_DEFINED:
@@ -350,7 +437,10 @@ class CreationLifecycleService:
                 code="activation_foundation_invalid",
             ) from exc
         if mode is InitializationMode.LLM_DEFINED and (
-            personality is None or behavioral_policy is None
+            personality is None
+            or behavioral_policy is None
+            or life_profile is None
+            or foundation_provenance is None
         ):
             raise CreationError(
                 "llm_defined activation requires the reviewed complete foundation",
@@ -370,6 +460,8 @@ class CreationLifecycleService:
                 or existing.identity != resolved_identity
                 or existing.personality != resolved_personality
                 or existing.behavioral_policy != resolved_policy
+                or existing.life_profile != resolved_life_profile
+                or existing.provenance != resolved_provenance
             ):
                 raise CreationError(
                     "request_id was reused with different foundation data",
@@ -392,6 +484,8 @@ class CreationLifecycleService:
                     identity=resolved_identity,
                     personality=resolved_personality,
                     behavioral_policy=resolved_policy,
+                    life_profile=resolved_life_profile,
+                    provenance=resolved_provenance,
                 )
             )
             if self._agency_initializer is not None:

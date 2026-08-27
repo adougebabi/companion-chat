@@ -41,6 +41,7 @@ class CognitionTurnResponder:
             "identity": bounded_identity,
             "personality": fluctlight.personality.as_payload(),
             "behavioral_policy": fluctlight.behavioral_policy.as_payload(),
+            "life_profile": fluctlight.life_profile.as_payload(),
         }
 
     async def _fact(self, turn: ConversationTurn, history, fluctlight_id: str) -> CognitionFact:

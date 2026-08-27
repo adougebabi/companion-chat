@@ -106,7 +106,7 @@ from fluctlight_core.transport.conversations import (
     turn_stream_response,
 )
 
-EXPECTED_REVISION = "0017_media_intent_moment"
+EXPECTED_REVISION = "0018_foundation_v2_life_profile"
 
 
 class _OwnerWorkflowAuthorizer:
@@ -200,6 +200,8 @@ class FluctlightCreationActivationRequest(BaseModel):
     identity: dict[str, object]
     personality: dict[str, object] | None = None
     behavioral_policy: dict[str, object] | None = None
+    life_profile: dict[str, object] | None = None
+    foundation_provenance: dict[str, object] | None = None
     initial_goals: list[dict[str, object]] | None = None
     initial_intentions: list[dict[str, object]] | None = None
 
@@ -1300,6 +1302,14 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                     if request.behavioral_policy is not None
                     else None
                 ),
+                life_profile=dict(request.life_profile)
+                if request.life_profile is not None
+                else None,
+                foundation_provenance=(
+                    dict(request.foundation_provenance)
+                    if request.foundation_provenance is not None
+                    else None
+                ),
                 initial_goals=[dict(item) for item in request.initial_goals]
                 if request.initial_goals is not None
                 else None,
@@ -1450,6 +1460,8 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             "identity": snapshot.identity.as_payload(),
             "personality": snapshot.personality.as_payload(),
             "behavioral_policy": snapshot.behavioral_policy.as_payload(),
+            "life_profile": snapshot.life_profile.as_payload(),
+            "provenance": snapshot.provenance.as_payload(),
             "status": snapshot.status.value,
             "current_revision": snapshot.current_revision,
         }
@@ -1496,6 +1508,8 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             "identity": snapshot.identity.as_payload(),
             "personality": snapshot.personality.as_payload(),
             "behavioral_policy": snapshot.behavioral_policy.as_payload(),
+            "life_profile": snapshot.life_profile.as_payload(),
+            "provenance": snapshot.provenance.as_payload(),
             "status": snapshot.status.value,
             "current_revision": snapshot.current_revision,
             "inner_state": {

@@ -28,6 +28,7 @@ from .contracts import (
     AssessmentProvider,
     CognitionConflictError,
     CognitionFact,
+    DecisionProposal,
     EnqueuedFact,
     FrozenAction,
     InboxClaim,
@@ -328,19 +329,19 @@ class CognitionService:
             result = RealizationResult(action.provider_request_id, {}, status="no_op")
         else:
             try:
-                result = await self._realization_provider.realize(
-                    action, correlation_id=claim.fact.correlation_id
-                )
-                if result.provider_request_id != action.provider_request_id:
-                    raise ProviderExecutionError("realization returned an unexpected request id")
-                action = self._action_after_realization(action, result)
-                await self._freeze_autonomy(action)
+                result, action = await self._realize_and_freeze_autonomy(action, claim)
             except Exception as exc:
                 code = self._error_code(exc, "realization_failed")
                 await self._settle_failure(claim, code, action=action)
                 return ProcessOutcome(InboxStatus.FAILED, action=action, error_code=code)
+        secondary_actions = await self._process_secondary_effects(claim, envelope)
         await self._settle_success(claim, action, result)
-        return ProcessOutcome(InboxStatus.COMPLETED, action=action, realization=result)
+        return ProcessOutcome(
+            InboxStatus.COMPLETED,
+            action=action,
+            realization=result,
+            secondary_actions=secondary_actions,
+        )
 
     async def stream_next(self, fluctlight_id: str, *, worker_id: str) -> AsyncIterator[str]:
         """Process one claim while yielding visible realization chunks as they arrive."""
@@ -385,6 +386,7 @@ class CognitionService:
                 yield text
                 action = self._action_after_realization(action, result)
                 await self._freeze_autonomy(action)
+                await self._process_secondary_effects(claim, envelope)
                 await self._settle_success(claim, action, result)
                 return
             elif stream_realize is None:
@@ -411,6 +413,7 @@ class CognitionService:
             )
             action = self._action_after_realization(action, result)
             await self._freeze_autonomy(action)
+            await self._process_secondary_effects(claim, envelope)
             await self._settle_success(claim, action, result)
         except asyncio.CancelledError:
             await self._settle_failure(claim, "realization_cancelled", action=action)
@@ -585,7 +588,9 @@ class CognitionService:
             )
             await tx.commit()
 
-    async def _freeze(self, claim: InboxClaim, envelope: AssessmentEnvelope) -> FrozenAction:
+    async def _freeze(
+        self, claim: InboxClaim, envelope: AssessmentEnvelope, *, apply_assessment: bool = True
+    ) -> FrozenAction:
         assessment = envelope.assessment
         decision = envelope.decision
         action_payload = dict(decision.payload)
@@ -637,7 +642,7 @@ class CognitionService:
             if existing is not None:
                 return self._action_from_row(existing)
             state_revision = 0
-            if self._state_applier is not None:
+            if apply_assessment and self._state_applier is not None:
                 state_revision = await self._state_applier.apply_assessment(
                     claim.fact.fluctlight_id, assessment, tx=tx
                 )
@@ -721,10 +726,57 @@ class CognitionService:
         if freezer is not None:
             await freezer(action)
 
+    async def _realize_and_freeze_autonomy(
+        self, action: FrozenAction, claim: InboxClaim
+    ) -> tuple[RealizationResult, FrozenAction]:
+        if action.action_type is ActionType.MEDIA_REQUEST and isinstance(
+            action.payload.get("media_request"), dict
+        ):
+            result = RealizationResult(action.provider_request_id, {}, status="media_requested")
+        else:
+            result = await self._realization_provider.realize(
+                action, correlation_id=claim.fact.correlation_id
+            )
+            if result.provider_request_id != action.provider_request_id:
+                raise ProviderExecutionError("realization returned an unexpected request id")
+        action = self._action_after_realization(action, result)
+        await self._freeze_autonomy(action)
+        return result, action
+
+    async def _process_secondary_effects(
+        self, claim: InboxClaim, envelope: AssessmentEnvelope
+    ) -> tuple[FrozenAction, ...]:
+        effects = envelope.decision.effects
+        if len(effects) <= 1:
+            return ()
+        actions: list[FrozenAction] = []
+        for effect in effects[1:]:
+            if effect.action_type in {ActionType.REPLY, ActionType.NO_OP}:
+                raise ProviderExecutionError(
+                    "secondary effect must produce an autonomous side effect"
+                )
+            decision = DecisionProposal(
+                action_type=effect.action_type,
+                payload=effect.payload,
+                confidence=envelope.decision.confidence,
+                evidence_refs=envelope.decision.evidence_refs,
+                decision_id=f"{envelope.decision.decision_id}:{effect.effect_id}",
+                effects=(effect,),
+            )
+            action = await self._freeze(
+                claim, replace(envelope, decision=decision), apply_assessment=False
+            )
+            if action.action_type is not ActionType.NO_OP:
+                _, action = await self._realize_and_freeze_autonomy(action, claim)
+            actions.append(action)
+        return tuple(actions)
+
     @staticmethod
     def _action_after_realization(action: FrozenAction, result: RealizationResult) -> FrozenAction:
         payload = dict(action.payload)
         if action.action_type is ActionType.MEDIA_REQUEST:
+            if isinstance(payload.get("media_request"), dict):
+                return action
             media_request = result.payload.get("media_request")
             if not isinstance(media_request, dict) or not media_request:
                 raise ProviderExecutionError("media realization returned no media request")

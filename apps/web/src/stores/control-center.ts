@@ -93,6 +93,8 @@ export const useControlCenterStore = defineStore("control-center", {
       identity: Record<string, unknown>;
       personality?: Record<string, unknown>;
       behavioralPolicy?: Record<string, unknown>;
+      lifeProfile?: Record<string, unknown>;
+      foundationProvenance?: Record<string, unknown>;
       initialGoals?: Array<Record<string, unknown>>;
       initialIntentions?: Array<Record<string, unknown>>;
     }) {

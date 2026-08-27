@@ -83,7 +83,7 @@ from fluctlight_core.relationships.service import RelationshipService
 from fluctlight_core.settings.crypto import SecretCodec
 from fluctlight_core.settings.service import SettingsService
 
-EXPECTED_REVISION = "0017_media_intent_moment"
+EXPECTED_REVISION = "0018_foundation_v2_life_profile"
 logger = logging.getLogger(__name__)
 
 

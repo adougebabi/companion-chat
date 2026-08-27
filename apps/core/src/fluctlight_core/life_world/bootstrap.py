@@ -23,6 +23,7 @@ class InitialScheduleGenerator(Protocol):
         *,
         fluctlight_id: str,
         identity: Mapping[str, Any],
+        life_profile: Mapping[str, Any],
         local_date: date,
         timezone: str,
     ) -> dict[str, Any]: ...
@@ -51,6 +52,7 @@ class InitialScheduleService:
             payload = await self.generator.generate_initial_schedule(
                 fluctlight_id=fluctlight.id,
                 identity=identity,
+                life_profile=fluctlight.life_profile.as_payload(),
                 local_date=local_date,
                 timezone=timezone,
             )

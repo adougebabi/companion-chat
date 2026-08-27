@@ -21,10 +21,12 @@ from .contracts import (
     CreateFluctlight,
     FluctlightSnapshot,
     FluctlightStatus,
+    FoundationProvenance,
     FoundationRevision,
     FoundationRevisionRequest,
     Identity,
     InitializationMode,
+    LifeProfile,
     Personality,
     PersonalityUpdatePolicy,
     RevisionSource,
@@ -83,6 +85,14 @@ def _personality_from_payload(payload: dict[str, Any]) -> Personality:
     return Personality(**values)
 
 
+def _life_profile_from_payload(payload: dict[str, Any]) -> LifeProfile:
+    return LifeProfile(**payload)
+
+
+def _provenance_from_payload(payload: dict[str, Any]) -> FoundationProvenance:
+    return FoundationProvenance(**payload)
+
+
 def _snapshot_from_row(row: Any) -> FluctlightSnapshot:
     return FluctlightSnapshot(
         id=row["id"],
@@ -91,6 +101,8 @@ def _snapshot_from_row(row: Any) -> FluctlightSnapshot:
         identity=_identity_from_payload(dict(row["identity"])),
         personality=_personality_from_payload(dict(row["personality"])),
         behavioral_policy=BehavioralPolicy(**dict(row["behavioral_policy"])),
+        life_profile=_life_profile_from_payload(dict(row["life_profile"])),
+        provenance=_provenance_from_payload(dict(row["provenance"])),
         current_revision=row["current_revision"],
         created_at=_parse_datetime(row["created_at"], "created_at"),
         updated_at=_parse_datetime(row["updated_at"], "updated_at"),
@@ -136,6 +148,8 @@ class FluctlightService:
             identity=command.identity or Identity(id=command.id),
             personality=command.personality,
             behavioral_policy=command.behavioral_policy,
+            life_profile=command.life_profile,
+            provenance=command.provenance,
             current_revision=0,
             created_at=now,
             updated_at=now,
@@ -157,6 +171,8 @@ class FluctlightService:
                     identity=snapshot.identity.as_payload(),
                     personality=snapshot.personality.as_payload(),
                     behavioral_policy=snapshot.behavioral_policy.as_payload(),
+                    life_profile=snapshot.life_profile.as_payload(),
+                    provenance=snapshot.provenance.as_payload(),
                     created_at=now,
                     updated_at=now,
                 )
@@ -178,6 +194,8 @@ class FluctlightService:
                     identity=snapshot.identity.as_payload(),
                     personality=snapshot.personality.as_payload(),
                     behavioral_policy=snapshot.behavioral_policy.as_payload(),
+                    life_profile=snapshot.life_profile.as_payload(),
+                    provenance=snapshot.provenance.as_payload(),
                     evidence_refs=[],
                     idempotency_key=f"fluctlight-create:{snapshot.id}",
                     created_at=now,
@@ -371,6 +389,8 @@ class FluctlightService:
                     identity=candidate.identity.as_payload(),
                     personality=candidate.personality.as_payload(),
                     behavioral_policy=candidate.behavioral_policy.as_payload(),
+                    life_profile=candidate.life_profile.as_payload(),
+                    provenance=candidate.provenance.as_payload(),
                     evidence_refs=list(request.evidence_refs),
                     reason=request.reason,
                     idempotency_key=request.idempotency_key,
@@ -431,6 +451,8 @@ class FluctlightService:
                     identity=candidate.identity.as_payload(),
                     personality=candidate.personality.as_payload(),
                     behavioral_policy=candidate.behavioral_policy.as_payload(),
+                    life_profile=candidate.life_profile.as_payload(),
+                    provenance=candidate.provenance.as_payload(),
                     updated_at=now,
                 )
             )
@@ -547,6 +569,8 @@ class FluctlightService:
                     identity=candidate.identity.as_payload(),
                     personality=candidate.personality.as_payload(),
                     behavioral_policy=candidate.behavioral_policy.as_payload(),
+                    life_profile=candidate.life_profile.as_payload(),
+                    provenance=candidate.provenance.as_payload(),
                     updated_at=now,
                 )
             )
@@ -567,6 +591,8 @@ class FluctlightService:
                     identity=candidate.identity.as_payload(),
                     personality=candidate.personality.as_payload(),
                     behavioral_policy=candidate.behavioral_policy.as_payload(),
+                    life_profile=candidate.life_profile.as_payload(),
+                    provenance=candidate.provenance.as_payload(),
                     evidence_refs=[f"revision:{target_revision}"],
                     idempotency_key=f"rollback:{fluctlight_id}:{expected_revision}:{target_revision}",
                     created_at=now,
@@ -721,6 +747,8 @@ def _snapshot_from_revision_row(row: Any) -> FluctlightSnapshot:
         identity=_identity_from_payload(dict(row["identity"])),
         personality=_personality_from_payload(dict(row["personality"])),
         behavioral_policy=BehavioralPolicy(**dict(row["behavioral_policy"])),
+        life_profile=_life_profile_from_payload(dict(row["life_profile"])),
+        provenance=_provenance_from_payload(dict(row["provenance"])),
         current_revision=row["revision"],
         created_at=_parse_datetime(row["foundation_created_at"], "foundation_created_at"),
         updated_at=_parse_datetime(row.get("accepted_at") or row["created_at"], "updated_at"),

@@ -14,4 +14,5 @@ def test_t08_advances_the_linear_readiness_revision() -> None:
         "0015_actor_groups",
         "0016_media_intent_conversation",
         "0017_media_intent_moment",
+        "0018_foundation_v2_life_profile",
     }

@@ -105,6 +105,21 @@ Interactive work uses two model stages. `assess` / `propose_decision` return no 
   action. It cannot decide whether to request an image. The frozen image
   concept, when present, remains unchanged for the media-prompt role.
 
+#### Compound Decision Effects
+
+- A cognitive decision returns ordered `effects[]`, not one overloaded action
+  with undocumented fields. Each effect has a response-local `id`, one explicit
+  `action_type`, and a typed payload.
+- For a conversation fact, the first effect is `reply` or `no_op`; later effects
+  may include `media_request` and `moment`. For a daily-review fact, effects
+  may include `proactive_message`, `moment`, or `no_op`.
+- Each effect is frozen with a stable ID. The primary reply owns the browser
+  stream; later effects become independent autonomy Actions and may create their
+  own MediaIntent. Retrying one effect never repeats a sibling effect.
+- A visual concept belongs in explicit `media_request` / `moment_media_request`,
+  never inside `response_intent`. The realization stage creates visible text
+  only; it cannot add, remove, or reinterpret effects.
+
 ### 3. Contracts
 
 #### Semantic Ownership Matrix

@@ -14,6 +14,7 @@ from sqlalchemy import select
 from fluctlight_core.cognition.contracts import (
     AssessmentEnvelope,
     CognitionFact,
+    DecisionEffect,
     DecisionProposal,
     FrozenAction,
     RealizationResult,
@@ -52,25 +53,28 @@ COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
     '"controllability":0.0,"responsibility":0.0,'
     '"relationship_significance":0.0,"expected_effect":0.0},'
     '"direction":"neutral","strength":0.0,"confidence":0.0},'
-    '"decision":{"action_type":"reply","payload":{"response_intent":{}},'
+    '"decision":{"effects":[{"id":"reply","action_type":"reply","payload":{"response_intent":{}}}],'
     '"confidence":0.0}}\n'
     "Use only positive, negative, mixed, or neutral for direction. All numbers are 0 to 1. "
     "social_signals is always an array of strings, using [] when empty. For a conversation "
-    "message, choose reply, media_request, or no_op. reply and no_op payloads may contain only "
+    "message, return ordered decision.effects. The first effect must be reply or no_op; "
+    "later effects "
+    "may be media_request or moment. reply and no_op payloads may contain only "
     "response_intent, never visible reply text. "
-    "For life_world.daily_review, choose proactive_message, moment, or no_op. Its payload may "
+    "For life_world.daily_review, return ordered decision.effects choosing proactive_message, "
+    "moment, or no_op. Its payload may "
     "contain response_intent and, only for a moment that needs an image, moment_media_request. "
     "moment_media_request is a complete model-owned visual concept for the image prompt role; "
     "it must not name an asset, provider, workflow, video, or a visible reply. "
     "Never include visible text, a conversation ID, or a visibility value. "
     "Choose proactive_message only when background_context contains a non-empty conversation_id. "
     "Choose moment when the Fluctlight has a meaningful shared update worth publishing; no_op "
-    "is always valid. "
+    "is always valid. Every effect needs a unique id. "
     "Choose media_request only when the user explicitly requests a visual; its payload must be "
     '{"response_intent":{}} and must not contain visible reply text or final media parameters. '
     "persona_profile, when present in the observation payload, is the authoritative Foundation "
     "context for interpreting this Fluctlight's stable inclinations and expression policy. Do not "
-    "write a visible reply in this JSON."
+    "write visible text in this JSON."
 )
 
 ACTION_REALIZATION_SYSTEM_PROMPT = (
@@ -144,6 +148,14 @@ markdown or prose:
       "emotional_expression": 0.5, "conflict_style": null,
       "refusal_style": null, "intimacy_expression": null
     },
+    "life_profile": {
+      "appearance": {}, "social_background": {}, "preferences": {},
+      "life_habits": [], "recurring_commitments": [],
+      "relationship_seeds": [], "character_constraints": []
+    },
+    "provenance": {
+      "field_sources": {}
+    },
     "initial_goals": [
       {"description": "", "importance": 0.5, "urgency": 0.5}
     ],
@@ -156,7 +168,7 @@ Use null for omitted identity and behavioral text facts. timezone must be an IAN
 Asia/Shanghai, never an offset label such as UTC+8. core_values must be an array of text.
 Every personality value and bounded behavioral-policy value must be a finite number from 0 to 1.
 response_delay must be a finite number greater than or equal to 0. Do not include identity.id,
-personality.update_policy, provenance, hidden reasoning, or extra keys. For description-based
+personality.update_policy, hidden reasoning, or extra keys. For description-based
 creation, initial_goals must contain one to three concrete model-owned goals and
 initial_intentions must contain at least one concrete action for every goal. goal_index references
 the zero-based initial_goals array. expiration_hours must be a finite number greater than 0 and
@@ -166,7 +178,20 @@ Field routing is mandatory. identity is only stable biography, values, worldview
 identity facts. personality is only durable inclinations. behavioral_policy is the only home for
 tone, voice, cadence, wording habits, message length, punctuation, humor, sarcasm, directness,
 emotional expression, initiative, boundaries, and relationship expression. Never put those traits
-in identity.notes, and do not omit any personality or behavioral_policy field from the object."""
+in identity.notes, and do not omit any personality or behavioral_policy field from the object.
+
+life_profile is long-lived life context: appearance is the image/person continuity baseline;
+social_background is family/important support context; preferences are enduring interests and
+aversions; life_habits are repeated self-directed practices; recurring_commitments are real
+schedule constraints; relationship_seeds define the Owner and other initial social contexts;
+character_constraints are long-lived role facts/boundaries. Return every life_profile field.
+
+Every semantic field must be filled. If the user explicitly describes a field, preserve it and set
+its exact path in provenance.field_sources to user_explicit. If it is directly constrained by the
+description, use user_inferred. If absent, generate a coherent initial value and mark it
+model_generated. Do not use empty objects, empty arrays, neutral placeholders, or identity.notes
+as a way to avoid generating life context. The only server-owned defaults are identifiers and
+personality.update_policy."""
 
 
 class ConfiguredProviderRuntime:
@@ -255,12 +280,27 @@ class ConfiguredProviderRuntime:
                 source_event_id=fact.id,
                 idempotency_key=fact.idempotency_key,
             )
+            raw_effects = decision_payload.get("effects")
+            if not isinstance(raw_effects, list) or not raw_effects:
+                raise RuntimeError("cognitive Provider response is missing decision effects")
+            effects = tuple(
+                DecisionEffect(
+                    effect_id=str(effect["id"]),
+                    action_type=effect["action_type"],
+                    payload=dict(effect.get("payload", {})),
+                )
+                for effect in raw_effects
+                if isinstance(effect, dict)
+            )
+            if len(effects) != len(raw_effects):
+                raise RuntimeError("cognitive Provider decision effects must be objects")
             decision = DecisionProposal(
-                action_type=decision_payload["action_type"],
-                payload=dict(decision_payload.get("payload", {})),
+                action_type=effects[0].action_type,
+                payload=effects[0].payload,
                 confidence=float(decision_payload["confidence"]),
                 evidence_refs=tuple(decision_payload.get("evidence_refs", (fact.id,))),
                 decision_id=str(decision_payload.get("decision_id", f"decision_{fact.id}")),
+                effects=effects,
             )
         except Exception as exc:
             await self._record_model_run(
@@ -378,6 +418,7 @@ class ConfiguredProviderRuntime:
         *,
         fluctlight_id: str,
         identity: Mapping[str, Any],
+        life_profile: Mapping[str, Any],
         local_date: date,
         timezone: str,
     ) -> dict[str, Any]:
@@ -391,6 +432,7 @@ class ConfiguredProviderRuntime:
                     {
                         "fluctlight_id": fluctlight_id,
                         "identity": identity,
+                        "life_profile": life_profile,
                         "local_date": local_date.isoformat(),
                         "timezone": timezone,
                     },

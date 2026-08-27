@@ -19,6 +19,55 @@ class InvalidAssessmentAdapter:
         return {"assessment": {}}
 
 
+class CompoundAssessmentAdapter:
+    async def complete_structured(self, *_args, **_kwargs) -> dict[str, object]:
+        return {
+            "assessment": {
+                "perception": {
+                    "event_kind": "conversation.message",
+                    "observed_intent": "plan",
+                    "sentiment": "positive",
+                    "social_signals": [],
+                    "environment_meaning": None,
+                },
+                "appraisal": {
+                    "relevance": 0.8,
+                    "goal_congruence": 0.8,
+                    "reward": 0.7,
+                    "loss": 0.1,
+                    "social_threat": 0.0,
+                    "controllability": 0.8,
+                    "responsibility": 0.7,
+                    "relationship_significance": 0.8,
+                    "expected_effect": 0.7,
+                },
+                "direction": "positive",
+                "strength": 0.7,
+                "confidence": 0.9,
+            },
+            "decision": {
+                "effects": [
+                    {
+                        "id": "reply",
+                        "action_type": "reply",
+                        "payload": {"response_intent": {"tone": "warm"}},
+                    },
+                    {
+                        "id": "reply-image",
+                        "action_type": "media_request",
+                        "payload": {"media_request": {"subject": "直播预告"}},
+                    },
+                    {
+                        "id": "announcement",
+                        "action_type": "moment",
+                        "payload": {"response_intent": {"purpose": "直播预告"}},
+                    },
+                ],
+                "confidence": 0.9,
+            },
+        }
+
+
 class DiagnosticsRecorder:
     def __init__(self) -> None:
         self.runs: list[Any] = []
@@ -68,6 +117,40 @@ def test_invalid_cognitive_response_records_a_redacted_failed_model_run() -> Non
     assert "decision_id" not in messages[0]["content"]
     assert 'response_intent":{}' in messages[0]["content"]
     assert "visible reply text" in messages[0]["content"]
+
+
+def test_cognitive_assessment_parses_ordered_compound_effects() -> None:
+    runtime = ConfiguredProviderRuntime.__new__(ConfiguredProviderRuntime)
+    runtime._adapter = CompoundAssessmentAdapter()  # type: ignore[assignment]
+    runtime._diagnostics = None
+    runtime._provenance_recorder = None
+
+    async def resolve(_role):
+        return (
+            RoleAssignment(ModelRole.COGNITIVE_ASSESSMENT, "local", "model", 100, 30),
+            ProviderEndpoint("local", "openai-compatible", "http://provider/v1", "provider:local"),
+            None,
+        )
+
+    runtime._resolve = resolve  # type: ignore[method-assign]
+    fact = CognitionFact(
+        id="turn-effects",
+        fluctlight_id="fluctlight-1",
+        event_type="conversation.message",
+        payload={"text": "今晚直播要不要做预告？"},
+        causation_id="cause-effects",
+        correlation_id="corr-effects",
+        idempotency_key="turn-effects",
+    )
+
+    envelope = asyncio.run(runtime.assess(fact, correlation_id="corr-effects"))
+
+    assert [effect.action_type.value for effect in envelope.decision.effects] == [
+        "reply",
+        "media_request",
+        "moment",
+    ]
+    assert envelope.decision.effects[1].payload["media_request"] == {"subject": "直播预告"}
 
 
 def test_realization_uses_the_factual_source_message_not_cognitive_payload_text() -> None:

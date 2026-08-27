@@ -62,6 +62,8 @@ const fluctlightCreationActivationRequest = Type.Object({
   identity: Type.Record(Type.String(), Type.Unknown()),
   personality: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
   behavioralPolicy: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  lifeProfile: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  foundationProvenance: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
 });
 const fluctlightStatusRequest = Type.Object({
   status: Type.Union([Type.Literal("active"), Type.Literal("paused")]),
@@ -484,9 +486,9 @@ export function createBff(options: BffOptions): FastifyInstance {
     if (rejectUntrustedMutation(request.headers.origin, options.trustedOrigin, request.cookies[csrfCookie], request.headers["x-csrf-token"])) return reply.code(403).send({ code: "invalid_origin", message: "Origin is not allowed" });
     const session = request.cookies[sessionCookie];
     if (!session) return reply.code(401).send({ code: "unauthenticated", message: "Authentication is required" });
-    const body = request.body as { requestId: string; initializationMode: string; identity: Record<string, unknown>; personality?: Record<string, unknown>; behavioralPolicy?: Record<string, unknown>; initialGoals?: Array<Record<string, unknown>>; initialIntentions?: Array<Record<string, unknown>> };
+    const body = request.body as { requestId: string; initializationMode: string; identity: Record<string, unknown>; personality?: Record<string, unknown>; behavioralPolicy?: Record<string, unknown>; lifeProfile?: Record<string, unknown>; foundationProvenance?: Record<string, unknown>; initialGoals?: Array<Record<string, unknown>>; initialIntentions?: Array<Record<string, unknown>> };
     try {
-      return await core.activateFluctlightCreation(session, { request_id: body.requestId, initialization_mode: body.initializationMode, identity: body.identity, personality: body.personality, behavioral_policy: body.behavioralPolicy, initial_goals: body.initialGoals, initial_intentions: body.initialIntentions });
+      return await core.activateFluctlightCreation(session, { request_id: body.requestId, initialization_mode: body.initializationMode, identity: body.identity, personality: body.personality, behavioral_policy: body.behavioralPolicy, life_profile: body.lifeProfile, foundation_provenance: body.foundationProvenance, initial_goals: body.initialGoals, initial_intentions: body.initialIntentions });
     } catch (error) {
       if (error instanceof CoreApiError) {
         if (error.status === 401) {

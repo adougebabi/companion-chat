@@ -7,6 +7,7 @@ from fluctlight_core.autonomy.bridge import CognitionAutonomyBridge
 from fluctlight_core.cognition.contracts import (
     ActionType,
     CognitionFact,
+    DecisionEffect,
     DecisionProposal,
     FrozenAction,
     ReflectionWindow,
@@ -174,3 +175,31 @@ def test_cognition_autonomy_bridge_routes_only_explicit_candidate_actions() -> N
     )
     assert autonomy.request is not None
     assert autonomy.request.action_id == "autonomy_action-moment"
+
+
+def test_compound_decision_effects_keep_one_primary_and_independent_side_effects() -> None:
+    primary = DecisionEffect("reply", ActionType.REPLY, {"response_intent": {"tone": "warm"}})
+    image = DecisionEffect(
+        "reply-image",
+        ActionType.MEDIA_REQUEST,
+        {"media_request": {"subject": "直播预告图"}},
+    )
+    moment = DecisionEffect(
+        "announcement",
+        ActionType.MOMENT,
+        {"response_intent": {"purpose": "直播预告"}},
+    )
+
+    decision = DecisionProposal(
+        action_type=ActionType.REPLY,
+        payload=primary.payload,
+        confidence=0.9,
+        evidence_refs=("fact-1",),
+        effects=(primary, image, moment),
+    )
+
+    assert decision.effects[0].action_type is ActionType.REPLY
+    assert [effect.action_type for effect in decision.effects[1:]] == [
+        ActionType.MEDIA_REQUEST,
+        ActionType.MOMENT,
+    ]

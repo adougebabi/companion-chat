@@ -41,6 +41,7 @@ class DailyLifeReviewService:
             "identity": {key: value for key, value in identity.items() if key != "id"},
             "personality": fluctlight.personality.as_payload(),
             "behavioral_policy": fluctlight.behavioral_policy.as_payload(),
+            "life_profile": fluctlight.life_profile.as_payload(),
         }
         background_context = {
             "kind": "daily_schedule_ready",
