@@ -370,6 +370,7 @@ function deliveryStatus(message: BrowserMessage): "pending" | "sent" | "none" {
 function diagnosticFailureReason(errorCode: string) {
   const explanations: Record<string, string> = {
     cognitive_provider_response_is_missing_decision: "认知模型没有返回必需的 decision 对象，无法生成下一步动作。",
+    assessment_evidence_refs_requires_at_least_one_reference: "认知判断没有返回任何可追溯证据；模型必须至少引用当前 observation_id。",
     perception_social_signals_must_be_a_list_of_references: "认知模型将 social_signals 返回成了非数组类型；该字段必须是字符串数组，空值应为 []。",
     activation_foundation_invalid: "预览 Foundation 的字段或嵌套值不符合合同。",
     activation_foundation_incomplete: "预览缺少完整人格或行为策略。",

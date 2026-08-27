@@ -211,14 +211,14 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
                 "direction": {"type": "string"},
                 "strength": {"type": "number", "minimum": 0, "maximum": 1},
                 "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-                "evidence_refs": {"type": "array", "items": {"type": "string"}},
+                "evidence_refs": {"type": "array", "items": {"type": "string"}, "minItems": 1},
             }
         )
         decision = _object(
             {
                 "effects": {"type": "array", "items": effect, "minItems": 1},
                 "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-                "evidence_refs": {"type": "array", "items": {"type": "string"}},
+                "evidence_refs": {"type": "array", "items": {"type": "string"}, "minItems": 1},
                 "decision_id": {"type": "string"},
             }
         )

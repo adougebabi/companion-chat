@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -103,12 +104,14 @@ async def stream_turn(service: ConversationService, turn: ConversationTurn) -> A
                     "completed", {"turn_id": turn.turn_id, "message_ids": list(event.message_ids)}
                 )
     except Exception as exc:
+        detail = str(exc).strip()
+        error_code = re.sub(r"[^a-z0-9_.-]+", "_", detail.lower()).strip("_")[:120]
         yield producer.emit(
             "error",
             {
-                "code": "turn_unavailable",
+                "code": error_code or "turn_unavailable",
                 "message": "The turn could not be completed",
-                "detail": type(exc).__name__,
+                "detail": detail or type(exc).__name__,
             },
         )
 

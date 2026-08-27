@@ -52,11 +52,14 @@ COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
     '"goal_congruence":0.0,"reward":0.0,"loss":0.0,"social_threat":0.0,'
     '"controllability":0.0,"responsibility":0.0,'
     '"relationship_significance":0.0,"expected_effect":0.0},'
-    '"direction":"neutral","strength":0.0,"confidence":0.0},'
+    '"direction":"neutral","strength":0.0,"confidence":0.0,"evidence_refs":["observation_id"]},'
     '"decision":{"effects":[{"id":"reply","action_type":"reply","payload":{"response_intent":{}}}],'
-    '"confidence":0.0}}\n'
+    '"confidence":0.0,"evidence_refs":["observation_id"]}}\n'
     "Use only positive, negative, mixed, or neutral for direction. All numbers are 0 to 1. "
-    "social_signals is always an array of strings, using [] when empty. For a conversation "
+    "social_signals is always an array of strings, using [] when empty. Both "
+    "assessment.evidence_refs and decision.evidence_refs must contain at least one source "
+    "reference; use observation_id when "
+    "no more specific event reference exists. For a conversation "
     "message, return ordered decision.effects. The first effect must be reply or no_op; "
     "later effects "
     "may be media_request or moment. reply and no_op payloads may contain only "

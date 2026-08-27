@@ -10,7 +10,13 @@ import { randomId } from "../random-id";
 
 const client = new BrowserClient(bffOrigin);
 
-type StreamPayload = { text?: string; message?: BrowserMessage; message_id?: string; code?: string };
+type StreamPayload = {
+  text?: string;
+  message?: BrowserMessage;
+  message_id?: string;
+  code?: string;
+  detail?: string;
+};
 export type FluctlightListItem = {
   id: string;
   identity: Record<string, unknown>;
@@ -264,7 +270,11 @@ export const useConversationStore = defineStore("conversations", {
             if (optimisticIndex >= 0) this.messages.splice(optimisticIndex, 1, payload.message);
             else this.messages.push(payload.message);
           }
-          if (event.type === "error") throw new Error(payload.code ?? "turn_failed");
+          if (event.type === "error") {
+            const code = payload.code ?? "turn_failed";
+            const detail = payload.detail?.trim();
+            throw new Error(detail ? `${code}: ${detail}` : code);
+          }
         };
         while (true) {
           const next = await reader.read();
@@ -291,7 +301,8 @@ export const useConversationStore = defineStore("conversations", {
         if (error instanceof DOMException && error.name === "AbortError") {
           if (assistantDraft) this.messages = this.messages.filter((message) => message.id !== assistantDraft?.id);
         } else {
-          this.error = "回复未完成，但你的消息已保存。";
+          const message = error instanceof Error ? error.message : "turn_failed";
+          this.error = `回复未完成：${message}`;
         }
       } finally {
         this.abortController = null;
