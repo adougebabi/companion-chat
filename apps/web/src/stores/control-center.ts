@@ -20,6 +20,7 @@ export const useControlCenterStore = defineStore("control-center", {
     workflowHistory: null as Record<string, unknown> | null,
     workflowHistoryPoint: "",
     diagnosticsCorrelationFilter: "",
+    diagnosticsWarning: "",
     moments: [] as Array<{ id: string; owner_fluctlight_id?: string; text: string; author_actor_id: string; created_at: string; media_asset_ids: string[]; media: Array<{ id: string; kind: string; mime_type: string }>; status: string; comments: Array<{ id: string; author_actor_id: string; text: string; created_at: string }>; reaction_count: number; viewer_reaction?: string | null; unread_count?: number }>,
     momentsScope: "global" as "global" | "fluctlight",
     includeHiddenMoments: false,
@@ -104,13 +105,22 @@ export const useControlCenterStore = defineStore("control-center", {
     async loadDiagnostics() {
       this.loading = true;
       this.error = "";
+      this.diagnosticsWarning = "";
       try {
         const correlationId = this.diagnosticsCorrelationFilter.trim() || undefined;
-        this.diagnostics = await client.diagnostics({ limit: 100, correlationId });
-        this.diagnosticModelRuns = await client.diagnosticModelRuns({ limit: 100, correlationId });
-        this.workflows = await client.listWorkflows();
-      } catch {
-        this.error = "诊断信息仅对已认证的所有者可用。";
+        const [events, modelRuns, workflows] = await Promise.allSettled([
+          client.diagnostics({ limit: 100, correlationId }),
+          client.diagnosticModelRuns({ limit: 100, correlationId }),
+          client.listWorkflows(),
+        ]);
+        this.diagnostics = events.status === "fulfilled" ? events.value : [];
+        this.diagnosticModelRuns = modelRuns.status === "fulfilled" ? modelRuns.value : [];
+        this.workflows = workflows.status === "fulfilled" ? workflows.value : [];
+        const readFailure = [events, modelRuns].find((result) => result.status === "rejected");
+        if (readFailure?.status === "rejected") this.error = diagnosticsFailureMessage(readFailure.reason);
+        if (workflows.status === "rejected") {
+          this.diagnosticsWarning = "工作流运行时暂不可用；模型运行和系统事件仍可查看。";
+        }
       } finally {
         this.loading = false;
       }
@@ -464,6 +474,9 @@ export const useControlCenterStore = defineStore("control-center", {
       try {
         await client.clearDiagnostics();
         this.diagnostics = [];
+        this.diagnosticModelRuns = [];
+        this.workflows = [];
+        this.diagnosticsWarning = "";
       } catch {
         this.error = "无法清空诊断信息。";
       }
@@ -580,4 +593,13 @@ function creationActivationFailureMessage(error: unknown): string {
   if (error.code === "activation_request_conflict") return "该激活请求已被不同的预览内容占用。";
   if (error.code === "activation_persistence_failed") return "Fluctlight 数据无法保存，请查看诊断信息。";
   return error.userMessage || "Fluctlight 激活失败。";
+}
+
+function diagnosticsFailureMessage(error: unknown): string {
+  if (error instanceof BrowserApiError) {
+    if (error.status === 401) return "登录状态已失效，请重新登录后查看诊断。";
+    if (error.status === 403) return "诊断信息仅对所有者可用。";
+    return `无法读取诊断信息：${error.message}`;
+  }
+  return "无法读取诊断信息，请确认 BFF 与 Core 均在运行。";
 }

@@ -60,14 +60,18 @@ COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
     "response_intent, never visible reply text. "
     "Choose media_request only when the user explicitly requests a visual; its payload must be "
     '{"response_intent":{}} and must not contain visible reply text or final media parameters. '
-    "Do not write a visible reply in this JSON."
+    "persona_profile, when present in the observation payload, is the authoritative Foundation "
+    "context for interpreting this Fluctlight's stable inclinations and expression policy. Do not "
+    "write a visible reply in this JSON."
 )
 
 ACTION_REALIZATION_SYSTEM_PROMPT = (
     "Write the visible reply to the user's message. The action type is already frozen by a "
     "separate cognitive decision; never explain implementation limits or invent a body. When "
     "action_type is media_request, acknowledge the requested image concisely while it is being "
-    "generated. Return visible reply text only."
+    "generated. persona_profile is the authoritative, already-frozen Foundation context: follow "
+    "its behavioral_policy for voice, length, punctuation, humor, directness, and emotional "
+    "expression. Use personality only as durable inclination. Return visible reply text only."
 )
 
 MEDIA_PROMPT_SYSTEM_PROMPT = (
@@ -145,7 +149,13 @@ personality.update_policy, provenance, hidden reasoning, or extra keys. For desc
 creation, initial_goals must contain one to three concrete model-owned goals and
 initial_intentions must contain at least one concrete action for every goal. goal_index references
 the zero-based initial_goals array. expiration_hours must be a finite number greater than 0 and
-no more than 168. Do not leave semantic fields blank or invent a generic routine."""
+no more than 168. Do not leave semantic fields blank or invent a generic routine.
+
+Field routing is mandatory. identity is only stable biography, values, worldview, and residual
+identity facts. personality is only durable inclinations. behavioral_policy is the only home for
+tone, voice, cadence, wording habits, message length, punctuation, humor, sarcasm, directness,
+emotional expression, initiative, boundaries, and relationship expression. Never put those traits
+in identity.notes, and do not omit any personality or behavioral_policy field from the object."""
 
 
 class ConfiguredProviderRuntime:
@@ -320,6 +330,7 @@ class ConfiguredProviderRuntime:
             "model_id": assignment.model_id,
             "prompt_version": "fluctlight.initialization.v1",
             "schema_version": "fluctlight.initialization.v1",
+            "correlation_id": request_id,
         }
         await self._record_model_run(
             assignment=assignment,
@@ -455,6 +466,7 @@ class ConfiguredProviderRuntime:
                         "user_message": source_text,
                         "action_type": action.action_type.value,
                         "response_intent": action.payload.get("response_intent", {}),
+                        "persona_profile": action.payload.get("persona_profile", {}),
                     },
                     sort_keys=True,
                     ensure_ascii=False,

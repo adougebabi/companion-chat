@@ -84,3 +84,33 @@ def test_realization_uses_the_factual_source_message_not_cognitive_payload_text(
     content = str(messages[1]["content"])
     assert "请告诉我现在的状态" in content
     assert "this must never become the realization input" not in content
+
+
+def test_realization_receives_the_frozen_persona_expression_profile() -> None:
+    action = FrozenAction(
+        action_id="action-1",
+        decision_id="decision-1",
+        inbox_id="inbox-1",
+        fluctlight_id="fluctlight-1",
+        action_type=ActionType.REPLY,
+        payload={
+            "source_text": "今天过得怎么样？",
+            "persona_profile": {
+                "personality": {"humor": 0.7, "empathy": 0.8},
+                "behavioral_policy": {
+                    "response_style": "简洁、温和",
+                    "punctuation_style": "自然，不滥用感叹号",
+                    "emoji_frequency": 0.1,
+                },
+            },
+        },
+        state_revision=1,
+        provider_request_id="request-1",
+    )
+
+    messages = ConfiguredProviderRuntime._realization_messages(action)
+
+    content = str(messages[1]["content"])
+    assert '"persona_profile"' in content
+    assert "简洁、温和" in content
+    assert '"humor": 0.7' in content

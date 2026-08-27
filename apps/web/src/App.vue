@@ -38,6 +38,7 @@ const creationPreviewJson = ref("");
 const creationInitialGoals = ref<Array<Record<string, unknown>>>([]);
 const creationInitialIntentions = ref<Array<Record<string, unknown>>>([]);
 const creationRequestId = ref<string | null>(null);
+const creationDiagnosticsCorrelationId = ref("");
 const instanceSearch = ref("");
 const showCreateForm = ref(false);
 const showInstanceDetails = ref(false);
@@ -216,6 +217,7 @@ async function activateCreatedFluctlight(body: {
     creationInitialGoals.value = [];
     creationInitialIntentions.value = [];
     creationRequestId.value = null;
+    creationDiagnosticsCorrelationId.value = "";
     view.value = "chat";
   }
 }
@@ -240,10 +242,20 @@ async function analyzeFluctlightDescription() {
     creationInitialIntentions.value = Array.isArray(previewFoundation.initial_intentions)
       ? previewFoundation.initial_intentions.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
       : [];
+    const provenance = result.provenance;
+    creationDiagnosticsCorrelationId.value = provenance && typeof provenance === "object"
+      ? String((provenance as Record<string, unknown>).correlation_id ?? "")
+      : "";
     creationRequestId.value = randomId();
   } else if (result) {
     controlCenter.error = "初始化模型返回了不包含 Foundation 的无效结果。";
   }
+}
+
+async function openCreationDiagnostics() {
+  if (!creationDiagnosticsCorrelationId.value) return;
+  controlCenter.diagnosticsCorrelationFilter = creationDiagnosticsCorrelationId.value;
+  await selectView("diagnostics");
 }
 
 async function activatePreview() {
@@ -514,6 +526,7 @@ onMounted(() => void store.initialize());
           <strong>初始意图</strong>
           <p v-for="(intention, index) in creationInitialIntentions" :key="index">{{ String(intention.action) }}</p>
         </div>
+        <button v-if="creationDiagnosticsCorrelationId" class="secondary-button" type="button" @click="openCreationDiagnostics">查看本次分析诊断</button>
         <button class="send-button" type="submit" :disabled="controlCenter.saving">确认激活并对话</button>
       </form>
       <form class="actor-create-form" @submit.prevent="controlCenter.createActorGroup"><label for="actor-group-name">实例分组</label><div class="actor-create-row"><input id="actor-group-name" v-model="controlCenter.newActorGroupName" maxlength="128" placeholder="新分组名称" /><button class="secondary-button" type="submit" :disabled="controlCenter.saving || !controlCenter.newActorGroupName.trim()">创建分组</button></div></form>
@@ -530,6 +543,8 @@ onMounted(() => void store.initialize());
         <template v-if="controlCenter.fluctlightDetail">
           <h3>人格与表达</h3>
           <dl><template v-for="(value, key) in controlCenter.fluctlightDetail.personality as Record<string, unknown>" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ typeof value === 'object' ? '已配置' : String(value) }}</dd></template></dl>
+          <h3>表达策略</h3>
+          <dl><template v-for="(value, key) in controlCenter.fluctlightDetail.behavioral_policy as Record<string, unknown>" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ String(value ?? '未设定') }}</dd></template></dl>
           <h3>当前内在状态</h3>
           <dl><template v-for="(value, key) in (controlCenter.fluctlightDetail.inner_state as Record<string, unknown>).pad as Record<string, unknown>" :key="String(key)"><dt>PAD · {{ String(key) }}</dt><dd>{{ String(value) }}</dd></template><dt>情绪</dt><dd>{{ String(((controlCenter.fluctlightDetail.inner_state as Record<string, any>).mood?.label) ?? '未形成') }}</dd><dt>Context</dt><dd>{{ String((controlCenter.fluctlightDetail.context as Record<string, any>)?.scene ?? '待确认') }} · {{ String((controlCenter.fluctlightDetail.context as Record<string, any>)?.activity ?? '待规划') }}</dd></dl>
           <h3>目标与意图</h3>
@@ -596,14 +611,15 @@ onMounted(() => void store.initialize());
       <div class="panel-heading panel-actions"><div><button class="back-link" type="button" @click="view = 'settings'">← 返回设置</button><p class="eyebrow">CONTROL CENTER</p><h2 id="diagnostics-title">诊断</h2></div><div class="diagnostic-actions"><button class="secondary-button" type="button" @click="controlCenter.exportDiagnostics">导出</button><button class="secondary-button" type="button" @click="controlCenter.clearDiagnostics">清空</button></div></div>
       <form class="diagnostic-filter" @submit.prevent="controlCenter.loadDiagnostics"><input v-model="controlCenter.diagnosticsCorrelationFilter" aria-label="Correlation ID 过滤" placeholder="按 Correlation ID 过滤" /><button class="secondary-button" type="submit">筛选</button></form>
       <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
+      <p v-if="controlCenter.diagnosticsWarning" class="field-note" role="status">{{ controlCenter.diagnosticsWarning }}</p>
       <div v-if="controlCenter.loading" class="empty-state compact">正在加载诊断信息...</div>
-      <div v-else-if="!controlCenter.diagnostics.length && !controlCenter.diagnosticModelRuns.length" class="empty-state compact"><h2>暂无诊断事件</h2><p>经脱敏的模型、对话和工作流事件会显示在这里。</p></div>
+      <div v-else-if="!controlCenter.diagnostics.length && !controlCenter.diagnosticModelRuns.length" class="empty-state compact"><h2>暂无诊断记录</h2><p>经脱敏的模型运行和系统事件会显示在这里。</p></div>
       <template v-else><div v-if="controlCenter.diagnosticModelRuns.length" class="diagnostic-list"><h3>模型运行</h3><article v-for="run in controlCenter.diagnosticModelRuns" :key="run.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ roleLabel(run.role) }}</strong><span>{{ run.status }}</span><small>{{ run.modelId }} · {{ run.correlationId }}</small></div><p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ diagnosticFailureReason(run.errorCode) }}<code>{{ run.errorCode }}</code></p><details><summary>Prompt</summary><pre>{{ prettyPayload(run.prompt) }}</pre></details><details v-if="run.response"><summary>Response</summary><pre>{{ prettyPayload(run.response) }}</pre></details></article></div><div v-if="controlCenter.diagnostics.length" class="diagnostic-list"><h3>事件</h3><article v-for="event in controlCenter.diagnostics" :key="event.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ event.eventType }}</strong><span>{{ event.severity }}</span><small>{{ event.correlationId }}</small></div><p v-if="typeof event.payload.error_code === 'string'" class="diagnostic-error"><strong>失败原因：</strong>{{ diagnosticFailureReason(String(event.payload.error_code)) }}<code>{{ event.payload.error_code }}</code></p><pre>{{ prettyPayload(event.payload) }}</pre></article></div></template>
       <section class="fluctlight-detail"><h3>工作流控制</h3><p v-if="controlCenter.workflows.length" class="field-note">{{ controlCenter.workflows.length }} 个工作流记录已加载。</p><form class="revision-form" @submit.prevent="controlCenter.queryWorkflowStatus"><input v-model="controlCenter.workflowId" aria-label="工作流 ID" placeholder="工作流 ID" /><input v-model="controlCenter.workflowHistoryPoint" aria-label="Reset history point" type="number" min="1" step="1" placeholder="Reset history point" /><div class="diagnostic-actions"><button class="secondary-button" type="submit" :disabled="!controlCenter.workflowId.trim()">查询状态</button><button class="secondary-button" type="button" :disabled="!controlCenter.workflowId.trim()" @click="controlCenter.queryWorkflowHistory">历史</button><button class="secondary-button" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('pause')">暂停</button><button class="secondary-button" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('resume')">恢复</button><button class="secondary-button" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('cancel')">取消</button><button class="secondary-button" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.restartWorkflow">重启</button><button class="secondary-button" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim() || !controlCenter.workflowHistoryPoint" @click="controlCenter.resetWorkflow">Reset</button></div></form><pre v-if="controlCenter.workflowStatus">{{ prettyPayload(controlCenter.workflowStatus) }}</pre><pre v-if="controlCenter.workflowHistory">{{ prettyPayload(controlCenter.workflowHistory) }}</pre><ul v-if="controlCenter.workflows.length" class="detail-list"><li v-for="workflow in controlCenter.workflows" :key="workflowIdFor(workflow)"><button class="secondary-button" type="button" @click="controlCenter.workflowId = workflowIdFor(workflow); controlCenter.queryWorkflowStatus()">{{ workflowIdFor(workflow) || '未知工作流' }}</button></li></ul></section>
     </section>
 
     <section v-else class="control-panel" aria-labelledby="settings-title">
-      <div class="panel-heading"><div><p class="eyebrow">SYSTEM</p><h2 id="settings-title">设置</h2></div><div class="settings-actions"><span class="status" :class="{ active: store.sending }"><span class="status-dot" aria-hidden="true" />{{ store.sending ? '正在思考' : '就绪' }}</span><button class="secondary-button" type="button" @click="store.logout">退出登录</button><button class="secondary-button" type="button" @click="view = 'diagnostics'">打开诊断中心</button></div></div>
+      <div class="panel-heading"><div><p class="eyebrow">SYSTEM</p><h2 id="settings-title">设置</h2></div><div class="settings-actions"><span class="status" :class="{ active: store.sending }"><span class="status-dot" aria-hidden="true" />{{ store.sending ? '正在思考' : '就绪' }}</span><button class="secondary-button" type="button" @click="store.logout">退出登录</button><button class="secondary-button" type="button" @click="selectView('diagnostics')">打开诊断中心</button></div></div>
       <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
       <section class="settings-form" aria-labelledby="model-role-title">
         <div class="settings-section-heading"><p class="eyebrow">MODEL ROLES</p><h3 id="model-role-title">模型角色绑定</h3></div>

@@ -71,6 +71,26 @@ The Python policy result records `accepted`, `rejected`, or `deferred`, policy r
 
 Interactive work uses two model stages. `assess` / `propose_decision` return no user-visible content. Python validates and freezes the action before `realize` is called. `realize` may produce language or media content for that frozen action but cannot return semantic state candidates.
 
+#### Foundation Expression Context
+
+- For a direct conversation, the responder reads the current Fluctlight
+  Foundation and attaches a bounded `persona_profile` to the CognitionFact.
+  It contains stable identity context, `personality`, and `behavioral_policy`.
+- The assessment receives this profile as authoritative factual context. When a
+  reply action is frozen, Python copies that same profile to the immutable
+  FrozenAction payload; realization receives only this frozen copy, never a
+  later re-read of mutable personality state.
+- `behavioral_policy` controls visible voice: response style, length, emoji and
+  punctuation habits, humor, directness, initiative, emotional expression,
+  conflict/refusal style, and intimacy expression. `personality` supplies
+  durable inclination but is not a replacement for those expression fields.
+- Initialization must route natural-language tone/voice descriptions into
+  `behavioral_policy`; `identity.notes` is residual identity information, not a
+  compatibility bucket for personality or expression. The initialization model
+  must return every defined personality and behavioral-policy property. Missing
+  properties are rejected instead of being silently normalized to neutral
+  dataclass defaults.
+
 ### 3. Contracts
 
 #### Semantic Ownership Matrix

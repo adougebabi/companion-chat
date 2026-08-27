@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from typing import Any, Protocol
@@ -96,14 +96,43 @@ def _identity_from_payload(identity_id: str, payload: dict[str, Any]) -> Identit
     return Identity(id=identity_id, **values)
 
 
-def _personality_from_payload(payload: dict[str, Any]) -> Personality:
+def _require_profile_fields(payload: dict[str, Any], *, required: set[str], name: str) -> None:
+    missing = sorted(required - set(payload))
+    if missing:
+        raise FoundationValidationError(f"{name} is missing required fields: {', '.join(missing)}")
+
+
+def _personality_from_payload(
+    payload: dict[str, Any], *, require_complete_model_profile: bool = False
+) -> Personality:
     values = dict(payload)
+    if require_complete_model_profile:
+        if "update_policy" in values:
+            raise FoundationValidationError("personality.update_policy is server governed")
+        _require_profile_fields(
+            values,
+            required={item.name for item in fields(Personality) if item.name != "update_policy"},
+            name="personality",
+        )
     update_policy = values.pop("update_policy", None)
     if update_policy is not None:
         if not isinstance(update_policy, dict):
             raise FoundationValidationError("personality.update_policy must be an object")
         values["update_policy"] = PersonalityUpdatePolicy(**update_policy)
     return Personality(**values)
+
+
+def _behavioral_policy_from_payload(
+    payload: dict[str, Any], *, require_complete_model_profile: bool = False
+) -> BehavioralPolicy:
+    values = dict(payload)
+    if require_complete_model_profile:
+        _require_profile_fields(
+            values,
+            required={item.name for item in fields(BehavioralPolicy)},
+            name="behavioral_policy",
+        )
+    return BehavioralPolicy(**values)
 
 
 def _agency_list(payload: Any, name: str) -> list[dict[str, Any]]:
@@ -248,8 +277,12 @@ class CreationLifecycleService:
             raise CreationError("initialization response has no foundation")
         try:
             identity = _identity_from_payload("preview", dict(foundation["identity"]))
-            personality = _personality_from_payload(dict(foundation["personality"]))
-            policy = BehavioralPolicy(**dict(foundation["behavioral_policy"]))
+            personality = _personality_from_payload(
+                dict(foundation["personality"]), require_complete_model_profile=True
+            )
+            policy = _behavioral_policy_from_payload(
+                dict(foundation["behavioral_policy"]), require_complete_model_profile=True
+            )
             initial_goals = _agency_list(foundation.get("initial_goals"), "initial_goals")
             initial_intentions = _agency_list(
                 foundation.get("initial_intentions"), "initial_intentions"
@@ -303,7 +336,7 @@ class CreationLifecycleService:
                 else Personality.neutral()
             )
             resolved_policy = (
-                BehavioralPolicy(**behavioral_policy)
+                _behavioral_policy_from_payload(behavioral_policy)
                 if mode is InitializationMode.LLM_DEFINED and behavioral_policy is not None
                 else BehavioralPolicy()
             )

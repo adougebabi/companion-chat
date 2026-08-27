@@ -1,17 +1,20 @@
 import asyncio
 from typing import Any, cast
 
+import pytest
 from fluctlight_core.fluctlights.contracts import BehavioralPolicy, InitializationMode, Personality
-from fluctlight_core.fluctlights.creation import CreationLifecycleService
+from fluctlight_core.fluctlights.creation import CreationError, CreationLifecycleService
 from fluctlight_core.fluctlights.service import FluctlightService
 
 
 class _Analyzer:
     async def analyze_initialization(self, _description: str) -> dict[str, object]:
+        personality = Personality(openness=0.8).as_payload()
+        personality.pop("update_policy")
         return {
             "foundation": {
                 "identity": {"name": "测试", "timezone": "UTC+8"},
-                "personality": Personality(openness=0.8).as_payload(),
+                "personality": personality,
                 "behavioral_policy": BehavioralPolicy(directness=0.7).as_payload(),
                 "initial_goals": [
                     {"description": "完成一组街头摄影练习", "importance": 0.8, "urgency": 0.4}
@@ -78,5 +81,40 @@ def test_creation_preview_json_round_trips_personality_update_policy_for_activat
         assert fluctlights.created.personality.update_policy.max_delta == 0.05
         assert fluctlights.created.identity.timezone == "Asia/Shanghai"
         assert preview.initial_goals[0]["description"] == "完成一组街头摄影练习"
+
+    asyncio.run(verify())
+
+
+def test_creation_analysis_rejects_an_incomplete_model_expression_profile() -> None:
+    class IncompleteAnalyzer:
+        async def analyze_initialization(self, _description: str) -> dict[str, object]:
+            personality = Personality().as_payload()
+            personality.pop("update_policy")
+            return {
+                "foundation": {
+                    "identity": {"name": "测试", "notes": "语气温和而克制"},
+                    "personality": personality,
+                    "behavioral_policy": {"response_style": "简洁"},
+                    "initial_goals": [
+                        {"description": "完成摄影练习", "importance": 0.8, "urgency": 0.4}
+                    ],
+                    "initial_intentions": [
+                        {
+                            "goal_index": 0,
+                            "action": "整理画面灵感",
+                            "confidence": 0.7,
+                            "expiration_hours": 24,
+                        }
+                    ],
+                }
+            }
+
+    async def verify() -> None:
+        service = CreationLifecycleService(
+            cast(FluctlightService, _Fluctlights()), cast(Any, IncompleteAnalyzer())
+        )
+        with pytest.raises(CreationError) as raised:
+            await service.analyze_description("语气温和而克制，平时简短表达")
+        assert raised.value.code == "initialization_foundation_invalid"
 
     asyncio.run(verify())

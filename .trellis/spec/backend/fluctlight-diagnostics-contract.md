@@ -41,6 +41,15 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 - Default retention: model runs/turns 30 days and 10,000 rows; structured events 14 days and 50,000 rows; workflow links 30 days. Settings may lower/raise bounded values.
 - Lifecycle cleanup enforces age and row limits. Domain audit/revision/evidence tables are excluded.
 - Owner-only UI/API supports filter, live tail, correlation chain, prompt/response comparison, turn state transitions, workflow links, clear, and redacted export.
+- Opening the Diagnostics UI must invoke its data loader. An empty local store is
+  never evidence that PostgreSQL has no diagnostics.
+- Events, model runs, and optional workflow-runtime status are independent read
+  operations. A Temporal runtime failure may render a bounded workflow warning,
+  but must not hide successfully loaded model prompts, responses, or events or
+  misreport the error as an Owner authorization failure.
+- Description analysis response provenance includes the diagnostic correlation
+  ID. The creation review surface retains it and can open a pre-filtered
+  diagnostic view for that exact initialization run.
 
 ### 4. Validation & Error Matrix
 
@@ -54,6 +63,8 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 | BFF ingestion lacks service identity or exceeds batch/schema bounds | Reject ingestion without domain effect. |
 | Retention cleanup fails | Record bounded stdout/error and retry lifecycle workflow; do not delete domain audit. |
 | Non-Owner queries/exports/clears | Reject before returning diagnostic content. |
+| Workflow runtime is unavailable while reading diagnostics | Keep loaded events/model runs visible; show a workflow-only unavailable state. |
+| Owner opens diagnostics from Settings | Invoke the same loader as a filter submission; do not only mutate the active view. |
 
 ### 5. Good / Base / Bad Cases
 

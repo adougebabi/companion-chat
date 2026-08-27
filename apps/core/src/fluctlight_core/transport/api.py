@@ -465,7 +465,10 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
                 settings_service=settings_service,
                 providers=provider_service,
                 diagnostics=diagnostics,
-                conversations=ConversationService(unit_of_work, CognitionTurnResponder(cognition)),
+                conversations=ConversationService(
+                    unit_of_work,
+                    CognitionTurnResponder(cognition, fluctlights.get),
+                ),
                 media=MediaService(
                     unit_of_work,
                     S3ObjectStorage(object_client, settings.s3_bucket),

@@ -52,3 +52,11 @@ test("creation drawer presents activation failures where the user can act on the
   assert.match(source, /class="create-drawer"[\s\S]*controlCenter\.error/);
   assert.match(source, /activation_foundation_invalid/);
 });
+
+test("diagnostics entry loads records and creation keeps a direct correlation link", async () => {
+  const source = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
+  assert.match(source, /@click="selectView\('diagnostics'\)"/);
+  assert.match(source, /creationDiagnosticsCorrelationId/);
+  assert.match(source, /查看本次分析诊断/);
+  assert.match(source, /fluctlightDetail\.behavioral_policy/);
+});

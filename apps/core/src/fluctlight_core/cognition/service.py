@@ -594,6 +594,9 @@ class CognitionService:
             if not isinstance(source_text, str) or not source_text:
                 raise ProviderExecutionError("conversation action has no source message")
             action_payload["source_text"] = source_text
+            persona_profile = claim.fact.payload.get("persona_profile")
+            if isinstance(persona_profile, dict):
+                action_payload["persona_profile"] = dict(persona_profile)
         if decision.action_type is ActionType.MEDIA_REQUEST:
             conversation_id = claim.fact.payload.get("conversation_id")
             if not isinstance(conversation_id, str) or not conversation_id:
