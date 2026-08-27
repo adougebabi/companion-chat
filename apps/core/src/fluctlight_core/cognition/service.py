@@ -641,25 +641,39 @@ class CognitionService:
             )
             if existing is not None:
                 return self._action_from_row(existing)
+            existing_assessment = (
+                (
+                    await tx.session.execute(
+                        select(schema.assessments).where(
+                            schema.assessments.c.inbox_id == claim.fact.id
+                        )
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if existing_assessment is not None:
+                assessment_id = str(existing_assessment["id"])
             state_revision = 0
             if apply_assessment and self._state_applier is not None:
                 state_revision = await self._state_applier.apply_assessment(
                     claim.fact.fluctlight_id, assessment, tx=tx
                 )
             state_revision = max(state_revision, claim.sequence, 1)
-            await tx.session.execute(
-                insert(schema.assessments).values(
-                    id=assessment_id,
-                    inbox_id=claim.fact.id,
-                    fluctlight_id=claim.fact.fluctlight_id,
-                    payload=assessment.as_payload(),
-                    schema_version=assessment.schema_version,
-                    model=assessment.model,
-                    model_version=assessment.model_version,
-                    prompt_version=assessment.prompt_version,
-                    correlation_id=claim.fact.correlation_id,
+            if existing_assessment is None:
+                await tx.session.execute(
+                    insert(schema.assessments).values(
+                        id=assessment_id,
+                        inbox_id=claim.fact.id,
+                        fluctlight_id=claim.fact.fluctlight_id,
+                        payload=assessment.as_payload(),
+                        schema_version=assessment.schema_version,
+                        model=assessment.model,
+                        model_version=assessment.model_version,
+                        prompt_version=assessment.prompt_version,
+                        correlation_id=claim.fact.correlation_id,
+                    )
                 )
-            )
             await tx.session.execute(
                 insert(schema.decision_proposals).values(
                     id=decision_id,

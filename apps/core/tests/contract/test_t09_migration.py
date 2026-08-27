@@ -2,4 +2,4 @@ from fluctlight_core.transport.api import EXPECTED_REVISION
 
 
 def test_t09_advances_the_linear_readiness_revision() -> None:
-    assert EXPECTED_REVISION == "0018_foundation_v2_life_profile"
+    assert EXPECTED_REVISION == "0019_allow_compound_decision_effects"
