@@ -220,7 +220,10 @@ class FluctlightService:
                 (
                     await tx.session.execute(
                         select(schema.fluctlights)
-                        .where(schema.fluctlights.c.created_by_actor_id == actor_id)
+                        .where(
+                            schema.fluctlights.c.created_by_actor_id == actor_id,
+                            schema.fluctlights.c.status != FluctlightStatus.RETIRED.value,
+                        )
                         .order_by(schema.fluctlights.c.created_at)
                     )
                 )

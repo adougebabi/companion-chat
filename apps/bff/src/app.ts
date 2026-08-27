@@ -68,6 +68,10 @@ const fluctlightStatusRequest = Type.Object({
   expectedRevision: Type.Integer({ minimum: 0 }),
   reason: Type.String({ minLength: 1, maxLength: 1024 }),
 });
+const fluctlightRetireRequest = Type.Object({
+  expectedRevision: Type.Integer({ minimum: 0 }),
+  reason: Type.String({ minLength: 1, maxLength: 1024 }),
+});
 const foundationRevisionRequest = Type.Object({
   changes: Type.Record(Type.String(), Type.Unknown(), { minProperties: 1 }),
   expectedRevision: Type.Integer({ minimum: 0 }),
@@ -606,6 +610,19 @@ export function createBff(options: BffOptions): FastifyInstance {
         reason: body.reason,
       });
     } catch { return reply.code(422).send({ code: "fluctlight_status_failed", message: "Fluctlight status could not be changed" }); }
+  });
+
+  app.post("/api/fluctlights/:fluctlightId/retire", { schema: { body: fluctlightRetireRequest } }, async (request, reply) => {
+    if (rejectUntrustedMutation(request.headers.origin, options.trustedOrigin, request.cookies[csrfCookie], request.headers["x-csrf-token"])) return reply.code(403).send({ code: "invalid_origin", message: "Origin is not allowed" });
+    const session = request.cookies[sessionCookie];
+    if (!session) return reply.code(401).send({ code: "unauthenticated", message: "Authentication is required" });
+    const body = request.body as { expectedRevision: number; reason: string };
+    try {
+      return await core.retireFluctlight(session, (request.params as { fluctlightId: string }).fluctlightId, {
+        expected_revision: body.expectedRevision,
+        reason: body.reason,
+      });
+    } catch { return reply.code(422).send({ code: "fluctlight_retire_failed", message: "Fluctlight could not be retired" }); }
   });
 
   app.post("/api/fluctlights/:fluctlightId/foundation-revisions", { schema: { body: foundationRevisionRequest } }, async (request, reply) => {

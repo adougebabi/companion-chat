@@ -11,6 +11,7 @@ from uuid import uuid4
 from fluctlight_core.diagnostics.contracts import DiagnosticEvent, DiagnosticSeverity
 from fluctlight_core.diagnostics.service import DiagnosticsService
 from fluctlight_core.fluctlights.contracts import FluctlightSnapshot
+from fluctlight_core.platform.timezones import canonical_timezone
 
 from .contracts import ScheduleItem, ScheduleValidationError, ScheduleVersion, timezone_or_error
 from .service import LifeWorldService
@@ -37,14 +38,16 @@ class InitialScheduleService:
 
     async def ensure_for(self, fluctlight: FluctlightSnapshot) -> ScheduleVersion | None:
         identity = fluctlight.identity.as_payload()
-        timezone = str(identity.get("timezone") or self.default_timezone)
-        zone = timezone_or_error(timezone)
-        now = self.clock()
-        if await self.life_world.accepted_schedule(fluctlight.id, now) is not None:
-            return None
-        local_date = now.astimezone(zone).date()
-        correlation_id = f"schedule-initialization:{fluctlight.id}:{local_date.isoformat()}"
+        raw_timezone = str(identity.get("timezone") or self.default_timezone)
+        correlation_id = f"schedule-initialization:{fluctlight.id}"
         try:
+            timezone = canonical_timezone(raw_timezone)
+            zone = timezone_or_error(timezone)
+            now = self.clock()
+            if await self.life_world.accepted_schedule(fluctlight.id, now) is not None:
+                return None
+            local_date = now.astimezone(zone).date()
+            correlation_id = f"{correlation_id}:{local_date.isoformat()}"
             payload = await self.generator.generate_initial_schedule(
                 fluctlight_id=fluctlight.id,
                 identity=identity,
@@ -59,7 +62,7 @@ class InitialScheduleService:
             )
             schedule = await self.life_world.accept_schedule(proposal)
         except Exception as exc:
-            await self._record_failure(fluctlight.id, correlation_id, exc)
+            await self._record_failure(fluctlight.id, correlation_id, raw_timezone, exc)
             return None
         if self.diagnostics is not None:
             await self.diagnostics.emit_event(
@@ -114,7 +117,11 @@ class InitialScheduleService:
         )
 
     async def _record_failure(
-        self, fluctlight_id: str, correlation_id: str, exc: Exception
+        self,
+        fluctlight_id: str,
+        correlation_id: str,
+        timezone: str,
+        exc: Exception,
     ) -> None:
         if self.diagnostics is None:
             return
@@ -125,6 +132,9 @@ class InitialScheduleService:
                 severity=DiagnosticSeverity.ERROR,
                 fluctlight_id=fluctlight_id,
                 correlation_id=correlation_id,
-                payload={"error_code": code or "schedule_initialization_failed"},
+                payload={
+                    "error_code": code or "schedule_initialization_failed",
+                    "timezone": timezone,
+                },
             )
         )

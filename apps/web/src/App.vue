@@ -39,6 +39,9 @@ const creationRequestId = ref<string | null>(null);
 const instanceSearch = ref("");
 const showCreateForm = ref(false);
 const showInstanceDetails = ref(false);
+const showManagementDetails = ref(false);
+const retirementReason = ref("");
+const retirementConfirmation = ref("");
 const draft = ref("");
 const authPassword = ref("");
 const setupToken = ref("");
@@ -256,10 +259,36 @@ async function openFluctlight(fluctlightId: string) {
   ]);
 }
 
-function openSelectedFluctlightDetails() {
-  if (!store.selectedFluctlight) return;
+async function openSelectedFluctlightDetails() {
+  const fluctlightId = store.fluctlightId;
+  if (!fluctlightId) return;
   showInstanceDetails.value = true;
+  await Promise.all([
+    controlCenter.loadFluctlightDetail(fluctlightId),
+    controlCenter.loadAutonomyActions(fluctlightId),
+  ]);
+}
+
+function openSelectedFluctlightManagement() {
+  showInstanceDetails.value = false;
+  showManagementDetails.value = true;
   view.value = "fluctlights";
+}
+
+async function retireSelectedFluctlight() {
+  const fluctlightId = store.fluctlightId;
+  const name = store.selectedFluctlightName;
+  if (!fluctlightId || !name) return;
+  if (retirementConfirmation.value.trim() !== name) {
+    controlCenter.error = "请输入完整的摇光名称以确认删除。";
+    return;
+  }
+  const retired = await controlCenter.retireFluctlight(fluctlightId, retirementReason.value);
+  if (!retired) return;
+  retirementReason.value = "";
+  retirementConfirmation.value = "";
+  showManagementDetails.value = false;
+  await store.bootstrap();
 }
 
 function prettyPayload(payload: Record<string, unknown>) {
@@ -442,7 +471,7 @@ onMounted(() => void store.initialize());
       </form>
     </template>
 
-    <section v-else-if="view === 'fluctlights'" class="control-panel fluctlights-panel" :class="{ 'details-open': showInstanceDetails }" aria-labelledby="fluctlights-title">
+    <section v-else-if="view === 'fluctlights'" class="control-panel fluctlights-panel" :class="{ 'details-open': showManagementDetails }" aria-labelledby="fluctlights-title">
       <div class="list-header"><div><p class="eyebrow">ECHO</p><h2 id="fluctlights-title">聊天</h2></div><button class="round-action" type="button" aria-label="新建 Fluctlight" @click="showCreateForm = !showCreateForm">＋</button></div>
       <label class="search-box" for="instance-search"><span aria-hidden="true">⌕</span><input id="instance-search" v-model="instanceSearch" type="search" placeholder="搜索" /></label>
       <div v-if="showCreateForm" class="create-drawer">
@@ -474,8 +503,8 @@ onMounted(() => void store.initialize());
       <div v-if="store.fluctlights.length" class="actor-list">
         <div v-for="fluctlight in filteredFluctlights()" :key="fluctlight.id" class="actor-directory-row"><button class="actor-row" :class="{ selected: fluctlight.id === store.fluctlightId }" type="button" @click="openFluctlight(fluctlight.id)"><span class="avatar">{{ String(fluctlight.identity.name ?? 'F').slice(0, 1) }}</span><span class="actor-row-copy"><strong>{{ String(fluctlight.identity.name ?? fluctlight.id) }}</strong><small>摇光当前状态：{{ fluctlight.status }}</small></span><span class="row-trailing"><time>{{ fluctlight.id === store.fluctlightId ? '现在' : '—' }}</time><span v-if="fluctlight.unread_count" class="unread-badge">{{ fluctlight.unread_count }}</span></span></button><select v-if="controlCenter.actorGroups.length" :aria-label="'为 ' + fluctlight.id + ' 指定分组'" @change="($event) => { const groupId = ($event.target as HTMLSelectElement).value; if (groupId) controlCenter.assignActorGroupMember(groupId, fluctlight.id) }"><option value="">加入分组...</option><option v-for="group in controlCenter.actorGroups.filter((item) => !item.actor_ids.includes(fluctlight.id))" :key="group.id" :value="group.id">{{ group.name }}</option></select><button v-for="group in controlCenter.actorGroups.filter((item) => item.actor_ids.includes(fluctlight.id))" :key="group.id" class="secondary-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.removeActorGroupMember(group.id, fluctlight.id)">移出 {{ group.name }}</button></div>
       </div>
-      <button v-if="store.selectedFluctlight" class="detail-toggle" type="button" @click="showInstanceDetails = !showInstanceDetails">{{ showInstanceDetails ? '收起实例详情' : '管理实例详情' }}</button>
-      <section v-if="store.selectedFluctlight && showInstanceDetails" class="fluctlight-detail" aria-labelledby="detail-title">
+      <button v-if="store.selectedFluctlight" class="detail-toggle" type="button" @click="showManagementDetails = !showManagementDetails">{{ showManagementDetails ? '收起实例详情' : '管理实例详情' }}</button>
+      <section v-if="store.selectedFluctlight && showManagementDetails" class="fluctlight-detail" aria-labelledby="detail-title">
         <h3 id="detail-title">{{ store.selectedFluctlightName }} 的身份设定</h3>
         <dl><template v-for="(value, key) in store.selectedFluctlight.identity" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ Array.isArray(value) ? value.join('、') : String(value ?? '未设定') }}</dd></template></dl>
         <template v-if="controlCenter.fluctlightDetail">
@@ -517,6 +546,15 @@ onMounted(() => void store.initialize());
           <h3>运行状态治理</h3>
           <p class="field-note">当前状态：{{ controlCenter.fluctlightDetail.status }}。暂停会阻止新的自主外部行为，历史事实和已观察到的状态不会被删除。</p>
           <form class="governance-form" @submit.prevent="controlCenter.setFluctlightStatus(store.fluctlightId, controlCenter.fluctlightDetail?.status === 'paused' ? 'active' : 'paused')"><input v-model="controlCenter.governanceReason" aria-label="状态治理原因" maxlength="1024" placeholder="填写暂停或恢复的原因" /><button class="secondary-button" type="submit" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()">{{ controlCenter.fluctlightDetail.status === 'paused' ? '恢复自主性' : '暂停自主性' }}</button></form>
+          <section class="retirement-panel" aria-labelledby="retirement-title">
+            <div><p class="eyebrow">DANGEROUS ACTION</p><h3 id="retirement-title">删除摇光</h3></div>
+            <p>删除会让该摇光从实例列表中移除并停止活动；历史会话与治理记录会保留用于审计，不能恢复到活动状态。</p>
+            <form class="revision-form" @submit.prevent="retireSelectedFluctlight">
+              <label>删除原因<input v-model="retirementReason" aria-label="删除摇光原因" maxlength="1024" placeholder="说明删除原因" /></label>
+              <label>确认名称<input v-model="retirementConfirmation" :aria-label="'输入 ' + store.selectedFluctlightName + ' 确认删除'" maxlength="256" :placeholder="'输入 ' + store.selectedFluctlightName + ' 确认'" /></label>
+              <button class="danger-button" type="submit" :disabled="controlCenter.saving || !retirementReason.trim() || retirementConfirmation.trim() !== store.selectedFluctlightName">{{ controlCenter.saving ? '正在删除...' : '删除摇光' }}</button>
+            </form>
+          </section>
         </template>
       </section>
       <div v-else-if="!store.fluctlights.length" class="empty-state compact"><h2>还没有 Fluctlight 实例</h2><p>使用上方输入框创建第一个实例。</p></div>
@@ -621,6 +659,55 @@ onMounted(() => void store.initialize());
         <span class="tab-icon" aria-hidden="true">{{ item.icon }}</span>{{ item.label }}
       </button>
     </nav>
+
+    <Teleport to="body">
+      <div v-if="showInstanceDetails && store.selectedFluctlight" class="fluctlight-modal-backdrop" @click.self="showInstanceDetails = false">
+        <section class="fluctlight-modal" role="dialog" aria-modal="true" aria-labelledby="fluctlight-modal-title">
+          <header class="fluctlight-modal-header">
+            <div class="modal-identity">
+              <span class="modal-avatar" aria-hidden="true">{{ String(store.selectedFluctlightName ?? 'F').slice(0, 1) }}</span>
+              <div><p class="eyebrow">FLUCTLIGHT</p><h2 id="fluctlight-modal-title">{{ store.selectedFluctlightName }}</h2></div>
+            </div>
+            <button class="modal-close" type="button" aria-label="关闭摇光详情" @click="showInstanceDetails = false">×</button>
+          </header>
+
+          <div class="fluctlight-modal-body">
+            <div class="detail-status-strip">
+              <span><i class="legend-dot online" />{{ store.selectedFluctlight.status === 'paused' ? '已暂停' : '可对话' }}</span>
+              <span>{{ controlCenter.fluctlightDetail ? '状态已同步' : '正在读取状态' }}</span>
+            </div>
+
+            <div v-if="controlCenter.loading && !controlCenter.fluctlightDetail" class="detail-loading">正在加载摇光详情...</div>
+            <template v-else>
+              <section class="detail-block detail-identity-block">
+                <div class="detail-block-heading"><p class="eyebrow">IDENTITY</p><h3>身份核心</h3></div>
+                <dl class="identity-facts"><template v-for="(value, key) in store.selectedFluctlight.identity" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ Array.isArray(value) ? value.join('、') : String(value ?? '未设定') }}</dd></template></dl>
+              </section>
+
+              <section v-if="controlCenter.fluctlightDetail" class="detail-block">
+                <div class="detail-block-heading"><p class="eyebrow">PRESENT</p><h3>此刻</h3></div>
+                <div class="detail-stat-grid">
+                  <div><span>情绪</span><strong>{{ String(((controlCenter.fluctlightDetail.inner_state as Record<string, any>).mood?.label) ?? '未形成') }}</strong></div>
+                  <div><span>场景</span><strong>{{ String((controlCenter.fluctlightDetail.context as Record<string, any>)?.scene ?? '待确认') }}</strong></div>
+                  <div><span>活动</span><strong>{{ String((controlCenter.fluctlightDetail.context as Record<string, any>)?.activity ?? '待规划') }}</strong></div>
+                </div>
+              </section>
+
+              <section v-if="controlCenter.fluctlightDetail" class="detail-block">
+                <div class="detail-block-heading"><p class="eyebrow">LIFE</p><h3>生活脉络</h3></div>
+                <div class="detail-summary-row"><span>活跃目标</span><strong>{{ (controlCenter.fluctlightDetail.goals as unknown[])?.length ?? 0 }}</strong></div>
+                <div class="detail-summary-row"><span>关系</span><strong>{{ (controlCenter.fluctlightDetail.relationships as unknown[])?.length ?? 0 }}</strong></div>
+                <div class="detail-summary-row"><span>可展示记忆</span><strong>{{ (controlCenter.fluctlightDetail.memories as unknown[])?.length ?? 0 }}</strong></div>
+                <details v-if="(controlCenter.fluctlightDetail.goals as unknown[])?.length" class="detail-disclosure"><summary>查看当前目标</summary><ul class="modal-detail-list"><li v-for="goal in controlCenter.fluctlightDetail.goals as Array<Record<string, unknown>>" :key="String(goal.id)">{{ goal.description }}<small>{{ goal.status }} · {{ goal.progress }}</small></li></ul></details>
+                <details v-if="(controlCenter.fluctlightDetail.relationships as unknown[])?.length" class="detail-disclosure"><summary>查看关系</summary><ul class="modal-detail-list"><li v-for="relationship in controlCenter.fluctlightDetail.relationships as Array<Record<string, unknown>>" :key="String(relationship.target_actor_id)">{{ relationship.target_actor_id }}<small>{{ relationship.trend }}</small></li></ul></details>
+              </section>
+            </template>
+          </div>
+
+          <footer class="fluctlight-modal-footer"><button class="secondary-button" type="button" @click="openSelectedFluctlightManagement">进入编辑与治理</button><button class="send-button" type="button" @click="showInstanceDetails = false">完成</button></footer>
+        </section>
+      </div>
+    </Teleport>
   </main>
 </template>
 
@@ -716,6 +803,37 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .detail-toggle { margin: 14px auto 0; display: block; border: 0; background: transparent; color: #557980; cursor: pointer; font-size: .8rem; }
 .row-trailing { display: grid; justify-items: end; gap: 5px; margin-left: 8px; color: #8b969c; font-size: .72rem; }
 .unread-badge { display: grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 11px; background: #b9bbc2; color: #fff; font-size: .68rem; font-weight: 700; }
+.fluctlight-modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 24px; background: rgb(39 57 66 / 30%); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.fluctlight-modal { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: min(620px, 100%); max-height: min(760px, calc(100dvh - 48px)); overflow: hidden; border: 1px solid rgb(255 255 255 / 88%); border-radius: 24px; background: rgb(251 254 255 / 78%); box-shadow: 0 28px 80px rgb(26 45 56 / 28%); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); }
+.fluctlight-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 22px 16px; border-bottom: 1px solid rgb(191 211 217 / 55%); }
+.modal-identity { display: flex; align-items: center; min-width: 0; gap: 12px; }
+.modal-identity h2 { overflow: hidden; margin: 0; color: #20313a; font-size: 1.18rem; text-overflow: ellipsis; white-space: nowrap; }
+.modal-avatar { display: grid; flex: 0 0 48px; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(145deg, #5bc1ca, #3d8e98); color: #fff; font-size: 1.05rem; font-weight: 760; box-shadow: 0 8px 16px rgb(61 142 152 / 22%); }
+.modal-close { display: grid; flex: 0 0 36px; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid rgb(196 212 217 / 60%); border-radius: 50%; background: rgb(255 255 255 / 56%); color: #46636d; cursor: pointer; font-size: 1.35rem; line-height: 1; }
+.fluctlight-modal-body { min-height: 0; overflow-y: auto; padding: 16px 22px 20px; }
+.detail-status-strip { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 18px; color: #6b7f87; font-size: .78rem; }
+.detail-status-strip span { display: inline-flex; align-items: center; gap: 6px; }
+.detail-loading { display: grid; min-height: 220px; place-items: center; color: #6f8189; }
+.detail-block { margin-top: 22px; }
+.detail-block:first-of-type { margin-top: 0; }
+.detail-block-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.detail-block-heading .eyebrow { margin: 0 0 3px; }
+.detail-block-heading h3 { margin: 0; color: #2b3e47; font-size: .95rem; }
+.identity-facts { display: grid; grid-template-columns: minmax(86px, .45fr) minmax(0, 1fr); gap: 8px 16px; margin: 0; padding: 14px 16px; border: 1px solid rgb(255 255 255 / 80%); border-radius: 16px; background: rgb(255 255 255 / 46%); }
+.identity-facts dt { color: #758890; font-size: .76rem; }
+.identity-facts dd { margin: 0; color: #2e424b; font-size: .84rem; line-height: 1.45; overflow-wrap: anywhere; }
+.detail-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.detail-stat-grid > div { min-width: 0; padding: 12px; border: 1px solid rgb(255 255 255 / 76%); border-radius: 14px; background: rgb(255 255 255 / 42%); }
+.detail-stat-grid span, .detail-summary-row span { display: block; color: #788a92; font-size: .72rem; }
+.detail-stat-grid strong { display: block; overflow: hidden; margin-top: 5px; color: #294852; font-size: .88rem; text-overflow: ellipsis; white-space: nowrap; }
+.detail-summary-row { display: flex; align-items: center; justify-content: space-between; min-height: 36px; border-bottom: 1px solid rgb(195 211 216 / 44%); }
+.detail-summary-row strong { color: #357883; font-size: .88rem; }
+.detail-disclosure { margin-top: 12px; padding: 11px 13px; border: 1px solid rgb(255 255 255 / 76%); border-radius: 13px; background: rgb(255 255 255 / 38%); }
+.detail-disclosure summary { color: #3f6570; cursor: pointer; font-size: .8rem; }
+.modal-detail-list { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.modal-detail-list li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #334951; font-size: .82rem; }
+.modal-detail-list small { flex: 0 0 auto; color: #819198; font-size: .72rem; }
+.fluctlight-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px; border-top: 1px solid rgb(191 211 217 / 55%); }
 .chat-header { display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 7px 10px; border: 1px solid var(--surface-border); border-radius: 18px 18px 0 0; background: rgb(255 255 255 / 40%); box-shadow: 0 8px 20px rgb(44 69 80 / 7%); backdrop-filter: blur(var(--glass-blur)); }
 .chat-back { border: 0; background: transparent; color: #2aabee; cursor: pointer; font-size: 2rem; line-height: 1; }
 .chat-profile { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
@@ -743,6 +861,13 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
 .detail-list li { overflow-wrap: anywhere; }
 .governance-form { display: flex; gap: 8px; margin: 8px 0 16px; }
 .governance-form input { flex: 1; min-width: 0; min-height: 36px; padding: 0 10px; border: 1px solid #cbd5db; border-radius: 4px; }
+.retirement-panel { display: grid; gap: 10px; margin-top: 32px; padding: 18px; border: 1px solid rgb(194 91 86 / 32%); border-radius: 16px; background: rgb(255 244 242 / 48%); }
+.retirement-panel h3 { margin: 0; color: #8b3933; }
+.retirement-panel p { margin: 0; color: #755451; font-size: .84rem; line-height: 1.5; }
+.retirement-panel label { display: grid; gap: 6px; color: #735350; font-size: .8rem; }
+.retirement-panel input { width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid rgb(192 123 117 / 44%); border-radius: 10px; background: rgb(255 255 255 / 58%); color: #492f2d; }
+.danger-button { min-height: 40px; border: 1px solid #b94b45; border-radius: 11px; background: #b94b45; color: #fff; cursor: pointer; box-shadow: 0 7px 15px rgb(185 75 69 / 20%); }
+.danger-button:disabled { cursor: not-allowed; opacity: .45; }
 .revision-form { display: grid; gap: 8px; margin: 8px 0 16px; }
 .revision-form textarea, .revision-form input { width: 100%; min-height: 36px; padding: 9px 10px; border: 1px solid #cbd5db; border-radius: 4px; }
 .revision-accept { margin-left: 8px; }
@@ -887,5 +1012,15 @@ h1 { margin: 0; color: #18232e; font-size: clamp(1.35rem, 4vw, 1.9rem); letter-s
   .diagnostics-panel .revision-form input { min-width: 0; width: 100%; }
   .diagnostics-panel .revision-form .diagnostic-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .diagnostics-panel .revision-form .diagnostic-actions .secondary-button { width: 100%; min-width: 0; padding-inline: 8px; }
+  .fluctlight-modal-backdrop { align-items: end; padding: 0; }
+  .fluctlight-modal { width: 100%; max-height: min(82dvh, 720px); border-width: 1px 0 0; border-radius: 22px 22px 0 0; }
+  .fluctlight-modal-header { padding: 16px 16px 14px; }
+  .fluctlight-modal-body { padding: 14px 16px 18px; }
+  .fluctlight-modal-footer { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+  .fluctlight-modal-footer .secondary-button, .fluctlight-modal-footer .send-button { flex: 1; min-width: 0; padding-inline: 8px; }
+  .detail-status-strip { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .detail-stat-grid { grid-template-columns: 1fr; }
+  .identity-facts { grid-template-columns: 88px minmax(0, 1fr); padding: 13px; }
+  .modal-detail-list li { align-items: flex-start; flex-direction: column; gap: 2px; }
 }
 </style>

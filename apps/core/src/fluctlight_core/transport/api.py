@@ -211,6 +211,11 @@ class FluctlightStatusRequest(BaseModel):
     reason: str = Field(min_length=1, max_length=1024)
 
 
+class FluctlightRetireRequest(BaseModel):
+    expected_revision: int = Field(ge=0)
+    reason: str = Field(min_length=1, max_length=1024)
+
+
 class FoundationRevisionRequestModel(BaseModel):
     changes: dict[str, object] = Field(min_length=1)
     expected_revision: int = Field(ge=0)
@@ -1611,6 +1616,35 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             "id": snapshot.id,
             "status": snapshot.status.value,
             "current_revision": snapshot.current_revision,
+        }
+
+    @app.post("/internal/fluctlights/{fluctlight_id}/retire")
+    async def retire_fluctlight(
+        fluctlight_id: str,
+        request: FluctlightRetireRequest,
+        x_fluctlight_service_key: str | None = Header(default=None),
+        x_fluctlight_human_session: str | None = Header(default=None),
+    ) -> dict[str, object]:
+        current = require_service_key(x_fluctlight_service_key)
+        try:
+            actor = await require_auth_service(current).resolve(x_fluctlight_human_session)
+            service = require_fluctlight_service(current)
+            if not await service.can_actor_access(fluctlight_id, actor.actor_id):
+                raise HTTPException(status_code=404, detail="fluctlight_not_found")
+            snapshot = await service.retire(
+                fluctlight_id=fluctlight_id,
+                actor_id=actor.actor_id,
+                expected_revision=request.expected_revision,
+                reason=request.reason,
+            )
+        except AuthError as exc:
+            raise HTTPException(status_code=401, detail="unauthenticated") from exc
+        except (FluctlightLifecycleError, RevisionConflictError) as exc:
+            raise HTTPException(status_code=422, detail="fluctlight_retire_failed") from exc
+        return {
+            "id": snapshot.id,
+            "status": snapshot.status.value,
+            "retired_at": snapshot.retired_at.isoformat() if snapshot.retired_at else None,
         }
 
     @app.post("/internal/fluctlights/{fluctlight_id}/foundation-revisions")

@@ -49,6 +49,7 @@ const schema = {
     "/api/diagnostics/workflows/{workflowId}/restart": { post: { operationId: "restartWorkflow" } },
     "/api/fluctlights/{fluctlightId}/detail": { get: { operationId: "fluctlightDetail" } },
     "/api/fluctlights/{fluctlightId}/status": { put: { operationId: "setFluctlightStatus" } },
+    "/api/fluctlights/{fluctlightId}/retire": { post: { operationId: "retireFluctlight" } },
     "/api/fluctlights/{fluctlightId}/foundation-revisions": { post: { operationId: "submitFoundationRevision" } },
     "/api/fluctlights/{fluctlightId}/foundation-revisions/{revisionId}/accept": { post: { operationId: "acceptFoundationRevision" } },
     "/api/fluctlights/{fluctlightId}/foundation-revisions/{revisionId}/reject": { post: { operationId: "rejectFoundationRevision" } },

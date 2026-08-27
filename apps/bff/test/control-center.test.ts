@@ -26,3 +26,36 @@ test("control center maps redacted diagnostics and keeps mutation origin checks"
   assert.deepEqual(cleared.json(), { cleared: 1 });
   await app.close();
 });
+
+test("retiring a Fluctlight requires CSRF and forwards an auditable reason", async () => {
+  let forwardedBody: unknown;
+  const app = createBff({
+    coreBaseUrl: "http://core.invalid",
+    coreServiceKey: "internal",
+    trustedOrigin: "https://fluctlight.local",
+    fetcher: async (url, init) => {
+      const requestUrl = typeof url === "string" ? new URL(url) : url instanceof URL ? url : new URL(url.url);
+      assert.equal(requestUrl.pathname, "/internal/fluctlights/fl-1/retire");
+      forwardedBody = init?.body ? JSON.parse(String(init.body)) : null;
+      return Response.json({ id: "fl-1", status: "retired", retired_at: "2026-08-27T00:00:00Z" });
+    },
+  });
+  const blocked = await app.inject({
+    method: "POST",
+    url: "/api/fluctlights/fl-1/retire",
+    payload: { expectedRevision: 0, reason: "不再使用" },
+    cookies: { fluctlight_session: "opaque" },
+  });
+  assert.equal(blocked.statusCode, 403);
+  const retired = await app.inject({
+    method: "POST",
+    url: "/api/fluctlights/fl-1/retire",
+    headers: { origin: "https://fluctlight.local", "x-csrf-token": "csrf-token" },
+    payload: { expectedRevision: 0, reason: "不再使用" },
+    cookies: { fluctlight_session: "opaque", fluctlight_csrf: "csrf-token" },
+  });
+  assert.equal(retired.statusCode, 200);
+  assert.deepEqual(forwardedBody, { expected_revision: 0, reason: "不再使用" });
+  assert.equal(retired.json().status, "retired");
+  await app.close();
+});

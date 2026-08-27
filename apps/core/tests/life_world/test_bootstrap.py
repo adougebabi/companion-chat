@@ -75,3 +75,26 @@ def test_initial_schedule_is_generated_by_model_and_covers_the_local_day() -> No
     assert schedule.generated_from == "initialization"
     assert schedule.items[0].activity == "model-defined activity"
     assert life_world.accepted == [schedule]
+
+
+def test_initial_schedule_normalizes_existing_utc_plus_eight_foundations() -> None:
+    life_world = LifeWorldRecorder()
+    generator = ScheduleGenerator()
+    service = InitialScheduleService(
+        life_world,  # type: ignore[arg-type]
+        generator,  # type: ignore[arg-type]
+        clock=lambda: datetime(2026, 8, 26, 4, tzinfo=UTC),
+    )
+    fluctlight = FluctlightSnapshot(
+        id="fluctlight-utc-eight",
+        initialization_mode=InitializationMode.BLANK_SLATE,
+        status=FluctlightStatus.ACTIVE,
+        identity=Identity(id="fluctlight-utc-eight", timezone="UTC+8"),
+        personality=Personality.neutral(),
+        behavioral_policy=BehavioralPolicy(),
+    )
+
+    schedule = asyncio.run(service.ensure_for(fluctlight))
+
+    assert schedule is not None
+    assert generator.calls[0]["timezone"] == "Asia/Shanghai"

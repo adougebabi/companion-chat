@@ -209,6 +209,27 @@ export const useControlCenterStore = defineStore("control-center", {
       } catch { this.error = "无法更新 Fluctlight 状态，可能已被其他治理操作更新。"; }
       finally { this.saving = false; }
     },
+    async retireFluctlight(fluctlightId: string | null, reason: string) {
+      const detail = this.fluctlightDetail;
+      if (!fluctlightId || !detail || !reason.trim()) {
+        this.error = "删除摇光需要填写原因。";
+        return false;
+      }
+      this.saving = true;
+      this.error = "";
+      try {
+        await client.retireFluctlight(fluctlightId, {
+          expectedRevision: Number(detail.current_revision ?? 0),
+          reason: reason.trim(),
+        });
+        this.fluctlightDetail = null;
+        this.autonomyActions = [];
+        return true;
+      } catch {
+        this.error = "无法删除摇光，可能已被其他治理操作更新。";
+        return false;
+      } finally { this.saving = false; }
+    },
     async submitFoundationRevision(fluctlightId: string | null) {
       const detail = this.fluctlightDetail;
       if (!fluctlightId || !detail || !this.revisionReason.trim()) {

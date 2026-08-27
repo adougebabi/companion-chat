@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 from typing import Any, Protocol
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from fluctlight_core.platform.timezones import canonical_timezone
 
 from .contracts import (
     BehavioralPolicy,
@@ -67,16 +68,9 @@ def _identity_from_payload(identity_id: str, payload: dict[str, Any]) -> Identit
     if timezone is not None:
         if not isinstance(timezone, str):
             raise FoundationValidationError("identity.timezone must be text")
-        normalized = {
-            "UTC+8": "Asia/Shanghai",
-            "UTC+08:00": "Asia/Shanghai",
-            "GMT+8": "Asia/Shanghai",
-            "GMT+08:00": "Asia/Shanghai",
-            "China Standard Time": "Asia/Shanghai",
-        }.get(timezone.strip(), timezone.strip())
         try:
-            ZoneInfo(normalized)
-        except ZoneInfoNotFoundError as exc:
+            normalized = canonical_timezone(timezone)
+        except ValueError as exc:
             raise FoundationValidationError("identity.timezone must be an IANA timezone") from exc
         values["timezone"] = normalized
     return Identity(id=identity_id, **values)

@@ -242,6 +242,11 @@
         "operationId": "setFluctlightStatus"
       }
     },
+    "/api/fluctlights/{fluctlightId}/retire": {
+      "post": {
+        "operationId": "retireFluctlight"
+      }
+    },
     "/api/fluctlights/{fluctlightId}/foundation-revisions": {
       "post": {
         "operationId": "submitFoundationRevision"
