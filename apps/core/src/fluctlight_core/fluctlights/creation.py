@@ -383,7 +383,7 @@ class CreationLifecycleService:
                 dict(foundation["life_profile"]), require_complete_model_profile=True
             )
             foundation_provenance = _complete_field_sources(
-                dict(foundation["provenance"]), identity, personality, policy, life_profile
+                dict(foundation.get("provenance", {})), identity, personality, policy, life_profile
             )
             _validate_field_sources(
                 foundation_provenance, identity, personality, policy, life_profile

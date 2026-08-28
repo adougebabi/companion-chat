@@ -280,7 +280,7 @@ def test_initialization_schema_closes_foundation_provenance_contract() -> None:
     schema = json.loads(calls[0])["response_format"]["json_schema"]["schema"]
     provenance = schema["properties"]["foundation"]["properties"]["provenance"]
     assert provenance["additionalProperties"] is False
-    assert provenance["required"] == ["field_sources"]
+    assert provenance["required"] == []
 
 
 def test_openai_adapter_executes_against_a_real_local_http_endpoint() -> None:

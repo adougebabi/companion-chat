@@ -135,7 +135,8 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
                     "type": "object",
                     "additionalProperties": {"type": "string"},
                 }
-            }
+            },
+            required=[],
         )
         goal = _object(
             {
@@ -168,7 +169,15 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
                             "maxItems": 3,
                         },
                         "initial_intentions": {"type": "array", "items": intention, "minItems": 1},
-                    }
+                    },
+                    required=[
+                        "identity",
+                        "personality",
+                        "behavioral_policy",
+                        "life_profile",
+                        "initial_goals",
+                        "initial_intentions",
+                    ],
                 )
             }
         )
@@ -225,7 +234,8 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
                 "strength": {"type": "number", "minimum": 0, "maximum": 1},
                 "confidence": {"type": "number", "minimum": 0, "maximum": 1},
                 "evidence_refs": {"type": "array", "items": {"type": "string"}, "minItems": 1},
-            }
+            },
+            required=["perception", "appraisal", "direction", "strength", "confidence"],
         )
         decision = _object(
             {
@@ -243,7 +253,8 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
                         },
                     }
                 ),
-            }
+            },
+            required=["effects", "confidence", "decision_id"],
         )
         return _object(
             {
@@ -251,7 +262,8 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
                 "decision": decision,
                 "model_version": {"type": "string"},
                 "prompt_version": {"type": "string"},
-            }
+            },
+            required=["assessment", "decision"],
         )
     if schema_version == "life.schedule.initial.v1":
         item = _object(
@@ -265,13 +277,15 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
                 "priority": {"type": "number", "minimum": 0, "maximum": 1},
                 "flexibility": {"type": "number", "minimum": 0, "maximum": 1},
                 "interruption_cost": {"type": "number", "minimum": 0, "maximum": 1},
-            }
+            },
+            required=["start_at", "end_at", "activity", "scene"],
         )
         return _object(
             {
                 "items": {"type": "array", "items": item, "minItems": 1},
                 "reschedule_policy": {"type": "object", "additionalProperties": True},
-            }
+            },
+            required=["items"],
         )
     if schema_version == "media.prompt.v1":
         return _object({"prompt": {"type": "string", "minLength": 1}})
@@ -288,7 +302,8 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
                     "type": "array",
                     "items": {"type": "object", "additionalProperties": True},
                 },
-            }
+            },
+            required=["memory_candidates", "relationship_candidates"],
         )
     return {"type": "object", "additionalProperties": True}
 
