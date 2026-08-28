@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import Any
 
@@ -9,6 +10,7 @@ from temporalio import activity, workflow
 
 _autonomy_service: Any | None = None
 _autonomy_executor: Any | None = None
+logger = logging.getLogger(__name__)
 
 
 def configure_autonomy_service(service: Any, executor: Any) -> None:
@@ -21,7 +23,15 @@ def configure_autonomy_service(service: Any, executor: Any) -> None:
 async def process_autonomy_action(payload: dict[str, Any]) -> dict[str, str]:
     if _autonomy_service is None or _autonomy_executor is None:
         raise RuntimeError("autonomy action activity is not configured")
-    action = await _autonomy_service.execute(str(payload["action_id"]), _autonomy_executor)
+    action_id = str(payload["action_id"])
+    logger.warning("autonomy.activity.start action_id=%s", action_id)
+    action = await _autonomy_service.execute(action_id, _autonomy_executor)
+    logger.warning(
+        "autonomy.activity.finished action_id=%s action_type=%s status=%s",
+        action_id,
+        action.action_type,
+        action.status.value,
+    )
     return {"action_id": action.id, "status": action.status.value}
 
 

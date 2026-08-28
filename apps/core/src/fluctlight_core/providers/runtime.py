@@ -539,7 +539,20 @@ class ConfiguredProviderRuntime:
     async def generate_media_prompt(
         self, *, media_request: Mapping[str, Any], correlation_id: str
     ) -> str:
-        assignment, endpoint, secret = await self._resolve(ModelRole.MEDIA_PROMPT)
+        logger.warning(
+            "media_prompt.start correlation_id=%s media_fields=%s",
+            correlation_id,
+            ",".join(sorted(media_request)),
+        )
+        try:
+            assignment, endpoint, secret = await self._resolve(ModelRole.MEDIA_PROMPT)
+        except Exception as exc:
+            logger.error(
+                "media_prompt.resolve_failed correlation_id=%s error_type=%s",
+                correlation_id,
+                type(exc).__name__,
+            )
+            raise
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": MEDIA_PROMPT_SYSTEM_PROMPT},
             {
@@ -552,14 +565,22 @@ class ConfiguredProviderRuntime:
                 ),
             },
         ]
-        payload = await self._adapter.complete_structured(
-            assignment,
-            endpoint,
-            secret,
-            messages=messages,
-            schema_version="media.prompt.v1",
-            request_id=correlation_id,
-        )
+        try:
+            payload = await self._adapter.complete_structured(
+                assignment,
+                endpoint,
+                secret,
+                messages=messages,
+                schema_version="media.prompt.v1",
+                request_id=correlation_id,
+            )
+        except Exception as exc:
+            logger.error(
+                "media_prompt.provider_failed correlation_id=%s error_type=%s",
+                correlation_id,
+                type(exc).__name__,
+            )
+            raise
         prompt = payload.get("prompt")
         if not isinstance(prompt, str) or not prompt.strip():
             raise RuntimeError("media prompt response is missing prompt")

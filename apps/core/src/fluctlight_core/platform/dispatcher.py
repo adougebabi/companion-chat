@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sqlalchemy import select
@@ -10,6 +11,7 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 from .schema import workflow_intents
 from .temporal import TASK_QUEUES
 
+logger = logging.getLogger(__name__)
 
 class CommittedIntentDispatcher:
     """At-least-once dispatcher; stable Workflow IDs make retries idempotent."""
@@ -46,6 +48,14 @@ class CommittedIntentDispatcher:
             )
             payload = dict(row["payload"])
             payload.setdefault("intent_id", intent_id)
+            logger.warning(
+                "workflow.dispatch.start intent_id=%s workflow_id=%s intent_type=%s "
+                "task_queue=%s",
+                intent_id,
+                row["workflow_id"],
+                row["intent_type"],
+                task_queue,
+            )
             try:
                 await self.client.start_workflow(
                     workflow,
@@ -54,7 +64,26 @@ class CommittedIntentDispatcher:
                     task_queue=task_queue,
                 )
             except WorkflowAlreadyStartedError:
-                pass
+                logger.warning(
+                    "workflow.dispatch.already_started intent_id=%s workflow_id=%s",
+                    intent_id,
+                    row["workflow_id"],
+                )
+            except Exception:
+                logger.exception(
+                    "workflow.dispatch.failed intent_id=%s workflow_id=%s intent_type=%s",
+                    intent_id,
+                    row["workflow_id"],
+                    row["intent_type"],
+                )
+                continue
+            else:
+                logger.warning(
+                    "workflow.dispatch.started intent_id=%s workflow_id=%s intent_type=%s",
+                    intent_id,
+                    row["workflow_id"],
+                    row["intent_type"],
+                )
             self._started.add(intent_id)
             started += 1
         return started

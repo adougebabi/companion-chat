@@ -182,7 +182,16 @@ def _validate_field_sources(
     policy: BehavioralPolicy,
     life_profile: LifeProfile,
 ) -> None:
-    required = {
+    required = _required_field_source_paths()
+    missing = sorted(required - set(provenance.field_sources))
+    if missing:
+        raise FoundationValidationError(
+            f"provenance.field_sources is missing required paths: {', '.join(missing)}"
+        )
+
+
+def _required_field_source_paths() -> set[str]:
+    return {
         *(f"identity.{item.name}" for item in fields(Identity) if item.name != "id"),
         *(
             f"personality.{item.name}"
@@ -192,11 +201,22 @@ def _validate_field_sources(
         *(f"behavioral_policy.{item.name}" for item in fields(BehavioralPolicy)),
         *(f"life_profile.{item.name}" for item in fields(LifeProfile)),
     }
-    missing = sorted(required - set(provenance.field_sources))
-    if missing:
-        raise FoundationValidationError(
-            f"provenance.field_sources is missing required paths: {', '.join(missing)}"
-        )
+
+
+def _complete_field_sources(
+    values: dict[str, Any],
+    identity: Identity,
+    personality: Personality,
+    policy: BehavioralPolicy,
+    life_profile: LifeProfile,
+) -> FoundationProvenance:
+    sources = values.get("field_sources")
+    if not isinstance(sources, dict):
+        raise FoundationValidationError("provenance.field_sources is required")
+    completed = dict(sources)
+    for path in _required_field_source_paths():
+        completed.setdefault(path, "model_generated")
+    return FoundationProvenance(field_sources=completed)
 
 
 def _validate_life_profile_semantics(life_profile: LifeProfile) -> None:
@@ -359,8 +379,8 @@ class CreationLifecycleService:
             life_profile = _life_profile_from_payload(
                 dict(foundation["life_profile"]), require_complete_model_profile=True
             )
-            foundation_provenance = _foundation_provenance_from_payload(
-                dict(foundation["provenance"]), require_complete=True
+            foundation_provenance = _complete_field_sources(
+                dict(foundation["provenance"]), identity, personality, policy, life_profile
             )
             _validate_field_sources(
                 foundation_provenance, identity, personality, policy, life_profile

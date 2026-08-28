@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Protocol
@@ -18,6 +19,8 @@ from fluctlight_core.moments.contracts import Moment, MomentStatus, MomentVisibi
 from fluctlight_core.moments.service import MomentsService
 from fluctlight_core.relationships.contracts import RelationshipTrend, RelationshipUpdate
 from fluctlight_core.relationships.service import RelationshipService
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,9 +156,20 @@ class AutonomyExecutor:
         payload = action.payload
         media_request = self._object(payload, "media_request")
         conversation_id = self._text(payload, "conversation_id")
+        logger.warning(
+            "autonomy.media_request.start action_id=%s media_fields=%s conversation_id=%s",
+            action.id,
+            ",".join(sorted(media_request)),
+            conversation_id,
+        )
         prompt = await self._media_prompt.generate_media_prompt(
             media_request=media_request,
             correlation_id=f"media-prompt:{action.id}",
+        )
+        logger.warning(
+            "autonomy.media_request.prompt_ready action_id=%s prompt_length=%d",
+            action.id,
+            len(prompt),
         )
         await self._media.request_generation(
             MediaIntent(
