@@ -280,19 +280,6 @@ class ConfiguredProviderRuntime:
                         raise RuntimeError(
                             "cognitive media_request effect is missing a visual concept"
                         )
-                    missing_concept_fields = [
-                        field
-                        for field in ("scene", "action", "mood", "subject", "capture_details")
-                        if not isinstance(concept.get(field), str) or not concept[field].strip()
-                    ]
-                    if missing_concept_fields:
-                        logger.warning(
-                            "cognition.media_request.concept_incomplete fact_id=%s "
-                            "correlation_id=%s missing_fields=%s",
-                            fact.id,
-                            correlation_id,
-                            ",".join(missing_concept_fields),
-                        )
             media_evaluation = decision_payload.get("media_evaluation")
             media_effects = [
                 effect for effect in effects if effect.action_type is ActionType.MEDIA_REQUEST

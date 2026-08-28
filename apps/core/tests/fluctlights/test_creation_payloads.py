@@ -46,6 +46,9 @@ class _Analyzer:
             **{f"life_profile.{name}": "model_generated" for name in life_profile},
         }
         sources["identity.name"] = "user_explicit"
+        sources.pop("life_profile.appearance")
+        sources.pop("life_profile.preferences")
+        sources.pop("life_profile.social_background")
         return {
             "foundation": {
                 "identity": {"name": "测试", "timezone": "UTC+8"},
@@ -122,6 +125,10 @@ def test_creation_preview_json_round_trips_personality_update_policy_for_activat
         assert preview.initial_goals[0]["description"] == "完成一组街头摄影练习"
         assert preview.life_profile["life_habits"][0]["description"] == "每天记录一个画面"
         assert preview.foundation_provenance["field_sources"]["identity.name"] == "user_explicit"
+        assert (
+            preview.foundation_provenance["field_sources"]["life_profile.appearance"]
+            == "model_generated"
+        )
 
     asyncio.run(verify())
 

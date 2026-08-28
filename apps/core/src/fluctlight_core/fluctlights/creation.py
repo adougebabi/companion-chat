@@ -170,7 +170,16 @@ def _foundation_provenance_from_payload(
     payload: dict[str, Any], *, require_complete: bool = False
 ) -> FoundationProvenance:
     values = dict(payload)
-    if require_complete and not isinstance(values.get("field_sources"), dict):
+    sources = values.get("field_sources")
+    if not isinstance(sources, dict):
+        if require_complete:
+            raise FoundationValidationError("provenance.field_sources is required")
+        return FoundationProvenance(**values)
+    completed = dict(sources)
+    for path in _required_field_source_paths():
+        completed.setdefault(path, "model_generated")
+    values["field_sources"] = completed
+    if require_complete and not completed:
         raise FoundationValidationError("provenance.field_sources is required")
     return FoundationProvenance(**values)
 
@@ -210,13 +219,7 @@ def _complete_field_sources(
     policy: BehavioralPolicy,
     life_profile: LifeProfile,
 ) -> FoundationProvenance:
-    sources = values.get("field_sources")
-    if not isinstance(sources, dict):
-        raise FoundationValidationError("provenance.field_sources is required")
-    completed = dict(sources)
-    for path in _required_field_source_paths():
-        completed.setdefault(path, "model_generated")
-    return FoundationProvenance(field_sources=completed)
+    return _foundation_provenance_from_payload(values, require_complete=True)
 
 
 def _validate_life_profile_semantics(life_profile: LifeProfile) -> None:

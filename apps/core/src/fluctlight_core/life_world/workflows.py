@@ -32,10 +32,23 @@ def configure_current_day_schedule_service(
 
 
 def _next_local_midnight_delay(now: datetime, timezone: str) -> timedelta:
+    # Temporal's workflow clock carries a sandbox `_RestrictedProxy` tzinfo.
+    # Rebuild the instant with the concrete UTC tzinfo before calling zoneinfo
+    # conversion; otherwise datetime.astimezone rejects the proxy object.
+    utc_now = datetime(
+        now.year,
+        now.month,
+        now.day,
+        now.hour,
+        now.minute,
+        now.second,
+        now.microsecond,
+        tzinfo=UTC,
+    )
     zone = ZoneInfo(timezone)
-    local_now = now.astimezone(zone)
+    local_now = utc_now.astimezone(zone)
     next_midnight = datetime.combine(local_now.date() + timedelta(days=1), time.min, tzinfo=zone)
-    return max(next_midnight.astimezone(UTC) - now.astimezone(UTC), timedelta(seconds=1))
+    return max(next_midnight.astimezone(UTC) - utc_now, timedelta(seconds=1))
 
 
 @activity.defn(name="ensure_current_day_schedule")
