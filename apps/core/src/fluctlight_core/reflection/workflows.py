@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import Any
 
 from temporalio import activity, workflow
 
 _cognition_service: Any | None = None
+logger = logging.getLogger(__name__)
 
 
 def configure_reflection_service(service: Any) -> None:
@@ -19,9 +21,16 @@ def configure_reflection_service(service: Any) -> None:
 async def run_reflection(payload: dict[str, Any]) -> dict[str, str]:
     if _cognition_service is None:
         raise RuntimeError("reflection activity is not configured")
+    fluctlight_id = str(payload["fluctlight_id"])
+    logger.warning("reflection.activity.start fluctlight_id=%s", fluctlight_id)
     proposal = await _cognition_service.run_current_reflection(
-        str(payload["fluctlight_id"]),
+        fluctlight_id,
         correlation_id=str(payload["correlation_id"]),
+    )
+    logger.warning(
+        "reflection.activity.finished fluctlight_id=%s status=%s",
+        fluctlight_id,
+        "completed" if proposal is not None else "no_op",
     )
     return {"status": "completed" if proposal is not None else "no_op"}
 

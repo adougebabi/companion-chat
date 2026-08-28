@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from hashlib import sha256
 
 from fluctlight_core.cognition.contracts import ReflectionProposal
 from fluctlight_core.memory.contracts import MemoryRecord, MemoryType, MemoryVisibility
@@ -30,11 +31,17 @@ class ReflectionCoordinator:
         memory_ids: list[str] = []
         relationship_ids: list[str] = []
         payload = proposal.payload
-        for raw in payload.get("memory_candidates", []):
+        for index, raw in enumerate(payload.get("memory_candidates", [])):
             if not isinstance(raw, Mapping):
                 raise ValueError("memory candidate must be an object")
+            candidate_id = raw.get("id")
+            if not isinstance(candidate_id, str) or not candidate_id.strip():
+                candidate_id = (
+                    "memory_reflection_"
+                    + sha256(f"{proposal.proposal_id}:{index}".encode()).hexdigest()[:32]
+                )
             memory = MemoryRecord(
-                id=str(raw["id"]),
+                id=candidate_id,
                 owner_fluctlight_id=proposal.fluctlight_id,
                 type=MemoryType(raw["type"]),
                 content=str(raw["content"]),
