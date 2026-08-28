@@ -2,11 +2,12 @@
 
 ## Required Checks
 
-- Run `npm run typecheck`, `npm run build`, `node --check server/index.js`, and
-  load the generated `dist/` through Express, not from `file://`.
+- Run `pnpm --filter @fluctlight/web typecheck`, `pnpm --filter
+  @fluctlight/web build`, and load the generated `apps/web/dist/` through the
+  production Nginx image (or a local static server), not from `file://`.
 - Exercise companion SSE and confirm token, done, and error events render
   without uncaught exceptions.
-- Verify API fields are normalized in `web/src/api/contracts.ts` and user text
+- Verify generated browser-client fields are normalized at the BFF boundary and user text
   is rendered through Vue bindings.
 - Check desktop and narrow/mobile layouts, including overlays and dialogs.
 - Confirm refresh recovery does not lose the active persona, draft, IME state,
@@ -18,7 +19,7 @@
 - User-facing identity language uses `身份核心`; copy describes continuity, life context, memory, relationships, and bounded behavior as product goals, never as proof of subjective consciousness.
 - A presentation rename must not rename compatibility contracts: `/api/companion`, `companion_*` tables or `companion.sqlite`, `COMPANION_*` environment variables, Docker/volume identifiers, localStorage keys, static filenames, test hooks, or payload fields.
 - Keep deleted root `src/` assets out of production; active changes belong under
-  `web/` and are verified through the Vite build.
+  `apps/web/` and are verified through the Vite build.
 
 ## Forbidden Patterns
 
@@ -87,4 +88,8 @@ The document grows with the dialog and the close action can move off-screen.
 
 ## Verification Notes
 
-The frontend uses Vite and TypeScript. `npm run typecheck` and `npm run build` are required before browser checks. Manual browser checks through Express-served `dist/`, plus API/SSE smoke and narrow/mobile viewport checks, remain the user-facing quality gate. Use a temporary or empty data directory for destructive UI checks when needed.
+The frontend uses Vite and TypeScript. `pnpm --filter @fluctlight/web typecheck`
+and `pnpm --filter @fluctlight/web build` are required before browser checks.
+Manual browser checks through the Nginx-served production image, plus API/NDJSON
+smoke and narrow/mobile viewport checks, remain the user-facing quality gate.
+Use a temporary or empty data directory for destructive UI checks when needed.

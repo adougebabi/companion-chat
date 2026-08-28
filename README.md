@@ -7,7 +7,8 @@ This repository contains the clean-start Fluctlight system:
   Moments, Media, persistence and authorization.
 - `apps/bff`: Node 24/Fastify browser boundary. It owns cookies, CSRF/origin
   transport, generated browser DTOs, NDJSON translation and media proxying.
-- `apps/web`: Vue 3/Vite/Pinia product UI and Control Center.
+- `apps/web`: Vue 3/Vite/Pinia product UI and Control Center, built to static
+  assets and served by Nginx in the production image.
 - `packages/core-client` and `packages/browser-client`: generated contract
   clients whose OpenAPI artifacts must be regenerated together.
 - `infra/compose`: PostgreSQL/pgvector, Redis Streams, MinIO, Temporal, Core,
@@ -43,8 +44,9 @@ For a NAS or another machine, set both public browser-facing URLs in that
 private file: `FLUCTLIGHT_TRUSTED_ORIGIN` is the exact URL used to open the
 Web application, while `FLUCTLIGHT_BFF_ORIGIN` is the browser-reachable BFF
 URL. The Web container reads `FLUCTLIGHT_BFF_ORIGIN` at startup and writes a
-public runtime config file, so changing the BFF address requires only
-recreating `web`, not rebuilding its image. Do not use a container hostname or
+public runtime config file before Nginx serves the static build, so changing
+the BFF address requires only recreating `web`, not rebuilding its image. Do
+not use a container hostname or
 `127.0.0.1` unless the browser itself runs on that same machine.
 `CORE_BASE_URL` remains the BFF-to-Core internal address and normally uses the
 Compose service name `http://core:8080`.

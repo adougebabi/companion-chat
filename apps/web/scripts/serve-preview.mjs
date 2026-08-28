@@ -1,3 +1,5 @@
+// Local-only helper for previewing a Vite production build. The production
+// image serves the build through Nginx instead.
 import { spawn } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';

@@ -1,18 +1,18 @@
 # Frontend Directory And Structure
 
 ```text
-web/index.html              Static shell and loading skeleton
-web/src/main.ts             Vue + Pinia entry point
-web/src/app/App.vue         Application shell and view routing
-web/src/api/*               Typed HTTP/SSE clients and normalizers
-web/src/stores/*            Shared server/app state
-web/src/composables/*       Chat, history, activity, composer and dialog effects
-web/src/components/*        Feature components and accessible interactions
-web/src/styles/*            Migrated visual tokens and responsive layout
-dist/                       Vite production output, served by Express
+apps/web/index.html         Static shell and loading skeleton
+apps/web/src/main.ts        Vue + Pinia entry point
+apps/web/src/app/*          Application shell and view routing
+apps/web/src/api/*          Typed HTTP/NDJSON clients and normalizers
+apps/web/src/stores/*       Shared server/app state
+apps/web/src/composables/*  Chat, history, activity, composer and dialog effects
+apps/web/src/components/*  Feature components and accessible interactions
+apps/web/src/styles/*       Migrated visual tokens and responsive layout
+apps/web/dist/              Vite production output, served by Nginx
 ```
 
-Keep API parsing in `web/src/api`, shared state in Pinia stores, and DOM side
+Keep API parsing at the generated browser-client boundary, shared state in Pinia stores, and DOM side
 effects in composables. Components should emit intent to their parent or store;
 they should not perform raw fetches. Use kebab-case CSS classes and stable
 dimensions for message/media surfaces.

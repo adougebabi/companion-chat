@@ -2,7 +2,7 @@
 
 ## Rendering Pattern
 
-`web/index.html` creates the static shell once. Vue views and components update
+`apps/web/index.html` creates the static shell once. Vue views and components update
 reactive props from Pinia stores; composables own asynchronous side effects.
 Avoid whole-app rerenders or direct DOM replacement during chat, activity, or
 composer updates.
@@ -23,7 +23,7 @@ path and return focus to the trigger.
 ## Styling
 
 Use existing semantic classes and CSS custom properties where present. Keep
-layout and responsive rules in `web/src/styles/*.css`; do not add inline styles
+layout and responsive rules in `apps/web/src/styles/*.css`; do not add inline styles
 unless a value is genuinely data-driven.
 
 ## Common Mistakes

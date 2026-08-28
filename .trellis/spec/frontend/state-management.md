@@ -11,7 +11,7 @@ each active 摇光实例 conversation, not necessarily the complete history.
 
 ## Server State Rules
 
-Use the typed clients in `web/src/api/*` for JSON endpoints; they throw on
+Use the generated browser client at the BFF boundary for JSON endpoints; it throws on
 non-2xx responses using the server's `error` field. `bootstrap()` loads
 contacts first; selecting a 摇光实例 loads the latest bounded message page,
 and history pagination requests older pages by cursor. Background refresh must

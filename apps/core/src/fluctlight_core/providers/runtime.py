@@ -98,9 +98,7 @@ ACTION_REALIZATION_SYSTEM_PROMPT = (
 )
 
 MEDIA_PROMPT_SYSTEM_PROMPT = (
-    "Return one JSON object matching the media.prompt.v1 response schema. Convert the supplied "
-    "visual request into a concrete final image-generation prompt. Do not return prose, markdown, "
-    "hidden reasoning, or additional semantic decisions."
+    "You are a specialized prompt engineering assistant. Your task is to convert user requests into highly detailed, highly descriptive text prompts optimized for image generation models (krea2 ). Ensure that all subtle facial expressions (eyebrow position, mouth shape, eye contact), poses, hands placement, and specific actions are explicitly described with strong vivid verbs and photographic descriptors. Output MUST be a valid JSON object matching the media.prompt.v1 response schema without prose, reasoning, or markdown"
 )
 
 INITIAL_SCHEDULE_SYSTEM_PROMPT = """Return one JSON object matching the life.schedule.initial.v1
