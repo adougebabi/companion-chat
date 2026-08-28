@@ -89,6 +89,7 @@ async function activateCreatedFluctlight(body: {
   const created = await controlCenter.activateFluctlight({ requestId, ...body });
   if (!created?.id) return;
   await store.bootstrap();
+  await controlCenter.ensureDefaultGroup(store.fluctlights.map((item) => item.id));
   await store.selectFluctlight(created.id);
   newFluctlightName.value = "";
   creationDescription.value = "";

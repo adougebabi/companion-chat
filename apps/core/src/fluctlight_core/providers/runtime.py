@@ -262,25 +262,45 @@ class ConfiguredProviderRuntime:
             raw_effects = decision_payload.get("effects")
             if not isinstance(raw_effects, list) or not raw_effects:
                 raise RuntimeError("cognitive Provider response is missing decision effects")
-            effects = tuple(
-                DecisionEffect(
-                    effect_id=str(effect["id"]),
-                    action_type=effect["action_type"],
-                    payload=dict(effect.get("payload", {})),
-                )
-                for effect in raw_effects
-                if isinstance(effect, dict)
+            media_evaluation = decision_payload.get("media_evaluation")
+            fallback_concept = (
+                media_evaluation.get("visual_concept")
+                if isinstance(media_evaluation, dict)
+                and isinstance(media_evaluation.get("visual_concept"), dict)
+                and media_evaluation["visual_concept"]
+                else None
             )
+            source_text = fact.payload.get("text")
+            if not isinstance(source_text, str):
+                source_text = ""
+            effects_list: list[DecisionEffect] = []
+            for effect in raw_effects:
+                if not isinstance(effect, dict):
+                    continue
+                effect_payload = dict(effect.get("payload", {}))
+                if effect.get("action_type") == ActionType.MEDIA_REQUEST.value:
+                    concept = effect_payload.get("media_request")
+                    if not isinstance(concept, dict) or not concept:
+                        concept = dict(fallback_concept or {})
+                        concept.setdefault("original_request", source_text[:4000])
+                        effect_payload["media_request"] = concept
+                        logger.warning(
+                            "cognition.media_request.concept_recovered fact_id=%s "
+                            "correlation_id=%s source=%s",
+                            fact.id,
+                            correlation_id,
+                            "media_evaluation" if fallback_concept else "source_text",
+                        )
+                effects_list.append(
+                    DecisionEffect(
+                        effect_id=str(effect["id"]),
+                        action_type=effect["action_type"],
+                        payload=effect_payload,
+                    )
+                )
+            effects = tuple(effects_list)
             if len(effects) != len(raw_effects):
                 raise RuntimeError("cognitive Provider decision effects must be objects")
-            for effect in effects:
-                if effect.action_type is ActionType.MEDIA_REQUEST:
-                    concept = effect.payload.get("media_request")
-                    if not isinstance(concept, dict) or not concept:
-                        raise RuntimeError(
-                            "cognitive media_request effect is missing a visual concept"
-                        )
-            media_evaluation = decision_payload.get("media_evaluation")
             media_effects = [
                 effect for effect in effects if effect.action_type is ActionType.MEDIA_REQUEST
             ]

@@ -73,22 +73,23 @@ async function openGovernance() {
 
 async function handleSetup(token: string, password: string) {
   await store.setup(token, password);
-  if (store.authenticated) await controlCenter.loadActorGroups();
+  if (store.authenticated) await controlCenter.ensureDefaultGroup(store.fluctlights.map((item) => item.id));
 }
 
 async function handleSignIn(password: string) {
   await store.login(password);
-  if (store.authenticated) await controlCenter.loadActorGroups();
+  if (store.authenticated) await controlCenter.ensureDefaultGroup(store.fluctlights.map((item) => item.id));
 }
 
-watch(() => store.authenticated, (authenticated) => {
-  if (authenticated) void controlCenter.loadActorGroups();
-});
+async function initializeWorkspace() {
+  await store.initialize();
+  if (store.authenticated) await controlCenter.ensureDefaultGroup(store.fluctlights.map((item) => item.id));
+}
 
 onMounted(() => {
   window.addEventListener("popstate", onPopState);
   syncDiagnosticsFilterFromLocation();
-  void store.initialize();
+  void initializeWorkspace();
 });
 onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
 </script>
