@@ -69,9 +69,10 @@ COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
     "response; do not require a magic phrase or use a keyword rule. An explicit request is strong "
     "evidence, but a contextual need can also justify media_request. A media_request effect must "
     "carry a non-empty media_request visual concept with scene, action, mood, subject/object and "
-    "capture details. If media_evaluation.needed is true, include a media_request effect; "
-    "if false, "
-    "do not include one. Keep response_intent limited to the visible acknowledgement; never put "
+    "capture details. For conversation.message, if media_evaluation.needed is true, include a "
+    "media_request effect; if false, do not include one. For life_world.daily_review, if media "
+    "is needed, include a moment effect with moment_media_request instead. Keep response_intent "
+    "limited to the visible acknowledgement; never put "
     "the "
     "visual concept there or emit final provider/workflow parameters. "
     "persona_profile, when present in the observation payload, is the authoritative Foundation "
@@ -304,13 +305,25 @@ class ConfiguredProviderRuntime:
                 needed = media_evaluation.get("needed")
                 if not isinstance(needed, bool):
                     raise RuntimeError("cognitive media evaluation has no boolean needed value")
-                if needed and not media_effects:
-                    raise RuntimeError(
-                        "cognitive media evaluation requires a media_request effect"
+                moment_media_effects = [
+                    effect
+                    for effect in effects
+                    if effect.action_type is ActionType.MOMENT
+                    and isinstance(effect.payload.get("moment_media_request"), dict)
+                    and bool(effect.payload["moment_media_request"])
+                ]
+                if needed and not media_effects and not moment_media_effects:
+                    expected_effect = (
+                        "moment_media_request"
+                        if fact.event_type == "life_world.daily_review"
+                        else "media_request"
                     )
-                if not needed and media_effects:
                     raise RuntimeError(
-                        "cognitive media_request effect contradicts media evaluation"
+                        f"cognitive media evaluation requires a {expected_effect} effect"
+                    )
+                if not needed and (media_effects or moment_media_effects):
+                    raise RuntimeError(
+                        "cognitive media effect contradicts media evaluation"
                     )
             logger.warning(
                 "cognition.assessment.response fact_id=%s correlation_id=%s effect_count=%d "
