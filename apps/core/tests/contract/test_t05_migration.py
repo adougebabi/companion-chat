@@ -18,5 +18,5 @@ def test_t05_advances_the_linear_readiness_revision() -> None:
         "0016_media_intent_conversation",
         "0017_media_intent_moment",
         "0018_foundation_v2_life_profile",
-        "0019_compound_effects",
+        "0020_media_provider_job",
     }

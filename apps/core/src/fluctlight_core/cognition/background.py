@@ -28,14 +28,30 @@ class DailyLifeReviewService:
         fluctlight = await self._fluctlights.get(fluctlight_id)
         if fluctlight.status is not FluctlightStatus.ACTIVE:
             return {"status": "inactive"}
+        local_date = schedule.local_date.isoformat()
+        fact_id = f"background:daily-review:{fluctlight_id}:{local_date}"
+        existing_status = await self._cognition.inbox_fact_status(
+            fact_id, fluctlight_id=fluctlight_id
+        )
+        if existing_status is not None and existing_status is not InboxStatus.PENDING:
+            return {"status": "already_processed", "fact_id": fact_id}
+
+        if existing_status is InboxStatus.PENDING:
+            outcome = await self._cognition.process_next(fluctlight_id, worker_id="lifecycle")
+            if outcome is None:
+                return {"status": "queued", "fact_id": fact_id}
+            return {
+                "status": outcome.status.value,
+                "fact_id": fact_id,
+                "action_type": outcome.action.action_type.value if outcome.action else "no_op",
+            }
+
         owner_actor_id = await self._fluctlights.owner_actor_id(fluctlight_id)
         conversation_id = await self._conversations.direct_conversation_id(
             owner_actor_id=owner_actor_id,
             fluctlight_actor_id=fluctlight_id,
         )
         goals, intentions = await self._inner_state.goals_and_intentions(fluctlight_id)
-        local_date = schedule.local_date.isoformat()
-        fact_id = f"background:daily-review:{fluctlight_id}:{local_date}"
         identity = fluctlight.identity.as_payload()
         persona_profile = {
             "identity": {key: value for key, value in identity.items() if key != "id"},

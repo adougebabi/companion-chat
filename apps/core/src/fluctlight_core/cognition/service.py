@@ -229,6 +229,23 @@ class CognitionService:
             for row in rows
         ]
 
+    async def inbox_fact_status(
+        self, fact_id: str, *, fluctlight_id: str | None = None
+    ) -> InboxStatus | None:
+        """Read an immutable inbox fact's status before rebuilding its context.
+
+        Background triggers use a stable fact ID for a local day.  The status
+        lookup lets them replay an existing fact without re-reading mutable
+        persona, schedule, or goal state and accidentally changing its payload.
+        """
+
+        statement = select(schema.inbox.c.status).where(schema.inbox.c.id == fact_id)
+        if fluctlight_id is not None:
+            statement = statement.where(schema.inbox.c.fluctlight_id == fluctlight_id)
+        async with self._unit_of_work.begin(command_id=f"cognition-fact-status:{fact_id}") as tx:
+            status = await tx.session.scalar(statement)
+        return InboxStatus(status) if status is not None else None
+
     async def claim_next(self, fluctlight_id: str, *, worker_id: str) -> InboxClaim | None:
         now = self._clock()
         async with self._unit_of_work.begin(command_id=f"cognition-claim:{fluctlight_id}") as tx:

@@ -57,6 +57,7 @@ class MediaIntent:
     status: MediaIntentStatus = MediaIntentStatus.PENDING
     revision: int = 0
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    provider_job_id: str | None = None
 
     def __post_init__(self) -> None:
         for name in (
@@ -69,6 +70,12 @@ class MediaIntent:
             object.__setattr__(self, name, _text(getattr(self, name), name))
         object.__setattr__(self, "prompt", _text(self.prompt, "prompt", 12_000))
         object.__setattr__(self, "kind", MediaKind(self.kind))
+        if self.provider_job_id is not None:
+            object.__setattr__(
+                self,
+                "provider_job_id",
+                _text(self.provider_job_id, "provider_job_id", 256),
+            )
         if self.conversation_id is not None:
             object.__setattr__(
                 self, "conversation_id", _text(self.conversation_id, "conversation_id")

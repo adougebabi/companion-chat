@@ -25,6 +25,7 @@ intents = Table(
     Column("mime_type", String(128), nullable=False),
     Column("prompt", Text, nullable=False),
     Column("provider_request_id", String(128), nullable=False, unique=True),
+    Column("provider_job_id", String(256), unique=True),
     Column("workflow_id", String(128), nullable=False, unique=True),
     Column("conversation_id", String(128), ForeignKey("public.conversations.id")),
     Column("moment_id", String(128), ForeignKey("public.moments.id")),

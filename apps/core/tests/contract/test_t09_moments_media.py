@@ -16,4 +16,5 @@ def test_t09_tables_share_public_metadata_and_private_object_identity() -> None:
     }
     assert {f"public.{name}" for name in expected} <= set(metadata.tables)
     assert media_schema.assets.c.object_key is not None
+    assert media_schema.intents.c.provider_job_id is not None
     assert moments_schema.reactions.c.actor_id is not None

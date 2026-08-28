@@ -56,6 +56,7 @@ created_at / ready_at / tombstoned_at / deleted_at
 - Object keys are stable generated identities such as `media/{asset_id}/{object_version}` and never user-controlled filenames or local absolute paths.
 - PostgreSQL records SHA-256 and byte size; ETag alone is not a content-integrity guarantee.
 - Generation/upload happens after a committed media intent. The final transaction validates workflow ID, asset revision, checksum, size, and references before marking ready.
+- The external Provider job ID is persisted on the committed media intent immediately after submission. Activity retries reuse that ID for polling and cancellation; they never submit a second Provider job for the same intent. A ready asset is the authoritative replay boundary, so retries only reapply idempotent conversation/Moment projections.
 - Deletion first removes/invalidates active references and commits a tombstone/outbox intent. Physical object/version deletion is retryable and only then marks `deleted`.
 - Upload success followed by database failure reuses the same object key/request identity on retry or is collected as an orphan. It never creates a second user-visible asset.
 - Bucket versioning is enabled. Lifecycle rules remove obsolete/non-current versions according to an explicit retention policy.
@@ -87,6 +88,7 @@ created_at / ready_at / tombstoned_at / deleted_at
 
 - Media-intent/reference transaction tests for rollback, stable IDs, ownership, and outbox atomicity.
 - Upload/recovery tests for checksum/size mismatch, duplicate upload, success-before-crash, orphan collection, and idempotent result commit.
+- Provider retry tests assert that a persisted external job ID is polled without a second submission, ready-asset replay does not upload again, and cancellation targets the external job ID.
 - Authorization tests across Actor, Conversation, Message, Moment, and tombstoned/deleted states.
 - BFF proxy tests for internal grant expiry, Range, ETag, MIME, cache headers, stream abort, unavailable object, and no leaked bucket credentials.
 - Deletion tests for last-reference policy, tombstone/read denial, object failure/retry, object-already-absent, and version-specific deletion.

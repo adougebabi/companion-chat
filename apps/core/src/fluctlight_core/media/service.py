@@ -137,6 +137,61 @@ class MediaService:
             raise KeyError(intent_id)
         return self._intent_from_row(row)
 
+    async def get_asset(self, asset_id: str) -> MediaAsset | None:
+        """Read the durable asset projection for workflow replay recovery."""
+
+        async with self._unit_of_work.begin(command_id=f"media-asset-read:{asset_id}") as tx:
+            row = (
+                (
+                    await tx.session.execute(
+                        select(schema.assets).where(schema.assets.c.id == asset_id)
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        return self._asset_from_row(row) if row is not None else None
+
+    async def record_provider_submission(self, intent_id: str, provider_job_id: str) -> str:
+        """Persist the Provider's external job ID exactly once.
+
+        The business ``provider_request_id`` is generated before the external
+        call. ComfyUI returns a different prompt ID, which must survive
+        Activity retries so a retry polls the original job instead of
+        submitting a second generation.
+        """
+
+        if not isinstance(provider_job_id, str) or not provider_job_id.strip():
+            raise ValueError("provider job ID is required")
+        provider_job_id = provider_job_id.strip()
+        async with self._unit_of_work.begin(
+            command_id=f"media-provider-submission:{intent_id}"
+        ) as tx:
+            row = (
+                (
+                    await tx.session.execute(
+                        select(schema.intents)
+                        .where(schema.intents.c.id == intent_id)
+                        .with_for_update()
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if row is None:
+                raise KeyError(intent_id)
+            existing = row["provider_job_id"]
+            if existing is not None and existing != provider_job_id:
+                raise ValueError("media Provider job ID conflicts with an existing submission")
+            if existing is None:
+                await tx.session.execute(
+                    update(schema.intents)
+                    .where(schema.intents.c.id == intent_id)
+                    .values(provider_job_id=provider_job_id)
+                )
+            await tx.commit()
+        return str(existing or provider_job_id)
+
     @staticmethod
     def _intent_from_row(row: Any) -> MediaIntent:
         return MediaIntent(
@@ -152,11 +207,12 @@ class MediaService:
             status=row["status"],
             revision=int(row["revision"]),
             created_at=row["created_at"],
+            provider_job_id=row["provider_job_id"],
         )
 
-    async def mark_intent_running(self, intent_id: str) -> None:
+    async def mark_intent_running(self, intent_id: str) -> bool:
         async with self._unit_of_work.begin(command_id=f"media-intent-running:{intent_id}") as tx:
-            await tx.session.execute(
+            result = await tx.session.execute(
                 update(schema.intents)
                 .where(
                     schema.intents.c.id == intent_id,
@@ -165,6 +221,7 @@ class MediaService:
                 .values(status=MediaIntentStatus.RUNNING.value)
             )
             await tx.commit()
+        return result.rowcount == 1
 
     async def settle_provider_output(
         self, intent: MediaIntent, *, content: bytes, content_type: str
@@ -192,8 +249,12 @@ class MediaService:
     async def record_uploaded(
         self, intent: MediaIntent, descriptor: ObjectDescriptor, *, byte_size: int | None = None
     ) -> MediaAsset:
-        if descriptor.bucket != self._storage.bucket or descriptor.byte_size != (
-            byte_size or descriptor.byte_size
+        expected_size = byte_size if byte_size is not None else descriptor.byte_size
+        expected_key = f"media/asset_{intent.id}/v1"
+        if (
+            descriptor.bucket != self._storage.bucket
+            or descriptor.byte_size != expected_size
+            or descriptor.key != expected_key
         ):
             raise ValueError("uploaded object does not match the committed media descriptor")
         now = datetime.now(UTC)
@@ -246,9 +307,22 @@ class MediaService:
             }
             if existing is None:
                 await tx.session.execute(insert(schema.assets).values(created_at=now, **values))
+            elif existing["status"] in {
+                MediaStatus.TOMBSTONED.value,
+                MediaStatus.DELETED.value,
+            }:
+                raise ValueError("tombstoned media asset cannot be restored")
             elif existing["sha256"] != asset.sha256 or existing["object_key"] != asset.object_key:
                 raise ValueError("media asset identity conflicts with an existing upload")
             else:
+                if existing["status"] == MediaStatus.READY.value:
+                    await tx.session.execute(
+                        update(schema.intents)
+                        .where(schema.intents.c.id == intent.id)
+                        .values(status=MediaIntentStatus.COMPLETED.value)
+                    )
+                    await tx.commit()
+                    return self._asset_from_row(existing)
                 await tx.session.execute(
                     update(schema.assets).where(schema.assets.c.id == asset.id).values(**values)
                 )
@@ -279,6 +353,32 @@ class MediaService:
                 raise PermissionError("media asset is not attachable")
             if not await self._authorized(reference.owner_fluctlight_id, actor_id):
                 raise PermissionError("media attachment authorization failed")
+            existing = (
+                (
+                    await tx.session.execute(
+                        select(schema.references).where(schema.references.c.id == reference.id)
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if existing is not None:
+                expected = {
+                    "asset_id": reference.asset_id,
+                    "owner_fluctlight_id": reference.owner_fluctlight_id,
+                    "target_type": reference.target_type,
+                    "target_id": reference.target_id,
+                }
+                if any(existing[key] != value for key, value in expected.items()):
+                    raise ValueError("media reference ID was reused with different content")
+                return MediaReference(
+                    id=existing["id"],
+                    asset_id=existing["asset_id"],
+                    owner_fluctlight_id=existing["owner_fluctlight_id"],
+                    target_type=existing["target_type"],
+                    target_id=existing["target_id"],
+                    created_at=existing["created_at"],
+                )
             await tx.session.execute(
                 insert(schema.references).values(
                     id=reference.id,
@@ -477,10 +577,11 @@ class MediaWorkflowAdapter:
         *,
         heartbeat: Callable[[str], Awaitable[None] | None] | None = None,
         cancelled: Callable[[], bool] | None = None,
+        provider_request_id: str | None = None,
         max_polls: int = 120,
         poll_interval_seconds: float = 1.0,
     ) -> MediaWorkflowResult:
-        request_id = await provider.submit(intent)
+        request_id = provider_request_id or await provider.submit(intent)
         if not request_id:
             raise ValueError("Provider returned no request ID")
         for _ in range(max_polls):

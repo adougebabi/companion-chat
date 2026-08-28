@@ -60,14 +60,21 @@ class _InnerState:
 
 
 class _Cognition:
-    def __init__(self) -> None:
+    def __init__(self, existing_status: InboxStatus | None = None) -> None:
         self.fact = None
+        self.existing_status = existing_status
+        self.process_calls = 0
+
+    async def inbox_fact_status(self, _fact_id: str, *, fluctlight_id: str):
+        assert fluctlight_id == "fluctlight-1"
+        return self.existing_status
 
     async def enqueue(self, fact):
         self.fact = fact
         return SimpleNamespace(status=InboxStatus.PENDING)
 
     async def process_next(self, fluctlight_id: str, *, worker_id: str):
+        self.process_calls += 1
         assert (fluctlight_id, worker_id) == ("fluctlight-1", "lifecycle")
         return ProcessOutcome(
             InboxStatus.COMPLETED,
@@ -108,6 +115,59 @@ def test_daily_review_creates_one_typed_background_fact_for_model_decision() -> 
             cognition.fact.payload["persona_profile"]["behavioral_policy"]["response_style"]
             == "温和简洁"
         )
+
+    asyncio.run(verify())
+
+
+def test_daily_review_replays_existing_fact_without_rebuilding_mutable_context() -> None:
+    async def verify() -> None:
+        cognition = _Cognition(InboxStatus.COMPLETED)
+
+        class NoReadConversations:
+            async def direct_conversation_id(self, **_kwargs: str):
+                raise AssertionError("existing daily review must not read conversation state")
+
+        class NoReadInnerState:
+            async def goals_and_intentions(self, _fluctlight_id: str):
+                raise AssertionError("existing daily review must not read inner state")
+
+        service = DailyLifeReviewService(
+            _Fluctlights(), NoReadConversations(), NoReadInnerState(), cognition
+        )
+        schedule = SimpleNamespace(local_date=date(2026, 8, 27))
+
+        result = await service.review_current_day("fluctlight-1", schedule)
+
+        assert result == {
+            "status": "already_processed",
+            "fact_id": "background:daily-review:fluctlight-1:2026-08-27",
+        }
+        assert cognition.process_calls == 0
+
+    asyncio.run(verify())
+
+
+def test_daily_review_replays_existing_pending_fact_without_rebuilding_context() -> None:
+    async def verify() -> None:
+        cognition = _Cognition(InboxStatus.PENDING)
+
+        class NoReadConversations:
+            async def direct_conversation_id(self, **_kwargs: str):
+                raise AssertionError("pending replay must not read conversation state")
+
+        class NoReadInnerState:
+            async def goals_and_intentions(self, _fluctlight_id: str):
+                raise AssertionError("pending replay must not read inner state")
+
+        service = DailyLifeReviewService(
+            _Fluctlights(), NoReadConversations(), NoReadInnerState(), cognition
+        )
+        schedule = SimpleNamespace(local_date=date(2026, 8, 27))
+
+        result = await service.review_current_day("fluctlight-1", schedule)
+
+        assert result["fact_id"] == "background:daily-review:fluctlight-1:2026-08-27"
+        assert cognition.process_calls == 1
 
     asyncio.run(verify())
 

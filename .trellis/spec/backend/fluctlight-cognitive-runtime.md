@@ -97,6 +97,11 @@ Interactive work uses two model stages. `assess` / `propose_decision` return no 
   inference about user inactivity. Its idempotency key is stable for one
   Fluctlight/local date/lifecycle trigger and it re-enters the same ordered
   cognition inbox as a conversation fact.
+- The first accepted daily-review fact owns an immutable snapshot of its
+  schedule, persona, goals, intentions, and conversation target. Retries and
+  duplicate lifecycle triggers check the existing fact status before reading
+  mutable context; they replay the persisted fact and never enqueue the same
+  ID with a newly assembled payload.
 - Assessment for that fact may choose only `no_op`, `proactive_message`, or
   `moment`. The decision contains no visible text. It may include a
   `moment_media_request` only when the model judges that the Moment needs an
