@@ -272,14 +272,6 @@ class ConfiguredProviderRuntime:
             if len(effects) != len(raw_effects):
                 raise RuntimeError("cognitive Provider decision effects must be objects")
             for effect in effects:
-                if effect.action_type in {
-                    ActionType.REPLY,
-                    ActionType.PROACTIVE_MESSAGE,
-                    ActionType.MOMENT,
-                } and not isinstance(effect.payload.get("response_intent", {}), dict):
-                    raise RuntimeError(
-                        f"cognitive {effect.action_type.value} response_intent must be an object"
-                    )
                 if effect.action_type is ActionType.MEDIA_REQUEST:
                     concept = effect.payload.get("media_request")
                     if not isinstance(concept, dict) or not concept:
