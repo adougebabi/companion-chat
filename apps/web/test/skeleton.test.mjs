@@ -62,9 +62,12 @@ test("web uses the secure random-ID compatibility helper instead of randomUUID d
   assert.match(helperSource, /crypto\?\.getRandomValues/);
 });
 
-test("creation drawer presents activation failures where the user can act on them", async () => {
+test("creation dialog presents activation failures where the user can act on them", async () => {
   const source = vueSource;
-  assert.match(source, /class="create-surface"[\s\S]*controlCenter\.error/);
+  assert.match(source, /<Dialog[\s\S]*<DialogContent[^>]*class="create-surface"/);
+  assert.match(source, /class="create-dialog-body"[\s\S]*controlCenter\.error/);
+  assert.match(source, /class="create-dialog-footer"/);
+  assert.match(source, /form="activate-preview-form"/);
   assert.match(source, /预览必须包含 identity/);
 });
 

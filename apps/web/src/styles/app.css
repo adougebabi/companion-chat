@@ -878,6 +878,39 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
   line-height: 1.4;
 }
 
+.diagnostics-accordion {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
+.diagnostics-drawer {
+  min-width: 0;
+  margin-top: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.diagnostics-drawer-summary {
+  width: 100%;
+  min-height: 72px;
+  align-items: center;
+  padding: 16px 18px;
+}
+
+.diagnostics-drawer-summary > div { min-width: 0; }
+
+.diagnostics-drawer-summary .count-pill { margin-left: auto; }
+
+.diagnostic-drawer-body {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.diagnostic-drawer-body .diagnostic-row { margin: 0; }
+
 .settings-drawer[open] > summary {
   padding-bottom: 14px;
   border-bottom: 1px solid var(--surface-border);
@@ -1044,5 +1077,231 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
   .provider-model-status {
     width: 100%;
     border-radius: 12px;
+  }
+
+  .diagnostics-drawer-summary {
+    min-height: 64px;
+    padding: 14px 16px;
+  }
+
+  .diagnostic-drawer-body { padding: 0 10px 10px; }
+
+  .diagnostics-page .page-header {
+    display: flex;
+    min-height: 58px;
+    justify-content: center;
+    gap: 0;
+    padding: 12px 14px;
+  }
+
+  .diagnostics-page .page-header > div:first-child {
+    min-height: 0;
+    padding-top: 0;
+    text-align: center;
+  }
+}
+
+/* Desktop keeps the contextual rail textual, matching the earlier
+   conversation-first shell. Mobile remains icon-only in the separate fixed
+   bottom bar above. */
+@media (min-width: 761px) {
+  .desktop-context-panel > .bottom-nav {
+    display: grid;
+    gap: 4px;
+    padding: 10px 12px 14px;
+  }
+
+  .desktop-context-panel > .bottom-nav .bottom-nav-item {
+    display: flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: flex-start;
+    flex-direction: row;
+    gap: 11px;
+    padding: 0 12px;
+    border-radius: 9px;
+    font-size: .82rem;
+    text-align: left;
+  }
+
+  .desktop-context-panel > .bottom-nav .bottom-nav-item > span:last-child {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: nowrap;
+  }
+
+  .desktop-context-panel > .bottom-nav .bottom-nav-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 1rem;
+  }
+}
+
+/* Instance creation is a focused, bounded workflow.  Keep the dialog itself
+   as the only surface that grows; its body owns scrolling while the title and
+   actions remain reachable at every viewport size. */
+[data-slot="dialog-content"].create-surface {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(640px, calc(100% - 32px));
+  max-width: 640px;
+  max-height: min(760px, calc(100dvh - 32px));
+  margin: 0;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgb(38 42 54 / 22%);
+  translate: none;
+  transform: translate(-50%, -50%);
+}
+
+.create-dialog-header {
+  display: flex;
+  min-width: 0;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.create-dialog-header > div:first-child {
+  min-width: 0;
+}
+
+.create-dialog-header [data-slot="dialog-title"] {
+  margin-top: 4px;
+  font-size: 1.2rem;
+  line-height: 1.25;
+}
+
+.create-dialog-header [data-slot="dialog-description"] {
+  max-width: 42rem;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.create-dialog-close {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.create-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 22px;
+}
+
+.create-dialog-body .segmented-control {
+  margin-bottom: 16px;
+}
+
+.create-dialog-body .error-banner {
+  display: grid;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.create-dialog-body .stack-form {
+  min-width: 0;
+}
+
+.create-dialog-body .preview-form {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--surface-border);
+}
+
+.create-dialog-body textarea {
+  max-width: 100%;
+}
+
+.create-dialog-footer {
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 22px calc(14px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--surface-border);
+  border-radius: 0;
+  background: var(--surface);
+}
+
+.create-dialog-footer > * {
+  min-width: 0;
+}
+
+.create-dialog-footer .secondary-button,
+.create-dialog-footer .primary-button {
+  flex: 0 1 auto;
+}
+
+@media (max-width: 760px) {
+  [data-slot="dialog-content"].create-surface {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    max-height: calc(100dvh - env(safe-area-inset-top));
+    border-width: 1px 0 0;
+    border-radius: 20px 20px 0 0;
+    transform: none;
+  }
+
+  .create-dialog-header {
+    padding: 16px 16px 14px;
+  }
+
+  .create-dialog-body {
+    padding: 16px;
+  }
+
+  .create-dialog-footer {
+    flex-direction: row;
+    justify-content: stretch;
+    padding-inline: 16px;
+  }
+
+  .create-dialog-footer > * {
+    flex: 1 1 auto;
+  }
+
+  .create-dialog-footer .primary-button,
+  .create-dialog-footer .secondary-button {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 380px) {
+  .create-dialog-header {
+    gap: 8px;
+  }
+
+  .create-dialog-close {
+    padding-inline: 4px;
+  }
+
+  .create-dialog-footer {
+    gap: 6px;
+  }
+
+  .create-dialog-footer .secondary-button,
+  .create-dialog-footer .primary-button {
+    padding-inline: 10px;
+    font-size: .8rem;
   }
 }

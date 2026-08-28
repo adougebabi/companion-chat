@@ -4,6 +4,13 @@ import { Plus, X } from "@lucide/vue";
 
 import Badge from "@/components/ui/badge/Badge.vue";
 import Button from "@/components/ui/button/Button.vue";
+import Dialog from "@/components/ui/dialog/Dialog.vue";
+import DialogClose from "@/components/ui/dialog/DialogClose.vue";
+import DialogContent from "@/components/ui/dialog/DialogContent.vue";
+import DialogDescription from "@/components/ui/dialog/DialogDescription.vue";
+import DialogFooter from "@/components/ui/dialog/DialogFooter.vue";
+import DialogHeader from "@/components/ui/dialog/DialogHeader.vue";
+import DialogTitle from "@/components/ui/dialog/DialogTitle.vue";
 import Input from "@/components/ui/input/Input.vue";
 import Textarea from "@/components/ui/textarea/Textarea.vue";
 import Select from "@/components/ui/select/Select.vue";
@@ -17,7 +24,7 @@ import { randomId } from "../random-id";
 import GovernanceView from "./GovernanceView.vue";
 import { fluctlightStatusLabel } from "../lib/fluctlight-status";
 
-const props = defineProps<{ openGovernance?: boolean }>();
+const props = defineProps<{ openGovernance?: boolean; openCreate?: number }>();
 const emit = defineEmits<{ openChat: []; openDetails: []; openDiagnostics: [correlationId: string]; }>();
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
@@ -38,6 +45,9 @@ const defaultGroupId = computed(() => controlCenter.actorGroups.find((group) => 
 
 watch(() => props.openGovernance, (open) => {
   if (open) showGovernance.value = true;
+}, { immediate: true });
+watch(() => props.openCreate, (request) => {
+  if (request) showCreateForm.value = true;
 }, { immediate: true });
 
 const selectedGroupStorageKey = "fluctlight.selected-group-id";
@@ -200,14 +210,61 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
 
     <form v-if="showGroupForm" class="group-create-inline" @submit.prevent="createGroup"><label for="actor-group-name">分组名称<Input id="actor-group-name" v-model="controlCenter.newActorGroupName" maxlength="128" placeholder="例如：工作、朋友" required /></label><Button class="primary-button" variant="default" type="submit" :disabled="controlCenter.saving || !controlCenter.newActorGroupName.trim()">创建分组</Button></form>
 
-    <section v-if="showCreateForm" id="instance-create" class="create-surface" aria-labelledby="create-title">
-      <div class="section-heading"><div><p class="eyebrow">CREATE</p><h2 id="create-title">创建 Fluctlight</h2></div><Button class="text-button" variant="ghost" type="button" @click="showCreateForm = false"><X :size="15" :stroke-width="2" aria-hidden="true" />关闭</Button></div>
-      <div class="segmented-control" role="group" aria-label="Fluctlight 创建方式"><Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'blank_slate' }" type="button" @click="creationMode = 'blank_slate'">白纸创建</Button><Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'llm_defined' }" type="button" @click="creationMode = 'llm_defined'">从描述创建</Button></div>
-      <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}<Button v-if="controlCenter.analysisFailureCorrelationId" class="text-button" variant="link" type="button" @click="controlCenter.diagnosticsCorrelationFilter = controlCenter.analysisFailureCorrelationId; emit('openDiagnostics', controlCenter.analysisFailureCorrelationId)">查看本次失败诊断</Button></p>
-      <form v-if="creationMode === 'blank_slate'" class="stack-form" @submit.prevent="createBlank"><label for="fluctlight-name">实例名称<Input id="fluctlight-name" v-model="newFluctlightName" type="text" maxlength="256" required placeholder="例如：苏洛星" /></label><Button class="primary-button" variant="default" type="submit" :disabled="controlCenter.saving || controlCenter.loading || !newFluctlightName.trim()">创建并开始对话</Button></form>
-      <form v-else class="stack-form" @submit.prevent="analyzeDescription"><label for="fluctlight-description">描述你希望创建的 Fluctlight<Textarea id="fluctlight-description" v-model="creationDescription" rows="5" maxlength="12000" placeholder="描述身份、经历、价值观、表达方式或你希望它如何生活..." /></label><Button class="primary-button" variant="default" type="submit" :disabled="controlCenter.saving || !creationDescription.trim()">分析并生成预览</Button></form>
-      <form v-if="creationMode === 'llm_defined' && creationPreviewJson" class="stack-form preview-form" @submit.prevent="activatePreview"><label for="fluctlight-preview">可编辑的基础预览<Textarea id="fluctlight-preview" v-model="creationPreviewJson" rows="12" spellcheck="false" /></label><div v-if="creationInitialGoals.length || creationInitialIntentions.length" class="preview-summary"><strong>创建后会带入</strong><span v-for="goal in creationInitialGoals" :key="String(goal.description)">目标：{{ String(goal.description) }}</span><span v-for="intention in creationInitialIntentions" :key="String(intention.action)">意图：{{ String(intention.action) }}</span></div><Button v-if="creationDiagnosticsCorrelationId" class="secondary-button" variant="outline" type="button" @click="openCreationDiagnostics">查看本次分析诊断</Button><Button class="primary-button" variant="default" type="submit" :disabled="controlCenter.saving">确认激活并开始对话</Button></form>
-    </section>
+    <Dialog :open="showCreateForm" @update:open="showCreateForm = $event">
+      <DialogContent id="instance-create" class="create-surface" :show-close-button="false" aria-modal="true" aria-labelledby="create-title" aria-describedby="create-description">
+        <DialogHeader class="create-dialog-header">
+          <div>
+            <p class="eyebrow">CREATE</p>
+            <DialogTitle id="create-title">创建 Fluctlight</DialogTitle>
+            <DialogDescription id="create-description">用一个名字快速开始，或先描述你希望它如何生活。</DialogDescription>
+          </div>
+          <DialogClose as-child>
+            <Button class="text-button create-dialog-close" variant="ghost" type="button"><X :size="15" :stroke-width="2" aria-hidden="true" />关闭</Button>
+          </DialogClose>
+        </DialogHeader>
+
+        <div class="create-dialog-body">
+          <div class="segmented-control" role="group" aria-label="Fluctlight 创建方式">
+            <Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'blank_slate' }" type="button" @click="creationMode = 'blank_slate'">白纸创建</Button>
+            <Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'llm_defined' }" type="button" @click="creationMode = 'llm_defined'">从描述创建</Button>
+          </div>
+          <p v-if="controlCenter.error" class="error-banner" role="alert">
+            {{ controlCenter.error }}
+            <Button v-if="controlCenter.analysisFailureCorrelationId" class="text-button" variant="link" type="button" @click="controlCenter.diagnosticsCorrelationFilter = controlCenter.analysisFailureCorrelationId; emit('openDiagnostics', controlCenter.analysisFailureCorrelationId)">查看本次失败诊断</Button>
+          </p>
+
+          <form v-if="creationMode === 'blank_slate'" id="blank-create-form" class="stack-form" @submit.prevent="createBlank">
+            <label for="fluctlight-name">实例名称<Input id="fluctlight-name" v-model="newFluctlightName" type="text" maxlength="256" required placeholder="例如：苏洛星" /></label>
+          </form>
+
+          <form v-else id="analyze-description-form" class="stack-form" @submit.prevent="analyzeDescription">
+            <label for="fluctlight-description">描述你希望创建的 Fluctlight<Textarea id="fluctlight-description" v-model="creationDescription" rows="5" maxlength="12000" placeholder="描述身份、经历、价值观、表达方式或你希望它如何生活..." /></label>
+          </form>
+
+          <form v-if="creationMode === 'llm_defined' && creationPreviewJson" id="activate-preview-form" class="stack-form preview-form" @submit.prevent="activatePreview">
+            <label for="fluctlight-preview">可编辑的基础预览<Textarea id="fluctlight-preview" v-model="creationPreviewJson" rows="12" spellcheck="false" /></label>
+            <div v-if="creationInitialGoals.length || creationInitialIntentions.length" class="preview-summary">
+              <strong>创建后会带入</strong>
+              <span v-for="goal in creationInitialGoals" :key="String(goal.description)">目标：{{ String(goal.description) }}</span>
+              <span v-for="intention in creationInitialIntentions" :key="String(intention.action)">意图：{{ String(intention.action) }}</span>
+            </div>
+          </form>
+        </div>
+
+        <DialogFooter class="create-dialog-footer">
+          <DialogClose as-child>
+            <Button class="secondary-button" variant="outline" type="button">取消</Button>
+          </DialogClose>
+          <Button v-if="creationMode === 'blank_slate'" class="primary-button" variant="default" type="submit" form="blank-create-form" :disabled="controlCenter.saving || controlCenter.loading || !newFluctlightName.trim()">创建并开始对话</Button>
+          <template v-else-if="creationPreviewJson">
+            <Button v-if="creationDiagnosticsCorrelationId" class="secondary-button" variant="outline" type="button" @click="openCreationDiagnostics">查看本次分析诊断</Button>
+            <Button class="secondary-button" variant="outline" type="submit" form="analyze-description-form" :disabled="controlCenter.saving || !creationDescription.trim()">重新分析</Button>
+            <Button class="primary-button" variant="default" type="submit" form="activate-preview-form" :disabled="controlCenter.saving">确认激活并开始对话</Button>
+          </template>
+          <Button v-else class="primary-button" variant="default" type="submit" form="analyze-description-form" :disabled="controlCenter.saving || !creationDescription.trim()">分析并生成预览</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <p v-if="controlCenter.error && !showCreateForm" class="error-banner" role="alert">{{ controlCenter.error }}</p>
     <section v-if="store.fluctlights.length && filteredFluctlights.length" class="instance-list" aria-label="Fluctlight 实例列表">

@@ -144,8 +144,8 @@ export const useControlCenterStore = defineStore("control-center", {
       try {
         const correlationId = this.diagnosticsCorrelationFilter.trim() || undefined;
         const [events, modelRuns, workflows] = await Promise.allSettled([
-          client.diagnostics({ limit: 100, correlationId }),
-          client.diagnosticModelRuns({ limit: 100, correlationId }),
+          client.diagnostics({ limit: 20, correlationId }),
+          client.diagnosticModelRuns({ limit: 20, correlationId }),
           client.listWorkflows(),
         ]);
         if (requestId !== this.diagnosticsRequestId) return;

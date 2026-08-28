@@ -12,6 +12,8 @@ const desktopContextSource = await readFile(new URL("../src/components/layout/De
 const settingsSource = await readFile(new URL("../src/views/SettingsView.vue", import.meta.url), "utf8");
 const statusSource = await readFile(new URL("../src/lib/fluctlight-status.ts", import.meta.url), "utf8");
 const viteSource = await readFile(new URL("../vite.config.ts", import.meta.url), "utf8");
+const diagnosticsSource = await readFile(new URL("../src/views/DiagnosticsView.vue", import.meta.url), "utf8");
+const controlCenterSource = await readFile(new URL("../src/stores/control-center.ts", import.meta.url), "utf8");
 
 test("Telegram-style workspace keeps four primary tabs", () => {
   assert.match(navigationSource, /id: "instances"/);
@@ -51,6 +53,14 @@ test("web controls are backed by the local shadcn-vue component layer", () => {
   assert.match(settingsSource, /<Tabs/);
   assert.match(settingsSource, /<Select/);
   assert.match(settingsSource, /<Textarea/);
+});
+
+test("diagnostics is a quiet, recent-only disclosure surface", () => {
+  assert.doesNotMatch(diagnosticsSource, /返回设置|刷新|导出|清空|Correlation ID|按 Correlation ID 过滤|筛选|诊断记录已刷新/);
+  assert.match(diagnosticsSource, /<Accordion/);
+  assert.match(diagnosticsSource, /value="model-runs"/);
+  assert.match(controlCenterSource, /client\.diagnostics\(\{ limit: 20/);
+  assert.match(controlCenterSource, /client\.diagnosticModelRuns\(\{ limit: 20/);
 });
 
 test("chat owns a fixed-height work surface with an internal message scroller", () => {

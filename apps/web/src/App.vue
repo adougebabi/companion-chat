@@ -37,6 +37,7 @@ function pathForView(next: WorkspaceView, correlationId = "") {
 const view = ref<WorkspaceView>(viewFromLocation());
 const showDetails = ref(false);
 const governanceRequest = ref(false);
+const createRequest = ref(0);
 const activeViewLabel = computed(() => ({ chat: "聊天", moments: "动态", instances: "聊天", diagnostics: "诊断中心", settings: "设置" })[view.value]);
 
 async function navigate(next: WorkspaceView, correlationId = "") {
@@ -61,6 +62,11 @@ async function openDetails() {
 async function openDesktopChat(fluctlightId: string) {
   await store.selectFluctlight(fluctlightId);
   await navigate("chat");
+}
+
+async function openCreateDialog() {
+  createRequest.value += 1;
+  if (view.value !== "instances") await navigate("instances");
 }
 
 async function openGovernance() {
@@ -95,7 +101,7 @@ onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
 </script>
 
 <template>
-  <AppShell :active-view="view" :show-navigation="store.authenticated === true" @navigate="navigate" @select-instance="openDesktopChat">
+  <AppShell :active-view="view" :show-navigation="store.authenticated === true" @navigate="navigate" @select-instance="openDesktopChat" @create="openCreateDialog">
     <AuthPanel
       v-if="store.authenticated !== true"
       :setup-available="store.setupAvailable"
@@ -108,8 +114,8 @@ onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
     <template v-else>
       <ChatView v-if="view === 'chat'" @back="navigate('instances')" @open-details="openDetails" @open-instances="navigate('instances')" />
       <MomentsView v-else-if="view === 'moments'" />
-      <InstancesView v-else-if="view === 'instances'" :open-governance="governanceRequest" @open-chat="navigate('chat')" @open-details="openDetails" @open-diagnostics="(correlationId) => navigate('diagnostics', correlationId)" />
-      <DiagnosticsView v-else-if="view === 'diagnostics'" @back="navigate('settings')" />
+      <InstancesView v-else-if="view === 'instances'" :open-governance="governanceRequest" :open-create="createRequest" @open-chat="navigate('chat')" @open-details="openDetails" @open-diagnostics="(correlationId) => navigate('diagnostics', correlationId)" />
+      <DiagnosticsView v-else-if="view === 'diagnostics'" />
       <SettingsView v-else @logout="store.logout" />
     </template>
 
