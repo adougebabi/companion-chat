@@ -52,10 +52,10 @@ AppShell
   in the right-hand page; on mobile the same list becomes the page index with a
   back link. The selected settings form still uses progressive disclosure
   inside its section where appropriate.
-- The bottom navigation is mounted by `AppShell`; desktop places it as a
-  horizontal bar across the viewport bottom while mobile reserves safe-area
-  space. Each page has one primary scroll owner. Dialogs use a bounded grid
-  with only the body scrolling.
+- The bottom navigation is mounted in the workspace shell; desktop keeps it as
+  a textual vertical rail at the lower-left of the contextual panel while
+  mobile uses a full-width safe-area-aware bar. Each page has one primary
+  scroll owner. Dialogs use a bounded grid with only the body scrolling.
 
 ## Route Semantics
 
@@ -107,8 +107,9 @@ Diagnostics. Chat is a focused surface opened from an instance and hides the
 primary tab bar. On desktop, the authenticated chat shell uses a contextual
 conversation panel and message pane inspired by the supplied messaging
 reference; its list shows Recent plus flat group tabs, without an Archive tab.
-On mobile, the contextual panel collapses and the four tabs become a full-width
-safe-area-aware bottom bar; the chat list keeps the same Recent/group rhythm.
+On mobile, the contextual panel collapses into one inset rounded work card and
+the four tabs become a full-width safe-area-aware bottom bar; the chat list
+keeps the same Recent/group rhythm.
 
 Chat height is owned by the viewport: the shell and chat page use a definite
 `100dvh`-based height, the message timeline is the only scrolling region, and

@@ -18,6 +18,7 @@ import Badge from "@/components/ui/badge/Badge.vue";
 import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
 import { diagnosticsSections, settingsSections, type WorkspaceSection, type WorkspaceView } from "../../app/navigation";
+import BottomNav from "./BottomNav.vue";
 import { useConversationStore } from "../../stores/conversations";
 import { useControlCenterStore } from "../../stores/control-center";
 import { fluctlightStatusLabel } from "../../lib/fluctlight-status";
@@ -83,5 +84,6 @@ function sectionIcon(section: WorkspaceSection) {
       <div v-if="visibleItems.length" class="desktop-conversation-items"><Button v-for="item in visibleItems" :key="item.id" class="desktop-conversation-item justify-normal" variant="ghost" :class="{ selected: item.id === store.fluctlightId }" type="button" @click="emit('select', item.id)"><span class="avatar persona-avatar">{{ nameOf(item).slice(0, 1) }}</span><span class="desktop-conversation-copy"><strong>{{ nameOf(item) }}</strong><small><Badge variant="secondary" :class="{ paused: item.status === 'paused', muted: item.status === 'retired' }">{{ fluctlightStatusLabel(item.status) }}</Badge></small></span><span class="desktop-conversation-meta"><time>{{ timeOf(item.last_conversation_at) }}</time><b v-if="item.unread_count">{{ item.unread_count }}</b></span></Button></div>
       <div v-else class="desktop-list-empty">暂无符合条件的会话<br />可以切换分组或创建一个 Fluctlight。</div>
     </template>
+    <BottomNav class="desktop-context-nav" :active-view="props.activeView" @navigate="emit('navigate', $event)" />
   </aside>
 </template>

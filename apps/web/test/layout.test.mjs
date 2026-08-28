@@ -77,7 +77,8 @@ test("desktop secondary navigation is page-addressable and chat groups stay flat
   assert.match(desktopContextSource, /context-group-tabs/);
   assert.match(desktopContextSource, /chatGroupId/);
   assert.doesNotMatch(desktopContextSource, /已归档/);
-  assert.match(stylesSource, /desktop-workspace > \.bottom-nav[\s\S]*position: fixed/);
+  assert.match(stylesSource, /desktop-context-panel > \.desktop-context-nav[\s\S]*position: static/);
+  assert.match(stylesSource, /desktop-workspace > \.bottom-nav[\s\S]*display: none/);
 });
 
 test("chat owns a fixed-height work surface with an internal message scroller", () => {
