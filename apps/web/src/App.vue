@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
-import type { WorkspaceView } from "./app/navigation";
+import type { DiagnosticsSection, SettingsSection, WorkspaceSection, WorkspaceView } from "./app/navigation";
 import AuthPanel from "./components/auth/AuthPanel.vue";
 import AppShell from "./components/layout/AppShell.vue";
 import InstanceDetailsDialog from "./components/instances/InstanceDetailsDialog.vue";
@@ -23,32 +23,62 @@ function viewFromLocation(): WorkspaceView {
   return "instances";
 }
 
+function sectionFromLocation(view: WorkspaceView): WorkspaceSection | null {
+  const params = new URLSearchParams(window.location.search);
+  const section = params.get("section");
+  if (!section && view === "diagnostics" && params.get("correlation_id")) return "model-runs";
+  if (!section) return null;
+  if (view === "settings" && ["model-role", "endpoint", "binding", "media", "operations", "owner"].includes(section)) return section as SettingsSection;
+  if (view === "diagnostics" && ["model-runs", "events", "workflows"].includes(section)) return section as DiagnosticsSection;
+  return null;
+}
+
 function syncDiagnosticsFilterFromLocation() {
   if (window.location.pathname.startsWith("/settings/diagnostics")) {
     controlCenter.diagnosticsCorrelationFilter = new URLSearchParams(window.location.search).get("correlation_id") ?? "";
   }
 }
 
-function pathForView(next: WorkspaceView, correlationId = "") {
+function pathForView(next: WorkspaceView, correlationId = "", section = "") {
   const path = next === "chat" ? "/chat" : next === "moments" ? "/moments" : next === "diagnostics" ? "/settings/diagnostics" : next === "settings" ? "/settings" : "/instances";
-  return next === "diagnostics" && correlationId.trim() ? `${path}?correlation_id=${encodeURIComponent(correlationId.trim())}` : path;
+  const params = new URLSearchParams();
+  if (next === "diagnostics" && correlationId.trim()) params.set("correlation_id", correlationId.trim());
+  if ((next === "settings" || next === "diagnostics") && section.trim()) params.set("section", section.trim());
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
 }
 
 const view = ref<WorkspaceView>(viewFromLocation());
+const activeSection = ref<WorkspaceSection | null>(sectionFromLocation(view.value));
 const showDetails = ref(false);
 const governanceRequest = ref(false);
 const createRequest = ref(0);
+const activeSettingsSection = computed<SettingsSection | null>(() => view.value === "settings" && activeSection.value && ["model-role", "endpoint", "binding", "media", "operations", "owner"].includes(activeSection.value) ? activeSection.value as SettingsSection : null);
+const activeDiagnosticsSection = computed<DiagnosticsSection | null>(() => view.value === "diagnostics" && activeSection.value && ["model-runs", "events", "workflows"].includes(activeSection.value) ? activeSection.value as DiagnosticsSection : null);
 const activeViewLabel = computed(() => ({ chat: "聊天", moments: "动态", instances: "聊天", diagnostics: "诊断中心", settings: "设置" })[view.value]);
 
 async function navigate(next: WorkspaceView, correlationId = "") {
   view.value = next;
+  activeSection.value = next === "diagnostics" && correlationId.trim() ? "model-runs" : null;
   if (next === "diagnostics") controlCenter.diagnosticsCorrelationFilter = correlationId;
-  const path = pathForView(next, correlationId);
+  const path = pathForView(next, correlationId, activeSection.value ?? "");
   if (`${window.location.pathname}${window.location.search}` !== path) window.history.pushState({ view: next }, "", path);
   if (next === "instances") await controlCenter.loadActorGroups();
 }
 
-function onPopState() { view.value = viewFromLocation(); syncDiagnosticsFilterFromLocation(); }
+function navigateSection(next: "settings" | "diagnostics", section: WorkspaceSection | null) {
+  view.value = next;
+  activeSection.value = section;
+  const correlationId = next === "diagnostics" ? controlCenter.diagnosticsCorrelationFilter : "";
+  const path = pathForView(next, correlationId, section ?? "");
+  if (`${window.location.pathname}${window.location.search}` !== path) window.history.pushState({ view: next, section }, "", path);
+}
+
+function onPopState() {
+  view.value = viewFromLocation();
+  activeSection.value = sectionFromLocation(view.value);
+  syncDiagnosticsFilterFromLocation();
+}
 
 async function openDetails() {
   if (!store.fluctlightId) return;
@@ -101,7 +131,7 @@ onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
 </script>
 
 <template>
-  <AppShell :active-view="view" :show-navigation="store.authenticated === true" @navigate="navigate" @select-instance="openDesktopChat" @create="openCreateDialog">
+  <AppShell :active-view="view" :active-section="activeSection" :show-navigation="store.authenticated === true" @navigate="navigate" @navigate-section="navigateSection" @select-instance="openDesktopChat" @create="openCreateDialog">
     <AuthPanel
       v-if="store.authenticated !== true"
       :setup-available="store.setupAvailable"
@@ -115,8 +145,8 @@ onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
       <ChatView v-if="view === 'chat'" @back="navigate('instances')" @open-details="openDetails" @open-instances="navigate('instances')" />
       <MomentsView v-else-if="view === 'moments'" />
       <InstancesView v-else-if="view === 'instances'" :open-governance="governanceRequest" :open-create="createRequest" @open-chat="navigate('chat')" @open-details="openDetails" @open-diagnostics="(correlationId) => navigate('diagnostics', correlationId)" />
-      <DiagnosticsView v-else-if="view === 'diagnostics'" />
-      <SettingsView v-else @logout="store.logout" />
+      <DiagnosticsView v-else-if="view === 'diagnostics'" :section="activeDiagnosticsSection" @navigate-section="(section) => navigateSection('diagnostics', section)" />
+      <SettingsView v-else :section="activeSettingsSection" @navigate-section="(section) => navigateSection('settings', section)" @logout="store.logout" />
     </template>
 
     <InstanceDetailsDialog :open="showDetails" @close="showDetails = false" @manage="openGovernance" />

@@ -26,7 +26,10 @@ test("Telegram-style workspace keeps four primary tabs", () => {
   assert.match(appSource, /correlation_id/);
   assert.match(bottomNavSource, /activeNavigationView = computed<WorkspaceView>/);
   assert.doesNotMatch(bottomNavSource, /props\.activeView === "diagnostics" \? "settings"/);
-  assert.match(desktopContextSource, /:active-view="props\.activeView"/);
+  assert.match(desktopContextSource, /activeSection/);
+  assert.match(desktopContextSource, /context-section-list/);
+  assert.doesNotMatch(desktopContextSource, /我的资料|添加帐号|更改个人资料颜色/);
+  assert.doesNotMatch(desktopContextSource, /已归档/);
   assert.doesNotMatch(instancesSource, /mobile-instance-search|mobile-archived-row|instance-state/);
   assert.match(instancesSource, /fluctlightStatusLabel\(fluctlight\.status\)/);
   assert.match(statusSource, /active: "运行中"/);
@@ -61,6 +64,20 @@ test("diagnostics is a quiet, recent-only disclosure surface", () => {
   assert.match(diagnosticsSource, /value="model-runs"/);
   assert.match(controlCenterSource, /client\.diagnostics\(\{ limit: 20/);
   assert.match(controlCenterSource, /client\.diagnosticModelRuns\(\{ limit: 20/);
+});
+
+test("desktop secondary navigation is page-addressable and chat groups stay flat", () => {
+  assert.match(appSource, /navigateSection/);
+  assert.match(appSource, /sectionFromLocation/);
+  assert.match(appSource, /pathForView\(next, correlationId, section/);
+  assert.match(settingsSource, /settings-mobile-section-list/);
+  assert.match(settingsSource, /navigateSection/);
+  assert.match(diagnosticsSource, /diagnostics-mobile-section-list/);
+  assert.match(diagnosticsSource, /navigateSection/);
+  assert.match(desktopContextSource, /context-group-tabs/);
+  assert.match(desktopContextSource, /chatGroupId/);
+  assert.doesNotMatch(desktopContextSource, /已归档/);
+  assert.match(stylesSource, /desktop-workspace > \.bottom-nav[\s\S]*position: fixed/);
 });
 
 test("chat owns a fixed-height work surface with an internal message scroller", () => {

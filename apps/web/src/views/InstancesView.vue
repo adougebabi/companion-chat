@@ -199,9 +199,13 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
 
   <section v-else class="page instances-page" aria-labelledby="instances-title">
     <header class="page-header instances-header">
-      <div><p class="eyebrow">MESSAGES</p><h1 id="instances-title">聊天</h1><p class="page-lede">选择一个人格继续对话，或进入编辑与治理。</p></div>
+      <div><p class="eyebrow">MESSAGES</p><h1 id="instances-title">最近</h1><p class="page-lede">选择一个人格继续对话，或进入编辑与治理。</p></div>
       <Button class="primary-icon-button" variant="default" size="icon-lg" type="button" :aria-expanded="showCreateForm" aria-controls="instance-create" aria-label="新建 Fluctlight" @click="showCreateForm = !showCreateForm"><Plus :size="22" :stroke-width="2" aria-hidden="true" /></Button>
     </header>
+
+    <div class="mobile-group-tabs" role="tablist" aria-label="聊天分组">
+      <Button v-for="group in controlCenter.actorGroups" :key="group.id" class="mobile-group-tab" variant="ghost" :class="{ selected: controlCenter.selectedActorGroupId === group.id }" role="tab" :aria-selected="controlCenter.selectedActorGroupId === group.id" type="button" @click="controlCenter.selectedActorGroupId = group.id">{{ group.name }}</Button>
+    </div>
 
     <div class="directory-toolbar group-toolbar">
       <label class="filter-field" for="instance-group">当前分组<Select :model-value="controlCenter.selectedActorGroupId || undefined" :disabled="!controlCenter.actorGroups.length" @update:model-value="selectActorGroup"><SelectTrigger id="instance-group" class="w-full"><SelectValue placeholder="默认分组" /></SelectTrigger><SelectContent><SelectItem v-for="group in controlCenter.actorGroups" :key="group.id" :value="group.id">{{ group.name }}{{ group.id === defaultGroupId ? "（默认）" : "" }}</SelectItem></SelectContent></Select></label>

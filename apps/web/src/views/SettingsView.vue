@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -9,12 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { settingsSections, type SettingsSection } from "../app/navigation";
 import { useConversationStore } from "../stores/conversations";
 import { useControlCenterStore } from "../stores/control-center";
 
-const emit = defineEmits<{ logout: [] }>();
+const props = defineProps<{ section?: SettingsSection | null }>();
+const emit = defineEmits<{ logout: []; navigateSection: [section: SettingsSection | null] }>();
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
+const currentSection = computed(() => props.section ?? null);
 
 const providerRoles = [
   { value: "initialization", label: "初始化" }, { value: "cognitive_assessment", label: "认知判断" }, { value: "action_realization", label: "回复生成" }, { value: "reflection", label: "反思" }, { value: "embedding", label: "Embedding" }, { value: "media_prompt", label: "媒体提示词" },
@@ -55,8 +58,25 @@ onMounted(() => void load());
   <section class="page settings-page" aria-labelledby="settings-title">
     <h1 id="settings-title" class="sr-only">设置</h1>
     <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
-    <Accordion type="single" collapsible class="settings-accordion">
-      <AccordionItem value="model-role" class="settings-section settings-drawer">
+    <section v-if="!currentSection" class="settings-overview" aria-labelledby="settings-overview-title">
+      <p class="eyebrow">CONTROL CENTER</p>
+      <h2 id="settings-overview-title">选择一个设置项</h2>
+      <p class="page-lede">从左侧列表选择模型、媒体、运行策略或所有者设置。</p>
+      <nav class="settings-mobile-section-list" aria-label="设置选项">
+        <Button v-for="section in settingsSections" :key="section.id" class="settings-mobile-section-link" variant="outline" type="button" @click="emit('navigateSection', section.id)">
+          <span><strong>{{ section.label }}</strong><small>{{ section.description }}</small></span>
+          <span aria-hidden="true">›</span>
+        </Button>
+      </nav>
+    </section>
+
+    <template v-else>
+      <header class="settings-detail-header">
+        <Button class="back-link" variant="ghost" type="button" @click="emit('navigateSection', null)">‹ 返回设置</Button>
+        <div><p class="eyebrow">CONTROL CENTER</p><h2>{{ settingsSections.find((item) => item.id === currentSection)?.label }}</h2><p class="field-note">{{ settingsSections.find((item) => item.id === currentSection)?.description }}</p></div>
+      </header>
+      <Accordion type="single" :default-value="currentSection" class="settings-accordion">
+      <AccordionItem v-if="currentSection === 'model-role'" value="model-role" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading w-full py-0 hover:no-underline">
           <div><p class="eyebrow">MODEL ROLES</p><h2 id="model-role-title">模型角色绑定</h2><small>为不同认知角色选择模型和预算</small></div>
         </AccordionTrigger>
@@ -104,7 +124,7 @@ onMounted(() => void load());
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="endpoint" class="settings-section settings-drawer">
+      <AccordionItem v-if="currentSection === 'endpoint'" value="endpoint" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading w-full py-0 hover:no-underline">
           <div><p class="eyebrow">ENDPOINTS</p><h2 id="endpoint-title">模型 Endpoint</h2><small>管理模型服务地址和协议</small></div>
         </AccordionTrigger>
@@ -135,7 +155,7 @@ onMounted(() => void load());
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="binding" class="settings-section settings-drawer">
+      <AccordionItem v-if="currentSection === 'binding'" value="binding" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading w-full py-0 hover:no-underline">
           <div><p class="eyebrow">ACTIVE BINDINGS</p><h2 id="binding-title">当前角色绑定</h2><small>查看每个角色当前使用的模型</small></div>
         </AccordionTrigger>
@@ -153,7 +173,7 @@ onMounted(() => void load());
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="media" class="settings-section settings-drawer">
+      <AccordionItem v-if="currentSection === 'media'" value="media" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading w-full py-0 hover:no-underline">
           <div><p class="eyebrow">MEDIA PROVIDER</p><h2 id="media-title">ComfyUI</h2><small>图片生成服务与工作流</small></div>
         </AccordionTrigger>
@@ -168,7 +188,7 @@ onMounted(() => void load());
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="operations" class="settings-section settings-drawer">
+      <AccordionItem v-if="currentSection === 'operations'" value="operations" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading w-full py-0 hover:no-underline">
           <div><p class="eyebrow">AUTONOMY / DIAGNOSTICS</p><h2 id="operations-title">运行策略</h2><small>自治行为与诊断保留</small></div>
         </AccordionTrigger>
@@ -183,7 +203,7 @@ onMounted(() => void load());
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="owner" class="settings-section settings-drawer">
+      <AccordionItem v-if="currentSection === 'owner'" value="owner" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading w-full py-0 hover:no-underline">
           <div><p class="eyebrow">OWNER</p><h2 id="owner-title">所有者</h2><small>密码和本地会话</small></div>
         </AccordionTrigger>
@@ -199,14 +219,79 @@ onMounted(() => void load());
           </div>
         </AccordionContent>
       </AccordionItem>
-    </Accordion>
+      </Accordion>
+    </template>
   </section>
 </template>
 
 <style scoped>
+.settings-overview {
+  display: grid;
+  max-width: 680px;
+  align-content: center;
+  min-height: 100%;
+  gap: 8px;
+  padding: 20px 0;
+}
+
+.settings-overview h2,
+.settings-detail-header h2 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  letter-spacing: -.03em;
+}
+
+.settings-mobile-section-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.settings-mobile-section-link {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.settings-mobile-section-link span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.settings-mobile-section-link strong,
+.settings-mobile-section-link small {
+  overflow-wrap: anywhere;
+}
+
+.settings-mobile-section-link small {
+  color: var(--muted-ink);
+  font-size: .78rem;
+  line-height: 1.35;
+}
+
+.settings-detail-header {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.settings-detail-header .back-link {
+  justify-self: start;
+}
+
 .settings-accordion {
   min-width: 0;
   gap: 16px;
+}
+
+.settings-detail-header + .settings-accordion .settings-drawer-summary {
+  display: none;
 }
 
 .settings-accordion > .settings-section {
@@ -256,5 +341,34 @@ onMounted(() => void load());
 
 .provider-model-status {
   white-space: normal;
+}
+
+@media (min-width: 761px) {
+  .settings-overview {
+    min-height: 70%;
+  }
+
+  .settings-overview .settings-mobile-section-list {
+    display: none;
+  }
+
+  .settings-detail-header .back-link {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .settings-overview {
+    min-height: auto;
+    padding: 18px 14px 32px;
+  }
+
+  .settings-detail-header {
+    padding: 12px 14px 0;
+  }
+
+  .settings-detail-header h2 {
+    font-size: 1.2rem;
+  }
 }
 </style>

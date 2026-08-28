@@ -1305,3 +1305,198 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
     font-size: .8rem;
   }
 }
+
+/* Context panels expose the actual configuration and diagnostics domains.
+   Keep the list flat and scannable so the main pane can behave like a page,
+   while the chat context retains a compact group switcher. */
+.context-section-list {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  gap: 3px;
+  overflow-y: auto;
+  padding: 4px 12px 14px;
+}
+
+.context-section-link {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 16px;
+  min-width: 0;
+  min-height: 58px;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #303035;
+  text-align: left;
+}
+
+.context-section-link:hover,
+.context-section-link.selected {
+  background: #efeff2;
+}
+
+.context-section-link.selected {
+  color: var(--pc-accent);
+  box-shadow: inset 3px 0 0 var(--pc-accent);
+}
+
+.context-section-link > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.context-section-link > svg {
+  color: currentColor;
+}
+
+.context-section-link > svg:last-child {
+  opacity: .48;
+}
+
+.context-section-link strong,
+.context-section-link small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.context-section-link strong {
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.context-section-link small {
+  color: #929297;
+  font-size: .68rem;
+  line-height: 1.35;
+}
+
+.context-section-link.selected small {
+  color: #5f9ccc;
+}
+
+.context-group-tabs {
+  display: flex;
+  min-width: 0;
+  gap: 6px;
+  padding: 0 14px 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid #e8e8ea;
+}
+
+.context-group-tab {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: 999px;
+  color: #8e8e94;
+  font-size: .72rem;
+  white-space: nowrap;
+}
+
+.context-group-tab.selected {
+  background: #e7f2fb;
+  color: var(--pc-accent);
+  font-weight: 700;
+}
+
+.mobile-group-tabs {
+  display: none;
+}
+
+.desktop-conversation-items {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.settings-detail-header + .settings-accordion .settings-drawer-summary,
+.diagnostics-detail-header + .diagnostics-groups .diagnostics-drawer-summary {
+  display: none;
+}
+
+@media (min-width: 761px) {
+  .desktop-workspace > .bottom-nav {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    display: flex;
+    width: 100%;
+    min-height: 62px;
+    justify-content: center;
+    padding: 8px max(18px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    border-width: 1px 0 0;
+    border-radius: 0;
+    background: rgb(255 255 255 / 94%);
+    box-shadow: 0 -10px 28px rgb(38 42 54 / 9%);
+    transform: none;
+  }
+
+  .desktop-workspace > .bottom-nav .bottom-nav-item {
+    flex: 0 1 180px;
+    min-height: 44px;
+    border-radius: 10px;
+  }
+
+  .desktop-workspace:not(.chat-shell) .app-main-pane {
+    padding-bottom: 72px;
+  }
+
+  .desktop-workspace:not(.chat-shell) .desktop-context-panel {
+    padding-bottom: 72px;
+  }
+}
+
+@media (max-width: 760px) {
+  .instances-page .instances-header {
+    display: flex;
+    height: auto;
+    min-height: 50px;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px 14px 6px;
+  }
+
+  .instances-page .instances-header > div {
+    display: block;
+    text-align: left;
+  }
+
+  .instances-page .instances-header h1 {
+    font-size: 1.15rem;
+  }
+
+  .mobile-group-tabs {
+    display: flex;
+    min-width: 0;
+    gap: 6px;
+    padding: 0 12px 10px;
+    overflow-x: auto;
+    border-bottom: 1px solid #e8e8ea;
+    background: #f7f7f9;
+  }
+
+  .mobile-group-tab {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    color: #8e8e94;
+    font-size: .76rem;
+    white-space: nowrap;
+  }
+
+  .mobile-group-tab.selected {
+    background: #e7f2fb;
+    color: var(--pc-accent);
+    font-weight: 700;
+  }
+
+  .context-group-tabs {
+    padding-inline: 12px;
+  }
+}

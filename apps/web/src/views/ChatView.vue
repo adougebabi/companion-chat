@@ -81,8 +81,8 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
       <Button class="chat-profile" variant="ghost" type="button" :disabled="!store.selectedFluctlight" @click="emit('openDetails')">
         <span class="chat-avatar" aria-hidden="true">{{ String(store.selectedFluctlightName ?? "F").slice(0, 1) }}</span>
         <span class="chat-header-copy">
-          <strong id="chat-title">{{ store.selectedFluctlightName ?? "对话" }}</strong>
-          <small>{{ store.sending ? "正在思考" : fluctlightStatusLabel(store.selectedFluctlight?.status) }}</small>
+          <strong id="chat-title">{{ store.selectedFluctlightName ?? "选择会话" }}</strong>
+          <small>{{ store.sending ? "正在思考" : store.selectedFluctlight ? fluctlightStatusLabel(store.selectedFluctlight.status) : "等待选择" }}</small>
         </span>
       </Button>
       <Button class="icon-button chat-more" variant="ghost" type="button" aria-label="查看对话详情" @click="emit('openDetails')">⋯</Button>
@@ -93,9 +93,9 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
       <Button v-else-if="store.nextBeforeSequence" class="secondary-button load-older" variant="outline" type="button" @click="store.loadOlder">加载更早记录</Button>
       <div v-else-if="!store.selectedFluctlight" class="empty-state">
         <span class="empty-mark" aria-hidden="true">＋</span>
-        <h2>还没有 Fluctlight 实例</h2>
-        <p>先创建一个实例，再开始你们之间的对话。</p>
-        <Button class="primary-button" type="button" @click="emit('openInstances')">创建 Fluctlight</Button>
+        <h2>选择一个会话进行聊天</h2>
+        <p>从左侧最近会话中选择一个摇光，继续你们之间的对话。</p>
+        <Button class="secondary-button" variant="outline" type="button" @click="emit('openInstances')">管理摇光实例</Button>
       </div>
       <div v-else-if="!store.messages.length" class="empty-state">
         <span class="empty-mark" aria-hidden="true">＋</span>
