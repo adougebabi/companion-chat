@@ -45,6 +45,7 @@ from fluctlight_core.life_world.service import LifeWorldService
 from fluctlight_core.life_world.workflows import (
     CurrentDayScheduleWorkflow,
     DailyLifeReviewWorkflow,
+    calculate_next_local_midnight_delay,
     configure_current_day_schedule_service,
     ensure_current_day_schedule,
     process_daily_life_review,
@@ -278,6 +279,7 @@ async def run_worker(settings: PlatformSettings) -> None:
                 process_autonomy_action,
                 run_reflection,
                 ensure_current_day_schedule,
+                calculate_next_local_midnight_delay,
                 process_daily_life_review,
             ],
             workflows=[
@@ -290,7 +292,7 @@ async def run_worker(settings: PlatformSettings) -> None:
                 CurrentDayScheduleWorkflow,
                 DailyLifeReviewWorkflow,
             ],
-            max_concurrent_workflow_tasks=1 if queue != "interaction" else 2,
+            max_concurrent_workflow_tasks=10 if queue == "lifecycle" else 2,
             max_cached_workflows=50,
             deployment_config=deployment_config(build_id),
         )

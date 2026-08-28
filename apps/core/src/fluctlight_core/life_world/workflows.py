@@ -94,6 +94,20 @@ async def process_daily_life_review(payload: dict[str, Any]) -> dict[str, str]:
     return await _daily_review.review_current_day(fluctlight_id, schedule)
 
 
+@activity.defn(name="calculate_next_local_midnight_delay")
+async def calculate_next_local_midnight_delay(payload: dict[str, Any]) -> dict[str, str]:
+    timezone = canonical_timezone(str(payload.get("timezone") or "Asia/Shanghai"))
+    delay_seconds = int(
+        _next_local_midnight_delay(datetime.now(UTC), timezone).total_seconds()
+    )
+    logger.warning(
+        "schedule.midnight_delay.calculated timezone=%s delay_seconds=%s",
+        timezone,
+        delay_seconds,
+    )
+    return {"timezone": timezone, "delay_seconds": str(max(delay_seconds, 1))}
+
+
 @workflow.defn(name="CurrentDayScheduleWorkflow")
 class CurrentDayScheduleWorkflow:
     """Ensure one local day, then roll the durable timer into a fresh history."""
@@ -116,9 +130,12 @@ class CurrentDayScheduleWorkflow:
             await workflow.sleep(timedelta(minutes=5))
             workflow.continue_as_new(payload)
             raise AssertionError("workflow.continue_as_new must not return")
-        delay_seconds = int(result.get("next_local_midnight_delay_seconds", "0"))
-        if delay_seconds <= 0:
-            raise ValueError("current-day schedule activity returned an invalid midnight delay")
+        delay = await workflow.execute_activity(
+            calculate_next_local_midnight_delay,
+            {"timezone": result["timezone"]},
+            start_to_close_timeout=timedelta(minutes=1),
+        )
+        delay_seconds = int(delay["delay_seconds"])
         await workflow.sleep(timedelta(seconds=delay_seconds))
         workflow.continue_as_new(payload)
         raise AssertionError("workflow.continue_as_new must not return")
