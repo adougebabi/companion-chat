@@ -2,11 +2,12 @@
 
 ## Decision
 
-The active `apps/web` client uses one workspace shell with three primary
-surfaces: Instances, Moments, and Settings. Chat is a focused surface opened
-from the instance/contact list; Diagnostics is a secondary Settings surface. A
-selected Fluctlight provides context for a read-only detail dialog and a
-separate full governance work surface.
+The active `apps/web` client uses one workspace shell with four primary
+surfaces: Instances, Moments, Settings, and Diagnostics. Chat is a focused
+surface opened from the instance/contact list; Diagnostics keeps its existing
+correlation filter and workflow controls but is promoted to a peer tab beside
+Settings. A selected Fluctlight provides context for a read-only detail dialog
+and a separate full governance work surface.
 
 ```text
 AppShell
@@ -19,6 +20,13 @@ AppShell
     ├── ChatView
     ├── MomentsView
     ├── SettingsView
+    │   └── Settings drawers
+    │       ├── Model role binding
+    │       ├── Provider endpoints
+    │       ├── Active role bindings
+    │       ├── ComfyUI
+    │       ├── Autonomy / retention
+    │       └── Owner session
     └── DiagnosticsView
         └── Advanced workflow controls
 ```
@@ -29,12 +37,19 @@ AppShell
   read-only detail dialog only.
 - Feature views own page-local form state and emit navigation intent; they do
   not create browser clients or perform raw HTTP requests.
+- Shared controls are local shadcn-vue components under
+  `apps/web/src/components/ui`, generated from `components.json`; feature
+  views compose these primitives and keep product-specific chat/list surfaces
+  in the existing layout stylesheet.
 - Pinia remains the owner of server snapshots and deep asynchronous behavior.
   Conversations SSE, optimistic messages, sequence checks, abort handling and
   persistence reconciliation remain in `conversations.ts`.
 - Read-only details never render mutation controls. Identity, schedule,
   Event/Presence, memory, relationship, autonomy, revision and retirement
   actions render only in `GovernanceView`.
+- Settings configuration is split into six native disclosure drawers,
+  collapsed by default. Diagnostics is a sibling primary destination, not a
+  button embedded in the Settings header.
 - The bottom navigation is mounted by `AppShell` and reserves safe-area space;
   each page has one primary scroll owner. Dialogs use a bounded grid with only
   the body scrolling.
@@ -83,19 +98,19 @@ pnpm --filter @fluctlight/web build
 
 ## Telegram / PC Skin Decision
 
-The product keeps three primary tabs—Instances, Moments, and Settings. Chat is
-a focused surface opened from an instance and hides the primary tab bar. On
-desktop, the authenticated chat shell uses a three-column workspace (dark
-navigation rail, conversation list, message pane) inspired by the supplied
-messaging reference. On mobile, the rail and conversation list collapse and the
-three tabs become a full-width safe-area-aware bottom bar.
+The product keeps four primary tabs—Instances, Moments, Settings, and
+Diagnostics. Chat is a focused surface opened from an instance and hides the
+primary tab bar. On desktop, the authenticated chat shell uses a contextual
+conversation panel and message pane inspired by the supplied messaging
+reference. On mobile, the contextual panel collapses and the four tabs become a
+full-width safe-area-aware bottom bar.
 
 Chat height is owned by the viewport: the shell and chat page use a definite
 `100dvh`-based height, the message timeline is the only scrolling region, and
 the composer remains the final visible row. Entering a conversation schedules a
 post-layout scroll to the latest message after the initial store load.
 
-Diagnostics is reachable from Settings and preserves a `correlation_id` query
-parameter. Refreshes are request-ordered, retain the last successful snapshot
-when one source fails, and distinguish runtime unavailability from owner
-authorization failures.
+Diagnostics is reachable directly from the fourth primary tab and preserves a
+`correlation_id` query parameter. Refreshes are request-ordered, retain the last
+successful snapshot when one source fails, and distinguish runtime
+unavailability from owner authorization failures.

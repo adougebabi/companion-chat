@@ -70,7 +70,7 @@ test("creation drawer presents activation failures where the user can act on the
 
 test("diagnostics entry loads records and creation keeps a direct correlation link", async () => {
   const source = vueSource;
-  assert.match(source, /@diagnostics=/);
+  assert.match(source, /诊断中心/);
   assert.match(source, /creationDiagnosticsCorrelationId/);
   assert.match(source, /查看本次分析诊断/);
   assert.match(source, /fluctlightDetail\.behavioral_policy/);

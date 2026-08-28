@@ -37,7 +37,7 @@ function pathForView(next: WorkspaceView, correlationId = "") {
 const view = ref<WorkspaceView>(viewFromLocation());
 const showDetails = ref(false);
 const governanceRequest = ref(false);
-const activeViewLabel = computed(() => ({ chat: "聊天", moments: "动态", instances: "实例", diagnostics: "诊断中心", settings: "设置" })[view.value]);
+const activeViewLabel = computed(() => ({ chat: "聊天", moments: "动态", instances: "聊天", diagnostics: "诊断中心", settings: "设置" })[view.value]);
 
 async function navigate(next: WorkspaceView, correlationId = "") {
   view.value = next;
@@ -73,22 +73,23 @@ async function openGovernance() {
 
 async function handleSetup(token: string, password: string) {
   await store.setup(token, password);
-  if (store.authenticated) await controlCenter.loadActorGroups();
+  if (store.authenticated) await controlCenter.ensureDefaultGroup(store.fluctlights.map((item) => item.id));
 }
 
 async function handleSignIn(password: string) {
   await store.login(password);
-  if (store.authenticated) await controlCenter.loadActorGroups();
+  if (store.authenticated) await controlCenter.ensureDefaultGroup(store.fluctlights.map((item) => item.id));
 }
 
-watch(() => store.authenticated, (authenticated) => {
-  if (authenticated) void controlCenter.loadActorGroups();
-});
+async function initializeWorkspace() {
+  await store.initialize();
+  if (store.authenticated) await controlCenter.ensureDefaultGroup(store.fluctlights.map((item) => item.id));
+}
 
 onMounted(() => {
   window.addEventListener("popstate", onPopState);
   syncDiagnosticsFilterFromLocation();
-  void store.initialize();
+  void initializeWorkspace();
 });
 onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
 </script>
@@ -109,7 +110,7 @@ onBeforeUnmount(() => window.removeEventListener("popstate", onPopState));
       <MomentsView v-else-if="view === 'moments'" />
       <InstancesView v-else-if="view === 'instances'" :open-governance="governanceRequest" @open-chat="navigate('chat')" @open-details="openDetails" @open-diagnostics="(correlationId) => navigate('diagnostics', correlationId)" />
       <DiagnosticsView v-else-if="view === 'diagnostics'" @back="navigate('settings')" />
-      <SettingsView v-else @diagnostics="navigate('diagnostics')" @logout="store.logout" />
+      <SettingsView v-else @logout="store.logout" />
     </template>
 
     <InstanceDetailsDialog :open="showDetails" @close="showDetails = false" @manage="openGovernance" />

@@ -1,10 +1,21 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { Plus, X } from "@lucide/vue";
 
+import Badge from "@/components/ui/badge/Badge.vue";
+import Button from "@/components/ui/button/Button.vue";
+import Input from "@/components/ui/input/Input.vue";
+import Textarea from "@/components/ui/textarea/Textarea.vue";
+import Select from "@/components/ui/select/Select.vue";
+import SelectContent from "@/components/ui/select/SelectContent.vue";
+import SelectItem from "@/components/ui/select/SelectItem.vue";
+import SelectTrigger from "@/components/ui/select/SelectTrigger.vue";
+import SelectValue from "@/components/ui/select/SelectValue.vue";
 import { useConversationStore } from "../stores/conversations";
 import { useControlCenterStore } from "../stores/control-center";
 import { randomId } from "../random-id";
 import GovernanceView from "./GovernanceView.vue";
+import { fluctlightStatusLabel } from "../lib/fluctlight-status";
 
 const props = defineProps<{ openGovernance?: boolean }>();
 const emit = defineEmits<{ openChat: []; openDetails: []; openDiagnostics: [correlationId: string]; }>();
@@ -89,6 +100,7 @@ async function activateCreatedFluctlight(body: {
   const created = await controlCenter.activateFluctlight({ requestId, ...body });
   if (!created?.id) return;
   await store.bootstrap();
+  await controlCenter.ensureDefaultGroup(store.fluctlights.map((item) => item.id));
   await store.selectFluctlight(created.id);
   newFluctlightName.value = "";
   creationDescription.value = "";
@@ -157,6 +169,17 @@ async function createGroup() {
   showGroupForm.value = false;
   if (created?.id) controlCenter.selectedActorGroupId = created.id;
 }
+
+function selectActorGroup(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") return;
+  controlCenter.selectedActorGroupId = String(value);
+}
+
+function assignActorGroup(value: unknown, fluctlightId: string) {
+  if (typeof value !== "string" && typeof value !== "number") return;
+  const groupId = String(value);
+  if (groupId && groupId !== "__none__") void controlCenter.assignActorGroupMember(groupId, fluctlightId);
+}
 </script>
 
 <template>
@@ -166,34 +189,34 @@ async function createGroup() {
 
   <section v-else class="page instances-page" aria-labelledby="instances-title">
     <header class="page-header instances-header">
-      <div><p class="eyebrow">YOUR FLUCTLIGHTS</p><h1 id="instances-title">实例</h1><p class="page-lede">选择一个人格继续对话，或进入编辑与治理。</p></div>
-      <button class="primary-icon-button" type="button" :aria-expanded="showCreateForm" aria-controls="instance-create" aria-label="新建 Fluctlight" @click="showCreateForm = !showCreateForm">＋</button>
+      <div><p class="eyebrow">MESSAGES</p><h1 id="instances-title">聊天</h1><p class="page-lede">选择一个人格继续对话，或进入编辑与治理。</p></div>
+      <Button class="primary-icon-button" variant="default" size="icon-lg" type="button" :aria-expanded="showCreateForm" aria-controls="instance-create" aria-label="新建 Fluctlight" @click="showCreateForm = !showCreateForm"><Plus :size="22" :stroke-width="2" aria-hidden="true" /></Button>
     </header>
 
     <div class="directory-toolbar group-toolbar">
-      <label class="filter-field" for="instance-group">当前分组<select id="instance-group" v-model="controlCenter.selectedActorGroupId" :disabled="!controlCenter.actorGroups.length"><option v-if="!controlCenter.actorGroups.length" value="">默认分组未配置</option><option v-for="group in controlCenter.actorGroups" :key="group.id" :value="group.id">{{ group.name }}{{ group.id === defaultGroupId ? "（默认）" : "" }}</option></select></label>
-      <button class="secondary-button" type="button" :aria-expanded="showGroupForm" @click="showGroupForm = !showGroupForm">＋ 新建分组</button>
+      <label class="filter-field" for="instance-group">当前分组<Select :model-value="controlCenter.selectedActorGroupId || undefined" :disabled="!controlCenter.actorGroups.length" @update:model-value="selectActorGroup"><SelectTrigger id="instance-group" class="w-full"><SelectValue placeholder="默认分组" /></SelectTrigger><SelectContent><SelectItem v-for="group in controlCenter.actorGroups" :key="group.id" :value="group.id">{{ group.name }}{{ group.id === defaultGroupId ? "（默认）" : "" }}</SelectItem></SelectContent></Select></label>
+      <Button class="secondary-button" variant="outline" type="button" :aria-expanded="showGroupForm" @click="showGroupForm = !showGroupForm"><Plus :size="16" :stroke-width="2" aria-hidden="true" />新建分组</Button>
     </div>
 
-    <form v-if="showGroupForm" class="group-create-inline" @submit.prevent="createGroup"><label for="actor-group-name">分组名称<input id="actor-group-name" v-model="controlCenter.newActorGroupName" maxlength="128" placeholder="例如：工作、朋友" required /></label><button class="primary-button" type="submit" :disabled="controlCenter.saving || !controlCenter.newActorGroupName.trim()">创建分组</button></form>
+    <form v-if="showGroupForm" class="group-create-inline" @submit.prevent="createGroup"><label for="actor-group-name">分组名称<Input id="actor-group-name" v-model="controlCenter.newActorGroupName" maxlength="128" placeholder="例如：工作、朋友" required /></label><Button class="primary-button" variant="default" type="submit" :disabled="controlCenter.saving || !controlCenter.newActorGroupName.trim()">创建分组</Button></form>
 
     <section v-if="showCreateForm" id="instance-create" class="create-surface" aria-labelledby="create-title">
-      <div class="section-heading"><div><p class="eyebrow">CREATE</p><h2 id="create-title">创建 Fluctlight</h2></div><button class="text-button" type="button" @click="showCreateForm = false">关闭</button></div>
-      <div class="segmented-control" role="group" aria-label="Fluctlight 创建方式"><button class="segment-button" :class="{ selected: creationMode === 'blank_slate' }" type="button" @click="creationMode = 'blank_slate'">白纸创建</button><button class="segment-button" :class="{ selected: creationMode === 'llm_defined' }" type="button" @click="creationMode = 'llm_defined'">从描述创建</button></div>
-      <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}<button v-if="controlCenter.analysisFailureCorrelationId" class="text-button" type="button" @click="controlCenter.diagnosticsCorrelationFilter = controlCenter.analysisFailureCorrelationId; emit('openDiagnostics', controlCenter.analysisFailureCorrelationId)">查看本次失败诊断</button></p>
-      <form v-if="creationMode === 'blank_slate'" class="stack-form" @submit.prevent="createBlank"><label for="fluctlight-name">实例名称<input id="fluctlight-name" v-model="newFluctlightName" type="text" maxlength="256" required placeholder="例如：苏洛星" /></label><button class="primary-button" type="submit" :disabled="controlCenter.saving || controlCenter.loading || !newFluctlightName.trim()">创建并开始对话</button></form>
-      <form v-else class="stack-form" @submit.prevent="analyzeDescription"><label for="fluctlight-description">描述你希望创建的 Fluctlight<textarea id="fluctlight-description" v-model="creationDescription" rows="5" maxlength="12000" placeholder="描述身份、经历、价值观、表达方式或你希望它如何生活..." /></label><button class="primary-button" type="submit" :disabled="controlCenter.saving || !creationDescription.trim()">分析并生成预览</button></form>
-      <form v-if="creationMode === 'llm_defined' && creationPreviewJson" class="stack-form preview-form" @submit.prevent="activatePreview"><label for="fluctlight-preview">可编辑的基础预览<textarea id="fluctlight-preview" v-model="creationPreviewJson" rows="12" spellcheck="false" /></label><div v-if="creationInitialGoals.length || creationInitialIntentions.length" class="preview-summary"><strong>创建后会带入</strong><span v-for="goal in creationInitialGoals" :key="String(goal.description)">目标：{{ String(goal.description) }}</span><span v-for="intention in creationInitialIntentions" :key="String(intention.action)">意图：{{ String(intention.action) }}</span></div><button v-if="creationDiagnosticsCorrelationId" class="secondary-button" type="button" @click="openCreationDiagnostics">查看本次分析诊断</button><button class="primary-button" type="submit" :disabled="controlCenter.saving">确认激活并开始对话</button></form>
+      <div class="section-heading"><div><p class="eyebrow">CREATE</p><h2 id="create-title">创建 Fluctlight</h2></div><Button class="text-button" variant="ghost" type="button" @click="showCreateForm = false"><X :size="15" :stroke-width="2" aria-hidden="true" />关闭</Button></div>
+      <div class="segmented-control" role="group" aria-label="Fluctlight 创建方式"><Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'blank_slate' }" type="button" @click="creationMode = 'blank_slate'">白纸创建</Button><Button class="segment-button" variant="ghost" :class="{ selected: creationMode === 'llm_defined' }" type="button" @click="creationMode = 'llm_defined'">从描述创建</Button></div>
+      <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}<Button v-if="controlCenter.analysisFailureCorrelationId" class="text-button" variant="link" type="button" @click="controlCenter.diagnosticsCorrelationFilter = controlCenter.analysisFailureCorrelationId; emit('openDiagnostics', controlCenter.analysisFailureCorrelationId)">查看本次失败诊断</Button></p>
+      <form v-if="creationMode === 'blank_slate'" class="stack-form" @submit.prevent="createBlank"><label for="fluctlight-name">实例名称<Input id="fluctlight-name" v-model="newFluctlightName" type="text" maxlength="256" required placeholder="例如：苏洛星" /></label><Button class="primary-button" variant="default" type="submit" :disabled="controlCenter.saving || controlCenter.loading || !newFluctlightName.trim()">创建并开始对话</Button></form>
+      <form v-else class="stack-form" @submit.prevent="analyzeDescription"><label for="fluctlight-description">描述你希望创建的 Fluctlight<Textarea id="fluctlight-description" v-model="creationDescription" rows="5" maxlength="12000" placeholder="描述身份、经历、价值观、表达方式或你希望它如何生活..." /></label><Button class="primary-button" variant="default" type="submit" :disabled="controlCenter.saving || !creationDescription.trim()">分析并生成预览</Button></form>
+      <form v-if="creationMode === 'llm_defined' && creationPreviewJson" class="stack-form preview-form" @submit.prevent="activatePreview"><label for="fluctlight-preview">可编辑的基础预览<Textarea id="fluctlight-preview" v-model="creationPreviewJson" rows="12" spellcheck="false" /></label><div v-if="creationInitialGoals.length || creationInitialIntentions.length" class="preview-summary"><strong>创建后会带入</strong><span v-for="goal in creationInitialGoals" :key="String(goal.description)">目标：{{ String(goal.description) }}</span><span v-for="intention in creationInitialIntentions" :key="String(intention.action)">意图：{{ String(intention.action) }}</span></div><Button v-if="creationDiagnosticsCorrelationId" class="secondary-button" variant="outline" type="button" @click="openCreationDiagnostics">查看本次分析诊断</Button><Button class="primary-button" variant="default" type="submit" :disabled="controlCenter.saving">确认激活并开始对话</Button></form>
     </section>
 
     <p v-if="controlCenter.error && !showCreateForm" class="error-banner" role="alert">{{ controlCenter.error }}</p>
     <section v-if="store.fluctlights.length && filteredFluctlights.length" class="instance-list" aria-label="Fluctlight 实例列表">
       <article v-for="fluctlight in filteredFluctlights" :key="fluctlight.id" class="instance-list-item" :class="{ selected: fluctlight.id === store.fluctlightId }">
-        <button class="instance-main" type="button" @click="openFluctlight(fluctlight.id)"><span class="avatar persona-avatar">{{ String(fluctlight.identity.name ?? "F").slice(0, 1) }}</span><span class="instance-copy"><strong>{{ String(fluctlight.identity.name ?? fluctlight.id) }}</strong><small>{{ fluctlight.status === "paused" ? "已暂停" : "可对话" }}<template v-if="fluctlight.unread_count"> · {{ fluctlight.unread_count }} 条未读</template></small></span><span class="instance-state">{{ fluctlight.id === store.fluctlightId ? "当前" : "" }}</span></button>
-        <div class="instance-actions"><button class="text-button" type="button" @click="openDetailsFor(fluctlight.id)">查看详情</button><button class="text-button" type="button" @click="openGovernanceFor(fluctlight.id)">编辑与治理</button><select v-if="controlCenter.actorGroups.length" :aria-label="'为 ' + fluctlight.id + ' 指定分组'" @change="($event) => { const groupId = ($event.target as HTMLSelectElement).value; if (groupId) controlCenter.assignActorGroupMember(groupId, fluctlight.id) }"><option value="">加入分组...</option><option v-for="group in controlCenter.actorGroups.filter((item) => !item.actor_ids.includes(fluctlight.id))" :key="group.id" :value="group.id">{{ group.name }}</option></select></div>
+        <Button class="instance-main justify-start" variant="ghost" type="button" @click="openFluctlight(fluctlight.id)"><span class="avatar persona-avatar">{{ String(fluctlight.identity.name ?? "F").slice(0, 1) }}</span><span class="instance-copy"><strong>{{ String(fluctlight.identity.name ?? fluctlight.id) }}</strong><small><Badge class="status-pill" variant="secondary" :class="{ paused: fluctlight.status === 'paused', muted: fluctlight.status === 'retired' }">{{ fluctlightStatusLabel(fluctlight.status) }}</Badge><template v-if="fluctlight.unread_count"> · {{ fluctlight.unread_count }} 条未读</template></small></span></Button>
+        <div class="instance-actions"><Button class="text-button" variant="ghost" type="button" @click="openDetailsFor(fluctlight.id)">查看详情</Button><Button class="text-button" variant="ghost" type="button" @click="openGovernanceFor(fluctlight.id)">编辑与治理</Button><Select v-if="controlCenter.actorGroups.length" :aria-label="'为 ' + fluctlight.id + ' 指定分组'" @update:model-value="(value) => assignActorGroup(value, fluctlight.id)"><SelectTrigger class="instance-group-select"><SelectValue placeholder="加入分组..." /></SelectTrigger><SelectContent><SelectItem value="__none__">加入分组...</SelectItem><SelectItem v-for="group in controlCenter.actorGroups.filter((item) => !item.actor_ids.includes(fluctlight.id))" :key="group.id" :value="group.id">{{ group.name }}</SelectItem></SelectContent></Select></div>
       </article>
     </section>
-    <div v-else-if="!store.fluctlights.length" class="empty-panel"><span class="empty-mark" aria-hidden="true">＋</span><h2>还没有 Fluctlight 实例</h2><p>创建第一个实例后，它会出现在这里。</p><button class="primary-button" type="button" @click="showCreateForm = true">创建第一个实例</button></div>
+    <div v-else-if="!store.fluctlights.length" class="empty-panel"><span class="empty-mark" aria-hidden="true"><Plus :size="22" :stroke-width="2" /></span><h2>还没有 Fluctlight 实例</h2><p>创建第一个实例后，它会出现在这里。</p><Button class="primary-button" variant="default" type="button" @click="showCreateForm = true">创建第一个实例</Button></div>
     <div v-else class="empty-panel compact"><h2>当前分组没有实例</h2><p>新建或切换分组即可查看其他人格。</p></div>
   </section>
 </template>

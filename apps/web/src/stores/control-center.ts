@@ -7,6 +7,7 @@ import {
   type BrowserSafeSettings,
 } from "@fluctlight/browser-client";
 import { bffOrigin } from "../runtime-config";
+import { planDefaultGroupMembership } from "../lib/group-membership";
 
 const client = new BrowserClient(bffOrigin);
 
@@ -73,6 +74,24 @@ export const useControlCenterStore = defineStore("control-center", {
     async loadActorGroups() {
       try { this.actorGroups = await client.listActorGroups(); }
       catch { this.error = "无法加载实例分组。"; }
+    },
+    async ensureDefaultGroup(actorIds: string[]) {
+      try {
+        let groups = await client.listActorGroups();
+        let plan = planDefaultGroupMembership(groups, actorIds);
+        let defaultGroup = plan.defaultGroup;
+        if (!defaultGroup) {
+          defaultGroup = await client.createActorGroup("默认");
+          groups = [...groups, defaultGroup];
+          plan = planDefaultGroupMembership(groups, actorIds);
+        }
+        this.actorGroups = groups;
+        for (const actorId of plan.ungroupedActorIds) await client.assignActorGroupMember(defaultGroup.id, actorId);
+        await this.loadActorGroups();
+        this.selectedActorGroupId = defaultGroup.id;
+      } catch {
+        this.error = "无法准备默认实例分组。";
+      }
     },
     async createActorGroup() {
       const name = this.newActorGroupName.trim();
@@ -493,6 +512,7 @@ export const useControlCenterStore = defineStore("control-center", {
       } catch { this.error = "无法保存评论。"; }
     },
     async clearDiagnostics() {
+      if (typeof window !== "undefined" && !window.confirm("确定清空所有诊断记录吗？此操作不可撤销。")) return;
       this.saving = true;
       this.error = "";
       try {

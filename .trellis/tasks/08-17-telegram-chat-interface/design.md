@@ -15,9 +15,9 @@ Build a bright, mobile-first, Telegram-inspired interface around the new compani
 
 ### 2026-08-19 Navigation Refinement
 
-The old desktop rail and mobile drawer are replaced by one shared bottom navigation bar. It has three icon-only controls: Contacts, Activity, and Settings. Contacts contains the full conversation list; opening a row presents the chat as the focused active surface on every viewport. The chat header is a three-column grid so the center name remains visually centered independent of the left back and right settings controls. The header name opens the existing companion detail/memory surface; the right control opens the existing persona editor.
+The old desktop rail and mobile drawer are replaced by one shared bottom navigation bar. It has four icon-only controls: Contacts, Activity, Settings, and Diagnostics. Contacts contains the full conversation list; opening a row presents the chat as the focused active surface on every viewport. The chat header is a three-column grid so the center name remains visually centered independent of the left back and right settings controls. The header name opens the existing companion detail/memory surface; the right control opens the existing persona editor.
 
-On mobile, the focused chat surface removes the bottom navigation entirely so the composer and message stream receive the full viewport. Back navigation returns to Contacts and restores the three-tab bar.
+On mobile, the focused chat surface removes the bottom navigation entirely so the composer and message stream receive the full viewport. Back navigation returns to Contacts and restores the four-tab bar.
 
 Routine and schedule projection remain the authority for a persona's visible state, but never imply publication. A separate durable `activity_decision` job supplies the model with an already-occurred life event. The model may decide not to publish; when it decides to publish, it authors the post and selects no media, an image, or a video. Media jobs are only queued after that affirmative decision.
 
@@ -56,7 +56,14 @@ The composer uses individual accessible icon controls, auto-growing text input w
 
 ## CSS Strategy
 
-First consolidate the existing duplicated compressed CSS tail into one authoritative stylesheet. Define local tokens for bright surfaces, borders, text, accent, destructive state, unread badge, skeleton, and spacing. Avoid broad visual rewrites that obscure functional regressions. Use predictable grid/flex constraints rather than viewport-scaled typography.
+Use shadcn-vue local primitives (Button, Input, Textarea, Select, Tabs,
+Accordion, Dialog, Badge and Separator) for shared controls. Keep the existing
+layout stylesheet as the owner of Telegram-specific chat/list geometry and
+product tokens, but do not reimplement primitive control states in each view.
+Define local tokens for bright surfaces, borders, text, accent, destructive
+state, unread badge, skeleton, and spacing. Avoid broad visual rewrites that
+obscure functional regressions. Use predictable grid/flex constraints rather
+than viewport-scaled typography.
 
 ## Verification
 

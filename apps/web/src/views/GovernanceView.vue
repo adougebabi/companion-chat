@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
+import Button from "@/components/ui/button/Button.vue";
+import Input from "@/components/ui/input/Input.vue";
+import Textarea from "@/components/ui/textarea/Textarea.vue";
 import { useConversationStore } from "../stores/conversations";
 import { useControlCenterStore } from "../stores/control-center";
+import { fluctlightStatusLabel } from "../lib/fluctlight-status";
 
 const emit = defineEmits<{ close: []; retired: [] }>();
 const store = useConversationStore();
@@ -38,13 +42,13 @@ async function retire() {
   <section v-if="store.selectedFluctlight" class="page governance-page" aria-labelledby="governance-title">
     <header class="page-header governance-header">
       <div>
-        <button class="back-link" type="button" @click="emit('close')">← 返回实例</button>
+        <Button class="back-link" variant="ghost" type="button" @click="emit('close')">← 返回实例</Button>
         <p class="eyebrow">EDIT &amp; GOVERN</p>
         <h1 id="governance-title">{{ store.selectedFluctlightName }} 的编辑与治理</h1>
         <p class="page-lede">这里的修改会影响后续状态。查看摘要、生活脉络和私有动态，请从对话标题栏打开详情。</p>
       </div>
       <span class="status-pill" :class="{ paused: controlCenter.fluctlightDetail?.status === 'paused' }">
-        {{ controlCenter.fluctlightDetail?.status === "paused" ? "已暂停" : "可对话" }}
+        {{ fluctlightStatusLabel(controlCenter.fluctlightDetail?.status) }}
       </span>
     </header>
 
@@ -56,10 +60,10 @@ async function retire() {
         <p class="field-note">暂停会阻止新的自主外部行为，历史事实和已观察到的状态不会被删除。</p>
         <div class="governance-inline-form">
           <label for="governance-reason">操作原因</label>
-          <input id="governance-reason" v-model="controlCenter.governanceReason" maxlength="1024" placeholder="填写暂停或恢复的原因" />
-          <button class="secondary-button" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.setFluctlightStatus(store.fluctlightId, controlCenter.fluctlightDetail?.status === 'paused' ? 'active' : 'paused')">
+          <Input id="governance-reason" v-model="controlCenter.governanceReason" maxlength="1024" placeholder="填写暂停或恢复的原因" />
+          <Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.setFluctlightStatus(store.fluctlightId, controlCenter.fluctlightDetail?.status === 'paused' ? 'active' : 'paused')">
             {{ controlCenter.fluctlightDetail.status === "paused" ? "恢复自主性" : "暂停自主性" }}
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -84,46 +88,46 @@ async function retire() {
         <h3>今日 Schedule</h3>
         <p v-if="!controlCenter.fluctlightDetail.schedule" class="field-note">日程待生成，当前没有接受的本地日计划。</p>
         <ul v-else class="timeline-list"><li v-for="item in (controlCenter.fluctlightDetail.schedule as Record<string, any>).items" :key="String(item.id)"><time>{{ String(item.start_at ?? "").slice(11, 16) }}</time><div><strong>{{ String(item.activity ?? "休息") }}</strong><span>{{ String(item.scene ?? "") }}</span></div></li></ul>
-        <button v-if="controlCenter.fluctlightDetail.schedule" class="secondary-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.cancelSchedule(store.fluctlightId)">取消当前日程</button>
-        <form class="governance-form" @submit.prevent="controlCenter.acceptSchedule(store.fluctlightId)"><label for="schedule-draft">完整日程 JSON</label><textarea id="schedule-draft" v-model="controlCenter.scheduleDraftJson" rows="6" spellcheck="false" placeholder='{"localDate":"2026-08-26","timezone":"Asia/Shanghai","items":[]}' /><button class="secondary-button" type="submit" :disabled="controlCenter.saving || !controlCenter.scheduleDraftJson.trim()">提交完整日程</button></form>
+        <Button v-if="controlCenter.fluctlightDetail.schedule" class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving" @click="controlCenter.cancelSchedule(store.fluctlightId)">取消当前日程</Button>
+        <form class="governance-form" @submit.prevent="controlCenter.acceptSchedule(store.fluctlightId)"><label for="schedule-draft">完整日程 JSON</label><Textarea id="schedule-draft" v-model="controlCenter.scheduleDraftJson" rows="6" spellcheck="false" placeholder='{"localDate":"2026-08-26","timezone":"Asia/Shanghai","items":[]}' /><Button class="secondary-button" variant="outline" type="submit" :disabled="controlCenter.saving || !controlCenter.scheduleDraftJson.trim()">提交完整日程</Button></form>
         <h3>Event 与 Presence</h3>
         <form class="governance-form" @submit.prevent="controlCenter.createLifeEvent(store.fluctlightId)">
-          <label for="event-kind">Event 类型<input id="event-kind" v-model="controlCenter.lifeEvent.kind" maxlength="128" required /></label>
-          <div class="form-grid"><label for="event-start">开始时间<input id="event-start" v-model="controlCenter.lifeEvent.startAt" type="datetime-local" required /></label><label for="event-end">结束时间<input id="event-end" v-model="controlCenter.lifeEvent.endAt" type="datetime-local" required /></label></div>
-          <div class="form-grid"><label for="event-scene">场景（可选）<input id="event-scene" v-model="controlCenter.lifeEvent.scene" maxlength="512" /></label><label for="event-activity">活动（可选）<input id="event-activity" v-model="controlCenter.lifeEvent.activity" maxlength="512" /></label></div>
-          <label for="event-location">地点（可选）<input id="event-location" v-model="controlCenter.lifeEvent.location" maxlength="512" /></label>
+          <label for="event-kind">Event 类型<Input id="event-kind" v-model="controlCenter.lifeEvent.kind" maxlength="128" required /></label>
+          <div class="form-grid"><label for="event-start">开始时间<Input id="event-start" v-model="controlCenter.lifeEvent.startAt" type="datetime-local" required /></label><label for="event-end">结束时间<Input id="event-end" v-model="controlCenter.lifeEvent.endAt" type="datetime-local" required /></label></div>
+          <div class="form-grid"><label for="event-scene">场景（可选）<Input id="event-scene" v-model="controlCenter.lifeEvent.scene" maxlength="512" /></label><label for="event-activity">活动（可选）<Input id="event-activity" v-model="controlCenter.lifeEvent.activity" maxlength="512" /></label></div>
+          <label for="event-location">地点（可选）<Input id="event-location" v-model="controlCenter.lifeEvent.location" maxlength="512" /></label>
           <p class="field-note">Event 创建需要在下方“证据引用”中填写至少一条可追溯引用。</p>
-          <button class="secondary-button" type="submit" :disabled="controlCenter.saving">创建确认 Event</button>
+          <Button class="secondary-button" variant="outline" type="submit" :disabled="controlCenter.saving">创建确认 Event</Button>
         </form>
-        <ul v-if="(controlCenter.fluctlightDetail.events as unknown[])?.length" class="detail-list"><li v-for="event in controlCenter.fluctlightDetail.events as Array<Record<string, unknown>>" :key="String(event.id)"><strong>{{ String(event.kind) }}</strong><small>{{ String(event.start_at).slice(0, 16) }} — {{ String(event.end_at).slice(0, 16) }} · {{ String(event.status) }}</small><button v-if="event.status === 'confirmed'" class="text-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.cancelLifeEvent(store.fluctlightId, String(event.id))">取消 Event</button></li></ul>
-        <form class="governance-form" @submit.prevent="controlCenter.setPresence(store.fluctlightId)"><div class="form-grid"><label for="user-presence">用户 Presence<input id="user-presence" v-model="controlCenter.presence.userPresence" maxlength="128" /></label><label for="current-task">当前任务<input id="current-task" v-model="controlCenter.presence.currentTask" maxlength="512" /></label></div><button class="secondary-button" type="submit" :disabled="controlCenter.saving">更新 Presence</button></form>
+        <ul v-if="(controlCenter.fluctlightDetail.events as unknown[])?.length" class="detail-list"><li v-for="event in controlCenter.fluctlightDetail.events as Array<Record<string, unknown>>" :key="String(event.id)"><strong>{{ String(event.kind) }}</strong><small>{{ String(event.start_at).slice(0, 16) }} — {{ String(event.end_at).slice(0, 16) }} · {{ String(event.status) }}</small><Button v-if="event.status === 'confirmed'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.cancelLifeEvent(store.fluctlightId, String(event.id))">取消 Event</Button></li></ul>
+        <form class="governance-form" @submit.prevent="controlCenter.setPresence(store.fluctlightId)"><div class="form-grid"><label for="user-presence">用户 Presence<Input id="user-presence" v-model="controlCenter.presence.userPresence" maxlength="128" /></label><label for="current-task">当前任务<Input id="current-task" v-model="controlCenter.presence.currentTask" maxlength="512" /></label></div><Button class="secondary-button" variant="outline" type="submit" :disabled="controlCenter.saving">更新 Presence</Button></form>
       </details>
 
       <details class="governance-section">
         <summary class="section-heading"><span class="section-index">04</span><div><p class="eyebrow">MEMORY</p><h2>关系与记忆</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
         <p v-if="!(controlCenter.fluctlightDetail.relationships as unknown[])?.length" class="field-note">尚未形成关系状态。</p>
-        <ul v-else class="detail-list"><li v-for="relationship in controlCenter.fluctlightDetail.relationships as Array<Record<string, unknown>>" :key="String(relationship.target_actor_id)"><strong>{{ String(relationship.target_actor_id) }}</strong><small>{{ String(relationship.trend ?? "") }} · r{{ String(relationship.revision ?? "") }}</small><div class="inline-controls"><input v-model="controlCenter.relationshipRollbackTargets[String(relationship.target_actor_id)]" aria-label="关系回滚目标 revision" type="number" min="0" step="1" placeholder="目标 revision" /><button class="text-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.rollbackRelationship(store.fluctlightId, relationship)">回滚关系</button></div></li></ul>
+        <ul v-else class="detail-list"><li v-for="relationship in controlCenter.fluctlightDetail.relationships as Array<Record<string, unknown>>" :key="String(relationship.target_actor_id)"><strong>{{ String(relationship.target_actor_id) }}</strong><small>{{ String(relationship.trend ?? "") }} · r{{ String(relationship.revision ?? "") }}</small><div class="inline-controls"><Input v-model="controlCenter.relationshipRollbackTargets[String(relationship.target_actor_id)]" aria-label="关系回滚目标 revision" type="number" min="0" step="1" placeholder="目标 revision" /><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.rollbackRelationship(store.fluctlightId, relationship)">回滚关系</Button></div></li></ul>
         <p v-if="!(controlCenter.fluctlightDetail.memories as unknown[])?.length" class="field-note">暂无可展示的记忆。</p>
-        <ul v-else class="detail-list"><li v-for="memory in controlCenter.fluctlightDetail.memories as Array<Record<string, unknown>>" :key="String(memory.id)"><strong>{{ String(memory.content) }}</strong><div class="inline-controls"><input v-model="controlCenter.memoryEdits[String(memory.id)]" :aria-label="'修正记忆 ' + memory.id" maxlength="4096" placeholder="修正内容" /><button class="text-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.reviseMemory(memory)">修正</button><button class="text-button danger-text" type="button" :disabled="controlCenter.saving" @click="controlCenter.forgetMemory(memory)">遗忘</button></div></li></ul>
-        <label for="governance-evidence">证据引用</label><input id="governance-evidence" v-model="controlCenter.governanceEvidence" maxlength="4096" placeholder="以逗号分隔，例如 event_123, message_456" />
+        <ul v-else class="detail-list"><li v-for="memory in controlCenter.fluctlightDetail.memories as Array<Record<string, unknown>>" :key="String(memory.id)"><strong>{{ String(memory.content) }}</strong><div class="inline-controls"><Input v-model="controlCenter.memoryEdits[String(memory.id)]" :aria-label="'修正记忆 ' + memory.id" maxlength="4096" placeholder="修正内容" /><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.reviseMemory(memory)">修正</Button><Button class="text-button danger-text" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.forgetMemory(memory)">遗忘</Button></div></li></ul>
+        <label for="governance-evidence">证据引用</label><Input id="governance-evidence" v-model="controlCenter.governanceEvidence" maxlength="4096" placeholder="以逗号分隔，例如 event_123, message_456" />
         <h3>近期认知</h3><p v-if="!(controlCenter.fluctlightDetail.cognition_history as unknown[])?.length" class="field-note">还没有完成的认知行动。</p><ul v-else class="detail-list"><li v-for="action in controlCenter.fluctlightDetail.cognition_history as Array<Record<string, unknown>>" :key="String(action.id)">{{ String(action.action_type) }}<small>{{ String(action.status) }}</small></li></ul>
       </details>
 
       <details class="governance-section">
         <summary class="section-heading"><span class="section-index">05</span><div><p class="eyebrow">AUTONOMY</p><h2>自治与修订</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
         <p v-if="!controlCenter.autonomyActions.length" class="field-note">当前没有待治理的自治动作。</p>
-        <ul v-else class="detail-list"><li v-for="action in controlCenter.autonomyActions" :key="action.id"><strong>{{ action.action_type }}</strong><small>{{ action.status }}</small><div class="inline-controls"><button v-if="action.status === 'frozen' || action.status === 'deferred'" class="text-button" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.governAutonomyAction(action.id, 'paused', store.fluctlightId)">暂停</button><button v-if="action.status === 'frozen' || action.status === 'deferred' || action.status === 'paused'" class="text-button" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.governAutonomyAction(action.id, 'cancelled', store.fluctlightId)">取消</button></div></li></ul>
+        <ul v-else class="detail-list"><li v-for="action in controlCenter.autonomyActions" :key="action.id"><strong>{{ action.action_type }}</strong><small>{{ action.status }}</small><div class="inline-controls"><Button v-if="action.status === 'frozen' || action.status === 'deferred'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.governAutonomyAction(action.id, 'paused', store.fluctlightId)">暂停</Button><Button v-if="action.status === 'frozen' || action.status === 'deferred' || action.status === 'paused'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.governAutonomyAction(action.id, 'cancelled', store.fluctlightId)">取消</Button></div></li></ul>
         <h3>身份与人格修订记录</h3>
         <p v-if="!(controlCenter.fluctlightDetail.foundation_revisions as unknown[])?.length" class="field-note">还没有修订记录。</p>
-        <ul v-else class="detail-list"><li v-for="revision in controlCenter.fluctlightDetail.foundation_revisions as Array<Record<string, unknown>>" :key="String(revision.id)"><strong>r{{ String(revision.revision) }} · {{ String(revision.source) }}</strong><small>{{ String(revision.status) }}<template v-if="revision.reason"> · {{ String(revision.reason) }}</template></small><div v-if="revision.status === 'proposed'" class="inline-controls"><button class="text-button" type="button" :disabled="controlCenter.saving || !controlCenter.revisionReason.trim()" @click="controlCenter.acceptFoundationRevision(store.fluctlightId, String(revision.id))">接受</button><button class="text-button" type="button" :disabled="controlCenter.saving || !controlCenter.revisionReason.trim()" @click="controlCenter.rejectFoundationRevision(store.fluctlightId, String(revision.id))">拒绝</button></div></li></ul>
-        <form class="governance-form" @submit.prevent="controlCenter.submitFoundationRevision(store.fluctlightId)"><label for="revision-json">基础修订 JSON<textarea id="revision-json" v-model="controlCenter.revisionChangesJson" rows="4" placeholder='{"name":"新的名称"}' /></label><label for="revision-reason">修订原因<input id="revision-reason" v-model="controlCenter.revisionReason" maxlength="1024" /></label><button class="secondary-button" type="submit" :disabled="controlCenter.saving || !controlCenter.revisionChangesJson.trim() || !controlCenter.revisionReason.trim()">提出修订</button></form>
-        <form class="governance-form" @submit.prevent="controlCenter.rollbackFoundationRevision(store.fluctlightId)"><label for="rollback-revision">回滚目标 revision<input id="rollback-revision" v-model="controlCenter.rollbackTargetRevision" type="number" min="0" step="1" /></label><button class="secondary-button" type="submit" :disabled="controlCenter.saving || !controlCenter.rollbackTargetRevision || !controlCenter.revisionReason.trim()">回滚到该 revision</button></form>
+        <ul v-else class="detail-list"><li v-for="revision in controlCenter.fluctlightDetail.foundation_revisions as Array<Record<string, unknown>>" :key="String(revision.id)"><strong>r{{ String(revision.revision) }} · {{ String(revision.source) }}</strong><small>{{ String(revision.status) }}<template v-if="revision.reason"> · {{ String(revision.reason) }}</template></small><div v-if="revision.status === 'proposed'" class="inline-controls"><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.revisionReason.trim()" @click="controlCenter.acceptFoundationRevision(store.fluctlightId, String(revision.id))">接受</Button><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.revisionReason.trim()" @click="controlCenter.rejectFoundationRevision(store.fluctlightId, String(revision.id))">拒绝</Button></div></li></ul>
+        <form class="governance-form" @submit.prevent="controlCenter.submitFoundationRevision(store.fluctlightId)"><label for="revision-json">基础修订 JSON<Textarea id="revision-json" v-model="controlCenter.revisionChangesJson" rows="4" placeholder='{"name":"新的名称"}' /></label><label for="revision-reason">修订原因<Input id="revision-reason" v-model="controlCenter.revisionReason" maxlength="1024" /></label><Button class="secondary-button" variant="outline" type="submit" :disabled="controlCenter.saving || !controlCenter.revisionChangesJson.trim() || !controlCenter.revisionReason.trim()">提出修订</Button></form>
+        <form class="governance-form" @submit.prevent="controlCenter.rollbackFoundationRevision(store.fluctlightId)"><label for="rollback-revision">回滚目标 revision<Input id="rollback-revision" v-model="controlCenter.rollbackTargetRevision" type="number" min="0" step="1" /></label><Button class="secondary-button" variant="outline" type="submit" :disabled="controlCenter.saving || !controlCenter.rollbackTargetRevision || !controlCenter.revisionReason.trim()">回滚到该 revision</Button></form>
       </details>
 
       <section class="danger-zone" aria-labelledby="retirement-title">
         <p class="eyebrow">DANGEROUS ACTION</p><h2 id="retirement-title">删除摇光</h2>
         <p>删除会从实例目录中移除并停止活动；历史会话与治理记录会保留用于审计，不能恢复到活动状态。</p>
-        <form class="governance-form" @submit.prevent="retire"><label for="retirement-reason">删除原因<input id="retirement-reason" v-model="retirementReason" maxlength="1024" required /></label><label for="retirement-confirmation">确认名称<input id="retirement-confirmation" v-model="retirementConfirmation" :aria-label="'输入 ' + store.selectedFluctlightName + ' 确认删除'" maxlength="256" :placeholder="'输入 ' + store.selectedFluctlightName + ' 确认'" required /></label><p class="field-note">需要完整输入“{{ store.selectedFluctlightName }}”后才能启用删除。</p><button class="danger-button" type="submit" :disabled="controlCenter.saving || !retirementReason.trim() || retirementConfirmation.trim() !== store.selectedFluctlightName">{{ controlCenter.saving ? "正在删除..." : "删除摇光" }}</button></form>
+        <form class="governance-form" @submit.prevent="retire"><label for="retirement-reason">删除原因<Input id="retirement-reason" v-model="retirementReason" maxlength="1024" required /></label><label for="retirement-confirmation">确认名称<Input id="retirement-confirmation" v-model="retirementConfirmation" :aria-label="'输入 ' + store.selectedFluctlightName + ' 确认删除'" maxlength="256" :placeholder="'输入 ' + store.selectedFluctlightName + ' 确认'" required /></label><p class="field-note">需要完整输入“{{ store.selectedFluctlightName }}”后才能启用删除。</p><Button class="danger-button" variant="destructive" type="submit" :disabled="controlCenter.saving || !retirementReason.trim() || retirementConfirmation.trim() !== store.selectedFluctlightName">{{ controlCenter.saving ? "正在删除..." : "删除摇光" }}</Button></form>
       </section>
     </template>
   </section>

@@ -8,7 +8,8 @@ export type WorkspaceRoute =
   | { view: "settings"; section?: "models" | "media" | "operations" | "owner" };
 
 export const primaryNavigation = [
-  { id: "instances", label: "实例", icon: "◉" },
+  { id: "instances", label: "聊天", icon: "◉" },
   { id: "moments", label: "动态", icon: "✦" },
   { id: "settings", label: "设置", icon: "⌘" },
+  { id: "diagnostics", label: "诊断中心", icon: "⌁" },
 ] as const satisfies ReadonlyArray<{ id: WorkspaceView; label: string; icon: string }>;
