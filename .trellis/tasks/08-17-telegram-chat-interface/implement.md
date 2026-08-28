@@ -2,7 +2,7 @@
 
 ## Order of Work
 
-0. Replace the rail/drawer navigation with a bottom, icon-only Contacts / Activity / Settings navigation state; make the Contacts list the default view and chat a focused surface with explicit back navigation.
+0. Replace the rail/drawer navigation with a bottom, icon-only Contacts / Activity / Settings / Diagnostics navigation state; make the Contacts list the default view and chat a focused surface with explicit back navigation.
 0.1. Recompose the chat header into fixed back, center-name/detail, and settings slots; expose existing settings, persona management, memory, and console features from the Settings list.
 
 1. Reconcile the duplicated CSS tail and establish the bright local token/spacing system without changing server behavior.

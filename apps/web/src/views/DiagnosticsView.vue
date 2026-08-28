@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted } from "vue";
 
+import Accordion from "@/components/ui/accordion/Accordion.vue";
+import AccordionContent from "@/components/ui/accordion/AccordionContent.vue";
+import AccordionItem from "@/components/ui/accordion/AccordionItem.vue";
+import AccordionTrigger from "@/components/ui/accordion/AccordionTrigger.vue";
+import Badge from "@/components/ui/badge/Badge.vue";
+import Button from "@/components/ui/button/Button.vue";
+import Input from "@/components/ui/input/Input.vue";
+import { diagnosticsSections, type DiagnosticsSection } from "../app/navigation";
 import { useControlCenterStore } from "../stores/control-center";
 
-const emit = defineEmits<{ back: [] }>();
+const props = defineProps<{ section?: DiagnosticsSection | null }>();
+const emit = defineEmits<{ navigateSection: [section: DiagnosticsSection | null] }>();
 const controlCenter = useControlCenterStore();
-const refreshing = ref(false);
+const currentSection = computed(() => props.section ?? null);
 const roleLabels: Record<string, string> = { initialization: "初始化", cognitive_assessment: "认知判断", action_realization: "回复生成", reflection: "反思", embedding: "Embedding", media_prompt: "媒体提示词" };
 function roleLabel(role: string) { return roleLabels[role] ?? role; }
 function pretty(value: Record<string, unknown>) { return JSON.stringify(value, null, 2); }
@@ -15,44 +24,144 @@ function workflowIdFor(value: Record<string, unknown>): string {
   for (const nested of Object.values(value)) if (nested && typeof nested === "object" && !Array.isArray(nested)) { const id: string = workflowIdFor(nested as Record<string, unknown>); if (id) return id; }
   return "";
 }
-async function refresh() {
-  refreshing.value = true;
-  try { await controlCenter.loadDiagnostics(); } finally { refreshing.value = false; }
-}
-
-function applyFilter() {
-  const params = new URLSearchParams(window.location.search);
-  const correlationId = controlCenter.diagnosticsCorrelationFilter.trim();
-  if (correlationId) params.set("correlation_id", correlationId);
-  else params.delete("correlation_id");
-  window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? `?${params}` : ""}`);
-  void refresh();
-}
-
 onMounted(() => {
   const correlationId = new URLSearchParams(window.location.search).get("correlation_id") ?? "";
   controlCenter.diagnosticsCorrelationFilter = correlationId;
-  void refresh();
+  void controlCenter.loadDiagnostics();
 });
 </script>
 
 <template>
   <section class="page diagnostics-page" aria-labelledby="diagnostics-title">
     <header class="page-header">
-      <div><button class="back-link" type="button" @click="emit('back')">← 返回设置</button><p class="eyebrow">SYSTEM OBSERVABILITY</p><h1 id="diagnostics-title">诊断中心</h1><p class="page-lede">只显示经过脱敏的模型运行、系统事件和工作流状态。</p></div>
-      <div class="header-actions"><button class="secondary-button" type="button" :disabled="refreshing || controlCenter.loading || controlCenter.saving" @click="refresh">{{ refreshing || controlCenter.loading ? "刷新中..." : "刷新" }}</button><button class="secondary-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.exportDiagnostics">导出</button><button class="secondary-button" type="button" :disabled="controlCenter.saving" @click="controlCenter.clearDiagnostics">清空</button></div>
+      <div><h1 id="diagnostics-title">诊断中心</h1></div>
     </header>
-    <form class="filter-bar" @submit.prevent="applyFilter"><label for="diagnostics-filter">Correlation ID<input id="diagnostics-filter" v-model="controlCenter.diagnosticsCorrelationFilter" placeholder="按 Correlation ID 过滤" /></label><button class="primary-button" type="submit" :disabled="refreshing || controlCenter.loading">筛选</button></form>
     <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
-    <p v-if="controlCenter.diagnosticsWarning" class="notice-banner" role="status">{{ controlCenter.diagnosticsWarning }}</p>
-    <p v-if="controlCenter.diagnosticsNotice" class="notice-banner" role="status">{{ controlCenter.diagnosticsNotice }}<span v-if="controlCenter.diagnosticsLastLoadedAt"> · {{ new Date(controlCenter.diagnosticsLastLoadedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) }}</span></p>
-    <div v-if="controlCenter.loading" class="empty-panel compact">正在加载诊断信息...</div>
-    <div v-else-if="!controlCenter.diagnostics.length && !controlCenter.diagnosticModelRuns.length" class="empty-panel compact"><h2>暂无诊断记录</h2><p>经脱敏的模型运行和系统事件会显示在这里。</p></div>
-    <div v-else class="diagnostics-groups">
-      <section v-if="controlCenter.diagnosticModelRuns.length" class="diagnostic-group"><div class="section-heading"><div><p class="eyebrow">MODEL RUNS</p><h2>模型运行</h2></div><span class="count-pill">{{ controlCenter.diagnosticModelRuns.length }}</span></div><article v-for="run in controlCenter.diagnosticModelRuns" :key="run.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ roleLabel(run.role) }}</strong><span>{{ run.status }}</span><small>{{ run.modelId }} · {{ run.correlationId }}</small></div><p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ run.errorCode }}</p><details open><summary>查看 Prompt</summary><pre>{{ pretty(run.prompt) }}</pre></details><details v-if="run.response" open><summary>查看 Response</summary><pre>{{ pretty(run.response) }}</pre></details></article></section>
-      <section v-if="controlCenter.diagnostics.length" class="diagnostic-group"><div class="section-heading"><div><p class="eyebrow">EVENTS</p><h2>系统事件</h2></div><span class="count-pill">{{ controlCenter.diagnostics.length }}</span></div><article v-for="event in controlCenter.diagnostics" :key="event.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ event.eventType }}</strong><span>{{ event.severity }}</span><small>{{ event.correlationId }}</small></div><pre>{{ pretty(event.payload) }}</pre></article></section>
-    </div>
+    <section v-if="!currentSection" class="diagnostics-overview" aria-labelledby="diagnostics-overview-title">
+      <p class="eyebrow">OBSERVABILITY</p>
+      <h2 id="diagnostics-overview-title">选择一个诊断项</h2>
+      <p class="page-lede">从左侧列表选择模型运行、系统事件或工作流控制。</p>
+      <nav class="diagnostics-mobile-section-list" aria-label="诊断选项">
+        <Button v-for="section in diagnosticsSections" :key="section.id" class="diagnostics-mobile-section-link" variant="outline" type="button" @click="emit('navigateSection', section.id)">
+          <span><strong>{{ section.label }}</strong><small>{{ section.description }}</small></span>
+          <span aria-hidden="true">›</span>
+        </Button>
+      </nav>
+    </section>
 
-    <details class="advanced-section"><summary class="section-heading"><div><p class="eyebrow">ADVANCED</p><h2>工作流控制</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary><p class="field-note">仅在需要排查运行时问题时使用暂停、取消、重启或 Reset。</p><form class="stack-form" @submit.prevent="controlCenter.queryWorkflowStatus"><label for="workflow-id">工作流 ID<input id="workflow-id" v-model="controlCenter.workflowId" placeholder="输入工作流 ID" /></label><label for="workflow-history-point">Reset history point<input id="workflow-history-point" v-model="controlCenter.workflowHistoryPoint" type="number" min="1" step="1" /></label><div class="action-grid"><button class="secondary-button" type="submit" :disabled="!controlCenter.workflowId.trim()">查询状态</button><button class="secondary-button" type="button" :disabled="!controlCenter.workflowId.trim()" @click="controlCenter.queryWorkflowHistory">查看历史</button><button class="secondary-button" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('pause')">暂停</button><button class="secondary-button" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('resume')">恢复</button><button class="secondary-button" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('cancel')">取消</button><button class="secondary-button" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.restartWorkflow">重启</button><button class="danger-outline-button" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim() || !controlCenter.workflowHistoryPoint" @click="controlCenter.resetWorkflow">Reset</button></div></form><pre v-if="controlCenter.workflowStatus">{{ pretty(controlCenter.workflowStatus) }}</pre><pre v-if="controlCenter.workflowHistory">{{ pretty(controlCenter.workflowHistory) }}</pre><ul v-if="controlCenter.workflows.length" class="workflow-list"><li v-for="workflow in controlCenter.workflows" :key="workflowIdFor(workflow)"><button class="text-button" type="button" @click="controlCenter.workflowId = workflowIdFor(workflow); controlCenter.queryWorkflowStatus()">{{ workflowIdFor(workflow) || "未知工作流" }}</button></li></ul></details>
+    <template v-else>
+      <header class="diagnostics-detail-header">
+        <Button class="back-link" variant="ghost" type="button" @click="emit('navigateSection', null)">‹ 返回诊断中心</Button>
+        <div><p class="eyebrow">OBSERVABILITY</p><h2>{{ diagnosticsSections.find((item) => item.id === currentSection)?.label }}</h2><p class="field-note">{{ diagnosticsSections.find((item) => item.id === currentSection)?.description }}</p></div>
+      </header>
+      <div v-if="controlCenter.loading" class="empty-panel compact">正在加载诊断信息...</div>
+      <div v-else-if="(currentSection === 'model-runs' && !controlCenter.diagnosticModelRuns.length) || (currentSection === 'events' && !controlCenter.diagnostics.length)" class="empty-panel compact"><h2>暂无当前诊断记录</h2><p>该主题暂时没有可展示的脱敏记录。</p></div>
+      <div v-else class="diagnostics-groups">
+      <Accordion type="single" :default-value="currentSection" class="diagnostics-accordion">
+        <AccordionItem v-if="currentSection === 'model-runs' && controlCenter.diagnosticModelRuns.length" value="model-runs" class="diagnostic-group diagnostics-drawer">
+          <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">MODEL RUNS</p><h2>模型运行</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnosticModelRuns.length }}</Badge></AccordionTrigger>
+          <AccordionContent><div class="diagnostic-drawer-body"><article v-for="run in controlCenter.diagnosticModelRuns" :key="run.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ roleLabel(run.role) }}</strong><Badge class="status-pill" variant="secondary">{{ run.status }}</Badge><small>{{ run.modelId }} · {{ run.correlationId }}</small></div><p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ run.errorCode }}</p><details><summary>查看 Prompt</summary><pre>{{ pretty(run.prompt) }}</pre></details><details v-if="run.response"><summary>查看 Response</summary><pre>{{ pretty(run.response) }}</pre></details></article></div></AccordionContent>
+        </AccordionItem>
+        <AccordionItem v-if="currentSection === 'events' && controlCenter.diagnostics.length" value="events" class="diagnostic-group diagnostics-drawer">
+          <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">EVENTS</p><h2>系统事件</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnostics.length }}</Badge></AccordionTrigger>
+          <AccordionContent><div class="diagnostic-drawer-body"><article v-for="event in controlCenter.diagnostics" :key="event.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ event.eventType }}</strong><Badge class="status-pill" variant="secondary">{{ event.severity }}</Badge><small>{{ event.correlationId }}</small></div><pre>{{ pretty(event.payload) }}</pre></article></div></AccordionContent>
+        </AccordionItem>
+      </Accordion>
+      </div>
+
+      <details v-if="currentSection === 'workflows'" class="advanced-section" open><summary class="section-heading"><div><p class="eyebrow">ADVANCED</p><h2>工作流控制</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary><p class="field-note">仅在需要排查运行时问题时使用暂停、取消、重启或 Reset。</p><form class="stack-form" @submit.prevent="controlCenter.queryWorkflowStatus"><label for="workflow-id">工作流 ID<Input id="workflow-id" v-model="controlCenter.workflowId" placeholder="输入工作流 ID" /></label><label for="workflow-history-point">Reset history point<Input id="workflow-history-point" v-model="controlCenter.workflowHistoryPoint" type="number" min="1" step="1" /></label><div class="action-grid"><Button class="secondary-button" variant="outline" type="submit" :disabled="!controlCenter.workflowId.trim()">查询状态</Button><Button class="secondary-button" variant="outline" type="button" :disabled="!controlCenter.workflowId.trim()" @click="controlCenter.queryWorkflowHistory">查看历史</Button><Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('pause')">暂停</Button><Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('resume')">恢复</Button><Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.commandWorkflow('cancel')">取消</Button><Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim()" @click="controlCenter.restartWorkflow">重启</Button><Button class="danger-outline-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.workflowId.trim() || !controlCenter.workflowHistoryPoint" @click="controlCenter.resetWorkflow">Reset</Button></div></form><pre v-if="controlCenter.workflowStatus">{{ pretty(controlCenter.workflowStatus) }}</pre><pre v-if="controlCenter.workflowHistory">{{ pretty(controlCenter.workflowHistory) }}</pre><ul v-if="controlCenter.workflows.length" class="workflow-list"><li v-for="workflow in controlCenter.workflows" :key="workflowIdFor(workflow)"><Button class="text-button" variant="ghost" type="button" @click="controlCenter.workflowId = workflowIdFor(workflow); controlCenter.queryWorkflowStatus()">{{ workflowIdFor(workflow) || "未知工作流" }}</Button></li></ul></details>
+    </template>
   </section>
 </template>
+
+<style scoped>
+.diagnostics-overview {
+  display: grid;
+  max-width: 680px;
+  align-content: center;
+  min-height: 100%;
+  gap: 8px;
+  padding: 20px 0;
+}
+
+.diagnostics-overview h2,
+.diagnostics-detail-header h2 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  letter-spacing: -.03em;
+}
+
+.diagnostics-mobile-section-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.diagnostics-mobile-section-link {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.diagnostics-mobile-section-link span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.diagnostics-mobile-section-link strong,
+.diagnostics-mobile-section-link small {
+  overflow-wrap: anywhere;
+}
+
+.diagnostics-mobile-section-link small {
+  color: var(--muted-ink);
+  font-size: .78rem;
+  line-height: 1.35;
+}
+
+.diagnostics-detail-header {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.diagnostics-detail-header + .diagnostics-groups .diagnostics-drawer-summary {
+  display: none;
+}
+
+.diagnostics-detail-header .back-link {
+  justify-self: start;
+}
+
+@media (min-width: 761px) {
+  .diagnostics-overview {
+    min-height: 70%;
+  }
+
+  .diagnostics-overview .diagnostics-mobile-section-list,
+  .diagnostics-detail-header .back-link {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .diagnostics-overview {
+    min-height: auto;
+    padding: 18px 14px 32px;
+  }
+
+  .diagnostics-detail-header {
+    padding: 12px 14px 0;
+  }
+
+  .diagnostics-detail-header h2 {
+    font-size: 1.2rem;
+  }
+}
+</style>

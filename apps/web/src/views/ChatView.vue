@@ -2,8 +2,11 @@
 import { nextTick, onMounted, ref, watch } from "vue";
 import type { BrowserMessage } from "@fluctlight/browser-client";
 
+import Button from "@/components/ui/button/Button.vue";
+import Textarea from "@/components/ui/textarea/Textarea.vue";
 import { bffOrigin } from "../runtime-config";
 import { useConversationStore } from "../stores/conversations";
+import { fluctlightStatusLabel } from "../lib/fluctlight-status";
 
 const emit = defineEmits<{
   back: [];
@@ -13,8 +16,19 @@ const emit = defineEmits<{
 
 const store = useConversationStore();
 const draft = ref("");
-const composer = ref<HTMLTextAreaElement | null>(null);
+type ComposerTarget = { focus?: () => void; $el?: unknown };
+const composer = ref<ComposerTarget | null>(null);
 const transcript = ref<HTMLElement | null>(null);
+
+function focusComposer() {
+  const target = composer.value;
+  if (!target) return;
+  if (typeof target.focus === "function") {
+    target.focus();
+    return;
+  }
+  if (target.$el instanceof HTMLElement) target.$el.focus();
+}
 
 async function send() {
   const text = draft.value.trim();
@@ -22,7 +36,7 @@ async function send() {
   draft.value = "";
   await store.send(text);
   scrollToLatest("smooth");
-  composer.value?.focus();
+  focusComposer();
 }
 
 function scrollToLatest(behavior: ScrollBehavior = "auto") {
@@ -63,31 +77,31 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
 <template>
   <section class="page chat-page" aria-labelledby="chat-title">
     <header class="chat-header">
-      <button class="icon-button chat-back" type="button" aria-label="返回聊天列表" @click="emit('back')">‹</button>
-      <button class="chat-profile" type="button" :disabled="!store.selectedFluctlight" @click="emit('openDetails')">
+      <Button class="icon-button chat-back" variant="ghost" type="button" aria-label="返回聊天列表" @click="emit('back')">‹</Button>
+      <Button class="chat-profile" variant="ghost" type="button" :disabled="!store.selectedFluctlight" @click="emit('openDetails')">
         <span class="chat-avatar" aria-hidden="true">{{ String(store.selectedFluctlightName ?? "F").slice(0, 1) }}</span>
         <span class="chat-header-copy">
-          <strong id="chat-title">{{ store.selectedFluctlightName ?? "对话" }}</strong>
-          <small>{{ store.sending ? "正在思考" : "已准备好回复" }}</small>
+          <strong id="chat-title">{{ store.selectedFluctlightName ?? "选择会话" }}</strong>
+          <small>{{ store.sending ? "正在思考" : store.selectedFluctlight ? fluctlightStatusLabel(store.selectedFluctlight.status) : "等待选择" }}</small>
         </span>
-      </button>
-      <button class="icon-button chat-more" type="button" aria-label="查看对话详情" @click="emit('openDetails')">⋯</button>
+      </Button>
+      <Button class="icon-button chat-more" variant="ghost" type="button" aria-label="查看对话详情" @click="emit('openDetails')">⋯</Button>
     </header>
 
     <section ref="transcript" class="message-timeline" aria-live="polite" aria-label="对话记录">
       <div v-if="store.loading" class="empty-state">正在加载对话...</div>
-      <button v-else-if="store.nextBeforeSequence" class="secondary-button load-older" type="button" @click="store.loadOlder">加载更早记录</button>
+      <Button v-else-if="store.nextBeforeSequence" class="secondary-button load-older" variant="outline" type="button" @click="store.loadOlder">加载更早记录</Button>
       <div v-else-if="!store.selectedFluctlight" class="empty-state">
         <span class="empty-mark" aria-hidden="true">＋</span>
-        <h2>还没有 Fluctlight 实例</h2>
-        <p>先创建一个实例，再开始你们之间的对话。</p>
-        <button class="primary-button" type="button" @click="emit('openInstances')">创建 Fluctlight</button>
+        <h2>选择一个会话进行聊天</h2>
+        <p>从左侧最近会话中选择一个摇光，继续你们之间的对话。</p>
+        <Button class="secondary-button" variant="outline" type="button" @click="emit('openInstances')">管理摇光实例</Button>
       </div>
       <div v-else-if="!store.messages.length" class="empty-state">
         <span class="empty-mark" aria-hidden="true">＋</span>
         <h2>开始与 {{ store.selectedFluctlightName }} 对话</h2>
         <p>分享一件事、一个问题，或此刻正在发生的事情。</p>
-        <button class="empty-cta" type="button" @click="composer?.focus()">开始写下第一句话</button>
+        <Button class="empty-cta" variant="ghost" type="button" @click="focusComposer">开始写下第一句话</Button>
       </div>
 
       <article
@@ -116,7 +130,7 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
 
     <form class="message-composer" @submit.prevent="send">
       <label class="sr-only" for="message-composer">消息</label>
-      <textarea
+      <Textarea
         id="message-composer"
         ref="composer"
         v-model="draft"
@@ -129,8 +143,8 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
       <div class="composer-footer">
         <span class="composer-hint">Enter 发送 · Shift + Enter 换行</span>
         <div class="composer-actions">
-          <button v-if="store.sending" class="secondary-button" type="button" @click="store.cancel">取消</button>
-          <button class="primary-button send-button" type="submit" :disabled="store.sending || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</button>
+          <Button v-if="store.sending" class="secondary-button" variant="outline" type="button" @click="store.cancel">取消</Button>
+          <Button class="primary-button send-button" type="submit" :disabled="store.sending || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</Button>
         </div>
       </div>
     </form>

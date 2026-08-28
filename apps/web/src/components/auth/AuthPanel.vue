@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { ref } from "vue";
+
+import Button from "@/components/ui/button/Button.vue";
+import Input from "@/components/ui/input/Input.vue";
+
 defineProps<{
   setupAvailable: boolean;
   loading: boolean;
@@ -9,8 +14,6 @@ const emit = defineEmits<{
   signIn: [password: string];
   setup: [token: string, password: string];
 }>();
-
-import { ref } from "vue";
 
 const authPassword = ref("");
 const setupToken = ref("");
@@ -39,22 +42,22 @@ function submitSetup() {
 
     <form v-if="setupAvailable" class="auth-form" @submit.prevent="submitSetup">
       <label for="setup-token">设置令牌</label>
-      <input id="setup-token" v-model="setupToken" type="password" autocomplete="one-time-code" required :disabled="loading" />
+      <Input id="setup-token" v-model="setupToken" type="password" autocomplete="one-time-code" required :disabled="loading" />
       <label for="setup-password">所有者密码</label>
-      <input id="setup-password" v-model="newOwnerPassword" type="password" autocomplete="new-password" minlength="6" required :disabled="loading" />
+      <Input id="setup-password" v-model="newOwnerPassword" type="password" autocomplete="new-password" minlength="6" required :disabled="loading" />
       <p v-if="error" class="error-banner" role="alert">{{ error }}</p>
-      <button class="primary-button" type="submit" :disabled="loading || !setupToken || newOwnerPassword.length < 6">
+      <Button class="primary-button" type="submit" :disabled="loading || !setupToken || newOwnerPassword.length < 6">
         {{ loading ? "正在创建..." : "创建所有者" }}
-      </button>
+      </Button>
     </form>
 
     <form v-else class="auth-form" @submit.prevent="submitSignIn">
       <label for="auth-password">密码</label>
-      <input id="auth-password" v-model="authPassword" type="password" autocomplete="current-password" minlength="6" required :disabled="loading" />
+      <Input id="auth-password" v-model="authPassword" type="password" autocomplete="current-password" minlength="6" required :disabled="loading" />
       <p v-if="error" class="error-banner" role="alert">{{ error }}</p>
-      <button class="primary-button" type="submit" :disabled="loading || authPassword.length < 6">
+      <Button class="primary-button" type="submit" :disabled="loading || authPassword.length < 6">
         {{ loading ? "正在登录..." : "登录" }}
-      </button>
+      </Button>
     </form>
   </section>
 </template>

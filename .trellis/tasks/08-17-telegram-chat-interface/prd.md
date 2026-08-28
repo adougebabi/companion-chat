@@ -17,7 +17,7 @@ Replace the current visual treatment with a dense, calm, mobile-first Telegram-i
 
 ### Revised Navigation And Chat Scope (2026-08-19)
 
-- The primary application shell uses a Telegram-inspired conversation-first layout with exactly three fixed bottom navigation controls: Contacts, Activity, and Settings. These controls use recognizable icons only; their accessible labels and tooltips may contain text.
+- The primary application shell uses a Telegram-inspired conversation-first layout with four fixed bottom navigation controls: Contacts, Activity, Settings, and Diagnostics. These controls use recognizable icons only; their accessible labels and tooltips may contain text.
 - Contacts is the default destination and behaves like a Telegram chat list: all enabled companion conversations are vertically listed with persona identity and the best available last-conversation summary. Selecting a row opens a dedicated chat surface rather than leaving list and conversation permanently side-by-side.
 - The chat surface has a left back control, a geometrically centered persona name that opens companion detail/memory, and a right settings action that retains the existing per-persona configuration capability. The message stream and composer remain in the middle/bottom of the surface.
 - Activity remains a WeChat-Moments-inspired destination. This iteration preserves the existing product’s limited activity capability as a calm, non-debug placeholder/overview rather than treating the runtime console as a social feed.
@@ -45,9 +45,9 @@ Replace the current visual treatment with a dense, calm, mobile-first Telegram-i
 ## Acceptance Criteria
 
 - [ ] At 320px, 375px, 650px, tablet, and desktop widths, the chat header, menu, persona identity, message area, composer, drawers, and dialogs have no overlapping or unreachable controls.
-- [ ] The application has exactly three icon-only fixed bottom tabs: Contacts, Activity, and Settings. Contacts opens by default; neither desktop nor mobile uses the legacy hamburger/sidebar navigation.
+- [ ] The application has exactly four icon-only fixed bottom tabs: Contacts, Activity, Settings, and Diagnostics. Contacts opens by default; neither desktop nor mobile uses the legacy hamburger/sidebar navigation.
 - [ ] Tapping a contact opens a dedicated chat page. Its header has a back action on the left, a centered clickable name in the middle, and an existing-functionality settings action on the right.
-- [ ] The focused chat surface hides the three primary bottom tabs; returning to Contacts restores them.
+- [ ] The focused chat surface hides the four primary bottom tabs; returning to Contacts restores them.
 - [ ] Routine and schedule state projections never directly publish an activity. A qualifying life event is first presented to the persona model, which decides whether to publish and, only when publishing, supplies the post text and an optional none/image/video media choice.
 - [ ] A persona decision not to publish preserves the event and current state but creates no activity, media job, or activity-unread signal.
 - [ ] The Contacts page lists every enabled persona as a conversation row with identity and an available preview; Settings presents existing configuration actions as a list of options.

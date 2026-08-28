@@ -1,15 +1,25 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { computed } from "vue";
+
+import Badge from "@/components/ui/badge/Badge.vue";
+import Button from "@/components/ui/button/Button.vue";
+import Dialog from "@/components/ui/dialog/Dialog.vue";
+import DialogClose from "@/components/ui/dialog/DialogClose.vue";
+import DialogContent from "@/components/ui/dialog/DialogContent.vue";
+import DialogDescription from "@/components/ui/dialog/DialogDescription.vue";
+import DialogFooter from "@/components/ui/dialog/DialogFooter.vue";
+import DialogHeader from "@/components/ui/dialog/DialogHeader.vue";
+import DialogTitle from "@/components/ui/dialog/DialogTitle.vue";
 
 import { useConversationStore } from "../../stores/conversations";
 import { useControlCenterStore } from "../../stores/control-center";
+import { fluctlightStatusLabel } from "../../lib/fluctlight-status";
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: []; manage: [] }>();
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
-const closeButton = ref<HTMLButtonElement | null>(null);
-let trigger: HTMLElement | null = null;
+const dialogOpen = computed(() => props.open && Boolean(store.selectedFluctlight));
 
 const displayLabels: Record<string, string> = {
   id: "标识", name: "名称", age: "年龄", gender: "性别", occupation: "职业", residence: "居住地",
@@ -18,44 +28,24 @@ const displayLabels: Record<string, string> = {
 function labelFor(key: string) { return displayLabels[key] ?? key; }
 function valueText(value: unknown) { return Array.isArray(value) ? value.join("、") : String(value ?? "未设定"); }
 
-function close() {
-  emit("close");
-  trigger?.focus();
-}
-
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape") close();
-}
-
-watch(() => props.open, async (open) => {
-  if (open) {
-    trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    await nextTick();
-    closeButton.value?.focus();
-    document.addEventListener("keydown", onKeydown);
-  } else {
-    document.removeEventListener("keydown", onKeydown);
-  }
-}, { immediate: true });
-
-onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
+function close() { emit("close"); }
+function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
 </script>
 
 <template>
-  <Teleport to="body">
-    <div v-if="open && store.selectedFluctlight" class="detail-dialog-backdrop" @click.self="close">
-      <section class="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="fluctlight-modal-title">
-        <header class="detail-dialog-header">
+  <Dialog :open="dialogOpen" @update:open="onDialogOpenChange">
+    <DialogContent v-if="store.selectedFluctlight" class="detail-dialog max-w-none gap-0 p-0 sm:max-w-none" :show-close-button="false" aria-modal="true" aria-labelledby="fluctlight-modal-title">
+      <DialogHeader class="detail-dialog-header">
           <div class="modal-identity">
             <span class="modal-avatar" aria-hidden="true">{{ String(store.selectedFluctlightName ?? "F").slice(0, 1) }}</span>
-            <div><p class="eyebrow">FLUCTLIGHT</p><h2 id="fluctlight-modal-title">{{ store.selectedFluctlightName }}</h2></div>
+            <div id="fluctlight-modal-title"><p class="eyebrow">FLUCTLIGHT</p><DialogTitle>{{ store.selectedFluctlightName }}</DialogTitle><DialogDescription class="sr-only">查看当前 Fluctlight 的只读详情。</DialogDescription></div>
           </div>
-          <button ref="closeButton" class="icon-button modal-close" type="button" aria-label="关闭摇光详情" @click="close">×</button>
-        </header>
+          <DialogClose as-child><Button variant="ghost" class="icon-button modal-close" type="button" aria-label="关闭摇光详情">×</Button></DialogClose>
+      </DialogHeader>
 
         <div class="detail-dialog-body">
           <div class="detail-status-strip">
-            <span><i class="legend-dot online" />{{ store.selectedFluctlight.status === "paused" ? "已暂停" : "可对话" }}</span>
+            <Badge class="status-pill" variant="secondary" :class="{ paused: store.selectedFluctlight.status === 'paused', muted: store.selectedFluctlight.status === 'retired' }"><i class="legend-dot" :class="store.selectedFluctlight.status === 'paused' ? 'paused' : 'online'" />{{ fluctlightStatusLabel(store.selectedFluctlight.status) }}</Badge>
             <span>{{ controlCenter.fluctlightDetail ? "状态已同步" : "正在读取状态" }}</span>
           </div>
 
@@ -92,11 +82,10 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
           </template>
         </div>
 
-        <footer class="detail-dialog-footer">
-          <button class="secondary-button" type="button" @click="emit('manage')">进入编辑与治理</button>
-          <button class="primary-button" type="button" @click="close">完成</button>
-        </footer>
-      </section>
-    </div>
-  </Teleport>
+      <DialogFooter class="detail-dialog-footer m-0">
+        <Button class="secondary-button" variant="outline" type="button" @click="emit('manage')">进入编辑与治理</Button>
+        <DialogClose as-child><Button class="primary-button" type="button">完成</Button></DialogClose>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>

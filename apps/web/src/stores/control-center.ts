@@ -86,9 +86,7 @@ export const useControlCenterStore = defineStore("control-center", {
           plan = planDefaultGroupMembership(groups, actorIds);
         }
         this.actorGroups = groups;
-        for (const actorId of plan.ungroupedActorIds) {
-          await client.assignActorGroupMember(defaultGroup.id, actorId);
-        }
+        for (const actorId of plan.ungroupedActorIds) await client.assignActorGroupMember(defaultGroup.id, actorId);
         await this.loadActorGroups();
         this.selectedActorGroupId = defaultGroup.id;
       } catch {
@@ -146,8 +144,8 @@ export const useControlCenterStore = defineStore("control-center", {
       try {
         const correlationId = this.diagnosticsCorrelationFilter.trim() || undefined;
         const [events, modelRuns, workflows] = await Promise.allSettled([
-          client.diagnostics({ limit: 100, correlationId }),
-          client.diagnosticModelRuns({ limit: 100, correlationId }),
+          client.diagnostics({ limit: 20, correlationId }),
+          client.diagnosticModelRuns({ limit: 20, correlationId }),
           client.listWorkflows(),
         ]);
         if (requestId !== this.diagnosticsRequestId) return;
@@ -514,6 +512,7 @@ export const useControlCenterStore = defineStore("control-center", {
       } catch { this.error = "无法保存评论。"; }
     },
     async clearDiagnostics() {
+      if (typeof window !== "undefined" && !window.confirm("确定清空所有诊断记录吗？此操作不可撤销。")) return;
       this.saving = true;
       this.error = "";
       try {
