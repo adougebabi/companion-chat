@@ -68,8 +68,9 @@ COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
     "Decide from the whole situation whether a visual artifact would materially improve the "
     "response; do not require a magic phrase or use a keyword rule. An explicit request is strong "
     "evidence, but a contextual need can also justify media_request. A media_request effect must "
-    "carry a non-empty media_request visual concept with scene, action, mood, subject/object and "
-    "capture details. For conversation.message, if media_evaluation.needed is true, include a "
+    "carry a non-empty media_request visual concept with any known scene, action, mood, "
+    "subject/object and capture details; the media prompt role may complete missing visual detail. "
+    "For conversation.message, if media_evaluation.needed is true, include a "
     "media_request effect; if false, do not include one. For life_world.daily_review, if media "
     "is needed, include a moment effect with moment_media_request instead. Keep response_intent "
     "limited to the visible acknowledgement; never put "
@@ -279,23 +280,18 @@ class ConfiguredProviderRuntime:
                         raise RuntimeError(
                             "cognitive media_request effect is missing a visual concept"
                         )
-                    required_concept_fields = (
-                        "scene",
-                        "action",
-                        "mood",
-                        "subject",
-                        "capture_details",
-                    )
                     missing_concept_fields = [
                         field
-                        for field in required_concept_fields
-                        if not isinstance(concept.get(field), str)
-                        or not concept[field].strip()
+                        for field in ("scene", "action", "mood", "subject", "capture_details")
+                        if not isinstance(concept.get(field), str) or not concept[field].strip()
                     ]
                     if missing_concept_fields:
-                        raise RuntimeError(
-                            "cognitive media_request visual concept has empty fields: "
-                            + ", ".join(missing_concept_fields)
+                        logger.warning(
+                            "cognition.media_request.concept_incomplete fact_id=%s "
+                            "correlation_id=%s missing_fields=%s",
+                            fact.id,
+                            correlation_id,
+                            ",".join(missing_concept_fields),
                         )
             media_evaluation = decision_payload.get("media_evaluation")
             media_effects = [

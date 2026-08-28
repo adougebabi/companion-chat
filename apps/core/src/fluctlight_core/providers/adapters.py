@@ -129,7 +129,14 @@ def _structured_schema(schema_version: str) -> dict[str, object]:
                 },
             }
         )
-        provenance = {"type": "object", "additionalProperties": True}
+        provenance = _object(
+            {
+                "field_sources": {
+                    "type": "object",
+                    "additionalProperties": {"type": "string"},
+                }
+            }
+        )
         goal = _object(
             {
                 "description": {"type": "string"},

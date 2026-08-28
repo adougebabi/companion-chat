@@ -254,6 +254,35 @@ def test_openai_adapter_executes_structured_realization_and_embedding_ports() ->
     assert structured_payload["metadata"]["schema_version"] == "semantic.assessment.v1"
 
 
+def test_initialization_schema_closes_foundation_provenance_contract() -> None:
+    calls: list[bytes] = []
+
+    def fake(
+        method: str, url: str, headers: dict[str, str], body: bytes, timeout: float
+    ) -> HttpResult:
+        calls.append(body)
+        return HttpResult(
+            200,
+            json.dumps(
+                {"choices": [{"message": {"content": "{}"}}]}
+            ).encode(),
+        )
+
+    asyncio.run(
+        OpenAICompatibleAdapter(fake).complete_structured(
+            RoleAssignment(ModelRole.INITIALIZATION, "endpoint", "model", 100, 10),
+            ProviderEndpoint("endpoint", "openai-compatible", "http://provider", "provider:key"),
+            SecretValue("secret"),
+            messages=[{"role": "user", "content": "create"}],
+            schema_version="fluctlight.initialization.v1",
+        )
+    )
+    schema = json.loads(calls[0])["response_format"]["json_schema"]["schema"]
+    provenance = schema["properties"]["foundation"]["properties"]["provenance"]
+    assert provenance["additionalProperties"] is False
+    assert provenance["required"] == ["field_sources"]
+
+
 def test_openai_adapter_executes_against_a_real_local_http_endpoint() -> None:
     if os.environ.get("FLUCTLIGHT_PROVIDER_SOCKET_TEST") != "1":
         pytest.skip("local socket execution requires the external integration environment")
