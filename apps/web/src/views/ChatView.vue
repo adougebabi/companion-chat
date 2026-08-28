@@ -33,8 +33,8 @@ function focusComposer() {
 async function send() {
   const text = draft.value.trim();
   if (!text) return;
-  draft.value = "";
   await store.send(text);
+  if (!store.canRetry) draft.value = "";
   scrollToLatest("smooth");
   focusComposer();
 }
@@ -61,8 +61,13 @@ function mediaUrl(assetId: string) {
   return new URL(`/api/media/${encodeURIComponent(assetId)}`, bffOrigin).toString();
 }
 
-function deliveryStatus(message: BrowserMessage): "pending" | "sent" | "none" {
+function deliveryStatus(message: BrowserMessage): "pending" | "failed" | "sent" | "none" {
   if (message.kind !== "user") return "none";
+  if (
+    store.canRetry &&
+    store.retryTurn?.conversationId === message.conversationId &&
+    store.retryTurn.text === message.text
+  ) return "failed";
   const latestUserMessage = [...store.messages].reverse().find((item) => item.kind === "user");
   return store.sending && latestUserMessage?.id === message.id ? "pending" : "sent";
 }
@@ -118,15 +123,18 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
           </div>
           <div class="message-meta">
             <time>{{ new Date(message.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) }}</time>
-            <span v-if='deliveryStatus(message) !== "none"' class="delivery-status" :class="deliveryStatus(message)" :aria-label='deliveryStatus(message) === "pending" ? "已接收，处理中" : "已回复"'>
-              ✓<span v-if='deliveryStatus(message) === "sent"'>✓</span>
+            <span v-if='deliveryStatus(message) !== "none"' class="delivery-status" :class="deliveryStatus(message)" :aria-label='deliveryStatus(message) === "pending" ? "已接收，处理中" : deliveryStatus(message) === "failed" ? "发送失败，可重试" : "已回复"'>
+              <span v-if='deliveryStatus(message) === "failed"'>!</span><template v-else>✓<span v-if='deliveryStatus(message) === "sent"'>✓</span></template>
             </span>
           </div>
         </div>
       </article>
     </section>
 
-    <p v-if="store.error" class="error-banner" role="alert">{{ store.error }}</p>
+    <div v-if="store.error" class="error-banner" role="alert">
+      <span>{{ store.error }}</span>
+      <Button v-if="store.canRetry" class="secondary-button" variant="outline" type="button" @click="store.retry">重试</Button>
+    </div>
 
     <form class="message-composer" @submit.prevent="send">
       <label class="sr-only" for="message-composer">消息</label>
@@ -137,14 +145,14 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
         rows="1"
         maxlength="32000"
         placeholder="写一条消息..."
-        :disabled="store.loading || !store.hasConversation || !store.selectedFluctlight"
+        :disabled="store.loading || store.canRetry || !store.hasConversation || !store.selectedFluctlight"
         @keydown="onKeydown"
       />
       <div class="composer-footer">
         <span class="composer-hint">Enter 发送 · Shift + Enter 换行</span>
         <div class="composer-actions">
           <Button v-if="store.sending" class="secondary-button" variant="outline" type="button" @click="store.cancel">取消</Button>
-          <Button class="primary-button send-button" type="submit" :disabled="store.sending || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</Button>
+          <Button class="primary-button send-button" type="submit" :disabled="store.sending || store.canRetry || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</Button>
         </div>
       </div>
     </form>

@@ -27,6 +27,19 @@ test("web chat keeps the generated browser client at its boundary", async () => 
   assert.match(source, /directConversation/);
   assert.match(source, /persistSelection/);
   assert.match(source, /fluctlightId,/);
+  assert.match(source, /retryTurn/);
+  assert.match(source, /persistRetry/);
+  assert.match(source, /event\.turnId/);
+});
+
+test("web keeps a failed turn retryable instead of allowing later messages to overtake it", async () => {
+  const source = await readFile(new URL("../src/stores/conversations.ts", import.meta.url), "utf8");
+  const viewSource = await readFile(new URL("../src/views/ChatView.vue", import.meta.url), "utf8");
+  assert.match(source, /if \(pendingRetry && !retry\)/);
+  assert.match(source, /idempotencyKey: request\.idempotencyKey/);
+  assert.match(source, /turnId: request\.turnId/);
+  assert.match(viewSource, /store\.canRetry/);
+  assert.match(viewSource, /store\.retry/);
 });
 
 test("control center exposes the required product views", async () => {

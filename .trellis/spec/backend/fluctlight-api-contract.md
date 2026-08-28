@@ -40,6 +40,7 @@ GET /health/ready
 - NDJSON sequence is monotonic per turn and has exactly one terminal `completed` or `error`. Heartbeats do not change domain/action state.
 - Internal stream exposes only visible text/content progress, action results, bounded errors, and terminal metadata. It never exposes perception, appraisal, hidden reasoning, raw Provider chunks, credentials, database rows, or Temporal internals.
 - Node response abort/disconnect propagates to the Core ASGI request and realization cancellation. Committed assessment/state/frozen decision is not rolled back by transport disconnect.
+- A retried conversation request reuses the original `turn_id` and `idempotency_key`. The Core responder must bind processing to that fact ID and replay or reopen it in place; it must never consume another pending fact for the request.
 - `/health/live` has no dependency probes. `/health/ready` checks required configuration, PostgreSQL, and the `serve-api` role; optional Provider outage is reported separately and does not fail readiness.
 - API process does not poll Temporal task queues or execute background Provider Activities.
 

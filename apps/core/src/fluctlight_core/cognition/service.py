@@ -246,7 +246,154 @@ class CognitionService:
             status = await tx.session.scalar(statement)
         return InboxStatus(status) if status is not None else None
 
-    async def claim_next(self, fluctlight_id: str, *, worker_id: str) -> InboxClaim | None:
+    async def completed_realization(self, fact_id: str) -> RealizationResult | None:
+        """Return a completed visible realization for an already processed fact."""
+
+        async with self._unit_of_work.begin(
+            command_id=f"cognition-realization-read:{fact_id}"
+        ) as tx:
+            row = (
+                (
+                    await tx.session.execute(
+                        select(schema.frozen_actions)
+                        .where(
+                            schema.frozen_actions.c.inbox_id == fact_id,
+                            schema.frozen_actions.c.status == ActionStatus.COMPLETED.value,
+                            schema.frozen_actions.c.action_type == ActionType.REPLY.value,
+                        )
+                        .order_by(schema.frozen_actions.c.completed_at.desc())
+                        .limit(1)
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        if row is None or not isinstance(row["realization_payload"], dict):
+            return None
+        return RealizationResult(
+            row["provider_request_id"],
+            dict(row["realization_payload"]),
+        )
+
+    async def retry_failed_fact(self, fact_id: str, *, fluctlight_id: str) -> None:
+        """Reopen one failed fact in place so a client retry keeps its identity."""
+
+        async with self._unit_of_work.begin(
+            command_id=f"cognition-retry:{fact_id}"
+        ) as tx:
+            row = (
+                (
+                    await tx.session.execute(
+                        select(schema.inbox)
+                        .where(
+                            schema.inbox.c.id == fact_id,
+                            schema.inbox.c.fluctlight_id == fluctlight_id,
+                        )
+                        .with_for_update()
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if row is None:
+                raise KeyError(fact_id)
+            status = InboxStatus(row["status"])
+            if status is not InboxStatus.FAILED:
+                raise CognitionConflictError(
+                    f"fact {fact_id} is not retryable from status {status.value}"
+                )
+            head = (
+                (
+                    await tx.session.execute(
+                        select(schema.inbox_heads)
+                        .where(schema.inbox_heads.c.fluctlight_id == fluctlight_id)
+                        .with_for_update()
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if head is None or int(head["last_processed_sequence"]) != int(row["sequence"]):
+                raise CognitionConflictError(
+                    "failed fact cannot be retried after a later fact was processed"
+                )
+            await tx.session.execute(
+                update(schema.inbox)
+                .where(schema.inbox.c.id == fact_id)
+                .values(
+                    status=InboxStatus.PENDING.value,
+                    error_code=None,
+                    claimed_by=None,
+                    claimed_at=None,
+                    processed_at=None,
+                )
+            )
+            await tx.session.execute(
+                update(schema.frozen_actions)
+                .where(schema.frozen_actions.c.inbox_id == fact_id)
+                .values(
+                    status=ActionStatus.FROZEN.value,
+                    realization_payload=None,
+                    error_code=None,
+                    completed_at=None,
+                )
+            )
+            await tx.session.execute(
+                update(schema.inbox_heads)
+                .where(schema.inbox_heads.c.fluctlight_id == fluctlight_id)
+                .values(
+                    last_processed_sequence=int(row["sequence"]) - 1,
+                    writer_owner=None,
+                    writer_lease_until=None,
+                )
+            )
+            await tx.commit()
+
+    async def release_claim(self, fact_id: str, *, worker_id: str) -> None:
+        """Return a claim to pending when cancellation races claim delivery."""
+
+        async with self._unit_of_work.begin(
+            command_id=f"cognition-release-claim:{fact_id}"
+        ) as tx:
+            row = (
+                (
+                    await tx.session.execute(
+                        select(schema.inbox)
+                        .where(
+                            schema.inbox.c.id == fact_id,
+                            schema.inbox.c.claimed_by == worker_id,
+                            schema.inbox.c.status == InboxStatus.CLAIMED.value,
+                        )
+                        .with_for_update()
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if row is None:
+                return
+            await tx.session.execute(
+                update(schema.inbox)
+                .where(schema.inbox.c.id == fact_id)
+                .values(status=InboxStatus.PENDING.value, claimed_by=None, claimed_at=None)
+            )
+            await tx.session.execute(
+                update(schema.inbox_heads)
+                .where(
+                    schema.inbox_heads.c.fluctlight_id == row["fluctlight_id"],
+                    schema.inbox_heads.c.writer_owner == worker_id,
+                )
+                .values(writer_owner=None, writer_lease_until=None)
+            )
+            await tx.commit()
+
+    async def claim_next(
+        self,
+        fluctlight_id: str,
+        *,
+        worker_id: str,
+        expected_fact_id: str | None = None,
+    ) -> InboxClaim | None:
         now = self._clock()
         async with self._unit_of_work.begin(command_id=f"cognition-claim:{fluctlight_id}") as tx:
             head = (
@@ -265,22 +412,23 @@ class CognitionService:
             if self._lease_is_active(head, now):
                 return None
             next_sequence = int(head["last_processed_sequence"]) + 1
+            statement = select(schema.inbox).where(
+                schema.inbox.c.fluctlight_id == fluctlight_id,
+                schema.inbox.c.sequence == next_sequence,
+                schema.inbox.c.status.in_(
+                    [
+                        InboxStatus.PENDING.value,
+                        InboxStatus.CLAIMED.value,
+                        InboxStatus.FROZEN.value,
+                    ]
+                ),
+            )
+            if expected_fact_id is not None:
+                statement = statement.where(schema.inbox.c.id == expected_fact_id)
             row = (
                 (
                     await tx.session.execute(
-                        select(schema.inbox)
-                        .where(
-                            schema.inbox.c.fluctlight_id == fluctlight_id,
-                            schema.inbox.c.sequence == next_sequence,
-                            schema.inbox.c.status.in_(
-                                [
-                                    InboxStatus.PENDING.value,
-                                    InboxStatus.CLAIMED.value,
-                                    InboxStatus.FROZEN.value,
-                                ]
-                            ),
-                        )
-                        .with_for_update()
+                        statement.with_for_update()
                     )
                 )
                 .mappings()
@@ -322,8 +470,16 @@ class CognitionService:
             worker_id=worker_id,
         )
 
-    async def process_next(self, fluctlight_id: str, *, worker_id: str) -> ProcessOutcome | None:
-        claim = await self.claim_next(fluctlight_id, worker_id=worker_id)
+    async def process_next(
+        self,
+        fluctlight_id: str,
+        *,
+        worker_id: str,
+        expected_fact_id: str | None = None,
+    ) -> ProcessOutcome | None:
+        claim = await self.claim_next(
+            fluctlight_id, worker_id=worker_id, expected_fact_id=expected_fact_id
+        )
         if claim is None:
             return None
         if self._diagnostics is not None:
@@ -378,14 +534,33 @@ class CognitionService:
             secondary_actions=secondary_actions,
         )
 
-    async def stream_next(self, fluctlight_id: str, *, worker_id: str) -> AsyncIterator[str]:
+    async def stream_next(
+        self,
+        fluctlight_id: str,
+        *,
+        worker_id: str,
+        expected_fact_id: str | None = None,
+    ) -> AsyncIterator[str]:
         """Process one claim while yielding visible realization chunks as they arrive."""
 
-        claim = await self.claim_next(fluctlight_id, worker_id=worker_id)
+        try:
+            claim = await self.claim_next(
+                fluctlight_id, worker_id=worker_id, expected_fact_id=expected_fact_id
+            )
+        except asyncio.CancelledError:
+            if expected_fact_id is not None:
+                await self.release_claim(expected_fact_id, worker_id=worker_id)
+            raise
         if claim is None:
+            if expected_fact_id is not None:
+                raise ProviderExecutionError("turn_not_ready")
             return
         if self._diagnostics is not None:
-            await self._diagnostics.emit_turn(self._diagnostics_turn(claim, status="claimed"))
+            try:
+                await self._diagnostics.emit_turn(self._diagnostics_turn(claim, status="claimed"))
+            except asyncio.CancelledError:
+                await self._settle_failure(claim, "turn_cancelled")
+                raise
         try:
             envelope = await self._assessment_provider.assess(
                 claim.fact, correlation_id=claim.fact.correlation_id
@@ -407,6 +582,9 @@ class CognitionService:
                 action.action_type.value,
                 claim.fact.id,
             )
+        except asyncio.CancelledError:
+            await self._settle_failure(claim, "assessment_cancelled")
+            raise
         except Exception as exc:
             code = self._error_code(exc, "assessment_failed")
             await self._settle_failure(claim, code)

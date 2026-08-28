@@ -17,6 +17,14 @@ type StreamPayload = {
   code?: string;
   detail?: string;
 };
+type RetryTurn = {
+  conversationId: string;
+  fluctlightId: string;
+  text: string;
+  idempotencyKey: string;
+  turnId: string;
+  attachmentRefs: string[];
+};
 export type FluctlightListItem = {
   id: string;
   identity: Record<string, unknown>;
@@ -26,6 +34,7 @@ export type FluctlightListItem = {
 };
 
 const selectedFluctlightStorageKey = "fluctlight.selected-instance-id";
+const retryTurnStorageKey = "fluctlight.retry-turn";
 
 function persistedSelection(): string | null {
   if (typeof localStorage === "undefined") return null;
@@ -36,6 +45,36 @@ function persistSelection(fluctlightId: string | null): void {
   if (typeof localStorage === "undefined") return;
   if (fluctlightId) localStorage.setItem(selectedFluctlightStorageKey, fluctlightId);
   else localStorage.removeItem(selectedFluctlightStorageKey);
+}
+
+function persistedRetry(): RetryTurn | null {
+  if (typeof localStorage === "undefined") return null;
+  const raw = localStorage.getItem(retryTurnStorageKey);
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as Partial<RetryTurn>;
+    if (
+      typeof value.conversationId === "string" &&
+      typeof value.fluctlightId === "string" &&
+      typeof value.text === "string" &&
+      typeof value.idempotencyKey === "string" &&
+      typeof value.turnId === "string" &&
+      Array.isArray(value.attachmentRefs) &&
+      value.attachmentRefs.every((item) => typeof item === "string")
+    ) {
+      return { ...value, attachmentRefs: value.attachmentRefs as string[] } as RetryTurn;
+    }
+  } catch {
+    // Ignore malformed local retry state and let the server remain authoritative.
+  }
+  localStorage.removeItem(retryTurnStorageKey);
+  return null;
+}
+
+function persistRetry(retry: RetryTurn | null): void {
+  if (typeof localStorage === "undefined") return;
+  if (retry) localStorage.setItem(retryTurnStorageKey, JSON.stringify(retry));
+  else localStorage.removeItem(retryTurnStorageKey);
 }
 
 function createLocalMessage(conversationId: string, text: string, sequence: number, authorActorId = "human") : BrowserMessage {
@@ -71,6 +110,8 @@ export const useConversationStore = defineStore("conversations", {
     error: "" as string,
     attachmentRef: "",
     abortController: null as AbortController | null,
+    retryTurn: persistedRetry(),
+    requestEpoch: 0,
   }),
   getters: {
     hasConversation: (state) => Boolean(state.conversation?.id),
@@ -80,6 +121,7 @@ export const useConversationStore = defineStore("conversations", {
       const name = this.selectedFluctlight?.identity.name;
       return typeof name === "string" && name.trim() ? name : this.selectedFluctlight?.id ?? null;
     },
+    canRetry: (state) => Boolean(state.retryTurn) && !state.sending,
   },
   actions: {
     async initialize() {
@@ -133,6 +175,7 @@ export const useConversationStore = defineStore("conversations", {
       }
     },
     async changePassword(password: string) {
+      this.invalidateRequest();
       this.authLoading = true;
       this.authError = "";
       try {
@@ -141,6 +184,8 @@ export const useConversationStore = defineStore("conversations", {
         this.conversation = null;
         this.messages = [];
         this.fluctlightId = null;
+        this.retryTurn = null;
+        persistRetry(null);
         return true;
       } catch {
         this.authError = "无法修改所有者密码。请确认当前登录会话仍有效后重试。";
@@ -150,6 +195,7 @@ export const useConversationStore = defineStore("conversations", {
       }
     },
     async logout() {
+      this.invalidateRequest();
       try {
         await client.logout();
       } finally {
@@ -159,6 +205,8 @@ export const useConversationStore = defineStore("conversations", {
         this.fluctlights = [];
         this.messages = [];
         this.nextBeforeSequence = null;
+        this.retryTurn = null;
+        persistRetry(null);
       }
     },
     async bootstrap() {
@@ -185,6 +233,7 @@ export const useConversationStore = defineStore("conversations", {
         return;
       }
       if (options.loading !== false) this.loading = true;
+      this.invalidateRequest();
       this.error = "";
       try {
         const page = await client.directConversation(fluctlightId);
@@ -192,6 +241,10 @@ export const useConversationStore = defineStore("conversations", {
         this.messages = page.messages;
         this.nextBeforeSequence = page.nextBeforeSequence ?? null;
         this.fluctlightId = fluctlightId;
+        if (this.retryTurn?.fluctlightId !== fluctlightId) {
+          this.retryTurn = null;
+          persistRetry(null);
+        }
         persistSelection(fluctlightId);
         await this.reportReadPosition();
       } catch {
@@ -202,31 +255,54 @@ export const useConversationStore = defineStore("conversations", {
       }
     },
     clearActiveConversation() {
+      this.invalidateRequest();
       this.conversation = null;
       this.fluctlightId = null;
       this.messages = [];
       this.nextBeforeSequence = null;
+      this.retryTurn = null;
+      persistRetry(null);
       persistSelection(null);
     },
-    async send(text: string) {
+    async send(text: string, retry = false) {
       const normalized = text.trim();
       const conversationId = this.conversation?.id;
       const fluctlightId = this.fluctlightId;
+      const pendingRetry = this.retryTurn;
+      if (pendingRetry && !retry) {
+        this.error = "上一条消息发送失败，请先重试。";
+        return;
+      }
       if (!normalized || !conversationId || !fluctlightId || this.sending) return;
+      if (retry && (!pendingRetry || pendingRetry.conversationId !== conversationId || pendingRetry.fluctlightId !== fluctlightId)) return;
       this.error = "";
       this.sending = true;
       this.abortController = new AbortController();
-      const userMessage = createLocalMessage(conversationId, normalized, this.messages.length + 1);
-      this.messages.push(userMessage);
+      const requestEpoch = this.requestEpoch;
+      const request = pendingRetry && retry
+        ? pendingRetry
+        : {
+            conversationId,
+            fluctlightId,
+            text: normalized,
+            idempotencyKey: `turn-${randomId()}`,
+            turnId: `turn_${randomId()}`,
+            attachmentRefs: this.attachmentRef ? [this.attachmentRef] : [],
+          };
+      if (!retry) {
+        const userMessage = createLocalMessage(conversationId, normalized, this.messages.length + 1);
+        this.messages.push(userMessage);
+      }
       let assistantDraft: BrowserMessage | null = null;
       try {
         const response = await client.turn(
-          conversationId,
+          request.conversationId,
           {
-            text: normalized,
-            fluctlightId,
-            attachmentRefs: this.attachmentRef ? [this.attachmentRef] : [],
-            idempotencyKey: `turn-${randomId()}`,
+            text: request.text,
+            fluctlightId: request.fluctlightId,
+            attachmentRefs: request.attachmentRefs,
+            idempotencyKey: request.idempotencyKey,
+            turnId: request.turnId,
           },
           this.abortController.signal,
         );
@@ -237,6 +313,8 @@ export const useConversationStore = defineStore("conversations", {
         let assistantText = "";
         let expectedSequence = 0;
         const applyEvent = (event: BrowserTurnEvent) => {
+          if (this.requestEpoch !== requestEpoch) return;
+          if (event.turnId !== request.turnId) throw new Error("turn_id_mismatch");
           if (event.sequence !== expectedSequence) throw new Error("turn_sequence_invalid");
           expectedSequence += 1;
           const payload = event.payload as StreamPayload;
@@ -245,9 +323,9 @@ export const useConversationStore = defineStore("conversations", {
             if (!assistantDraft) {
               const streamedMessage: BrowserMessage = {
                 id: `stream-${randomId()}`,
-                conversationId,
+                conversationId: request.conversationId,
                 sequence: this.messages.length + 1,
-                authorActorId: fluctlightId,
+                authorActorId: request.fluctlightId,
                 kind: "assistant",
                 text: assistantText,
                 attachmentRefs: [],
@@ -278,6 +356,7 @@ export const useConversationStore = defineStore("conversations", {
         };
         while (true) {
           const next = await reader.read();
+          if (this.requestEpoch !== requestEpoch) return;
           if (next.done) break;
           buffer += decoder.decode(next.value, { stream: true });
           const lines = buffer.split("\n");
@@ -287,30 +366,53 @@ export const useConversationStore = defineStore("conversations", {
             applyEvent(JSON.parse(line) as BrowserTurnEvent);
           }
         }
+        if (this.requestEpoch !== requestEpoch) return;
         buffer += decoder.decode();
         if (buffer.trim()) {
           applyEvent(JSON.parse(buffer) as BrowserTurnEvent);
         }
-        const page = await client.messages(conversationId);
+        const page = await client.messages(request.conversationId);
         this.conversation = page.conversation;
         this.messages = page.messages;
         this.nextBeforeSequence = page.nextBeforeSequence ?? null;
         await this.reportReadPosition();
         this.attachmentRef = "";
+        this.retryTurn = null;
+        persistRetry(null);
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          if (assistantDraft) this.messages = this.messages.filter((message) => message.id !== assistantDraft?.id);
+        if (this.requestEpoch !== requestEpoch) return;
+        if (assistantDraft) this.messages = this.messages.filter((message) => message.id !== assistantDraft?.id);
+        const cancelled =
+          this.abortController?.signal.aborted ||
+          (error instanceof DOMException && error.name === "AbortError");
+        if (cancelled) {
+          this.error = "回复已取消，可以重试。";
         } else {
           const message = error instanceof Error ? error.message : "turn_failed";
           this.error = `回复未完成：${message}`;
         }
+        this.retryTurn = request;
+        persistRetry(request);
       } finally {
-        this.abortController = null;
-        this.sending = false;
+        if (this.requestEpoch === requestEpoch) {
+          this.abortController = null;
+          this.sending = false;
+        }
       }
+    },
+    invalidateRequest() {
+      this.requestEpoch += 1;
+      this.abortController?.abort();
+      this.abortController = null;
+      this.sending = false;
     },
     cancel() {
       this.abortController?.abort();
+    },
+    async retry() {
+      const pending = this.retryTurn;
+      if (!pending) return;
+      await this.send(pending.text, true);
     },
     async loadOlder() {
       if (!this.conversation || !this.nextBeforeSequence || this.loading) return;

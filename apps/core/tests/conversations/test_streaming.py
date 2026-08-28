@@ -12,6 +12,7 @@ from fluctlight_core.cognition.contracts import (
     DecisionProposal,
     FrozenAction,
     InboxClaim,
+    ProviderExecutionError,
     RealizationResult,
     stable_provider_request_id,
 )
@@ -266,6 +267,28 @@ def test_stream_next_marks_realization_cancelled_and_propagates_cancel(monkeypat
 
     asyncio.run(run())
     assert failures == ["realization_cancelled"]
+
+
+def test_stream_next_rejects_when_the_requested_turn_is_not_the_inbox_head(monkeypatch) -> None:
+    service = _service(StreamingProvider())
+
+    async def claim_next(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(service, "claim_next", claim_next)
+
+    async def collect() -> list[str]:
+        return [
+            chunk
+            async for chunk in service.stream_next(
+                "fluctlight-1",
+                worker_id="interaction",
+                expected_fact_id="turn-1",
+            )
+        ]
+
+    with pytest.raises(ProviderExecutionError, match="turn_not_ready"):
+        asyncio.run(collect())
 
 
 def test_transport_stream_preserves_order_and_single_terminal() -> None:

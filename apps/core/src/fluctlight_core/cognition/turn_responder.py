@@ -13,7 +13,7 @@ from fluctlight_core.conversations.contracts import (
     TurnResponse,
 )
 
-from .contracts import CognitionFact, InboxStatus
+from .contracts import CognitionFact, InboxStatus, RealizationResult
 from .service import CognitionService
 
 
@@ -78,16 +78,21 @@ class CognitionTurnResponder:
     async def respond(self, turn: ConversationTurn, history) -> TurnResponse:
         if not turn.fluctlight_id:
             raise ConversationProviderError("turn requires an explicit Fluctlight participant")
-        fact = await self._fact(turn, history, turn.fluctlight_id)
-        await self._cognition.enqueue(fact)
-        outcome = await self._cognition.process_next(turn.fluctlight_id, worker_id="interaction")
+        handled, replay = await self._prepare_turn(turn, history)
+        if handled:
+            return self._response_from_realization(replay, turn)
+        outcome = await self._cognition.process_next(
+            turn.fluctlight_id,
+            worker_id="interaction",
+            expected_fact_id=turn.turn_id,
+        )
         if (
             outcome is None
             or outcome.status is not InboxStatus.COMPLETED
             or outcome.realization is None
         ):
             raise ConversationProviderError(
-                outcome.error_code if outcome else "cognition_not_processed"
+                outcome.error_code if outcome else "turn_not_ready"
             )
         text = outcome.realization.payload.get("text")
         if not isinstance(text, str) or not text.strip():
@@ -106,7 +111,63 @@ class CognitionTurnResponder:
     async def stream_respond(self, turn: ConversationTurn, history) -> AsyncIterator[str]:
         if not turn.fluctlight_id:
             raise ConversationProviderError("turn requires an explicit Fluctlight participant")
-        fact = await self._fact(turn, history, turn.fluctlight_id)
-        await self._cognition.enqueue(fact)
-        async for chunk in self._cognition.stream_next(turn.fluctlight_id, worker_id="interaction"):
+        handled, replay = await self._prepare_turn(turn, history)
+        if handled:
+            text = self._text_from_realization(replay)
+            if text:
+                yield text
+            return
+        async for chunk in self._cognition.stream_next(
+            turn.fluctlight_id,
+            worker_id="interaction",
+            expected_fact_id=turn.turn_id,
+        ):
             yield chunk
+
+    async def _prepare_turn(
+        self, turn: ConversationTurn, history
+    ) -> tuple[bool, RealizationResult | None]:
+        """Prepare a new turn or reopen/replay its existing immutable fact."""
+
+        if not turn.fluctlight_id:
+            raise ConversationProviderError("turn requires an explicit Fluctlight participant")
+        status = await self._cognition.inbox_fact_status(
+            turn.turn_id, fluctlight_id=turn.fluctlight_id
+        )
+        if status is InboxStatus.COMPLETED:
+            return True, await self._cognition.completed_realization(turn.turn_id)
+        if status is InboxStatus.FAILED:
+            await self._cognition.retry_failed_fact(
+                turn.turn_id, fluctlight_id=turn.fluctlight_id
+            )
+        elif status in {InboxStatus.CLAIMED, InboxStatus.FROZEN}:
+            raise ConversationProviderError("turn_in_progress")
+        elif status is None:
+            fact = await self._fact(turn, history, turn.fluctlight_id)
+            await self._cognition.enqueue(fact)
+        return False, None
+
+    @staticmethod
+    def _text_from_realization(realization: RealizationResult | None) -> str:
+        if realization is None:
+            return ""
+        text = realization.payload.get("text")
+        return text.strip() if isinstance(text, str) else ""
+
+    @classmethod
+    def _response_from_realization(
+        cls, realization: RealizationResult | None, turn: ConversationTurn
+    ) -> TurnResponse:
+        text = cls._text_from_realization(realization)
+        if not text:
+            return TurnResponse(())
+        return TurnResponse(
+            (
+                MessageDraft(
+                    author_actor_id=turn.fluctlight_id or turn.actor_id,
+                    text=text,
+                    kind=MessageKind.ASSISTANT,
+                    idempotency_key=f"{turn.idempotency_key}:assistant",
+                ),
+            )
+        )
