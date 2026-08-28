@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -16,6 +17,7 @@ _fluctlights: Any | None = None
 _schedules: Any | None = None
 _daily_review: Any | None = None
 _life_world: Any | None = None
+logger = logging.getLogger(__name__)
 
 
 def configure_current_day_schedule_service(
@@ -62,8 +64,15 @@ async def ensure_current_day_schedule(payload: dict[str, Any]) -> dict[str, str]
         "status": "ready" if schedule is not None else "pending",
     }
     if schedule is not None:
-        result["next_local_midnight_delay_seconds"] = str(
-            int(_next_local_midnight_delay(datetime.now(UTC), timezone).total_seconds())
+        delay_seconds = int(
+            _next_local_midnight_delay(datetime.now(UTC), timezone).total_seconds()
+        )
+        result["next_local_midnight_delay_seconds"] = str(delay_seconds)
+        logger.warning(
+            "schedule.activity.ready fluctlight_id=%s timezone=%s delay_seconds=%s",
+            fluctlight_id,
+            timezone,
+            delay_seconds,
         )
     if schedule is not None and _daily_review is not None:
         review = await _daily_review.review_current_day(fluctlight_id, schedule)
