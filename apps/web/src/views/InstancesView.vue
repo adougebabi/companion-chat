@@ -42,6 +42,7 @@ const creationRequestId = ref<string | null>(null);
 const creationDiagnosticsCorrelationId = ref("");
 const creationFoundationProvenance = ref<Record<string, unknown>>({});
 const defaultGroupId = computed(() => controlCenter.actorGroups.find((group) => group.name === "默认")?.id ?? controlCenter.actorGroups[0]?.id ?? "");
+const orderedActorGroups = computed(() => [...controlCenter.actorGroups].sort((left, right) => { if (left.name === "默认") return -1; if (right.name === "默认") return 1; return left.name.localeCompare(right.name, "zh-CN"); }));
 
 watch(() => props.openGovernance, (open) => {
   if (open) showGovernance.value = true;
@@ -204,11 +205,11 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
     </header>
 
     <div class="mobile-group-tabs" role="tablist" aria-label="聊天分组">
-      <Button v-for="group in controlCenter.actorGroups" :key="group.id" class="mobile-group-tab" variant="ghost" :class="{ selected: controlCenter.selectedActorGroupId === group.id }" role="tab" :aria-selected="controlCenter.selectedActorGroupId === group.id" type="button" @click="controlCenter.selectedActorGroupId = group.id">{{ group.name }}</Button>
+      <Button v-for="group in orderedActorGroups" :key="group.id" class="mobile-group-tab" variant="ghost" :class="{ selected: controlCenter.selectedActorGroupId === group.id }" role="tab" :aria-selected="controlCenter.selectedActorGroupId === group.id" type="button" @click="controlCenter.selectedActorGroupId = group.id">{{ group.name }}</Button>
     </div>
 
     <div class="directory-toolbar group-toolbar">
-      <label class="filter-field" for="instance-group">当前分组<Select :model-value="controlCenter.selectedActorGroupId || undefined" :disabled="!controlCenter.actorGroups.length" @update:model-value="selectActorGroup"><SelectTrigger id="instance-group" class="w-full"><SelectValue placeholder="默认分组" /></SelectTrigger><SelectContent><SelectItem v-for="group in controlCenter.actorGroups" :key="group.id" :value="group.id">{{ group.name }}{{ group.id === defaultGroupId ? "（默认）" : "" }}</SelectItem></SelectContent></Select></label>
+      <label class="filter-field" for="instance-group">当前分组<Select :model-value="controlCenter.selectedActorGroupId || undefined" :disabled="!controlCenter.actorGroups.length" @update:model-value="selectActorGroup"><SelectTrigger id="instance-group" class="w-full"><SelectValue placeholder="默认分组" /></SelectTrigger><SelectContent><SelectItem v-for="group in orderedActorGroups" :key="group.id" :value="group.id">{{ group.name }}{{ group.id === defaultGroupId ? "（默认）" : "" }}</SelectItem></SelectContent></Select></label>
       <Button class="secondary-button" variant="outline" type="button" :aria-expanded="showGroupForm" @click="showGroupForm = !showGroupForm"><Plus :size="16" :stroke-width="2" aria-hidden="true" />新建分组</Button>
     </div>
 
@@ -274,7 +275,7 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
     <section v-if="store.fluctlights.length && filteredFluctlights.length" class="instance-list" aria-label="Fluctlight 实例列表">
       <article v-for="fluctlight in filteredFluctlights" :key="fluctlight.id" class="instance-list-item" :class="{ selected: fluctlight.id === store.fluctlightId }">
         <Button class="instance-main justify-start" variant="ghost" type="button" @click="openFluctlight(fluctlight.id)"><span class="avatar persona-avatar">{{ String(fluctlight.identity.name ?? "F").slice(0, 1) }}</span><span class="instance-copy"><strong>{{ String(fluctlight.identity.name ?? fluctlight.id) }}</strong><small><Badge class="status-pill" variant="secondary" :class="{ paused: fluctlight.status === 'paused', muted: fluctlight.status === 'retired' }">{{ fluctlightStatusLabel(fluctlight.status) }}</Badge><template v-if="fluctlight.unread_count"> · {{ fluctlight.unread_count }} 条未读</template></small></span></Button>
-        <div class="instance-actions"><Button class="text-button" variant="ghost" type="button" @click="openDetailsFor(fluctlight.id)">查看详情</Button><Button class="text-button" variant="ghost" type="button" @click="openGovernanceFor(fluctlight.id)">编辑与治理</Button><Select v-if="controlCenter.actorGroups.length" :aria-label="'为 ' + fluctlight.id + ' 指定分组'" @update:model-value="(value) => assignActorGroup(value, fluctlight.id)"><SelectTrigger class="instance-group-select"><SelectValue placeholder="加入分组..." /></SelectTrigger><SelectContent><SelectItem value="__none__">加入分组...</SelectItem><SelectItem v-for="group in controlCenter.actorGroups.filter((item) => !item.actor_ids.includes(fluctlight.id))" :key="group.id" :value="group.id">{{ group.name }}</SelectItem></SelectContent></Select></div>
+        <div class="instance-actions"><Button class="text-button" variant="ghost" type="button" @click="openDetailsFor(fluctlight.id)">查看详情</Button><Button class="text-button" variant="ghost" type="button" @click="openGovernanceFor(fluctlight.id)">编辑与治理</Button><Select v-if="controlCenter.actorGroups.length" :aria-label="'为 ' + fluctlight.id + ' 指定分组'" @update:model-value="(value) => assignActorGroup(value, fluctlight.id)"><SelectTrigger class="instance-group-select"><SelectValue placeholder="加入分组..." /></SelectTrigger><SelectContent><SelectItem value="__none__">加入分组...</SelectItem><SelectItem v-for="group in orderedActorGroups.filter((item) => !item.actor_ids.includes(fluctlight.id))" :key="group.id" :value="group.id">{{ group.name }}</SelectItem></SelectContent></Select></div>
       </article>
     </section>
     <div v-else-if="!store.fluctlights.length" class="empty-panel"><span class="empty-mark" aria-hidden="true"><Plus :size="22" :stroke-width="2" /></span><h2>还没有 Fluctlight 实例</h2><p>创建第一个实例后，它会出现在这里。</p><Button class="primary-button" variant="default" type="button" @click="showCreateForm = true">创建第一个实例</Button></div>
