@@ -32,23 +32,10 @@ def configure_current_day_schedule_service(
 
 
 def _next_local_midnight_delay(now: datetime, timezone: str) -> timedelta:
-    # Temporal's workflow clock carries a sandbox `_RestrictedProxy` tzinfo.
-    # Rebuild the instant with the concrete UTC tzinfo before calling zoneinfo
-    # conversion; otherwise datetime.astimezone rejects the proxy object.
-    utc_now = datetime(
-        now.year,
-        now.month,
-        now.day,
-        now.hour,
-        now.minute,
-        now.second,
-        now.microsecond,
-        tzinfo=UTC,
-    )
     zone = ZoneInfo(timezone)
-    local_now = utc_now.astimezone(zone)
+    local_now = now.astimezone(zone)
     next_midnight = datetime.combine(local_now.date() + timedelta(days=1), time.min, tzinfo=zone)
-    return max(next_midnight.astimezone(UTC) - utc_now, timedelta(seconds=1))
+    return max(next_midnight.astimezone(UTC) - now.astimezone(UTC), timedelta(seconds=1))
 
 
 @activity.defn(name="ensure_current_day_schedule")
@@ -74,6 +61,10 @@ async def ensure_current_day_schedule(payload: dict[str, Any]) -> dict[str, str]
         "timezone": timezone,
         "status": "ready" if schedule is not None else "pending",
     }
+    if schedule is not None:
+        result["next_local_midnight_delay_seconds"] = str(
+            int(_next_local_midnight_delay(datetime.now(UTC), timezone).total_seconds())
+        )
     if schedule is not None and _daily_review is not None:
         review = await _daily_review.review_current_day(fluctlight_id, schedule)
         result["daily_review_status"] = str(review.get("status", "unknown"))
@@ -116,7 +107,10 @@ class CurrentDayScheduleWorkflow:
             await workflow.sleep(timedelta(minutes=5))
             workflow.continue_as_new(payload)
             raise AssertionError("workflow.continue_as_new must not return")
-        await workflow.sleep(_next_local_midnight_delay(workflow.now(), result["timezone"]))
+        delay_seconds = int(result.get("next_local_midnight_delay_seconds", "0"))
+        if delay_seconds <= 0:
+            raise ValueError("current-day schedule activity returned an invalid midnight delay")
+        await workflow.sleep(timedelta(seconds=delay_seconds))
         workflow.continue_as_new(payload)
         raise AssertionError("workflow.continue_as_new must not return")
 

@@ -89,11 +89,10 @@ def test_current_day_schedule_activity_uses_latest_active_fluctlight() -> None:
 
         result = await ensure_current_day_schedule({"fluctlight_id": "fluctlight-1"})
 
-        assert result == {
-            "fluctlight_id": "fluctlight-1",
-            "timezone": "Asia/Shanghai",
-            "status": "ready",
-        }
+        assert result["fluctlight_id"] == "fluctlight-1"
+        assert result["timezone"] == "Asia/Shanghai"
+        assert result["status"] == "ready"
+        assert int(result["next_local_midnight_delay_seconds"]) > 0
         assert fluctlights.requested == ["fluctlight-1"]
         assert schedules.ensured == [fluctlights.snapshot]
 
