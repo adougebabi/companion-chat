@@ -316,7 +316,7 @@ class CognitionService:
                 claim.fact, correlation_id=claim.fact.correlation_id
             )
             self._validate_envelope(claim, envelope)
-            logger.info(
+            logger.warning(
                 "cognition.assessment.completed fact_id=%s fluctlight_id=%s correlation_id=%s "
                 "effect_count=%d effect_types=%s",
                 claim.fact.id,
@@ -332,7 +332,7 @@ class CognitionService:
 
         try:
             action = await self._freeze(claim, envelope)
-            logger.info(
+            logger.warning(
                 "cognition.action.frozen action_id=%s action_type=%s fact_id=%s",
                 action.action_id,
                 action.action_type.value,
@@ -375,7 +375,7 @@ class CognitionService:
             )
             self._validate_envelope(claim, envelope)
             action = await self._freeze(claim, envelope)
-            logger.info(
+            logger.warning(
                 "cognition.assessment.completed fact_id=%s fluctlight_id=%s correlation_id=%s "
                 "effect_count=%d effect_types=%s",
                 claim.fact.id,
@@ -384,7 +384,7 @@ class CognitionService:
                 len(envelope.decision.effects),
                 ",".join(effect.action_type.value for effect in envelope.decision.effects),
             )
-            logger.info(
+            logger.warning(
                 "cognition.action.frozen action_id=%s action_type=%s fact_id=%s",
                 action.action_id,
                 action.action_type.value,
@@ -782,7 +782,7 @@ class CognitionService:
 
     async def _freeze_autonomy(self, action: FrozenAction) -> None:
         freezer = getattr(self, "_autonomy_freezer", None)
-        logger.info(
+        logger.warning(
             "cognition.autonomy.dispatch action_id=%s action_type=%s configured=%s",
             action.action_id,
             action.action_type.value,
@@ -816,7 +816,7 @@ class CognitionService:
             return ()
         actions: list[FrozenAction] = []
         for effect in effects[1:]:
-            logger.info(
+            logger.warning(
                 "cognition.secondary_effect.start fact_id=%s effect_id=%s action_type=%s",
                 claim.fact.id,
                 effect.effect_id,
@@ -839,7 +839,7 @@ class CognitionService:
             )
             if action.action_type is not ActionType.NO_OP:
                 _, action = await self._realize_and_freeze_autonomy(action, claim)
-            logger.info(
+            logger.warning(
                 "cognition.secondary_effect.dispatched fact_id=%s effect_id=%s action_id=%s "
                 "action_type=%s",
                 claim.fact.id,

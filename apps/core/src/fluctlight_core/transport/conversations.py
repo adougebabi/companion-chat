@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import AsyncIterator
 from typing import Any
@@ -17,6 +18,8 @@ from fluctlight_core.conversations.contracts import (
 )
 from fluctlight_core.conversations.service import ConversationService
 from fluctlight_core.transport.ndjson import NdjsonProducer
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationCreateRequest(BaseModel):
@@ -106,6 +109,14 @@ async def stream_turn(service: ConversationService, turn: ConversationTurn) -> A
     except Exception as exc:
         detail = str(exc).strip()
         error_code = re.sub(r"[^a-z0-9_.-]+", "_", detail.lower()).strip("_")[:120]
+        logger.error(
+            "conversation.stream.failed turn_id=%s correlation_id=%s error_code=%s "
+            "error_type=%s",
+            turn.turn_id,
+            turn.correlation_id,
+            error_code or "turn_unavailable",
+            type(exc).__name__,
+        )
         yield producer.emit(
             "error",
             {

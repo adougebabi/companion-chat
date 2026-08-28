@@ -57,14 +57,14 @@ class CognitionAutonomyBridge:
             )
         )
         if decision is not None:
-            logger.info(
+            logger.warning(
                 "cognition.autonomy_action.%s action_id=%s action_type=%s reason=%s",
                 "accepted" if decision.accepted else "rejected",
                 f"autonomy_{action.action_id}",
                 action.action_type.value,
                 decision.reason_code,
             )
-        if self._diagnostics is not None:
+        if self._diagnostics is not None and decision is not None:
             await self._diagnostics.emit_event(
                 DiagnosticEvent(
                     event_type=(

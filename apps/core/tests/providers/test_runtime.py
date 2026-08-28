@@ -55,7 +55,15 @@ class CompoundAssessmentAdapter:
                     {
                         "id": "reply-image",
                         "action_type": "media_request",
-                        "payload": {"media_request": {"subject": "直播预告"}},
+                        "payload": {
+                            "media_request": {
+                                "scene": "直播间",
+                                "action": "准备直播预告",
+                                "mood": "期待",
+                                "subject": "主播",
+                                "capture_details": "半身构图",
+                            }
+                        },
                     },
                     {
                         "id": "announcement",
@@ -149,7 +157,7 @@ def test_cognitive_assessment_parses_ordered_compound_effects() -> None:
         "media_request",
         "moment",
     ]
-    assert envelope.decision.effects[1].payload["media_request"] == {"subject": "直播预告"}
+    assert envelope.decision.effects[1].payload["media_request"]["scene"] == "直播间"
 
 
 def test_realization_uses_the_factual_source_message_not_cognitive_payload_text() -> None:

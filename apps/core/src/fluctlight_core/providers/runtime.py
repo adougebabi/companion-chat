@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from datetime import date
 from hashlib import sha256
@@ -43,6 +44,7 @@ from .contracts import ModelRole, ProviderProvenance
 from .service import ProviderEndpoint, RoleAssignment
 
 ProviderRecorder = Callable[[ProviderProvenance], Awaitable[None]]
+logger = logging.getLogger(__name__)
 
 
 COGNITIVE_ASSESSMENT_SYSTEM_PROMPT = (
@@ -270,11 +272,37 @@ class ConfiguredProviderRuntime:
             if len(effects) != len(raw_effects):
                 raise RuntimeError("cognitive Provider decision effects must be objects")
             for effect in effects:
+                if effect.action_type in {
+                    ActionType.REPLY,
+                    ActionType.PROACTIVE_MESSAGE,
+                    ActionType.MOMENT,
+                } and not isinstance(effect.payload.get("response_intent", {}), dict):
+                    raise RuntimeError(
+                        f"cognitive {effect.action_type.value} response_intent must be an object"
+                    )
                 if effect.action_type is ActionType.MEDIA_REQUEST:
                     concept = effect.payload.get("media_request")
                     if not isinstance(concept, dict) or not concept:
                         raise RuntimeError(
                             "cognitive media_request effect is missing a visual concept"
+                        )
+                    required_concept_fields = (
+                        "scene",
+                        "action",
+                        "mood",
+                        "subject",
+                        "capture_details",
+                    )
+                    missing_concept_fields = [
+                        field
+                        for field in required_concept_fields
+                        if not isinstance(concept.get(field), str)
+                        or not concept[field].strip()
+                    ]
+                    if missing_concept_fields:
+                        raise RuntimeError(
+                            "cognitive media_request visual concept has empty fields: "
+                            + ", ".join(missing_concept_fields)
                         )
             media_evaluation = decision_payload.get("media_evaluation")
             media_effects = [
@@ -292,6 +320,29 @@ class ConfiguredProviderRuntime:
                     raise RuntimeError(
                         "cognitive media_request effect contradicts media evaluation"
                     )
+            logger.warning(
+                "cognition.assessment.response fact_id=%s correlation_id=%s effect_count=%d "
+                "effect_types=%s media_needed=%s media_effects=%d media_fields=%s",
+                fact.id,
+                correlation_id,
+                len(effects),
+                ",".join(effect.action_type.value for effect in effects),
+                media_evaluation.get("needed") if isinstance(media_evaluation, dict) else None,
+                len(media_effects),
+                ",".join(
+                    sorted(
+                        {
+                            field
+                            for effect in media_effects
+                            for field in (
+                                effect.payload.get("media_request", {})
+                                if isinstance(effect.payload.get("media_request"), dict)
+                                else {}
+                            )
+                        }
+                    )
+                ),
+            )
             decision = DecisionProposal(
                 action_type=effects[0].action_type,
                 payload=effects[0].payload,
@@ -301,6 +352,14 @@ class ConfiguredProviderRuntime:
                 effects=effects,
             )
         except Exception as exc:
+            logger.error(
+                "cognition.assessment.rejected fact_id=%s correlation_id=%s error_code=%s "
+                "error_type=%s",
+                fact.id,
+                correlation_id,
+                _diagnostic_error_code(exc, "assessment_response_invalid"),
+                type(exc).__name__,
+            )
             await self._record_model_run(
                 assignment=assignment,
                 endpoint=endpoint,
