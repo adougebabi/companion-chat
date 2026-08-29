@@ -2,7 +2,7 @@ name: Fluctlight CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master,codex/go-platform-modules]
   pull_request:
   workflow_dispatch:
 
