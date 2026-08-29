@@ -134,6 +134,7 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
     <div v-if="store.error" class="error-banner" role="alert">
       <span>{{ store.error }}</span>
       <Button v-if="store.canRetry" class="secondary-button" variant="outline" type="button" :disabled="store.retrying" @click="store.retry">{{ store.retrying ? "重试中..." : "重试" }}</Button>
+      <Button v-if="store.canRetry" class="secondary-button" variant="ghost" type="button" @click="store.dismissRetry">忽略这条</Button>
     </div>
 
     <form class="message-composer" @submit.prevent="send">

@@ -34,7 +34,7 @@ export type FluctlightListItem = {
 };
 
 const selectedFluctlightStorageKey = "fluctlight.selected-instance-id";
-const retryTurnStorageKey = "fluctlight.retry-turn";
+const retryTurnStorageKey = "fluctlight.retry-turn.v2";
 
 function persistedSelection(): string | null {
   if (typeof localStorage === "undefined") return null;
@@ -122,7 +122,7 @@ export const useConversationStore = defineStore("conversations", {
       const name = this.selectedFluctlight?.identity.name;
       return typeof name === "string" && name.trim() ? name : this.selectedFluctlight?.id ?? null;
     },
-    canRetry: (state) => Boolean(state.retryTurn) && !state.sending,
+    canRetry: (state) => Boolean(state.retryTurn) && !state.sending && !state.retrying,
   },
   actions: {
     async initialize() {
@@ -427,6 +427,12 @@ export const useConversationStore = defineStore("conversations", {
       } finally {
         this.retrying = false;
       }
+    },
+    dismissRetry() {
+      this.retryTurn = null;
+      this.retrying = false;
+      this.error = "";
+      persistRetry(null);
     },
     async loadOlder() {
       if (!this.conversation || !this.nextBeforeSequence || this.loading) return;
