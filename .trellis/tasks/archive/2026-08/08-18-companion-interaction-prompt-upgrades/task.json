@@ -1,0 +1,29 @@
+{
+  "id": "companion-interaction-prompt-upgrades",
+  "name": "companion-interaction-prompt-upgrades",
+  "title": "Companion interaction and prompt composition upgrades",
+  "description": "Post-QA improvements for chat interaction, mobile usability, debugging, persona onboarding, layered prompts, and media prompt enrichment.",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "adoumibaba",
+  "assignee": "adoumibaba",
+  "createdAt": "2026-08-18",
+  "completedAt": "2026-08-29",
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "08-18-chat-mobile-debug-upgrades",
+    "08-18-persona-authoring-media-prompt-pipeline"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
