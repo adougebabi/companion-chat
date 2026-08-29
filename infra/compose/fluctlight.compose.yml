@@ -149,7 +149,7 @@ services:
     image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-bff:latest
     build:
       context: ../..
-      dockerfile: apps/bff/Dockerfile
+      dockerfile: apps/gateway-go/Dockerfile
     environment:
       CORE_BASE_URL: ${CORE_BASE_URL:-http://core:8080}
       FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:?set FLUCTLIGHT_CORE_SERVICE_KEY in private env}
@@ -160,6 +160,11 @@ services:
         condition: service_healthy
     ports:
       - "${BFF_HOST_PORT:-13000}:${BFF_PORT:-3000}"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:${BFF_PORT:-3000}/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     networks: [platform]
 
   web:
@@ -169,7 +174,7 @@ services:
       dockerfile: apps/web/Dockerfile
     depends_on:
       bff:
-        condition: service_started
+        condition: service_healthy
     environment:
       FLUCTLIGHT_BFF_ORIGIN: ${FLUCTLIGHT_BFF_ORIGIN:?set FLUCTLIGHT_BFF_ORIGIN in private env}
     ports:

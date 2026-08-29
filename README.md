@@ -5,8 +5,11 @@ This repository contains the clean-start Fluctlight system:
 - `apps/core`: Python 3.13 FastAPI/Core and Temporal Worker. It owns Actors,
   Fluctlights, cognition, conversations, Memory, Relationships, Life World,
   Moments, Media, persistence and authorization.
-- `apps/bff`: Node 24/Fastify browser boundary. It owns cookies, CSRF/origin
-  transport, generated browser DTOs, NDJSON translation and media proxying.
+- `apps/bff`: Node 24/Fastify browser boundary kept as rollback/reference
+  implementation; it is no longer the default Compose runtime.
+- `apps/gateway-go`: Go browser BFF replacement. It owns cookies, CSRF/origin
+  transport, browser DTOs, NDJSON translation and media proxying while Python
+  Core remains the only domain writer.
 - `apps/web`: Vue 3/Vite/Pinia product UI and Control Center, built to static
   assets and served by Nginx in the production image.
 - `packages/core-client` and `packages/browser-client`: generated contract

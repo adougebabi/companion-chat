@@ -34,17 +34,24 @@ done
 
 setup_token=$("${compose[@]}" exec -T core uv run --no-sync fluctlight issue-setup-token --expires-minutes 10 | tr -d '\r\n')
 echo "media-smoke: setup token issued"
-session=$("${compose[@]}" exec -T -e SERVICE_KEY="$service_key" -e SETUP_TOKEN="$setup_token" bff node -e '
-const setup = await fetch("http://core:8080/internal/auth/setup", {method: "POST", headers: {"x-fluctlight-service-key": process.env.SERVICE_KEY, "content-type": "application/json"}, body: JSON.stringify({setup_token: process.env.SETUP_TOKEN, password: "fluctlight-smoke-password"})});
-if (!setup.ok) process.exit(1);
-console.log((await setup.json()).session_token);
+setup_json=$("${compose[@]}" exec -T -e SERVICE_KEY="$service_key" -e SETUP_TOKEN="$setup_token" bff sh -c '
+  curl -sS --fail -X POST \
+    -H "X-Fluctlight-Service-Key: ${SERVICE_KEY}" \
+    -H "Content-Type: application/json" \
+    --data "{\"setup_token\":\"${SETUP_TOKEN}\",\"password\":\"fluctlight-smoke-password\"}" \
+    http://core:8080/internal/auth/setup
 ')
+session=$(printf '%s\n' "$setup_json" | sed -n 's/.*"session_token"[[:space:]]*:[[:space:]]*"\([^\"]*\)".*/\1/p')
 echo "media-smoke: session resolved"
-fluctlight_id=$("${compose[@]}" exec -T -e SERVICE_KEY="$service_key" -e SESSION="$session" bff node -e '
-const response = await fetch("http://core:8080/internal/fluctlights", {method: "POST", headers: {"x-fluctlight-service-key": process.env.SERVICE_KEY, "x-fluctlight-human-session": process.env.SESSION, "content-type": "application/json"}, body: JSON.stringify({name: "T12 media Fluctlight"})});
-if (!response.ok) process.exit(1);
-console.log((await response.json()).id);
+fluctlight_json=$("${compose[@]}" exec -T -e SERVICE_KEY="$service_key" -e SESSION="$session" bff sh -c '
+  curl -sS --fail -X POST \
+    -H "X-Fluctlight-Service-Key: ${SERVICE_KEY}" \
+    -H "X-Fluctlight-Human-Session: ${SESSION}" \
+    -H "Content-Type: application/json" \
+    --data '{"name":"T12 media Fluctlight"}' \
+    http://core:8080/internal/fluctlights
 ')
+fluctlight_id=$(printf '%s\n' "$fluctlight_json" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^\"]*\)".*/\1/p')
 echo "media-smoke: Fluctlight ${fluctlight_id} created"
 
 "${compose[@]}" exec -T -e FLUCTLIGHT_ID="$fluctlight_id" core uv run --no-sync python - <<'PY'
@@ -83,18 +90,18 @@ PY
 echo "media-smoke: object and DB asset seeded"
 
 set +e
-proxy_output=$("${compose[@]}" exec -T -e SERVICE_KEY="$service_key" -e SESSION="$session" bff node -e '
-try {
-  const response = await fetch("http://bff:3000/api/media/asset-smoke", {headers: {cookie: `fluctlight_session=${process.env.SESSION}`, range: "bytes=0-4"}});
-  if (response.status !== 206) { console.error("status", response.status, Object.fromEntries(response.headers), await response.text()); process.exit(1); }
-  const body = await response.text();
-  if (body !== "media") { console.error("body", body); process.exit(1); }
-  if (!response.headers.get("content-range")) process.exit(1);
-  console.log("media-proxy-ok", response.status, body, response.headers.get("content-range"));
-} catch (error) {
-  console.error("proxy exception", error);
-  process.exit(1);
-}
+proxy_output=$("${compose[@]}" exec -T -e SESSION="$session" bff sh -c '
+  headers=$(mktemp)
+  body=$(mktemp)
+  status=$(curl -sS -D "$headers" -o "$body" -w "%{http_code}" \
+    -H "Cookie: fluctlight_session=${SESSION}" \
+    -H "Range: bytes=0-4" \
+    http://127.0.0.1:${BFF_PORT:-3000}/api/media/asset-smoke)
+  [ "$status" = 206 ]
+  [ "$(cat "$body")" = media ]
+  grep -qi '^content-range:' "$headers"
+  printf 'media-proxy-ok %s %s %s\n' "$status" "$(cat "$body")" "$(grep -i '^content-range:' "$headers" | tr -d '\r' | sed 's/^[^:]*:[[:space:]]*//')"
+  rm -f "$headers" "$body"
  ' 2>&1)
 proxy_status=$?
 set -e

@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fluctlight/local-ai-companion/apps/gateway-go/internal/bff"
 	"github.com/fluctlight/local-ai-companion/apps/gateway-go/internal/config"
-	"github.com/fluctlight/local-ai-companion/apps/gateway-go/internal/gateway"
 )
 
 func main() {
@@ -20,8 +20,16 @@ func main() {
 	}
 
 	server := &http.Server{
-		Addr:              settings.ListenAddress,
-		Handler:           gateway.NewServer(settings, &http.Client{Timeout: 5 * time.Second}).Handler(),
+		Addr: settings.ListenAddress,
+		Handler: bff.New(bff.Options{
+			CoreBaseURL:    settings.CoreBaseURL,
+			CoreServiceKey: settings.CoreServiceKey,
+			TrustedOrigin:  settings.TrustedOrigin,
+			SecureCookies:  settings.SecureCookies,
+			// Do not use a client-wide timeout: conversation turns are streamed and
+			// their lifetime is governed by the request context/connection.
+			Client: &http.Client{},
+		}).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}

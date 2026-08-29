@@ -34,7 +34,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: apps/bff/Dockerfile
+          file: apps/gateway-go/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-bff:latest
 

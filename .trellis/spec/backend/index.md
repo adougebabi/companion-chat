@@ -1,6 +1,10 @@
 # Backend Guidelines
 
-The backend is a modular Node control plane rooted at [`server/index.js`](../../../server/index.js). Express routes, typed application flows, domain rules, SQLite repositories, provider adapters, and background runtime live under `server/` with one composition root. Keep additions inside the vertical layers and horizontal capability boundaries described below.
+The active backend is the Python Core plus the Go browser BFF under
+`apps/core/` and `apps/gateway-go/`. The deleted Node/SQLite runtime is
+historical context; `apps/bff/` remains a rollback/reference implementation.
+Keep additions inside the clean-start vertical layers and horizontal capability
+boundaries described below.
 
 ## Guides
 
@@ -22,8 +26,8 @@ The backend is a modular Node control plane rooted at [`server/index.js`](../../
 | [Fluctlight Event Contract](./fluctlight-event-contract.md) | PostgreSQL outbox/inbox authority, Redis Streams delivery, reclaim, poison handling, retention, replay, and progress |
 | [Fluctlight Workflow Contract](./fluctlight-workflow-contract.md) | Runtime-neutral durable execution, domain intent/state separation, stable IDs, long activities, management, history versioning, and single-runtime rule |
 | [Fluctlight Temporal Gate Contract](./fluctlight-temporal-gate-contract.md) | Grouped non-HA Temporal, Python histories/signals/queries/updates, Activity recovery, Worker versioning, continue-as-new, and NAS resource gate |
-| [Fluctlight API Contract](./fluctlight-api-contract.md) | Python FastAPI/OpenAPI boundary, generated Node client, NDJSON streaming, cancellation, errors, health, and framework isolation |
-| [Fluctlight BFF Contract](./fluctlight-bff-contract.md) | Node/Fastify browser boundary, TypeBox/OpenAPI clients, NDJSON translation, media proxy, errors, and storage isolation |
+| [Fluctlight API Contract](./fluctlight-api-contract.md) | Python FastAPI/OpenAPI boundary, generated/reference clients, NDJSON streaming, cancellation, errors, health, and framework isolation |
+| [Fluctlight BFF Contract](./fluctlight-bff-contract.md) | Go HTTP browser boundary, checked browser contract, NDJSON translation, media proxy, errors, and storage isolation |
 | [Fluctlight Auth Contract](./fluctlight-auth-contract.md) | Single Owner Human setup, Argon2id, opaque sessions, cookie/CSRF transport, service identity, authorization, and recovery |
 | [Fluctlight Configuration Contract](./fluctlight-configuration-contract.md) | Startup env, PostgreSQL system settings, single-key AEAD, write-only secrets, validation, and redaction |
 | [Fluctlight Provider Contract](./fluctlight-provider-contract.md) | Endpoint/model roles, capability preflight, structured/stream/embedding behavior, budgets, provenance, and failure |
@@ -42,7 +46,11 @@ The backend is a modular Node control plane rooted at [`server/index.js`](../../
 
 ## Frozen Old-System Quality Check
 
-The following applies only to maintenance explicitly authorized against the frozen old Node/SQLite system; clean-start children do not run it as a gate. Run `npm start` (or `npm run dev` during development), then check `GET /api/health`. For old endpoint changes, exercise the route with a real JSON request and inspect the resulting SQLite-backed state. Run the old `npm test`, `npm run typecheck`, `npm run build`, and relevant old-system smoke checks only when that maintenance was separately approved.
+The following applies only to maintenance explicitly authorized against the
+frozen old Node/SQLite system; clean-start children do not run it as a gate.
+For the active system, run the owning Go/Python/Web checks and disposable
+Compose smoke. Do not restore the deleted Node/SQLite runtime as a compatibility
+entry point.
 
 ## Clean-Start Validation Ownership
 

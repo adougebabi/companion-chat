@@ -40,47 +40,76 @@ setup_token=$("${compose[@]}" exec -T core uv run --no-sync fluctlight issue-set
 [[ -n "$setup_token" ]]
 echo "auth-domain-smoke: setup token issued"
 set +e
-session_cookie=$("${compose[@]}" exec -T -e SETUP_TOKEN="$setup_token" -e TRUSTED_ORIGIN="$trusted_origin" bff node -e '
-const origin = process.env.TRUSTED_ORIGIN;
-const seed = await fetch("http://127.0.0.1:3000/auth/session", {headers: {origin}});
-const seedCookies = seed.headers.getSetCookie ? seed.headers.getSetCookie() : [seed.headers.get("set-cookie") ?? ""];
-const csrfCookie = seedCookies.find((value) => value.startsWith("fluctlight_csrf="))?.split(";")[0] ?? "";
-const csrfToken = csrfCookie.split("=")[1] ?? "";
-if (!csrfToken) { console.error("session seed did not include CSRF cookie"); process.exit(1); }
-const response = await fetch("http://127.0.0.1:3000/auth/setup", {method: "POST", headers: {origin, "x-csrf-token": csrfToken, cookie: csrfCookie, "content-type": "application/json"}, body: JSON.stringify({setupToken: process.env.SETUP_TOKEN, password: "fluctlight-smoke-password"})});
-if (!response.ok) { console.error("setup status", response.status, await response.text()); process.exit(1); }
-const cookies = response.headers.getSetCookie ? response.headers.getSetCookie() : [response.headers.get("set-cookie") ?? ""];
-const session = cookies.find((value) => value.startsWith("fluctlight_session="))?.split(";")[0] ?? "";
-if (!session) { console.error("setup response did not include a session cookie"); process.exit(1); }
-console.log(session);
+seed_headers=$("${compose[@]}" exec -T -e TRUSTED_ORIGIN="$trusted_origin" bff sh -c '
+  curl -sS -D - -o /dev/null -H "Origin: ${TRUSTED_ORIGIN}" "http://127.0.0.1:${BFF_PORT:-3000}/auth/session"
 ')
-session_status=$?
+csrf_token=$(printf '%s\n' "$seed_headers" | grep -i '^set-cookie: fluctlight_csrf=' | sed -n 's/^[^:]*: fluctlight_csrf=\([^;]*\).*/\1/p' | head -n 1)
+if [[ -z "$csrf_token" ]]; then
+  echo "session seed did not include CSRF cookie" >&2
+  session_status=1
+else
+  setup_headers=$("${compose[@]}" exec -T -e SETUP_TOKEN="$setup_token" -e TRUSTED_ORIGIN="$trusted_origin" -e CSRF_TOKEN="$csrf_token" bff sh -c '
+    curl -sS -D - -o /dev/null -X POST \
+      -H "Origin: ${TRUSTED_ORIGIN}" \
+      -H "X-CSRF-Token: ${CSRF_TOKEN}" \
+      -H "Cookie: fluctlight_csrf=${CSRF_TOKEN}" \
+      -H "Content-Type: application/json" \
+      --data "{\"setupToken\":\"${SETUP_TOKEN}\",\"password\":\"fluctlight-smoke-password\"}" \
+      "http://127.0.0.1:${BFF_PORT:-3000}/auth/setup"
+  ')
+  session_cookie=$(printf '%s\n' "$setup_headers" | grep -i '^set-cookie: fluctlight_session=' | sed -n 's/^[^:]*: fluctlight_session=\([^;]*\).*/fluctlight_session=\1/p' | head -n 1)
+  if [[ -z "$session_cookie" ]]; then
+    echo "setup response did not include a session cookie" >&2
+    session_status=1
+  else
+    printf '%s\n' "$session_cookie"
+    session_status=0
+  fi
+fi
 set -e
 echo "auth-domain-smoke: setup request status=${session_status}"
 [[ "$session_status" == 0 ]]
-session_cookie=$("${compose[@]}" exec -T -e SERVICE_KEY="$service_key" bff node -e '
-const response = await fetch("http://core:8080/internal/auth/login", {method: "POST", headers: {"x-fluctlight-service-key": process.env.SERVICE_KEY, "content-type": "application/json"}, body: JSON.stringify({password: "fluctlight-smoke-password"})});
-if (!response.ok) { console.error("login status", response.status, await response.text()); process.exit(1); }
-console.log((await response.json()).session_token);
+login_json=$("${compose[@]}" exec -T -e SERVICE_KEY="$service_key" bff sh -c '
+  curl -sS --fail -X POST \
+    -H "X-Fluctlight-Service-Key: ${SERVICE_KEY}" \
+    -H "Content-Type: application/json" \
+    --data '{"password":"fluctlight-smoke-password"}' \
+    http://core:8080/internal/auth/login
 ')
+session_cookie=$(printf '%s\n' "$login_json" | sed -n 's/.*"session_token"[[:space:]]*:[[:space:]]*"\([^\"]*\)".*/\1/p')
 [[ -n "$session_cookie" ]]
 echo "auth-domain-smoke: Core login session resolved"
 
-fluctlight_id=$("${compose[@]}" exec -T -e SESSION_COOKIE="$session_cookie" -e SERVICE_KEY="$service_key" bff node -e '
-const response = await fetch("http://core:8080/internal/fluctlights", {method: "POST", headers: {"x-fluctlight-service-key": process.env.SERVICE_KEY, "x-fluctlight-human-session": process.env.SESSION_COOKIE, "content-type": "application/json"}, body: JSON.stringify({name: "T12 smoke Fluctlight"})});
-if (!response.ok) process.exit(1);
-console.log((await response.json()).id);
+fluctlight_json=$("${compose[@]}" exec -T -e SESSION_COOKIE="$session_cookie" -e SERVICE_KEY="$service_key" bff sh -c '
+  curl -sS --fail -X POST \
+    -H "X-Fluctlight-Service-Key: ${SERVICE_KEY}" \
+    -H "X-Fluctlight-Human-Session: ${SESSION_COOKIE}" \
+    -H "Content-Type: application/json" \
+    --data '{"name":"T12 smoke Fluctlight"}' \
+    http://core:8080/internal/fluctlights
 ')
+fluctlight_id=$(printf '%s\n' "$fluctlight_json" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^\"]*\)".*/\1/p')
+[[ -n "$fluctlight_id" ]]
 
-conversation_id=$("${compose[@]}" exec -T -e SESSION_COOKIE="$session_cookie" -e SERVICE_KEY="$service_key" -e FLUCTLIGHT_ID="$fluctlight_id" bff node -e '
-const response = await fetch("http://core:8080/internal/conversations", {method: "POST", headers: {"x-fluctlight-service-key": process.env.SERVICE_KEY, "x-fluctlight-human-session": process.env.SESSION_COOKIE, "content-type": "application/json"}, body: JSON.stringify({participant_actor_ids: [process.env.FLUCTLIGHT_ID], title: "T12 smoke conversation"})});
-if (!response.ok) process.exit(1);
-console.log((await response.json()).conversation.id);
+conversation_json=$("${compose[@]}" exec -T -e SESSION_COOKIE="$session_cookie" -e SERVICE_KEY="$service_key" -e FLUCTLIGHT_ID="$fluctlight_id" bff sh -c '
+  curl -sS --fail -X POST \
+    -H "X-Fluctlight-Service-Key: ${SERVICE_KEY}" \
+    -H "X-Fluctlight-Human-Session: ${SESSION_COOKIE}" \
+    -H "Content-Type: application/json" \
+    --data "{\"participant_actor_ids\":[\"${FLUCTLIGHT_ID}\"],\"title\":\"T12 smoke conversation\"}" \
+    http://core:8080/internal/conversations
 ')
+conversation_id=$(printf '%s\n' "$conversation_json" | sed -n 's/.*"conversation"[[:space:]]*:[[:space:]]*{[^}]*"id"[[:space:]]*:[[:space:]]*"\([^\"]*\)".*/\1/p')
+[[ -n "$conversation_id" ]]
 
-stream=$("${compose[@]}" exec -T -e SESSION_COOKIE="$session_cookie" -e SERVICE_KEY="$service_key" -e FLUCTLIGHT_ID="$fluctlight_id" -e CONVERSATION_ID="$conversation_id" bff node -e '
-const response = await fetch(`http://core:8080/internal/conversations/${process.env.CONVERSATION_ID}/turn`, {method: "POST", headers: {"x-fluctlight-service-key": process.env.SERVICE_KEY, "x-fluctlight-human-session": process.env.SESSION_COOKIE, "content-type": "application/json"}, body: JSON.stringify({fluctlight_id: process.env.FLUCTLIGHT_ID, text: "Provider is intentionally unconfigured", idempotency_key: "t12-smoke-turn"})});
-console.log(await response.text());
+stream=$("${compose[@]}" exec -T -e SESSION_COOKIE="$session_cookie" -e SERVICE_KEY="$service_key" -e FLUCTLIGHT_ID="$fluctlight_id" -e CONVERSATION_ID="$conversation_id" bff sh -c '
+  curl -sS -X POST \
+    -H "X-Fluctlight-Service-Key: ${SERVICE_KEY}" \
+    -H "X-Fluctlight-Human-Session: ${SESSION_COOKIE}" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/x-ndjson" \
+    --data "{\"fluctlight_id\":\"${FLUCTLIGHT_ID}\",\"text\":\"Provider is intentionally unconfigured\",\"idempotency_key\":\"t12-smoke-turn\"}" \
+    "http://core:8080/internal/conversations/${CONVERSATION_ID}/turn"
 ')
 printf '%s\n' "$stream" | grep -E '"type":"error"' >/dev/null
 
