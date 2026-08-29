@@ -479,3 +479,36 @@ Completed modular backend cutover: removed server.js, legacy compatibility harne
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: Go BFF contract closure
+
+**Date**: 2026-08-29
+**Task**: Go BFF contract closure
+**Branch**: `codex/go-bff-acceptance`
+
+### Summary
+
+Created codex/go-bff-acceptance from codex/go-build; added Browser OpenAPI route parity, public HTTP auth/domain/NDJSON integration, security matrix, error detail sanitization, media nil-body/range hardening, disconnect cancellation tests, and verified Go/Node/Web/Python gates. Python format/lint/mypy baseline issues remain documented.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cb7bba8` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

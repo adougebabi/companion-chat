@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 14
-- **Last Active**: 2026-08-24
+- **Total Sessions**: 15
+- **Last Active**: 2026-08-29
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~481 | Active |
+| `journal-1.md` | ~514 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 15 | 2026-08-29 | Go BFF contract closure | `cb7bba8` | `codex/go-bff-acceptance` |
 | 14 | 2026-08-24 | 恢复摇光实例跨日自动安排 | `ead2dbc`, `e142d40` | `master` |
 | 13 | 2026-08-21 | 前端 Vue 运行时切换与性能收口 | `4b3d6d3` | `master` |
 | 12 | 2026-08-21 | Remove legacy backend compatibility layer | `23abe9a` | `master` |
