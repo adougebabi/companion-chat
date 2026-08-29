@@ -9,3 +9,4 @@ data/
 infra/compose/fluctlight.local.env
 .DS_Store
 .idea
+.worktrees/
