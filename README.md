@@ -53,3 +53,14 @@ not use a container hostname or
 `127.0.0.1` unless the browser itself runs on that same machine.
 `CORE_BASE_URL` remains the BFF-to-Core internal address and normally uses the
 Compose service name `http://core:8080`.
+
+## Go migration branch flow
+
+Go migration stages use branches named `codex/go-*`. A stage branch is cut
+from the previous stage and is checked by CI on every push and pull request;
+these checks run Go tests, vet, Go builds, and non-publishing Docker builds.
+
+Completed stages are merged into `codex/go-build`. A push to that integration
+branch publishes the shared validation images with the `go-build` tag (and an
+immutable `go-<commit-sha>` tag) for Core, the Go BFF, and Web. Only a push to
+`main` or `master` publishes the production `latest` tags.

@@ -2,28 +2,143 @@ name: Fluctlight CI
 
 on:
   push:
-    branches: [main, master,codex/go-platform-modules]
+    branches:
+      - main
+      - master
+      - 'codex/go-*'
   pull_request:
+    branches:
+      - main
+      - master
+      - 'codex/go-*'
   workflow_dispatch:
 
 jobs:
-  publish:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+  # Every Go stage branch is buildable without publishing credentials or
+  # overwriting an image that is used by production Compose deployments.
+  validate:
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/heads/codex/go-') &&
+      github.ref != 'refs/heads/codex/go-build')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/gateway-go/go.mod
+
+      - name: Test Go modules
+        working-directory: apps/gateway-go
+        run: go test -race ./...
+
+      - name: Vet Go modules
+        working-directory: apps/gateway-go
+        run: go vet ./...
+
+      - name: Build Go modules
+        working-directory: apps/gateway-go
+        run: go build ./...
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Core image (validation only)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/core/Dockerfile
+          push: false
+          tags: fluctlight-core:validate-${{ github.sha }}
+
+      - name: Build Go BFF image (validation only)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/gateway-go/Dockerfile
+          push: false
+          tags: fluctlight-bff:validate-${{ github.sha }}
+
+      - name: Build Web image (validation only)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: false
+          tags: fluctlight-web:validate-${{ github.sha }}
+
+  # The integration branch is the only non-production branch allowed to push
+  # images. Stage branches should merge here before their images are shared.
+  go-build:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/go-build'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-          
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Core Go-build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/core/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core:go-build
+            ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core:go-${{ github.sha }}
+
+      - name: Build and push BFF Go-build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/gateway-go/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-bff:go-build
+            ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-bff:go-${{ github.sha }}
+
+      - name: Build and push Web Go-build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-web:go-build
+            ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-web:go-${{ github.sha }}
+
+  # Production tags remain protected by the main/master branch boundary.
+  publish:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push Core
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/core/Dockerfile
@@ -31,7 +146,7 @@ jobs:
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core:latest
 
       - name: Build and push BFF
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/gateway-go/Dockerfile
@@ -39,7 +154,7 @@ jobs:
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-bff:latest
 
       - name: Build and push Web
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/web/Dockerfile
