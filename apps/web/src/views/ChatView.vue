@@ -34,7 +34,7 @@ async function send() {
   const text = draft.value.trim();
   if (!text) return;
   await store.send(text);
-  if (!store.canRetry) draft.value = "";
+  if (!store.sending && !store.canRetry) draft.value = "";
   scrollToLatest("smooth");
   focusComposer();
 }
@@ -146,14 +146,14 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
         rows="1"
         maxlength="32000"
         placeholder="写一条消息..."
-        :disabled="store.loading || store.canRetry || !store.hasConversation || !store.selectedFluctlight"
+        :disabled="store.loading || !store.hasConversation || !store.selectedFluctlight"
         @keydown="onKeydown"
       />
       <div class="composer-footer">
         <span class="composer-hint">Enter 发送 · Shift + Enter 换行</span>
         <div class="composer-actions">
           <Button v-if="store.sending" class="secondary-button" variant="outline" type="button" @click="store.cancel">取消</Button>
-          <Button class="primary-button send-button" type="submit" :disabled="store.sending || store.canRetry || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</Button>
+          <Button class="primary-button send-button" type="submit" :disabled="store.sending || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</Button>
         </div>
       </div>
     </form>

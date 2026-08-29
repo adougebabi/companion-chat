@@ -113,6 +113,7 @@ export const useConversationStore = defineStore("conversations", {
     retryTurn: persistedRetry(),
     requestEpoch: 0,
     retrying: false,
+    queuedText: null as string | null,
   }),
   getters: {
     hasConversation: (state) => Boolean(state.conversation?.id),
@@ -270,12 +271,13 @@ export const useConversationStore = defineStore("conversations", {
       const conversationId = this.conversation?.id;
       const fluctlightId = this.fluctlightId;
       const pendingRetry = this.retryTurn;
-      if (pendingRetry && !retry) {
-        this.error = "上一条消息发送失败，请先重试。";
-        return;
-      }
       if (!normalized || !conversationId || !fluctlightId || this.sending) return;
       if (retry && (!pendingRetry || pendingRetry.conversationId !== conversationId || pendingRetry.fluctlightId !== fluctlightId)) return;
+      if (pendingRetry && !retry) {
+        this.queuedText = normalized;
+        await this.retry();
+        return;
+      }
       this.error = "";
       this.sending = true;
       this.abortController = new AbortController();
@@ -424,6 +426,11 @@ export const useConversationStore = defineStore("conversations", {
       this.retrying = true;
       try {
         await this.send(pending.text, true);
+        if (!this.retryTurn && this.queuedText) {
+          const queuedText = this.queuedText;
+          this.queuedText = null;
+          await this.send(queuedText);
+        }
       } finally {
         this.retrying = false;
       }
@@ -431,6 +438,7 @@ export const useConversationStore = defineStore("conversations", {
     dismissRetry() {
       this.retryTurn = null;
       this.retrying = false;
+      this.queuedText = null;
       this.error = "";
       persistRetry(null);
     },
