@@ -1,6 +1,7 @@
 package bff
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -10,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf16"
+
+	"github.com/fluctlight/local-ai-companion/apps/gateway-go/internal/platform"
 )
 
 // Options is the transport-only composition for the public BFF.  The BFF
@@ -63,18 +66,21 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 		if !method(response, request, http.MethodGet) {
 			return
 		}
-		writeJSON(response, http.StatusOK, map[string]any{"status": "ok", "role": "bff"})
+		writeJSON(response, http.StatusOK, platform.Live(platform.RoleBFF))
 		return
 	}
 	if path == "/health/ready" {
 		if !method(response, request, http.MethodGet) {
 			return
 		}
-		if _, err := s.core.health(request.Context(), "/health/ready"); err != nil {
-			writeJSON(response, http.StatusServiceUnavailable, map[string]any{"status": "unavailable", "role": "bff"})
+		if !platform.IsReady(request.Context(), func(ctx context.Context) error {
+			_, err := s.core.health(ctx, "/health/ready")
+			return err
+		}) {
+			writeJSON(response, http.StatusServiceUnavailable, platform.Unavailable(platform.RoleBFF))
 			return
 		}
-		writeJSON(response, http.StatusOK, map[string]any{"status": "ready", "role": "bff"})
+		writeJSON(response, http.StatusOK, platform.Ready(platform.RoleBFF))
 		return
 	}
 	if path == "/api/platform/ping" {
