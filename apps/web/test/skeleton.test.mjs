@@ -28,6 +28,7 @@ test("web chat keeps the generated browser client at its boundary", async () => 
   assert.match(source, /persistSelection/);
   assert.match(source, /fluctlightId,/);
   assert.match(source, /retryTurn/);
+  assert.match(source, /retrying/);
   assert.match(source, /persistRetry/);
   assert.match(source, /event\.turnId/);
 });

@@ -2503,7 +2503,11 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             fluctlight_id=request.fluctlight_id,
             attachment_refs=tuple(request.attachment_refs),
             idempotency_key=request.idempotency_key,
-            turn_id=request.turn_id or f"turn_{uuid4().hex}",
+            turn_id=request.turn_id
+            or (
+                "turn_"
+                + sha256(f"{conversation_id}:{request.idempotency_key}".encode()).hexdigest()
+            ),
         )
         return turn_stream_response(require_conversation_service(current), turn)
 

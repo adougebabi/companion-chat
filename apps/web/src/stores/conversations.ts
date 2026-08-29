@@ -112,6 +112,7 @@ export const useConversationStore = defineStore("conversations", {
     abortController: null as AbortController | null,
     retryTurn: persistedRetry(),
     requestEpoch: 0,
+    retrying: false,
   }),
   getters: {
     hasConversation: (state) => Boolean(state.conversation?.id),
@@ -345,7 +346,14 @@ export const useConversationStore = defineStore("conversations", {
                 message.conversationId === payload.message!.conversationId &&
                 message.text === payload.message!.text,
             );
-            if (optimisticIndex >= 0) this.messages.splice(optimisticIndex, 1, payload.message);
+            const persistedIndex = this.messages.findIndex(
+              (message) =>
+                message.id === payload.message!.id ||
+                (message.conversationId === payload.message!.conversationId &&
+                  message.sequence === payload.message!.sequence),
+            );
+            if (persistedIndex >= 0) this.messages.splice(persistedIndex, 1, payload.message);
+            else if (optimisticIndex >= 0) this.messages.splice(optimisticIndex, 1, payload.message);
             else this.messages.push(payload.message);
           }
           if (event.type === "error") {
@@ -405,14 +413,20 @@ export const useConversationStore = defineStore("conversations", {
       this.abortController?.abort();
       this.abortController = null;
       this.sending = false;
+      this.retrying = false;
     },
     cancel() {
       this.abortController?.abort();
     },
     async retry() {
       const pending = this.retryTurn;
-      if (!pending) return;
-      await this.send(pending.text, true);
+      if (!pending || this.sending || this.retrying) return;
+      this.retrying = true;
+      try {
+        await this.send(pending.text, true);
+      } finally {
+        this.retrying = false;
+      }
     },
     async loadOlder() {
       if (!this.conversation || !this.nextBeforeSequence || this.loading) return;

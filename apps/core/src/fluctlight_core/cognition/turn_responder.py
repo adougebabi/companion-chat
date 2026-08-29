@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
@@ -20,6 +21,8 @@ from .service import CognitionService
 class CognitionTurnResponder:
     _HISTORY_LIMIT = 12
     _HISTORY_TEXT_LIMIT = 800
+    _TURN_READY_ATTEMPTS = 120
+    _TURN_READY_INTERVAL_SECONDS = 0.25
 
     def __init__(
         self,
@@ -81,11 +84,7 @@ class CognitionTurnResponder:
         handled, replay = await self._prepare_turn(turn, history)
         if handled:
             return self._response_from_realization(replay, turn)
-        outcome = await self._cognition.process_next(
-            turn.fluctlight_id,
-            worker_id="interaction",
-            expected_fact_id=turn.turn_id,
-        )
+        outcome = await self._process_current_turn(turn)
         if (
             outcome is None
             or outcome.status is not InboxStatus.COMPLETED
@@ -117,12 +116,19 @@ class CognitionTurnResponder:
             if text:
                 yield text
             return
-        async for chunk in self._cognition.stream_next(
-            turn.fluctlight_id,
-            worker_id="interaction",
-            expected_fact_id=turn.turn_id,
-        ):
-            yield chunk
+        for attempt in range(self._TURN_READY_ATTEMPTS):
+            try:
+                async for chunk in self._cognition.stream_next(
+                    turn.fluctlight_id,
+                    worker_id="interaction",
+                    expected_fact_id=turn.turn_id,
+                ):
+                    yield chunk
+                return
+            except Exception as exc:
+                if str(exc) != "turn_not_ready" or attempt == self._TURN_READY_ATTEMPTS - 1:
+                    raise
+                await asyncio.sleep(self._TURN_READY_INTERVAL_SECONDS)
 
     async def _prepare_turn(
         self, turn: ConversationTurn, history
@@ -146,6 +152,20 @@ class CognitionTurnResponder:
             fact = await self._fact(turn, history, turn.fluctlight_id)
             await self._cognition.enqueue(fact)
         return False, None
+
+    async def _process_current_turn(self, turn: ConversationTurn):
+        if not turn.fluctlight_id:
+            raise ConversationProviderError("turn requires an explicit Fluctlight participant")
+        for attempt in range(self._TURN_READY_ATTEMPTS):
+            outcome = await self._cognition.process_next(
+                turn.fluctlight_id,
+                worker_id="interaction",
+                expected_fact_id=turn.turn_id,
+            )
+            if outcome is not None or attempt == self._TURN_READY_ATTEMPTS - 1:
+                return outcome
+            await asyncio.sleep(self._TURN_READY_INTERVAL_SECONDS)
+        return None
 
     @staticmethod
     def _text_from_realization(realization: RealizationResult | None) -> str:
