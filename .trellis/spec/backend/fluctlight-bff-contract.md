@@ -45,6 +45,12 @@ BrowserTurnEventV1
 - Go package boundaries organize transport/config lifecycle; the BFF is not a
   location for Fluctlight business behavior.
 - BFF errors use stable browser codes/messages and correlation IDs mapped from Core errors without leaking stack/provider bodies.
+- Core error `details` are untrusted internal data: before they cross the
+  browser boundary, retain only bounded JSON values and drop credential,
+  secret, token, prompt, reasoning, stack, and raw provider-response keys.
+- A successful Core media status with a missing or empty response body is a
+  bounded `media_unavailable` failure; the BFF never defers `Close` on a nil
+  body or forwards an empty object-storage response as a successful asset.
 
 ### 4. Validation & Error Matrix
 
@@ -54,9 +60,11 @@ BrowserTurnEventV1
 | Generated client is stale against OpenAPI | CI failure; regenerate and review. |
 | Core stream has invalid JSON/schema/sequence | Emit one bounded browser error, abort upstream, record correlation diagnostic. |
 | Core emits hidden/internal fields | Reject/redact contract violation; never forward them. |
+| Core error details contain sensitive or oversized values | Drop those fields and cap nested collections/strings before returning the browser error. |
 | Browser aborts | Abort Core fetch/read, stop browser writes, preserve Core settlement semantics. |
 | Core returns typed domain error | Map by error code/status table; do not parse message text. |
 | Media grant expired/range mismatched | Stop proxy and return bounded media error; do not mint another grant implicitly. |
+| Core returns a successful media status without a body | Return bounded `media_unavailable`; do not panic or emit a false successful response. |
 | BFF code imports storage/workflow/domain internals | Architecture-test failure. |
 
 ### 5. Good / Base / Bad Cases
@@ -74,6 +82,12 @@ BrowserTurnEventV1
 - Incremental NDJSON tests for split/multiple frames, UTF-8 boundaries, invalid schema, redaction, sequence, heartbeat, terminal uniqueness, backpressure, and abort.
 - End-to-end browser→BFF→Core cancellation tests with no writes after disconnect.
 - Media proxy tests for authorization grant, expiry, Range, ETag, MIME, stream failure, and no storage detail leakage.
+- Browser OpenAPI method/path artifact versus Go route inventory parity, plus
+  a real HTTP browser→BFF→Core auth/conversation/NDJSON smoke and downstream
+  disconnect cancellation test.
+- Public error-detail sanitization tests for safe validation fields, sensitive
+  keys, nesting depth, collection size, and string limits; media nil-body and
+  header allow-list tests.
 - Architecture tests rejecting BFF imports of PostgreSQL, Redis, Temporal, Python internals, domain repositories, and semantic heuristic modules.
 - Browser tests consume generated client types and do not duplicate wire DTO definitions.
 

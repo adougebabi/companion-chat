@@ -915,9 +915,6 @@ func (s *Server) creationError(response http.ResponseWriter, err error, operatio
 			if operation == "activation" {
 				message = "Fluctlight activation was rejected"
 			}
-			if len(coreErr.Details) > 0 {
-				message = coreErr.Message
-			}
 			writeErrorWithDetails(response, 422, coreErr.Code, message, coreErr.Details)
 			return
 		}
@@ -951,6 +948,10 @@ func (s *Server) media(response http.ResponseWriter, request *http.Request, asse
 	upstream, err := s.core.request(request.Context(), http.MethodGet, "/internal/media/"+escape(assetID), session, nil, extra)
 	if err != nil {
 		writeError(response, http.StatusNotFound, "media_unavailable", "Media is unavailable")
+		return
+	}
+	if upstream.Body == nil || upstream.Body == http.NoBody || upstream.ContentLength == 0 {
+		writeError(response, http.StatusBadGateway, "media_unavailable", "Media is unavailable")
 		return
 	}
 	defer upstream.Body.Close()
@@ -989,8 +990,8 @@ func writeError(response http.ResponseWriter, status int, code, message string) 
 
 func writeErrorWithDetails(response http.ResponseWriter, status int, code, message string, details map[string]any) {
 	value := map[string]any{"code": code, "message": message}
-	if len(details) > 0 {
-		value["details"] = details
+	if safeDetails := sanitizePublicErrorDetails(details); len(safeDetails) > 0 {
+		value["details"] = safeDetails
 	}
 	writeJSON(response, status, value)
 }

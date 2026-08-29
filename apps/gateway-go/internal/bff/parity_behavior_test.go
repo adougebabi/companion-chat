@@ -176,7 +176,7 @@ func TestBFFTurnMapsMissingCoreBodyToBadGateway(t *testing.T) {
 
 func TestBFFMediaUsesDefaultContentType(t *testing.T) {
 	handler := testBFF(t, func(request *http.Request) (*http.Response, error) {
-		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("bytes")), Header: http.Header{}}, nil
+		return &http.Response{StatusCode: http.StatusOK, ContentLength: 5, Body: io.NopCloser(strings.NewReader("bytes")), Header: http.Header{}}, nil
 	})
 	response := invoke(handler, http.MethodGet, "http://gateway.test/api/media/asset-1", "", nil, map[string]string{sessionCookieName: "opaque"})
 	if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "application/octet-stream" {

@@ -14,12 +14,8 @@ type browserRouteCase struct {
 	body   string
 }
 
-// TestEveryBrowserRouteHasAGoHandler is deliberately a route smoke matrix.
-// Detailed mapping, error and stream assertions live beside the individual
-// helpers; this test prevents a new/forgotten operation from silently falling
-// through to 404 during the Node-to-Go cutover.
-func TestEveryBrowserRouteHasAGoHandler(t *testing.T) {
-	routes := []browserRouteCase{
+func browserRouteCases() []browserRouteCase {
+	return []browserRouteCase{
 		{name: "options", method: http.MethodOptions, path: "/api/platform/ping"},
 		{name: "live", method: http.MethodGet, path: "/health/live"},
 		{name: "ready", method: http.MethodGet, path: "/health/ready"},
@@ -90,6 +86,14 @@ func TestEveryBrowserRouteHasAGoHandler(t *testing.T) {
 		{name: "diagnostics export", method: http.MethodGet, path: "/api/diagnostics/export"},
 		{name: "media", method: http.MethodGet, path: "/api/media/asset-1"},
 	}
+}
+
+// TestEveryBrowserRouteHasAGoHandler is deliberately a route smoke matrix.
+// Detailed mapping, error and stream assertions live beside the individual
+// helpers; this test prevents a new/forgotten operation from silently falling
+// through to 404 during the Node-to-Go cutover.
+func TestEveryBrowserRouteHasAGoHandler(t *testing.T) {
+	routes := browserRouteCases()
 
 	for _, route := range routes {
 		route := route
@@ -161,7 +165,7 @@ func fakeCoreForRoute(request *http.Request) (*http.Response, error) {
 			headers["Content-Range"] = []string{"bytes 0-3/4"}
 			headers["Accept-Ranges"] = []string{"bytes"}
 		}
-		return &http.Response{StatusCode: status, Header: headers, Body: io.NopCloser(strings.NewReader("data"))}, nil
+		return &http.Response{StatusCode: status, ContentLength: 4, Header: headers, Body: io.NopCloser(strings.NewReader("data"))}, nil
 	default:
 		if request.Method == http.MethodGet {
 			return jsonResponse(http.StatusOK, `{}`), nil
