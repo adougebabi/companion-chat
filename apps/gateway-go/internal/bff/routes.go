@@ -120,7 +120,7 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if path == "/auth/login" || path == "/auth/setup" {
-		if !method(response, request, http.MethodPost) || !mutationGuard(response, request, s.trustedOrigin) {
+		if !method(response, request, http.MethodPost) {
 			return
 		}
 		body, ok := readBody(response, request)
@@ -128,6 +128,9 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 			if ok {
 				writeError(response, http.StatusBadRequest, "invalid_request", "Request validation failed")
 			}
+			return
+		}
+		if !mutationGuard(response, request, s.trustedOrigin) {
 			return
 		}
 		coreBody := map[string]any{"password": body["password"]}
@@ -151,7 +154,21 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if path == "/auth/logout" || path == "/auth/revoke-all" || path == "/auth/password" {
-		if !method(response, request, http.MethodPost) || !mutationGuard(response, request, s.trustedOrigin) {
+		if !method(response, request, http.MethodPost) {
+			return
+		}
+		var passwordBody map[string]any
+		if path == "/auth/password" {
+			var valid bool
+			passwordBody, valid = readBody(response, request)
+			if !valid || !validatePassword(passwordBody["password"]) {
+				if valid {
+					writeError(response, http.StatusBadRequest, "invalid_request", "Request validation failed")
+				}
+				return
+			}
+		}
+		if !mutationGuard(response, request, s.trustedOrigin) {
 			return
 		}
 		session := cookieValue(request, sessionCookieName)
@@ -160,14 +177,7 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		if path == "/auth/password" {
-			body, valid := readBody(response, request)
-			if !valid || !validatePassword(body["password"]) {
-				if valid {
-					writeError(response, http.StatusBadRequest, "invalid_request", "Request validation failed")
-				}
-				return
-			}
-			if _, err := s.core.doJSON(request.Context(), http.MethodPost, "/internal/auth/reset-password", session, map[string]any{"password": body["password"]}); err != nil {
+			if _, err := s.core.doJSON(request.Context(), http.MethodPost, "/internal/auth/reset-password", session, map[string]any{"password": passwordBody["password"]}); err != nil {
 				writeError(response, http.StatusForbidden, "password_change_failed", "Password could not be changed")
 				return
 			}
@@ -208,9 +218,6 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 	if conversationID, ok := match(path, "/api/conversations/:conversationId/turn"); ok {
 		if methodName != http.MethodPost {
 			methodNotAllowed(response, http.MethodPost)
-			return
-		}
-		if !mutationGuard(response, request, s.trustedOrigin) {
 			return
 		}
 		body, valid := s.mutationBody(response, request, validateConversationTurn)
@@ -320,12 +327,12 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if endpointID, ok := match(path, "/api/providers/endpoints/:endpointId/models"); ok && methodName == http.MethodGet {
-		session, valid := s.requireSession(response, request)
-		if !valid {
-			return
-		}
 		if !validateString(endpointID, 1, 128) {
 			writeError(response, http.StatusBadRequest, "invalid_request", "Request validation failed")
+			return
+		}
+		session, valid := s.requireSession(response, request)
+		if !valid {
 			return
 		}
 		value, err := s.core.doJSON(request.Context(), http.MethodGet, "/internal/providers/endpoints/"+escape(endpointID)+"/models", session, nil)
@@ -772,14 +779,14 @@ func (s *Server) requireSession(response http.ResponseWriter, request *http.Requ
 }
 
 func (s *Server) mutationBody(response http.ResponseWriter, request *http.Request, validator func(map[string]any) bool) (map[string]any, bool) {
-	if !mutationGuard(response, request, s.trustedOrigin) {
-		return nil, false
-	}
 	body, ok := readBody(response, request)
 	if !ok || !validator(body) {
 		if ok {
 			writeError(response, http.StatusBadRequest, "invalid_request", "Request validation failed")
 		}
+		return nil, false
+	}
+	if !mutationGuard(response, request, s.trustedOrigin) {
 		return nil, false
 	}
 	if _, ok = s.requireSession(response, request); !ok {

@@ -184,6 +184,28 @@ func TestBFFMediaUsesDefaultContentType(t *testing.T) {
 	}
 }
 
+func TestBFFValidatesSchemaBeforeSecurityGuards(t *testing.T) {
+	coreCalls := 0
+	handler := testBFF(t, func(request *http.Request) (*http.Response, error) {
+		coreCalls++
+		return jsonResponse(http.StatusOK, `{}`), nil
+	})
+
+	invalidPassword := invoke(handler, http.MethodPost, "http://gateway.test/auth/password", `{"password":"short"}`, nil, nil)
+	if invalidPassword.Code != http.StatusBadRequest {
+		t.Fatalf("invalid password without origin = %d %s, want 400", invalidPassword.Code, invalidPassword.Body.String())
+	}
+
+	tooLongEndpoint := strings.Repeat("e", 129)
+	invalidPath := invoke(handler, http.MethodGet, "http://gateway.test/api/providers/endpoints/"+tooLongEndpoint+"/models", "", nil, nil)
+	if invalidPath.Code != http.StatusBadRequest {
+		t.Fatalf("invalid endpoint without session = %d %s, want 400", invalidPath.Code, invalidPath.Body.String())
+	}
+	if coreCalls != 0 {
+		t.Fatalf("Core calls = %d, want 0 for invalid requests", coreCalls)
+	}
+}
+
 func assertCoreBody(t *testing.T, seen map[string]struct {
 	path string
 	body map[string]any
