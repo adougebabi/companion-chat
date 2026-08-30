@@ -29,6 +29,7 @@ from .contracts import (
     AssessmentProvider,
     CognitionConflictError,
     CognitionFact,
+    DecisionEffect,
     DecisionProposal,
     EnqueuedFact,
     FrozenAction,
@@ -708,9 +709,40 @@ class CognitionService:
                 )
             if to_sequence <= watermark:
                 raise CognitionConflictError("reflection has no new inbox evidence")
+            evidence_rows = (
+                (
+                    await tx.session.execute(
+                        select(schema.inbox)
+                        .where(
+                            schema.inbox.c.fluctlight_id == fluctlight_id,
+                            schema.inbox.c.sequence > watermark,
+                            schema.inbox.c.sequence <= to_sequence,
+                        )
+                        .order_by(schema.inbox.c.sequence)
+                        .limit(100)
+                    )
+                )
+                .mappings()
+                .all()
+            )
             await tx.commit()
         return ReflectionWindow(
-            fluctlight_id, watermark + 1, to_sequence, base_state_revision, watermark
+            fluctlight_id,
+            watermark + 1,
+            to_sequence,
+            base_state_revision,
+            watermark,
+            evidence=tuple(
+                {
+                    "id": row["id"],
+                    "sequence": int(row["sequence"]),
+                    "event_type": row["event_type"],
+                    "payload": dict(row["payload"]),
+                    "causation_id": row["causation_id"],
+                    "occurred_at": row["occurred_at"].isoformat(),
+                }
+                for row in evidence_rows
+            ),
         )
 
     async def run_reflection(
@@ -735,9 +767,11 @@ class CognitionService:
                 or proposal.to_sequence != window.to_sequence
             ):
                 raise CognitionConflictError("reflection provider returned an unexpected window")
-            await self.commit_reflection(proposal, expected_watermark=window.watermark)
-            if self._reflection_applier is not None:
-                await self._reflection_applier.apply(proposal)
+            await self.commit_reflection(
+                proposal,
+                expected_watermark=window.watermark,
+                applier=self._reflection_applier,
+            )
             return proposal
         except Exception:
             await self._reset_reflection(fluctlight_id)
@@ -786,8 +820,17 @@ class CognitionService:
             return None
 
     async def commit_reflection(
-        self, proposal: ReflectionProposal, *, expected_watermark: int
+        self,
+        proposal: ReflectionProposal,
+        *,
+        expected_watermark: int,
+        applier: ReflectionApplier | None = None,
     ) -> None:
+        # Validate before opening the commit boundary so malformed Provider
+        # output cannot advance the watermark or create partial candidate rows.
+        from fluctlight_core.reflection.service import validate_reflection_payload
+
+        validate_reflection_payload(proposal.payload)
         async with self._unit_of_work.begin(
             command_id=f"reflection-commit:{proposal.proposal_id}"
         ) as tx:
@@ -806,6 +849,8 @@ class CognitionService:
                 raise CognitionConflictError("reflection watermark is stale")
             if int(row["state_revision"]) != proposal.base_state_revision:
                 raise CognitionConflictError("reflection state revision is stale")
+            if applier is not None:
+                await applier.apply(proposal, tx=tx)
             await tx.session.execute(
                 insert(schema.reflection_proposals).values(
                     id=proposal.proposal_id,
@@ -1210,6 +1255,51 @@ class CognitionService:
             raise CognitionConflictError("assessment idempotency key does not match inbox claim")
         if envelope.provenance.correlation_id != claim.fact.correlation_id:
             raise CognitionConflictError("Provider provenance correlation does not match claim")
+        decision = envelope.decision
+        effects = decision.effects or (
+            DecisionEffect(
+                effect_id=decision.decision_id,
+                action_type=decision.action_type,
+                payload=decision.payload,
+            ),
+        )
+        if len({effect.effect_id for effect in effects}) != len(effects):
+            raise ProviderExecutionError("cognitive decision effects must have unique IDs")
+        if (
+            effects[0].action_type is not decision.action_type
+            or effects[0].payload != decision.payload
+        ):
+            raise ProviderExecutionError("cognitive decision primary effect is inconsistent")
+        if claim.fact.event_type == "conversation.message":
+            if effects[0].action_type not in {ActionType.REPLY, ActionType.NO_OP}:
+                raise ProviderExecutionError(
+                    "conversation decision primary effect must be reply or no_op"
+                )
+        elif effects[0].action_type not in {
+            ActionType.PROACTIVE_MESSAGE,
+            ActionType.MOMENT,
+            ActionType.NO_OP,
+        }:
+            raise ProviderExecutionError(
+                "background decision primary effect must be proactive_message, moment, or no_op"
+            )
+        allowed_secondary = {
+            ActionType.PROACTIVE_MESSAGE,
+            ActionType.MOMENT,
+            ActionType.MEMORY_CANDIDATE,
+            ActionType.RELATIONSHIP_CANDIDATE,
+            ActionType.MEDIA_REQUEST,
+            ActionType.SCHEDULE_PROPOSAL,
+        }
+        invalid = [
+            effect.action_type.value
+            for effect in effects[1:]
+            if effect.action_type not in allowed_secondary
+        ]
+        if invalid:
+            raise ProviderExecutionError(
+                "secondary effects must produce autonomous side effects: " + ",".join(invalid)
+            )
 
     @staticmethod
     def _action_from_row(row: Any) -> FrozenAction:

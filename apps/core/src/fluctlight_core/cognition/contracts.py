@@ -258,12 +258,18 @@ class ReflectionWindow:
     to_sequence: int
     base_state_revision: int
     watermark: int
+    evidence: tuple[Mapping[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         if self.to_sequence < self.from_sequence or self.from_sequence < 0:
             raise ValueError("reflection window sequence range is invalid")
         if self.base_state_revision < 0 or self.watermark < 0:
             raise ValueError("reflection revisions must be non-negative")
+        if not isinstance(self.evidence, tuple) or not all(
+            isinstance(item, Mapping) for item in self.evidence
+        ):
+            raise ValueError("reflection evidence must be a tuple of objects")
+        object.__setattr__(self, "evidence", tuple(dict(item) for item in self.evidence))
 
 
 @dataclass(frozen=True, slots=True)
@@ -311,7 +317,7 @@ class ReflectionProvider(Protocol):
 
 
 class ReflectionApplier(Protocol):
-    async def apply(self, proposal: ReflectionProposal) -> Any: ...
+    async def apply(self, proposal: ReflectionProposal, *, tx: Any | None = None) -> Any: ...
 
 
 class StateApplier(Protocol):

@@ -25,6 +25,7 @@ from fluctlight_core.actors.service import AuthError, AuthService
 from fluctlight_core.autonomy.bridge import CognitionAutonomyBridge
 from fluctlight_core.autonomy.service import AutonomyService
 from fluctlight_core.autonomy.workflows import AutonomyActionWorkflow
+from fluctlight_core.cognition.background import DailyLifeReviewRegistrar
 from fluctlight_core.cognition.service import CognitionService
 from fluctlight_core.cognition.turn_responder import CognitionTurnResponder
 from fluctlight_core.cognition.workflows import CognitionProcessingWorkflow
@@ -426,13 +427,37 @@ def create_app(dependencies: ApiDependencies | None = None) -> FastAPI:
             )
             inner_state = InnerStateService(unit_of_work)
             schedule_lifecycle = ScheduleLifecycleRegistrar(unit_of_work)
+            daily_review_lifecycle = DailyLifeReviewRegistrar(unit_of_work)
+            # This instance is intentionally responder-free: activation only
+            # needs the durable Owner↔Fluctlight target. The public conversation
+            # dependency below adds the cognition responder after it is built.
+            activation_conversations = ConversationService(unit_of_work)
             memory = MemoryService(unit_of_work)
             relationships = RelationshipService(unit_of_work)
             reflection = ReflectionCoordinator(memory, relationships)
 
-            async def initialize_inner_state(fluctlight_id: str, tx: UnitOfWork) -> None:
+            async def initialize_inner_state(
+                fluctlight_id: str,
+                tx: UnitOfWork,
+                *,
+                actor_id: str,
+                snapshot: object,
+            ) -> None:
                 await inner_state.initialize(fluctlight_id, tx=tx)
                 await schedule_lifecycle.register(fluctlight_id, tx=tx)
+                # Establish the immutable daily-review target in the same
+                # activation transaction. A later background fact can then
+                # safely capture a non-null conversation_id.
+                await activation_conversations.get_or_create_direct(
+                    owner_actor_id=actor_id,
+                    fluctlight_actor_id=fluctlight_id,
+                    tx=tx,
+                )
+                # The review intent is durable and part of the same
+                # activation transaction. This removes the startup/restart
+                # race where a new Fluctlight had a schedule but no review
+                # workflow until Worker repair ran.
+                await daily_review_lifecycle.register(snapshot, tx=tx)
 
             fluctlights = FluctlightService(unit_of_work, state_initializer=initialize_inner_state)
 

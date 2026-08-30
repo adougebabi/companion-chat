@@ -98,7 +98,11 @@ ACTION_REALIZATION_SYSTEM_PROMPT = (
 )
 
 MEDIA_PROMPT_SYSTEM_PROMPT = (
-    "You are a specialized prompt engineering assistant. Your task is to convert user requests into highly detailed, highly descriptive text prompts optimized for image generation models (krea2 ). Ensure that all subtle facial expressions (eyebrow position, mouth shape, eye contact), poses, hands placement, and specific actions are explicitly described with strong vivid verbs and photographic descriptors. Output MUST be a valid JSON object matching the media.prompt.v1 response schema without prose, reasoning, or markdown"
+    "You are a specialized prompt engineering assistant. Convert user requests "
+    "into highly detailed prompts optimized for image generation models (krea2). "
+    "Describe facial expressions, poses, hand placement and actions with vivid "
+    "photographic language. Output a valid JSON object matching the "
+    "media.prompt.v1 response schema without prose, reasoning or markdown."
 )
 
 INITIAL_SCHEDULE_SYSTEM_PROMPT = """Return one JSON object matching the life.schedule.initial.v1
@@ -314,18 +318,44 @@ class ConfiguredProviderRuntime:
                     and bool(effect.payload["moment_media_request"])
                 ]
                 if needed and not media_effects and not moment_media_effects:
-                    expected_effect = (
-                        "moment_media_request"
-                        if fact.event_type == "life_world.daily_review"
-                        else "media_request"
-                    )
-                    raise RuntimeError(
-                        f"cognitive media evaluation requires a {expected_effect} effect"
-                    )
+                    if fact.event_type == "life_world.daily_review":
+                        # Media is an optional secondary effect for a daily
+                        # review. A malformed/missing visual concept must not
+                        # turn an otherwise valid Moment into a failed inbox
+                        # fact; retain the model's visible decision and record
+                        # the bounded diagnostic through the model-run failure
+                        # metadata instead of inventing a concept.
+                        logger.warning(
+                            "cognition.daily_review.media_effect_missing fact_id=%s "
+                            "correlation_id=%s",
+                            fact.id,
+                            correlation_id,
+                        )
+                    else:
+                        raise RuntimeError(
+                            "cognitive media evaluation requires a media_request effect"
+                        )
                 if not needed and (media_effects or moment_media_effects):
-                    raise RuntimeError(
-                        "cognitive media effect contradicts media evaluation"
-                    )
+                    if fact.event_type == "life_world.daily_review":
+                        # Drop only the optional visual concept when the model
+                        # explicitly says an image is unnecessary. The Moment
+                        # itself remains a valid autonomous action.
+                        effects = tuple(
+                            DecisionEffect(
+                                effect.effect_id,
+                                effect.action_type,
+                                {
+                                    key: value
+                                    for key, value in effect.payload.items()
+                                    if key != "moment_media_request"
+                                },
+                            )
+                            if effect.action_type is ActionType.MOMENT
+                            else effect
+                            for effect in effects
+                        )
+                    else:
+                        raise RuntimeError("cognitive media effect contradicts media evaluation")
             logger.warning(
                 "cognition.assessment.response fact_id=%s correlation_id=%s effect_count=%d "
                 "effect_types=%s media_needed=%s media_effects=%d media_fields=%s",
@@ -719,7 +749,11 @@ class ConfiguredProviderRuntime:
             {
                 "role": "user",
                 "content": json.dumps(
-                    {"from_sequence": window.from_sequence, "to_sequence": window.to_sequence},
+                    {
+                        "from_sequence": window.from_sequence,
+                        "to_sequence": window.to_sequence,
+                        "evidence": list(window.evidence),
+                    },
                     ensure_ascii=False,
                     separators=(",", ":"),
                     sort_keys=True,

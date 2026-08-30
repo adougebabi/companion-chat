@@ -159,6 +159,11 @@ def test_stream_next_yields_provider_chunks_before_success_settlement(monkeypatc
     )
     monkeypatch.setattr(service, "_freeze", freeze)
 
+    async def settle_failure(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(service, "_settle_failure", settle_failure)
+
     async def settle_success(*_args, **_kwargs) -> None:
         settled.append(("success", "completed"))
 
@@ -225,6 +230,58 @@ def test_stream_next_processes_secondary_media_after_primary_no_op(monkeypatch) 
 
     assert asyncio.run(collect()) == []
     assert processed == ["media", "settled"]
+
+
+def test_invalid_secondary_no_op_is_rejected_before_freeze(monkeypatch) -> None:
+    service = _service(StreamingProvider())
+    envelope = _envelope()
+    invalid = DecisionProposal(
+        action_type=ActionType.REPLY,
+        payload={"text": "hello"},
+        confidence=0.9,
+        evidence_refs=("turn-1",),
+        decision_id="decision-invalid-secondary",
+        effects=(
+            DecisionEffect("primary", ActionType.REPLY, {"text": "hello"}),
+            DecisionEffect("invalid", ActionType.NO_OP, {}),
+        ),
+    )
+    envelope = replace(envelope, decision=invalid)
+    frozen = False
+
+    async def claim_next(*_args, **_kwargs):
+        return _claim()
+
+    async def assess(*_args, **_kwargs):
+        return envelope
+
+    async def freeze(*_args, **_kwargs):
+        nonlocal frozen
+        frozen = True
+        return _action()
+
+    monkeypatch.setattr(service, "claim_next", claim_next)
+    monkeypatch.setattr(
+        service, "_assessment_provider", type("Assessment", (), {"assess": assess})()
+    )
+    monkeypatch.setattr(service, "_freeze", freeze)
+
+    async def settle_failure(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(service, "_settle_failure", settle_failure)
+
+    async def collect() -> list[str]:
+        return [
+            chunk
+            async for chunk in service.stream_next(
+                "fluctlight-1", worker_id="interaction"
+            )
+        ]
+
+    with pytest.raises(ProviderExecutionError, match="secondary effects"):
+        asyncio.run(collect())
+    assert frozen is False
 
 
 def test_stream_next_marks_realization_cancelled_and_propagates_cancel(monkeypatch) -> None:

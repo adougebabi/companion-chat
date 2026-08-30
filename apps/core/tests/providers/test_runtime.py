@@ -76,6 +76,61 @@ class CompoundAssessmentAdapter:
         }
 
 
+class DailyReviewMediaMismatchAdapter:
+    def __init__(self, *, needed: bool, include_concept: bool) -> None:
+        self.needed = needed
+        self.include_concept = include_concept
+
+    async def complete_structured(self, *_args, **_kwargs) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "assessment": {
+                "perception": {
+                    "event_kind": "life_world.daily_review",
+                    "observed_intent": "review",
+                    "sentiment": "neutral",
+                    "social_signals": [],
+                    "environment_meaning": None,
+                },
+                "appraisal": {
+                    "relevance": 0.5,
+                    "goal_congruence": 0.5,
+                    "reward": 0.5,
+                    "loss": 0.1,
+                    "social_threat": 0.0,
+                    "controllability": 0.5,
+                    "responsibility": 0.5,
+                    "relationship_significance": 0.5,
+                    "expected_effect": 0.5,
+                },
+                "direction": "neutral",
+                "strength": 0.5,
+                "confidence": 0.9,
+            },
+            "decision": {
+                "effects": [
+                    {
+                        "id": "moment",
+                        "action_type": "moment",
+                        "payload": {
+                            "response_intent": {"purpose": "daily review"},
+                            **(
+                                {"moment_media_request": {"subject": "sky"}}
+                                if self.include_concept
+                                else {}
+                            ),
+                        },
+                    }
+                ],
+                "confidence": 0.9,
+                "media_evaluation": {
+                    "needed": self.needed,
+                    "reason": "fixture",
+                },
+            },
+        }
+        return payload
+
+
 class DiagnosticsRecorder:
     def __init__(self) -> None:
         self.runs: list[Any] = []
@@ -158,6 +213,66 @@ def test_cognitive_assessment_parses_ordered_compound_effects() -> None:
         "moment",
     ]
     assert envelope.decision.effects[1].payload["media_request"]["scene"] == "直播间"
+
+
+def test_daily_review_missing_optional_media_does_not_fail_the_moment() -> None:
+    runtime = ConfiguredProviderRuntime.__new__(ConfiguredProviderRuntime)
+    runtime._adapter = DailyReviewMediaMismatchAdapter(needed=True, include_concept=False)
+    runtime._diagnostics = None
+    runtime._provenance_recorder = None
+
+    async def resolve(_role):
+        return (
+            RoleAssignment(ModelRole.COGNITIVE_ASSESSMENT, "local", "model", 100, 30),
+            ProviderEndpoint("local", "openai-compatible", "http://provider/v1", "provider:local"),
+            None,
+        )
+
+    runtime._resolve = resolve  # type: ignore[method-assign]
+    fact = CognitionFact(
+        id="daily-review-media-missing",
+        fluctlight_id="fluctlight-1",
+        event_type="life_world.daily_review",
+        payload={"background_context": {"conversation_id": "conversation-1"}},
+        causation_id="schedule-1",
+        correlation_id="corr-daily-review",
+        idempotency_key="daily-review-media-missing",
+    )
+
+    envelope = asyncio.run(runtime.assess(fact, correlation_id="corr-daily-review"))
+
+    assert envelope.decision.action_type is ActionType.MOMENT
+    assert "moment_media_request" not in envelope.decision.payload
+
+
+def test_daily_review_contradictory_media_is_dropped_without_failing_the_moment() -> None:
+    runtime = ConfiguredProviderRuntime.__new__(ConfiguredProviderRuntime)
+    runtime._adapter = DailyReviewMediaMismatchAdapter(needed=False, include_concept=True)
+    runtime._diagnostics = None
+    runtime._provenance_recorder = None
+
+    async def resolve(_role):
+        return (
+            RoleAssignment(ModelRole.COGNITIVE_ASSESSMENT, "local", "model", 100, 30),
+            ProviderEndpoint("local", "openai-compatible", "http://provider/v1", "provider:local"),
+            None,
+        )
+
+    runtime._resolve = resolve  # type: ignore[method-assign]
+    fact = CognitionFact(
+        id="daily-review-media-contradictory",
+        fluctlight_id="fluctlight-1",
+        event_type="life_world.daily_review",
+        payload={"background_context": {"conversation_id": "conversation-1"}},
+        causation_id="schedule-1",
+        correlation_id="corr-daily-review-2",
+        idempotency_key="daily-review-media-contradictory",
+    )
+
+    envelope = asyncio.run(runtime.assess(fact, correlation_id="corr-daily-review-2"))
+
+    assert envelope.decision.action_type is ActionType.MOMENT
+    assert "moment_media_request" not in envelope.decision.payload
 
 
 def test_realization_uses_the_factual_source_message_not_cognitive_payload_text() -> None:

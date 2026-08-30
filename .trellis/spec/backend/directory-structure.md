@@ -11,6 +11,11 @@ apps/gateway-go/
   internal/bff/                  browser routes, DTOs, NDJSON, media proxy
   internal/config/               startup and security configuration
   internal/platform/             transport-neutral health helpers
+apps/core-go/
+  cmd/api/                       Go Core read/transport vertical slice
+  internal/config/               startup and service identity
+  internal/core/                 PostgreSQL repository and Core wire models
+  internal/httpapi/               snake_case internal HTTP handlers
 packages/core-client/            generated/reference Core contract client
 packages/browser-client/         Browser OpenAPI artifact and generated client
 apps/web/                        Vue/Vite static assets served by Nginx
@@ -35,6 +40,9 @@ do not restore them as a compatibility entrypoint or rollback service.
   generated client together.
 - Compose service name `bff` and image repository `fluctlight-bff` are stable
   deployment names, but their process and Dockerfile are Go-only.
+- `apps/core-go` is enabled only through the `go-core` Compose profile during
+  migration. Its current slice is read/transport-owned and must not become a
+  second writer for Python cognition/media/workflow tables.
 
 ## Adding Backend Behavior
 

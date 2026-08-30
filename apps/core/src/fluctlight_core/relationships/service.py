@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import insert, select, update
 
-from fluctlight_core.platform.persistence import UnitOfWorkFactory
+from fluctlight_core.platform.persistence import UnitOfWork, UnitOfWorkFactory
 
 from . import schema
 from .contracts import RelationshipSnapshot, RelationshipTrend, RelationshipUpdate
@@ -22,13 +23,24 @@ class RelationshipService:
         self._unit_of_work = unit_of_work
         self._clock = clock or (lambda: datetime.now(UTC))
 
+    @asynccontextmanager
+    async def _transaction(
+        self, tx: UnitOfWork | None, command_id: str
+    ) -> AsyncIterator[UnitOfWork]:
+        if tx is not None:
+            yield tx
+            return
+        async with self._unit_of_work.begin(command_id=command_id) as owned:
+            yield owned
+            await owned.commit()
+
     async def read(
         self, owner_fluctlight_id: str, target_actor_id: str
     ) -> RelationshipSnapshot | None:
         async with self._unit_of_work.begin(
             command_id=f"relationship-read:{owner_fluctlight_id}:{target_actor_id}"
         ) as tx:
-            row = (
+            row: Any = (
                 (
                     await tx.session.execute(
                         select(schema.relationships).where(
@@ -59,14 +71,16 @@ class RelationshipService:
             )
         return [self._from_row(row) for row in rows]
 
-    async def record_update(self, command: RelationshipUpdate) -> RelationshipSnapshot:
+    async def record_update(
+        self, command: RelationshipUpdate, *, tx: UnitOfWork | None = None
+    ) -> RelationshipSnapshot:
         now = self._clock()
-        async with self._unit_of_work.begin(
-            command_id=f"relationship-update:{command.idempotency_key}"
-        ) as tx:
+        async with self._transaction(
+            tx, f"relationship-update:{command.idempotency_key}"
+        ) as transaction:
             prior_revision = (
                 (
-                    await tx.session.execute(
+                    await transaction.session.execute(
                         select(schema.relationship_revisions).where(
                             schema.relationship_revisions.c.idempotency_key
                             == command.idempotency_key
@@ -79,7 +93,7 @@ class RelationshipService:
             if prior_revision is not None:
                 prior = (
                     (
-                        await tx.session.execute(
+                        await transaction.session.execute(
                             select(schema.relationships).where(
                                 schema.relationships.c.id == prior_revision["relationship_id"]
                             )
@@ -94,9 +108,9 @@ class RelationshipService:
                 ):
                     raise ValueError("relationship idempotency key targets another relationship")
                 return self._from_row(prior)
-            row = (
+            row: Any = (
                 (
-                    await tx.session.execute(
+                    await transaction.session.execute(
                         select(schema.relationships)
                         .where(
                             schema.relationships.c.owner_fluctlight_id
@@ -111,7 +125,7 @@ class RelationshipService:
             )
             if row is None:
                 relationship_id = f"relationship_{uuid4().hex}"
-                await tx.session.execute(
+                await transaction.session.execute(
                     insert(schema.relationships).values(
                         id=relationship_id,
                         owner_fluctlight_id=command.owner_fluctlight_id,
@@ -142,7 +156,7 @@ class RelationshipService:
             elif int(row["revision"]) != command.expected_revision:
                 raise ValueError("relationship revision is stale")
             next_revision = int(row["revision"]) + 1
-            await tx.session.execute(
+            await transaction.session.execute(
                 update(schema.relationships)
                 .where(
                     schema.relationships.c.id == row["id"],
@@ -159,7 +173,7 @@ class RelationshipService:
                 )
             )
             revision_id = f"relationship_revision_{uuid4().hex}"
-            await tx.session.execute(
+            await transaction.session.execute(
                 insert(schema.relationship_revisions).values(
                     id=revision_id,
                     relationship_id=row["id"],
@@ -175,7 +189,7 @@ class RelationshipService:
                     created_at=now,
                 )
             )
-            await tx.session.execute(
+            await transaction.session.execute(
                 insert(schema.relationship_governance).values(
                     id=f"relationship_governance_{uuid4().hex}",
                     relationship_id=row["id"],
@@ -186,7 +200,6 @@ class RelationshipService:
                     created_at=now,
                 )
             )
-            await tx.commit()
         return RelationshipSnapshot(
             id=row["id"],
             owner_fluctlight_id=command.owner_fluctlight_id,

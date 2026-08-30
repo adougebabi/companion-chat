@@ -127,7 +127,11 @@ class ConversationService:
         )
 
     async def get_or_create_direct(
-        self, *, owner_actor_id: str, fluctlight_actor_id: str
+        self,
+        *,
+        owner_actor_id: str,
+        fluctlight_actor_id: str,
+        tx: UnitOfWork | None = None,
     ) -> ConversationPage:
         """Return the one Owner-to-Fluctlight conversation for product entry.
 
@@ -140,14 +144,14 @@ class ConversationService:
         lock_key = f"fluctlight-direct:{owner_actor_id}:{fluctlight_actor_id}"
         created_page: ConversationPage | None = None
         existing_conversation_id: str | None = None
-        async with self._unit_of_work.begin(
-            command_id=f"conversation-direct:{owner_actor_id}:{fluctlight_actor_id}"
-        ) as tx:
-            await tx.session.execute(
+        async with self._transaction(
+            tx, f"conversation-direct:{owner_actor_id}:{fluctlight_actor_id}"
+        ) as transaction:
+            await transaction.session.execute(
                 text("SELECT pg_advisory_xact_lock(hashtext(:lock_key))"),
                 {"lock_key": lock_key},
             )
-            existing_conversation_id = await tx.session.scalar(
+            existing_conversation_id = await transaction.session.scalar(
                 select(schema.direct_conversations.c.conversation_id).where(
                     schema.direct_conversations.c.owner_actor_id == owner_actor_id,
                     schema.direct_conversations.c.fluctlight_actor_id == fluctlight_actor_id,
@@ -158,9 +162,9 @@ class ConversationService:
                     actor_id=owner_actor_id,
                     participant_actor_ids=(fluctlight_actor_id,),
                     title=None,
-                    tx=tx,
+                    tx=transaction,
                 )
-                await tx.session.execute(
+                await transaction.session.execute(
                     insert(schema.direct_conversations).values(
                         owner_actor_id=owner_actor_id,
                         fluctlight_actor_id=fluctlight_actor_id,
@@ -168,7 +172,12 @@ class ConversationService:
                         created_at=self._clock(),
                     )
                 )
-            await tx.commit()
+            if tx is not None and created_page is None:
+                # A new Fluctlight activation cannot legitimately encounter an
+                # existing mapping while holding the pair lock.  Refuse to
+                # silently return a page from a nested transaction when the
+                # caller owns the activation transaction.
+                raise ConversationConflictError("direct conversation mapping already exists")
         if created_page is not None:
             return created_page
         if existing_conversation_id is None:

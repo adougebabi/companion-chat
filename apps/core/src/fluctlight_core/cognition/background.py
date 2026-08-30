@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from fluctlight_core.cognition.contracts import CognitionFact, InboxStatus
 from fluctlight_core.fluctlights.contracts import FluctlightStatus
 from fluctlight_core.platform.outbox import CommittedWorkflowIntent, commit_workflow_intent
-from fluctlight_core.platform.persistence import UnitOfWorkFactory
+from fluctlight_core.platform.persistence import UnitOfWork, UnitOfWorkFactory
 from fluctlight_core.platform.timezones import canonical_timezone
 
 
@@ -117,15 +117,19 @@ class DailyLifeReviewRegistrar:
     def __init__(self, unit_of_work: UnitOfWorkFactory) -> None:
         self._unit_of_work = unit_of_work
 
-    async def register(self, fluctlight: Any) -> CommittedWorkflowIntent:
+    async def register(
+        self, fluctlight: Any, *, tx: UnitOfWork | None = None
+    ) -> CommittedWorkflowIntent:
         timezone = canonical_timezone(
             str(fluctlight.identity.as_payload().get("timezone") or "Asia/Shanghai")
         )
         local_date = datetime.now(UTC).astimezone(ZoneInfo(timezone)).date()
         intent = daily_review_intent(fluctlight.id, local_date.isoformat())
-        async with self._unit_of_work.begin(command_id=intent.intent_id) as tx:
-            persisted = await commit_workflow_intent(tx.session, intent)
-            await tx.commit()
+        if tx is not None:
+            return await commit_workflow_intent(tx.session, intent)
+        async with self._unit_of_work.begin(command_id=intent.intent_id) as owned:
+            persisted = await commit_workflow_intent(owned.session, intent)
+            await owned.commit()
         return persisted
 
     async def register_active(self, fluctlights: list[Any]) -> int:

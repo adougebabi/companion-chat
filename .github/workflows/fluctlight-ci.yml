@@ -31,18 +31,30 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: apps/gateway-go/go.mod
+          go-version-file: apps/core-go/go.mod
 
       - name: Test Go modules
         working-directory: apps/gateway-go
+        run: go test -race ./...
+
+      - name: Test Go Core module
+        working-directory: apps/core-go
         run: go test -race ./...
 
       - name: Vet Go modules
         working-directory: apps/gateway-go
         run: go vet ./...
 
+      - name: Vet Go Core module
+        working-directory: apps/core-go
+        run: go vet ./...
+
       - name: Build Go modules
         working-directory: apps/gateway-go
+        run: go build ./...
+
+      - name: Build Go Core module
+        working-directory: apps/core-go
         run: go build ./...
 
       - name: Set up Docker Buildx
@@ -63,6 +75,14 @@ jobs:
           file: apps/gateway-go/Dockerfile
           push: false
           tags: fluctlight-bff:validate-${{ github.sha }}
+
+      - name: Build Go Core image (validation only)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/core-go/Dockerfile
+          push: false
+          tags: fluctlight-core-go:validate-${{ github.sha }}
 
       - name: Build Web image (validation only)
         uses: docker/build-push-action@v6
@@ -99,6 +119,16 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core:go-build
             ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core:go-${{ github.sha }}
+
+      - name: Build and push Go Core vertical-slice image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/core-go/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core-go:go-build
+            ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core-go:go-${{ github.sha }}
 
       - name: Build and push BFF Go-build image
         uses: docker/build-push-action@v6
@@ -144,6 +174,14 @@ jobs:
           file: apps/core/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core:latest
+
+      - name: Build and push Go Core vertical slice
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/core-go/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core-go:latest
 
       - name: Build and push BFF
         uses: docker/build-push-action@v6

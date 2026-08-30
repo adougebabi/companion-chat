@@ -89,3 +89,78 @@ async with unit_of_work.begin(command_id=intent_id) as tx:
 
 handle = await workflow_runtime.start_workflow(committed_intent)
 ```
+
+## Scenario: Bounded, Restart-Safe Intent Dispatch
+
+### 1. Scope / Trigger
+
+- Trigger: a Worker restarts while PostgreSQL contains historical and newly
+  committed workflow intents.
+- This rule applies to `CommittedIntentDispatcher.dispatch_once()` and all
+  Temporal starts during the Python→Go Core migration.
+
+### 2. Signatures
+
+```python
+dispatch_once(*, limit: int = 20) -> int
+commit_workflow_intent(session, intent: CommittedWorkflowIntent) -> intent
+```
+
+### 3. Contracts
+
+- One dispatch pass selects at most `limit` intents and excludes intent IDs
+  already attempted by the current process.
+- Ordering prioritizes `daily_review.*`, `schedule.*`, `autonomy.*`, media and
+  reflection so historical reflection work cannot starve fresh lifecycle work.
+- A process restart may attempt an old intent again; its stable `workflow_id`
+  makes Temporal return `WorkflowAlreadyStartedError`, which is treated as a
+  successful replay guard.
+- Unsupported task queues remain unstarted and produce a bounded operational
+  error. No second Worker/runtime is created as a fallback.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| `limit <= 0` | Clamp to one intent; never scan an unbounded page. |
+| Already attempted intent in this process | Exclude from the next query. |
+| Worker restarted before durable dispatch state exists | Retry stable workflow ID; reuse/AlreadyStarted is success. |
+| Temporal start fails transiently | Leave intent eligible for a later pass; do not mark it complete. |
+| Fresh daily-review intent behind old reflection rows | Priority order selects lifecycle work first. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a newly activated Fluctlight's daily review and autonomy intents are
+  dispatched while old reflection rows remain pending.
+- Base: a restart retries an already running workflow and Temporal deduplicates
+  it by stable ID.
+- Bad: select the first 20 rows forever after process-local skipping, or scan
+  the entire table on every one-second tick.
+
+### 6. Tests Required
+
+- Assert one dispatch pass never calls `start_workflow` more than `limit` times.
+- Assert process-local attempted IDs are excluded while a restart still handles
+  `WorkflowAlreadyStartedError`.
+- Assert priority ordering puts daily-review/autonomy before reflection.
+- Assert transient start failure remains retryable and does not create a second
+  workflow ID.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+select(workflow_intents).limit(20)  # always the same historical rows
+if intent_id in self._started:
+    continue
+```
+
+#### Correct
+
+```python
+statement = select(workflow_intents)
+if self._started:
+    statement = statement.where(workflow_intents.c.intent_id.not_in(self._started))
+rows = await session.execute(priority_order(statement).limit(limit))
+```

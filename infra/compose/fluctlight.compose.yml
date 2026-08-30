@@ -129,6 +129,31 @@ services:
       retries: 20
     networks: [platform]
 
+  # Opt-in Go Core vertical slice. It is read/transport-owned in this stage;
+  # the default BFF continues to use Python Core for all unmigrated writers.
+  # Enabling this profile never creates a second domain writer.
+  core-go:
+    profiles: ["go-core"]
+    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-core-go:latest
+    build:
+      context: ../..
+      dockerfile: apps/core-go/Dockerfile
+    environment:
+      CORE_GO_DATABASE_URL: postgresql://${POSTGRES_USER:-fluctlight}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in private env}@postgres:5432/${POSTGRES_DB:-fluctlight}
+      FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:?set FLUCTLIGHT_CORE_SERVICE_KEY in private env}
+      CORE_GO_LISTEN_ADDRESS: :8081
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${CORE_GO_HOST_PORT:-13002}:8081"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [platform]
+
   worker:
     image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-core:latest
     build:

@@ -9,3 +9,5 @@ data/
 infra/compose/fluctlight.local.env
 .DS_Store
 .idea
+.gocache/
+apps/*/.gocache/

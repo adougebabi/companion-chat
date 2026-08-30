@@ -43,7 +43,7 @@ class FluctlightLifecycleError(RuntimeError):
     """Raised when a lifecycle transition is not allowed."""
 
 
-StateInitializer = Callable[[str, UnitOfWork], Awaitable[None]]
+StateInitializer = Callable[..., Awaitable[None]]
 
 
 def _parse_datetime(value: datetime | str | None, field_name: str) -> datetime:
@@ -203,7 +203,17 @@ class FluctlightService:
                 )
             )
             if self._state_initializer is not None:
-                await self._state_initializer(snapshot.id, tx)
+                # The actor id is part of the create command and is required by
+                # activation-time projections (for example the direct
+                # conversation target).  Keep it keyword-only at the callback
+                # boundary so older two-argument initializers can be adapted
+                # deliberately rather than receiving a positional surprise.
+                await self._state_initializer(
+                    snapshot.id,
+                    tx,
+                    actor_id=command.actor_id,
+                    snapshot=snapshot,
+                )
         return snapshot
 
     async def get(self, fluctlight_id: str, *, tx: UnitOfWork | None = None) -> FluctlightSnapshot:

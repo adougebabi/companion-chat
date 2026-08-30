@@ -252,3 +252,78 @@ validated = semantic_policy.validate(assessment, authorized_facts)
 transition = state_policy.apply(validated, current_state, elapsed_time)
 unit_of_work.commit(transition)
 ```
+
+## Scenario: Compound Effects And Reflection Commit Boundary
+
+### 1. Scope / Trigger
+
+- Trigger: a provider returns ordered cognitive effects or a reflection proposal
+  containing memory/relationship candidates.
+- The validator runs before any freeze, autonomy enqueue, candidate apply or
+  reflection watermark advance.
+
+### 2. Signatures
+
+```python
+validate_envelope(claim, envelope) -> None
+validate_reflection_payload(payload) -> None
+commit_reflection(proposal, *, expected_watermark, applier) -> None
+```
+
+### 3. Contracts
+
+- Conversation effects have a first `reply`/`no_op`; later effects are only
+  autonomous side effects. Background effects have a first
+  `proactive_message`/`moment`/`no_op`.
+- Duplicate effect IDs, invalid sibling types and inconsistent primary payloads
+  fail before the primary action is frozen.
+- Reflection validates every candidate's required fields, enum, numeric bounds,
+  evidence and timestamp before writing. `applier.apply(..., tx=tx)` and the
+  proposal/watermark update share one Unit of Work.
+- Reflection prompts include the actual bounded evidence window, not only
+  sequence numbers.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Secondary `reply`/`no_op` in a conversation decision | Typed failure; no action or media intent is frozen. |
+| Missing/unsupported reflection `type`, `content`, `confidence`, trend or metrics | `ReflectionValidationError`; watermark unchanged. |
+| Reflection applier fails | Entire candidate/proposal/watermark transaction rolls back. |
+| Duplicate action/effect retry | Stable IDs replay existing rows; no duplicate user/assistant/media effect. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: `[reply, media_request]` validates, freezes the reply, then settles the
+  media action independently.
+- Base: an empty candidate list is a valid reflection no-op and advances only a
+  valid evidence watermark.
+- Bad: process `[reply, media_request, no_op]`, freeze the reply/media, then
+  discover the invalid sibling; or use `.get("type", "episodic")` to hide a
+  malformed candidate.
+
+### 6. Tests Required
+
+- Valid/invalid compound effect tests for both `process_next` and `stream_next`.
+- Assert invalid siblings cause zero `_freeze` calls and one failed settlement.
+- Reflection tests for missing fields, unsupported enums, malformed timestamps,
+  duplicate candidates, retry and watermark rollback after applier failure.
+- Prompt test asserts evidence payloads are present in the reflection request.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+primary = await freeze(effects[0])
+for effect in effects[1:]:
+    await freeze(effect)  # validation discovers a bad sibling too late
+```
+
+#### Correct
+
+```python
+validate_effects(effects)
+primary = await freeze(effects[0])
+await settle_secondary_effects(effects[1:])
+```

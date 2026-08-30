@@ -234,6 +234,21 @@ async def run_worker(settings: PlatformSettings) -> None:
         life_world,
     )
     active_fluctlights = await fluctlight_service.list_active()
+    # Repair direct conversation targets before registering immutable daily
+    # review facts. Newly activated Fluctlights already create this mapping in
+    # the API transaction; this startup pass is only for historical rows.
+    for fluctlight in active_fluctlights:
+        owner_actor_id = await fluctlight_service.owner_actor_id(fluctlight.id)
+        try:
+            await conversation_service.get_or_create_direct(
+                owner_actor_id=owner_actor_id,
+                fluctlight_actor_id=fluctlight.id,
+            )
+        except Exception:
+            logger.exception(
+                "worker.direct_conversation.repair_failed fluctlight_id=%s",
+                fluctlight.id,
+            )
     await schedule_lifecycle.register_active(active_fluctlights)
     await daily_review_lifecycle.register_active(active_fluctlights)
     redis = Redis.from_url(settings.redis_url, decode_responses=True)
