@@ -545,3 +545,36 @@ From codex/go-bff-acceptance created codex/go-bff-cutover, deleted apps/bff enti
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: Go Core vertical slice and runtime stability
+
+**Date**: 2026-08-30
+**Task**: Go Core vertical slice and runtime stability
+**Branch**: `codex/go-core-runtime-stability`
+
+### Summary
+
+Added an opt-in Go Core PostgreSQL-backed read/transport slice; reconciled Core OpenAPI and CI/Compose wiring; fixed compound-effect prevalidation, activation-time direct conversation and daily-review registration, strict reflection validation with atomic watermark/apply, and bounded restart-safe dispatcher priority. Rebuilt the real Docker Core/Worker stack and passed regression cases 1-7, including fresh no-restart Moment and proactive-message paths.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `efecfe5` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 16
+- **Total Sessions**: 17
 - **Last Active**: 2026-08-30
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~547 | Active |
+| `journal-1.md` | ~580 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 17 | 2026-08-30 | Go Core vertical slice and runtime stability | `efecfe5` | `codex/go-core-runtime-stability` |
 | 16 | 2026-08-30 | Complete Go BFF cutover | `35f39be` | `codex/go-bff-cutover` |
 | 15 | 2026-08-29 | Go BFF contract closure | `cb7bba8` | `codex/go-bff-acceptance` |
 | 14 | 2026-08-24 | 恢复摇光实例跨日自动安排 | `ead2dbc`, `e142d40` | `master` |
