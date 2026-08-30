@@ -7,10 +7,10 @@
     "node": ">=24.12.0"
   },
   "scripts": {
-    "dev": "pnpm --filter @fluctlight/bff dev",
+    "dev": "go -C apps/gateway-go run ./cmd/gateway",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "generate": "pnpm --filter @fluctlight/core-client generate && pnpm --filter @fluctlight/bff generate:browser-client && pnpm --filter @fluctlight/browser-client generate"
+    "generate": "pnpm --filter @fluctlight/core-client generate && pnpm --filter @fluctlight/browser-client generate:openapi && pnpm --filter @fluctlight/browser-client generate"
   }
 }

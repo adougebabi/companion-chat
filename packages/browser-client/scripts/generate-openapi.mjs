@@ -71,6 +71,6 @@ const schema = {
 };
 
 await writeFile(
-  new URL("../../../packages/browser-client/openapi.json", import.meta.url),
+  new URL("../openapi.json", import.meta.url),
   `${JSON.stringify(schema, null, 2)}\n`,
 );

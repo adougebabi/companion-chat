@@ -6,9 +6,8 @@
 
 - Trigger: a browser command/query/stream/media request crosses the public
   BFF, or BFF calls Python Core.
-- The active BFF uses Go's standard library HTTP server and client. The deleted
-  Node 24/Fastify implementation remains as a rollback/reference path. Browser
-  uses Vue 3/Vite/Pinia.
+- The active and only BFF uses Go's standard library HTTP server and client.
+  Browser uses Vue 3/Vite/Pinia; no Node BFF runtime remains.
 - BFF owns browser transport/session/DTOs but no Fluctlight domain state, persistence, workflow, or semantic policy.
 
 ### 2. Signatures

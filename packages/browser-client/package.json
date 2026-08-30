@@ -5,6 +5,7 @@
   "type": "module",
   "exports": "./src/index.ts",
   "scripts": {
+    "generate:openapi": "node scripts/generate-openapi.mjs",
     "generate": "node scripts/generate.mjs",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"

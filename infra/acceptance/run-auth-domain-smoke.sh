@@ -10,8 +10,6 @@ compose_file="infra/compose/fluctlight.compose.yml"
 env_file="${FLUCTLIGHT_ENV_FILE:-infra/compose/fluctlight.env.example}"
 compose=(docker compose --project-name "$project" --env-file "$env_file" -f "$compose_file")
 source "$(dirname "$0")/read-compose-env.sh"
-service_key="$(printenv FLUCTLIGHT_CORE_SERVICE_KEY || true)"
-if [[ -z "$service_key" ]]; then service_key="$(compose_env_value FLUCTLIGHT_CORE_SERVICE_KEY)"; fi
 postgres_user="$(printenv POSTGRES_USER || true)"
 if [[ -z "$postgres_user" ]]; then postgres_user="$(compose_env_value POSTGRES_USER)"; fi
 postgres_db="$(printenv POSTGRES_DB || true)"
@@ -58,58 +56,64 @@ else
       "http://127.0.0.1:${BFF_PORT:-3000}/auth/setup"
   ')
   session_cookie=$(printf '%s\n' "$setup_headers" | grep -i '^set-cookie: fluctlight_session=' | sed -n 's/^[^:]*: fluctlight_session=\([^;]*\).*/fluctlight_session=\1/p' | head -n 1)
+  new_csrf_token=$(printf '%s\n' "$setup_headers" | grep -i '^set-cookie: fluctlight_csrf=' | sed -n 's/^[^:]*: fluctlight_csrf=\([^;]*\).*/\1/p' | head -n 1)
+  if [[ -n "$new_csrf_token" ]]; then csrf_token="$new_csrf_token"; fi
   if [[ -z "$session_cookie" ]]; then
     echo "setup response did not include a session cookie" >&2
     session_status=1
   else
-    printf '%s\n' "$session_cookie"
     session_status=0
   fi
 fi
 set -e
 echo "auth-domain-smoke: setup request status=${session_status}"
 [[ "$session_status" == 0 ]]
-login_json=$("${compose[@]}" exec -T -e SERVICE_KEY="$service_key" bff sh -c '
-  curl -sS --fail -X POST \
-    -H "X-Fluctlight-Service-Key: ${SERVICE_KEY}" \
+login_headers=$("${compose[@]}" exec -T -e TRUSTED_ORIGIN="$trusted_origin" -e CSRF_TOKEN="$csrf_token" bff sh -c '
+  curl -sS --fail -D - -o /dev/null -X POST \
+    -H "Origin: ${TRUSTED_ORIGIN}" \
+    -H "X-CSRF-Token: ${CSRF_TOKEN}" \
+    -H "Cookie: fluctlight_csrf=${CSRF_TOKEN}" \
     -H "Content-Type: application/json" \
-    --data '{"password":"fluctlight-smoke-password"}' \
-    http://core:8080/internal/auth/login
+    --data "{\"password\":\"fluctlight-smoke-password\"}" \
+    "http://127.0.0.1:${BFF_PORT:-3000}/auth/login"
 ')
-session_cookie=$(printf '%s\n' "$login_json" | sed -n 's/.*"session_token"[[:space:]]*:[[:space:]]*"\([^\"]*\)".*/\1/p')
+session_cookie=$(printf '%s\n' "$login_headers" | grep -i '^set-cookie: fluctlight_session=' | sed -n 's/^[^:]*: fluctlight_session=\([^;]*\).*/fluctlight_session=\1/p' | head -n 1)
 [[ -n "$session_cookie" ]]
-echo "auth-domain-smoke: Core login session resolved"
+echo "auth-domain-smoke: BFF login session resolved"
 
-fluctlight_json=$("${compose[@]}" exec -T -e SESSION_COOKIE="$session_cookie" -e SERVICE_KEY="$service_key" bff sh -c '
+fluctlight_json=$("${compose[@]}" exec -T -e TRUSTED_ORIGIN="$trusted_origin" -e CSRF_TOKEN="$csrf_token" -e SESSION_COOKIE="$session_cookie" bff sh -c '
   curl -sS --fail -X POST \
-    -H "X-Fluctlight-Service-Key: ${SERVICE_KEY}" \
-    -H "X-Fluctlight-Human-Session: ${SESSION_COOKIE}" \
+    -H "Origin: ${TRUSTED_ORIGIN}" \
+    -H "X-CSRF-Token: ${CSRF_TOKEN}" \
+    -H "Cookie: fluctlight_csrf=${CSRF_TOKEN}; ${SESSION_COOKIE}" \
     -H "Content-Type: application/json" \
-    --data '{"name":"T12 smoke Fluctlight"}' \
-    http://core:8080/internal/fluctlights
+    --data '{"name":"BFF smoke Fluctlight"}' \
+    "http://127.0.0.1:${BFF_PORT:-3000}/api/fluctlights"
 ')
 fluctlight_id=$(printf '%s\n' "$fluctlight_json" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^\"]*\)".*/\1/p')
 [[ -n "$fluctlight_id" ]]
 
-conversation_json=$("${compose[@]}" exec -T -e SESSION_COOKIE="$session_cookie" -e SERVICE_KEY="$service_key" -e FLUCTLIGHT_ID="$fluctlight_id" bff sh -c '
+conversation_json=$("${compose[@]}" exec -T -e TRUSTED_ORIGIN="$trusted_origin" -e CSRF_TOKEN="$csrf_token" -e SESSION_COOKIE="$session_cookie" -e FLUCTLIGHT_ID="$fluctlight_id" bff sh -c '
   curl -sS --fail -X POST \
-    -H "X-Fluctlight-Service-Key: ${SERVICE_KEY}" \
-    -H "X-Fluctlight-Human-Session: ${SESSION_COOKIE}" \
+    -H "Origin: ${TRUSTED_ORIGIN}" \
+    -H "X-CSRF-Token: ${CSRF_TOKEN}" \
+    -H "Cookie: fluctlight_csrf=${CSRF_TOKEN}; ${SESSION_COOKIE}" \
     -H "Content-Type: application/json" \
-    --data "{\"participant_actor_ids\":[\"${FLUCTLIGHT_ID}\"],\"title\":\"T12 smoke conversation\"}" \
-    http://core:8080/internal/conversations
+    --data "{\"participantActorIds\":[\"${FLUCTLIGHT_ID}\"],\"title\":\"BFF smoke conversation\"}" \
+    "http://127.0.0.1:${BFF_PORT:-3000}/api/conversations"
 ')
 conversation_id=$(printf '%s\n' "$conversation_json" | sed -n 's/.*"conversation"[[:space:]]*:[[:space:]]*{[^}]*"id"[[:space:]]*:[[:space:]]*"\([^\"]*\)".*/\1/p')
 [[ -n "$conversation_id" ]]
 
-stream=$("${compose[@]}" exec -T -e SESSION_COOKIE="$session_cookie" -e SERVICE_KEY="$service_key" -e FLUCTLIGHT_ID="$fluctlight_id" -e CONVERSATION_ID="$conversation_id" bff sh -c '
+stream=$("${compose[@]}" exec -T -e TRUSTED_ORIGIN="$trusted_origin" -e CSRF_TOKEN="$csrf_token" -e SESSION_COOKIE="$session_cookie" -e FLUCTLIGHT_ID="$fluctlight_id" -e CONVERSATION_ID="$conversation_id" bff sh -c '
   curl -sS -X POST \
-    -H "X-Fluctlight-Service-Key: ${SERVICE_KEY}" \
-    -H "X-Fluctlight-Human-Session: ${SESSION_COOKIE}" \
+    -H "Origin: ${TRUSTED_ORIGIN}" \
+    -H "X-CSRF-Token: ${CSRF_TOKEN}" \
+    -H "Cookie: fluctlight_csrf=${CSRF_TOKEN}; ${SESSION_COOKIE}" \
     -H "Content-Type: application/json" \
     -H "Accept: application/x-ndjson" \
-    --data "{\"fluctlight_id\":\"${FLUCTLIGHT_ID}\",\"text\":\"Provider is intentionally unconfigured\",\"idempotency_key\":\"t12-smoke-turn\"}" \
-    "http://core:8080/internal/conversations/${CONVERSATION_ID}/turn"
+    --data "{\"fluctlightId\":\"${FLUCTLIGHT_ID}\",\"text\":\"Provider is intentionally unconfigured\",\"idempotencyKey\":\"bff-smoke-turn\"}" \
+    "http://127.0.0.1:${BFF_PORT:-3000}/api/conversations/${CONVERSATION_ID}/turn"
 ')
 printf '%s\n' "$stream" | grep -E '"type":"error"' >/dev/null
 

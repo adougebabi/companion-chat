@@ -7,7 +7,7 @@
 - Trigger: new-system code interprets an observation, user message, social signal, event, relationship meaning, memory significance, goal conflict, candidate action, or reflection evidence.
 - This contract applies to the complete cognitive loop: `perception -> appraisal -> state update -> decision -> action -> reflection`.
 - It exists to prevent a repeated implementation drift: replacing LLM semantic judgment with keywords, regex, substring checks, hardcoded phrase tables, fixed semantic thresholds, or default personality behavior.
-- Historical code-specs remain evidence for the frozen old system. This contract is authoritative for the clean-start Python Core and its Node BFF boundary.
+- Historical code-specs remain evidence for the frozen old system. This contract is authoritative for the clean-start Python Core and its Go BFF boundary.
 
 ### 2. Signatures
 
@@ -137,7 +137,7 @@ Interactive work uses two model stages. `assess` / `propose_decision` return no 
 | PAD/momentum/drive/relationship numeric delta | Python policy | Calculate from validated semantic signals, elapsed wall time, and policy version. |
 | Schema, scope, authorization, safety, idempotency, CAS, transaction | Python | Reject invalid or stale proposals; never delegate these invariants to the model. |
 | Workflow, retry, timeout, cancellation, compensation | Python runtime | Execute only a validated frozen decision. |
-| Browser framing and redaction | Node BFF | Translate normalized application output; never reinterpret semantic content. |
+| Browser framing and redaction | Go BFF | Translate normalized application output; never reinterpret semantic content. |
 
 #### Forbidden Semantic Implementations
 
@@ -205,7 +205,7 @@ Deterministic code may parse and validate protocol facts: JSON/schema, IDs, acto
 - Contract tests reject malformed/unknown semantic schemas, raw numeric deltas, foreign evidence, stale revisions, and duplicate idempotency keys.
 - Failure tests prove provider timeout, invalid JSON, and exhausted retries never call a heuristic classifier and never persist fabricated semantic state.
 - Paraphrase and multilingual fixtures assert that application outcomes come from injected model results rather than exact wording in source text.
-- Negative architecture tests scan Python Core and Node BFF production paths for newly introduced semantic regex/keyword dictionaries and require explicit review for any natural-language matching.
+- Negative architecture tests scan Python Core and Go BFF production paths for newly introduced semantic regex/keyword dictionaries and require explicit review for any natural-language matching.
 - State-transition tests assert numeric policy owns requested/applied deltas, clamps canonical ranges, records policy/model versions, and is independent of Worker tick frequency.
 - Decision tests assert policy rejection produces no effect and no code-selected semantic alternative.
 - Two-stage tests assert assessment emits no visible content, final action is frozen before realization, no-content actions skip realization, and realization cannot return semantic side effects.

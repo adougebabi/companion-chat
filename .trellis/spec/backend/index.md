@@ -1,8 +1,9 @@
 # Backend Guidelines
 
 The active backend is the Python Core plus the Go browser BFF under
-`apps/core/` and `apps/gateway-go/`. The deleted Node/SQLite runtime is
-historical context; `apps/bff/` remains a rollback/reference implementation.
+`apps/core/` and `apps/gateway-go/`. The deleted Node/SQLite runtime and the
+former Node BFF are historical context; `apps/gateway-go/` is the only public
+browser boundary.
 Keep additions inside the clean-start vertical layers and horizontal capability
 boundaries described below.
 

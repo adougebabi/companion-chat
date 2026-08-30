@@ -51,7 +51,7 @@ type BrowserStreamEvent struct {
 // NdjsonTranslationError represents an error which prevents the translator
 // from being started at all (for example, a missing upstream body).  Protocol
 // violations after streaming starts are represented by one bounded browser
-// error frame, matching the Node BFF contract.
+// error frame, matching the checked browser contract.
 type NdjsonTranslationError struct {
 	Code  string
 	Cause error

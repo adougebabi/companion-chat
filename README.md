@@ -5,15 +5,15 @@ This repository contains the clean-start Fluctlight system:
 - `apps/core`: Python 3.13 FastAPI/Core and Temporal Worker. It owns Actors,
   Fluctlights, cognition, conversations, Memory, Relationships, Life World,
   Moments, Media, persistence and authorization.
-- `apps/bff`: Node 24/Fastify browser boundary kept as rollback/reference
-  implementation; it is no longer the default Compose runtime.
-- `apps/gateway-go`: Go browser BFF replacement. It owns cookies, CSRF/origin
+- `apps/gateway-go`: Go browser BFF. It is the only public browser boundary and
+  owns cookies, CSRF/origin
   transport, browser DTOs, NDJSON translation and media proxying while Python
   Core remains the only domain writer.
 - `apps/web`: Vue 3/Vite/Pinia product UI and Control Center, built to static
   assets and served by Nginx in the production image.
 - `packages/core-client` and `packages/browser-client`: generated contract
-  clients whose OpenAPI artifacts must be regenerated together.
+  clients whose OpenAPI artifacts must be regenerated together. The browser
+  artifact generator lives in `packages/browser-client/scripts`.
 - `infra/compose`: PostgreSQL/pgvector, Redis Streams, MinIO, Temporal, Core,
   Worker, BFF and Web deployment topology.
 
@@ -52,7 +52,8 @@ the BFF address requires only recreating `web`, not rebuilding its image. Do
 not use a container hostname or
 `127.0.0.1` unless the browser itself runs on that same machine.
 `CORE_BASE_URL` remains the BFF-to-Core internal address and normally uses the
-Compose service name `http://core:8080`.
+Compose service name `http://core:8080`. The Go BFF is the only public BFF;
+there is no alternate BFF runtime in this repository.
 
 ## Go migration branch flow
 
