@@ -512,3 +512,36 @@ Created codex/go-bff-acceptance from codex/go-build; added Browser OpenAPI route
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: Complete Go BFF cutover
+
+**Date**: 2026-08-30
+**Task**: Complete Go BFF cutover
+**Branch**: `codex/go-bff-cutover`
+
+### Summary
+
+From codex/go-bff-acceptance created codex/go-bff-cutover, deleted apps/bff entirely, moved Browser OpenAPI generator, cleaned workspace/lockfile/scripts/Compose smoke/docs/specs, rebuilt and replaced the running Go BFF container, and ran real 1-7 regression through BFF. Cases 1,3,4,5,6 passed; case2 passed after idempotent retry with 3 PNG assets; case7 verified completed proactive_message for 影者, while new proactive fixtures exposed Core no_op/backlog behavior. Core pytest 208 passed/1 skipped; Go and Node gates passed.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `35f39be` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
