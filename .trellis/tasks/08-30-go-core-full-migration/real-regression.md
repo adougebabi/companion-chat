@@ -100,6 +100,27 @@ blocking acceptance item until the operator updates that Provider workflow or
 the real endpoint exposes the configured transformer; no Go fallback is
 allowed by the Provider contract.
 
+## Provider configuration fixed (2026-08-31)
+
+The operator corrected the persisted ComfyUI workflow transformer to the
+available `moodyCutieMixKrea2_v40_mixed_4_8.safetensors` model. A new first
+attempt through the public Go BFF then completed successfully:
+
+- media intent `media_intent_8b6705169c4958e76a99017ca6485318` reached
+  `completed`;
+- the real ComfyUI job `c3b37c7d-ab3a-4ebb-9e9f-b2be5b67bf7d` completed;
+- asset `asset_media_intent_8b6705169c4958e76a99017ca6485318` is `ready`,
+  `image/png`, `224591` bytes, version `v1`;
+- PostgreSQL contains exactly one `media_reference` for that asset;
+- public BFF full read returned `200` with `Content-Length: 224591`;
+- public BFF `Range: bytes=0-4` returned `206` with five bytes and
+  `Content-Range: bytes 0-4/224591`.
+
+This clears the external Case 2 blocker. Cases 1 and 3–7 from the preceding
+continuation sweep remain valid; the code migration still requires the
+platform/Worker capability gaps described in the task plan before the Trellis
+task can be archived.
+
 ## Final post-fix rerun (same rebuilt Compose project)
 
 The first post-rebuild Case 1 request (`go-final-case1-1788106207`) timed out
