@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 19
+- **Total Sessions**: 20
 - **Last Active**: 2026-08-31
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~646 | Active |
+| `journal-1.md` | ~679 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 20 | 2026-08-31 | Close Go Core Worker platform loop | `59652fa` | `codex/go-core-worker-closure` |
 | 19 | 2026-08-31 | Continue Go Core full migration | `e2357be` | `codex/go-core-full-migration` |
 | 18 | 2026-08-31 | Complete Go Core migration and real regression | `f7aacdb` | `codex/go-core-full-migration` |
 | 17 | 2026-08-30 | Go Core vertical slice and runtime stability | `efecfe5` | `codex/go-core-runtime-stability` |

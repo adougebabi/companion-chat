@@ -644,3 +644,36 @@ Closed workflow Temporal management, governance/CAS, Moments/Presence/Context, S
 ### Next Steps
 
 - None - task complete
+
+
+## Session 20: Close Go Core Worker platform loop
+
+**Date**: 2026-08-31
+**Task**: Close Go Core Worker platform loop
+**Branch**: `codex/go-core-worker-closure`
+
+### Summary
+
+Added PostgreSQL outbox claim/retry/terminal handling, Redis Streams publisher and durable consumers with inbox/effect/head, duplicate/reclaim/poison handling and PEL-safe trim; added cognition/platform Temporal workflows, queue-specific registration, durable cognition intents and Worker runtime integration. Core race/vet/build and PostgreSQL+Redis/miniredis platform tests pass; Docker worker groups pending=0 lag=0 and fresh cognition intent fan-out to all groups verified. Baseline product flows remain accepted evidence and were not rerun because unaffected.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `59652fa` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
