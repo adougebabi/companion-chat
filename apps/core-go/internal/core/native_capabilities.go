@@ -71,11 +71,8 @@ func (a *App) applySceneCapability(ctx context.Context, fluctlightID, conversati
 		return failedToolResult(call, "scene_confidence_invalid", false, "confidence must be between 0 and 1"), errors.New("scene confidence invalid")
 	}
 	refs := arrayValue(args["evidence_refs"])
-	if len(refs) == 0 {
-		refs = []any{sourceFactID}
-	}
 	if !containsStringValue(refs, sourceFactID) {
-		return failedToolResult(call, "scene_evidence_invalid", false, "evidence must include the current source fact"), errors.New("scene evidence invalid")
+		refs = append(refs, sourceFactID)
 	}
 	idempotency := stringValue(args["idempotency_key"])
 	if idempotency == "" {
@@ -126,11 +123,8 @@ func (a *App) applyPresenceCapability(ctx context.Context, fluctlightID, convers
 		return failedToolResult(call, "presence_confidence_invalid", false, "confidence must be between 0 and 1"), errors.New("presence confidence invalid")
 	}
 	refs := arrayValue(args["evidence_refs"])
-	if len(refs) == 0 {
-		refs = []any{sourceFactID}
-	}
 	if !containsStringValue(refs, sourceFactID) {
-		return failedToolResult(call, "presence_evidence_invalid", false, "evidence must include the current source fact"), errors.New("presence evidence invalid")
+		refs = append(refs, sourceFactID)
 	}
 	idempotency := stringValue(args["idempotency_key"])
 	if idempotency == "" {
