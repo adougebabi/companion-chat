@@ -116,6 +116,7 @@ func providerRoleErrorCode(err error) string {
 	message := err.Error()
 	for _, code := range []string{
 		"provider_model_not_available",
+		"provider_models_unavailable",
 		"provider_endpoint_not_found",
 		"provider_endpoint_invalid",
 		"provider_role_invalid",

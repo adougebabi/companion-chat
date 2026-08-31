@@ -578,7 +578,7 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 	}
 	models, err := a.ProviderModels(ctx, actorID, endpoint)
 	if err != nil {
-		return fmt.Errorf("provider_preflight_failed: %w", err)
+		return fmt.Errorf("provider_models_unavailable: %w", err)
 	}
 	modelAvailable := false
 	for _, raw := range arrayValue(models["models"]) {

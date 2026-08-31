@@ -30,10 +30,10 @@ func TestReadJSONRejectsTrailingValues(t *testing.T) {
 
 func TestProviderRoleErrorCodePreservesPreflightReason(t *testing.T) {
 	cases := map[string]string{
-		"provider_model_not_available":                                 "provider_model_not_available",
-		"provider_preflight_failed: provider models returned HTTP 401": "provider_preflight_failed",
-		"provider_endpoint_not_found":                                  "provider_endpoint_not_found",
-		"provider_role_invalid":                                        "provider_role_invalid",
+		"provider_model_not_available":                                   "provider_model_not_available",
+		"provider_models_unavailable: provider models returned HTTP 401": "provider_models_unavailable",
+		"provider_endpoint_not_found":                                    "provider_endpoint_not_found",
+		"provider_role_invalid":                                          "provider_role_invalid",
 	}
 	for message, want := range cases {
 		if got := providerRoleErrorCode(errors.New(message)); got != want {

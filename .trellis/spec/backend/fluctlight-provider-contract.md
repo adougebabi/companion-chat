@@ -122,7 +122,7 @@ return await provider.complete_structured(
 
 | Condition | Result |
 | --- | --- |
-| endpoint/model missing or unavailable | reject role; no role row |
+| endpoint/model missing or unavailable | reject role; return `provider_endpoint_not_found`, `provider_models_unavailable`, or `provider_model_not_available`; no role row |
 | model list uses a supported `data[]`/`models[]` envelope | normalize IDs, deduplicate and sort before matching |
 | model list is empty or has an unsupported envelope | reject role with `provider_model_not_available`; no role row |
 | configured media model absent | retry, then mark media intent `failed` |
