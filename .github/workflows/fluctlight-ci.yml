@@ -31,6 +31,12 @@ jobs:
         with:
           go-version-file: apps/core-go/go.mod
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          # Read the exact version from package.json's packageManager field.
+          run_install: false
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -38,7 +44,7 @@ jobs:
           cache: pnpm
 
       - name: Install browser workspace
-        run: corepack enable && pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Test Go modules
         working-directory: apps/gateway-go
