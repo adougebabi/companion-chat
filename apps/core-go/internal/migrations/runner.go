@@ -189,7 +189,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_media_intents_provider_job_id ON public.med
 CREATE UNIQUE INDEX IF NOT EXISTS uq_conversation_messages_idempotency ON public.conversation_messages(conversation_id,idempotency_key);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_cognition_inbox_idempotency ON public.cognition_inbox(fluctlight_id,idempotency_key);
 CREATE INDEX IF NOT EXISTS ix_memories_search_document ON public.memories USING gin(search_document);
-UPDATE public.memories SET search_document=to_tsvector('simple',content) WHERE search_document IS NULL;
 CREATE INDEX IF NOT EXISTS ix_cognition_claims_context ON public.cognition_claims(fluctlight_id,status,expires_at,created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_life_events_idempotency ON public.life_events(fluctlight_id,idempotency_key) WHERE idempotency_key IS NOT NULL;
 ALTER TABLE public.platform_workflow_intents ADD COLUMN IF NOT EXISTS status varchar(32) NOT NULL DEFAULT 'pending';
