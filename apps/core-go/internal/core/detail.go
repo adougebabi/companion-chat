@@ -24,6 +24,7 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 		"provenance":        fluctlight.Provenance,
 		"status":            fluctlight.Status,
 		"current_revision":  fluctlight.CurrentRevision,
+		"self_model":        mapValue(fluctlight.Provenance["self_model"]),
 	}
 	inner, err := a.readInnerState(ctx, fluctlightID)
 	if err != nil && err != ErrNotFound {
@@ -55,6 +56,10 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
+	detail["hypotheses"], err = a.readActiveHypotheses(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
 	detail["events"], err = a.readEvents(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
@@ -67,7 +72,31 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
+	detail["evolution_revisions"], err = a.readEvolutionRevisions(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
 	return detail, nil
+}
+
+func (a *App) readEvolutionRevisions(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,field,base_revision,revision,candidate_type,before_value,after_value,evidence_refs,source_window,status,created_at FROM public.fluctlight_evolution_revisions WHERE fluctlight_id=$1 ORDER BY revision DESC,created_at DESC LIMIT 100`, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]map[string]any, 0)
+	for rows.Next() {
+		var id, field, kind, source, status string
+		var base, revision int
+		var before, after, refs []byte
+		var created time.Time
+		if err := rows.Scan(&id, &field, &base, &revision, &kind, &before, &after, &refs, &source, &status, &created); err != nil {
+			return nil, err
+		}
+		result = append(result, map[string]any{"id": id, "field": field, "base_revision": base, "revision": revision, "candidate_type": kind, "before": decodeJSONValue(before), "after": decodeJSONValue(after), "evidence_refs": decodeArray(refs), "source_window": source, "status": status, "created_at": created.Format(time.RFC3339Nano)})
+	}
+	return result, rows.Err()
 }
 
 func resolveScheduleContext(value any) map[string]any {
@@ -161,20 +190,23 @@ func (a *App) readRelationships(ctx context.Context, fluctlightID string) ([]map
 }
 
 func (a *App) readMemories(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,type,content,importance,status,revision FROM public.memories WHERE owner_fluctlight_id=$1 AND status='active' ORDER BY created_at DESC LIMIT 100`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,confidence,importance,emotional_significance,visibility,status,revision,created_at FROM public.memories WHERE owner_fluctlight_id=$1 AND status='active' ORDER BY created_at DESC,id DESC LIMIT 100`, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	out := make([]map[string]any, 0)
 	for rows.Next() {
-		var id, typ, content, status string
-		var importance []byte
+		var id, typ, content, visibility, status string
+		var actorRefs, eventRefs, evidenceRefs []byte
+		var conversationID *string
+		var confidence, importance, emotional float64
 		var rev int
-		if err := rows.Scan(&id, &typ, &content, &importance, &status, &rev); err != nil {
+		var created time.Time
+		if err := rows.Scan(&id, &typ, &content, &actorRefs, &conversationID, &eventRefs, &evidenceRefs, &confidence, &importance, &emotional, &visibility, &status, &rev, &created); err != nil {
 			return nil, err
 		}
-		out = append(out, map[string]any{"id": id, "owner_fluctlight_id": fluctlightID, "type": typ, "content": content, "importance": jsonNumber(importance), "status": status, "revision": rev})
+		out = append(out, map[string]any{"id": id, "owner_fluctlight_id": fluctlightID, "type": typ, "content": content, "actor_refs": decodeArray(actorRefs), "conversation_id": conversationID, "event_refs": decodeArray(eventRefs), "evidence_refs": decodeArray(evidenceRefs), "confidence": confidence, "importance": importance, "emotional_significance": emotional, "visibility": visibility, "status": status, "revision": rev, "created_at": created.Format(time.RFC3339Nano)})
 	}
 	return out, nil
 }
@@ -238,21 +270,25 @@ func (a *App) resolveContext(ctx context.Context, fluctlightID string, schedule 
 	now := time.Now().UTC()
 	result := map[string]any{"source": "pending", "scene": nil, "activity": nil, "location": nil, "instant": now.Format(time.RFC3339Nano)}
 	var scene, activity, location *string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT scene,activity,location FROM public.life_events WHERE fluctlight_id=$1 AND status='confirmed' AND start_at <= $2 AND end_at > $2 ORDER BY start_at DESC,id DESC LIMIT 1`, fluctlightID, now).Scan(&scene, &activity, &location); err == nil {
+	var eventKind, eventStatus string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT kind,status,scene,activity,location FROM public.life_events WHERE fluctlight_id=$1 AND status IN ('confirmed','inferred') AND start_at <= $2 AND end_at > $2 AND (expires_at IS NULL OR expires_at > $2) ORDER BY CASE WHEN status='confirmed' THEN 0 ELSE 1 END,start_at DESC,id DESC LIMIT 1`, fluctlightID, now).Scan(&eventKind, &eventStatus, &scene, &activity, &location); err == nil {
 		result["source"] = "event"
+		if eventStatus == "inferred" {
+			result["source"] = "hypothesis"
+		}
+		result["event_kind"] = eventKind
 		result["scene"], result["activity"], result["location"] = scene, activity, location
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	} else {
 		result = contextFromSchedule(result, schedule, now)
 	}
-	var overlayScene, overlayActivity, overlayLocation *string
 	var userPresence, currentTask *string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT scene,activity,location,current_task,user_presence FROM public.life_presence_overlays WHERE fluctlight_id=$1 AND (expires_at IS NULL OR expires_at > $2) ORDER BY created_at DESC,id DESC LIMIT 1`, fluctlightID, now).Scan(&overlayScene, &overlayActivity, &overlayLocation, &currentTask, &userPresence); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT current_task,user_presence FROM public.life_presence_overlays WHERE fluctlight_id=$1 AND (expires_at IS NULL OR expires_at > $2) ORDER BY created_at DESC,id DESC LIMIT 1`, fluctlightID, now).Scan(&currentTask, &userPresence); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
-	if overlayScene != nil || overlayActivity != nil || overlayLocation != nil {
-		result["presence"] = map[string]any{"scene": overlayScene, "activity": overlayActivity, "location": overlayLocation, "current_task": currentTask, "user_presence": userPresence}
+	if currentTask != nil || userPresence != nil {
+		result["presence"] = map[string]any{"current_task": currentTask, "user_presence": userPresence}
 		result["presence_overlay"] = true
 	}
 	return result, nil

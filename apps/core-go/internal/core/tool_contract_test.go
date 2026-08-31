@@ -137,6 +137,28 @@ func TestCapabilityRegistryIsAnExtensibleSlot(t *testing.T) {
 	if err := output.Validate(calls[0]); err != nil {
 		t.Fatalf("result validation = %v", err)
 	}
+	if err := registry.Register(testCapabilityExecutor{}); err == nil {
+		t.Fatal("expected duplicate capability registration error")
+	}
+}
+
+func TestDefaultNativeCapabilitySlotsAreVersioned(t *testing.T) {
+	registry := NewCapabilityRegistry(testCapabilityExecutor{})
+	for _, manifest := range []CapabilityManifest{sceneCapabilityManifest(), presenceCapabilityManifest(), memoryCapabilityManifest()} {
+		if err := registry.Register(testManifestExecutor{manifest: manifest}); err != nil {
+			t.Fatalf("register %s = %v", manifest.Name, err)
+		}
+	}
+	if got := len(registry.Manifests()); got != 4 {
+		t.Fatalf("manifest count = %d", got)
+	}
+}
+
+type testManifestExecutor struct{ manifest CapabilityManifest }
+
+func (executor testManifestExecutor) Manifest() CapabilityManifest { return executor.manifest }
+func (executor testManifestExecutor) Execute(_ context.Context, _, _, _ string, call ToolCallV1) (ToolResultV1, error) {
+	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", SchemaVersion: ToolResultSchemaVersion}, nil
 }
 
 func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
@@ -162,5 +184,23 @@ func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 	}
 	if _, ok := sidecar["response_format"]; !ok {
 		t.Fatal("structured sidecar payload must request JSON mode")
+	}
+}
+
+func TestResolveToolCallActionSupportsNativeObservationSlots(t *testing.T) {
+	manifests := toolManifestMap([]CapabilityManifest{sceneCapabilityManifest(), presenceCapabilityManifest(), memoryCapabilityManifest()})
+	calls, err := NormalizeProviderToolCalls([]any{
+		map[string]any{"id": "scene", "name": "scene_event", "arguments": map[string]any{"scene": "cafe", "activity": "read", "source_fact_id": "fact", "evidence_refs": []any{"fact"}, "confidence": 0.8}},
+		map[string]any{"id": "presence", "name": "presence_event", "arguments": map[string]any{"current_task": "chat", "source_fact_id": "fact", "evidence_refs": []any{"fact"}, "confidence": 0.9}},
+	}, "fact", "provider")
+	if err != nil {
+		t.Fatalf("normalize = %v", err)
+	}
+	action, concept, err := resolveToolCallAction(calls, manifests)
+	if err != nil {
+		t.Fatalf("resolve = %v", err)
+	}
+	if action != "reply" || len(concept) != 0 {
+		t.Fatalf("action=%q concept=%#v", action, concept)
 	}
 }

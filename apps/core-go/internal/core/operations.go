@@ -449,7 +449,7 @@ func (a *App) ReviseMemory(ctx context.Context, actorID, id, content string, exp
 			return errors.New("memory_revision_stale")
 		}
 		newRevision = revision + 1
-		if _, err := tx.Exec(ctx, `UPDATE public.memories SET content=$2,revision=$3,evidence_refs=$4,last_confirmed_at=now() WHERE id=$1`, id, content, newRevision, jsonBytes(refs)); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.memories SET content=$2,revision=$3,evidence_refs=$4,last_confirmed_at=now(),search_document=to_tsvector('simple',$2) WHERE id=$1`, id, content, newRevision, jsonBytes(refs)); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,status,actor_id,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,'active',$6,$7,$8) ON CONFLICT DO NOTHING`, randomID("memory_revision_"), id, newRevision, revision, content, actorID, jsonBytes(refs), "memory:"+id+":"+fmt.Sprint(newRevision)); err != nil {
@@ -461,7 +461,10 @@ func (a *App) ReviseMemory(ctx context.Context, actorID, id, content string, exp
 		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','memory.embedding',$3) ON CONFLICT DO NOTHING`, "memory_embedding_intent:"+id+":"+fmt.Sprint(newRevision), "memory_embedding:"+id+":"+fmt.Sprint(newRevision), jsonBytes(map[string]any{"memory_id": id, "revision": newRevision})); err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "memory.revised", "memory", id, owner, actorID, "memory:"+id, "memory-outbox:"+id+":"+fmt.Sprint(newRevision), map[string]any{"memory_id": id, "revision": newRevision})
+		if err := appendOutboxTx(ctx, tx, "memory.revised", "memory", id, owner, actorID, "memory:"+id, "memory-outbox:"+id+":"+fmt.Sprint(newRevision), map[string]any{"memory_id": id, "revision": newRevision, "aggregate_sequence": newRevision*2 + 1}); err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "memory.embedding.requested", "memory", id, owner, actorID, "memory:"+id, "memory-embedding:"+id+":"+fmt.Sprint(newRevision), map[string]any{"memory_id": id, "revision": newRevision, "aggregate_sequence": newRevision*2 + 2})
 	})
 	if err != nil {
 		return nil, err
@@ -503,7 +506,7 @@ func (a *App) ForgetMemory(ctx context.Context, actorID, id string, expected *in
 		if _, err := tx.Exec(ctx, `UPDATE public.memory_embeddings SET status='stale' WHERE memory_id=$1 AND status <> 'stale'`, id); err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "memory.forgotten", "memory", id, owner, actorID, "memory:"+id, "memory-forget-outbox:"+id+":"+fmt.Sprint(newRevision), map[string]any{"memory_id": id, "revision": newRevision})
+		return appendOutboxTx(ctx, tx, "memory.forgotten", "memory", id, owner, actorID, "memory:"+id, "memory-forget-outbox:"+id+":"+fmt.Sprint(newRevision), map[string]any{"memory_id": id, "revision": newRevision, "aggregate_sequence": newRevision*2 + 1})
 	})
 	if err != nil {
 		return nil, err
@@ -738,31 +741,59 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 	if e1 != nil || e2 != nil || !end.After(start) {
 		return nil, errors.New("life_event_time_invalid")
 	}
-	id := randomID("event_")
-	_, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'confirmed',$9)`, id, fluctlightID, stringValue(payload["kind"]), start, end, nullableString(stringValue(payload["scene"])), nullableString(stringValue(payload["activity"])), nullableString(stringValue(payload["location"])), jsonBytes(arrayValue(payload["evidence_refs"])))
+	refs := arrayValue(payload["evidence_refs"])
+	if len(refs) == 0 {
+		return nil, errors.New("life_event_evidence_required")
+	}
+	idempotency := stringValue(payload["idempotency_key"])
+	if idempotency == "" {
+		idempotency = "owner:" + actorID + ":" + start.UTC().Format(time.RFC3339Nano) + ":" + stringValue(payload["kind"])
+	}
+	id := "event_" + stableDigest(fluctlightID+":"+idempotency)
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'confirmed',$9,$10) ON CONFLICT(fluctlight_id,idempotency_key) DO NOTHING`, id, fluctlightID, stringValue(payload["kind"]), start, end, nullableString(stringValue(payload["scene"])), nullableString(stringValue(payload["activity"])), nullableString(stringValue(payload["location"])), jsonBytes(refs), idempotency); err != nil {
+			return err
+		}
+		if _, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, stringValue(payload["conversation_id"]), "owner:"+actorID, "life.event.created", "life-event:"+idempotency, map[string]any{"event_id": id, "kind": stringValue(payload["kind"])}); err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "life.event.created", "fluctlight", fluctlightID, fluctlightID, actorID, "life:"+id, "life-event:"+idempotency, map[string]any{"event_id": id, "aggregate_sequence": 1})
+	})
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": id, "fluctlight_id": fluctlightID, "status": "confirmed"}, nil
+	return map[string]any{"id": id, "fluctlight_id": fluctlightID, "status": "confirmed", "idempotency_key": idempotency}, nil
 }
 func (a *App) CancelLifeEvent(ctx context.Context, actorID, fluctlightID, eventID string) error {
 	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
 		return err
 	}
-	cmd, err := a.DB.Pool().Exec(ctx, `UPDATE public.life_events SET status='cancelled' WHERE id=$1 AND fluctlight_id=$2`, eventID, fluctlightID)
-	if err != nil {
-		return err
-	}
-	if cmd.RowsAffected() == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		cmd, err := tx.Exec(ctx, `UPDATE public.life_events SET status='cancelled' WHERE id=$1 AND fluctlight_id=$2 AND status <> 'cancelled'`, eventID, fluctlightID)
+		if err != nil {
+			return err
+		}
+		if cmd.RowsAffected() == 0 {
+			return ErrNotFound
+		}
+		if _, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, "", eventID, "life.event.cancelled", "life-cancel:"+eventID, map[string]any{"event_id": eventID}); err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "life.event.cancelled", "fluctlight", fluctlightID, fluctlightID, eventID, "life:"+eventID, "life-cancel:"+eventID, map[string]any{"event_id": eventID, "aggregate_sequence": 1})
+	})
 }
 func (a *App) SetPresence(ctx context.Context, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
 	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
 		return nil, err
 	}
-	id := "presence_overlay_" + stableDigest(fluctlightID+":"+actorID+":"+time.Now().UTC().Format(time.RFC3339Nano))
+	if stringValue(payload["scene"]) != "" || stringValue(payload["activity"]) != "" || stringValue(payload["location"]) != "" {
+		return nil, errors.New("presence_overlay_cannot_replace_scene")
+	}
+	idempotency := stringValue(payload["idempotency_key"])
+	if idempotency == "" {
+		idempotency = "owner:" + actorID + ":" + time.Now().UTC().Format(time.RFC3339Nano)
+	}
+	id := "presence_overlay_" + stableDigest(fluctlightID+":"+idempotency)
 	var expiresAt any
 	if raw := stringValue(payload["expires_at"]); raw != "" {
 		parsed, err := time.Parse(time.RFC3339, raw)
@@ -771,16 +802,24 @@ func (a *App) SetPresence(ctx context.Context, actorID, fluctlightID string, pay
 		}
 		expiresAt = parsed
 	}
-	scene := nullableString(stringValue(payload["scene"]))
-	activity := nullableString(firstString(payload["activity"], stringValue(payload["current_task"])))
-	location := nullableString(stringValue(payload["location"]))
 	currentTask := nullableString(stringValue(payload["current_task"]))
 	userPresence := nullableString(stringValue(payload["user_presence"]))
-	_, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.life_presence_overlays(id,fluctlight_id,actor_id,scene,activity,location,current_task,user_presence,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, id, fluctlightID, actorID, scene, activity, location, currentTask, userPresence, expiresAt)
+	if currentTask == nil && userPresence == nil {
+		return nil, errors.New("presence_overlay_fields_required")
+	}
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.life_presence_overlays(id,fluctlight_id,actor_id,scene,activity,location,current_task,user_presence,expires_at) VALUES($1,$2,$3,NULL,NULL,NULL,$4,$5,$6) ON CONFLICT(id) DO NOTHING`, id, fluctlightID, actorID, currentTask, userPresence, expiresAt); err != nil {
+			return err
+		}
+		if _, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, "", "owner:"+actorID, "life.presence.updated", "presence:"+idempotency, map[string]any{"overlay_id": id, "current_task": stringValue(payload["current_task"]), "user_presence": stringValue(payload["user_presence"])}); err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "life.presence.updated", "fluctlight", fluctlightID, fluctlightID, actorID, "presence:"+id, "presence:"+idempotency, map[string]any{"overlay_id": id, "aggregate_sequence": 1})
+	})
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": id, "fluctlight_id": fluctlightID, "actor_id": actorID, "scene": payload["scene"], "activity": payload["activity"], "location": payload["location"], "current_task": payload["current_task"], "user_presence": payload["user_presence"], "expires_at": payload["expires_at"]}, nil
+	return map[string]any{"id": id, "fluctlight_id": fluctlightID, "actor_id": actorID, "current_task": payload["current_task"], "user_presence": payload["user_presence"], "expires_at": payload["expires_at"], "idempotency_key": idempotency}, nil
 }
 func (a *App) CancelSchedule(ctx context.Context, actorID, fluctlightID, scheduleID string) error {
 	return a.CancelScheduleExpected(ctx, actorID, fluctlightID, scheduleID, nil)

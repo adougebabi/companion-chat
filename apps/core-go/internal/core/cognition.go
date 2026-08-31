@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -24,23 +25,51 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 	if inboxID == "" {
 		return nil, errors.New("cognition_inbox_id_required")
 	}
-	var payload []byte
-	var status string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT payload,status FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&payload, &status); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
-		}
+	payload, status, err := a.claimCognitionInbox(ctx, inboxID)
+	if err != nil {
 		return nil, err
 	}
 	if status == "processed" {
 		return map[string]any{"inbox_id": inboxID, "status": "processed"}, nil
 	}
+	if status == "failed" {
+		return map[string]any{"inbox_id": inboxID, "status": "failed"}, nil
+	}
 	data := decodeObject(payload)
+	if strings.HasPrefix(stringValue(data["event_type"]), "life.") {
+		if err := a.markNativeFactProcessed(ctx, inboxID); err != nil {
+			return nil, err
+		}
+		return map[string]any{"inbox_id": inboxID, "status": "processed", "event_type": data["event_type"]}, nil
+	}
 	result, err := a.HandleTurn(ctx, stringValue(data["actor_id"]), stringValue(data["conversation_id"]), data)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]any{"inbox_id": inboxID, "status": "processed", "turn_id": result.TurnID, "assistant_message_id": stringValue(result.Assistant["id"]), "media_intent_id": result.MediaIntentID}, nil
+}
+
+func (a *App) claimCognitionInbox(ctx context.Context, inboxID string) ([]byte, string, error) {
+	var payload []byte
+	var status, claimedBy string
+	var claimedAt *time.Time
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := tx.QueryRow(ctx, `SELECT payload,status,COALESCE(claimed_by,''),claimed_at FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&payload, &status, &claimedBy, &claimedAt); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrNotFound
+			}
+			return err
+		}
+		if status == "processed" || status == "failed" {
+			return nil
+		}
+		if status == "claimed" && claimedBy != "" && claimedAt != nil && time.Since(*claimedAt) < 10*time.Minute {
+			return ErrConflict
+		}
+		_, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now(),attempt_count=attempt_count+1 WHERE id=$1`, inboxID, "go-cognition:"+randomID("worker_"))
+		return err
+	})
+	return payload, status, err
 }
 
 // EnqueueTurnFact records the source observation before any model call. The
@@ -143,19 +172,47 @@ func (a *App) PersistToolResults(ctx context.Context, frozenID string, results [
 	return nil
 }
 
+func (a *App) PersistFrozenToolCalls(ctx context.Context, frozenID string, calls []ToolCallV1) error {
+	if frozenID == "" {
+		return errors.New("frozen_action_id_required")
+	}
+	commandTag, err := a.DB.Pool().Exec(ctx, `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(payload,'{decision,tool_calls}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, frozenID, jsonBytes(calls))
+	if err != nil {
+		return err
+	}
+	if commandTag.RowsAffected() != 1 {
+		return ErrConflict
+	}
+	return nil
+}
+
 func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID string, realization map[string]any) error {
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var fluctlightID string
+		if err := tx.QueryRow(ctx, `SELECT fluctlight_id FROM public.cognition_frozen_actions WHERE id=$1 FOR UPDATE`, frozenID).Scan(&fluctlightID); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `UPDATE public.cognition_frozen_actions SET status='completed',realization_payload=$2,completed_at=now() WHERE id=$1 AND status='frozen'`, frozenID, jsonBytes(realization)); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',processed_at=now() WHERE id=$1`, inboxID)
-		return err
+		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',processed_at=now() WHERE id=$1`, inboxID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:"+inboxID, "reflection:"+inboxID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": inboxID})); err != nil {
+			return err
+		}
+		return nil
 	})
 }
 
 func (a *App) FailTurnCognition(ctx context.Context, inboxID, frozenID, code string) error {
-	_, err := a.DB.Pool().Exec(ctx, `UPDATE public.cognition_frozen_actions SET status='failed',error_code=$2 WHERE id=$1 AND status='frozen'`, frozenID, code)
-	return err
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `UPDATE public.cognition_frozen_actions SET status='failed',error_code=$2 WHERE id=$1 AND status='frozen'`, frozenID, code); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',error_code=$2,processed_at=now() WHERE id=$1 AND status <> 'processed'`, inboxID, code)
+		return err
+	})
 }
 
 func (a *App) CognitionFactAge(ctx context.Context, inboxID string) (time.Time, error) {

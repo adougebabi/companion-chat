@@ -296,13 +296,16 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 		return TurnResult{UserMessage: user, Assistant: replayed, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
 	}
-	profile, _ := a.DB.GetFluctlight(ctx, fluctlightID, actorID)
-	history, _ := a.DB.History(ctx, conversationID, actorID, nil, 20)
+	projection, err := a.BuildContextProjection(ctx, actorID, fluctlightID, conversationID, inboxID, text)
+	if err != nil {
+		return TurnResult{}, err
+	}
 	var decision map[string]any
 	var action string
 	var mediaConcept map[string]any
 	var toolCalls []ToolCallV1
 	var toolResults []ToolResultV1
+	var responsePlan map[string]any
 	frozen, frozenFound, err := a.LoadFrozenTurn(ctx, inboxID)
 	if err != nil {
 		return TurnResult{}, err
@@ -313,8 +316,15 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		mediaConcept = mapValue(frozen.Payload["media_concept"])
 		toolCalls = toolCallsFromValue(decision["tool_calls"])
 		toolResults = toolResultsFromValue(frozen.Payload["tool_results"])
+		responsePlan = mapValue(decision["response_plan"])
+		if len(responsePlan) == 0 {
+			responsePlan, err = normalizeResponsePlan(decision, inboxID, projection)
+			if err != nil {
+				return TurnResult{}, err
+			}
+		}
 	} else {
-		messages := []map[string]any{{"role": "system", "content": "You are the Fluctlight companion. Return a concise Chinese reply. Use the available capability tool when an external capability is needed. Otherwise return a structured reply intent."}, {"role": "user", "content": text}}
+		messages := []map[string]any{{"role": "system", "content": "You are the Fluctlight companion. Decide what is appropriate to say before writing it. Return one JSON object containing action_type, response_plan, visible_text for an ordinary reply, claims with kind/content/confidence/evidence_refs, and self_evaluation. Use a capability tool when an external capability is needed. Use scene_event, presence_event, or memory_event only when supported by evidence. Do not invent unsupported facts or self-claims."}, {"role": "user", "content": jsonString(map[string]any{"text": text, "context": projection})}}
 		manifests := a.capabilityRegistry().Manifests()
 		completion, completionErr := a.Provider.StructuredWithTools(ctx, "cognitive_assessment", messages, manifests)
 		if completionErr != nil {
@@ -328,10 +338,14 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if decision == nil {
 			decision = map[string]any{}
 		}
+		responsePlan, err = normalizeResponsePlan(decision, inboxID, projection)
+		if err != nil {
+			return TurnResult{}, err
+		}
+		responsePlan["tool_calls"] = toolCalls
+		decision["response_plan"] = responsePlan
+		decision["context_projection"] = projection
 		if len(toolCalls) > 0 {
-			if len(toolCalls) > 1 {
-				return TurnResult{}, errors.New("multiple_tool_calls_unsupported")
-			}
 			decision["tool_calls"] = toolCalls
 			action, mediaConcept, err = resolveToolCallAction(toolCalls, toolManifestMap(manifests))
 			if err != nil {
@@ -368,6 +382,14 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, errors.New("media_concept_invalid")
 		}
 	}
+	for index := range toolCalls {
+		toolCalls[index].ActionID = frozen.ID
+	}
+	if len(toolCalls) > 0 && !frozenFound {
+		if err := a.PersistFrozenToolCalls(ctx, frozen.ID, toolCalls); err != nil {
+			return TurnResult{}, err
+		}
+	}
 	if callbacks.onActionResult != nil {
 		if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
 			return TurnResult{}, err
@@ -385,18 +407,38 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				return TurnResult{}, err
 			}
 		}
-		mediaIntent = mediaIntentIDFromToolResults(toolResults)
-		if mediaIntent == "" {
-			return TurnResult{}, errors.New("tool_result_media_intent_missing")
+		if toolCallsRequireMedia(toolCalls) {
+			mediaIntent = mediaIntentIDFromToolResults(toolResults)
+			if mediaIntent == "" {
+				return TurnResult{}, errors.New("tool_result_media_intent_missing")
+			}
 		}
 	}
-	visiblePrompt := []map[string]any{{"role": "system", "content": "Write the visible Chinese response for the already selected action. Do not mention implementation."}, {"role": "user", "content": jsonString(map[string]any{"action_type": action, "user_message": text, "persona_profile": map[string]any{"identity": profile.Identity, "personality": profile.Personality, "behavioral_policy": profile.BehavioralPolicy}, "conversation_history": history.Messages, "tool_results": toolResults})}}
-	visible, err := a.Provider.StreamText(ctx, "action_realization", visiblePrompt, callbacks.onChunk)
-	if err != nil {
-		if frozenFound || frozen.ID != "" {
-			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_failed")
+	var visible string
+	if len(toolCalls) == 0 && action == "reply" && len(arrayValue(responsePlan["omitted_claims"])) == 0 && stringValue(mapValue(responsePlan["self_evaluation"])["mode"]) == "accepted" {
+		visible = firstString(responsePlan["visible_text"], "")
+	}
+	if visible != "" {
+		if callbacks.onChunk != nil {
+			if err := callbacks.onChunk(visible); err != nil {
+				return TurnResult{}, err
+			}
 		}
-		return TurnResult{}, err
+	} else {
+		visiblePrompt := []map[string]any{{"role": "system", "content": "Render only the approved ResponsePlan as a concise Chinese response. Do not add facts, scenes, memories, relationships, or tools."}, {"role": "user", "content": jsonString(map[string]any{"response_plan": responsePlan, "context_projection": projection, "tool_results": toolResults})}}
+		visible, err = a.Provider.StreamText(ctx, "action_realization", visiblePrompt, callbacks.onChunk)
+		if err != nil {
+			if frozenFound || frozen.ID != "" {
+				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_failed")
+			}
+			return TurnResult{}, err
+		}
+	}
+	if strings.TrimSpace(visible) == "" {
+		if frozenFound || frozen.ID != "" {
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_empty")
+		}
+		return TurnResult{}, errors.New("realization_empty")
 	}
 	assistantID := randomID("message_")
 	var assistant map[string]any
@@ -419,7 +461,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return err
 		}
 		assistant = map[string]any{"id": assistantID, "conversation_id": conversationID, "sequence": seq, "author_actor_id": fluctlightID, "kind": "assistant", "text": visible, "attachment_refs": []any{}}
-		return nil
+		return persistClaimsTx(ctx, tx, fluctlightID, inboxID, responsePlan)
 	})
 	if err != nil {
 		return TurnResult{}, err
@@ -556,6 +598,14 @@ func resolveDecisionAction(decision map[string]any) (string, map[string]any) {
 	}
 	if action == "" {
 		action = firstString(decision["action"], "")
+	}
+	if plan := mapValue(decision["response_plan"]); len(plan) > 0 {
+		if action == "" {
+			action = firstString(plan["action_type"], "")
+		}
+		if len(concept) == 0 {
+			concept = mediaConceptValue(plan["media_request"])
+		}
 	}
 	return action, concept
 }

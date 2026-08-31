@@ -1,232 +1,290 @@
-# Fluctlight Runtime phase 1 design
+# Fluctlight Intelligence P1 design
 
 ## 1. Design stance
 
-This phase deepens the Go runtime already merged into `master`; it does not
-replace Core, Temporal, Redis, or the browser boundary. The runtime is the
-authoritative owner of Fluctlight semantics. Plugins provide replaceable
-external capabilities and never become a second domain state machine.
+P1 deepens the Go runtime already merged into `master`; it does not replace
+Core, Temporal, Redis, or the browser boundary. The Runtime is the sole owner
+of Fluctlight semantic authority. Capability plugins provide replaceable
+implementations, but they never become a second domain state machine or agent
+loop.
 
-The target is a durable loop, not a process-local `for` loop:
+The target is a durable semantic loop:
 
 ```text
 observation
-  -> ordered fact
-  -> context projection
-  -> semantic assessment
-  -> typed decision proposal
-  -> deterministic validation/policy/revision gate
-  -> frozen action
-  -> effect/plugin execution
-  -> settlement/reconciliation
-  -> visible projection
+  -> ordered CognitionFact
+  -> ContextProjection
+  -> expression/semantic assessment
+  -> SelfEvaluation gate
+  -> ResponsePlan / native capability candidates
+  -> deterministic validation + revision gate
+  -> FrozenAction
+  -> optional capability effect
+  -> realization/projection
   -> reflection evidence window
+  -> governed domain revision
+  -> future ContextProjection
 ```
 
-The first implementation slice concentrates on the interaction turn and its
-provider/capability seam. Memory, Reflection, Autonomy, and Life World will
-consume this seam later instead of introducing their own tool or transport
-protocols.
+This is an adaptive-depth loop. Ordinary chat uses one cognition call that
+returns visible text plus typed control sidecars. Effects, scene/memory/relationship
+candidates, or high uncertainty enter a bounded assessment/freeze/effect/
+realization path. A second model call is never allowed to reinterpret the same
+raw conversation as a fresh decision.
 
 ## 2. Ownership and dependency direction
 
 ```text
 HTTP/BFF transport
   -> Runtime application service
-      -> domain authority ports
-          -> PostgreSQL transaction/revision state
-          -> capability registry (external provider adapters)
-          -> durable workflow/outbox intent
+      -> ContextProjection + claim/evaluation policies
+      -> native capability authority ports
+      -> capability registry (built-in or external plugins)
+      -> PostgreSQL transaction/revision state
+      -> durable workflow/outbox intent
       -> diagnostics/replay projection
 ```
 
-### Native Fluctlight capabilities
+### Fluctlight-native capability contracts
 
-The following remain Runtime-owned and typed: cognition/context, affect and
-drives, Memory record/retrieve/forget, Reflection/evolution, Relationship,
-Goal/Intention, Autonomy policy, Life World, self-model, and action lifecycle.
-They may call provider ports but cannot be replaced by arbitrary plugin code.
+The contracts remain Runtime-owned and typed: cognition/context, self-evaluation,
+affect/drives, Memory, Reflection/evolution, Relationship, Goal/Intention,
+Autonomy, Life World, self-model, and action lifecycle. Their implementations
+may be built-in or injected as plugins. The canonical authority, revision
+ledger, evidence rules, and reader-facing projection remain in Core.
 
 ### External capability plugins
 
-Plugins implement contracts such as `llm.structured`, `llm.realization`,
-`embedding`, `media.image`, `media.video`, `audio.tts`, `audio.stt`, search,
-or notification. A plugin manifest declares:
+External slots include structured/streaming LLM, embeddings, image/video/audio,
+search, notification, and other provider effects. Native slots such as
+`scene_event`, `presence_event`, `memory_event`, `relationship_signal`, and
+`self_evaluation` use the same manifest/registry shape, but route accepted
+proposals back through a Core authority service instead of a plugin-owned
+database.
+
+Every manifest declares:
 
 ```text
 capability_id, version, input/output schema,
 side_effect_class, concurrency_class, retry/cancel support,
-idempotency strategy, data scope, preflight requirements,
-cost/time/token limits, health state
+idempotency strategy, data scope, authority port,
+preflight requirements, cost/time/token limits, health state
 ```
 
-The registry performs discovery and capability preflight. It does not grant a
-plugin access to arbitrary tables. All writes go through authority ports and a
-caller-owned transaction or a durable effect workflow.
+Installed and preflighted capabilities are callable without human approval.
+The Runtime still enforces ownership, schema, evidence, revision, budget,
+timeout, cancellation, idempotency, and result reconciliation.
 
-There is intentionally no human approval state in this product model. A
-capability that is installed and passes preflight is callable, subject to
-deterministic resource ownership, schema, revision, budget, timeout, and
-idempotency checks. A failed check returns an explicit rejected/deferred/error
-outcome.
+## 3. Domain facts and ContextProjection
 
-## 3. Canonical cognition data flow
+### 3.1 Fact levels
 
-### 3.1 Fact boundary
-
-The caller-owned transaction must commit the user message, cognition fact,
-idempotency record, workflow intent, and outbox event together. The fact
-contains attachment references and stable `turn_id`, `causation_id`, and
-`correlation_id`; a Worker replay uses the persisted payload rather than
-reconstructing it from a message row.
-
-### 3.2 Context snapshot
-
-The Runtime builds a bounded, typed `ContextSnapshot` from authoritative
-projections. Its sections are independently versioned and evidence-linked:
+The Runtime never treats all model-visible text as the same kind of truth:
 
 ```text
-identity/personality/policy
-inner_state and drives
-recent conversation
-authorized memory context
-relationship context
-life-world context
-available capabilities
+Transcript       = what an actor said
+Observation      = source-bound fact the system recorded
+Hypothesis       = temporary Fluctlight interpretation
+Memory/Belief     = governed long-lived fact
+Personality/Self  = slow revision of durable self-model
 ```
 
-The snapshot is persisted or content-addressed in the assessment/frozen-action
-record. Realization consumes that same snapshot; it does not re-read mutable
-personality, policy, or memory state after freeze.
+An unconfirmed Fluctlight self-claim is a decaying hypothesis. It cannot be
+promoted to Memory, Personality, Identity, or Life World solely because it
+appeared in a previous assistant message.
 
-### 3.3 Assessment and proposal
+### 3.2 Projection sections
 
-`Assessment` is provider output normalized by one schema registry. It must
-declare schema version, action/effect list, evidence references, bounded
-confidence, and provider provenance. Unknown fields, missing required values,
-foreign evidence, and invalid numeric semantics are rejected; application code
-does not infer a replacement action from prose.
-
-`DecisionProposal` is an immutable candidate. The deterministic gate checks
-capability visibility, resource authorization, current state revision, action
-constraints, concurrency class, budget, and idempotency before creating a
-`FrozenAction`.
-
-### 3.4 Effect execution and settlement
-
-Each frozen action has a stable action id and provider request id. Effects are
-classified independently:
+`ContextProjection` is the only context assembler for Chat, realization,
+Memory retrieval, Reflection, scene capabilities, Media, and future Autonomy.
+Its sections are independently bounded and carry source/revision/confidence:
 
 ```text
-pending -> running -> completed
-                  -> failed_retryable -> failed_terminal
-                  -> result_unknown
-                  -> cancelled
+current source fact and user intent
+identity/personality/behavioral policy projection
+inner-state, affect, and drives
+resolved Event > Schedule > pending context
+Presence overlay
+authorized relevant MemoryContext
+Relationship projection
+active hypotheses with expiry/repetition metadata
+available capability manifests
 ```
 
-An external submission whose response is lost enters `result_unknown` and is
-reconciled by stable request identity; it is never blindly submitted again.
-The visible assistant message is a projection of a settled action, not proof
-that every external media/audio effect is complete.
+The projection selects recent relevant conversation rather than blindly passing
+the complete transcript. Every item inserted into a provider request is
+reconstructable from a persisted fact, revision, or projection version.
 
-## 4. Tool-call contract
+## 4. Adaptive cognition and ResponsePlan
 
-### 4.1 Provider normalization
+### 4.1 Fast path
 
-Providers may return native tool-call deltas or a structured JSON sidecar. The
-provider adapter normalizes both into:
+For ordinary chat with no external effect or native candidate, one cognition
+provider call returns:
 
 ```text
-ToolCallV1 {
-  id, name, arguments,
-  source_fact_id, action_id,
-  schema_version, provider_request_id,
-  sequence/index
-}
+visible draft
+ResponsePlanV1
+SelfEvaluationV1
+optional ToolCallV1/native candidates
 ```
 
-The provider adapter must not parse natural-language markers. A provider that
-cannot emit native calls uses the same canonical JSON schema as a sidecar;
-there is one application normalization boundary and one schema owner.
+The Runtime validates the plan and freezes the approved expression before
+streaming it. It does not send the same user text and history to a second model
+for another semantic decision.
 
-### 4.2 Execution pipeline
+### 4.2 Deliberate path
+
+When an effect/candidate/high-uncertainty flag is present:
 
 ```text
-tool_call received
-  -> schema/size validation
-  -> capability lookup and preflight
-  -> resource/revision/idempotency gate
-  -> plugin execute (timeout/cancel/retry)
-  -> result normalization and post-effect invariant
-  -> persist ToolResultV1
-  -> optionally append result to next model input
+assessment + self-evaluation
+  -> deterministic gate
+  -> freeze ResponsePlan/FrozenAction
+  -> execute native or external capability
+  -> optional realization from the frozen plan and ToolResult
 ```
 
-Tools are not direct database APIs. Memory/Reflection/affect calls, if exposed
-to the model at all, are typed intents routed through their authority service;
-the model cannot choose SQL or bypass revision governance. Image/video/audio
-and search are normal external capability calls.
+Realization receives only the bounded plan, approved claims, style surface,
+and tool results. It cannot add a new fact, scene, memory, relationship,
+personality change, or capability effect. One bounded rewrite is allowed when
+the output violates the plan; repeated failure becomes `omitted`, `uncertain`,
+or `deferred`.
 
-Tool execution defaults to `exclusive` for mutable Fluctlight state. Only an
-explicitly declared, side-effect-free capability may run in parallel. The
-runtime bounds loop steps, calls per step, elapsed time, token/cost budget, and
-repeat signatures; a no-progress loop ends as `stuck` or `deferred`.
+### 4.3 ResponsePlanV1
 
-### 4.3 Browser projection
+```text
+schema_version
+source_fact_id
+context_revision
+answer_mode
+approved_claims[]
+uncertain_claims[]
+omitted_claims[]
+response_outline
+tone
+tool_calls[]
+native_candidates[]
+self_evaluation
+```
 
-Raw tool arguments, provider chunks, hidden assessment, credentials, and
-internal diagnostics stay server-side. The browser may receive bounded
-`action_result`, `media`, `heartbeat`, `token`, and terminal frames according to
-the existing BrowserTurnEventV1 contract.
+Claims have a kind (`confirmed_fact`, `observed_fact`,
+`supported_hypothesis`, `uncertain_hypothesis`, `unsupported_self_claim`),
+evidence refs, confidence, and optional expiry/repetition key. Runtime stores
+bounded reason codes, not hidden chain-of-thought.
 
-## 5. Transport decision: NDJSON now, SSE as a separate subscription
+## 5. SelfEvaluation and anti-loop
 
-The turn remains `POST /api/conversations/{id}/turn` with an
-`application/x-ndjson` response. Reasons:
+SelfEvaluation checks:
 
-1. The command carries a JSON request body, attachments, idempotency key, and
-   CSRF context; native `EventSource` is GET-only and would require a second
-   command channel or a non-native fetch-SSE parser.
-2. The Go BFF already incrementally parses Core NDJSON across arbitrary byte
-   and UTF-8 boundaries, enforces monotonic sequence and one terminal frame,
-   and propagates `AbortSignal` to Core.
-3. NDJSON frames can carry typed payloads without inventing an SSE `event/data`
-   serialization layer. It is already the browser contract in
-   `fluctlight-bff-contract.md` and `packages/browser-client`.
-4. Changing to SSE would not repair the current pseudo-streaming issue. The
-   real fix is to forward Provider chunks from `StreamText` through Core and
-   BFF while retaining the same durable settlement behavior.
+- relevance to current user intent and resolved Life World context;
+- evidence ownership and claim type;
+- compatibility with Identity/Personality/affect/Memory;
+- novelty versus recent accepted claims;
+- whether a detail is necessary to answer;
+- whether the wording overstates certainty.
 
-If server-push is later needed, add a separate authenticated subscription,
-for example `/api/events` or `/api/progress`, using SSE with `Last-Event-ID`
-and a bounded replay window. It must be a projection of committed outbox/event
-state, never a second cognition or action state source, and it must not replace
-the POST turn command.
+The deterministic gate maps a candidate to `accepted`, `uncertain`, `omitted`,
+or `deferred`. No-evidence self-claims are not silently turned into facts.
 
-The stale phrase “browser transport ... SSE” in
-`structured-turn-contract.md` should be changed to NDJSON in the same contract
-update; provider-to-application structured controls remain independent of the
-browser transport.
+The Runtime computes a normalized semantic repetition signature from claim/topic,
+action, source fact and relevant state revision. Repetition without new evidence
+does not raise confidence, create another Memory/Scene row, or re-enter the
+same context section. A rejected or expired claim is retained as provenance
+(`superseded`, `rejected`, or `expired`) so projection does not resurrect it.
 
-## 6. Compatibility and rollout
+## 6. Native scene/presence capability slots
 
-- Existing Core/BFF BrowserTurnEventV1 frame names remain stable during this
-  phase.
-- `action_type`/`visual_concept` legacy response shapes may be accepted only by
-  an explicitly marked compatibility adapter while canonical ToolCallV1 and
-  typed action schemas are introduced. The adapter may not parse prose or add
-  new semantic behavior.
-- Existing Temporal, outbox, inbox, and provider request IDs remain the durable
-  recovery boundaries. No second workflow engine or provider-managed
-  conversation state is introduced.
-- New plugin manifests and action states are additive and versioned. A failed
-  migration or preflight leaves the prior capability disabled rather than
-  silently selecting a fallback model or action.
+`scene_event` and `presence_event` are native Fluctlight slots with replaceable
+implementations. Their candidates include:
 
-## 7. Non-goals
+```text
+scene_event: scene, activity, location, start_at?, end_at?,
+             kind, confidence, evidence_refs, source_fact_id, idempotency_key
+presence_event: user_presence?, current_task?, expires_at?,
+                confidence, evidence_refs, source_fact_id, idempotency_key
+```
 
-- Claude Agent SDK permission modes, human approval, or HITL.
-- Replacing Temporal with LangGraph/AutoGen or using a Letta memory filesystem
-  as the domain source of truth.
-- Completing every Memory/Reflection/Autonomy/Life World feature in this phase.
-- Exposing internal state tables as arbitrary model tools.
+Life World authority decides whether a candidate is a confirmed event, a
+decaying hypothesis, an overlay, or a no-op. Accepted changes enter the ordered
+Fluctlight cognition stream. Presence may overlay only `user_presence` and
+`current_task`; it cannot replace authoritative scene/activity/location.
+
+No new scene fact is created when the semantic key and time window are already
+represented without new evidence. The chosen plugin implementation never owns
+the canonical Event table or Context resolver.
+
+## 7. Memory authority and retrieval
+
+Memory owns typed record/revise/forget/retrieve/embed. All new records create
+their initial revision and embedding workflow request in one authority
+transaction. The embedding worker may fail or retry without deleting the
+authoritative Memory row.
+
+Retrieval is ordered:
+
+```text
+owner/visibility/Actor/Conversation hard filter
+  -> FTS/vector/hybrid rank
+  -> recency/importance/confidence weighting
+  -> bounded rerank
+  -> token budget
+  -> MemoryContext with evidence/source/revision
+```
+
+Reflection and ordinary chat use the Memory authority port; they cannot insert
+raw `memories` rows. Memory correction and forget create auditable revisions,
+and rejected/superseded claims are excluded from normal context.
+
+## 8. Reflection and evolution
+
+Reflection is triggered by a committed cognition completion or durable periodic
+fact. It claims one Fluctlight evidence window, validates candidate evidence
+against that window, and applies candidates through authority ports:
+
+```text
+evidence window
+  -> ReflectionCandidate
+  -> evidence/consistency/revision gate
+  -> Memory / Relationship / Self-model / Personality revision
+  -> embedding/reindex/projection
+```
+
+The window has a watermark, base state revision, owner/lease, and CAS. A
+candidate cannot directly mutate a canonical projection. Every revision stores
+the previous value, evidence refs, source window, provider/prompt/schema
+versions, and a rollback identity.
+
+Evolution speeds are explicit:
+
+```text
+fast: affect, attention, temporary intention, hypothesis
+medium: Memory, Relationship trend, recurring preference, goal priority
+slow: Personality, Identity biography, Self-model, behavioral policy
+```
+
+One response cannot alter a slow field. A recurring pattern needs multiple
+evidence-bearing windows and a valid revision transition.
+
+## 9. Durable outcomes and transport
+
+Fact/action/capability/reflection outcomes use explicit states:
+
+```text
+proposed, validated, rejected, frozen, realizing,
+completed, failed_retryable, failed_terminal,
+result_unknown, cancelled, deferred, stuck
+```
+
+The turn remains `POST` + `application/x-ndjson`. Provider SSE is an adapter
+detail only. A future SSE subscription for committed server-push projections
+is separate and out of P1. Core/BFF preserve monotonic sequence, one terminal
+frame, hidden-payload redaction, and abort propagation.
+
+## 10. Non-goals
+
+- visual identity/avatar/image-to-image/AppearanceProfile;
+- human approval/HITL or Claude Agent SDK;
+- P2 Harness, multi-agent handoff, or a second workflow/checkpoint runtime;
+- provider-managed conversation state as Fluctlight truth;
+- unlimited self-critique or keyword-based scene inference.

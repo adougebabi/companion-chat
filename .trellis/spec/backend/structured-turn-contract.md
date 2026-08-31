@@ -122,9 +122,12 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
   objects (64 KiB maximum) and are validated once at the provider-to-runtime
   boundary. Native provider entries and JSON sidecars normalize to the same
   `ToolCallV1`.
-- The first registered slot is `media.image.generate` with an object `concept`
-  argument. Video/audio/search slots are not advertised until an executor is
-  installed and preflighted; adding a slot does not change cognition schemas.
+- The first registered external slot is `media.image.generate` with an object
+  `concept` argument. Future external video/audio/search slots and native
+  Fluctlight slots such as `scene_event`, `presence_event`,
+  `memory_event`, or `relationship_signal` are additive executors; a slot is
+  advertised only when its implementation is installed and preflighted, and
+  adding a slot does not change cognition schemas.
 - A tool call is a structured proposal, not direct SQL or arbitrary domain
   access. Memory, Reflection, affect, evolution, and other native Fluctlight
   capabilities remain authority services even if a narrow intent is exposed to
@@ -198,4 +201,107 @@ proposal := validateAndFreeze(calls, sourceFactID, stateRevision)
 executor, _ := registry.Lookup(proposal.Name)
 result, _ := executor.Execute(ctx, fluctlightID, conversationID, sourceFactID, proposal)
 persistToolResult(result)
+```
+
+## Scenario: P1 Context Projection And Self-Evaluated Expression
+
+### 1. Scope / Trigger
+
+- Trigger: a Fluctlight response or native capability candidate needs current
+  life context, authorized Memory, evidence-bound claims, or self-model
+  evolution.
+
+### 2. Signatures
+
+```text
+BuildContextProjection(ctx, actorID, fluctlightID, conversationID,
+                       sourceFactID, currentUserText) -> ContextProjection
+normalizeResponsePlan(decision, sourceFactID, context) -> ResponsePlanV1
+RetrieveMemoryContext(ctx, actorID, fluctlightID, conversationID,
+                      query, limit, tokenBudget) -> MemoryContextV1
+ProcessReflection(ctx, fluctlightID, correlationID) -> ReflectionOutcome
+```
+
+### 3. Contracts
+
+- `ContextProjection` is the sole current-context reader for cognition,
+  realization, Memory retrieval, Reflection and scene/presence slots. It
+  includes source/revision/confidence/expiry metadata and bounded recent
+  messages; full transcript is a record, not a truth source.
+- Claims are classified as `confirmed_fact`, `observed_fact`,
+  `supported_hypothesis`, `uncertain_hypothesis`, or `unsupported_self_claim`.
+  Unsupported self-claims are omitted or downgraded and are never promoted to
+  long-term Memory/Personality merely because an assistant message contains
+  them.
+- Repetition of the same normalized claim/topic without new evidence is a
+  deterministic no-op: it does not raise confidence, create another Memory or
+  Life World row, or re-enter the same context section.
+- Ordinary replies may use a one-call fast path. Effects and native candidates
+  use `assessment → self-evaluation → freeze → effect → optional realization`;
+  realization renders the frozen plan and cannot add semantic effects.
+- `scene_event` and `presence_event` are replaceable native slots. Life World
+  owns canonical Event persistence; Presence can overlay only
+  `user_presence/current_task` and never replace scene/activity/location.
+- Memory retrieval filters owner/visibility/actor/conversation before lexical,
+  FTS/vector or hybrid ranking and token budgeting. New Memory records create
+  their revision, embedding intent and outbox atomically.
+- Reflection claims a Fluctlight evidence window with watermark/CAS, validates
+  refs against that window, and applies Memory/Relationship/Self-model/
+  Personality revisions through authority ports. Slow fields require multiple
+  evidence-bearing facts and every revision is auditable/rollbackable.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Claim has unknown kind, foreign evidence, or invalid confidence | Reject the plan; no semantic write |
+| Unsupported self-claim or repeated claim without new evidence | Store bounded rejected/expired provenance; omit from normal context |
+| Scene/presence candidate has invalid temporal bounds or source fact | Reject candidate; no Event/Presence mutation |
+| Memory visibility/owner filter fails | Exclude before ranking; do not leak to provider |
+| Reflection candidate references an outside-window fact | Reject candidate and keep the window retryable |
+| Personality/Self-model evidence is below its threshold | Defer candidate; do not mutate slow state |
+| Realization adds a claim/effect not in frozen plan | One bounded rewrite; then omit/uncertain/deferred |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a user fact creates one evidence-bound Memory, later retrieval injects
+  it into ContextProjection, and a Reflection window promotes a recurring
+  preference only after enough evidence.
+- Base: a provider emits no claims; the Runtime returns a normal grounded reply
+  without inventing a Memory or scene.
+- Bad: feed the complete transcript to every call, treat the last assistant
+  sentence as a new fact, create a scene event on every turn, or let realization
+  re-decide the action.
+
+### 6. Tests Required
+
+- Projection tests for current-input priority, Event > Schedule > pending,
+  Presence overlay, authorized Memory and hypothesis expiry.
+- Claim tests for unsupported self-claim omission, repeated no-op,
+  correction/supersede, confidence/evidence bounds and one bounded rewrite.
+- Native slot tests for scene/presence idempotency, temporal bounds and ordered
+  cognition re-entry without duplicate events.
+- Memory tests for authorization-before-ranking, FTS/vector/hybrid scoring,
+  token budget, embedding failure, revise/forget and rollback.
+- Reflection tests for producer, window lease/CAS, evidence ownership,
+  candidate apply, fast/medium/slow evolution and future projection use.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+history := fullConversationTranscript()
+prompt := append(history, "You previously said ...")
+return provider.Generate(prompt) // old assistant prose becomes a new fact
+```
+
+#### Correct
+
+```go
+projection := BuildContextProjection(...)
+plan := normalizeResponsePlan(assessment, factID, projection)
+gate := selfEvaluateAndValidate(plan, projection)
+frozen := freeze(gate)
+return renderFrozenPlan(frozen, projection)
 ```

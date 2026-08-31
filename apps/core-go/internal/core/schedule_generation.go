@@ -20,10 +20,9 @@ func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID
 			"life_profile":  lifeProfile,
 		})},
 	}
-	// The existing provider contract assigns schedule planning to the
-	// cognitive-assessment role; initialization is reserved for foundation
-	// extraction and may use a different response schema.
-	result, err := a.Provider.Structured(ctx, "cognitive_assessment", messages)
+	// Schedule planning is a reflective life-world projection; initialization is
+	// reserved for foundation extraction and may use a different schema.
+	result, err := a.Provider.Structured(ctx, "reflection", messages)
 	if err != nil {
 		return nil, fmt.Errorf("initial schedule provider request failed: %w", err)
 	}

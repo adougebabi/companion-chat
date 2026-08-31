@@ -12,14 +12,17 @@ func (a *App) capabilityRegistry() *CapabilityRegistry {
 	if a != nil && a.Capabilities != nil {
 		return a.Capabilities
 	}
-	return NewCapabilityRegistry(&imageCapabilityExecutor{app: a})
+	return NewCapabilityRegistry(
+		&imageCapabilityExecutor{app: a},
+		&sceneCapabilityExecutor{app: a},
+		&presenceCapabilityExecutor{app: a},
+		&memoryCapabilityExecutor{app: a},
+	)
 }
 
 // ExecuteToolCalls is the Runtime-owned capability boundary.  It validates a
-// normalized call, then invokes only a registered external slot.  The first
-// phase intentionally exposes one real slot (image generation); future video,
-// audio, search, and notification adapters can register beside it without
-// changing cognition semantics.
+// normalized call, then invokes only a registered native or external slot.
+// Each executor is replaceable while the Runtime retains domain authority.
 func (a *App) ExecuteToolCalls(ctx context.Context, fluctlightID, conversationID, sourceFactID string, calls []ToolCallV1) ([]ToolResultV1, error) {
 	if len(calls) == 0 {
 		return []ToolResultV1{}, nil
@@ -67,6 +70,36 @@ func (executor *imageCapabilityExecutor) Manifest() CapabilityManifest {
 
 func (executor *imageCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
 	return executor.app.executeImageToolCall(ctx, fluctlightID, conversationID, sourceFactID, call)
+}
+
+type sceneCapabilityExecutor struct{ app *App }
+
+func (executor *sceneCapabilityExecutor) Manifest() CapabilityManifest {
+	return sceneCapabilityManifest()
+}
+
+func (executor *sceneCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
+	return executor.app.applySceneCapability(ctx, fluctlightID, conversationID, sourceFactID, call)
+}
+
+type presenceCapabilityExecutor struct{ app *App }
+
+func (executor *presenceCapabilityExecutor) Manifest() CapabilityManifest {
+	return presenceCapabilityManifest()
+}
+
+type memoryCapabilityExecutor struct{ app *App }
+
+func (executor *memoryCapabilityExecutor) Manifest() CapabilityManifest {
+	return memoryCapabilityManifest()
+}
+
+func (executor *memoryCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
+	return executor.app.applyMemoryCapability(ctx, fluctlightID, conversationID, sourceFactID, call)
+}
+
+func (executor *presenceCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
+	return executor.app.applyPresenceCapability(ctx, fluctlightID, conversationID, sourceFactID, call)
 }
 
 func (a *App) executeImageToolCall(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
@@ -152,23 +185,44 @@ func mediaIntentIDFromToolResults(results []ToolResultV1) string {
 }
 
 func resolveToolCallAction(calls []ToolCallV1, manifests map[string]CapabilityManifest) (string, map[string]any, error) {
-	if len(calls) != 1 {
-		return "", nil, errors.New("exactly one capability call is required for this turn")
+	if len(calls) == 0 {
+		return "", nil, errors.New("at least one capability call is required for this turn")
 	}
-	call := calls[0]
-	if err := call.Validate(manifests); err != nil {
-		return "", nil, err
+	action := "reply"
+	var concept map[string]any
+	for _, call := range calls {
+		if err := call.Validate(manifests); err != nil {
+			return "", nil, err
+		}
+		switch call.Name {
+		case "media.image.generate":
+			if concept != nil {
+				return "", nil, errors.New("multiple media capability calls are not supported in one turn")
+			}
+			var arguments map[string]any
+			if err := json.Unmarshal(call.Arguments, &arguments); err != nil {
+				return "", nil, errors.New("tool call arguments invalid")
+			}
+			concept = mapValue(arguments["concept"])
+			if len(concept) == 0 {
+				return "", nil, errors.New("media concept is required")
+			}
+			action = "media_request"
+		case "scene_event", "presence_event", "memory_event":
+			// Native observations are committed by their authority executor;
+			// the visible response remains an ordinary reply.
+		default:
+			return "", nil, fmt.Errorf("capability %q cannot be used as a conversation action", call.Name)
+		}
 	}
-	if call.Name != "media.image.generate" {
-		return "", nil, fmt.Errorf("capability %q cannot be used as a conversation action", call.Name)
+	return action, concept, nil
+}
+
+func toolCallsRequireMedia(calls []ToolCallV1) bool {
+	for _, call := range calls {
+		if call.Name == "media.image.generate" {
+			return true
+		}
 	}
-	var arguments map[string]any
-	if err := json.Unmarshal(call.Arguments, &arguments); err != nil {
-		return "", nil, errors.New("tool call arguments invalid")
-	}
-	concept := mapValue(arguments["concept"])
-	if len(concept) == 0 {
-		return "", nil, errors.New("media concept is required")
-	}
-	return "media_request", concept, nil
+	return false
 }

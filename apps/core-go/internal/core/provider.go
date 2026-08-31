@@ -199,6 +199,14 @@ func (p *ProviderClient) completeWithTools(ctx context.Context, role string, mes
 			}
 		} else if structured != nil {
 			completion.Structured = structured
+			if len(manifests) > 0 {
+				calls, callErr := NormalizeProviderToolCalls(structured["tool_calls"], "", providerRequestID)
+				if callErr != nil {
+					p.recordProviderFailure(ctx, assignment, correlationID, messages, "tool_call_invalid")
+					return ProviderCompletion{}, callErr
+				}
+				completion.ToolCalls = calls
+			}
 		}
 	}
 	p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured})

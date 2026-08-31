@@ -90,16 +90,27 @@ type CapabilityRegistry struct {
 func NewCapabilityRegistry(executors ...CapabilityExecutor) *CapabilityRegistry {
 	registry := &CapabilityRegistry{executors: make(map[string]CapabilityExecutor, len(executors))}
 	for _, executor := range executors {
-		if executor == nil {
-			continue
-		}
-		manifest := executor.Manifest()
-		if manifest.Name == "" || !toolNamePattern.MatchString(manifest.Name) {
-			continue
-		}
-		registry.executors[manifest.Name] = executor
+		_ = registry.Register(executor)
 	}
 	return registry
+}
+
+func (registry *CapabilityRegistry) Register(executor CapabilityExecutor) error {
+	if registry == nil || executor == nil {
+		return errors.New("capability_executor_required")
+	}
+	if registry.executors == nil {
+		registry.executors = make(map[string]CapabilityExecutor)
+	}
+	manifest := executor.Manifest()
+	if manifest.Name == "" || !toolNamePattern.MatchString(manifest.Name) {
+		return errors.New("capability_manifest_invalid")
+	}
+	if _, exists := registry.executors[manifest.Name]; exists {
+		return fmt.Errorf("capability %q already registered", manifest.Name)
+	}
+	registry.executors[manifest.Name] = executor
+	return nil
 }
 
 func (registry *CapabilityRegistry) Manifests() []CapabilityManifest {

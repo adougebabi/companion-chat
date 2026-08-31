@@ -52,7 +52,12 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 		Storage:     storage,
 		S3Bucket:    s3Bucket,
 	}
-	app.Capabilities = NewCapabilityRegistry(&imageCapabilityExecutor{app: app})
+	app.Capabilities = NewCapabilityRegistry(
+		&imageCapabilityExecutor{app: app},
+		&sceneCapabilityExecutor{app: app},
+		&presenceCapabilityExecutor{app: app},
+		&memoryCapabilityExecutor{app: app},
+	)
 	return app, nil
 }
 
@@ -399,7 +404,9 @@ func defaultLifeProfile() map[string]any {
 	return map[string]any{"appearance": map[string]any{}, "social_background": map[string]any{}, "preferences": map[string]any{}, "life_habits": []any{}, "recurring_commitments": []any{}, "relationship_seeds": []any{}, "character_constraints": []any{}}
 }
 
-func defaultProvenance() map[string]any { return map[string]any{"field_sources": map[string]any{}} }
+func defaultProvenance() map[string]any {
+	return map[string]any{"field_sources": map[string]any{}, "self_model": map[string]any{}}
+}
 
 func defaultInnerState() (map[string]any, map[string]any, map[string]any, map[string]any, []any, []any) {
 	return map[string]any{"pleasure": 0.0, "arousal": 0.0, "dominance": 0.0}, map[string]any{"label": nil, "intensity": 0.0, "source": "regulation"}, map[string]any{"value": 0.0, "trend": 0.0}, map[string]any{"stress": 0.0, "stability": 1.0}, []any{}, []any{}

@@ -48,7 +48,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if command.RowsAffected() != 1 {
 				return ErrConflict
 			}
-			return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed"})
+			return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed", "aggregate_sequence": 1})
 		})
 		if err != nil {
 			return nil, err
@@ -72,7 +72,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if command.RowsAffected() != 1 {
 				return ErrConflict
 			}
-			return appendOutboxTx(ctx, tx, "moment.published", "moment", momentID, fluctlightID, actionID, "autonomy:"+actionID, "moment-outbox:"+actionID, map[string]any{"moment_id": momentID, "action_id": actionID})
+			return appendOutboxTx(ctx, tx, "moment.published", "moment", momentID, fluctlightID, actionID, "autonomy:"+actionID, "moment-outbox:"+actionID, map[string]any{"moment_id": momentID, "action_id": actionID, "aggregate_sequence": 1})
 		}); err != nil {
 			return nil, err
 		}
@@ -101,7 +101,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if command.RowsAffected() != 1 {
 				return ErrConflict
 			}
-			return appendOutboxTx(ctx, tx, "media.intent.created", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "media-outbox:"+actionID, map[string]any{"media_intent_id": intentID})
+			return appendOutboxTx(ctx, tx, "media.intent.created", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "media-outbox:"+actionID, map[string]any{"media_intent_id": intentID, "aggregate_sequence": 1})
 		})
 		if err != nil {
 			return nil, err
@@ -127,48 +127,77 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		return nil, fmt.Errorf("reflection_fluctlight_id_required")
 	}
 	var watermark, stateRevision int
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT watermark,state_revision FROM public.cognition_reflection_windows WHERE fluctlight_id=$1`, fluctlightID).Scan(&watermark, &stateRevision); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT watermark,state_revision FROM public.cognition_reflection_windows WHERE fluctlight_id=$1`, fluctlightID).Scan(&watermark, &stateRevision); err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return nil, err
+		}
+		_ = a.DB.Pool().QueryRow(ctx, `SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&stateRevision)
+	}
+	var currentStateRevision int
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&currentStateRevision); err == nil && currentStateRevision > stateRevision {
+		stateRevision = currentStateRevision
+	}
+	if err := a.claimReflectionWindow(ctx, fluctlightID, watermark, stateRevision); err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT sequence,event_type,payload FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND status='processed' ORDER BY sequence LIMIT 20`, fluctlightID, watermark)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,sequence,event_type,payload FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND status='processed' ORDER BY sequence LIMIT 20`, fluctlightID, watermark)
 	if err != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
 	}
 	evidence := make([]map[string]any, 0)
+	allowedEvidence := make(map[string]struct{})
 	toSequence := watermark
 	for rows.Next() {
+		var id string
 		var sequence int
 		var typ string
 		var payload []byte
-		if err := rows.Scan(&sequence, &typ, &payload); err != nil {
+		if err := rows.Scan(&id, &sequence, &typ, &payload); err != nil {
 			rows.Close()
+			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 			return nil, err
 		}
-		evidence = append(evidence, map[string]any{"sequence": sequence, "event_type": typ, "payload": json.RawMessage(payload)})
+		allowedEvidence[id] = struct{}{}
+		allowedEvidence[fmt.Sprintf("sequence:%d", sequence)] = struct{}{}
+		evidence = append(evidence, map[string]any{"id": id, "sequence": sequence, "event_type": typ, "payload": json.RawMessage(payload)})
 		if sequence > toSequence {
 			toSequence = sequence
 		}
 	}
 	rows.Close()
 	if len(evidence) == 0 {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "no_op", "watermark": watermark}, nil
 	}
-	proposal, err := a.Provider.Structured(ctx, "reflection", []map[string]any{{"role": "system", "content": "Review the supplied evidence. Return JSON with memory_candidates and relationship_candidates arrays. Every memory candidate must include type, content, confidence, importance, emotional_significance, visibility, and evidence_refs. Do not invent facts outside evidence."}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence})}})
-	if err != nil {
+	var ownerActorID string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerActorID); err != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
 	}
-	if !validReflectionProposal(proposal) {
-		return nil, errors.New("reflection_proposal_invalid")
+	projection, err := a.BuildContextProjection(ctx, ownerActorID, fluctlightID, "", "reflection:"+fluctlightID, "")
+	if err != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, err
+	}
+	proposal, err := a.Provider.Structured(ctx, "reflection", []map[string]any{{"role": "system", "content": "Review only the supplied evidence and context. Return JSON with memory_candidates, relationship_candidates, self_model_candidates, and personality_candidates arrays. Every candidate must include complete typed fields, confidence, and evidence_refs that reference an evidence id or sequence:N. Do not invent facts and do not use defaults."}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": projection})}})
+	if err != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, err
+	}
+	if err := validateReflectionProposal(proposal, allowedEvidence); err != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, err
 	}
 	proposalID := "reflection_" + stableDigest(fluctlightID+fmt.Sprint(toSequence))
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_reflection_proposals(id,fluctlight_id,from_sequence,to_sequence,base_state_revision,payload,evidence_refs,correlation_id,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'proposed') ON CONFLICT(id) DO NOTHING`, proposalID, fluctlightID, watermark+1, toSequence, stateRevision, jsonBytes(proposal), jsonBytes(evidence), correlationID); err != nil {
 			return err
 		}
-		if err := applyReflectionCandidates(ctx, tx, fluctlightID, proposal); err != nil {
+		if err := a.applyReflectionCandidates(ctx, tx, fluctlightID, proposal, allowedEvidence, proposalID); err != nil {
 			return err
 		}
-		command, err := tx.Exec(ctx, `UPDATE public.cognition_reflection_windows SET watermark=$2,state_revision=$3,status='idle',updated_at=now() WHERE fluctlight_id=$1 AND watermark=$4`, fluctlightID, toSequence, stateRevision, watermark)
+		command, err := tx.Exec(ctx, `UPDATE public.cognition_reflection_windows SET watermark=$2,state_revision=$3,status='idle',updated_at=now() WHERE fluctlight_id=$1 AND watermark=$4 AND status='running'`, fluctlightID, toSequence, stateRevision, watermark)
 		if err != nil {
 			return err
 		}
@@ -188,60 +217,126 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "applied", "watermark": toSequence, "proposal_id": proposalID}, nil
 }
 
-func validReflectionProposal(value map[string]any) bool {
-	for _, key := range []string{"memory_candidates", "relationship_candidates"} {
+func (a *App) claimReflectionWindow(ctx context.Context, fluctlightID string, watermark, stateRevision int) error {
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var status string
+		var updatedAt time.Time
+		err := tx.QueryRow(ctx, `SELECT status,updated_at FROM public.cognition_reflection_windows WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&status, &updatedAt)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if err == nil && status == "running" && time.Since(updatedAt) < 15*time.Minute {
+			return ErrConflict
+		}
+		if errors.Is(err, pgx.ErrNoRows) {
+			_, err = tx.Exec(ctx, `INSERT INTO public.cognition_reflection_windows(fluctlight_id,watermark,state_revision,status) VALUES($1,$2,$3,'running')`, fluctlightID, watermark, stateRevision)
+			return err
+		}
+		_, err = tx.Exec(ctx, `UPDATE public.cognition_reflection_windows SET status='running',state_revision=$2,updated_at=now() WHERE fluctlight_id=$1`, fluctlightID, stateRevision)
+		return err
+	})
+}
+
+func (a *App) setReflectionWindowIdle(ctx context.Context, fluctlightID string) error {
+	_, err := a.DB.Pool().Exec(ctx, `UPDATE public.cognition_reflection_windows SET status='idle',updated_at=now() WHERE fluctlight_id=$1 AND status='running'`, fluctlightID)
+	return err
+}
+
+func validateReflectionProposal(value map[string]any, allowedEvidence map[string]struct{}) error {
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates"} {
 		raw, ok := value[key]
 		if !ok || raw == nil {
 			continue
 		}
 		items, ok := raw.([]any)
 		if !ok {
-			return false
+			return errors.New("reflection_candidates_invalid")
 		}
 		for _, entry := range items {
 			item := mapValue(entry)
 			if len(item) == 0 {
-				return false
+				return errors.New("reflection_candidate_invalid")
+			}
+			refs := arrayValue(item["evidence_refs"])
+			if !validateEvidenceRefs(refs, allowedEvidence) {
+				return errors.New("reflection_evidence_invalid")
 			}
 			if key == "memory_candidates" {
-				if stringValue(item["content"]) == "" || stringValue(item["type"]) == "" || len(arrayValue(item["evidence_refs"])) == 0 {
-					return false
+				if stringValue(item["content"]) == "" || stringValue(item["type"]) == "" {
+					return errors.New("reflection_memory_fields_invalid")
 				}
-				for _, kind := range []string{"episodic", "semantic", "relationship", "autobiographical"} {
-					if stringValue(item["type"]) == kind {
-						goto validMemoryType
+				if _, ok := validMemoryTypes[stringValue(item["type"])]; !ok {
+					return errors.New("reflection_memory_type_invalid")
+				}
+				for _, field := range []string{"confidence", "importance", "emotional_significance"} {
+					if _, err := requiredBoundedNumber(item[field]); err != nil {
+						return errors.New("reflection_memory_numeric_invalid")
 					}
 				}
-				return false
-			validMemoryType:
+				if _, ok := validMemoryVisibility[firstString(item["visibility"], "")]; !ok {
+					return errors.New("reflection_memory_visibility_invalid")
+				}
 			}
-			if key == "relationship_candidates" && stringValue(item["target_actor_id"]) == "" {
-				return false
+			if key == "relationship_candidates" && (stringValue(item["target_actor_id"]) == "" || stringValue(item["trend"]) == "") {
+				return errors.New("reflection_relationship_fields_invalid")
+			}
+			if key == "self_model_candidates" {
+				if stringValue(item["category"]) == "" || stringValue(item["claim"]) == "" {
+					return errors.New("reflection_self_model_fields_invalid")
+				}
+				if _, err := requiredBoundedNumber(item["confidence"]); err != nil {
+					return errors.New("reflection_self_model_confidence_invalid")
+				}
+			}
+			if key == "personality_candidates" {
+				if stringValue(item["trait"]) == "" {
+					return errors.New("reflection_personality_fields_invalid")
+				}
+				if _, err := requiredBoundedNumber(item["value"]); err != nil {
+					return errors.New("reflection_personality_value_invalid")
+				}
+				if confidence, err := requiredBoundedNumber(item["confidence"]); err != nil || confidence < 0.8 {
+					return errors.New("reflection_personality_confidence_low")
+				}
 			}
 		}
 	}
-	return true
+	return nil
 }
 
-func applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlightID string, proposal map[string]any) error {
-	for index, raw := range arrayValue(proposal["memory_candidates"]) {
+func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlightID string, proposal map[string]any, allowedEvidence map[string]struct{}, sourceWindow string) error {
+	for _, raw := range arrayValue(proposal["memory_candidates"]) {
 		item := mapValue(raw)
-		memoryID := "memory_reflection_" + stableDigest(fluctlightID+":"+fmt.Sprint(index)+":"+stringValue(item["content"]))
-		if _, err := tx.Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,confidence,importance,emotional_significance,visibility,status,revision) VALUES($1,$2,$3,$4,'[]',NULL,'[]',$5,$6,$7,$8,$9,'active',0) ON CONFLICT(id) DO NOTHING`, memoryID, fluctlightID, stringValue(item["type"]), stringValue(item["content"]), jsonBytes(arrayValue(item["evidence_refs"])), boundedNumber(item["confidence"], 0.5), boundedNumber(item["importance"], 0.5), boundedNumber(item["emotional_significance"], 0.0), firstString(item["visibility"], "owner")); err != nil {
+		if !validateEvidenceRefs(arrayValue(item["evidence_refs"]), allowedEvidence) {
+			return errors.New("reflection_memory_evidence_invalid")
+		}
+		if stringValue(item["idempotency_key"]) == "" {
+			item["idempotency_key"] = "reflection:" + sourceWindow + ":" + stableDigest(stringValue(item["content"]))
+		}
+		record, err := normalizeMemoryRecord(fluctlightID, item)
+		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','memory.embedding',$3) ON CONFLICT DO NOTHING`, "memory_embedding_intent:"+memoryID+":0", "memory_embedding:"+memoryID+":0", jsonBytes(map[string]any{"memory_id": memoryID, "revision": 0})); err != nil {
+		if _, err := recordMemoryTx(ctx, tx, record, fluctlightID); err != nil {
 			return err
 		}
 	}
 	for index, raw := range arrayValue(proposal["relationship_candidates"]) {
 		item := mapValue(raw)
 		target := stringValue(item["target_actor_id"])
+		revisionKey := "reflection:" + fluctlightID + ":" + sourceWindow + ":" + fmt.Sprint(index)
+		var alreadyApplied bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.relationship_revisions WHERE idempotency_key=$1)`, revisionKey).Scan(&alreadyApplied); err != nil {
+			return err
+		}
+		if alreadyApplied {
+			continue
+		}
 		var relationshipID string
 		var revision int
 		if err := tx.QueryRow(ctx, `SELECT id,revision FROM public.relationships WHERE owner_fluctlight_id=$1 AND target_actor_id=$2 FOR UPDATE`, fluctlightID, target).Scan(&relationshipID, &revision); errors.Is(err, pgx.ErrNoRows) {
 			relationshipID = "relationship_" + stableDigest(fluctlightID+":"+target)
-			if _, err := tx.Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,target_actor_id,metrics,trend,summary,emotional_association,revision) VALUES($1,$2,$3,$4,$5,$6,$7,0) ON CONFLICT DO NOTHING`, relationshipID, fluctlightID, target, jsonBytes(mapValue(item["metrics"])), firstString(item["trend"], "stable"), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"]))); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,target_actor_id,metrics,trend,summary,emotional_association,revision) VALUES($1,$2,$3,$4,$5,$6,$7,0) ON CONFLICT DO NOTHING`, relationshipID, fluctlightID, target, jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"]))); err != nil {
 				return err
 			}
 			revision = 0
@@ -249,11 +344,29 @@ func applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlightID stri
 			return err
 		} else {
 			revision++
-			if _, err := tx.Exec(ctx, `UPDATE public.relationships SET metrics=$2,trend=$3,summary=$4,emotional_association=$5,revision=$6,updated_at=now() WHERE id=$1`, relationshipID, jsonBytes(mapValue(item["metrics"])), firstString(item["trend"], "stable"), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), revision); err != nil {
+			if _, err := tx.Exec(ctx, `UPDATE public.relationships SET metrics=$2,trend=$3,summary=$4,emotional_association=$5,revision=$6,updated_at=now() WHERE id=$1`, relationshipID, jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), revision); err != nil {
 				return err
 			}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_revisions(id,relationship_id,revision,base_revision,metrics,trend,summary,emotional_association,evidence_refs,actor_id,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT DO NOTHING`, "relationship_revision_"+stableDigest(fluctlightID+":"+target+":"+fmt.Sprint(index)+":"+fmt.Sprint(revision)), relationshipID, revision, maxInt(0, revision-1), jsonBytes(mapValue(item["metrics"])), firstString(item["trend"], "stable"), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(arrayValue(item["evidence_refs"])), fluctlightID, "reflection:"+fluctlightID+":"+fmt.Sprint(index)); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_revisions(id,relationship_id,revision,base_revision,metrics,trend,summary,emotional_association,evidence_refs,actor_id,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT DO NOTHING`, "relationship_revision_"+stableDigest(fluctlightID+":"+target+":"+fmt.Sprint(index)+":"+fmt.Sprint(revision)), relationshipID, revision, maxInt(0, revision-1), jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(arrayValue(item["evidence_refs"])), fluctlightID, revisionKey); err != nil {
+			return err
+		}
+	}
+	for _, raw := range arrayValue(proposal["self_model_candidates"]) {
+		refs := arrayValue(mapValue(raw)["evidence_refs"])
+		if len(refs) < 3 {
+			continue
+		}
+		if err := a.applySelfModelCandidateTx(ctx, tx, fluctlightID, mapValue(raw), refs, sourceWindow); err != nil {
+			return err
+		}
+	}
+	for _, raw := range arrayValue(proposal["personality_candidates"]) {
+		refs := arrayValue(mapValue(raw)["evidence_refs"])
+		if len(refs) < 3 {
+			continue
+		}
+		if err := a.applyPersonalityCandidateTx(ctx, tx, fluctlightID, mapValue(raw), refs, sourceWindow); err != nil {
 			return err
 		}
 	}

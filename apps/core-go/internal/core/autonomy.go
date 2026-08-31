@@ -46,6 +46,10 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if err != nil {
 		return nil, err
 	}
+	projection, err := a.BuildContextProjection(ctx, ownerID, fluctlightID, conversationID, "daily-review:"+fluctlightID+":"+localDate, "")
+	if err != nil {
+		return nil, err
+	}
 	workflowID := fmt.Sprintf("go-autonomy:%s:%s", fluctlightID, localDate)
 	actionID := "autonomy_" + stableDigest(workflowID)
 	providerID := "provider_" + stableDigest(actionID)
@@ -57,7 +61,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	decision, err := a.Provider.Structured(ctx, "cognitive_assessment", []map[string]any{
 		{"role": "system", "content": "Choose one action for a daily life review. Return JSON with action_type (proactive_message, moment, or no_op), response_intent, and optional moment_media_request. Never return visible text. Honor the persona's explicit goals, intentions, and behavioral policy; an intention to publish a dynamic should be represented as action_type=moment, while an intention to contact the Owner should be represented as action_type=proactive_message."},
-		{"role": "user", "content": jsonString(map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "conversation_id": conversationID, "persona_profile": map[string]any{"identity": fluctlight.Identity, "personality": fluctlight.Personality, "behavioral_policy": fluctlight.BehavioralPolicy, "goals": goals, "intentions": intentions}})},
+		{"role": "user", "content": jsonString(map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "conversation_id": conversationID, "context": projection, "persona_profile": map[string]any{"identity": fluctlight.Identity, "personality": fluctlight.Personality, "behavioral_policy": fluctlight.BehavioralPolicy, "goals": goals, "intentions": intentions}})},
 	})
 	if err != nil {
 		return nil, err
