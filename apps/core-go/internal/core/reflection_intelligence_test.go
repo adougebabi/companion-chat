@@ -51,3 +51,17 @@ func TestNormalizeReflectionProposalKeepsValidAliasesAndDropsIncompleteCandidate
 		t.Fatalf("incomplete relationship candidates = %d, want 0", got)
 	}
 }
+
+func TestFilterReflectionEvidenceKeepsAuthorizedReferences(t *testing.T) {
+	proposal := map[string]any{
+		"memory_candidates": []any{map[string]any{
+			"type": "semantic", "content": "喜欢蓝灰色", "importance": 0.8,
+			"evidence_refs": []any{"foreign", "memory-1"},
+		}},
+	}
+	filtered := filterReflectionEvidence(proposal, map[string]struct{}{"memory-1": {}})
+	items := arrayValue(filtered["memory_candidates"])
+	if len(items) != 1 || len(arrayValue(mapValue(items[0])["evidence_refs"])) != 1 || stringValue(arrayValue(mapValue(items[0])["evidence_refs"])[0]) != "memory-1" {
+		t.Fatalf("filtered evidence = %#v", items)
+	}
+}

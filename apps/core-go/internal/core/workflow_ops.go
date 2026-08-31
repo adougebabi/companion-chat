@@ -180,12 +180,18 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
 	}
+	for _, memory := range projection.Memories {
+		if memoryID := stringValue(memory["id"]); memoryID != "" {
+			allowedEvidence[memoryID] = struct{}{}
+			allowedEvidence["memory:"+memoryID] = struct{}{}
+		}
+	}
 	proposal, err := a.Provider.Structured(ctx, "reflection", []map[string]any{{"role": "system", "content": "Review only the supplied evidence and context. Return JSON with memory_candidates, relationship_candidates, self_model_candidates, and personality_candidates arrays. Every candidate must include complete typed fields, confidence, and evidence_refs that reference an evidence id or sequence:N. Do not invent facts and do not use defaults."}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": projection})}})
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
 	}
-	proposal = normalizeReflectionProposal(proposal)
+	proposal = filterReflectionEvidence(normalizeReflectionProposal(proposal), allowedEvidence)
 	if err := validateReflectionProposal(proposal, allowedEvidence); err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
@@ -294,6 +300,29 @@ func normalizeReflectionProposal(value map[string]any) map[string]any {
 		result[key] = items
 	}
 	return result
+}
+
+func filterReflectionEvidence(proposal map[string]any, allowed map[string]struct{}) map[string]any {
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates"} {
+		filtered := make([]any, 0)
+		for _, raw := range arrayValue(proposal[key]) {
+			item := mapValue(raw)
+			refs := arrayValue(item["evidence_refs"])
+			validRefs := make([]any, 0, len(refs))
+			for _, ref := range refs {
+				if _, ok := allowed[stringValue(ref)]; ok {
+					validRefs = append(validRefs, ref)
+				}
+			}
+			if len(validRefs) == 0 {
+				continue
+			}
+			item["evidence_refs"] = validRefs
+			filtered = append(filtered, item)
+		}
+		proposal[key] = filtered
+	}
+	return proposal
 }
 
 func (a *App) claimReflectionWindow(ctx context.Context, fluctlightID string, watermark, stateRevision int) error {
