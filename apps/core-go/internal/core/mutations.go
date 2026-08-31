@@ -405,6 +405,12 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if len(toolResults) == 0 {
 			toolResults, err = a.ExecuteToolCalls(ctx, fluctlightID, conversationID, inboxID, toolCalls)
 			if err != nil {
+				// Preserve the structured failure before settling the frozen action.
+				// This keeps native capability diagnostics replayable instead of
+				// reducing every executor error to `tool_call_failed`.
+				if len(toolResults) > 0 {
+					_ = a.PersistToolResults(ctx, frozen.ID, toolResults)
+				}
 				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "tool_call_failed")
 				return TurnResult{}, err
 			}
