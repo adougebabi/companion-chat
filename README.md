@@ -2,20 +2,20 @@
 
 This repository contains the clean-start Fluctlight system:
 
-- `apps/core`: Python 3.13 FastAPI/Core and Temporal Worker. It owns Actors,
-  Fluctlights, cognition, conversations, Memory, Relationships, Life World,
-  Moments, Media, persistence and authorization.
+- `apps/core-go`: Go modular Core API, PostgreSQL domain writer, Provider/media
+  adapters, Temporal activities and the Go migration runner.
 - `apps/gateway-go`: Go browser BFF. It is the only public browser boundary and
-  owns cookies, CSRF/origin
-  transport, browser DTOs, NDJSON translation and media proxying while Python
-  Core remains the only domain writer.
+  owns cookies, CSRF/origin transport, browser DTOs, NDJSON translation and
+  media proxying.
 - `apps/web`: Vue 3/Vite/Pinia product UI and Control Center, built to static
   assets and served by Nginx in the production image.
 - `packages/core-client` and `packages/browser-client`: generated contract
   clients whose OpenAPI artifacts must be regenerated together. The browser
   artifact generator lives in `packages/browser-client/scripts`.
-- `infra/compose`: PostgreSQL/pgvector, Redis Streams, MinIO, Temporal, Core,
-  Worker, BFF and Web deployment topology.
+- `infra/compose`: PostgreSQL/pgvector, Redis Streams, MinIO, Temporal, Go Core,
+  Go Worker, Go BFF and static Web deployment topology. Compose runs the Go
+  cutover fence before the Worker and exposes a Worker health signal so a
+  process that stops polling cannot remain silently healthy.
 
 ## Local Checks
 
@@ -26,11 +26,9 @@ pnpm typecheck
 pnpm test
 pnpm build
 
-uv sync --locked
-.venv/bin/ruff format --check apps/core/src apps/core/tests
-.venv/bin/ruff check apps/core/src apps/core/tests
-.venv/bin/mypy --follow-imports=skip apps/core/src apps/core/tests
-.venv/bin/pytest -q apps/core/tests
+GOMODCACHE="$PWD/.gomodcache" GOCACHE="$PWD/.gocache" go -C apps/core-go test -race ./...
+GOMODCACHE="$PWD/.gomodcache" GOCACHE="$PWD/.gocache" go -C apps/core-go vet ./...
+GOMODCACHE="$PWD/.gomodcache" GOCACHE="$PWD/.gocache" go -C apps/core-go build ./...
 ```
 
 The full disposable Compose smoke and recovery checks are under
@@ -43,6 +41,13 @@ The repository contains only the clean-start Fluctlight runtime. Deploy with
 `infra/compose/fluctlight.compose.yml` and a private, untracked environment
 file based on `infra/compose/fluctlight.env.example`.
 
+On a fresh database, issue the one-time Owner setup token from the Go image and
+use it through `/auth/setup`:
+
+```bash
+docker compose run --rm --no-deps migrate /usr/local/bin/fluctlight-setup-token-go --expires-minutes 30
+```
+
 For a NAS or another machine, set both public browser-facing URLs in that
 private file: `FLUCTLIGHT_TRUSTED_ORIGIN` is the exact URL used to open the
 Web application, while `FLUCTLIGHT_BFF_ORIGIN` is the browser-reachable BFF
@@ -54,6 +59,14 @@ not use a container hostname or
 `CORE_BASE_URL` remains the BFF-to-Core internal address and normally uses the
 Compose service name `http://core:8080`. The Go BFF is the only public BFF;
 there is no alternate BFF runtime in this repository.
+
+Temporal keeps its existing namespace and deployment. The Go Worker claims the
+configured `TEMPORAL_WORKER_BUILD_ID` (default `platform-v1`) on all three
+canonical queues (`interaction`, `lifecycle`, `media`). On cutover, the
+one-shot `cutover` service cancels and, when necessary, terminates retired
+runtime executions and records every result in
+`platform_workflow_management_audit`; it does not delete PostgreSQL facts,
+media objects, or Temporal history.
 
 ## Go migration branch flow
 

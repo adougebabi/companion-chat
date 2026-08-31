@@ -23,7 +23,7 @@ Application task queues are `interaction`, `lifecycle`, and `media`. Every start
 
 ### 3. Contracts
 
-- API and Worker share one Python package/image with separate commands. Only Worker processes poll application task queues.
+- API and Worker share one Go module/image with separate commands. Only Worker processes poll application task queues.
 - A domain transaction writes business state plus stable workflow intent/outbox before runtime start.
 - Domain status remains queryable without interpreting runtime history. Runtime stores execution history, timers, retries and management state only.
 - Task queues have independent concurrency/rate policies; Provider-specific limits are explicit.
@@ -97,7 +97,7 @@ handle = await workflow_runtime.start_workflow(committed_intent)
 - Trigger: a Worker restarts while PostgreSQL contains historical and newly
   committed workflow intents.
 - This rule applies to `CommittedIntentDispatcher.dispatch_once()` and all
-  Temporal starts during the Python→Go Core migration.
+  Temporal starts during the legacy→Go Core migration.
 
 ### 2. Signatures
 

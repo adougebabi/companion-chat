@@ -9,4 +9,10 @@ ABSENT package-lock.json
 ABSENT .env.example
 ABSENT .nvmrc
 ABSENT .github/workflows/docker-publish.yml
+# Go Core cutover deletion targets
+ABSENT apps/core
+ABSENT apps/core/Dockerfile
+ABSENT apps/core/pyproject.toml
+ABSENT apps/bff
+ABSENT apps/bff/Dockerfile
 # Deletion is permitted only after all Required gates pass.

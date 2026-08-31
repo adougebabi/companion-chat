@@ -25,10 +25,11 @@ restorable. Verify the artifact before restore:
 fluctlight-backup verify /backup/fluctlight/manifest.json
 ```
 
-Restore into disposable PostgreSQL/MinIO/Temporal volumes first. Apply the
-application Alembic upgrade explicitly, then boot the restored Temporal
-default/visibility stores and Worker. The API and Worker only verify the
-deployed migration head; they never run migrations automatically.
+Restore into disposable PostgreSQL/MinIO/Temporal volumes first. Run the Go
+migration binary to the released application head, then boot the restored
+Temporal default/visibility stores and Go Worker. The API and Worker only
+verify the deployed migration head; production services never run migrations
+implicitly.
 
 If `FLUCTLIGHT_SETTINGS_KEY` is lost, keep PostgreSQL/object data and re-enter
 Provider secrets through the Owner Settings flow. Do not decrypt, copy or

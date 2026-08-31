@@ -1,4 +1,4 @@
-FROM golang:1.26-alpine AS build
+FROM golang:1.25.4-alpine AS build
 
 WORKDIR /src
 COPY apps/gateway-go/go.mod apps/gateway-go/go.mod

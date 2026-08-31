@@ -20,9 +20,7 @@ jobs:
     if: >-
       github.event_name == 'pull_request' ||
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' &&
-      startsWith(github.ref, 'refs/heads/codex/go-') &&
-      github.ref != 'refs/heads/codex/go-build')
+      github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
@@ -32,6 +30,15 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: apps/core-go/go.mod
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install browser workspace
+        run: corepack enable && pnpm install --frozen-lockfile
 
       - name: Test Go modules
         working-directory: apps/gateway-go
@@ -57,16 +64,49 @@ jobs:
         working-directory: apps/core-go
         run: go build ./...
 
+      - name: Verify Go formatting
+        run: test -z "$(find apps/core-go apps/gateway-go -path '*/.gocache*' -prune -o -path '*/.gomodcache*' -prune -o -name '*.go' -print0 | xargs -0 gofmt -l)"
+
+      - name: Verify Go-only runtime references
+        run: ./infra/acceptance/go-core-reference-guard.sh
+
+      - name: Verify legacy deletion scope
+        run: ./infra/acceptance/legacy-scope-guard.sh
+
+      - name: Verify handoff evidence
+        run: ./infra/acceptance/validate-handoffs.sh
+
+      - name: Regenerate API clients
+        run: pnpm generate
+
+      - name: Check generated artifacts are clean
+        run: git diff --exit-code
+
+      - name: Check Go Core OpenAPI route parity
+        run: ./infra/acceptance/check-core-openapi.sh
+
+      - name: Validate Go-only Compose topology
+        run: docker compose --env-file infra/compose/fluctlight.env.example -f infra/compose/fluctlight.compose.yml config --quiet
+
+      - name: Typecheck browser workspace
+        run: pnpm typecheck
+
+      - name: Test browser workspace
+        run: pnpm test
+
+      - name: Build browser workspace
+        run: pnpm build
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Core image (validation only)
+      - name: Build Go Core and Worker image (validation only)
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/core/Dockerfile
+          file: apps/core-go/Dockerfile
           push: false
-          tags: fluctlight-core:validate-${{ github.sha }}
+          tags: fluctlight-core-go:validate-${{ github.sha }}
 
       - name: Build Go BFF image (validation only)
         uses: docker/build-push-action@v6
@@ -75,14 +115,6 @@ jobs:
           file: apps/gateway-go/Dockerfile
           push: false
           tags: fluctlight-bff:validate-${{ github.sha }}
-
-      - name: Build Go Core image (validation only)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/core-go/Dockerfile
-          push: false
-          tags: fluctlight-core-go:validate-${{ github.sha }}
 
       - name: Build Web image (validation only)
         uses: docker/build-push-action@v6
@@ -95,6 +127,7 @@ jobs:
   # The integration branch is the only non-production branch allowed to push
   # images. Stage branches should merge here before their images are shared.
   go-build:
+    needs: validate
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/go-build'
     runs-on: ubuntu-latest
     steps:
@@ -110,17 +143,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Core Go-build image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/core/Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core:go-build
-            ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core:go-${{ github.sha }}
-
-      - name: Build and push Go Core vertical-slice image
+      - name: Build and push Go Core and Worker image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -152,6 +175,7 @@ jobs:
 
   # Production tags remain protected by the main/master branch boundary.
   publish:
+    needs: validate
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     steps:
@@ -167,15 +191,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Core
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/core/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fluctlight-core:latest
-
-      - name: Build and push Go Core vertical slice
+      - name: Build and push Go Core and Worker
         uses: docker/build-push-action@v6
         with:
           context: .

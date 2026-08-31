@@ -6,7 +6,7 @@
 
 - Trigger: first-run setup, login/logout, session resolution/revocation, browser mutation, BFF→Core request, Actor authorization, or local account recovery.
 - First complete delivery supports exactly one Owner Human account. Actor/Participant schema may represent future Humans, but multi-account product behavior is out of scope.
-- Python Core owns account/session/authorization. The public BFF owns browser
+- Go Core owns account/session/authorization. The public BFF owns browser
   cookie/CSRF transport and is implemented only by Go.
 
 ### 2. Signatures

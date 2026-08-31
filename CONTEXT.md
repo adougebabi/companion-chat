@@ -47,7 +47,7 @@ PAD and emotional momentum use the canonical range `-1..1`; other domain intensi
 
 **Behavioral policy** is the relatively stable expression policy that shapes response style, initiative, delay, conflict, refusal, intimacy, and other outward behavior without replacing personality or current affect.
 
-**Cognitive runtime** is the perception, appraisal, state update, decision, action, and reflection loop that turns observations and internal state into behavior and long-term change. Interactive cognition first obtains a structured assessment/decision, then Python freezes the accepted action before a separate realization call produces visible content.
+**Cognitive runtime** is the perception, appraisal, state update, decision, action, and reflection loop that turns observations and internal state into behavior and long-term change. Interactive cognition first obtains a structured assessment/decision, then Go Core freezes the accepted action before a separate realization call produces visible content.
 
 **Reflection** is the slow governance stage that consolidates evidence into durable memory, emotional summaries, drive recalibration, personality revisions, and autobiographical revisions. It is separate from immediate state update.
 

@@ -154,8 +154,8 @@ func decodeCoreError(resp *http.Response) *CoreError {
 			err.Details = value
 		}
 	case []any:
-		// FastAPI validation errors are preserved under the stable key used by
-		// the generated Node client.
+		// Structured validation errors are preserved under a stable key so the
+		// browser boundary can expose bounded field-level diagnostics.
 		if len(detail) > 0 {
 			err.Code = "core_request_validation_failed"
 			err.Message = "Core request validation failed"

@@ -41,7 +41,7 @@ embed(role, inputs) -> VersionedEmbeddings
 - Every result records role, endpoint/model ID, capability/model version when available, prompt/schema version, timing, token usage/budget, and correlation IDs.
 - No implicit role/model fallback. Failure follows explicit interaction/workflow retry/deferred/no-op/terminal rules.
 - Provider adapter returns normalized transport/structured results and bounded parse diagnostics. It does not parse visible prose for semantic effects or choose domain actions.
-- API keys are resolved only in Python through the configuration secret contract and never returned to Node/browser/debug output.
+- API keys are resolved only in Go Core through the configuration secret contract and never returned to BFF/browser/debug output.
 
 ### 4. Validation & Error Matrix
 

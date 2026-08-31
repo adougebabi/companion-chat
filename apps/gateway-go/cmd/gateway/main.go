@@ -31,7 +31,10 @@ func main() {
 			Client: &http.Client{},
 		}).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
-		IdleTimeout:       60 * time.Second,
+		// Provider-backed Core turns may legitimately spend several minutes
+		// before the first visible token. Keep the connection alive for the
+		// ten-minute acceptance budget plus a small transport margin.
+		IdleTimeout: 11 * time.Minute,
 	}
 
 	serverErrors := make(chan error, 1)

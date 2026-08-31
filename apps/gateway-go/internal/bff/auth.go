@@ -16,9 +16,9 @@ const (
 )
 
 // commonResponseWriter delays the first header write long enough to attach a
-// CSRF cookie to every response, matching Fastify's onSend behavior.  The
-// route may call issueCSRFCookie itself (login/logout/password rotation); the
-// wrapper tracks that to avoid duplicate cookies.
+// CSRF cookie to every response. The route may call issueCSRFCookie itself
+// (login/logout/password rotation); the wrapper tracks that to avoid duplicate
+// cookies.
 type commonResponseWriter struct {
 	http.ResponseWriter
 	secure      bool

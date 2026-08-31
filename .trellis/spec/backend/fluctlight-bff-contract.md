@@ -5,14 +5,14 @@
 ### 1. Scope / Trigger
 
 - Trigger: a browser command/query/stream/media request crosses the public
-  BFF, or BFF calls Python Core.
+  BFF, or BFF calls Go Core.
 - The active and only BFF uses Go's standard library HTTP server and client.
   Browser uses Vue 3/Vite/Pinia; no Node BFF runtime remains.
 - BFF owns browser transport/session/DTOs but no Fluctlight domain state, persistence, workflow, or semantic policy.
 
 ### 2. Signatures
 
-- `packages/core-client`: generated from Python OpenAPI.
+- `packages/core-client`: generated from the Go Core OpenAPI contract.
 - `packages/browser-client`: generated from the checked browser OpenAPI artifact;
   the Go BFF must preserve this contract even though it does not generate the
   artifact itself.
@@ -34,13 +34,13 @@ BrowserTurnEventV1
 
 - Go routes validate body/query/params/headers and call the HTTP Core client or
   BFF transport modules only.
-- BFF cannot import PostgreSQL/Redis/Temporal clients, Python module internals, domain repositories, or semantic rule modules.
-- Python/Core and browser OpenAPI artifacts and their generated clients are
+- BFF cannot import PostgreSQL/Redis/Temporal clients, Core module internals, domain repositories, or semantic rule modules.
+- Go Core and browser OpenAPI artifacts and their generated clients are
   committed/reviewed together; hand-written duplicate DTOs are prohibited.
 - Internal Core NDJSON is parsed incrementally across arbitrary byte/chunk boundaries, schema-validated, redacted, and mapped to browser events.
 - One browser turn has monotonic sequence and exactly one terminal event. BFF never forwards hidden assessment, Provider chunks, credentials, database rows, or workflow internals.
 - Browser disconnect/abort cancels BFF upstream read and Core request. BFF suppresses later browser writes while Core settles committed work independently.
-- BFF media route obtains a Python authorization grant and proxies only the granted object/version/range with bounded headers.
+- BFF media route obtains a Go Core authorization grant and proxies only the granted object/version/range with bounded headers.
 - Go package boundaries organize transport/config lifecycle; the BFF is not a
   location for Fluctlight business behavior.
 - BFF errors use stable browser codes/messages and correlation IDs mapped from Core errors without leaking stack/provider bodies.
@@ -69,7 +69,7 @@ BrowserTurnEventV1
 ### 5. Good / Base / Bad Cases
 
 - Good: a browser turn uses generated client types, BFF validates input, maps ordered Core NDJSON, and aborts cleanly on navigation.
-- Good: a video range request is authorized by Python and proxied without exposing bucket/key/credentials.
+- Good: a video range request is authorized by Go Core and proxied without exposing bucket/key/credentials.
 - Base: a typed query returns one BFF DTO composed from Core application results.
 - Bad: hand-write matching DTOs, directly proxy raw Core JSON, parse Core error text, query Redis for domain state, or add a relationship rule in a transport handler.
 
@@ -87,7 +87,7 @@ BrowserTurnEventV1
 - Public error-detail sanitization tests for safe validation fields, sensitive
   keys, nesting depth, collection size, and string limits; media nil-body and
   header allow-list tests.
-- Architecture tests rejecting BFF imports of PostgreSQL, Redis, Temporal, Python internals, domain repositories, and semantic heuristic modules.
+- Architecture tests rejecting BFF imports of PostgreSQL, Redis, Temporal, Core internals, domain repositories, and semantic heuristic modules.
 - Browser tests consume generated client types and do not duplicate wire DTO definitions.
 
 ### 7. Wrong vs Correct

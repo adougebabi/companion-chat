@@ -4,3 +4,11 @@ data
 .github
 .DS_Store
 npm-debug.log*
+.gocache
+.gomodcache
+**/.gocache*
+**/.gomodcache*
+apps/core-go/.gocache
+apps/core-go/.gomodcache
+apps/gateway-go/.gocache
+apps/gateway-go/.gomodcache

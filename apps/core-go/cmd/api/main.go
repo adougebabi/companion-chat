@@ -26,14 +26,28 @@ func main() {
 		log.Fatal(err)
 	}
 	defer repository.Close()
+	application, err := core.NewApp(
+		repository,
+		settings.SettingsKey,
+		settings.ServiceKey,
+		settings.S3Endpoint,
+		settings.S3Region,
+		settings.S3AccessKey,
+		settings.S3SecretKey,
+		settings.S3Bucket,
+		settings.S3UseSSL,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 	server := &http.Server{
 		Addr:              settings.ListenAddress,
-		Handler:           httpapi.New(repository, settings.ServiceKey, nil).Handler(),
+		Handler:           httpapi.NewApp(application, settings.ServiceKey, nil).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
-		IdleTimeout:       60 * time.Second,
+		IdleTimeout:       11 * time.Minute,
 	}
 	go func() {
-		log.Printf("go Core read slice listening on %s", settings.ListenAddress)
+		log.Printf("Go Core API listening on %s", settings.ListenAddress)
 		if serveErr := server.ListenAndServe(); serveErr != nil && serveErr != http.ErrServerClosed {
 			log.Printf("go Core server failed: %v", serveErr)
 			cancel()

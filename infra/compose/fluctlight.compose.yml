@@ -15,6 +15,7 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-1g}
     networks: [platform]
 
   redis:
@@ -28,6 +29,7 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+    mem_limit: ${REDIS_MEMORY_LIMIT:-128m}
     networks: [platform]
 
   minio:
@@ -43,6 +45,7 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+    mem_limit: ${MINIO_MEMORY_LIMIT:-512m}
     networks: [platform]
 
   minio-init:
@@ -53,6 +56,7 @@ services:
     environment:
       MC_HOST_local: http://${S3_ACCESS_KEY:-fluctlight}:${S3_SECRET_KEY:?set S3_SECRET_KEY in private env}@minio:9000
     command: ["mb", "--ignore-existing", "--with-versioning", "local/${S3_BUCKET:-fluctlight-media}"]
+    mem_limit: ${MINIO_INIT_MEMORY_LIMIT:-64m}
     networks: [platform]
 
   temporal:
@@ -78,44 +82,68 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
+    mem_limit: ${TEMPORAL_MEMORY_LIMIT:-1g}
     networks: [platform]
 
   migrate:
-    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-core:latest
+    image: ${CORE_GO_IMAGE:-${DOCKERHUB_USERNAME:-yourname}/fluctlight-core-go:latest}
     build:
       context: ../..
-      dockerfile: apps/core/Dockerfile
-    command: ["uv", "run", "--no-sync", "run-migrations"]
+      dockerfile: apps/core-go/Dockerfile
+    command: ["/usr/local/bin/fluctlight-migrate-go"]
+    environment:
+      CORE_GO_DATABASE_URL: postgresql://${POSTGRES_USER:-fluctlight}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in private env}@postgres:5432/${POSTGRES_DB:-fluctlight}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: ${MIGRATE_MEMORY_LIMIT:-128m}
+    networks: [platform]
+
+  cutover:
+    image: ${CORE_GO_IMAGE:-${DOCKERHUB_USERNAME:-yourname}/fluctlight-core-go:latest}
+    build:
+      context: ../..
+      dockerfile: apps/core-go/Dockerfile
+    command: ["/usr/local/bin/fluctlight-cutover-go", "--apply"]
+    environment:
+      CORE_GO_DATABASE_URL: postgresql://${POSTGRES_USER:-fluctlight}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in private env}@postgres:5432/${POSTGRES_DB:-fluctlight}
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+      TEMPORAL_WORKER_BUILD_ID: ${TEMPORAL_WORKER_BUILD_ID:-platform-v1}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    restart: "no"
+    mem_limit: ${CUTOVER_MEMORY_LIMIT:-128m}
+    networks: [platform]
+
+  core:
+    image: ${CORE_GO_IMAGE:-${DOCKERHUB_USERNAME:-yourname}/fluctlight-core-go:latest}
+    build:
+      context: ../..
+      dockerfile: apps/core-go/Dockerfile
     environment: &core_environment
-      FLUCTLIGHT_ENV: ${FLUCTLIGHT_ENV:-development}
-      FLUCTLIGHT_ROLE: api
-      DATABASE_URL: postgresql://${POSTGRES_USER:-fluctlight}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in private env}@postgres:5432/${POSTGRES_DB:-fluctlight}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CORE_GO_DATABASE_URL: postgresql://${POSTGRES_USER:-fluctlight}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in private env}@postgres:5432/${POSTGRES_DB:-fluctlight}
+      FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:?set FLUCTLIGHT_CORE_SERVICE_KEY in private env}
+      FLUCTLIGHT_SETTINGS_KEY: ${FLUCTLIGHT_SETTINGS_KEY:?set FLUCTLIGHT_SETTINGS_KEY in private env}
+      CORE_GO_LISTEN_ADDRESS: :8080
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
       S3_BUCKET: ${S3_BUCKET:-fluctlight-media}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-fluctlight}
       S3_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY in private env}
       S3_USE_SSL: "false"
-      FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:?set FLUCTLIGHT_CORE_SERVICE_KEY in private env}
-      FLUCTLIGHT_SETTINGS_KEY: ${FLUCTLIGHT_SETTINGS_KEY:?set FLUCTLIGHT_SETTINGS_KEY in private env}
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
-      FLUCTLIGHT_API_PORT: ${FLUCTLIGHT_API_PORT:-8080}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks: [platform]
-
-  core:
-    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-core:latest
-    build:
-      context: ../..
-      dockerfile: apps/core/Dockerfile
-    environment: *core_environment
     depends_on:
       migrate:
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
       minio-init:
@@ -123,55 +151,44 @@ services:
       temporal:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready')"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health/ready"]
       interval: 5s
       timeout: 3s
       retries: 20
-    networks: [platform]
-
-  # Opt-in Go Core vertical slice. It is read/transport-owned in this stage;
-  # the default BFF continues to use Python Core for all unmigrated writers.
-  # Enabling this profile never creates a second domain writer.
-  core-go:
-    profiles: ["go-core"]
-    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-core-go:latest
-    build:
-      context: ../..
-      dockerfile: apps/core-go/Dockerfile
-    environment:
-      CORE_GO_DATABASE_URL: postgresql://${POSTGRES_USER:-fluctlight}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in private env}@postgres:5432/${POSTGRES_DB:-fluctlight}
-      FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:?set FLUCTLIGHT_CORE_SERVICE_KEY in private env}
-      CORE_GO_LISTEN_ADDRESS: :8081
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    ports:
-      - "${CORE_GO_HOST_PORT:-13002}:8081"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/health/ready"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+    mem_limit: ${CORE_MEMORY_LIMIT:-256m}
     networks: [platform]
 
   worker:
-    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-core:latest
+    image: ${CORE_GO_IMAGE:-${DOCKERHUB_USERNAME:-yourname}/fluctlight-core-go:latest}
     build:
       context: ../..
-      dockerfile: apps/core/Dockerfile
-    command: ["uv", "run", "--no-sync", "run-worker"]
+      dockerfile: apps/core-go/Dockerfile
+    command: ["/usr/local/bin/fluctlight-worker-go"]
+    restart: unless-stopped
     environment:
       <<: *core_environment
-      FLUCTLIGHT_ROLE: worker
+      CORE_GO_LISTEN_ADDRESS: :8080
     depends_on:
       migrate:
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
       temporal:
         condition: service_healthy
+      cutover:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/fluctlight-worker.ready && find /tmp/fluctlight-worker.ready -mmin -1 -print -quit | grep -q ."]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    mem_limit: ${WORKER_MEMORY_LIMIT:-768m}
     networks: [platform]
 
   bff:
-    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-bff:latest
+    image: ${BFF_IMAGE:-${DOCKERHUB_USERNAME:-yourname}/fluctlight-bff:latest}
     build:
       context: ../..
       dockerfile: apps/gateway-go/Dockerfile
@@ -190,10 +207,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    mem_limit: ${BFF_MEMORY_LIMIT:-192m}
     networks: [platform]
 
   web:
-    image: ${DOCKERHUB_USERNAME:-yourname}/fluctlight-web:latest
+    image: ${WEB_IMAGE:-${DOCKERHUB_USERNAME:-yourname}/fluctlight-web:latest}
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
@@ -209,6 +227,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    mem_limit: ${WEB_MEMORY_LIMIT:-128m}
     networks: [platform]
 
 networks:

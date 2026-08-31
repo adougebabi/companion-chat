@@ -162,9 +162,8 @@ func TranslateCoreNDJSON(ctx context.Context, response *http.Response, dst io.Wr
 			}
 
 			core, code := decodeCoreEvent(line)
-			// The Node translator remembers a usable turn_id before it validates
-			// the rest of the event.  Keeping this detail makes bounded errors
-			// correlate correctly even for a malformed sequence or payload.
+			// Remember a usable turn_id before validating the rest of the event so
+			// bounded errors correlate correctly for malformed frames too.
 			if turnID == "" && core.TurnID != "" {
 				turnID = core.TurnID
 			}
@@ -220,8 +219,8 @@ func TranslateCoreNDJSON(ctx context.Context, response *http.Response, dst io.Wr
 	}
 }
 
-// TranslateCoreNdjson is kept as a Go-style spelling alias for callers that
-// mirror the original TypeScript module name.
+// TranslateCoreNdjson is a spelling alias for callers that use the conventional
+// mixed-case acronym form.
 func TranslateCoreNdjson(ctx context.Context, response *http.Response, dst io.Writer) error {
 	return TranslateCoreNDJSON(ctx, response, dst)
 }

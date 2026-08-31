@@ -27,6 +27,8 @@ type Repository interface {
 
 type PostgresRepository struct{ pool *pgxpool.Pool }
 
+func (r *PostgresRepository) Pool() *pgxpool.Pool { return r.pool }
+
 func NewPostgresRepository(ctx context.Context, databaseURL string) (*PostgresRepository, error) {
 	pool, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
@@ -60,15 +62,18 @@ func (r *PostgresRepository) ResolveSession(ctx context.Context, token string) (
 	if err != nil {
 		return "", fmt.Errorf("resolve Core session: %w", err)
 	}
+	_, _ = r.pool.Exec(ctx, `UPDATE public.auth_sessions SET last_seen_at=now() WHERE token_hash=$1`, hex.EncodeToString(digest[:]))
 	return actorID, nil
 }
 
 func (r *PostgresRepository) ListFluctlights(ctx context.Context, ownerActorID string) ([]Fluctlight, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id, identity, personality, behavioral_policy, life_profile, provenance, status, current_revision
-		FROM public.fluctlights
-		WHERE created_by_actor_id = $1 AND status <> 'retired'
-		ORDER BY created_at
+		SELECT f.id, f.identity, f.personality, f.behavioral_policy, f.life_profile, f.provenance, f.status, f.current_revision,
+		       COALESCE((SELECT COUNT(*) FROM public.conversation_messages m JOIN public.fluctlight_direct_conversations dc ON dc.conversation_id=m.conversation_id WHERE dc.fluctlight_actor_id=f.id AND m.author_actor_id=f.id),0),
+		       (SELECT MAX(m.created_at) FROM public.conversation_messages m JOIN public.fluctlight_direct_conversations dc ON dc.conversation_id=m.conversation_id WHERE dc.fluctlight_actor_id=f.id)
+		FROM public.fluctlights f
+		WHERE f.created_by_actor_id = $1 AND f.status <> 'retired'
+		ORDER BY f.created_at
 	`, ownerActorID)
 	if err != nil {
 		return nil, fmt.Errorf("list Core Fluctlights: %w", err)
@@ -90,9 +95,10 @@ func (r *PostgresRepository) ListFluctlights(ctx context.Context, ownerActorID s
 
 func (r *PostgresRepository) GetFluctlight(ctx context.Context, id, ownerActorID string) (Fluctlight, error) {
 	row := r.pool.QueryRow(ctx, `
-		SELECT id, identity, personality, behavioral_policy, life_profile, provenance, status, current_revision
-		FROM public.fluctlights
-		WHERE id = $1 AND created_by_actor_id = $2
+		SELECT f.id, f.identity, f.personality, f.behavioral_policy, f.life_profile, f.provenance, f.status, f.current_revision,
+		       0, NULL::timestamptz
+		FROM public.fluctlights f
+		WHERE f.id = $1 AND f.created_by_actor_id = $2
 	`, id, ownerActorID)
 	fluctlight, err := scanFluctlight(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -137,7 +143,7 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 	}
 	conversation.Title = title
 	participantRows, err := r.pool.Query(ctx, `
-		SELECT conversation_id, actor_id, role, status, joined_at
+		SELECT conversation_id, actor_id, role, status, joined_at, left_at
 		FROM public.conversation_participants WHERE conversation_id = $1 ORDER BY joined_at, actor_id
 	`, conversationID)
 	if err != nil {
@@ -146,7 +152,7 @@ func (r *PostgresRepository) History(ctx context.Context, conversationID, actorI
 	participants := make([]Participant, 0)
 	for participantRows.Next() {
 		var item Participant
-		if err := participantRows.Scan(&item.ConversationID, &item.ActorID, &item.Role, &item.Status, &item.JoinedAt); err != nil {
+		if err := participantRows.Scan(&item.ConversationID, &item.ActorID, &item.Role, &item.Status, &item.JoinedAt, &item.LeftAt); err != nil {
 			participantRows.Close()
 			return ConversationPage{}, fmt.Errorf("scan Core participant: %w", err)
 		}
@@ -197,7 +203,7 @@ type rowScanner interface{ Scan(...any) error }
 func scanFluctlight(row rowScanner) (Fluctlight, error) {
 	var result Fluctlight
 	var identity, personality, policy, lifeProfile, provenance []byte
-	if err := row.Scan(&result.ID, &identity, &personality, &policy, &lifeProfile, &provenance, &result.Status, &result.CurrentRevision); err != nil {
+	if err := row.Scan(&result.ID, &identity, &personality, &policy, &lifeProfile, &provenance, &result.Status, &result.CurrentRevision, &result.UnreadCount, &result.LastConversationAt); err != nil {
 		return Fluctlight{}, err
 	}
 	for name, value := range map[string][]byte{"identity": identity, "personality": personality, "behavioral_policy": policy, "life_profile": lifeProfile, "provenance": provenance} {

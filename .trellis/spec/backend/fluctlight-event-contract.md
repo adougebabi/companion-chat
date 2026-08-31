@@ -50,7 +50,7 @@ Initial durable consumer groups are `bff-notifications`, `cache-projections`, an
 - `aggregate_sequence` detects gaps/ordering anomalies; consumers do not silently invent missing state.
 - Trim uses a configured time/ID retention window and must remain behind critical consumer-group pending/progress positions. PostgreSQL outbox/event journal provides longer replay.
 - Redis AOF `everysec` and persistence volume are enabled, but loss of the Redis volume is recoverable by rebuilding groups/streams from PostgreSQL.
-- Progress entries may use approximate `MAXLEN`; they carry no authoritative final state and require no PostgreSQL outbox/inbox. Clients query Python for final status.
+- Progress entries may use approximate `MAXLEN`; they carry no authoritative final state and require no PostgreSQL outbox/inbox. Clients query Go Core for final status.
 
 ### 4. Validation & Error Matrix
 
@@ -71,7 +71,7 @@ Initial durable consumer groups are `bff-notifications`, `cache-projections`, an
 
 - Good: an event is published twice after a publisher crash; each consumer group commits one effect and acknowledges both deliveries through one inbox result.
 - Good: a dead consumer's pending event is reclaimed and completed by another Worker.
-- Base: media progress is trimmed before a browser sees it; the browser refreshes authoritative status from Python.
+- Base: media progress is trimmed before a browser sees it; the browser refreshes authoritative status from Go Core.
 - Bad: store delayed jobs in Streams, `XACK` before database commit, use the stream ID as a business ID, or trim while critical entries remain pending.
 
 ### 6. Tests Required

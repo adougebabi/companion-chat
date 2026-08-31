@@ -22,6 +22,9 @@ for entry in "${tasks[@]}"; do
   task_prefix="${entry##*:}"
   handoff=".trellis/tasks/08-24-${task_name}/handoff.md"
   if [[ ! -f "$handoff" ]]; then
+    handoff=".trellis/tasks/archive/2026-08/08-24-${task_name}/handoff.md"
+  fi
+  if [[ ! -f "$handoff" ]]; then
     echo "handoff validation: missing $handoff" >&2
     exit 1
   fi

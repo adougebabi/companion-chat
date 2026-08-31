@@ -6,7 +6,7 @@
 
 - Trigger: a Fluctlight instance is created, a local day approaches, Schedule is generated/replanned, an Event changes life state, Context is read, or timezone changes.
 - Schedule is a domain life plan, not cron. Temporal provides durable timing only.
-- Semantic planning/replanning is LLM-owned through the `reflection` role; Python owns validation, versions, authority, time math, transactions, and workflow.
+- Semantic planning/replanning is LLM-owned through the `cognitive_assessment` role; Go Core owns validation, versions, authority, time math, transactions, and workflow.
 
 ### 2. Signatures
 
@@ -34,7 +34,7 @@ Schedule version includes local date/timezone, generated-at/from, immutable item
   life-profile placeholders and `notes` as a semantic fallback are invalid.
 - `recurring_commitments` and `life_habits` are Schedule inputs, not direct code
   triggers. The Schedule/Temporal fact gives the cognition model an opportunity
-  to decide effects; Python never infers a publication or message from a title,
+  to decide effects; Go Core never infers a publication or message from a title,
   occupation, or habit string.
 
 ### 3. Contracts

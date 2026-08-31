@@ -5,7 +5,7 @@
 ### 1. Scope / Trigger
 
 - Trigger: the clean-start system generates, uploads, attaches, reads, proxies, versions, tombstones, deletes, backs up, or restores image/video/audio media.
-- Python `media` owns business identity and authorization. Object storage owns
+- Go Core `media` owns business identity and authorization. Object storage owns
   bytes. The Go BFF is an authorized transport proxy, not a media-state owner.
 - The deployment uses an S3-compatible interface; Docker Compose defaults to a pinned MinIO single-node persistent volume.
 
@@ -51,7 +51,7 @@ created_at / ready_at / tombstoned_at / deleted_at
 
 ### 3. Contracts
 
-- Buckets are private. Browser requests use the Go BFF media endpoint; Python
+- Buckets are private. Browser requests use the Go BFF media endpoint; Go Core
   performs Actor/Conversation/reference authorization before issuing a
   short-lived internal grant.
 - Go may proxy bytes, Range, ETag, Content-Type, Content-Length, and cache
@@ -84,7 +84,7 @@ created_at / ready_at / tombstoned_at / deleted_at
 
 ### 5. Good / Base / Bad Cases
 
-- Good: a private video request is authorized by Python, the Go BFF proxies a valid byte range, and the browser can seek without seeing bucket credentials.
+- Good: a private video request is authorized by Go Core, the Go BFF proxies a valid byte range, and the browser can seek without seeing bucket credentials.
 - Good: a deleted Message removes its final media reference, commits a tombstone, and retries physical deletion after an object outage.
 - Base: an uploaded object exists before its result transaction; retry finds and verifies the same stable key, then marks one asset ready.
 - Bad: save absolute Provider paths, expose a public bucket, trust ETag as SHA-256, delete an object before removing references, or let the BFF query authorization tables.

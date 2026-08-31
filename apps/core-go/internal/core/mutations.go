@@ -1,0 +1,408 @@
+package core
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+)
+
+type TurnResult struct {
+	UserMessage   map[string]any
+	Assistant     map[string]any
+	MediaIntentID string
+	TurnID        string
+	CorrelationID string
+}
+
+func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
+	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
+		return nil, err
+	}
+	localDate, err := time.Parse("2006-01-02", stringValue(payload["local_date"]))
+	if err != nil {
+		return nil, errors.New("schedule_accept_failed")
+	}
+	timezone := stringValue(payload["timezone"])
+	if timezone == "" {
+		return nil, errors.New("schedule_accept_failed")
+	}
+	if _, err := time.LoadLocation(timezone); err != nil {
+		return nil, errors.New("schedule_timezone_invalid")
+	}
+	items := arrayValue(payload["items"])
+	if len(items) == 0 {
+		return nil, errors.New("schedule_accept_failed")
+	}
+	var expected *int
+	if raw, ok := payload["expected_revision"]; ok && raw != nil {
+		value := intValue(raw)
+		expected = &value
+	}
+	scheduleID := randomID("schedule_")
+	now := time.Now().UTC()
+	revision := 1
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var current int
+		err := tx.QueryRow(ctx, `SELECT revision FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted' ORDER BY revision DESC LIMIT 1`, fluctlightID, localDate).Scan(&current)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if errors.Is(err, pgx.ErrNoRows) {
+			current = 0
+		}
+		if expected != nil && *expected != current {
+			return errors.New("schedule revision is stale")
+		}
+		revision = current + 1
+		if current > 0 {
+			if _, err := tx.Exec(ctx, `UPDATE public.life_schedules SET status='superseded' WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted'`, fluctlightID, localDate); err != nil {
+				return err
+			}
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedules (id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision,generated_at,reschedule_policy) VALUES ($1,$2,$3,$4,'accepted','owner',$5,$6,$7,'{}')`, scheduleID, fluctlightID, localDate, timezone, jsonBytes(payload["evidence_refs"]), revision, now); err != nil {
+			return err
+		}
+		var previousID string
+		_ = tx.QueryRow(ctx, `SELECT id FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND revision=$3`, fluctlightID, localDate, current).Scan(&previousID)
+		if previousID != "" {
+			_, _ = tx.Exec(ctx, `UPDATE public.life_schedules SET previous_version_id=$2 WHERE id=$1`, scheduleID, previousID)
+		}
+		var previousEnd *time.Time
+		for _, raw := range items {
+			item := mapValue(raw)
+			start, e1 := parseScheduleTime(stringValue(item["start_at"]))
+			end, e2 := parseScheduleTime(stringValue(item["end_at"]))
+			if e1 != nil || e2 != nil || !end.After(start) {
+				return errors.New("schedule item time is invalid")
+			}
+			if previousEnd != nil && !start.Equal(*previousEnd) {
+				return errors.New("schedule items must be contiguous")
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,item_type,status,priority,flexibility,interruption_cost) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, randomID("schedule_item_"), scheduleID, start, end, stringValue(item["activity"]), stringValue(item["scene"]), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5)); err != nil {
+				return err
+			}
+			previousEnd = &end
+		}
+		if previousEnd == nil {
+			return errors.New("schedule item time is invalid")
+		}
+		return appendOutboxTx(ctx, tx, "schedule.accepted", "fluctlight", fluctlightID, fluctlightID, scheduleID, "schedule:"+scheduleID, "schedule-outbox:"+scheduleID, map[string]any{"schedule_id": scheduleID, "local_date": localDate.Format("2006-01-02"), "revision": revision})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"id": scheduleID, "local_date": localDate.Format("2006-01-02"), "revision": revision, "status": "accepted"}, nil
+}
+
+func parseScheduleTime(value string) (time.Time, error) {
+	value = strings.TrimSpace(value)
+	if strings.Contains(value, "T24:") {
+		value = strings.Replace(value, "T24:", "T00:", 1)
+		parsed, err := time.Parse(time.RFC3339, value)
+		if err != nil {
+			return time.Time{}, err
+		}
+		return parsed.Add(24 * time.Hour), nil
+	}
+	return time.Parse(time.RFC3339, value)
+}
+
+func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, payload map[string]any) (TurnResult, error) {
+	fluctlightID := stringValue(payload["fluctlight_id"])
+	text := stringValue(payload["text"])
+	idempotency := stringValue(payload["idempotency_key"])
+	turnID := stringValue(payload["turn_id"])
+	if turnID == "" {
+		turnID = "turn_" + randomID("")
+	}
+	if fluctlightID == "" || text == "" || idempotency == "" {
+		return TurnResult{}, errors.New("conversation_turn_invalid")
+	}
+	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
+		return TurnResult{}, err
+	}
+	var user map[string]any
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var existingID string
+		var existingText string
+		var existingSequence int
+		err := tx.QueryRow(ctx, `SELECT id,sequence,text FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, idempotency).Scan(&existingID, &existingSequence, &existingText)
+		if err == nil {
+			user = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": existingSequence, "author_actor_id": actorID, "kind": "user", "text": existingText, "attachment_refs": []any{}}
+			return nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		var participant string
+		if err := tx.QueryRow(ctx, `SELECT actor_id FROM public.conversation_participants WHERE conversation_id=$1 AND actor_id=$2 AND status='active'`, conversationID, actorID).Scan(&participant); err != nil {
+			return errors.New("conversation_not_found")
+		}
+		var seq int
+		if err := tx.QueryRow(ctx, `SELECT next_sequence FROM public.conversation_heads WHERE conversation_id=$1 FOR UPDATE`, conversationID).Scan(&seq); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.conversation_heads SET next_sequence=$2 WHERE conversation_id=$1`, conversationID, seq+1); err != nil {
+			return err
+		}
+		messageID := turnID
+		if !strings.HasPrefix(messageID, "message_") {
+			messageID = randomID("message_")
+		}
+		attachments := payload["attachment_refs"]
+		if attachments == nil {
+			attachments = []any{}
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES ($1,$2,$3,$4,'user',$5,$6,$7)`, messageID, conversationID, seq, actorID, text, jsonBytes(attachments), idempotency); err != nil {
+			return err
+		}
+		user = map[string]any{"id": messageID, "conversation_id": conversationID, "sequence": seq, "author_actor_id": actorID, "kind": "user", "text": text, "attachment_refs": attachments}
+		return nil
+	})
+	if err != nil {
+		return TurnResult{}, err
+	}
+	inboxID, err := a.EnqueueTurnFact(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text)
+	if err != nil {
+		return TurnResult{}, err
+	}
+	var replayed map[string]any
+	var replayedID, replayedText string
+	var replayedSequence int
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT id,sequence,text FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, "assistant:"+turnID).Scan(&replayedID, &replayedSequence, &replayedText); err == nil {
+		replayed = map[string]any{"id": replayedID, "conversation_id": conversationID, "sequence": replayedSequence, "author_actor_id": fluctlightID, "kind": "assistant", "text": replayedText, "attachment_refs": []any{}}
+		return TurnResult{UserMessage: user, Assistant: replayed, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
+	}
+	profile, _ := a.DB.GetFluctlight(ctx, fluctlightID, actorID)
+	history, _ := a.DB.History(ctx, conversationID, actorID, nil, 20)
+	var decision map[string]any
+	var action string
+	var mediaConcept map[string]any
+	frozen, frozenFound, err := a.LoadFrozenTurn(ctx, inboxID)
+	if err != nil {
+		return TurnResult{}, err
+	}
+	if frozenFound && frozen.Status == "frozen" {
+		action = frozen.ActionType
+		decision = mapValue(frozen.Payload["decision"])
+		mediaConcept = mapValue(frozen.Payload["media_concept"])
+	} else {
+		messages := []map[string]any{{"role": "system", "content": "You are the Fluctlight companion. Return a concise Chinese reply. If the user explicitly asks for an image, return JSON with action_type media_request and a visual_concept; otherwise return JSON with action_type reply and response_intent."}, {"role": "user", "content": text}}
+		decision, err = a.Provider.Structured(ctx, "cognitive_assessment", messages)
+		if err != nil {
+			return TurnResult{}, err
+		}
+		action, mediaConcept = resolveDecisionAction(decision)
+		if action != "reply" && action != "media_request" {
+			return TurnResult{}, errors.New("decision_effect_invalid")
+		}
+		if nested, ok := decision["decision"].(map[string]any); ok {
+			for key, value := range nested {
+				if _, exists := decision[key]; !exists {
+					decision[key] = value
+				}
+			}
+		}
+		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, conversationID, turnID, action, decision, mediaConcept)
+		if err != nil {
+			return TurnResult{}, err
+		}
+	}
+	if action != "reply" && action != "media_request" {
+		return TurnResult{}, errors.New("decision_effect_invalid")
+	}
+	if action == "media_request" && len(mediaConcept) == 0 {
+		mediaConcept = mediaConceptValue(decision["media_request"])
+		if len(mediaConcept) == 0 {
+			mediaConcept = mediaConceptValue(decision["visual_concept"])
+		}
+		if len(mediaConcept) == 0 {
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "media_concept_invalid")
+			return TurnResult{}, errors.New("media_concept_invalid")
+		}
+	}
+	visiblePrompt := []map[string]any{{"role": "system", "content": "Write the visible Chinese response for the already selected action. Do not mention implementation."}, {"role": "user", "content": jsonString(map[string]any{"action_type": action, "user_message": text, "persona_profile": map[string]any{"identity": profile.Identity, "personality": profile.Personality, "behavioral_policy": profile.BehavioralPolicy}, "conversation_history": history.Messages})}}
+	visible, err := a.Provider.Text(ctx, "action_realization", visiblePrompt)
+	if err != nil {
+		if frozenFound || frozen.ID != "" {
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_failed")
+		}
+		return TurnResult{}, err
+	}
+	assistantID := randomID("message_")
+	var assistant map[string]any
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var existingID string
+		if err := tx.QueryRow(ctx, `SELECT id FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, "assistant:"+turnID).Scan(&existingID); err == nil {
+			assistant = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": 0, "author_actor_id": fluctlightID, "kind": "assistant", "text": visible, "attachment_refs": []any{}}
+			return nil
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		var seq int
+		if err := tx.QueryRow(ctx, `SELECT next_sequence FROM public.conversation_heads WHERE conversation_id=$1 FOR UPDATE`, conversationID).Scan(&seq); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.conversation_heads SET next_sequence=$2 WHERE conversation_id=$1`, conversationID, seq+1); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES ($1,$2,$3,$4,'assistant',$5,'[]',$6)`, assistantID, conversationID, seq, fluctlightID, visible, "assistant:"+turnID); err != nil {
+			return err
+		}
+		assistant = map[string]any{"id": assistantID, "conversation_id": conversationID, "sequence": seq, "author_actor_id": fluctlightID, "kind": "assistant", "text": visible, "attachment_refs": []any{}}
+		return nil
+	})
+	if err != nil {
+		return TurnResult{}, err
+	}
+	mediaIntent := ""
+	if action == "media_request" {
+		concept := mediaConcept
+		if len(concept) == 0 {
+			concept = mediaConceptValue(decision["media_request"])
+		}
+		if len(concept) == 0 {
+			concept = mediaConceptValue(decision["visual_concept"])
+		}
+		if len(concept) == 0 {
+			// A media action without a frozen visual concept is invalid. The
+			// server must not manufacture semantics from visible prose.
+			return TurnResult{}, errors.New("media_concept_invalid")
+		}
+		mediaIntent, err = a.createMediaIntent(ctx, fluctlightID, conversationID, concept)
+		if err != nil {
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "media_intent_failed")
+			return TurnResult{}, err
+		}
+	}
+	if frozen.ID != "" {
+		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent}); err != nil {
+			return TurnResult{}, err
+		}
+	}
+	return TurnResult{UserMessage: user, Assistant: assistant, MediaIntentID: mediaIntent, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
+}
+
+func (a *App) createMediaIntent(ctx context.Context, fluctlightID, conversationID string, concept map[string]any) (string, error) {
+	id := randomID("media_intent_")
+	workflowID := randomID("media_workflow_")
+	requestID := randomID("media_request_")
+	prompt := jsonString(concept)
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.media_intents (id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,conversation_id,status,revision) VALUES ($1,$2,'image','image/png',$3,$4,$5,$6,'pending',0)`, id, fluctlightID, prompt, requestID, workflowID, conversationID); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'media','media.generation',$3) ON CONFLICT DO NOTHING`, "media_workflow_intent:"+id, workflowID, jsonBytes(map[string]any{"intent_id": id, "provider_request_id": requestID}))
+		if err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "media.intent.created", "media_intent", id, fluctlightID, requestID, "media:"+id, "media-intent:"+id, map[string]any{"intent_id": id, "workflow_id": workflowID})
+	})
+	return id, err
+}
+
+func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorID, conversationID string, payload map[string]any) error {
+	result, err := a.HandleTurn(ctx, actorID, conversationID, payload)
+	if err != nil {
+		return err
+	}
+	frames := []map[string]any{{"type": "action_result", "turn_id": result.TurnID, "sequence": 0, "payload": map[string]any{"message": result.UserMessage, "correlation_id": result.CorrelationID}}, {"type": "token", "turn_id": result.TurnID, "sequence": 1, "payload": map[string]any{"text": result.Assistant["text"]}}, {"type": "completed", "turn_id": result.TurnID, "sequence": 2, "payload": map[string]any{"message_ids": []string{stringValue(result.Assistant["id"])}, "media_intent_id": result.MediaIntentID}}}
+	for _, frame := range frames {
+		if err := json.NewEncoder(writer).Encode(frame); err != nil {
+			return err
+		}
+		if flusher, ok := writer.(http.Flusher); ok {
+			flusher.Flush()
+		}
+	}
+	return nil
+}
+
+func resolveDecisionAction(decision map[string]any) (string, map[string]any) {
+	action := firstString(decision["action_type"], "")
+	concept := mediaConceptValue(decision["media_request"])
+	if len(concept) == 0 {
+		concept = mediaConceptValue(decision["visual_concept"])
+	}
+	if nested, ok := decision["decision"].(map[string]any); ok {
+		if action == "" {
+			action = firstString(nested["action_type"], "")
+		}
+		if len(concept) == 0 {
+			concept = mediaConceptValue(nested["media_request"])
+		}
+		if effects, ok := nested["effects"].([]any); ok {
+			for _, raw := range effects {
+				effect := mapValue(raw)
+				kind := firstString(effect["action_type"], firstString(effect["type"], ""))
+				if kind == "reply" {
+					if action == "" {
+						action = "reply"
+					}
+					continue
+				}
+				if kind == "media_request" {
+					action = "media_request"
+					if len(concept) == 0 {
+						concept = mediaConceptValue(effect["payload"])
+						if len(concept) == 0 {
+							concept = mediaConceptValue(effect["visual_concept"])
+						}
+					}
+				}
+				if kind == "moment" || kind == "proactive_message" {
+					action = kind
+				}
+			}
+		}
+	}
+	if action == "" {
+		action = firstString(decision["action"], "")
+	}
+	return action, concept
+}
+
+func mediaConceptValue(value any) map[string]any {
+	if object := mapValue(value); len(object) > 0 {
+		return object
+	}
+	if text := stringValue(value); text != "" {
+		return map[string]any{"visual_concept": text}
+	}
+	return map[string]any{}
+}
+
+func jsonString(value any) string { data, _ := json.Marshal(value); return string(data) }
+func intValue(value any) int {
+	switch v := value.(type) {
+	case float64:
+		return int(v)
+	case int:
+		return v
+	case json.Number:
+		i, _ := v.Int64()
+		return int(i)
+	}
+	return 0
+}
+func numberString(value any, fallback float64) string {
+	if v, ok := value.(float64); ok {
+		return fmt.Sprintf("%g", v)
+	}
+	if v, ok := value.(int); ok {
+		return fmt.Sprintf("%d", v)
+	}
+	return fmt.Sprintf("%g", fallback)
+}
+func firstString(value any, fallback string) string {
+	if v, ok := value.(string); ok && strings.TrimSpace(v) != "" {
+		return v
+	}
+	return fallback
+}

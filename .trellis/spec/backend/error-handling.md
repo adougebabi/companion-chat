@@ -1,5 +1,9 @@
 # Error Handling
 
+> Historical note: the examples below describe the retired Node/SQLite
+> runtime. Active Go Core/BFF behavior is defined by the Go HTTP and NDJSON
+> handlers under `apps/core-go/` and `apps/gateway-go/`.
+
 ## HTTP Contracts
 
 Routes return small JSON objects with an `error` string for expected failures, for example `{error: '人格不存在'}` with 404 or `{error: '消息不能为空'}` with 400. Successful deletes use 204. Provider failures are translated to 502 by `/api/models` and `/api/generate/:promptId`; `/api/chat` instead emits an SSE `error` event because headers are already committed.

@@ -4,16 +4,16 @@
 
 ### 1. Scope / Trigger
 
-- Trigger: the public BFF calls Python Core, Python exposes a command/query, or
+- Trigger: the public BFF calls Go Core, Go exposes a command/query, or
   incremental visible output crosses the Core→BFF process boundary.
-- Python uses pinned 3.13, FastAPI, Pydantic v2, and Uvicorn. These are transport/composition tools, not domain dependencies.
+- Go's net/http transport and generated OpenAPI types are composition tools, not domain dependencies.
 - Browser contracts are owned by the public BFF and are distinct from this internal contract.
 
 ### 2. Signatures
 
 - Synchronous commands/queries: versioned HTTP/JSON described by generated OpenAPI.
 - Internal stream content type: `application/x-ndjson`.
-- The reference Node Core client is generated from the checked OpenAPI artifact;
+- The reference Core client is generated from the checked OpenAPI artifact;
   the Go BFF's HTTP Core client preserves the same contract. Hand-written
   duplicate domain DTOs are prohibited.
 
@@ -36,8 +36,8 @@ GET /health/ready
 
 ### 3. Contracts
 
-- FastAPI routes call application interfaces only. They never receive raw PostgreSQL sessions or module repositories.
-- Domain modules cannot import FastAPI, Starlette, Uvicorn, Web Pydantic DTOs, or HTTP exception types.
+- HTTP routes call application interfaces only. They never receive raw PostgreSQL transactions or module repositories.
+- Domain modules cannot import transport-specific request/response types or HTTP exception types.
 - Pydantic validates transport/config/Provider schemas. Mapping to domain commands occurs at the adapter seam.
 - OpenAPI changes and generated TypeScript client changes commit together; CI rejects ungenerated drift.
 - NDJSON sequence is monotonic per turn and has exactly one terminal `completed` or `error`. Heartbeats do not change domain/action state.
@@ -68,7 +68,7 @@ GET /health/ready
   NDJSON, the BFF translates it, and disconnect cancels realization without
   reverting the frozen decision.
 - Base: a command returns one typed JSON result with correlation and no stream.
-- Bad: hand-write matching Python/TypeScript DTOs, return raw ORM rows, stream hidden assessment data, or inject a database session into a route handler.
+- Bad: hand-write matching Go/TypeScript DTOs, return raw ORM rows, stream hidden assessment data, or inject a database session into a route handler.
 
 ### 6. Tests Required
 

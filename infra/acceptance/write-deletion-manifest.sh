@@ -24,7 +24,7 @@ trap 'rm -f "$temporary_output"' EXIT
 {
   echo "# T12 conditional legacy deletion manifest"
   echo "# Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  for target in server web test Dockerfile compose.yaml package-lock.json .env.example .nvmrc .github/workflows/docker-publish.yml; do
+  for target in server web test Dockerfile compose.yaml package-lock.json .env.example .nvmrc pyproject.toml uv.lock .python-version apps/core apps/core/Dockerfile apps/core/pyproject.toml apps/bff apps/bff/Dockerfile infra/compose/temporal-gate.compose.yml .github/workflows/docker-publish.yml; do
     if [[ -e "$target" ]]; then
       echo "PRESENT $target"
     else

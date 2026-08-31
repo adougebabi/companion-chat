@@ -1,7 +1,7 @@
 # Go BFF
 
 This is the Go implementation of the browser-facing BFF and the only public
-gateway. It preserves the checked browser contract while keeping Python Core
+gateway. It preserves the checked browser contract while keeping Go Core
 as the only domain writer. The Go BFF does not access PostgreSQL, Redis, S3, or
 Temporal.
 

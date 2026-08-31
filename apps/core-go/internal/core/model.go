@@ -3,14 +3,16 @@ package core
 import "time"
 
 type Fluctlight struct {
-	ID               string         `json:"id"`
-	Identity         map[string]any `json:"identity"`
-	Personality      map[string]any `json:"personality"`
-	BehavioralPolicy map[string]any `json:"behavioral_policy"`
-	LifeProfile      map[string]any `json:"life_profile"`
-	Provenance       map[string]any `json:"provenance"`
-	Status           string         `json:"status"`
-	CurrentRevision  int            `json:"current_revision"`
+	ID                 string         `json:"id"`
+	Identity           map[string]any `json:"identity"`
+	Personality        map[string]any `json:"personality"`
+	BehavioralPolicy   map[string]any `json:"behavioral_policy"`
+	LifeProfile        map[string]any `json:"life_profile"`
+	Provenance         map[string]any `json:"provenance"`
+	Status             string         `json:"status"`
+	CurrentRevision    int            `json:"current_revision"`
+	UnreadCount        int            `json:"unread_count,omitempty"`
+	LastConversationAt *time.Time     `json:"last_conversation_at,omitempty"`
 }
 
 type Conversation struct {
@@ -23,11 +25,12 @@ type Conversation struct {
 }
 
 type Participant struct {
-	ConversationID string    `json:"conversation_id"`
-	ActorID        string    `json:"actor_id"`
-	Role           string    `json:"role"`
-	Status         string    `json:"status"`
-	JoinedAt       time.Time `json:"joined_at"`
+	ConversationID string     `json:"conversation_id"`
+	ActorID        string     `json:"actor_id"`
+	Role           string     `json:"role"`
+	Status         string     `json:"status"`
+	JoinedAt       time.Time  `json:"joined_at"`
+	LeftAt         *time.Time `json:"left_at"`
 }
 
 type Message struct {

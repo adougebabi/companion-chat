@@ -91,7 +91,7 @@ func browserRouteCases() []browserRouteCase {
 // TestEveryBrowserRouteHasAGoHandler is deliberately a route smoke matrix.
 // Detailed mapping, error and stream assertions live beside the individual
 // helpers; this test prevents a new/forgotten operation from silently falling
-// through to 404 during the Node-to-Go cutover.
+// through to 404 during the Go gateway rollout.
 func TestEveryBrowserRouteHasAGoHandler(t *testing.T) {
 	routes := browserRouteCases()
 

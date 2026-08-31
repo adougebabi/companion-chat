@@ -15,7 +15,7 @@
   bucket/object keys, credentials, or provider details.
 - Sanitize Core error details recursively with bounded depth/collections/text
   before returning browser errors.
-- Keep Python Core as the only domain writer; domain repositories and workflow
+- Keep Go Core as the only domain writer; domain repositories and workflow
   clients do not cross into the Go BFF.
 
 ## Forbidden Patterns
@@ -45,8 +45,8 @@ pnpm test
 pnpm build
 ```
 
-Run Python Core pytest and the disposable Compose/public-boundary smoke when
-the environment is available. Do not test against a checked-in or shared
+Run Go Core tests and the disposable Compose/public-boundary smoke when the
+environment is available. Do not test against a checked-in or shared
 production database unless the task explicitly authorizes a real regression
 run and the scope of created records is recorded.
 

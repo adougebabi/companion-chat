@@ -1,9 +1,8 @@
 # Backend Guidelines
 
-The active backend is the Python Core plus the Go browser BFF under
-`apps/core/` and `apps/gateway-go/`. The deleted Node/SQLite runtime and the
-former Node BFF are historical context; `apps/gateway-go/` is the only public
-browser boundary.
+The active backend is the Go Core plus the Go browser BFF under
+`apps/core-go/` and `apps/gateway-go/`. The retired Python/Node runtimes are
+historical context; `apps/gateway-go/` is the only public browser boundary.
 Keep additions inside the clean-start vertical layers and horizontal capability
 boundaries described below.
 
@@ -26,8 +25,8 @@ boundaries described below.
 | [Fluctlight Media Contract](./fluctlight-media-contract.md) | S3-compatible private media, MinIO default deployment, BFF proxy grants, checksums, lifecycle, recovery, and backup |
 | [Fluctlight Event Contract](./fluctlight-event-contract.md) | PostgreSQL outbox/inbox authority, Redis Streams delivery, reclaim, poison handling, retention, replay, and progress |
 | [Fluctlight Workflow Contract](./fluctlight-workflow-contract.md) | Runtime-neutral durable execution, domain intent/state separation, stable IDs, long activities, management, history versioning, and single-runtime rule |
-| [Fluctlight Temporal Gate Contract](./fluctlight-temporal-gate-contract.md) | Grouped non-HA Temporal, Python histories/signals/queries/updates, Activity recovery, Worker versioning, continue-as-new, and NAS resource gate |
-| [Fluctlight API Contract](./fluctlight-api-contract.md) | Python FastAPI/OpenAPI boundary, generated/reference clients, NDJSON streaming, cancellation, errors, health, and framework isolation |
+| [Fluctlight Temporal Gate Contract](./fluctlight-temporal-gate-contract.md) | Grouped non-HA Temporal, Go histories/signals/queries/updates, Activity recovery, Worker versioning, continue-as-new, and NAS resource gate |
+| [Fluctlight API Contract](./fluctlight-api-contract.md) | Go HTTP/OpenAPI boundary, generated/reference clients, NDJSON streaming, cancellation, errors, health, and framework isolation |
 | [Fluctlight BFF Contract](./fluctlight-bff-contract.md) | Go HTTP browser boundary, checked browser contract, NDJSON translation, media proxy, errors, and storage isolation |
 | [Fluctlight Auth Contract](./fluctlight-auth-contract.md) | Single Owner Human setup, Argon2id, opaque sessions, cookie/CSRF transport, service identity, authorization, and recovery |
 | [Fluctlight Configuration Contract](./fluctlight-configuration-contract.md) | Startup env, PostgreSQL system settings, single-key AEAD, write-only secrets, validation, and redaction |
@@ -42,14 +41,14 @@ boundaries described below.
 
 - Identify whether the change affects the state shape, an API contract, a streaming event, or a background worker.
 - Read the corresponding route and its frontend consumer before changing a payload.
-- Preserve the data directory and environment-variable defaults described in [`README.md`](../../../README.md) and [`.env.example`](../../../.env.example).
+- Preserve the environment-variable defaults described in [`README.md`](../../../README.md) and [`infra/compose/fluctlight.env.example`](../../../infra/compose/fluctlight.env.example).
 - Check both the normal response and the failure path; the HTTP boundary owns bounded error mapping and SSE terminal errors.
 
 ## Frozen Old-System Quality Check
 
 The following applies only to maintenance explicitly authorized against the
 frozen old Node/SQLite system; clean-start children do not run it as a gate.
-For the active system, run the owning Go/Python/Web checks and disposable
+For the active system, run the owning Go/Web checks and disposable
 Compose smoke. Do not restore the deleted Node/SQLite runtime as a compatibility
 entry point.
 
