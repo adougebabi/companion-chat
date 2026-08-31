@@ -505,7 +505,7 @@ func evaluateClaims(rawClaims []any, sourceFactID string, context ContextProject
 
 func normalizeClaimKind(kind string) string {
 	switch kind {
-	case "semantic", "observation":
+	case "semantic", "observation", "recall_confirmation", "memory_recall", "confirmation":
 		// Common providers use these broad labels for an evidence-backed
 		// statement. The Runtime keeps the claim grounded as an observed fact;
 		// it does not promote it to a stronger semantic state.
