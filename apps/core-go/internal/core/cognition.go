@@ -76,14 +76,35 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID string) ([]byte, 
 // per-Fluctlight sequence and idempotency key are durable, so a client retry
 // cannot create a second fact or reorder another Fluctlight's work.
 func (a *App) EnqueueTurnFact(ctx context.Context, actorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any) (string, error) {
+	return a.enqueueTurnFact(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, attachmentRefs, "")
+}
+
+// EnqueueTurnFactClaimed is used by the synchronous NDJSON turn path. It
+// claims the inbox row in the same transaction that creates it, so the
+// background cognition Worker cannot start the same turn concurrently. If the
+// HTTP process dies, the claim expires and the Worker can reclaim the fact.
+func (a *App) EnqueueTurnFactClaimed(ctx context.Context, actorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any) (string, error) {
+	return a.enqueueTurnFact(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, attachmentRefs, "go-stream:"+randomID("claim_"))
+}
+
+func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any, claimOwner string) (string, error) {
 	inboxID := "inbox_" + stableDigest("turn:"+idempotency)
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var existing, existingText string
+		var existing, existingText, existingStatus, existingClaimedBy string
 		var existingPayload []byte
-		if err := tx.QueryRow(ctx, `SELECT id,payload FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key=$2`, fluctlightID, idempotency).Scan(&existing, &existingPayload); err == nil {
+		var existingClaimedAt *time.Time
+		if err := tx.QueryRow(ctx, `SELECT id,payload,status,COALESCE(claimed_by,''),claimed_at FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key=$2 FOR UPDATE`, fluctlightID, idempotency).Scan(&existing, &existingPayload, &existingStatus, &existingClaimedBy, &existingClaimedAt); err == nil {
 			existingText = stringValue(decodeObject(existingPayload)["text"])
 			if existingText != text || stringValue(decodeObject(existingPayload)["conversation_id"]) != conversationID || stringValue(decodeObject(existingPayload)["actor_id"]) != actorID {
 				return ErrConflict
+			}
+			if claimOwner != "" && existingStatus != "processed" && existingStatus != "failed" {
+				if existingStatus == "claimed" && existingClaimedBy != "" && existingClaimedAt != nil && time.Since(*existingClaimedAt) < 10*time.Minute {
+					return ErrConflict
+				}
+				if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now() WHERE id=$1`, existing, claimOwner); err != nil {
+					return err
+				}
 			}
 			inboxID = existing
 			return nil
@@ -104,7 +125,15 @@ func (a *App) EnqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 			attachmentRefs = []any{}
 		}
 		payload := map[string]any{"actor_id": actorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text, "attachment_refs": attachmentRefs, "idempotency_key": idempotency}
-		_, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) VALUES($1,$2,$3,'conversation.turn',$4,$5,$6,$7,now(),'pending')`, inboxID, fluctlightID, sequence, jsonBytes(payload), turnID, "turn:"+turnID, idempotency)
+		status := "pending"
+		claimedBy := nullableString("")
+		var claimedAt any
+		if claimOwner != "" {
+			status = "claimed"
+			claimedBy = claimOwner
+			claimedAt = time.Now().UTC()
+		}
+		_, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,claimed_by,claimed_at) VALUES($1,$2,$3,'conversation.turn',$4,$5,$6,$7,now(),$8,$9,$10)`, inboxID, fluctlightID, sequence, jsonBytes(payload), turnID, "turn:"+turnID, idempotency, status, claimedBy, claimedAt)
 		if err != nil {
 			return err
 		}

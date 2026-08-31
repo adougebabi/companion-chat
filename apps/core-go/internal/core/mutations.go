@@ -209,10 +209,10 @@ func canonicalTimezone(value string) string {
 }
 
 func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, payload map[string]any) (TurnResult, error) {
-	return a.handleTurn(ctx, actorID, conversationID, payload, turnCallbacks{})
+	return a.handleTurn(ctx, actorID, conversationID, payload, turnCallbacks{}, false)
 }
 
-func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, payload map[string]any, callbacks turnCallbacks) (TurnResult, error) {
+func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, payload map[string]any, callbacks turnCallbacks, claimStream bool) (TurnResult, error) {
 	fluctlightID := stringValue(payload["fluctlight_id"])
 	text := stringValue(payload["text"])
 	idempotency := stringValue(payload["idempotency_key"])
@@ -275,7 +275,12 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if err != nil {
 		return TurnResult{}, err
 	}
-	inboxID, err := a.EnqueueTurnFact(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"])
+	var inboxID string
+	if claimStream {
+		inboxID, err = a.EnqueueTurnFactClaimed(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"])
+	} else {
+		inboxID, err = a.EnqueueTurnFact(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"])
+	}
 	if err != nil {
 		return TurnResult{}, err
 	}
@@ -542,7 +547,7 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 		onChunk: func(chunk string) error {
 			return writeFrame("token", map[string]any{"text": chunk})
 		},
-	})
+	}, true)
 	if err != nil {
 		if !started || ctx.Err() != nil {
 			return err

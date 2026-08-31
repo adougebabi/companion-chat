@@ -166,6 +166,7 @@ Deterministic code may parse and validate protocol facts: JSON/schema, IDs, acto
 - Every source observation is persisted as an idempotent, monotonically sequenced inbox fact for its Fluctlight instance.
 - One cognitive writer owns state transitions and action-delivery order for one Fluctlight instance. Different instances may execute concurrently.
 - An interactive responder may process only the inbox fact for its current turn ID. It must claim with an expected fact ID; consuming an older pending/background fact and attributing its realization to the current HTTP turn is a contract failure.
+- The interactive NDJSON responder claims a newly enqueued inbox fact atomically with its creation. The background cognition Worker must observe that active claim and defer until the responder settles or the claim lease expires; both paths must never realize the same `assistant:<turn_id>` message concurrently.
 - A failed interactive fact may be retried in place with the same turn/fact and idempotency IDs only while no later fact has been processed. A completed fact is replayed from its persisted realization; retries never create a second user message or reassess a completed turn.
 - Reflection commits with evidence watermark and state-revision CAS; stale work cannot overwrite a newer interactive transition.
 - Media execution may run concurrently, but only a sequenced completion/failure fact may re-enter cognition.
