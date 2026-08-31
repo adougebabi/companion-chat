@@ -545,6 +545,19 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		if input.FluctlightID == "" {
 			input.FluctlightID = stringValue(inputMap(payload)["fluctlight_id"])
 		}
+		if intentType == "cognition.processing" {
+			var claimed bool
+			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_inbox WHERE id=$1 AND status='claimed' AND claimed_at > now()-interval '10 minutes')`, input.InboxID).Scan(&claimed); err != nil {
+				return count, err
+			}
+			if claimed {
+				// The synchronous NDJSON responder owns this fact while it is
+				// generating the visible reply. Its atomic claim prevents a second
+				// Worker execution; dispatch after the claim expires is the durable
+				// crash-recovery path.
+				continue
+			}
+		}
 		workflowFn := any(nil)
 		taskQueue := queue
 		// Every post-cutover execution receives a stable Go namespace. This
