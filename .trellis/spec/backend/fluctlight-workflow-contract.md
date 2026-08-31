@@ -90,6 +90,73 @@ async with unit_of_work.begin(command_id=intent_id) as tx:
 handle = await workflow_runtime.start_workflow(committed_intent)
 ```
 
+## Scenario: Go Worker Queue Ownership And Cognition Intent
+
+### 1. Scope / Trigger
+
+- Trigger: a committed cognition fact is dispatched after API acceptance or a
+  Go Worker starts its canonical Temporal queues.
+
+### 2. Signatures
+
+- `cognition.processing` maps to `CognitionProcessingWorkflow` on
+  `interaction`; `platform.control` maps to `PlatformControlWorkflow` on
+  `lifecycle`.
+- `ProcessCognitionInbox` reuses the immutable inbox/message idempotency keys
+  and returns the prior result for a processed fact.
+
+### 3. Contracts
+
+- Exactly one Worker poller owns each of `interaction`, `lifecycle`, and
+  `media`; workflow/activity registration is queue-specific.
+- Conversation fact commit writes a stable cognition workflow intent before
+  external processing. API may still return its existing product response;
+  Worker replay must not duplicate the side effect.
+- Reconciliation scans pending/retry/started intents and maps Temporal terminal
+  states to explicit durable status.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| duplicate cognition workflow start | Temporal stable ID/reuse guard; no second assistant effect |
+| processed inbox replay | return `processed` without Provider call |
+| Worker queue unavailable | intent remains retryable; no false completion |
+| Temporal terminal failure | durable intent becomes failed and remains auditable |
+
+### 5. Good/Base/Bad Cases
+
+- Good: API commits fact, Worker processes `cognition.processing`, and a
+  restart reconciles the completed intent with no duplicate message.
+- Base: a pending media/schedule intent remains visible while its queue is
+  unavailable and resumes later.
+- Bad: register every workflow on every queue, process a fact from a different
+  Fluctlight, or mark an intent complete before Temporal accepts it.
+
+### 6. Tests Required
+
+- Workflow registry/replay tests for cognition and platform control.
+- Queue ownership assertions, stable-ID duplicate starts, restart/reconcile
+  tests and a real Docker cognition intent sweep.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+for _, queue := range queues {
+    registerEveryWorkflow(queue)
+}
+```
+
+#### Correct
+
+```go
+registerLifecycleWorkflows(lifecycleWorker)
+registerInteractionWorkflows(interactionWorker)
+registerMediaWorkflows(mediaWorker)
+```
+
 ## Scenario: Bounded, Restart-Safe Intent Dispatch
 
 ### 1. Scope / Trigger

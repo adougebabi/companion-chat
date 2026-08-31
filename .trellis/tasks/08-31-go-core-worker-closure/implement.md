@@ -35,3 +35,18 @@ bash infra/acceptance/go-core-reference-guard.sh
 
 Required rollback points: after each platform slice, keep the previous Go
 Worker image runnable; never reset PostgreSQL/Redis/MinIO/Temporal volumes.
+
+## Progress (2026-08-31)
+
+- Added Redis URL configuration, additive outbox claim/retry columns and the
+  Go Redis Streams pipeline with publisher, durable consumer groups,
+  inbox/effect/head writes, duplicate handling, sequence-gap rejection and
+  poison failure acknowledgement.
+- Added `CognitionProcessingWorkflow` and `PlatformControlWorkflow`, queue-
+  specific workflow/activity registration, and a durable cognition intent
+  written with each committed conversation fact. Worker replay is idempotent on
+  the existing inbox/message keys.
+- Local Core race/vet/build and miniredis tests pass. PostgreSQL+Redis
+  integration tests pass against the existing Compose network after applying
+  the additive migration. Final matrix and Docker restart evidence are still
+  pending before this task can be archived.

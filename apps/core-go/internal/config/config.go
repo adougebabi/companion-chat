@@ -19,6 +19,7 @@ type Config struct {
 	S3UseSSL      bool
 	TemporalAddr  string
 	TemporalNS    string
+	RedisURL      string
 }
 
 // DatabaseURLFromEnv is intentionally dependency-light so the migration
@@ -84,6 +85,7 @@ func FromEnv(lookup func(string) (string, bool)) (Config, error) {
 		S3UseSSL:      strings.EqualFold(first(lookup, "S3_USE_SSL"), "true"),
 		TemporalAddr:  first(lookup, "TEMPORAL_ADDRESS"),
 		TemporalNS:    first(lookup, "TEMPORAL_NAMESPACE"),
+		RedisURL:      firstOrDefault(lookup, "REDIS_URL", "redis://redis:6379/0"),
 	}, nil
 }
 
@@ -94,4 +96,11 @@ func first(lookup func(string) (string, bool), keys ...string) string {
 		}
 	}
 	return ""
+}
+
+func firstOrDefault(lookup func(string) (string, bool), key, fallback string) string {
+	if value := first(lookup, key); value != "" {
+		return value
+	}
+	return fallback
 }

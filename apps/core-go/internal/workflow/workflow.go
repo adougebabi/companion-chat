@@ -44,6 +44,42 @@ type Input struct {
 	ActionID     string `json:"action_id"`
 	MemoryID     string `json:"memory_id"`
 	Revision     int    `json:"revision"`
+	InboxID      string `json:"inbox_id"`
+}
+
+func CognitionProcessingWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	var result map[string]any
+	if err := workflow.ExecuteActivity(ctx, ProcessCognitionActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func PlatformControlWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	var stop bool
+	stopCh := workflow.GetSignalChannel(ctx, "stop")
+	workflow.Go(ctx, func(ctx workflow.Context) {
+		stopCh.Receive(ctx, &stop)
+	})
+	if err := workflow.Await(ctx, func() bool { return stop }); err != nil {
+		return nil, err
+	}
+	return map[string]any{"status": "stopped", "intent_id": input.IntentID}, nil
 }
 
 func DailyReviewWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
@@ -243,6 +279,18 @@ func ProcessDailyReviewActivity(ctx context.Context, input Input) (map[string]an
 	return application.ProcessDailyReview(ctx, input.FluctlightID, input.LocalDate)
 }
 
+func ProcessCognitionActivity(ctx context.Context, input Input) (map[string]any, error) {
+	application := app()
+	if application == nil {
+		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	return application.ProcessCognitionInbox(ctx, input.InboxID)
+}
+
+func PlatformControlActivity(ctx context.Context, input Input) (map[string]any, error) {
+	return map[string]any{"status": "ready", "intent_id": input.IntentID}, nil
+}
+
 func ProcessMediaActivity(ctx context.Context, input Input) (map[string]any, error) {
 	application := app()
 	if application == nil {
@@ -337,18 +385,27 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 				}
 			},
 		})
-		w.RegisterWorkflow(DailyReviewWorkflow)
-		w.RegisterWorkflow(MediaWorkflow)
-		w.RegisterWorkflow(CurrentDayScheduleWorkflow)
-		w.RegisterWorkflow(AutonomyActionWorkflow)
-		w.RegisterWorkflow(ReflectionWorkflow)
-		w.RegisterWorkflow(MemoryEmbeddingWorkflow)
-		w.RegisterActivity(ProcessDailyReviewActivity)
-		w.RegisterActivity(ProcessMediaActivity)
-		w.RegisterActivity(ProcessAutonomyActionActivity)
-		w.RegisterActivity(ProcessReflectionActivity)
-		w.RegisterActivity(ProcessMemoryEmbeddingActivity)
-		w.RegisterActivity(EnsureCurrentDayScheduleActivity)
+		switch queue {
+		case LifecycleQueue:
+			w.RegisterWorkflow(DailyReviewWorkflow)
+			w.RegisterWorkflow(CurrentDayScheduleWorkflow)
+			w.RegisterWorkflow(ReflectionWorkflow)
+			w.RegisterWorkflow(MemoryEmbeddingWorkflow)
+			w.RegisterWorkflow(PlatformControlWorkflow)
+			w.RegisterActivity(ProcessDailyReviewActivity)
+			w.RegisterActivity(EnsureCurrentDayScheduleActivity)
+			w.RegisterActivity(ProcessReflectionActivity)
+			w.RegisterActivity(ProcessMemoryEmbeddingActivity)
+			w.RegisterActivity(PlatformControlActivity)
+		case MediaQueue:
+			w.RegisterWorkflow(MediaWorkflow)
+			w.RegisterActivity(ProcessMediaActivity)
+		case InteractionQueue:
+			w.RegisterWorkflow(AutonomyActionWorkflow)
+			w.RegisterWorkflow(CognitionProcessingWorkflow)
+			w.RegisterActivity(ProcessAutonomyActionActivity)
+			w.RegisterActivity(ProcessCognitionActivity)
+		}
 		workers = append(workers, w)
 	}
 	for _, current := range workers {
@@ -520,6 +577,12 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = LifecycleQueue
 		case "memory.embedding":
 			workflowFn = MemoryEmbeddingWorkflow
+			taskQueue = LifecycleQueue
+		case "cognition.processing":
+			workflowFn = CognitionProcessingWorkflow
+			taskQueue = InteractionQueue
+		case "platform.control":
+			workflowFn = PlatformControlWorkflow
 			taskQueue = LifecycleQueue
 		default:
 			slog.Default().Warn("Go Worker intent type unsupported; leaving pending", "intent_id", intentID, "intent_type", intentType)

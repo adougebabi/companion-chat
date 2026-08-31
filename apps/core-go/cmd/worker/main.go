@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -12,7 +13,9 @@ import (
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/config"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform"
 	coreworkflow "github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow"
+	"github.com/redis/go-redis/v9"
 	"go.temporal.io/sdk/client"
 )
 
@@ -44,6 +47,29 @@ func main() {
 		log.Fatal(err)
 	}
 	defer temporalClient.Close()
+	redisOptions, err := redis.ParseURL(settings.RedisURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	redisClient := redis.NewClient(redisOptions)
+	defer redisClient.Close()
+	redisCtx, redisCancel := context.WithTimeout(ctx, 5*time.Second)
+	if err := redisClient.Ping(redisCtx).Err(); err != nil {
+		redisCancel()
+		log.Fatal(err)
+	}
+	redisCancel()
+	hostname, _ := os.Hostname()
+	consumerID := fmt.Sprintf("go-worker-%s-%d", hostname, os.Getpid())
+	publisher := platform.NewOutboxPublisher(application.DB.Pool(), redisClient, consumerID)
+	consumers := make([]*platform.EventConsumer, 0, len(platform.DurableConsumerGroups))
+	for _, group := range platform.DurableConsumerGroups {
+		consumer := platform.NewEventConsumer(application.DB.Pool(), redisClient, group, consumerID)
+		if err := consumer.EnsureGroup(ctx); err != nil {
+			log.Fatal(err)
+		}
+		consumers = append(consumers, consumer)
+	}
 	logger := slog.Default()
 	_, fatalErrors, err := coreworkflow.StartWorkers(ctx, temporalClient, logger)
 	if err != nil {
@@ -83,6 +109,14 @@ func main() {
 				logger.Warn("Go Worker diagnostics retention retry", "error", err)
 			}
 		case <-dispatchTicker.C:
+			if _, err := publisher.PublishOnce(ctx, 50); err != nil {
+				logger.Warn("Go Worker outbox publisher retry", "error", err)
+			}
+			for _, consumer := range consumers {
+				if _, err := consumer.ConsumeOnce(ctx, 25); err != nil {
+					logger.Warn("Go Worker event consumer retry", "group", consumer.Group, "error", err)
+				}
+			}
 			if _, err := dispatcher.DispatchOnce(ctx, 20); err != nil {
 				logger.Warn("Go Worker dispatcher retry", "error", err)
 			}

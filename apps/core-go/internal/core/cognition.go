@@ -17,6 +17,32 @@ type frozenTurn struct {
 	Status     string
 }
 
+// ProcessCognitionInbox is the Worker-owned entry point for a committed
+// conversation fact. HandleTurn is idempotent on the inbox/message keys, so a
+// retry resumes the same fact instead of consuming another turn.
+func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[string]any, error) {
+	if inboxID == "" {
+		return nil, errors.New("cognition_inbox_id_required")
+	}
+	var payload []byte
+	var status string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT payload,status FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&payload, &status); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	if status == "processed" {
+		return map[string]any{"inbox_id": inboxID, "status": "processed"}, nil
+	}
+	data := decodeObject(payload)
+	result, err := a.HandleTurn(ctx, stringValue(data["actor_id"]), stringValue(data["conversation_id"]), data)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"inbox_id": inboxID, "status": "processed", "turn_id": result.TurnID, "assistant_message_id": stringValue(result.Assistant["id"]), "media_intent_id": result.MediaIntentID}, nil
+}
+
 // EnqueueTurnFact records the source observation before any model call. The
 // per-Fluctlight sequence and idempotency key are durable, so a client retry
 // cannot create a second fact or reorder another Fluctlight's work.
@@ -45,9 +71,12 @@ func (a *App) EnqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads SET next_sequence=$2 WHERE fluctlight_id=$1`, fluctlightID, sequence+1); err != nil {
 			return err
 		}
-		payload := map[string]any{"actor_id": actorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text}
+		payload := map[string]any{"actor_id": actorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text, "idempotency_key": idempotency}
 		_, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) VALUES($1,$2,$3,'conversation.turn',$4,$5,$6,$7,now(),'pending')`, inboxID, fluctlightID, sequence, jsonBytes(payload), turnID, "turn:"+turnID, idempotency)
 		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','cognition.processing',$3) ON CONFLICT DO NOTHING`, "cognition_intent:"+inboxID, "cognition:"+inboxID, jsonBytes(map[string]any{"inbox_id": inboxID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "idempotency_key": idempotency})); err != nil {
 			return err
 		}
 		return appendOutboxTx(ctx, tx, "cognition.fact.created", "fluctlight", fluctlightID, fluctlightID, turnID, "turn:"+turnID, "cognition:"+idempotency, payload)

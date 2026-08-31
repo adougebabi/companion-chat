@@ -280,6 +280,10 @@ func workflowFunction(intentType string) (any, error) {
 		return ReflectionWorkflow, nil
 	case "memory.embedding":
 		return MemoryEmbeddingWorkflow, nil
+	case "cognition.processing":
+		return CognitionProcessingWorkflow, nil
+	case "platform.control":
+		return PlatformControlWorkflow, nil
 	default:
 		return nil, fmt.Errorf("unsupported workflow intent type %q", intentType)
 	}

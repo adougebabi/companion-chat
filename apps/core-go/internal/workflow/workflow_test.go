@@ -60,3 +60,30 @@ func TestNextLocalMidnightDelayFallsBackForUnknownTimezone(t *testing.T) {
 		t.Fatalf("delay = %s, want %s", got, want)
 	}
 }
+
+func TestWorkflowFunctionRegistryIncludesPlatformBoundaries(t *testing.T) {
+	for _, intentType := range []string{"cognition.processing", "platform.control"} {
+		if fn, err := workflowFunction(intentType); err != nil || fn == nil {
+			t.Fatalf("workflowFunction(%q) = %#v, %v", intentType, fn, err)
+		}
+	}
+}
+
+func TestPlatformControlWorkflowStopsOnSignal(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	env.RegisterDelayedCallback(func() {
+		env.SignalWorkflow("stop", true)
+	}, time.Second)
+	env.ExecuteWorkflow(PlatformControlWorkflow, Input{IntentID: "control-1"})
+	if !env.IsWorkflowCompleted() {
+		t.Fatal("platform control workflow did not complete")
+	}
+	var result map[string]any
+	if err := env.GetWorkflowResult(&result); err != nil {
+		t.Fatal(err)
+	}
+	if result["status"] != "stopped" {
+		t.Fatalf("status = %#v, want stopped", result["status"])
+	}
+}

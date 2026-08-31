@@ -16,7 +16,7 @@ func TestFromEnvUsesCoreDatabaseURLAndDefaultAddress(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FromEnv() error = %v", err)
 	}
-	if config.ListenAddress != ":8080" || config.DatabaseURL == "" || config.ServiceKey != "service-key" {
+	if config.ListenAddress != ":8080" || config.DatabaseURL == "" || config.ServiceKey != "service-key" || config.RedisURL != "redis://redis:6379/0" {
 		t.Fatalf("unexpected config: %+v", config)
 	}
 }
