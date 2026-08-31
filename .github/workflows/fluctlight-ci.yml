@@ -150,7 +150,7 @@ jobs:
           {
             echo 'FLUCTLIGHT_ENV=ci'
             echo 'FLUCTLIGHT_CORE_SERVICE_KEY=ci-core-service-key'
-            echo 'FLUCTLIGHT_SETTINGS_KEY=ci-settings-key'
+            echo 'FLUCTLIGHT_SETTINGS_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
             echo 'FLUCTLIGHT_TRUSTED_ORIGIN=http://127.0.0.1:13001'
             echo 'FLUCTLIGHT_BFF_ORIGIN=http://127.0.0.1:13000'
             echo 'FLUCTLIGHT_SECURE_COOKIES=false'
