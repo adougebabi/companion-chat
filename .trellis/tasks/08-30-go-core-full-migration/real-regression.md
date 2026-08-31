@@ -73,6 +73,51 @@ but the fixed public projection check passes. A fresh Go proactive decision is
 not forced because autonomous action choice is LLM-owned; the preserved
 completed projection is the acceptance evidence for this existing persona.
 
+## P1 regression rerun (2026-08-31, post-fix)
+
+The running Compose project was exercised again through the public Go BFF at
+`http://127.0.0.1:13000` with a fresh curl cookie jar. All mutations used new
+idempotency keys and the normal BFF → Core → Temporal/Worker → Provider path;
+no database rows were inserted or altered manually and no Provider/Core mock
+was used.
+
+| Case | Result | Evidence |
+| --- | --- | --- |
+| 1. 影者 text chat | PASS after fix | New conversation `conversation_b2c8fbf36260bb0e2bbd11ac92b5afa5`, turn `turn_6a940385fdd9f46290441aaf40b18664`, returned NDJSON `message → token → completed` with sequences `0,1,2`; the inbox was `processed`. |
+| 2. 影者 image request | PASS after fix | New `media_intent_498b2ea86a3114ab32d3ebe25b24d5e7` reached `completed` with real ComfyUI job `7332cee0-896a-4b33-98bf-5245f06300ba`; asset `asset_media_intent_498b2ea86a3114ab32d3ebe25b24d5e7` is `ready`, `image/png`, 185242 bytes, and has one conversation reference. Public BFF full read returned `200`; `Range: bytes=0-4` returned `206` with five bytes and `Content-Range: bytes 0-4/185242`. |
+| 3. Blank Fluctlight | PASS | `POST /api/fluctlights` created active `fluctlight_7d652acca750091cd83974fb6a3b58e1` with the normal blank identity. |
+| 4. Described Fluctlight | PASS | Real initialization analysis returned identity, personality, behavioral policy, life profile, goals and intentions. Correct activation (including top-level `provenance.foundation`) created active `fluctlight_f8a95d2056f087f29db9222fe78e6ab9`, named `回归晨雾`. |
+| 5. Detail and schedule | PASS after lifecycle retry | Final detail for `fluctlight_f8a95d2056f087f29db9222fe78e6ab9` returned the full foundation/provenance, 3 goals, 1 intention, and accepted `schedule_3ebea377bc43a00ad45c16ccd7f976e6` for `2026-09-01`, `Asia/Shanghai`, revision 1 with 18 contiguous items covering the local day. |
+| 6. Moment publication | PASS (preserved Go projection) | `check-go-projections.sh` passed against Go-owned `fluctlight_fb0e3e88bd402a65e4afd910cf676531`; it found a completed `go-autonomy:` moment action and visible Moment. |
+| 7. Proactive Owner contact | PASS (preserved Go projection) | The same public projection check passed against `fluctlight_60fc292f8a3b95cd8dad33196f5544f3`; it found a completed `go-autonomy:` proactive-message action and persisted assistant message. The new `回归晨雾` daily review intentionally chose `no_op` at 02:23 Asia/Shanghai because its generated schedule was in a sleep block; this is a model-owned decision, not a missing workflow. |
+| 8. Historical memory | PASS after claim-label fix | A real `memory_event` stored `memory_66963d6d4a384e6001ac1964b84db14f` (`semantic`, active, confidence 0.95, importance 0.9) for the owner's blue-gray/overcast preference. A subsequent fresh recall turn returned `记得。阴天、蓝灰、克制，不碰饱和橙……` with `message → token → completed` and created no duplicate semantic Memory. |
+| 9. Reflection | PASS | Reflection workflow produced and applied `reflection_1e61dbbdb382cea55d697ef81d0430a6` over sequences 41–42. Its evidence-backed memory candidate became active `memory_e876fdc72d7c8fcb21363c028ed40786`; proposal status is `applied` and the watermark advanced. |
+
+The rerun exposed and fixed these deterministic defects before the final
+results above:
+
+- `scene_event` and owner life-event inserts now repeat the predicate of the
+  partial `(fluctlight_id, idempotency_key)` index, avoiding PostgreSQL
+  `42P10`/`scene_persist_failed`.
+- Media activities heartbeat while the slow prompt/download path is in flight,
+  and retries with a persisted Provider job skip prompt regeneration.
+- Schedule planning uses the contract-mandated `cognitive_assessment` role;
+  the prior `reflection` role returned the wrong shape and left the lifecycle
+  intent pending.
+- Pending daily review retries clear a stale activation date, and daily review
+  uses the same `Asia/Shanghai` default as schedule generation when the model
+  omits an identity timezone. This prevents “schedule exists but daily review
+  never sees it”.
+- Cognition accepts the real Provider label `user_preference` conservatively as
+  `observed_fact`, preserving evidence requirements without semantic promotion.
+
+The original failed attempts remain in PostgreSQL as diagnostic evidence (the
+first scene SQL failure, the first unsupported recall label, stale-date schedule
+timeouts, and the current fixture's legitimate `no_op` decision). Embedding
+jobs continue to report the configured `mlx-serve` endpoint as unavailable;
+authoritative Memory rows and full-text recall are independent of that optional
+vector index and were not hidden or rewritten.
+
 ## Continuation verification (2026-08-31)
 
 The existing Compose project `fluctlight-t12-browser-53392` was rebuilt from

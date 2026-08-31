@@ -90,7 +90,12 @@ func (a *App) applySceneCapability(ctx context.Context, fluctlightID, conversati
 	eventID := "event_" + stableDigest(fluctlightID+":"+idempotency)
 	inboxID := ""
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs,idempotency_key,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT(fluctlight_id,idempotency_key) DO NOTHING`, eventID, fluctlightID, "scene_"+kind, start, end, scene, nullableString(stringValue(args["activity"])), nullableString(stringValue(args["location"])), status, jsonBytes(refs), idempotency, sceneExpiry(status, end)); err != nil {
+		// life_events uses a partial unique index because legacy rows may not
+		// have an idempotency key. PostgreSQL can only infer that index when the
+		// conflict target repeats its predicate; omitting it raises SQLSTATE
+		// 42P10 and turns an otherwise valid native scene tool call into a
+		// retryable failure.
+		if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs,idempotency_key,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT(fluctlight_id,idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING`, eventID, fluctlightID, "scene_"+kind, start, end, scene, nullableString(stringValue(args["activity"])), nullableString(stringValue(args["location"])), status, jsonBytes(refs), idempotency, sceneExpiry(status, end)); err != nil {
 			return err
 		}
 		inboxID, err = a.enqueueNativeFactTx(ctx, tx, fluctlightID, conversationID, sourceFactID, "life.scene.updated", "scene:"+idempotency, map[string]any{"event_id": eventID, "scene": scene, "activity": activity, "location": stringValue(args["location"]), "status": status})

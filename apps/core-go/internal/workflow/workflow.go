@@ -99,11 +99,16 @@ func DailyReviewWorkflow(ctx workflow.Context, input Input) (map[string]any, err
 		// Activation enqueues schedule generation and daily review together.
 		// If the review observes the schedule before it is accepted, keep the
 		// durable workflow alive and retry after the schedule workflow has had a
-		// chance to settle instead of losing the only daily contact decision.
+		// chance to settle instead of losing the only daily contact decision. A
+		// stale activation date must not be carried into the retry: schedule
+		// generation always owns the current local day, so let the activity
+		// recalculate it after the bounded wait.
 		if err := workflow.Sleep(ctx, 5*time.Minute); err != nil {
 			return nil, err
 		}
-		return nil, workflow.NewContinueAsNewError(ctx, DailyReviewWorkflow, input)
+		next := input
+		next.LocalDate = ""
+		return nil, workflow.NewContinueAsNewError(ctx, DailyReviewWorkflow, next)
 	}
 	if stringValue(result["status"]) == "inactive" {
 		return result, nil

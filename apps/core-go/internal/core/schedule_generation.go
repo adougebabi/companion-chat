@@ -20,9 +20,11 @@ func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID
 			"life_profile":  lifeProfile,
 		})},
 	}
-	// Schedule planning is a reflective life-world projection; initialization is
-	// reserved for foundation extraction and may use a different schema.
-	result, err := a.Provider.Structured(ctx, "reflection", messages)
+	// Schedule semantics are owned by the cognitive-assessment role. Reflection
+	// consumes an evidence window after the plan is accepted; using it here
+	// returns a reflection proposal shape instead of the required {items,...}
+	// schedule and leaves the lifecycle intent pending forever.
+	result, err := a.Provider.Structured(ctx, "cognitive_assessment", messages)
 	if err != nil {
 		return nil, fmt.Errorf("initial schedule provider request failed: %w", err)
 	}

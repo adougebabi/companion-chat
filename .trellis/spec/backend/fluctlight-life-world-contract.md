@@ -202,3 +202,14 @@ INSERT INTO life_presence(fluctlight_id, actor_id) VALUES ($1, $1)
 ```go
 INSERT INTO life_presence_overlays(fluctlight_id, actor_id, ...) VALUES ($1, $2, ...)
 ```
+
+### Implementation gotchas
+
+- Schedule generation must call the `cognitive_assessment` Provider role. The
+  `reflection` role owns post-window reflection proposals and may return a
+  valid reflection object without `items`; that result remains an explicit
+  `schedule_pending` retry rather than an accepted plan.
+- Schedule and daily-review activities must share the same explicit timezone
+  default (`Asia/Shanghai` when the optional identity field is absent). A
+  pending review that carries an activation date must clear that date before
+  `continue_as_new`, so the next activity recalculates the current local day.

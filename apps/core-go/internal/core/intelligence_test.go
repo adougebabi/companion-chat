@@ -50,7 +50,7 @@ func TestEvaluateClaimsRejectsInvalidKindsAndConfidence(t *testing.T) {
 }
 
 func TestNormalizeClaimKindAcceptsBroadProviderLabels(t *testing.T) {
-	for _, kind := range []string{"semantic", "observation", "recall_confirmation", "memory_recall", "preference_recall", "confirmation"} {
+	for _, kind := range []string{"semantic", "observation", "recall_confirmation", "memory_recall", "preference_recall", "user_preference", "confirmation"} {
 		if got := normalizeClaimKind(kind); got != ClaimObservedFact {
 			t.Fatalf("normalizeClaimKind(%q) = %q, want %q", kind, got, ClaimObservedFact)
 		}

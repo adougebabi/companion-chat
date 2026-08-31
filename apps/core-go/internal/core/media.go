@@ -27,6 +27,9 @@ type mediaIntent struct {
 }
 
 func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
+	stopHeartbeat := startMediaHeartbeat(ctx, intentID)
+	defer stopHeartbeat()
+	activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "loading"})
 	intent, err := a.readMediaIntent(ctx, intentID)
 	if err != nil {
 		return err
@@ -48,16 +51,21 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 		return err
 	}
 	prompt := intent.Prompt
-	value, providerErr := a.Provider.Text(ctx, "media_prompt", []map[string]any{{"role": "system", "content": "Return only the image prompt text."}, {"role": "user", "content": intent.Prompt}})
-	if providerErr != nil || strings.TrimSpace(value) == "" {
-		if providerErr != nil {
-			return fmt.Errorf("media prompt generation failed: %w", providerErr)
-		}
-		return errors.New("media prompt generation returned empty text")
-	}
-	prompt = value
 	providerJobID := intent.ProviderJobID
 	if providerJobID == "" {
+		// A retry with a persisted Provider job must poll that job directly. Do
+		// not regenerate the prompt (or submit another request) after the
+		// external job has already been accepted.
+		activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "prompt"})
+		value, providerErr := a.Provider.Text(ctx, "media_prompt", []map[string]any{{"role": "system", "content": "Return only the image prompt text."}, {"role": "user", "content": intent.Prompt}})
+		if providerErr != nil || strings.TrimSpace(value) == "" {
+			if providerErr != nil {
+				return fmt.Errorf("media prompt generation failed: %w", providerErr)
+			}
+			return errors.New("media prompt generation returned empty text")
+		}
+		prompt = value
+		activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "submit"})
 		workflow = replacePrompt(workflow, prompt)
 		payload, _ := json.Marshal(map[string]any{"prompt": workflow})
 		request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/prompt", bytes.NewReader(payload))
@@ -141,6 +149,36 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 		return err
 	}
 	return a.publishMediaAsset(ctx, intent, assetID)
+}
+
+// startMediaHeartbeat keeps the activity lease alive while the provider prompt
+// call, object download, or other non-polling step is in flight. The polling
+// loop below also records detailed progress, but without this guard a slow
+// local Provider can exceed the 30-second heartbeat timeout before the first
+// poll and Temporal retries the activity unnecessarily.
+func startMediaHeartbeat(ctx context.Context, intentID string) func() {
+	if !activity.IsActivity(ctx) {
+		return func() {}
+	}
+	heartbeatCtx, cancel := context.WithCancel(ctx)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-heartbeatCtx.Done():
+				return
+			case <-ticker.C:
+				activity.RecordHeartbeat(heartbeatCtx, map[string]any{"intent_id": intentID, "phase": "in-flight"})
+			}
+		}
+	}()
+	return func() {
+		cancel()
+		<-done
+	}
 }
 
 func (a *App) readMediaIntent(ctx context.Context, intentID string) (mediaIntent, error) {

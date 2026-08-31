@@ -63,6 +63,13 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
 | Proactive proposal has no direct Conversation target | Reject before autonomy freeze; do not create a conversation or fallback message. |
 | Daily review is retried/replayed | Reuse the stable local-date fact ID; do not create duplicate Moment or proactive Action. |
 
+When a daily-review activity returns `schedule_pending`, the workflow waits a
+bounded interval and continues as new with an empty `local_date`; the next
+activity recalculates the Fluctlight's current local date and rechecks the
+accepted Schedule before asking the model for an action. Carrying the original
+activation date can leave a permanently pending review after a local-day
+boundary.
+
 ### 5. Good / Base / Bad Cases
 
 - Good: intimacy Drive and relationship evidence produce a Goal, a timed Intention, a fresh assessment, one frozen proactive message, and an audited delivery under budget.

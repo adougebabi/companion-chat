@@ -24,7 +24,16 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if fluctlight.Status != "active" {
 		return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "timezone": stringValue(fluctlight.Identity["timezone"]), "status": "inactive"}, nil
 	}
-	location, zoneErr := time.LoadLocation(canonicalTimezone(stringValue(fluctlight.Identity["timezone"])))
+	timezone := stringValue(fluctlight.Identity["timezone"])
+	if timezone == "" {
+		// Schedule lifecycle uses the same explicit deployment default when a
+		// provider omits an optional identity timezone. Without this fallback a
+		// pending activation review resolved in UTC while EnsureCurrentDaySchedule
+		// created the plan in Asia/Shanghai, so the review could never see its
+		// accepted schedule.
+		timezone = "Asia/Shanghai"
+	}
+	location, zoneErr := time.LoadLocation(canonicalTimezone(timezone))
 	if zoneErr != nil {
 		return nil, zoneErr
 	}

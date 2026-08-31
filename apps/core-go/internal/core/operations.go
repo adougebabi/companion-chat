@@ -751,7 +751,7 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 	}
 	id := "event_" + stableDigest(fluctlightID+":"+idempotency)
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'confirmed',$9,$10) ON CONFLICT(fluctlight_id,idempotency_key) DO NOTHING`, id, fluctlightID, stringValue(payload["kind"]), start, end, nullableString(stringValue(payload["scene"])), nullableString(stringValue(payload["activity"])), nullableString(stringValue(payload["location"])), jsonBytes(refs), idempotency); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'confirmed',$9,$10) ON CONFLICT(fluctlight_id,idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING`, id, fluctlightID, stringValue(payload["kind"]), start, end, nullableString(stringValue(payload["scene"])), nullableString(stringValue(payload["activity"])), nullableString(stringValue(payload["location"])), jsonBytes(refs), idempotency); err != nil {
 			return err
 		}
 		if _, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, stringValue(payload["conversation_id"]), "owner:"+actorID, "life.event.created", "life-event:"+idempotency, map[string]any{"event_id": id, "kind": stringValue(payload["kind"])}); err != nil {
