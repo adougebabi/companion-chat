@@ -95,10 +95,24 @@ func DailyReviewWorkflow(ctx workflow.Context, input Input) (map[string]any, err
 	if err := workflow.ExecuteActivity(ctx, ProcessDailyReviewActivity, input).Get(ctx, &result); err != nil {
 		return nil, err
 	}
+	if dailyReviewNeedsRetry(result) {
+		// Activation enqueues schedule generation and daily review together.
+		// If the review observes the schedule before it is accepted, keep the
+		// durable workflow alive and retry after the schedule workflow has had a
+		// chance to settle instead of losing the only daily contact decision.
+		if err := workflow.Sleep(ctx, 5*time.Minute); err != nil {
+			return nil, err
+		}
+		return nil, workflow.NewContinueAsNewError(ctx, DailyReviewWorkflow, input)
+	}
 	if err := control.waitUntilResumed(ctx); err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+func dailyReviewNeedsRetry(result map[string]any) bool {
+	return stringValue(result["status"]) == "pending"
 }
 
 func MediaWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {

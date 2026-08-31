@@ -61,6 +61,15 @@ func TestNextLocalMidnightDelayFallsBackForUnknownTimezone(t *testing.T) {
 	}
 }
 
+func TestDailyReviewNeedsRetryWhenScheduleIsPending(t *testing.T) {
+	if !dailyReviewNeedsRetry(map[string]any{"status": "pending"}) {
+		t.Fatal("pending daily review should be retried")
+	}
+	if dailyReviewNeedsRetry(map[string]any{"status": "completed"}) {
+		t.Fatal("completed daily review should not be retried")
+	}
+}
+
 func TestWorkflowFunctionRegistryIncludesPlatformBoundaries(t *testing.T) {
 	for _, intentType := range []string{"cognition.processing", "platform.control"} {
 		if fn, err := workflowFunction(intentType); err != nil || fn == nil {
