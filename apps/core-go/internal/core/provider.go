@@ -82,33 +82,47 @@ func (p *ProviderClient) secret(ctx context.Context, purpose string) (string, er
 }
 
 func (p *ProviderClient) complete(ctx context.Context, role string, messages []map[string]any, jsonMode bool) (map[string]any, error) {
-	assignment, err := p.assignment(ctx, role)
+	completion, err := p.completeWithTools(ctx, role, messages, jsonMode, nil)
 	if err != nil {
 		return nil, err
-	}
-	correlationID := diagnosticCorrelation(messages, "")
-	payload := map[string]any{
-		"model":       assignment.ModelID,
-		"messages":    messages,
-		"temperature": 0.7,
-		"stream":      false,
 	}
 	if jsonMode {
-		payload["response_format"] = map[string]string{"type": "json_object"}
+		if completion.Structured == nil {
+			return nil, errors.New("provider structured response is empty")
+		}
+		return completion.Structured, nil
 	}
+	return map[string]any{"text": completion.Text}, nil
+}
+
+// StructuredWithTools requests a model assessment with the external
+// capability catalog. Native provider calls and JSON sidecars are normalized
+// into ProviderCompletion before the application sees them.
+func (p *ProviderClient) StructuredWithTools(ctx context.Context, role string, messages []map[string]any, manifests []CapabilityManifest) (ProviderCompletion, error) {
+	return p.completeWithTools(ctx, role, messages, false, manifests)
+}
+
+func (p *ProviderClient) completeWithTools(ctx context.Context, role string, messages []map[string]any, jsonMode bool, manifests []CapabilityManifest) (ProviderCompletion, error) {
+	assignment, err := p.assignment(ctx, role)
+	if err != nil {
+		return ProviderCompletion{}, err
+	}
+	correlationID := diagnosticCorrelation(messages, "")
+	providerRequestID := "provider:" + stableDigest(role+":"+correlationID)
+	payload := providerChatPayload(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, manifests)
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return nil, err
+		return ProviderCompletion{}, err
 	}
 	requestCtx, cancel := context.WithTimeout(ctx, assignment.Timeout)
 	defer cancel()
 	request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
-		return nil, err
+		return ProviderCompletion{}, err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Idempotency-Key", "provider:"+stableDigest(role+":"+correlationID))
-	request.Header.Set("X-Fluctlight-Provider-Request-Id", "provider:"+stableDigest(role+":"+correlationID))
+	request.Header.Set("Idempotency-Key", providerRequestID)
+	request.Header.Set("X-Fluctlight-Provider-Request-Id", providerRequestID)
 	if assignment.Secret != "" {
 		request.Header.Set("Authorization", "Bearer "+assignment.Secret)
 	}
@@ -119,54 +133,95 @@ func (p *ProviderClient) complete(ctx context.Context, role string, messages []m
 	response, err := client.Do(request)
 	if err != nil {
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, err.Error())
-		return nil, fmt.Errorf("provider request failed: %w", err)
+		return ProviderCompletion{}, fmt.Errorf("provider request failed: %w", err)
 	}
 	defer response.Body.Close()
 	data, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
 	if err != nil {
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, err.Error())
-		return nil, err
+		return ProviderCompletion{}, err
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, fmt.Sprintf("http_%d", response.StatusCode))
-		return nil, fmt.Errorf("provider request returned HTTP %d", response.StatusCode)
+		return ProviderCompletion{}, fmt.Errorf("provider request returned HTTP %d", response.StatusCode)
 	}
 	var envelope map[string]any
 	if err := json.Unmarshal(data, &envelope); err != nil {
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_not_json")
-		return nil, fmt.Errorf("provider response is not JSON: %w", err)
+		return ProviderCompletion{}, fmt.Errorf("provider response is not JSON: %w", err)
 	}
 	choices, ok := envelope["choices"].([]any)
 	if !ok || len(choices) == 0 {
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_no_choices")
-		return nil, fmt.Errorf("provider response has no choices")
+		return ProviderCompletion{}, fmt.Errorf("provider response has no choices")
 	}
 	choice, ok := choices[0].(map[string]any)
 	if !ok {
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_choice_invalid")
-		return nil, fmt.Errorf("provider response choice is invalid")
+		return ProviderCompletion{}, fmt.Errorf("provider response choice is invalid")
 	}
 	message, ok := choice["message"].(map[string]any)
 	if !ok {
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_message_invalid")
-		return nil, fmt.Errorf("provider response message is invalid")
+		return ProviderCompletion{}, fmt.Errorf("provider response message is invalid")
 	}
-	content, ok := message["content"].(string)
-	if !ok || strings.TrimSpace(content) == "" {
+	calls, err := NormalizeProviderToolCalls(message["tool_calls"], "", providerRequestID)
+	if err != nil {
+		p.recordProviderFailure(ctx, assignment, correlationID, messages, "tool_call_invalid")
+		return ProviderCompletion{}, err
+	}
+	content, _ := message["content"].(string)
+	content = strings.TrimSpace(content)
+	completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
+	if len(calls) > 0 {
+		for index := range completion.ToolCalls {
+			completion.ToolCalls[index].SourceFactID = ""
+		}
+		if content != "" {
+			var structured map[string]any
+			if json.Unmarshal([]byte(content), &structured) == nil && structured != nil {
+				completion.Structured = structured
+			}
+		}
+		p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"tool_calls": completion.ToolCalls, "text": content})
+		return completion, nil
+	}
+	if content == "" {
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_content_empty")
-		return nil, fmt.Errorf("provider response content is empty")
+		return ProviderCompletion{}, fmt.Errorf("provider response content is empty")
 	}
-	if jsonMode {
+	if jsonMode || len(manifests) > 0 {
 		var structured map[string]any
 		if err := json.Unmarshal([]byte(content), &structured); err != nil {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid")
-			return nil, fmt.Errorf("provider structured response is invalid: %w", err)
+			if jsonMode {
+				p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid")
+				return ProviderCompletion{}, fmt.Errorf("provider structured response is invalid: %w", err)
+			}
+		} else if structured != nil {
+			completion.Structured = structured
 		}
-		p.recordProviderSuccess(ctx, assignment, correlationID, messages, structured)
-		return structured, nil
 	}
-	p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": content})
-	return map[string]any{"text": content}, nil
+	p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured})
+	return completion, nil
+}
+
+func providerChatPayload(model string, messages []map[string]any, tokenBudget int, jsonMode bool, manifests []CapabilityManifest) map[string]any {
+	payload := map[string]any{
+		"model":       model,
+		"messages":    messages,
+		"temperature": 0.7,
+		"stream":      false,
+	}
+	if len(manifests) > 0 {
+		payload["tools"] = ToolCallPayload(manifests)
+		payload["tool_choice"] = "auto"
+	} else if jsonMode {
+		payload["response_format"] = map[string]string{"type": "json_object"}
+	}
+	if tokenBudget > 0 {
+		payload["max_tokens"] = tokenBudget
+	}
+	return payload
 }
 
 func (p *ProviderClient) recordProviderSuccess(ctx context.Context, assignment providerAssignment, correlationID string, messages []map[string]any, response any) {

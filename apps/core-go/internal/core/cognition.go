@@ -46,7 +46,7 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 // EnqueueTurnFact records the source observation before any model call. The
 // per-Fluctlight sequence and idempotency key are durable, so a client retry
 // cannot create a second fact or reorder another Fluctlight's work.
-func (a *App) EnqueueTurnFact(ctx context.Context, actorID, fluctlightID, conversationID, turnID, idempotency, text string) (string, error) {
+func (a *App) EnqueueTurnFact(ctx context.Context, actorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any) (string, error) {
 	inboxID := "inbox_" + stableDigest("turn:"+idempotency)
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var existing, existingText string
@@ -71,7 +71,10 @@ func (a *App) EnqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads SET next_sequence=$2 WHERE fluctlight_id=$1`, fluctlightID, sequence+1); err != nil {
 			return err
 		}
-		payload := map[string]any{"actor_id": actorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text, "idempotency_key": idempotency}
+		if attachmentRefs == nil {
+			attachmentRefs = []any{}
+		}
+		payload := map[string]any{"actor_id": actorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text, "attachment_refs": attachmentRefs, "idempotency_key": idempotency}
 		_, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) VALUES($1,$2,$3,'conversation.turn',$4,$5,$6,$7,now(),'pending')`, inboxID, fluctlightID, sequence, jsonBytes(payload), turnID, "turn:"+turnID, idempotency)
 		if err != nil {
 			return err
@@ -121,6 +124,23 @@ func (a *App) PersistTurnDecision(ctx context.Context, inboxID, fluctlightID, co
 		return err
 	})
 	return result, err
+}
+
+// PersistToolResults records the result of a frozen capability call before
+// realization. A replay can therefore reuse the same external effect instead
+// of submitting a second job when the process crashed after the plugin call.
+func (a *App) PersistToolResults(ctx context.Context, frozenID string, results []ToolResultV1) error {
+	if frozenID == "" {
+		return errors.New("frozen_action_id_required")
+	}
+	commandTag, err := a.DB.Pool().Exec(ctx, `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(payload,'{tool_results}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, frozenID, jsonBytes(results))
+	if err != nil {
+		return err
+	}
+	if commandTag.RowsAffected() != 1 {
+		return ErrConflict
+	}
+	return nil
 }
 
 func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID string, realization map[string]any) error {

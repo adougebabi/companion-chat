@@ -22,6 +22,11 @@ type TurnResult struct {
 	CorrelationID string
 }
 
+type turnCallbacks struct {
+	onActionResult func(map[string]any) error
+	onChunk        func(string) error
+}
+
 func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
 	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
 		return nil, err
@@ -204,6 +209,10 @@ func canonicalTimezone(value string) string {
 }
 
 func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, payload map[string]any) (TurnResult, error) {
+	return a.handleTurn(ctx, actorID, conversationID, payload, turnCallbacks{})
+}
+
+func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, payload map[string]any, callbacks turnCallbacks) (TurnResult, error) {
 	fluctlightID := stringValue(payload["fluctlight_id"])
 	text := stringValue(payload["text"])
 	idempotency := stringValue(payload["idempotency_key"])
@@ -266,7 +275,7 @@ func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, pa
 	if err != nil {
 		return TurnResult{}, err
 	}
-	inboxID, err := a.EnqueueTurnFact(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text)
+	inboxID, err := a.EnqueueTurnFact(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"])
 	if err != nil {
 		return TurnResult{}, err
 	}
@@ -275,6 +284,16 @@ func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, pa
 	var replayedSequence int
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT id,sequence,text FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, "assistant:"+turnID).Scan(&replayedID, &replayedSequence, &replayedText); err == nil {
 		replayed = map[string]any{"id": replayedID, "conversation_id": conversationID, "sequence": replayedSequence, "author_actor_id": fluctlightID, "kind": "assistant", "text": replayedText, "attachment_refs": []any{}}
+		if callbacks.onActionResult != nil {
+			if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
+				return TurnResult{}, err
+			}
+		}
+		if callbacks.onChunk != nil {
+			if err := callbacks.onChunk(replayedText); err != nil {
+				return TurnResult{}, err
+			}
+		}
 		return TurnResult{UserMessage: user, Assistant: replayed, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
 	}
 	profile, _ := a.DB.GetFluctlight(ctx, fluctlightID, actorID)
@@ -282,6 +301,8 @@ func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, pa
 	var decision map[string]any
 	var action string
 	var mediaConcept map[string]any
+	var toolCalls []ToolCallV1
+	var toolResults []ToolResultV1
 	frozen, frozenFound, err := a.LoadFrozenTurn(ctx, inboxID)
 	if err != nil {
 		return TurnResult{}, err
@@ -290,13 +311,35 @@ func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, pa
 		action = frozen.ActionType
 		decision = mapValue(frozen.Payload["decision"])
 		mediaConcept = mapValue(frozen.Payload["media_concept"])
+		toolCalls = toolCallsFromValue(decision["tool_calls"])
+		toolResults = toolResultsFromValue(frozen.Payload["tool_results"])
 	} else {
-		messages := []map[string]any{{"role": "system", "content": "You are the Fluctlight companion. Return a concise Chinese reply. If the user explicitly asks for an image, return JSON with action_type media_request and a visual_concept; otherwise return JSON with action_type reply and response_intent."}, {"role": "user", "content": text}}
-		decision, err = a.Provider.Structured(ctx, "cognitive_assessment", messages)
-		if err != nil {
-			return TurnResult{}, err
+		messages := []map[string]any{{"role": "system", "content": "You are the Fluctlight companion. Return a concise Chinese reply. Use the available capability tool when an external capability is needed. Otherwise return a structured reply intent."}, {"role": "user", "content": text}}
+		manifests := a.capabilityRegistry().Manifests()
+		completion, completionErr := a.Provider.StructuredWithTools(ctx, "cognitive_assessment", messages, manifests)
+		if completionErr != nil {
+			return TurnResult{}, completionErr
 		}
-		action, mediaConcept = resolveDecisionAction(decision)
+		decision = completion.Structured
+		toolCalls = completion.ToolCalls
+		for index := range toolCalls {
+			toolCalls[index].SourceFactID = inboxID
+		}
+		if decision == nil {
+			decision = map[string]any{}
+		}
+		if len(toolCalls) > 0 {
+			if len(toolCalls) > 1 {
+				return TurnResult{}, errors.New("multiple_tool_calls_unsupported")
+			}
+			decision["tool_calls"] = toolCalls
+			action, mediaConcept, err = resolveToolCallAction(toolCalls, toolManifestMap(manifests))
+			if err != nil {
+				return TurnResult{}, err
+			}
+		} else {
+			action, mediaConcept = resolveDecisionAction(decision)
+		}
 		if action != "reply" && action != "media_request" {
 			return TurnResult{}, errors.New("decision_effect_invalid")
 		}
@@ -325,8 +368,30 @@ func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, errors.New("media_concept_invalid")
 		}
 	}
-	visiblePrompt := []map[string]any{{"role": "system", "content": "Write the visible Chinese response for the already selected action. Do not mention implementation."}, {"role": "user", "content": jsonString(map[string]any{"action_type": action, "user_message": text, "persona_profile": map[string]any{"identity": profile.Identity, "personality": profile.Personality, "behavioral_policy": profile.BehavioralPolicy}, "conversation_history": history.Messages})}}
-	visible, err := a.Provider.StreamText(ctx, "action_realization", visiblePrompt, nil)
+	if callbacks.onActionResult != nil {
+		if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
+			return TurnResult{}, err
+		}
+	}
+	mediaIntent := ""
+	if len(toolCalls) > 0 {
+		if len(toolResults) == 0 {
+			toolResults, err = a.ExecuteToolCalls(ctx, fluctlightID, conversationID, inboxID, toolCalls)
+			if err != nil {
+				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "tool_call_failed")
+				return TurnResult{}, err
+			}
+			if err := a.PersistToolResults(ctx, frozen.ID, toolResults); err != nil {
+				return TurnResult{}, err
+			}
+		}
+		mediaIntent = mediaIntentIDFromToolResults(toolResults)
+		if mediaIntent == "" {
+			return TurnResult{}, errors.New("tool_result_media_intent_missing")
+		}
+	}
+	visiblePrompt := []map[string]any{{"role": "system", "content": "Write the visible Chinese response for the already selected action. Do not mention implementation."}, {"role": "user", "content": jsonString(map[string]any{"action_type": action, "user_message": text, "persona_profile": map[string]any{"identity": profile.Identity, "personality": profile.Personality, "behavioral_policy": profile.BehavioralPolicy}, "conversation_history": history.Messages, "tool_results": toolResults})}}
+	visible, err := a.Provider.StreamText(ctx, "action_realization", visiblePrompt, callbacks.onChunk)
 	if err != nil {
 		if frozenFound || frozen.ID != "" {
 			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_failed")
@@ -359,7 +424,6 @@ func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, pa
 	if err != nil {
 		return TurnResult{}, err
 	}
-	mediaIntent := ""
 	if action == "media_request" {
 		concept := mediaConcept
 		if len(concept) == 0 {
@@ -373,14 +437,16 @@ func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, pa
 			// server must not manufacture semantics from visible prose.
 			return TurnResult{}, errors.New("media_concept_invalid")
 		}
-		mediaIntent, err = a.createMediaIntent(ctx, fluctlightID, conversationID, concept)
-		if err != nil {
-			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "media_intent_failed")
-			return TurnResult{}, err
+		if mediaIntent == "" {
+			mediaIntent, err = a.createMediaIntent(ctx, fluctlightID, conversationID, concept)
+			if err != nil {
+				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "media_intent_failed")
+				return TurnResult{}, err
+			}
 		}
 	}
 	if frozen.ID != "" {
-		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent}); err != nil {
+		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent, "tool_results": toolResults}); err != nil {
 			return TurnResult{}, err
 		}
 	}
@@ -391,9 +457,13 @@ func (a *App) createMediaIntent(ctx context.Context, fluctlightID, conversationI
 	id := randomID("media_intent_")
 	workflowID := randomID("media_workflow_")
 	requestID := randomID("media_request_")
+	return id, a.createMediaIntentWithIdentity(ctx, fluctlightID, conversationID, concept, id, workflowID, requestID)
+}
+
+func (a *App) createMediaIntentWithIdentity(ctx context.Context, fluctlightID, conversationID string, concept map[string]any, id, workflowID, requestID string) error {
 	prompt := jsonString(concept)
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.media_intents (id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,conversation_id,status,revision) VALUES ($1,$2,'image','image/png',$3,$4,$5,$6,'pending',0)`, id, fluctlightID, prompt, requestID, workflowID, conversationID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.media_intents (id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,conversation_id,status,revision) VALUES ($1,$2,'image','image/png',$3,$4,$5,$6,'pending',0) ON CONFLICT (id) DO NOTHING`, id, fluctlightID, prompt, requestID, workflowID, conversationID); err != nil {
 			return err
 		}
 		_, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'media','media.generation',$3) ON CONFLICT DO NOTHING`, "media_workflow_intent:"+id, workflowID, jsonBytes(map[string]any{"intent_id": id, "provider_request_id": requestID}))
@@ -402,24 +472,48 @@ func (a *App) createMediaIntent(ctx context.Context, fluctlightID, conversationI
 		}
 		return appendOutboxTx(ctx, tx, "media.intent.created", "media_intent", id, fluctlightID, requestID, "media:"+id, "media-intent:"+id, map[string]any{"intent_id": id, "workflow_id": workflowID})
 	})
-	return id, err
+	return err
 }
 
 func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorID, conversationID string, payload map[string]any) error {
-	result, err := a.HandleTurn(ctx, actorID, conversationID, payload)
-	if err != nil {
-		return err
+	turnID := stringValue(payload["turn_id"])
+	if turnID == "" {
+		turnID = "turn_" + stableDigest(conversationID+":"+stringValue(payload["idempotency_key"]))
 	}
-	frames := []map[string]any{{"type": "action_result", "turn_id": result.TurnID, "sequence": 0, "payload": map[string]any{"message": result.UserMessage, "correlation_id": result.CorrelationID}}, {"type": "token", "turn_id": result.TurnID, "sequence": 1, "payload": map[string]any{"text": result.Assistant["text"]}}, {"type": "completed", "turn_id": result.TurnID, "sequence": 2, "payload": map[string]any{"message_ids": []string{stringValue(result.Assistant["id"])}, "media_intent_id": result.MediaIntentID}}}
-	for _, frame := range frames {
-		if err := json.NewEncoder(writer).Encode(frame); err != nil {
+	sequence := 0
+	started := false
+	writeFrame := func(kind string, framePayload map[string]any) error {
+		if err := json.NewEncoder(writer).Encode(map[string]any{"type": kind, "turn_id": turnID, "sequence": sequence, "payload": framePayload}); err != nil {
 			return err
 		}
+		sequence++
+		started = true
 		if flusher, ok := writer.(http.Flusher); ok {
 			flusher.Flush()
 		}
+		return nil
 	}
-	return nil
+	result, err := a.handleTurn(ctx, actorID, conversationID, payload, turnCallbacks{
+		onActionResult: func(framePayload map[string]any) error {
+			return writeFrame("action_result", framePayload)
+		},
+		onChunk: func(chunk string) error {
+			return writeFrame("token", map[string]any{"text": chunk})
+		},
+	})
+	if err != nil {
+		if !started || ctx.Err() != nil {
+			return err
+		}
+		// Headers and at least one frame are already committed. Emit the one
+		// terminal error with the next monotonic sequence instead of letting the
+		// HTTP handler append a duplicate sequence-zero error.
+		if writeErr := writeFrame("error", map[string]any{"code": "conversation_turn_failed", "message": "The turn could not be completed"}); writeErr != nil {
+			return writeErr
+		}
+		return nil
+	}
+	return writeFrame("completed", map[string]any{"message_ids": []string{stringValue(result.Assistant["id"])}})
 }
 
 func resolveDecisionAction(decision map[string]any) (string, map[string]any) {

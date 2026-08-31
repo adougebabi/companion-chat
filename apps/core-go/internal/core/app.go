@@ -20,13 +20,14 @@ import (
 )
 
 type App struct {
-	DB          *PostgresRepository
-	Provider    *ProviderClient
-	Workflows   WorkflowRuntime
-	SettingsKey []byte
-	ServiceKey  string
-	Storage     *minio.Client
-	S3Bucket    string
+	DB           *PostgresRepository
+	Provider     *ProviderClient
+	Capabilities *CapabilityRegistry
+	Workflows    WorkflowRuntime
+	SettingsKey  []byte
+	ServiceKey   string
+	Storage      *minio.Client
+	S3Bucket     string
 }
 
 func (a *App) SetWorkflowRuntime(runtime WorkflowRuntime) {
@@ -43,14 +44,16 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 	if err != nil {
 		return nil, fmt.Errorf("create object storage client: %w", err)
 	}
-	return &App{
+	app := &App{
 		DB:          repository,
 		Provider:    &ProviderClient{DB: repository, SettingsKey: key, HTTP: &http.Client{Timeout: 15 * time.Minute}},
 		SettingsKey: key,
 		ServiceKey:  serviceKey,
 		Storage:     storage,
 		S3Bucket:    s3Bucket,
-	}, nil
+	}
+	app.Capabilities = NewCapabilityRegistry(&imageCapabilityExecutor{app: app})
+	return app, nil
 }
 
 func randomID(prefix string) string {
