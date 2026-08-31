@@ -578,3 +578,36 @@ Added an opt-in Go Core PostgreSQL-backed read/transport slice; reconciled Core 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 18: Complete Go Core migration and real regression
+
+**Date**: 2026-08-31
+**Task**: Complete Go Core migration and real regression
+**Branch**: `codex/go-core-full-migration`
+
+### Summary
+
+Removed Python Core runtime, completed Go Core/Worker/BFF/Web-only Compose cutover, fenced legacy Temporal executions, restored LLM schedule generation with durable timers, and passed real Docker regression cases 1-7 plus full Go/frontend/static gates.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f7aacdb` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

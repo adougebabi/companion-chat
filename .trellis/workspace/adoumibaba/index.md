@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 17
-- **Last Active**: 2026-08-30
+- **Total Sessions**: 18
+- **Last Active**: 2026-08-31
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~580 | Active |
+| `journal-1.md` | ~613 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 18 | 2026-08-31 | Complete Go Core migration and real regression | `f7aacdb` | `codex/go-core-full-migration` |
 | 17 | 2026-08-30 | Go Core vertical slice and runtime stability | `efecfe5` | `codex/go-core-runtime-stability` |
 | 16 | 2026-08-30 | Complete Go BFF cutover | `35f39be` | `codex/go-bff-cutover` |
 | 15 | 2026-08-29 | Go BFF contract closure | `cb7bba8` | `codex/go-bff-acceptance` |
