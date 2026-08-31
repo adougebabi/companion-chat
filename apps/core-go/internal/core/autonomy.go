@@ -22,7 +22,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		}
 	}
 	if fluctlight.Status != "active" {
-		return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "status": "inactive"}, nil
+		return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "timezone": stringValue(fluctlight.Identity["timezone"]), "status": "inactive"}, nil
 	}
 	location, zoneErr := time.LoadLocation(canonicalTimezone(stringValue(fluctlight.Identity["timezone"])))
 	if zoneErr != nil {
@@ -36,7 +36,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		return nil, err
 	}
 	if !scheduleReady {
-		return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "status": "pending", "error_code": "schedule_pending"}, nil
+		return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "timezone": location.String(), "status": "pending", "error_code": "schedule_pending"}, nil
 	}
 	ownerID, conversationID, err := a.directTarget(ctx, fluctlightID)
 	if err != nil {
@@ -55,7 +55,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	providerID := "provider_" + stableDigest(actionID)
 	var existingStatus, existingType string
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,action_type FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&existingStatus, &existingType); err == nil {
-		return map[string]any{"action_id": actionID, "action_type": existingType, "status": existingStatus}, nil
+		return map[string]any{"action_id": actionID, "action_type": existingType, "local_date": localDate, "timezone": location.String(), "status": existingStatus}, nil
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed", "owner_actor_id": ownerID}, nil
+	return map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": "completed", "owner_actor_id": ownerID}, nil
 }
 
 func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {

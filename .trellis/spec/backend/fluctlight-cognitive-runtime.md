@@ -97,6 +97,11 @@ Interactive work uses two model stages. `assess` / `propose_decision` return no 
   inference about user inactivity. Its idempotency key is stable for one
   Fluctlight/local date/lifecycle trigger and it re-enters the same ordered
   cognition inbox as a conversation fact.
+- `DailyReviewWorkflow` remains durable across local-day boundaries. A
+  Schedule-pending result continues after a bounded delay; a completed or
+  `no_op` day sleeps until the next local midnight and continues with a fresh
+  local date, so proactive contact/moment decisions are not one-shot startup
+  behavior.
 - The first accepted daily-review fact owns an immutable snapshot of its
   schedule, persona, goals, intentions, and conversation target. Retries and
   duplicate lifecycle triggers check the existing fact status before reading

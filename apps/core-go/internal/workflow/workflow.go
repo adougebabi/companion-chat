@@ -105,10 +105,19 @@ func DailyReviewWorkflow(ctx workflow.Context, input Input) (map[string]any, err
 		}
 		return nil, workflow.NewContinueAsNewError(ctx, DailyReviewWorkflow, input)
 	}
+	if stringValue(result["status"]) == "inactive" {
+		return result, nil
+	}
 	if err := control.waitUntilResumed(ctx); err != nil {
 		return nil, err
 	}
-	return result, nil
+	delay := nextLocalMidnightDelay(workflow.Now(ctx), stringValue(result["timezone"]))
+	if err := workflow.Sleep(ctx, delay); err != nil {
+		return nil, err
+	}
+	next := input
+	next.LocalDate = ""
+	return nil, workflow.NewContinueAsNewError(ctx, DailyReviewWorkflow, next)
 }
 
 func dailyReviewNeedsRetry(result map[string]any) bool {
