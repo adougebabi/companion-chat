@@ -185,6 +185,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
 	}
+	proposal = normalizeReflectionProposal(proposal)
 	if err := validateReflectionProposal(proposal, allowedEvidence); err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
@@ -215,6 +216,78 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		return nil, err
 	}
 	return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "applied", "watermark": toSequence, "proposal_id": proposalID}, nil
+}
+
+// normalizeReflectionProposal keeps the reflection boundary tolerant of
+// common provider aliases while remaining fail-closed for incomplete
+// candidates. A malformed optional candidate is omitted; valid candidates in
+// the same proposal can still advance the watermark and be applied.
+func normalizeReflectionProposal(value map[string]any) map[string]any {
+	result := make(map[string]any, 4)
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates"} {
+		items := make([]any, 0)
+		for _, raw := range arrayValue(value[key]) {
+			item := mapValue(raw)
+			if len(item) == 0 {
+				continue
+			}
+			normalized := make(map[string]any, len(item)+2)
+			for field, fieldValue := range item {
+				normalized[field] = fieldValue
+			}
+			switch key {
+			case "memory_candidates":
+				if stringValue(normalized["type"]) == "" {
+					switch stringValue(normalized["memory_type"]) {
+					case "user_preference":
+						normalized["type"] = "semantic"
+					case "context", "interaction_pattern":
+						normalized["type"] = "episodic"
+					}
+				}
+				if stringValue(normalized["visibility"]) == "" {
+					switch stringValue(normalized["scope"]) {
+					case "conversation", "owner":
+						normalized["visibility"] = "owner"
+					case "private":
+						normalized["visibility"] = "private"
+					case "participants":
+						normalized["visibility"] = "participants"
+					}
+				}
+				if stringValue(normalized["content"]) == "" || stringValue(normalized["type"]) == "" || stringValue(normalized["visibility"]) == "" || normalized["importance"] == nil || normalized["emotional_significance"] == nil {
+					continue
+				}
+			case "relationship_candidates":
+				if stringValue(normalized["target_actor_id"]) == "" {
+					normalized["target_actor_id"] = normalized["counterparty_id"]
+				}
+				if stringValue(normalized["trend"]) == "" || stringValue(normalized["target_actor_id"]) == "" {
+					continue
+				}
+			case "self_model_candidates":
+				if stringValue(normalized["category"]) == "" {
+					normalized["category"] = normalized["dimension"]
+				}
+				if stringValue(normalized["claim"]) == "" {
+					normalized["claim"] = normalized["summary"]
+				}
+				if stringValue(normalized["category"]) == "" || stringValue(normalized["claim"]) == "" {
+					continue
+				}
+			case "personality_candidates":
+				if stringValue(normalized["trait"]) == "" {
+					normalized["trait"] = normalized["dimension"]
+				}
+				if stringValue(normalized["trait"]) == "" || normalized["value"] == nil {
+					continue
+				}
+			}
+			items = append(items, normalized)
+		}
+		result[key] = items
+	}
+	return result
 }
 
 func (a *App) claimReflectionWindow(ctx context.Context, fluctlightID string, watermark, stateRevision int) error {

@@ -55,12 +55,14 @@ func (a *App) applyMemoryCapability(ctx context.Context, fluctlightID, conversat
 	}
 	args["source_fact_id"] = sourceFactID
 	args["conversation_id"] = conversationID
-	if len(arrayValue(args["evidence_refs"])) == 0 {
-		args["evidence_refs"] = []any{sourceFactID}
+	refs := arrayValue(args["evidence_refs"])
+	if !containsStringValue(refs, sourceFactID) {
+		// The Runtime owns the current fact boundary. Provider-supplied message
+		// refs remain useful evidence, but the authoritative source fact is
+		// appended rather than making an otherwise valid memory call fail.
+		refs = append(refs, sourceFactID)
 	}
-	if !containsStringValue(arrayValue(args["evidence_refs"]), sourceFactID) {
-		return failedToolResult(call, "memory_evidence_invalid", false, "evidence must include the current source fact"), errors.New("memory evidence invalid")
-	}
+	args["evidence_refs"] = refs
 	if stringValue(args["idempotency_key"]) == "" {
 		args["idempotency_key"] = "tool:" + call.ID
 	}
@@ -207,8 +209,18 @@ func recordMemoryTx(ctx context.Context, tx pgx.Tx, record memoryRecordInput, ac
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,confidence,importance,emotional_significance,visibility,status,revision,search_document) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'active',0,to_tsvector('simple',$4))`, record.ID, record.FluctlightID, record.Type, record.Content, jsonBytes(record.ActorRefs), record.ConversationID, jsonBytes(record.EventRefs), jsonBytes(record.EvidenceRefs), record.Confidence, record.Importance, record.EmotionalSignificance, record.Visibility); err != nil {
+	var generated string
+	if err := tx.QueryRow(ctx, `SELECT is_generated FROM information_schema.columns WHERE table_schema='public' AND table_name='memories' AND column_name='search_document'`).Scan(&generated); err != nil {
 		return nil, err
+	}
+	if generated == "ALWAYS" {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,confidence,importance,emotional_significance,visibility,status,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'active',0)`, record.ID, record.FluctlightID, record.Type, record.Content, jsonBytes(record.ActorRefs), record.ConversationID, jsonBytes(record.EventRefs), jsonBytes(record.EvidenceRefs), record.Confidence, record.Importance, record.EmotionalSignificance, record.Visibility); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,confidence,importance,emotional_significance,visibility,status,revision,search_document) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'active',0,to_tsvector('simple',$4))`, record.ID, record.FluctlightID, record.Type, record.Content, jsonBytes(record.ActorRefs), record.ConversationID, jsonBytes(record.EventRefs), jsonBytes(record.EvidenceRefs), record.Confidence, record.Importance, record.EmotionalSignificance, record.Visibility); err != nil {
+			return nil, err
+		}
 	}
 	revisionID := "memory_revision_" + stableDigest(record.ID+":0")
 	if _, err := tx.Exec(ctx, `INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,status,actor_id,evidence_refs,idempotency_key) VALUES($1,$2,0,0,$3,'active',$4,$5,$6) ON CONFLICT(idempotency_key) DO NOTHING`, revisionID, record.ID, record.Content, actorID, jsonBytes(record.EvidenceRefs), "memory-record:"+record.IdempotencyKey); err != nil {

@@ -29,3 +29,25 @@ func TestValidateReflectionProposalRequiresWindowEvidenceAndNumericFields(t *tes
 		t.Fatal("foreign evidence should be rejected")
 	}
 }
+
+func TestNormalizeReflectionProposalKeepsValidAliasesAndDropsIncompleteCandidates(t *testing.T) {
+	proposal := normalizeReflectionProposal(map[string]any{
+		"memory_candidates": []any{
+			map[string]any{"memory_type": "user_preference", "scope": "conversation", "content": "喜欢蓝灰色", "confidence": 0.9, "importance": 0.8, "emotional_significance": 0.4},
+			map[string]any{"memory_type": "context", "scope": "conversation", "content": "缺少数值字段", "confidence": 0.7},
+		},
+		"self_model_candidates":   []any{map[string]any{"dimension": "taste", "summary": "我偏好克制的色彩", "confidence": 0.8, "evidence_refs": []any{"fact-1"}}},
+		"relationship_candidates": []any{map[string]any{"counterparty_id": "human-1", "relationship_type": "collaborator", "evidence_refs": []any{"fact-1"}}},
+	})
+	memory := arrayValue(proposal["memory_candidates"])
+	if len(memory) != 1 || stringValue(mapValue(memory[0])["type"]) != "semantic" || stringValue(mapValue(memory[0])["visibility"]) != "owner" {
+		t.Fatalf("normalized memory candidates = %#v", memory)
+	}
+	self := arrayValue(proposal["self_model_candidates"])
+	if len(self) != 1 || stringValue(mapValue(self[0])["category"]) != "taste" || stringValue(mapValue(self[0])["claim"]) != "我偏好克制的色彩" {
+		t.Fatalf("normalized self-model candidates = %#v", self)
+	}
+	if got := len(arrayValue(proposal["relationship_candidates"])); got != 0 {
+		t.Fatalf("incomplete relationship candidates = %d, want 0", got)
+	}
+}
