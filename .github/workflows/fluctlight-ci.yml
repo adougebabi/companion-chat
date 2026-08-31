@@ -135,8 +135,43 @@ jobs:
 
   # The integration branch is the only non-production branch allowed to push
   # images. Stage branches should merge here before their images are shared.
-  go-build:
+  compose-smoke:
     needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/go-build'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Prepare disposable Compose environment
+        shell: bash
+        run: |
+          {
+            echo 'FLUCTLIGHT_ENV=ci'
+            echo 'FLUCTLIGHT_CORE_SERVICE_KEY=ci-core-service-key'
+            echo 'FLUCTLIGHT_SETTINGS_KEY=ci-settings-key'
+            echo 'FLUCTLIGHT_TRUSTED_ORIGIN=http://127.0.0.1:13001'
+            echo 'FLUCTLIGHT_BFF_ORIGIN=http://127.0.0.1:13000'
+            echo 'FLUCTLIGHT_SECURE_COOKIES=false'
+            echo 'POSTGRES_USER=fluctlight'
+            echo 'POSTGRES_PASSWORD=ci-postgres-password'
+            echo 'POSTGRES_DB=fluctlight'
+            echo 'REDIS_URL=redis://redis:6379/0'
+            echo 'S3_ACCESS_KEY=fluctlight'
+            echo 'S3_SECRET_KEY=ci-s3-secret'
+            echo 'S3_BUCKET=fluctlight-media'
+            echo 'TEMPORAL_NAMESPACE=default'
+            echo 'TEMPORAL_WORKER_BUILD_ID=ci-smoke'
+          } > "$RUNNER_TEMP/fluctlight.env"
+
+      - name: Run disposable Compose smoke
+        env:
+          FLUCTLIGHT_ENV_FILE: ${{ runner.temp }}/fluctlight.env
+        run: ./infra/compose/run-platform-smoke.sh
+
+  go-build:
+    needs: [validate, compose-smoke]
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/go-build'
     runs-on: ubuntu-latest
     steps:

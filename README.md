@@ -37,6 +37,9 @@ The full disposable Compose smoke and recovery checks are under
 Temporal default/visibility databases and `.env` are backed up together using
 the manifest tooling under `infra/backup/`.
 
+Pushes to `codex/go-build` also run this disposable smoke in GitHub Actions
+before the branch is allowed to publish Docker images.
+
 The repository contains only the clean-start Fluctlight runtime. Deploy with
 `infra/compose/fluctlight.compose.yml` and a private, untracked environment
 file based on `infra/compose/fluctlight.env.example`.
