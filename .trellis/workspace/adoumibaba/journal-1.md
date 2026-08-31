@@ -677,3 +677,37 @@ Added PostgreSQL outbox claim/retry/terminal handling, Redis Streams publisher a
 ### Next Steps
 
 - None - task complete
+
+
+## Session 21: Fluctlight Intelligence P1 closure
+
+**Date**: 2026-08-31
+**Task**: Fluctlight Intelligence P1 closure
+**Branch**: `codex/fluctlight-runtime-phase1`
+
+### Summary
+
+Created a dedicated worktree, retained POST NDJSON for turns, added canonical native/external capability slots and tool calls, implemented ContextProjection, self-evaluation/claim gating, scene/presence, Memory retrieval and revisions, Reflection/evolution with CAS and rollback, and validated Go Core/Gateway tests, vet, build and race suites. Browser pnpm checks remain environment-blocked by npm DNS.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `371b136` | (see git log) |
+| `a917517` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
