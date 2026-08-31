@@ -460,6 +460,7 @@ func evaluateClaims(rawClaims []any, sourceFactID string, context ContextProject
 			return nil, nil, nil, fmt.Errorf("claim_%d_invalid", index)
 		}
 		kind := firstString(claim["kind"], firstString(claim["claim_type"], ""))
+		kind = normalizeClaimKind(kind)
 		if _, ok := validClaimKinds[kind]; !ok {
 			return nil, nil, nil, fmt.Errorf("claim_%d_kind_invalid", index)
 		}
@@ -500,6 +501,18 @@ func evaluateClaims(rawClaims []any, sourceFactID string, context ContextProject
 		}
 	}
 	return approved, uncertain, omitted, nil
+}
+
+func normalizeClaimKind(kind string) string {
+	switch kind {
+	case "semantic", "observation":
+		// Common providers use these broad labels for an evidence-backed
+		// statement. The Runtime keeps the claim grounded as an observed fact;
+		// it does not promote it to a stronger semantic state.
+		return ClaimObservedFact
+	default:
+		return kind
+	}
 }
 
 func boundedNumberOrError(value any, fallback float64) (float64, error) {

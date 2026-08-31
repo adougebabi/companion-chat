@@ -49,6 +49,17 @@ func TestEvaluateClaimsRejectsInvalidKindsAndConfidence(t *testing.T) {
 	}
 }
 
+func TestNormalizeClaimKindAcceptsBroadProviderLabels(t *testing.T) {
+	for _, kind := range []string{"semantic", "observation"} {
+		if got := normalizeClaimKind(kind); got != ClaimObservedFact {
+			t.Fatalf("normalizeClaimKind(%q) = %q, want %q", kind, got, ClaimObservedFact)
+		}
+	}
+	if got := normalizeClaimKind("made_up"); got != "made_up" {
+		t.Fatalf("unknown claim kind normalized to %q", got)
+	}
+}
+
 func TestRepetitionKeyIsDeterministicAndBounded(t *testing.T) {
 	left := repetitionKeyFor("我最近 很喜欢 安静的咖啡馆")
 	right := repetitionKeyFor("我最近，很喜欢：安静的咖啡馆")
