@@ -41,6 +41,22 @@ The repository contains only the clean-start Fluctlight runtime. Deploy with
 `infra/compose/fluctlight.compose.yml` and a private, untracked environment
 file based on `infra/compose/fluctlight.env.example`.
 
+The Compose file uses strict bind mounts for its PostgreSQL and Redis files. A
+deployment must include the complete `infra/postgres/` and `infra/redis/`
+directories; a missing file must not be replaced with a host directory. Run
+the bind-source preflight before starting the stack:
+
+```bash
+./infra/acceptance/check-compose-bind-sources.sh
+```
+
+If an earlier Compose run created a directory named
+`infra/postgres/10-temporal-databases.sql`, stop the stack and replace that
+directory with the tracked SQL file before retrying. PostgreSQL init scripts
+run only when the data volume is empty, so an already-initialized volume must
+also be checked for both `temporal` and `temporal_visibility` databases before
+starting Temporal.
+
 On a fresh database, issue the one-time Owner setup token from the Go image and
 use it through `/auth/setup`:
 

@@ -4,6 +4,7 @@ set -eu
 compose_file="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/fluctlight.compose.yml"
 env_file="${FLUCTLIGHT_ENV_FILE:-$(dirname "$compose_file")/fluctlight.env}"
 project_name="fluctlight-smoke-$$"
+bind_source_check="$(dirname "$compose_file")/../acceptance/check-compose-bind-sources.sh"
 export BFF_HOST_PORT="${BFF_HOST_PORT:-0}"
 export WEB_HOST_PORT="${WEB_HOST_PORT:-0}"
 
@@ -46,7 +47,7 @@ cleanup() {
 
 diagnose() {
   compose ps >&2 || true
-  compose logs --no-color migrate minio-init core worker bff >&2 || true
+  compose logs --no-color postgres redis minio temporal migrate minio-init cutover core worker bff web >&2 || true
 }
 
 check_bff_ready() {
@@ -70,9 +71,10 @@ case "${1:-}" in
 esac
 
 assert_disposable_project
+"$bind_source_check" "$compose_file"
 compose_started=1
 compose config >/dev/null
-if ! compose up --build --detach; then
+if ! compose up --build --detach --wait --wait-timeout 180; then
   diagnose
   exit 1
 fi
@@ -88,4 +90,28 @@ until check_bff_ready; do
 done
 
 check_bff_ping
-compose ps --status running
+compose ps --all
+
+for service in postgres redis minio temporal core worker bff web; do
+  status=$(compose ps --all --format '{{.Service}}|{{.State}}|{{.Health}}|{{.ExitCode}}' "$service")
+  case "$status" in
+    "$service|running|healthy|0") ;;
+    *)
+      printf '%s\n' "service is not healthy: $status" >&2
+      diagnose
+      exit 1
+      ;;
+  esac
+done
+
+for service in migrate minio-init cutover; do
+  status=$(compose ps --all --format '{{.Service}}|{{.State}}|{{.Health}}|{{.ExitCode}}' "$service")
+  case "$status" in
+    "$service|exited||0") ;;
+    *)
+      printf '%s\n' "one-shot service did not exit successfully: $status" >&2
+      diagnose
+      exit 1
+      ;;
+  esac
+done

@@ -9,9 +9,20 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in private env}
     volumes:
       - fluctlight_postgres:/var/lib/postgresql/data
-      - ../postgres/10-temporal-databases.sql:/docker-entrypoint-initdb.d/10-temporal-databases.sql:ro
+      - type: bind
+        source: ../postgres/10-temporal-databases.sql
+        target: /docker-entrypoint-initdb.d/10-temporal-databases.sql
+        read_only: true
+        bind:
+          create_host_path: false
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test:
+        - CMD-SHELL
+        - >-
+          pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} &&
+          psql -U $${POSTGRES_USER} -d postgres -Atqc
+          "SELECT count(*) = 2 FROM pg_database WHERE datname IN
+          ('temporal', 'temporal_visibility')" | grep -qx t
       interval: 3s
       timeout: 3s
       retries: 20
@@ -23,7 +34,12 @@ services:
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     volumes:
       - fluctlight_redis:/data
-      - ../redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - type: bind
+        source: ../redis/redis.conf
+        target: /usr/local/etc/redis/redis.conf
+        read_only: true
+        bind:
+          create_host_path: false
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 3s
@@ -173,6 +189,8 @@ services:
       migrate:
         condition: service_completed_successfully
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully

@@ -108,3 +108,35 @@ await Replayer(workflows=[CompatibleWorkflow]).replay_workflow(saved_history)
 # Deploy through the current Worker Deployment Versioning strategy,
 # retain rollback compatibility, then drain or continue-as-new old histories.
 ```
+
+## Deployment Invariants
+
+- Compose bind sources for `infra/postgres/10-temporal-databases.sql` and
+  `infra/redis/redis.conf` must be regular files before startup. File mounts
+  use `bind.create_host_path: false`; a missing source must fail before a
+  container is created rather than being silently replaced by a directory.
+- PostgreSQL readiness is not satisfied by `pg_isready` alone. The probe must
+  also verify that both `temporal` and `temporal_visibility` exist, because
+  `/docker-entrypoint-initdb.d` scripts run only for an empty data volume.
+- The disposable Compose smoke must wait for every long-running service to be
+  healthy and assert successful exit codes for `migrate`, `minio-init`, and
+  `cutover`. Logging only application services is insufficient to diagnose a
+  PostgreSQL or Temporal bootstrap failure.
+
+### Common Mistake
+
+```yaml
+# Wrong: Compose creates a host directory when the SQL file is absent.
+- ../postgres/10-temporal-databases.sql:/docker-entrypoint-initdb.d/10-temporal-databases.sql:ro
+```
+
+```yaml
+# Correct: the deployment fails deterministically and the preflight reports
+# the missing source before Docker creates any containers or volumes.
+- type: bind
+  source: ../postgres/10-temporal-databases.sql
+  target: /docker-entrypoint-initdb.d/10-temporal-databases.sql
+  read_only: true
+  bind:
+    create_host_path: false
+```

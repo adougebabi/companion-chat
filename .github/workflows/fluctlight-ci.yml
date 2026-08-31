@@ -91,6 +91,9 @@ jobs:
       - name: Check Go Core OpenAPI route parity
         run: ./infra/acceptance/check-core-openapi.sh
 
+      - name: Check Compose bind sources
+        run: ./infra/acceptance/check-compose-bind-sources.sh
+
       - name: Validate Go-only Compose topology
         run: docker compose --env-file infra/compose/fluctlight.env.example -f infra/compose/fluctlight.compose.yml config --quiet
 
