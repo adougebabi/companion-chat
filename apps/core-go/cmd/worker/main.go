@@ -62,6 +62,8 @@ func main() {
 	defer dispatchTicker.Stop()
 	healthTicker := time.NewTicker(5 * time.Second)
 	defer healthTicker.Stop()
+	retentionTicker := time.NewTicker(15 * time.Minute)
+	defer retentionTicker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
@@ -76,9 +78,16 @@ func main() {
 				logger.Error("Go Worker health signal failed", "error", err)
 				return
 			}
+		case <-retentionTicker.C:
+			if _, err := application.PruneDiagnostics(ctx, 30*24*time.Hour, 10000); err != nil {
+				logger.Warn("Go Worker diagnostics retention retry", "error", err)
+			}
 		case <-dispatchTicker.C:
 			if _, err := dispatcher.DispatchOnce(ctx, 20); err != nil {
 				logger.Warn("Go Worker dispatcher retry", "error", err)
+			}
+			if _, err := dispatcher.ReconcileOnce(ctx, 50); err != nil {
+				logger.Warn("Go Worker intent reconciliation retry", "error", err)
 			}
 		}
 	}

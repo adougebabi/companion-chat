@@ -103,7 +103,7 @@ func normalizeScheduleResponse(result map[string]any, localDate, timezone string
 		}
 		resultItems = append(resultItems, entry.item)
 	}
-	return map[string]any{"local_date": localDate, "timezone": timezone, "items": resultItems, "evidence_refs": []any{"foundation:" + "pending"}}, nil
+	return map[string]any{"local_date": localDate, "timezone": timezone, "items": resultItems, "reschedule_policy": result["reschedule_policy"], "evidence_refs": []any{"foundation:" + "pending"}}, nil
 }
 
 func parseScheduleTimeInLocation(value string, day time.Time, location *time.Location) (time.Time, error) {

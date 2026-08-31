@@ -15,6 +15,7 @@ import (
 
 var ErrNotFound = errors.New("resource not found")
 var ErrUnauthorized = errors.New("resource is not authorized")
+var ErrConflict = errors.New("resource revision conflict")
 
 type Repository interface {
 	Ping(context.Context) error

@@ -10,6 +10,7 @@ func browserPage(page map[string]any) map[string]any {
 	conversationOut := map[string]any{
 		"id":               conversation["id"],
 		"createdByActorId": conversation["created_by_actor_id"],
+		"title":            conversation["title"],
 
 		"revision":  conversation["revision"],
 		"createdAt": conversation["created_at"],

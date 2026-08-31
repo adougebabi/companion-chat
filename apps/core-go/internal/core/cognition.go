@@ -23,8 +23,13 @@ type frozenTurn struct {
 func (a *App) EnqueueTurnFact(ctx context.Context, actorID, fluctlightID, conversationID, turnID, idempotency, text string) (string, error) {
 	inboxID := "inbox_" + stableDigest("turn:"+idempotency)
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var existing string
-		if err := tx.QueryRow(ctx, `SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key=$2`, fluctlightID, idempotency).Scan(&existing); err == nil {
+		var existing, existingText string
+		var existingPayload []byte
+		if err := tx.QueryRow(ctx, `SELECT id,payload FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key=$2`, fluctlightID, idempotency).Scan(&existing, &existingPayload); err == nil {
+			existingText = stringValue(decodeObject(existingPayload)["text"])
+			if existingText != text || stringValue(decodeObject(existingPayload)["conversation_id"]) != conversationID || stringValue(decodeObject(existingPayload)["actor_id"]) != actorID {
+				return ErrConflict
+			}
 			inboxID = existing
 			return nil
 		} else if !errors.Is(err, pgx.ErrNoRows) {

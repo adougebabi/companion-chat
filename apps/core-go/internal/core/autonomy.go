@@ -21,6 +21,23 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 			return nil, err
 		}
 	}
+	if fluctlight.Status != "active" {
+		return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "status": "inactive"}, nil
+	}
+	location, zoneErr := time.LoadLocation(canonicalTimezone(stringValue(fluctlight.Identity["timezone"])))
+	if zoneErr != nil {
+		return nil, zoneErr
+	}
+	if localDate == "" {
+		localDate = time.Now().In(location).Format("2006-01-02")
+	}
+	var scheduleReady bool
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted')`, fluctlightID, localDate).Scan(&scheduleReady); err != nil {
+		return nil, err
+	}
+	if !scheduleReady {
+		return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "status": "pending", "error_code": "schedule_pending"}, nil
+	}
 	ownerID, conversationID, err := a.directTarget(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
@@ -57,15 +74,34 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		}
 	}
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions (id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id,created_at,settled_at) VALUES ($1,$2,$3,$4,'{}','{}','completed',$5,$6,now(),now())`, actionID, fluctlightID, actionType, jsonBytes(map[string]any{"text": visible, "conversation_id": conversationID, "response_intent": decision["response_intent"]}), workflowID, providerID); err != nil {
+		payload := map[string]any{"text": visible, "conversation_id": conversationID, "response_intent": decision["response_intent"], "decision": decision}
+		if media := mediaConceptValue(decision["moment_media_request"]); len(media) > 0 {
+			payload["moment_media_request"] = media
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions (id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id,created_at,settled_at) VALUES ($1,$2,$3,$4,'{}','{}','completed',$5,$6,now(),now())`, actionID, fluctlightID, actionType, jsonBytes(payload), workflowID, providerID); err != nil {
 			return err
 		}
 		if actionType == "proactive_message" {
 			return appendAssistantTx(ctx, tx, conversationID, fluctlightID, visible, "proactive:"+actionID)
 		}
 		if actionType == "moment" {
-			if _, err := tx.Exec(ctx, `INSERT INTO public.moments (id,owner_fluctlight_id,author_actor_id,text,visibility,status,media_asset_ids) VALUES ($1,$2,$3,$4,'participants','visible','[]') ON CONFLICT DO NOTHING`, "moment_"+stableDigest(actionID), fluctlightID, fluctlightID, visible); err != nil {
+			if len([]rune(visible)) == 0 || len([]rune(visible)) > 32000 {
+				return errors.New("moment_text_invalid")
+			}
+			momentID := "moment_" + stableDigest(actionID)
+			if _, err := tx.Exec(ctx, `INSERT INTO public.moments (id,owner_fluctlight_id,author_actor_id,text,visibility,status,media_asset_ids) VALUES ($1,$2,$3,$4,'participants','visible','[]') ON CONFLICT DO NOTHING`, momentID, fluctlightID, fluctlightID, visible); err != nil {
 				return err
+			}
+			if media := mediaConceptValue(decision["moment_media_request"]); len(media) > 0 {
+				intentID := "media_intent_" + stableDigest(actionID)
+				mediaWorkflowID := "media_workflow_" + stableDigest(actionID)
+				mediaRequestID := "media_request_" + stableDigest(actionID)
+				if _, err := tx.Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,moment_id,status,revision) VALUES($1,$2,'image','image/png',$3,$4,$5,$6,'pending',0) ON CONFLICT DO NOTHING`, intentID, fluctlightID, jsonString(media), mediaRequestID, mediaWorkflowID, momentID); err != nil {
+					return err
+				}
+				if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'media','media.generation',$3) ON CONFLICT DO NOTHING`, "media_workflow_intent:"+intentID, mediaWorkflowID, jsonBytes(map[string]any{"intent_id": intentID, "provider_request_id": mediaRequestID})); err != nil {
+					return err
+				}
 			}
 		}
 		return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, workflowID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed"})

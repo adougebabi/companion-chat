@@ -100,3 +100,63 @@ async def turn(dto: TurnRequestDTO, commands: TurnCommandsDep):
     result = await commands.accept_turn(command)
     return map_turn_result(result)
 ```
+
+## Scenario: Strict Go Core Boundary And Workflow Namespaces
+
+### 1. Scope / Trigger
+
+- Trigger: a Core mutation receives JSON, a workflow is managed through the
+  API, or an NDJSON completion crosses the BFF boundary.
+
+### 2. Signatures
+
+- Core request bodies decode as exactly one JSON object with no trailing value.
+- Temporal management normalizes durable intent IDs to the `go:` namespace for
+  status, history, signal, cancel, reset and restart.
+
+### 3. Contracts
+
+- CAS conflicts produce no mutation and an explicit conflict result.
+- Reset accepts only a real `WorkflowTaskCompleted` event ID.
+- Completed stream payloads expose browser-visible message IDs only; workflow,
+  Provider and media-intent internals stay inside Core.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| concatenated/trailing JSON | bounded request-validation error |
+| stale expected revision | no mutation and explicit conflict |
+| unknown workflow ID | not found; no Temporal call |
+| reset point is not a completed workflow task | reject before reset |
+
+### 5. Good/Base/Bad Cases
+
+- Good: raw and `go:` workflow IDs address one execution and one audit row.
+- Base: an empty body is accepted only for bodyless pause/resume/cancel.
+- Bad: accepting a second JSON value or forwarding `media_intent_id` to the
+  browser.
+
+### 6. Tests Required
+
+- Route tests for malformed/trailing JSON, missing CAS fields, unauthorized
+  resources and conflict no-mutation behavior.
+- Temporal adapter tests for ID normalization, history-point validation and
+  command idempotency.
+- NDJSON tests for frame bounds and completion payload allow-listing.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+decoder.Decode(&body) // ignore a second JSON value
+client.DescribeWorkflowExecution(ctx, rawWorkflowID, "")
+```
+
+#### Correct
+
+```go
+body, ok := decodeObjectBody(limitedBody)
+workflowID = normalizedWorkflowID(rawWorkflowID)
+```

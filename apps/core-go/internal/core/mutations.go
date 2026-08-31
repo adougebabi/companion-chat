@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,7 +30,7 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 	if err != nil {
 		return nil, errors.New("schedule_accept_failed")
 	}
-	timezone := stringValue(payload["timezone"])
+	timezone := canonicalTimezone(stringValue(payload["timezone"]))
 	if timezone == "" {
 		return nil, errors.New("schedule_accept_failed")
 	}
@@ -47,25 +49,79 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 	scheduleID := randomID("schedule_")
 	now := time.Now().UTC()
 	revision := 1
+	location, _ := time.LoadLocation(timezone)
+	type scheduleEntry struct {
+		item       map[string]any
+		start, end time.Time
+	}
+	entries := make([]scheduleEntry, 0, len(items))
+	for _, raw := range items {
+		item := mapValue(raw)
+		if len(item) == 0 {
+			return nil, errors.New("schedule item invalid")
+		}
+		start, e1 := parseScheduleTime(stringValue(item["start_at"]))
+		end, e2 := parseScheduleTime(stringValue(item["end_at"]))
+		if e1 != nil || e2 != nil || !end.After(start) {
+			return nil, errors.New("schedule item time is invalid")
+		}
+		if strings.TrimSpace(stringValue(item["activity"])) == "" || strings.TrimSpace(stringValue(item["scene"])) == "" {
+			return nil, errors.New("schedule item activity and scene are required")
+		}
+		for _, field := range []string{"priority", "flexibility", "interruption_cost"} {
+			if rawValue, ok := item[field]; ok && rawValue != nil {
+				normalizedValue := normalizeScheduleScalar(rawValue)
+				item[field] = normalizedValue
+				value, ok := numberFloat(normalizedValue)
+				if !ok || value < 0 || value > 1 {
+					return nil, errors.New("schedule item numeric value invalid")
+				}
+			}
+		}
+		entries = append(entries, scheduleEntry{item: item, start: start, end: end})
+	}
+	sort.SliceStable(entries, func(i, j int) bool { return entries[i].start.Before(entries[j].start) })
+	dayStart := time.Date(localDate.Year(), localDate.Month(), localDate.Day(), 0, 0, 0, 0, location)
+	nextDay := dayStart.AddDate(0, 0, 1)
+	if !entries[0].start.In(location).Equal(dayStart) || !entries[len(entries)-1].end.In(location).Equal(nextDay) {
+		return nil, errors.New("schedule must cover complete local day")
+	}
+	for index := range entries {
+		if index > 0 && !entries[index].start.Equal(entries[index-1].end) {
+			return nil, errors.New("schedule items must be contiguous")
+		}
+		if entries[index].start.In(location).Before(dayStart) || entries[index].end.In(location).After(nextDay) {
+			return nil, errors.New("schedule item outside local day")
+		}
+	}
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, fluctlightID+":"+localDate.Format("2006-01-02")); err != nil {
+			return err
+		}
 		var current int
 		err := tx.QueryRow(ctx, `SELECT revision FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted' ORDER BY revision DESC LIMIT 1`, fluctlightID, localDate).Scan(&current)
+		found := err == nil
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
 		if errors.Is(err, pgx.ErrNoRows) {
 			current = 0
 		}
+		if found && expected == nil {
+			return errors.New("schedule acceptance requires expected revision")
+		}
 		if expected != nil && *expected != current {
-			return errors.New("schedule revision is stale")
+			return ErrConflict
 		}
 		revision = current + 1
-		if current > 0 {
-			if _, err := tx.Exec(ctx, `UPDATE public.life_schedules SET status='superseded' WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted'`, fluctlightID, localDate); err != nil {
-				return err
-			}
+		if _, err := tx.Exec(ctx, `UPDATE public.life_schedules SET status='superseded' WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted'`, fluctlightID, localDate); err != nil {
+			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedules (id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision,generated_at,reschedule_policy) VALUES ($1,$2,$3,$4,'accepted','owner',$5,$6,$7,'{}')`, scheduleID, fluctlightID, localDate, timezone, jsonBytes(payload["evidence_refs"]), revision, now); err != nil {
+		evidence := arrayValue(payload["evidence_refs"])
+		if len(evidence) == 0 {
+			evidence = []any{"owner:" + actorID}
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedules (id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision,generated_at,reschedule_policy) VALUES ($1,$2,$3,$4,'accepted','owner',$5,$6,$7,$8)`, scheduleID, fluctlightID, localDate, timezone, jsonBytes(evidence), revision, now, jsonBytes(payload["reschedule_policy"])); err != nil {
 			return err
 		}
 		var previousID string
@@ -74,17 +130,13 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 			_, _ = tx.Exec(ctx, `UPDATE public.life_schedules SET previous_version_id=$2 WHERE id=$1`, scheduleID, previousID)
 		}
 		var previousEnd *time.Time
-		for _, raw := range items {
-			item := mapValue(raw)
-			start, e1 := parseScheduleTime(stringValue(item["start_at"]))
-			end, e2 := parseScheduleTime(stringValue(item["end_at"]))
-			if e1 != nil || e2 != nil || !end.After(start) {
-				return errors.New("schedule item time is invalid")
-			}
+		for _, entry := range entries {
+			item := entry.item
+			start, end := entry.start, entry.end
 			if previousEnd != nil && !start.Equal(*previousEnd) {
 				return errors.New("schedule items must be contiguous")
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,item_type,status,priority,flexibility,interruption_cost) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, randomID("schedule_item_"), scheduleID, start, end, stringValue(item["activity"]), stringValue(item["scene"]), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5)); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,item_type,status,priority,flexibility,interruption_cost) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, randomID("schedule_item_"), scheduleID, start, end, strings.TrimSpace(stringValue(item["activity"])), strings.TrimSpace(stringValue(item["scene"])), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5)); err != nil {
 				return err
 			}
 			previousEnd = &end
@@ -97,7 +149,33 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": scheduleID, "local_date": localDate.Format("2006-01-02"), "revision": revision, "status": "accepted"}, nil
+	return map[string]any{"id": scheduleID, "local_date": localDate.Format("2006-01-02"), "timezone": timezone, "revision": revision, "status": "accepted", "reschedule_policy": payload["reschedule_policy"]}, nil
+}
+
+// ReplanSchedule shares the immutable acceptance/CAS path but refuses to
+// rewrite a completed interval. Callers provide the completed boundary in
+// RFC3339; completed items must be carried forward unchanged by the planner.
+func (a *App) ReplanSchedule(ctx context.Context, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
+	boundaryValue := stringValue(payload["completed_before"])
+	if boundaryValue == "" {
+		return a.AcceptSchedule(ctx, actorID, fluctlightID, payload)
+	}
+	boundary, err := time.Parse(time.RFC3339, boundaryValue)
+	if err != nil {
+		return nil, errors.New("completed_before_invalid")
+	}
+	for _, raw := range arrayValue(payload["items"]) {
+		item := mapValue(raw)
+		start, startErr := parseScheduleTime(stringValue(item["start_at"]))
+		end, endErr := parseScheduleTime(stringValue(item["end_at"]))
+		if startErr != nil || endErr != nil {
+			return nil, errors.New("schedule item time is invalid")
+		}
+		if start.Before(boundary) && end.After(boundary) {
+			return nil, errors.New("schedule replan crosses completed boundary")
+		}
+	}
+	return a.AcceptSchedule(ctx, actorID, fluctlightID, payload)
 }
 
 func parseScheduleTime(value string) (time.Time, error) {
@@ -113,13 +191,25 @@ func parseScheduleTime(value string) (time.Time, error) {
 	return time.Parse(time.RFC3339, value)
 }
 
+func canonicalTimezone(value string) string {
+	normalized := strings.TrimSpace(value)
+	switch strings.ToLower(normalized) {
+	case "utc+8", "utc+08:00", "gmt+8", "gmt+08:00", "china standard time", "cst":
+		return "Asia/Shanghai"
+	case "utc", "gmt", "z":
+		return "UTC"
+	default:
+		return normalized
+	}
+}
+
 func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, payload map[string]any) (TurnResult, error) {
 	fluctlightID := stringValue(payload["fluctlight_id"])
 	text := stringValue(payload["text"])
 	idempotency := stringValue(payload["idempotency_key"])
 	turnID := stringValue(payload["turn_id"])
 	if turnID == "" {
-		turnID = "turn_" + randomID("")
+		turnID = "turn_" + stableDigest(conversationID+":"+idempotency)
 	}
 	if fluctlightID == "" || text == "" || idempotency == "" {
 		return TurnResult{}, errors.New("conversation_turn_invalid")
@@ -132,16 +222,24 @@ func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, pa
 		var existingID string
 		var existingText string
 		var existingSequence int
-		err := tx.QueryRow(ctx, `SELECT id,sequence,text FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, idempotency).Scan(&existingID, &existingSequence, &existingText)
+		var existingAuthor string
+		var existingAttachments []byte
+		err := tx.QueryRow(ctx, `SELECT id,sequence,text,author_actor_id,attachment_refs FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, idempotency).Scan(&existingID, &existingSequence, &existingText, &existingAuthor, &existingAttachments)
 		if err == nil {
-			user = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": existingSequence, "author_actor_id": actorID, "kind": "user", "text": existingText, "attachment_refs": []any{}}
+			if existingAuthor != actorID || existingText != text || !jsonEqual(existingAttachments, payload["attachment_refs"]) {
+				return ErrConflict
+			}
+			user = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": existingSequence, "author_actor_id": existingAuthor, "kind": "user", "text": existingText, "attachment_refs": decodeArray(existingAttachments)}
 			return nil
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
-		var participant string
-		if err := tx.QueryRow(ctx, `SELECT actor_id FROM public.conversation_participants WHERE conversation_id=$1 AND actor_id=$2 AND status='active'`, conversationID, actorID).Scan(&participant); err != nil {
+		var participantCount int
+		if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM public.conversation_participants WHERE conversation_id=$1 AND actor_id IN ($2,$3) AND status='active'`, conversationID, actorID, fluctlightID).Scan(&participantCount); err != nil {
+			return err
+		}
+		if participantCount != 2 {
 			return errors.New("conversation_not_found")
 		}
 		var seq int
@@ -228,7 +326,7 @@ func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 	}
 	visiblePrompt := []map[string]any{{"role": "system", "content": "Write the visible Chinese response for the already selected action. Do not mention implementation."}, {"role": "user", "content": jsonString(map[string]any{"action_type": action, "user_message": text, "persona_profile": map[string]any{"identity": profile.Identity, "personality": profile.Personality, "behavioral_policy": profile.BehavioralPolicy}, "conversation_history": history.Messages})}}
-	visible, err := a.Provider.Text(ctx, "action_realization", visiblePrompt)
+	visible, err := a.Provider.StreamText(ctx, "action_realization", visiblePrompt, nil)
 	if err != nil {
 		if frozenFound || frozen.ID != "" {
 			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_failed")
@@ -400,9 +498,63 @@ func numberString(value any, fallback float64) string {
 	}
 	return fmt.Sprintf("%g", fallback)
 }
+
+func numberFloat(value any) (float64, bool) {
+	switch v := value.(type) {
+	case float64:
+		return v, true
+	case int:
+		return float64(v), true
+	case json.Number:
+		parsed, err := v.Float64()
+		return parsed, err == nil
+	case string:
+		parsed, err := strconv.ParseFloat(strings.TrimSpace(v), 64)
+		return parsed, err == nil
+	default:
+		return 0, false
+	}
+}
+
+func normalizeScheduleScalar(value any) any {
+	if numeric, ok := numberFloat(value); ok {
+		return numeric
+	}
+	switch strings.ToLower(strings.TrimSpace(stringValue(value))) {
+	case "very_high", "very high", "urgent":
+		return 1.0
+	case "high":
+		return 0.9
+	case "medium", "normal":
+		return 0.5
+	case "low":
+		return 0.1
+	case "very_low", "very low":
+		return 0.0
+	case "none":
+		return 0.0
+	default:
+		return value
+	}
+}
 func firstString(value any, fallback string) string {
 	if v, ok := value.(string); ok && strings.TrimSpace(v) != "" {
 		return v
 	}
 	return fallback
+}
+
+func jsonEqual(raw []byte, value any) bool {
+	var left any
+	if len(raw) == 0 {
+		raw = []byte("[]")
+	}
+	if json.Unmarshal(raw, &left) != nil {
+		return false
+	}
+	right := value
+	if right == nil {
+		right = []any{}
+	}
+	return jsonString(left) == jsonString(right)
 }

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -135,6 +136,23 @@ func (a *App) ProviderEndpoints(ctx context.Context, actorID string) ([]map[stri
 		var configured bool
 		_ = a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.setting_secrets WHERE purpose=$1)`, purpose).Scan(&configured)
 		out = append(out, map[string]any{"id": id, "kind": kind, "base_url": base, "secret_configured": configured, "capability_status": status})
+		rolesRows, roleErr := a.DB.Pool().Query(ctx, `SELECT role FROM public.model_roles WHERE provider_endpoint_id=$1 ORDER BY role`, id)
+		if roleErr != nil {
+			return nil, roleErr
+		}
+		roles := make([]map[string]any, 0)
+		for rolesRows.Next() {
+			var role string
+			if err := rolesRows.Scan(&role); err != nil {
+				rolesRows.Close()
+				return nil, err
+			}
+			var model string
+			_ = a.DB.Pool().QueryRow(ctx, `SELECT model_id FROM public.model_roles WHERE role=$1`, role).Scan(&model)
+			roles = append(roles, map[string]any{"role": role, "model_id": model})
+		}
+		rolesRows.Close()
+		out[len(out)-1]["roles"] = roles
 	}
 	return out, nil
 }
@@ -143,7 +161,7 @@ func (a *App) ProviderBindings(ctx context.Context, actorID string) ([]map[strin
 	if _, err := a.ReadSettings(ctx, actorID); err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT role,provider_endpoint_id,model_id,token_budget,timeout_seconds FROM public.model_roles ORDER BY role`)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT r.role,r.provider_endpoint_id,r.model_id,r.token_budget,r.timeout_seconds,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id ORDER BY r.role`)
 	if err != nil {
 		return nil, err
 	}
@@ -152,10 +170,11 @@ func (a *App) ProviderBindings(ctx context.Context, actorID string) ([]map[strin
 	for rows.Next() {
 		var role, endpoint, model string
 		var budget, timeout int
-		if err := rows.Scan(&role, &endpoint, &model, &budget, &timeout); err != nil {
+		var endpointStatus string
+		if err := rows.Scan(&role, &endpoint, &model, &budget, &timeout, &endpointStatus); err != nil {
 			return nil, err
 		}
-		out = append(out, map[string]any{"role": role, "endpoint_id": endpoint, "model_id": model, "token_budget": budget, "timeout_seconds": timeout})
+		out = append(out, map[string]any{"role": role, "endpoint_id": endpoint, "model_id": model, "token_budget": budget, "timeout_seconds": timeout, "endpoint_status": endpointStatus})
 	}
 	return out, nil
 }
@@ -168,8 +187,17 @@ func (a *App) ConfigureProviderEndpoint(ctx context.Context, actorID string, pay
 	if id == "" || kind == "" || base == "" || purpose == "" {
 		return errors.New("provider_endpoint_invalid")
 	}
-	_, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.provider_endpoints (id,kind,base_url,secret_purpose,capability_status) VALUES ($1,$2,$3,$4,'unknown') ON CONFLICT (id) DO UPDATE SET kind=excluded.kind,base_url=excluded.base_url,secret_purpose=excluded.secret_purpose,capability_status='unknown'`, id, kind, base, purpose)
-	return err
+	parsed, err := url.Parse(base)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return errors.New("provider_endpoint_invalid")
+	}
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `DELETE FROM public.model_roles WHERE provider_endpoint_id=$1`, id); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx, `INSERT INTO public.provider_endpoints (id,kind,base_url,secret_purpose,capability_status) VALUES ($1,$2,$3,$4,'unknown') ON CONFLICT (id) DO UPDATE SET kind=excluded.kind,base_url=excluded.base_url,secret_purpose=excluded.secret_purpose,capability_status='unknown',checked_at=NULL`, id, kind, strings.TrimRight(base, "/"), purpose)
+		return err
+	})
 }
 
 func (a *App) ProviderModels(ctx context.Context, actorID, endpointID string) (map[string]any, error) {
@@ -184,11 +212,17 @@ func (a *App) ProviderModels(ctx context.Context, actorID, endpointID string) (m
 	if err != nil {
 		return nil, err
 	}
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(base, "/")+"/models", nil)
+	requestCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(requestCtx, http.MethodGet, strings.TrimRight(base, "/")+"/models", nil)
 	if secret != "" {
 		req.Header.Set("Authorization", "Bearer "+secret)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	client := a.Provider.HTTP
+	if client == nil {
+		client = &http.Client{Timeout: 10 * time.Second}
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}

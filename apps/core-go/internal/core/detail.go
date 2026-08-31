@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -50,7 +51,10 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
-	detail["context"] = resolveScheduleContext(detail["schedule"])
+	detail["context"], err = a.resolveContext(ctx, fluctlightID, detail["schedule"])
+	if err != nil {
+		return nil, err
+	}
 	detail["events"], err = a.readEvents(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
@@ -157,7 +161,7 @@ func (a *App) readRelationships(ctx context.Context, fluctlightID string) ([]map
 }
 
 func (a *App) readMemories(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,type,content,importance,status,revision FROM public.memories WHERE owner_fluctlight_id=$1 ORDER BY created_at DESC LIMIT 100`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,type,content,importance,status,revision FROM public.memories WHERE owner_fluctlight_id=$1 AND status='active' ORDER BY created_at DESC LIMIT 100`, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
@@ -179,8 +183,26 @@ func (a *App) readSchedule(ctx context.Context, fluctlightID string) (map[string
 	var id string
 	var localDate time.Time
 	var timezone, status string
+	var reschedulePolicy []byte
 	var rev int
-	err := a.DB.Pool().QueryRow(ctx, `SELECT id,local_date,timezone,status,revision FROM public.life_schedules WHERE fluctlight_id=$1 AND status='accepted' ORDER BY revision DESC LIMIT 1`, fluctlightID).Scan(&id, &localDate, &timezone, &status, &rev)
+	var identity []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT identity FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&identity); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	zone := stringValue(decodeObject(identity)["timezone"])
+	if zone == "" {
+		zone = "Asia/Shanghai"
+	}
+	zone = canonicalTimezone(zone)
+	location, err := time.LoadLocation(zone)
+	if err != nil {
+		return nil, fmt.Errorf("schedule_timezone_invalid: %w", err)
+	}
+	localToday := time.Now().In(location).Format("2006-01-02")
+	err = a.DB.Pool().QueryRow(ctx, `SELECT id,local_date,timezone,status,revision,reschedule_policy FROM public.life_schedules WHERE fluctlight_id=$1 AND status='accepted' AND local_date=$2 ORDER BY revision DESC LIMIT 1`, fluctlightID, localToday).Scan(&id, &localDate, &timezone, &status, &rev, &reschedulePolicy)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -201,7 +223,59 @@ func (a *App) readSchedule(ctx context.Context, fluctlightID string) (map[string
 		}
 		items = append(items, map[string]any{"id": itemID, "start_at": start.Format(time.RFC3339Nano), "end_at": end.Format(time.RFC3339Nano), "activity": activity, "scene": scene, "status": itemStatus})
 	}
-	return map[string]any{"id": id, "local_date": localDate.Format("2006-01-02"), "timezone": timezone, "revision": rev, "status": status, "items": items}, nil
+	return map[string]any{"id": id, "local_date": localDate.Format("2006-01-02"), "timezone": timezone, "revision": rev, "status": status, "reschedule_policy": decodeJSONValue(reschedulePolicy), "items": items}, nil
+}
+
+func decodeJSONValue(value []byte) any {
+	var result any
+	if len(value) == 0 || json.Unmarshal(value, &result) != nil {
+		return nil
+	}
+	return result
+}
+
+func (a *App) resolveContext(ctx context.Context, fluctlightID string, schedule any) (map[string]any, error) {
+	now := time.Now().UTC()
+	result := map[string]any{"source": "pending", "scene": nil, "activity": nil, "location": nil, "instant": now.Format(time.RFC3339Nano)}
+	var scene, activity, location *string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT scene,activity,location FROM public.life_events WHERE fluctlight_id=$1 AND status='confirmed' AND start_at <= $2 AND end_at > $2 ORDER BY start_at DESC,id DESC LIMIT 1`, fluctlightID, now).Scan(&scene, &activity, &location); err == nil {
+		result["source"] = "event"
+		result["scene"], result["activity"], result["location"] = scene, activity, location
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	} else {
+		result = contextFromSchedule(result, schedule, now)
+	}
+	var overlayScene, overlayActivity, overlayLocation *string
+	var userPresence, currentTask *string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT scene,activity,location,current_task,user_presence FROM public.life_presence_overlays WHERE fluctlight_id=$1 AND (expires_at IS NULL OR expires_at > $2) ORDER BY created_at DESC,id DESC LIMIT 1`, fluctlightID, now).Scan(&overlayScene, &overlayActivity, &overlayLocation, &currentTask, &userPresence); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	if overlayScene != nil || overlayActivity != nil || overlayLocation != nil {
+		result["presence"] = map[string]any{"scene": overlayScene, "activity": overlayActivity, "location": overlayLocation, "current_task": currentTask, "user_presence": userPresence}
+		result["presence_overlay"] = true
+	}
+	return result, nil
+}
+
+func contextFromSchedule(result map[string]any, value any, now time.Time) map[string]any {
+	schedule, ok := value.(map[string]any)
+	if !ok || schedule == nil {
+		return result
+	}
+	for _, raw := range arrayValue(schedule["items"]) {
+		item := mapValue(raw)
+		start, e1 := time.Parse(time.RFC3339Nano, stringValue(item["start_at"]))
+		end, e2 := time.Parse(time.RFC3339Nano, stringValue(item["end_at"]))
+		if e1 == nil && e2 == nil && !now.Before(start) && now.Before(end) {
+			result["source"] = "schedule"
+			result["scene"] = item["scene"]
+			result["activity"] = item["activity"]
+			result["location"] = item["location"]
+			break
+		}
+	}
+	return result
 }
 
 func (a *App) readEvents(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
@@ -292,10 +366,25 @@ func jsonNumber(value []byte) any {
 }
 
 func (a *App) Moments(ctx context.Context, actorID, fluctlightID string) ([]map[string]any, error) {
+	return a.MomentsWithOptions(ctx, actorID, fluctlightID, false, 100)
+}
+
+func (a *App) MomentsWithOptions(ctx context.Context, actorID, fluctlightID string, includeHidden bool, limit int) ([]map[string]any, error) {
 	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,author_actor_id,text,visibility,status,media_asset_ids,created_at FROM public.moments WHERE owner_fluctlight_id=$1 ORDER BY created_at DESC LIMIT 100`, fluctlightID)
+	if limit < 1 {
+		limit = 100
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	query := `SELECT id,author_actor_id,text,visibility,status,media_asset_ids,created_at FROM public.moments WHERE owner_fluctlight_id=$1 AND visibility IN ('owner','participants')`
+	if !includeHidden {
+		query += ` AND status='visible'`
+	}
+	query += ` ORDER BY created_at DESC,id DESC LIMIT $2`
+	rows, err := a.DB.Pool().Query(ctx, query, fluctlightID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +397,11 @@ func (a *App) Moments(ctx context.Context, actorID, fluctlightID string) ([]map[
 		if err := rows.Scan(&id, &author, &text, &visibility, &status, &media, &created); err != nil {
 			return nil, err
 		}
-		out = append(out, map[string]any{"id": id, "owner_fluctlight_id": fluctlightID, "author_actor_id": author, "text": text, "visibility": visibility, "status": status, "media_asset_ids": decodeArray(media), "created_at": created.Format(time.RFC3339Nano), "comments": []any{}, "reaction_count": 0})
+		moment := map[string]any{"id": id, "owner_fluctlight_id": fluctlightID, "author_actor_id": author, "text": text, "visibility": visibility, "status": status, "media_asset_ids": decodeArray(media), "created_at": created.Format(time.RFC3339Nano)}
+		if err := a.hydrateMoment(ctx, actorID, moment); err != nil {
+			return nil, err
+		}
+		out = append(out, moment)
 	}
 	return out, rows.Err()
 }

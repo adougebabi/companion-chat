@@ -48,9 +48,14 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 		return err
 	}
 	prompt := intent.Prompt
-	if value, providerErr := a.Provider.Text(ctx, "media_prompt", []map[string]any{{"role": "system", "content": "Return only the image prompt text."}, {"role": "user", "content": intent.Prompt}}); providerErr == nil && strings.TrimSpace(value) != "" {
-		prompt = value
+	value, providerErr := a.Provider.Text(ctx, "media_prompt", []map[string]any{{"role": "system", "content": "Return only the image prompt text."}, {"role": "user", "content": intent.Prompt}})
+	if providerErr != nil || strings.TrimSpace(value) == "" {
+		if providerErr != nil {
+			return fmt.Errorf("media prompt generation failed: %w", providerErr)
+		}
+		return errors.New("media prompt generation returned empty text")
 	}
+	prompt = value
 	providerJobID := intent.ProviderJobID
 	if providerJobID == "" {
 		workflow = replacePrompt(workflow, prompt)
@@ -60,14 +65,22 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 			return err
 		}
 		request.Header.Set("Content-Type", "application/json")
-		response, err := a.Provider.HTTP.Do(request)
+		client := a.Provider.HTTP
+		if client == nil {
+			client = &http.Client{Timeout: 30 * time.Second}
+		}
+		response, err := client.Do(request)
 		if err != nil {
 			return err
 		}
 		data, _ := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 		response.Body.Close()
 		if response.StatusCode < 200 || response.StatusCode >= 300 {
-			return fmt.Errorf("ComfyUI returned HTTP %d", response.StatusCode)
+			detail := strings.TrimSpace(string(data))
+			if len(detail) > 512 {
+				detail = detail[:512]
+			}
+			return fmt.Errorf("ComfyUI returned HTTP %d: %s", response.StatusCode, detail)
 		}
 		var result map[string]any
 		if err := json.Unmarshal(data, &result); err != nil {
@@ -107,13 +120,13 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 	if err != nil {
 		return err
 	}
-	objectKey := "media/" + assetID + "/1"
+	objectKey := "media/" + assetID + "/v1"
 	_, err = a.Storage.PutObject(ctx, a.S3Bucket, objectKey, bytes.NewReader(content), int64(len(content)), minio.PutObjectOptions{ContentType: contentType})
 	if err != nil {
 		return err
 	}
 	digest := sha256.Sum256(content)
-	version := "1"
+	version := "v1"
 	workflowID := intent.WorkflowID
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `INSERT INTO public.media_assets (id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status,ready_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'ready',now()) ON CONFLICT (id) DO NOTHING`, assetID, intent.Owner, version, intent.Kind, contentType, len(content), hex.EncodeToString(digest[:]), a.S3Bucket, objectKey, intent.ProviderRequestID, workflowID); err != nil {
@@ -203,7 +216,7 @@ func pollComfy(ctx context.Context, baseURL, jobID string) (map[string]any, bool
 	if err != nil {
 		return nil, false, err
 	}
-	response, err := http.DefaultClient.Do(request)
+	response, err := (&http.Client{Timeout: 30 * time.Second}).Do(request)
 	if err != nil {
 		return nil, false, err
 	}
@@ -211,7 +224,10 @@ func pollComfy(ctx context.Context, baseURL, jobID string) (map[string]any, bool
 	if response.StatusCode == 404 {
 		return nil, false, nil
 	}
-	data, _ := io.ReadAll(io.LimitReader(response.Body, 4<<20))
+	data, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
+	if err != nil {
+		return nil, false, err
+	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return nil, false, fmt.Errorf("ComfyUI history returned HTTP %d", response.StatusCode)
 	}
@@ -247,7 +263,7 @@ func downloadComfy(ctx context.Context, baseURL string, output map[string]any) (
 	if err != nil {
 		return "", nil, err
 	}
-	response, err := http.DefaultClient.Do(request)
+	response, err := (&http.Client{Timeout: 30 * time.Second}).Do(request)
 	if err != nil {
 		return "", nil, err
 	}
@@ -255,7 +271,10 @@ func downloadComfy(ctx context.Context, baseURL string, output map[string]any) (
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return "", nil, fmt.Errorf("ComfyUI output returned HTTP %d", response.StatusCode)
 	}
-	content, _ := io.ReadAll(io.LimitReader(response.Body, 32<<20))
+	content, err := io.ReadAll(io.LimitReader(response.Body, 32<<20))
+	if err != nil {
+		return "", nil, err
+	}
 	if len(content) == 0 {
 		return "", nil, errors.New("ComfyUI output is empty")
 	}
@@ -335,14 +354,29 @@ func (a *App) ServeMedia(ctx context.Context, writer http.ResponseWriter, assetI
 	}
 	if !partial {
 		writer.Header().Set("Content-Length", fmt.Sprintf("%d", size))
-		_, err = io.Copy(writer, object)
+		data, readErr := io.ReadAll(io.LimitReader(object, int64(size)+1))
+		if readErr != nil {
+			return readErr
+		}
+		if len(data) != size {
+			return errors.New("media object size mismatch")
+		}
+		writer.WriteHeader(http.StatusOK)
+		_, err = writer.Write(data)
 		return err
 	}
 	length := end - start + 1
 	writer.Header().Set("Content-Length", fmt.Sprintf("%d", length))
 	writer.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, size))
+	data, readErr := io.ReadAll(io.LimitReader(object, length+1))
+	if readErr != nil {
+		return readErr
+	}
+	if int64(len(data)) != length {
+		return errors.New("media range size mismatch")
+	}
 	writer.WriteHeader(http.StatusPartialContent)
-	_, err = io.CopyN(writer, object, length)
+	_, err = writer.Write(data)
 	return err
 }
 

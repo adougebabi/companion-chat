@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
@@ -17,6 +18,13 @@ func (fakeRepository) ResolveSession(_ context.Context, token string) (string, e
 		return "human-1", nil
 	}
 	return "", core.ErrUnauthorized
+}
+
+func TestReadJSONRejectsTrailingValues(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"ok":true}{"extra":true}`))
+	if _, ok := readJSON(request); ok {
+		t.Fatal("expected concatenated JSON to be rejected")
+	}
 }
 func (fakeRepository) ListFluctlights(_ context.Context, _ string) ([]core.Fluctlight, error) {
 	return []core.Fluctlight{{ID: "fl-1", Status: "active"}}, nil

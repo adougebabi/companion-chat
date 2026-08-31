@@ -43,12 +43,23 @@ type Input struct {
 	LocalDate    string `json:"local_date"`
 	ActionID     string `json:"action_id"`
 	MemoryID     string `json:"memory_id"`
+	Revision     int    `json:"revision"`
 }
 
 func DailyReviewWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
 	var result map[string]any
 	if err := workflow.ExecuteActivity(ctx, ProcessDailyReviewActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -56,8 +67,18 @@ func DailyReviewWorkflow(ctx workflow.Context, input Input) (map[string]any, err
 
 func MediaWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 20 * time.Minute, HeartbeatTimeout: 30 * time.Second, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
 	var result map[string]any
 	if err := workflow.ExecuteActivity(ctx, ProcessMediaActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -68,11 +89,21 @@ func CurrentDayScheduleWorkflow(ctx workflow.Context, input Input) (map[string]a
 	// take several minutes on a local model. The previous 30s activity timeout
 	// cancelled every first attempt before the Provider could respond.
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 2}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
 	var result map[string]any
 	if err := workflow.ExecuteActivity(ctx, EnsureCurrentDayScheduleActivity, input).Get(ctx, &result); err != nil {
 		return nil, err
 	}
 	result["intent_id"] = input.IntentID
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
 	if stringValue(result["status"]) == "pending" {
 		if err := workflow.Sleep(ctx, 5*time.Minute); err != nil {
 			return nil, err
@@ -88,6 +119,9 @@ func CurrentDayScheduleWorkflow(ctx workflow.Context, input Input) (map[string]a
 	// workflow body.
 	delay := nextLocalMidnightDelay(workflow.Now(ctx), stringValue(result["timezone"]))
 	if err := workflow.Sleep(ctx, delay); err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
 		return nil, err
 	}
 	return nil, workflow.NewContinueAsNewError(ctx, CurrentDayScheduleWorkflow, input)
@@ -107,10 +141,57 @@ func nextLocalMidnightDelay(now time.Time, timezone string) time.Duration {
 	return delay
 }
 
+type workflowControl struct {
+	paused bool
+}
+
+func registerWorkflowControl(ctx workflow.Context) (*workflowControl, error) {
+	control := &workflowControl{}
+	if err := workflow.SetQueryHandler(ctx, "status", func() (string, error) {
+		if control.paused {
+			return "paused", nil
+		}
+		return "running", nil
+	}); err != nil {
+		return nil, err
+	}
+	pauseCh := workflow.GetSignalChannel(ctx, "pause")
+	resumeCh := workflow.GetSignalChannel(ctx, "resume")
+	workflow.Go(ctx, func(ctx workflow.Context) {
+		var ignored any
+		pauseCh.Receive(ctx, &ignored)
+		if ctx.Err() == nil {
+			control.paused = true
+		}
+	})
+	workflow.Go(ctx, func(ctx workflow.Context) {
+		var ignored any
+		resumeCh.Receive(ctx, &ignored)
+		if ctx.Err() == nil {
+			control.paused = false
+		}
+	})
+	return control, nil
+}
+
+func (control *workflowControl) waitUntilResumed(ctx workflow.Context) error {
+	return workflow.Await(ctx, func() bool { return !control.paused })
+}
+
 func AutonomyActionWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
 	var result map[string]any
 	if err := workflow.ExecuteActivity(ctx, ProcessAutonomyActionActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -118,8 +199,18 @@ func AutonomyActionWorkflow(ctx workflow.Context, input Input) (map[string]any, 
 
 func ReflectionWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 2}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
 	var result map[string]any
 	if err := workflow.ExecuteActivity(ctx, ProcessReflectionActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -127,8 +218,18 @@ func ReflectionWorkflow(ctx workflow.Context, input Input) (map[string]any, erro
 
 func MemoryEmbeddingWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 2}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
 	var result map[string]any
 	if err := workflow.ExecuteActivity(ctx, ProcessMemoryEmbeddingActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -148,6 +249,10 @@ func ProcessMediaActivity(ctx context.Context, input Input) (map[string]any, err
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
 	if err := application.ProcessMediaIntent(ctx, input.IntentID); err != nil {
+		// Keep the durable media target truthful after Temporal exhausts its
+		// bounded activity retries. The workflow intent reconciliation records
+		// the execution failure separately; this row is what product reads.
+		_, _ = application.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, input.IntentID)
 		return nil, err
 	}
 	return map[string]any{"intent_id": input.IntentID, "status": "completed"}, nil
@@ -174,7 +279,7 @@ func ProcessMemoryEmbeddingActivity(ctx context.Context, input Input) (map[strin
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
-	return application.ProcessMemoryEmbedding(ctx, input.MemoryID)
+	return application.ProcessMemoryEmbeddingAt(ctx, input.MemoryID, input.Revision)
 }
 
 func EnsureCurrentDayScheduleActivity(ctx context.Context, input Input) (map[string]any, error) {
@@ -274,6 +379,56 @@ type Dispatcher struct {
 	Started map[string]struct{}
 }
 
+// ReconcileOnce reflects Temporal terminal states back into the durable intent
+// ledger. Dispatch is intentionally at-least-once; this pass closes the crash
+// window where Temporal accepted a start but PostgreSQL was not updated.
+func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) {
+	if limit < 1 {
+		limit = 1
+	}
+	rows, err := d.App.DB.Pool().Query(ctx, `SELECT intent_id,workflow_id FROM public.platform_workflow_intents WHERE status IN ('pending','retry','started','cancel_requested') ORDER BY started_at NULLS LAST,created_at LIMIT $1`, limit)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	count := 0
+	for rows.Next() {
+		var intentID, workflowID string
+		if err := rows.Scan(&intentID, &workflowID); err != nil {
+			return count, err
+		}
+		execution, describeErr := d.Client.DescribeWorkflowExecution(ctx, normalizedWorkflowID(workflowID), "")
+		if describeErr != nil {
+			// A just-started execution may not be visible immediately. Leave the
+			// intent untouched and let the next pass retry the lookup.
+			continue
+		}
+		if execution == nil || execution.WorkflowExecutionInfo == nil {
+			continue
+		}
+		status := execution.WorkflowExecutionInfo.GetStatus()
+		if status == enumspb.WORKFLOW_EXECUTION_STATUS_RUNNING {
+			continue
+		}
+		intentStatus := strings.ToLower(status.String())
+		if status == enumspb.WORKFLOW_EXECUTION_STATUS_COMPLETED {
+			intentStatus = "completed"
+		} else if status == enumspb.WORKFLOW_EXECUTION_STATUS_CANCELED {
+			intentStatus = "cancelled"
+		} else if status == enumspb.WORKFLOW_EXECUTION_STATUS_FAILED || status == enumspb.WORKFLOW_EXECUTION_STATUS_TIMED_OUT || status == enumspb.WORKFLOW_EXECUTION_STATUS_TERMINATED {
+			intentStatus = "failed"
+		}
+		if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(last_error,'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1`, intentID, intentStatus); err != nil {
+			return count, err
+		}
+		if d.Started != nil {
+			delete(d.Started, intentID)
+		}
+		count++
+	}
+	return count, rows.Err()
+}
+
 func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 	if limit < 1 {
 		limit = 1
@@ -338,10 +493,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		// Every post-cutover execution receives a stable Go namespace. This
 		// fences closed/active executions created by the retired runtime while
 		// preserving deterministic replay for this intent after restarts.
-		goWorkflowID := workflowID
-		if !strings.HasPrefix(goWorkflowID, "go:") {
-			goWorkflowID = "go:" + goWorkflowID
-		}
+		goWorkflowID := normalizedWorkflowID(workflowID)
 		switch intentType {
 		case "daily_review.current_day":
 			workflowFn = DailyReviewWorkflow
@@ -380,11 +532,27 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			continue
 		}
 		slog.Default().Info("Go Worker workflow dispatched", "intent_id", intentID, "workflow_id", goWorkflowID, "workflow_type", intentType)
+		command, statusErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1`, intentID)
+		if statusErr != nil || command.RowsAffected() != 1 {
+			// Temporal already accepted the start. Leave the durable row visible
+			// to the next reconciliation pass rather than hiding a DB failure in
+			// the in-memory Started set.
+			if statusErr != nil {
+				slog.Default().Warn("Go Worker intent status update failed after Temporal start", "intent_id", intentID, "error", statusErr)
+			}
+			continue
+		}
 		d.Started[intentID] = struct{}{}
-		_, _ = d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1`, intentID)
 		count++
 	}
 	return count, rows.Err()
+}
+
+func normalizedWorkflowID(workflowID string) string {
+	if strings.HasPrefix(workflowID, "go:") {
+		return workflowID
+	}
+	return "go:" + workflowID
 }
 
 func inputMap(payload []byte) map[string]any {

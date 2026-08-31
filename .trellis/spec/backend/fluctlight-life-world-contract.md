@@ -145,3 +145,60 @@ await schedule_lifecycle.register(created.id, tx=tx)
 # Worker dispatcher owns Temporal start. The Activity later ensures only the
 # local day in which it actually runs.
 ```
+
+## Scenario: Go Additive Schedule/Presence Compatibility
+
+### 1. Scope / Trigger
+
+- Trigger: Go Core starts against a released database or a Provider emits
+  enum-valued schedule priority/flexibility hints.
+
+### 2. Signatures
+
+- The migration runner applies additive compatibility columns before API/
+  Worker readiness.
+- `AcceptSchedule` validates full-day contiguous items and `SetPresence`
+  writes the authenticated owner to `life_presence_overlays`.
+
+### 3. Contracts
+
+- Existing rows are preserved; legacy `life_presence` is not Context authority.
+- `high/medium/low` and `very_high/very_low` hints normalize deterministically
+  to bounded numeric values.
+- Context is Event, current-day Schedule, then explicit pending; Presence only
+  overlays user/current-task metadata.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| old overlay lacks newer columns | additive migration adds nullable columns |
+| schedule gap/overlap/out-of-day item | reject and retain prior version |
+| `UTC+8` timezone alias | canonicalize to `Asia/Shanghai` |
+| no current-day accepted schedule | return pending; do not clone another date |
+
+### 5. Good/Base/Bad Cases
+
+- Good: an old database migrates in place and current-day Context resolves to
+  an accepted item with a human-actor Presence overlay.
+- Base: a Provider enum hint is normalized without inventing scene/activity.
+- Bad: querying a missing overlay column or using yesterday's plan today.
+
+### 6. Tests Required
+
+- Released-schema migration, full-day/CAS/replan, alias timezone and
+  Event-over-Schedule-over-pending Context tests.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+INSERT INTO life_presence(fluctlight_id, actor_id) VALUES ($1, $1)
+```
+
+#### Correct
+
+```go
+INSERT INTO life_presence_overlays(fluctlight_id, actor_id, ...) VALUES ($1, $2, ...)
+```

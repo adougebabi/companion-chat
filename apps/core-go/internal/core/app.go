@@ -22,10 +22,15 @@ import (
 type App struct {
 	DB          *PostgresRepository
 	Provider    *ProviderClient
+	Workflows   WorkflowRuntime
 	SettingsKey []byte
 	ServiceKey  string
 	Storage     *minio.Client
 	S3Bucket    string
+}
+
+func (a *App) SetWorkflowRuntime(runtime WorkflowRuntime) {
+	a.Workflows = runtime
 }
 
 func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint, s3Region, s3Access, s3Secret, s3Bucket string, useSSL bool) (*App, error) {
@@ -102,8 +107,21 @@ func mapValue(value any) map[string]any {
 }
 
 func arrayValue(value any) []any {
-	if result, ok := value.([]any); ok {
+	switch result := value.(type) {
+	case []any:
 		return result
+	case []map[string]any:
+		items := make([]any, len(result))
+		for index, item := range result {
+			items[index] = item
+		}
+		return items
+	case []string:
+		items := make([]any, len(result))
+		for index, item := range result {
+			items[index] = item
+		}
+		return items
 	}
 	return []any{}
 }
@@ -114,19 +132,23 @@ func (a *App) ResolveSession(ctx context.Context, token string) (string, error) 
 
 func (a *App) Login(ctx context.Context, password string) (string, string, error) {
 	if len(password) < 6 {
+		a.authAudit(ctx, "login", "", "failed", "password_invalid")
 		return "", "", errors.New("authentication_failed")
 	}
 	var actorID, encodedHash string
 	err := a.DB.Pool().QueryRow(ctx, `SELECT human_actor_id, credential_hash FROM public.owner_accounts LIMIT 1`).Scan(&actorID, &encodedHash)
 	if err != nil || !verifyArgon2ID(encodedHash, password) {
+		a.authAudit(ctx, "login", actorID, "failed", "authentication_failed")
 		return "", "", errors.New("authentication_failed")
 	}
 	token := randomID("session_")
 	sessionID := randomID("session_")
 	_, err = a.DB.Pool().Exec(ctx, `INSERT INTO public.auth_sessions (id, token_hash, human_actor_id, expires_at, last_seen_at) VALUES ($1,$2,$3,now()+interval '14 days',now())`, sessionID, digestToken(token), actorID)
 	if err != nil {
+		a.authAudit(ctx, "login", actorID, "failed", "session_create_failed")
 		return "", "", fmt.Errorf("create session: %w", err)
 	}
+	a.authAudit(ctx, "login", actorID, "success", "")
 	return actorID, token, nil
 }
 
@@ -159,19 +181,48 @@ func (a *App) Setup(ctx context.Context, setupToken, password string) (string, s
 	actorID := randomID("human_")
 	token := randomID("session_")
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `LOCK TABLE public.owner_accounts IN SHARE ROW EXCLUSIVE MODE`); err != nil {
+			return err
+		}
+		var ownerCount int
+		if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM public.owner_accounts`).Scan(&ownerCount); err != nil {
+			return err
+		}
+		if ownerCount != 0 {
+			return errors.New("setup_unavailable")
+		}
+		if err := tx.QueryRow(ctx, `SELECT id FROM public.owner_setup_tokens WHERE token_hash=$1 AND consumed_at IS NULL AND expires_at>now() FOR UPDATE`, digestToken(setupToken)).Scan(&tokenID); err != nil {
+			return errors.New("setup_unavailable")
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.actors (id, actor_type) VALUES ($1,'human')`, actorID); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.owner_accounts (human_actor_id, credential_hash, parameters, credential_revision, owner_key) VALUES ($1,$2,'argon2id-default',$3,'owner')`, actorID, hash, randomID("credential_")); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.owner_setup_tokens SET consumed_at=now() WHERE id=$1`, tokenID); err != nil {
+		command, err := tx.Exec(ctx, `UPDATE public.owner_setup_tokens SET consumed_at=now() WHERE id=$1 AND consumed_at IS NULL`, tokenID)
+		if err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO public.auth_sessions (id, token_hash, human_actor_id, expires_at, last_seen_at) VALUES ($1,$2,$3,now()+interval '14 days',now())`, randomID("session_"), digestToken(token), actorID)
+		if command.RowsAffected() != 1 {
+			return errors.New("setup_unavailable")
+		}
+		_, err = tx.Exec(ctx, `INSERT INTO public.auth_sessions (id, token_hash, human_actor_id, expires_at, last_seen_at) VALUES ($1,$2,$3,now()+interval '14 days',now())`, randomID("session_"), digestToken(token), actorID)
 		return err
 	})
-	return actorID, token, err
+	if err != nil {
+		a.authAudit(ctx, "setup", actorID, "failed", "setup_unavailable")
+		return "", "", err
+	}
+	a.authAudit(ctx, "setup", actorID, "success", "")
+	return actorID, token, nil
+}
+
+func (a *App) authAudit(ctx context.Context, action, actorID, result, details string) {
+	if a == nil || a.DB == nil {
+		return
+	}
+	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.auth_audit_log(id,action,actor_id,result,details) VALUES($1,$2,$3,$4,$5) ON CONFLICT(id) DO NOTHING`, randomID("auth_audit_"), action, nullableString(actorID), result, details)
 }
 
 func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[string]any, error) {
@@ -203,10 +254,13 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 			}
 		}
 	}
-	if !ok || !validFoundation(foundation) {
+	if !ok {
 		return nil, errors.New("initialization_foundation_invalid")
 	}
 	normalizeFoundationCollections(foundation)
+	if !validFoundation(foundation) {
+		return nil, errors.New("initialization_foundation_invalid")
+	}
 	return result, nil
 }
 
@@ -214,6 +268,50 @@ func validFoundation(value map[string]any) bool {
 	for _, key := range []string{"identity", "personality", "behavioral_policy", "life_profile"} {
 		if child, ok := value[key].(map[string]any); !ok || len(child) == 0 {
 			return false
+		}
+	}
+	if timezone := stringValue(mapValue(value["identity"])["timezone"]); timezone != "" {
+		if _, err := time.LoadLocation(canonicalTimezone(timezone)); err != nil {
+			return false
+		}
+	}
+	for _, key := range []string{"initial_goals", "initial_intentions"} {
+		if raw, exists := value[key]; exists && raw != nil {
+			items, ok := raw.([]any)
+			if !ok {
+				return false
+			}
+			for index, entry := range items {
+				item := mapValue(entry)
+				if len(item) == 0 {
+					return false
+				}
+				if key == "initial_goals" {
+					if strings.TrimSpace(stringValue(item["description"])) == "" {
+						return false
+					}
+					for _, field := range []string{"importance", "urgency"} {
+						if rawValue, present := item[field]; present {
+							value, ok := numberFloat(rawValue)
+							if !ok || value < 0 || value > 1 {
+								return false
+							}
+						}
+					}
+				} else {
+					if strings.TrimSpace(stringValue(item["action"])) == "" {
+						return false
+					}
+					if rawGoal, present := item["goal_index"]; present {
+						goalIndex := intValue(rawGoal)
+						if goalIndex < 0 || goalIndex >= len(arrayValue(value["initial_goals"])) {
+							return false
+						}
+					} else if index >= len(arrayValue(value["initial_goals"])) && len(arrayValue(value["initial_goals"])) > 0 {
+						return false
+					}
+				}
+			}
 		}
 	}
 	return true
@@ -234,11 +332,14 @@ func normalizeFoundationCollections(foundation map[string]any) {
 			items := make([]any, 0)
 			for _, group := range groups {
 				for _, raw := range arrayValue(grouped[group]) {
-					text := stringValue(raw)
-					if text == "" {
+					if object := mapValue(raw); len(object) > 0 {
+						items = append(items, object)
 						continue
 					}
-					items = appendFoundationCollectionItem(items, key, text, group)
+					text := stringValue(raw)
+					if text != "" {
+						items = appendFoundationCollectionItem(items, key, text, group)
+					}
 				}
 			}
 			foundation[key] = items
@@ -254,7 +355,9 @@ func normalizeFoundationCollections(foundation map[string]any) {
 		}
 		items := make([]any, 0, len(flat))
 		for _, raw := range flat {
-			if text := stringValue(raw); text != "" {
+			if object := mapValue(raw); len(object) > 0 {
+				items = append(items, object)
+			} else if text := stringValue(raw); text != "" {
 				items = appendFoundationCollectionItem(items, key, text, "")
 			}
 		}
@@ -300,6 +403,15 @@ func defaultInnerState() (map[string]any, map[string]any, map[string]any, map[st
 }
 
 func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name string, mode string, foundation map[string]any, goals, intentions []any) (Fluctlight, error) {
+	if mode != "blank_slate" && mode != "llm_defined" {
+		return Fluctlight{}, errors.New("initialization_mode_invalid")
+	}
+	if mode == "llm_defined" && (foundation == nil || !validFoundation(foundation)) {
+		return Fluctlight{}, errors.New("initialization_foundation_invalid")
+	}
+	if mode == "blank_slate" && foundation != nil {
+		return Fluctlight{}, errors.New("blank_slate_foundation_forbidden")
+	}
 	id := requestedID
 	if id == "" {
 		id = randomID("fluctlight_")
@@ -439,12 +551,9 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 	}
 	for index, raw := range intentions {
 		item := mapValue(raw)
-		goalIndex := 0
-		if value, ok := item["goal_index"].(float64); ok {
-			goalIndex = int(value)
-		}
+		goalIndex := intValue(item["goal_index"])
 		if goalIndex < 0 || goalIndex >= len(goalIDs) {
-			continue
+			return errors.New("initial_intention_goal_invalid")
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intentions (id,fluctlight_id,goal_id,action,trigger,confidence,expiration,evidence_refs,permission_snapshot,budget_snapshot,status,revision) VALUES ($1,$2,$3,$4,$5,$6,now()+interval '24 hours',$7,'{}','{}','pending',0) ON CONFLICT DO NOTHING`, fmt.Sprintf("intention_initial_%s_%d", fluctlightID, index), fluctlightID, goalIDs[goalIndex], stringValue(item["action"]), jsonBytes(map[string]any{"type": "semantic", "schema_version": "semantic.trigger.v1", "evidence_refs": []string{"foundation:" + fluctlightID}}), jsonBytes(item["confidence"]), jsonBytes([]string{"foundation:" + fluctlightID})); err != nil {
 			return err

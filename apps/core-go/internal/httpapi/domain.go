@@ -43,11 +43,17 @@ func intValueHTTP(value any) int {
 }
 func (s *Server) opError(response http.ResponseWriter, err error, code string) {
 	status := http.StatusUnprocessableEntity
+	if errors.Is(err, core.ErrWorkflowRuntime) {
+		status = http.StatusBadGateway
+	}
 	if errors.Is(err, core.ErrNotFound) {
 		status = http.StatusNotFound
 	}
 	if errors.Is(err, core.ErrUnauthorized) {
 		status = http.StatusForbidden
+	}
+	if errors.Is(err, core.ErrConflict) || strings.Contains(strings.ToLower(err.Error()), "stale") || strings.Contains(strings.ToLower(err.Error()), "conflict") {
+		status = http.StatusConflict
 	}
 	writeError(response, status, code)
 }
@@ -103,7 +109,7 @@ func (s *Server) configureProviderRole(w http.ResponseWriter, r *http.Request) {
 		s.opError(w, err, "provider_preflight_failed")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"role": body["role"], "status": "available"})
+	writeJSON(w, http.StatusOK, map[string]any{"role": body["role"], "available": true, "capability_version": "models-v1"})
 }
 func (s *Server) actorGroups(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.authorizeHuman(w, r)
@@ -138,7 +144,16 @@ func (s *Server) addActorGroupMember(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	if err := s.app.SetActorGroupMember(r.Context(), actor, r.PathValue("groupID"), stringValue(mapValueMust(r)["actor_id"]), true); err != nil {
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
+	memberID := stringValue(body["actor_id"])
+	if memberID == "" {
+		s.opError(w, errors.New("actor_id_invalid"), "actor_group_assign_failed")
+		return
+	}
+	if err := s.app.SetActorGroupMember(r.Context(), actor, r.PathValue("groupID"), memberID, true); err != nil {
 		s.opError(w, err, "actor_group_assign_failed")
 		return
 	}
@@ -156,7 +171,6 @@ func (s *Server) removeActorGroupMember(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func mapValueMust(r *http.Request) map[string]any { v, _ := readJSON(r); return v }
 func (s *Server) createConversation(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.authorizeHuman(w, r)
 	if !ok || s.app == nil {
@@ -210,7 +224,10 @@ func (s *Server) retireFluctlight(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	body, _ := readJSON(r)
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
 	value, err := s.app.RetireFluctlight(r.Context(), actor, r.PathValue("fluctlightID"), stringValue(body["reason"]), expected(body, "expected_revision"))
 	if err != nil {
 		s.opError(w, err, "fluctlight_retire_failed")
@@ -245,8 +262,11 @@ func (s *Server) foundationDecision(w http.ResponseWriter, r *http.Request, acti
 	if !ok || s.app == nil {
 		return
 	}
-	body, _ := readJSON(r)
-	value, err := s.app.SetFoundationDecision(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("revisionID"), action, stringValue(body["reason"]))
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
+	value, err := s.app.SetFoundationDecisionExpected(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("revisionID"), action, stringValue(body["reason"]), expected(body, "expected_revision"))
 	if err != nil {
 		s.opError(w, err, "foundation_revision_"+action+"_failed")
 		return
@@ -258,8 +278,11 @@ func (s *Server) rollbackFoundation(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	body, _ := readJSON(r)
-	value, err := s.app.SetFoundationDecision(r.Context(), actor, r.PathValue("fluctlightID"), stringValue(body["revision_id"]), "accept", stringValue(body["reason"]))
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
+	value, err := s.app.RollbackFoundation(r.Context(), actor, r.PathValue("fluctlightID"), body)
 	if err != nil {
 		s.opError(w, err, "foundation_revision_rollback_failed")
 		return
@@ -287,7 +310,10 @@ func (s *Server) forgetMemory(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	body, _ := readJSON(r)
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
 	value, err := s.app.ForgetMemory(r.Context(), actor, r.PathValue("memoryID"), expected(body, "expected_revision"), arrayValue(body["evidence_refs"]))
 	if err != nil {
 		s.opError(w, err, "memory_forget_failed")
@@ -300,7 +326,10 @@ func (s *Server) rollbackRelationship(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	body, _ := readJSON(r)
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
 	value, err := s.app.RollbackRelationship(r.Context(), actor, r.PathValue("fluctlightID"), body)
 	if err != nil {
 		s.opError(w, err, "relationship_rollback_failed")
@@ -313,7 +342,10 @@ func (s *Server) governAutonomy(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	body, _ := readJSON(r)
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
 	value, err := s.app.GovernAutonomy(r.Context(), actor, r.PathValue("actionID"), stringValue(body["to_status"]), stringValue(body["reason"]))
 	if err != nil {
 		s.opError(w, err, "autonomy_governance_failed")
@@ -370,7 +402,11 @@ func (s *Server) cancelSchedule(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	if err := s.app.CancelSchedule(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("scheduleID")); err != nil {
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
+	if err := s.app.CancelScheduleExpected(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("scheduleID"), expected(body, "expected_revision")); err != nil {
 		s.opError(w, err, "schedule_cancel_failed")
 		return
 	}
@@ -421,7 +457,10 @@ func (s *Server) reactMoment(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	body, _ := readJSON(r)
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
 	value, err := s.app.ReactMoment(r.Context(), actor, r.PathValue("momentID"), firstString(body["kind"], "like"))
 	if err != nil {
 		s.opError(w, err, "moment_reaction_failed")
@@ -452,7 +491,7 @@ func (s *Server) diagnostics(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	value, err := s.app.Diagnostics(r.Context(), actor, queryLimit(r))
+	value, err := s.app.DiagnosticsFiltered(r.Context(), actor, queryLimit(r), r.URL.Query().Get("correlation_id"), r.URL.Query().Get("fluctlight_id"))
 	if err != nil {
 		s.opError(w, err, "diagnostics_unavailable")
 		return
@@ -464,18 +503,19 @@ func (s *Server) clearDiagnostics(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	if err := s.app.ClearDiagnostics(r.Context(), actor); err != nil {
+	cleared, err := s.app.ClearDiagnosticsCount(r.Context(), actor)
+	if err != nil {
 		s.opError(w, err, "diagnostics_clear_failed")
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	writeJSON(w, http.StatusOK, map[string]any{"cleared": cleared})
 }
 func (s *Server) modelRuns(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.authorizeHuman(w, r)
 	if !ok || s.app == nil {
 		return
 	}
-	value, err := s.app.ModelRuns(r.Context(), actor, queryLimit(r))
+	value, err := s.app.ModelRunsFiltered(r.Context(), actor, queryLimit(r), r.URL.Query().Get("correlation_id"))
 	if err != nil {
 		s.opError(w, err, "diagnostics_model_runs_failed")
 		return
@@ -500,7 +540,7 @@ func (s *Server) workflowList(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	value, err := s.app.WorkflowList(r.Context(), actor)
+	value, err := s.app.WorkflowList(r.Context(), actor, strings.TrimSpace(r.URL.Query().Get("query")))
 	if err != nil {
 		s.opError(w, err, "workflow_runtime_unavailable")
 		return
@@ -536,10 +576,22 @@ func (s *Server) workflowCommand(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	body, _ := readJSON(r)
-	value, err := s.app.WorkflowCommand(r.Context(), actor, r.PathValue("workflowID"), r.Method, r.URL.Path, body)
+	action := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
+	body, valid := s.body(w, r)
+	if !valid {
+		if (action == "pause" || action == "resume" || action == "cancel") && (r.ContentLength == 0 || r.Body == http.NoBody) {
+			body = map[string]any{}
+		} else {
+			return
+		}
+	}
+	value, err := s.app.WorkflowCommand(r.Context(), actor, r.PathValue("workflowID"), action, body)
 	if err != nil {
 		s.opError(w, err, "workflow_command_failed")
+		return
+	}
+	if action == "pause" || action == "resume" || action == "cancel" {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	writeJSON(w, http.StatusOK, value)

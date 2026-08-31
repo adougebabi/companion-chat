@@ -26,6 +26,7 @@ const (
 	InvalidCoreEvent      = "invalid_core_event"
 	HiddenCorePayload     = "hidden_core_payload"
 	CoreSequenceInvalid   = "core_sequence_invalid"
+	maxCoreFrameBytes     = 4 << 20
 )
 
 // CoreStreamEvent is the visible Core-to-BFF stream envelope.  The payload is
@@ -149,6 +150,9 @@ func TranslateCoreNDJSON(ctx context.Context, response *http.Response, dst io.Wr
 		}
 
 		if len(line) > 0 && line[len(line)-1] == '\n' {
+			if len(line) > maxCoreFrameBytes {
+				return emitProtocolError(ctx, dst, turnID, expectedSequence, CoreStreamInvalid)
+			}
 			line = line[:len(line)-1]
 			line = bytes.TrimSpace(line)
 			if len(line) == 0 {
@@ -412,6 +416,15 @@ func browserEvent(core CoreStreamEvent) (BrowserStreamEvent, string) {
 			payload["message"] = browserStreamMessage(message)
 			return BrowserStreamEvent{Type: eventType, TurnID: core.TurnID, Sequence: core.Sequence, Payload: payload}, ""
 		}
+	}
+	if core.Type == "completed" {
+		// Only forward browser-visible completion metadata. Workflow/media
+		// intent identifiers are Core internals and must not cross the BFF.
+		payload := map[string]any{}
+		if ids, ok := core.Payload["message_ids"]; ok {
+			payload["message_ids"] = ids
+		}
+		return BrowserStreamEvent{Type: "completed", TurnID: core.TurnID, Sequence: core.Sequence, Payload: payload}, ""
 	}
 
 	return BrowserStreamEvent{Type: eventType, TurnID: core.TurnID, Sequence: core.Sequence, Payload: core.Payload}, ""

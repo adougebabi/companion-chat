@@ -12,6 +12,8 @@ import (
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/config"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi"
+	coreworkflow "github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow"
+	"go.temporal.io/sdk/client"
 )
 
 func main() {
@@ -40,6 +42,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if settings.TemporalAddr == "" {
+		settings.TemporalAddr = "temporal:7233"
+	}
+	if settings.TemporalNS == "" {
+		settings.TemporalNS = "default"
+	}
+	temporalClient, err := client.Dial(client.Options{HostPort: settings.TemporalAddr, Namespace: settings.TemporalNS, Identity: "fluctlight-core-api"})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer temporalClient.Close()
+	application.SetWorkflowRuntime(coreworkflow.NewTemporalRuntime(temporalClient, settings.TemporalNS, "fluctlight-core-api"))
 	server := &http.Server{
 		Addr:              settings.ListenAddress,
 		Handler:           httpapi.NewApp(application, settings.ServiceKey, nil).Handler(),

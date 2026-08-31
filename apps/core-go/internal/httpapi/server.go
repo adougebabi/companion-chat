@@ -320,6 +320,7 @@ func (s *Server) fluctlightDetail(response http.ResponseWriter, request *http.Re
 		return
 	}
 	if err != nil {
+		s.logger.Error("Go Core fluctlight detail failed", "fluctlight_id", request.PathValue("fluctlightID"), "error", err)
 		writeError(response, http.StatusBadGateway, "fluctlight_detail_failed")
 		return
 	}
@@ -373,6 +374,10 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 		return
 	}
 	mode := firstString(body["initialization_mode"], "llm_defined")
+	if mode != "blank_slate" && mode != "llm_defined" {
+		writeError(response, http.StatusUnprocessableEntity, "initialization_mode_invalid")
+		return
+	}
 	identity := mapValue(body["identity"])
 	requestID := stringValue(body["request_id"])
 	if requestID == "" {
@@ -380,6 +385,9 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 		return
 	}
 	foundation := map[string]any{"identity": identity, "personality": mapValue(body["personality"]), "behavioral_policy": mapValue(body["behavioral_policy"]), "life_profile": mapValue(body["life_profile"]), "provenance": mapValue(body["foundation_provenance"]), "initial_goals": arrayValue(body["initial_goals"]), "initial_intentions": arrayValue(body["initial_intentions"])}
+	if mode == "blank_slate" {
+		foundation = nil
+	}
 	stable := core.StableFluctlightID(actorID, requestID)
 	item, err := s.app.CreateFluctlight(request.Context(), actorID, stable, stringValue(identity["name"]), mode, foundation, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]))
 	if err != nil {
@@ -462,7 +470,7 @@ func (s *Server) moments(response http.ResponseWriter, request *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	items, err := s.app.Moments(request.Context(), actorID, request.PathValue("fluctlightID"))
+	items, err := s.app.MomentsWithOptions(request.Context(), actorID, request.PathValue("fluctlightID"), request.URL.Query().Get("include_hidden") == "true", queryLimit(request))
 	if errors.Is(err, core.ErrNotFound) {
 		writeError(response, http.StatusNotFound, "fluctlight_not_found")
 		return
@@ -497,7 +505,13 @@ func (s *Server) schedule(response http.ResponseWriter, request *http.Request) {
 		writeError(response, http.StatusBadRequest, "core_request_validation_failed")
 		return
 	}
-	value, err := s.app.AcceptSchedule(request.Context(), actorID, request.PathValue("fluctlightID"), body)
+	var value map[string]any
+	var err error
+	if strings.TrimSpace(stringValue(body["completed_before"])) != "" {
+		value, err = s.app.ReplanSchedule(request.Context(), actorID, request.PathValue("fluctlightID"), body)
+	} else {
+		value, err = s.app.AcceptSchedule(request.Context(), actorID, request.PathValue("fluctlightID"), body)
+	}
 	if err != nil {
 		s.logger.Error("Go Core schedule acceptance failed", "fluctlight_id", request.PathValue("fluctlightID"), "error", err)
 		writeError(response, http.StatusUnprocessableEntity, "schedule_accept_failed")
@@ -545,6 +559,8 @@ func (s *Server) media(response http.ResponseWriter, request *http.Request) {
 			writeError(response, http.StatusNotFound, "media_not_found")
 		} else if err.Error() == "invalid byte range" {
 			response.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
+		} else {
+			writeError(response, http.StatusBadGateway, "media_unavailable")
 		}
 	}
 }
@@ -597,12 +613,7 @@ func humanMessage(code string) string {
 }
 
 func readJSON(request *http.Request) (map[string]any, bool) {
-	decoder := json.NewDecoder(io.LimitReader(request.Body, 4<<20))
-	var value map[string]any
-	if err := decoder.Decode(&value); err != nil || value == nil {
-		return nil, false
-	}
-	return value, true
+	return decodeObjectBody(io.LimitReader(request.Body, 4<<20))
 }
 
 func writeNDJSONError(response http.ResponseWriter, turnID string, err error) {

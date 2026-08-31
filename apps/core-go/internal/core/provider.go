@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -21,24 +22,32 @@ type ProviderClient struct {
 }
 
 type providerAssignment struct {
-	Role    string
-	BaseURL string
-	ModelID string
-	Secret  string
-	Timeout time.Duration
+	Role        string
+	EndpointID  string
+	BaseURL     string
+	ModelID     string
+	Secret      string
+	Timeout     time.Duration
+	TokenBudget int
 }
 
 func (p *ProviderClient) assignment(ctx context.Context, role string) (providerAssignment, error) {
-	var baseURL, modelID, purpose string
-	var timeoutSeconds int
+	var endpointID, baseURL, modelID, purpose, capabilityStatus string
+	var timeoutSeconds, tokenBudget int
 	err := p.DB.Pool().QueryRow(ctx, `
-		SELECT e.base_url, r.model_id, e.secret_purpose, r.timeout_seconds
+		SELECT e.id,e.base_url, r.model_id, e.secret_purpose, r.timeout_seconds,r.token_budget,e.capability_status
 		FROM public.model_roles r
 		JOIN public.provider_endpoints e ON e.id = r.provider_endpoint_id
 		WHERE r.role = $1
-	`, role).Scan(&baseURL, &modelID, &purpose, &timeoutSeconds)
+	`, role).Scan(&endpointID, &baseURL, &modelID, &purpose, &timeoutSeconds, &tokenBudget, &capabilityStatus)
 	if err != nil {
 		return providerAssignment{}, fmt.Errorf("provider role %s unavailable: %w", role, err)
+	}
+	if !validProviderRole(role) {
+		return providerAssignment{}, fmt.Errorf("provider role %s invalid", role)
+	}
+	if strings.EqualFold(capabilityStatus, "failed") {
+		return providerAssignment{}, fmt.Errorf("provider role %s preflight failed", role)
 	}
 	secret, err := p.secret(ctx, purpose)
 	if err != nil {
@@ -47,7 +56,16 @@ func (p *ProviderClient) assignment(ctx context.Context, role string) (providerA
 	if timeoutSeconds <= 0 {
 		timeoutSeconds = 120
 	}
-	return providerAssignment{Role: role, BaseURL: strings.TrimRight(baseURL, "/"), ModelID: modelID, Secret: secret, Timeout: time.Duration(timeoutSeconds) * time.Second}, nil
+	return providerAssignment{Role: role, EndpointID: endpointID, BaseURL: strings.TrimRight(baseURL, "/"), ModelID: modelID, Secret: secret, Timeout: time.Duration(timeoutSeconds) * time.Second, TokenBudget: tokenBudget}, nil
+}
+
+func validProviderRole(role string) bool {
+	switch role {
+	case "initialization", "cognitive_assessment", "action_realization", "reflection", "embedding", "media_prompt":
+		return true
+	default:
+		return false
+	}
 }
 
 func (p *ProviderClient) secret(ctx context.Context, purpose string) (string, error) {
@@ -68,6 +86,7 @@ func (p *ProviderClient) complete(ctx context.Context, role string, messages []m
 	if err != nil {
 		return nil, err
 	}
+	correlationID := diagnosticCorrelation(messages, "")
 	payload := map[string]any{
 		"model":       assignment.ModelID,
 		"messages":    messages,
@@ -88,6 +107,8 @@ func (p *ProviderClient) complete(ctx context.Context, role string, messages []m
 		return nil, err
 	}
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Idempotency-Key", "provider:"+stableDigest(role+":"+correlationID))
+	request.Header.Set("X-Fluctlight-Provider-Request-Id", "provider:"+stableDigest(role+":"+correlationID))
 	if assignment.Secret != "" {
 		request.Header.Set("Authorization", "Bearer "+assignment.Secret)
 	}
@@ -97,44 +118,65 @@ func (p *ProviderClient) complete(ctx context.Context, role string, messages []m
 	}
 	response, err := client.Do(request)
 	if err != nil {
+		p.recordProviderFailure(ctx, assignment, correlationID, messages, err.Error())
 		return nil, fmt.Errorf("provider request failed: %w", err)
 	}
 	defer response.Body.Close()
 	data, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
 	if err != nil {
+		p.recordProviderFailure(ctx, assignment, correlationID, messages, err.Error())
 		return nil, err
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		p.recordProviderFailure(ctx, assignment, correlationID, messages, fmt.Sprintf("http_%d", response.StatusCode))
 		return nil, fmt.Errorf("provider request returned HTTP %d", response.StatusCode)
 	}
 	var envelope map[string]any
 	if err := json.Unmarshal(data, &envelope); err != nil {
+		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_not_json")
 		return nil, fmt.Errorf("provider response is not JSON: %w", err)
 	}
 	choices, ok := envelope["choices"].([]any)
 	if !ok || len(choices) == 0 {
+		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_no_choices")
 		return nil, fmt.Errorf("provider response has no choices")
 	}
 	choice, ok := choices[0].(map[string]any)
 	if !ok {
+		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_choice_invalid")
 		return nil, fmt.Errorf("provider response choice is invalid")
 	}
 	message, ok := choice["message"].(map[string]any)
 	if !ok {
+		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_message_invalid")
 		return nil, fmt.Errorf("provider response message is invalid")
 	}
 	content, ok := message["content"].(string)
 	if !ok || strings.TrimSpace(content) == "" {
+		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_content_empty")
 		return nil, fmt.Errorf("provider response content is empty")
 	}
 	if jsonMode {
 		var structured map[string]any
 		if err := json.Unmarshal([]byte(content), &structured); err != nil {
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid")
 			return nil, fmt.Errorf("provider structured response is invalid: %w", err)
 		}
+		p.recordProviderSuccess(ctx, assignment, correlationID, messages, structured)
 		return structured, nil
 	}
+	p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": content})
 	return map[string]any{"text": content}, nil
+}
+
+func (p *ProviderClient) recordProviderSuccess(ctx context.Context, assignment providerAssignment, correlationID string, messages []map[string]any, response any) {
+	app := &App{DB: p.DB}
+	app.recordModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, messages, response, "completed", "")
+}
+
+func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment providerAssignment, correlationID string, messages []map[string]any, code string) {
+	app := &App{DB: p.DB}
+	app.recordModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, messages, nil, "failed", code)
 }
 
 func (p *ProviderClient) Structured(ctx context.Context, role string, messages []map[string]any) (map[string]any, error) {
@@ -150,12 +192,103 @@ func (p *ProviderClient) Text(ctx context.Context, role string, messages []map[s
 	return strings.TrimSpace(text), nil
 }
 
+// StreamText preserves the action-realization streaming contract for callers
+// that need incremental visible output. The callback is invoked for each
+// provider delta and the accumulated text is returned only after [DONE].
+func (p *ProviderClient) StreamText(ctx context.Context, role string, messages []map[string]any, onChunk func(string) error) (string, error) {
+	if role != "action_realization" {
+		return "", errors.New("provider streaming is only available for action_realization")
+	}
+	assignment, err := p.assignment(ctx, role)
+	if err != nil {
+		return "", err
+	}
+	correlationID := diagnosticCorrelation(messages, "")
+	body, err := json.Marshal(map[string]any{"model": assignment.ModelID, "messages": messages, "temperature": 0.7, "stream": true})
+	if err != nil {
+		return "", err
+	}
+	requestCtx, cancel := context.WithTimeout(ctx, assignment.Timeout)
+	defer cancel()
+	request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Accept", "text/event-stream")
+	request.Header.Set("Idempotency-Key", "provider:"+stableDigest(role+":"+correlationID))
+	request.Header.Set("X-Fluctlight-Provider-Request-Id", "provider:"+stableDigest(role+":"+correlationID))
+	if assignment.Secret != "" {
+		request.Header.Set("Authorization", "Bearer "+assignment.Secret)
+	}
+	client := p.HTTP
+	if client == nil {
+		client = &http.Client{}
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return "", fmt.Errorf("provider stream returned HTTP %d", response.StatusCode)
+	}
+	scanner := bufio.NewScanner(io.LimitReader(response.Body, 16<<20))
+	scanner.Buffer(make([]byte, 4<<10), 1<<20)
+	var builder strings.Builder
+	done := false
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, ":") {
+			continue
+		}
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "[DONE]" {
+			done = true
+			break
+		}
+		var envelope struct {
+			Choices []struct {
+				Delta struct {
+					Content string `json:"content"`
+				} `json:"delta"`
+			} `json:"choices"`
+		}
+		if err := json.Unmarshal([]byte(data), &envelope); err != nil {
+			return "", fmt.Errorf("provider stream frame invalid: %w", err)
+		}
+		if len(envelope.Choices) == 0 || envelope.Choices[0].Delta.Content == "" {
+			continue
+		}
+		chunk := envelope.Choices[0].Delta.Content
+		builder.WriteString(chunk)
+		if onChunk != nil {
+			if err := onChunk(chunk); err != nil {
+				return "", err
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+	if !done {
+		return "", errors.New("provider stream incomplete")
+	}
+	result := builder.String()
+	p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": result, "streamed": true})
+	return result, nil
+}
+
 func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []float64, error) {
 	assignment, err := p.assignment(ctx, "embedding")
 	if err != nil {
 		return "", nil, err
 	}
-	body, err := json.Marshal(map[string]any{"model": assignment.ModelID, "input": text})
+	correlationID := "embedding:" + stableDigest(assignment.ModelID+":"+text)
+	body, err := json.Marshal(map[string]any{"model": assignment.ModelID, "input": []string{text}, "encoding_format": "float"})
 	if err != nil {
 		return "", nil, err
 	}
@@ -166,6 +299,8 @@ func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []floa
 		return "", nil, err
 	}
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Idempotency-Key", "provider:"+stableDigest(correlationID))
+	request.Header.Set("X-Fluctlight-Provider-Request-Id", "provider:"+stableDigest(correlationID))
 	if assignment.Secret != "" {
 		request.Header.Set("Authorization", "Bearer "+assignment.Secret)
 	}
@@ -175,10 +310,12 @@ func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []floa
 	}
 	response, err := client.Do(request)
 	if err != nil {
+		p.recordProviderFailure(ctx, assignment, correlationID, []map[string]any{{"role": "user", "content": text}}, err.Error())
 		return "", nil, err
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		p.recordProviderFailure(ctx, assignment, correlationID, []map[string]any{{"role": "user", "content": text}}, fmt.Sprintf("http_%d", response.StatusCode))
 		return "", nil, fmt.Errorf("embedding request returned HTTP %d", response.StatusCode)
 	}
 	var envelope struct {
@@ -187,10 +324,13 @@ func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []floa
 		} `json:"data"`
 	}
 	if err := json.NewDecoder(io.LimitReader(response.Body, 8<<20)).Decode(&envelope); err != nil {
+		p.recordProviderFailure(ctx, assignment, correlationID, []map[string]any{{"role": "user", "content": text}}, "embedding_response_invalid")
 		return "", nil, err
 	}
 	if len(envelope.Data) == 0 || len(envelope.Data[0].Embedding) == 0 {
+		p.recordProviderFailure(ctx, assignment, correlationID, []map[string]any{{"role": "user", "content": text}}, "embedding_response_empty")
 		return "", nil, fmt.Errorf("embedding response is empty")
 	}
+	p.recordProviderSuccess(ctx, assignment, correlationID, []map[string]any{{"role": "user", "content": text}}, map[string]any{"dimensions": len(envelope.Data[0].Embedding)})
 	return assignment.ModelID, envelope.Data[0].Embedding, nil
 }
