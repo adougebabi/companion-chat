@@ -25,3 +25,17 @@ func TestNormalizeMemoryRecordRequiresEvidenceAndBoundedSemantics(t *testing.T) 
 		t.Fatal("expected confidence bound error")
 	}
 }
+
+func TestNormalizeMemoryRecordDefaultsOptionalEmotionalSignificance(t *testing.T) {
+	record, err := normalizeMemoryRecord("fl", map[string]any{
+		"type": "semantic", "content": "用户喜欢安静", "confidence": 0.9,
+		"importance": 0.7, "visibility": "owner",
+		"evidence_refs": []any{"fact-1"}, "idempotency_key": "memory:optional-emotion",
+	})
+	if err != nil {
+		t.Fatalf("normalizeMemoryRecord() error = %v", err)
+	}
+	if record.EmotionalSignificance != 0 {
+		t.Fatalf("emotional significance = %v, want 0", record.EmotionalSignificance)
+	}
+}

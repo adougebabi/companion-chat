@@ -157,9 +157,12 @@ func normalizeMemoryRecord(fluctlightID string, payload map[string]any) (memoryR
 	if err != nil {
 		return memoryRecordInput{}, errors.New("memory_importance_invalid")
 	}
-	emotional, err := requiredBoundedNumber(payload["emotional_significance"])
-	if err != nil {
-		return memoryRecordInput{}, errors.New("memory_emotional_significance_invalid")
+	emotional := 0.0
+	if rawEmotional, present := payload["emotional_significance"]; present && rawEmotional != nil {
+		emotional, err = requiredBoundedNumber(rawEmotional)
+		if err != nil {
+			return memoryRecordInput{}, errors.New("memory_emotional_significance_invalid")
+		}
 	}
 	visibility := firstString(payload["visibility"], "private")
 	if _, ok := validMemoryVisibility[visibility]; !ok {

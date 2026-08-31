@@ -56,6 +56,9 @@ MemoryEmbedding
 - Prompt context includes Memory IDs, types, source/evidence references, confidence, and bounded content under a token budget. Retrieved content is evidence, not an unqualified fact.
 - Working memory is composed from current Conversation and unresolved Cognition state; do not duplicate complete recent-message history into durable Memory.
 - Embedding regeneration changes only the index row. Memory content changes require a Memory revision and mark prior embeddings stale.
+- The native `memory_event` capability may omit `emotional_significance`; the
+  Runtime normalizes the missing optional signal to `0` (no inferred emotional
+  weight) while retaining the required authoritative field on the Memory row.
 
 ### 4. Validation & Error Matrix
 
