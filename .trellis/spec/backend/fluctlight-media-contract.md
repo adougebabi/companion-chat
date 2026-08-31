@@ -62,6 +62,11 @@ created_at / ready_at / tombstoned_at / deleted_at
 - PostgreSQL records SHA-256 and byte size; ETag alone is not a content-integrity guarantee.
 - Generation/upload happens after a committed media intent. The final transaction validates workflow ID, asset revision, checksum, size, and references before marking ready.
 - The external Provider job ID is persisted on the committed media intent immediately after submission. Activity retries reuse that ID for polling and cancellation; they never submit a second Provider job for the same intent. A ready asset is the authoritative replay boundary, so retries only reapply idempotent conversation/Moment projections.
+- Long media activities record an initial and periodic Temporal heartbeat while
+  prompt generation, Provider submission, object download, or polling is in
+  flight. Once `provider_job_id` is persisted, retries skip prompt generation
+  and poll that same job; a heartbeat timeout must not cause a second Provider
+  submission.
 - Deletion first removes/invalidates active references and commits a tombstone/outbox intent. Physical object/version deletion is retryable and only then marks `deleted`.
 - Upload success followed by database failure reuses the same object key/request identity on retry or is collected as an orphan. It never creates a second user-visible asset.
 - Bucket versioning is enabled. Lifecycle rules remove obsolete/non-current versions according to an explicit retention policy.
