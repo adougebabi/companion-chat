@@ -255,7 +255,13 @@ func normalizeReflectionProposal(value map[string]any) map[string]any {
 						normalized["visibility"] = "participants"
 					}
 				}
-				if stringValue(normalized["content"]) == "" || stringValue(normalized["type"]) == "" || stringValue(normalized["visibility"]) == "" || normalized["importance"] == nil || normalized["emotional_significance"] == nil {
+				if stringValue(normalized["visibility"]) == "" {
+					normalized["visibility"] = "private"
+				}
+				if normalized["emotional_significance"] == nil {
+					normalized["emotional_significance"] = 0.0
+				}
+				if stringValue(normalized["content"]) == "" || stringValue(normalized["type"]) == "" || normalized["importance"] == nil {
 					continue
 				}
 			case "relationship_candidates":
@@ -267,10 +273,10 @@ func normalizeReflectionProposal(value map[string]any) map[string]any {
 				}
 			case "self_model_candidates":
 				if stringValue(normalized["category"]) == "" {
-					normalized["category"] = normalized["dimension"]
+					normalized["category"] = firstString(normalized["dimension"], firstString(normalized["type"], ""))
 				}
 				if stringValue(normalized["claim"]) == "" {
-					normalized["claim"] = normalized["summary"]
+					normalized["claim"] = firstString(normalized["summary"], firstString(normalized["content"], ""))
 				}
 				if stringValue(normalized["category"]) == "" || stringValue(normalized["claim"]) == "" {
 					continue

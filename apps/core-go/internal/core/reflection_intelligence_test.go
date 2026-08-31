@@ -34,13 +34,13 @@ func TestNormalizeReflectionProposalKeepsValidAliasesAndDropsIncompleteCandidate
 	proposal := normalizeReflectionProposal(map[string]any{
 		"memory_candidates": []any{
 			map[string]any{"memory_type": "user_preference", "scope": "conversation", "content": "喜欢蓝灰色", "confidence": 0.9, "importance": 0.8, "emotional_significance": 0.4},
-			map[string]any{"memory_type": "context", "scope": "conversation", "content": "缺少数值字段", "confidence": 0.7},
+			map[string]any{"memory_type": "context", "scope": "conversation", "content": "使用安全默认值", "confidence": 0.7, "importance": 0.3},
 		},
-		"self_model_candidates":   []any{map[string]any{"dimension": "taste", "summary": "我偏好克制的色彩", "confidence": 0.8, "evidence_refs": []any{"fact-1"}}},
+		"self_model_candidates":   []any{map[string]any{"type": "taste", "content": "我偏好克制的色彩", "confidence": 0.8, "evidence_refs": []any{"fact-1"}}},
 		"relationship_candidates": []any{map[string]any{"counterparty_id": "human-1", "relationship_type": "collaborator", "evidence_refs": []any{"fact-1"}}},
 	})
 	memory := arrayValue(proposal["memory_candidates"])
-	if len(memory) != 1 || stringValue(mapValue(memory[0])["type"]) != "semantic" || stringValue(mapValue(memory[0])["visibility"]) != "owner" {
+	if len(memory) != 2 || stringValue(mapValue(memory[0])["type"]) != "semantic" || stringValue(mapValue(memory[0])["visibility"]) != "owner" || mapValue(memory[1])["emotional_significance"] != 0.0 {
 		t.Fatalf("normalized memory candidates = %#v", memory)
 	}
 	self := arrayValue(proposal["self_model_candidates"])
