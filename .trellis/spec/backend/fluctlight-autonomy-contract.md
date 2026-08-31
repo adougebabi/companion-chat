@@ -5,7 +5,7 @@
 ### 1. Scope / Trigger
 
 - Trigger: a Drive/Event/Human request/Reflection proposes a Goal, a Goal produces an Intention, a trigger becomes due, or an autonomous Action is executed/governed.
-- LLM owns semantic goal/intention/action proposals. Python owns lifecycle, permissions, budgets, timing facts, workflow, freeze, execution authorization, and audit.
+- LLM owns semantic goal/intention/action proposals. Go Core owns lifecycle, permissions, budgets, timing facts, workflow, freeze, execution authorization, and audit.
 - Owner grants policy in advance; normal allowed Actions do not require per-action confirmation.
 
 ### 2. Signatures
@@ -32,10 +32,10 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
   enqueue a stable `life_world.daily_review` inbox fact containing the accepted
   Schedule, active Goals/Intentions, existing direct-conversation target when
   present, and the frozen Foundation profile. The model decides `no_op`,
-  `proactive_message`, or `moment`; Python never derives an action from idle
+  `proactive_message`, or `moment`; Go Core never derives an action from idle
   duration or Schedule text.
 - Execution rechecks current permission, per-action budget, quiet hours, cooldown, concurrency, Context, Schedule, Relationship, state revisions, and expiration.
-- Python freezes the accepted final decision. Retry reuses it and stable IDs rather than re-assessing implicitly.
+- Go Core freezes the accepted final decision. Retry reuses it and stable IDs rather than re-assessing implicitly.
 - Allowed pre-authorized Actions: proactive/delayed message, Moment, media request, Schedule proposal, governed life Event/Context change, Memory/Relationship candidate, and follow-up Goal/Intention.
 - Forbidden autonomous Actions: identity-anchor/safety/Owner permission change, Provider/infrastructure setting change, destructive other-Actor/Fluctlight data action, budget bypass, or external irreversible action without a future explicit authorization model.
 - Owner may inspect/pause/resume/cancel pending Goal/Intention/workflow and set `autonomy_mode` plus per-action policy. Governance appends history and audit; it does not erase facts.

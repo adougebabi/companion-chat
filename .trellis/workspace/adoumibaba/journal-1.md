@@ -479,3 +479,201 @@ Completed modular backend cutover: removed server.js, legacy compatibility harne
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: Go BFF contract closure
+
+**Date**: 2026-08-29
+**Task**: Go BFF contract closure
+**Branch**: `codex/go-bff-acceptance`
+
+### Summary
+
+Created codex/go-bff-acceptance from codex/go-build; added Browser OpenAPI route parity, public HTTP auth/domain/NDJSON integration, security matrix, error detail sanitization, media nil-body/range hardening, disconnect cancellation tests, and verified Go/Node/Web/Python gates. Python format/lint/mypy baseline issues remain documented.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cb7bba8` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 16: Complete Go BFF cutover
+
+**Date**: 2026-08-30
+**Task**: Complete Go BFF cutover
+**Branch**: `codex/go-bff-cutover`
+
+### Summary
+
+From codex/go-bff-acceptance created codex/go-bff-cutover, deleted apps/bff entirely, moved Browser OpenAPI generator, cleaned workspace/lockfile/scripts/Compose smoke/docs/specs, rebuilt and replaced the running Go BFF container, and ran real 1-7 regression through BFF. Cases 1,3,4,5,6 passed; case2 passed after idempotent retry with 3 PNG assets; case7 verified completed proactive_message for 影者, while new proactive fixtures exposed Core no_op/backlog behavior. Core pytest 208 passed/1 skipped; Go and Node gates passed.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `35f39be` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 17: Go Core vertical slice and runtime stability
+
+**Date**: 2026-08-30
+**Task**: Go Core vertical slice and runtime stability
+**Branch**: `codex/go-core-runtime-stability`
+
+### Summary
+
+Added an opt-in Go Core PostgreSQL-backed read/transport slice; reconciled Core OpenAPI and CI/Compose wiring; fixed compound-effect prevalidation, activation-time direct conversation and daily-review registration, strict reflection validation with atomic watermark/apply, and bounded restart-safe dispatcher priority. Rebuilt the real Docker Core/Worker stack and passed regression cases 1-7, including fresh no-restart Moment and proactive-message paths.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `efecfe5` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 18: Complete Go Core migration and real regression
+
+**Date**: 2026-08-31
+**Task**: Complete Go Core migration and real regression
+**Branch**: `codex/go-core-full-migration`
+
+### Summary
+
+Removed Python Core runtime, completed Go Core/Worker/BFF/Web-only Compose cutover, fenced legacy Temporal executions, restored LLM schedule generation with durable timers, and passed real Docker regression cases 1-7 plus full Go/frontend/static gates.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f7aacdb` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 19: Continue Go Core full migration
+
+**Date**: 2026-08-31
+**Task**: Continue Go Core full migration
+**Branch**: `codex/go-core-full-migration`
+
+### Summary
+
+Closed workflow Temporal management, governance/CAS, Moments/Presence/Context, Schedule validation/replan, Provider preflight/diagnostics, Memory embedding intents, strict Core boundary and media error handling. Go/Gateway/Web checks and real cases 1,3,4,5,6,7 pass. Case 2 remains blocked by real ComfyUI workflow referencing unavailable transformer model; task remains in_progress.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e2357be` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 20: Close Go Core Worker platform loop
+
+**Date**: 2026-08-31
+**Task**: Close Go Core Worker platform loop
+**Branch**: `codex/go-core-worker-closure`
+
+### Summary
+
+Added PostgreSQL outbox claim/retry/terminal handling, Redis Streams publisher and durable consumers with inbox/effect/head, duplicate/reclaim/poison handling and PEL-safe trim; added cognition/platform Temporal workflows, queue-specific registration, durable cognition intents and Worker runtime integration. Core race/vet/build and PostgreSQL+Redis/miniredis platform tests pass; Docker worker groups pending=0 lag=0 and fresh cognition intent fan-out to all groups verified. Baseline product flows remain accepted evidence and were not rerun because unaffected.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `59652fa` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

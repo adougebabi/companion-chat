@@ -41,7 +41,7 @@ embed(role, inputs) -> VersionedEmbeddings
 - Every result records role, endpoint/model ID, capability/model version when available, prompt/schema version, timing, token usage/budget, and correlation IDs.
 - No implicit role/model fallback. Failure follows explicit interaction/workflow retry/deferred/no-op/terminal rules.
 - Provider adapter returns normalized transport/structured results and bounded parse diagnostics. It does not parse visible prose for semantic effects or choose domain actions.
-- API keys are resolved only in Python through the configuration secret contract and never returned to Node/browser/debug output.
+- API keys are resolved only in Go Core through the configuration secret contract and never returned to BFF/browser/debug output.
 
 ### 4. Validation & Error Matrix
 
@@ -94,4 +94,59 @@ return await provider.complete_structured(
     schema=SemanticAssessmentV1,
     input=assessment_input,
 )
+
+## Scenario: Go Provider Preflight And Explicit Media Failure
+
+### 1. Scope / Trigger
+
+- Trigger: Go Core configures a model role or a media workflow receives an
+  endpoint/model capability error.
+
+### 2. Signatures
+
+- `ConfigureProviderRole(ctx, actorID, payload)` persists a preflight only
+  after the endpoint model list contains the selected model.
+- Provider calls carry deterministic idempotency/request headers.
+
+### 3. Contracts
+
+- Endpoint reconfiguration invalidates bound roles until the next preflight.
+- A missing ComfyUI model is a bounded failure; no alternate model is chosen.
+- Successful and failed model runs are recorded with redacted diagnostics.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| endpoint/model missing or unavailable | reject role; no role row |
+| configured media model absent | retry, then mark media intent `failed` |
+| diagnostic contains credentials/hidden reasoning | redact/drop before persistence |
+
+### 5. Good/Base/Bad Cases
+
+- Good: preflight passes and retries reuse one request ID.
+- Base: a previously healthy endpoint degrades and returns a bounded Provider
+  error while Core readiness remains healthy.
+- Bad: silently selecting the first available transformer after a 400.
+
+### 6. Tests Required
+
+- Fake `/models` preflight success/unknown-model tests.
+- Header idempotency and recursive diagnostic-redaction tests.
+- Real ComfyUI model-not-found test asserting failed durable media state.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+workflow["transformer"] = firstAvailableModel()
+```
+
+#### Correct
+
+```go
+markMediaIntentFailed("provider_model_not_available")
+return err
+```
 ```

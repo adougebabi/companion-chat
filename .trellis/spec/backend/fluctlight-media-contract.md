@@ -5,7 +5,8 @@
 ### 1. Scope / Trigger
 
 - Trigger: the clean-start system generates, uploads, attaches, reads, proxies, versions, tombstones, deletes, backs up, or restores image/video/audio media.
-- Python `media` owns business identity and authorization. Object storage owns bytes. Node BFF is an authorized transport proxy, not a media-state owner.
+- Go Core `media` owns business identity and authorization. Object storage owns
+  bytes. The Go BFF is an authorized transport proxy, not a media-state owner.
 - The deployment uses an S3-compatible interface; Docker Compose defaults to a pinned MinIO single-node persistent volume.
 
 ### 2. Signatures
@@ -50,8 +51,12 @@ created_at / ready_at / tombstoned_at / deleted_at
 
 ### 3. Contracts
 
-- Buckets are private. Browser requests use the Node BFF media endpoint; Python performs Actor/Conversation/reference authorization before issuing a short-lived internal grant.
-- Node may proxy bytes, Range, ETag, Content-Type, Content-Length, and cache headers from the grant. It cannot infer authorization, query media tables, or mint object grants.
+- Buckets are private. Browser requests use the Go BFF media endpoint; Go Core
+  performs Actor/Conversation/reference authorization before issuing a
+  short-lived internal grant.
+- Go may proxy bytes, Range, ETag, Content-Type, Content-Length, and cache
+  headers from the grant. It cannot infer authorization, query media tables,
+  or mint object grants.
 - Application code uses only the S3-compatible interface. MinIO-specific administration remains deployment tooling.
 - Object keys are stable generated identities such as `media/{asset_id}/{object_version}` and never user-controlled filenames or local absolute paths.
 - PostgreSQL records SHA-256 and byte size; ETag alone is not a content-integrity guarantee.
@@ -79,10 +84,10 @@ created_at / ready_at / tombstoned_at / deleted_at
 
 ### 5. Good / Base / Bad Cases
 
-- Good: a private video request is authorized by Python, Node proxies a valid byte range, and the browser can seek without seeing bucket credentials.
+- Good: a private video request is authorized by Go Core, the Go BFF proxies a valid byte range, and the browser can seek without seeing bucket credentials.
 - Good: a deleted Message removes its final media reference, commits a tombstone, and retries physical deletion after an object outage.
 - Base: an uploaded object exists before its result transaction; retry finds and verifies the same stable key, then marks one asset ready.
-- Bad: save absolute Provider paths, expose a public bucket, trust ETag as SHA-256, delete an object before removing references, or let Node query authorization tables.
+- Bad: save absolute Provider paths, expose a public bucket, trust ETag as SHA-256, delete an object before removing references, or let the BFF query authorization tables.
 
 ### 6. Tests Required
 

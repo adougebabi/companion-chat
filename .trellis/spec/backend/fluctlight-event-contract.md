@@ -50,7 +50,7 @@ Initial durable consumer groups are `bff-notifications`, `cache-projections`, an
 - `aggregate_sequence` detects gaps/ordering anomalies; consumers do not silently invent missing state.
 - Trim uses a configured time/ID retention window and must remain behind critical consumer-group pending/progress positions. PostgreSQL outbox/event journal provides longer replay.
 - Redis AOF `everysec` and persistence volume are enabled, but loss of the Redis volume is recoverable by rebuilding groups/streams from PostgreSQL.
-- Progress entries may use approximate `MAXLEN`; they carry no authoritative final state and require no PostgreSQL outbox/inbox. Clients query Python for final status.
+- Progress entries may use approximate `MAXLEN`; they carry no authoritative final state and require no PostgreSQL outbox/inbox. Clients query Go Core for final status.
 
 ### 4. Validation & Error Matrix
 
@@ -71,7 +71,7 @@ Initial durable consumer groups are `bff-notifications`, `cache-projections`, an
 
 - Good: an event is published twice after a publisher crash; each consumer group commits one effect and acknowledges both deliveries through one inbox result.
 - Good: a dead consumer's pending event is reclaimed and completed by another Worker.
-- Base: media progress is trimmed before a browser sees it; the browser refreshes authoritative status from Python.
+- Base: media progress is trimmed before a browser sees it; the browser refreshes authoritative status from Go Core.
 - Bad: store delayed jobs in Streams, `XACK` before database commit, use the stream ID as a business ID, or trim while critical entries remain pending.
 
 ### 6. Tests Required
@@ -102,4 +102,72 @@ async with unit_of_work.begin(command_id=event.event_id) as tx:
     result = consumer_inbox.apply_once(group, event, tx=tx)
     await tx.commit()
 await redis.xack(stream, group, event.stream_id)
+```
+
+## Scenario: Go Outbox/Redis Worker Pipeline
+
+### 1. Scope / Trigger
+
+- Trigger: Go Core commits an outbox event or the Worker consumes a durable
+  Redis Stream delivery after a restart.
+
+### 2. Signatures
+
+- `OutboxPublisher.PublishOnce(ctx, limit)` claims PostgreSQL rows, publishes
+  `EventEnvelope` to `fluctlight:events:v1`, and settles published/retry/failed
+  state without holding a transaction across Redis I/O.
+- `EventConsumer.ConsumeOnce(ctx, count)` performs inbox/effect/head writes in
+  one PostgreSQL transaction and acknowledges Redis only after commit.
+
+### 3. Contracts
+
+- Event IDs remain the cross-transport idempotency key; Redis stream IDs are
+  delivery positions only.
+- Claim leases, bounded attempts and `failed_at` prevent a crashed publisher
+  or poison consumer from spinning indefinitely.
+- Duplicate group/event deliveries reuse the existing inbox result and create
+  no second effect. Aggregate sequence gaps are rejected rather than guessed.
+- Worker owns publisher and all configured durable groups; API never polls
+  Redis or Temporal queues.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| PostgreSQL row is claimed but Redis publish fails | clear claim, back off, or mark terminal after max attempts |
+| Worker crashes after `XADD` before `published_at` | republish same event ID; consumers deduplicate |
+| duplicate Redis delivery | inbox conflict, effect unchanged, then `XACK` |
+| malformed event payload | durable poison failure record and acknowledgement |
+| aggregate sequence gap | leave delivery pending and record retryable processing failure |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a cognition fact is published once, consumed by all three groups, and
+  each group has one inbox/effect record with zero pending lag.
+- Base: Redis is rebuilt from PostgreSQL outbox; already published events are
+  not duplicated in PostgreSQL effects.
+- Bad: acknowledge before PostgreSQL commit, use stream IDs as business IDs,
+  or leave an outbox row permanently claimed after a crash.
+
+### 6. Tests Required
+
+- Miniredis + PostgreSQL integration tests for publish, duplicate delivery,
+  poison handling, claim retry and consumer group isolation.
+- Restart/crash-window tests for `XADD`/published marker and transaction/
+  `XACK` ordering, plus aggregate gap tests.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+redis.XAck(ctx, stream, group, messageID)
+applyConsumerEffect(ctx, message)
+```
+
+#### Correct
+
+```go
+commitInboxEffect(ctx, message)
+redis.XAck(ctx, stream, group, messageID)
 ```

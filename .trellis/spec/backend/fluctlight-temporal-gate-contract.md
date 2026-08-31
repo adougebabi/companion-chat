@@ -10,7 +10,7 @@
 
 ### 2. Signatures
 
-Python gate uses current Temporal SDK concepts:
+Go gate uses current Temporal SDK concepts:
 
 ```python
 @workflow.defn
@@ -35,7 +35,7 @@ async def fake_h3(input: FakeH3Input) -> ProviderResult:
     activity.heartbeat(progress)
 ```
 
-Task queues: `interaction`, `lifecycle`, `media`. Stable Workflow IDs derive from committed gate intents. Saved histories are replayed through the Python SDK `Replayer` before upgrade acceptance.
+Task queues: `interaction`, `lifecycle`, `media`. Stable Workflow IDs derive from committed gate intents. Saved histories are replayed through the Go SDK replay test harness before upgrade acceptance.
 
 ### 3. Contracts
 
@@ -43,7 +43,7 @@ Task queues: `interaction`, `lifecycle`, `media`. Stable Workflow IDs derive fro
 - PostgreSQL provides separate `temporal` default and `temporal_visibility` databases on the existing server. Elasticsearch/OpenSearch is disabled.
 - Temporal UI, Prometheus and external telemetry are disabled by default; CLI/UI may run temporarily for gate/admin evidence.
 - The final deployment cannot use `temporal server start-dev`; the gate uses self-hosted server configuration intended for sustained operation.
-- Python API does not poll application task queues. Python Worker(s) poll three queues with bounded pollers/concurrency.
+- Go Core API does not poll application task queues. Go Worker(s) poll three queues with bounded pollers/concurrency.
 - Pause/resume is durable workflow state changed through Signals and observable through Query. Update is used where the caller needs validated acknowledgement.
 - Cancellation propagates to Activities; long Activities heartbeat and recover progress after Worker/runtime/PostgreSQL restart.
 - Stable Workflow/Provider IDs prevent duplicate external effects across Activity retry and result-commit crash windows.
@@ -86,7 +86,7 @@ Resource observation is non-blocking. T01B measured approximately 139 MiB Tempor
 - Durable timer, Signal pause/resume, Query, Update, cancel/terminate, retry/reset/replay and audited repair tests.
 - 15-minute fake h3 heartbeat/timeout/cancel plus live Worker/Temporal/PostgreSQL kill/restart and provider-success-before-completion failure injection.
 - Stable Workflow/Provider ID duplicate tests and one final domain result.
-- Export real v1 histories; Python Replayer against v2; current Worker Deployment Versioning coexist/drain/rollback; continue-as-new state/signal tests.
+- Export real v1 histories; Go replay harness against v2; current Worker Deployment Versioning coexist/drain/rollback; continue-as-new state/signal tests.
 - PostgreSQL backup/restore of Temporal default+visibility and resumed active workflow.
 - Basic health/readiness, bounded connection-pool and cleanup checks; no fixed-duration/resource-threshold release gate.
 - Structured diagnostics correlation from gate intent through Workflow/Activity/Provider/recovery/result without external telemetry stack.

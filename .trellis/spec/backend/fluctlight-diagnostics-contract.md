@@ -103,3 +103,62 @@ result = await conversations.commit_turn(turn)
 diagnostics.emit(redactor.model_run(model_run_record))
 return result
 ```
+
+## Scenario: Go Diagnostic Producers And Retention
+
+### 1. Scope / Trigger
+
+- Trigger: Go Provider calls, Core mutations or Worker failures need Owner-only
+  inspection without making diagnostics part of a business transaction.
+
+### 2. Signatures
+
+- Provider calls record `diagnostic_model_runs` and `provider_provenance` with
+  role, endpoint/model, correlation ID, prompt and bounded response.
+- `ClearDiagnosticsCount` deletes diagnostic tables and returns `{cleared:n}`.
+
+### 3. Contracts
+
+- Diagnostic writes are best-effort and never fail the domain operation.
+- Recursive redaction removes credentials, cookies, API keys and hidden
+  reasoning before persistence or export.
+- Owner authorization and correlation/fluctlight filters apply to reads.
+- Periodic retention deletes only diagnostic tables, never domain audit or
+  revision/evidence rows.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| non-Owner diagnostic read/clear | forbidden before content is returned |
+| malformed correlation/filter or negative limit | bounded default/validation error |
+| diagnostic sink unavailable | business result remains successful |
+| retention cleanup fails | bounded Worker warning and retry |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a Provider failure is visible as a redacted failed model run while the
+  chat error remains bounded.
+- Base: clearing diagnostics returns the number of deleted records.
+- Bad: persisting raw authorization headers or deleting relationship history
+  during retention.
+
+### 6. Tests Required
+
+- Recursive redaction, Owner isolation, filters, clear counts and age/row
+  retention tests against PostgreSQL.
+- Provider success/failure producer tests with sink failure injection.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+INSERT INTO diagnostic_model_runs(prompt) VALUES ($1) // raw request
+```
+
+#### Correct
+
+```go
+recordModelRun(redactDiagnostic(prompt), boundedResponse, correlationID)
+```

@@ -1,5 +1,9 @@
 # SQLite Storage Guidelines
 
+> Historical note: this file is retained as migration evidence for the retired
+> SQLite runtime. The active system uses PostgreSQL and the Go migration bundle
+> under `apps/core-go/internal/migrations/`.
+
 ## Storage Model
 
 Persistence uses one `better-sqlite3` database file in WAL mode. `companion_schema_migrations` is the authoritative version ledger. New companion resources are normalized `companion_*` tables: personas and immutable foundation revisions, life blueprints and state, events and activities, persona-private memories, conversations/messages, media references, and durable jobs.

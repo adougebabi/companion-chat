@@ -4,7 +4,7 @@
 
 ### 1. Scope / Trigger
 
-- Trigger: a clean-start Python application command reads or writes PostgreSQL, spans more than one domain module, or schedules any LLM/Redis/object/media side effect.
+- Trigger: a clean-start Go application command reads or writes PostgreSQL, spans more than one domain module, or schedules any LLM/Redis/object/media side effect.
 - This contract replaces old synchronous SQLite transaction assumptions for the new system.
 - It preserves module table ownership inside one application schema while using the modular monolith's single PostgreSQL database for application-level atomic invariants.
 
@@ -38,14 +38,14 @@ published_at / completed_at / failed_at
 
 Module interfaces accept application commands and the application-owned transaction context. Internal repositories bind to that context but are not exported. A composite command has one commit owner.
 
-Data-access baseline: SQLAlchemy 2, Psycopg 3 async, and Alembic. Application tables share the `public` schema, one MetaData/naming convention, and one linear migration graph.
+Data-access baseline: pgx/v5, PostgreSQL transactions, and the embedded Go migration bundle. Application tables share the `public` schema and one linear migration graph.
 
 ### 3. Contracts
 
 - All application tables use one PostgreSQL schema. Each domain module owns its tables, constraints, migration changes, repository implementation, and row-to-domain mapping.
 - SQLAlchemy Core is the default; ORM may be used internally by one module but ORM entities/lazy relationships cannot cross module or transport interfaces.
 - One Unit of Work owns one AsyncSession, which cannot be shared across concurrent tasks.
-- Production uses explicit Alembic migration command and revision verification. API/Worker never call `create_all()` or automatic upgrade.
+- Production uses the explicit Go migration command and revision verification. API/Worker never call `create_all()` or automatic upgrade.
 - One module never queries another module's table or imports its internal repository. Cross-module reads and writes use public module interfaces.
 - An application Unit of Work may compose multiple module interfaces in one short PostgreSQL transaction when one business invariant requires atomicity.
 - Modules participating in a composite command do not commit, roll back, publish events, or call external systems independently.
@@ -70,7 +70,7 @@ Data-access baseline: SQLAlchemy 2, Psycopg 3 async, and Alembic. Application ta
 | External call is attempted with an open business transaction | Reject in tests/review; move the call behind a committed intent. |
 | Transaction exceeds configured duration/lock budget | Roll back and diagnose; never hold locks while waiting for model/media work. |
 | AsyncSession is shared across concurrent tasks | Architecture/runtime contract failure; create one Unit of Work/session per task. |
-| API/Worker starts against wrong Alembic revision | Fail readiness/startup with bounded migration instruction; do not auto-upgrade. |
+| API/Worker starts against wrong schema revision | Fail readiness/startup with bounded migration instruction; do not auto-upgrade. |
 | ORM entity/table mapping crosses module/HTTP interface | Architecture-test failure; map through owning module interface. |
 
 ### 5. Good / Base / Bad Cases
@@ -135,7 +135,7 @@ await inner_state.apply_assessment(fluctlight_id, assessment,
 await inner_state.govern_intention(command, tx=tx)
 ```
 
-T04 owns one linear Alembic revision, `0003_t04_fluctlight`, and these public
+The released schema owns one linear revision chain, ending at `0020_media_provider_job`, and these public
 tables: `fluctlights`, `fluctlight_foundation_revisions`,
 `fluctlight_foundation_governance`, `fluctlight_inner_states`,
 `fluctlight_inner_state_events`, `fluctlight_goals`,

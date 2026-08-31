@@ -41,7 +41,7 @@ Sensitive setting storage contains ciphertext, nonce, purpose/AAD scope, and upd
 - Missing/invalid settings key blocks sensitive setting save/resolve. It never falls back to plaintext or another old source.
 - Secret fields are write-only in browser/API views. Responses expose only configured state and bounded timestamps/safe summaries.
 - Empty, omitted, or masked sentinel values do not overwrite an existing secret. Clearing requires an explicit clear operation.
-- Decrypted values exist only in the Python Provider adapter call scope and never enter Node, prompts, traces, logs, exceptions, debug views, OpenAPI examples, or ordinary DTOs.
+- Decrypted values exist only in the Go Provider adapter call scope and never enter the BFF, prompts, traces, logs, exceptions, debug views, OpenAPI examples, or ordinary DTOs.
 - Setting changes are authorized to the Owner and audited by purpose/field/time/result without secret content.
 - NAS backup documentation requires both application data and `.env`. Loss of the settings key requires re-entering Provider secrets but does not corrupt other domain data.
 
@@ -60,7 +60,7 @@ Sensitive setting storage contains ciphertext, nonce, purpose/AAD scope, and upd
 
 ### 5. Good / Base / Bad Cases
 
-- Good: Owner updates an API key, PostgreSQL stores ciphertext, UI returns configured state, and only the Python Provider adapter resolves it.
+- Good: Owner updates an API key, PostgreSQL stores ciphertext, UI returns configured state, and only the Go Provider adapter resolves it.
 - Base: a non-secret model selection changes without touching the existing encrypted key.
 - Bad: persist `.env` startup credentials into settings, store an API key plaintext, return a masked value that later overwrites the real key, or silently use an old env Provider key after decryption failure.
 

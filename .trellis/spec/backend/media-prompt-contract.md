@@ -1,5 +1,8 @@
 # Media Prompt Contract
 
+> Active media ownership is Go Core + Go Worker. Any legacy SQLite/Node
+> examples in this contract are historical reference only.
+
 ## Scenario: AI-owned media concept, prompt-master template, and durable jobs
 
 ### 1. Scope / Trigger

@@ -1,5 +1,8 @@
 # Development Debug Observability
 
+> Historical note: the legacy inspector examples are not active deployment
+> entrypoints after the Go Core cutover.
+
 ## Scenario: Persona-scoped local inspector
 
 ### 1. Scope / Trigger

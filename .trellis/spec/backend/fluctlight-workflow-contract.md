@@ -23,7 +23,7 @@ Application task queues are `interaction`, `lifecycle`, and `media`. Every start
 
 ### 3. Contracts
 
-- API and Worker share one Python package/image with separate commands. Only Worker processes poll application task queues.
+- API and Worker share one Go module/image with separate commands. Only Worker processes poll application task queues.
 - A domain transaction writes business state plus stable workflow intent/outbox before runtime start.
 - Domain status remains queryable without interpreting runtime history. Runtime stores execution history, timers, retries and management state only.
 - Task queues have independent concurrency/rate policies; Provider-specific limits are explicit.
@@ -88,4 +88,146 @@ async with unit_of_work.begin(command_id=intent_id) as tx:
     await tx.commit()
 
 handle = await workflow_runtime.start_workflow(committed_intent)
+```
+
+## Scenario: Go Worker Queue Ownership And Cognition Intent
+
+### 1. Scope / Trigger
+
+- Trigger: a committed cognition fact is dispatched after API acceptance or a
+  Go Worker starts its canonical Temporal queues.
+
+### 2. Signatures
+
+- `cognition.processing` maps to `CognitionProcessingWorkflow` on
+  `interaction`; `platform.control` maps to `PlatformControlWorkflow` on
+  `lifecycle`.
+- `ProcessCognitionInbox` reuses the immutable inbox/message idempotency keys
+  and returns the prior result for a processed fact.
+
+### 3. Contracts
+
+- Exactly one Worker poller owns each of `interaction`, `lifecycle`, and
+  `media`; workflow/activity registration is queue-specific.
+- Conversation fact commit writes a stable cognition workflow intent before
+  external processing. API may still return its existing product response;
+  Worker replay must not duplicate the side effect.
+- Reconciliation scans pending/retry/started intents and maps Temporal terminal
+  states to explicit durable status.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| duplicate cognition workflow start | Temporal stable ID/reuse guard; no second assistant effect |
+| processed inbox replay | return `processed` without Provider call |
+| Worker queue unavailable | intent remains retryable; no false completion |
+| Temporal terminal failure | durable intent becomes failed and remains auditable |
+
+### 5. Good/Base/Bad Cases
+
+- Good: API commits fact, Worker processes `cognition.processing`, and a
+  restart reconciles the completed intent with no duplicate message.
+- Base: a pending media/schedule intent remains visible while its queue is
+  unavailable and resumes later.
+- Bad: register every workflow on every queue, process a fact from a different
+  Fluctlight, or mark an intent complete before Temporal accepts it.
+
+### 6. Tests Required
+
+- Workflow registry/replay tests for cognition and platform control.
+- Queue ownership assertions, stable-ID duplicate starts, restart/reconcile
+  tests and a real Docker cognition intent sweep.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+for _, queue := range queues {
+    registerEveryWorkflow(queue)
+}
+```
+
+#### Correct
+
+```go
+registerLifecycleWorkflows(lifecycleWorker)
+registerInteractionWorkflows(interactionWorker)
+registerMediaWorkflows(mediaWorker)
+```
+
+## Scenario: Bounded, Restart-Safe Intent Dispatch
+
+### 1. Scope / Trigger
+
+- Trigger: a Worker restarts while PostgreSQL contains historical and newly
+  committed workflow intents.
+- This rule applies to `CommittedIntentDispatcher.dispatch_once()` and all
+  Temporal starts during the legacy→Go Core migration.
+
+### 2. Signatures
+
+```python
+dispatch_once(*, limit: int = 20) -> int
+commit_workflow_intent(session, intent: CommittedWorkflowIntent) -> intent
+```
+
+### 3. Contracts
+
+- One dispatch pass selects at most `limit` intents and excludes intent IDs
+  already attempted by the current process.
+- Ordering prioritizes `daily_review.*`, `schedule.*`, `autonomy.*`, media and
+  reflection so historical reflection work cannot starve fresh lifecycle work.
+- A process restart may attempt an old intent again; its stable `workflow_id`
+  makes Temporal return `WorkflowAlreadyStartedError`, which is treated as a
+  successful replay guard.
+- Unsupported task queues remain unstarted and produce a bounded operational
+  error. No second Worker/runtime is created as a fallback.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| `limit <= 0` | Clamp to one intent; never scan an unbounded page. |
+| Already attempted intent in this process | Exclude from the next query. |
+| Worker restarted before durable dispatch state exists | Retry stable workflow ID; reuse/AlreadyStarted is success. |
+| Temporal start fails transiently | Leave intent eligible for a later pass; do not mark it complete. |
+| Fresh daily-review intent behind old reflection rows | Priority order selects lifecycle work first. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a newly activated Fluctlight's daily review and autonomy intents are
+  dispatched while old reflection rows remain pending.
+- Base: a restart retries an already running workflow and Temporal deduplicates
+  it by stable ID.
+- Bad: select the first 20 rows forever after process-local skipping, or scan
+  the entire table on every one-second tick.
+
+### 6. Tests Required
+
+- Assert one dispatch pass never calls `start_workflow` more than `limit` times.
+- Assert process-local attempted IDs are excluded while a restart still handles
+  `WorkflowAlreadyStartedError`.
+- Assert priority ordering puts daily-review/autonomy before reflection.
+- Assert transient start failure remains retryable and does not create a second
+  workflow ID.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+select(workflow_intents).limit(20)  # always the same historical rows
+if intent_id in self._started:
+    continue
+```
+
+#### Correct
+
+```python
+statement = select(workflow_intents)
+if self._started:
+    statement = statement.where(workflow_intents.c.intent_id.not_in(self._started))
+rows = await session.execute(priority_order(statement).limit(limit))
 ```

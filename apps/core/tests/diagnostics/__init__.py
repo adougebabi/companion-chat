@@ -1,1 +1,0 @@
-"""Diagnostics test package."""

@@ -13,7 +13,7 @@ esac
 
 echo "1. Restore PostgreSQL application, temporal and temporal_visibility snapshots into disposable volumes."
 echo "2. Restore the private object bucket and verify manifest counts/SHA-256 samples."
-echo "3. Run explicit Alembic upgrade to the manifest application head."
+echo "3. Run the Go migration binary to the manifest application head."
 echo "4. Start Temporal, Core and Worker; query the active workflow ID from the manifest."
 echo "5. Prove one active workflow resumes with its stable workflow/provider IDs."
 echo "6. Record evidence under $FLUCTLIGHT_RECOVERY_WORKDIR and destroy the disposable volumes."
