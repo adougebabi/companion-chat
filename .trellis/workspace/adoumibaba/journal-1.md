@@ -611,3 +611,36 @@ Removed Python Core runtime, completed Go Core/Worker/BFF/Web-only Compose cutov
 ### Next Steps
 
 - None - task complete
+
+
+## Session 19: Continue Go Core full migration
+
+**Date**: 2026-08-31
+**Task**: Continue Go Core full migration
+**Branch**: `codex/go-core-full-migration`
+
+### Summary
+
+Closed workflow Temporal management, governance/CAS, Moments/Presence/Context, Schedule validation/replan, Provider preflight/diagnostics, Memory embedding intents, strict Core boundary and media error handling. Go/Gateway/Web checks and real cases 1,3,4,5,6,7 pass. Case 2 remains blocked by real ComfyUI workflow referencing unavailable transformer model; task remains in_progress.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e2357be` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
