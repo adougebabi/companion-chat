@@ -42,9 +42,20 @@ volumes or alter released migration IDs.
   memory embedding intents; Provider preflight/provenance/diagnostics; strict
   request framing; and bounded media failure handling.
 - Unit/race/vet/build, generated client checks, Web checks, and Gateway tests
-  pass. Real Docker cases 1, 3, 4, 5, 6 and 7 pass after the final rebuild.
-- Case 2 remains an acceptance blocker: the real ComfyUI workflow references a
-  transformer model absent from the endpoint's current model list. The Go
-  implementation records the failed media state and deliberately does not
-  substitute another model. The task remains `in_progress` until the endpoint
-  configuration is corrected and a fresh first-attempt image request passes.
+  pass. Real Docker cases 1–7 pass after the final rebuild; the fresh Case 2
+  rerun is recorded in `real-regression.md` after the operator corrected the
+  ComfyUI transformer configuration.
+- The task remains `in_progress` because the remaining closure work concerns
+  the complete Core/Worker capability matrix and platform event chain, not the
+  already passing baseline product flows.
+
+## Regression policy for follow-up closure work
+
+The seven product scenarios (text chat, image generation, blank creation,
+described creation/detail, Moment publication and proactive contact) are now a
+passing baseline. Follow-up implementation does not rerun all seven after
+every unrelated change. Each change must declare its impact set and run the
+new feature's focused unit/integration/real checks. Re-run only the affected
+baseline cases when a change touches their route, shared persistence,
+Provider/media/Temporal path or deployment graph. A complete 1–7 sweep remains
+mandatory at the final closure gate before the task is archived.
