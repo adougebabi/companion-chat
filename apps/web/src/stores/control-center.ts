@@ -610,14 +610,34 @@ export const useControlCenterStore = defineStore("control-center", {
         });
         this.providerBindings = await client.providerBindings();
         this.providerEndpoints = await client.providerEndpoints();
-      } catch {
-        this.error = "无法保存模型角色。请确认 endpoint 已保存、访问密钥已配置，且模型存在于该 endpoint。";
+      } catch (error) {
+        this.error = providerRoleFailureMessage(error);
       } finally {
         this.saving = false;
       }
     },
   },
 });
+
+function providerRoleFailureMessage(error: unknown): string {
+  if (!(error instanceof BrowserApiError)) {
+    return "无法保存模型角色，请稍后重试。";
+  }
+  switch (error.code) {
+    case "provider_endpoint_not_found":
+      return "该 endpoint 尚未保存，请先保存 endpoint 后再绑定模型角色。";
+    case "provider_endpoint_invalid":
+      return "endpoint 配置无效，请检查服务地址和协议类型。";
+    case "provider_model_not_available":
+      return "该模型未出现在 endpoint 返回的模型列表中，请确认模型 ID 完全一致。";
+    case "provider_models_unavailable":
+      return "无法读取 endpoint 的模型列表，请检查地址、访问密钥，以及 Core 容器是否能访问该 endpoint。";
+    case "provider_role_invalid":
+      return "模型角色配置无效，请重新选择角色、endpoint 和模型。";
+    default:
+      return "模型预检失败，请检查 endpoint、访问密钥和模型配置。";
+  }
+}
 
 function creationAnalysisFailureMessage(error: unknown): string {
   if (!(error instanceof BrowserApiError)) return "Fluctlight 分析服务暂时不可用。";

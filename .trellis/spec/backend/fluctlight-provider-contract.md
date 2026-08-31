@@ -107,6 +107,10 @@ return await provider.complete_structured(
 - `ConfigureProviderRole(ctx, actorID, payload)` persists a preflight only
   after the endpoint model list contains the selected model.
 - Provider calls carry deterministic idempotency/request headers.
+- `ProviderModels(ctx, actorID, endpointID)` normalizes common model-list
+  envelopes: OpenAI-style `data[]` and Ollama-style `models[]`, accepting
+  string entries and object `id`/`name`/`model` fields. Unknown envelopes stay
+  empty and cannot activate a role.
 
 ### 3. Contracts
 
@@ -119,6 +123,8 @@ return await provider.complete_structured(
 | Condition | Result |
 | --- | --- |
 | endpoint/model missing or unavailable | reject role; no role row |
+| model list uses a supported `data[]`/`models[]` envelope | normalize IDs, deduplicate and sort before matching |
+| model list is empty or has an unsupported envelope | reject role with `provider_model_not_available`; no role row |
 | configured media model absent | retry, then mark media intent `failed` |
 | diagnostic contains credentials/hidden reasoning | redact/drop before persistence |
 

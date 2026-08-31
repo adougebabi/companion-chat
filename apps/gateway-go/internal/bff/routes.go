@@ -360,7 +360,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		}
 		value, err := s.core.doJSON(request.Context(), http.MethodPut, "/internal/providers/roles", session, map[string]any{"role": body["role"], "endpoint_id": body["endpointId"], "model_id": body["modelId"], "token_budget": body["tokenBudget"], "timeout_seconds": body["timeoutSeconds"]})
 		if err != nil {
-			writeError(response, http.StatusUnprocessableEntity, "provider_preflight_failed", "Provider preflight failed")
+			providerRoleError(response, err)
 			return
 		}
 		writeJSON(response, http.StatusOK, browserProviderPreflight(value))
@@ -803,6 +803,38 @@ func (s *Server) mutationBody(response http.ResponseWriter, request *http.Reques
 
 func (s *Server) readOnlyError(status int, code, message string) routeError {
 	return func(response http.ResponseWriter, _ error) { writeError(response, status, code, message) }
+}
+
+func providerRoleError(response http.ResponseWriter, err error) {
+	var coreErr *CoreError
+	if !errors.As(err, &coreErr) {
+		writeError(response, http.StatusBadGateway, "provider_preflight_failed", "Provider preflight failed")
+		return
+	}
+	status := http.StatusUnprocessableEntity
+	switch {
+	case coreErr.Status == http.StatusUnauthorized:
+		status = http.StatusUnauthorized
+	case coreErr.Status == http.StatusForbidden:
+		status = http.StatusForbidden
+	case coreErr.Status >= http.StatusInternalServerError:
+		status = http.StatusBadGateway
+	}
+	messages := map[string]string{
+		"provider_endpoint_invalid":    "Provider endpoint configuration is invalid",
+		"provider_endpoint_not_found":  "Provider endpoint is not configured",
+		"provider_model_not_available": "Selected model is not available on the provider endpoint",
+		"provider_models_unavailable":  "Provider model list is unavailable",
+		"provider_role_invalid":        "Provider role configuration is invalid",
+		"provider_preflight_failed":    "Provider preflight failed",
+	}
+	code := coreErr.Code
+	message, knownCode := messages[code]
+	if !knownCode {
+		code = "provider_preflight_failed"
+		message = messages[code]
+	}
+	writeErrorWithDetails(response, status, code, message, coreErr.Details)
 }
 
 func (s *Server) diagnostics(response http.ResponseWriter, request *http.Request) {

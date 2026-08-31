@@ -106,11 +106,28 @@ func (s *Server) configureProviderRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.app.ConfigureProviderRole(r.Context(), actor, body); err != nil {
-		s.opError(w, err, "provider_preflight_failed")
+		s.opError(w, err, providerRoleErrorCode(err))
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"role": body["role"], "available": true, "capability_version": "models-v1"})
 }
+
+func providerRoleErrorCode(err error) string {
+	message := err.Error()
+	for _, code := range []string{
+		"provider_model_not_available",
+		"provider_endpoint_not_found",
+		"provider_endpoint_invalid",
+		"provider_role_invalid",
+		"provider_preflight_failed",
+	} {
+		if strings.Contains(message, code) {
+			return code
+		}
+	}
+	return "provider_preflight_failed"
+}
+
 func (s *Server) actorGroups(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.authorizeHuman(w, r)
 	if !ok || s.app == nil {

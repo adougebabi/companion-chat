@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -26,6 +27,21 @@ func TestReadJSONRejectsTrailingValues(t *testing.T) {
 		t.Fatal("expected concatenated JSON to be rejected")
 	}
 }
+
+func TestProviderRoleErrorCodePreservesPreflightReason(t *testing.T) {
+	cases := map[string]string{
+		"provider_model_not_available":                                 "provider_model_not_available",
+		"provider_preflight_failed: provider models returned HTTP 401": "provider_preflight_failed",
+		"provider_endpoint_not_found":                                  "provider_endpoint_not_found",
+		"provider_role_invalid":                                        "provider_role_invalid",
+	}
+	for message, want := range cases {
+		if got := providerRoleErrorCode(errors.New(message)); got != want {
+			t.Fatalf("providerRoleErrorCode(%q) = %q, want %q", message, got, want)
+		}
+	}
+}
+
 func (fakeRepository) ListFluctlights(_ context.Context, _ string) ([]core.Fluctlight, error) {
 	return []core.Fluctlight{{ID: "fl-1", Status: "active"}}, nil
 }

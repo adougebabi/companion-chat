@@ -230,25 +230,64 @@ func (a *App) ProviderModels(ctx context.Context, actorID, endpointID string) (m
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("provider models returned HTTP %d", resp.StatusCode)
 	}
-	var data map[string]any
+	var data any
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, err
 	}
+	return map[string]any{"endpoint_id": endpointID, "models": providerModelIDs(data)}, nil
+}
+
+// providerModelIDs normalizes the model-list envelopes used by the common
+// OpenAI-compatible and Ollama-compatible endpoints. The endpoint contract
+// remains read-only: an unrecognized or empty envelope produces no model IDs,
+// so role activation still refuses to persist an unverifiable model.
+func providerModelIDs(data any) []string {
+	seen := make(map[string]struct{})
 	models := make([]string, 0)
-	if raw, ok := data["data"].([]any); ok {
-		for _, item := range raw {
-			switch value := item.(type) {
-			case string:
-				if strings.TrimSpace(value) != "" {
-					models = append(models, value)
+	var visit func(any)
+	visit = func(value any) {
+		switch current := value.(type) {
+		case string:
+			addProviderModel(&models, seen, current)
+		case []any:
+			for _, item := range current {
+				visit(item)
+			}
+		case map[string]any:
+			for _, field := range []string{"id", "name", "model"} {
+				if candidate := stringValue(current[field]); candidate != "" {
+					addProviderModel(&models, seen, candidate)
+					return
 				}
-			case map[string]any:
-				if id := stringValue(value["id"]); id != "" {
-					models = append(models, id)
+			}
+			for _, field := range []string{"data", "models"} {
+				if nested, ok := current[field]; ok {
+					visit(nested)
 				}
 			}
 		}
 	}
+	if root, ok := data.(map[string]any); ok {
+		for _, field := range []string{"data", "models"} {
+			if nested, exists := root[field]; exists {
+				visit(nested)
+			}
+		}
+	} else {
+		visit(data)
+	}
 	sort.Strings(models)
-	return map[string]any{"endpoint_id": endpointID, "models": models}, nil
+	return models
+}
+
+func addProviderModel(models *[]string, seen map[string]struct{}, value string) {
+	model := strings.TrimSpace(value)
+	if model == "" {
+		return
+	}
+	if _, duplicate := seen[model]; duplicate {
+		return
+	}
+	seen[model] = struct{}{}
+	*models = append(*models, model)
 }

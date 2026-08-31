@@ -134,6 +134,22 @@ func TestBFFErrorMappingsPreserveRouteSpecificPolicy(t *testing.T) {
 	}
 }
 
+func TestBFFProviderRoleErrorPreservesCoreReason(t *testing.T) {
+	handler := testBFF(t, func(request *http.Request) (*http.Response, error) {
+		if request.URL.Path == "/internal/providers/roles" {
+			return jsonResponse(http.StatusUnprocessableEntity, `{"code":"provider_model_not_available","message":"selected model is not listed"}`), nil
+		}
+		return jsonResponse(http.StatusOK, `{}`), nil
+	})
+	response := invoke(handler, http.MethodPut, "http://gateway.test/api/providers/roles", `{"role":"reflection","endpointId":"endpoint","modelId":"model","tokenBudget":100,"timeoutSeconds":10}`, map[string]string{
+		"Origin":       "https://fluctlight.local",
+		"X-CSRF-Token": "csrf",
+	}, map[string]string{sessionCookieName: "opaque", csrfCookieName: "csrf"})
+	if response.Code != http.StatusUnprocessableEntity || !strings.Contains(response.Body.String(), `"provider_model_not_available"`) {
+		t.Fatalf("provider role error = %d %s", response.Code, response.Body.String())
+	}
+}
+
 func TestBFFCookiesAndOriginMatrix(t *testing.T) {
 	handler := testBFF(t, func(request *http.Request) (*http.Response, error) {
 		return jsonResponse(http.StatusOK, `{}`), nil
