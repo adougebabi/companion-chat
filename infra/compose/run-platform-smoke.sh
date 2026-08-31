@@ -95,7 +95,7 @@ compose ps --all
 for service in postgres redis minio temporal core worker bff web; do
   status=$(compose ps --all --format '{{.Service}}|{{.State}}|{{.Health}}|{{.ExitCode}}' "$service")
   case "$status" in
-    "$service|running|healthy|0") ;;
+    "$service|running|healthy"|"$service|running|healthy|0") ;;
     *)
       printf '%s\n' "service is not healthy: $status" >&2
       diagnose
