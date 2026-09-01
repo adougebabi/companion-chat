@@ -19,9 +19,11 @@ import (
 )
 
 const (
-	LifecycleQueue   = "lifecycle"
-	MediaQueue       = "media"
-	InteractionQueue = "interaction"
+	LifecycleQueue       = "lifecycle"
+	MediaQueue           = "media"
+	InteractionQueue     = "interaction"
+	WorkerDeploymentName = "fluctlight"
+	DefaultWorkerBuildID = "platform-v1"
 )
 
 var runtime struct {
@@ -36,6 +38,70 @@ func Configure(app *core.App) {
 }
 
 func app() *core.App { runtime.RLock(); defer runtime.RUnlock(); return runtime.app }
+
+// WorkerDeploymentBuildID returns the immutable build identity used by every
+// queue worker and by the deployment bootstrap. Keeping this resolution in one
+// place prevents a Worker from registering one version while the bootstrap
+// routes another version as current.
+func WorkerDeploymentBuildID() string {
+	buildID := strings.TrimSpace(os.Getenv("TEMPORAL_WORKER_BUILD_ID"))
+	if buildID == "" {
+		return DefaultWorkerBuildID
+	}
+	return buildID
+}
+
+// WorkerDeploymentVersionSetter is the minimal Temporal control seam used by
+// the startup bootstrap. Keeping it narrow also makes retry behavior testable
+// without replacing the workflow runtime or its task queues.
+type WorkerDeploymentVersionSetter interface {
+	SetCurrentVersion(context.Context, client.WorkerDeploymentSetCurrentVersionOptions) (client.WorkerDeploymentSetCurrentVersionResponse, error)
+}
+
+// EnsureWorkerDeploymentCurrentVersion makes a fresh Temporal namespace ready
+// for application workflows. Worker Deployment versions are created lazily by
+// the first poller, so this call retries until the versioned pollers have been
+// observed. It is safe on every restart: setting the already-current version is
+// an idempotent operation, while a missing/invalid poller fails readiness rather
+// than allowing new intents to accumulate in the unversioned queue.
+func EnsureWorkerDeploymentCurrentVersion(ctx context.Context, handle WorkerDeploymentVersionSetter, buildID string) error {
+	return ensureWorkerDeploymentCurrentVersion(ctx, handle, buildID, 2*time.Second, 60)
+}
+
+func ensureWorkerDeploymentCurrentVersion(ctx context.Context, handle WorkerDeploymentVersionSetter, buildID string, retryInterval time.Duration, maxAttempts int) error {
+	buildID = strings.TrimSpace(buildID)
+	if buildID == "" {
+		return fmt.Errorf("Temporal Worker Deployment build ID is empty")
+	}
+	if handle == nil {
+		return fmt.Errorf("Temporal Worker Deployment handle is nil")
+	}
+	if retryInterval < 0 {
+		retryInterval = 0
+	}
+	if maxAttempts < 1 {
+		maxAttempts = 1
+	}
+	var lastErr error
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		_, err := handle.SetCurrentVersion(ctx, client.WorkerDeploymentSetCurrentVersionOptions{BuildID: buildID})
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		if attempt == maxAttempts-1 {
+			break
+		}
+		timer := time.NewTimer(retryInterval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
+	}
+	return fmt.Errorf("set Temporal Worker Deployment %q current version to %q: %w", WorkerDeploymentName, buildID, lastErr)
+}
 
 type Input struct {
 	IntentID     string `json:"intent_id"`
@@ -377,14 +443,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 	queues := []string{LifecycleQueue, MediaQueue, InteractionQueue}
 	workers := make([]worker.Worker, 0, len(queues))
 	fatalErrors := make(chan error, len(queues))
-	buildID := strings.TrimSpace(os.Getenv("TEMPORAL_WORKER_BUILD_ID"))
-	if buildID == "" {
-		// The existing Temporal namespace routes its current deployment to
-		// platform-v1. Cutover fences the retired Python executions first; the
-		// replacement Go worker claims that deployment version until an operator
-		// deliberately promotes a new immutable build ID.
-		buildID = "platform-v1"
-	}
+	buildID := WorkerDeploymentBuildID()
 	for _, queue := range queues {
 		// Keep two lifecycle slots so a provider-backed daily review cannot
 		// starve the independent schedule/bootstrap activity. Provider-heavy
@@ -401,7 +460,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			DeploymentOptions: worker.DeploymentOptions{
 				UseVersioning: true,
 				Version: worker.WorkerDeploymentVersion{
-					DeploymentName: "fluctlight",
+					DeploymentName: WorkerDeploymentName,
 					BuildID:        buildID,
 				},
 				DefaultVersioningBehavior: workflow.VersioningBehaviorAutoUpgrade,

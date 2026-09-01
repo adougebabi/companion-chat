@@ -185,6 +185,7 @@ services:
     environment:
       <<: *core_environment
       CORE_GO_LISTEN_ADDRESS: :8080
+      TEMPORAL_WORKER_BUILD_ID: ${TEMPORAL_WORKER_BUILD_ID:-platform-v1}
     depends_on:
       migrate:
         condition: service_completed_successfully

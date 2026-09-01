@@ -157,6 +157,78 @@ registerInteractionWorkflows(interactionWorker)
 registerMediaWorkflows(mediaWorker)
 ```
 
+## Scenario: Worker Deployment Routing Bootstrap
+
+### 1. Scope / Trigger
+
+- Trigger: a Go Worker starts or restarts against a new or existing Temporal
+  namespace with Worker Deployment Versioning enabled.
+
+### 2. Signatures
+
+- `EnsureWorkerDeploymentCurrentVersion(ctx, deploymentHandle, buildID)` sets
+  the `fluctlight` Deployment current version to the Worker Build ID.
+
+### 3. Contracts
+
+- Worker starts all canonical queue pollers (`interaction`, `lifecycle`,
+  `media`) before attempting the Deployment update.
+- Startup retries the idempotent `SetCurrentVersion(BuildID)` operation while
+  Temporal discovers the pollers; it does not bypass the no-poller or missing
+  task-queue protections.
+- The Worker writes its readiness signal only after the current version is
+  accepted. A fresh namespace therefore routes new and AutoUpgrade workflows
+  to `fluctlight:<build_id>` instead of accumulating `UNVERSIONED` workflow
+  tasks.
+- Re-running bootstrap when the requested version is already current is a
+  successful no-op. A failed bootstrap is a startup/readiness failure, not a
+  reason to mark domain workflow intents completed.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Poller discovery is still in progress | Retry with bounded backoff; keep Worker unready |
+| Deployment already targets the requested Build ID | Return success; do not create another Deployment |
+| Target Build ID has no observed poller | Fail/retry without `AllowNoPollers` |
+| Expected queue is missing | Fail/retry without `IgnoreMissingTaskQueues` |
+| Temporal control API is unavailable | Worker exits or remains unready; domain intents remain retryable |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a clean Temporal namespace starts a `platform-v1` Worker, bootstrap
+  sets `fluctlight/platform-v1`, and the first schedule workflow advances past
+  its initial workflow task.
+- Base: a restart observes `platform-v1` already current and immediately
+  becomes ready.
+- Bad: expose a healthy Worker before routing is set, leave new tasks in the
+  unversioned queue, or require an operator to run a CLI command after every
+  rebuild.
+
+### 6. Tests Required
+
+- Unit-test retry, idempotency, empty Build ID, cancellation and no-poller
+  errors through the narrow Temporal control seam.
+- Fresh-namespace integration test asserts Deployment current version,
+  versioned pollers on all three queues, and a schedule workflow that reaches
+  `EnsureCurrentDayScheduleActivity`.
+- Restart test asserts bootstrap is safe when the Deployment is already
+  current and does not duplicate workflow intents.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```text
+Start versioned Worker → accept API traffic → ask operator to set current version
+```
+
+#### Correct
+
+```text
+Start queue pollers → idempotently set current version → write readiness → accept traffic
+```
+
 ## Scenario: Bounded, Restart-Safe Intent Dispatch
 
 ### 1. Scope / Trigger

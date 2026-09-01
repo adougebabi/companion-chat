@@ -75,6 +75,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	deploymentHandle := temporalClient.WorkerDeploymentClient().GetHandle(coreworkflow.WorkerDeploymentName)
+	buildID := coreworkflow.WorkerDeploymentBuildID()
+	if err := coreworkflow.EnsureWorkerDeploymentCurrentVersion(ctx, deploymentHandle, buildID); err != nil {
+		log.Fatalf("configure Temporal Worker Deployment: %v", err)
+	}
+	logger.Info("Go Worker Deployment current version configured", "deployment", coreworkflow.WorkerDeploymentName, "build_id", buildID)
 	healthFile := os.Getenv("WORKER_HEALTH_FILE")
 	if healthFile == "" {
 		healthFile = "/tmp/fluctlight-worker.ready"

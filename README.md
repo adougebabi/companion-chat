@@ -86,9 +86,13 @@ there is no alternate BFF runtime in this repository.
 
 Temporal keeps its existing namespace and deployment. The Go Worker claims the
 configured `TEMPORAL_WORKER_BUILD_ID` (default `platform-v1`) on all three
-canonical queues (`interaction`, `lifecycle`, `media`). On cutover, the
-one-shot `cutover` service cancels and, when necessary, terminates retired
-runtime executions and records every result in
+canonical queues (`interaction`, `lifecycle`, `media`). After those pollers are
+registered, Worker startup idempotently sets the `fluctlight` Deployment's
+current version to that same Build ID and only then writes its readiness file.
+This bootstrap is retried while Temporal discovers the pollers, so a fresh
+Temporal namespace does not require a manual `temporal worker deployment
+set-current-version` step. On cutover, the one-shot `cutover` service cancels
+and, when necessary, terminates retired runtime executions and records every result in
 `platform_workflow_management_audit`; it does not delete PostgreSQL facts,
 media objects, or Temporal history.
 
