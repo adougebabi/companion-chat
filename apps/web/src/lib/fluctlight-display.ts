@@ -336,6 +336,10 @@ export function labelFor(key: string): string {
   return "自定义字段";
 }
 
+export function isCustomLabel(key: string): boolean {
+  return labelFor(key) === "自定义字段";
+}
+
 export function enumLabel(value: unknown): string {
   if (typeof value !== "string") return formatDisplayValue(value);
   return enumLabels[value] ?? "未分类";
@@ -357,7 +361,9 @@ export function formatDisplayValue(value: unknown): string {
       const enumText = typeof item === "string" && ["status", "trend", "type", "kind", "action_type", "source", "candidate_type"].includes(normalizedKey)
         ? enumLabels[item]
         : undefined;
-      return `${labelFor(key)}：${enumText ?? formatDisplayValue(item)}`;
+      const displayLabel = labelFor(key);
+      const rawLabel = displayLabel === "自定义字段" ? `（${key}）` : "";
+      return `${displayLabel}${rawLabel}：${enumText ?? formatDisplayValue(item)}`;
     }).join("；");
   }
   return "未设定";

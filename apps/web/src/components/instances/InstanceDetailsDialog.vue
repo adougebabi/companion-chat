@@ -13,7 +13,7 @@ import DialogTitle from "@/components/ui/dialog/DialogTitle.vue";
 
 import { useConversationStore } from "../../stores/conversations";
 import { useControlCenterStore } from "../../stores/control-center";
-import { enumLabel, formatDisplayValue, formatZonedRange, labelFor, resolveTimezone } from "../../lib/fluctlight-display";
+import { enumLabel, formatDisplayValue, formatZonedRange, isCustomLabel, labelFor, resolveTimezone } from "../../lib/fluctlight-display";
 import { fluctlightStatusLabel } from "../../lib/fluctlight-status";
 
 type JsonRecord = Record<string, unknown>;
@@ -79,17 +79,17 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
           <section class="detail-block">
             <div class="detail-block-heading"><p class="eyebrow">身份与人格</p><h3>身份核心</h3></div>
             <dl v-if="Object.keys(identity).length" class="identity-facts">
-              <template v-for="(value, key) in identity" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ formatDisplayValue(value) }}</dd></template>
+              <template v-for="(value, key) in identity" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
             </dl>
             <p v-else class="field-note">尚未形成身份信息。</p>
             <h3>人格特征</h3>
             <dl v-if="Object.keys(personality).length" class="identity-facts">
-              <template v-for="(value, key) in personality" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ formatDisplayValue(value) }}</dd></template>
+              <template v-for="(value, key) in personality" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
             </dl>
             <p v-else class="field-note">尚未配置人格特征。</p>
             <h3>表达策略</h3>
             <dl v-if="Object.keys(behavioralPolicy).length" class="identity-facts">
-              <template v-for="(value, key) in behavioralPolicy" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ formatDisplayValue(value) }}</dd></template>
+              <template v-for="(value, key) in behavioralPolicy" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
             </dl>
             <p v-else class="field-note">尚未配置表达策略。</p>
           </section>
@@ -106,7 +106,7 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
           <section class="detail-block">
             <div class="detail-block-heading"><p class="eyebrow">生活世界</p><h3>生活脉络</h3></div>
             <dl v-if="Object.keys(lifeProfile).length" class="identity-facts detail-facts-compact">
-              <template v-for="(value, key) in lifeProfile" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd>{{ formatDisplayValue(value) }}</dd></template>
+              <template v-for="(value, key) in lifeProfile" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
             </dl>
             <div class="detail-summary-grid">
               <div><span>活跃目标</span><strong>{{ goals.length }}</strong></div>

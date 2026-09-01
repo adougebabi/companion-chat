@@ -6,7 +6,7 @@ import Input from "@/components/ui/input/Input.vue";
 import Textarea from "@/components/ui/textarea/Textarea.vue";
 import { useConversationStore } from "../stores/conversations";
 import { useControlCenterStore } from "../stores/control-center";
-import { enumLabel, formatDisplayValue, formatZonedRange, labelFor, resolveTimezone } from "../lib/fluctlight-display";
+import { enumLabel, formatDisplayValue, formatZonedRange, isCustomLabel, labelFor, resolveTimezone } from "../lib/fluctlight-display";
 import { fluctlightStatusLabel } from "../lib/fluctlight-status";
 
 const emit = defineEmits<{ close: []; retired: [] }>();
@@ -105,7 +105,7 @@ function capabilityRequestStatus(value: unknown): string {
         <label for="governance-evidence">证据引用</label><Input id="governance-evidence" v-model="controlCenter.governanceEvidence" maxlength="4096" placeholder="以逗号分隔，例如 event_123, message_456" />
         <h3>近期认知</h3><p v-if="!(controlCenter.fluctlightDetail.cognition_history as unknown[])?.length" class="field-note">还没有完成的认知行动。</p><ul v-else class="detail-list"><li v-for="action in controlCenter.fluctlightDetail.cognition_history as Array<Record<string, unknown>>" :key="String(action.id)">{{ enumLabel(action.action_type) }}<small>{{ enumLabel(action.status) }}</small></li></ul>
         <h3>近期唤醒</h3><p v-if="!(controlCenter.fluctlightDetail.wake_ups as unknown[])?.length" class="field-note">还没有完成定期唤醒。</p><ul v-else class="detail-list"><li v-for="wakeUp in controlCenter.fluctlightDetail.wake_ups as Array<Record<string, unknown>>" :key="String(wakeUp.id)"><strong>第 {{ formatDisplayValue(wakeUp.cycle) }} 次 · {{ enumLabel(wakeUp.action_type) }}</strong><small>注意：{{ formatDisplayValue(wakeUp.attention) }}</small><small>想法：{{ formatDisplayValue(wakeUp.thought) }}</small><small>愿望：{{ formatDisplayValue(wakeUp.desire) }}</small><small>行动判断：{{ formatDisplayValue(wakeUp.agency) }}</small></li></ul>
-        <h3>人格动力与偏好</h3><p v-if="!growthSlots.length" class="field-note">还没有形成可追踪的动力或偏好槽位。</p><ul v-else class="detail-list"><li v-for="slot in growthSlots" :key="String(slot.id)"><strong>{{ formatDisplayValue(slot.label) !== "未设定" ? formatDisplayValue(slot.label) : labelFor(String(slot.key)) }}</strong><small>{{ labelFor("key") }}：{{ labelFor(String(slot.key)) }} · {{ labelFor("value_schema") }}：{{ formatDisplayValue(slot.value_schema) }} · {{ labelFor("revision") }}：{{ formatDisplayValue(slot.revision) }}</small><small>{{ labelFor("value") }}：{{ formatDisplayValue(slot.value) }}</small></li></ul>
+        <h3>人格动力与偏好</h3><p v-if="!growthSlots.length" class="field-note">还没有形成可追踪的动力或偏好槽位。</p><ul v-else class="detail-list"><li v-for="slot in growthSlots" :key="String(slot.id)"><strong>{{ formatDisplayValue(slot.label) !== "未设定" ? formatDisplayValue(slot.label) : labelFor(String(slot.key)) }}</strong><small>{{ labelFor("key") }}：{{ labelFor(String(slot.key)) }} · {{ labelFor("value_schema") }}：{{ formatDisplayValue(slot.value_schema) }} · {{ labelFor("revision") }}：{{ formatDisplayValue(slot.revision) }}</small><small>{{ labelFor("value") }}：{{ formatDisplayValue(slot.value) }}</small><small v-if="isCustomLabel(String(slot.key))" class="raw-field-name">字段名：{{ String(slot.key) }}</small></li></ul>
       </details>
 
       <details class="governance-section">

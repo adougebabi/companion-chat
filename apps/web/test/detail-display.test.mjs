@@ -22,6 +22,10 @@ test("detail display has safe object formatting and Chinese field labels", () =>
   assert.match(displaySource, /value_schema: "取值规则"/);
   assert.match(displaySource, /physical_attributes: "外貌特征"/);
   assert.match(displaySource, /enumLabels\[value\] \?\? "未分类"/);
+  assert.match(displaySource, /export function isCustomLabel/);
+  assert.match(displaySource, /rawLabel = displayLabel === "自定义字段"/);
+  assert.match(detailSource, /class="raw-field-name"/);
+  assert.match(governanceSource, /字段名：\{\{ String\(slot\.key\) \}\}/);
 });
 
 test("detail owns read-only life-world sections and uses timezone-aware timeline formatting", () => {

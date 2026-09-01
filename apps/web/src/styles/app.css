@@ -352,6 +352,7 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
 .identity-facts { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px 12px; margin: 0; }
 .identity-facts dt { color: var(--muted-ink); font-size: .8rem; }
 .identity-facts dd { min-width: 0; margin: 0; overflow-wrap: anywhere; font-size: .86rem; }
+.raw-field-name { display: block; margin-top: 3px; color: var(--faint-ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .68rem; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
 .detail-facts-compact { margin-bottom: 16px; }
 .timezone-note { margin-left: 6px; color: var(--muted-ink); font-size: .72rem; font-weight: 500; }
 .detail-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
