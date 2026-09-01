@@ -18,6 +18,11 @@ const currentSection = computed(() => props.section ?? null);
 const roleLabels: Record<string, string> = { initialization: "初始化", cognitive_assessment: "认知判断", action_realization: "回复生成", reflection: "反思", embedding: "Embedding", media_prompt: "媒体提示词" };
 function roleLabel(role: string) { return roleLabels[role] ?? role; }
 function pretty(value: unknown) { return JSON.stringify(value, null, 2); }
+function formatRunTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "时间未知";
+  return date.toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+}
 function workflowIdFor(value: Record<string, unknown>): string {
   if (typeof value.workflow_id === "string") return value.workflow_id;
   if (typeof value.workflowId === "string") return value.workflowId;
@@ -60,7 +65,7 @@ onMounted(() => {
       <Accordion type="single" :default-value="currentSection" class="diagnostics-accordion">
         <AccordionItem v-if="currentSection === 'model-runs' && controlCenter.diagnosticModelRuns.length" value="model-runs" class="diagnostic-group diagnostics-drawer">
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">MODEL RUNS</p><h2>模型运行</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnosticModelRuns.length }}</Badge></AccordionTrigger>
-          <AccordionContent><div class="diagnostic-drawer-body"><article v-for="run in controlCenter.diagnosticModelRuns" :key="run.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ roleLabel(run.role) }}</strong><Badge class="status-pill" variant="secondary">{{ run.status }}</Badge><small>{{ run.modelId }} · {{ run.correlationId }}</small></div><p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ run.errorCode }}</p><details><summary>查看 Prompt</summary><pre>{{ pretty(run.prompt) }}</pre></details><details v-if="run.response"><summary>查看 Response</summary><pre>{{ pretty(run.response) }}</pre></details></article></div></AccordionContent>
+          <AccordionContent><div class="diagnostic-drawer-body"><article v-for="run in controlCenter.diagnosticModelRuns" :key="run.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ roleLabel(run.role) }}</strong><Badge class="status-pill" variant="secondary">{{ run.status }}</Badge><small><time class="diagnostic-time" :datetime="run.createdAt">{{ formatRunTime(run.createdAt) }}</time> · {{ run.modelId }} · {{ run.correlationId }}</small></div><p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ run.errorCode }}</p><details><summary>查看 Prompt</summary><pre>{{ pretty(run.prompt) }}</pre></details><details v-if="run.response"><summary>查看 Response</summary><pre>{{ pretty(run.response) }}</pre></details></article></div></AccordionContent>
         </AccordionItem>
         <AccordionItem v-if="currentSection === 'events' && controlCenter.diagnostics.length" value="events" class="diagnostic-group diagnostics-drawer">
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">EVENTS</p><h2>系统事件</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnostics.length }}</Badge></AccordionTrigger>

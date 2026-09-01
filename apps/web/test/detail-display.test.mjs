@@ -56,3 +56,9 @@ test("schedule timeline highlights the item active at the current instant", () =
   assert.match(detailSource, /:class="\{ active: isCurrentScheduleItem\(item\) \}"/);
   assert.match(detailSource, /class="timeline-now-badge">进行中/);
 });
+
+test("model run diagnostics show the server creation time", async () => {
+  const diagnosticsSource = await readFile(new URL("../src/views/DiagnosticsView.vue", import.meta.url), "utf8");
+  assert.match(diagnosticsSource, /function formatRunTime\(value: string\)/);
+  assert.match(diagnosticsSource, /<time class="diagnostic-time" :datetime="run\.createdAt">/);
+});
