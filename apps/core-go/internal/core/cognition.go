@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -25,7 +26,8 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 	if inboxID == "" {
 		return nil, errors.New("cognition_inbox_id_required")
 	}
-	payload, status, err := a.claimCognitionInbox(ctx, inboxID)
+	claimOwner := "go-cognition:" + randomID("worker_")
+	payload, status, err := a.claimCognitionInbox(ctx, inboxID, claimOwner)
 	if err != nil {
 		return nil, err
 	}
@@ -35,6 +37,15 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 	if status == "failed" {
 		return map[string]any{"inbox_id": inboxID, "status": "failed"}, nil
 	}
+	claimSettled := false
+	defer func() {
+		if claimSettled {
+			return
+		}
+		if releaseErr := a.releaseCognitionClaim(ctx, inboxID, claimOwner); releaseErr != nil {
+			slog.Default().Warn("Go Core cognition claim cleanup failed", "inbox_id", inboxID, "claim_owner", claimOwner, "error", releaseErr)
+		}
+	}()
 	data := decodeObject(payload)
 	if strings.HasPrefix(stringValue(data["event_type"]), "life.") {
 		if err := a.ProcessNativeCognitionFact(ctx, inboxID); err != nil {
@@ -43,16 +54,24 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 		if err := a.markNativeFactProcessed(ctx, inboxID); err != nil {
 			return nil, err
 		}
+		claimSettled = true
 		return map[string]any{"inbox_id": inboxID, "status": "processed", "event_type": data["event_type"]}, nil
 	}
 	result, err := a.HandleTurn(ctx, stringValue(data["actor_id"]), stringValue(data["conversation_id"]), data)
 	if err != nil {
 		return nil, err
 	}
+	if err := a.releaseCognitionClaim(ctx, inboxID, claimOwner); err != nil {
+		return nil, err
+	}
+	claimSettled = true
 	return map[string]any{"inbox_id": inboxID, "status": "processed", "turn_id": result.TurnID, "assistant_message_id": stringValue(result.Assistant["id"]), "media_intent_id": result.MediaIntentID}, nil
 }
 
-func (a *App) claimCognitionInbox(ctx context.Context, inboxID string) ([]byte, string, error) {
+func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner string) ([]byte, string, error) {
+	if claimOwner == "" {
+		claimOwner = "go-cognition:" + randomID("worker_")
+	}
 	var payload []byte
 	var status, claimedBy string
 	var claimedAt *time.Time
@@ -69,10 +88,44 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID string) ([]byte, 
 		if status == "claimed" && claimedBy != "" && claimedAt != nil && time.Since(*claimedAt) < 10*time.Minute {
 			return ErrConflict
 		}
-		_, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now(),attempt_count=attempt_count+1 WHERE id=$1`, inboxID, "go-cognition:"+randomID("worker_"))
+		_, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now(),attempt_count=attempt_count+1 WHERE id=$1`, inboxID, claimOwner)
 		return err
 	})
 	return payload, status, err
+}
+
+// releaseCognitionClaim makes a failed claim available to the durable retry
+// path. It is conditional on the lease owner so a late cleanup from an older
+// request cannot clear a newer worker's claim. If an assistant message already
+// exists, the message is the committed visible result and the inbox is settled
+// as processed instead of being left permanently claimed.
+func (a *App) releaseCognitionClaim(ctx context.Context, inboxID, claimOwner string) error {
+	if inboxID == "" || claimOwner == "" {
+		return nil
+	}
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	_, err := a.DB.Pool().Exec(cleanupCtx, `
+		UPDATE public.cognition_inbox AS i
+		SET status = CASE WHEN EXISTS (
+			SELECT 1
+			FROM public.conversation_messages AS m
+			WHERE m.conversation_id = i.payload->>'conversation_id'
+			  AND m.idempotency_key = 'assistant:' || (i.payload->>'turn_id')
+		) THEN 'processed' ELSE 'pending' END,
+			claimed_by = NULL,
+			claimed_at = NULL,
+			processed_at = CASE WHEN EXISTS (
+			SELECT 1
+			FROM public.conversation_messages AS m
+			WHERE m.conversation_id = i.payload->>'conversation_id'
+			  AND m.idempotency_key = 'assistant:' || (i.payload->>'turn_id')
+		) THEN COALESCE(i.processed_at, now()) ELSE NULL END,
+			error_code = NULL
+		WHERE i.id = $1
+		  AND i.status = 'claimed'
+		  AND i.claimed_by = $2`, inboxID, claimOwner)
+	return err
 }
 
 // EnqueueTurnFact records the source observation before any model call. The
@@ -87,7 +140,14 @@ func (a *App) EnqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 // background cognition Worker cannot start the same turn concurrently. If the
 // HTTP process dies, the claim expires and the Worker can reclaim the fact.
 func (a *App) EnqueueTurnFactClaimed(ctx context.Context, actorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any) (string, error) {
-	return a.enqueueTurnFact(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, attachmentRefs, "go-stream:"+randomID("claim_"))
+	inboxID, _, err := a.enqueueTurnFactClaimed(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, attachmentRefs)
+	return inboxID, err
+}
+
+func (a *App) enqueueTurnFactClaimed(ctx context.Context, actorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any) (string, string, error) {
+	claimOwner := "go-stream:" + randomID("claim_")
+	inboxID, err := a.enqueueTurnFact(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, attachmentRefs, claimOwner)
+	return inboxID, claimOwner, err
 }
 
 func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any, claimOwner string) (string, error) {
@@ -103,9 +163,18 @@ func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 			}
 			if claimOwner != "" && existingStatus != "processed" && existingStatus != "failed" {
 				if existingStatus == "claimed" && existingClaimedBy != "" && existingClaimedAt != nil && time.Since(*existingClaimedAt) < 10*time.Minute {
-					return ErrConflict
-				}
-				if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now() WHERE id=$1`, existing, claimOwner); err != nil {
+					existingData := decodeObject(existingPayload)
+					var assistantExists bool
+					if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2)`, stringValue(existingData["conversation_id"]), "assistant:"+stringValue(existingData["turn_id"])).Scan(&assistantExists); err != nil {
+						return err
+					}
+					if !assistantExists {
+						return ErrConflict
+					}
+					if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',claimed_by=NULL,claimed_at=NULL,processed_at=COALESCE(processed_at,now()),error_code=NULL WHERE id=$1 AND status='claimed'`, existing); err != nil {
+						return err
+					}
+				} else if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now() WHERE id=$1`, existing, claimOwner); err != nil {
 					return err
 				}
 			}

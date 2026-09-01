@@ -82,6 +82,26 @@ func TestWakeUpIntervalIsBounded(t *testing.T) {
 	}
 }
 
+func TestWakeUpIntentRetriesOnlyForLiveFluctlights(t *testing.T) {
+	for _, test := range []struct {
+		name             string
+		fluctlightStatus string
+		workflowStatus   string
+		want             bool
+	}{
+		{name: "active failed", fluctlightStatus: "active", workflowStatus: "failed", want: true},
+		{name: "paused completed", fluctlightStatus: "paused", workflowStatus: "completed", want: true},
+		{name: "active cancelled", fluctlightStatus: "active", workflowStatus: "cancelled", want: false},
+		{name: "retired failed", fluctlightStatus: "retired", workflowStatus: "failed", want: false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := wakeUpIntentShouldRetry(test.fluctlightStatus, test.workflowStatus); got != test.want {
+				t.Fatalf("wakeUpIntentShouldRetry(%q,%q) = %t, want %t", test.fluctlightStatus, test.workflowStatus, got, test.want)
+			}
+		})
+	}
+}
+
 func TestWorkflowFunctionRegistryIncludesPlatformBoundaries(t *testing.T) {
 	for _, intentType := range []string{"cognition.processing", "platform.control", "wake_up.current", "capability.action"} {
 		if fn, err := workflowFunction(intentType); err != nil || fn == nil {

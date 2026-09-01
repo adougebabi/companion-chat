@@ -64,6 +64,50 @@ func (a *App) readWakeUpSettings(ctx context.Context) (WakeUpSettings, error) {
 	return normalizeWakeUpSettings(value), nil
 }
 
+// EnsureWakeUpIntents repairs the durable entry point for Fluctlights that
+// were created before the periodic wake-up feature existed. Terminal wake-up
+// intents for still-live Fluctlights are made retryable, while pending/retry/
+// started intents are left untouched so a running Temporal execution cannot be
+// duplicated.
+func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
+	var ensured int64
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		inserted, err := tx.Exec(ctx, `
+			INSERT INTO public.platform_workflow_intents(
+				intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at
+			)
+			SELECT
+				'wake_up_intent:' || f.id,
+				'wake_up:' || f.id,
+				'lifecycle',
+				'wake_up.current',
+				jsonb_build_object('fluctlight_id', f.id, 'cycle', 0),
+				'pending',
+				now()
+			FROM public.fluctlights AS f
+			WHERE f.status IN ('active', 'paused')
+			ON CONFLICT (intent_id) DO NOTHING`)
+		if err != nil {
+			return err
+		}
+		ensured += inserted.RowsAffected()
+		requeued, err := tx.Exec(ctx, `
+			UPDATE public.platform_workflow_intents AS i
+			SET status='retry',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL
+			FROM public.fluctlights AS f
+			WHERE i.intent_type='wake_up.current'
+			  AND i.payload->>'fluctlight_id' = f.id
+			  AND f.status IN ('active', 'paused')
+			  AND i.status IN ('completed', 'failed')`)
+		if err != nil {
+			return err
+		}
+		ensured += requeued.RowsAffected()
+		return nil
+	})
+	return ensured, err
+}
+
 func numberOrDefault(value any, fallback float64) float64 {
 	if parsed, ok := numberFloat(value); ok {
 		return parsed

@@ -42,6 +42,11 @@ func main() {
 		log.Fatal(err)
 	}
 	coreworkflow.Configure(application)
+	if ensured, err := application.EnsureWakeUpIntents(ctx); err != nil {
+		log.Fatalf("ensure wake-up intents: %v", err)
+	} else if ensured > 0 {
+		slog.Default().Info("Go Worker ensured wake-up intents", "count", ensured)
+	}
 	temporalClient, err := client.Dial(client.Options{HostPort: settings.TemporalAddr, Namespace: settings.TemporalNS})
 	if err != nil {
 		log.Fatal(err)

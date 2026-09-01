@@ -632,15 +632,15 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 	if limit < 1 {
 		limit = 1
 	}
-	rows, err := d.App.DB.Pool().Query(ctx, `SELECT intent_id,workflow_id FROM public.platform_workflow_intents WHERE status IN ('pending','retry','started','cancel_requested') ORDER BY started_at NULLS LAST,created_at LIMIT $1`, limit)
+	rows, err := d.App.DB.Pool().Query(ctx, `SELECT intent_id,workflow_id,intent_type FROM public.platform_workflow_intents WHERE status IN ('pending','retry','started','cancel_requested') ORDER BY started_at NULLS LAST,created_at LIMIT $1`, limit)
 	if err != nil {
 		return 0, err
 	}
 	defer rows.Close()
 	count := 0
 	for rows.Next() {
-		var intentID, workflowID string
-		if err := rows.Scan(&intentID, &workflowID); err != nil {
+		var intentID, workflowID, intentType string
+		if err := rows.Scan(&intentID, &workflowID, &intentType); err != nil {
 			return count, err
 		}
 		execution, describeErr := d.Client.DescribeWorkflowExecution(ctx, normalizedWorkflowID(workflowID), "")
@@ -664,6 +664,19 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		} else if status == enumspb.WORKFLOW_EXECUTION_STATUS_FAILED || status == enumspb.WORKFLOW_EXECUTION_STATUS_TIMED_OUT || status == enumspb.WORKFLOW_EXECUTION_STATUS_TERMINATED {
 			intentStatus = "failed"
 		}
+		if intentType == "wake_up.current" {
+			var fluctlightStatus string
+			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlights WHERE id=(SELECT payload->>'fluctlight_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&fluctlightStatus); err == nil && wakeUpIntentShouldRetry(fluctlightStatus, intentStatus) {
+				if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '5 minutes',started_at=NULL,completed_at=NULL,last_error=COALESCE(last_error,'wake_up_workflow_terminal') WHERE intent_id=$1`, intentID); err != nil {
+					return count, err
+				}
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+				continue
+			}
+		}
 		if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(last_error,'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1`, intentID, intentStatus); err != nil {
 			return count, err
 		}
@@ -673,6 +686,13 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		count++
 	}
 	return count, rows.Err()
+}
+
+func wakeUpIntentShouldRetry(fluctlightStatus, workflowStatus string) bool {
+	if fluctlightStatus != "active" && fluctlightStatus != "paused" {
+		return false
+	}
+	return workflowStatus == "failed" || workflowStatus == "completed"
 }
 
 func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strconv"
@@ -276,13 +277,25 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		return TurnResult{}, err
 	}
 	var inboxID string
+	claimOwner := ""
+	claimSettled := !claimStream
 	if claimStream {
-		inboxID, err = a.EnqueueTurnFactClaimed(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"])
+		inboxID, claimOwner, err = a.enqueueTurnFactClaimed(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"])
 	} else {
 		inboxID, err = a.EnqueueTurnFact(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"])
 	}
 	if err != nil {
 		return TurnResult{}, err
+	}
+	if claimStream {
+		defer func() {
+			if claimSettled || claimOwner == "" {
+				return
+			}
+			if releaseErr := a.releaseCognitionClaim(ctx, inboxID, claimOwner); releaseErr != nil {
+				slog.Default().Warn("Go Core streaming cognition claim cleanup failed", "inbox_id", inboxID, "turn_id", turnID, "claim_owner", claimOwner, "error", releaseErr)
+			}
+		}()
 	}
 	var replayed map[string]any
 	var replayedID, replayedText string
@@ -503,6 +516,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, err
 		}
 	}
+	claimSettled = true
 	return TurnResult{UserMessage: user, Assistant: assistant, MediaIntentID: mediaIntent, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
 }
 

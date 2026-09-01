@@ -567,7 +567,14 @@ func (s *Server) turn(response http.ResponseWriter, request *http.Request) {
 		if request.Context().Err() != nil {
 			return
 		}
-		s.logger.Error("Go Core conversation turn failed", "error_type", fmt.Sprintf("%T", err), "error", err.Error())
+		s.logger.Error("Go Core conversation turn failed",
+			"error_type", fmt.Sprintf("%T", err),
+			"error", err.Error(),
+			"conversation_id", request.PathValue("conversationID"),
+			"fluctlight_id", stringValue(body["fluctlight_id"]),
+			"turn_id", stringValue(body["turn_id"]),
+			"idempotency_key", stringValue(body["idempotency_key"]),
+		)
 		writeNDJSONError(response, stringValue(body["turn_id"]), err)
 	}
 }

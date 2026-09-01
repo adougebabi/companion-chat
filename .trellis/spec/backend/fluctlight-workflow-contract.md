@@ -157,6 +157,93 @@ registerInteractionWorkflows(interactionWorker)
 registerMediaWorkflows(mediaWorker)
 ```
 
+## Scenario: Cognition Claim Cleanup And Stream Retry
+
+### 1. Scope / Trigger
+
+- Trigger: a synchronous NDJSON conversation or the Worker-owned
+  `cognition.processing` activity claims a `cognition_inbox` row and any later
+  provider, validation, realization, or persistence step fails.
+
+### 2. Signatures
+
+- `enqueueTurnFactClaimed(...) -> (inboxID, claimOwner, error)` keeps the
+  stream claim owner available to the caller.
+- `releaseCognitionClaim(ctx, inboxID, claimOwner) -> error` conditionally
+  releases only the matching active claim.
+- `ProcessCognitionInbox(ctx, inboxID)` releases its claim before returning an
+  error so Temporal activity retry can reclaim the fact.
+
+### 3. Contracts
+
+- A failed claim becomes `pending` with `claimed_by` and `claimed_at` cleared;
+  it remains eligible for the durable retry path.
+- If the assistant message for the same `turn_id` is already persisted, claim
+  cleanup settles the inbox as `processed` and clears the lease instead of
+  leaving a half-completed turn permanently claimed.
+- Claim cleanup is conditional on the lease owner. A late cleanup from an old
+  request must never clear a newer request's claim.
+- The Core error log includes `conversation_id`, `fluctlight_id`, `turn_id`,
+  and `idempotency_key` so a failed turn can be correlated with its inbox and
+  workflow intent without exposing credentials.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Provider/validation failure after a stream claim | Release the matching claim to `pending`; preserve the original error for the caller |
+| Worker activity failure after its claim | Release the matching claim before Temporal retry; do not convert the retry into `resource revision conflict` |
+| Assistant message already exists during cleanup | Set inbox to `processed`, clear lease, preserve idempotent replay |
+| Cleanup runs with a different/late owner | Conditional update affects no newer claim |
+| Active claim has no committed assistant result | A concurrent duplicate still receives the bounded conflict until the lease is released or expires |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a provider failure releases the inbox, the next activity attempt
+  claims it, and a browser retry reuses the same fact without duplication.
+- Base: a disconnected stream leaves a durable pending fact that the Worker
+  can recover after the claim cleanup or lease expiry.
+- Bad: reset only `cognition_inbox.status` while leaving a started workflow or
+  frozen action unexplained, or let a failed activity retain its own claim
+  until the ten-minute lease expires.
+
+### 6. Tests Required
+
+- PostgreSQL integration test: an owned claimed inbox with no assistant is
+  released to `pending` with an empty lease.
+- PostgreSQL integration test: an owned claimed inbox with a committed
+  assistant is settled to `processed` with `processed_at` and an empty lease.
+- Cognition activity failure/retry test: the retry does not return
+  `resource revision conflict` solely because the previous attempt failed.
+- Real conversation regression: force a provider/realization failure, retry
+  the same `turn_id` and `idempotency_key`, and assert one assistant message
+  and one processed inbox.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+payload, _, err := claimCognitionInbox(ctx, inboxID)
+if err != nil {
+    return nil, err
+}
+return a.HandleTurn(ctx, actorID, conversationID, data)
+// A later failure leaves the inbox claimed forever until lease expiry.
+```
+
+#### Correct
+
+```go
+claimOwner := "go-cognition:" + randomID("worker_")
+payload, _, err := claimCognitionInbox(ctx, inboxID, claimOwner)
+if err != nil {
+    return nil, err
+}
+defer releaseCognitionClaim(ctx, inboxID, claimOwner)
+return a.HandleTurn(ctx, actorID, conversationID, data)
+```
+
 ## Scenario: Worker Deployment Routing Bootstrap
 
 ### 1. Scope / Trigger
@@ -326,12 +413,21 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
 
 - Activation commits the wake-up intent in the same transaction as the
   Fluctlight and the existing schedule/daily-review intents.
+- Worker startup idempotently backfills `wake_up.current` for existing
+  `active`/`paused` Fluctlights. Existing `pending`, `retry`, `started`, and
+  `cancel_requested` intents are preserved; failed/completed intents for
+  still-live Fluctlights become retryable without creating a second workflow
+  ID.
 - `WakeUpWorkflow` sleeps for the interval returned by Core and increments the
   cycle only through `ContinueAsNew`; the workflow ID stays stable while each
   cycle's fact/action/reflection IDs are derived from `(fluctlight_id, cycle)`.
 - The Worker registers the workflow and activity only on `lifecycle`, and the
   dispatcher treats `wake_up.current` as a lifecycle intent with the same
   retry/reconcile semantics as other Go workflows.
+- A terminal failed/completed wake-up workflow for an `active`/`paused`
+  Fluctlight is requeued after reconciliation with a bounded delay. A
+  deliberate cancellation or a `retired` Fluctlight is not automatically
+  restarted.
 - A wake-up that proposes a Capability tool call freezes a generic
   `capability.action` on `interaction`; the CapabilityActionWorkflow reuses the
   same stable action/lease/result/reflection boundary as legacy autonomy
@@ -348,6 +444,9 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
 | Empty/negative cycle | Activity rejects the input without writing a cognition fact |
 | Temporal start failure | Keep the intent retryable; do not mark it complete |
 | Worker restart after a start but before status update | Reuse the stable workflow ID and let reconciliation repair the ledger |
+| Existing live Fluctlight has no wake-up intent | Worker startup inserts the stable `wake_up.current` intent idempotently |
+| Wake-up activity/provider failure | Reconcile requeues the live Fluctlight's intent after a bounded delay; preserve the failure in diagnostics |
+| Wake-up is cancelled or Fluctlight is retired | Do not auto-restart the workflow |
 | History grows across cycles | Continue-As-New preserves the Fluctlight/cycle identity and bounds history |
 
 ### 5. Good/Base/Bad Cases
@@ -363,6 +462,8 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
 
 - Assert registry/dispatcher queue mapping, stable IDs, retry behavior, and
   lifecycle-only registration.
+- Assert Worker startup backfills an existing live Fluctlight and requeues a
+  terminal wake-up intent without duplicating the stable workflow ID.
 - Assert the interval clamp and Continue-As-New cycle increment with Temporal's
   workflow test environment.
 - Assert inactive termination and disabled sleep behavior without provider
