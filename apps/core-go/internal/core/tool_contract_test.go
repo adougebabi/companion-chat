@@ -253,6 +253,41 @@ func TestProviderStructuredContentAcceptsMlxReasoningContent(t *testing.T) {
 	}
 }
 
+func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
+	schedule := scheduleResponseSchema()
+	if !containsSchemaRequired(schedule, "items") || !containsSchemaRequired(schedule, "reschedule_policy") {
+		t.Fatalf("schedule schema required fields = %#v", schedule)
+	}
+	itemsProperty := mapValue(mapValue(schedule["properties"])["items"])
+	itemSchema := mapValue(itemsProperty["items"])
+	for _, key := range []string{"start_at", "end_at", "activity", "scene", "item_type", "status", "priority", "flexibility", "interruption_cost"} {
+		if !containsSchemaRequired(itemSchema, key) {
+			t.Fatalf("schedule item schema missing required field %q: %#v", key, itemSchema)
+		}
+	}
+	reflection := reflectionResponseSchema()
+	for _, key := range []string{"memory_candidates", "self_model_candidates", "drive_candidates", "trigger_candidates"} {
+		if !containsSchemaRequired(reflection, key) {
+			t.Fatalf("reflection schema missing required field %q: %#v", key, reflection)
+		}
+	}
+	cognitive := cognitiveTurnResponseSchema()
+	for _, key := range []string{"action_type", "appraisal", "attention", "thought", "desire", "agency"} {
+		if !containsSchemaRequired(cognitive, key) {
+			t.Fatalf("cognitive schema missing required field %q: %#v", key, cognitive)
+		}
+	}
+}
+
+func containsSchemaRequired(schema map[string]any, key string) bool {
+	for _, raw := range arrayValue(schema["required"]) {
+		if stringValue(raw) == key {
+			return true
+		}
+	}
+	return false
+}
+
 func TestResolveToolCallActionSupportsNativeObservationSlots(t *testing.T) {
 	manifests := toolManifestMap([]CapabilityManifest{sceneCapabilityManifest(), presenceCapabilityManifest(), memoryCapabilityManifest()})
 	calls, err := NormalizeProviderToolCalls([]any{

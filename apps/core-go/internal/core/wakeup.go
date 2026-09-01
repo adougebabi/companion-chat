@@ -235,10 +235,10 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
-	completion, err := a.Provider.StructuredWithTools(ctx, "cognitive_assessment", []map[string]any{
+	completion, err := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", []map[string]any{
 		{"role": "system", "content": "You are evaluating one internal wake-up for a Fluctlight. Return JSON with attention, thought, desire, agency, and action_type. These fields describe the internal cognitive cycle, not visible prose. Keep each stage as a concise summary; do not provide private chain-of-thought or hidden reasoning. Do not invent facts. Choose no_op when no action is wanted. For a visible proactive_message or moment that needs an image, issue the media.image.generate tool call with the complete visual concept; do not return moment_media_request or message_media_request fields. If another installed capability is needed, issue its tool call and use its capability name as action_type; if the needed capability is missing, issue capability.request. Never return visible text; response_intent is optional and must only explain an explicitly proposed action."},
 		{"role": "user", "content": jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "context": projection, "persona_profile": map[string]any{"identity": fluctlight.Identity, "personality": fluctlight.Personality, "self_model": mapValue(fluctlight.Provenance["self_model"]), "behavioral_policy": fluctlight.BehavioralPolicy}})},
-	}, a.capabilityRegistry().Manifests())
+	}, a.capabilityRegistry().Manifests(), "wake_up_response", wakeUpResponseSchema(), true)
 	if err != nil {
 		return nil, err
 	}

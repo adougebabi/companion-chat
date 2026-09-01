@@ -82,7 +82,7 @@ func (p *ProviderClient) secret(ctx context.Context, purpose string) (string, er
 }
 
 func (p *ProviderClient) complete(ctx context.Context, role string, messages []map[string]any, jsonMode bool) (map[string]any, error) {
-	completion, err := p.completeWithTools(ctx, role, messages, jsonMode, nil)
+	completion, err := p.completeWithToolsSchema(ctx, role, messages, jsonMode, nil, "", nil, role == "cognitive_assessment")
 	if err != nil {
 		return nil, err
 	}
@@ -98,20 +98,39 @@ func (p *ProviderClient) complete(ctx context.Context, role string, messages []m
 // StructuredWithTools requests a structured model assessment with the
 // external capability catalog. Native provider calls and JSON sidecars are
 // normalized into ProviderCompletion before the application sees them. The
-// request always asks for a JSON object; cognitive assessment additionally
-// enables the provider's thinking mode.
+// request always asks for the operation's strict JSON Schema; the cognitive
+// assessment default additionally enables the provider's thinking mode.
 func (p *ProviderClient) StructuredWithTools(ctx context.Context, role string, messages []map[string]any, manifests []CapabilityManifest) (ProviderCompletion, error) {
 	return p.completeWithTools(ctx, role, messages, true, manifests)
 }
 
 func (p *ProviderClient) completeWithTools(ctx context.Context, role string, messages []map[string]any, jsonMode bool, manifests []CapabilityManifest) (ProviderCompletion, error) {
+	return p.completeWithToolsSchema(ctx, role, messages, jsonMode, manifests, "", nil, role == "cognitive_assessment")
+}
+
+func (p *ProviderClient) StructuredWithSchema(ctx context.Context, role string, messages []map[string]any, schemaName string, schema map[string]any, enableThinking bool) (map[string]any, error) {
+	completion, err := p.completeWithToolsSchema(ctx, role, messages, true, nil, schemaName, schema, enableThinking)
+	if err != nil {
+		return nil, err
+	}
+	if completion.Structured == nil {
+		return nil, errors.New("provider structured response is empty")
+	}
+	return completion.Structured, nil
+}
+
+func (p *ProviderClient) StructuredWithToolsSchema(ctx context.Context, role string, messages []map[string]any, manifests []CapabilityManifest, schemaName string, schema map[string]any, enableThinking bool) (ProviderCompletion, error) {
+	return p.completeWithToolsSchema(ctx, role, messages, true, manifests, schemaName, schema, enableThinking)
+}
+
+func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role string, messages []map[string]any, jsonMode bool, manifests []CapabilityManifest, schemaName string, schema map[string]any, enableThinking bool) (ProviderCompletion, error) {
 	assignment, err := p.assignment(ctx, role)
 	if err != nil {
 		return ProviderCompletion{}, err
 	}
 	correlationID := diagnosticCorrelation(messages, "")
 	providerRequestID := "provider:" + stableDigest(role+":"+correlationID)
-	payload := providerChatPayloadForRole(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, manifests, role)
+	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, manifests, role, schemaName, schema, enableThinking)
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return ProviderCompletion{}, err
@@ -234,6 +253,10 @@ func providerChatPayload(model string, messages []map[string]any, tokenBudget in
 }
 
 func providerChatPayloadForRole(model string, messages []map[string]any, tokenBudget int, jsonMode bool, manifests []CapabilityManifest, role string) map[string]any {
+	return providerChatPayloadWithSchema(model, messages, tokenBudget, jsonMode, manifests, role, "", nil, role == "cognitive_assessment")
+}
+
+func providerChatPayloadWithSchema(model string, messages []map[string]any, tokenBudget int, jsonMode bool, manifests []CapabilityManifest, role, schemaName string, schema map[string]any, enableThinking bool) map[string]any {
 	payload := map[string]any{
 		"model":       model,
 		"messages":    messages,
@@ -244,12 +267,12 @@ func providerChatPayloadForRole(model string, messages []map[string]any, tokenBu
 		payload["tools"] = ToolCallPayload(manifests)
 		payload["tool_choice"] = "auto"
 		if jsonMode {
-			payload["response_format"] = providerResponseFormat(role)
+			payload["response_format"] = providerResponseFormatForSchema(role, schemaName, schema)
 		}
 	} else if jsonMode {
-		payload["response_format"] = providerResponseFormat(role)
+		payload["response_format"] = providerResponseFormatForSchema(role, schemaName, schema)
 	}
-	if role == "cognitive_assessment" {
+	if enableThinking {
 		payload["enable_thinking"] = true
 	}
 	if tokenBudget > 0 {
@@ -259,12 +282,22 @@ func providerChatPayloadForRole(model string, messages []map[string]any, tokenBu
 }
 
 func providerResponseFormat(role string) map[string]any {
+	return providerResponseFormatForSchema(role, "", nil)
+}
+
+func providerResponseFormatForSchema(role, schemaName string, schema map[string]any) map[string]any {
+	if schema == nil {
+		schema = providerSchemaForRole(role)
+	}
+	if schemaName == "" {
+		schemaName = providerSchemaName(role)
+	}
 	return map[string]any{
 		"type": "json_schema",
 		"json_schema": map[string]any{
-			"name":   providerSchemaName(role),
+			"name":   schemaName,
 			"strict": true,
-			"schema": providerSchemaForRole(role),
+			"schema": schema,
 		},
 	}
 }
@@ -277,24 +310,16 @@ func providerSchemaName(role string) string {
 }
 
 func providerSchemaForRole(role string) map[string]any {
-	properties := map[string]any{}
-	add := func(names ...string) {
-		for _, name := range names {
-			properties[name] = map[string]any{"type": "object", "additionalProperties": true}
-		}
+	switch role {
+	case "cognitive_assessment":
+		return cognitiveTurnResponseSchema()
+	case "initialization":
+		return initializationResponseSchema()
+	case "reflection":
+		return reflectionResponseSchema()
+	default:
+		return objectSchema(map[string]any{"result": openObjectSchema()}, nil, true)
 	}
-	// Top-level values are intentionally permissive within the known contract:
-	// domain validators own required fields and semantic bounds, while this
-	// schema guarantees a JSON object and prevents prose from crossing the
-	// structured Provider boundary.
-	for _, name := range []string{"action_type", "response_intent", "visible_text", "answer_mode", "tone", "source_fact_id", "event_type", "direction", "local_date", "timezone"} {
-		properties[name] = map[string]any{"type": "string"}
-	}
-	for _, name := range []string{"claims", "tool_calls", "evidence_refs", "initial_goals", "initial_intentions", "items", "memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates", "drive_candidates", "preference_candidates", "trigger_candidates", "response_outline", "approved_claims", "uncertain_claims", "omitted_claims"} {
-		properties[name] = map[string]any{"type": "array", "items": map[string]any{}}
-	}
-	add("response_plan", "appraisal", "attention", "thought", "desire", "agency", "self_evaluation", "foundation", "identity", "personality", "behavioral_policy", "life_profile", "provenance", "reschedule_policy", "context", "decision")
-	return map[string]any{"type": "object", "properties": properties, "required": []any{}, "additionalProperties": false}
 }
 
 func (p *ProviderClient) recordProviderSuccess(ctx context.Context, assignment providerAssignment, correlationID string, messages []map[string]any, response any) {

@@ -368,7 +368,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	} else {
 		messages := []map[string]any{{"role": "system", "content": "You are the Fluctlight companion. Decide what is appropriate to say before writing it. Return one JSON object containing action_type, response_plan, visible_text for an ordinary reply, claims with kind/content/confidence/evidence_refs, appraisal, attention, thought, desire, agency, and self_evaluation. Appraisal must include relevance, goal_congruence, reward, loss, social_threat, controllability, responsibility, relationship_significance, expected_effect. These cognitive stage fields are concise summaries, never hidden chain-of-thought. Use a capability tool when an external capability is needed, including capability.request when a needed capability is not installed. For images, call media.image.generate with the complete visual concept; do not return message_media_request or moment_media_request fields. Do not invent unsupported facts or self-claims."}, {"role": "user", "content": jsonString(map[string]any{"text": text, "context": projection})}}
 		manifests := a.capabilityRegistry().Manifests()
-		completion, completionErr := a.Provider.StructuredWithTools(ctx, "cognitive_assessment", messages, manifests)
+		completion, completionErr := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", messages, manifests, "conversation_turn_response", cognitiveTurnResponseSchema(), true)
 		if completionErr != nil {
 			return TurnResult{}, completionErr
 		}

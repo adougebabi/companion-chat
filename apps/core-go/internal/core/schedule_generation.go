@@ -24,7 +24,7 @@ func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID
 	// consumes an evidence window after the plan is accepted; using it here
 	// returns a reflection proposal shape instead of the required {items,...}
 	// schedule and leaves the lifecycle intent pending forever.
-	result, err := a.Provider.Structured(ctx, "cognitive_assessment", messages)
+	result, err := a.Provider.StructuredWithSchema(ctx, "cognitive_assessment", messages, "schedule_response", scheduleResponseSchema(), false)
 	if err != nil {
 		return nil, fmt.Errorf("initial schedule provider request failed: %w", err)
 	}
