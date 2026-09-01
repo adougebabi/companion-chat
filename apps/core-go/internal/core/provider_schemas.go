@@ -17,8 +17,13 @@ func objectSchema(properties map[string]any, required []string, additionalProper
 	return result
 }
 
-func stringSchema() map[string]any { return map[string]any{"type": "string"} }
-func numberSchema() map[string]any { return map[string]any{"type": "number"} }
+func stringSchema() map[string]any  { return map[string]any{"type": "string"} }
+func numberSchema() map[string]any  { return map[string]any{"type": "number"} }
+func integerSchema() map[string]any { return map[string]any{"type": "integer", "minimum": 0} }
+
+func unitNumberSchema() map[string]any {
+	return map[string]any{"type": "number", "minimum": 0, "maximum": 1}
+}
 
 func arraySchema(items map[string]any) map[string]any {
 	return map[string]any{"type": "array", "items": items}
@@ -110,9 +115,9 @@ func scheduleResponseSchema() map[string]any {
 		"scene":             stringSchema(),
 		"item_type":         stringSchema(),
 		"status":            stringSchema(),
-		"priority":          numberSchema(),
-		"flexibility":       numberSchema(),
-		"interruption_cost": numberSchema(),
+		"priority":          unitNumberSchema(),
+		"flexibility":       unitNumberSchema(),
+		"interruption_cost": unitNumberSchema(),
 	}, []string{"start_at", "end_at", "activity", "scene", "item_type", "status", "priority", "flexibility", "interruption_cost"}, false)
 	return objectSchema(map[string]any{
 		"items":             arraySchema(item),
@@ -134,20 +139,38 @@ func reflectionResponseSchema() map[string]any {
 }
 
 func initializationResponseSchema() map[string]any {
-	foundation := openObjectSchema()
+	goal := objectSchema(map[string]any{
+		"description": stringSchema(),
+		"importance":  unitNumberSchema(),
+		"urgency":     unitNumberSchema(),
+	}, []string{"description", "importance", "urgency"}, false)
+	intention := objectSchema(map[string]any{
+		"action":     stringSchema(),
+		"goal_index": integerSchema(),
+		"confidence": unitNumberSchema(),
+	}, []string{"action", "goal_index", "confidence"}, false)
+	foundation := objectSchema(map[string]any{
+		"identity":           openObjectSchema(),
+		"personality":        openObjectSchema(),
+		"behavioral_policy":  openObjectSchema(),
+		"life_profile":       openObjectSchema(),
+		"initial_goals":      arraySchema(goal),
+		"initial_intentions": arraySchema(intention),
+		"provenance":         openObjectSchema(),
+	}, []string{"identity", "personality", "behavioral_policy", "life_profile", "initial_goals", "initial_intentions", "provenance"}, false)
 	// Accept both the canonical {foundation:{...}} envelope and the existing
 	// flat-provider compatibility shape without allowing unrelated root keys.
 	return map[string]any{
 		"anyOf": []any{
 			objectSchema(map[string]any{"foundation": foundation}, []string{"foundation"}, false),
 			objectSchema(map[string]any{
-				"identity":           foundation,
-				"personality":        foundation,
-				"behavioral_policy":  foundation,
-				"life_profile":       foundation,
-				"initial_goals":      arraySchema(openObjectSchema()),
-				"initial_intentions": arraySchema(openObjectSchema()),
-				"provenance":         foundation,
+				"identity":           openObjectSchema(),
+				"personality":        openObjectSchema(),
+				"behavioral_policy":  openObjectSchema(),
+				"life_profile":       openObjectSchema(),
+				"initial_goals":      arraySchema(goal),
+				"initial_intentions": arraySchema(intention),
+				"provenance":         openObjectSchema(),
 			}, []string{"identity", "personality", "behavioral_policy", "life_profile", "initial_goals", "initial_intentions", "provenance"}, false),
 		},
 	}

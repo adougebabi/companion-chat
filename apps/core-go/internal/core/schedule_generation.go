@@ -11,7 +11,7 @@ import (
 
 func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID, localDate, timezone string, identity, lifeProfile map[string]any) (map[string]any, error) {
 	messages := []map[string]any{
-		{"role": "system", "content": "Return one JSON object with items and reschedule_policy. items must be a non-empty array of objects covering the complete local day contiguously from 00:00 through the next 00:00 in the supplied timezone. Every item needs start_at, end_at, activity, scene, item_type, status, priority, flexibility, interruption_cost. Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."},
+		{"role": "system", "content": "Return one JSON object with items and reschedule_policy. items must be a non-empty array of objects covering the complete local day contiguously from 00:00 through the next 00:00 in the supplied timezone. Every item needs start_at, end_at, activity, scene, item_type, status, priority, flexibility, interruption_cost. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1 (never a 1-10 score). Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."},
 		{"role": "user", "content": jsonString(map[string]any{
 			"fluctlight_id": fluctlightID,
 			"local_date":    localDate,

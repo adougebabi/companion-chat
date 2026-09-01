@@ -239,7 +239,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 		return nil, errors.New("description_invalid")
 	}
 	messages := []map[string]any{
-		{"role": "system", "content": "Return one JSON object with foundation.identity, foundation.personality, foundation.behavioral_policy, foundation.life_profile, foundation.initial_goals, foundation.initial_intentions, and provenance.foundation. Fill every semantic field with a concrete value. Do not return markdown."},
+		{"role": "system", "content": "Return one JSON object with foundation.identity, foundation.personality, foundation.behavioral_policy, foundation.life_profile, foundation.initial_goals, foundation.initial_intentions, and provenance.foundation. Fill every semantic field with a concrete value. initial_goals must be an array of objects with description, importance (0..1), and urgency (0..1). initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Every intention must reference a valid goal_index, and intentions may be fewer than or equal to the number of goals. Do not return markdown or a flat identity/life_profile object outside the foundation envelope."},
 		{"role": "user", "content": description},
 	}
 	result, err := a.Provider.Structured(ctx, "initialization", messages)

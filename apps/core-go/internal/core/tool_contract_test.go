@@ -265,6 +265,15 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 			t.Fatalf("schedule item schema missing required field %q: %#v", key, itemSchema)
 		}
 	}
+	for _, key := range []string{"priority", "flexibility", "interruption_cost"} {
+		value := mapValue(mapValue(itemSchema["properties"])[key])
+		if value["minimum"] != float64(0) && value["minimum"] != 0 {
+			t.Fatalf("schedule item %s must have minimum 0: %#v", key, value)
+		}
+		if value["maximum"] != float64(1) && value["maximum"] != 1 {
+			t.Fatalf("schedule item %s must have maximum 1: %#v", key, value)
+		}
+	}
 	reflection := reflectionResponseSchema()
 	for _, key := range []string{"memory_candidates", "self_model_candidates", "drive_candidates", "trigger_candidates"} {
 		if !containsSchemaRequired(reflection, key) {
