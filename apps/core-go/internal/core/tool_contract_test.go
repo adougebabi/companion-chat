@@ -251,6 +251,12 @@ func TestProviderStructuredContentAcceptsMlxReasoningContent(t *testing.T) {
 	if got := providerStructuredContent(content); got != `{"action_type":"reply"}` {
 		t.Fatalf("content should take precedence over reasoning_content: %q", got)
 	}
+	if parsed, ok := parseStructuredCandidates(providerStructuredCandidates(map[string]any{
+		"content":           `{"action_type":"reply"}尾部文本`,
+		"reasoning_content": `{"action_type":"reply","visible_text":"你好"}`,
+	})); !ok || parsed["visible_text"] != "你好" {
+		t.Fatalf("invalid content should fall back to valid reasoning JSON: %#v, ok=%v", parsed, ok)
+	}
 }
 
 func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {

@@ -196,33 +196,27 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	// mlx-serve places structured JSON in reasoning_content when thinking is
 	// enabled, while leaving message.content empty. Treat that field as a
 	// structured control channel only; it is never exposed as visible text.
-	structuredContent := providerStructuredContent(message)
+	structuredCandidates := providerStructuredCandidates(message)
 	completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
 	if len(calls) > 0 {
 		for index := range completion.ToolCalls {
 			completion.ToolCalls[index].SourceFactID = ""
 		}
-		if structuredContent != "" {
-			var structured map[string]any
-			if json.Unmarshal([]byte(structuredContent), &structured) == nil && structured != nil {
-				completion.Structured = structured
-			}
+		if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
+			completion.Structured = structured
+		} else if jsonMode && len(structuredCandidates) > 0 {
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid")
+			return ProviderCompletion{}, fmt.Errorf("provider structured response is invalid")
 		}
 		p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"tool_calls": completion.ToolCalls, "text": content})
 		return completion, nil
 	}
-	if structuredContent == "" {
+	if len(structuredCandidates) == 0 {
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_content_empty")
 		return ProviderCompletion{}, fmt.Errorf("provider response content is empty")
 	}
 	if jsonMode || len(manifests) > 0 {
-		var structured map[string]any
-		if err := json.Unmarshal([]byte(structuredContent), &structured); err != nil {
-			if jsonMode {
-				p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid")
-				return ProviderCompletion{}, fmt.Errorf("provider structured response is invalid: %w", err)
-			}
-		} else if structured != nil {
+		if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
 			completion.Structured = structured
 			if len(manifests) > 0 {
 				calls, callErr := NormalizeProviderToolCalls(structured["tool_calls"], "", providerRequestID)
@@ -232,6 +226,9 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 				}
 				completion.ToolCalls = calls
 			}
+		} else if jsonMode {
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid")
+			return ProviderCompletion{}, fmt.Errorf("provider structured response is invalid")
 		}
 	}
 	p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured})
@@ -239,13 +236,35 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 }
 
 func providerStructuredContent(message map[string]any) string {
-	if message == nil {
+	candidates := providerStructuredCandidates(message)
+	if len(candidates) == 0 {
 		return ""
 	}
-	if content, ok := message["content"].(string); ok && strings.TrimSpace(content) != "" {
-		return strings.TrimSpace(content)
+	return candidates[0]
+}
+
+func providerStructuredCandidates(message map[string]any) []string {
+	if message == nil {
+		return nil
 	}
-	return strings.TrimSpace(stringValue(message["reasoning_content"]))
+	result := make([]string, 0, 2)
+	if content, ok := message["content"].(string); ok && strings.TrimSpace(content) != "" {
+		result = append(result, strings.TrimSpace(content))
+	}
+	if reasoning := strings.TrimSpace(stringValue(message["reasoning_content"])); reasoning != "" && (len(result) == 0 || result[0] != reasoning) {
+		result = append(result, reasoning)
+	}
+	return result
+}
+
+func parseStructuredCandidates(candidates []string) (map[string]any, bool) {
+	for _, candidate := range candidates {
+		var structured map[string]any
+		if json.Unmarshal([]byte(candidate), &structured) == nil && structured != nil {
+			return structured, true
+		}
+	}
+	return nil, false
 }
 
 func providerChatPayload(model string, messages []map[string]any, tokenBudget int, jsonMode bool, manifests []CapabilityManifest) map[string]any {
