@@ -174,27 +174,31 @@ func (p *ProviderClient) completeWithTools(ctx context.Context, role string, mes
 	}
 	content, _ := message["content"].(string)
 	content = strings.TrimSpace(content)
+	// mlx-serve places structured JSON in reasoning_content when thinking is
+	// enabled, while leaving message.content empty. Treat that field as a
+	// structured control channel only; it is never exposed as visible text.
+	structuredContent := providerStructuredContent(message)
 	completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
 	if len(calls) > 0 {
 		for index := range completion.ToolCalls {
 			completion.ToolCalls[index].SourceFactID = ""
 		}
-		if content != "" {
+		if structuredContent != "" {
 			var structured map[string]any
-			if json.Unmarshal([]byte(content), &structured) == nil && structured != nil {
+			if json.Unmarshal([]byte(structuredContent), &structured) == nil && structured != nil {
 				completion.Structured = structured
 			}
 		}
 		p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"tool_calls": completion.ToolCalls, "text": content})
 		return completion, nil
 	}
-	if content == "" {
+	if structuredContent == "" {
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_content_empty")
 		return ProviderCompletion{}, fmt.Errorf("provider response content is empty")
 	}
 	if jsonMode || len(manifests) > 0 {
 		var structured map[string]any
-		if err := json.Unmarshal([]byte(content), &structured); err != nil {
+		if err := json.Unmarshal([]byte(structuredContent), &structured); err != nil {
 			if jsonMode {
 				p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid")
 				return ProviderCompletion{}, fmt.Errorf("provider structured response is invalid: %w", err)
@@ -215,6 +219,16 @@ func (p *ProviderClient) completeWithTools(ctx context.Context, role string, mes
 	return completion, nil
 }
 
+func providerStructuredContent(message map[string]any) string {
+	if message == nil {
+		return ""
+	}
+	if content, ok := message["content"].(string); ok && strings.TrimSpace(content) != "" {
+		return strings.TrimSpace(content)
+	}
+	return strings.TrimSpace(stringValue(message["reasoning_content"]))
+}
+
 func providerChatPayload(model string, messages []map[string]any, tokenBudget int, jsonMode bool, manifests []CapabilityManifest) map[string]any {
 	return providerChatPayloadForRole(model, messages, tokenBudget, jsonMode, manifests, "")
 }
@@ -230,10 +244,10 @@ func providerChatPayloadForRole(model string, messages []map[string]any, tokenBu
 		payload["tools"] = ToolCallPayload(manifests)
 		payload["tool_choice"] = "auto"
 		if jsonMode {
-			payload["response_format"] = map[string]string{"type": "json_object"}
+			payload["response_format"] = providerResponseFormat(role)
 		}
 	} else if jsonMode {
-		payload["response_format"] = map[string]string{"type": "json_object"}
+		payload["response_format"] = providerResponseFormat(role)
 	}
 	if role == "cognitive_assessment" {
 		payload["enable_thinking"] = true
@@ -242,6 +256,45 @@ func providerChatPayloadForRole(model string, messages []map[string]any, tokenBu
 		payload["max_tokens"] = tokenBudget
 	}
 	return payload
+}
+
+func providerResponseFormat(role string) map[string]any {
+	return map[string]any{
+		"type": "json_schema",
+		"json_schema": map[string]any{
+			"name":   providerSchemaName(role),
+			"strict": true,
+			"schema": providerSchemaForRole(role),
+		},
+	}
+}
+
+func providerSchemaName(role string) string {
+	if strings.TrimSpace(role) == "" {
+		return "structured_response"
+	}
+	return strings.ReplaceAll(role, "-", "_") + "_response"
+}
+
+func providerSchemaForRole(role string) map[string]any {
+	properties := map[string]any{}
+	add := func(names ...string) {
+		for _, name := range names {
+			properties[name] = map[string]any{"type": "object", "additionalProperties": true}
+		}
+	}
+	// Top-level values are intentionally permissive within the known contract:
+	// domain validators own required fields and semantic bounds, while this
+	// schema guarantees a JSON object and prevents prose from crossing the
+	// structured Provider boundary.
+	for _, name := range []string{"action_type", "response_intent", "visible_text", "answer_mode", "tone", "source_fact_id", "event_type", "direction", "local_date", "timezone"} {
+		properties[name] = map[string]any{"type": "string"}
+	}
+	for _, name := range []string{"claims", "tool_calls", "evidence_refs", "initial_goals", "initial_intentions", "items", "memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates", "drive_candidates", "preference_candidates", "trigger_candidates", "response_outline", "approved_claims", "uncertain_claims", "omitted_claims"} {
+		properties[name] = map[string]any{"type": "array", "items": map[string]any{}}
+	}
+	add("response_plan", "appraisal", "attention", "thought", "desire", "agency", "self_evaluation", "foundation", "identity", "personality", "behavioral_policy", "life_profile", "provenance", "reschedule_policy", "context", "decision")
+	return map[string]any{"type": "object", "properties": properties, "required": []any{}, "additionalProperties": false}
 }
 
 func (p *ProviderClient) recordProviderSuccess(ctx context.Context, assignment providerAssignment, correlationID string, messages []map[string]any, response any) {

@@ -214,14 +214,20 @@ func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 
 func TestStructuredProviderPayloadUsesJSONFormatAndCognitiveThinking(t *testing.T) {
 	assessment := providerChatPayloadForRole("model", []map[string]any{{"role": "user", "content": "hello"}}, 512, true, ExternalCapabilityManifests(), "cognitive_assessment")
-	if assessment["response_format"] == nil {
+	format, ok := assessment["response_format"].(map[string]any)
+	if !ok || format["type"] != "json_schema" {
 		t.Fatalf("cognitive assessment must request JSON output: %#v", assessment)
+	}
+	schemaEnvelope, ok := format["json_schema"].(map[string]any)
+	if !ok || schemaEnvelope["strict"] != true || schemaEnvelope["schema"] == nil {
+		t.Fatalf("cognitive assessment schema is not strict: %#v", format)
 	}
 	if assessment["enable_thinking"] != true {
 		t.Fatalf("cognitive assessment must enable thinking: %#v", assessment)
 	}
 	reflection := providerChatPayloadForRole("model", nil, 512, true, nil, "reflection")
-	if reflection["response_format"] == nil {
+	reflectionFormat, ok := reflection["response_format"].(map[string]any)
+	if !ok || reflectionFormat["type"] != "json_schema" {
 		t.Fatalf("structured provider must request JSON output: %#v", reflection)
 	}
 	if _, ok := reflection["enable_thinking"]; ok {
@@ -230,6 +236,20 @@ func TestStructuredProviderPayloadUsesJSONFormatAndCognitiveThinking(t *testing.
 	text := providerChatPayloadForRole("model", nil, 512, false, nil, "action_realization")
 	if _, ok := text["response_format"]; ok {
 		t.Fatalf("text realization must not force JSON output: %#v", text)
+	}
+}
+
+func TestProviderStructuredContentAcceptsMlxReasoningContent(t *testing.T) {
+	message := map[string]any{
+		"content":           "",
+		"reasoning_content": `{"names":["李雷","韩梅梅"]}`,
+	}
+	if got := providerStructuredContent(message); got != `{"names":["李雷","韩梅梅"]}` {
+		t.Fatalf("structured content = %q", got)
+	}
+	content := map[string]any{"content": `{"action_type":"reply"}`, "reasoning_content": `{"action_type":"wrong"}`}
+	if got := providerStructuredContent(content); got != `{"action_type":"reply"}` {
+		t.Fatalf("content should take precedence over reasoning_content: %q", got)
 	}
 }
 
