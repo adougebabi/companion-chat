@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import Badge from "@/components/ui/badge/Badge.vue";
 import Button from "@/components/ui/button/Button.vue";
@@ -48,10 +48,25 @@ const relationships = computed(() => asRecords(detail.value.relationships));
 const memories = computed(() => asRecords(detail.value.memories));
 const schedule = computed(() => asRecord(detail.value.schedule));
 const scheduleItems = computed(() => asRecords(schedule.value.items));
+const now = ref(Date.now());
+let clockTimer: number | undefined;
 const scheduleTimezone = computed(() => resolveTimezone(
   typeof schedule.value.timezone === "string" ? schedule.value.timezone : undefined,
   typeof identity.value.timezone === "string" ? identity.value.timezone : undefined,
 ));
+
+function isCurrentScheduleItem(item: JsonRecord): boolean {
+  const start = typeof item.start_at === "string" ? Date.parse(item.start_at) : Number.NaN;
+  const end = typeof item.end_at === "string" ? Date.parse(item.end_at) : Number.NaN;
+  return Number.isFinite(start) && Number.isFinite(end) && start <= now.value && now.value < end;
+}
+
+onMounted(() => {
+  clockTimer = window.setInterval(() => { now.value = Date.now(); }, 30_000);
+});
+onBeforeUnmount(() => {
+  if (clockTimer !== undefined) window.clearInterval(clockTimer);
+});
 
 function close() { emit("close"); }
 function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
@@ -124,9 +139,9 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
             <h3>今日日程 <small class="timezone-note">{{ scheduleTimezone }}</small></h3>
             <p v-if="!Object.keys(schedule).length || !scheduleItems.length" class="field-note">日程待生成，当前没有接受的本地日计划。</p>
             <ol v-else class="timeline-list detail-timeline">
-              <li v-for="item in scheduleItems" :key="String(item.id)">
-                <time :datetime="String(item.start_at ?? '')">{{ formatZonedRange(item.start_at, item.end_at, scheduleTimezone) }}</time>
-                <div><strong>{{ formatDisplayValue(item.activity) }}</strong><span>{{ formatDisplayValue(item.scene) }}<template v-if="item.status"> · {{ enumLabel(item.status) }}</template></span></div>
+                <li v-for="item in scheduleItems" :key="String(item.id)" :class="{ active: isCurrentScheduleItem(item) }" :aria-current="isCurrentScheduleItem(item) ? 'time' : undefined">
+                  <time :datetime="String(item.start_at ?? '')">{{ formatZonedRange(item.start_at, item.end_at, scheduleTimezone) }}</time>
+                <div><strong>{{ formatDisplayValue(item.activity) }}<span v-if="isCurrentScheduleItem(item)" class="timeline-now-badge">进行中</span></strong><span>{{ formatDisplayValue(item.scene) }}<template v-if="item.status"> · {{ enumLabel(item.status) }}</template></span></div>
               </li>
             </ol>
           </section>

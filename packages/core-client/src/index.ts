@@ -16,7 +16,7 @@ export type CoreConversationCreate = { title?: string; participant_actor_ids: st
 export type CoreConversationTurn = { text: string; fluctlight_id: string; attachment_refs?: string[]; idempotency_key: string; turn_id?: string };
 export type CoreFluctlight = { id: string; identity: Record<string, unknown>; status: string };
 export type CoreDiagnosticEvent = { id: string; event_type: string; severity: string; fluctlight_id?: string | null; causation_id?: string | null; correlation_id: string; payload: Record<string, unknown>; created_at?: string | null };
-export type CoreDiagnosticModelRun = { id: string; role: string; endpoint_id?: string | null; model_id: string; prompt: Record<string, unknown>; response?: Record<string, unknown> | null; status: string; error_code?: string | null; correlation_id: string; created_at: string };
+export type CoreDiagnosticModelRun = { id: string; role: string; endpoint_id?: string | null; model_id: string; prompt: unknown; response?: unknown; status: string; error_code?: string | null; correlation_id: string; created_at: string };
 
 export class CoreApiError extends Error {
   readonly status: number;

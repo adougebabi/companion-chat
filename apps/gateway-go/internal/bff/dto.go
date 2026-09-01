@@ -1,5 +1,7 @@
 package bff
 
+import "encoding/json"
+
 // Browser DTO mapping is intentionally explicit.  Core's snake_case records
 // are not recursively converted: most Core responses are already part of the
 // browser contract, while conversation/diagnostic/provider responses have
@@ -89,7 +91,7 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 		"id":            stringValue(first(row, "id")),
 		"role":          stringValue(first(row, "role")),
 		"modelId":       stringValue(first(row, "model_id")),
-		"prompt":        objectValue(row["prompt"]),
+		"prompt":        jsonValue(row["prompt"]),
 		"status":        stringValue(first(row, "status")),
 		"correlationId": stringValue(first(row, "correlation_id")),
 		"createdAt":     stringValue(first(row, "created_at")),
@@ -98,12 +100,34 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 		result["endpointId"] = value
 	}
 	if value, exists := row["response"]; exists {
-		result["response"] = value
+		result["response"] = jsonValue(value)
 	}
 	if value, exists := row["error_code"]; exists {
 		result["errorCode"] = value
 	}
 	return result
+}
+
+// jsonValue preserves diagnostic JSON values such as the provider message
+// array. objectValue is intentionally stricter for DTOs that require an
+// object, but Prompt/Response are documented as arbitrary JSON payloads.
+func jsonValue(value any) any {
+	if value == nil {
+		return map[string]any{}
+	}
+	switch typed := value.(type) {
+	case json.RawMessage:
+		var decoded any
+		if json.Unmarshal(typed, &decoded) == nil && decoded != nil {
+			return decoded
+		}
+	case []byte:
+		var decoded any
+		if json.Unmarshal(typed, &decoded) == nil && decoded != nil {
+			return decoded
+		}
+	}
+	return value
 }
 
 func browserCapabilityRequests(value any) []any {

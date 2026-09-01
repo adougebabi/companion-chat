@@ -17,7 +17,7 @@ const controlCenter = useControlCenterStore();
 const currentSection = computed(() => props.section ?? null);
 const roleLabels: Record<string, string> = { initialization: "初始化", cognitive_assessment: "认知判断", action_realization: "回复生成", reflection: "反思", embedding: "Embedding", media_prompt: "媒体提示词" };
 function roleLabel(role: string) { return roleLabels[role] ?? role; }
-function pretty(value: Record<string, unknown>) { return JSON.stringify(value, null, 2); }
+function pretty(value: unknown) { return JSON.stringify(value, null, 2); }
 function workflowIdFor(value: Record<string, unknown>): string {
   if (typeof value.workflow_id === "string") return value.workflow_id;
   if (typeof value.workflowId === "string") return value.workflowId;

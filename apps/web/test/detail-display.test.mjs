@@ -6,6 +6,7 @@ const displaySource = await readFile(new URL("../src/lib/fluctlight-display.ts",
 const detailSource = await readFile(new URL("../src/components/instances/InstanceDetailsDialog.vue", import.meta.url), "utf8");
 const governanceSource = await readFile(new URL("../src/views/GovernanceView.vue", import.meta.url), "utf8");
 const settingsSource = await readFile(new URL("../src/views/SettingsView.vue", import.meta.url), "utf8");
+const stylesSource = await readFile(new URL("../src/styles/app.css", import.meta.url), "utf8");
 
 test("detail display has safe object formatting and Chinese field labels", () => {
   assert.match(displaySource, /export function formatDisplayValue/);
@@ -43,4 +44,15 @@ test("detail owns read-only life-world sections and uses timezone-aware timeline
 
 test("settings accordion remounts when the selected section changes", () => {
   assert.match(settingsSource, /<Accordion :key="currentSection"[^>]*:default-value="currentSection"/);
+});
+
+test("PC shell and role tabs do not scroll the outer frame", () => {
+  assert.match(stylesSource, /body:has\(\.desktop-workspace\) \{ overflow: hidden;/);
+  assert.match(stylesSource, /\.settings-section \.role-switcher \{[\s\S]*overflow-x: hidden;[\s\S]*overflow-y: hidden;/);
+});
+
+test("schedule timeline highlights the item active at the current instant", () => {
+  assert.match(detailSource, /function isCurrentScheduleItem\(item: JsonRecord\)/);
+  assert.match(detailSource, /:class="\{ active: isCurrentScheduleItem\(item\) \}"/);
+  assert.match(detailSource, /class="timeline-now-badge">进行中/);
 });

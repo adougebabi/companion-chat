@@ -33,6 +33,7 @@
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; min-height: 100%; margin: 0; }
 body { min-width: 320px; background: var(--pc-backdrop); }
+body:has(.desktop-workspace) { overflow: hidden; overscroll-behavior: none; }
 button, input, textarea, select { font: inherit; }
 button { color: inherit; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid rgb(45 120 130 / 32%); outline-offset: 2px; }
@@ -221,6 +222,10 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
 .detail-timeline { position: relative; gap: 0; margin-top: 12px; padding-left: 10px; border-left: 1px solid var(--surface-border-strong); }
 .detail-timeline li { position: relative; grid-template-columns: minmax(112px, auto) minmax(0, 1fr); padding: 12px 0 12px 14px; border-bottom: 0; }
 .detail-timeline li::before { position: absolute; top: 17px; left: -15px; width: 9px; height: 9px; border: 2px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); content: ""; }
+.detail-timeline li.active { border-radius: 10px; background: var(--accent-soft); }
+.detail-timeline li.active::before { width: 11px; height: 11px; background: var(--success); box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--success); }
+.detail-timeline li.active time { color: var(--accent-strong); font-weight: 800; }
+.timeline-now-badge { display: inline-flex; margin-left: 7px; padding: 2px 6px; border-radius: 999px; background: #d8f2e4; color: #277b4c; font-size: .66rem; font-weight: 750; vertical-align: middle; }
 .inline-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .inline-controls input { width: 160px; min-height: 38px; }
 .governance-inline-form { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 10px; margin-top: 14px; }
@@ -972,6 +977,22 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
   border-color: #9ec9e8;
   background: var(--accent-soft);
   color: var(--accent-strong);
+}
+
+@media (min-width: 761px) {
+  .settings-section .role-switcher {
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: hidden;
+  }
+
+  .settings-section .role-switcher .segment-button {
+    min-width: 0;
+    flex: 1 1 0;
+    padding-inline: clamp(6px, 0.8vw, 12px);
+    font-size: clamp(.68rem, .78vw, .8rem);
+    white-space: nowrap;
+  }
 }
 
 .provider-model-status {
