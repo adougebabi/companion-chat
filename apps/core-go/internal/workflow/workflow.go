@@ -460,7 +460,14 @@ func ProcessWakeUpActivity(ctx context.Context, input Input) (map[string]any, er
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
-	return application.ProcessWakeUp(ctx, input.FluctlightID, input.Cycle)
+	slog.Default().Info("Go Worker wake-up activity started", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle)
+	result, err := application.ProcessWakeUp(ctx, input.FluctlightID, input.Cycle)
+	if err != nil {
+		slog.Default().Error("Go Worker wake-up activity failed", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle, "error", err)
+	} else {
+		slog.Default().Info("Go Worker wake-up activity completed", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle, "status", stringValue(result["status"]))
+	}
+	return result, err
 }
 
 func ProcessCognitionActivity(ctx context.Context, input Input) (map[string]any, error) {
