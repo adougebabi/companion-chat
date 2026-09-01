@@ -18,6 +18,7 @@ test("detail display has safe object formatting and Chinese field labels", () =>
   assert.match(displaySource, /core_values: "核心价值观"/);
   assert.match(displaySource, /worldview: "世界观"/);
   assert.match(displaySource, /key\.replace\(\/\(\[a-z\\d\]\)\(\[A-Z\]\)/);
+  assert.match(displaySource, /return translatedParts\.join\(""\)/);
   assert.match(displaySource, /value_schema: "取值规则"/);
   assert.match(displaySource, /physical_attributes: "外貌特征"/);
   assert.match(displaySource, /enumLabels\[value\] \?\? "未分类"/);
