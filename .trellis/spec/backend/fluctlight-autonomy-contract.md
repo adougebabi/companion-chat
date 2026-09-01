@@ -111,3 +111,108 @@ inbox.enqueue(IntentionDueFact(intention_id=intention.id))
 decision = cognition.process_next(fluctlight_id)
 autonomy_policy.freeze_and_schedule(decision, current_policy, tx=tx)
 ```
+
+## Scenario: Periodic Wake-Up And Internal-Life Loop
+
+### 1. Scope / Trigger
+
+- Trigger: an active Fluctlight reaches the next durable wake-up boundary, or a
+  Worker resumes its long-lived `wake_up.current` workflow after restart.
+- Purpose: give the Fluctlight a bounded internal cycle even when no human or
+  life-world event arrived, while keeping external autonomy governed.
+
+### 2. Signatures
+
+```text
+WakeUpWorkflow(ctx, {fluctlight_id, cycle}) -> ContinueAsNew(cycle + 1)
+ProcessWakeUp(ctx, fluctlight_id, cycle) -> WakeUpResult
+```
+
+`WakeUpResult` contains `wake_up_id`, `cycle`, `status`, `action_type`,
+`action_id`, `reflection_intent_id`, and `interval_seconds`. The persisted
+`cognition_wakeups` row records `attention`, `thought`, `desire`, `agency`, an
+`internal_dynamics` snapshot, the requested/actual action type, and the bounded
+action result. The corresponding `internal.wake_up` cognition fact is assigned
+the next per-Fluctlight sequence and is marked processed only after its row and
+the `reflection.run` intent are committed.
+
+### 3. Contracts
+
+- Activation writes one stable `wake_up.current` intent with workflow ID
+  `wake_up:<fluctlight_id>` and cycle `0`; each cycle ID is derived from the
+  Fluctlight ID and cycle number, so retries and Worker restarts are idempotent.
+- The default interval is 1800 seconds. Core clamps configured
+  `product.wakeup.interval_seconds` to 300–86400 seconds and accepts
+  `product.wakeup.enabled=false` as an explicit pause of the internal timer.
+- The model owns the semantic stage summaries (`attention`, `thought`,
+  `desire`, `agency`) and may propose only `no_op`, `proactive_message`, or
+  `moment`. Core stores concise summaries, never hidden chain-of-thought.
+- A proposed external action is frozen only when `product.autonomy.mode` is
+  `active`, the action is allowlisted, and a factual direct conversation exists
+  for a proactive message. Its visible text is produced once by
+  `action_realization`; delivery remains `AutonomyActionWorkflow` work.
+- Every wake-up commits a processed `internal.wake_up` fact and one stable
+  `reflection.run` intent. Reflection consumes it through the normal evidence
+  window and watermark/CAS boundary; a wake-up does not write self-model or
+  personality values directly.
+- `WakeUpWorkflow` uses Temporal `Sleep` plus `ContinueAsNew`, never an
+  in-memory ticker or a second delayed-job system. Inactive Fluctlights end the
+  workflow; disabled wake-ups remain durable and sleep at the clamped cadence.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Missing/negative cycle or Fluctlight ID | Reject with `wake_up_*_required/invalid`; no fact or action |
+| Wake-up assessment omits a stage, returns an unsupported action, or exceeds bounded summary size | Reject; no synthetic thought or fallback action is persisted |
+| Provider failure or invalid JSON | Workflow retries; after exhaustion the source intent remains auditable and no fabricated stage is written |
+| Autonomy paused or action not allowlisted | Persist the internal cycle as `blocked`/`no_op`; do not create an external Action |
+| Autonomy allowlist is malformed or explicitly empty | Fail closed and persist the internal cycle without an external Action |
+| Proactive action has no direct conversation | Persist the internal cycle with `proactive_target_invalid`; do not create a conversation |
+| Duplicate cycle retry | Return the existing `cognition_wakeups` row and stable action/reflection IDs; do not consume another sequence |
+| Reflection has no valid candidate | Advance only its evidence watermark; do not manufacture self-model or personality changes |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a durable wake-up records what the Fluctlight is attending to, freezes
+  one policy-approved action, and feeds the same fact into reflection so later
+  evidence can change its self-model.
+- Base: the model returns a rich internal cycle with `no_op`; the private fact
+  and reflection intent are retained even though no visible message is sent.
+- Bad: scan every Fluctlight from a process ticker, infer loneliness from idle
+  time, store raw chain-of-thought, or send a message directly from the wake-up
+  activity without a frozen Action.
+
+### 6. Tests Required
+
+- Assert activation creates one `wake_up.current` intent and the dispatcher
+  maps it to the lifecycle queue; assert stable cycle IDs across retries.
+- Assert interval defaults, lower/upper clamps, disabled behavior, and
+  Continue-As-New cycle increment.
+- Assert missing stages/invalid actions/provider failures never create a wake
+  fact or an external Action.
+- Assert a valid wake-up writes one sequenced `internal.wake_up` fact, one
+  `cognition_wakeups` row, and one reflection intent; duplicate execution does
+  not allocate another sequence.
+- Assert autonomy mode/allowlist/direct-target gates and frozen action delivery
+  update the wake result without duplicating messages or Moments.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+if time.Since(lastMessage) > tenMinutes {
+	return sendMessage("我想你了")
+}
+```
+
+#### Correct
+
+```go
+assessment := provider.Structured("cognitive_assessment", wakeContext)
+fact, reflection := persistWakeUp(assessment, stableCycleID)
+if policy.Allows(assessment.ActionType) {
+	freezeAutonomyAction(assessment, fact, tx)
+}
+```

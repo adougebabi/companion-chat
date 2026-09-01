@@ -70,8 +70,20 @@ func TestDailyReviewNeedsRetryWhenScheduleIsPending(t *testing.T) {
 	}
 }
 
+func TestWakeUpIntervalIsBounded(t *testing.T) {
+	if got, want := wakeUpInterval(map[string]any{"interval_seconds": 1}), 5*time.Minute; got != want {
+		t.Fatalf("minimum interval = %s, want %s", got, want)
+	}
+	if got, want := wakeUpInterval(map[string]any{"interval_seconds": 7 * 60}), 7*time.Minute; got != want {
+		t.Fatalf("configured interval = %s, want %s", got, want)
+	}
+	if got, want := wakeUpInterval(map[string]any{"interval_seconds": 100 * 24 * 60 * 60}), 24*time.Hour; got != want {
+		t.Fatalf("maximum interval = %s, want %s", got, want)
+	}
+}
+
 func TestWorkflowFunctionRegistryIncludesPlatformBoundaries(t *testing.T) {
-	for _, intentType := range []string{"cognition.processing", "platform.control"} {
+	for _, intentType := range []string{"cognition.processing", "platform.control", "wake_up.current"} {
 		if fn, err := workflowFunction(intentType); err != nil || fn == nil {
 			t.Fatalf("workflowFunction(%q) = %#v, %v", intentType, fn, err)
 		}

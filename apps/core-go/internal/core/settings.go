@@ -63,7 +63,7 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 	clear := arrayValue(payload["clear_secrets"])
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		for key, value := range values {
-			if key != "media.comfyui" && key != "product.autonomy" && key != "diagnostics.retention" && key != "media.h3" {
+			if key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "diagnostics.retention" && key != "media.h3" {
 				return fmt.Errorf("unknown setting %s", key)
 			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.runtime_settings (key,value_json,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at`, key, jsonString(value), time.Now().UTC()); err != nil {

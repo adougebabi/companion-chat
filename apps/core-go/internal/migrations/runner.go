@@ -9,10 +9,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Head is kept equal to the released application schema head. The Go runner
-// owns this ledger after the legacy runtime is removed; released identifiers
-// are never rewritten.
-const Head = "0020_media_provider_job"
+// Head identifies the additive Go-owned schema bundle. Released identifiers
+// are never rewritten; a new capability advances the head and preserves all
+// existing facts.
+const Head = "0021_periodic_wakeup"
 
 // Runner applies the clean-start schema without importing the legacy runtime.
 // The statements are intentionally idempotent so an existing database keeps
@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS public.cognition_decision_proposals (id varchar(128) 
 CREATE TABLE IF NOT EXISTS public.cognition_frozen_actions (id varchar(128) PRIMARY KEY, decision_id varchar(128) NOT NULL, inbox_id varchar(128) NOT NULL, fluctlight_id varchar(128) NOT NULL, action_type varchar(64) NOT NULL, payload jsonb NOT NULL, state_revision integer NOT NULL, provider_request_id varchar(128) NOT NULL, status varchar(32) NOT NULL DEFAULT 'frozen', realization_payload jsonb, error_code varchar(128), frozen_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz);
 CREATE TABLE IF NOT EXISTS public.cognition_reflection_windows (fluctlight_id varchar(128) PRIMARY KEY, watermark integer NOT NULL DEFAULT 0, state_revision integer NOT NULL DEFAULT 0, status varchar(32) NOT NULL DEFAULT 'idle', updated_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.cognition_reflection_proposals (id varchar(128) PRIMARY KEY, fluctlight_id varchar(128) NOT NULL, from_sequence integer NOT NULL, to_sequence integer NOT NULL, base_state_revision integer NOT NULL, payload jsonb NOT NULL, evidence_refs jsonb NOT NULL, correlation_id varchar(128) NOT NULL, status varchar(32) NOT NULL DEFAULT 'proposed', created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS public.cognition_wakeups (id varchar(128) PRIMARY KEY, fluctlight_id varchar(128) NOT NULL, cycle integer NOT NULL, trigger_type varchar(64) NOT NULL DEFAULT 'periodic', occurred_at timestamptz NOT NULL DEFAULT now(), internal_dynamics jsonb NOT NULL DEFAULT '{}', attention jsonb NOT NULL, thought jsonb NOT NULL, desire jsonb NOT NULL, agency jsonb NOT NULL, action_type varchar(64) NOT NULL, action_id varchar(128), result jsonb NOT NULL DEFAULT '{}', reflection_intent_id varchar(128), status varchar(32) NOT NULL DEFAULT 'completed', UNIQUE(fluctlight_id,cycle));
 CREATE TABLE IF NOT EXISTS public.cognition_claims (id varchar(128) PRIMARY KEY, fluctlight_id varchar(128) NOT NULL, source_fact_id varchar(128) NOT NULL, claim_type varchar(64) NOT NULL, content text NOT NULL, evidence_refs jsonb NOT NULL, confidence double precision NOT NULL, repetition_key varchar(256) NOT NULL, status varchar(32) NOT NULL DEFAULT 'active', expires_at timestamptz, superseded_by varchar(128), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(fluctlight_id,repetition_key));
 CREATE TABLE IF NOT EXISTS public.fluctlight_evolution_revisions (id varchar(128) PRIMARY KEY, fluctlight_id varchar(128) NOT NULL, field varchar(128) NOT NULL, base_revision integer NOT NULL, revision integer NOT NULL, candidate_type varchar(64) NOT NULL, before_value jsonb NOT NULL, after_value jsonb NOT NULL, evidence_refs jsonb NOT NULL, source_window varchar(128) NOT NULL, status varchar(32) NOT NULL DEFAULT 'accepted', created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(fluctlight_id,field,revision));
 CREATE TABLE IF NOT EXISTS public.relationships (id varchar(128) PRIMARY KEY, owner_fluctlight_id varchar(128) NOT NULL, target_actor_id varchar(128) NOT NULL, metrics jsonb NOT NULL, interaction_frequency double precision NOT NULL DEFAULT 0, last_interaction_at timestamptz, last_meaningful_interaction_at timestamptz, trend varchar(32) NOT NULL DEFAULT 'stable', summary text, emotional_association jsonb NOT NULL DEFAULT '{}', revision integer NOT NULL DEFAULT 0, updated_at timestamptz NOT NULL DEFAULT now());
@@ -191,6 +192,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_cognition_inbox_idempotency ON public.cogni
 CREATE INDEX IF NOT EXISTS ix_memories_search_document ON public.memories USING gin(search_document);
 CREATE INDEX IF NOT EXISTS ix_cognition_claims_context ON public.cognition_claims(fluctlight_id,status,expires_at,created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_life_events_idempotency ON public.life_events(fluctlight_id,idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_cognition_wakeups_fluctlight_occurred ON public.cognition_wakeups(fluctlight_id,occurred_at DESC);
 ALTER TABLE public.platform_workflow_intents ADD COLUMN IF NOT EXISTS status varchar(32) NOT NULL DEFAULT 'pending';
 ALTER TABLE public.platform_workflow_intents ADD COLUMN IF NOT EXISTS attempt_count integer NOT NULL DEFAULT 0;
 ALTER TABLE public.platform_workflow_intents ADD COLUMN IF NOT EXISTS last_error text;

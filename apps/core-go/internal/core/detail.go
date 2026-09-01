@@ -68,6 +68,10 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
+	detail["wake_ups"], err = a.readWakeUpHistory(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
 	detail["foundation_revisions"], err = a.readFoundationRevisions(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
@@ -77,6 +81,31 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 		return nil, err
 	}
 	return detail, nil
+}
+
+func (a *App) readWakeUpHistory(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,cycle,trigger_type,occurred_at,internal_dynamics,attention,thought,desire,agency,action_type,action_id,result,reflection_intent_id,status FROM public.cognition_wakeups WHERE fluctlight_id=$1 ORDER BY occurred_at DESC,id DESC LIMIT 100`, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]map[string]any, 0)
+	for rows.Next() {
+		var id, triggerType, actionType, status string
+		var cycle int
+		var occurred time.Time
+		var internalDynamics, attention, thought, desire, agency, wakeResult []byte
+		var actionID, reflectionIntent *string
+		if err := rows.Scan(&id, &cycle, &triggerType, &occurred, &internalDynamics, &attention, &thought, &desire, &agency, &actionType, &actionID, &wakeResult, &reflectionIntent, &status); err != nil {
+			return nil, err
+		}
+		result = append(result, map[string]any{
+			"id": id, "cycle": cycle, "trigger_type": triggerType, "occurred_at": occurred.Format(time.RFC3339Nano),
+			"internal_dynamics": decodeJSONValue(internalDynamics), "attention": decodeJSONValue(attention), "thought": decodeJSONValue(thought), "desire": decodeJSONValue(desire), "agency": decodeJSONValue(agency),
+			"action_type": actionType, "action_id": actionID, "result": decodeObject(wakeResult), "reflection_intent_id": reflectionIntent, "status": status,
+		})
+	}
+	return result, rows.Err()
 }
 
 func (a *App) readEvolutionRevisions(ctx context.Context, fluctlightID string) ([]map[string]any, error) {

@@ -48,6 +48,9 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if command.RowsAffected() != 1 {
 				return ErrConflict
 			}
+			if err := a.settleWakeUpActionTx(ctx, tx, actionID, map[string]any{"status": "completed", "action_status": "completed"}); err != nil {
+				return err
+			}
 			return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed", "aggregate_sequence": 1})
 		})
 		if err != nil {
@@ -71,6 +74,9 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			}
 			if command.RowsAffected() != 1 {
 				return ErrConflict
+			}
+			if err := a.settleWakeUpActionTx(ctx, tx, actionID, map[string]any{"status": "completed", "action_status": "completed", "moment_id": momentID}); err != nil {
+				return err
 			}
 			return appendOutboxTx(ctx, tx, "moment.published", "moment", momentID, fluctlightID, actionID, "autonomy:"+actionID, "moment-outbox:"+actionID, map[string]any{"moment_id": momentID, "action_id": actionID, "aggregate_sequence": 1})
 		}); err != nil {
@@ -101,6 +107,9 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if command.RowsAffected() != 1 {
 				return ErrConflict
 			}
+			if err := a.settleWakeUpActionTx(ctx, tx, actionID, map[string]any{"status": "completed", "action_status": "completed", "media_intent_id": intentID}); err != nil {
+				return err
+			}
 			return appendOutboxTx(ctx, tx, "media.intent.created", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "media-outbox:"+actionID, map[string]any{"media_intent_id": intentID, "aggregate_sequence": 1})
 		})
 		if err != nil {
@@ -119,7 +128,13 @@ func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (ma
 	if command.RowsAffected() != 1 {
 		return nil, ErrConflict
 	}
+	_, _ = a.DB.Pool().Exec(ctx, `UPDATE public.cognition_wakeups SET result=result || $2::jsonb WHERE action_id=$1`, actionID, jsonBytes(map[string]any{"status": "failed", "action_status": "failed", "error_code": code}))
 	return map[string]any{"action_id": actionID, "status": "failed", "error_code": code}, nil
+}
+
+func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID string, result map[string]any) error {
+	_, err := tx.Exec(ctx, `UPDATE public.cognition_wakeups SET result=result || $2::jsonb WHERE action_id=$1`, actionID, jsonBytes(result))
+	return err
 }
 
 func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID string) (map[string]any, error) {

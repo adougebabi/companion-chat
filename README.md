@@ -62,7 +62,7 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
   拒绝或回滚 Foundation 与演进修订；归档或删除实例。
 - **模型与运行设置**：配置初始化、认知判断、回复生成、反思、Embedding 和
   媒体提示词等 Provider 角色；管理 Endpoint、模型列表、ComfyUI 图片生成服务、
-  自治开关和诊断保留策略。
+  自治开关、定期唤醒周期和诊断保留策略。
 - **诊断与工作流控制**：查看脱敏系统事件和模型运行记录，按 correlation ID
   追踪一次操作；查询工作流状态与历史，并执行暂停、恢复、取消、重启和 Reset。
 
@@ -90,6 +90,24 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
   版本化执行。
 - **可观测与可恢复**：模型调用、Provider provenance、工作流管理和关键领域变更
   都可以关联到 correlation ID；失败不会替代或删除已落库的领域事实。
+
+### 自我意识的双循环
+
+当前 Core 将摇光的主动性拆成两个相互衔接的循环：
+
+1. **外部/内部唤醒循环**：`Event / Internal State → Trigger → Wake-up → Attention → Thought → Desire → Agency → Action → Experience`。除了对话和生活事件外，每个激活的 Fluctlight 都会启动一个长期存活的 `wake_up.current` Temporal workflow。默认每 30 分钟执行一次，模型在唤醒时读取人格、内部状态、日程、关系、记忆和最近对话，产出结构化的 `attention`、`thought`、`desire`、`agency`；只有通过自治策略的动作才会冻结为现有自治 Action，动作交付仍由 Worker 负责。
+2. **人格成长循环**：`Experience → Reflection → Self Model → Drive / Preference → 下一次 Attention`。每次唤醒都会写入带 sequence 和 provenance 的 `internal.wake_up` cognition fact，并创建 `reflection.run` intent，沿用现有 Reflection 的证据窗口、水位和 CAS 约束，允许模型在有足够证据时提出 self-model/personality 演进。
+
+唤醒周期可在 Web「运行策略」中通过 `product.wakeup` 调整：
+
+```json
+{ "enabled": true, "interval_seconds": 1800 }
+```
+
+唤醒记录保存在 `cognition_wakeups`，可随 Core 实例详情读取（当前 Web 尚未提供
+独立的唤醒历史页面）；它们是私有认知事实，不会自动变成可见消息。外显联系、动态
+或媒体仍必须经过自治模式、允许动作和已有冻结/治理边界；暂停自治只阻止新的外显
+动作，不会让内部唤醒和反思停止。
 
 ## 架构分层
 

@@ -1,0 +1,362 @@
+package core
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/jackc/pgx/v5"
+)
+
+const (
+	defaultWakeUpIntervalSeconds = 30 * 60
+	minWakeUpIntervalSeconds     = 5 * 60
+	maxWakeUpIntervalSeconds     = 24 * 60 * 60
+)
+
+// WakeUpSettings controls the durable internal-life timer. The setting is
+// intentionally small and owner-editable through product settings so a local
+// deployment can trade model cost for more or less frequent self-reflection.
+// The workflow still clamps the interval so an accidental value cannot create
+// a tight provider loop or make the persona effectively dormant.
+type WakeUpSettings struct {
+	Enabled         bool `json:"enabled"`
+	IntervalSeconds int  `json:"interval_seconds"`
+}
+
+func defaultWakeUpSettings() WakeUpSettings {
+	return WakeUpSettings{Enabled: true, IntervalSeconds: defaultWakeUpIntervalSeconds}
+}
+
+func normalizeWakeUpSettings(value map[string]any) WakeUpSettings {
+	settings := defaultWakeUpSettings()
+	if enabled, ok := value["enabled"].(bool); ok {
+		settings.Enabled = enabled
+	}
+	if raw, ok := value["interval_seconds"]; ok {
+		settings.IntervalSeconds = int(numberOrDefault(raw, float64(settings.IntervalSeconds)))
+	}
+	if settings.IntervalSeconds < minWakeUpIntervalSeconds {
+		settings.IntervalSeconds = minWakeUpIntervalSeconds
+	}
+	if settings.IntervalSeconds > maxWakeUpIntervalSeconds {
+		settings.IntervalSeconds = maxWakeUpIntervalSeconds
+	}
+	return settings
+}
+
+func (a *App) readWakeUpSettings(ctx context.Context) (WakeUpSettings, error) {
+	settings := defaultWakeUpSettings()
+	var raw string
+	err := a.DB.Pool().QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='product.wakeup'`).Scan(&raw)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return settings, nil
+	}
+	if err != nil {
+		return settings, err
+	}
+	var value map[string]any
+	if err := json.Unmarshal([]byte(raw), &value); err != nil {
+		return settings, fmt.Errorf("product.wakeup setting is invalid: %w", err)
+	}
+	return normalizeWakeUpSettings(value), nil
+}
+
+func numberOrDefault(value any, fallback float64) float64 {
+	if parsed, ok := numberFloat(value); ok {
+		return parsed
+	}
+	return fallback
+}
+
+func wakeUpValue(value any, field string) (any, error) {
+	switch typed := value.(type) {
+	case string:
+		text := strings.TrimSpace(typed)
+		if text == "" || len([]rune(text)) > 4000 {
+			return nil, fmt.Errorf("wake_up_%s_invalid", field)
+		}
+		return text, nil
+	case map[string]any:
+		if len(typed) == 0 || len(jsonBytes(typed)) > 12000 {
+			return nil, fmt.Errorf("wake_up_%s_invalid", field)
+		}
+		return typed, nil
+	default:
+		return nil, fmt.Errorf("wake_up_%s_invalid", field)
+	}
+}
+
+func normalizeWakeUpAssessment(value map[string]any) (map[string]any, error) {
+	if value == nil {
+		return nil, errors.New("wake_up_assessment_invalid")
+	}
+	result := make(map[string]any, len(value)+1)
+	for key, raw := range value {
+		result[key] = raw
+	}
+	for _, field := range []string{"attention", "thought", "desire", "agency"} {
+		normalized, err := wakeUpValue(value[field], field)
+		if err != nil {
+			return nil, err
+		}
+		result[field] = normalized
+	}
+	actionType := stringValue(value["action_type"])
+	if actionType != "no_op" && actionType != "proactive_message" && actionType != "moment" {
+		return nil, errors.New("wake_up_action_type_invalid")
+	}
+	result["action_type"] = actionType
+	if refs, ok := value["evidence_refs"]; ok {
+		var normalizedRefs []any
+		switch refs.(type) {
+		case []any, []string:
+			normalizedRefs = arrayValue(refs)
+		default:
+			return nil, errors.New("wake_up_evidence_refs_invalid")
+		}
+		if len(normalizedRefs) > 20 {
+			return nil, errors.New("wake_up_evidence_refs_invalid")
+		}
+		for _, ref := range normalizedRefs {
+			if text := stringValue(ref); text == "" || len([]rune(text)) > 256 {
+				return nil, errors.New("wake_up_evidence_refs_invalid")
+			}
+		}
+		result["evidence_refs"] = normalizedRefs
+	} else {
+		result["evidence_refs"] = []any{}
+	}
+	if intent := stringValue(value["response_intent"]); intent != "" {
+		if len([]rune(intent)) > 4000 {
+			return nil, errors.New("wake_up_response_intent_invalid")
+		}
+		result["response_intent"] = intent
+	}
+	return result, nil
+}
+
+func (a *App) wakeAutonomyPolicy(ctx context.Context, actionType string) (bool, map[string]any, string, error) {
+	snapshot := map[string]any{"mode": "active", "allowed_actions": []string{"proactive_message", "moment"}}
+	var raw string
+	err := a.DB.Pool().QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='product.autonomy'`).Scan(&raw)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return true, snapshot, "", nil
+	}
+	if err != nil {
+		return false, nil, "", err
+	}
+	var value map[string]any
+	if err := json.Unmarshal([]byte(raw), &value); err != nil {
+		return false, nil, "", fmt.Errorf("product.autonomy setting is invalid: %w", err)
+	}
+	mode := stringValue(value["mode"])
+	if mode == "" {
+		mode = "active"
+	}
+	snapshot["mode"] = mode
+	allowed := make([]string, 0)
+	if rawAllowed, exists := value["allowed_actions"]; exists {
+		switch items := rawAllowed.(type) {
+		case []any:
+			for _, item := range items {
+				if action := stringValue(item); action != "" {
+					allowed = append(allowed, action)
+				}
+			}
+		case []string:
+			allowed = append(allowed, items...)
+		default:
+			return false, snapshot, "autonomy_allowlist_invalid", nil
+		}
+	} else {
+		allowed = []string{"proactive_message", "moment"}
+	}
+	snapshot["allowed_actions"] = allowed
+	if mode != "active" {
+		return false, snapshot, "autonomy_mode_" + mode, nil
+	}
+	for _, allowedAction := range allowed {
+		if allowedAction == actionType {
+			return true, snapshot, "", nil
+		}
+	}
+	return false, snapshot, "autonomy_action_not_allowed", nil
+}
+
+// ProcessWakeUp performs one complete internal-life cycle. It records the
+// model's attention/thought/desire/agency as a private cognition fact, then
+// schedules the existing reflection workflow against that fact. External
+// effects are only frozen when the model proposes one and the owner policy
+// authorizes it; delivery itself remains owned by AutonomyActionWorkflow.
+func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int) (map[string]any, error) {
+	if fluctlightID == "" {
+		return nil, errors.New("wake_up_fluctlight_id_required")
+	}
+	if cycle < 0 {
+		return nil, errors.New("wake_up_cycle_invalid")
+	}
+	settings, err := a.readWakeUpSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !settings.Enabled {
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": "disabled", "interval_seconds": settings.IntervalSeconds}, nil
+	}
+	fluctlight, err := a.readFluctlightByID(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	if fluctlight.Status != "active" && fluctlight.Status != "paused" {
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": "inactive", "interval_seconds": settings.IntervalSeconds}, nil
+	}
+	wakeID := "wake_up_" + stableDigest(fluctlightID+":"+fmt.Sprint(cycle))
+	var existingStatus, existingActionType string
+	var existingActionID, existingReflectionIntentID *string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,action_type,action_id,reflection_intent_id FROM public.cognition_wakeups WHERE id=$1`, wakeID).Scan(&existingStatus, &existingActionType, &existingActionID, &existingReflectionIntentID); err == nil {
+		return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "status": existingStatus, "action_type": existingActionType, "action_id": existingActionID, "reflection_intent_id": existingReflectionIntentID, "interval_seconds": settings.IntervalSeconds}, nil
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	var ownerID string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerID); err != nil {
+		return nil, err
+	}
+	conversationID := ""
+	_ = a.DB.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE fluctlight_actor_id=$1 ORDER BY created_at LIMIT 1`, fluctlightID).Scan(&conversationID)
+	projection, err := a.BuildContextProjection(ctx, ownerID, fluctlightID, conversationID, wakeID, "")
+	if err != nil {
+		return nil, err
+	}
+	assessment, err := a.Provider.Structured(ctx, "cognitive_assessment", []map[string]any{
+		{"role": "system", "content": "You are evaluating one internal wake-up for a Fluctlight. Return JSON with attention, thought, desire, agency, and action_type (no_op, proactive_message, or moment). These fields describe the internal cognitive cycle, not visible prose. Keep each stage as a concise summary; do not provide private chain-of-thought or hidden reasoning. Do not invent facts. Choose no_op when no authorized action is warranted. Never return visible text; response_intent is optional and must only explain an explicitly proposed action."},
+		{"role": "user", "content": jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "context": projection, "persona_profile": map[string]any{"identity": fluctlight.Identity, "personality": fluctlight.Personality, "self_model": mapValue(fluctlight.Provenance["self_model"]), "behavioral_policy": fluctlight.BehavioralPolicy}})},
+	})
+	if err != nil {
+		return nil, err
+	}
+	assessment, err = normalizeWakeUpAssessment(assessment)
+	if err != nil {
+		return nil, err
+	}
+	proposedActionType := stringValue(assessment["action_type"])
+	actualActionType := proposedActionType
+	result := map[string]any{"status": "no_op"}
+	policyAllowed := false
+	policySnapshot := map[string]any{}
+	policyReason := ""
+	if proposedActionType != "no_op" {
+		if fluctlight.Status == "paused" {
+			policySnapshot = map[string]any{"mode": "paused", "allowed_actions": []string{}}
+			policyReason = "fluctlight_paused"
+		} else {
+			policyAllowed, policySnapshot, policyReason, err = a.wakeAutonomyPolicy(ctx, proposedActionType)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if !policyAllowed {
+			actualActionType = "no_op"
+			result = map[string]any{"status": "blocked", "reason": policyReason, "proposed_action_type": proposedActionType}
+		} else if proposedActionType == "proactive_message" && conversationID == "" {
+			actualActionType = "no_op"
+			result = map[string]any{"status": "blocked", "reason": "proactive_target_invalid", "proposed_action_type": proposedActionType}
+		} else {
+			visible, realizationErr := a.Provider.Text(ctx, "action_realization", []map[string]any{
+				{"role": "system", "content": "Realize the already-authorized wake-up action as one concise Chinese message. For proactive_message address the Owner directly; for moment write one concise public Moment. Do not add semantic state or change the action type."},
+				{"role": "user", "content": jsonString(map[string]any{"action_type": proposedActionType, "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "response_intent": assessment["response_intent"], "persona_profile": map[string]any{"identity": fluctlight.Identity, "personality": fluctlight.Personality, "behavioral_policy": fluctlight.BehavioralPolicy}})},
+			})
+			if realizationErr != nil {
+				return nil, realizationErr
+			}
+			if strings.TrimSpace(visible) == "" || len([]rune(visible)) > 32000 {
+				return nil, errors.New("wake_up_realization_empty")
+			}
+			result = map[string]any{"status": "queued"}
+			result["text"] = visible
+		}
+	}
+	var actionID string
+	if actualActionType != "no_op" {
+		actionID = "autonomy_wake_" + stableDigest(wakeID)
+		result["action_id"] = actionID
+	}
+	reflectionIntentID := "reflection_intent:wake:" + wakeID
+	if err := a.persistWakeUp(ctx, wakeID, fluctlightID, cycle, projection.InnerState, assessment, actualActionType, actionID, result, reflectionIntentID, policySnapshot, conversationID); err != nil {
+		return nil, err
+	}
+	safeResult := make(map[string]any, len(result))
+	for key, value := range result {
+		if key != "text" {
+			safeResult[key] = value
+		}
+	}
+	return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "status": "completed", "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "action_type": actualActionType, "action_id": nullableString(actionID), "reflection_intent_id": reflectionIntentID, "result": safeResult, "interval_seconds": settings.IntervalSeconds}, nil
+}
+
+func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cycle int, internalDynamics map[string]any, assessment map[string]any, actionType, actionID string, result map[string]any, reflectionIntentID string, policySnapshot map[string]any, conversationID string) error {
+	factID := "wake_fact_" + stableDigest(wakeID)
+	workflowID := "autonomy_wake:" + wakeID
+	payload := map[string]any{
+		"event_type": "internal.wake_up", "wake_up_id": wakeID, "fluctlight_id": fluctlightID,
+		"cycle": cycle, "attention": assessment["attention"], "thought": assessment["thought"],
+		"desire": assessment["desire"], "agency": assessment["agency"], "action_type": actionType,
+		"response_intent": assessment["response_intent"], "evidence_refs": assessment["evidence_refs"],
+	}
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, wakeID); err != nil {
+			return err
+		}
+		var existing string
+		if err := tx.QueryRow(ctx, `SELECT id FROM public.cognition_wakeups WHERE id=$1 FOR UPDATE`, wakeID).Scan(&existing); err == nil {
+			return nil
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox_heads(fluctlight_id,next_sequence,last_processed_sequence) VALUES($1,1,0) ON CONFLICT DO NOTHING`, fluctlightID); err != nil {
+			return err
+		}
+		var sequence int
+		if err := tx.QueryRow(ctx, `SELECT next_sequence FROM public.cognition_inbox_heads WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&sequence); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads SET next_sequence=$2,last_processed_sequence=GREATEST(last_processed_sequence,$3) WHERE fluctlight_id=$1`, fluctlightID, sequence+1, sequence); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,processed_at) VALUES($1,$2,$3,'internal.wake_up',$4,$5,$6,$7,now(),'processed',now()) ON CONFLICT DO NOTHING`, factID, fluctlightID, sequence, jsonBytes(payload), wakeID, wakeID, wakeID); err != nil {
+			return err
+		}
+		wakeResult := map[string]any{"status": result["status"], "action_id": nullableString(actionID), "conversation_id": nullableString(conversationID)}
+		for key, value := range result {
+			if key != "text" {
+				wakeResult[key] = value
+			}
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_wakeups(id,fluctlight_id,cycle,internal_dynamics,attention,thought,desire,agency,action_type,action_id,result,reflection_intent_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT DO NOTHING`, wakeID, fluctlightID, cycle, jsonBytes(internalDynamics), jsonBytes(assessment["attention"]), jsonBytes(assessment["thought"]), jsonBytes(assessment["desire"]), jsonBytes(assessment["agency"]), actionType, nullableString(actionID), jsonBytes(wakeResult), reflectionIntentID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, reflectionIntentID, "reflection:wake:"+wakeID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "wake_up_id": wakeID})); err != nil {
+			return err
+		}
+		if actionID != "" {
+			visible := stringValue(result["text"])
+			// Keep the action strict: a frozen action can never be queued without a
+			// visible payload from the realization stage.
+			if visible == "" {
+				return errors.New("wake_up_action_payload_empty")
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(map[string]any{"wake_up_id": wakeID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"]}), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": internalDynamics["revision"]}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','autonomy.action',$3) ON CONFLICT DO NOTHING`, "autonomy_wake_intent:"+wakeID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "wake_up_id": wakeID})); err != nil {
+				return err
+			}
+		}
+		if err := appendOutboxTx(ctx, tx, "cognition.fact.created", "fluctlight", fluctlightID, fluctlightID, wakeID, wakeID, "wake-fact:"+wakeID, payload); err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "wake_up.completed", "fluctlight", fluctlightID, fluctlightID, wakeID, wakeID, "wake-up:"+wakeID, map[string]any{"wake_up_id": wakeID, "cycle": cycle, "action_type": actionType, "reflection_intent_id": reflectionIntentID})
+	})
+}

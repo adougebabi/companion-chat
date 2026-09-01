@@ -54,6 +54,7 @@ export const useControlCenterStore = defineStore("control-center", {
     newActorGroupName: "",
     selectedActorGroupId: "",
     autonomySettingsJson: "",
+    wakeUpSettingsJson: "",
     diagnosticsRetentionJson: "",
     settings: null as BrowserSafeSettings | null,
     loading: false,
@@ -478,13 +479,15 @@ export const useControlCenterStore = defineStore("control-center", {
     },
     async saveOperationalSettings() {
       let autonomy: Record<string, unknown>;
+      let wakeUp: Record<string, unknown>;
       let retention: Record<string, unknown>;
       try {
         autonomy = JSON.parse(this.autonomySettingsJson) as Record<string, unknown>;
+        wakeUp = JSON.parse(this.wakeUpSettingsJson) as Record<string, unknown>;
         retention = JSON.parse(this.diagnosticsRetentionJson) as Record<string, unknown>;
-        if (!autonomy || Array.isArray(autonomy) || !retention || Array.isArray(retention)) throw new Error("invalid_settings");
-      } catch { this.error = "自治和诊断保留策略必须是 JSON 对象。"; return; }
-      await this.saveSettings({ "product.autonomy": autonomy, "diagnostics.retention": retention });
+        if (!autonomy || Array.isArray(autonomy) || !wakeUp || Array.isArray(wakeUp) || !retention || Array.isArray(retention)) throw new Error("invalid_settings");
+      } catch { this.error = "自治、定期唤醒和诊断保留策略必须是 JSON 对象。"; return; }
+      await this.saveSettings({ "product.autonomy": autonomy, "product.wakeup": wakeUp, "diagnostics.retention": retention });
     },
     async reactToMoment(momentId: string, fluctlightId: string | null) {
       this.error = "";

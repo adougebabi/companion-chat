@@ -19,11 +19,14 @@ import (
 )
 
 const (
-	LifecycleQueue       = "lifecycle"
-	MediaQueue           = "media"
-	InteractionQueue     = "interaction"
-	WorkerDeploymentName = "fluctlight"
-	DefaultWorkerBuildID = "platform-v1"
+	LifecycleQueue               = "lifecycle"
+	MediaQueue                   = "media"
+	InteractionQueue             = "interaction"
+	WorkerDeploymentName         = "fluctlight"
+	DefaultWorkerBuildID         = "platform-v1"
+	defaultWakeUpIntervalSeconds = 30 * 60
+	minWakeUpIntervalSeconds     = 5 * 60
+	maxWakeUpIntervalSeconds     = 24 * 60 * 60
 )
 
 var runtime struct {
@@ -107,10 +110,73 @@ type Input struct {
 	IntentID     string `json:"intent_id"`
 	FluctlightID string `json:"fluctlight_id"`
 	LocalDate    string `json:"local_date"`
+	Cycle        int    `json:"cycle"`
 	ActionID     string `json:"action_id"`
 	MemoryID     string `json:"memory_id"`
 	Revision     int    `json:"revision"`
 	InboxID      string `json:"inbox_id"`
+}
+
+// WakeUpWorkflow is the internal-life timer. Each activity invocation owns
+// exactly one cycle; ContinueAsNew keeps the durable timer alive without
+// allowing history to grow indefinitely. The cadence is returned by Core so a
+// settings change takes effect on the next cycle after a Worker restart.
+func WakeUpWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 2}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	var result map[string]any
+	if err := workflow.ExecuteActivity(ctx, ProcessWakeUpActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	if stringValue(result["status"]) == "inactive" {
+		return result, nil
+	}
+	interval := wakeUpInterval(result)
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	if err := workflow.Sleep(ctx, interval); err != nil {
+		return nil, err
+	}
+	next := input
+	next.Cycle++
+	return nil, workflow.NewContinueAsNewError(ctx, WakeUpWorkflow, next)
+}
+
+func wakeUpInterval(result map[string]any) time.Duration {
+	seconds := defaultWakeUpIntervalSeconds
+	if raw, ok := result["interval_seconds"]; ok {
+		if parsed, valid := wakeUpNumber(raw); valid {
+			seconds = int(parsed)
+		}
+	}
+	if seconds < minWakeUpIntervalSeconds {
+		seconds = minWakeUpIntervalSeconds
+	}
+	if seconds > maxWakeUpIntervalSeconds {
+		seconds = maxWakeUpIntervalSeconds
+	}
+	return time.Duration(seconds) * time.Second
+}
+
+func wakeUpNumber(value any) (float64, bool) {
+	switch typed := value.(type) {
+	case float64:
+		return typed, true
+	case int:
+		return float64(typed), true
+	case json.Number:
+		parsed, err := typed.Float64()
+		return parsed, err == nil
+	default:
+		return 0, false
+	}
 }
 
 func CognitionProcessingWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
@@ -373,6 +439,14 @@ func ProcessDailyReviewActivity(ctx context.Context, input Input) (map[string]an
 	return application.ProcessDailyReview(ctx, input.FluctlightID, input.LocalDate)
 }
 
+func ProcessWakeUpActivity(ctx context.Context, input Input) (map[string]any, error) {
+	application := app()
+	if application == nil {
+		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	return application.ProcessWakeUp(ctx, input.FluctlightID, input.Cycle)
+}
+
 func ProcessCognitionActivity(ctx context.Context, input Input) (map[string]any, error) {
 	application := app()
 	if application == nil {
@@ -474,12 +548,14 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 		})
 		switch queue {
 		case LifecycleQueue:
+			w.RegisterWorkflow(WakeUpWorkflow)
 			w.RegisterWorkflow(DailyReviewWorkflow)
 			w.RegisterWorkflow(CurrentDayScheduleWorkflow)
 			w.RegisterWorkflow(ReflectionWorkflow)
 			w.RegisterWorkflow(MemoryEmbeddingWorkflow)
 			w.RegisterWorkflow(PlatformControlWorkflow)
 			w.RegisterActivity(ProcessDailyReviewActivity)
+			w.RegisterActivity(ProcessWakeUpActivity)
 			w.RegisterActivity(EnsureCurrentDayScheduleActivity)
 			w.RegisterActivity(ProcessReflectionActivity)
 			w.RegisterActivity(ProcessMemoryEmbeddingActivity)
@@ -596,7 +672,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		query += ` WHERE (status IS NULL OR status IN ('pending','retry')) AND (next_attempt_at IS NULL OR next_attempt_at <= now())`
 	}
 	args = append(args, limit)
-	query += fmt.Sprintf(` ORDER BY CASE WHEN intent_type LIKE 'schedule.%%' THEN 0 WHEN intent_type LIKE 'daily_review.%%' THEN 1 WHEN intent_type LIKE 'autonomy.%%' THEN 2 WHEN intent_type LIKE 'media.%%' THEN 3 WHEN intent_type LIKE 'reflection.%%' THEN 4 ELSE 5 END, created_at, intent_id LIMIT $%d`, len(args))
+	query += fmt.Sprintf(` ORDER BY CASE WHEN intent_type LIKE 'schedule.%%' THEN 0 WHEN intent_type LIKE 'wake_up.%%' THEN 1 WHEN intent_type LIKE 'daily_review.%%' THEN 2 WHEN intent_type LIKE 'autonomy.%%' THEN 3 WHEN intent_type LIKE 'media.%%' THEN 4 WHEN intent_type LIKE 'reflection.%%' THEN 5 ELSE 6 END, created_at, intent_id LIMIT $%d`, len(args))
 	rows, err := d.App.DB.Pool().Query(ctx, query, args...)
 	if err != nil {
 		return 0, err
@@ -652,6 +728,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		// preserving deterministic replay for this intent after restarts.
 		goWorkflowID := normalizedWorkflowID(workflowID)
 		switch intentType {
+		case "wake_up.current":
+			workflowFn = WakeUpWorkflow
+			taskQueue = LifecycleQueue
 		case "daily_review.current_day":
 			workflowFn = DailyReviewWorkflow
 			taskQueue = LifecycleQueue

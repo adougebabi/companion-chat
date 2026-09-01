@@ -268,6 +268,8 @@ func (r *TemporalRuntime) service() workflowservice.WorkflowServiceClient {
 
 func workflowFunction(intentType string) (any, error) {
 	switch intentType {
+	case "wake_up.current":
+		return WakeUpWorkflow, nil
 	case "daily_review.current_day":
 		return DailyReviewWorkflow, nil
 	case "schedule.current_day":

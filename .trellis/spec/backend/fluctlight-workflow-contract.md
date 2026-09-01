@@ -303,3 +303,83 @@ if self._started:
     statement = statement.where(workflow_intents.c.intent_id.not_in(self._started))
 rows = await session.execute(priority_order(statement).limit(limit))
 ```
+
+## Scenario: Long-Lived Wake-Up Workflow
+
+### 1. Scope / Trigger
+
+- Trigger: an active Fluctlight is activated or a Worker resumes its stable
+  `wake_up:<fluctlight_id>` execution.
+- Purpose: periodically create one internal cognition fact without adding a
+  second scheduler, delayed queue, or process-local timer.
+
+### 2. Signatures
+
+```text
+intent_type: wake_up.current
+task_queue: lifecycle
+payload: {fluctlight_id: string, cycle: integer}
+workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
+```
+
+### 3. Contracts
+
+- Activation commits the wake-up intent in the same transaction as the
+  Fluctlight and the existing schedule/daily-review intents.
+- `WakeUpWorkflow` sleeps for the interval returned by Core and increments the
+  cycle only through `ContinueAsNew`; the workflow ID stays stable while each
+  cycle's fact/action/reflection IDs are derived from `(fluctlight_id, cycle)`.
+- The Worker registers the workflow and activity only on `lifecycle`, and the
+  dispatcher treats `wake_up.current` as a lifecycle intent with the same
+  retry/reconcile semantics as other Go workflows.
+- Disabled or inactive results still use the durable timer; inactive results
+  terminate, while disabled results sleep and re-read settings on the next
+  cycle.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Unsupported intent type or queue | Leave the intent pending and emit a bounded warning; never start another runtime |
+| Empty/negative cycle | Activity rejects the input without writing a cognition fact |
+| Temporal start failure | Keep the intent retryable; do not mark it complete |
+| Worker restart after a start but before status update | Reuse the stable workflow ID and let reconciliation repair the ledger |
+| History grows across cycles | Continue-As-New preserves the Fluctlight/cycle identity and bounds history |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a Worker restart resumes one stable wake-up timer and the next cycle
+  allocates one cognition sequence.
+- Base: settings disable internal life; the workflow remains inspectable and
+  wakes again only after the bounded interval.
+- Bad: use a Go `time.Ticker`, Redis delayed stream, or a new Temporal Schedule
+  client that can outlive the domain intent ledger.
+
+### 6. Tests Required
+
+- Assert registry/dispatcher queue mapping, stable IDs, retry behavior, and
+  lifecycle-only registration.
+- Assert the interval clamp and Continue-As-New cycle increment with Temporal's
+  workflow test environment.
+- Assert inactive termination and disabled sleep behavior without provider
+  calls.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+go func() {
+	for range time.NewTicker(interval).C {
+		app.ProcessWakeUp(ctx, fluctlightID, 0)
+	}
+}()
+```
+
+#### Correct
+
+```go
+workflow.ExecuteActivity(ctx, ProcessWakeUpActivity, input).Get(ctx, &result)
+workflow.Sleep(ctx, wakeUpInterval(result))
+return nil, workflow.NewContinueAsNewError(ctx, WakeUpWorkflow, nextInput)
+```

@@ -47,6 +47,18 @@ def assessment_payload() -> dict[str, object]:
     }
 
 
+def wake_up_payload() -> dict[str, object]:
+    """Return the smallest valid internal-life decision for the smoke stack."""
+    return {
+        "attention": "fixture context",
+        "thought": "fixture internal summary",
+        "desire": "maintain continuity",
+        "agency": "observe without an external action",
+        "action_type": "no_op",
+        "evidence_refs": [],
+    }
+
+
 def preflight_payload(schema_version: str) -> dict[str, object]:
     contracts: dict[str, dict[str, object]] = {
         "fluctlight.initialization.v1": {
@@ -113,6 +125,8 @@ class Handler(BaseHTTPRequestHandler):
         response = (
             preflight_payload(schema_version)
             if isinstance(first_content, str) and first_content.startswith("Return JSON only for")
+            else wake_up_payload()
+            if isinstance(first_content, str) and "internal wake-up" in first_content
             else assessment_payload()
         )
         self._json({"choices": [{"message": {"content": json.dumps(response)}}]})
