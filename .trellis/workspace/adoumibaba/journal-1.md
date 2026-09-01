@@ -711,3 +711,36 @@ Created a dedicated worktree, retained POST NDJSON for turns, added canonical na
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: 修复跨端 UI、状态加载与列表兼容问题
+
+**Date**: 2026-09-01
+**Task**: 修复跨端 UI、状态加载与列表兼容问题
+**Branch**: `master`
+
+### Summary
+
+详情页新增身份/人格、生活世界时间轴、关系与记忆只读展示并统一安全格式化；治理页保留操作入口并改进文案；设置 Accordion 切换无需刷新；Go Core 与 Web 统一 actor_ids 并兼容旧 members payload；完成 Web 类型检查、生产构建、回归测试及 Core/BFF Go 测试。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6fef75f` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
