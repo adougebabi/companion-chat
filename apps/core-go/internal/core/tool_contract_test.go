@@ -212,6 +212,27 @@ func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 	}
 }
 
+func TestStructuredProviderPayloadUsesJSONFormatAndCognitiveThinking(t *testing.T) {
+	assessment := providerChatPayloadForRole("model", []map[string]any{{"role": "user", "content": "hello"}}, 512, true, ExternalCapabilityManifests(), "cognitive_assessment")
+	if assessment["response_format"] == nil {
+		t.Fatalf("cognitive assessment must request JSON output: %#v", assessment)
+	}
+	if assessment["enable_thinking"] != true {
+		t.Fatalf("cognitive assessment must enable thinking: %#v", assessment)
+	}
+	reflection := providerChatPayloadForRole("model", nil, 512, true, nil, "reflection")
+	if reflection["response_format"] == nil {
+		t.Fatalf("structured provider must request JSON output: %#v", reflection)
+	}
+	if _, ok := reflection["enable_thinking"]; ok {
+		t.Fatalf("non-cognitive provider must not enable thinking: %#v", reflection)
+	}
+	text := providerChatPayloadForRole("model", nil, 512, false, nil, "action_realization")
+	if _, ok := text["response_format"]; ok {
+		t.Fatalf("text realization must not force JSON output: %#v", text)
+	}
+}
+
 func TestResolveToolCallActionSupportsNativeObservationSlots(t *testing.T) {
 	manifests := toolManifestMap([]CapabilityManifest{sceneCapabilityManifest(), presenceCapabilityManifest(), memoryCapabilityManifest()})
 	calls, err := NormalizeProviderToolCalls([]any{

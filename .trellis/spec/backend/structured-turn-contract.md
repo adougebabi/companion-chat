@@ -145,6 +145,11 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
   classes, retry/cancel support, and preflight requirements. Adding a plugin
   registers a manifest plus executor; cognition and Composite Action code do
   not grow a new Tool-name branch.
+- Structured Provider calls always send `response_format: {type:
+  "json_object"}`. The `cognitive_assessment` role additionally sends
+  `enable_thinking: true`; other structured roles keep thinking disabled. The
+  visible `action_realization` stream remains ordinary text and does not use
+  JSON response formatting.
 - Tool names use `[A-Za-z0-9][A-Za-z0-9._-]{0,127}`. Arguments are bounded JSON
   objects (64 KiB maximum) and are validated once at the provider-to-runtime
   boundary. Native provider entries and JSON sidecars normalize to the same

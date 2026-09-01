@@ -95,11 +95,13 @@ func (p *ProviderClient) complete(ctx context.Context, role string, messages []m
 	return map[string]any{"text": completion.Text}, nil
 }
 
-// StructuredWithTools requests a model assessment with the external
-// capability catalog. Native provider calls and JSON sidecars are normalized
-// into ProviderCompletion before the application sees them.
+// StructuredWithTools requests a structured model assessment with the
+// external capability catalog. Native provider calls and JSON sidecars are
+// normalized into ProviderCompletion before the application sees them. The
+// request always asks for a JSON object; cognitive assessment additionally
+// enables the provider's thinking mode.
 func (p *ProviderClient) StructuredWithTools(ctx context.Context, role string, messages []map[string]any, manifests []CapabilityManifest) (ProviderCompletion, error) {
-	return p.completeWithTools(ctx, role, messages, false, manifests)
+	return p.completeWithTools(ctx, role, messages, true, manifests)
 }
 
 func (p *ProviderClient) completeWithTools(ctx context.Context, role string, messages []map[string]any, jsonMode bool, manifests []CapabilityManifest) (ProviderCompletion, error) {
@@ -109,7 +111,7 @@ func (p *ProviderClient) completeWithTools(ctx context.Context, role string, mes
 	}
 	correlationID := diagnosticCorrelation(messages, "")
 	providerRequestID := "provider:" + stableDigest(role+":"+correlationID)
-	payload := providerChatPayload(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, manifests)
+	payload := providerChatPayloadForRole(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, manifests, role)
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return ProviderCompletion{}, err
@@ -214,6 +216,10 @@ func (p *ProviderClient) completeWithTools(ctx context.Context, role string, mes
 }
 
 func providerChatPayload(model string, messages []map[string]any, tokenBudget int, jsonMode bool, manifests []CapabilityManifest) map[string]any {
+	return providerChatPayloadForRole(model, messages, tokenBudget, jsonMode, manifests, "")
+}
+
+func providerChatPayloadForRole(model string, messages []map[string]any, tokenBudget int, jsonMode bool, manifests []CapabilityManifest, role string) map[string]any {
 	payload := map[string]any{
 		"model":       model,
 		"messages":    messages,
@@ -223,8 +229,14 @@ func providerChatPayload(model string, messages []map[string]any, tokenBudget in
 	if len(manifests) > 0 {
 		payload["tools"] = ToolCallPayload(manifests)
 		payload["tool_choice"] = "auto"
+		if jsonMode {
+			payload["response_format"] = map[string]string{"type": "json_object"}
+		}
 	} else if jsonMode {
 		payload["response_format"] = map[string]string{"type": "json_object"}
+	}
+	if role == "cognitive_assessment" {
+		payload["enable_thinking"] = true
 	}
 	if tokenBudget > 0 {
 		payload["max_tokens"] = tokenBudget
