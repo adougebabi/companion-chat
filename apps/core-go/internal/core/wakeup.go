@@ -187,6 +187,10 @@ func normalizeWakeUpAssessment(value map[string]any) (map[string]any, error) {
 	return result, nil
 }
 
+func fallbackWakeUpActionWithoutCapability(proposedActionType string) (string, map[string]any) {
+	return "no_op", map[string]any{"status": "no_op", "reason": "action_requires_capability_call", "proposed_action_type": proposedActionType}
+}
+
 // ProcessWakeUp performs one complete internal-life cycle. It records the
 // model's attention/thought/desire/agency as a private cognition fact, then
 // schedules the existing reflection workflow against that fact. External
@@ -287,7 +291,12 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			result = map[string]any{"status": "queued"}
 			result["text"] = visible
 		} else {
-			return nil, errors.New("wake_up_action_requires_capability_call")
+			// The assessment role is also used by ordinary conversation turns, so
+			// a provider may conservatively return a chat-only action such as
+			// "reply" even though this wake-up has no tool call. Preserve the
+			// internal cognitive cycle and record the unsupported external choice
+			// as a no-op instead of terminating the long-lived timer.
+			actualActionType, result = fallbackWakeUpActionWithoutCapability(proposedActionType)
 		}
 	}
 	var actionID string

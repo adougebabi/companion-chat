@@ -54,3 +54,13 @@ func TestNormalizeWakeUpSettingsClampsInterval(t *testing.T) {
 		t.Fatalf("maximum settings = %#v", settings)
 	}
 }
+
+func TestWakeUpChatOnlyActionFallsBackToNoOp(t *testing.T) {
+	actual, result := fallbackWakeUpActionWithoutCapability("reply")
+	if actual != "no_op" {
+		t.Fatalf("actual action = %q, want no_op", actual)
+	}
+	if result["status"] != "no_op" || result["reason"] != "action_requires_capability_call" || result["proposed_action_type"] != "reply" {
+		t.Fatalf("fallback result = %#v", result)
+	}
+}

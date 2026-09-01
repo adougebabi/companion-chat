@@ -446,6 +446,7 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
 | Worker restart after a start but before status update | Reuse the stable workflow ID and let reconciliation repair the ledger |
 | Existing live Fluctlight has no wake-up intent | Worker startup inserts the stable `wake_up.current` intent idempotently |
 | Wake-up activity/provider failure | Reconcile requeues the live Fluctlight's intent after a bounded delay; preserve the failure in diagnostics |
+| Assessment returns a chat-only action without a capability call | Preserve the internal stages and persist the external choice as a bounded `no_op`; do not terminate the long-lived timer |
 | Wake-up is cancelled or Fluctlight is retired | Do not auto-restart the workflow |
 | History grows across cycles | Continue-As-New preserves the Fluctlight/cycle identity and bounds history |
 
@@ -464,6 +465,8 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
   lifecycle-only registration.
 - Assert Worker startup backfills an existing live Fluctlight and requeues a
   terminal wake-up intent without duplicating the stable workflow ID.
+- Assert a shared cognitive-assessment response such as `reply` cannot kill a
+  Wake-up cycle when no capability tool call is present.
 - Assert the interval clamp and Continue-As-New cycle increment with Temporal's
   workflow test environment.
 - Assert inactive termination and disabled sleep behavior without provider
