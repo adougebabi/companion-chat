@@ -302,6 +302,21 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	var replayedSequence int
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT id,sequence,text FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, "assistant:"+turnID).Scan(&replayedID, &replayedSequence, &replayedText); err == nil {
 		replayed = map[string]any{"id": replayedID, "conversation_id": conversationID, "sequence": replayedSequence, "author_actor_id": fluctlightID, "kind": "assistant", "text": replayedText, "attachment_refs": []any{}}
+		if mediaIntent, recovered, recoveryErr := a.recoverFrozenTurnAfterAssistant(ctx, inboxID, fluctlightID, conversationID, replayedID, replayedText); recoveryErr != nil {
+			return TurnResult{}, recoveryErr
+		} else if recovered {
+			if callbacks.onActionResult != nil {
+				if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
+					return TurnResult{}, err
+				}
+			}
+			if callbacks.onChunk != nil {
+				if err := callbacks.onChunk(replayedText); err != nil {
+					return TurnResult{}, err
+				}
+			}
+			return TurnResult{UserMessage: user, Assistant: replayed, MediaIntentID: mediaIntent, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
+		}
 		if callbacks.onActionResult != nil {
 			if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
 				return TurnResult{}, err
@@ -324,6 +339,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	var toolCalls []ToolCallV1
 	var toolResults []ToolResultV1
 	var responsePlan map[string]any
+	var composite CompositeActionV1
 	frozen, frozenFound, err := a.LoadFrozenTurn(ctx, inboxID)
 	if err != nil {
 		return TurnResult{}, err
@@ -333,6 +349,14 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		decision = mapValue(frozen.Payload["decision"])
 		mediaConcept = mapValue(frozen.Payload["media_concept"])
 		toolCalls = toolCallsFromValue(decision["tool_calls"])
+		if loaded, ok := compositeActionFromValue(decision["composite_action"]); ok {
+			composite = loaded
+		} else {
+			composite, err = normalizeCompositeAction(decision, toolCalls, inboxID, action)
+			if err != nil {
+				return TurnResult{}, err
+			}
+		}
 		toolResults = toolResultsFromValue(frozen.Payload["tool_results"])
 		responsePlan = mapValue(decision["response_plan"])
 		if len(responsePlan) == 0 {
@@ -342,7 +366,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			}
 		}
 	} else {
-		messages := []map[string]any{{"role": "system", "content": "You are the Fluctlight companion. Decide what is appropriate to say before writing it. Return one JSON object containing action_type, response_plan, visible_text for an ordinary reply, claims with kind/content/confidence/evidence_refs, appraisal, attention, thought, desire, agency, and self_evaluation. Appraisal must include relevance, goal_congruence, reward, loss, social_threat, controllability, responsibility, relationship_significance, expected_effect. These cognitive stage fields are concise summaries, never hidden chain-of-thought. Use a capability tool when an external capability is needed, including capability.request when a needed capability is not installed. Do not invent unsupported facts or self-claims."}, {"role": "user", "content": jsonString(map[string]any{"text": text, "context": projection})}}
+		messages := []map[string]any{{"role": "system", "content": "You are the Fluctlight companion. Decide what is appropriate to say before writing it. Return one JSON object containing action_type, response_plan, visible_text for an ordinary reply, claims with kind/content/confidence/evidence_refs, appraisal, attention, thought, desire, agency, and self_evaluation. Appraisal must include relevance, goal_congruence, reward, loss, social_threat, controllability, responsibility, relationship_significance, expected_effect. These cognitive stage fields are concise summaries, never hidden chain-of-thought. Use a capability tool when an external capability is needed, including capability.request when a needed capability is not installed. For images, call media.image.generate with the complete visual concept; do not return message_media_request or moment_media_request fields. Do not invent unsupported facts or self-claims."}, {"role": "user", "content": jsonString(map[string]any{"text": text, "context": projection})}}
 		manifests := a.capabilityRegistry().Manifests()
 		completion, completionErr := a.Provider.StructuredWithTools(ctx, "cognitive_assessment", messages, manifests)
 		if completionErr != nil {
@@ -372,6 +396,11 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		} else {
 			action, mediaConcept = resolveDecisionAction(decision)
 		}
+		composite, err = normalizeCompositeAction(decision, toolCalls, inboxID, action)
+		if err != nil {
+			return TurnResult{}, err
+		}
+		decision["composite_action"] = composite
 		if action != "reply" && action != "media_request" {
 			return TurnResult{}, errors.New("decision_effect_invalid")
 		}
@@ -431,11 +460,12 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				return TurnResult{}, err
 			}
 		}
-		if toolCallsRequireMedia(toolCalls) {
+		if toolCallsRequireDeferredOutput(toolCalls, a.capabilityRegistry()) {
+			// External async tools are deliberately deferred until the assistant
+			// message exists, so their intent can bind to that concrete output.
+			// A replay may already have a completed result; otherwise settlement
+			// happens in the message transaction below.
 			mediaIntent = mediaIntentIDFromToolResults(toolResults)
-			if mediaIntent == "" {
-				return TurnResult{}, errors.New("tool_result_media_intent_missing")
-			}
 		}
 	}
 	var visible string
@@ -469,47 +499,65 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var existingID string
 		if err := tx.QueryRow(ctx, `SELECT id FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, "assistant:"+turnID).Scan(&existingID); err == nil {
+			assistantID = existingID
 			assistant = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": 0, "author_actor_id": fluctlightID, "kind": "assistant", "text": visible, "attachment_refs": []any{}}
-			return nil
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
+		} else {
+			var seq int
+			if err := tx.QueryRow(ctx, `SELECT next_sequence FROM public.conversation_heads WHERE conversation_id=$1 FOR UPDATE`, conversationID).Scan(&seq); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `UPDATE public.conversation_heads SET next_sequence=$2 WHERE conversation_id=$1`, conversationID, seq+1); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES ($1,$2,$3,$4,'assistant',$5,'[]',$6)`, assistantID, conversationID, seq, fluctlightID, visible, "assistant:"+turnID); err != nil {
+				return err
+			}
+			assistant = map[string]any{"id": assistantID, "conversation_id": conversationID, "sequence": seq, "author_actor_id": fluctlightID, "kind": "assistant", "text": visible, "attachment_refs": []any{}}
 		}
-		var seq int
-		if err := tx.QueryRow(ctx, `SELECT next_sequence FROM public.conversation_heads WHERE conversation_id=$1 FOR UPDATE`, conversationID).Scan(&seq); err != nil {
-			return err
+		if len(toolCalls) > 0 {
+			composite = bindCompositeActionOutput(composite, "conversation_message", assistantID)
+			bound := OutputBindingV1{ToolCallID: "", TargetKind: "conversation_message", TargetRef: assistantID}
+			settled, settleErr := a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, inboxID, inboxID, toolCalls, toolResults, bound)
+			if settleErr != nil {
+				return settleErr
+			}
+			toolResults = settled
+			mediaIntent = mediaIntentIDFromToolResults(toolResults)
+			if _, err := tx.Exec(ctx, `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(jsonb_set(payload,'{tool_results}',$2::jsonb,true),'{decision,composite_action}',$3::jsonb,true) WHERE id=$1 AND status='frozen'`, frozen.ID, jsonBytes(toolResults), jsonBytes(composite)); err != nil {
+				return err
+			}
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.conversation_heads SET next_sequence=$2 WHERE conversation_id=$1`, conversationID, seq+1); err != nil {
-			return err
+		if len(toolCalls) == 0 {
+			composite = bindCompositeActionOutput(composite, "conversation_message", assistantID)
+			if _, err := tx.Exec(ctx, `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(payload,'{decision,composite_action}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, frozen.ID, jsonBytes(composite)); err != nil {
+				return err
+			}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES ($1,$2,$3,$4,'assistant',$5,'[]',$6)`, assistantID, conversationID, seq, fluctlightID, visible, "assistant:"+turnID); err != nil {
-			return err
+		if action == "media_request" && mediaIntent == "" {
+			concept := mediaConcept
+			if len(concept) == 0 {
+				concept = mediaConceptValue(decision["media_request"])
+			}
+			if len(concept) == 0 {
+				concept = mediaConceptValue(decision["visual_concept"])
+			}
+			if len(concept) == 0 {
+				return errors.New("media_concept_invalid")
+			}
+			legacyIntentID := "media_intent_" + stableDigest(inboxID+":legacy-media")
+			legacyWorkflowID := "media_workflow_" + stableDigest(inboxID+":legacy-media")
+			legacyRequestID := "media_request_" + stableDigest(inboxID+":legacy-media")
+			if err := a.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, legacyIntentID, legacyWorkflowID, legacyRequestID, "", assistantID, ""); err != nil {
+				return err
+			}
+			mediaIntent = legacyIntentID
 		}
-		assistant = map[string]any{"id": assistantID, "conversation_id": conversationID, "sequence": seq, "author_actor_id": fluctlightID, "kind": "assistant", "text": visible, "attachment_refs": []any{}}
 		return persistClaimsTx(ctx, tx, fluctlightID, inboxID, responsePlan)
 	})
 	if err != nil {
 		return TurnResult{}, err
-	}
-	if action == "media_request" {
-		concept := mediaConcept
-		if len(concept) == 0 {
-			concept = mediaConceptValue(decision["media_request"])
-		}
-		if len(concept) == 0 {
-			concept = mediaConceptValue(decision["visual_concept"])
-		}
-		if len(concept) == 0 {
-			// A media action without a frozen visual concept is invalid. The
-			// server must not manufacture semantics from visible prose.
-			return TurnResult{}, errors.New("media_concept_invalid")
-		}
-		if mediaIntent == "" {
-			mediaIntent, err = a.createMediaIntent(ctx, fluctlightID, conversationID, concept)
-			if err != nil {
-				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "media_intent_failed")
-				return TurnResult{}, err
-			}
-		}
 	}
 	if frozen.ID != "" {
 		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent, "tool_results": toolResults}); err != nil {
@@ -520,6 +568,63 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	return TurnResult{UserMessage: user, Assistant: assistant, MediaIntentID: mediaIntent, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
 }
 
+func (a *App) recoverFrozenTurnAfterAssistant(ctx context.Context, inboxID, fluctlightID, conversationID, assistantID, visible string) (string, bool, error) {
+	frozen, found, err := a.LoadFrozenTurn(ctx, inboxID)
+	if err != nil || !found || frozen.Status != "frozen" {
+		return "", false, err
+	}
+	decision := mapValue(frozen.Payload["decision"])
+	calls := toolCallsFromValue(decision["tool_calls"])
+	results := toolResultsFromValue(frozen.Payload["tool_results"])
+	action := frozen.ActionType
+	composite, ok := compositeActionFromValue(decision["composite_action"])
+	if !ok {
+		composite, err = normalizeCompositeAction(decision, calls, inboxID, action)
+		if err != nil {
+			return "", true, err
+		}
+	}
+	mediaIntent := mediaIntentIDFromToolResults(results)
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if len(calls) > 0 {
+			composite = bindCompositeActionOutput(composite, "conversation_message", assistantID)
+			settled, settleErr := a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, inboxID, inboxID, calls, results, OutputBindingV1{TargetKind: "conversation_message", TargetRef: assistantID})
+			if settleErr != nil {
+				return settleErr
+			}
+			results = settled
+			mediaIntent = mediaIntentIDFromToolResults(results)
+		}
+		if action == "media_request" && mediaIntent == "" {
+			concept := mapValue(frozen.Payload["media_concept"])
+			if len(concept) == 0 {
+				concept = mediaConceptValue(decision["media_request"])
+			}
+			if len(concept) == 0 {
+				concept = mediaConceptValue(decision["visual_concept"])
+			}
+			if len(concept) == 0 {
+				return errors.New("media_concept_invalid")
+			}
+			intentID := "media_intent_" + stableDigest(inboxID+":legacy-media")
+			if err := a.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, intentID, "media_workflow_"+stableDigest(inboxID+":legacy-media"), "media_request_"+stableDigest(inboxID+":legacy-media"), "", assistantID, ""); err != nil {
+				return err
+			}
+			mediaIntent = intentID
+		}
+		payloadUpdate := `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(jsonb_set(payload,'{tool_results}',$2::jsonb,true),'{decision,composite_action}',$3::jsonb,true) WHERE id=$1 AND status='frozen'`
+		_, err := tx.Exec(ctx, payloadUpdate, frozen.ID, jsonBytes(results), jsonBytes(composite))
+		return err
+	})
+	if err != nil {
+		return "", true, err
+	}
+	if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent, "tool_results": results}); err != nil {
+		return "", true, err
+	}
+	return mediaIntent, true, nil
+}
+
 func (a *App) createMediaIntent(ctx context.Context, fluctlightID, conversationID string, concept map[string]any) (string, error) {
 	id := randomID("media_intent_")
 	workflowID := randomID("media_workflow_")
@@ -528,18 +633,57 @@ func (a *App) createMediaIntent(ctx context.Context, fluctlightID, conversationI
 }
 
 func (a *App) createMediaIntentWithIdentity(ctx context.Context, fluctlightID, conversationID string, concept map[string]any, id, workflowID, requestID string) error {
-	prompt := jsonString(concept)
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.media_intents (id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,conversation_id,status,revision) VALUES ($1,$2,'image','image/png',$3,$4,$5,$6,'pending',0) ON CONFLICT (id) DO NOTHING`, id, fluctlightID, prompt, requestID, workflowID, conversationID); err != nil {
-			return err
-		}
-		_, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'media','media.generation',$3) ON CONFLICT DO NOTHING`, "media_workflow_intent:"+id, workflowID, jsonBytes(map[string]any{"intent_id": id, "provider_request_id": requestID}))
-		if err != nil {
-			return err
-		}
-		return appendOutboxTx(ctx, tx, "media.intent.created", "media_intent", id, fluctlightID, requestID, "media:"+id, "media-intent:"+id, map[string]any{"intent_id": id, "workflow_id": workflowID})
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		return a.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, id, workflowID, requestID, conversationID, "", "")
 	})
-	return err
+}
+
+func (a *App) createMediaIntentTarget(ctx context.Context, fluctlightID string, concept map[string]any, id, workflowID, requestID, conversationID, messageID, momentID string) error {
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		return a.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, id, workflowID, requestID, conversationID, messageID, momentID)
+	})
+}
+
+// createMediaIntentTx is retained for callers that only have the legacy
+// conversation-or-moment target shape. New composite actions should use
+// createMediaIntentTargetTx so a generated asset can bind directly to a
+// concrete message or Moment output.
+func (a *App) createMediaIntentTx(ctx context.Context, tx pgx.Tx, fluctlightID string, concept map[string]any, id, workflowID, requestID, conversationID, momentID string) error {
+	return a.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, id, workflowID, requestID, conversationID, "", momentID)
+}
+
+func (a *App) createMediaIntentTargetTx(ctx context.Context, tx pgx.Tx, fluctlightID string, concept map[string]any, id, workflowID, requestID, conversationID, messageID, momentID string) error {
+	if conversationID != "" && messageID != "" {
+		return errors.New("media_intent_target_ambiguous")
+	}
+	if messageID != "" && momentID != "" {
+		return errors.New("media_intent_target_ambiguous")
+	}
+	if messageID != "" {
+		var exists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE id=$1)`, messageID).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return ErrNotFound
+		}
+	}
+	if momentID != "" {
+		var exists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.moments WHERE id=$1)`, momentID).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return ErrNotFound
+		}
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO public.media_intents (id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,conversation_id,message_id,moment_id,status,revision) VALUES ($1,$2,'image','image/png',$3,$4,$5,$6,$7,$8,'pending',0) ON CONFLICT (id) DO NOTHING`, id, fluctlightID, jsonString(concept), requestID, workflowID, nullableString(conversationID), nullableString(messageID), nullableString(momentID)); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'media','media.generation',$3) ON CONFLICT DO NOTHING`, "media_workflow_intent:"+id, workflowID, jsonBytes(map[string]any{"intent_id": id, "provider_request_id": requestID, "fluctlight_id": fluctlightID})); err != nil {
+		return err
+	}
+	return appendOutboxTx(ctx, tx, "media.intent.created", "media_intent", id, fluctlightID, requestID, "media:"+id, "media-intent:"+id, map[string]any{"intent_id": id, "workflow_id": workflowID, "moment_id": nullableString(momentID), "message_id": nullableString(messageID), "conversation_id": nullableString(conversationID)})
 }
 
 func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorID, conversationID string, payload map[string]any) error {

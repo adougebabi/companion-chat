@@ -38,8 +38,29 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			return a.failAutonomyAction(ctx, actionID, "proactive_target_invalid")
 		}
 		err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-			if err := appendAssistantTx(ctx, tx, conversationID, fluctlightID, text, "proactive:"+actionID); err != nil {
+			messageID, err := appendAssistantTxWithID(ctx, tx, conversationID, fluctlightID, text, "proactive:"+actionID)
+			if err != nil {
 				return err
+			}
+			calls := toolCallsFromValue(data["tool_calls"])
+			binding := OutputBindingV1{TargetKind: "conversation_message", TargetRef: messageID}
+			toolResults := make([]ToolResultV1, 0, len(calls))
+			if len(calls) > 0 {
+				calls = normalizeToolCallMetadata(calls, firstString(data["source_fact_id"], actionID), actionID)
+				if err := validateCompositeOutputCalls(calls, binding.TargetKind, a.capabilityRegistry()); err != nil {
+					return err
+				}
+				toolResults, err = a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, firstString(data["source_fact_id"], actionID), actionID, calls, nil, binding)
+				if err != nil {
+					return err
+				}
+				bound := make([]OutputBindingV1, 0, len(calls))
+				for _, call := range calls {
+					bound = append(bound, OutputBindingV1{ToolCallID: call.ID, TargetKind: binding.TargetKind, TargetRef: binding.TargetRef})
+				}
+				if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(payload,'{output_bindings}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(bound)); err != nil {
+					return err
+				}
 			}
 			command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET status='completed',settled_at=now() WHERE id=$1 AND status='frozen'`, actionID)
 			if err != nil {
@@ -48,7 +69,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if command.RowsAffected() != 1 {
 				return ErrConflict
 			}
-			if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, map[string]any{"status": "completed", "action_status": "completed"}); err != nil {
+			if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, map[string]any{"status": "completed", "action_status": "completed", "message_id": messageID, "tool_results": toolResults}); err != nil {
 				return err
 			}
 			return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed", "aggregate_sequence": 1})
@@ -68,6 +89,27 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if _, err := tx.Exec(ctx, `INSERT INTO public.moments(id,owner_fluctlight_id,author_actor_id,text,visibility,status,media_asset_ids) VALUES($1,$2,$2,$3,'participants','visible','[]') ON CONFLICT DO NOTHING`, momentID, fluctlightID, text); err != nil {
 				return err
 			}
+			calls := toolCallsFromValue(data["tool_calls"])
+			binding := OutputBindingV1{TargetKind: "moment", TargetRef: momentID}
+			toolResults := make([]ToolResultV1, 0, len(calls))
+			if len(calls) > 0 {
+				calls = normalizeToolCallMetadata(calls, firstString(data["source_fact_id"], actionID), actionID)
+				if err := validateCompositeOutputCalls(calls, binding.TargetKind, a.capabilityRegistry()); err != nil {
+					return err
+				}
+				settled, settleErr := a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, firstString(data["source_fact_id"], actionID), actionID, calls, nil, binding)
+				if settleErr != nil {
+					return settleErr
+				}
+				toolResults = settled
+				bound := make([]OutputBindingV1, 0, len(calls))
+				for _, call := range calls {
+					bound = append(bound, OutputBindingV1{ToolCallID: call.ID, TargetKind: binding.TargetKind, TargetRef: binding.TargetRef})
+				}
+				if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(payload,'{output_bindings}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(bound)); err != nil {
+					return err
+				}
+			}
 			command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET status='completed',settled_at=now() WHERE id=$1 AND status='frozen'`, actionID)
 			if err != nil {
 				return err
@@ -75,7 +117,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if command.RowsAffected() != 1 {
 				return ErrConflict
 			}
-			if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, map[string]any{"status": "completed", "action_status": "completed", "moment_id": momentID}); err != nil {
+			if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, map[string]any{"status": "completed", "action_status": "completed", "moment_id": momentID, "tool_results": toolResults}); err != nil {
 				return err
 			}
 			return appendOutboxTx(ctx, tx, "moment.published", "moment", momentID, fluctlightID, actionID, "autonomy:"+actionID, "moment-outbox:"+actionID, map[string]any{"moment_id": momentID, "action_id": actionID, "aggregate_sequence": 1})
@@ -144,6 +186,18 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 	sourceFactID = stringValue(data["source_fact_id"])
 	if sourceFactID == "" {
 		return a.failAutonomyAction(ctx, actionID, "capability_source_missing")
+	}
+	for _, call := range calls {
+		manifest, ok := toolManifestMap(a.capabilityRegistry().Manifests())[call.Name]
+		if !ok {
+			return a.failAutonomyAction(ctx, actionID, "capability_unavailable")
+		}
+		if manifest.IsDeferredOutput() {
+			// A capability action without a Composite Action output target cannot
+			// safely execute an external async slot. Targeted actions are settled
+			// by the proactive_message/moment branches above.
+			return a.failAutonomyAction(ctx, actionID, "capability_output_target_missing")
+		}
 	}
 	for index := range calls {
 		calls[index].ActionID = actionID

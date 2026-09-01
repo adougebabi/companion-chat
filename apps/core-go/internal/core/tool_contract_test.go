@@ -107,6 +107,16 @@ func TestToolCallPayloadKeepsProviderSchemaAtBoundary(t *testing.T) {
 	if !ok || function["name"] != "media.image.generate" {
 		t.Fatalf("function payload = %#v", payload[0])
 	}
+	manifest := imageCapabilityManifest()
+	if len(manifest.TargetKinds) != 2 || manifest.TargetKinds[0] != "conversation_message" || manifest.TargetKinds[1] != "moment" {
+		t.Fatalf("media target kinds = %#v", manifest.TargetKinds)
+	}
+	if !manifest.IsDeferredOutput() || manifest.OutputSchema == nil {
+		t.Fatalf("media manifest must be a typed deferred output slot: %#v", manifest)
+	}
+	if err := manifest.ValidateOutput(map[string]any{"media_intent_id": "intent"}); err == nil {
+		t.Fatal("missing typed output target fields must be rejected")
+	}
 	parameters, ok := function["parameters"].(map[string]any)
 	if !ok || parameters["type"] != "object" {
 		t.Fatalf("parameters payload = %#v", function)
@@ -217,5 +227,20 @@ func TestResolveToolCallActionSupportsNativeObservationSlots(t *testing.T) {
 	}
 	if action != "reply" || len(concept) != 0 {
 		t.Fatalf("action=%q concept=%#v", action, concept)
+	}
+}
+
+func TestResolveToolCallActionKeepsMediaAsReplyComposite(t *testing.T) {
+	call := ToolCallV1{
+		ID: "media-1", Name: "media.image.generate",
+		Arguments:    json.RawMessage(`{"concept":{"scene":"window"}}`),
+		SourceFactID: "fact", ProviderRequestID: "provider", SchemaVersion: ToolCallSchemaVersion,
+	}
+	action, concept, err := resolveToolCallAction([]ToolCallV1{call}, toolManifestMap(ExternalCapabilityManifests()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != "reply" || len(concept) != 0 {
+		t.Fatalf("action=%q concept=%#v; media must remain a reply composite", action, concept)
 	}
 }

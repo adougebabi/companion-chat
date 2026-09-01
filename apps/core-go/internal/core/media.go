@@ -23,7 +23,7 @@ import (
 type mediaIntent struct {
 	ID, Owner, Prompt, ProviderRequestID, ProviderJobID, WorkflowID string
 	Kind, MimeType, Status                                          string
-	ConversationID, MomentID                                        *string
+	ConversationID, MessageID, MomentID                             *string
 }
 
 func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
@@ -40,7 +40,10 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 		return err
 	}
 	if ready {
-		return a.publishMediaAsset(ctx, intent, assetID)
+		if err := a.publishMediaAsset(ctx, intent, assetID); err != nil {
+			return err
+		}
+		return a.markMediaIntentCompleted(ctx, intent.ID)
 	}
 	config, err := a.runtimeValue(ctx, "media.comfyui")
 	if err != nil {
@@ -140,15 +143,33 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 		if _, err := tx.Exec(ctx, `INSERT INTO public.media_assets (id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status,ready_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'ready',now()) ON CONFLICT (id) DO NOTHING`, assetID, intent.Owner, version, intent.Kind, contentType, len(content), hex.EncodeToString(digest[:]), a.S3Bucket, objectKey, intent.ProviderRequestID, workflowID); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='completed',revision=revision+1 WHERE id=$1`, intent.ID); err != nil {
-			return err
-		}
 		return nil
 	})
 	if err != nil {
 		return err
 	}
-	return a.publishMediaAsset(ctx, intent, assetID)
+	if err := a.publishMediaAsset(ctx, intent, assetID); err != nil {
+		return err
+	}
+	return a.markMediaIntentCompleted(ctx, intent.ID)
+}
+
+func (a *App) markMediaIntentCompleted(ctx context.Context, intentID string) error {
+	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='completed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, intentID)
+	if err != nil {
+		return err
+	}
+	if command.RowsAffected() == 1 {
+		return nil
+	}
+	var status string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT status FROM public.media_intents WHERE id=$1`, intentID).Scan(&status); err != nil {
+		return err
+	}
+	if status == "completed" {
+		return nil
+	}
+	return fmt.Errorf("media intent cannot complete from status %s", status)
 }
 
 // startMediaHeartbeat keeps the activity lease alive while the provider prompt
@@ -183,7 +204,7 @@ func startMediaHeartbeat(ctx context.Context, intentID string) func() {
 
 func (a *App) readMediaIntent(ctx context.Context, intentID string) (mediaIntent, error) {
 	var i mediaIntent
-	err := a.DB.Pool().QueryRow(ctx, `SELECT id,owner_fluctlight_id,prompt,provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,conversation_id,moment_id FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.ConversationID, &i.MomentID)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT id,owner_fluctlight_id,prompt,provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,conversation_id,message_id,moment_id FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.ConversationID, &i.MessageID, &i.MomentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return i, ErrNotFound
 	}
@@ -324,6 +345,27 @@ func downloadComfy(ctx context.Context, baseURL string, output map[string]any) (
 }
 
 func (a *App) publishMediaAsset(ctx context.Context, intent mediaIntent, assetID string) error {
+	if intent.MessageID != nil {
+		return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			var conversationID string
+			var attachments []byte
+			if err := tx.QueryRow(ctx, `SELECT conversation_id,attachment_refs FROM public.conversation_messages WHERE id=$1 FOR UPDATE`, *intent.MessageID).Scan(&conversationID, &attachments); err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					return fmt.Errorf("media target message not found: %w", ErrNotFound)
+				}
+				return err
+			}
+			existingRefs := decodeArray(attachments)
+			assetRefs := appendUniqueAssetRef(existingRefs, assetID)
+			if !containsStringValue(existingRefs, assetID) {
+				if _, err := tx.Exec(ctx, `UPDATE public.conversation_messages SET attachment_refs=$2 WHERE id=$1`, *intent.MessageID, jsonBytes(assetRefs)); err != nil {
+					return err
+				}
+			}
+			_, err := tx.Exec(ctx, `INSERT INTO public.media_references (id,asset_id,owner_fluctlight_id,target_type,target_id) VALUES ($1,$2,$3,'conversation_message',$4) ON CONFLICT DO NOTHING`, "media_ref_"+stableDigest(assetID+":conversation_message:"+*intent.MessageID), assetID, intent.Owner, *intent.MessageID)
+			return err
+		})
+	}
 	if intent.ConversationID != nil {
 		err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 			var existing string
@@ -350,13 +392,33 @@ func (a *App) publishMediaAsset(ctx context.Context, intent mediaIntent, assetID
 		}
 	}
 	if intent.MomentID != nil {
-		_, err := a.DB.Pool().Exec(ctx, `UPDATE public.moments SET media_asset_ids=COALESCE(media_asset_ids,'[]'::jsonb)||$2::jsonb WHERE id=$1 AND NOT (COALESCE(media_asset_ids,'[]'::jsonb) @> $2::jsonb)`, *intent.MomentID, jsonBytes([]string{assetID}))
-		if err == nil {
-			_, err = a.DB.Pool().Exec(ctx, `INSERT INTO public.media_references (id,asset_id,owner_fluctlight_id,target_type,target_id) VALUES ($1,$2,$3,'moment',$4) ON CONFLICT DO NOTHING`, "media_ref_"+stableDigest(intent.ID+":moment"), assetID, intent.Owner, *intent.MomentID)
-		}
-		return err
+		return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			var existing []byte
+			if err := tx.QueryRow(ctx, `SELECT COALESCE(media_asset_ids,'[]'::jsonb) FROM public.moments WHERE id=$1 FOR UPDATE`, *intent.MomentID).Scan(&existing); err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					return fmt.Errorf("media target moment not found: %w", ErrNotFound)
+				}
+				return err
+			}
+			existingRefs := decodeArray(existing)
+			assetRefs := appendUniqueAssetRef(existingRefs, assetID)
+			if !containsStringValue(existingRefs, assetID) {
+				if _, err := tx.Exec(ctx, `UPDATE public.moments SET media_asset_ids=$2 WHERE id=$1`, *intent.MomentID, jsonBytes(assetRefs)); err != nil {
+					return err
+				}
+			}
+			_, err := tx.Exec(ctx, `INSERT INTO public.media_references (id,asset_id,owner_fluctlight_id,target_type,target_id) VALUES ($1,$2,$3,'moment',$4) ON CONFLICT DO NOTHING`, "media_ref_"+stableDigest(assetID+":moment:"+*intent.MomentID), assetID, intent.Owner, *intent.MomentID)
+			return err
+		})
 	}
 	return nil
+}
+
+func appendUniqueAssetRef(refs []any, assetID string) []any {
+	if containsStringValue(refs, assetID) {
+		return refs
+	}
+	return append(refs, assetID)
 }
 
 func (a *App) ServeMedia(ctx context.Context, writer http.ResponseWriter, assetID, rangeHeader string) error {

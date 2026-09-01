@@ -17,7 +17,19 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0022_personality_growth_loop" {
+	if Head != "0023_composite_action_targets" {
 		t.Fatalf("Head = %q", Head)
+	}
+}
+
+func TestCompositeActionSchemaIncludesMessageMediaTarget(t *testing.T) {
+	if !strings.Contains(schemaSQL, "message_id varchar(128)") {
+		t.Fatal("media_intents must persist a concrete conversation message target")
+	}
+	if !strings.Contains(compatibilitySQL, "ADD COLUMN IF NOT EXISTS message_id") {
+		t.Fatal("compatibility SQL must add message_id for existing databases")
+	}
+	if !strings.Contains(compatibilitySQL, "ix_media_intents_message") {
+		t.Fatal("compatibility SQL must index message targets")
 	}
 }

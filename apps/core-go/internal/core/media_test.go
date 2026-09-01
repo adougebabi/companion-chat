@@ -57,3 +57,12 @@ func TestResolveDecisionActionDoesNotInventMissingConcept(t *testing.T) {
 		t.Fatalf("unexpected invented concept: %#v", concept)
 	}
 }
+
+func TestAppendUniqueAssetRefIsIdempotent(t *testing.T) {
+	refs := []any{"asset_existing"}
+	refs = appendUniqueAssetRef(refs, "asset_new")
+	refs = appendUniqueAssetRef(refs, "asset_new")
+	if len(refs) != 2 || stringValue(refs[1]) != "asset_new" {
+		t.Fatalf("refs = %#v", refs)
+	}
+}

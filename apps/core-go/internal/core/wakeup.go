@@ -236,7 +236,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	completion, err := a.Provider.StructuredWithTools(ctx, "cognitive_assessment", []map[string]any{
-		{"role": "system", "content": "You are evaluating one internal wake-up for a Fluctlight. Return JSON with attention, thought, desire, agency, and action_type. These fields describe the internal cognitive cycle, not visible prose. Keep each stage as a concise summary; do not provide private chain-of-thought or hidden reasoning. Do not invent facts. Choose no_op when no action is wanted. If an installed capability is needed, issue its tool call and use its capability name as action_type; if the needed capability is missing, issue capability.request. Legacy proactive_message and moment actions remain valid. Never return visible text; response_intent is optional and must only explain an explicitly proposed action."},
+		{"role": "system", "content": "You are evaluating one internal wake-up for a Fluctlight. Return JSON with attention, thought, desire, agency, and action_type. These fields describe the internal cognitive cycle, not visible prose. Keep each stage as a concise summary; do not provide private chain-of-thought or hidden reasoning. Do not invent facts. Choose no_op when no action is wanted. For a visible proactive_message or moment that needs an image, issue the media.image.generate tool call with the complete visual concept; do not return moment_media_request or message_media_request fields. If another installed capability is needed, issue its tool call and use its capability name as action_type; if the needed capability is missing, issue capability.request. Never return visible text; response_intent is optional and must only explain an explicitly proposed action."},
 		{"role": "user", "content": jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "context": projection, "persona_profile": map[string]any{"identity": fluctlight.Identity, "personality": fluctlight.Personality, "self_model": mapValue(fluctlight.Provenance["self_model"]), "behavioral_policy": fluctlight.BehavioralPolicy}})},
 	}, a.capabilityRegistry().Manifests())
 	if err != nil {
@@ -251,8 +251,26 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
+	composite, err := normalizeCompositeAction(assessment, toolCalls, wakeID, stringValue(assessment["action_type"]))
+	if err != nil {
+		return nil, err
+	}
+	toolCalls = composite.ToolCalls
+	assessment["tool_calls"] = toolCalls
+	assessment["output_bindings"] = composite.OutputBindings
 	proposedActionType := stringValue(assessment["action_type"])
 	actualActionType := proposedActionType
+	deferredOutput := hasDeferredOutputToolCalls(toolCalls, a.capabilityRegistry())
+	if proposedActionType == "moment" {
+		if err := validateCompositeOutputCalls(toolCalls, "moment", a.capabilityRegistry()); err != nil {
+			return nil, fmt.Errorf("wake_up_output_binding_invalid: %w", err)
+		}
+	} else if proposedActionType == "proactive_message" {
+		if err := validateCompositeOutputCalls(toolCalls, "conversation_message", a.capabilityRegistry()); err != nil {
+			return nil, fmt.Errorf("wake_up_output_binding_invalid: %w", err)
+		}
+	}
+	mediaComposite := deferredOutput && (proposedActionType == "moment" || proposedActionType == "proactive_message")
 	result := map[string]any{"status": "no_op"}
 	policySnapshot := map[string]any{}
 	policyReason := ""
@@ -270,7 +288,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			policyReason = "fluctlight_paused"
 			actualActionType = "no_op"
 			result = map[string]any{"status": "blocked", "reason": policyReason, "proposed_action_type": proposedActionType}
-		} else if len(toolCalls) > 0 {
+		} else if len(toolCalls) > 0 && !mediaComposite {
 			actualActionType = "capability"
 			policySnapshot = map[string]any{"mode": "active", "authorization": "capability_manifest"}
 			result = map[string]any{"status": "queued", "proposed_action_type": proposedActionType}
@@ -390,7 +408,7 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			if visible == "" {
 				return errors.New("wake_up_action_payload_empty")
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(map[string]any{"wake_up_id": wakeID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"]}), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": internalDynamics["revision"]}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(map[string]any{"wake_up_id": wakeID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"], "tool_calls": toolCalls, "output_bindings": assessment["output_bindings"]}), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": internalDynamics["revision"]}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
 				return err
 			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','autonomy.action',$3) ON CONFLICT DO NOTHING`, "autonomy_wake_intent:"+wakeID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "wake_up_id": wakeID})); err != nil {

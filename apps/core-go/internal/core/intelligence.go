@@ -168,7 +168,10 @@ func capabilityManifestMaps(manifests []CapabilityManifest) []map[string]any {
 		result = append(result, map[string]any{
 			"name": manifest.Name, "version": manifest.Version,
 			"description": manifest.Description, "side_effect_class": manifest.SideEffectClass,
-			"concurrency_class": manifest.ConcurrencyClass,
+			"concurrency_class": manifest.ConcurrencyClass, "target_kinds": manifest.TargetKinds,
+			"input_schema": manifest.Parameters, "output_schema": manifest.OutputSchema,
+			"supports_cancel": manifest.SupportsCancel, "supports_retry": manifest.SupportsRetry,
+			"requires_preflight": manifest.RequiresPreflight,
 		})
 	}
 	return result
@@ -400,6 +403,10 @@ func normalizeResponsePlan(decision map[string]any, sourceFactID string, context
 	}
 	if calls := toolCallsFromValue(base["tool_calls"]); len(calls) > 0 {
 		plan["tool_calls"] = calls
+	}
+	compositeActionType := firstString(plan["action_type"], firstString(decision["action_type"], "reply"))
+	if composite, compositeErr := normalizeCompositeAction(decision, toolCallsFromValue(plan["tool_calls"]), sourceFactID, compositeActionType); compositeErr == nil {
+		plan["composite_action"] = composite
 	}
 	if text := firstString(base["visible_text"], firstString(base["draft"], "")); text != "" {
 		plan["visible_text"] = text

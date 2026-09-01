@@ -28,11 +28,44 @@ type CapabilityManifest struct {
 	Version           string
 	Description       string
 	Parameters        map[string]any
+	OutputSchema      map[string]any
+	TargetKinds       []string
 	SideEffectClass   string
 	ConcurrencyClass  string
 	SupportsCancel    bool
 	SupportsRetry     bool
 	RequiresPreflight bool
+}
+
+// IsDeferredOutput marks a capability whose result must be attached to a
+// concrete Composite Action output after that output receives its durable ID.
+// This keeps external asynchronous work target-neutral: the same slot can be
+// reused by a conversation message, Moment, or a future output kind.
+func (manifest CapabilityManifest) IsDeferredOutput() bool {
+	return manifest.SideEffectClass == "external_async" && len(manifest.TargetKinds) > 0
+}
+
+// ValidateOutput enforces the small, transport-safe part of a slot's output
+// schema at the Runtime boundary. Capability executors remain responsible for
+// semantic validation, while required object fields and size limits are shared
+// consistently across built-in and plugin slots.
+func (manifest CapabilityManifest) ValidateOutput(output any) error {
+	if manifest.OutputSchema == nil {
+		return nil
+	}
+	if stringValue(manifest.OutputSchema["type"]) == "object" {
+		object := mapValue(output)
+		if object == nil {
+			return errors.New("tool result output must be an object")
+		}
+		for _, raw := range arrayValue(manifest.OutputSchema["required"]) {
+			key := stringValue(raw)
+			if key != "" && object[key] == nil {
+				return fmt.Errorf("tool result output field %q is required", key)
+			}
+		}
+	}
+	return nil
 }
 
 // ToolCallV1 is the canonical representation shared by native provider tool
@@ -168,10 +201,20 @@ func ExternalCapabilityManifests() []CapabilityManifest {
 
 func imageCapabilityManifest() CapabilityManifest {
 	return CapabilityManifest{
-		Name:              "media.image.generate",
-		Version:           "v1",
-		Description:       "Request one image generation from the configured media capability.",
-		Parameters:        imageCapabilityParameters(),
+		Name:        "media.image.generate",
+		Version:     "v1",
+		Description: "Request one image generation from the configured media capability.",
+		Parameters:  imageCapabilityParameters(),
+		OutputSchema: map[string]any{
+			"type": "object", "additionalProperties": false,
+			"required": []any{"media_intent_id", "target_kind", "target_ref"},
+			"properties": map[string]any{
+				"media_intent_id": map[string]any{"type": "string"},
+				"target_kind":     map[string]any{"type": "string"},
+				"target_ref":      map[string]any{"type": "string"},
+			},
+		},
+		TargetKinds:       []string{"conversation_message", "moment"},
 		SideEffectClass:   "external_async",
 		ConcurrencyClass:  "exclusive",
 		SupportsCancel:    true,

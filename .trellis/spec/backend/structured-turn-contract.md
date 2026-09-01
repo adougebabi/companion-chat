@@ -105,9 +105,20 @@ ToolResultV1 {
   provider_request_id?, correlation_id?, schema_version
 }
 
+CompositeActionV1 {
+  schema_version, kind, action_type, response_intent,
+  tool_calls[], output_bindings[]
+}
+
+OutputBindingV1 {
+  tool_call_id, target_kind, target_ref
+}
+
 CapabilityExecutor.Manifest() -> CapabilityManifest
 CapabilityExecutor.Execute(ctx, fluctlightID, conversationID,
                            sourceFactID, ToolCallV1) -> ToolResultV1
+DeferredCapabilityExecutor.ExecuteDeferredTx(ctx, tx, fluctlightID,
+  sourceFactID, identityScope, ToolCallV1, OutputBindingV1) -> ToolResultV1
 ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
   -> ProviderCompletion{text, structured?, tool_calls, done_seen}
 ```
@@ -118,6 +129,22 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
   authorization/resource scope, revision/idempotency checks, persistence,
   timeout/retry/cancel and result settlement; an executor owns only its
   external provider operation.
+- A user-visible conversation reply or Moment is a `CompositeActionV1`, not a
+  Tool. The same target-neutral capability slot may be bound to either output
+  through `OutputBindingV1`; target-specific names such as `message_media` or
+  `moment_media` are not part of the protocol.
+- A manifest with `side_effect_class=external_async` and non-empty
+  `target_kinds` is a deferred output slot. Runtime records a bounded
+  `deferred` ToolResult while the action is being realized, persists the
+  message/Moment, then invokes the executor's `ExecuteDeferredTx` in the same
+  caller-owned transaction. The executor creates the durable external intent
+  with the concrete target ID. This ordering prevents a conversation-level
+  compatibility message from being created for a message-targeted result.
+- `CapabilityManifest` is the typed slot contract: input `parameters`, output
+  `output_schema`, supported `target_kinds`, side-effect and concurrency
+  classes, retry/cancel support, and preflight requirements. Adding a plugin
+  registers a manifest plus executor; cognition and Composite Action code do
+  not grow a new Tool-name branch.
 - Tool names use `[A-Za-z0-9][A-Za-z0-9._-]{0,127}`. Arguments are bounded JSON
   objects (64 KiB maximum) and are validated once at the provider-to-runtime
   boundary. Native provider entries and JSON sidecars normalize to the same
@@ -159,8 +186,8 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
 ### 5. Good / Base / Bad Cases
 
 - Good: a native `media.image.generate` call is normalized, frozen against the
-  source fact, creates one idempotent media intent, persists one `ToolResultV1`,
-  and the realization prompt receives that result.
+  source fact, recorded as a deferred result, then bound to the persisted
+  assistant message (or Moment) and creates one idempotent media intent.
 - Base: a provider returns the canonical JSON sidecar for a reply; the existing
   turn behavior remains unchanged and no external effect is created.
 - Bad: parse “请画一张图” with a keyword branch, write a media row directly,
@@ -172,8 +199,8 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
   duplicate IDs, unknown capabilities, stable manifest ordering, and result
   identity/status validation.
 - Runtime tests for registry injection, source-fact ownership, idempotent
-  media intent creation, tool-result persistence, and frozen replay without a
-  second plugin call.
+  media intent creation, target binding, deferred settlement, tool-result
+  persistence, and frozen replay without a second plugin call.
 - Provider tests for `tools` request payloads, native tool-call responses,
   JSON sidecar responses, malformed calls, and stable request headers.
 - Core/BFF stream tests for provider chunk → Core NDJSON → browser frames,
@@ -198,8 +225,12 @@ if strings.Contains(userText, "画") {
 completion, err := provider.StructuredWithTools(ctx, "cognitive_assessment", messages, registry.Manifests())
 calls := completion.ToolCalls // native and sidecar forms are already normalized
 proposal := validateAndFreeze(calls, sourceFactID, stateRevision)
+// Visible output is persisted first; async slots bind to its concrete ID.
+output := persistAssistantOrMoment(...)
 executor, _ := registry.Lookup(proposal.Name)
-result, _ := executor.Execute(ctx, fluctlightID, conversationID, sourceFactID, proposal)
+result, _ := executor.(DeferredCapabilityExecutor).ExecuteDeferredTx(
+    ctx, tx, fluctlightID, sourceFactID, actionID, proposal,
+    OutputBindingV1{TargetKind: output.Kind, TargetRef: output.ID})
 persistToolResult(result)
 ```
 
