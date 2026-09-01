@@ -130,6 +130,66 @@ activeMessages = activeMessages.filter(message => message !== typingEntry);
 
     const status = persona.currentSituation;
 
+## Scenario: Settings Section Switching And Payload Normalization
+
+### 1. Scope / Trigger
+
+- Trigger: a settings section is changed without a route-level component
+  remount, or a migrated API payload uses an older field name.
+
+### 2. Signatures
+
+- `SettingsView` receives `section?: SettingsSection | null` and renders one
+  matching Accordion item.
+- `normalizeActorGroups(values: unknown): ActorGroupSnapshot[]` is the single
+  browser owner for group payload compatibility.
+
+### 3. Contracts
+
+- Section-specific Accordion roots use a key derived from `currentSection` (or
+  a controlled model) so the selected item opens immediately when the prop
+  changes; the whole app must not reload.
+- Server snapshots are normalized before entering Pinia. Every stored actor
+  group has `actor_ids: string[]`, even when the server temporarily returns
+  legacy `members`.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Settings section changes | The new section content is visible without refresh. |
+| Accordion trigger is clicked | The user can still collapse/reopen the section. |
+| Group payload has `members` | It is copied to `actor_ids` before derived filters run. |
+| Group payload is malformed | It is dropped or treated as empty; no `undefined.includes` call. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: navigating from model-role to media changes the visible form in the
+  same view instance.
+- Base: a cached group payload with `members` remains selectable on mobile.
+- Bad: passing a changing `default-value` to a reused uncontrolled Accordion or
+  storing raw group JSON in Pinia.
+
+### 6. Tests Required
+
+- Static/component test for section key or controlled Accordion state.
+- Normalizer tests for current and legacy group payloads plus empty fields.
+- Narrow viewport regression pass for group tabs and section content.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```vue
+<Accordion :default-value="currentSection">
+```
+
+#### Correct
+
+```vue
+<Accordion :key="currentSection" :default-value="currentSection">
+```
+
 ## Scenario: Mobile composer and image-safe background refresh
 
 ### 1. Scope / Trigger

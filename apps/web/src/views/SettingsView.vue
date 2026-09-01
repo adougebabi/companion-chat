@@ -75,7 +75,7 @@ onMounted(() => void load());
         <Button class="back-link" variant="ghost" type="button" @click="emit('navigateSection', null)">‹ 返回设置</Button>
         <div><p class="eyebrow">CONTROL CENTER</p><h2>{{ settingsSections.find((item) => item.id === currentSection)?.label }}</h2><p class="field-note">{{ settingsSections.find((item) => item.id === currentSection)?.description }}</p></div>
       </header>
-      <Accordion type="single" :default-value="currentSection" class="settings-accordion">
+      <Accordion :key="currentSection" type="single" :default-value="currentSection" class="settings-accordion">
       <AccordionItem v-if="currentSection === 'model-role'" value="model-role" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading w-full py-0 hover:no-underline">
           <div><p class="eyebrow">MODEL ROLES</p><h2 id="model-role-title">模型角色绑定</h2><small>为不同认知角色选择模型和预算</small></div>

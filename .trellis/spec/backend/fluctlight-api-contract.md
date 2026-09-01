@@ -160,3 +160,69 @@ client.DescribeWorkflowExecution(ctx, rawWorkflowID, "")
 body, ok := decodeObjectBody(limitedBody)
 workflowID = normalizedWorkflowID(rawWorkflowID)
 ```
+
+## Scenario: Actor Group Response Compatibility
+
+### 1. Scope / Trigger
+
+- Trigger: actor groups cross the Go Core/BFF/browser boundary or the browser
+  filters the Fluctlight directory by group.
+- This contract preserves the established browser field name while allowing a
+  rolling deployment to read the previous `members` response.
+
+### 2. Signatures
+
+- `GET /internal/actor-groups` and `GET /api/actor-groups` return an array of
+  group objects.
+- `POST /internal/actor-groups` and `POST /api/actor-groups` return the created
+  group object.
+
+### 3. Contracts
+
+- The authoritative member field is `actor_ids: string[]`; `owner_actor_id`
+  and `created_at` remain additive metadata.
+- Browser normalization accepts `actor_ids` or legacy `members`, filters out
+  non-string entries, and always stores an array (empty when absent).
+- BFF remains a transport pass-through; Core owns the domain response shape.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Core returns `actor_ids` | Browser uses the string array unchanged after filtering. |
+| Rolling deployment returns `members` | Browser maps it to `actor_ids` before any `includes` call. |
+| Member field is missing, null, or not an array | Browser treats the group as having zero members; no render exception. |
+| Group object has no string `id`/`name` | Browser drops the malformed group and keeps other groups usable. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: Core returns `{id, name, actor_ids: ["fl-1"]}` and desktop/mobile
+  filters show only `fl-1`.
+- Base: an old BFF returns `{id, name, members: []}` and the normalized group
+  remains selectable without a crash.
+- Bad: a view reads `group.actor_ids.includes(...)` directly from an untrusted
+  API payload before normalization.
+
+### 6. Tests Required
+
+- Core response tests assert list/create payloads contain `actor_ids`.
+- Browser normalizer tests cover `actor_ids`, legacy `members`, empty/missing
+  fields, and non-string members.
+- Desktop and mobile directory regression tests assert group filtering never
+  invokes `includes` on `undefined`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+this.actorGroups = await client.listActorGroups();
+group.actor_ids.includes(fluctlightId);
+```
+
+#### Correct
+
+```ts
+this.actorGroups = normalizeActorGroups(await client.listActorGroups());
+group.actor_ids.includes(fluctlightId); // always a string[]
+```

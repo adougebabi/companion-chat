@@ -1,4 +1,6 @@
-export type ActorGroupSnapshot = { id: string; name: string; actor_ids: string[] };
+import type { ActorGroupSnapshot } from "./actor-groups";
+
+export type { ActorGroupSnapshot } from "./actor-groups";
 
 export function planDefaultGroupMembership(groups: ActorGroupSnapshot[], actorIds: string[]) {
   const defaultGroup = groups.find((group) => group.name === "默认") ?? null;

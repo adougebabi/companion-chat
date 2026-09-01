@@ -627,7 +627,7 @@ func (a *App) ActorGroups(ctx context.Context, owner string) ([]map[string]any, 
 			members = append(members, m)
 		}
 		mrows.Close()
-		out = append(out, map[string]any{"id": id, "name": name, "owner_actor_id": owner, "members": members, "created_at": created.Format(time.RFC3339Nano)})
+		out = append(out, map[string]any{"id": id, "name": name, "owner_actor_id": owner, "actor_ids": members, "created_at": created.Format(time.RFC3339Nano)})
 	}
 	return out, rows.Err()
 }
@@ -640,7 +640,7 @@ func (a *App) CreateActorGroup(ctx context.Context, owner, name string) (map[str
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": id, "name": name, "owner_actor_id": owner, "members": []string{}}, nil
+	return map[string]any{"id": id, "name": name, "owner_actor_id": owner, "actor_ids": []string{}}, nil
 }
 func (a *App) SetActorGroupMember(ctx context.Context, owner, groupID, actorID string, add bool) error {
 	var groupOwner string

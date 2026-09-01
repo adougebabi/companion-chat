@@ -92,5 +92,5 @@ test("diagnostics entry loads records and creation keeps a direct correlation li
   assert.match(source, /诊断中心/);
   assert.match(source, /creationDiagnosticsCorrelationId/);
   assert.match(source, /查看本次分析诊断/);
-  assert.match(source, /fluctlightDetail\.behavioral_policy/);
+  assert.match(source, /behavioral_policy/);
 });
