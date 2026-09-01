@@ -189,7 +189,7 @@ func (a *App) setFluctlightLifecycle(ctx context.Context, actorID, id, status, r
 			return nil
 		}
 		lifecycleRevision++
-		if err := tx.QueryRow(ctx, `UPDATE public.fluctlights SET status=$2,lifecycle_revision=$3,retired_at=CASE WHEN $2='retired' THEN COALESCE(retired_at,now()) ELSE retired_at END,updated_at=now() WHERE id=$1 RETURNING retired_at`, id, status, lifecycleRevision).Scan(&retiredAt); err != nil {
+		if err := tx.QueryRow(ctx, `UPDATE public.fluctlights SET status=$2::varchar,lifecycle_revision=$3,retired_at=CASE WHEN $2::varchar='retired' THEN COALESCE(retired_at,now()) ELSE retired_at END,updated_at=now() WHERE id=$1 RETURNING retired_at`, id, status, lifecycleRevision).Scan(&retiredAt); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_governance(id,fluctlight_id,revision,from_status,to_status,actor_id,reason) VALUES($1,$2,$3,$4,$5,$6,$7)`, randomID("fluctlight_governance_"), id, lifecycleRevision, currentStatus, status, actorID, nullableString(reason)); err != nil {
@@ -529,7 +529,7 @@ func (a *App) GovernAutonomy(ctx context.Context, actorID, actionID, toStatus, r
 		return nil, ErrUnauthorized
 	}
 	if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET status=$2,error_code=CASE WHEN $2='failed' THEN $3 ELSE error_code END WHERE id=$1 AND status=$4`, actionID, toStatus, reason, from)
+		command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET status=$2::varchar,error_code=CASE WHEN $2::varchar='failed' THEN $3 ELSE error_code END WHERE id=$1 AND status=$4`, actionID, toStatus, reason, from)
 		if err != nil {
 			return err
 		}
