@@ -777,3 +777,36 @@ Added a durable periodic wake_up.current Temporal loop. Each cycle persists boun
 ### Next Steps
 
 - None - task complete
+
+
+## Session 24: Complete personality growth and capability request loop
+
+**Date**: 2026-09-01
+**Task**: Complete personality growth and capability request loop
+**Branch**: `master`
+
+### Summary
+
+Implemented the complete cognition growth vertical: structured appraisal/focus/internal dynamics and action-result facts, arbitrary typed Drive/Preference/Trigger slots with revision/CAS provenance, generic CapabilityActionWorkflow, capability.request tool and global owner-reviewed capability request pool, BFF/OpenAPI/Web governance surface, migration 0022, docs/specs and smoke fixture updates. Verified Core/Gateway tests, Core race/vet, pnpm generate/typecheck/test/build, OpenAPI drift and fixture syntax. Compose smoke was not run because infra/compose/fluctlight.env is absent.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9080d70` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
