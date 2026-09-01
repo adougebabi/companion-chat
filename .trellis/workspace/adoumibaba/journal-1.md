@@ -744,3 +744,36 @@ Created a dedicated worktree, retained POST NDJSON for turns, added canonical na
 ### Next Steps
 
 - None - task complete
+
+
+## Session 23: Periodic self-awareness wake-up loop
+
+**Date**: 2026-09-01
+**Task**: Periodic self-awareness wake-up loop
+**Branch**: `master`
+
+### Summary
+
+Added a durable periodic wake_up.current Temporal loop. Each cycle persists bounded attention/thought/desire/agency and internal dynamics as a cognition fact, feeds reflection/self-model evolution, and freezes policy-approved external actions through existing autonomy workflows. Added product.wakeup settings, wake-up history in detail/governance UI, migration 0021, smoke fixture support, README and code-spec updates; all Core/Gateway/Web checks passed.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1fbd6db` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
