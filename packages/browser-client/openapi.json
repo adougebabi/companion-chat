@@ -63,6 +63,16 @@
         "operationId": "updateSettings"
       }
     },
+    "/api/capability-requests": {
+      "get": {
+        "operationId": "listCapabilityRequests"
+      }
+    },
+    "/api/capability-requests/{requestId}/review": {
+      "post": {
+        "operationId": "reviewCapabilityRequest"
+      }
+    },
     "/api/providers/endpoints": {
       "get": {
         "operationId": "listProviderEndpoints"

@@ -42,6 +42,10 @@ def assessment_payload() -> dict[str, object]:
             "evidence_refs": ["fixture-event"],
             "decision_id": "fixture-decision",
         },
+        "attention": "the current conversation",
+        "thought": "keep the response grounded",
+        "desire": "maintain a helpful connection",
+        "agency": "reply with the configured response",
         "model_version": "fixture-v1",
         "prompt_version": "fixture-prompt-v1",
     }
@@ -50,6 +54,18 @@ def assessment_payload() -> dict[str, object]:
 def wake_up_payload() -> dict[str, object]:
     """Return the smallest valid internal-life decision for the smoke stack."""
     return {
+        "appraisal": {
+            "relevance": 0.5,
+            "goal_congruence": 0.5,
+            "reward": 0.5,
+            "loss": 0.0,
+            "social_threat": 0.0,
+            "controllability": 0.5,
+            "responsibility": 0.5,
+            "relationship_significance": 0.5,
+            "expected_effect": 0.5,
+            "evidence_refs": [],
+        },
         "attention": "fixture context",
         "thought": "fixture internal summary",
         "desire": "maintain continuity",

@@ -37,6 +37,9 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 	}
 	data := decodeObject(payload)
 	if strings.HasPrefix(stringValue(data["event_type"]), "life.") {
+		if err := a.ProcessNativeCognitionFact(ctx, inboxID); err != nil {
+			return nil, err
+		}
 		if err := a.markNativeFactProcessed(ctx, inboxID); err != nil {
 			return nil, err
 		}
@@ -172,13 +175,19 @@ func (a *App) PersistTurnDecision(ctx context.Context, inboxID, fluctlightID, co
 		var stateRevision int
 		_ = tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&stateRevision)
 		result.StateRev = stateRevision
+		resultingDynamics, err := a.persistCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, decision, action, frozenID)
+		if err != nil {
+			return err
+		} else {
+			result.StateRev = int(numberOrZero(resultingDynamics["revision"]))
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_assessments(id,inbox_id,fluctlight_id,payload,schema_version,model,model_version,prompt_version,correlation_id) VALUES($1,$2,$3,$4,'structured-turn.v1','configured','configured','go-core-turn.v1',$5) ON CONFLICT DO NOTHING`, assessmentID, inboxID, fluctlightID, jsonBytes(decision), "turn:"+turnID); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_decision_proposals(id,assessment_id,fluctlight_id,action_type,payload,confidence,evidence_refs) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`, decisionID, assessmentID, fluctlightID, action, jsonBytes(decision), jsonString(decision["confidence"]), jsonBytes(arrayValue(decision["evidence_refs"]))); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO public.cognition_frozen_actions(id,decision_id,inbox_id,fluctlight_id,action_type,payload,state_revision,provider_request_id,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'frozen') ON CONFLICT DO NOTHING`, frozenID, decisionID, inboxID, fluctlightID, action, jsonBytes(payload), stateRevision, "provider_turn_"+stableDigest(inboxID))
+		_, err = tx.Exec(ctx, `INSERT INTO public.cognition_frozen_actions(id,decision_id,inbox_id,fluctlight_id,action_type,payload,state_revision,provider_request_id,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'frozen') ON CONFLICT DO NOTHING`, frozenID, decisionID, inboxID, fluctlightID, action, jsonBytes(payload), result.StateRev, "provider_turn_"+stableDigest(inboxID))
 		return err
 	})
 	return result, err
@@ -228,6 +237,16 @@ func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID strin
 			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:"+inboxID, "reflection:"+inboxID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": inboxID})); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_action_results(id,fluctlight_id,action_id,source_fact_id,status,output,evidence_refs) VALUES($1,$2,$3,$4,'completed',$5,$6) ON CONFLICT(action_id) DO NOTHING`, "action_result_"+stableDigest(frozenID+":realization"), fluctlightID, frozenID, inboxID, jsonBytes(realization), jsonBytes([]string{inboxID})); err != nil {
+			return err
+		}
+		resultFactID, err := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", map[string]any{"action_id": frozenID, "source_fact_id": inboxID, "result": realization}, "action-result:"+frozenID)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:result:"+frozenID, "reflection:result:"+frozenID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": resultFactID, "action_id": frozenID})); err != nil {
 			return err
 		}
 		return nil

@@ -332,6 +332,10 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
 - The Worker registers the workflow and activity only on `lifecycle`, and the
   dispatcher treats `wake_up.current` as a lifecycle intent with the same
   retry/reconcile semantics as other Go workflows.
+- A wake-up that proposes a Capability tool call freezes a generic
+  `capability.action` on `interaction`; the CapabilityActionWorkflow reuses the
+  same stable action/lease/result/reflection boundary as legacy autonomy
+  actions, so the wake-up activity never executes an external effect directly.
 - Disabled or inactive results still use the durable timer; inactive results
   terminate, while disabled results sleep and re-read settings on the next
   cycle.

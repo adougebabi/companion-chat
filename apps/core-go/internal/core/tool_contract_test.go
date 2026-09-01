@@ -142,6 +142,21 @@ func TestCapabilityRegistryIsAnExtensibleSlot(t *testing.T) {
 	}
 }
 
+func TestCapabilityRequestIsAdvertisedAndKeepsReplyAction(t *testing.T) {
+	manifest := capabilityRequestManifest()
+	if manifest.Name != "capability.request" || manifest.Parameters == nil {
+		t.Fatalf("capability request manifest = %#v", manifest)
+	}
+	call := ToolCallV1{ID: "need-1", Name: "capability.request", Arguments: json.RawMessage(`{"capability_key":"calendar.read","title":"读取日历","description":"需要知道日程安排","rationale":"帮助安排后续行动","desired_contract":{},"evidence_refs":["fact-1"]}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1", SchemaVersion: ToolCallSchemaVersion}
+	action, _, err := resolveToolCallAction([]ToolCallV1{call}, toolManifestMap([]CapabilityManifest{manifest}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != "reply" {
+		t.Fatalf("capability request action = %q, want reply", action)
+	}
+}
+
 func TestDefaultNativeCapabilitySlotsAreVersioned(t *testing.T) {
 	registry := NewCapabilityRegistry(testCapabilityExecutor{})
 	for _, manifest := range []CapabilityManifest{sceneCapabilityManifest(), presenceCapabilityManifest(), memoryCapabilityManifest()} {

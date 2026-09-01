@@ -271,6 +271,10 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.callMap(response, request, "/internal/settings", http.MethodGet, nil, s.readOnlyError(http.StatusForbidden, "settings_unavailable", "Settings are unavailable"), func(value map[string]any) any { return mapSettings(value) })
 		return
 	}
+	if path == "/api/capability-requests" && methodName == http.MethodGet {
+		s.callAny(response, request, "/internal/capability-requests", http.MethodGet, nil, s.readOnlyError(http.StatusForbidden, "capability_requests_unavailable", "Capability requests are unavailable"), func(value any) any { return browserCapabilityRequests(value) })
+		return
+	}
 	if path == "/api/providers/endpoints" && methodName == http.MethodGet {
 		s.callAny(response, request, "/internal/providers/endpoints", http.MethodGet, nil, s.readOnlyError(http.StatusForbidden, "provider_configuration_failed", "Provider endpoints are unavailable"), nil)
 		return
@@ -479,6 +483,14 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/autonomy-actions"); ok && methodName == http.MethodGet {
 		s.callAny(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/autonomy-actions", http.MethodGet, nil, s.readOnlyError(http.StatusForbidden, "autonomy_actions_unavailable", "Autonomy actions are unavailable"), nil)
+		return
+	}
+	if requestID, ok := match(path, "/api/capability-requests/:requestId/review"); ok && methodName == http.MethodPost {
+		body, valid := s.mutationBody(response, request, validateCapabilityRequestReview)
+		if !valid {
+			return
+		}
+		s.callMap(response, request, "/internal/capability-requests/"+escape(requestID)+"/review", http.MethodPost, map[string]any{"status": body["status"], "note": body["note"], "capability_version": body["capabilityVersion"]}, s.readOnlyError(http.StatusUnprocessableEntity, "capability_request_review_failed", "Capability request could not be reviewed"), nil)
 		return
 	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/status"); ok && methodName == http.MethodPut {
@@ -1168,6 +1180,22 @@ func validateSettings(value map[string]any) bool {
 		return false
 	}
 	return true
+}
+func validateCapabilityRequestReview(value map[string]any) bool {
+	if !validateString(value["status"], 1, 32) {
+		return false
+	}
+	status := stringValue(value["status"])
+	if status != "reviewing" && status != "accepted" && status != "rejected" && status != "fulfilled" && status != "cancelled" {
+		return false
+	}
+	if note, exists := value["note"]; !exists || !validateString(note, 1, 2000) {
+		return false
+	}
+	if version, exists := value["capabilityVersion"]; exists && !validateString(version, 0, 128) {
+		return false
+	}
+	return status != "fulfilled" || validateString(value["capabilityVersion"], 1, 128)
 }
 func validateConversationCreate(value map[string]any) bool {
 	actors, ok := value["participantActorIds"]

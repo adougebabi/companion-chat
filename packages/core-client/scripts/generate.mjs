@@ -84,6 +84,8 @@ export class CoreClient {
   }
   async readSettings(humanSession: string): Promise<CoreSafeSettings> { return this.settings("GET", humanSession); }
   async updateSettings(humanSession: string, patch: object): Promise<CoreSafeSettings> { return this.settings("PUT", humanSession, patch); }
+  async listCapabilityRequests(humanSession: string): Promise<Array<Record<string, unknown>>> { return this.json("/internal/capability-requests", humanSession, "GET") as Promise<Array<Record<string, unknown>>>; }
+  async reviewCapabilityRequest(humanSession: string, requestId: string, body: object): Promise<Record<string, unknown>> { return this.json(\`/internal/capability-requests/\${encodeURIComponent(requestId)}/review\`, humanSession, "POST", body) as Promise<Record<string, unknown>>; }
   async configureProviderEndpoint(humanSession: string, endpoint: object): Promise<void> { await this.provider("/internal/providers/endpoints", humanSession, endpoint); }
   async providerEndpoints(humanSession: string): Promise<Array<{ id: string; kind: string; base_url: string; secret_configured: boolean; capability_status: string; roles: Array<{ role: string; model_id: string }> }>> { return this.json("/internal/providers/endpoints", humanSession, "GET") as Promise<Array<{ id: string; kind: string; base_url: string; secret_configured: boolean; capability_status: string; roles: Array<{ role: string; model_id: string }> }>>; }
   async providerEndpointModels(humanSession: string, endpointId: string): Promise<CoreProviderModels> { return this.json(\`/internal/providers/endpoints/\${encodeURIComponent(endpointId)}/models\`, humanSession, "GET") as Promise<CoreProviderModels>; }

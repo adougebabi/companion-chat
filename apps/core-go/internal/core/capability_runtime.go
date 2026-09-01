@@ -17,6 +17,7 @@ func (a *App) capabilityRegistry() *CapabilityRegistry {
 		&sceneCapabilityExecutor{app: a},
 		&presenceCapabilityExecutor{app: a},
 		&memoryCapabilityExecutor{app: a},
+		&capabilityRequestExecutor{app: a},
 	)
 }
 
@@ -54,6 +55,11 @@ func (a *App) ExecuteToolCalls(ctx context.Context, fluctlightID, conversationID
 		results = append(results, result)
 		if validationErr := result.Validate(call); validationErr != nil {
 			return results, validationErr
+		}
+		if call.ActionID != "" {
+			if persistErr := a.persistActionResult(ctx, fluctlightID, call.ActionID, sourceFactID, result); persistErr != nil {
+				return results, persistErr
+			}
 		}
 		if err != nil {
 			return results, err
@@ -208,11 +214,15 @@ func resolveToolCallAction(calls []ToolCallV1, manifests map[string]CapabilityMa
 				return "", nil, errors.New("media concept is required")
 			}
 			action = "media_request"
-		case "scene_event", "presence_event", "memory_event":
+		case "scene_event", "presence_event", "memory_event", "capability.request":
 			// Native observations are committed by their authority executor;
 			// the visible response remains an ordinary reply.
 		default:
-			return "", nil, fmt.Errorf("capability %q cannot be used as a conversation action", call.Name)
+			// Any registered capability slot may be requested by Agency. The
+			// manifest/validator already owns availability and argument safety;
+			// the visible response remains an ordinary reply unless this is the
+			// dedicated media action above.
+			continue
 		}
 	}
 	return action, concept, nil

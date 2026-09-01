@@ -4,6 +4,11 @@ import "testing"
 
 func TestNormalizeWakeUpAssessmentKeepsInternalStages(t *testing.T) {
 	value, err := normalizeWakeUpAssessment(map[string]any{
+		"appraisal": map[string]any{
+			"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.0,
+			"social_threat": 0.0, "controllability": 0.5, "responsibility": 0.5,
+			"relationship_significance": 0.5, "expected_effect": 0.5,
+		},
 		"attention":   "我注意到今天的节奏发生了变化",
 		"thought":     map[string]any{"summary": "需要重新整理优先级"},
 		"desire":      "保持清醒并完成重要的事",
@@ -23,11 +28,16 @@ func TestNormalizeWakeUpAssessmentKeepsInternalStages(t *testing.T) {
 
 func TestNormalizeWakeUpAssessmentRejectsInvalidAction(t *testing.T) {
 	_, err := normalizeWakeUpAssessment(map[string]any{
+		"appraisal": map[string]any{
+			"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.0,
+			"social_threat": 0.0, "controllability": 0.5, "responsibility": 0.5,
+			"relationship_significance": 0.5, "expected_effect": 0.5,
+		},
 		"attention":   "attention",
 		"thought":     "thought",
 		"desire":      "desire",
 		"agency":      "agency",
-		"action_type": "send_everything",
+		"action_type": "send everything",
 	})
 	if err == nil {
 		t.Fatal("invalid wake-up action should be rejected")

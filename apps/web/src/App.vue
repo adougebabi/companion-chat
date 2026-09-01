@@ -103,6 +103,7 @@ async function openGovernance() {
   showDetails.value = false;
   governanceRequest.value = true;
   await navigate("instances");
+  await controlCenter.loadCapabilityRequests();
   await nextTick();
   governanceRequest.value = false;
 }

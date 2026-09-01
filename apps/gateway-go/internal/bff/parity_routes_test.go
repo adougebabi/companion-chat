@@ -29,6 +29,8 @@ func browserRouteCases() []browserRouteCase {
 		{name: "login", method: http.MethodPost, path: "/auth/login", body: `{"password":"long-enough-password"}`},
 		{name: "settings get", method: http.MethodGet, path: "/api/settings"},
 		{name: "settings put", method: http.MethodPut, path: "/api/settings", body: `{"values":{},"secrets":{},"clearSecrets":[]}`},
+		{name: "capability request list", method: http.MethodGet, path: "/api/capability-requests"},
+		{name: "capability request review", method: http.MethodPost, path: "/api/capability-requests/request-1/review", body: `{"status":"accepted","note":"reviewed"}`},
 		{name: "provider endpoint put", method: http.MethodPut, path: "/api/providers/endpoints", body: `{"endpointId":"endpoint","kind":"openai","baseUrl":"http://provider","secretPurpose":"chat"}`},
 		{name: "provider endpoint get", method: http.MethodGet, path: "/api/providers/endpoints"},
 		{name: "provider models", method: http.MethodGet, path: "/api/providers/endpoints/endpoint/models"},
@@ -139,6 +141,10 @@ func fakeCoreForRoute(request *http.Request) (*http.Response, error) {
 		return jsonResponse(http.StatusOK, `{"authenticated":true,"actor_id":"owner","session_token":"session"}`), nil
 	case path == "/internal/settings":
 		return jsonResponse(http.StatusOK, `{"values":{},"configured_secrets":[]}`), nil
+	case path == "/internal/capability-requests" && request.Method == http.MethodGet:
+		return jsonResponse(http.StatusOK, `[]`), nil
+	case strings.HasSuffix(path, "/review"):
+		return jsonResponse(http.StatusOK, `{"id":"request-1","status":"accepted"}`), nil
 	case strings.HasSuffix(path, "/models"):
 		return jsonResponse(http.StatusOK, `{"endpoint_id":"endpoint","models":[]}`), nil
 	case (path == "/internal/providers/endpoints" || path == "/internal/providers") && request.Method == http.MethodGet:

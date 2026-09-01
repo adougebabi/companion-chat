@@ -48,7 +48,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if command.RowsAffected() != 1 {
 				return ErrConflict
 			}
-			if err := a.settleWakeUpActionTx(ctx, tx, actionID, map[string]any{"status": "completed", "action_status": "completed"}); err != nil {
+			if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, map[string]any{"status": "completed", "action_status": "completed"}); err != nil {
 				return err
 			}
 			return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed", "aggregate_sequence": 1})
@@ -75,7 +75,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if command.RowsAffected() != 1 {
 				return ErrConflict
 			}
-			if err := a.settleWakeUpActionTx(ctx, tx, actionID, map[string]any{"status": "completed", "action_status": "completed", "moment_id": momentID}); err != nil {
+			if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, map[string]any{"status": "completed", "action_status": "completed", "moment_id": momentID}); err != nil {
 				return err
 			}
 			return appendOutboxTx(ctx, tx, "moment.published", "moment", momentID, fluctlightID, actionID, "autonomy:"+actionID, "moment-outbox:"+actionID, map[string]any{"moment_id": momentID, "action_id": actionID, "aggregate_sequence": 1})
@@ -107,7 +107,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if command.RowsAffected() != 1 {
 				return ErrConflict
 			}
-			if err := a.settleWakeUpActionTx(ctx, tx, actionID, map[string]any{"status": "completed", "action_status": "completed", "media_intent_id": intentID}); err != nil {
+			if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, map[string]any{"status": "completed", "action_status": "completed", "media_intent_id": intentID}); err != nil {
 				return err
 			}
 			return appendOutboxTx(ctx, tx, "media.intent.created", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "media-outbox:"+actionID, map[string]any{"media_intent_id": intentID, "aggregate_sequence": 1})
@@ -118,6 +118,57 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 		return map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed", "media_intent_id": intentID}, nil
 	}
 	return a.failAutonomyAction(ctx, actionID, "unsupported_action_type")
+}
+
+func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map[string]any, error) {
+	var fluctlightID, status string
+	var payload []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,status,payload FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&fluctlightID, &status, &payload); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	if status == "completed" || status == "failed" || status == "cancelled" || status == "paused" || status == "deferred" || status == "cancel_requested" {
+		return map[string]any{"action_id": actionID, "action_type": "capability", "status": status}, nil
+	}
+	if status != "frozen" {
+		return nil, fmt.Errorf("capability action is not executable: %s", status)
+	}
+	data := decodeObject(payload)
+	calls := toolCallsFromValue(data["tool_calls"])
+	if len(calls) == 0 {
+		return a.failAutonomyAction(ctx, actionID, "capability_calls_empty")
+	}
+	var sourceFactID string
+	sourceFactID = stringValue(data["source_fact_id"])
+	if sourceFactID == "" {
+		return a.failAutonomyAction(ctx, actionID, "capability_source_missing")
+	}
+	for index := range calls {
+		calls[index].ActionID = actionID
+		calls[index].SourceFactID = sourceFactID
+	}
+	results, err := a.ExecuteToolCalls(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls)
+	if err != nil {
+		_, _ = a.DB.Pool().Exec(ctx, `UPDATE public.autonomy_actions SET status='failed',error_code=$2,settled_at=now() WHERE id=$1 AND status='frozen'`, actionID, "capability_action_failed")
+		_, _ = a.DB.Pool().Exec(ctx, `UPDATE public.cognition_wakeups SET result=result || $2::jsonb WHERE action_id=$1`, actionID, jsonBytes(map[string]any{"status": "failed", "action_status": "failed", "tool_results": results}))
+		return nil, err
+	}
+	result := map[string]any{"status": "completed", "action_status": "completed", "tool_results": results}
+	if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET status='completed',settled_at=now() WHERE id=$1 AND status='frozen'`, actionID)
+		if err != nil {
+			return err
+		}
+		if command.RowsAffected() != 1 {
+			return ErrConflict
+		}
+		return a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, result)
+	}); err != nil {
+		return nil, err
+	}
+	return map[string]any{"action_id": actionID, "action_type": "capability", "status": "completed", "tool_results": results}, nil
 }
 
 func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (map[string]any, error) {
@@ -132,8 +183,18 @@ func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (ma
 	return map[string]any{"action_id": actionID, "status": "failed", "error_code": code}, nil
 }
 
-func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID string, result map[string]any) error {
-	_, err := tx.Exec(ctx, `UPDATE public.cognition_wakeups SET result=result || $2::jsonb WHERE action_id=$1`, actionID, jsonBytes(result))
+func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, fluctlightID string, result map[string]any) error {
+	if _, err := tx.Exec(ctx, `UPDATE public.cognition_wakeups SET result=result || $2::jsonb WHERE action_id=$1`, actionID, jsonBytes(result)); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_action_results(id,fluctlight_id,action_id,source_fact_id,status,output,evidence_refs) VALUES($1,$2,$3,$4,'completed',$5,$6) ON CONFLICT(action_id) DO NOTHING`, "action_result_"+stableDigest(actionID+":settled"), fluctlightID, actionID, actionID, jsonBytes(result), jsonBytes([]string{actionID})); err != nil {
+		return err
+	}
+	factID, err := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", map[string]any{"action_id": actionID, "result": result}, "action-result:"+actionID)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:result:"+actionID, "reflection:result:"+actionID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID}))
 	return err
 }
 
@@ -201,7 +262,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 			allowedEvidence["memory:"+memoryID] = struct{}{}
 		}
 	}
-	proposal, err := a.Provider.Structured(ctx, "reflection", []map[string]any{{"role": "system", "content": "Review only the supplied evidence and context. Return JSON with memory_candidates, relationship_candidates, self_model_candidates, and personality_candidates arrays. Every candidate must include complete typed fields, confidence, and evidence_refs that reference an evidence id or sequence:N. Do not invent facts and do not use defaults."}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": projection})}})
+	proposal, err := a.Provider.Structured(ctx, "reflection", []map[string]any{{"role": "system", "content": "Review only the supplied evidence and context. Return JSON with memory_candidates, relationship_candidates, self_model_candidates, personality_candidates, drive_candidates, preference_candidates, and trigger_candidates arrays. Drive candidates use typed slots (pressure/scalar/categorical/set/bounded_object); preference candidates use the same typed value schemas. Every candidate must include complete typed fields, confidence, and evidence_refs that reference an evidence id or sequence:N. Do not invent facts and do not use defaults."}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": projection})}})
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
@@ -244,10 +305,21 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 // candidates. A malformed optional candidate is omitted; valid candidates in
 // the same proposal can still advance the watermark and be applied.
 func normalizeReflectionProposal(value map[string]any) map[string]any {
-	result := make(map[string]any, 4)
-	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates"} {
+	result := make(map[string]any, 7)
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
+		rawCandidates := value[key]
+		if rawCandidates == nil {
+			switch key {
+			case "drive_candidates":
+				rawCandidates = value["drive_recalibration_candidates"]
+			case "preference_candidates":
+				rawCandidates = value["preference_revision_candidates"]
+			case "trigger_candidates":
+				rawCandidates = value["future_trigger_candidates"]
+			}
+		}
 		items := make([]any, 0)
-		for _, raw := range arrayValue(value[key]) {
+		for _, raw := range arrayValue(rawCandidates) {
 			item := mapValue(raw)
 			if len(item) == 0 {
 				continue
@@ -309,6 +381,32 @@ func normalizeReflectionProposal(value map[string]any) map[string]any {
 				if stringValue(normalized["trait"]) == "" || normalized["value"] == nil {
 					continue
 				}
+			case "drive_candidates", "preference_candidates":
+				if stringValue(normalized["key"]) == "" && stringValue(normalized["slot_key"]) != "" {
+					normalized["key"] = normalized["slot_key"]
+				}
+				if stringValue(normalized["value_schema"]) == "" && stringValue(normalized["schema"]) != "" {
+					normalized["value_schema"] = normalized["schema"]
+				}
+				if stringValue(normalized["label"]) == "" {
+					normalized["label"] = normalized["name"]
+				}
+				if stringValue(normalized["description"]) == "" {
+					normalized["description"] = normalized["meaning"]
+				}
+				if stringValue(normalized["key"]) == "" || normalized["value"] == nil {
+					continue
+				}
+			case "trigger_candidates":
+				if stringValue(normalized["key"]) == "" {
+					normalized["key"] = normalized["trigger_key"]
+				}
+				if normalized["value"] == nil {
+					normalized["value"] = normalized["trigger"]
+				}
+				if stringValue(normalized["key"]) == "" || normalized["value"] == nil {
+					continue
+				}
 			}
 			items = append(items, normalized)
 		}
@@ -318,7 +416,7 @@ func normalizeReflectionProposal(value map[string]any) map[string]any {
 }
 
 func filterReflectionEvidence(proposal map[string]any, allowed map[string]struct{}) map[string]any {
-	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates"} {
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
 		filtered := make([]any, 0)
 		for _, raw := range arrayValue(proposal[key]) {
 			item := mapValue(raw)
@@ -366,7 +464,7 @@ func (a *App) setReflectionWindowIdle(ctx context.Context, fluctlightID string) 
 }
 
 func validateReflectionProposal(value map[string]any, allowedEvidence map[string]struct{}) error {
-	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates"} {
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
 		raw, ok := value[key]
 		if !ok || raw == nil {
 			continue
@@ -420,6 +518,24 @@ func validateReflectionProposal(value map[string]any, allowedEvidence map[string
 				}
 				if confidence, err := requiredBoundedNumber(item["confidence"]); err != nil || confidence < 0.8 {
 					return errors.New("reflection_personality_confidence_low")
+				}
+			}
+			if key == "drive_candidates" {
+				if _, err := validateSlotCandidate(item, "drive", allowedEvidence); err != nil {
+					return fmt.Errorf("reflection_drive_slot_invalid: %w", err)
+				}
+			}
+			if key == "preference_candidates" {
+				if _, err := validateSlotCandidate(item, "preference", allowedEvidence); err != nil {
+					return fmt.Errorf("reflection_preference_slot_invalid: %w", err)
+				}
+			}
+			if key == "trigger_candidates" {
+				if !validateSlotKey(stringValue(item["key"])) || len(jsonBytes(item["value"])) == 0 || len(jsonBytes(item["value"])) > 16000 {
+					return errors.New("reflection_trigger_candidate_invalid")
+				}
+				if _, err := requiredBoundedNumber(item["confidence"]); err != nil {
+					return errors.New("reflection_trigger_confidence_invalid")
 				}
 			}
 		}
@@ -490,6 +606,21 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 			continue
 		}
 		if err := a.applyPersonalityCandidateTx(ctx, tx, fluctlightID, mapValue(raw), refs, sourceWindow); err != nil {
+			return err
+		}
+	}
+	for index, raw := range arrayValue(proposal["drive_candidates"]) {
+		if err := a.applyDriveSlotCandidateTx(ctx, tx, fluctlightID, mapValue(raw), allowedEvidence, sourceWindow, index); err != nil {
+			return err
+		}
+	}
+	for index, raw := range arrayValue(proposal["preference_candidates"]) {
+		if err := a.applyPreferenceSlotCandidateTx(ctx, tx, fluctlightID, mapValue(raw), allowedEvidence, sourceWindow, index); err != nil {
+			return err
+		}
+	}
+	for index, raw := range arrayValue(proposal["trigger_candidates"]) {
+		if err := a.applyTriggerPreferenceCandidateTx(ctx, tx, fluctlightID, mapValue(raw), allowedEvidence, sourceWindow, index); err != nil {
 			return err
 		}
 	}

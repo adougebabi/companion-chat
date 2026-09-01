@@ -80,6 +80,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/schedules/{scheduleID}/cancel", s.cancelSchedule)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/moments", s.moments)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/autonomy-actions", s.autonomyActions)
+	mux.HandleFunc("GET /internal/capability-requests", s.capabilityRequests)
+	mux.HandleFunc("POST /internal/capability-requests/{requestID}/review", s.reviewCapabilityRequest)
 	mux.HandleFunc("POST /internal/autonomy-actions/{actionID}/govern", s.governAutonomy)
 	mux.HandleFunc("GET /internal/moments", s.allMoments)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/moments/read", s.markMomentsRead)
@@ -493,6 +495,36 @@ func (s *Server) autonomyActions(response http.ResponseWriter, request *http.Req
 		return
 	}
 	writeJSON(response, http.StatusOK, items)
+}
+
+func (s *Server) capabilityRequests(response http.ResponseWriter, request *http.Request) {
+	actorID, ok := s.authorizeHuman(response, request)
+	if !ok || s.app == nil {
+		return
+	}
+	items, err := s.app.ListCapabilityRequests(request.Context(), actorID)
+	if err != nil {
+		s.opError(response, err, "capability_requests_failed")
+		return
+	}
+	writeJSON(response, http.StatusOK, items)
+}
+
+func (s *Server) reviewCapabilityRequest(response http.ResponseWriter, request *http.Request) {
+	actorID, ok := s.authorizeHuman(response, request)
+	if !ok || s.app == nil {
+		return
+	}
+	body, valid := s.body(response, request)
+	if !valid {
+		return
+	}
+	value, err := s.app.ReviewCapabilityRequest(request.Context(), actorID, request.PathValue("requestID"), stringValue(body["status"]), stringValue(body["note"]), stringValue(body["capability_version"]))
+	if err != nil {
+		s.opError(response, err, "capability_request_review_failed")
+		return
+	}
+	writeJSON(response, http.StatusOK, value)
 }
 
 func (s *Server) schedule(response http.ResponseWriter, request *http.Request) {

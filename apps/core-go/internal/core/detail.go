@@ -34,6 +34,18 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 		inner = map[string]any{}
 	}
 	detail["inner_state"] = inner
+	detail["drive_slots"], err = a.readDriveSlots(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	detail["preference_slots"], err = a.readPreferenceSlots(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	detail["trigger_preferences"], err = a.readTriggerPreferences(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
 	goals, intentions, err := a.readAgency(ctx, fluctlightID)
 	if err != nil {
 		return nil, err

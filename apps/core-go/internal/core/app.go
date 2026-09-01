@@ -57,6 +57,7 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 		&sceneCapabilityExecutor{app: app},
 		&presenceCapabilityExecutor{app: app},
 		&memoryCapabilityExecutor{app: app},
+		&capabilityRequestExecutor{app: app},
 	)
 	return app, nil
 }

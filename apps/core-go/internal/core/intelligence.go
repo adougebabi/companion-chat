@@ -31,24 +31,27 @@ var validClaimKinds = map[string]struct{}{
 // Reflection, and native capability slots. It deliberately carries provenance
 // alongside semantic values so model output cannot become an unowned fact.
 type ContextProjection struct {
-	SchemaVersion    string           `json:"schema_version"`
-	FluctlightID     string           `json:"fluctlight_id"`
-	ConversationID   string           `json:"conversation_id"`
-	SourceFactID     string           `json:"source_fact_id"`
-	CurrentUserText  string           `json:"current_user_text"`
-	RecentMessages   []map[string]any `json:"recent_messages"`
-	ContextRevision  int              `json:"context_revision"`
-	Identity         map[string]any   `json:"identity"`
-	Personality      map[string]any   `json:"personality"`
-	SelfModel        map[string]any   `json:"self_model"`
-	BehavioralPolicy map[string]any   `json:"behavioral_policy"`
-	InnerState       map[string]any   `json:"inner_state"`
-	LifeContext      map[string]any   `json:"life_context"`
-	Presence         map[string]any   `json:"presence,omitempty"`
-	Memories         []map[string]any `json:"memories"`
-	Relationships    []map[string]any `json:"relationships"`
-	Hypotheses       []map[string]any `json:"hypotheses"`
-	Capabilities     []map[string]any `json:"capabilities"`
+	SchemaVersion      string           `json:"schema_version"`
+	FluctlightID       string           `json:"fluctlight_id"`
+	ConversationID     string           `json:"conversation_id"`
+	SourceFactID       string           `json:"source_fact_id"`
+	CurrentUserText    string           `json:"current_user_text"`
+	RecentMessages     []map[string]any `json:"recent_messages"`
+	ContextRevision    int              `json:"context_revision"`
+	Identity           map[string]any   `json:"identity"`
+	Personality        map[string]any   `json:"personality"`
+	SelfModel          map[string]any   `json:"self_model"`
+	BehavioralPolicy   map[string]any   `json:"behavioral_policy"`
+	InnerState         map[string]any   `json:"inner_state"`
+	LifeContext        map[string]any   `json:"life_context"`
+	Presence           map[string]any   `json:"presence,omitempty"`
+	Memories           []map[string]any `json:"memories"`
+	Relationships      []map[string]any `json:"relationships"`
+	Hypotheses         []map[string]any `json:"hypotheses"`
+	Capabilities       []map[string]any `json:"capabilities"`
+	DriveSlots         []map[string]any `json:"drive_slots"`
+	PreferenceSlots    []map[string]any `json:"preference_slots"`
+	TriggerPreferences []map[string]any `json:"trigger_preferences"`
 }
 
 type ResponsePlan struct {
@@ -118,6 +121,18 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if err != nil {
 		return ContextProjection{}, err
 	}
+	driveSlots, err := a.readDriveSlots(ctx, fluctlightID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	preferenceSlots, err := a.readPreferenceSlots(ctx, fluctlightID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	triggerPreferences, err := a.readTriggerPreferences(ctx, fluctlightID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
 	recentMessages := make([]map[string]any, 0)
 	if conversationID != "" {
 		history, historyErr := a.DB.History(ctx, conversationID, actorID, nil, 12)
@@ -139,6 +154,7 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 		LifeContext: lifeContext, Memories: memories, Relationships: relationships,
 		Hypotheses:   hypotheses,
 		Capabilities: capabilityManifestMaps(a.capabilityRegistry().Manifests()),
+		DriveSlots:   driveSlots, PreferenceSlots: preferenceSlots, TriggerPreferences: triggerPreferences,
 	}
 	if presence, ok := lifeContext["presence"].(map[string]any); ok {
 		projection.Presence = presence

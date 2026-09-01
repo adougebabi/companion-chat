@@ -276,6 +276,8 @@ func workflowFunction(intentType string) (any, error) {
 		return CurrentDayScheduleWorkflow, nil
 	case "autonomy.action":
 		return AutonomyActionWorkflow, nil
+	case "capability.action":
+		return CapabilityActionWorkflow, nil
 	case "media.generation":
 		return MediaWorkflow, nil
 	case "reflection.run":

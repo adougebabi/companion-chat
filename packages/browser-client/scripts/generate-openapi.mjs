@@ -15,6 +15,8 @@ const schema = {
     "/auth/revoke-all": { post: { operationId: "authRevokeAll" } },
     "/auth/password": { post: { operationId: "authChangePassword" } },
     "/api/settings": { get: { operationId: "readSettings" }, put: { operationId: "updateSettings" } },
+    "/api/capability-requests": { get: { operationId: "listCapabilityRequests" } },
+    "/api/capability-requests/{requestId}/review": { post: { operationId: "reviewCapabilityRequest" } },
     "/api/providers/endpoints": { get: { operationId: "listProviderEndpoints" }, put: { operationId: "configureProviderEndpoint" } },
     "/api/providers/endpoints/{endpointId}/models": { get: { operationId: "listProviderEndpointModels" } },
     "/api/providers": { get: { operationId: "providerBindings" } },

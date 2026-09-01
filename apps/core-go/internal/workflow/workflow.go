@@ -393,6 +393,22 @@ func AutonomyActionWorkflow(ctx workflow.Context, input Input) (map[string]any, 
 	return result, nil
 }
 
+func CapabilityActionWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	var result map[string]any
+	if err := workflow.ExecuteActivity(ctx, ProcessCapabilityActionActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func ReflectionWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 2}})
 	control, err := registerWorkflowControl(ctx)
@@ -482,6 +498,14 @@ func ProcessAutonomyActionActivity(ctx context.Context, input Input) (map[string
 	return application.ProcessAutonomyAction(ctx, input.ActionID)
 }
 
+func ProcessCapabilityActionActivity(ctx context.Context, input Input) (map[string]any, error) {
+	application := app()
+	if application == nil {
+		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	return application.ProcessCapabilityAction(ctx, input.ActionID)
+}
+
 func ProcessReflectionActivity(ctx context.Context, input Input) (map[string]any, error) {
 	application := app()
 	if application == nil {
@@ -565,8 +589,10 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterActivity(ProcessMediaActivity)
 		case InteractionQueue:
 			w.RegisterWorkflow(AutonomyActionWorkflow)
+			w.RegisterWorkflow(CapabilityActionWorkflow)
 			w.RegisterWorkflow(CognitionProcessingWorkflow)
 			w.RegisterActivity(ProcessAutonomyActionActivity)
+			w.RegisterActivity(ProcessCapabilityActionActivity)
 			w.RegisterActivity(ProcessCognitionActivity)
 		}
 		workers = append(workers, w)
@@ -672,7 +698,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		query += ` WHERE (status IS NULL OR status IN ('pending','retry')) AND (next_attempt_at IS NULL OR next_attempt_at <= now())`
 	}
 	args = append(args, limit)
-	query += fmt.Sprintf(` ORDER BY CASE WHEN intent_type LIKE 'schedule.%%' THEN 0 WHEN intent_type LIKE 'wake_up.%%' THEN 1 WHEN intent_type LIKE 'daily_review.%%' THEN 2 WHEN intent_type LIKE 'autonomy.%%' THEN 3 WHEN intent_type LIKE 'media.%%' THEN 4 WHEN intent_type LIKE 'reflection.%%' THEN 5 ELSE 6 END, created_at, intent_id LIMIT $%d`, len(args))
+	query += fmt.Sprintf(` ORDER BY CASE WHEN intent_type LIKE 'schedule.%%' THEN 0 WHEN intent_type LIKE 'wake_up.%%' THEN 1 WHEN intent_type LIKE 'daily_review.%%' THEN 2 WHEN intent_type LIKE 'autonomy.%%' THEN 3 WHEN intent_type LIKE 'capability.%%' THEN 4 WHEN intent_type LIKE 'media.%%' THEN 5 WHEN intent_type LIKE 'reflection.%%' THEN 6 ELSE 7 END, created_at, intent_id LIMIT $%d`, len(args))
 	rows, err := d.App.DB.Pool().Query(ctx, query, args...)
 	if err != nil {
 		return 0, err
@@ -750,6 +776,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = LifecycleQueue
 		case "autonomy.action":
 			workflowFn = AutonomyActionWorkflow
+			taskQueue = InteractionQueue
+		case "capability.action":
+			workflowFn = CapabilityActionWorkflow
 			taskQueue = InteractionQueue
 		case "reflection.run":
 			workflowFn = ReflectionWorkflow

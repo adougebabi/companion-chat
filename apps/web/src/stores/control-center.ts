@@ -47,6 +47,8 @@ export const useControlCenterStore = defineStore("control-center", {
     memoryEdits: {} as Record<string, string>,
     relationshipRollbackTargets: {} as Record<string, string>,
     autonomyActions: [] as Array<{ id: string; action_type: string; status: string; workflow_id: string; created_at: string }>,
+    capabilityRequests: [] as Array<Record<string, unknown>>,
+    capabilityRequestVersions: {} as Record<string, string>,
     lifeEvent: { kind: "", startAt: "", endAt: "", scene: "", activity: "", location: "" },
     presence: { currentTask: "", userPresence: "" },
     scheduleDraftJson: "",
@@ -406,6 +408,18 @@ export const useControlCenterStore = defineStore("control-center", {
       if (!fluctlightId) { this.autonomyActions = []; return; }
       try { this.autonomyActions = await client.listAutonomyActions(fluctlightId); }
       catch { this.error = "无法加载自治动作。"; }
+    },
+    async loadCapabilityRequests() {
+      try { this.capabilityRequests = await client.listCapabilityRequests(); }
+      catch { this.error = "无法加载能力需求。"; }
+    },
+    async reviewCapabilityRequest(requestId: string, status: "reviewing" | "accepted" | "rejected" | "fulfilled" | "cancelled", capabilityVersion = "") {
+      const note = this.governanceReason.trim();
+      if (!note) { this.error = "审核能力需求需要填写原因或备注。"; return; }
+      this.saving = true;
+      try { await client.reviewCapabilityRequest(requestId, { status, note, ...(capabilityVersion.trim() ? { capabilityVersion: capabilityVersion.trim() } : {}) }); this.governanceReason = ""; await this.loadCapabilityRequests(); }
+      catch { this.error = "无法更新能力需求状态。"; }
+      finally { this.saving = false; }
     },
     async governAutonomyAction(actionId: string, status: "paused" | "deferred" | "cancelled", fluctlightId: string | null) {
       const reason = this.governanceReason.trim();

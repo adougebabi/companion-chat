@@ -72,8 +72,8 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
 独立的操作入口。
 
 - **持续人格模型**：身份、人格、行为策略、生活档案、内部状态、目标、意图、
-  关系、记忆和 Foundation revision 都由 PostgreSQL 持久化，并支持版本、证据和
-  审计追踪。
+  关系、记忆、任意 Drive/Preference typed slots 和 Foundation revision 都由
+  PostgreSQL 持久化，并支持版本、证据和审计追踪。
 - **认知运行时**：将感知、评估、状态更新、决策、能力执行、回复实现和反思拆成
   明确阶段；模型负责语义判断，服务器负责权限、数值边界、幂等和最终提交。
 - **记忆与检索**：支持工作记忆、情景记忆、语义记忆、关系记忆和自传记忆；检索
@@ -82,7 +82,9 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
 - **自治与生活世界**：围绕 Goal、Intention、Schedule、Event、Presence 和每日
   Review 组织自主行为；自治动作可暂停、取消、重试，并受预算和治理策略约束。
 - **能力注册与安全执行**：能力通过 manifest 声明参数、side effect、并发、取消、
-  重试和 preflight 属性；Provider 只能看到工具契约，不能直接访问领域表。
+  重试和 preflight 属性；Provider 只能看到工具契约，不能直接访问领域表。若模型
+  发现缺少能力，可以调用 `capability.request` 写入 Owner 可审核的全局需求池，
+  插件由人工接入现有 `CapabilityExecutor` slot。
 - **媒体流水线**：通过 ComfyUI 生成媒体，轮询外部任务并把图片、视频或音频写入
   私有 MinIO/S3；媒体带有校验信息、版本和引用关系，浏览器只能通过 BFF 代理读取。
 - **可靠异步执行**：PostgreSQL outbox 负责事务内记录事件，Worker 发布到 Redis
@@ -95,8 +97,8 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
 
 当前 Core 将摇光的主动性拆成两个相互衔接的循环：
 
-1. **外部/内部唤醒循环**：`Event / Internal State → Trigger → Wake-up → Attention → Thought → Desire → Agency → Action → Experience`。除了对话和生活事件外，每个激活的 Fluctlight 都会启动一个长期存活的 `wake_up.current` Temporal workflow。默认每 30 分钟执行一次，模型在唤醒时读取人格、内部状态、日程、关系、记忆和最近对话，产出结构化的 `attention`、`thought`、`desire`、`agency`；只有通过自治策略的动作才会冻结为现有自治 Action，动作交付仍由 Worker 负责。
-2. **人格成长循环**：`Experience → Reflection → Self Model → Drive / Preference → 下一次 Attention`。每次唤醒都会写入带 sequence 和 provenance 的 `internal.wake_up` cognition fact，并创建 `reflection.run` intent，沿用现有 Reflection 的证据窗口、水位和 CAS 约束，允许模型在有足够证据时提出 self-model/personality 演进。
+1. **外部/内部唤醒循环**：`Event / Internal State → Trigger → Wake-up → Attention → Thought → Desire → Agency → Action → Experience`。除了对话和生活事件外，每个激活的 Fluctlight 都会启动一个长期存活的 `wake_up.current` Temporal workflow。默认每 30 分钟执行一次，模型在唤醒时读取人格、内部状态、日程、关系、记忆和最近对话，产出结构化的 `attention`、`thought`、`desire`、`agency`；动作通过已安装的 Capability manifest、硬安全和稳定执行边界冻结，交付仍由 Worker 负责。
+2. **人格成长循环**：`Experience → Reflection → Self Model → Drive / Preference → 下一次 Attention`。每次唤醒都会写入带 sequence 和 provenance 的 `internal.wake_up` cognition fact，并创建 `reflection.run` intent，沿用现有 Reflection 的证据窗口、水位和 CAS 约束，允许模型在有足够证据时提出 self-model/personality 演进，以及任意 typed Drive/Preference slot 和未来 Trigger 偏好。
 
 唤醒周期可在 Web「运行策略」中通过 `product.wakeup` 调整：
 
@@ -104,10 +106,14 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
 { "enabled": true, "interval_seconds": 1800 }
 ```
 
-唤醒记录保存在 `cognition_wakeups`，可随 Core 实例详情读取（当前 Web 尚未提供
-独立的唤醒历史页面）；它们是私有认知事实，不会自动变成可见消息。外显联系、动态
+唤醒记录保存在 `cognition_wakeups`，可随 Core 实例详情读取，并在 Web 治理页查看
+近期摘要；它们是私有认知事实，不会自动变成可见消息。外显联系、动态
 或媒体仍必须经过自治模式、允许动作和已有冻结/治理边界；暂停自治只阻止新的外显
 动作，不会让内部唤醒和反思停止。
+
+当摇光判断当前能力不足时，会调用 `capability.request`，将需求及其经历证据写入
+全局需求池。Owner 可以在治理页审核、拒绝或接受需求；真正的插件接入仍由人工完成，
+通过 `CapabilityExecutor`/`CapabilityManifest` 注册后再标记对应需求为 `fulfilled`。
 
 ## 架构分层
 

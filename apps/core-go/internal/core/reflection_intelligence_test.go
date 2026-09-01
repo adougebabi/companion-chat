@@ -65,3 +65,21 @@ func TestFilterReflectionEvidenceKeepsAuthorizedReferences(t *testing.T) {
 		t.Fatalf("filtered evidence = %#v", items)
 	}
 }
+
+func TestReflectionNormalizesTypedDriveAndPreferenceSlots(t *testing.T) {
+	proposal := normalizeReflectionProposal(map[string]any{
+		"drive_recalibration_candidates": []any{map[string]any{"slot_key": "achievement", "name": "成就感", "meaning": "完成重要目标", "schema": "pressure", "value": map[string]any{"pressure": 0.8, "salience": 0.7, "direction": "toward_completion"}, "confidence": 0.9, "evidence_refs": []any{"fact-1"}}},
+		"preference_revision_candidates": []any{map[string]any{"key": "quiet_hours", "label": "安静时段", "description": "偏好安静环境", "value_schema": "categorical", "value": map[string]any{"selected": "evening"}, "confidence": 0.8, "evidence_refs": []any{"fact-1"}}},
+	})
+	drive := mapValue(arrayValue(proposal["drive_candidates"])[0])
+	if stringValue(drive["key"]) != "achievement" || stringValue(drive["value_schema"]) != "pressure" {
+		t.Fatalf("drive slot = %#v", drive)
+	}
+	preference := mapValue(arrayValue(proposal["preference_candidates"])[0])
+	if stringValue(preference["key"]) != "quiet_hours" || stringValue(preference["value_schema"]) != "categorical" {
+		t.Fatalf("preference slot = %#v", preference)
+	}
+	if err := validateReflectionProposal(proposal, map[string]struct{}{"fact-1": {}}); err != nil {
+		t.Fatalf("typed slots rejected = %v", err)
+	}
+}

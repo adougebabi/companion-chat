@@ -19,6 +19,13 @@ const governanceTimezone = computed(() => {
   const timezone = identity && typeof identity === "object" && !Array.isArray(identity) ? (identity as Record<string, unknown>).timezone : undefined;
   return resolveTimezone(typeof timezone === "string" ? timezone : undefined);
 });
+const growthSlots = computed(() => {
+  const detail = controlCenter.fluctlightDetail;
+  if (!detail) return [] as Array<Record<string, unknown>>;
+  const drives = Array.isArray(detail.drive_slots) ? detail.drive_slots as Array<Record<string, unknown>> : [];
+  const preferences = Array.isArray(detail.preference_slots) ? detail.preference_slots as Array<Record<string, unknown>> : [];
+  return [...drives, ...preferences];
+});
 
 async function retire() {
   const id = store.fluctlightId;
@@ -34,6 +41,10 @@ async function retire() {
   retirementConfirmation.value = "";
   await store.bootstrap();
   emit("retired");
+}
+function capabilityRequestStatus(value: unknown): string {
+  const labels: Record<string, string> = { proposed: "待审核", reviewing: "评估中", accepted: "已接受", rejected: "已拒绝", fulfilled: "已接入", cancelled: "已取消" };
+  return labels[String(value)] ?? String(value ?? "未知");
 }
 </script>
 
@@ -94,10 +105,17 @@ async function retire() {
         <label for="governance-evidence">证据引用</label><Input id="governance-evidence" v-model="controlCenter.governanceEvidence" maxlength="4096" placeholder="以逗号分隔，例如 event_123, message_456" />
         <h3>近期认知</h3><p v-if="!(controlCenter.fluctlightDetail.cognition_history as unknown[])?.length" class="field-note">还没有完成的认知行动。</p><ul v-else class="detail-list"><li v-for="action in controlCenter.fluctlightDetail.cognition_history as Array<Record<string, unknown>>" :key="String(action.id)">{{ enumLabel(action.action_type) }}<small>{{ enumLabel(action.status) }}</small></li></ul>
         <h3>近期唤醒</h3><p v-if="!(controlCenter.fluctlightDetail.wake_ups as unknown[])?.length" class="field-note">还没有完成定期唤醒。</p><ul v-else class="detail-list"><li v-for="wakeUp in controlCenter.fluctlightDetail.wake_ups as Array<Record<string, unknown>>" :key="String(wakeUp.id)"><strong>第 {{ formatDisplayValue(wakeUp.cycle) }} 次 · {{ enumLabel(wakeUp.action_type) }}</strong><small>注意：{{ formatDisplayValue(wakeUp.attention) }}</small><small>想法：{{ formatDisplayValue(wakeUp.thought) }}</small><small>愿望：{{ formatDisplayValue(wakeUp.desire) }}</small><small>行动判断：{{ formatDisplayValue(wakeUp.agency) }}</small></li></ul>
+        <h3>人格动力与偏好</h3><p v-if="!growthSlots.length" class="field-note">还没有形成可追踪的动力或偏好槽位。</p><ul v-else class="detail-list"><li v-for="slot in growthSlots" :key="String(slot.id)"><strong>{{ formatDisplayValue(slot.label) !== "未设定" ? formatDisplayValue(slot.label) : labelFor(String(slot.key)) }}</strong><small>{{ labelFor("key") }}：{{ labelFor(String(slot.key)) }} · {{ labelFor("value_schema") }}：{{ formatDisplayValue(slot.value_schema) }} · {{ labelFor("revision") }}：{{ formatDisplayValue(slot.revision) }}</small><small>{{ labelFor("value") }}：{{ formatDisplayValue(slot.value) }}</small></li></ul>
       </details>
 
       <details class="governance-section">
-        <summary class="section-heading"><span class="section-index">04</span><div><p class="eyebrow">自治与修订</p><h2>自治与修订</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+        <summary class="section-heading"><span class="section-index">04</span><div><p class="eyebrow">CAPABILITY REQUESTS</p><h2>能力需求池</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
+        <p class="field-note">摇光发现当前没有的能力时，会通过 tool call 提交需求。这里先评估，再手动接入插件；需求本身不会伪装成已执行的动作。</p>
+        <ul v-if="controlCenter.capabilityRequests.length" class="detail-list"><li v-for="request in controlCenter.capabilityRequests" :key="String(request.id)"><strong>{{ formatDisplayValue(request.title) }}</strong><small>{{ labelFor("capability_key") }}：{{ formatDisplayValue(request.capabilityKey) }} · {{ labelFor("aggregate_count") }}：{{ formatDisplayValue(request.aggregateCount) }} · {{ capabilityRequestStatus(request.status) }}</small><small>来源摇光：{{ formatDisplayValue(request.fluctlightId) }} · 证据：{{ formatDisplayValue(request.evidenceRefs) }}</small><small>{{ formatDisplayValue(request.description) }}</small><small>提出原因：{{ formatDisplayValue(request.rationale) }}</small><div class="inline-controls"><Button v-if="request.status === 'proposed'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.reviewCapabilityRequest(String(request.id), 'reviewing')">开始评估</Button><Button v-if="request.status === 'reviewing'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.reviewCapabilityRequest(String(request.id), 'accepted')">接受需求</Button><Input v-if="request.status === 'accepted' || request.status === 'fulfilled'" v-model="controlCenter.capabilityRequestVersions[String(request.id)]" aria-label="插件版本" placeholder="插件版本" maxlength="128" /><Button v-if="request.status === 'accepted'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.capabilityRequestVersions[String(request.id)]?.trim()" @click="controlCenter.reviewCapabilityRequest(String(request.id), 'fulfilled', controlCenter.capabilityRequestVersions[String(request.id)])">标记已接入</Button><Button v-if="request.status === 'proposed' || request.status === 'reviewing'" class="text-button danger-text" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.reviewCapabilityRequest(String(request.id), 'rejected')">拒绝</Button></div></li></ul>
+      </details>
+
+      <details class="governance-section">
+        <summary class="section-heading"><span class="section-index">05</span><div><p class="eyebrow">自治与修订</p><h2>自治与修订</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
         <p v-if="!controlCenter.autonomyActions.length" class="field-note">当前没有待治理的自治动作。</p>
         <ul v-else class="detail-list"><li v-for="action in controlCenter.autonomyActions" :key="action.id"><strong>{{ enumLabel(action.action_type) }}</strong><small>{{ enumLabel(action.status) }}</small><div class="inline-controls"><Button v-if="action.status === 'frozen' || action.status === 'deferred'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.governAutonomyAction(action.id, 'paused', store.fluctlightId)">暂停</Button><Button v-if="action.status === 'frozen' || action.status === 'deferred' || action.status === 'paused'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.governAutonomyAction(action.id, 'cancelled', store.fluctlightId)">取消</Button></div></li></ul>
         <h3>身份与人格修订记录</h3>
