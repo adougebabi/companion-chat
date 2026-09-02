@@ -50,6 +50,22 @@ func TestNormalizeProviderToolCallsAcceptsNativeAndSidecarShapes(t *testing.T) {
 	}
 }
 
+func TestNormalizeProviderToolCallsWrapsSingleObject(t *testing.T) {
+	calls, err := NormalizeProviderToolCalls(map[string]any{
+		"id":   "call_single",
+		"name": "media.image.generate",
+		"arguments": map[string]any{
+			"concept": map[string]any{"subject": "a cat"},
+		},
+	}, "fact-1", "provider-1")
+	if err != nil {
+		t.Fatalf("single object normalization error = %v", err)
+	}
+	if len(calls) != 1 || calls[0].ID != "call_single" || calls[0].Sequence != 0 {
+		t.Fatalf("normalized single call = %#v", calls)
+	}
+}
+
 func TestNormalizeProviderToolCallsRejectsMalformedOrDuplicateCalls(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -352,6 +368,67 @@ func TestProviderStructuredFailureDiagnosticRetainsChannelShape(t *testing.T) {
 	}
 	if diagnostic["content_present"] != false || diagnostic["parse_error"] != "structured_response_invalid" {
 		t.Fatalf("diagnostic = %#v", diagnostic)
+	}
+}
+
+func TestNormalizeStructuredShapeOnlyRepairsAbnormalFields(t *testing.T) {
+	schema := objectSchema(map[string]any{
+		"valid_items":    arraySchema(stringSchema()),
+		"array_expected": arraySchema(openObjectSchema()),
+		"object_expected": objectSchema(map[string]any{
+			"name": stringSchema(),
+		}, []string{"name"}, false),
+		"missing_text": stringSchema(),
+	}, []string{"valid_items", "array_expected", "object_expected", "missing_text"}, false)
+	value := map[string]any{
+		"valid_items":    []any{"keep", "as-is"},
+		"array_expected": map[string]any{"id": "call-1"},
+		"object_expected": []any{
+			map[string]any{"name": "first"},
+			map[string]any{"name": "second"},
+		},
+	}
+	normalized, fields := normalizeStructuredShape(value, schema)
+	if got := arrayValue(normalized["valid_items"]); len(got) != 2 || stringValue(got[0]) != "keep" {
+		t.Fatalf("valid array was changed: %#v", normalized["valid_items"])
+	}
+	if got := arrayValue(normalized["array_expected"]); len(got) != 1 || stringValue(mapValue(got[0])["id"]) != "call-1" {
+		t.Fatalf("object was not wrapped as array: %#v", normalized["array_expected"])
+	}
+	if got := mapValue(normalized["object_expected"]); got["name"] != "first" {
+		t.Fatalf("array was not reduced to first object: %#v", normalized["object_expected"])
+	}
+	if normalized["missing_text"] != "" {
+		t.Fatalf("missing required field was not emptied: %#v", normalized["missing_text"])
+	}
+	for _, field := range []string{"array_expected", "object_expected", "missing_text"} {
+		found := false
+		for _, changed := range fields {
+			if changed == field {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("field %q was not reported as normalized: %#v", field, fields)
+		}
+	}
+}
+
+func TestEmptyProviderStructuredUsesOperationTypedEmptyValues(t *testing.T) {
+	value, fields := emptyProviderStructured("wake_up_response", wakeUpResponseSchema())
+	if value["action_type"] != "no_op" || value["attention"] != "" || value["thought"] != "" || value["desire"] != "" || value["agency"] != "" {
+		t.Fatalf("wake-up empty values = %#v", value)
+	}
+	if refs := arrayValue(value["evidence_refs"]); len(refs) != 0 {
+		t.Fatalf("wake-up evidence refs = %#v", refs)
+	}
+	appraisal := mapValue(value["appraisal"])
+	if len(appraisal) == 0 || appraisal["relevance"] != float64(0) || len(arrayValue(appraisal["evidence_refs"])) != 0 {
+		t.Fatalf("wake-up empty appraisal = %#v", appraisal)
+	}
+	if len(fields) == 0 {
+		t.Fatal("empty fallback should report normalized fields")
 	}
 }
 

@@ -102,10 +102,11 @@ type ToolResultV1 struct {
 // application boundary. Visible text, structured sidecar data, and native
 // tool calls share one result instead of being inferred from prose later.
 type ProviderCompletion struct {
-	Text       string
-	Structured map[string]any
-	ToolCalls  []ToolCallV1
-	DoneSeen   bool
+	Text               string
+	Structured         map[string]any
+	ToolCalls          []ToolCallV1
+	DoneSeen           bool
+	StructuredFallback bool
 }
 
 // CapabilityExecutor is the narrow plugin seam.  The Runtime owns the
@@ -242,7 +243,7 @@ func imageCapabilityParameters() map[string]any {
 // the canonical JSON sidecar shape.  It intentionally rejects prose, missing
 // identifiers, non-object arguments, and oversized values at one boundary.
 func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID string) ([]ToolCallV1, error) {
-	rawCalls := arrayValue(value)
+	rawCalls := toolCallArrayValue(value)
 	if len(rawCalls) == 0 {
 		return []ToolCallV1{}, nil
 	}
@@ -292,6 +293,13 @@ func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID strin
 		})
 	}
 	return result, nil
+}
+
+func toolCallArrayValue(value any) []any {
+	if object, ok := value.(map[string]any); ok {
+		return []any{object}
+	}
+	return arrayValue(value)
 }
 
 func normalizeToolArguments(value any) (json.RawMessage, error) {

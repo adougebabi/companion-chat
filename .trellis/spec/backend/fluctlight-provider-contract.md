@@ -48,7 +48,7 @@ embed(role, inputs) -> VersionedEmbeddings
 | Condition | Result |
 | --- | --- |
 | Role has no endpoint/model assignment | Role unavailable with explicit configuration error; no fallback. |
-| Structured role returns invalid schema | Reject result and follow owning failure policy; do not parse prose. |
+| Structured role returns an empty/mismatched transport shape | Normalize only the affected fields (missing → typed empty, object ↔ array container repair), preserve native tool calls independently, and let the owning domain validator decide whether the resulting semantic payload is usable; never parse arbitrary prose. |
 | Realization role lacks streaming/abort | Preflight fails; role cannot activate. |
 | Embedding dimensions change unexpectedly | Reject vectors, mark role/index mismatch, require new embedding version. |
 | Timeout/token budget exceeded | Cancel/bound result and follow owning retry/terminal policy. |

@@ -322,7 +322,7 @@ func failedToolResult(call ToolCallV1, code string, retryable bool, detail strin
 }
 
 func toolCallsFromValue(value any) []ToolCallV1 {
-	data, err := json.Marshal(arrayValue(value))
+	data, err := json.Marshal(toolCallArrayValue(value))
 	if err != nil {
 		return nil
 	}

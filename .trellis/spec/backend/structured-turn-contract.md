@@ -154,10 +154,15 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
   may remove complete, known transport wrappers (`<think>`, a JSON Markdown
   fence, one JSON-string encoding, or a terminal object after a transport
   prelude), but it must not infer semantics from arbitrary prose. A rejected
-  structured response records only bounded channel-shape diagnostics (such as
-  presence and length), never hidden reasoning/raw provider output. The
-  visible `action_realization` stream remains ordinary text and does not use
-  JSON response formatting.
+  structured response is normalized field-by-field: missing values use the
+  schema's empty value, an object supplied for an array field is wrapped as a
+  one-item array, and an array supplied for an object field uses its first
+  object. Correctly typed sibling fields are left untouched. Native tool calls
+  are normalized independently and remain usable when the structured sidecar
+  is empty or malformed. The adapter records only bounded channel-shape
+  diagnostics (such as presence and length), never hidden reasoning/raw
+  provider output. The visible `action_realization` stream remains ordinary
+  text and does not use JSON response formatting.
 - Tool names use `[A-Za-z0-9][A-Za-z0-9._-]{0,127}`. Arguments are bounded JSON
   objects (64 KiB maximum) and are validated once at the provider-to-runtime
   boundary. Native provider entries and JSON sidecars normalize to the same

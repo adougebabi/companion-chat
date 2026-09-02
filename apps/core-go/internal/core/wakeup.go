@@ -247,6 +247,12 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, errors.New("wake_up_assessment_invalid")
 	}
 	toolCalls := completion.ToolCalls
+	if completion.StructuredFallback && len(toolCalls) > 0 {
+		// Without a structured action_type there is no safe target for an
+		// external capability call. Keep the internal wake-up and settle it as a
+		// no-op instead of guessing whether it belongs to a Moment or a message.
+		toolCalls = nil
+	}
 	assessment, err = normalizeWakeUpAssessment(assessment)
 	if err != nil {
 		return nil, err

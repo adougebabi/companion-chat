@@ -131,6 +131,10 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	correlationID := diagnosticCorrelation(messages, "")
 	providerRequestID := "provider:" + stableDigest(role+":"+correlationID)
 	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, manifests, role, schemaName, schema, enableThinking)
+	structuredSchema := schema
+	if structuredSchema == nil {
+		structuredSchema = providerSchemaForRole(role)
+	}
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return ProviderCompletion{}, err
@@ -191,6 +195,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, "tool_call_invalid")
 		return ProviderCompletion{}, err
 	}
+	logToolCallShapeNormalization(role, schemaName, "native", message["tool_calls"])
 	content, _ := message["content"].(string)
 	content = strings.TrimSpace(content)
 	// mlx-serve places structured JSON in reasoning_content when thinking is
@@ -198,28 +203,44 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	// structured control channel only; it is never exposed as visible text.
 	structuredCandidates := providerStructuredCandidates(message)
 	completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
+	var normalizedFields []string
 	if len(calls) > 0 {
 		for index := range completion.ToolCalls {
 			completion.ToolCalls[index].SourceFactID = ""
 		}
 		if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
-			completion.Structured = structured
-		} else if jsonMode && len(structuredCandidates) > 0 {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid", providerResponseDiagnostic(message, structuredCandidates, len(calls)))
-			return ProviderCompletion{}, fmt.Errorf("provider structured response is invalid")
+			completion.Structured, normalizedFields = normalizeProviderStructured(structured, schemaName, structuredSchema)
+			logStructuredNormalization(role, schemaName, normalizedFields, len(calls), len(structuredCandidates), false)
+		} else if jsonMode {
+			completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
+			completion.StructuredFallback = true
+			logStructuredNormalization(role, schemaName, normalizedFields, len(calls), len(structuredCandidates), true)
 		}
-		p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"tool_calls": completion.ToolCalls, "text": content})
+		providerResponse := map[string]any{"tool_calls": completion.ToolCalls, "text": content, "structured": completion.Structured}
+		if len(normalizedFields) > 0 {
+			providerResponse["normalized_fields"] = normalizedFields
+		}
+		p.recordProviderSuccess(ctx, assignment, correlationID, messages, providerResponse)
 		return completion, nil
 	}
 	if len(structuredCandidates) == 0 {
+		if jsonMode {
+			completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
+			completion.StructuredFallback = true
+			logStructuredNormalization(role, schemaName, normalizedFields, 0, 0, true)
+			p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured, "normalization": "empty"})
+			return completion, nil
+		}
 		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_content_empty")
 		return ProviderCompletion{}, fmt.Errorf("provider response content is empty")
 	}
 	if jsonMode || len(manifests) > 0 {
 		if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
-			completion.Structured = structured
+			completion.Structured, normalizedFields = normalizeProviderStructured(structured, schemaName, structuredSchema)
+			logStructuredNormalization(role, schemaName, normalizedFields, 0, len(structuredCandidates), false)
 			if len(manifests) > 0 {
-				calls, callErr := NormalizeProviderToolCalls(structured["tool_calls"], "", providerRequestID)
+				logToolCallShapeNormalization(role, schemaName, "structured", structured["tool_calls"])
+				calls, callErr := NormalizeProviderToolCalls(completion.Structured["tool_calls"], "", providerRequestID)
 				if callErr != nil {
 					p.recordProviderFailure(ctx, assignment, correlationID, messages, "tool_call_invalid")
 					return ProviderCompletion{}, callErr
@@ -227,11 +248,16 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 				completion.ToolCalls = calls
 			}
 		} else if jsonMode {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid", providerResponseDiagnostic(message, structuredCandidates, len(calls)))
-			return ProviderCompletion{}, fmt.Errorf("provider structured response is invalid")
+			completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
+			completion.StructuredFallback = true
+			logStructuredNormalization(role, schemaName, normalizedFields, 0, len(structuredCandidates), true)
 		}
 	}
-	p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured})
+	providerResponse := map[string]any{"text": content, "structured": completion.Structured}
+	if len(normalizedFields) > 0 {
+		providerResponse["normalized_fields"] = normalizedFields
+	}
+	p.recordProviderSuccess(ctx, assignment, correlationID, messages, providerResponse)
 	return completion, nil
 }
 

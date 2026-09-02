@@ -79,7 +79,14 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if decision == nil {
 		decision = map[string]any{}
 	}
-	composite, err := normalizeCompositeAction(decision, completion.ToolCalls, workflowID, "no_op")
+	toolCalls := completion.ToolCalls
+	if completion.StructuredFallback && len(toolCalls) > 0 {
+		// A DailyReview native tool call without its action_type cannot be bound
+		// safely to a Moment or Owner conversation. Preserve the review as a
+		// no-op rather than guessing the output target.
+		toolCalls = nil
+	}
+	composite, err := normalizeCompositeAction(decision, toolCalls, workflowID, "no_op")
 	if err != nil {
 		return nil, err
 	}
