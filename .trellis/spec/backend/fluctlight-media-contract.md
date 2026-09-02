@@ -61,6 +61,12 @@ created_at / ready_at / tombstoned_at / deleted_at
 - Object keys are stable generated identities such as `media/{asset_id}/{object_version}` and never user-controlled filenames or local absolute paths.
 - PostgreSQL records SHA-256 and byte size; ETag alone is not a content-integrity guarantee.
 - Generation/upload happens after a committed media intent. The final transaction validates workflow ID, asset revision, checksum, size, and references before marking ready.
+- An image capability call carries the cognition-time `context_binding`
+  snapshot. Core preserves subject/pose/style fields, but aligns missing or
+  conflicting scene/activity/location (and concrete outfit/hair/mood values
+  when present) with that snapshot unless `context_override.explicit` is true.
+  The media prompt Provider receives the same binding and must not invent a
+  different room or activity.
 - The external Provider job ID is persisted on the committed media intent immediately after submission. Activity retries reuse that ID for polling and cancellation; they never submit a second Provider job for the same intent. A ready asset is the authoritative replay boundary, so retries only reapply idempotent conversation/Moment projections.
 - Long media activities record an initial and periodic Temporal heartbeat while
   prompt generation, Provider submission, object download, or polling is in

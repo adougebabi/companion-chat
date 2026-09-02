@@ -9,9 +9,15 @@ import (
 	"time"
 )
 
+type scheduleEntry struct {
+	item  map[string]any
+	start time.Time
+	end   time.Time
+}
+
 func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID, localDate, timezone string, identity, lifeProfile map[string]any) (map[string]any, error) {
 	messages := []map[string]any{
-		{"role": "system", "content": "Return one JSON object with items and reschedule_policy. items must be a non-empty array of objects covering the complete local day contiguously from 00:00 through the next 00:00 in the supplied timezone. Every item needs start_at, end_at, activity, scene, item_type, status, priority, flexibility, interruption_cost. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1 (never a 1-10 score). Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."},
+		{"role": "system", "content": "Return one JSON object with items and reschedule_policy. items must be a non-empty array of objects covering the complete local day contiguously from 00:00 through the next 00:00 in the supplied timezone. Every item needs start_at, end_at, activity, scene, item_type, status, priority, flexibility, interruption_cost. Prefer finer segments (roughly 30-60 minutes) when an activity or scene changes, but continuous activities such as a film may span 2-3 hours. Every item must contain exactly one concrete activity and one concrete scene; never combine alternatives with '/', '／', '、', or '或' in one field. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1 (never a 1-10 score). Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."},
 		{"role": "user", "content": jsonString(map[string]any{
 			"fluctlight_id": fluctlightID,
 			"local_date":    localDate,
@@ -59,11 +65,6 @@ func normalizeScheduleResponse(result map[string]any, localDate, timezone string
 	if err != nil {
 		return nil, fmt.Errorf("schedule_local_date_invalid: %w", err)
 	}
-	type scheduleEntry struct {
-		item  map[string]any
-		start time.Time
-		end   time.Time
-	}
 	entries := make([]scheduleEntry, 0, len(items))
 	for _, raw := range items {
 		item := mapValue(raw)
@@ -90,6 +91,7 @@ func normalizeScheduleResponse(result map[string]any, localDate, timezone string
 		entries = append(entries, scheduleEntry{item: item, start: start, end: end})
 	}
 	sort.SliceStable(entries, func(i, j int) bool { return entries[i].start.Before(entries[j].start) })
+	entries = splitAmbiguousScheduleEntries(entries)
 	dayStart := day.Truncate(24 * time.Hour)
 	// time.Truncate is based on UTC, so construct local midnight explicitly.
 	dayStart = time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, location)
@@ -105,6 +107,67 @@ func normalizeScheduleResponse(result map[string]any, localDate, timezone string
 		resultItems = append(resultItems, entry.item)
 	}
 	return map[string]any{"local_date": localDate, "timezone": timezone, "items": resultItems, "reschedule_policy": result["reschedule_policy"], "evidence_refs": []any{"foundation:" + "pending"}}, nil
+}
+
+func splitAmbiguousScheduleEntries(entries []scheduleEntry) []scheduleEntry {
+	if len(entries) == 0 {
+		return entries
+	}
+	expanded := make([]scheduleEntry, 0, len(entries))
+	for _, entry := range entries {
+		activities := splitScheduleAlternatives(stringValue(entry.item["activity"]))
+		scenes := splitScheduleAlternatives(stringValue(entry.item["scene"]))
+		count := len(activities)
+		if len(scenes) > count {
+			count = len(scenes)
+		}
+		if count <= 1 {
+			expanded = append(expanded, entry)
+			continue
+		}
+		duration := entry.end.Sub(entry.start)
+		for index := 0; index < count; index++ {
+			start := entry.start.Add(duration * time.Duration(index) / time.Duration(count))
+			end := entry.end
+			if index+1 < count {
+				end = entry.start.Add(duration * time.Duration(index+1) / time.Duration(count))
+			}
+			item := cloneMap(entry.item)
+			item["start_at"] = start.Format(time.RFC3339)
+			item["end_at"] = end.Format(time.RFC3339)
+			item["activity"] = activities[minScheduleIndex(index, len(activities))]
+			item["scene"] = scenes[minScheduleIndex(index, len(scenes))]
+			expanded = append(expanded, scheduleEntry{item: item, start: start, end: end})
+		}
+	}
+	return expanded
+}
+
+func splitScheduleAlternatives(value string) []string {
+	value = strings.ReplaceAll(value, "或", "/")
+	parts := strings.FieldsFunc(value, func(r rune) bool {
+		return r == '/' || r == '／' || r == '、' || r == '|'
+	})
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if text := strings.TrimSpace(part); text != "" {
+			result = append(result, text)
+		}
+	}
+	if len(result) == 0 && strings.TrimSpace(value) != "" {
+		return []string{strings.TrimSpace(value)}
+	}
+	return result
+}
+
+func minScheduleIndex(index, length int) int {
+	if length <= 0 {
+		return 0
+	}
+	if index >= length {
+		return length - 1
+	}
+	return index
 }
 
 func parseScheduleTimeInLocation(value string, day time.Time, location *time.Location) (time.Time, error) {

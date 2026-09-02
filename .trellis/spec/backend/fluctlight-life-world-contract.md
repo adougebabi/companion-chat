@@ -41,6 +41,11 @@ Schedule version includes local date/timezone, generated-at/from, immutable item
 
 - One local date has immutable versions and exactly one active accepted version.
 - Accepted items cover the full local day. Gaps are explicit free-time/rest/sleep items, not implicit code defaults.
+- Accepted items should use finer segments when an activity or scene changes,
+  while continuous activities such as a film may remain a two-to-three-hour
+  block. Each item must name exactly one concrete activity and one concrete
+  scene; if a Provider combines alternatives, Core splits that item into
+  contiguous paired segments while preserving its other fields.
 - Description creation may persist only model-owned Foundation, Goal and Intention
   semantics. The same creation transaction also commits exactly one stable
   `schedule.current_day` intent for the Fluctlight; it never calls an LLM or
