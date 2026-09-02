@@ -12,12 +12,12 @@ func TestCompatibilitySQLDoesNotWriteGeneratedSearchDocument(t *testing.T) {
 }
 
 func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testing.T) {
-	for _, table := range []string{"cognition_appraisals", "cognition_internal_dynamics", "cognition_action_results", "fluctlight_drive_slots", "fluctlight_preference_slots", "fluctlight_trigger_preferences", "capability_requests"} {
+	for _, table := range []string{"cognition_appraisals", "cognition_internal_dynamics", "cognition_action_results", "fluctlight_drive_slots", "fluctlight_preference_slots", "fluctlight_trigger_preferences", "fluctlight_developing_self_claims", "fluctlight_developing_self_revisions", "capability_requests"} {
 		if !strings.Contains(schemaSQL, "public."+table) {
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0023_composite_action_targets" {
+	if Head != "0024_persona_layers" {
 		t.Fatalf("Head = %q", Head)
 	}
 }
@@ -31,5 +31,18 @@ func TestCompositeActionSchemaIncludesMessageMediaTarget(t *testing.T) {
 	}
 	if !strings.Contains(compatibilitySQL, "ix_media_intents_message") {
 		t.Fatal("compatibility SQL must index message targets")
+	}
+}
+
+func TestPersonaLayerSchemaIncludesCanonicalStores(t *testing.T) {
+	for _, fragment := range []string{
+		"core_persona jsonb",
+		"fluctlight_developing_self_claims",
+		"fluctlight_developing_self_revisions",
+		"ix_developing_self_claims_active",
+	} {
+		if !strings.Contains(schemaSQL+compatibilitySQL, fragment) {
+			t.Fatalf("persona layer schema missing %q", fragment)
+		}
 	}
 }
