@@ -64,3 +64,18 @@ func TestWakeUpChatOnlyActionFallsBackToNoOp(t *testing.T) {
 		t.Fatalf("fallback result = %#v", result)
 	}
 }
+
+func TestFallbackWakeUpAssessmentIsValidNoOp(t *testing.T) {
+	assessment, err := normalizeWakeUpAssessment(fallbackWakeUpAssessment())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if assessment["action_type"] != "no_op" {
+		t.Fatalf("fallback action = %#v", assessment["action_type"])
+	}
+	for _, field := range []string{"attention", "thought", "desire", "agency"} {
+		if assessment[field] == nil {
+			t.Fatalf("fallback %s is empty", field)
+		}
+	}
+}

@@ -244,15 +244,18 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	assessment := completion.Structured
+	toolCalls := completion.ToolCalls
+	if completion.StructuredFallback {
+		// A native tool call without a structured wake-up assessment has no
+		// trustworthy action type or cognitive stages. Preserve the wake-up as a
+		// deterministic no-op instead of validating empty fields and retrying the
+		// same activity forever. The tool call is intentionally discarded because
+		// its target cannot be authorized without the structured action type.
+		assessment = fallbackWakeUpAssessment()
+		toolCalls = nil
+	}
 	if assessment == nil {
 		return nil, errors.New("wake_up_assessment_invalid")
-	}
-	toolCalls := completion.ToolCalls
-	if completion.StructuredFallback && len(toolCalls) > 0 {
-		// Without a structured action_type there is no safe target for an
-		// external capability call. Keep the internal wake-up and settle it as a
-		// no-op instead of guessing whether it belongs to a Moment or a message.
-		toolCalls = nil
 	}
 	toolCalls = bindMediaContextToToolCalls(toolCalls, projection)
 	assessment, err = normalizeWakeUpAssessment(assessment)
@@ -345,6 +348,19 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	safeResult["tool_results"] = toolResults
 	return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "status": "completed", "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "action_type": actualActionType, "action_id": nullableString(actionID), "reflection_intent_id": reflectionIntentID, "result": safeResult, "interval_seconds": settings.IntervalSeconds}, nil
+}
+
+func fallbackWakeUpAssessment() map[string]any {
+	return map[string]any{
+		"attention":       "当前没有可处理的内部事件。",
+		"thought":         "保持当前状态，等待下一次可靠输入。",
+		"desire":          "无明确行动需求。",
+		"agency":          "保持静默观察，不发起行动。",
+		"appraisal":       map[string]any{"relevance": 0.0, "goal_congruence": 0.0, "reward": 0.0, "loss": 0.0, "social_threat": 0.0, "controllability": 0.0, "responsibility": 0.0, "relationship_significance": 0.0, "expected_effect": 0.0, "evidence_refs": []any{}, "event_kind": "provider_structured_fallback", "direction": "none"},
+		"action_type":     "no_op",
+		"response_intent": "",
+		"evidence_refs":   []any{},
+	}
 }
 
 func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cycle int, internalDynamics map[string]any, assessment map[string]any, actionType, actionID string, result map[string]any, reflectionIntentID string, policySnapshot map[string]any, conversationID string, toolCalls []ToolCallV1) (string, error) {

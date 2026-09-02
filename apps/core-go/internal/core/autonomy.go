@@ -74,7 +74,27 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	})
 	completion, err := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "daily_review_response", dailyReviewResponseSchema(), true)
 	if err != nil {
-		return nil, err
+		// Some mlx-serve responses contain a malformed bookkeeping tool call
+		// (for example a scene_event without an id) before they emit any daily
+		// review decision. Retry the same request through the no-tools contract;
+		// this keeps the retry semantic-free and lets the model produce the
+		// required action_type instead of failing the whole lifecycle workflow.
+		if retry, retryErr := a.Provider.StructuredWithSchema(ctx, "cognitive_assessment", messages, "daily_review_response", dailyReviewResponseSchema(), false); retryErr == nil {
+			completion = ProviderCompletion{Structured: retry}
+		} else {
+			return nil, err
+		}
+	}
+	if completion.StructuredFallback {
+		// Thinking-enabled mlx-serve responses may emit only bookkeeping tool
+		// calls (for example scene_event/memory_event) and omit the structured
+		// daily-review action. Retry the same evidence window without tools and
+		// thinking so the model must choose an explicit action_type. If that
+		// transport retry also fails, retain the safe no-op behavior below rather
+		// than inferring an external side effect from an unrelated tool call.
+		if retry, retryErr := a.Provider.StructuredWithSchema(ctx, "cognitive_assessment", messages, "daily_review_response", dailyReviewResponseSchema(), false); retryErr == nil {
+			completion = ProviderCompletion{Structured: retry}
+		}
 	}
 	decision := completion.Structured
 	if decision == nil {

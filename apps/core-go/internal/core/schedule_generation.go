@@ -17,7 +17,7 @@ type scheduleEntry struct {
 
 func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID, localDate, timezone string, identity, lifeProfile map[string]any) (map[string]any, error) {
 	messages := []map[string]any{
-		{"role": "system", "content": "Return one JSON object with items and reschedule_policy. items must be a non-empty array of objects covering the complete local day contiguously from 00:00 through the next 00:00 in the supplied timezone. Every item needs start_at, end_at, activity, scene, item_type, status, priority, flexibility, interruption_cost. Prefer finer segments (roughly 30-60 minutes) when an activity or scene changes, but continuous activities such as a film may span 2-3 hours. Every item must contain exactly one concrete activity and one concrete scene; never combine alternatives with '/', '／', '、', or '或' in one field. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1 (never a 1-10 score). Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."},
+		{"role": "system", "content": "Return one compact JSON object with items and reschedule_policy. items must contain 8-16 objects covering the complete local day contiguously from 00:00 through the next 00:00 in the supplied timezone. Every item needs start_at, end_at, activity, scene, item_type, status, priority, flexibility, interruption_cost. Keep activity and scene each under 80 Chinese characters; use one concrete activity and one concrete scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent periods with the same activity and scene instead of producing many small segments. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1 (never a 1-10 score). Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."},
 		{"role": "user", "content": jsonString(map[string]any{
 			"fluctlight_id": fluctlightID,
 			"local_date":    localDate,
@@ -35,6 +35,15 @@ func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID
 		return nil, fmt.Errorf("initial schedule provider request failed: %w", err)
 	}
 	payload, err := normalizeScheduleResponse(result, localDate, timezone)
+	if err != nil {
+		// A local model can stop midway through a long JSON schedule even when
+		// the HTTP request itself succeeds. Retry the same factual context with
+		// an explicit compact-output reminder; never salvage a partial array.
+		retryMessages := append(append([]map[string]any{}, messages...), map[string]any{"role": "user", "content": "上一个日程 JSON 不完整。请重新输出完整且紧凑的 8-16 个时段，必须覆盖从 00:00 到次日 00:00，不能截断，也不要附加解释。"})
+		if retryResult, retryErr := a.Provider.StructuredWithSchema(ctx, "cognitive_assessment", retryMessages, "schedule_response", scheduleResponseSchema(), false); retryErr == nil {
+			payload, err = normalizeScheduleResponse(retryResult, localDate, timezone)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -174,6 +183,25 @@ func parseScheduleTimeInLocation(value string, day time.Time, location *time.Loc
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return time.Time{}, errors.New("timestamp is required")
+	}
+	// Models commonly express the end of a local day as `24:00`, which is
+	// valid ISO-8601 notation but rejected by Go's time parser. Normalize only
+	// an exact midnight marker to the following calendar day; other malformed
+	// times remain validation errors.
+	for _, marker := range []string{"T24:00:00", " 24:00:00", "T24:00", " 24:00"} {
+		if index := strings.Index(value, marker); index >= 0 {
+			normalized := value[:index] + strings.Replace(marker, "24:", "00:", 1) + value[index+len(marker):]
+			var parsed time.Time
+			var err error
+			if strings.Contains(normalized, "T") {
+				parsed, err = time.Parse(time.RFC3339, normalized)
+			} else {
+				parsed, err = time.ParseInLocation("2006-01-02 15:04", normalized, location)
+			}
+			if err == nil {
+				return parsed.AddDate(0, 0, 1), nil
+			}
+		}
 	}
 	if parsed, err := time.Parse(time.RFC3339, value); err == nil {
 		return parsed, nil

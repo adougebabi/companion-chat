@@ -1,6 +1,25 @@
 package core
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
+
+func TestParseScheduleTimeAcceptsISOEndOfDay(t *testing.T) {
+	location, err := time.LoadLocation("UTC")
+	if err != nil {
+		t.Fatal(err)
+	}
+	day := time.Date(2026, time.September, 2, 0, 0, 0, 0, location)
+	parsed, err := parseScheduleTimeInLocation("2026-09-02T24:00:00Z", day, location)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := time.Date(2026, time.September, 3, 0, 0, 0, 0, location)
+	if !parsed.Equal(want) {
+		t.Fatalf("parsed end-of-day timestamp = %s, want %s", parsed, want)
+	}
+}
 
 func TestNormalizeScheduleResponseRequiresContiguousLocalDay(t *testing.T) {
 	result, err := normalizeScheduleResponse(map[string]any{
