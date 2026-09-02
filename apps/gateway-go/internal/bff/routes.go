@@ -425,8 +425,8 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		mapped := map[string]any{"request_id": body["requestId"], "initialization_mode": body["initializationMode"], "identity": body["identity"]}
-		for from, to := range map[string]string{"personality": "personality", "behavioralPolicy": "behavioral_policy", "lifeProfile": "life_profile", "foundationProvenance": "foundation_provenance", "initialGoals": "initial_goals", "initialIntentions": "initial_intentions"} {
+		mapped := map[string]any{"request_id": body["requestId"], "initialization_mode": body["initializationMode"], "name": body["name"], "core_persona": body["corePersona"], "developing_self": body["developingSelf"]}
+		for from, to := range map[string]string{"initialGoals": "initial_goals", "initialIntentions": "initial_intentions"} {
 			if value, exists := body[from]; exists {
 				mapped[to] = value
 			}
@@ -437,6 +437,21 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		writeJSON(response, http.StatusOK, value)
+		return
+	}
+	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/developing-self"); ok && methodName == http.MethodGet {
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/developing-self", http.MethodGet, nil, s.readOnlyError(http.StatusUnprocessableEntity, "developing_self_read_failed", "Developing Self could not be loaded"), nil)
+		return
+	}
+	if fluctlightID, claimID, action, ok := developingSelfAction(path); ok && methodName == http.MethodPost {
+		body, valid := s.mutationBody(response, request, func(value map[string]any) bool {
+			return validateRevisionReason(value)
+		})
+		if !valid {
+			return
+		}
+		mapped := map[string]any{"expected_revision": body["expectedRevision"], "reason": body["reason"]}
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/developing-self/"+escape(claimID)+"/"+action, http.MethodPost, mapped, s.readOnlyError(http.StatusUnprocessableEntity, "developing_self_"+action+"_failed", "Developing Self claim governance failed"), nil)
 		return
 	}
 
@@ -1127,6 +1142,15 @@ func foundationAction(path string) (string, string, string, bool) {
 	}
 	return parts[2], parts[4], parts[5], true
 }
+
+func developingSelfAction(path string) (string, string, string, bool) {
+	parts := splitPath(path)
+	if len(parts) != 6 || parts[0] != "api" || parts[1] != "fluctlights" || parts[3] != "developing-self" || (parts[5] != "rollback" && parts[5] != "forget") {
+		return "", "", "", false
+	}
+	return parts[2], parts[4], parts[5], true
+}
+
 func momentStatus(path string) (string, string, bool) {
 	parts := splitPath(path)
 	if len(parts) == 4 && parts[0] == "api" && parts[1] == "moments" && (parts[3] == "hide" || parts[3] == "restore") {
@@ -1218,13 +1242,20 @@ func validateFluctlightCreate(value map[string]any) bool {
 }
 func validateActivation(value map[string]any) bool {
 	mode := stringValue(value["initializationMode"])
-	if !validateString(value["requestId"], 1, 256) || (mode != "blank_slate" && mode != "llm_defined") || !isObject(value["identity"]) {
+	if !validateString(value["requestId"], 1, 256) || (mode != "blank_slate" && mode != "llm_defined") {
 		return false
 	}
-	for _, key := range []string{"personality", "behavioralPolicy", "lifeProfile", "foundationProvenance"} {
-		if item, exists := value[key]; exists && !isObject(item) {
-			return false
-		}
+	if mode == "llm_defined" && (!isObject(value["corePersona"]) || !isObject(value["developingSelf"])) {
+		return false
+	}
+	if mode == "blank_slate" && !validateString(value["name"], 1, 256) {
+		return false
+	}
+	if core, exists := value["corePersona"]; exists && !isObject(core) {
+		return false
+	}
+	if self, exists := value["developingSelf"]; exists && !isObject(self) {
+		return false
 	}
 	for _, key := range []string{"initialGoals", "initialIntentions"} {
 		if item, exists := value[key]; exists {

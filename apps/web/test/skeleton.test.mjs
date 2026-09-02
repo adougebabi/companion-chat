@@ -84,7 +84,18 @@ test("creation dialog presents activation failures where the user can act on the
   assert.match(source, /class="create-dialog-body"[\s\S]*controlCenter\.error/);
   assert.match(source, /class="create-dialog-footer"/);
   assert.match(source, /form="activate-preview-form"/);
-  assert.match(source, /预览必须包含 identity/);
+  assert.match(source, /预览必须包含 core_persona/);
+});
+
+test("persona details expose layered JSON without rendering object coercion", async () => {
+  const detail = await readFile(new URL("../src/components/instances/InstanceDetailsDialog.vue", import.meta.url), "utf8");
+  const governance = await readFile(new URL("../src/views/GovernanceView.vue", import.meta.url), "utf8");
+  assert.match(detail, /Core Persona/);
+  assert.match(detail, /Developing Self/);
+  assert.match(detail, /Current State/);
+  assert.match(detail, /JSON\.stringify/);
+  assert.match(governance, /rollbackDevelopingSelf/);
+  assert.match(governance, /forgetDevelopingSelf/);
 });
 
 test("diagnostics entry loads records and creation keeps a direct correlation link", async () => {

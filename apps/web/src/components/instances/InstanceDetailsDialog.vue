@@ -32,7 +32,19 @@ function asRecords(value: unknown): JsonRecord[] {
   return Array.isArray(value) ? value.filter((item): item is JsonRecord => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
 }
 
+function jsonDisplay(value: unknown): string {
+  if (value === undefined) return "未提供";
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return "无法展示该字段";
+  }
+}
+
 const detail = computed(() => asRecord(controlCenter.fluctlightDetail));
+const corePersona = computed(() => asRecord(detail.value.core_persona));
+const developingSelf = computed(() => asRecord(detail.value.developing_self));
+const currentState = computed(() => asRecord(detail.value.current_state));
 const identity = computed(() => {
   const detailedIdentity = asRecord(detail.value.identity);
   return Object.keys(detailedIdentity).length ? detailedIdentity : asRecord(store.selectedFluctlight?.identity);
@@ -155,6 +167,15 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
               <template v-for="(value, key) in behavioralPolicy" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
             </dl>
             <p v-else class="field-note">尚未配置表达策略。</p>
+          </section>
+
+          <section class="detail-block">
+            <div class="detail-block-heading"><p class="eyebrow">PERSONA LAYERS</p><h3>分层 Persona</h3></div>
+            <div class="persona-json-grid">
+              <div class="persona-json-card"><div class="detail-state-heading"><h4>Core Persona</h4><span>受保护</span></div><pre>{{ jsonDisplay(corePersona) }}</pre></div>
+              <div class="persona-json-card"><div class="detail-state-heading"><h4>Developing Self</h4><span>证据化</span></div><pre>{{ jsonDisplay(developingSelf) }}</pre></div>
+              <div class="persona-json-card"><div class="detail-state-heading"><h4>Current State</h4><span>当前快照</span></div><pre>{{ jsonDisplay(currentState) }}</pre></div>
+            </div>
           </section>
 
           <section class="detail-block">

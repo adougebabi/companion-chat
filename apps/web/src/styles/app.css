@@ -207,6 +207,10 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
 .governance-facts dt { color: var(--muted-ink); font-size: .8rem; }
 .governance-facts dd { min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--ink); font-size: .88rem; }
 .governance-facts pre { max-width: 100%; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+.governance-section pre { max-width: 100%; max-height: 360px; margin: 10px 0 0; padding: 10px; overflow: auto; border-radius: 8px; background: var(--surface-subtle); color: var(--ink-soft); white-space: pre-wrap; overflow-wrap: anywhere; font: .76rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.persona-json-grid { display: grid; gap: 12px; }
+.persona-json-card { min-width: 0; padding: 12px; border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface-subtle); }
+.persona-json-card pre { max-width: 100%; max-height: 360px; margin: 10px 0 0; padding: 10px; overflow: auto; border-radius: 8px; background: var(--surface-glass); color: var(--ink-soft); white-space: pre-wrap; overflow-wrap: anywhere; font: .76rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .state-summary-grid, .detail-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .state-summary-grid > div, .detail-summary-grid > div { display: grid; gap: 5px; padding: 12px; border-radius: 12px; background: var(--surface-subtle); }
 .state-summary-grid span, .detail-summary-grid span { color: var(--muted-ink); font-size: .75rem; }

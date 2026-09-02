@@ -66,6 +66,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /internal/fluctlights", s.listFluctlights)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}", s.getFluctlight)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/detail", s.fluctlightDetail)
+	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/developing-self", s.developingSelf)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/developing-self/{claimID}/rollback", s.rollbackDevelopingSelf)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/developing-self/{claimID}/forget", s.forgetDevelopingSelf)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/conversation", s.directConversation)
 	mux.HandleFunc("PUT /internal/fluctlights/{fluctlightID}/status", s.setFluctlightStatus)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/retire", s.retireFluctlight)
@@ -329,6 +332,81 @@ func (s *Server) fluctlightDetail(response http.ResponseWriter, request *http.Re
 	writeJSON(response, http.StatusOK, value)
 }
 
+func (s *Server) developingSelf(response http.ResponseWriter, request *http.Request) {
+	actorID, ok := s.authorizeHuman(response, request)
+	if !ok || s.app == nil {
+		return
+	}
+	fluctlightID := request.PathValue("fluctlightID")
+	if _, err := s.app.DB.GetFluctlight(request.Context(), fluctlightID, actorID); err != nil {
+		status := http.StatusUnprocessableEntity
+		if errors.Is(err, core.ErrNotFound) {
+			status = http.StatusNotFound
+		}
+		writeError(response, status, "developing_self_read_failed")
+		return
+	}
+	claims, err := s.app.ListDevelopingSelfClaims(request.Context(), fluctlightID)
+	if err != nil {
+		writeError(response, http.StatusUnprocessableEntity, "developing_self_read_failed")
+		return
+	}
+	revisions, err := s.app.ListDevelopingSelfRevisions(request.Context(), fluctlightID)
+	if err != nil {
+		writeError(response, http.StatusUnprocessableEntity, "developing_self_read_failed")
+		return
+	}
+	writeJSON(response, http.StatusOK, map[string]any{"claims": claims, "revisions": revisions})
+}
+
+func (s *Server) rollbackDevelopingSelf(response http.ResponseWriter, request *http.Request) {
+	actorID, ok := s.authorizeHuman(response, request)
+	if !ok || s.app == nil {
+		return
+	}
+	body, valid := readJSON(request)
+	if !valid {
+		writeError(response, http.StatusBadRequest, "core_request_validation_failed")
+		return
+	}
+	result, err := s.app.RollbackDevelopingSelfClaim(request.Context(), actorID, request.PathValue("claimID"), intValueHTTP(body["expected_revision"]), stringValue(body["reason"]))
+	if err != nil {
+		status := http.StatusUnprocessableEntity
+		if errors.Is(err, core.ErrNotFound) {
+			status = http.StatusNotFound
+		} else if errors.Is(err, core.ErrConflict) {
+			status = http.StatusConflict
+		}
+		writeError(response, status, "developing_self_rollback_failed")
+		return
+	}
+	writeJSON(response, http.StatusOK, result)
+}
+
+func (s *Server) forgetDevelopingSelf(response http.ResponseWriter, request *http.Request) {
+	actorID, ok := s.authorizeHuman(response, request)
+	if !ok || s.app == nil {
+		return
+	}
+	body, valid := readJSON(request)
+	if !valid {
+		writeError(response, http.StatusBadRequest, "core_request_validation_failed")
+		return
+	}
+	result, err := s.app.ForgetDevelopingSelfClaim(request.Context(), actorID, request.PathValue("claimID"), intValueHTTP(body["expected_revision"]), stringValue(body["reason"]))
+	if err != nil {
+		status := http.StatusUnprocessableEntity
+		if errors.Is(err, core.ErrNotFound) {
+			status = http.StatusNotFound
+		} else if errors.Is(err, core.ErrConflict) {
+			status = http.StatusConflict
+		}
+		writeError(response, status, "developing_self_forget_failed")
+		return
+	}
+	writeJSON(response, http.StatusOK, result)
+}
+
 func (s *Server) createFluctlight(response http.ResponseWriter, request *http.Request) {
 	actorID, ok := s.authorizeHuman(response, request)
 	if !ok || s.app == nil {
@@ -359,7 +437,7 @@ func (s *Server) analyzeCreation(response http.ResponseWriter, request *http.Req
 	}
 	value, err := s.app.AnalyzeDescription(request.Context(), stringValue(body["description"]))
 	if err != nil {
-		writeError(response, http.StatusUnprocessableEntity, "initialization_foundation_invalid")
+		writeError(response, http.StatusUnprocessableEntity, "initialization_persona_invalid")
 		return
 	}
 	writeJSON(response, http.StatusOK, value)
@@ -380,23 +458,28 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 		writeError(response, http.StatusUnprocessableEntity, "initialization_mode_invalid")
 		return
 	}
-	identity := mapValue(body["identity"])
 	requestID := stringValue(body["request_id"])
 	if requestID == "" {
 		writeError(response, http.StatusUnprocessableEntity, "activation_request_id_required")
 		return
 	}
-	foundation := map[string]any{"identity": identity, "personality": mapValue(body["personality"]), "behavioral_policy": mapValue(body["behavioral_policy"]), "life_profile": mapValue(body["life_profile"]), "provenance": mapValue(body["foundation_provenance"]), "initial_goals": arrayValue(body["initial_goals"]), "initial_intentions": arrayValue(body["initial_intentions"])}
+	corePersona := mapValue(body["core_persona"])
+	identity := mapValue(corePersona["identity"])
+	name := stringValue(body["name"])
+	if name == "" {
+		name = stringValue(identity["name"])
+	}
+	initialization := map[string]any{"core_persona": corePersona, "developing_self": mapValue(body["developing_self"]), "initial_goals": arrayValue(body["initial_goals"]), "initial_intentions": arrayValue(body["initial_intentions"])}
 	if mode == "blank_slate" {
-		foundation = nil
+		initialization = nil
 	}
 	stable := core.StableFluctlightID(actorID, requestID)
-	item, err := s.app.CreateFluctlight(request.Context(), actorID, stable, stringValue(identity["name"]), mode, foundation, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]))
+	item, err := s.app.CreateFluctlight(request.Context(), actorID, stable, name, mode, initialization, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]))
 	if err != nil {
-		writeError(response, http.StatusUnprocessableEntity, "activation_foundation_invalid")
+		writeError(response, http.StatusUnprocessableEntity, "activation_persona_invalid")
 		return
 	}
-	writeJSON(response, http.StatusOK, map[string]any{"id": item.ID, "identity": item.Identity, "personality": item.Personality, "behavioral_policy": item.BehavioralPolicy, "life_profile": item.LifeProfile, "provenance": item.Provenance, "status": item.Status, "current_revision": item.CurrentRevision})
+	writeJSON(response, http.StatusOK, map[string]any{"id": item.ID, "core_persona": item.CorePersona, "identity": item.Identity, "personality": item.Personality, "behavioral_policy": item.BehavioralPolicy, "life_profile": item.LifeProfile, "provenance": item.Provenance, "status": item.Status, "current_revision": item.CurrentRevision})
 }
 
 func (s *Server) directConversation(response http.ResponseWriter, request *http.Request) {

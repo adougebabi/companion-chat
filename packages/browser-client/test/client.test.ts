@@ -73,7 +73,7 @@ test("BrowserClient preserves safe BFF failure codes", async () => {
 
 test("BrowserClient preserves structured diagnostics details", async () => {
   const client = new BrowserClient("http://fluctlight.local", async () =>
-    Response.json({ code: "initialization_foundation_invalid", message: "分析失败", details: { correlation_id: "corr-1" } }, { status: 422 }),
+    Response.json({ code: "initialization_persona_invalid", message: "分析失败", details: { correlation_id: "corr-1" } }, { status: 422 }),
   );
   await assert.rejects(
     () => client.analyzeFluctlightCreation("测试描述"),

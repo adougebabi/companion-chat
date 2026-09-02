@@ -75,18 +75,16 @@ func TestBFFMapsNestedBrowserPayloadsToCore(t *testing.T) {
 		}},
 	})
 
-	activation := invoke(handler, http.MethodPost, "http://gateway.test/api/fluctlight-creations/activate", `{"requestId":"request","initializationMode":"llm_defined","identity":{},"personality":{},"behavioralPolicy":{},"lifeProfile":{},"foundationProvenance":{},"initialGoals":[{"name":"goal"}],"initialIntentions":[{"name":"intent"}]}`, mutationHeaders, mutationCookies)
+	activation := invoke(handler, http.MethodPost, "http://gateway.test/api/fluctlight-creations/activate", `{"requestId":"request","initializationMode":"llm_defined","corePersona":{"identity":{},"personality":{},"behavioral_policy":{},"life_profile":{}},"developingSelf":{"claims":[]},"initialGoals":[{"name":"goal"}],"initialIntentions":[{"name":"intent"}]}`, mutationHeaders, mutationCookies)
 	if activation.Code != http.StatusOK {
 		t.Fatalf("activation status = %d: %s", activation.Code, activation.Body.String())
 	}
 	assertCoreBody(t, seen, "/internal/fluctlight-creations/activate", map[string]any{
 		"request_id":            "request",
 		"initialization_mode":   "llm_defined",
-		"identity":              map[string]any{},
-		"personality":           map[string]any{},
-		"behavioral_policy":     map[string]any{},
-		"life_profile":          map[string]any{},
-		"foundation_provenance": map[string]any{},
+		"name":                  nil,
+		"core_persona":          map[string]any{"identity": map[string]any{}, "personality": map[string]any{}, "behavioral_policy": map[string]any{}, "life_profile": map[string]any{}},
+		"developing_self":       map[string]any{"claims": []any{}},
 		"initial_goals":         []any{map[string]any{"name": "goal"}},
 		"initial_intentions":    []any{map[string]any{"name": "intent"}},
 	})
@@ -120,7 +118,7 @@ func TestBFFErrorMappingsPreserveRouteSpecificPolicy(t *testing.T) {
 	activation := testBFF(t, func(request *http.Request) (*http.Response, error) {
 		return jsonResponse(http.StatusInternalServerError, `{"detail":{"code":"provider_down","message":"provider down","details":{"secret":"must-not-leak"}}}`), nil
 	})
-	activationResponse := invoke(activation, http.MethodPost, "http://gateway.test/api/fluctlight-creations/activate", `{"requestId":"request","initializationMode":"blank_slate","identity":{}}`, mutationHeaders, mutationCookies)
+	activationResponse := invoke(activation, http.MethodPost, "http://gateway.test/api/fluctlight-creations/activate", `{"requestId":"request","initializationMode":"blank_slate","name":"blank"}`, mutationHeaders, mutationCookies)
 	if activationResponse.Code != http.StatusServiceUnavailable || strings.Contains(activationResponse.Body.String(), "must-not-leak") {
 		t.Fatalf("activation error = %d %s", activationResponse.Code, activationResponse.Body.String())
 	}

@@ -70,7 +70,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	messages := withContextAuthorityInstruction([]map[string]any{
 		{"role": "system", "content": "Choose one Composite Action for a daily life review. Return JSON with action_type (proactive_message, moment, or no_op) and response_intent. Never return visible text. If the action needs an image, call the media.image.generate capability with the complete visual concept; do not return moment_media_request or message_media_request fields. Honor the persona's explicit goals, intentions, and behavioral policy; an intention to publish a dynamic should be represented as action_type=moment, while an intention to contact the Owner should be represented as action_type=proactive_message."},
-		{"role": "user", "content": jsonString(map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "conversation_id": conversationID, "context": projection, "persona_profile": map[string]any{"identity": fluctlight.Identity, "personality": fluctlight.Personality, "behavioral_policy": fluctlight.BehavioralPolicy, "goals": goals, "intentions": intentions}})},
+		{"role": "user", "content": jsonString(map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "conversation_id": conversationID, "context": projection, "persona_profile": map[string]any{"core_persona": projection.CorePersona, "developing_self": projection.DevelopingSelf, "current_state": projection.CurrentState, "identity": fluctlight.Identity, "personality": fluctlight.Personality, "behavioral_policy": fluctlight.BehavioralPolicy, "goals": goals, "intentions": intentions}})},
 	})
 	completion, err := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "daily_review_response", dailyReviewResponseSchema(), true)
 	if err != nil {
@@ -101,7 +101,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	visible := ""
 	if actionType != "no_op" {
-		visible, err = a.Provider.Text(ctx, "action_realization", []map[string]any{{"role": "system", "content": "Write one concise Chinese message for the Owner. For proactive_message, address the Owner directly. For moment, write one concise public Moment."}, {"role": "user", "content": jsonString(map[string]any{"action_type": actionType, "response_intent": composite.ResponseIntent, "persona_profile": map[string]any{"identity": fluctlight.Identity, "personality": fluctlight.Personality, "behavioral_policy": fluctlight.BehavioralPolicy}})}})
+		visible, err = a.Provider.Text(ctx, "action_realization", []map[string]any{{"role": "system", "content": "Write one concise Chinese message for the Owner. Preserve core_persona as a hard constraint, use developing_self only as soft context, and treat current_state as transient. For proactive_message, address the Owner directly. For moment, write one concise public Moment."}, {"role": "user", "content": jsonString(map[string]any{"action_type": actionType, "response_intent": composite.ResponseIntent, "persona_profile": map[string]any{"core_persona": projection.CorePersona, "developing_self": projection.DevelopingSelf, "current_state": projection.CurrentState, "identity": fluctlight.Identity, "personality": fluctlight.Personality, "behavioral_policy": fluctlight.BehavioralPolicy}})}})
 		if err != nil {
 			return nil, err
 		}

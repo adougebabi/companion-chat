@@ -10,9 +10,9 @@ func TestValidateReflectionProposalRequiresWindowEvidenceAndNumericFields(t *tes
 			"importance": 0.8, "emotional_significance": 0.2, "visibility": "private",
 			"evidence_refs": []any{"fact-1"},
 		}},
-		"self_model_candidates": []any{map[string]any{
-			"category": "preference", "claim": "我喜欢安静", "confidence": 0.8,
-			"evidence_refs": []any{"fact-1"},
+		"developing_self_candidates": []any{map[string]any{
+			"category": "preference", "claim": "我喜欢安静", "value": map[string]any{"preference": "安静"}, "confidence": 0.8,
+			"evidence_refs": []any{"fact-1"}, "provenance": map[string]any{"source": "reflection"},
 		}},
 	}
 	if err := validateReflectionProposal(valid, allowed); err != nil {
@@ -36,16 +36,16 @@ func TestNormalizeReflectionProposalKeepsValidAliasesAndDropsIncompleteCandidate
 			map[string]any{"memory_type": "user_preference", "scope": "conversation", "content": "喜欢蓝灰色", "confidence": 0.9, "importance": 0.8, "emotional_significance": 0.4},
 			map[string]any{"memory_type": "context", "scope": "conversation", "content": "使用安全默认值", "confidence": 0.7, "importance": 0.3},
 		},
-		"self_model_candidates":   []any{map[string]any{"type": "taste", "content": "我偏好克制的色彩", "confidence": 0.8, "evidence_refs": []any{"fact-1"}}},
-		"relationship_candidates": []any{map[string]any{"counterparty_id": "human-1", "relationship_type": "collaborator", "evidence_refs": []any{"fact-1"}}},
+		"developing_self_candidates": []any{map[string]any{"type": "preference", "content": "我偏好克制的色彩", "value": map[string]any{"taste": "克制"}, "confidence": 0.8, "provenance": map[string]any{"source": "reflection"}, "evidence_refs": []any{"fact-1"}}},
+		"relationship_candidates":    []any{map[string]any{"counterparty_id": "human-1", "relationship_type": "collaborator", "evidence_refs": []any{"fact-1"}}},
 	})
 	memory := arrayValue(proposal["memory_candidates"])
 	if len(memory) != 2 || stringValue(mapValue(memory[0])["type"]) != "semantic" || stringValue(mapValue(memory[0])["visibility"]) != "owner" || mapValue(memory[1])["emotional_significance"] != 0.0 {
 		t.Fatalf("normalized memory candidates = %#v", memory)
 	}
-	self := arrayValue(proposal["self_model_candidates"])
-	if len(self) != 1 || stringValue(mapValue(self[0])["category"]) != "taste" || stringValue(mapValue(self[0])["claim"]) != "我偏好克制的色彩" {
-		t.Fatalf("normalized self-model candidates = %#v", self)
+	self := arrayValue(proposal["developing_self_candidates"])
+	if len(self) != 1 || stringValue(mapValue(self[0])["category"]) != "preference" || stringValue(mapValue(self[0])["claim"]) != "我偏好克制的色彩" {
+		t.Fatalf("normalized developing-self candidates = %#v", self)
 	}
 	if got := len(arrayValue(proposal["relationship_candidates"])); got != 0 {
 		t.Fatalf("incomplete relationship candidates = %d, want 0", got)

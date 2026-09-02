@@ -237,6 +237,15 @@ func (a *App) ProposeFoundation(ctx context.Context, actorID, fluctlightID strin
 		"life_profile":      mergeFoundationMap(f.LifeProfile, mapValue(changes["life_profile"])),
 		"provenance":        mergeFoundationMap(f.Provenance, mapValue(changes["provenance"])),
 	}
+	corePersona := mergeFoundationMap(f.CorePersona, map[string]any{
+		"identity":          candidate["identity"],
+		"personality":       candidate["personality"],
+		"behavioral_policy": candidate["behavioral_policy"],
+		"life_profile":      candidate["life_profile"],
+	})
+	if _, ok := corePersona["schema_version"]; !ok {
+		corePersona["schema_version"] = 1
+	}
 	identityPatch := make(map[string]any)
 	for key, value := range changes {
 		if _, known := map[string]struct{}{"name": {}, "age": {}, "gender": {}, "occupation": {}, "residence": {}, "timezone": {}, "birthday": {}, "background": {}, "biography": {}, "core_values": {}, "worldview": {}, "notes": {}}[key]; known {
@@ -249,13 +258,18 @@ func (a *App) ProposeFoundation(ctx context.Context, actorID, fluctlightID strin
 	if value, ok := changes["identity"].(map[string]any); ok && len(value) > 0 {
 		candidate["identity"] = mergeFoundationMap(f.Identity, value)
 	}
+	corePersona["identity"] = candidate["identity"]
+	corePersona["personality"] = candidate["personality"]
+	corePersona["behavioral_policy"] = candidate["behavioral_policy"]
+	corePersona["life_profile"] = candidate["life_profile"]
+	candidate["core_persona"] = corePersona
 	id := randomID("foundation_revision_")
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		evidence := arrayValue(payload["evidence_refs"])
 		if len(evidence) == 0 {
 			evidence = []any{"owner:" + actorID}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions(id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key) VALUES($1,$2,$3,$4,'human','proposed',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`, id, fluctlightID, current+1, current, actorID, initializationMode, lifecycleStatus, foundationCreatedAt, jsonBytes(1.0), jsonBytes(changes), jsonBytes(candidate["identity"]), jsonBytes(candidate["personality"]), jsonBytes(candidate["behavioral_policy"]), jsonBytes(candidate["life_profile"]), jsonBytes(candidate["provenance"]), jsonBytes(evidence), stringValue(payload["reason"]), "foundation:"+id); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions(id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key) VALUES($1,$2,$3,$4,'human','proposed',$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`, id, fluctlightID, current+1, current, actorID, initializationMode, lifecycleStatus, foundationCreatedAt, jsonBytes(1.0), jsonBytes(changes), jsonBytes(candidate["core_persona"]), jsonBytes(candidate["identity"]), jsonBytes(candidate["personality"]), jsonBytes(candidate["behavioral_policy"]), jsonBytes(candidate["life_profile"]), jsonBytes(candidate["provenance"]), jsonBytes(evidence), stringValue(payload["reason"]), "foundation:"+id); err != nil {
 			return err
 		}
 		_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_governance(id,fluctlight_id,revision_id,action,actor_id,reason) VALUES($1,$2,$3,'propose',$4,$5)`, randomID("foundation_governance_"), fluctlightID, id, actorID, nullableString(stringValue(payload["reason"])))
@@ -264,7 +278,7 @@ func (a *App) ProposeFoundation(ctx context.Context, actorID, fluctlightID strin
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": id, "fluctlight_id": fluctlightID, "revision": current + 1, "base_revision": current, "status": "proposed", "changes": changes, "identity": candidate["identity"], "personality": candidate["personality"], "behavioral_policy": candidate["behavioral_policy"], "life_profile": candidate["life_profile"], "provenance": candidate["provenance"]}, nil
+	return map[string]any{"id": id, "fluctlight_id": fluctlightID, "revision": current + 1, "base_revision": current, "status": "proposed", "changes": changes, "core_persona": candidate["core_persona"], "identity": candidate["identity"], "personality": candidate["personality"], "behavioral_policy": candidate["behavioral_policy"], "life_profile": candidate["life_profile"], "provenance": candidate["provenance"]}, nil
 }
 
 func (a *App) SetFoundationDecision(ctx context.Context, actorID, fluctlightID, revisionID, action, reason string) (map[string]any, error) {
@@ -282,8 +296,8 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var revision, baseRevision int
 		var status string
-		var identity, personality, policy, life, provenance []byte
-		if err := tx.QueryRow(ctx, `SELECT revision,base_revision,status,identity,personality,behavioral_policy,life_profile,provenance FROM public.fluctlight_foundation_revisions WHERE id=$1 AND fluctlight_id=$2 AND actor_id=$3 FOR UPDATE`, revisionID, fluctlightID, actorID).Scan(&revision, &baseRevision, &status, &identity, &personality, &policy, &life, &provenance); err != nil {
+		var corePersona, identity, personality, policy, life, provenance []byte
+		if err := tx.QueryRow(ctx, `SELECT revision,base_revision,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance FROM public.fluctlight_foundation_revisions WHERE id=$1 AND fluctlight_id=$2 AND actor_id=$3 FOR UPDATE`, revisionID, fluctlightID, actorID).Scan(&revision, &baseRevision, &status, &corePersona, &identity, &personality, &policy, &life, &provenance); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -313,7 +327,10 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 			if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_foundation_revisions SET status='accepted',foundation_status=$2,accepted_at=now(),reason=$3 WHERE id=$1`, revisionID, lifecycleStatus, nullableString(reason)); err != nil {
 				return err
 			}
-			if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,identity=$3,personality=$4,behavioral_policy=$5,life_profile=$6,provenance=$7,updated_at=now() WHERE id=$1`, fluctlightID, revision, identity, personality, policy, life, provenance); err != nil {
+			if len(decodeObject(corePersona)) == 0 {
+				corePersona = jsonBytes(map[string]any{"schema_version": 1, "identity": decodeObject(identity), "personality": decodeObject(personality), "behavioral_policy": decodeObject(policy), "life_profile": decodeObject(life)})
+			}
+			if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,core_persona=$3,identity=$4,personality=$5,behavioral_policy=$6,life_profile=$7,provenance=$8,updated_at=now() WHERE id=$1`, fluctlightID, revision, corePersona, identity, personality, policy, life, provenance); err != nil {
 				return err
 			}
 		} else if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_foundation_revisions SET status='rejected',foundation_status=$2,rejected_at=now(),reason=$3 WHERE id=$1`, revisionID, lifecycleStatus, nullableString(reason)); err != nil {
@@ -357,8 +374,8 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 			return errors.New("target_revision_invalid")
 		}
 		var sourceID, sourceStatus string
-		var identity, personality, policy, life, provenance, evidence []byte
-		if err := tx.QueryRow(ctx, `SELECT id,status,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs FROM public.fluctlight_foundation_revisions WHERE fluctlight_id=$1 AND revision=$2`, fluctlightID, target).Scan(&sourceID, &sourceStatus, &identity, &personality, &policy, &life, &provenance, &evidence); err != nil {
+		var corePersona, identity, personality, policy, life, provenance, evidence []byte
+		if err := tx.QueryRow(ctx, `SELECT id,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs FROM public.fluctlight_foundation_revisions WHERE fluctlight_id=$1 AND revision=$2`, fluctlightID, target).Scan(&sourceID, &sourceStatus, &corePersona, &identity, &personality, &policy, &life, &provenance, &evidence); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -369,10 +386,13 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 		}
 		newRevision := current + 1
 		newID := randomID("foundation_revision_")
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions(id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key) SELECT $1,fluctlight_id,$2,$3,'owner_rollback','accepted',$4,initialization_mode,'active',foundation_created_at,confidence,jsonb_build_object('rollback_from_revision',$5),identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,$6,$7 FROM public.fluctlight_foundation_revisions WHERE id=$8`, newID, newRevision, current, actorID, target, nullableString(reason), "foundation-rollback:"+fluctlightID+":"+fmt.Sprint(target), sourceID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions(id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key) SELECT $1,fluctlight_id,$2,$3,'owner_rollback','accepted',$4,initialization_mode,'active',foundation_created_at,confidence,jsonb_build_object('rollback_from_revision',$5),core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,$6,$7 FROM public.fluctlight_foundation_revisions WHERE id=$8`, newID, newRevision, current, actorID, target, nullableString(reason), "foundation-rollback:"+fluctlightID+":"+fmt.Sprint(target), sourceID); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,identity=$3,personality=$4,behavioral_policy=$5,life_profile=$6,provenance=$7,updated_at=now() WHERE id=$1`, fluctlightID, newRevision, identity, personality, policy, life, provenance); err != nil {
+		if len(decodeObject(corePersona)) == 0 {
+			corePersona = jsonBytes(map[string]any{"schema_version": 1, "identity": decodeObject(identity), "personality": decodeObject(personality), "behavioral_policy": decodeObject(policy), "life_profile": decodeObject(life)})
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,core_persona=$3,identity=$4,personality=$5,behavioral_policy=$6,life_profile=$7,provenance=$8,updated_at=now() WHERE id=$1`, fluctlightID, newRevision, corePersona, identity, personality, policy, life, provenance); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_governance(id,fluctlight_id,revision_id,action,actor_id,reason) VALUES($1,$2,$3,'rollback',$4,$5)`, randomID("foundation_governance_"), fluctlightID, newID, actorID, nullableString(reason)); err != nil {
@@ -410,9 +430,17 @@ func mergeFoundationMap(base, changes map[string]any) map[string]any {
 func validateFoundationChanges(changes map[string]any) error {
 	for key, value := range changes {
 		switch key {
-		case "identity", "personality", "behavioral_policy", "life_profile", "provenance":
+		case "identity", "personality", "behavioral_policy", "life_profile":
 			if _, ok := value.(map[string]any); !ok {
 				return errors.New("foundation_changes_invalid")
+			}
+		case "provenance":
+			provenance, ok := value.(map[string]any)
+			if !ok {
+				return errors.New("foundation_changes_invalid")
+			}
+			if _, forbidden := provenance["self_model"]; forbidden {
+				return errors.New("foundation_self_model_forbidden")
 			}
 		case "id", "initialization_mode", "status", "current_revision", "created_at":
 			return errors.New("foundation_field_immutable")

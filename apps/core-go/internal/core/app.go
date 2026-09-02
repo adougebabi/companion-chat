@@ -239,49 +239,79 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 		return nil, errors.New("description_invalid")
 	}
 	messages := []map[string]any{
-		{"role": "system", "content": "Return one JSON object with foundation.identity, foundation.personality, foundation.behavioral_policy, foundation.life_profile, foundation.initial_goals, foundation.initial_intentions, and provenance.foundation. Fill every semantic field with a concrete value. initial_goals must be an array of objects with description, importance (0..1), and urgency (0..1). initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Every intention must reference a valid goal_index, and intentions may be fewer than or equal to the number of goals. Do not return markdown or a flat identity/life_profile object outside the foundation envelope."},
+		{"role": "system", "content": "Return one JSON object with core_persona, developing_self, initial_goals, and initial_intentions. core_persona must contain identity, personality, behavioral_policy, and life_profile. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_goals must be an array of objects with description, importance (0..1), and urgency (0..1). initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Do not return markdown or legacy foundation/personality candidate fields."},
 		{"role": "user", "content": description},
 	}
 	result, err := a.Provider.Structured(ctx, "initialization", messages)
 	if err != nil {
 		return nil, err
 	}
-	foundation, ok := result["foundation"].(map[string]any)
-	if !ok {
-		// Some OpenAI-compatible providers omit the outer envelope while still
-		// returning the complete typed foundation object. Normalize that wire
-		// variation without inventing any semantic field or default value.
-		if _, hasIdentity := result["identity"].(map[string]any); hasIdentity {
-			if _, hasPersonality := result["personality"].(map[string]any); hasPersonality {
-				if _, hasPolicy := result["behavioral_policy"].(map[string]any); hasPolicy {
-					if _, hasLifeProfile := result["life_profile"].(map[string]any); hasLifeProfile {
-						foundation = result
-						result = map[string]any{"foundation": foundation}
-						ok = true
-					}
-				}
-			}
-		}
-	}
-	if !ok {
-		return nil, errors.New("initialization_foundation_invalid")
-	}
-	normalizeFoundationCollections(foundation)
-	if !validFoundation(foundation) {
-		return nil, errors.New("initialization_foundation_invalid")
+	if !validInitialization(result) {
+		return nil, errors.New("initialization_persona_invalid")
 	}
 	return result, nil
 }
 
-func validFoundation(value map[string]any) bool {
-	for _, key := range []string{"identity", "personality", "behavioral_policy", "life_profile"} {
-		if child, ok := value[key].(map[string]any); !ok || len(child) == 0 {
+func validInitialization(value map[string]any) bool {
+	for key := range value {
+		if _, ok := map[string]struct{}{"core_persona": {}, "developing_self": {}, "initial_goals": {}, "initial_intentions": {}}[key]; !ok {
 			return false
 		}
 	}
-	if timezone := stringValue(mapValue(value["identity"])["timezone"]); timezone != "" {
+	corePersona, ok := value["core_persona"].(map[string]any)
+	if !ok || len(corePersona) == 0 {
+		return false
+	}
+	for _, key := range []string{"identity", "personality", "behavioral_policy", "life_profile"} {
+		if child, ok := corePersona[key].(map[string]any); !ok || len(child) == 0 {
+			return false
+		}
+	}
+	for key := range corePersona {
+		if _, ok := map[string]struct{}{"schema_version": {}, "identity": {}, "personality": {}, "behavioral_policy": {}, "life_profile": {}}[key]; !ok {
+			return false
+		}
+	}
+	if timezone := stringValue(mapValue(corePersona["identity"])["timezone"]); timezone != "" {
 		if _, err := time.LoadLocation(canonicalTimezone(timezone)); err != nil {
 			return false
+		}
+	}
+	developingSelf, ok := value["developing_self"].(map[string]any)
+	if !ok {
+		return false
+	}
+	claims, ok := developingSelf["claims"].([]any)
+	if !ok {
+		return false
+	}
+	for _, raw := range claims {
+		claim := mapValue(raw)
+		for key := range claim {
+			if _, ok := map[string]struct{}{"category": {}, "claim": {}, "value": {}, "confidence": {}, "evidence_refs": {}, "provenance": {}, "status": {}}[key]; !ok {
+				return false
+			}
+		}
+		if len(claim) == 0 || stringValue(claim["category"]) == "" || strings.TrimSpace(stringValue(claim["claim"])) == "" || claim["value"] == nil {
+			return false
+		}
+		if confidence, ok := numberFloat(claim["confidence"]); !ok || confidence < 0 || confidence > 1 {
+			return false
+		}
+		if !validateDevelopingSelfCategory(stringValue(claim["category"])) {
+			return false
+		}
+		if provenance := mapValue(claim["provenance"]); stringValue(provenance["source"]) == "" {
+			return false
+		}
+		if refs, ok := claim["evidence_refs"].([]any); !ok && claim["evidence_refs"] != nil {
+			return false
+		} else if ok && len(refs) > 0 {
+			for _, ref := range refs {
+				if strings.TrimSpace(stringValue(ref)) == "" {
+					return false
+				}
+			}
 		}
 	}
 	for _, key := range []string{"initial_goals", "initial_intentions"} {
@@ -393,6 +423,16 @@ func defaultIdentity(id, name string) map[string]any {
 	return map[string]any{"id": id, "name": name, "age": nil, "gender": nil, "occupation": nil, "residence": nil, "timezone": "Asia/Shanghai", "birthday": nil, "background": nil, "biography": nil, "core_values": []any{}, "worldview": nil, "notes": nil}
 }
 
+func defaultCorePersona(id, name string) map[string]any {
+	return map[string]any{
+		"schema_version":    1,
+		"identity":          defaultIdentity(id, name),
+		"personality":       defaultPersonality(),
+		"behavioral_policy": defaultPolicy(),
+		"life_profile":      defaultLifeProfile(),
+	}
+}
+
 func defaultPersonality() map[string]any {
 	return map[string]any{"openness": 0.5, "conscientiousness": 0.5, "extraversion": 0.5, "agreeableness": 0.5, "neuroticism": 0.5, "curiosity": 0.5, "independence": 0.5, "patience": 0.5, "empathy": 0.5, "assertiveness": 0.5, "humor": 0.5, "sociability": 0.5, "risk_tolerance": 0.5, "update_policy": map[string]any{"evidence_window_events": 3, "max_delta": 0.05, "cooldown_seconds": 86400, "minimum_confidence": 0.7}}
 }
@@ -406,7 +446,7 @@ func defaultLifeProfile() map[string]any {
 }
 
 func defaultProvenance() map[string]any {
-	return map[string]any{"field_sources": map[string]any{}, "self_model": map[string]any{}}
+	return map[string]any{"field_sources": map[string]any{}}
 }
 
 func defaultInnerState() (map[string]any, map[string]any, map[string]any, map[string]any, []any, []any) {
@@ -417,8 +457,8 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 	if mode != "blank_slate" && mode != "llm_defined" {
 		return Fluctlight{}, errors.New("initialization_mode_invalid")
 	}
-	if mode == "llm_defined" && (foundation == nil || !validFoundation(foundation)) {
-		return Fluctlight{}, errors.New("initialization_foundation_invalid")
+	if mode == "llm_defined" && (foundation == nil || !validInitialization(foundation)) {
+		return Fluctlight{}, errors.New("initialization_persona_invalid")
 	}
 	if mode == "blank_slate" && foundation != nil {
 		return Fluctlight{}, errors.New("blank_slate_foundation_forbidden")
@@ -427,27 +467,31 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 	if id == "" {
 		id = randomID("fluctlight_")
 	}
-	identity := defaultIdentity(id, name)
-	personality := defaultPersonality()
-	policy := defaultPolicy()
-	lifeProfile := defaultLifeProfile()
+	corePersona := defaultCorePersona(id, name)
+	identity := mapValue(corePersona["identity"])
+	personality := mapValue(corePersona["personality"])
+	policy := mapValue(corePersona["behavioral_policy"])
+	lifeProfile := mapValue(corePersona["life_profile"])
 	provenance := defaultProvenance()
 	if foundation != nil {
-		if value, ok := foundation["identity"].(map[string]any); ok {
+		if value, ok := foundation["core_persona"].(map[string]any); ok {
+			corePersona = value
+		}
+		if value, ok := corePersona["identity"].(map[string]any); ok {
 			identity = value
 			identity["id"] = id
 		}
-		if value, ok := foundation["personality"].(map[string]any); ok {
+		if value, ok := corePersona["personality"].(map[string]any); ok {
 			personality = value
 		}
-		if value, ok := foundation["behavioral_policy"].(map[string]any); ok {
+		if value, ok := corePersona["behavioral_policy"].(map[string]any); ok {
 			policy = value
 		}
-		if value, ok := foundation["life_profile"].(map[string]any); ok {
+		if value, ok := corePersona["life_profile"].(map[string]any); ok {
 			lifeProfile = value
 		}
-		if value, ok := foundation["provenance"].(map[string]any); ok {
-			provenance = value
+		if _, ok := corePersona["schema_version"]; !ok {
+			corePersona["schema_version"] = 1
 		}
 		if value, ok := foundation["initial_goals"].([]any); ok {
 			goals = value
@@ -455,6 +499,10 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if value, ok := foundation["initial_intentions"].([]any); ok {
 			intentions = value
 		}
+	}
+	developingSelfClaims := []any{}
+	if foundation != nil {
+		developingSelfClaims = arrayValue(mapValue(foundation["developing_self"])["claims"])
 	}
 	var result Fluctlight
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
@@ -473,14 +521,17 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 			return err
 		}
 		now := time.Now().UTC()
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlights (id,created_by_actor_id,initialization_mode,status,current_revision,identity,personality,behavioral_policy,life_profile,provenance,created_at,updated_at) VALUES ($1,$2,$3,'active',0,$4,$5,$6,$7,$8,$9,$9)`, id, actorID, mode, jsonBytes(identity), jsonBytes(personality), jsonBytes(policy), jsonBytes(lifeProfile), jsonBytes(provenance), now); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlights (id,created_by_actor_id,initialization_mode,status,current_revision,core_persona,identity,personality,behavioral_policy,life_profile,provenance,created_at,updated_at) VALUES ($1,$2,$3,'active',0,$4,$5,$6,$7,$8,$9,$10,$10)`, id, actorID, mode, jsonBytes(corePersona), jsonBytes(identity), jsonBytes(personality), jsonBytes(policy), jsonBytes(lifeProfile), jsonBytes(provenance), now); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions (id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key,created_at,accepted_at) VALUES ($1,$2,0,0,'initialization','accepted',$3,$4,'active',$5,$6,'{}',$7,$8,$9,$10,$11,'[]',NULL,$12,$5,$5)`, randomID("foundation_revision_"), id, actorID, mode, now, jsonBytes(1.0), jsonBytes(identity), jsonBytes(personality), jsonBytes(policy), jsonBytes(lifeProfile), jsonBytes(provenance), "fluctlight-create:"+id); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions (id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key,created_at,accepted_at) VALUES ($1,$2,0,0,'initialization','accepted',$3,$4,'active',$5,$6,'{}',$7,$8,$9,$10,$11,$12,'[]',NULL,$13,$5,$5)`, randomID("foundation_revision_"), id, actorID, mode, now, jsonBytes(1.0), jsonBytes(corePersona), jsonBytes(identity), jsonBytes(personality), jsonBytes(policy), jsonBytes(lifeProfile), jsonBytes(provenance), "fluctlight-create:"+id); err != nil {
 			return err
 		}
 		pad, mood, momentum, regulation, drives, conflicts := defaultInnerState()
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_inner_states (fluctlight_id,revision,pad,mood,momentum,regulation,drives,conflicts,last_updated_at) VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8)`, id, jsonBytes(pad), jsonBytes(mood), jsonBytes(momentum), jsonBytes(regulation), jsonBytes(drives), jsonBytes(conflicts), now); err != nil {
+			return err
+		}
+		if err := a.insertDevelopingSelfSeeds(ctx, tx, id, developingSelfClaims); err != nil {
 			return err
 		}
 		if err := a.insertDirectConversation(ctx, tx, actorID, id); err != nil {

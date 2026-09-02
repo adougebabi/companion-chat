@@ -454,7 +454,7 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 		}
 	}
 	reflection := reflectionResponseSchema()
-	for _, key := range []string{"memory_candidates", "self_model_candidates", "drive_candidates", "trigger_candidates"} {
+	for _, key := range []string{"memory_candidates", "developing_self_candidates", "drive_candidates", "trigger_candidates"} {
 		if !containsSchemaRequired(reflection, key) {
 			t.Fatalf("reflection schema missing required field %q: %#v", key, reflection)
 		}

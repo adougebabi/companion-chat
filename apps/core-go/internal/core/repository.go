@@ -69,7 +69,7 @@ func (r *PostgresRepository) ResolveSession(ctx context.Context, token string) (
 
 func (r *PostgresRepository) ListFluctlights(ctx context.Context, ownerActorID string) ([]Fluctlight, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT f.id, f.identity, f.personality, f.behavioral_policy, f.life_profile, f.provenance, f.status, f.current_revision,
+		SELECT f.id, f.core_persona, f.identity, f.personality, f.behavioral_policy, f.life_profile, f.provenance, f.status, f.current_revision,
 		       COALESCE((SELECT COUNT(*) FROM public.conversation_messages m JOIN public.fluctlight_direct_conversations dc ON dc.conversation_id=m.conversation_id WHERE dc.fluctlight_actor_id=f.id AND m.author_actor_id=f.id),0),
 		       (SELECT MAX(m.created_at) FROM public.conversation_messages m JOIN public.fluctlight_direct_conversations dc ON dc.conversation_id=m.conversation_id WHERE dc.fluctlight_actor_id=f.id)
 		FROM public.fluctlights f
@@ -96,7 +96,7 @@ func (r *PostgresRepository) ListFluctlights(ctx context.Context, ownerActorID s
 
 func (r *PostgresRepository) GetFluctlight(ctx context.Context, id, ownerActorID string) (Fluctlight, error) {
 	row := r.pool.QueryRow(ctx, `
-		SELECT f.id, f.identity, f.personality, f.behavioral_policy, f.life_profile, f.provenance, f.status, f.current_revision,
+		SELECT f.id, f.core_persona, f.identity, f.personality, f.behavioral_policy, f.life_profile, f.provenance, f.status, f.current_revision,
 		       0, NULL::timestamptz
 		FROM public.fluctlights f
 		WHERE f.id = $1 AND f.created_by_actor_id = $2
@@ -203,16 +203,18 @@ type rowScanner interface{ Scan(...any) error }
 
 func scanFluctlight(row rowScanner) (Fluctlight, error) {
 	var result Fluctlight
-	var identity, personality, policy, lifeProfile, provenance []byte
-	if err := row.Scan(&result.ID, &identity, &personality, &policy, &lifeProfile, &provenance, &result.Status, &result.CurrentRevision, &result.UnreadCount, &result.LastConversationAt); err != nil {
+	var corePersona, identity, personality, policy, lifeProfile, provenance []byte
+	if err := row.Scan(&result.ID, &corePersona, &identity, &personality, &policy, &lifeProfile, &provenance, &result.Status, &result.CurrentRevision, &result.UnreadCount, &result.LastConversationAt); err != nil {
 		return Fluctlight{}, err
 	}
-	for name, value := range map[string][]byte{"identity": identity, "personality": personality, "behavioral_policy": policy, "life_profile": lifeProfile, "provenance": provenance} {
+	for name, value := range map[string][]byte{"core_persona": corePersona, "identity": identity, "personality": personality, "behavioral_policy": policy, "life_profile": lifeProfile, "provenance": provenance} {
 		decoded := make(map[string]any)
 		if err := json.Unmarshal(value, &decoded); err != nil {
 			return Fluctlight{}, fmt.Errorf("decode Core %s: %w", name, err)
 		}
 		switch name {
+		case "core_persona":
+			result.CorePersona = decoded
 		case "identity":
 			result.Identity = decoded
 		case "personality":

@@ -19,6 +19,7 @@ boundaries described below.
 | [Quality Guidelines](./quality-guidelines.md) | Safe changes and verification |
 | [Structured Turn Contract](./structured-turn-contract.md) | Provider JSON/tool control, affect/drives state, explicit memory, and chat commit boundaries |
 | [Persona Emergence Contract](./emergence-contract.md) | LLM-first appraisal, memory consolidation, self-model, agency intention, initialization modes, and debug boundaries |
+- [Persona Layer Contract](./persona-layer-contract.md) | Core Persona, evidence-backed Developing Self, Current State ownership, initialization, reflection and anti-drift boundaries |
 | [Fluctlight Cognitive Runtime Contract](./fluctlight-cognitive-runtime.md) | Clean-start semantic ownership, LLM-first perception/appraisal/decision/reflection, forbidden heuristic fallbacks, and anti-drift tests |
 | [Fluctlight Persistence Contract](./fluctlight-persistence-contract.md) | Clean-start PostgreSQL module ownership, Unit of Work, short transactions, outbox, external intents, and recovery |
 | [Fluctlight Memory Contract](./fluctlight-memory-contract.md) | Typed Memory authority, provenance, pgvector/FTS hybrid retrieval, async embeddings, visibility, and prompt budgeting |

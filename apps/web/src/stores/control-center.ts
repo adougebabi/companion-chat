@@ -126,11 +126,9 @@ export const useControlCenterStore = defineStore("control-center", {
     async activateFluctlight(body: {
       requestId: string;
       initializationMode: "blank_slate" | "llm_defined";
-      identity: Record<string, unknown>;
-      personality?: Record<string, unknown>;
-      behavioralPolicy?: Record<string, unknown>;
-      lifeProfile?: Record<string, unknown>;
-      foundationProvenance?: Record<string, unknown>;
+      name?: string;
+      corePersona?: Record<string, unknown>;
+      developingSelf?: Record<string, unknown>;
       initialGoals?: Array<Record<string, unknown>>;
       initialIntentions?: Array<Record<string, unknown>>;
     }) {
@@ -376,6 +374,40 @@ export const useControlCenterStore = defineStore("control-center", {
         this.revisionReason = "";
         await this.loadFluctlightDetail(fluctlightId);
       } catch { this.error = "无法回滚修订，目标必须是已接受 revision 且当前版本未变化。"; }
+      finally { this.saving = false; }
+    },
+    async rollbackDevelopingSelf(fluctlightId: string | null, claim: Record<string, unknown>) {
+      const reason = this.governanceReason.trim();
+      const claimId = String(claim.id ?? "");
+      const revision = Number(claim.revision ?? 0);
+      if (!fluctlightId || !claimId || !reason || !Number.isInteger(revision) || revision < 1) {
+        this.error = "回滚自我认知需要 claim、revision 和原因。";
+        return;
+      }
+      this.saving = true;
+      this.error = "";
+      try {
+        await client.rollbackDevelopingSelf(fluctlightId, claimId, { expectedRevision: revision, reason });
+        this.governanceReason = "";
+        await this.loadFluctlightDetail(fluctlightId);
+      } catch { this.error = "无法回滚自我认知，当前版本可能已变化或没有可回滚版本。"; }
+      finally { this.saving = false; }
+    },
+    async forgetDevelopingSelf(fluctlightId: string | null, claim: Record<string, unknown>) {
+      const reason = this.governanceReason.trim();
+      const claimId = String(claim.id ?? "");
+      const revision = Number(claim.revision ?? 0);
+      if (!fluctlightId || !claimId || !reason || !Number.isInteger(revision) || revision < 1) {
+        this.error = "标记自我认知不准确需要 claim、revision 和原因。";
+        return;
+      }
+      this.saving = true;
+      this.error = "";
+      try {
+        await client.forgetDevelopingSelf(fluctlightId, claimId, { expectedRevision: revision, reason });
+        this.governanceReason = "";
+        await this.loadFluctlightDetail(fluctlightId);
+      } catch { this.error = "无法标记自我认知，当前版本可能已变化。"; }
       finally { this.saving = false; }
     },
     async reviseMemory(memory: Record<string, unknown>) {
@@ -665,11 +697,11 @@ function creationAnalysisFailureMessage(error: unknown): string {
   if (error.code === "initialization_role_unconfigured") return "初始化模型角色未配置或预检未通过。";
   if (error.code === "initialization_response_invalid_json") return "初始化模型没有返回合法 JSON。";
   if (error.code === "initialization_response_invalid") return "初始化模型返回的 JSON 结构无效。";
-  if (error.code === "initialization_foundation_invalid") {
+  if (error.code === "initialization_persona_invalid" || error.code === "initialization_foundation_invalid") {
     const detail = error.details.validation_error;
     return typeof detail === "string"
-      ? `初始化模型返回的 Foundation 不符合要求：${detail}`
-      : "初始化模型返回的 Foundation 结构不符合要求，请查看诊断中的 Prompt 和 Response。";
+      ? `初始化模型返回的 Persona 分层不符合要求：${detail}`
+      : "初始化模型返回的 Persona 分层结构不符合要求，请查看诊断中的 Prompt 和 Response。";
   }
   if (error.code === "core_request_validation_failed") {
     const errors = error.details.validation_errors;
@@ -690,8 +722,7 @@ function creationAnalysisFailureMessage(error: unknown): string {
 function creationActivationFailureMessage(error: unknown): string {
   if (!(error instanceof BrowserApiError)) return "Fluctlight 激活服务暂时不可用。";
   if (error.code === "unauthenticated") return "登录会话已失效，请重新登录后再激活。";
-  if (error.code === "activation_foundation_invalid") return "预览中的 Foundation 结构无效。";
-  if (error.code === "activation_foundation_incomplete") return "预览缺少完整人格或行为策略。";
+  if (error.code === "activation_persona_invalid" || error.code === "activation_foundation_invalid") return "预览中的 Persona 分层结构无效。";
   if (error.code === "activation_request_conflict") return "该激活请求已被不同的预览内容占用。";
   if (error.code === "activation_persistence_failed") return "Fluctlight 数据无法保存，请查看诊断信息。";
   return error.userMessage || "Fluctlight 激活失败。";

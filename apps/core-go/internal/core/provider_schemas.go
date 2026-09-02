@@ -41,6 +41,8 @@ func openObjectSchema() map[string]any {
 	return map[string]any{"type": "object", "additionalProperties": true}
 }
 
+func anyJSONSchema() map[string]any { return map[string]any{} }
+
 func appraisalResponseSchema() map[string]any {
 	properties := map[string]any{}
 	for _, field := range []string{"relevance", "goal_congruence", "reward", "loss", "social_threat", "controllability", "responsibility", "relationship_significance", "expected_effect"} {
@@ -66,19 +68,21 @@ func toolCallSchema() map[string]any {
 
 func cognitiveTurnResponseSchema() map[string]any {
 	properties := map[string]any{
-		"action_type":     stringSchema(),
-		"response_intent": stringSchema(),
-		"visible_text":    stringSchema(),
-		"response_plan":   openObjectSchema(),
-		"claims":          arraySchema(claimSchema()),
-		"appraisal":       appraisalResponseSchema(),
-		"attention":       cognitiveStageSchema(),
-		"thought":         cognitiveStageSchema(),
-		"desire":          cognitiveStageSchema(),
-		"agency":          cognitiveStageSchema(),
-		"self_evaluation": openObjectSchema(),
-		"tool_calls":      arraySchema(toolCallSchema()),
-		"evidence_refs":   arraySchema(stringSchema()),
+		"action_type":      stringSchema(),
+		"response_intent":  stringSchema(),
+		"visible_text":     stringSchema(),
+		"response_plan":    openObjectSchema(),
+		"core_alignment":   openObjectSchema(),
+		"state_expression": openObjectSchema(),
+		"claims":           arraySchema(claimSchema()),
+		"appraisal":        appraisalResponseSchema(),
+		"attention":        cognitiveStageSchema(),
+		"thought":          cognitiveStageSchema(),
+		"desire":           cognitiveStageSchema(),
+		"agency":           cognitiveStageSchema(),
+		"self_evaluation":  openObjectSchema(),
+		"tool_calls":       arraySchema(toolCallSchema()),
+		"evidence_refs":    arraySchema(stringSchema()),
 	}
 	return objectSchema(properties, []string{"action_type", "response_intent", "visible_text", "response_plan", "claims", "appraisal", "attention", "thought", "desire", "agency", "self_evaluation", "tool_calls", "evidence_refs"}, false)
 }
@@ -135,15 +139,22 @@ func scheduleResponseSchema() map[string]any {
 
 func reflectionResponseSchema() map[string]any {
 	candidates := arraySchema(openObjectSchema())
+	developingSelfCandidate := objectSchema(map[string]any{
+		"category":      enumStringSchema("preference", "habit", "sensitivity", "emotion_pattern", "self_perception", "capability", "interest"),
+		"claim":         stringSchema(),
+		"value":         anyJSONSchema(),
+		"confidence":    unitNumberSchema(),
+		"evidence_refs": arraySchema(stringSchema()),
+		"provenance":    openObjectSchema(),
+	}, []string{"category", "claim", "value", "confidence", "evidence_refs", "provenance"}, false)
 	return objectSchema(map[string]any{
-		"memory_candidates":       candidates,
-		"relationship_candidates": candidates,
-		"self_model_candidates":   candidates,
-		"personality_candidates":  candidates,
-		"drive_candidates":        candidates,
-		"preference_candidates":   candidates,
-		"trigger_candidates":      candidates,
-	}, []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"}, false)
+		"memory_candidates":          candidates,
+		"relationship_candidates":    candidates,
+		"developing_self_candidates": arraySchema(developingSelfCandidate),
+		"drive_candidates":           candidates,
+		"preference_candidates":      candidates,
+		"trigger_candidates":         candidates,
+	}, []string{"memory_candidates", "relationship_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"}, false)
 }
 
 func initializationResponseSchema() map[string]any {
@@ -157,29 +168,27 @@ func initializationResponseSchema() map[string]any {
 		"goal_index": integerSchema(),
 		"confidence": unitNumberSchema(),
 	}, []string{"action", "goal_index", "confidence"}, false)
-	foundation := objectSchema(map[string]any{
-		"identity":           openObjectSchema(),
-		"personality":        openObjectSchema(),
-		"behavioral_policy":  openObjectSchema(),
-		"life_profile":       openObjectSchema(),
+	claim := objectSchema(map[string]any{
+		"category":      enumStringSchema("preference", "habit", "sensitivity", "emotion_pattern", "self_perception", "capability", "interest"),
+		"claim":         stringSchema(),
+		"value":         anyJSONSchema(),
+		"confidence":    unitNumberSchema(),
+		"evidence_refs": arraySchema(stringSchema()),
+		"provenance":    openObjectSchema(),
+		"status":        enumStringSchema("active", "uncertain"),
+	}, []string{"category", "claim", "value", "confidence", "evidence_refs", "provenance"}, false)
+	corePersona := objectSchema(map[string]any{
+		"schema_version":    integerSchema(),
+		"identity":          openObjectSchema(),
+		"personality":       openObjectSchema(),
+		"behavioral_policy": openObjectSchema(),
+		"life_profile":      openObjectSchema(),
+	}, []string{"identity", "personality", "behavioral_policy", "life_profile"}, false)
+	developingSelf := objectSchema(map[string]any{"claims": arraySchema(claim)}, []string{"claims"}, false)
+	return objectSchema(map[string]any{
+		"core_persona":       corePersona,
+		"developing_self":    developingSelf,
 		"initial_goals":      arraySchema(goal),
 		"initial_intentions": arraySchema(intention),
-		"provenance":         openObjectSchema(),
-	}, []string{"identity", "personality", "behavioral_policy", "life_profile", "initial_goals", "initial_intentions", "provenance"}, false)
-	// Accept both the canonical {foundation:{...}} envelope and the existing
-	// flat-provider compatibility shape without allowing unrelated root keys.
-	return map[string]any{
-		"anyOf": []any{
-			objectSchema(map[string]any{"foundation": foundation}, []string{"foundation"}, false),
-			objectSchema(map[string]any{
-				"identity":           openObjectSchema(),
-				"personality":        openObjectSchema(),
-				"behavioral_policy":  openObjectSchema(),
-				"life_profile":       openObjectSchema(),
-				"initial_goals":      arraySchema(goal),
-				"initial_intentions": arraySchema(intention),
-				"provenance":         openObjectSchema(),
-			}, []string{"identity", "personality", "behavioral_policy", "life_profile", "initial_goals", "initial_intentions", "provenance"}, false),
-		},
-	}
+	}, []string{"core_persona", "developing_self", "initial_goals", "initial_intentions"}, false)
 }

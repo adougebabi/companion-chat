@@ -17,6 +17,7 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	}
 	detail := map[string]any{
 		"id":                fluctlight.ID,
+		"core_persona":      fluctlight.CorePersona,
 		"identity":          fluctlight.Identity,
 		"personality":       fluctlight.Personality,
 		"behavioral_policy": fluctlight.BehavioralPolicy,
@@ -24,7 +25,6 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 		"provenance":        fluctlight.Provenance,
 		"status":            fluctlight.Status,
 		"current_revision":  fluctlight.CurrentRevision,
-		"self_model":        mapValue(fluctlight.Provenance["self_model"]),
 	}
 	inner, err := a.readInnerState(ctx, fluctlightID)
 	if err != nil && err != ErrNotFound {
@@ -34,6 +34,24 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 		inner = map[string]any{}
 	}
 	detail["inner_state"] = inner
+	claims, err := a.listDevelopingSelfClaims(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	detail["developing_self"] = map[string]any{"claims": claims}
+	detail["developing_self_revisions"], err = a.listDevelopingSelfRevisions(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	developingSelfRevision := 0
+	for _, claim := range claims {
+		if claim.Revision > developingSelfRevision {
+			developingSelfRevision = claim.Revision
+		}
+	}
+	detail["core_persona_revision"] = fluctlight.CurrentRevision
+	detail["developing_self_revision"] = developingSelfRevision
+	detail["current_state_revision"] = intValue(inner["revision"])
 	detail["drive_slots"], err = a.readDriveSlots(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
@@ -68,6 +86,7 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
+	detail["current_state"] = map[string]any{"inner_state": inner, "context": detail["context"]}
 	detail["hypotheses"], err = a.readActiveHypotheses(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
@@ -164,16 +183,16 @@ func resolveScheduleContext(value any) map[string]any {
 
 func (a *App) readInnerState(ctx context.Context, fluctlightID string) (map[string]any, error) {
 	var revision int
-	var pad, mood, drives []byte
+	var pad, mood, momentum, regulation, drives, conflicts []byte
 	var updated time.Time
-	err := a.DB.Pool().QueryRow(ctx, `SELECT revision,pad,mood,drives,last_updated_at FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&revision, &pad, &mood, &drives, &updated)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT revision,pad,mood,momentum,regulation,drives,conflicts,last_updated_at FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&revision, &pad, &mood, &momentum, &regulation, &drives, &conflicts, &updated)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, ErrNotFound
 		}
 		return nil, err
 	}
-	return map[string]any{"pad": decodeObject(pad), "mood": decodeObject(mood), "drives": decodeArray(drives), "revision": revision, "last_updated_at": updated.Format(time.RFC3339Nano)}, nil
+	return map[string]any{"pad": decodeObject(pad), "mood": decodeObject(mood), "momentum": decodeObject(momentum), "regulation": decodeObject(regulation), "drives": decodeArray(drives), "conflicts": decodeArray(conflicts), "revision": revision, "last_updated_at": updated.Format(time.RFC3339Nano)}, nil
 }
 
 func (a *App) readAgency(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {
@@ -400,7 +419,7 @@ func (a *App) readCognitionHistory(ctx context.Context, fluctlightID string) ([]
 }
 
 func (a *App) readFoundationRevisions(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,revision,source,status,changes,created_at,accepted_at,reason FROM public.fluctlight_foundation_revisions WHERE fluctlight_id=$1 ORDER BY revision DESC`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,revision,source,status,changes,core_persona,created_at,accepted_at,reason FROM public.fluctlight_foundation_revisions WHERE fluctlight_id=$1 ORDER BY revision DESC`, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
@@ -409,10 +428,10 @@ func (a *App) readFoundationRevisions(ctx context.Context, fluctlightID string) 
 	for rows.Next() {
 		var id, source, status string
 		var rev int
-		var changes []byte
+		var changes, corePersona []byte
 		var created, accepted *time.Time
 		var reason *string
-		if err := rows.Scan(&id, &rev, &source, &status, &changes, &created, &accepted, &reason); err != nil {
+		if err := rows.Scan(&id, &rev, &source, &status, &changes, &corePersona, &created, &accepted, &reason); err != nil {
 			return nil, err
 		}
 		var c, a any
@@ -422,7 +441,7 @@ func (a *App) readFoundationRevisions(ctx context.Context, fluctlightID string) 
 		if accepted != nil {
 			a = accepted.Format(time.RFC3339Nano)
 		}
-		out = append(out, map[string]any{"id": id, "revision": rev, "source": source, "status": status, "changes": decodeObject(changes), "created_at": c, "accepted_at": a, "reason": reason})
+		out = append(out, map[string]any{"id": id, "revision": rev, "source": source, "status": status, "changes": decodeObject(changes), "core_persona": decodeObject(corePersona), "created_at": c, "accepted_at": a, "reason": reason})
 	}
 	return out, nil
 }

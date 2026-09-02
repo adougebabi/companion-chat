@@ -24,6 +24,7 @@
 ## Forbidden Patterns
 
 - Direct HTML interpolation of unescaped user/provider content.
+- Implicitly interpolating new Persona layer objects; Core Persona, Developing Self, Current State, evidence, and revision payloads use a bounded `JSON.stringify` helper and remain read-only unless an explicit action is provided.
 - New polling loops that run while the page is hidden or while a send is active.
 - Browser-side provider calls that would expose MTPLX keys or ComfyUI configuration.
 - Reintroducing the deleted vanilla `src/` entry as a production fallback.

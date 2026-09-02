@@ -40,7 +40,6 @@ const creationInitialGoals = ref<Array<Record<string, unknown>>>([]);
 const creationInitialIntentions = ref<Array<Record<string, unknown>>>([]);
 const creationRequestId = ref<string | null>(null);
 const creationDiagnosticsCorrelationId = ref("");
-const creationFoundationProvenance = ref<Record<string, unknown>>({});
 const defaultGroupId = computed(() => controlCenter.actorGroups.find((group) => group.name === "默认")?.id ?? controlCenter.actorGroups[0]?.id ?? "");
 const orderedActorGroups = computed(() => [...controlCenter.actorGroups].sort((left, right) => { if (left.name === "默认") return -1; if (right.name === "默认") return 1; return left.name.localeCompare(right.name, "zh-CN"); }));
 
@@ -98,11 +97,9 @@ async function openGovernanceFor(id: string) {
 
 async function activateCreatedFluctlight(body: {
   initializationMode: "blank_slate" | "llm_defined";
-  identity: Record<string, unknown>;
-  personality?: Record<string, unknown>;
-  behavioralPolicy?: Record<string, unknown>;
-  lifeProfile?: Record<string, unknown>;
-  foundationProvenance?: Record<string, unknown>;
+  name?: string;
+  corePersona?: Record<string, unknown>;
+  developingSelf?: Record<string, unknown>;
   initialGoals?: Array<Record<string, unknown>>;
   initialIntentions?: Array<Record<string, unknown>>;
 }) {
@@ -120,52 +117,46 @@ async function activateCreatedFluctlight(body: {
   creationInitialIntentions.value = [];
   creationRequestId.value = null;
   creationDiagnosticsCorrelationId.value = "";
-  creationFoundationProvenance.value = {};
   showCreateForm.value = false;
   emit("openChat");
 }
 
 async function createBlank() {
   const name = newFluctlightName.value.trim();
-  if (name) await activateCreatedFluctlight({ initializationMode: "blank_slate", identity: { name } });
+  if (name) await activateCreatedFluctlight({ initializationMode: "blank_slate", name });
 }
 
 async function analyzeDescription() {
   const description = creationDescription.value.trim();
   if (!description) return;
   const result = await controlCenter.analyzeFluctlight(description);
-  const foundation = result?.foundation;
-  if (!foundation || typeof foundation !== "object" || Array.isArray(foundation)) {
-    if (result) controlCenter.error = "初始化模型返回了不包含 Foundation 的无效结果。";
+  const corePersona = result?.core_persona;
+  const developingSelf = result?.developing_self;
+  if (!corePersona || typeof corePersona !== "object" || Array.isArray(corePersona) || !developingSelf || typeof developingSelf !== "object" || Array.isArray(developingSelf)) {
+    if (result) controlCenter.error = "初始化模型返回了不包含分层 Persona 的无效结果。";
     return;
   }
-  const data = foundation as Record<string, unknown>;
+  const data = result as Record<string, unknown>;
   creationPreviewJson.value = JSON.stringify(data, null, 2);
   creationInitialGoals.value = Array.isArray(data.initial_goals) ? data.initial_goals.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
   creationInitialIntentions.value = Array.isArray(data.initial_intentions) ? data.initial_intentions.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
-  const provenance = result.provenance;
-  creationDiagnosticsCorrelationId.value = provenance && typeof provenance === "object" ? String((provenance as Record<string, unknown>).correlation_id ?? "") : "";
-  creationFoundationProvenance.value = provenance && typeof provenance === "object" && !Array.isArray(provenance) && (provenance as Record<string, unknown>).foundation && typeof (provenance as Record<string, unknown>).foundation === "object" ? (provenance as Record<string, unknown>).foundation as Record<string, unknown> : {};
+  creationDiagnosticsCorrelationId.value = "";
   creationRequestId.value = randomId();
 }
 
 async function activatePreview() {
   try {
     const foundation = JSON.parse(creationPreviewJson.value) as Record<string, unknown>;
-    const required = ["identity", "personality", "behavioral_policy", "life_profile"];
-    if (!required.every((key) => foundation[key] && typeof foundation[key] === "object" && !Array.isArray(foundation[key]))) throw new Error("invalid_preview");
+    if (!foundation.core_persona || typeof foundation.core_persona !== "object" || Array.isArray(foundation.core_persona) || !foundation.developing_self || typeof foundation.developing_self !== "object" || Array.isArray(foundation.developing_self)) throw new Error("invalid_preview");
     await activateCreatedFluctlight({
       initializationMode: "llm_defined",
-      identity: foundation.identity as Record<string, unknown>,
-      personality: foundation.personality as Record<string, unknown>,
-      behavioralPolicy: foundation.behavioral_policy as Record<string, unknown>,
-      lifeProfile: foundation.life_profile as Record<string, unknown>,
-      foundationProvenance: (foundation.provenance ?? creationFoundationProvenance.value) as Record<string, unknown>,
+      corePersona: foundation.core_persona as Record<string, unknown>,
+      developingSelf: foundation.developing_self as Record<string, unknown>,
       initialGoals: creationInitialGoals.value,
       initialIntentions: creationInitialIntentions.value,
     });
   } catch {
-    controlCenter.error = "预览必须包含 identity、personality、behavioral_policy 和 life_profile 对象。";
+    controlCenter.error = "预览必须包含 core_persona 和 developing_self 对象。";
   }
 }
 
@@ -247,7 +238,7 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
           </form>
 
           <form v-if="creationMode === 'llm_defined' && creationPreviewJson" id="activate-preview-form" class="stack-form preview-form" @submit.prevent="activatePreview">
-            <label for="fluctlight-preview">可编辑的基础预览<Textarea id="fluctlight-preview" v-model="creationPreviewJson" rows="12" spellcheck="false" /></label>
+            <label for="fluctlight-preview">可编辑的 Persona 分层预览<Textarea id="fluctlight-preview" v-model="creationPreviewJson" rows="12" spellcheck="false" /></label>
             <div v-if="creationInitialGoals.length || creationInitialIntentions.length" class="preview-summary">
               <strong>创建后会带入</strong>
               <span v-for="goal in creationInitialGoals" :key="String(goal.description)">目标：{{ String(goal.description) }}</span>

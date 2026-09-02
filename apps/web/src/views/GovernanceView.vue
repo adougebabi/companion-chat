@@ -26,6 +26,20 @@ const growthSlots = computed(() => {
   const preferences = Array.isArray(detail.preference_slots) ? detail.preference_slots as Array<Record<string, unknown>> : [];
   return [...drives, ...preferences];
 });
+const developingSelfClaims = computed(() => {
+  const detail = controlCenter.fluctlightDetail;
+  const developingSelf = detail && typeof detail.developing_self === "object" && !Array.isArray(detail.developing_self) ? detail.developing_self as Record<string, unknown> : {};
+  return Array.isArray(developingSelf.claims) ? developingSelf.claims.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
+});
+const developingSelfRevisions = computed(() => {
+  const detail = controlCenter.fluctlightDetail;
+  return detail && Array.isArray(detail.developing_self_revisions) ? detail.developing_self_revisions as Array<Record<string, unknown>> : [];
+});
+
+function jsonDisplay(value: unknown): string {
+  try { return JSON.stringify(value ?? {}, null, 2); }
+  catch { return "无法展示该字段"; }
+}
 
 async function retire() {
   const id = store.fluctlightId;
@@ -118,6 +132,11 @@ function capabilityRequestStatus(value: unknown): string {
         <summary class="section-heading"><span class="section-index">05</span><div><p class="eyebrow">自治与修订</p><h2>自治与修订</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
         <p v-if="!controlCenter.autonomyActions.length" class="field-note">当前没有待治理的自治动作。</p>
         <ul v-else class="detail-list"><li v-for="action in controlCenter.autonomyActions" :key="action.id"><strong>{{ enumLabel(action.action_type) }}</strong><small>{{ enumLabel(action.status) }}</small><div class="inline-controls"><Button v-if="action.status === 'frozen' || action.status === 'deferred'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.governAutonomyAction(action.id, 'paused', store.fluctlightId)">暂停</Button><Button v-if="action.status === 'frozen' || action.status === 'deferred' || action.status === 'paused'" class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.governAutonomyAction(action.id, 'cancelled', store.fluctlightId)">取消</Button></div></li></ul>
+        <h3>Developing Self</h3>
+        <p class="field-note">这些内容是带证据的自我认知，不会自动改写 Core Persona。</p>
+        <p v-if="!developingSelfClaims.length" class="field-note">当前还没有形成自我认知 claim。</p>
+        <ul v-else class="detail-list"><li v-for="claim in developingSelfClaims" :key="String(claim.id)"><strong>{{ formatDisplayValue(claim.claim) }}</strong><small>置信度：{{ formatDisplayValue(claim.confidence) }} · 修订：{{ formatDisplayValue(claim.revision) }}</small><pre>{{ jsonDisplay(claim) }}</pre><div class="inline-controls"><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.rollbackDevelopingSelf(store.fluctlightId, claim)">回滚上一版</Button><Button class="text-button danger-text" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.forgetDevelopingSelf(store.fluctlightId, claim)">标记不准确</Button></div></li></ul>
+        <details v-if="developingSelfRevisions.length" class="governance-subsection"><summary>查看 Developing Self revision JSON</summary><pre>{{ jsonDisplay(developingSelfRevisions) }}</pre></details>
         <h3>身份与人格修订记录</h3>
         <p v-if="!(controlCenter.fluctlightDetail.foundation_revisions as unknown[])?.length" class="field-note">还没有修订记录。</p>
         <ul v-else class="detail-list"><li v-for="revision in controlCenter.fluctlightDetail.foundation_revisions as Array<Record<string, unknown>>" :key="String(revision.id)"><strong>版本 {{ formatDisplayValue(revision.revision) }} · {{ enumLabel(revision.source) }}</strong><small>{{ enumLabel(revision.status) }}<template v-if="revision.reason"> · {{ formatDisplayValue(revision.reason) }}</template></small><div v-if="revision.status === 'proposed'" class="inline-controls"><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.revisionReason.trim()" @click="controlCenter.acceptFoundationRevision(store.fluctlightId, String(revision.id))">接受</Button><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving || !controlCenter.revisionReason.trim()" @click="controlCenter.rejectFoundationRevision(store.fluctlightId, String(revision.id))">拒绝</Button></div></li></ul>

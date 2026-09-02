@@ -31,27 +31,44 @@ var validClaimKinds = map[string]struct{}{
 // Reflection, and native capability slots. It deliberately carries provenance
 // alongside semantic values so model output cannot become an unowned fact.
 type ContextProjection struct {
-	SchemaVersion      string           `json:"schema_version"`
-	FluctlightID       string           `json:"fluctlight_id"`
-	ConversationID     string           `json:"conversation_id"`
-	SourceFactID       string           `json:"source_fact_id"`
-	CurrentUserText    string           `json:"current_user_text"`
-	RecentMessages     []map[string]any `json:"recent_messages"`
-	ContextRevision    int              `json:"context_revision"`
-	Identity           map[string]any   `json:"identity"`
-	Personality        map[string]any   `json:"personality"`
-	SelfModel          map[string]any   `json:"self_model"`
-	BehavioralPolicy   map[string]any   `json:"behavioral_policy"`
-	InnerState         map[string]any   `json:"inner_state"`
-	LifeContext        map[string]any   `json:"life_context"`
-	Presence           map[string]any   `json:"presence,omitempty"`
-	Memories           []map[string]any `json:"memories"`
-	Relationships      []map[string]any `json:"relationships"`
-	Hypotheses         []map[string]any `json:"hypotheses"`
-	Capabilities       []map[string]any `json:"capabilities"`
-	DriveSlots         []map[string]any `json:"drive_slots"`
-	PreferenceSlots    []map[string]any `json:"preference_slots"`
-	TriggerPreferences []map[string]any `json:"trigger_preferences"`
+	SchemaVersion          string           `json:"schema_version"`
+	FluctlightID           string           `json:"fluctlight_id"`
+	ConversationID         string           `json:"conversation_id"`
+	SourceFactID           string           `json:"source_fact_id"`
+	CurrentUserText        string           `json:"current_user_text"`
+	RecentMessages         []map[string]any `json:"recent_messages"`
+	ContextRevision        int              `json:"context_revision"`
+	CorePersonaRevision    int              `json:"core_persona_revision"`
+	DevelopingSelfRevision int              `json:"developing_self_revision"`
+	CurrentStateRevision   int              `json:"current_state_revision"`
+	CorePersona            map[string]any   `json:"core_persona"`
+	DevelopingSelf         []map[string]any `json:"developing_self"`
+	CurrentState           map[string]any   `json:"current_state"`
+	Identity               map[string]any   `json:"identity"`
+	Personality            map[string]any   `json:"personality"`
+	BehavioralPolicy       map[string]any   `json:"behavioral_policy"`
+	InnerState             map[string]any   `json:"inner_state"`
+	LifeContext            map[string]any   `json:"life_context"`
+	Presence               map[string]any   `json:"presence,omitempty"`
+	Memories               []map[string]any `json:"memories"`
+	Relationships          []map[string]any `json:"relationships"`
+	Hypotheses             []map[string]any `json:"hypotheses"`
+	Capabilities           []map[string]any `json:"capabilities"`
+	DriveSlots             []map[string]any `json:"drive_slots"`
+	PreferenceSlots        []map[string]any `json:"preference_slots"`
+	TriggerPreferences     []map[string]any `json:"trigger_preferences"`
+}
+
+func contextProjectionFromValue(value any) (ContextProjection, bool) {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return ContextProjection{}, false
+	}
+	var projection ContextProjection
+	if err := json.Unmarshal(data, &projection); err != nil || projection.FluctlightID == "" {
+		return ContextProjection{}, false
+	}
+	return projection, true
 }
 
 type ResponsePlan struct {
@@ -68,6 +85,8 @@ type ResponsePlan struct {
 	ToolCalls        []ToolCallV1     `json:"tool_calls"`
 	NativeCandidates []map[string]any `json:"native_candidates"`
 	SelfEvaluation   map[string]any   `json:"self_evaluation"`
+	CoreAlignment    map[string]any   `json:"core_alignment,omitempty"`
+	StateExpression  map[string]any   `json:"state_expression,omitempty"`
 }
 
 type SelfEvaluation struct {
@@ -144,12 +163,31 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 			recentMessages = append(recentMessages, map[string]any{"id": message.ID, "sequence": message.Sequence, "author_actor_id": message.AuthorActorID, "kind": message.Kind, "text": message.Text, "attachment_refs": message.AttachmentRefs, "created_at": message.CreatedAt.Format(time.RFC3339Nano), "source": "message:" + message.ID})
 		}
 	}
+	developingSelfClaims, err := a.listDevelopingSelfClaims(ctx, fluctlightID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	developingSelf := make([]map[string]any, 0, len(developingSelfClaims))
+	developingSelfRevision := 0
+	for _, claim := range developingSelfClaims {
+		if claim.Revision > developingSelfRevision {
+			developingSelfRevision = claim.Revision
+		}
+		developingSelf = append(developingSelf, map[string]any{
+			"id": claim.ID, "category": claim.Category, "claim": claim.Claim, "value": claim.Value,
+			"confidence": claim.Confidence, "evidence_refs": claim.EvidenceRefs, "provenance": claim.Provenance,
+			"status": claim.Status, "expires_at": claim.ExpiresAt, "revision": claim.Revision,
+		})
+	}
 	projection := ContextProjection{
-		SchemaVersion: "fluctlight.context.v1",
+		SchemaVersion: "fluctlight.context.v2",
 		FluctlightID:  fluctlightID, ConversationID: conversationID, SourceFactID: sourceFactID,
 		CurrentUserText: userText, RecentMessages: recentMessages, ContextRevision: fluctlight.CurrentRevision,
-		Identity: fluctlight.Identity, Personality: fluctlight.Personality,
-		SelfModel:        mapValue(fluctlight.Provenance["self_model"]),
+		CorePersonaRevision: fluctlight.CurrentRevision, DevelopingSelfRevision: developingSelfRevision, CurrentStateRevision: intValue(inner["revision"]),
+		CorePersona:    map[string]any{"authority": "hard_constraint", "data": fluctlight.CorePersona},
+		DevelopingSelf: developingSelf,
+		CurrentState:   map[string]any{"authority": "transient_state", "data": map[string]any{"inner_state": inner, "life_context": lifeContext}},
+		Identity:       fluctlight.Identity, Personality: fluctlight.Personality,
 		BehavioralPolicy: fluctlight.BehavioralPolicy, InnerState: inner,
 		LifeContext: lifeContext, Memories: memories, Relationships: relationships,
 		Hypotheses:   hypotheses,
@@ -394,6 +432,14 @@ func normalizeResponsePlan(decision map[string]any, sourceFactID string, context
 		"response_outline": arrayValue(base["response_outline"]),
 		"tone":             firstString(base["tone"], "natural"),
 		"self_evaluation":  mapValue(base["self_evaluation"]),
+		"core_alignment":   mapValue(base["core_alignment"]),
+		"state_expression": mapValue(base["state_expression"]),
+	}
+	if len(mapValue(plan["core_alignment"])) == 0 {
+		plan["core_alignment"] = mapValue(decision["core_alignment"])
+	}
+	if len(mapValue(plan["state_expression"])) == 0 {
+		plan["state_expression"] = mapValue(decision["state_expression"])
 	}
 	if action := firstString(base["action_type"], firstString(decision["action_type"], "")); action != "" {
 		plan["action_type"] = action

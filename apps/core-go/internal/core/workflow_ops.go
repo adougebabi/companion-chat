@@ -316,18 +316,35 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 			allowedEvidence["memory:"+memoryID] = struct{}{}
 		}
 	}
-	proposal, err := a.Provider.Structured(ctx, "reflection", []map[string]any{{"role": "system", "content": "Review only the supplied evidence and context. Return JSON with memory_candidates, relationship_candidates, self_model_candidates, personality_candidates, drive_candidates, preference_candidates, and trigger_candidates arrays. Drive candidates use typed slots (pressure/scalar/categorical/set/bounded_object); preference candidates use the same typed value schemas. Every candidate must include complete typed fields, confidence, and evidence_refs that reference an evidence id or sequence:N. Do not invent facts and do not use defaults."}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": projection})}})
+	proposal, err := a.Provider.Structured(ctx, "reflection", []map[string]any{{"role": "system", "content": "Review only the supplied evidence and context. Return JSON with memory_candidates, relationship_candidates, developing_self_candidates, drive_candidates, preference_candidates, and trigger_candidates arrays. Never return personality_candidates or self_model_candidates. Developing Self claims describe only preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests; they must include category, claim, value, confidence, evidence_refs, and provenance. Never modify Core Persona or turn a one-off mood/reaction into a stable trait. Drive candidates use typed slots (pressure/scalar/categorical/set/bounded_object); preference candidates use the same typed value schemas. Every candidate must include complete typed fields and evidence_refs that reference an evidence id or sequence:N. Do not invent facts and do not use defaults."}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": projection})}})
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
 	}
-	proposal = filterReflectionEvidence(normalizeReflectionProposal(proposal), allowedEvidence)
+	normalizedProposal := normalizeReflectionProposal(proposal)
+	filteredProposal := filterReflectionEvidence(normalizedProposal, allowedEvidence)
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
+		beforeCount := len(arrayValue(normalizedProposal[key]))
+		afterCount := len(arrayValue(filteredProposal[key]))
+		if beforeCount > afterCount {
+			a.recordDiagnosticEvent(ctx, "developing_self.candidate.rejected", "warn", fluctlightID, "reflection:"+fluctlightID, correlationID, map[string]any{"reason_code": "evidence_invalid_or_outside_window", "candidate_type": key, "dropped": beforeCount - afterCount})
+		}
+	}
+	proposal = filteredProposal
 	if err := validateReflectionProposal(proposal, allowedEvidence); err != nil {
+		a.recordDiagnosticEvent(ctx, "developing_self.candidate.rejected", "warn", fluctlightID, "reflection:"+fluctlightID, correlationID, map[string]any{"reason_code": err.Error(), "proposal": proposal})
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
 	}
 	proposalID := "reflection_" + stableDigest(fluctlightID+fmt.Sprint(toSequence))
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var latestStateRevision int
+		if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$1 FOR SHARE`, fluctlightID).Scan(&latestStateRevision); err != nil {
+			return err
+		}
+		if latestStateRevision != stateRevision {
+			return ErrConflict
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_reflection_proposals(id,fluctlight_id,from_sequence,to_sequence,base_state_revision,payload,evidence_refs,correlation_id,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'proposed') ON CONFLICT(id) DO NOTHING`, proposalID, fluctlightID, watermark+1, toSequence, stateRevision, jsonBytes(proposal), jsonBytes(evidence), correlationID); err != nil {
 			return err
 		}
@@ -360,7 +377,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 // the same proposal can still advance the watermark and be applied.
 func normalizeReflectionProposal(value map[string]any) map[string]any {
 	result := make(map[string]any, 7)
-	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
 		rawCandidates := value[key]
 		if rawCandidates == nil {
 			switch key {
@@ -418,21 +435,14 @@ func normalizeReflectionProposal(value map[string]any) map[string]any {
 				if stringValue(normalized["trend"]) == "" || stringValue(normalized["target_actor_id"]) == "" {
 					continue
 				}
-			case "self_model_candidates":
+			case "developing_self_candidates":
 				if stringValue(normalized["category"]) == "" {
 					normalized["category"] = firstString(normalized["dimension"], firstString(normalized["type"], ""))
 				}
 				if stringValue(normalized["claim"]) == "" {
 					normalized["claim"] = firstString(normalized["summary"], firstString(normalized["content"], ""))
 				}
-				if stringValue(normalized["category"]) == "" || stringValue(normalized["claim"]) == "" {
-					continue
-				}
-			case "personality_candidates":
-				if stringValue(normalized["trait"]) == "" {
-					normalized["trait"] = normalized["dimension"]
-				}
-				if stringValue(normalized["trait"]) == "" || normalized["value"] == nil {
+				if stringValue(normalized["claim"]) == "" || normalized["value"] == nil {
 					continue
 				}
 			case "drive_candidates", "preference_candidates":
@@ -470,7 +480,7 @@ func normalizeReflectionProposal(value map[string]any) map[string]any {
 }
 
 func filterReflectionEvidence(proposal map[string]any, allowed map[string]struct{}) map[string]any {
-	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
 		filtered := make([]any, 0)
 		for _, raw := range arrayValue(proposal[key]) {
 			item := mapValue(raw)
@@ -518,7 +528,7 @@ func (a *App) setReflectionWindowIdle(ctx context.Context, fluctlightID string) 
 }
 
 func validateReflectionProposal(value map[string]any, allowedEvidence map[string]struct{}) error {
-	for _, key := range []string{"memory_candidates", "relationship_candidates", "self_model_candidates", "personality_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
 		raw, ok := value[key]
 		if !ok || raw == nil {
 			continue
@@ -555,23 +565,15 @@ func validateReflectionProposal(value map[string]any, allowedEvidence map[string
 			if key == "relationship_candidates" && (stringValue(item["target_actor_id"]) == "" || stringValue(item["trend"]) == "") {
 				return errors.New("reflection_relationship_fields_invalid")
 			}
-			if key == "self_model_candidates" {
-				if stringValue(item["category"]) == "" || stringValue(item["claim"]) == "" {
-					return errors.New("reflection_self_model_fields_invalid")
+			if key == "developing_self_candidates" {
+				if stringValue(item["category"]) == "" || !validateDevelopingSelfCategory(stringValue(item["category"])) || stringValue(item["claim"]) == "" || item["value"] == nil {
+					return errors.New("reflection_developing_self_fields_invalid")
 				}
 				if _, err := requiredBoundedNumber(item["confidence"]); err != nil {
-					return errors.New("reflection_self_model_confidence_invalid")
+					return errors.New("reflection_developing_self_confidence_invalid")
 				}
-			}
-			if key == "personality_candidates" {
-				if stringValue(item["trait"]) == "" {
-					return errors.New("reflection_personality_fields_invalid")
-				}
-				if _, err := requiredBoundedNumber(item["value"]); err != nil {
-					return errors.New("reflection_personality_value_invalid")
-				}
-				if confidence, err := requiredBoundedNumber(item["confidence"]); err != nil || confidence < 0.8 {
-					return errors.New("reflection_personality_confidence_low")
+				if _, err := normalizeDevelopingSelfClaim(item, "reflection"); err != nil {
+					return err
 				}
 			}
 			if key == "drive_candidates" {
@@ -645,21 +647,9 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 			return err
 		}
 	}
-	for _, raw := range arrayValue(proposal["self_model_candidates"]) {
+	for _, raw := range arrayValue(proposal["developing_self_candidates"]) {
 		refs := arrayValue(mapValue(raw)["evidence_refs"])
-		if len(refs) < 3 {
-			continue
-		}
-		if err := a.applySelfModelCandidateTx(ctx, tx, fluctlightID, mapValue(raw), refs, sourceWindow); err != nil {
-			return err
-		}
-	}
-	for _, raw := range arrayValue(proposal["personality_candidates"]) {
-		refs := arrayValue(mapValue(raw)["evidence_refs"])
-		if len(refs) < 3 {
-			continue
-		}
-		if err := a.applyPersonalityCandidateTx(ctx, tx, fluctlightID, mapValue(raw), refs, sourceWindow); err != nil {
+		if err := a.applyDevelopingSelfCandidateTx(ctx, tx, fluctlightID, mapValue(raw), refs, allowedEvidence, sourceWindow); err != nil {
 			return err
 		}
 	}

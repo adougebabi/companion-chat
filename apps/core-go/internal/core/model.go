@@ -4,6 +4,7 @@ import "time"
 
 type Fluctlight struct {
 	ID                 string         `json:"id"`
+	CorePersona        map[string]any `json:"core_persona"`
 	Identity           map[string]any `json:"identity"`
 	Personality        map[string]any `json:"personality"`
 	BehavioralPolicy   map[string]any `json:"behavioral_policy"`
@@ -13,6 +14,27 @@ type Fluctlight struct {
 	CurrentRevision    int            `json:"current_revision"`
 	UnreadCount        int            `json:"unread_count,omitempty"`
 	LastConversationAt *time.Time     `json:"last_conversation_at,omitempty"`
+}
+
+// DevelopingSelfClaim is an evidence-backed, non-authoritative observation
+// about what a Fluctlight is gradually learning about itself. It is
+// intentionally separate from Fluctlight's CorePersona and from transient
+// inner state.
+type DevelopingSelfClaim struct {
+	ID           string         `json:"id"`
+	FluctlightID string         `json:"fluctlight_id"`
+	Category     string         `json:"category"`
+	Claim        string         `json:"claim"`
+	Value        any            `json:"value"`
+	Confidence   float64        `json:"confidence"`
+	EvidenceRefs []string       `json:"evidence_refs"`
+	Provenance   map[string]any `json:"provenance"`
+	Status       string         `json:"status"`
+	ExpiresAt    *time.Time     `json:"expires_at,omitempty"`
+	Revision     int            `json:"revision"`
+	SupersededBy *string        `json:"superseded_by,omitempty"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 type Conversation struct {

@@ -247,6 +247,21 @@
         "operationId": "fluctlightDetail"
       }
     },
+    "/api/fluctlights/{fluctlightId}/developing-self": {
+      "get": {
+        "operationId": "developingSelf"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/developing-self/{claimId}/rollback": {
+      "post": {
+        "operationId": "rollbackDevelopingSelf"
+      }
+    },
+    "/api/fluctlights/{fluctlightId}/developing-self/{claimId}/forget": {
+      "post": {
+        "operationId": "forgetDevelopingSelf"
+      }
+    },
     "/api/fluctlights/{fluctlightId}/status": {
       "put": {
         "operationId": "setFluctlightStatus"
