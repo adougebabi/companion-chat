@@ -810,3 +810,37 @@ Implemented the complete cognition growth vertical: structured appraisal/focus/i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: Persona 分层与防漂移
+
+**Date**: 2026-09-02
+**Task**: Persona 分层与防漂移
+**Branch**: `master`
+
+### Summary
+
+完成 Persona-only vertical slice：新增 Core Persona canonical 快照、Developing Self claim/revision 存储与治理、Current State 分层上下文；更新初始化/Reflection/API/BFF/Web 详情治理展示，禁止自动人格写入旧 personality/self_model 路径；Go、BFF、browser-client、Web 全量测试与构建通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9b5b55e` | (see git log) |
+| `8502886` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
