@@ -87,7 +87,7 @@ func (a *App) insertDevelopingSelfSeeds(ctx context.Context, tx pgx.Tx, fluctlig
 			return err
 		}
 		revisionID := "self_revision_initial_" + stableDigest(claimID)
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_developing_self_revisions(id,fluctlight_id,claim_id,revision,base_revision,change_type,candidate,before_value,after_value,confidence,evidence_refs,provenance,source_window,reason_code,status,created_at) VALUES($1,$2,$3,1,0,'initialization',$4,'{}',$4,$5,$6,$7,$8,'initialization_seed','accepted',$9) ON CONFLICT(id) DO NOTHING`, revisionID, fluctlightID, claimID, jsonBytes(normalized), normalized["confidence"], jsonBytes(refs), jsonBytes(normalized["provenance"]), "initialization:"+fluctlightID, now); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_developing_self_revisions(id,fluctlight_id,claim_id,revision,base_revision,change_type,candidate,before_value,after_value,confidence,evidence_refs,provenance,source_window,reason_code,status,idempotency_key,created_at) VALUES($1,$2,$3,1,0,'initialization',$4,'{}',$4,$5,$6,$7,$8,'initialization_seed','accepted',$9,$10) ON CONFLICT(id) DO NOTHING`, revisionID, fluctlightID, claimID, jsonBytes(normalized), normalized["confidence"], jsonBytes(refs), jsonBytes(normalized["provenance"]), "initialization:"+fluctlightID, "initialization:self:"+claimID, now); err != nil {
 			return err
 		}
 	}

@@ -41,7 +41,11 @@ func openObjectSchema() map[string]any {
 	return map[string]any{"type": "object", "additionalProperties": true}
 }
 
-func anyJSONSchema() map[string]any { return map[string]any{} }
+// MLX strict-json-schema rejects an unconstrained `{}` schema by hanging while
+// compiling the response grammar. Persona values are intentionally rendered
+// as open JSON objects for the first slice, which preserves arbitrary nested
+// fields without relying on an unsupported empty schema.
+func anyJSONSchema() map[string]any { return openObjectSchema() }
 
 func appraisalResponseSchema() map[string]any {
 	properties := map[string]any{}

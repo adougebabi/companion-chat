@@ -11,6 +11,7 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
+    "e2e:persona": "node scripts/e2e/persona-layers-real.mjs",
     "generate": "pnpm --filter @fluctlight/core-client generate && pnpm --filter @fluctlight/browser-client generate:openapi && pnpm --filter @fluctlight/browser-client generate"
   }
 }
