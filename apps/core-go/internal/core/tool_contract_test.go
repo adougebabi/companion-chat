@@ -239,6 +239,25 @@ func TestStructuredProviderPayloadUsesJSONFormatAndCognitiveThinking(t *testing.
 	}
 }
 
+func TestDailyReviewProviderPayloadUsesItsCompositeActionSchema(t *testing.T) {
+	payload := providerChatPayloadWithSchema("model", nil, 512, true, ExternalCapabilityManifests(), "cognitive_assessment", "daily_review_response", dailyReviewResponseSchema(), true)
+	format, ok := payload["response_format"].(map[string]any)
+	if !ok {
+		t.Fatalf("daily review response_format = %#v", payload["response_format"])
+	}
+	envelope, ok := format["json_schema"].(map[string]any)
+	if !ok || envelope["name"] != "daily_review_response" || envelope["strict"] != true {
+		t.Fatalf("daily review schema envelope = %#v", format["json_schema"])
+	}
+	if payload["enable_thinking"] != true {
+		t.Fatalf("daily review must enable thinking: %#v", payload)
+	}
+	schema, ok := envelope["schema"].(map[string]any)
+	if !ok || !containsSchemaRequired(schema, "action_type") || !containsSchemaRequired(schema, "response_intent") {
+		t.Fatalf("daily review schema = %#v", envelope["schema"])
+	}
+}
+
 func TestProviderStructuredContentAcceptsMlxReasoningContent(t *testing.T) {
 	message := map[string]any{
 		"content":           "",
@@ -256,6 +275,83 @@ func TestProviderStructuredContentAcceptsMlxReasoningContent(t *testing.T) {
 		"reasoning_content": `{"action_type":"reply","visible_text":"你好"}`,
 	})); !ok || parsed["visible_text"] != "你好" {
 		t.Fatalf("invalid content should fall back to valid reasoning JSON: %#v, ok=%v", parsed, ok)
+	}
+}
+
+func TestProviderStructuredContentAcceptsWrappedAndEncodedJSON(t *testing.T) {
+	cases := []struct {
+		name      string
+		message   map[string]any
+		wantValue string
+	}{
+		{
+			name: "thinking wrapper",
+			message: map[string]any{
+				"content":           "",
+				"reasoning_content": "<think>先判断动作</think>\n```json\n{\"action_type\":\"no_op\",\"response_intent\":\"\",\"tool_calls\":[]}\n```",
+			},
+			wantValue: "no_op",
+		},
+		{
+			name: "json inside thinking block",
+			message: map[string]any{
+				"content":           "",
+				"reasoning_content": "<think>\n```json\n{\"action_type\":\"no_op\",\"response_intent\":\"\",\"tool_calls\":[]}\n```\n</think>",
+			},
+			wantValue: "no_op",
+		},
+		{
+			name: "thinking prelude before terminal object",
+			message: map[string]any{
+				"content":           "",
+				"reasoning_content": "先完成内部判断，然后给出结构化结果：\n{\"action_type\":\"no_op\",\"response_intent\":\"\",\"tool_calls\":[]}",
+			},
+			wantValue: "no_op",
+		},
+		{
+			name: "double encoded reasoning",
+			message: map[string]any{
+				"content":           "",
+				"reasoning_content": `"{\"action_type\":\"no_op\",\"response_intent\":\"\",\"tool_calls\":[]}"`,
+			},
+			wantValue: "no_op",
+		},
+		{
+			name: "object reasoning channel",
+			message: map[string]any{
+				"content":           nil,
+				"reasoning_content": map[string]any{"action_type": "no_op", "response_intent": "", "tool_calls": []any{}},
+			},
+			wantValue: "no_op",
+		},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			parsed, ok := parseStructuredCandidates(providerStructuredCandidates(testCase.message))
+			if !ok || stringValue(parsed["action_type"]) != testCase.wantValue {
+				t.Fatalf("parsed=%#v ok=%v", parsed, ok)
+			}
+		})
+	}
+	if parsed, ok := parseStructuredCandidates(providerStructuredCandidates(map[string]any{
+		"content":           `{"action_type":"reply"}尾部文本`,
+		"reasoning_content": `{"action_type":"no_op","response_intent":"","tool_calls":[]}`,
+	})); !ok || stringValue(parsed["action_type"]) != "no_op" {
+		t.Fatalf("malformed content must fall back to reasoning JSON: parsed=%#v ok=%v", parsed, ok)
+	}
+}
+
+func TestProviderStructuredFailureDiagnosticRetainsChannelShape(t *testing.T) {
+	message := map[string]any{
+		"content":           "",
+		"reasoning_content": "先思考，再输出一个不完整的结果",
+	}
+	diagnostic := providerResponseDiagnostic(message, providerStructuredCandidates(message), 0)
+	if diagnostic["reasoning_content_present"] != true || diagnostic["reasoning_content_length"] == 0 {
+		t.Fatalf("reasoning channel shape was not retained: %#v", diagnostic)
+	}
+	if diagnostic["content_present"] != false || diagnostic["parse_error"] != "structured_response_invalid" {
+		t.Fatalf("diagnostic = %#v", diagnostic)
 	}
 }
 
@@ -291,6 +387,11 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 		if !containsSchemaRequired(cognitive, key) {
 			t.Fatalf("cognitive schema missing required field %q: %#v", key, cognitive)
 		}
+	}
+	daily := dailyReviewResponseSchema()
+	actionSchema := mapValue(mapValue(daily["properties"])["action_type"])
+	if actionSchema["type"] != "string" || len(arrayValue(actionSchema["enum"])) != 3 {
+		t.Fatalf("daily review action_type must be the three-value enum: %#v", actionSchema)
 	}
 }
 

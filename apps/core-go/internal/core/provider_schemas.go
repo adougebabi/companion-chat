@@ -21,6 +21,14 @@ func stringSchema() map[string]any  { return map[string]any{"type": "string"} }
 func numberSchema() map[string]any  { return map[string]any{"type": "number"} }
 func integerSchema() map[string]any { return map[string]any{"type": "integer", "minimum": 0} }
 
+func enumStringSchema(values ...string) map[string]any {
+	enumValues := make([]any, len(values))
+	for index, value := range values {
+		enumValues[index] = value
+	}
+	return map[string]any{"type": "string", "enum": enumValues}
+}
+
 func unitNumberSchema() map[string]any {
 	return map[string]any{"type": "number", "minimum": 0, "maximum": 1}
 }
@@ -77,7 +85,7 @@ func cognitiveTurnResponseSchema() map[string]any {
 
 func dailyReviewResponseSchema() map[string]any {
 	return objectSchema(map[string]any{
-		"action_type":     stringSchema(),
+		"action_type":     enumStringSchema("proactive_message", "moment", "no_op"),
 		"response_intent": stringSchema(),
 		"tool_calls":      arraySchema(toolCallSchema()),
 	}, []string{"action_type", "response_intent", "tool_calls"}, false)

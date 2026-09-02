@@ -205,7 +205,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 		if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
 			completion.Structured = structured
 		} else if jsonMode && len(structuredCandidates) > 0 {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid")
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid", providerResponseDiagnostic(message, structuredCandidates, len(calls)))
 			return ProviderCompletion{}, fmt.Errorf("provider structured response is invalid")
 		}
 		p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"tool_calls": completion.ToolCalls, "text": content})
@@ -227,7 +227,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 				completion.ToolCalls = calls
 			}
 		} else if jsonMode {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid")
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, "structured_response_invalid", providerResponseDiagnostic(message, structuredCandidates, len(calls)))
 			return ProviderCompletion{}, fmt.Errorf("provider structured response is invalid")
 		}
 	}
@@ -248,23 +248,184 @@ func providerStructuredCandidates(message map[string]any) []string {
 		return nil
 	}
 	result := make([]string, 0, 2)
-	if content, ok := message["content"].(string); ok && strings.TrimSpace(content) != "" {
-		result = append(result, strings.TrimSpace(content))
+	appendCandidate := func(value any) {
+		var candidate string
+		switch typed := value.(type) {
+		case string:
+			candidate = strings.TrimSpace(typed)
+		case map[string]any, []any:
+			encoded, err := json.Marshal(typed)
+			if err == nil {
+				candidate = strings.TrimSpace(string(encoded))
+			}
+		}
+		if candidate == "" {
+			return
+		}
+		for _, existing := range result {
+			if existing == candidate {
+				return
+			}
+		}
+		result = append(result, candidate)
 	}
-	if reasoning := strings.TrimSpace(stringValue(message["reasoning_content"])); reasoning != "" && (len(result) == 0 || result[0] != reasoning) {
-		result = append(result, reasoning)
-	}
+	appendCandidate(message["content"])
+	appendCandidate(message["reasoning_content"])
 	return result
 }
 
 func parseStructuredCandidates(candidates []string) (map[string]any, bool) {
 	for _, candidate := range candidates {
-		var structured map[string]any
-		if json.Unmarshal([]byte(candidate), &structured) == nil && structured != nil {
+		if structured, ok := parseStructuredCandidate(candidate, 0); ok {
 			return structured, true
 		}
 	}
 	return nil, false
+}
+
+// parseStructuredCandidate handles protocol framing added by otherwise
+// OpenAI-compatible Providers. In particular, thinking-enabled local models
+// may wrap their JSON in a <think> block, a Markdown JSON fence, or encode the
+// JSON object as a JSON string. These are transport wrappers, not semantic
+// fallbacks: prose without a complete terminal structured object remains
+// invalid and is never interpreted as a decision.
+func parseStructuredCandidate(candidate string, depth int) (map[string]any, bool) {
+	if depth > 3 {
+		return nil, false
+	}
+	candidate = strings.TrimSpace(candidate)
+	if candidate == "" {
+		return nil, false
+	}
+
+	var structured map[string]any
+	if json.Unmarshal([]byte(candidate), &structured) == nil && structured != nil {
+		return structured, true
+	}
+
+	// Some gateways serialize the provider's JSON string one additional time.
+	var encoded string
+	if json.Unmarshal([]byte(candidate), &encoded) == nil && strings.TrimSpace(encoded) != candidate {
+		if structured, ok := parseStructuredCandidate(encoded, depth+1); ok {
+			return structured, true
+		}
+	}
+
+	// mlx-serve and compatible thinking adapters can place a transport-only
+	// explanation before or around the structured payload. Only strip complete,
+	// known wrappers; do not scan arbitrary prose for an embedded object.
+	if start := strings.Index(candidate, "<think>"); start == 0 {
+		if end := strings.Index(candidate[len("<think>"):], "</think>"); end >= 0 {
+			end += len("<think>")
+			if structured, ok := parseStructuredCandidate(candidate[len("<think>"):end], depth+1); ok {
+				return structured, true
+			}
+			if structured, ok := parseStructuredCandidate(candidate[end+len("</think>"):], depth+1); ok {
+				return structured, true
+			}
+		}
+	} else if end := strings.Index(candidate, "</think>"); end >= 0 {
+		if structured, ok := parseStructuredCandidate(candidate[end+len("</think>"):], depth+1); ok {
+			return structured, true
+		}
+	}
+
+	if strings.HasPrefix(candidate, "```") {
+		lines := strings.Split(candidate, "\n")
+		if len(lines) >= 3 {
+			last := len(lines) - 1
+			if strings.TrimSpace(lines[last]) == "```" {
+				first := strings.TrimSpace(lines[0])
+				if first == "```" || strings.EqualFold(first, "```json") {
+					if structured, ok := parseStructuredCandidate(strings.Join(lines[1:last], "\n"), depth+1); ok {
+						return structured, true
+					}
+				}
+			}
+		}
+	}
+
+	// A few thinking adapters omit the XML/fence marker and leave a short
+	// transport prelude before the final object. Accept only a balanced object
+	// that extends to the end of the designated structured channel; an object
+	// embedded in trailing prose is still rejected.
+	if trailing := trailingJSONObject(candidate); trailing != "" && trailing != candidate {
+		if structured, ok := parseStructuredCandidate(trailing, depth+1); ok {
+			return structured, true
+		}
+	}
+	return nil, false
+}
+
+func trailingJSONObject(value string) string {
+	start := -1
+	depth := 0
+	inString := false
+	escaped := false
+	lastEnd := -1
+	for index := 0; index < len(value); index++ {
+		char := value[index]
+		if inString {
+			if escaped {
+				escaped = false
+			} else if char == '\\' {
+				escaped = true
+			} else if char == '"' {
+				inString = false
+			}
+			continue
+		}
+		switch char {
+		case '"':
+			inString = true
+		case '{':
+			if depth == 0 {
+				start = index
+			}
+			depth++
+		case '}':
+			if depth == 0 {
+				return ""
+			}
+			depth--
+			if depth == 0 {
+				lastEnd = index + 1
+			}
+		}
+	}
+	if depth != 0 || start < 0 || lastEnd < 0 || strings.TrimSpace(value[lastEnd:]) != "" {
+		return ""
+	}
+	return strings.TrimSpace(value[start:lastEnd])
+}
+
+func providerResponseDiagnostic(message map[string]any, candidates []string, toolCallCount int) map[string]any {
+	result := map[string]any{
+		"content_present":           false,
+		"content_length":            0,
+		"reasoning_content_present": false,
+		"reasoning_content_length":  0,
+		"candidate_count":           len(candidates),
+		"candidate_lengths":         make([]any, len(candidates)),
+		"tool_call_count":           toolCallCount,
+		"parse_error":               "structured_response_invalid",
+	}
+	if message == nil {
+		return result
+	}
+	if content, ok := message["content"].(string); ok {
+		result["content_present"] = strings.TrimSpace(content) != ""
+		result["content_length"] = len([]rune(content))
+	}
+	if reasoning, ok := message["reasoning_content"].(string); ok {
+		result["reasoning_content_present"] = strings.TrimSpace(reasoning) != ""
+		result["reasoning_content_length"] = len([]rune(reasoning))
+	}
+	lengths := result["candidate_lengths"].([]any)
+	for index, candidate := range candidates {
+		lengths[index] = len([]rune(candidate))
+	}
+	return result
 }
 
 func providerChatPayload(model string, messages []map[string]any, tokenBudget int, jsonMode bool, manifests []CapabilityManifest) map[string]any {
@@ -346,9 +507,13 @@ func (p *ProviderClient) recordProviderSuccess(ctx context.Context, assignment p
 	app.recordModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, messages, response, "completed", "")
 }
 
-func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment providerAssignment, correlationID string, messages []map[string]any, code string) {
+func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment providerAssignment, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
 	app := &App{DB: p.DB}
-	app.recordModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, messages, nil, "failed", code)
+	var response any
+	if len(diagnostic) > 0 {
+		response = diagnostic[0]
+	}
+	app.recordModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, messages, response, "failed", code)
 }
 
 func (p *ProviderClient) Structured(ctx context.Context, role string, messages []map[string]any) (map[string]any, error) {

@@ -150,9 +150,14 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
   `enable_thinking: true`; other structured roles keep thinking disabled. Some
   thinking-capable Providers place the structured JSON in
   `reasoning_content` while leaving `content` empty; the adapter reads that
-  field as control data only and never exposes it as visible text. The visible
-  `action_realization` stream remains ordinary text and does not use JSON
-  response formatting.
+  field as control data only and never exposes it as visible text. The adapter
+  may remove complete, known transport wrappers (`<think>`, a JSON Markdown
+  fence, one JSON-string encoding, or a terminal object after a transport
+  prelude), but it must not infer semantics from arbitrary prose. A rejected
+  structured response records only bounded channel-shape diagnostics (such as
+  presence and length), never hidden reasoning/raw provider output. The
+  visible `action_realization` stream remains ordinary text and does not use
+  JSON response formatting.
 - Tool names use `[A-Za-z0-9][A-Za-z0-9._-]{0,127}`. Arguments are bounded JSON
   objects (64 KiB maximum) and are validated once at the provider-to-runtime
   boundary. Native provider entries and JSON sidecars normalize to the same
