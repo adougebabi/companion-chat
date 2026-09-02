@@ -453,7 +453,7 @@ func providerChatPayloadWithSchema(model string, messages []map[string]any, toke
 		payload["response_format"] = providerResponseFormatForSchema(role, schemaName, schema)
 	}
 	if enableThinking {
-		payload["enable_thinking"] = true
+		payload["enable_thinking"] = false
 	}
 	if tokenBudget > 0 {
 		payload["max_tokens"] = tokenBudget
