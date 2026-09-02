@@ -77,10 +77,12 @@ func emptyProviderStructured(schemaName string, schema map[string]any) (map[stri
 	return normalizeProviderStructured(map[string]any{}, schemaName, schema)
 }
 
-func logStructuredNormalization(role, schemaName string, fields []string, toolCallCount, candidateCount int, fallback bool) {
+func logStructuredNormalization(role, schemaName string, fields []string, toolCallCount, candidateCount int, fallback bool, message map[string]any) {
 	if !fallback && len(fields) == 0 {
 		return
 	}
+	contentPresent, contentLength := structuredChannelShape(message["content"])
+	reasoningPresent, reasoningLength := structuredChannelShape(message["reasoning_content"])
 	slog.Default().Warn("Go Core Provider structured response normalized",
 		"role", role,
 		"schema", schemaName,
@@ -88,7 +90,22 @@ func logStructuredNormalization(role, schemaName string, fields []string, toolCa
 		"fields", fields,
 		"tool_call_count", toolCallCount,
 		"candidate_count", candidateCount,
+		"content_present", contentPresent,
+		"content_length", contentLength,
+		"reasoning_content_present", reasoningPresent,
+		"reasoning_content_length", reasoningLength,
 	)
+}
+
+func structuredChannelShape(value any) (bool, int) {
+	switch typed := value.(type) {
+	case string:
+		return len([]rune(typed)) > 0, len([]rune(typed))
+	case nil:
+		return false, 0
+	default:
+		return true, len(jsonBytes(value))
+	}
 }
 
 func logToolCallShapeNormalization(role, schemaName, source string, value any) {
