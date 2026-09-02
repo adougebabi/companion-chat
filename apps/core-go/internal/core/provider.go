@@ -128,6 +128,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	if err != nil {
 		return ProviderCompletion{}, err
 	}
+	messages = withChineseOutputInstruction(role, messages)
 	correlationID := diagnosticCorrelation(messages, "")
 	providerRequestID := "provider:" + stableDigest(role+":"+correlationID)
 	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, manifests, role, schemaName, schema, enableThinking)
@@ -566,6 +567,7 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 	if err != nil {
 		return "", err
 	}
+	messages = withChineseOutputInstruction(role, messages)
 	correlationID := diagnosticCorrelation(messages, "")
 	body, err := json.Marshal(map[string]any{"model": assignment.ModelID, "messages": messages, "temperature": 0.7, "stream": true})
 	if err != nil {

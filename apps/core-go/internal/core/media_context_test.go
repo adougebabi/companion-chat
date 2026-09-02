@@ -89,3 +89,21 @@ func TestWithContextAuthorityInstructionKeepsUserMessageLast(t *testing.T) {
 		t.Fatalf("authority instruction = %#v", messages[1])
 	}
 }
+
+func TestWithChineseOutputInstructionExcludesMediaPromptRole(t *testing.T) {
+	messages := []map[string]any{
+		{"role": "system", "content": "规则"},
+		{"role": "user", "content": "内容"},
+	}
+	localized := withChineseOutputInstruction("cognitive_assessment", messages)
+	if len(localized) != 3 || stringValue(localized[1]["role"]) != "system" || stringValue(localized[2]["role"]) != "user" {
+		t.Fatalf("localized messages = %#v", localized)
+	}
+	if !strings.Contains(stringValue(localized[1]["content"]), "所有自然语言字段必须使用中文") {
+		t.Fatalf("language instruction = %#v", localized[1])
+	}
+	media := withChineseOutputInstruction("media_prompt", messages)
+	if len(media) != len(messages) {
+		t.Fatalf("media prompt messages were changed: %#v", media)
+	}
+}
