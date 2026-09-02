@@ -82,11 +82,11 @@ func TestWithContextAuthorityInstructionKeepsUserMessageLast(t *testing.T) {
 		{"role": "system", "content": "decide"},
 		{"role": "user", "content": "current request"},
 	})
-	if len(messages) != 3 || stringValue(messages[1]["role"]) != "system" || stringValue(messages[2]["role"]) != "user" {
+	if len(messages) != 3 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[1]["role"]) != "system" || stringValue(messages[2]["role"]) != "user" {
 		t.Fatalf("messages = %#v", messages)
 	}
-	if !strings.Contains(stringValue(messages[1]["content"]), "authoritative cognition-time snapshot") {
-		t.Fatalf("authority instruction = %#v", messages[1])
+	if !strings.Contains(stringValue(messages[0]["content"]), "authoritative cognition-time snapshot") {
+		t.Fatalf("authority instruction = %#v", messages[0])
 	}
 }
 
@@ -96,14 +96,25 @@ func TestWithChineseOutputInstructionExcludesMediaPromptRole(t *testing.T) {
 		{"role": "user", "content": "内容"},
 	}
 	localized := withChineseOutputInstruction("cognitive_assessment", messages)
-	if len(localized) != 3 || stringValue(localized[1]["role"]) != "system" || stringValue(localized[2]["role"]) != "user" {
+	if len(localized) != 3 || stringValue(localized[0]["role"]) != "system" || stringValue(localized[1]["role"]) != "system" || stringValue(localized[2]["role"]) != "user" {
 		t.Fatalf("localized messages = %#v", localized)
 	}
-	if !strings.Contains(stringValue(localized[1]["content"]), "所有自然语言字段必须使用中文") {
-		t.Fatalf("language instruction = %#v", localized[1])
+	if !strings.Contains(stringValue(localized[0]["content"]), "所有自然语言字段必须使用中文") {
+		t.Fatalf("language instruction = %#v", localized[0])
 	}
 	media := withChineseOutputInstruction("media_prompt", messages)
 	if len(media) != len(messages) {
 		t.Fatalf("media prompt messages were changed: %#v", media)
+	}
+}
+
+func TestWithChineseOutputInstructionMovesLateSystemMessagesToFront(t *testing.T) {
+	localized := withChineseOutputInstruction("cognitive_assessment", []map[string]any{
+		{"role": "user", "content": "先出现的用户消息"},
+		{"role": "system", "content": "迟到的系统规则"},
+		{"role": "assistant", "content": "历史回复"},
+	})
+	if len(localized) != 4 || stringValue(localized[0]["role"]) != "system" || stringValue(localized[1]["role"]) != "system" || stringValue(localized[2]["role"]) != "user" || stringValue(localized[3]["role"]) != "assistant" {
+		t.Fatalf("localized messages = %#v", localized)
 	}
 }
