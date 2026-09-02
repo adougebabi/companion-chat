@@ -42,6 +42,20 @@ test("detail owns read-only life-world sections and uses timezone-aware timeline
   assert.match(governanceSource, /formatZonedRange\(event\.start_at, event\.end_at/);
 });
 
+test("detail exposes a Chinese progressive state drawer", () => {
+  assert.match(detailSource, /<details class="detail-state-drawer">/);
+  assert.match(detailSource, /状态数值与当前氛围/);
+  assert.match(detailSource, /愉悦度/);
+  assert.match(detailSource, /唤醒度/);
+  assert.match(detailSource, /掌控感/);
+  assert.match(detailSource, /行动动能/);
+  assert.match(detailSource, /调节稳定性/);
+  assert.match(detailSource, /人格动力与偏好/);
+  assert.match(detailSource, /暂无独立氛围描述/);
+  assert.match(stylesSource, /\.detail-state-drawer/);
+  assert.match(stylesSource, /\.state-metric-grid/);
+});
+
 test("settings accordion remounts when the selected section changes", () => {
   assert.match(settingsSource, /<Accordion :key="currentSection"[^>]*:default-value="currentSection"/);
 });
