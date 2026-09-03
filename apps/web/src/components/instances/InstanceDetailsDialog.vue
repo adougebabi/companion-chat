@@ -144,6 +144,10 @@ function visualIdentityStageLabel(stage: unknown): string {
   return labels[String(stage ?? "")] ?? String(stage ?? "阶段");
 }
 
+function rendererConstraintText(value: unknown): string {
+  return value === "not_applicable" ? "不适用" : formatDisplayValue(value);
+}
+
 onMounted(() => {
   clockTimer = window.setInterval(() => { now.value = Date.now(); }, 30_000);
   visualIdentityTimer = window.setInterval(() => {
@@ -208,11 +212,11 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
               <span v-if="visualIdentity.active_session_id">Session {{ String(visualIdentity.active_session_id).slice(0, 12) }}</span>
             </div>
             <dl v-if="Object.keys(visualIdentityConstraints).length" class="identity-facts detail-facts-compact">
-              <dt>胸部罩杯</dt><dd>{{ formatDisplayValue(visualIdentityConstraints.chest_cup) }}</dd>
-              <dt>LoRA weight</dt><dd>{{ formatDisplayValue(visualIdentityConstraints.chest_lora_weight) }} · {{ formatDisplayValue(visualIdentityConstraints.adapter_version) }}</dd>
+              <dt>胸部罩杯</dt><dd>{{ rendererConstraintText(visualIdentityConstraints.chest_cup) }}</dd>
+              <dt>LoRA weight</dt><dd>{{ visualIdentityConstraints.chest_lora_applicable === false ? "不适用" : rendererConstraintText(visualIdentityConstraints.chest_lora_weight) }} · {{ formatDisplayValue(visualIdentityConstraints.adapter_version) }}</dd>
             </dl>
             <p v-if="!visualIdentityTimeline.length" class="field-note">初始化后，这里会显示“生成 → 视觉理解 → 评审 → 再生成/完成”的时间轴。</p>
-            <ol v-else class="timeline-list visual-identity-timeline">
+            <ol v-else class="timeline-list visual-identity-timeline" aria-label="视觉身份处理时间轴">
               <li v-for="event in visualIdentityTimeline" :key="`${String(event.id ?? event.stage)}-${String(event.occurred_at ?? '')}`" :class="{ active: event.status === 'running' || event.stage === 'regenerate' }">
                 <time :datetime="String(event.occurred_at ?? '')">{{ formatTimelineTime(event.occurred_at, scheduleTimezone) }}</time>
                 <div class="visual-identity-event-content"><strong>{{ visualIdentityStageLabel(event.stage) }}<span class="timeline-now-badge">{{ visualIdentityStatusLabel(event.status) }}</span></strong><span>{{ formatDisplayValue(event.summary) }}</span>

@@ -42,6 +42,23 @@ func TestChestRendererConstraintsPreserveSemanticAndResolvedValues(t *testing.T)
 	}
 }
 
+func TestRendererConstraintsReadIdentityAppearanceAndHandleMale(t *testing.T) {
+	constraints, err := rendererConstraintsForCorePersona(map[string]any{
+		"identity": map[string]any{"gender": "female", "appearance": map[string]any{"bust": "B cup"}},
+		"life_profile": map[string]any{"appearance": map[string]any{}},
+	})
+	if err != nil || constraints["chest_cup"] != "B" || constraints["chest_lora_weight"] != float64(-3) {
+		t.Fatalf("identity appearance constraints = %#v, %v", constraints, err)
+	}
+	male, err := rendererConstraintsForCorePersona(map[string]any{
+		"identity": map[string]any{"gender": "男"},
+		"life_profile": map[string]any{"appearance": map[string]any{"chest_cup": "B"}},
+	})
+	if err != nil || male["chest_cup"] != "not_applicable" || male["chest_lora_weight"] != float64(0) || male["chest_lora_applicable"] != false {
+		t.Fatalf("male constraints = %#v, %v", male, err)
+	}
+}
+
 func TestVisualIdentitySchemasExposeDecisionAndVisionStages(t *testing.T) {
 	vision := visualIdentityVisionResponseSchema()
 	if len(arrayValue(vision["required"])) != 4 {

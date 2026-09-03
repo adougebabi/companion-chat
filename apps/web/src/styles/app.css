@@ -231,8 +231,8 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
 .detail-timeline li.active time { color: var(--accent-strong); font-weight: 800; }
 .visual-identity-block { overflow: hidden; }
 .visual-identity-status { flex-wrap: wrap; gap: 8px; }
-.visual-identity-timeline { position: relative; gap: 0; margin-top: 12px; padding-left: 10px; border-left: 1px solid var(--surface-border-strong); }
-.visual-identity-timeline li { position: relative; grid-template-columns: minmax(132px, auto) minmax(0, 1fr); padding: 12px 0 12px 14px; border-bottom: 0; }
+.visual-identity-timeline { display: flex; position: relative; flex-direction: column; align-items: stretch; gap: 0; margin-top: 12px; padding-left: 10px; border-left: 1px solid var(--surface-border-strong); }
+.visual-identity-timeline li { display: grid; position: relative; width: 100%; grid-template-columns: minmax(132px, auto) minmax(0, 1fr); align-items: start; padding: 12px 0 12px 14px; border-bottom: 0; }
 .visual-identity-timeline li::before { position: absolute; top: 17px; left: -15px; width: 9px; height: 9px; border: 2px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); content: ""; }
 .visual-identity-timeline li.active { border-radius: 10px; background: var(--accent-soft); }
 .visual-identity-timeline li.active::before { width: 11px; height: 11px; background: var(--success); box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--success); }

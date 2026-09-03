@@ -75,6 +75,7 @@ type VisualIdentitySnapshot struct {
 // weight from an unknown label.
 func NormalizeChestCup(value string) (string, error) {
 	cup := strings.ToUpper(strings.TrimSpace(value))
+	cup = strings.TrimSpace(strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(cup, "罩杯"), "杯"), " CUP"))
 	if cup == "" {
 		return "", errors.New("chest_cup_required")
 	}
@@ -113,7 +114,7 @@ func chestCupToLoRAWeight(value string) (float64, string, error) {
 
 func chestRendererConstraints(lifeProfile map[string]any) (map[string]any, error) {
 	appearance := mapValue(lifeProfile["appearance"])
-	value := strings.TrimSpace(stringValue(appearance["chest_cup"]))
+	value := chestCupCandidate(appearance)
 	if value == "" {
 		return map[string]any{"schema_version": visualIdentitySchemaVersion, "adapter_version": visualIdentityAdapterVersion}, nil
 	}
@@ -131,6 +132,63 @@ func chestRendererConstraints(lifeProfile map[string]any) (map[string]any, error
 		"chest_lora_weight": weight,
 		"adapter_version":   adapterVersion,
 	}, nil
+}
+
+func chestCupCandidate(appearance map[string]any) string {
+	for _, key := range []string{"chest_cup", "cup_size"} {
+		if value := strings.TrimSpace(stringValue(appearance[key])); value != "" {
+			return value
+		}
+	}
+	// `bust` is accepted only when it is already an explicit cup label. Text
+	// such as “平胸” is a free-form appearance description, not a cup value.
+	bust := strings.ToUpper(strings.TrimSpace(stringValue(appearance["bust"])))
+	if bust == "" {
+		return ""
+	}
+	upper := strings.TrimSpace(strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(bust, "罩杯"), "杯"), " CUP"))
+	if upper == "A" || upper == "B" || upper == "C" || upper == "D" {
+		return upper
+	}
+	return ""
+}
+
+func rendererConstraintsForCorePersona(corePersona map[string]any) (map[string]any, error) {
+	identity := mapValue(corePersona["identity"])
+	lifeProfile := mapValue(corePersona["life_profile"])
+	gender := strings.ToLower(strings.TrimSpace(stringValue(identity["gender"])))
+	if gender == "male" || gender == "m" || gender == "男" || gender == "男性" {
+		return map[string]any{
+			"schema_version":        visualIdentitySchemaVersion,
+			"chest_cup":             "not_applicable",
+			"chest_lora_weight":     0.0,
+			"chest_lora_applicable": false,
+			"adapter_version":       visualIdentityAdapterVersion,
+		}, nil
+	}
+	constraints, err := chestRendererConstraints(lifeProfile)
+	if err != nil {
+		return nil, err
+	}
+	if stringValue(constraints["chest_cup"]) == "" {
+		if appearance := mapValue(identity["appearance"]); len(appearance) > 0 {
+			value := chestCupCandidate(appearance)
+			if value != "" {
+				cup, normalizeErr := NormalizeChestCup(value)
+				if normalizeErr != nil {
+					return nil, normalizeErr
+				}
+				weight, version, weightErr := chestCupToLoRAWeight(cup)
+				if weightErr != nil {
+					return nil, weightErr
+				}
+				constraints["chest_cup"] = cup
+				constraints["chest_lora_weight"] = weight
+				constraints["adapter_version"] = version
+			}
+		}
+	}
+	return constraints, nil
 }
 
 func visualIdentityProfileID(fluctlightID string) string {
@@ -162,7 +220,7 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 	}
 	profileID := visualIdentityProfileID(fluctlightID)
 	lifeProfile := mapValue(corePersona["life_profile"])
-	constraints, constraintErr := chestRendererConstraints(lifeProfile)
+	constraints, constraintErr := rendererConstraintsForCorePersona(corePersona)
 	profileStatus := visualIdentityStatusMissing
 	if constraintErr != nil {
 		profileStatus = visualIdentityStatusRendererPending
