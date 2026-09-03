@@ -381,8 +381,8 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			result = map[string]any{"status": "blocked", "reason": "proactive_target_invalid", "proposed_action_type": proposedActionType}
 		} else if proposedActionType == "proactive_message" || proposedActionType == "moment" {
 			visible, realizationErr := a.Provider.Text(ctx, "action_realization", []map[string]any{
-				{"role": "system", "content": "Realize the already-authorized wake-up action as one concise Chinese message. Preserve core_persona as a hard constraint, use developing_self only as soft context, and treat current_state as transient. For proactive_message address the Owner directly; for moment write one concise public Moment. Do not add semantic state or change the action type. If visual_identity_missing is true, clearly tell the Owner that you need to create your own visual identity."},
-				{"role": "user", "content": jsonString(map[string]any{"action_type": proposedActionType, "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "response_intent": assessment["response_intent"], "context": compactCognitionContext(projection)})},
+				{"role": "system", "content": "Realize the already-authorized wake-up action as one concise Chinese message. Preserve core_persona as a hard constraint, use developing_self only as soft context, and treat current_state as transient. For proactive_message address the Owner directly; for moment write one concise public Moment. Do not add semantic state or change the action type. If visual_identity_missing is true, use this sentence exactly: 顺便说一句，我现在还没有自己的视觉形象。如果方便的话，需要帮我创建一下。"},
+				{"role": "user", "content": jsonString(map[string]any{"action_type": proposedActionType, "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "response_intent": assessment["response_intent"], "visual_identity_missing": !visualIdentityActive, "context": compactCognitionContext(projection)})},
 			})
 			if realizationErr != nil {
 				return nil, realizationErr
