@@ -55,3 +55,10 @@ func TestVisualIdentitySchemasExposeDecisionAndVisionStages(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultCapabilityRegistryIncludesVisualIdentityInitializer(t *testing.T) {
+	registry := (&App{}).capabilityRegistry()
+	if _, ok := registry.Lookup("visual_identity.initialize"); !ok {
+		t.Fatal("default capability registry does not expose visual_identity.initialize")
+	}
+}

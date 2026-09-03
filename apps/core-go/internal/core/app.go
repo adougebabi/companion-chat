@@ -54,6 +54,7 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 	}
 	app.Capabilities = NewCapabilityRegistry(
 		&imageCapabilityExecutor{app: app},
+		&visualIdentityCapabilityExecutor{app: app},
 		&sceneCapabilityExecutor{app: app},
 		&presenceCapabilityExecutor{app: app},
 		&memoryCapabilityExecutor{app: app},
