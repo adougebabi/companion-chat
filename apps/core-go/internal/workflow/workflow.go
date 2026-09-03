@@ -730,6 +730,19 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				continue
 			}
 		}
+		if intentType == "visual_identity.initialize" && intentStatus == "failed" {
+			var sessionStatus string
+			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlight_visual_identity_sessions WHERE id=(SELECT payload->>'session_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&sessionStatus); err == nil && (sessionStatus == "queued" || sessionStatus == "running") {
+				if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1`, intentID); err != nil {
+					return count, err
+				}
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+				continue
+			}
+		}
 		if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(last_error,'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1`, intentID, intentStatus); err != nil {
 			return count, err
 		}

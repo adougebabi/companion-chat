@@ -392,6 +392,10 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		}
 		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_patch", []map[string]any{{"role": "system", "content": "Generate the first pure text-to-image seed prompt for this Fluctlight visual identity. Return only the structured visual identity patch contract; do not invent unsupported facts."}, {"role": "user", "content": jsonString(map[string]any{"stage": "seed", "visual_identity": identity, "input_snapshot": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints)})}}, "visual_identity_seed_response", visualIdentitySeedResponseSchema(), false)
 		if err != nil {
+			if visualIdentityProviderPending(err) {
+				_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageSeedRequested, "pending", "等待 visual_identity_patch 模型角色配置", nil)
+				return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "provider_config_pending", "error_code": "visual_identity_patch_role_missing"}, nil
+			}
 			return nil, err
 		}
 		seedPrompt = strings.TrimSpace(stringValue(completion["seed_prompt"]))
@@ -448,6 +452,10 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		}
 		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_vision", []map[string]any{{"role": "system", "content": "Inspect the supplied candidate image for visual identity continuity. Return bounded structured observations only."}, {"role": "user", "content": visionUserContent}}, "visual_identity_vision_response", visualIdentityVisionResponseSchema(), false)
 		if err != nil {
+			if visualIdentityProviderPending(err) {
+				_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageVisionRequested, "pending", "等待 visual_identity_vision 模型角色配置", []string{candidateAssetID})
+				return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "provider_config_pending", "error_code": "visual_identity_vision_role_missing"}, nil
+			}
 			return nil, err
 		}
 		if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
@@ -464,6 +472,10 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStagePatchRequested, "running", "正在评审并生成身份补丁", []string{candidateAssetID})
 		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_patch", []map[string]any{{"role": "system", "content": "Review the candidate against the visual identity and return accepted or regenerate. Preserve the explicit decision and a structured patch."}, {"role": "user", "content": jsonString(map[string]any{"stage": "review", "visual_identity": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints), "vision": decodeObject(visionResult), "candidate_asset_id": candidateAssetID})}}, "visual_identity_patch_response", visualIdentityPatchResponseSchema(), false)
 		if err != nil {
+			if visualIdentityProviderPending(err) {
+				_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStagePatchRequested, "pending", "等待 visual_identity_patch 模型角色配置", []string{candidateAssetID})
+				return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "provider_config_pending", "error_code": "visual_identity_patch_role_missing"}, nil
+			}
 			return nil, err
 		}
 		decision = firstString(stringValue(completion["decision"]), "regenerate")
@@ -517,6 +529,14 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "character_sheet_queued", "canonical_asset_id": candidateAssetID}, nil
 	}
 	return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "character_sheet_queued"}, nil
+}
+
+func visualIdentityProviderPending(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := err.Error()
+	return strings.Contains(message, "provider role visual_identity_") && strings.Contains(message, " unavailable")
 }
 
 func (a *App) visualIdentityImageContent(ctx context.Context, assetID string) (map[string]any, error) {
