@@ -139,7 +139,7 @@ function visualIdentityStatusLabel(status: unknown): string {
 
 function visualIdentityStageLabel(stage: unknown): string {
   const labels: Record<string, string> = {
-    session_created: "初始化", seed_requested: "生成文本种子", seed_ready: "文本种子完成", image_requested: "请求生图", image_ready: "候选图完成", vision_requested: "视觉理解中", vision_ready: "视觉理解完成", patch_requested: "身份评审中", patch_ready: "身份补丁完成", regenerate: "再次生成", accepted: "成为 canonical", character_sheet_requested: "生成 character sheet", character_sheet_ready: "character sheet 完成", completed: "工作流完成", failed: "工作流失败",
+    session_created: "初始化", seed_requested: "生成三视图提示词", seed_ready: "三视图提示词完成", image_requested: "生成角色三视图", image_ready: "候选三视图完成", vision_requested: "视觉理解中", vision_ready: "视觉理解完成", patch_requested: "身份评审中", patch_ready: "身份补丁完成", regenerate: "再次生成", accepted: "成为 canonical", character_sheet_requested: "生成 character sheet", character_sheet_ready: "character sheet 完成", completed: "工作流完成", failed: "工作流失败",
   };
   return labels[String(stage ?? "")] ?? String(stage ?? "阶段");
 }

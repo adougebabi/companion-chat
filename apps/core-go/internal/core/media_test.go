@@ -1,6 +1,9 @@
 package core
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestParseRange(t *testing.T) {
 	tests := []struct {
@@ -90,5 +93,15 @@ func TestReplaceMediaPlaceholdersKeepsPromptAndNumericLoRAType(t *testing.T) {
 	}
 	if _, err := replaceMediaPlaceholders(workflow, "portrait", nil); err == nil {
 		t.Fatal("missing chest LoRA weight should fail instead of silently defaulting")
+	}
+}
+
+func TestVisualIdentityMediaPromptInstructionRequiresCharacterTurnaround(t *testing.T) {
+	messages := addVisualIdentityMediaPromptInstruction("media_prompt", []map[string]any{
+		{"role": "system", "content": "generic"},
+		{"role": "user", "content": `{"purpose":"visual_identity","stage":"seed","render_intent":"character_turnaround"}`},
+	})
+	if len(messages) != 2 || !strings.Contains(stringValue(messages[0]["content"]), "front view, side view, and back view") || !strings.Contains(stringValue(messages[0]["content"]), "no abstract silhouette") {
+		t.Fatalf("visual identity prompt instruction = %#v", messages)
 	}
 }

@@ -128,6 +128,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	if err != nil {
 		return ProviderCompletion{}, err
 	}
+	messages = addVisualIdentityMediaPromptInstruction(role, messages)
 	messages = withChineseOutputInstruction(role, messages)
 	correlationID := diagnosticCorrelation(messages, "")
 	providerRequestID := "provider:" + stableDigest(role+":"+correlationID)
@@ -260,6 +261,28 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	}
 	p.recordProviderSuccess(ctx, assignment, correlationID, messages, providerResponse)
 	return completion, nil
+}
+
+func addVisualIdentityMediaPromptInstruction(role string, messages []map[string]any) []map[string]any {
+	if role != "media_prompt" {
+		return messages
+	}
+	for _, message := range messages {
+		if stringValue(message["role"]) != "user" {
+			continue
+		}
+		content := stringValue(message["content"])
+		var concept map[string]any
+		if json.Unmarshal([]byte(content), &concept) != nil || stringValue(concept["purpose"]) != "visual_identity" {
+			continue
+		}
+		stage := stringValue(concept["stage"])
+		if stage == "character_sheet" {
+			return prependSystemMessage(messages, map[string]any{"role": "system", "content": "This is a Visual Identity character sheet render. Preserve one consistent human character and produce a clean reference sheet with front, side, and back views on a neutral plain background. Do not turn the request into an artistic scene, editorial photo, landscape, abstract silhouette, or unrelated collage. Return only the final English image prompt."})
+		}
+		return prependSystemMessage(messages, map[string]any{"role": "system", "content": "This is the first Visual Identity character-turnaround render. Preserve exactly one consistent human character, full body, with front view, side view, and back view together on one neutral plain studio/reference-sheet background. This is a character design reference, not an artistic scene or editorial photo: no abstract silhouette, no landscape, no decorative environment, no extra people, no unrelated collage, no logo or text. Return only the final English image prompt."})
+	}
+	return messages
 }
 
 func providerStructuredContent(message map[string]any) string {
