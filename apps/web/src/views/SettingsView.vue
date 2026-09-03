@@ -29,6 +29,26 @@ const comfyUiUrl = ref(""); const comfyUiWorkflow = ref(""); const visualIdentit
 const roleModelCopied = ref(false);
 const manualEndpointValue = "__new_manual_endpoint__";
 
+function parseWorkflowTemplate(raw: string): Record<string, unknown> {
+  const source = raw.trim();
+  const parseObject = (value: string): Record<string, unknown> => {
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("workflow_not_object");
+    return parsed as Record<string, unknown>;
+  };
+  try {
+    return parseObject(source);
+  } catch (error) {
+    // ComfyUI templates are commonly written with numeric placeholders without
+    // JSON quotes. Quote only complete placeholder tokens in value position;
+    // the Core renderer later restores numeric placeholders such as
+    // {{chest_lora_weight}} to their native number type.
+    const normalized = source.replace(/([:\[,\s]*)(\{\{[A-Za-z0-9_.-]+\}\})(?=\s*[,}\]])/g, '$1"$2"');
+    if (normalized === source) throw error;
+    return parseObject(normalized);
+  }
+}
+
 function selectEndpoint(id: string) { endpointPickerId.value = id; const endpoint = controlCenter.providerEndpoints.find((item) => item.id === id); if (!endpoint) return; endpointId.value = endpoint.id; endpointUrl.value = endpoint.base_url; providerKind.value = endpoint.kind; endpointSecret.value = ""; }
 async function selectRole(role: (typeof providerRoles)[number]["value"]) { selectedProviderRole.value = role; const binding = controlCenter.providerBindings.find((item) => item.role === role); roleEndpointId.value = binding?.endpoint_id ?? controlCenter.providerEndpoints.find((item) => item.id === "primary")?.id ?? controlCenter.providerEndpoints[0]?.id ?? ""; roleModelId.value = binding?.model_id ?? ""; roleTokenBudget.value = binding?.token_budget ?? 2048; roleTimeoutSeconds.value = binding?.timeout_seconds ?? 60; await controlCenter.loadProviderModels(roleEndpointId.value); }
 function handleRoleChange(value: string | number) { if (typeof value !== "string") return; const role = providerRoles.find((item) => item.value === value)?.value; if (role) void selectRole(role); }
@@ -39,7 +59,7 @@ function updateRoleTimeout(value: string | number) { roleTimeoutSeconds.value = 
 async function load() { await controlCenter.loadSettings(); const primary = controlCenter.providerEndpoints.find((endpoint) => endpoint.id === "primary")?.id ?? controlCenter.providerEndpoints[0]?.id ?? ""; selectEndpoint(primary); await selectRole(selectedProviderRole.value); const comfy = controlCenter.settings?.values["media.comfyui"]; if (comfy && typeof comfy === "object" && !Array.isArray(comfy)) { const config = comfy as Record<string, unknown>; comfyUiUrl.value = String(config.baseUrl ?? ""); const workflow = config.workflow; comfyUiWorkflow.value = workflow && typeof workflow === "object" ? JSON.stringify(workflow, null, 2) : ""; const identityWorkflow = config.visual_identity_workflow; visualIdentityWorkflow.value = identityWorkflow && typeof identityWorkflow === "object" ? JSON.stringify(identityWorkflow, null, 2) : ""; } const autonomy = controlCenter.settings?.values["product.autonomy"]; const wakeUp = controlCenter.settings?.values["product.wakeup"]; const retention = controlCenter.settings?.values["diagnostics.retention"]; controlCenter.autonomySettingsJson = JSON.stringify(autonomy && typeof autonomy === "object" && !Array.isArray(autonomy) ? autonomy : { mode: "active", allowed_actions: ["proactive_message", "memory_candidate", "relationship_candidate", "schedule_proposal", "media_request", "moment"], budget_remaining: 1 }, null, 2); controlCenter.wakeUpSettingsJson = JSON.stringify(wakeUp && typeof wakeUp === "object" && !Array.isArray(wakeUp) ? wakeUp : { enabled: true, interval_seconds: 1800 }, null, 2); controlCenter.diagnosticsRetentionJson = JSON.stringify(retention && typeof retention === "object" && !Array.isArray(retention) ? retention : { retention_days: 30, max_rows: 10000 }, null, 2); }
 async function saveRole() { if (!roleEndpointId.value || !roleModelId.value.trim()) { controlCenter.error = "请为该模型角色选择 endpoint 和模型。"; return; } await controlCenter.configureModelRole({ role: selectedProviderRole.value, endpointId: roleEndpointId.value, modelId: roleModelId.value.trim(), tokenBudget: roleTokenBudget.value, timeoutSeconds: roleTimeoutSeconds.value }); if (!controlCenter.error) await selectRole(selectedProviderRole.value); }
 async function saveEndpoint() { if (!endpointId.value.trim() || !endpointUrl.value.trim()) { controlCenter.error = "请完整填写 endpoint 标识和服务地址。"; return; } if (endpointSecret.value) { await controlCenter.saveSettings({}, { [`provider:${endpointId.value.trim()}`]: endpointSecret.value }); if (controlCenter.error) return; } await controlCenter.configureProviderEndpoint({ endpointId: endpointId.value.trim(), kind: providerKind.value, baseUrl: endpointUrl.value.trim(), secretPurpose: `provider:${endpointId.value.trim()}` }); if (!controlCenter.error) { endpointSecret.value = ""; selectEndpoint(endpointId.value.trim()); await selectRole(selectedProviderRole.value); } }
-async function saveMedia() { if (!comfyUiUrl.value.trim() || !comfyUiWorkflow.value.trim()) { if (comfyUiUrl.value.trim() || comfyUiWorkflow.value.trim()) controlCenter.error = "请同时填写 ComfyUI URL 和图片工作流。"; return; } try { const workflow = JSON.parse(comfyUiWorkflow.value); if (!workflow || typeof workflow !== "object" || Array.isArray(workflow)) throw new Error("workflow_not_object"); const visualWorkflow = visualIdentityWorkflow.value.trim() ? JSON.parse(visualIdentityWorkflow.value) : undefined; if (visualWorkflow !== undefined && (!visualWorkflow || typeof visualWorkflow !== "object" || Array.isArray(visualWorkflow))) throw new Error("visual_identity_workflow_not_object"); await controlCenter.saveSettings({ "media.comfyui": { baseUrl: comfyUiUrl.value.trim(), workflow, ...(visualWorkflow === undefined ? {} : { visual_identity_workflow: visualWorkflow }) } }); } catch { controlCenter.error = "ComfyUI 图片工作流必须是 JSON 对象。"; } }
+async function saveMedia() { if (!comfyUiUrl.value.trim() || !comfyUiWorkflow.value.trim()) { if (comfyUiUrl.value.trim() || comfyUiWorkflow.value.trim()) controlCenter.error = "请同时填写 ComfyUI URL 和图片工作流。"; return; } try { const workflow = parseWorkflowTemplate(comfyUiWorkflow.value); const visualWorkflow = visualIdentityWorkflow.value.trim() ? parseWorkflowTemplate(visualIdentityWorkflow.value) : undefined; await controlCenter.saveSettings({ "media.comfyui": { baseUrl: comfyUiUrl.value.trim(), workflow, ...(visualWorkflow === undefined ? {} : { visual_identity_workflow: visualWorkflow }) } }); } catch { controlCenter.error = "ComfyUI 图片工作流必须是 JSON 对象；占位符可写成 {{prompt}} 或 {{chest_lora_weight}}，未加引号的完整占位符也会自动处理。"; } }
 async function changePassword() { const changed = await store.changePassword(changedOwnerPassword.value); if (changed) changedOwnerPassword.value = ""; }
 async function copyRoleModel() {
   if (!roleModelId.value || !navigator.clipboard) return;

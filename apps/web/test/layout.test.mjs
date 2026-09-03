@@ -48,6 +48,13 @@ test("settings configuration is progressively disclosed by closed drawers", () =
   assert.match(settingsSource, /模型参数/);
 });
 
+test("media workflow settings accept unquoted placeholder templates", () => {
+  assert.match(settingsSource, /function parseWorkflowTemplate\(raw: string\)/);
+  assert.match(settingsSource, /chest_lora_weight/);
+  assert.match(settingsSource, /source\.replace\(/);
+  assert.match(settingsSource, /\{\{chest_lora_weight\}\}/);
+});
+
 test("web controls are backed by the local shadcn-vue component layer", () => {
   assert.match(viteSource, /@tailwindcss\/vite/);
   assert.match(viteSource, /alias:[\s\S]*\"@\"/);
