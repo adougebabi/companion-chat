@@ -844,3 +844,36 @@ Implemented the complete cognition growth vertical: structured appraisal/focus/i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 26: 摇光视觉身份工作流框架
+
+**Date**: 2026-09-03
+**Task**: 摇光视觉身份工作流框架
+**Branch**: `master`
+
+### Summary
+
+在独立工作树 codex/yaoguang-visual-identity 中完成 visual identity 聚合、初始化与 wake-up 触发、Temporal image→vision→patch→regenerate 框架、canonical/character-sheet 持久化、罩杯到胸部 LoRA adapter、Scene Image context binding，以及 Vue 时间轴和媒体事件合并；Go/Web/BFF/client 验证通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e596b12` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
