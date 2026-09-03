@@ -145,6 +145,7 @@ activeMessages = activeMessages.filter(message => message !== typingEntry);
 
 - The server is authoritative for stage order, attempt status, `accepted`/`regenerate`, and identity-match decisions. Vue never judges image content or parses prompts.
 - The detail dialog may refresh the projection while a visual identity session is non-terminal; once `status=active`, polling stops.
+- Timeline timestamps render through `formatTimelineTime()` in the resolved persona timezone (`今天 HH:mm`/`昨天 HH:mm`/`MM月DD日 HH:mm`), while `<time datetime>` retains the original RFC3339 value.
 - Candidate images remain visible beside later attempts. Stable image boxes use `overflow-anchor: none` so late media cannot move the reader.
 - Transport retry is distinct from Visual Identity regeneration; no client retry reuses a completed turn to create a new attempt.
 

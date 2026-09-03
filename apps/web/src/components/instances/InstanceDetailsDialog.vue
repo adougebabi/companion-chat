@@ -13,7 +13,7 @@ import DialogTitle from "@/components/ui/dialog/DialogTitle.vue";
 
 import { useConversationStore } from "../../stores/conversations";
 import { useControlCenterStore } from "../../stores/control-center";
-import { enumLabel, formatDisplayValue, formatZonedRange, isCustomLabel, labelFor, resolveTimezone } from "../../lib/fluctlight-display";
+import { enumLabel, formatDisplayValue, formatTimelineTime, formatZonedRange, isCustomLabel, labelFor, resolveTimezone } from "../../lib/fluctlight-display";
 import { fluctlightStatusLabel } from "../../lib/fluctlight-status";
 
 type JsonRecord = Record<string, unknown>;
@@ -214,7 +214,7 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
             <p v-if="!visualIdentityTimeline.length" class="field-note">初始化后，这里会显示“生成 → 视觉理解 → 评审 → 再生成/完成”的时间轴。</p>
             <ol v-else class="timeline-list visual-identity-timeline">
               <li v-for="event in visualIdentityTimeline" :key="`${String(event.id ?? event.stage)}-${String(event.occurred_at ?? '')}`" :class="{ active: event.status === 'running' || event.stage === 'regenerate' }">
-                <time :datetime="String(event.occurred_at ?? '')">{{ formatDisplayValue(event.occurred_at) }}</time>
+                <time :datetime="String(event.occurred_at ?? '')">{{ formatTimelineTime(event.occurred_at, scheduleTimezone) }}</time>
                 <div class="visual-identity-event-content"><strong>{{ visualIdentityStageLabel(event.stage) }}<span class="timeline-now-badge">{{ visualIdentityStatusLabel(event.status) }}</span></strong><span>{{ formatDisplayValue(event.summary) }}</span>
                   <div v-if="visualIdentityAssetIds(event).length" class="visual-identity-assets"><img v-for="assetId in visualIdentityAssetIds(event)" :key="assetId" :src="`/api/media/${encodeURIComponent(assetId)}`" :alt="`${visualIdentityStageLabel(event.stage)}图片`" loading="lazy" /></div>
                 </div>

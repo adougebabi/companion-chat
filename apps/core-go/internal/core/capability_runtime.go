@@ -16,6 +16,7 @@ func (a *App) capabilityRegistry() *CapabilityRegistry {
 	}
 	return NewCapabilityRegistry(
 		&imageCapabilityExecutor{app: a},
+		&visualIdentityCapabilityExecutor{app: a},
 		&sceneCapabilityExecutor{app: a},
 		&presenceCapabilityExecutor{app: a},
 		&memoryCapabilityExecutor{app: a},
@@ -114,6 +115,23 @@ func normalizeToolCallMetadata(calls []ToolCallV1, sourceFactID, identityScope s
 }
 
 type imageCapabilityExecutor struct{ app *App }
+
+type visualIdentityCapabilityExecutor struct{ app *App }
+
+func (executor *visualIdentityCapabilityExecutor) Manifest() CapabilityManifest {
+	return visualIdentityInitializeCapabilityManifest()
+}
+
+func (executor *visualIdentityCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
+	if !strings.HasPrefix(strings.TrimSpace(sourceFactID), "wake_up_") {
+		return failedToolResult(call, "visual_identity_trigger_invalid", false, "visual identity initialization is only callable from WakeUp"), errors.New("visual identity trigger invalid")
+	}
+	sessionID, err := executor.app.EnsureVisualIdentityInitialization(ctx, fluctlightID, "wakeup", sourceFactID)
+	if err != nil {
+		return failedToolResult(call, "visual_identity_initialization_failed", true, err.Error()), err
+	}
+	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: map[string]any{"session_id": sessionID, "status": "queued"}, Retryable: false, ProviderRequestID: call.ProviderRequestID, CorrelationID: "visual_identity:" + sessionID, SchemaVersion: ToolResultSchemaVersion}, nil
+}
 
 func (executor *imageCapabilityExecutor) Manifest() CapabilityManifest {
 	return imageCapabilityManifest()

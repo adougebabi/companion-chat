@@ -34,6 +34,8 @@ test("detail owns read-only life-world sections and uses timezone-aware timeline
   assert.match(detailSource, /目标与意图/);
   assert.match(detailSource, /今日日程/);
   assert.match(detailSource, /formatZonedRange\(item\.start_at, item\.end_at, scheduleTimezone\)/);
+  assert.match(detailSource, /formatTimelineTime\(event\.occurred_at, scheduleTimezone\)/);
+  assert.match(displaySource, /export function formatTimelineTime/);
   assert.match(detailSource, /resolveTimezone/);
   assert.match(detailSource, /关系状态/);
   assert.match(detailSource, /可展示记忆/);

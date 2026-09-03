@@ -224,6 +224,30 @@ func imageCapabilityManifest() CapabilityManifest {
 	}
 }
 
+func visualIdentityInitializeCapabilityManifest() CapabilityManifest {
+	return CapabilityManifest{
+		Name:        "visual_identity.initialize",
+		Version:     "v1",
+		Description: "Initialize the Fluctlight's durable Visual Identity workflow during a WakeUp cycle.",
+		Parameters: map[string]any{
+			"type":                 "object",
+			"additionalProperties": false,
+			"properties": map[string]any{
+				"reason": map[string]any{"type": "string", "maxLength": 512},
+			},
+		},
+		OutputSchema: map[string]any{
+			"type": "object", "additionalProperties": false,
+			"required": []any{"session_id", "status"},
+			"properties": map[string]any{
+				"session_id": map[string]any{"type": "string"},
+				"status":     map[string]any{"type": "string"},
+			},
+		},
+		SideEffectClass: "native_projection", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
+	}
+}
+
 func imageCapabilityParameters() map[string]any {
 	return map[string]any{
 		"type":                 "object",

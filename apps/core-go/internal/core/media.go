@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -71,7 +72,15 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 		}
 		prompt = value
 		activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "submit"})
-		workflow = replacePrompt(workflow, prompt)
+		constraints := map[string]any{}
+		var concept map[string]any
+		if json.Unmarshal([]byte(intent.Prompt), &concept) == nil {
+			constraints = mapValue(concept["renderer_constraints"])
+		}
+		workflow, err = replaceMediaPlaceholders(workflow, prompt, constraints)
+		if err != nil {
+			return err
+		}
 		payload, _ := json.Marshal(map[string]any{"prompt": workflow})
 		request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/prompt", bytes.NewReader(payload))
 		if err != nil {
@@ -272,32 +281,69 @@ func selectComfyWorkflow(config map[string]any, prompt string, fallback map[stri
 }
 
 func replacePrompt(value map[string]any, prompt string) map[string]any {
+	result, _ := replaceMediaPlaceholders(value, prompt, nil)
+	return result
+}
+
+func replaceMediaPlaceholders(value map[string]any, prompt string, constraints map[string]any) (map[string]any, error) {
 	result := make(map[string]any, len(value))
 	for key, child := range value {
-		switch typed := child.(type) {
-		case string:
-			if typed == "{{prompt}}" {
-				result[key] = prompt
-			} else {
-				result[key] = typed
-			}
-		case map[string]any:
-			result[key] = replacePrompt(typed, prompt)
-		case []any:
-			items := make([]any, len(typed))
-			for index, item := range typed {
-				if nested, ok := item.(map[string]any); ok {
-					items[index] = replacePrompt(nested, prompt)
-				} else {
-					items[index] = item
-				}
-			}
-			result[key] = items
-		default:
-			result[key] = child
+		replaced, err := replaceMediaPlaceholderValue(child, prompt, constraints)
+		if err != nil {
+			return nil, err
 		}
+		result[key] = replaced
 	}
-	return result
+	return result, nil
+}
+
+func replaceMediaPlaceholderValue(value any, prompt string, constraints map[string]any) (any, error) {
+	switch typed := value.(type) {
+	case string:
+		if typed == "{{prompt}}" {
+			return prompt, nil
+		}
+		if typed == "{{chest_lora_weight}}" || typed == "{{renderer_constraints.chest_lora_weight}}" {
+			weight, ok := rendererConstraintWeight(constraints)
+			if !ok {
+				return nil, errors.New("chest_lora_weight_missing")
+			}
+			return weight, nil
+		}
+		if strings.Contains(typed, "{{chest_lora_weight}}") {
+			weight, ok := rendererConstraintWeight(constraints)
+			if !ok {
+				return nil, errors.New("chest_lora_weight_missing")
+			}
+			return strings.ReplaceAll(typed, "{{chest_lora_weight}}", strconv.FormatFloat(weight, 'f', -1, 64)), nil
+		}
+		return typed, nil
+	case map[string]any:
+		return replaceMediaPlaceholders(typed, prompt, constraints)
+	case []any:
+		items := make([]any, len(typed))
+		for index, item := range typed {
+			replaced, err := replaceMediaPlaceholderValue(item, prompt, constraints)
+			if err != nil {
+				return nil, err
+			}
+			items[index] = replaced
+		}
+		return items, nil
+	default:
+		return value, nil
+	}
+}
+
+func rendererConstraintWeight(constraints map[string]any) (float64, bool) {
+	if constraints == nil {
+		return 0, false
+	}
+	value, ok := numberFloat(constraints["chest_lora_weight"])
+	if !ok || math.IsNaN(value) || math.IsInf(value, 0) || value < -10 || value > 10 {
+		return 0, false
+	}
+	return value, true
 }
 
 func pollComfy(ctx context.Context, baseURL, jobID string) (map[string]any, bool, error) {

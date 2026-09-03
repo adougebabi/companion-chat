@@ -139,6 +139,16 @@ func TestToolCallPayloadKeepsProviderSchemaAtBoundary(t *testing.T) {
 	}
 }
 
+func TestVisualIdentityInitializationManifestIsWakeUpCapability(t *testing.T) {
+	manifest := visualIdentityInitializeCapabilityManifest()
+	if manifest.Name != "visual_identity.initialize" || manifest.IsDeferredOutput() || manifest.SideEffectClass != "native_projection" {
+		t.Fatalf("visual identity manifest = %#v", manifest)
+	}
+	if err := manifest.ValidateOutput(map[string]any{"session_id": "session-1", "status": "queued"}); err != nil {
+		t.Fatalf("manifest output rejected: %v", err)
+	}
+}
+
 func TestCapabilityRegistryIsAnExtensibleSlot(t *testing.T) {
 	registry := NewCapabilityRegistry(testCapabilityExecutor{})
 	manifests := registry.Manifests()

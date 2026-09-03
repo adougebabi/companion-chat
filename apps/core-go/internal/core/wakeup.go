@@ -263,7 +263,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		projection.VisualIdentity["missing"] = true
 	}
 	messages := withContextAuthorityInstruction([]map[string]any{
-		{"role": "system", "content": "You are evaluating one internal wake-up for a Fluctlight. Return JSON with attention, thought, desire, agency, and action_type. These fields describe the internal cognitive cycle, not visible prose. Keep each stage as a concise summary; do not provide private chain-of-thought or hidden reasoning. Do not invent facts. Choose no_op when no action is wanted. For a visible proactive_message or moment that needs an image, issue the media.image.generate tool call with the complete visual concept; do not return moment_media_request or message_media_request fields. If another installed capability is needed, issue its tool call and use its capability name as action_type; if the needed capability is missing, issue capability.request. Never return visible text; response_intent is optional and must only explain an explicitly proposed action."},
+		{"role": "system", "content": "You are evaluating one internal wake-up for a Fluctlight. Return JSON with attention, thought, desire, agency, and action_type. These fields describe the internal cognitive cycle, not visible prose. Keep each stage as a concise summary; do not provide private chain-of-thought or hidden reasoning. Do not invent facts. Choose no_op when no action is wanted. For a visible proactive_message or moment that needs an image, issue the media.image.generate tool call with the complete visual concept; do not return moment_media_request or message_media_request fields. If another installed capability is needed, issue its tool call and use its capability name as action_type; if the needed capability is missing, issue capability.request. When context.visual_identity.status is missing, you must call visual_identity.initialize exactly once and choose proactive_message so the Owner is told that you need to create your own visual identity. Never return visible text; response_intent is optional and must only explain an explicitly proposed action."},
 		{"role": "user", "content": jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "context": compactCognitionContext(projection)})},
 	})
 	completion, err := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "wake_up_response", wakeUpResponseSchema(), true)
@@ -298,9 +298,31 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
+	visualIdentityToolResults := make([]ToolResultV1, 0, 1)
+	if !visualIdentityActive {
+		remainingCalls := make([]ToolCallV1, 0, len(toolCalls))
+		visualIdentityCallCount := 0
+		for _, call := range toolCalls {
+			if call.Name != "visual_identity.initialize" {
+				remainingCalls = append(remainingCalls, call)
+				continue
+			}
+			visualIdentityCallCount++
+			if visualIdentityCallCount > 1 {
+				return nil, errors.New("visual_identity_trigger_duplicate")
+			}
+			call.SourceFactID = wakeID
+			results, executeErr := a.ExecuteToolCalls(ctx, fluctlightID, conversationID, wakeID, []ToolCallV1{call})
+			visualIdentityToolResults = append(visualIdentityToolResults, results...)
+			if executeErr != nil {
+				return nil, executeErr
+			}
+		}
+		toolCalls = remainingCalls
+	}
 	if !visualIdentityActive {
 		assessment["visual_identity_missing"] = true
-		assessment["response_intent"] = "我需要创建自己的视觉身份。"
+		assessment["response_intent"] = "顺便说一句，我现在还没有自己的视觉形象。如果方便的话，需要帮我创建一下。"
 	}
 	composite, err := normalizeCompositeAction(assessment, toolCalls, wakeID, stringValue(assessment["action_type"]))
 	if err != nil {
@@ -310,7 +332,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	assessment["tool_calls"] = toolCalls
 	assessment["output_bindings"] = composite.OutputBindings
 	proposedActionType := stringValue(assessment["action_type"])
-	if !visualIdentityActive && proposedActionType == "no_op" {
+	if !visualIdentityActive && (proposedActionType == "no_op" || len(visualIdentityToolResults) > 0) {
 		// Missing visual identity is an explicit wake-up responsibility. Promote
 		// an otherwise silent cycle into a concise proactive notice so the persona
 		// can tell the Owner it needs to create itself before the same transaction
@@ -331,6 +353,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	mediaComposite := deferredOutput && (proposedActionType == "moment" || proposedActionType == "proactive_message")
 	result := map[string]any{"status": "no_op"}
+	if len(visualIdentityToolResults) > 0 {
+		result["visual_identity_tool_results"] = visualIdentityToolResults
+	}
 	policySnapshot := map[string]any{}
 	policyReason := ""
 	if len(toolCalls) > 0 && fluctlight.Status == "paused" {
@@ -376,13 +401,16 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			actualActionType, result = fallbackWakeUpActionWithoutCapability(proposedActionType)
 		}
 	}
+	if len(visualIdentityToolResults) > 0 {
+		result["visual_identity_tool_results"] = visualIdentityToolResults
+	}
 	var actionID string
 	if actualActionType != "no_op" {
 		actionID = "autonomy_wake_" + stableDigest(wakeID)
 		result["action_id"] = actionID
 	}
 	reflectionIntentID := "reflection_intent:wake:" + wakeID
-	factID, err := a.persistWakeUp(ctx, wakeID, fluctlightID, cycle, projection.InnerState, assessment, actualActionType, actionID, result, reflectionIntentID, policySnapshot, conversationID, toolCalls, !visualIdentityActive && fluctlight.Status == "active", fluctlight.CorePersona)
+	factID, err := a.persistWakeUp(ctx, wakeID, fluctlightID, cycle, projection.InnerState, assessment, actualActionType, actionID, result, reflectionIntentID, policySnapshot, conversationID, toolCalls)
 	if err != nil {
 		return nil, err
 	}
@@ -433,7 +461,7 @@ func fallbackWakeUpAssessment() map[string]any {
 	}
 }
 
-func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cycle int, internalDynamics map[string]any, assessment map[string]any, actionType, actionID string, result map[string]any, reflectionIntentID string, policySnapshot map[string]any, conversationID string, toolCalls []ToolCallV1, visualIdentityMissing bool, corePersona map[string]any) (string, error) {
+func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cycle int, internalDynamics map[string]any, assessment map[string]any, actionType, actionID string, result map[string]any, reflectionIntentID string, policySnapshot map[string]any, conversationID string, toolCalls []ToolCallV1) (string, error) {
 	factID := "wake_fact_" + stableDigest(wakeID)
 	workflowID := "autonomy_wake:" + wakeID
 	appraisalPayload := mapValue(assessment["appraisal"])
@@ -484,11 +512,6 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_wakeups(id,fluctlight_id,cycle,internal_dynamics,attention,thought,desire,agency,action_type,action_id,result,reflection_intent_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT DO NOTHING`, wakeID, fluctlightID, cycle, jsonBytes(internalDynamics), jsonBytes(assessment["attention"]), jsonBytes(assessment["thought"]), jsonBytes(assessment["desire"]), jsonBytes(assessment["agency"]), actionType, nullableString(actionID), jsonBytes(wakeResult), reflectionIntentID); err != nil {
 			return err
-		}
-		if visualIdentityMissing {
-			if _, err := a.ensureVisualIdentityInitializationTx(ctx, tx, fluctlightID, "wakeup", wakeID, corePersona); err != nil {
-				return err
-			}
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, reflectionIntentID, "reflection:wake:"+wakeID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "wake_up_id": wakeID})); err != nil {
 			return err

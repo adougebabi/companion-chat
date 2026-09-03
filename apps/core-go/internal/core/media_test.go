@@ -78,3 +78,17 @@ func TestSelectComfyWorkflowUsesExplicitVisualIdentityStage(t *testing.T) {
 		t.Fatalf("legacy workflow fallback = %#v", got)
 	}
 }
+
+func TestReplaceMediaPlaceholdersKeepsPromptAndNumericLoRAType(t *testing.T) {
+	workflow := map[string]any{"prompt": "{{prompt}}", "strength_model": "{{chest_lora_weight}}", "description": "weight={{chest_lora_weight}}"}
+	replaced, err := replaceMediaPlaceholders(workflow, "portrait", map[string]any{"chest_lora_weight": -3.0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if replaced["prompt"] != "portrait" || replaced["strength_model"] != -3.0 || replaced["description"] != "weight=-3" {
+		t.Fatalf("replaced workflow = %#v", replaced)
+	}
+	if _, err := replaceMediaPlaceholders(workflow, "portrait", nil); err == nil {
+		t.Fatal("missing chest LoRA weight should fail instead of silently defaulting")
+	}
+}

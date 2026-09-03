@@ -426,3 +426,35 @@ export function formatZonedTime(value: unknown, ...timezones: Array<string | und
   const parts = dateParts(value, resolveTimezone(...timezones));
   return parts ? parts.text : "时间未设定";
 }
+
+export function formatTimelineTime(value: unknown, ...timezones: Array<string | undefined>): string {
+  if (typeof value !== "string") return "时间未设定";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "时间未设定";
+  const timezone = resolveTimezone(...timezones);
+  const formatter = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
+  const current = new Date();
+  const currentParts = Object.fromEntries(formatter.formatToParts(current).map((part) => [part.type, part.value]));
+  const previous = new Date(current.getTime() - 86_400_000);
+  const previousParts = Object.fromEntries(formatter.formatToParts(previous).map((part) => [part.type, part.value]));
+  const key = `${parts.year}-${parts.month}-${parts.day}`;
+  const currentKey = `${currentParts.year}-${currentParts.month}-${currentParts.day}`;
+  const previousKey = `${previousParts.year}-${previousParts.month}-${previousParts.day}`;
+  const dayLabel = key === currentKey
+    ? "今天"
+    : key === previousKey
+      ? "昨天"
+      : parts.year === currentParts.year
+        ? `${parts.month}月${parts.day}日`
+        : `${parts.year}年${parts.month}月${parts.day}日`;
+  return `${dayLabel} ${parts.hour}:${parts.minute}`;
+}
