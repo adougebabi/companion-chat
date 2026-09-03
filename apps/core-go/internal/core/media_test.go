@@ -96,6 +96,17 @@ func TestReplaceMediaPlaceholdersKeepsPromptAndNumericLoRAType(t *testing.T) {
 	}
 }
 
+func TestMergeVisualIdentityRendererConstraintsUpdatesOnlyExplicitConcepts(t *testing.T) {
+	prompt, err := mergeVisualIdentityRendererConstraints(`{"purpose":"visual_identity","stage":"seed","renderer_constraints":{"schema_version":"old"}}`, map[string]any{"chest_cup": "A", "chest_lora_weight": -5.0})
+	if err != nil || !strings.Contains(prompt, `"chest_cup":"A"`) || !strings.Contains(prompt, `"chest_lora_weight":-5`) {
+		t.Fatalf("merged prompt = %q, %v", prompt, err)
+	}
+	unchanged, err := mergeVisualIdentityRendererConstraints(`{"purpose":"scene","prompt":"x"}`, map[string]any{"chest_lora_weight": -5.0})
+	if err != nil || unchanged != `{"purpose":"scene","prompt":"x"}` {
+		t.Fatalf("non visual prompt changed: %q, %v", unchanged, err)
+	}
+}
+
 func TestVisualIdentityMediaPromptInstructionRequiresCharacterTurnaround(t *testing.T) {
 	messages := addVisualIdentityMediaPromptInstruction("media_prompt", []map[string]any{
 		{"role": "system", "content": "generic"},

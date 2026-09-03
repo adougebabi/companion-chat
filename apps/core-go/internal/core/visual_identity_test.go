@@ -64,6 +64,13 @@ func TestRendererConstraintsReadIdentityAppearanceAndHandleMale(t *testing.T) {
 	if err != nil || bodyType["chest_cup"] != "A" || bodyType["chest_lora_weight"] != float64(-5) {
 		t.Fatalf("body_type constraints = %#v, %v", bodyType, err)
 	}
+	chest, err := rendererConstraintsForCorePersona(map[string]any{
+		"identity":     map[string]any{"gender": "female", "chest": "A cup"},
+		"life_profile": map[string]any{"appearance": map[string]any{}},
+	})
+	if err != nil || chest["chest_cup"] != "A" || chest["chest_lora_weight"] != float64(-5) {
+		t.Fatalf("chest constraints = %#v, %v", chest, err)
+	}
 }
 
 func TestVisualIdentitySchemasExposeDecisionAndVisionStages(t *testing.T) {

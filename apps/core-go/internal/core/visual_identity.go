@@ -143,7 +143,7 @@ func chestCupCandidate(appearance map[string]any) string {
 	// Free-form fields such as bust/body_type/build are accepted only when they
 	// already contain an explicit cup label. Values like “平胸” or “slim” are
 	// ordinary body descriptions and must not be guessed into a LoRA weight.
-	for _, key := range []string{"bust", "body_type", "build"} {
+	for _, key := range []string{"bust", "body_type", "build", "chest"} {
 		candidate := strings.ToUpper(strings.TrimSpace(stringValue(appearance[key])))
 		candidate = strings.TrimSpace(strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(candidate, "罩杯"), "杯"), " CUP"))
 		if candidate == "A" || candidate == "B" || candidate == "C" || candidate == "D" {
@@ -416,6 +416,15 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 	if maxAttempts < 1 {
 		maxAttempts = visualIdentityMaxAttempts
 	}
+	if sessionStatus == "queued" || sessionStatus == "running" {
+		// Re-read the current Core Persona on every checkpoint so a profile
+		// created by an earlier build can pick up explicit identity.body_type,
+		// identity.chest, or identity.build cup data before its next media intent
+		// is frozen. Existing media intents remain immutable.
+		if err := a.refreshVisualIdentityRendererConstraints(ctx, fluctlightID, profileID); err != nil {
+			return nil, err
+		}
+	}
 	if sessionStatus == "character_sheet_pending" {
 		if characterSheetIntentID == "" {
 			return nil, errors.New("character_sheet_intent_missing")
@@ -655,6 +664,79 @@ func (a *App) recordVisualIdentityStage(ctx context.Context, sessionID, attemptI
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		return appendVisualIdentityTimelineTx(ctx, tx, sessionID, attemptID, fluctlightID, stage, status, summary, assets, nil, "visual_identity:"+sessionID)
 	})
+}
+
+func (a *App) refreshVisualIdentityRendererConstraints(ctx context.Context, fluctlightID, profileID string) error {
+	var raw []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1 AND status <> 'retired'`, fluctlightID).Scan(&raw); err != nil {
+		return err
+	}
+	var persona map[string]any
+	if err := json.Unmarshal(raw, &persona); err != nil {
+		return err
+	}
+	constraints, err := rendererConstraintsForCorePersona(persona)
+	if err != nil {
+		return nil
+	}
+	identitySnapshot := map[string]any{
+		"schema_version": visualIdentitySchemaVersion,
+		"identity":       cloneMap(mapValue(persona["identity"])),
+		"life_profile":   cloneMap(mapValue(persona["life_profile"])),
+	}
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET identity_snapshot=$2,renderer_constraints=$3,adapter_version=$4,updated_at=now() WHERE id=$1 AND status='missing' AND current_revision=0`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() WHERE visual_identity_id=$1 AND media_intent_id IS NULL AND status='queued'`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
+			return err
+		}
+		rows, err := tx.Query(ctx, `SELECT media_intent_id FROM public.fluctlight_visual_identity_attempts WHERE visual_identity_id=$1 AND media_intent_id IS NOT NULL AND candidate_asset_id IS NULL`, profileID)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var mediaIntentID string
+			if err := rows.Scan(&mediaIntentID); err != nil {
+				return err
+			}
+			var providerJobID, status, prompt string
+			if err := tx.QueryRow(ctx, `SELECT COALESCE(provider_job_id,''),status,prompt FROM public.media_intents WHERE id=$1 FOR UPDATE`, mediaIntentID).Scan(&providerJobID, &status, &prompt); err != nil {
+				return err
+			}
+			if providerJobID != "" || (status != "failed" && status != "pending" && status != "retry" && status != "running") {
+				continue
+			}
+			updatedPrompt, promptErr := mergeVisualIdentityRendererConstraints(prompt, constraints)
+			if promptErr != nil {
+				continue
+			}
+			if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET prompt=$2,status='pending',revision=revision+1 WHERE id=$1 AND provider_job_id IS NULL`, mediaIntentID, updatedPrompt); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1`, "media_workflow_intent:"+mediaIntentID); err != nil {
+				return err
+			}
+		}
+		return rows.Err()
+	})
+}
+
+func mergeVisualIdentityRendererConstraints(prompt string, constraints map[string]any) (string, error) {
+	var concept map[string]any
+	if err := json.Unmarshal([]byte(prompt), &concept); err != nil {
+		return "", err
+	}
+	if stringValue(concept["purpose"]) != "visual_identity" {
+		return prompt, nil
+	}
+	concept["renderer_constraints"] = cloneMap(constraints)
+	data, err := json.Marshal(concept)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func (a *App) promoteVisualIdentityCanonical(ctx context.Context, sessionID, attemptID, profileID, fluctlightID, assetID string, identitySnapshot, constraints map[string]any) error {
