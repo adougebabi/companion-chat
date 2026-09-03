@@ -73,7 +73,7 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 	var ensured int64
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		inserted, err := tx.Exec(ctx, `
-			INSERT INTO public.platform_workflow_intents(
+		INSERT INTO public.platform_workflow_intents(
 				intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at
 			)
 			SELECT
@@ -86,6 +86,13 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 				now()
 			FROM public.fluctlights AS f
 			WHERE f.status IN ('active', 'paused')
+			  AND EXISTS (
+				SELECT 1
+				FROM public.life_schedules AS s
+				WHERE s.fluctlight_id = f.id
+				  AND s.status = 'accepted'
+				  AND s.local_date = (now() AT TIME ZONE COALESCE(NULLIF(f.identity->>'timezone',''),'Asia/Shanghai'))::date
+			  )
 			ON CONFLICT (intent_id) DO NOTHING`)
 		if err != nil {
 			return err
@@ -98,6 +105,13 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 			WHERE i.intent_type='wake_up.current'
 			  AND i.payload->>'fluctlight_id' = f.id
 			  AND f.status IN ('active', 'paused')
+			  AND EXISTS (
+				SELECT 1
+				FROM public.life_schedules AS s
+				WHERE s.fluctlight_id = f.id
+				  AND s.status = 'accepted'
+				  AND s.local_date = (now() AT TIME ZONE COALESCE(NULLIF(f.identity->>'timezone',''),'Asia/Shanghai'))::date
+			  )
 			  AND i.status IN ('completed', 'failed')`)
 		if err != nil {
 			return err
@@ -254,6 +268,15 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		assessment = fallbackWakeUpAssessment()
 		toolCalls = nil
 	}
+	if !completion.StructuredFallback && wakeUpAssessmentHasNoStages(assessment, toolCalls) {
+		// Some thinking-enabled providers emit bookkeeping capability calls while
+		// omitting the four internal stages entirely. Those calls cannot authorize
+		// an action without a semantic assessment. Persist one explicit, bounded
+		// no-op cycle so the durable timer survives instead of failing forever on
+		// wake_up_attention_invalid.
+		assessment = fallbackWakeUpAssessment()
+		toolCalls = nil
+	}
 	if assessment == nil {
 		return nil, errors.New("wake_up_assessment_invalid")
 	}
@@ -348,6 +371,28 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	safeResult["tool_results"] = toolResults
 	return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "status": "completed", "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "action_type": actualActionType, "action_id": nullableString(actionID), "reflection_intent_id": reflectionIntentID, "result": safeResult, "interval_seconds": settings.IntervalSeconds}, nil
+}
+
+func wakeUpAssessmentHasNoStages(assessment map[string]any, toolCalls []ToolCallV1) bool {
+	if len(toolCalls) == 0 || assessment == nil {
+		return false
+	}
+	for _, field := range []string{"attention", "thought", "desire", "agency"} {
+		switch value := assessment[field].(type) {
+		case string:
+			if strings.TrimSpace(value) != "" {
+				return false
+			}
+		case map[string]any:
+			if len(value) > 0 {
+				return false
+			}
+		default:
+			// Missing, null, or a scalar with no supported semantic shape is
+			// treated as an omitted stage only when every stage is omitted.
+		}
+	}
+	return true
 }
 
 func fallbackWakeUpAssessment() map[string]any {

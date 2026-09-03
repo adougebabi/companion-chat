@@ -1,9 +1,11 @@
 package workflow
 
 import (
+	"strings"
 	"testing"
 	"time"
 
+	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -99,6 +101,25 @@ func TestWakeUpIntentRetriesOnlyForLiveFluctlights(t *testing.T) {
 				t.Fatalf("wakeUpIntentShouldRetry(%q,%q) = %t, want %t", test.fluctlightStatus, test.workflowStatus, got, test.want)
 			}
 		})
+	}
+}
+
+func TestWorkflowIDReusePolicyAllowsWakeUpRecovery(t *testing.T) {
+	if got := workflowIDReusePolicy("wake_up.current"); got != enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE {
+		t.Fatalf("wake-up reuse policy = %v, want allow duplicate", got)
+	}
+	if got := workflowIDReusePolicy("schedule.current_day"); got != enumspb.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE {
+		t.Fatalf("schedule reuse policy = %v, want reject duplicate", got)
+	}
+}
+
+func TestWakeUpRetryBackoffIsNotRequeuedBeforeDueTime(t *testing.T) {
+	// The SQL candidate predicate intentionally excludes retry rows while their
+	// next_attempt_at is in the future. Without this boundary ReconcileOnce
+	// repeatedly pushed the wake-up five minutes forward every second, making a
+	// failed stable workflow appear permanently dormant.
+	if !strings.Contains(reconcileIntentQuery, "status='retry'") || !strings.Contains(reconcileIntentQuery, "next_attempt_at <= now()") {
+		t.Fatalf("retry reconciliation query does not preserve backoff: %s", reconcileIntentQuery)
 	}
 }
 

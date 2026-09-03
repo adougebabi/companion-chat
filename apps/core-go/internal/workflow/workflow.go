@@ -27,6 +27,7 @@ const (
 	defaultWakeUpIntervalSeconds = 30 * 60
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
+	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type FROM public.platform_workflow_intents WHERE status IN ('pending','started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
 var runtime struct {
@@ -639,7 +640,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 	if limit < 1 {
 		limit = 1
 	}
-	rows, err := d.App.DB.Pool().Query(ctx, `SELECT intent_id,workflow_id,intent_type FROM public.platform_workflow_intents WHERE status IN ('pending','retry','started','cancel_requested') ORDER BY started_at NULLS LAST,created_at LIMIT $1`, limit)
+	rows, err := d.App.DB.Pool().Query(ctx, reconcileIntentQuery, limit)
 	if err != nil {
 		return 0, err
 	}
@@ -677,6 +678,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '5 minutes',started_at=NULL,completed_at=NULL,last_error=COALESCE(last_error,'wake_up_workflow_terminal') WHERE intent_id=$1`, intentID); err != nil {
 					return count, err
 				}
+				slog.Default().Warn("Go Worker wake-up workflow requeued after terminal execution", "intent_id", intentID, "workflow_id", workflowID, "temporal_status", intentStatus, "fluctlight_status", fluctlightStatus, "next_attempt", "5m")
 				if d.Started != nil {
 					delete(d.Started, intentID)
 				}
@@ -700,6 +702,20 @@ func wakeUpIntentShouldRetry(fluctlightStatus, workflowStatus string) bool {
 		return false
 	}
 	return workflowStatus == "failed" || workflowStatus == "completed"
+}
+
+// workflowIDReusePolicy gives wake-up recovery the reuse semantics required by
+// its stable workflow ID while keeping one-shot intents protected from
+// accidental duplicate starts.
+func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
+	if intentType == "wake_up.current" {
+		// Reconciliation deliberately retries both failed and completed wake-up
+		// executions for live Fluctlights. ALLOW_DUPLICATE is therefore required
+		// for a stable wake-up ID; the cognition_wakeups cycle key keeps each
+		// cycle idempotent even when a terminal execution is replayed.
+		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
+	}
+	return enumspb.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE
 }
 
 func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
@@ -823,7 +839,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			slog.Default().Warn("Go Worker intent type unsupported; leaving pending", "intent_id", intentID, "intent_type", intentType)
 			continue
 		}
-		_, err := d.Client.ExecuteWorkflow(ctx, client.StartWorkflowOptions{ID: goWorkflowID, TaskQueue: taskQueue, WorkflowIDReusePolicy: enumspb.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE}, workflowFn, input)
+		_, err := d.Client.ExecuteWorkflow(ctx, client.StartWorkflowOptions{ID: goWorkflowID, TaskQueue: taskQueue, WorkflowIDReusePolicy: workflowIDReusePolicy(intentType)}, workflowFn, input)
 		if err != nil && !temporal.IsWorkflowExecutionAlreadyStartedError(err) {
 			slog.Default().Warn("Go Worker workflow start failed", "intent_id", intentID, "error", err)
 			_, _ = d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,attempt_count=attempt_count+1,next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1`, intentID, err.Error())

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -22,6 +23,11 @@ func TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight(t *testing.T) {
 
 	fluctlightID := "test-wakeup-intent-" + stableDigest(t.Name())
 	intentID := "wake_up_intent:" + fluctlightID
+	location, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		t.Fatal(err)
+	}
+	localDate := time.Now().In(location).Format("2006-01-02")
 	_, err = pool.Exec(ctx, `
 		INSERT INTO public.fluctlights(
 			id,created_by_actor_id,initialization_mode,status,identity,personality,
@@ -31,8 +37,16 @@ func TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	_, err = pool.Exec(ctx, `
+		INSERT INTO public.life_schedules(id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision)
+		VALUES($1,$2,$3,'Asia/Shanghai','accepted','test','[]',1)
+		ON CONFLICT (id) DO NOTHING`, "test-schedule-"+stableDigest(t.Name()), fluctlightID, localDate)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() {
 		_, _ = pool.Exec(ctx, `DELETE FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID)
+		_, _ = pool.Exec(ctx, `DELETE FROM public.life_schedules WHERE fluctlight_id=$1`, fluctlightID)
 		_, _ = pool.Exec(ctx, `DELETE FROM public.fluctlights WHERE id=$1`, fluctlightID)
 	})
 

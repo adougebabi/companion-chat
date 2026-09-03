@@ -182,6 +182,14 @@ async function waitForSchedule(fluctlightId) {
   );
 }
 
+async function waitForWakeUp(fluctlightId) {
+  return waitUntil(
+    "first wake-up cognition",
+    () => pollJson(`/api/fluctlights/${encodeURIComponent(fluctlightId)}/detail`),
+    (detail) => Array.isArray(detail?.wake_ups) && detail.wake_ups.some((wake) => wake.status === "completed"),
+  );
+}
+
 async function waitForImageAttachment(conversationId) {
   return waitUntil(
     "generated image attachment",
@@ -272,6 +280,7 @@ announce(`case 1 passed: ${fluctlightId}`);
 // model contains all three layers and the important current-day sections.
 announce("case 2: waiting for the real schedule workflow and reading detail");
 const detail = await waitForSchedule(fluctlightId);
+const scheduleObservedAt = Date.now();
 assertCoreLayers(detail, "detail");
 for (const key of ["identity", "personality", "behavioral_policy", "life_profile", "provenance", "current_state", "context"]) {
   assertNonEmptyObject(detail[key], `detail.${key}`);
@@ -297,6 +306,21 @@ report.cases.detail = {
   scheduleItems: detail.schedule.items.length,
 };
 announce(`case 2 passed: ${detail.schedule.items.length} schedule items`);
+
+// The first internal cognition must follow schedule acceptance. This is a
+// real durable wake-up row, not a client-side timer or a synthetic fixture.
+announce("case 2b: waiting for the first real wake-up after schedule acceptance");
+const detailWithWakeUp = await waitForWakeUp(fluctlightId);
+const firstWakeAt = Math.min(...detailWithWakeUp.wake_ups.map((wake) => Date.parse(wake.occurred_at)).filter(Number.isFinite));
+assert.ok(Number.isFinite(firstWakeAt), "wake-up record has no occurred_at timestamp");
+assert.ok(firstWakeAt >= scheduleObservedAt - 5000, `first wake-up (${new Date(firstWakeAt).toISOString()}) preceded observed schedule acceptance (${new Date(scheduleObservedAt).toISOString()})`);
+report.cases.wakeup = {
+  status: "passed",
+  wakeUpCount: detailWithWakeUp.wake_ups.length,
+  firstWakeAt: new Date(firstWakeAt).toISOString(),
+  scheduleObservedAt: new Date(scheduleObservedAt).toISOString(),
+};
+announce(`case 2b passed: first wake-up recorded at ${new Date(firstWakeAt).toISOString()}`);
 
 // Cases 3–4: direct conversation lookup -> real NDJSON turns -> persisted
 // assistant replies. This is the same transport used by the Web client.

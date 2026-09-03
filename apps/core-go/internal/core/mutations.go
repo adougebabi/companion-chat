@@ -150,6 +150,9 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 		if previousEnd == nil {
 			return errors.New("schedule item time is invalid")
 		}
+		if err := insertPostScheduleLifecycleIntentsTx(ctx, tx, fluctlightID, localDate, timezone); err != nil {
+			return err
+		}
 		return appendOutboxTx(ctx, tx, "schedule.accepted", "fluctlight", fluctlightID, fluctlightID, scheduleID, "schedule:"+scheduleID, "schedule-outbox:"+scheduleID, map[string]any{"schedule_id": scheduleID, "local_date": localDate.Format("2006-01-02"), "revision": revision})
 	})
 	if err != nil {
@@ -182,6 +185,27 @@ func (a *App) ReplanSchedule(ctx context.Context, actorID, fluctlightID string, 
 		}
 	}
 	return a.AcceptSchedule(ctx, actorID, fluctlightID, payload)
+}
+
+// insertPostScheduleLifecycleIntentsTx releases the cognition-producing
+// lifecycle intents only after the current local day's Schedule is accepted.
+// Keeping these inserts in the same transaction as schedule acceptance makes
+// schedule-first ordering durable across Worker restarts and dispatcher
+// retries; an accepted future schedule does not wake the Fluctlight early.
+func insertPostScheduleLifecycleIntentsTx(ctx context.Context, tx pgx.Tx, fluctlightID string, localDate time.Time, timezone string) error {
+	location, err := time.LoadLocation(canonicalTimezone(timezone))
+	if err != nil {
+		return fmt.Errorf("schedule_timezone_invalid: %w", err)
+	}
+	if localDate.Format("2006-01-02") != time.Now().In(location).Format("2006-01-02") {
+		return nil
+	}
+	dateValue := localDate.Format("2006-01-02")
+	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'lifecycle','daily_review.current_day',$3) ON CONFLICT DO NOTHING`, "daily_review_intent:"+fluctlightID+":"+dateValue, "daily_review:"+fluctlightID+":"+dateValue, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "local_date": dateValue})); err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'lifecycle','wake_up.current',$3) ON CONFLICT DO NOTHING`, "wake_up_intent:"+fluctlightID, "wake_up:"+fluctlightID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "cycle": 0}))
+	return err
 }
 
 func parseScheduleTime(value string) (time.Time, error) {

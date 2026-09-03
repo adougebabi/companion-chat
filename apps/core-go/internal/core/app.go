@@ -537,14 +537,7 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if err := a.insertDirectConversation(ctx, tx, actorID, id); err != nil {
 			return err
 		}
-		localDate := now.Format("2006-01-02")
 		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'lifecycle','schedule.current_day',$3) ON CONFLICT DO NOTHING`, "schedule_intent:"+id, "schedule:"+id, jsonBytes(map[string]any{"fluctlight_id": id})); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'lifecycle','daily_review.current_day',$3) ON CONFLICT DO NOTHING`, "daily_review_intent:"+id+":"+localDate, "daily_review:"+id+":"+localDate, jsonBytes(map[string]any{"fluctlight_id": id, "local_date": localDate})); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'lifecycle','wake_up.current',$3) ON CONFLICT DO NOTHING`, "wake_up_intent:"+id, "wake_up:"+id, jsonBytes(map[string]any{"fluctlight_id": id, "cycle": 0})); err != nil {
 			return err
 		}
 		if err := a.insertAgency(ctx, tx, id, actorID, goals, intentions); err != nil {

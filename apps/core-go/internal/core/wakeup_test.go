@@ -79,3 +79,21 @@ func TestFallbackWakeUpAssessmentIsValidNoOp(t *testing.T) {
 		}
 	}
 }
+
+func TestWakeUpAssessmentWithOnlyToolCallsUsesDeterministicNoOp(t *testing.T) {
+	if !wakeUpAssessmentHasNoStages(map[string]any{
+		"attention": "", "thought": "", "desire": "", "agency": "", "action_type": "no_op",
+	}, []ToolCallV1{{Name: "scene_event"}}) {
+		t.Fatal("empty stages plus bookkeeping tool call should use no-op fallback")
+	}
+	if wakeUpAssessmentHasNoStages(map[string]any{
+		"attention": "观察", "thought": "", "desire": "", "agency": "", "action_type": "no_op",
+	}, []ToolCallV1{{Name: "scene_event"}}) {
+		t.Fatal("a non-empty stage must not be treated as an omitted assessment")
+	}
+	if wakeUpAssessmentHasNoStages(map[string]any{
+		"attention": "", "thought": "", "desire": "", "agency": "", "action_type": "no_op",
+	}, nil) {
+		t.Fatal("an empty assessment without tool calls remains invalid")
+	}
+}
