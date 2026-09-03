@@ -319,6 +319,24 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			}
 		}
 		toolCalls = remainingCalls
+		if len(visualIdentityToolResults) == 0 && fluctlight.Status == "active" {
+			// Local models may still omit a required tool call even when the
+			// structured wake-up contract asks for it. Repair that protocol miss
+			// through the same native tool executor (never by inserting the intent
+			// directly), so the visible notice and durable workflow cannot drift.
+			call := ToolCallV1{
+				ID:                "visual_identity_wakeup_" + stableDigest(wakeID),
+				Name:              "visual_identity.initialize",
+				Arguments:         json.RawMessage(`{}`),
+				SourceFactID:      wakeID,
+				ProviderRequestID: "provider_wakeup_visual_identity_" + stableDigest(wakeID),
+			}
+			results, executeErr := a.ExecuteToolCalls(ctx, fluctlightID, conversationID, wakeID, []ToolCallV1{call})
+			visualIdentityToolResults = append(visualIdentityToolResults, results...)
+			if executeErr != nil {
+				return nil, executeErr
+			}
+		}
 	}
 	if !visualIdentityActive {
 		assessment["visual_identity_missing"] = true
