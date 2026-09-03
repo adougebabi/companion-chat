@@ -251,7 +251,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	messages := withContextAuthorityInstruction([]map[string]any{
 		{"role": "system", "content": "You are evaluating one internal wake-up for a Fluctlight. Return JSON with attention, thought, desire, agency, and action_type. These fields describe the internal cognitive cycle, not visible prose. Keep each stage as a concise summary; do not provide private chain-of-thought or hidden reasoning. Do not invent facts. Choose no_op when no action is wanted. For a visible proactive_message or moment that needs an image, issue the media.image.generate tool call with the complete visual concept; do not return moment_media_request or message_media_request fields. If another installed capability is needed, issue its tool call and use its capability name as action_type; if the needed capability is missing, issue capability.request. Never return visible text; response_intent is optional and must only explain an explicitly proposed action."},
-		{"role": "user", "content": jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "context": projection, "persona_profile": map[string]any{"core_persona": projection.CorePersona, "developing_self": projection.DevelopingSelf, "current_state": projection.CurrentState, "identity": fluctlight.Identity, "personality": fluctlight.Personality, "behavioral_policy": fluctlight.BehavioralPolicy}})},
+		{"role": "user", "content": jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "context": compactCognitionContext(projection)})},
 	})
 	completion, err := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "wake_up_response", wakeUpResponseSchema(), true)
 	if err != nil {
@@ -332,7 +332,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		} else if proposedActionType == "proactive_message" || proposedActionType == "moment" {
 			visible, realizationErr := a.Provider.Text(ctx, "action_realization", []map[string]any{
 				{"role": "system", "content": "Realize the already-authorized wake-up action as one concise Chinese message. Preserve core_persona as a hard constraint, use developing_self only as soft context, and treat current_state as transient. For proactive_message address the Owner directly; for moment write one concise public Moment. Do not add semantic state or change the action type."},
-				{"role": "user", "content": jsonString(map[string]any{"action_type": proposedActionType, "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "response_intent": assessment["response_intent"], "persona_profile": map[string]any{"core_persona": projection.CorePersona, "developing_self": projection.DevelopingSelf, "current_state": projection.CurrentState, "identity": fluctlight.Identity, "personality": fluctlight.Personality, "behavioral_policy": fluctlight.BehavioralPolicy}})},
+				{"role": "user", "content": jsonString(map[string]any{"action_type": proposedActionType, "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "response_intent": assessment["response_intent"], "context": compactCognitionContext(projection)})},
 			})
 			if realizationErr != nil {
 				return nil, realizationErr
