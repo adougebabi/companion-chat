@@ -85,7 +85,7 @@ func TestWithContextAuthorityInstructionKeepsUserMessageLast(t *testing.T) {
 	if len(messages) != 2 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[1]["role"]) != "user" {
 		t.Fatalf("messages = %#v", messages)
 	}
-	if !strings.Contains(stringValue(messages[0]["content"]), "authoritative cognition-time snapshot") || !strings.Contains(stringValue(messages[0]["content"]), "decide") {
+	if !strings.Contains(stringValue(messages[0]["content"]), "context.current_state") || !strings.Contains(stringValue(messages[0]["content"]), "decide") {
 		t.Fatalf("authority instruction = %#v", messages[0])
 	}
 }
@@ -99,7 +99,7 @@ func TestWithChineseOutputInstructionExcludesMediaPromptRole(t *testing.T) {
 	if len(localized) != 2 || stringValue(localized[0]["role"]) != "system" || stringValue(localized[1]["role"]) != "user" {
 		t.Fatalf("localized messages = %#v", localized)
 	}
-	if !strings.Contains(stringValue(localized[0]["content"]), "所有自然语言字段必须使用中文") || !strings.Contains(stringValue(localized[0]["content"]), "规则") {
+	if !strings.Contains(stringValue(localized[0]["content"]), "所有自然语言值使用中文") || !strings.Contains(stringValue(localized[0]["content"]), "规则") {
 		t.Fatalf("language instruction = %#v", localized[0])
 	}
 	media := withChineseOutputInstruction("media_prompt", messages)
@@ -137,7 +137,7 @@ func TestSystemInstructionMergesToExactlyOneSystemMessage(t *testing.T) {
 	if systemCount != 1 || stringValue(localized[0]["role"]) != "system" {
 		t.Fatalf("system messages = %#v", localized)
 	}
-	for _, expected := range []string{"operation rules", "late rules", "authoritative cognition-time snapshot", "所有自然语言字段必须使用中文"} {
+	for _, expected := range []string{"operation rules", "late rules", "context.current_state", "所有自然语言值使用中文"} {
 		if !strings.Contains(stringValue(localized[0]["content"]), expected) {
 			t.Fatalf("merged system content missing %q: %s", expected, localized[0]["content"])
 		}

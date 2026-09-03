@@ -16,30 +16,17 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 		"core_persona":   compactCorePersona(projection),
 		"current_state":  compactCurrentState(projection),
 	}
-	if projection.FluctlightID != "" {
-		result["fluctlight_id"] = projection.FluctlightID
-	}
-	if projection.ConversationID != "" {
-		result["conversation_id"] = projection.ConversationID
-	}
-	if projection.SourceFactID != "" {
-		result["source_fact_id"] = projection.SourceFactID
-	}
 	if projection.CurrentUserText != "" {
 		result["current_user_text"] = projection.CurrentUserText
 	}
 	if len(projection.RecentMessages) > 0 {
-		result["recent_messages"] = projection.RecentMessages
+		result["recent_messages"] = compactRecentMessages(projection.RecentMessages)
 	}
-	result["context_revision"] = projection.ContextRevision
-	result["core_persona_revision"] = projection.CorePersonaRevision
-	result["developing_self_revision"] = projection.DevelopingSelfRevision
-	result["current_state_revision"] = projection.CurrentStateRevision
 	if len(projection.DevelopingSelf) > 0 {
-		result["developing_self"] = projection.DevelopingSelf
+		result["developing_self"] = compactDevelopingSelf(projection.DevelopingSelf)
 	}
 	if len(projection.Memories) > 0 {
-		result["memories"] = projection.Memories
+		result["memories"] = compactMemories(projection.Memories)
 	}
 	if len(projection.Relationships) > 0 {
 		result["relationships"] = projection.Relationships
@@ -86,6 +73,9 @@ func compactCorePersona(projection ContextProjection) map[string]any {
 	if _, ok := data["behavioral_policy"]; !ok && len(projection.BehavioralPolicy) > 0 {
 		data["behavioral_policy"] = projection.BehavioralPolicy
 	}
+	if identity := mapValue(data["identity"]); len(identity) > 0 {
+		delete(identity, "id")
+	}
 	result["data"] = data
 	return result
 }
@@ -112,6 +102,120 @@ func compactCurrentState(projection ContextProjection) map[string]any {
 	if _, ok := data["life_context"]; !ok && len(projection.LifeContext) > 0 {
 		data["life_context"] = projection.LifeContext
 	}
+	if inner := mapValue(data["inner_state"]); len(inner) > 0 {
+		data["inner_state"] = compactInnerState(inner)
+	}
+	if lifeContext := mapValue(data["life_context"]); len(lifeContext) > 0 {
+		data["life_context"] = compactLifeContext(lifeContext)
+	}
 	result["data"] = data
+	return result
+}
+
+func compactRecentMessages(messages []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(messages))
+	for _, message := range messages {
+		compact := make(map[string]any, 4)
+		for _, key := range []string{"sequence", "kind", "text", "created_at"} {
+			if value, ok := message[key]; ok && value != nil && value != "" {
+				compact[key] = value
+			}
+		}
+		if refs := arrayValue(message["attachment_refs"]); len(refs) > 0 {
+			compact["has_attachments"] = true
+		}
+		if len(compact) > 0 {
+			result = append(result, compact)
+		}
+	}
+	return result
+}
+
+func compactDevelopingSelf(claims []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(claims))
+	for _, claim := range claims {
+		compact := make(map[string]any, 6)
+		for _, key := range []string{"category", "claim", "value", "confidence", "evidence_refs", "provenance", "status", "expires_at"} {
+			if value, ok := claim[key]; ok && value != nil && value != "" {
+				if key == "evidence_refs" && len(arrayValue(value)) == 0 {
+					continue
+				}
+				compact[key] = value
+			}
+		}
+		if len(compact) > 0 {
+			result = append(result, compact)
+		}
+	}
+	return result
+}
+
+func compactMemories(memories []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(memories))
+	for _, memory := range memories {
+		compact := make(map[string]any, 7)
+		for _, key := range []string{"type", "content", "confidence", "importance", "emotional_significance", "created_at", "evidence_refs"} {
+			if value, ok := memory[key]; ok && value != nil && value != "" {
+				if key == "evidence_refs" && len(arrayValue(value)) == 0 {
+					continue
+				}
+				compact[key] = value
+			}
+		}
+		if len(compact) > 0 {
+			result = append(result, compact)
+		}
+	}
+	return result
+}
+
+func compactInnerState(inner map[string]any) map[string]any {
+	result := make(map[string]any, 6)
+	if pad := compactStateMap(inner["pad"], []string{"arousal", "pleasure", "dominance"}); len(pad) > 0 {
+		result["pad"] = pad
+	}
+	if mood := compactStateMap(inner["mood"], []string{"label", "source", "intensity"}); len(mood) > 0 {
+		result["mood"] = mood
+	}
+	if momentum := compactStateMap(inner["momentum"], []string{"value", "trend", "arousal_momentum", "dominance_momentum", "pleasure_momentum"}); len(momentum) > 0 {
+		result["momentum"] = momentum
+	}
+	for _, key := range []string{"drives", "conflicts"} {
+		if value, ok := inner[key]; ok && value != nil {
+			result[key] = value
+		}
+	}
+	if regulation := mapValue(inner["regulation"]); len(regulation) > 0 {
+		compactRegulation := make(map[string]any, 2)
+		for _, key := range []string{"stress", "stability"} {
+			if value, ok := regulation[key]; ok && value != nil {
+				compactRegulation[key] = value
+			}
+		}
+		if len(compactRegulation) > 0 {
+			result["regulation"] = compactRegulation
+		}
+	}
+	return result
+}
+
+func compactStateMap(value any, keys []string) map[string]any {
+	source := mapValue(value)
+	result := make(map[string]any, len(keys))
+	for _, key := range keys {
+		if item, ok := source[key]; ok && item != nil && item != "" {
+			result[key] = item
+		}
+	}
+	return result
+}
+
+func compactLifeContext(context map[string]any) map[string]any {
+	result := make(map[string]any, 5)
+	for _, key := range []string{"source", "scene", "activity", "location", "instant"} {
+		if value, ok := context[key]; ok && value != nil && value != "" {
+			result[key] = value
+		}
+	}
 	return result
 }

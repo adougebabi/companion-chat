@@ -256,7 +256,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		return err
 	}
 	completion, err := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", []map[string]any{
-		{"role": "system", "content": "Evaluate this world fact for the Fluctlight. Return JSON with appraisal, attention, thought, desire, and agency as concise summaries. Appraisal must include relevance, goal_congruence, reward, loss, social_threat, controllability, responsibility, relationship_significance, expected_effect. Do not provide hidden reasoning or visible text. Do not invent facts."},
+		{"role": "system", "content": nativeCognitionInstruction},
 		{"role": "user", "content": jsonString(map[string]any{"event_type": eventType, "fact": json.RawMessage(payload), "context": compactCognitionContext(projection)})},
 	}, a.capabilityRegistry().Manifests(), "native_cognition_response", nativeCognitionResponseSchema(), true)
 	if err != nil {
