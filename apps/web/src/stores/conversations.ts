@@ -13,6 +13,7 @@ const client = new BrowserClient(bffOrigin);
 type StreamPayload = {
   text?: string;
   message?: BrowserMessage;
+  messages?: BrowserMessage[];
   message_id?: string;
   code?: string;
   detail?: string;
@@ -340,23 +341,25 @@ export const useConversationStore = defineStore("conversations", {
               assistantDraft.text = assistantText;
             }
           }
-          if (event.type === "message" && payload.message) {
-            const optimisticIndex = this.messages.findIndex(
-              (message) =>
-                message.id.startsWith("local-") &&
-                message.kind === "user" &&
-                message.conversationId === payload.message!.conversationId &&
-                message.text === payload.message!.text,
-            );
-            const persistedIndex = this.messages.findIndex(
-              (message) =>
-                message.id === payload.message!.id ||
-                (message.conversationId === payload.message!.conversationId &&
-                  message.sequence === payload.message!.sequence),
-            );
-            if (persistedIndex >= 0) this.messages.splice(persistedIndex, 1, payload.message);
-            else if (optimisticIndex >= 0) this.messages.splice(optimisticIndex, 1, payload.message);
-            else this.messages.push(payload.message);
+          if ((event.type === "message" || event.type === "media") && (payload.message || payload.messages?.length)) {
+            const incoming = payload.messages?.length ? payload.messages : payload.message ? [payload.message] : [];
+            for (const message of incoming) {
+              const optimisticIndex = this.messages.findIndex(
+                (candidate) =>
+                  candidate.id.startsWith("local-") &&
+                  candidate.kind === "user" &&
+                  candidate.conversationId === message.conversationId &&
+                  candidate.text === message.text,
+              );
+              const persistedIndex = this.messages.findIndex(
+                (candidate) =>
+                  candidate.id === message.id ||
+                  (candidate.conversationId === message.conversationId && candidate.sequence === message.sequence),
+              );
+              if (persistedIndex >= 0) this.messages.splice(persistedIndex, 1, message);
+              else if (optimisticIndex >= 0) this.messages.splice(optimisticIndex, 1, message);
+              else this.messages.push(message);
+            }
           }
           if (event.type === "error") {
             const code = payload.code ?? "turn_failed";

@@ -67,6 +67,26 @@ func TestBindMediaContextToToolCallsAddsFrozenSnapshot(t *testing.T) {
 	}
 }
 
+func TestBindMediaContextIncludesVisualIdentityAndLifeProfileAppearance(t *testing.T) {
+	projection := ContextProjection{
+		ContextRevision: 5,
+		VisualIdentity: map[string]any{
+			"status":               "active",
+			"identity_snapshot":    map[string]any{"life_profile": map[string]any{"appearance": map[string]any{"chest_cup": "B", "hair": "long"}}},
+			"renderer_constraints": map[string]any{"chest_lora_weight": -3.0},
+		},
+	}
+	concept, _ := alignMediaConceptWithContext(map[string]any{"subject": "自己"}, projection)
+	binding := mapValue(concept["context_binding"])
+	if len(mapValue(binding["visual_identity"])) == 0 {
+		t.Fatalf("visual identity missing from binding: %#v", binding)
+	}
+	appearance := mapValue(binding["appearance"])
+	if appearance["chest_cup"] != "B" || appearance["hair"] != "long" {
+		t.Fatalf("appearance missing from binding: %#v", binding)
+	}
+}
+
 func TestBindMediaPromptContextAddsAuthorityOnlyWhenSnapshotExists(t *testing.T) {
 	if got := bindMediaPromptContext(`{"subject":"a cat"}`); got != `{"subject":"a cat"}` {
 		t.Fatalf("prompt without snapshot changed: %q", got)

@@ -196,3 +196,36 @@ func initializationResponseSchema() map[string]any {
 		"initial_intentions": arraySchema(intention),
 	}, []string{"core_persona", "developing_self", "initial_goals", "initial_intentions"}, false)
 }
+
+func visualIdentityVisionResponseSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"summary":        stringSchema(),
+		"observations":   openObjectSchema(),
+		"identity_match": unitNumberSchema(),
+		"confidence":     unitNumberSchema(),
+	}, []string{"summary", "observations", "identity_match", "confidence"}, false)
+}
+
+func visualIdentityPatchResponseSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"decision":             enumStringSchema("accepted", "regenerate"),
+		"summary":              stringSchema(),
+		"seed_prompt":          stringSchema(),
+		"prompt_patch":         openObjectSchema(),
+		"renderer_constraints": openObjectSchema(),
+		"feedback":             stringSchema(),
+		"confidence":           unitNumberSchema(),
+	}, []string{"decision", "summary", "prompt_patch", "renderer_constraints", "feedback", "confidence"}, false)
+}
+
+func visualIdentitySeedResponseSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"decision":             enumStringSchema("accepted", "regenerate"),
+		"summary":              stringSchema(),
+		"seed_prompt":          stringSchema(),
+		"prompt_patch":         openObjectSchema(),
+		"renderer_constraints": openObjectSchema(),
+		"feedback":             stringSchema(),
+		"confidence":           unitNumberSchema(),
+	}, []string{"seed_prompt"}, false)
+}

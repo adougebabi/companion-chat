@@ -2,8 +2,9 @@ package core
 
 // compactCognitionContext is the Provider-facing projection of a full
 // ContextProjection. The full projection remains the durable/replayable
-// internal value; this DTO keeps only the semantic three-layer context and
-// non-empty evidence collections needed by the current operation.
+// internal value; this DTO keeps the semantic three-layer context, the stable
+// visual identity snapshot, and non-empty evidence collections needed by the
+// current operation.
 //
 // In particular, capability manifests are intentionally absent here. Calls
 // that can execute capabilities already send the authoritative native `tools`
@@ -55,6 +56,9 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	}
 	if len(projection.TriggerPreferences) > 0 {
 		result["trigger_preferences"] = projection.TriggerPreferences
+	}
+	if len(projection.VisualIdentity) > 0 {
+		result["visual_identity"] = projection.VisualIdentity
 	}
 	if len(projection.Presence) > 0 {
 		result["presence"] = projection.Presence

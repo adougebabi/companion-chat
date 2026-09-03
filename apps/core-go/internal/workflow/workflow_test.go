@@ -124,7 +124,7 @@ func TestWakeUpRetryBackoffIsNotRequeuedBeforeDueTime(t *testing.T) {
 }
 
 func TestWorkflowFunctionRegistryIncludesPlatformBoundaries(t *testing.T) {
-	for _, intentType := range []string{"cognition.processing", "platform.control", "wake_up.current", "capability.action"} {
+	for _, intentType := range []string{"cognition.processing", "platform.control", "wake_up.current", "capability.action", "visual_identity.initialize"} {
 		if fn, err := workflowFunction(intentType); err != nil || fn == nil {
 			t.Fatalf("workflowFunction(%q) = %#v, %v", intentType, fn, err)
 		}

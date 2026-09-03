@@ -73,6 +73,7 @@ const schedule = computed(() => asRecord(detail.value.schedule));
 const scheduleItems = computed(() => asRecords(schedule.value.items));
 const now = ref(Date.now());
 let clockTimer: number | undefined;
+let visualIdentityTimer: number | undefined;
 const scheduleTimezone = computed(() => resolveTimezone(
   typeof schedule.value.timezone === "string" ? schedule.value.timezone : undefined,
   typeof identity.value.timezone === "string" ? identity.value.timezone : undefined,
@@ -120,12 +121,42 @@ const atmosphere = computed(() => {
 });
 
 const contextPresence = computed(() => asRecord(context.value.presence));
+const visualIdentity = computed(() => asRecord(detail.value.visual_identity));
+const visualIdentityTimeline = computed(() => asRecords(visualIdentity.value.timeline));
+const visualIdentityConstraints = computed(() => asRecord(visualIdentity.value.renderer_constraints));
+
+function visualIdentityAssetIds(event: JsonRecord): string[] {
+  return Array.isArray(event.asset_ids) ? event.asset_ids.filter((value): value is string => typeof value === "string" && value.length > 0) : [];
+}
+
+function visualIdentityStatusLabel(status: unknown): string {
+  const labels: Record<string, string> = {
+    missing: "尚未创建", queued: "已排队", running: "进行中", awaiting_review: "等待复核", active: "已建立", failed: "失败", renderer_config_pending: "等待渲染配置",
+    completed: "完成", rejected_not_self: "不是自己", regenerating: "再次生成", image_queued: "等待图片", image_completed: "图片完成", character_sheet_queued: "等待角色卡",
+  };
+  return labels[String(status ?? "")] ?? String(status ?? "未提供");
+}
+
+function visualIdentityStageLabel(stage: unknown): string {
+  const labels: Record<string, string> = {
+    session_created: "初始化", seed_requested: "生成文本种子", seed_ready: "文本种子完成", image_requested: "请求生图", image_ready: "候选图完成", vision_requested: "视觉理解中", vision_ready: "视觉理解完成", patch_requested: "身份评审中", patch_ready: "身份补丁完成", regenerate: "再次生成", accepted: "成为 canonical", character_sheet_requested: "生成 character sheet", character_sheet_ready: "character sheet 完成", completed: "工作流完成", failed: "工作流失败",
+  };
+  return labels[String(stage ?? "")] ?? String(stage ?? "阶段");
+}
 
 onMounted(() => {
   clockTimer = window.setInterval(() => { now.value = Date.now(); }, 30_000);
+  visualIdentityTimer = window.setInterval(() => {
+    const fluctlightId = store.selectedFluctlight?.id;
+    const visualStatus = String(asRecord(controlCenter.fluctlightDetail?.visual_identity).status ?? "");
+    if (props.open && fluctlightId && visualStatus !== "active") {
+      void controlCenter.loadFluctlightDetail(fluctlightId);
+    }
+  }, 5_000);
 });
 onBeforeUnmount(() => {
   if (clockTimer !== undefined) window.clearInterval(clockTimer);
+  if (visualIdentityTimer !== undefined) window.clearInterval(visualIdentityTimer);
 });
 
 function close() { emit("close"); }
@@ -167,6 +198,32 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
               <template v-for="(value, key) in behavioralPolicy" :key="String(key)"><dt>{{ labelFor(String(key)) }}</dt><dd><span>{{ formatDisplayValue(value) }}</span><small v-if="isCustomLabel(String(key))" class="raw-field-name">字段名：{{ String(key) }}</small></dd></template>
             </dl>
             <p v-else class="field-note">尚未配置表达策略。</p>
+          </section>
+
+          <section class="detail-block visual-identity-block">
+            <div class="detail-block-heading"><p class="eyebrow">VISUAL IDENTITY</p><h3>视觉身份工作流</h3></div>
+            <div class="detail-status-strip visual-identity-status">
+              <Badge class="status-pill" variant="secondary">{{ visualIdentityStatusLabel(visualIdentity.status) }}</Badge>
+              <span>Revision {{ formatDisplayValue(visualIdentity.current_revision ?? 0) }}</span>
+              <span v-if="visualIdentity.active_session_id">Session {{ String(visualIdentity.active_session_id).slice(0, 12) }}</span>
+            </div>
+            <dl v-if="Object.keys(visualIdentityConstraints).length" class="identity-facts detail-facts-compact">
+              <dt>胸部罩杯</dt><dd>{{ formatDisplayValue(visualIdentityConstraints.chest_cup) }}</dd>
+              <dt>LoRA weight</dt><dd>{{ formatDisplayValue(visualIdentityConstraints.chest_lora_weight) }} · {{ formatDisplayValue(visualIdentityConstraints.adapter_version) }}</dd>
+            </dl>
+            <p v-if="!visualIdentityTimeline.length" class="field-note">初始化后，这里会显示“生成 → 视觉理解 → 评审 → 再生成/完成”的时间轴。</p>
+            <ol v-else class="timeline-list visual-identity-timeline">
+              <li v-for="event in visualIdentityTimeline" :key="`${String(event.id ?? event.stage)}-${String(event.occurred_at ?? '')}`" :class="{ active: event.status === 'running' || event.stage === 'regenerate' }">
+                <time :datetime="String(event.occurred_at ?? '')">{{ formatDisplayValue(event.occurred_at) }}</time>
+                <div class="visual-identity-event-content"><strong>{{ visualIdentityStageLabel(event.stage) }}<span class="timeline-now-badge">{{ visualIdentityStatusLabel(event.status) }}</span></strong><span>{{ formatDisplayValue(event.summary) }}</span>
+                  <div v-if="visualIdentityAssetIds(event).length" class="visual-identity-assets"><img v-for="assetId in visualIdentityAssetIds(event)" :key="assetId" :src="`/api/media/${encodeURIComponent(assetId)}`" :alt="`${visualIdentityStageLabel(event.stage)}图片`" loading="lazy" /></div>
+                </div>
+              </li>
+            </ol>
+            <div v-if="visualIdentity.canonical_asset_id || visualIdentity.character_sheet_asset_id" class="visual-identity-canonical">
+              <div v-if="visualIdentity.canonical_asset_id"><span>Canonical reference</span><img :src="`/api/media/${encodeURIComponent(String(visualIdentity.canonical_asset_id))}`" alt="Canonical reference" loading="lazy" /></div>
+              <div v-if="visualIdentity.character_sheet_asset_id"><span>Character sheet</span><img :src="`/api/media/${encodeURIComponent(String(visualIdentity.character_sheet_asset_id))}`" alt="Character sheet" loading="lazy" /></div>
+            </div>
           </section>
 
           <section class="detail-block">

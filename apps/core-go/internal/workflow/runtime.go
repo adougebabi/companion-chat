@@ -268,6 +268,8 @@ func (r *TemporalRuntime) service() workflowservice.WorkflowServiceClient {
 
 func workflowFunction(intentType string) (any, error) {
 	switch intentType {
+	case "visual_identity.initialize":
+		return VisualIdentityWorkflow, nil
 	case "wake_up.current":
 		return WakeUpWorkflow, nil
 	case "daily_review.current_day":

@@ -12,7 +12,7 @@ func TestCompatibilitySQLDoesNotWriteGeneratedSearchDocument(t *testing.T) {
 }
 
 func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testing.T) {
-	for _, table := range []string{"cognition_appraisals", "cognition_internal_dynamics", "cognition_action_results", "fluctlight_drive_slots", "fluctlight_preference_slots", "fluctlight_trigger_preferences", "fluctlight_developing_self_claims", "fluctlight_developing_self_revisions", "capability_requests"} {
+	for _, table := range []string{"cognition_appraisals", "cognition_internal_dynamics", "cognition_action_results", "fluctlight_drive_slots", "fluctlight_preference_slots", "fluctlight_trigger_preferences", "fluctlight_visual_identities", "fluctlight_visual_identity_revisions", "fluctlight_visual_identity_sessions", "fluctlight_visual_identity_attempts", "fluctlight_visual_identity_timeline", "fluctlight_developing_self_claims", "fluctlight_developing_self_revisions", "capability_requests"} {
 		if !strings.Contains(schemaSQL, "public."+table) {
 			t.Fatalf("schemaSQL is missing %s", table)
 		}

@@ -110,12 +110,46 @@ func ensureWorkerDeploymentCurrentVersion(ctx context.Context, handle WorkerDepl
 type Input struct {
 	IntentID     string `json:"intent_id"`
 	FluctlightID string `json:"fluctlight_id"`
+	SessionID    string `json:"session_id"`
 	LocalDate    string `json:"local_date"`
 	Cycle        int    `json:"cycle"`
 	ActionID     string `json:"action_id"`
 	MemoryID     string `json:"memory_id"`
 	Revision     int    `json:"revision"`
 	InboxID      string `json:"inbox_id"`
+}
+
+// VisualIdentityWorkflow coordinates the image/vision/patch loop while the
+// actual image provider remains owned by MediaWorkflow on the media queue.
+// Continue-as-new keeps the orchestration history bounded; all durable state
+// and candidate assets live in the Core-owned PostgreSQL tables.
+func VisualIdentityWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 20 * time.Minute, HeartbeatTimeout: 30 * time.Second, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	if input.SessionID == "" {
+		return nil, fmt.Errorf("visual identity session is required")
+	}
+	var result map[string]any
+	if err := workflow.ExecuteActivity(ctx, ProcessVisualIdentityActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	status := stringValue(result["status"])
+	if status == "completed" || status == "failed" || status == "cancelled" || status == "awaiting_review" {
+		return result, nil
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	if err := workflow.Sleep(ctx, 5*time.Second); err != nil {
+		return nil, err
+	}
+	return nil, workflow.NewContinueAsNewError(ctx, VisualIdentityWorkflow, input)
 }
 
 // WakeUpWorkflow is the internal-life timer. Each activity invocation owns
@@ -538,6 +572,14 @@ func EnsureCurrentDayScheduleActivity(ctx context.Context, input Input) (map[str
 	return application.EnsureCurrentDaySchedule(ctx, input.FluctlightID)
 }
 
+func ProcessVisualIdentityActivity(ctx context.Context, input Input) (map[string]any, error) {
+	application := app()
+	if application == nil {
+		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	return application.ProcessVisualIdentity(ctx, input.SessionID)
+}
+
 // StartWorkers starts exactly one worker per canonical task queue and returns a
 // fatal-error channel. The caller must terminate the process when that channel
 // receives an error; otherwise a live-but-not-polling Worker would silently
@@ -586,12 +628,14 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterWorkflow(ReflectionWorkflow)
 			w.RegisterWorkflow(MemoryEmbeddingWorkflow)
 			w.RegisterWorkflow(PlatformControlWorkflow)
+			w.RegisterWorkflow(VisualIdentityWorkflow)
 			w.RegisterActivity(ProcessDailyReviewActivity)
 			w.RegisterActivity(ProcessWakeUpActivity)
 			w.RegisterActivity(EnsureCurrentDayScheduleActivity)
 			w.RegisterActivity(ProcessReflectionActivity)
 			w.RegisterActivity(ProcessMemoryEmbeddingActivity)
 			w.RegisterActivity(PlatformControlActivity)
+			w.RegisterActivity(ProcessVisualIdentityActivity)
 		case MediaQueue:
 			w.RegisterWorkflow(MediaWorkflow)
 			w.RegisterActivity(ProcessMediaActivity)
@@ -741,7 +785,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		query += ` WHERE (status IS NULL OR status IN ('pending','retry')) AND (next_attempt_at IS NULL OR next_attempt_at <= now())`
 	}
 	args = append(args, limit)
-	query += fmt.Sprintf(` ORDER BY CASE WHEN intent_type LIKE 'schedule.%%' THEN 0 WHEN intent_type LIKE 'wake_up.%%' THEN 1 WHEN intent_type LIKE 'daily_review.%%' THEN 2 WHEN intent_type LIKE 'autonomy.%%' THEN 3 WHEN intent_type LIKE 'capability.%%' THEN 4 WHEN intent_type LIKE 'media.%%' THEN 5 WHEN intent_type LIKE 'reflection.%%' THEN 6 ELSE 7 END, created_at, intent_id LIMIT $%d`, len(args))
+	query += fmt.Sprintf(` ORDER BY CASE WHEN intent_type LIKE 'schedule.%%' THEN 0 WHEN intent_type LIKE 'visual_identity.%%' THEN 1 WHEN intent_type LIKE 'wake_up.%%' THEN 2 WHEN intent_type LIKE 'daily_review.%%' THEN 3 WHEN intent_type LIKE 'autonomy.%%' THEN 4 WHEN intent_type LIKE 'capability.%%' THEN 5 WHEN intent_type LIKE 'media.%%' THEN 6 WHEN intent_type LIKE 'reflection.%%' THEN 7 ELSE 8 END, created_at, intent_id LIMIT $%d`, len(args))
 	rows, err := d.App.DB.Pool().Query(ctx, query, args...)
 	if err != nil {
 		return 0, err
@@ -797,6 +841,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		// preserving deterministic replay for this intent after restarts.
 		goWorkflowID := normalizedWorkflowID(workflowID)
 		switch intentType {
+		case "visual_identity.initialize":
+			workflowFn = VisualIdentityWorkflow
+			taskQueue = LifecycleQueue
 		case "wake_up.current":
 			workflowFn = WakeUpWorkflow
 			taskQueue = LifecycleQueue

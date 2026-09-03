@@ -54,10 +54,13 @@ func alignMediaConceptWithContext(concept map[string]any, projection ContextProj
 		"context_revision": projection.ContextRevision,
 		"life_context":     cloneMap(projection.LifeContext),
 	}
+	if len(projection.VisualIdentity) > 0 {
+		binding["visual_identity"] = cloneMap(projection.VisualIdentity)
+	}
 	if innerState := cloneMap(projection.InnerState); len(innerState) > 0 {
 		binding["inner_state"] = innerState
 	}
-	if appearance := mapValue(projection.Identity["appearance"]); len(appearance) > 0 {
+	if appearance := visualIdentityAppearance(projection); len(appearance) > 0 {
 		binding["appearance"] = cloneMap(appearance)
 	}
 	result["context_binding"] = binding
@@ -96,6 +99,17 @@ func alignMediaConceptWithContext(concept map[string]any, projection ContextProj
 	return result, changed
 }
 
+func visualIdentityAppearance(projection ContextProjection) map[string]any {
+	if identity := mapValue(projection.VisualIdentity["identity_snapshot"]); len(identity) > 0 {
+		if profile := mapValue(identity["life_profile"]); len(profile) > 0 {
+			if appearance := mapValue(profile["appearance"]); len(appearance) > 0 {
+				return appearance
+			}
+		}
+	}
+	return mapValue(projection.Identity["appearance"])
+}
+
 func compatibleContextText(candidate, current string) bool {
 	candidate = strings.TrimSpace(candidate)
 	current = strings.TrimSpace(current)
@@ -132,7 +146,7 @@ func currentStateField(projection ContextProjection, field string) any {
 	if value := projection.InnerState[field]; value != nil {
 		return value
 	}
-	if appearance := mapValue(projection.Identity["appearance"]); appearance[field] != nil {
+	if appearance := visualIdentityAppearance(projection); appearance[field] != nil {
 		return appearance[field]
 	}
 	return nil
@@ -142,7 +156,7 @@ func bindMediaPromptContext(prompt string) string {
 	if !strings.Contains(prompt, "context_binding") {
 		return prompt
 	}
-	return "The JSON below contains an authoritative context_binding snapshot captured during cognition. Preserve its current scene, activity, location, mood, and concrete appearance. Do not replace a classroom or library with a bedroom unless context_override.explicit is true.\n\n" + prompt
+	return "The JSON below contains an authoritative context_binding snapshot captured during cognition. Preserve its current scene, activity, location, mood, concrete appearance, visual_identity, and renderer constraints (including the resolved chest LoRA weight). Do not replace a classroom or library with a bedroom unless context_override.explicit is true.\n\n" + prompt
 }
 
 func withContextAuthorityInstruction(messages []map[string]any) []map[string]any {

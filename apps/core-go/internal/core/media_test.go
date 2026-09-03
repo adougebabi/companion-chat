@@ -66,3 +66,15 @@ func TestAppendUniqueAssetRefIsIdempotent(t *testing.T) {
 		t.Fatalf("refs = %#v", refs)
 	}
 }
+
+func TestSelectComfyWorkflowUsesExplicitVisualIdentityStage(t *testing.T) {
+	fallback := map[string]any{"node": map[string]any{"text": "{{prompt}}"}}
+	seed := map[string]any{"seed_node": map[string]any{"text": "{{prompt}}"}}
+	config := map[string]any{"visual_identity_workflow": map[string]any{"seed": seed}}
+	if got := selectComfyWorkflow(config, `{"purpose":"visual_identity","stage":"seed"}`, fallback); len(got) != 1 || mapValue(got["seed_node"])["text"] != "{{prompt}}" {
+		t.Fatalf("seed workflow = %#v", got)
+	}
+	if got := selectComfyWorkflow(config, `{"purpose":"scene"}`, fallback); len(got) != 1 || got["node"] == nil {
+		t.Fatalf("legacy workflow fallback = %#v", got)
+	}
+}

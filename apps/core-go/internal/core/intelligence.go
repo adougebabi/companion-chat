@@ -57,6 +57,7 @@ type ContextProjection struct {
 	DriveSlots             []map[string]any `json:"drive_slots"`
 	PreferenceSlots        []map[string]any `json:"preference_slots"`
 	TriggerPreferences     []map[string]any `json:"trigger_preferences"`
+	VisualIdentity         map[string]any   `json:"visual_identity"`
 }
 
 func contextProjectionFromValue(value any) (ContextProjection, bool) {
@@ -152,6 +153,10 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if err != nil {
 		return ContextProjection{}, err
 	}
+	visualIdentity, err := a.readVisualIdentityDetail(ctx, fluctlightID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
 	recentMessages := make([]map[string]any, 0)
 	if conversationID != "" {
 		history, historyErr := a.DB.History(ctx, conversationID, actorID, nil, 12)
@@ -192,7 +197,7 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 		LifeContext: lifeContext, Memories: memories, Relationships: relationships,
 		Hypotheses:   hypotheses,
 		Capabilities: capabilityManifestMaps(a.capabilityRegistry().Manifests()),
-		DriveSlots:   driveSlots, PreferenceSlots: preferenceSlots, TriggerPreferences: triggerPreferences,
+		DriveSlots:   driveSlots, PreferenceSlots: preferenceSlots, TriggerPreferences: triggerPreferences, VisualIdentity: visualIdentity,
 	}
 	if presence, ok := lifeContext["presence"].(map[string]any); ok {
 		projection.Presence = presence

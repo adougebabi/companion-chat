@@ -61,7 +61,7 @@ func (p *ProviderClient) assignment(ctx context.Context, role string) (providerA
 
 func validProviderRole(role string) bool {
 	switch role {
-	case "initialization", "cognitive_assessment", "action_realization", "reflection", "embedding", "media_prompt":
+	case "initialization", "cognitive_assessment", "action_realization", "reflection", "embedding", "media_prompt", "visual_identity_vision", "visual_identity_patch":
 		return true
 	default:
 		return false
@@ -524,6 +524,10 @@ func providerSchemaForRole(role string) map[string]any {
 		return initializationResponseSchema()
 	case "reflection":
 		return reflectionResponseSchema()
+	case "visual_identity_vision":
+		return visualIdentityVisionResponseSchema()
+	case "visual_identity_patch":
+		return visualIdentityPatchResponseSchema()
 	default:
 		return objectSchema(map[string]any{"result": openObjectSchema()}, nil, true)
 	}

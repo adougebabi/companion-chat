@@ -64,6 +64,10 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
+	detail["visual_identity"], err = a.readVisualIdentityDetail(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
 	goals, intentions, err := a.readAgency(ctx, fluctlightID)
 	if err != nil {
 		return nil, err

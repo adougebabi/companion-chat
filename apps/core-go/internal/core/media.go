@@ -53,6 +53,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 	if err != nil {
 		return err
 	}
+	workflow = selectComfyWorkflow(config, intent.Prompt, workflow)
 	prompt := intent.Prompt
 	providerJobID := intent.ProviderJobID
 	if providerJobID == "" {
@@ -240,6 +241,34 @@ func comfyConfig(value map[string]any) (string, map[string]any, error) {
 		return "", nil, errors.New("media.comfyui workflow is missing")
 	}
 	return strings.TrimRight(base, "/"), workflow, nil
+}
+
+// selectComfyWorkflow chooses an explicitly named workflow variant from the
+// persisted media settings. Visual Identity concepts carry their purpose/stage
+// as structured JSON, so this switch never parses natural-language prompts or
+// guesses a renderer from wording. The existing workflow remains the fallback
+// for legacy Scene Image jobs.
+func selectComfyWorkflow(config map[string]any, prompt string, fallback map[string]any) map[string]any {
+	var concept map[string]any
+	if json.Unmarshal([]byte(prompt), &concept) != nil {
+		return fallback
+	}
+	if stringValue(concept["purpose"]) != "visual_identity" {
+		return fallback
+	}
+	stage := stringValue(concept["stage"])
+	for _, key := range []string{"visual_identity_workflow", "visual_identity_workflows"} {
+		variants := mapValue(config[key])
+		if stage != "" {
+			if selected := mapValue(variants[stage]); len(selected) > 0 {
+				return selected
+			}
+		}
+		if len(variants) > 0 && key == "visual_identity_workflow" {
+			return variants
+		}
+	}
+	return fallback
 }
 
 func replacePrompt(value map[string]any, prompt string) map[string]any {

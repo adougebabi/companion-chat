@@ -15,7 +15,7 @@ const props = defineProps<{ section?: DiagnosticsSection | null }>();
 const emit = defineEmits<{ navigateSection: [section: DiagnosticsSection | null] }>();
 const controlCenter = useControlCenterStore();
 const currentSection = computed(() => props.section ?? null);
-const roleLabels: Record<string, string> = { initialization: "初始化", cognitive_assessment: "认知判断", action_realization: "回复生成", reflection: "反思", embedding: "Embedding", media_prompt: "媒体提示词" };
+const roleLabels: Record<string, string> = { initialization: "初始化", cognitive_assessment: "认知判断", action_realization: "回复生成", reflection: "反思", embedding: "Embedding", media_prompt: "媒体提示词", visual_identity_vision: "视觉身份·视觉理解", visual_identity_patch: "视觉身份·身份补丁" };
 function roleLabel(role: string) { return roleLabels[role] ?? role; }
 function pretty(value: unknown) { return JSON.stringify(value, null, 2); }
 function formatRunTime(value: string): string {

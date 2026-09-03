@@ -130,6 +130,60 @@ activeMessages = activeMessages.filter(message => message !== typingEntry);
 
     const status = persona.currentSituation;
 
+## Scenario: Visual Identity Timeline Projection
+
+### 1. Scope / Trigger
+
+- Trigger: Fluctlight detail includes the server-owned `visual_identity` snapshot and its image-generation timeline.
+
+### 2. Signatures
+
+- Detail field: `visual_identity = {status, current_revision, renderer_constraints, canonical_asset_id?, character_sheet_asset_id?, timeline[]}`.
+- Timeline event: `{stage, status, summary, asset_ids, metadata, occurred_at}`; images load only through `/api/media/:assetId`.
+
+### 3. Contracts
+
+- The server is authoritative for stage order, attempt status, `accepted`/`regenerate`, and identity-match decisions. Vue never judges image content or parses prompts.
+- The detail dialog may refresh the projection while a visual identity session is non-terminal; once `status=active`, polling stops.
+- Candidate images remain visible beside later attempts. Stable image boxes use `overflow-anchor: none` so late media cannot move the reader.
+- Transport retry is distinct from Visual Identity regeneration; no client retry reuses a completed turn to create a new attempt.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Missing `visual_identity` | Render a quiet “尚未创建” state; do not infer defaults. |
+| Queued/running timeline | Show stage/status and refresh boundedly while dialog is open. |
+| Asset not ready or proxy fails | Keep stage and show the image error state; never call ComfyUI directly. |
+| `media` stream event contains `message` or `messages` | Merge by message ID/sequence without replacing newer ready projections with queued placeholders. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: `image_ready → vision_ready → patch_ready → regenerate` remains visible with both candidate images and a later canonical/character-sheet card.
+- Base: an old detail payload has no visual identity field; the dialog still renders the rest of the persona detail.
+- Bad: deciding “不是自己” from alt text/file name, deleting rejected attempts, or fetching an internal provider URL.
+
+### 6. Tests Required
+
+- Assert the dialog renders status, stage, attempt timeline, canonical and character-sheet images with safe alt text.
+- Assert bounded refresh stops at active and does not overwrite user-composed chat state.
+- Assert `media` events merge one or multiple messages and late image loading preserves layout anchors.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+if (message.text.includes("不是自己")) startRegeneration();
+```
+
+#### Correct
+
+```ts
+// Render the server projection; only the backend patch decision advances an attempt.
+renderVisualIdentityTimeline(detail.visual_identity);
+```
+
 ## Scenario: Settings Section Switching And Payload Normalization
 
 ### 1. Scope / Trigger

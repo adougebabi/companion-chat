@@ -37,6 +37,7 @@ boundaries described below.
 | [Fluctlight Diagnostics Contract](./fluctlight-diagnostics-contract.md) | Built-in logs/prompts/model runs, correlation, typed redaction, retention, live query/export, and isolated failure |
 | [Logging Guidelines](./logging-guidelines.md) | Operational and debug output |
 | [Persona Analysis And Media Jobs](./persona-analysis-and-media-jobs.md) | MTPLX persona extraction, ready interview sessions, and deterministic media follow-up compensation |
+| [Visual Identity Contract](./visual-identity-contract.md) | Durable visual self-creation, vision/patch regeneration loop, canonical assets, and renderer constraints |
 
 ## Pre-Development Checklist
 

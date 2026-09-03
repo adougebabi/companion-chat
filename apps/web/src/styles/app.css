@@ -229,6 +229,19 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
 .detail-timeline li.active { border-radius: 10px; background: var(--accent-soft); }
 .detail-timeline li.active::before { width: 11px; height: 11px; background: var(--success); box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--success); }
 .detail-timeline li.active time { color: var(--accent-strong); font-weight: 800; }
+.visual-identity-block { overflow: hidden; }
+.visual-identity-status { flex-wrap: wrap; gap: 8px; }
+.visual-identity-timeline { position: relative; gap: 0; margin-top: 12px; padding-left: 10px; border-left: 1px solid var(--surface-border-strong); }
+.visual-identity-timeline li { position: relative; grid-template-columns: minmax(132px, auto) minmax(0, 1fr); padding: 12px 0 12px 14px; border-bottom: 0; }
+.visual-identity-timeline li::before { position: absolute; top: 17px; left: -15px; width: 9px; height: 9px; border: 2px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); content: ""; }
+.visual-identity-timeline li.active { border-radius: 10px; background: var(--accent-soft); }
+.visual-identity-timeline li.active::before { width: 11px; height: 11px; background: var(--success); box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--success); }
+.visual-identity-event-content { min-width: 0; }
+.visual-identity-event-content strong { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.visual-identity-event-content .timeline-now-badge { display: inline-flex; width: fit-content; border-radius: 999px; padding: 2px 7px; background: var(--surface-2); color: var(--muted-ink); font-size: .68rem; font-weight: 700; }
+.visual-identity-assets, .visual-identity-canonical { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; overflow-anchor: none; }
+.visual-identity-assets img, .visual-identity-canonical img { display: block; width: 112px; height: 112px; object-fit: cover; border: 1px solid var(--surface-border); border-radius: 10px; background: var(--surface-2); }
+.visual-identity-canonical > div { display: grid; gap: 5px; color: var(--muted-ink); font-size: .76rem; }
 .timeline-now-badge { display: inline-flex; margin-left: 7px; padding: 2px 6px; border-radius: 999px; background: #d8f2e4; color: #277b4c; font-size: .66rem; font-weight: 750; vertical-align: middle; }
 .inline-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .inline-controls input { width: 160px; min-height: 38px; }

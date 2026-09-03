@@ -537,6 +537,9 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if err := a.insertDirectConversation(ctx, tx, actorID, id); err != nil {
 			return err
 		}
+		if _, err := a.ensureVisualIdentityInitializationTx(ctx, tx, id, "initialization", "foundation:"+id, corePersona); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'lifecycle','schedule.current_day',$3) ON CONFLICT DO NOTHING`, "schedule_intent:"+id, "schedule:"+id, jsonBytes(map[string]any{"fluctlight_id": id})); err != nil {
 			return err
 		}
