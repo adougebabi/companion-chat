@@ -140,15 +140,15 @@ func chestCupCandidate(appearance map[string]any) string {
 			return value
 		}
 	}
-	// `bust` is accepted only when it is already an explicit cup label. Text
-	// such as “平胸” is a free-form appearance description, not a cup value.
-	bust := strings.ToUpper(strings.TrimSpace(stringValue(appearance["bust"])))
-	if bust == "" {
-		return ""
-	}
-	upper := strings.TrimSpace(strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(bust, "罩杯"), "杯"), " CUP"))
-	if upper == "A" || upper == "B" || upper == "C" || upper == "D" {
-		return upper
+	// Free-form fields such as bust/body_type/build are accepted only when they
+	// already contain an explicit cup label. Values like “平胸” or “slim” are
+	// ordinary body descriptions and must not be guessed into a LoRA weight.
+	for _, key := range []string{"bust", "body_type", "build"} {
+		candidate := strings.ToUpper(strings.TrimSpace(stringValue(appearance[key])))
+		candidate = strings.TrimSpace(strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(candidate, "罩杯"), "杯"), " CUP"))
+		if candidate == "A" || candidate == "B" || candidate == "C" || candidate == "D" {
+			return candidate
+		}
 	}
 	return ""
 }
@@ -186,6 +186,19 @@ func rendererConstraintsForCorePersona(corePersona map[string]any) (map[string]a
 				constraints["chest_lora_weight"] = weight
 				constraints["adapter_version"] = version
 			}
+		}
+		if value := chestCupCandidate(identity); value != "" {
+			cup, normalizeErr := NormalizeChestCup(value)
+			if normalizeErr != nil {
+				return nil, normalizeErr
+			}
+			weight, version, weightErr := chestCupToLoRAWeight(cup)
+			if weightErr != nil {
+				return nil, weightErr
+			}
+			constraints["chest_cup"] = cup
+			constraints["chest_lora_weight"] = weight
+			constraints["adapter_version"] = version
 		}
 	}
 	return constraints, nil
