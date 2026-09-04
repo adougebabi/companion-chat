@@ -12,7 +12,7 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 		max   int
 		must  []string
 	}{
-		{name: "language", value: providerLanguageRule, max: 240, must: []string{"所有自然语言值使用中文", "协议 key", "工具名", "时间戳", "YAML"}},
+		{name: "language", value: providerLanguageRule, max: 100, must: []string{"自然语言内容使用中文", "协议字面量保持原文"}},
 		{name: "context", value: providerContextAuthorityRule, max: 420, must: []string{"core_persona", "developing_self", "current_state", "context_override.explicit=true"}},
 		{name: "wake-up", value: wakeUpAssessmentInstruction, max: 600, must: []string{"attention", "thought", "desire", "agency", "action_type", "media.image.generate", "capability.request", "no_op", "visible text"}},
 		{name: "conversation", value: conversationAssessmentInstruction, max: 650, must: []string{"response_plan", "claims", "appraisal", "state_expression", "media_request"}},
@@ -32,5 +32,10 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 				}
 			}
 		})
+	}
+	for _, forbidden := range []string{"media_prompt", "YAML", "TOON", "JSON key"} {
+		if strings.Contains(providerLanguageRule, forbidden) {
+			t.Fatalf("transport-only instruction %q leaked into language rule: %s", forbidden, providerLanguageRule)
+		}
 	}
 }
