@@ -62,7 +62,7 @@ func TestCompactCognitionContextKeepsOnlyCanonicalLayersAndNonEmptyEvidence(t *t
 			t.Fatalf("compact context contains duplicate/empty field %q: %#v", key, compact)
 		}
 	}
-	for _, key := range []string{"schema_version", "current_user_text", "core_persona", "developing_self", "current_state"} {
+	for _, key := range []string{"current_user_text", "core_persona", "developing_self", "current_state"} {
 		if _, ok := compact[key]; !ok {
 			t.Fatalf("compact context is missing canonical field %q: %#v", key, compact)
 		}
@@ -73,6 +73,9 @@ func TestCompactCognitionContextKeepsOnlyCanonicalLayersAndNonEmptyEvidence(t *t
 		}
 	}
 	state := mapValue(compact["current_state"])
+	if mapValue(compact["core_persona"])["authority"] != "hard_constraint" || state["authority"] != "transient_state" {
+		t.Fatalf("semantic authority labels were removed: %#v", compact)
+	}
 	if _, ok := mapValue(state["data"])["inner_state"]; !ok {
 		t.Fatalf("current state lost inner_state: %#v", state)
 	}
@@ -98,29 +101,38 @@ func TestCompactCognitionContextKeepsOnlyCanonicalLayersAndNonEmptyEvidence(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
+	if strings.Contains(string(encoded), "schema_version") {
+		t.Fatal("schema_version leaked into provider context")
+	}
+	if !strings.Contains(string(encoded), "hard_constraint") {
+		t.Fatal("semantic authority label was lost")
+	}
 	if strings.Contains(string(encoded), "memory_event") {
 		t.Fatal("native capability manifest leaked into compact user context")
 	}
 }
 
-func TestCompactCognitionContextRetainsNonEmptyEvidenceCollections(t *testing.T) {
+func TestCompactCognitionContextRetainsNonEmptySemanticCollections(t *testing.T) {
 	projection := ContextProjection{
 		SchemaVersion:      "fluctlight.context.v2",
 		CorePersona:        map[string]any{"authority": "hard_constraint"},
 		CurrentState:       map[string]any{"authority": "transient_state", "data": map[string]any{}},
-		RecentMessages:     []map[string]any{{"id": "message-1", "text": "hello"}},
+		RecentMessages:     []map[string]any{{"id": "message-1", "kind": "user", "text": "hello", "created_at": "2026-09-03T00:00:00Z"}},
 		Memories:           []map[string]any{{"id": "memory-1", "content": "fact"}},
-		Relationships:      []map[string]any{{"actor_id": "actor-1", "status": "active"}},
+		Relationships:      []map[string]any{{"actor_id": "actor-1", "status": "active", "summary": "协作"}},
 		Hypotheses:         []map[string]any{{"content": "hypothesis"}},
 		DriveSlots:         []map[string]any{{"key": "focus"}},
 		PreferenceSlots:    []map[string]any{{"key": "quiet"}},
 		TriggerPreferences: []map[string]any{{"key": "morning"}},
 	}
 	compact := compactCognitionContext(projection)
-	for _, key := range []string{"recent_messages", "memories", "relationships", "hypotheses", "drive_slots", "preference_slots", "trigger_preferences"} {
+	for _, key := range []string{"memories", "relationships", "hypotheses", "drive_slots", "preference_slots", "trigger_preferences"} {
 		if len(arrayValue(compact[key])) != 1 {
 			t.Fatalf("non-empty collection %q was not retained: %#v", key, compact)
 		}
+	}
+	if !strings.Contains(stringValue(compact["recent_messages"]), "[09-03 00:00:00] user: hello") {
+		t.Fatalf("compact recent messages = %#v", compact["recent_messages"])
 	}
 }
 
@@ -145,13 +157,8 @@ func TestCompactCognitionContextRemovesDatabaseMetadataFromEvidence(t *testing.T
 			"status": "uncertain", "revision": 4, "updated_at": "2026-09-03T00:00:00Z", "fluctlight_id": "fl-db-id",
 		}},
 	})
-	message := mapValue(arrayValue(compact["recent_messages"])[0])
-	for _, key := range []string{"id", "author_actor_id", "attachment_refs", "source"} {
-		if _, ok := message[key]; ok {
-			t.Fatalf("message database field leaked: %q: %#v", key, message)
-		}
-	}
-	if message["kind"] != "user" || message["sequence"] != 3 || message["text"] != "hello" {
+	message := stringValue(compact["recent_messages"])
+	if !strings.Contains(message, "[09-03 00:00:00] user: hello") {
 		t.Fatalf("message semantics changed: %#v", message)
 	}
 	memory := mapValue(arrayValue(compact["memories"])[0])
@@ -160,7 +167,7 @@ func TestCompactCognitionContextRemovesDatabaseMetadataFromEvidence(t *testing.T
 			t.Fatalf("memory database field leaked: %q: %#v", key, memory)
 		}
 	}
-	for _, key := range []string{"type", "content", "confidence", "importance", "emotional_significance", "created_at", "evidence_refs"} {
+	for _, key := range []string{"type", "content", "confidence", "importance", "emotional_significance"} {
 		if _, ok := memory[key]; !ok {
 			t.Fatalf("memory semantic field missing: %q: %#v", key, memory)
 		}
@@ -183,7 +190,7 @@ func TestCompactCognitionContextRebuildsMissingCorePersonaEnvelope(t *testing.T)
 	})
 	core := mapValue(compact["core_persona"])
 	if core["authority"] != "hard_constraint" {
-		t.Fatalf("core persona authority = %#v", core["authority"])
+		t.Fatalf("core persona authority was removed: %#v", core["authority"])
 	}
 	data := mapValue(core["data"])
 	for _, key := range []string{"identity", "personality", "behavioral_policy"} {
@@ -195,5 +202,11 @@ func TestCompactCognitionContextRebuildsMissingCorePersonaEnvelope(t *testing.T)
 		if _, ok := compact[key]; ok {
 			t.Fatalf("reconstructed field was duplicated at top level: %q", key)
 		}
+	}
+}
+
+func TestCompactMessageTimeKeepsDateAndSecondsWithoutSequence(t *testing.T) {
+	if got := compactMessageTime("2026-09-03T05:27:14.105684Z"); got != "09-03 05:27:14" {
+		t.Fatalf("compact message time = %q", got)
 	}
 }

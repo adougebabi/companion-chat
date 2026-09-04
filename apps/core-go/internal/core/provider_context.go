@@ -1,5 +1,13 @@
 package core
 
+import (
+	"regexp"
+	"strings"
+	"time"
+)
+
+var providerHashPattern = regexp.MustCompile(`\b(?:message|memory|inbox|wake_fact|fluctlight|conversation|claim|event|fact|turn|provider|assessment|decision)_[A-Za-z0-9]{16,64}\b`)
+
 // compactCognitionContext is the Provider-facing projection of a full
 // ContextProjection. The full projection remains the durable/replayable
 // internal value; this DTO keeps only the semantic three-layer context and
@@ -46,7 +54,7 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	if len(projection.Presence) > 0 {
 		result["presence"] = projection.Presence
 	}
-	return result
+	return stripProviderMetadata(result).(map[string]any)
 }
 
 func compactCorePersona(projection ContextProjection) map[string]any {
@@ -112,23 +120,40 @@ func compactCurrentState(projection ContextProjection) map[string]any {
 	return result
 }
 
-func compactRecentMessages(messages []map[string]any) []map[string]any {
-	result := make([]map[string]any, 0, len(messages))
+func compactRecentMessages(messages []map[string]any) string {
+	var result strings.Builder
 	for _, message := range messages {
-		compact := make(map[string]any, 4)
-		for _, key := range []string{"sequence", "kind", "text", "created_at"} {
-			if value, ok := message[key]; ok && value != nil && value != "" {
-				compact[key] = value
-			}
+		kind := stringValue(message["kind"])
+		text := strings.TrimSpace(stringValue(message["text"]))
+		if kind == "" && text == "" {
+			continue
 		}
-		if refs := arrayValue(message["attachment_refs"]); len(refs) > 0 {
-			compact["has_attachments"] = true
+		if kind == "" {
+			kind = "message"
 		}
-		if len(compact) > 0 {
-			result = append(result, compact)
-		}
+		stamp := compactMessageTime(stringValue(message["created_at"]))
+		result.WriteString("[")
+		result.WriteString(stamp)
+		result.WriteString("] ")
+		result.WriteString(kind)
+		result.WriteString(": ")
+		result.WriteString(text)
+		result.WriteByte('\n')
 	}
-	return result
+	return strings.TrimRight(result.String(), "\n")
+}
+
+func compactMessageTime(value string) string {
+	if parsed, err := time.Parse(time.RFC3339Nano, value); err == nil {
+		return parsed.UTC().Format("01-02 15:04:05")
+	}
+	if len(value) >= 8 && value[2] == '-' && value[5] == ' ' {
+		return value[:8]
+	}
+	if len(value) >= 8 && value[2] == ':' {
+		return value[:8]
+	}
+	return "--:--"
 }
 
 func compactDevelopingSelf(claims []map[string]any) []map[string]any {
@@ -218,4 +243,59 @@ func compactLifeContext(context map[string]any) map[string]any {
 		}
 	}
 	return result
+}
+
+// stripProviderMetadata removes persistence/coordination fields from the
+// provider-facing projection without touching the authoritative Core value.
+// IDs and evidence hashes are useful for replay and writes, but they add no
+// semantic signal for the model and make prompts much harder to read.
+func stripProviderMetadata(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		result := make(map[string]any, len(typed))
+		for key, child := range typed {
+			if providerMetadataKey(key) {
+				continue
+			}
+			result[key] = stripProviderMetadata(child)
+		}
+		return result
+	case []map[string]any:
+		result := make([]map[string]any, 0, len(typed))
+		for _, item := range typed {
+			cleaned := stripProviderMetadata(item).(map[string]any)
+			if len(cleaned) > 0 {
+				result = append(result, cleaned)
+			}
+		}
+		return result
+	case []any:
+		result := make([]any, 0, len(typed))
+		for _, child := range typed {
+			cleaned := stripProviderMetadata(child)
+			if object, ok := cleaned.(map[string]any); ok && len(object) == 0 {
+				continue
+			}
+			result = append(result, cleaned)
+		}
+		return result
+	default:
+		if text, ok := value.(string); ok {
+			return strings.TrimSpace(providerHashPattern.ReplaceAllString(text, ""))
+		}
+		return value
+	}
+}
+
+func providerMetadataKey(key string) bool {
+	normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
+	if normalized == "id" || strings.HasSuffix(normalized, "id") {
+		return true
+	}
+	switch normalized {
+	case "provenance", "status", "schema", "schemaversion", "evidencerefs", "source", "sequence", "revision", "createdat", "updatedat", "lastupdatedat", "occurredat", "expiresat", "checkedat", "generatedat", "instant", "conversation", "conversationref", "fluctlight", "fluctlightid", "sourcefact":
+		return true
+	default:
+		return false
+	}
 }
