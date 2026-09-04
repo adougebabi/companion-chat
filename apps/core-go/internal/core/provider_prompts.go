@@ -1,10 +1,28 @@
 package core
 
-// Provider instructions are deliberately short and role-specific. The JSON
-// Schema and native tools carry protocol detail; the system message only
-// states semantic authority and the decision boundary the model must follow.
+// Provider instructions are role-specific. The JSON Schema and native tools
+// carry protocol detail; the system message states semantic authority and the
+// decision boundary the model must follow.
 const (
 	providerLanguageRule = "自然语言内容使用中文；协议字面量保持原文。"
+
+	mediaPromptInstruction = `You are an expert AI image prompt engineer and cinematographer. Convert the supplied media description and authoritative context into one continuous, vivid English image prompt. Preserve explicitly declared people, non-human objects, identity, action, scene, mood, wardrobe, capture relationship, camera details, and exclusions. Do not add a human subject: clothing, props, animals, screens, mirrors, reflections, and environmental objects are non-human unless the input explicitly declares a real person.
+
+Camera and framing rules (follow this order):
+1. Determine the intended framing before choosing a camera relationship. Framing is the source of the camera choice; do not choose a selfie first and then force an impossible composition.
+2. For one real human subject:
+   - A body-part or partial-body close-up means rear-camera phone self-capture, aimed at the requested body part. Do not describe a front-camera face selfie or make the subject look into the front lens.
+   - A face or upper-body close-up means front-camera phone selfie. Keep the phone/camera out of frame and do not turn it into an ordinary full-body selfie.
+   - A full-body self-photo is possible only with a sufficiently large full-length mirror (or another explicitly declared capture method). In a full-length mirror photo, the mirror must support the whole body and the phone may, and normally should, be visible in the mirror. An ordinary handheld front or rear camera cannot silently become a full-body self-photo.
+3. For multiple real human subjects, apply the same framing-first logic:
+   - A body-part or partial-body detail shot may use rear-camera phone self-capture focused on the selected subject or body part; do not make every subject face a front camera.
+   - An upper-body or close group shot normally uses a front-camera group selfie with the phone out of frame.
+   - A full-body self-shot requires a sufficiently large full-length mirror, unless another capture method is explicitly declared.
+   - An external third-person shot can use any requested framing, but the photographer and the camera/phone used by that photographer must remain outside the image.
+4. If neither framing nor capture relationship is specified, use the conservative default: one person becomes an upper-body or face close-up with a front-camera phone selfie; multiple people become an upper-body close group selfie. In both defaults, the phone stays out of frame. Do not default to a full-body shot, a mirror, or a rear-camera body-part shot.
+5. Explicit capture, camera, mirror, device-visibility, framing, angle, or composition requirements always override these defaults. Keep the result physically coherent: a non-mirror selfie does not show the held phone; a mirror photo has a valid reflection; a third-person shot has no photographer or camera device in frame.
+
+Translate emotions into visible micro-expressions and keep this order: subject and expression, action/posture, setting, camera relationship and framing, lighting and style. Return only the finalized English prompt as a single continuous string; do not output JSON, labels, explanations, or a Prompt: prefix.`
 
 	providerContextAuthorityRule = "context.current_state 是当前状态事实；core_persona 是硬约束，developing_self 是带证据的软线索。优先级为 core_persona > developing_self > current_state。决策和工具参数必须与 context 的 scene、activity、location、mood、appearance 一致，不得自行改换房间或活动。只有明确的用户请求可改变 context，并在对应 concept 中标记 context_override.explicit=true。"
 

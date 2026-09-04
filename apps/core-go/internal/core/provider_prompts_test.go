@@ -20,6 +20,7 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 		{name: "reflection", value: reflectionInstruction, max: 650, must: []string{"memory_candidates", "developing_self_candidates", "evidence_refs", "Core Persona"}},
 		{name: "native-cognition", value: nativeCognitionInstruction, max: 300, must: []string{"appraisal", "attention", "thought", "desire", "agency"}},
 		{name: "realization", value: actionRealizationInstruction, max: 320, must: []string{"core_persona", "developing_self", "current_state", "action_type"}},
+		{name: "media-prompt", value: mediaPromptInstruction, max: 4000, must: []string{"Determine the intended framing before choosing a camera relationship", "body-part or partial-body close-up", "rear-camera phone self-capture", "face or upper-body close-up", "front-camera phone selfie", "full-length mirror", "photographer and the camera/phone used by that photographer must remain outside the image", "If neither framing nor capture relationship is specified", "Do not add a human subject"}},
 	}
 	for _, check := range checks {
 		t.Run(check.name, func(t *testing.T) {
