@@ -204,6 +204,7 @@ onMounted(() => void load());
             <form class="stack-form" @submit.prevent="saveMedia">
               <label for="comfy-url">ComfyUI URL<Input id="comfy-url" v-model="comfyUiUrl" type="url" placeholder="http://comfyui:8188" /></label>
               <label for="comfy-workflow">图片工作流<Textarea id="comfy-workflow" v-model="comfyUiWorkflow" rows="7" spellcheck="false" placeholder='{"node":{"inputs":{"text":"{{prompt}}"}}}' /></label>
+              <p class="field-note">图生图的 LoadImage 节点请在 <code>image</code> 字段使用 &#123;&#123;visual_identity_reference_image&#125;&#125;；Core 会先把 canonical reference / character sheet 上传到 ComfyUI，再替换为实际文件名。</p>
               <label for="visual-identity-workflow">Visual Identity 工作流（可选）<Textarea id="visual-identity-workflow" v-model="visualIdentityWorkflow" rows="7" spellcheck="false" placeholder='{"seed":{"node":{"inputs":{"text":"{{prompt}}"}}},"character_sheet":{"node":{"inputs":{"text":"{{prompt}}"}}}}' /></label>
               <Button class="primary-button" type="submit" :disabled="controlCenter.saving">保存媒体设置</Button>
             </form>

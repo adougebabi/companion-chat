@@ -96,6 +96,37 @@ func TestReplaceMediaPlaceholdersKeepsPromptAndNumericLoRAType(t *testing.T) {
 	}
 }
 
+func TestVisualIdentityReferenceImagePlaceholderUsesUploadedFilename(t *testing.T) {
+	workflow := map[string]any{
+		"load_image": map[string]any{"inputs": map[string]any{"image": "{{visual_identity_reference_image}}"}},
+	}
+	replaced, err := replaceMediaPlaceholdersWithReference(workflow, "portrait", nil, "visual_identity_reference_asset.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	inputs := mapValue(mapValue(replaced["load_image"])["inputs"])
+	if inputs["image"] != "visual_identity_reference_asset.png" {
+		t.Fatalf("reference image placeholder = %#v", inputs["image"])
+	}
+	if _, err := replaceMediaPlaceholders(workflow, "portrait", nil); err == nil {
+		t.Fatal("missing reference filename should fail")
+	}
+}
+
+func TestVisualIdentityReferenceAssetPrefersCharacterSheet(t *testing.T) {
+	concept := map[string]any{
+		"context_binding": map[string]any{
+			"visual_identity": map[string]any{
+				"character_sheet_asset_id": "asset_character_sheet",
+				"canonical_asset_id":       "asset_canonical",
+			},
+		},
+	}
+	if got := visualIdentityReferenceAssetID(concept); got != "asset_character_sheet" {
+		t.Fatalf("reference asset = %q", got)
+	}
+}
+
 func TestMergeVisualIdentityRendererConstraintsUpdatesOnlyExplicitConcepts(t *testing.T) {
 	prompt, err := mergeVisualIdentityRendererConstraints(`{"purpose":"visual_identity","stage":"seed","renderer_constraints":{"schema_version":"old"}}`, map[string]any{"chest_cup": "A", "chest_lora_weight": -5.0})
 	if err != nil || !strings.Contains(prompt, `"chest_cup":"A"`) || !strings.Contains(prompt, `"chest_lora_weight":-5`) {

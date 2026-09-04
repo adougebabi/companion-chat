@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -104,7 +105,27 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 		if json.Unmarshal([]byte(intent.Prompt), &concept) == nil {
 			constraints = mapValue(concept["renderer_constraints"])
 		}
-		workflow, err = replaceMediaPlaceholders(workflow, prompt, constraints)
+		referenceImageFilename := ""
+		if mediaWorkflowNeedsVisualIdentityReference(workflow) {
+			referenceAssetID := visualIdentityReferenceAssetID(concept)
+			if referenceAssetID == "" {
+				return nil, errors.New("visual_identity_reference_image_missing")
+			}
+			mimeType, content, contentErr := a.readMediaAssetContent(ctx, intent.Owner, referenceAssetID)
+			if contentErr != nil {
+				return nil, contentErr
+			}
+			referenceImageFilename, err = a.uploadComfyReferenceImage(ctx, baseURL, referenceAssetID, mimeType, content)
+			if err != nil {
+				return nil, err
+			}
+			a.recordDiagnosticEvent(ctx, "media.comfyui.reference_uploaded", "info", intent.Owner, intent.ProviderRequestID, "media:"+intent.ID, map[string]any{
+				"media_intent_id": intent.ID,
+				"asset_id":        referenceAssetID,
+				"filename":        referenceImageFilename,
+			})
+		}
+		workflow, err = replaceMediaPlaceholdersWithReference(workflow, prompt, constraints, referenceImageFilename)
 		if err != nil {
 			return nil, err
 		}
@@ -373,9 +394,13 @@ func replacePrompt(value map[string]any, prompt string) map[string]any {
 }
 
 func replaceMediaPlaceholders(value map[string]any, prompt string, constraints map[string]any) (map[string]any, error) {
+	return replaceMediaPlaceholdersWithReference(value, prompt, constraints, "")
+}
+
+func replaceMediaPlaceholdersWithReference(value map[string]any, prompt string, constraints map[string]any, referenceImageFilename string) (map[string]any, error) {
 	result := make(map[string]any, len(value))
 	for key, child := range value {
-		replaced, err := replaceMediaPlaceholderValue(child, prompt, constraints)
+		replaced, err := replaceMediaPlaceholderValue(child, prompt, constraints, referenceImageFilename)
 		if err != nil {
 			return nil, err
 		}
@@ -384,11 +409,17 @@ func replaceMediaPlaceholders(value map[string]any, prompt string, constraints m
 	return result, nil
 }
 
-func replaceMediaPlaceholderValue(value any, prompt string, constraints map[string]any) (any, error) {
+func replaceMediaPlaceholderValue(value any, prompt string, constraints map[string]any, referenceImageFilename string) (any, error) {
 	switch typed := value.(type) {
 	case string:
 		if typed == "{{prompt}}" {
 			return prompt, nil
+		}
+		if typed == "{{visual_identity_reference_image}}" {
+			if referenceImageFilename == "" {
+				return nil, errors.New("visual_identity_reference_image_missing")
+			}
+			return referenceImageFilename, nil
 		}
 		if typed == "{{chest_lora_weight}}" || typed == "{{renderer_constraints.chest_lora_weight}}" {
 			weight, ok := rendererConstraintWeight(constraints)
@@ -406,11 +437,11 @@ func replaceMediaPlaceholderValue(value any, prompt string, constraints map[stri
 		}
 		return typed, nil
 	case map[string]any:
-		return replaceMediaPlaceholders(typed, prompt, constraints)
+		return replaceMediaPlaceholdersWithReference(typed, prompt, constraints, referenceImageFilename)
 	case []any:
 		items := make([]any, len(typed))
 		for index, item := range typed {
-			replaced, err := replaceMediaPlaceholderValue(item, prompt, constraints)
+			replaced, err := replaceMediaPlaceholderValue(item, prompt, constraints, referenceImageFilename)
 			if err != nil {
 				return nil, err
 			}
@@ -420,6 +451,148 @@ func replaceMediaPlaceholderValue(value any, prompt string, constraints map[stri
 	default:
 		return value, nil
 	}
+}
+
+func mediaWorkflowNeedsVisualIdentityReference(value any) bool {
+	switch typed := value.(type) {
+	case string:
+		return typed == "{{visual_identity_reference_image}}"
+	case map[string]any:
+		for _, child := range typed {
+			if mediaWorkflowNeedsVisualIdentityReference(child) {
+				return true
+			}
+		}
+	case []any:
+		for _, child := range typed {
+			if mediaWorkflowNeedsVisualIdentityReference(child) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func visualIdentityReferenceAssetID(concept map[string]any) string {
+	for _, key := range []string{"visual_identity_reference_asset_id", "reference_asset_id", "input_image_asset_id"} {
+		if value := stringValue(concept[key]); value != "" {
+			return value
+		}
+	}
+	for _, value := range []any{concept["context_binding"], concept["visual_identity"]} {
+		visualIdentity := mapValue(mapValue(value)["visual_identity"])
+		if len(visualIdentity) == 0 {
+			visualIdentity = mapValue(value)
+		}
+		for _, key := range []string{"character_sheet_asset_id", "canonical_asset_id"} {
+			if assetID := stringValue(visualIdentity[key]); assetID != "" {
+				return assetID
+			}
+		}
+	}
+	for _, key := range []string{"character_sheet_asset_id", "canonical_asset_id"} {
+		if assetID := stringValue(concept[key]); assetID != "" {
+			return assetID
+		}
+	}
+	return ""
+}
+
+func (a *App) readMediaAssetContent(ctx context.Context, owner, assetID string) (string, []byte, error) {
+	if a.Storage == nil || strings.TrimSpace(assetID) == "" {
+		return "", nil, errors.New("visual_identity_reference_storage_unavailable")
+	}
+	var bucket, objectKey, mimeType string
+	query := `SELECT bucket,object_key,mime_type FROM public.media_assets WHERE id=$1 AND status='ready'`
+	args := []any{assetID}
+	if strings.TrimSpace(owner) != "" {
+		query = `SELECT bucket,object_key,mime_type FROM public.media_assets WHERE id=$1 AND owner_fluctlight_id=$2 AND status='ready'`
+		args = append(args, owner)
+	}
+	if err := a.DB.Pool().QueryRow(ctx, query, args...).Scan(&bucket, &objectKey, &mimeType); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil, ErrNotFound
+		}
+		return "", nil, err
+	}
+	object, err := a.Storage.GetObject(ctx, bucket, objectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return "", nil, err
+	}
+	defer object.Close()
+	content, err := io.ReadAll(io.LimitReader(object, 32<<20))
+	if err != nil {
+		return "", nil, err
+	}
+	if len(content) == 0 {
+		return "", nil, errors.New("visual_identity_reference_image_empty")
+	}
+	return mimeType, content, nil
+}
+
+func (a *App) uploadComfyReferenceImage(ctx context.Context, baseURL, assetID, mimeType string, content []byte) (string, error) {
+	if strings.TrimSpace(baseURL) == "" || len(content) == 0 {
+		return "", errors.New("visual_identity_reference_upload_invalid")
+	}
+	extension := ".png"
+	switch strings.ToLower(strings.TrimSpace(mimeType)) {
+	case "image/jpeg", "image/jpg":
+		extension = ".jpg"
+	case "image/webp":
+		extension = ".webp"
+	}
+	filename := "visual_identity_reference_" + stableDigest(assetID) + extension
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	if err := writer.WriteField("type", "input"); err != nil {
+		return "", err
+	}
+	if err := writer.WriteField("overwrite", "true"); err != nil {
+		return "", err
+	}
+	part, err := writer.CreateFormFile("image", filename)
+	if err != nil {
+		return "", err
+	}
+	if _, err := part.Write(content); err != nil {
+		return "", err
+	}
+	if err := writer.Close(); err != nil {
+		return "", err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(baseURL, "/")+"/upload/image", &body)
+	if err != nil {
+		return "", err
+	}
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	client := a.Provider.HTTP
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return "", err
+	}
+	data, _ := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+	response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		detail := visualIdentityBoundedText(strings.TrimSpace(string(data)), 512)
+		return "", fmt.Errorf("ComfyUI reference image upload returned HTTP %d: %s", response.StatusCode, detail)
+	}
+	var result struct {
+		Name      string `json:"name"`
+		Subfolder string `json:"subfolder"`
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(result.Name) == "" {
+		return "", errors.New("ComfyUI reference image filename is missing")
+	}
+	if strings.Trim(strings.TrimSpace(result.Subfolder), "/") != "" {
+		return strings.Trim(strings.TrimSpace(result.Subfolder), "/") + "/" + result.Name, nil
+	}
+	return result.Name, nil
 }
 
 func rendererConstraintWeight(constraints map[string]any) (float64, bool) {
