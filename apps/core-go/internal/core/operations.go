@@ -1111,14 +1111,30 @@ func (a *App) ModelRunsFiltered(ctx context.Context, actorID string, limit int, 
 	if limit > 500 {
 		limit = 500
 	}
-	query := `SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at FROM public.diagnostic_model_runs`
+	query := `WITH runs AS (
+		SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,
+			COUNT(*) FILTER (WHERE status IN ('queued','running')) OVER (PARTITION BY binding_role) AS queue_pending_count,
+			CASE WHEN status IN ('queued','running') THEN ROW_NUMBER() OVER (
+				PARTITION BY binding_role
+				ORDER BY CASE WHEN status IN ('queued','running') THEN 0 ELSE 1 END, priority DESC, queued_at ASC, id ASC
+			) END AS queue_position
+		FROM public.diagnostic_model_runs`
 	args := []any{}
 	if strings.TrimSpace(correlationID) != "" {
 		args = append(args, strings.TrimSpace(correlationID))
 		query += ` WHERE correlation_id=$1`
 	}
 	args = append(args, limit)
-	query += fmt.Sprintf(` ORDER BY created_at DESC,id DESC LIMIT $%d`, len(args))
+	query += fmt.Sprintf(`
+	)
+	SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,queue_pending_count,queue_position
+	FROM runs
+	ORDER BY CASE WHEN status IN ('queued','running') THEN 0 ELSE 1 END,
+		CASE WHEN status IN ('queued','running') THEN priority END DESC NULLS LAST,
+		CASE WHEN status IN ('queued','running') THEN queued_at END ASC NULLS LAST,
+		CASE WHEN status NOT IN ('queued','running') THEN completed_at END DESC NULLS LAST,
+		created_at DESC,id DESC
+	LIMIT $%d`, len(args))
 	rows, err := a.DB.Pool().Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -1128,14 +1144,21 @@ func (a *App) ModelRunsFiltered(ctx context.Context, actorID string, limit int, 
 	for rows.Next() {
 		var id, role, bindingRole, scenario, model, status, corr string
 		var priority int
+		var queuePendingCount, queuePosition *int64
 		var endpoint, code *string
 		var prompt, response []byte
 		var created, queued time.Time
 		var started, completed *time.Time
-		if err := rows.Scan(&id, &role, &bindingRole, &scenario, &priority, &endpoint, &model, &prompt, &response, &status, &code, &corr, &created, &queued, &started, &completed); err != nil {
+		if err := rows.Scan(&id, &role, &bindingRole, &scenario, &priority, &endpoint, &model, &prompt, &response, &status, &code, &corr, &created, &queued, &started, &completed, &queuePendingCount, &queuePosition); err != nil {
 			return nil, err
 		}
 		row := map[string]any{"id": id, "role": role, "binding_role": bindingRole, "scenario": scenario, "priority": priority, "endpoint_id": endpoint, "model_id": model, "prompt": json.RawMessage(prompt), "response": json.RawMessage(response), "status": status, "error_code": code, "correlation_id": corr, "created_at": created.Format(time.RFC3339Nano), "queued_at": queued.Format(time.RFC3339Nano)}
+		if queuePendingCount != nil {
+			row["queue_pending_count"] = *queuePendingCount
+		}
+		if queuePosition != nil {
+			row["queue_position"] = *queuePosition
+		}
 		if started != nil {
 			row["started_at"] = started.Format(time.RFC3339Nano)
 		}

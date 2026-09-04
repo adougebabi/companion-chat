@@ -253,6 +253,11 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 	p.refreshQueueLimits(ctx)
 	queue := p.queueFor(role)
 	err := queue.submit(ctx, priority, func(runCtx context.Context) error {
+		if guard := providerExecutionGuard(runCtx); guard != nil {
+			if guardErr := guard(runCtx); guardErr != nil {
+				return guardErr
+			}
+		}
 		var runErr error
 		result, runErr = fn(runCtx)
 		return runErr
@@ -268,6 +273,9 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 func providerRunStatusForError(err error) string {
 	if err == nil {
 		return providerRunCompleted
+	}
+	if errors.Is(err, errProviderPaused) || errors.Is(err, errProviderInactive) {
+		return providerRunCancelled
 	}
 	if errors.Is(err, context.Canceled) {
 		return providerRunCancelled

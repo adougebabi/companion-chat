@@ -20,11 +20,48 @@ const (
 )
 
 type providerScenarioContextKey struct{}
+type providerExecutionGuardContextKey struct{}
+
+var (
+	errProviderPaused   = errors.New("provider_suppressed_fluctlight_paused")
+	errProviderInactive = errors.New("provider_suppressed_fluctlight_inactive")
+)
 
 // WithProviderScenario lets a domain operation retain its human-readable
 // trigger while sharing the generic_llm provider binding.
 func WithProviderScenario(ctx context.Context, scenario string) context.Context {
 	return context.WithValue(ctx, providerScenarioContextKey{}, strings.TrimSpace(scenario))
+}
+
+// WithProviderExecutionGuard attaches a last-moment domain-state check to a
+// queued Provider call. It closes the race where an operation is queued while
+// active and the Fluctlight is paused before a worker obtains a slot.
+func WithProviderExecutionGuard(ctx context.Context, guard func(context.Context) error) context.Context {
+	return context.WithValue(ctx, providerExecutionGuardContextKey{}, guard)
+}
+
+func providerExecutionGuard(ctx context.Context) func(context.Context) error {
+	if ctx == nil {
+		return nil
+	}
+	guard, _ := ctx.Value(providerExecutionGuardContextKey{}).(func(context.Context) error)
+	return guard
+}
+
+func (a *App) providerGuardForFluctlight(fluctlightID string) func(context.Context) error {
+	return func(ctx context.Context) error {
+		var status string
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&status); err != nil {
+			return err
+		}
+		if status == "paused" {
+			return errProviderPaused
+		}
+		if status != "active" {
+			return errProviderInactive
+		}
+		return nil
+	}
 }
 
 func providerBindingRole(role string) string {
@@ -156,6 +193,12 @@ func (a *App) updateModelRunState(ctx context.Context, id, status string, runErr
 func providerRunErrorCode(err error) string {
 	if err == nil {
 		return ""
+	}
+	if errors.Is(err, errProviderPaused) {
+		return "fluctlight_paused"
+	}
+	if errors.Is(err, errProviderInactive) {
+		return "fluctlight_inactive"
 	}
 	if errors.Is(err, context.Canceled) {
 		return "request_cancelled"

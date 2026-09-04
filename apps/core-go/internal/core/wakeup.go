@@ -230,9 +230,13 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
-	if fluctlight.Status != "active" && fluctlight.Status != "paused" {
+	if fluctlight.Status == "paused" {
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": "paused", "reason": "fluctlight_paused", "interval_seconds": settings.IntervalSeconds}, nil
+	}
+	if fluctlight.Status != "active" {
 		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": "inactive", "interval_seconds": settings.IntervalSeconds}, nil
 	}
+	ctx = WithProviderExecutionGuard(ctx, a.providerGuardForFluctlight(fluctlightID))
 	wakeID := "wake_up_" + stableDigest(fluctlightID+":"+fmt.Sprint(cycle))
 	var existingStatus, existingActionType string
 	var existingActionID, existingReflectionIntentID *string

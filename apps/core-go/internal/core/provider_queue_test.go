@@ -155,11 +155,22 @@ func TestProviderRunStatusForError(t *testing.T) {
 		{err: nil, want: providerRunCompleted},
 		{err: context.Canceled, want: providerRunCancelled},
 		{err: context.DeadlineExceeded, want: providerRunTimeout},
+		{err: errProviderPaused, want: providerRunCancelled},
+		{err: errProviderInactive, want: providerRunCancelled},
 		{err: errors.New("boom"), want: providerRunFailed},
 	} {
 		if got := providerRunStatusForError(test.err); got != test.want {
 			t.Errorf("providerRunStatusForError(%v) = %q, want %q", test.err, got, test.want)
 		}
+	}
+}
+
+func TestProviderSuppressionErrorCodesAreBounded(t *testing.T) {
+	if got := providerRunErrorCode(errProviderPaused); got != "fluctlight_paused" {
+		t.Fatalf("paused error code = %q", got)
+	}
+	if got := providerRunErrorCode(errProviderInactive); got != "fluctlight_inactive" {
+		t.Fatalf("inactive error code = %q", got)
 	}
 }
 

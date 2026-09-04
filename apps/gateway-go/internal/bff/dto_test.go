@@ -46,12 +46,12 @@ func TestBrowserDiagnosticModelRunDecodesRawJSONPrompt(t *testing.T) {
 
 func TestBrowserDiagnosticModelRunMapsQueueLifecycleFields(t *testing.T) {
 	row := map[string]any{
-		"id": "run-3", "role": "generic_llm", "binding_role": "generic_llm", "scenario": "wake_up", "priority": 70,
+		"id": "run-3", "role": "generic_llm", "binding_role": "generic_llm", "scenario": "wake_up", "priority": 70, "queue_pending_count": int64(3), "queue_position": int64(2),
 		"model_id": "model-3", "prompt": json.RawMessage(`{}`), "status": "running", "correlation_id": "corr-3",
 		"created_at": "2026-09-01T00:00:00Z", "queued_at": "2026-09-01T00:00:01Z", "started_at": "2026-09-01T00:00:02Z",
 	}
 	mapped := browserDiagnosticModelRun(row)
-	if mapped["scenario"] != "wake_up" || mapped["bindingRole"] != "generic_llm" || mapped["priority"] != 70 || mapped["startedAt"] != row["started_at"] {
+	if mapped["scenario"] != "wake_up" || mapped["bindingRole"] != "generic_llm" || mapped["priority"] != 70 || mapped["queuePendingCount"] != int64(3) || mapped["queuePosition"] != int64(2) || mapped["startedAt"] != row["started_at"] {
 		t.Fatalf("queue lifecycle fields = %#v", mapped)
 	}
 }

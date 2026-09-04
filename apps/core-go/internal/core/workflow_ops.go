@@ -259,6 +259,17 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	if fluctlightID == "" {
 		return nil, fmt.Errorf("reflection_fluctlight_id_required")
 	}
+	fluctlight, err := a.readFluctlightByID(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	if fluctlight.Status == "paused" {
+		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "paused", "reason": "fluctlight_paused"}, nil
+	}
+	if fluctlight.Status != "active" {
+		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "inactive", "reason": "fluctlight_not_active"}, nil
+	}
+	ctx = WithProviderExecutionGuard(ctx, a.providerGuardForFluctlight(fluctlightID))
 	var watermark, stateRevision int
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT watermark,state_revision FROM public.cognition_reflection_windows WHERE fluctlight_id=$1`, fluctlightID).Scan(&watermark, &stateRevision); err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {

@@ -64,6 +64,9 @@ test("diagnostics is a quiet, recent-only disclosure surface", () => {
   assert.match(diagnosticsSource, /value="model-runs"/);
   assert.match(controlCenterSource, /client\.diagnostics\(\{ limit: 20/);
   assert.match(controlCenterSource, /client\.diagnosticModelRuns\(\{ limit: 20/);
+  assert.match(diagnosticsSource, /queueSummary/);
+  assert.match(diagnosticsSource, /queuePosition/);
+  assert.match(diagnosticsSource, /statusLabels/);
 });
 
 test("desktop secondary navigation is page-addressable and chat groups stay flat", () => {
