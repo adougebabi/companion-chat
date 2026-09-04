@@ -97,6 +97,16 @@ func visualIdentityStageOrder(stage string) int {
 	}
 }
 
+// visualIdentityExpectedViews is the canonical three-panel layout requested
+// for the character sheet. It intentionally has two front-facing panels (a
+// close-up portrait and a full-body standing pose) and one back full-body
+// panel; there is no side-view requirement in this workflow.
+func visualIdentityExpectedViews() []string {
+	return []string{"front_closeup", "front_full_body", "back_full_body"}
+}
+
+const visualIdentityPromptTemplate = "Character design sheet, three separate panels on a white background. Left: front close-up portrait of %s. Center: front full body standing straight. Right: back full body from behind. Symmetrical pose, no side view, high resolution concept art."
+
 // VisualIdentitySnapshot is the browser-safe, cognition-safe representation of
 // the current visual identity aggregate. Large model responses and provider
 // diagnostics stay in attempt rows and are never copied into this snapshot.
@@ -480,11 +490,86 @@ func visualIdentityBoundedText(value string, limit int) string {
 	return value
 }
 
-// enforceVisualIdentityTurnaroundPrompt adds a renderer-level composition
-// constraint after media_prompt returns. Some image models interpret the
-// shorter "front, side, back" wording as a two-panel front/back diptych. The
-// explicit three-figure layout makes the mandatory side profile unambiguous
-// without inventing any persona attributes.
+// visualIdentityPromptFromConcept renders the owner's exact three-panel
+// template. The Provider may still be called for ordinary media prompts, but
+// it must not rewrite this Visual Identity composition.
+func visualIdentityPromptFromConcept(concept map[string]any) string {
+	description := visualIdentityCharacterDescription(mapValue(concept["visual_identity"]))
+	if description == "" {
+		description = "the same consistent character"
+	}
+	return fmt.Sprintf(visualIdentityPromptTemplate, description)
+}
+
+func visualIdentityPromptFromSnapshot(snapshot VisualIdentitySnapshot) string {
+	return visualIdentityPromptFromConcept(map[string]any{
+		"visual_identity": map[string]any{
+			"identity_snapshot": snapshot.IdentitySnapshot,
+		},
+	})
+}
+
+func visualIdentityCharacterDescription(visualIdentity map[string]any) string {
+	if len(visualIdentity) == 0 {
+		return ""
+	}
+	snapshot := mapValue(visualIdentity["identity_snapshot"])
+	if len(snapshot) == 0 {
+		snapshot = visualIdentity
+	}
+	identity := mapValue(snapshot["identity"])
+	lifeProfile := mapValue(snapshot["life_profile"])
+	appearance := mapValue(lifeProfile["appearance"])
+	if visible := stringValue(identity["visible_text"]); visible != "" {
+		return visible
+	}
+	parts := make([]string, 0, 8)
+	if age := firstVisualIdentityString(identity["age"], appearance["age"]); age != "" {
+		parts = append(parts, age)
+	}
+	if gender := stringValue(identity["gender"]); gender != "" {
+		parts = append(parts, gender)
+	}
+	if nationality := firstVisualIdentityString(identity["nationality"], identity["ethnicity"]); nationality != "" {
+		parts = append(parts, nationality)
+	}
+	if face := firstVisualIdentityString(appearance["face_shape"], identity["face_shape"]); face != "" {
+		parts = append(parts, face+" face")
+	}
+	if body := firstVisualIdentityString(appearance["body_type"], identity["body_type"], identity["build"]); body != "" {
+		parts = append(parts, body+" build")
+	}
+	if hair := firstVisualIdentityString(appearance["hair"], identity["hair"]); hair != "" && hair != "未知" {
+		parts = append(parts, hair+" hair")
+	}
+	if cup := firstVisualIdentityString(appearance["chest_cup"], identity["chest_cup"]); cup != "" {
+		parts = append(parts, cup+" cup chest")
+	}
+	return strings.Join(parts, ", ")
+}
+
+func firstVisualIdentityString(values ...any) string {
+	for _, value := range values {
+		if result := stringValue(value); result != "" {
+			return result
+		}
+		switch typed := value.(type) {
+		case int:
+			return fmt.Sprintf("%d", typed)
+		case int64:
+			return fmt.Sprintf("%d", typed)
+		case float64:
+			if !math.IsNaN(typed) && !math.IsInf(typed, 0) {
+				return strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.4f", typed), "0"), ".")
+			}
+		}
+	}
+	return ""
+}
+
+// enforceVisualIdentityTurnaroundPrompt is kept as a small compatibility
+// helper for callers that only have a plain character description. It renders
+// the exact owner-supplied template and never appends an alternative layout.
 func enforceVisualIdentityTurnaroundPrompt(prompt, stage string) string {
 	if stage != "seed" && stage != "character_sheet" {
 		return strings.TrimSpace(prompt)
@@ -493,11 +578,7 @@ func enforceVisualIdentityTurnaroundPrompt(prompt, stage string) string {
 	if value == "" {
 		return value
 	}
-	const constraint = "three separate full-body figures visible at the same time in one horizontal row: left figure faces the camera in a front view, center figure is a true 90-degree side profile clearly showing the left or right silhouette, right figure faces away in a back view; keep all three figures fully visible and separated, never render only a front-and-back diptych"
-	if strings.Contains(strings.ToLower(value), "three separate full-body figures") {
-		return value
-	}
-	return value + ", " + constraint
+	return fmt.Sprintf(visualIdentityPromptTemplate, value)
 }
 
 // EnsureVisualIdentityInitialization creates or reuses the initialization
@@ -666,27 +747,22 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='running',updated_at=now() WHERE id=$1 AND status IN ('queued','running')`, sessionID); err != nil {
 			return nil, err
 		}
-		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageSeedRequested, "running", "正在生成“自己”的三视图文本种子", nil)
+		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageSeedRequested, "running", "正在生成“自己”的角色设计图文本提示", nil)
 		identity, err := a.readVisualIdentity(ctx, fluctlightID)
 		if err != nil {
 			return nil, err
 		}
-		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_patch", []map[string]any{{"role": "system", "content": "Generate the first pure text-to-image prompt for a single human character turnaround reference sheet. The result must depict exactly one consistent human character using THREE SEPARATE FULL-BODY FIGURES visible simultaneously in one horizontal row: a left front-facing view, a center true 90-degree side profile (left or right), and a right back-facing view. The center side-profile figure is mandatory, fully visible, and clearly separated; never describe or produce only a front-and-back diptych. Use one neutral plain studio/reference-sheet background. This is a character design reference, not an artistic scene or editorial photo: no abstract silhouette, no landscape, no decorative environment, no extra people, no collage of unrelated subjects, no logo or text. Return only the structured visual identity patch contract and do not invent unsupported identity facts."}, {"role": "user", "content": jsonString(map[string]any{"stage": "seed", "render_intent": "character_turnaround", "subject_count": 1, "views": []string{"front", "side", "back"}, "visual_identity": identity, "input_snapshot": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints)})}}, "visual_identity_seed_response", visualIdentitySeedResponseSchema(), false)
-		if err != nil {
-			if visualIdentityProviderPending(err) {
-				_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageSeedRequested, "pending", "等待 visual_identity_patch 模型角色配置", nil)
-				return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "provider_config_pending", "error_code": "visual_identity_patch_role_missing"}, nil
-			}
-			return nil, err
-		}
-		seedPrompt = strings.TrimSpace(stringValue(completion["seed_prompt"]))
+		// The owner supplied the exact three-panel template. Seed creation only
+		// fills {人物描述}; it is intentionally deterministic and does not let a
+		// generic LLM rewrite the layout or reintroduce a side view.
+		seedPrompt = visualIdentityPromptFromSnapshot(identity)
 		if seedPrompt == "" {
 			return map[string]any{"session_id": sessionID, "status": visualIdentityStatusAwaitingReview, "stage": "awaiting_input", "error_code": "seed_prompt_empty"}, nil
 		}
 		mediaIntentID = "media_intent_" + stableDigest(attemptID+":seed")
 		workflowID := "media_workflow_" + stableDigest(mediaIntentID)
 		requestID := "media_request_" + stableDigest(mediaIntentID)
-		concept := map[string]any{"purpose": "visual_identity", "stage": "seed", "render_intent": "character_turnaround", "subject_count": 1, "views": []string{"front", "side", "back"}, "prompt": seedPrompt, "visual_identity": identity, "renderer_constraints": decodeObject(constraints)}
+		concept := map[string]any{"purpose": "visual_identity", "stage": "seed", "render_intent": "character_design_sheet", "subject_count": 1, "views": visualIdentityExpectedViews(), "prompt": seedPrompt, "visual_identity": identity, "renderer_constraints": decodeObject(constraints)}
 		err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 			if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET seed_prompt=$2,media_intent_id=$3,status='image_queued',updated_at=now() WHERE id=$1 AND seed_prompt IS NULL`, attemptID, seedPrompt, mediaIntentID); err != nil {
 				return err
@@ -697,10 +773,10 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'media','media.generation',$3) ON CONFLICT DO NOTHING`, "media_workflow_intent:"+mediaIntentID, workflowID, jsonBytes(map[string]any{"intent_id": mediaIntentID, "provider_request_id": requestID, "fluctlight_id": fluctlightID})); err != nil {
 				return err
 			}
-			if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, attemptID, fluctlightID, visualIdentityStageImageRequested, "queued", "纯文生图已排队", nil, map[string]any{"media_intent_id": mediaIntentID}, workflowID); err != nil {
+			if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, attemptID, fluctlightID, visualIdentityStageImageRequested, "queued", "角色设计图纯文生图已排队", nil, map[string]any{"media_intent_id": mediaIntentID}, workflowID); err != nil {
 				return err
 			}
-			return appendVisualIdentityTimelineTx(ctx, tx, sessionID, attemptID, fluctlightID, visualIdentityStageSeedReady, "completed", "三视图文本种子已生成，等待图片工作流", nil, map[string]any{"media_intent_id": mediaIntentID}, workflowID)
+			return appendVisualIdentityTimelineTx(ctx, tx, sessionID, attemptID, fluctlightID, visualIdentityStageSeedReady, "completed", "角色设计图文本提示已生成，等待图片工作流", nil, map[string]any{"media_intent_id": mediaIntentID}, workflowID)
 		})
 		if err != nil {
 			return nil, err
@@ -719,7 +795,7 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET candidate_asset_id=$2,status='vision_queued',updated_at=now() WHERE id=$1 AND candidate_asset_id IS NULL`, attemptID, candidateAssetID); err != nil {
 			return nil, err
 		}
-		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageImageReady, "completed", "候选图已生成", []string{candidateAssetID})
+		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageImageReady, "completed", "候选角色设计图已生成", []string{candidateAssetID})
 	}
 	if visualIdentityJSONEmpty(visionResult) {
 		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageVisionRequested, "running", "正在进行视觉理解", []string{candidateAssetID})
@@ -727,11 +803,11 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		if imageErr != nil {
 			return nil, imageErr
 		}
-		visionUserContent := []any{map[string]any{"type": "text", "text": jsonString(map[string]any{"asset_id": candidateAssetID, "render_intent": "character_turnaround", "expected_subject": "one_human_character", "expected_views": []string{"front", "side", "back"}, "visual_identity": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints)})}}
+		visionUserContent := []any{map[string]any{"type": "text", "text": jsonString(map[string]any{"asset_id": candidateAssetID, "render_intent": "character_design_sheet", "expected_subject": "one_human_character", "expected_views": visualIdentityExpectedViews(), "panel_layout": map[string]string{"left": "front_closeup_portrait", "center": "front_full_body_standing", "right": "back_full_body"}, "visual_identity": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints)})}}
 		if imageContent != nil {
 			visionUserContent = append(visionUserContent, imageContent)
 		}
-		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_vision", []map[string]any{{"role": "system", "content": "Inspect the supplied candidate image for visual identity continuity. The required target is exactly one full-body human character turnaround reference showing front, side, and back views together. If the image is an art photo, abstract silhouette, landscape, object-only image, or lacks a human subject or any required view, report a low identity_match and make that mismatch explicit in observations. Return bounded structured observations only."}, {"role": "user", "content": visionUserContent}}, "visual_identity_vision_response", visualIdentityVisionResponseSchema(), false)
+		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_vision", []map[string]any{{"role": "system", "content": "Inspect the supplied candidate image for visual identity continuity. The required target is one character design sheet with exactly three separate panels on a white background: left front close-up portrait, center front full-body standing straight, right back full-body from behind. There is explicitly no side-view panel. If the image is an art photo, abstract silhouette, landscape, object-only image, missing a person, missing any required panel, or shows a side view instead of the center front full body, report a low identity_match and make that mismatch explicit in observations. Return bounded structured observations only."}, {"role": "user", "content": visionUserContent}}, "visual_identity_vision_response", visualIdentityVisionResponseSchema(), false)
 		if err != nil {
 			if visualIdentityProviderPending(err) {
 				_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageVisionRequested, "pending", "等待 visual_identity_vision 模型角色配置", []string{candidateAssetID})
@@ -751,7 +827,7 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 	}
 	if decision == "" {
 		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStagePatchRequested, "running", "正在评审并生成身份补丁", []string{candidateAssetID})
-		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_patch", []map[string]any{{"role": "system", "content": "Review the candidate against the visual identity and return accepted or regenerate. Acceptance is allowed only for exactly one consistent full-body human character turnaround reference with front, side, and back views together on a neutral plain background. An art photo, abstract silhouette, landscape, object-only image, missing person, or missing view must be decision=regenerate. Preserve the explicit decision and a structured patch."}, {"role": "user", "content": jsonString(map[string]any{"stage": "review", "render_intent": "character_turnaround", "expected_subject": "one_human_character", "expected_views": []string{"front", "side", "back"}, "visual_identity": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints), "vision": decodeObject(visionResult), "candidate_asset_id": candidateAssetID})}}, "visual_identity_patch_response", visualIdentityPatchResponseSchema(), false)
+		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_patch", []map[string]any{{"role": "system", "content": "Review the candidate against the visual identity and return accepted or regenerate. Acceptance is allowed only for one character design sheet with exactly three separate panels on a white background: left front close-up portrait, center front full body standing straight, right back full body from behind. There is explicitly no side-view panel. An art photo, abstract silhouette, landscape, object-only image, missing person, missing panel, or side-view substitution must be decision=regenerate. Preserve the explicit decision and a structured patch."}, {"role": "user", "content": jsonString(map[string]any{"stage": "review", "render_intent": "character_design_sheet", "expected_subject": "one_human_character", "expected_views": visualIdentityExpectedViews(), "panel_layout": map[string]string{"left": "front_closeup_portrait", "center": "front_full_body_standing", "right": "back_full_body"}, "visual_identity": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints), "vision": decodeObject(visionResult), "candidate_asset_id": candidateAssetID})}}, "visual_identity_patch_response", visualIdentityPatchResponseSchema(), false)
 		if err != nil {
 			if visualIdentityProviderPending(err) {
 				_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStagePatchRequested, "pending", "等待 visual_identity_patch 模型角色配置", []string{candidateAssetID})

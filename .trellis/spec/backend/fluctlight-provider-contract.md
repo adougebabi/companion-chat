@@ -37,10 +37,16 @@ embed(role, inputs) -> VersionedEmbeddings
 - `action_realization` requires streaming, abort propagation, bounded diagnostics, and correct UTF-8/chunk handling.
 - `embedding` requires an embedding endpoint and fixed dimensions recorded with each vector/index version.
 - `media_prompt` requires its declared structured/text output contract and cannot execute media generation itself.
+- `media_prompt` may serve both B text prompt generation and C structured multimodal acceptance using the same configured role/model; C transport, vision-capability, timeout, or schema failures are surfaced to the owning media flow as an infrastructure condition, never inferred as a content `pass` or `reject`.
 - Settings cannot activate a role until preflight proves required capabilities. Health may later degrade without making Core readiness false.
 - Every result records role, endpoint/model ID, capability/model version when available, prompt/schema version, timing, token usage/budget, and correlation IDs.
 - No implicit role/model fallback. Failure follows explicit interaction/workflow retry/deferred/no-op/terminal rules.
 - Provider adapter returns normalized transport/structured results and bounded parse diagnostics. It does not parse visible prose for semantic effects or choose domain actions.
+- The Provider boundary emits at most one `system` message, and it must be
+  the first message. Operation, context-authority, and language instructions
+  are concatenated in caller order; `user`/`assistant` history keeps its order
+  after that merged system message. This prevents strict chat templates such
+  as mlx-serve from rejecting a late or repeated system role.
 - API keys are resolved only in Go Core through the configuration secret contract and never returned to BFF/browser/debug output.
 
 ### 4. Validation & Error Matrix
@@ -70,6 +76,10 @@ embed(role, inputs) -> VersionedEmbeddings
 - Provenance tests assert every result stores role/endpoint/model/prompt/schema/correlation metadata without credentials or hidden reasoning.
 - Failure tests prove one degraded role does not silently use another and follows owning interaction/workflow policy.
 - Provider adapter contract suite runs against fake normalized adapters and configured OpenAI-compatible test endpoints.
+- Assert every real payload has exactly one leading system message and that
+  merging preserves every operation/context/language instruction; media-prompt
+  calls may omit the language instruction but follow the same single-system
+  invariant.
 - Architecture tests prevent Provider adapters from importing domain policy/repositories or implementing semantic regex/keyword fallbacks.
 
 ### 7. Wrong vs Correct
@@ -155,4 +165,95 @@ workflow["transformer"] = firstAvailableModel()
 markMediaIntentFailed("provider_model_not_available")
 return err
 ```
+```
+
+## Scenario: Compact Provider Cognition Context
+
+### 1. Scope / Trigger
+
+- Trigger: a cognition, wake-up, daily-review, reflection, native-cognition,
+  or action-realization call serializes a `ContextProjection` for the Provider.
+- The full projection remains an internal/replay value; the Provider receives
+  a role-facing semantic projection only.
+
+### 2. Signatures
+
+```text
+compactCognitionContext(ContextProjection) -> ProviderContext
+```
+
+`ProviderContext` keeps the canonical `core_persona`, `developing_self`, and
+`current_state` layers plus non-empty evidence collections. It does not expose
+database identifiers or state-machine bookkeeping fields.
+
+### 3. Contracts
+
+- `core_persona` is the only place for identity, personality,
+  behavioral-policy, and life-profile data; parallel aliases are omitted.
+- `current_state.data` is the only place for `inner_state` and `life_context`;
+  revision, persistence timestamps, and numeric decay-control parameters stay
+  in Core.
+- `recent_messages` keeps semantic order/kind/text/time and an attachment
+  presence flag, but omits message IDs, `author_actor_id`, `source`, and empty
+  attachment arrays.
+- Memory input keeps type/content/confidence/importance/emotional significance,
+  creation time, and evidence references; storage status, revision, visibility,
+  conversation foreign keys, and duplicate source/event IDs stay in Core.
+- Empty optional collections are omitted. Native Provider `tools` remains the
+  sole complete capability schema; `context.capabilities` is never duplicated.
+- The full `ContextProjection` may still be persisted inside a frozen decision
+  for replay; compaction only affects Provider-facing user content.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| canonical Core Persona envelope is missing but legacy parallel fields exist | reconstruct one canonical envelope before serialization; do not duplicate aliases |
+| optional evidence collection is empty | omit the field from Provider content |
+| optional evidence collection is non-empty | preserve its semantic values and required evidence references |
+| native tools are present | omit full capability manifests from user context |
+| persisted/replay projection contains old full fields | continue deserializing it; compact only at the Provider boundary |
+
+### 5. Good/Base/Bad Cases
+
+- Good: wake-up receives one three-layer context and native tools once, with no
+  random database IDs or duplicate persona envelope.
+- Base: a legacy instance with only parallel identity fields is reconstructed
+  into the canonical Core Persona before the model call.
+- Bad: send `persona_profile` beside `context`, repeat tools under
+  `context.capabilities`, or let model input expose `message_<random-id>` and
+  state revision bookkeeping.
+
+### 6. Tests Required
+
+- Assert compact context contains one canonical three-layer shape and omits
+  all parallel aliases, database IDs, revisions, timestamps, and empty lists.
+- Assert non-empty recent messages, memories, and typed slots retain semantic
+  values and evidence references.
+- Assert legacy projection reconstruction does not lose Core Persona data.
+- Assert every Provider system payload still has one leading system message;
+  this context compaction must not alter native tools or persisted decisions.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```json
+{
+  "context": {"core_persona": {}, "identity": {}, "capabilities": []},
+  "persona_profile": {"core_persona": {}, "current_state": {}},
+  "recent_messages": [{"id": "message_<random>", "author_actor_id": "human_<random>"}]
+}
+```
+
+#### Correct
+
+```json
+{
+  "context": {
+    "core_persona": {"authority": "hard_constraint", "data": {}},
+    "developing_self": [],
+    "current_state": {"authority": "transient_state", "data": {}}
+  }
+}
 ```

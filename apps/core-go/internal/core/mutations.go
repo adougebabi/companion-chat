@@ -393,10 +393,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			}
 		}
 	} else {
-		messages := []map[string]any{{"role": "system", "content": "You are the Fluctlight companion. Decide what is appropriate to say before writing it. The context contains three Persona layers: core_persona is a hard, owner-governed constraint; developing_self is evidence-backed soft context; current_state is transient. Always preserve the priority core_persona > developing_self > current_state. A pleasant current mood or a Developing Self observation must not turn a mature, independent, non-pleasing Core Persona into a sweet or appeasing style. Return one JSON object containing action_type, response_plan, visible_text for an ordinary reply, claims with kind/content/confidence/evidence_refs, appraisal, attention, thought, desire, agency, self_evaluation, core_alignment, and state_expression. Appraisal must include relevance, goal_congruence, reward, loss, social_threat, controllability, responsibility, relationship_significance, expected_effect. These cognitive stage fields are concise summaries, never hidden chain-of-thought. Use a capability tool when an external capability is needed, including capability.request when a needed capability is not installed. For images, call media.image.generate with the complete visual concept; do not return message_media_request or moment_media_request fields. Do not invent unsupported facts or self-claims."}, {"role": "user", "content": jsonString(map[string]any{"text": text, "context": compactCognitionContext(projection)})}}
+		messages := []map[string]any{{"role": "system", "content": conversationAssessmentInstruction}, {"role": "user", "content": jsonString(map[string]any{"text": text, "context": compactCognitionContext(projection)})}}
 		messages = withContextAuthorityInstruction(messages)
 		manifests := a.capabilityRegistry().Manifests()
-		completion, completionErr := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", messages, manifests, "conversation_turn_response", cognitiveTurnResponseSchema(), true)
+		completion, completionErr := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "cognitive_assessment"), "cognitive_assessment", messages, manifests, "conversation_turn_response", cognitiveTurnResponseSchema(), true)
 		if completionErr != nil {
 			return TurnResult{}, completionErr
 		}
@@ -511,8 +511,8 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			}
 		}
 	} else {
-		visiblePrompt := []map[string]any{{"role": "system", "content": "Render only the approved ResponsePlan as a concise Chinese response. Preserve the frozen Persona layer priority: core_persona is a hard constraint, developing_self is soft context, and current_state is transient. Do not turn a current mood or self observation into a permanent voice change. Do not add facts, scenes, memories, relationships, semantic state, or tools."}, {"role": "user", "content": jsonString(map[string]any{"response_plan": responsePlan, "context_projection": compactCognitionContext(projection), "tool_results": toolResults})}}
-		visible, err = a.Provider.StreamText(ctx, "action_realization", visiblePrompt, callbacks.onChunk)
+		visiblePrompt := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(map[string]any{"response_plan": responsePlan, "context_projection": compactCognitionContext(projection), "tool_results": toolResults})}}
+		visible, err = a.Provider.StreamText(WithProviderScenario(ctx, "reply"), "action_realization", visiblePrompt, callbacks.onChunk)
 		if err != nil {
 			if frozenFound || frozen.ID != "" {
 				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_failed")

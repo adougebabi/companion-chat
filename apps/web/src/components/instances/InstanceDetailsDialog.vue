@@ -139,6 +139,22 @@ const visualIdentityTimeline = computed(() => asRecords(visualIdentity.value.tim
   if (leftRank !== rightRank) return leftRank - rightRank;
   return String(left.id ?? left.stage ?? "").localeCompare(String(right.id ?? right.stage ?? ""));
 }));
+const visualIdentityActiveEventIndex = computed(() => {
+  for (let index = visualIdentityTimeline.value.length - 1; index >= 0; index -= 1) {
+    const status = String(visualIdentityTimeline.value[index].status ?? "");
+    const stage = String(visualIdentityTimeline.value[index].stage ?? "");
+    if (status === "running" || status === "queued" || stage === "regenerate") return index;
+  }
+  return -1;
+});
+function visualIdentityEventStatus(event: JsonRecord, index: number): string {
+  const status = String(event.status ?? "");
+  // A requested/running event is a historical start marker once any later
+  // stage exists. Showing it as still running makes a completed seed look
+  // stuck even though seed_ready/image_requested are already present.
+  if ((status === "running" || status === "queued") && index < visualIdentityTimeline.value.length - 1) return "completed";
+  return status;
+}
 const visualIdentityConstraints = computed(() => asRecord(visualIdentity.value.renderer_constraints));
 
 function visualIdentityAssetIds(event: JsonRecord): string[] {
@@ -155,7 +171,7 @@ function visualIdentityStatusLabel(status: unknown): string {
 
 function visualIdentityStageLabel(stage: unknown): string {
   const labels: Record<string, string> = {
-    session_created: "初始化", seed_requested: "生成三视图提示词", seed_ready: "三视图提示词完成", image_requested: "生成角色三视图", image_ready: "候选三视图完成", vision_requested: "视觉理解中", vision_ready: "视觉理解完成", patch_requested: "身份评审中", patch_ready: "身份补丁完成", regenerate: "再次生成", accepted: "成为 canonical", character_sheet_requested: "生成 character sheet", character_sheet_ready: "character sheet 完成", completed: "工作流完成", failed: "工作流失败",
+    session_created: "初始化", seed_requested: "生成角色设计图提示词", seed_ready: "角色设计图提示词完成", image_requested: "生成角色设计图", image_ready: "候选角色设计图完成", vision_requested: "视觉理解中", vision_ready: "视觉理解完成", patch_requested: "身份评审中", patch_ready: "身份补丁完成", regenerate: "再次生成", accepted: "成为 canonical", character_sheet_requested: "生成 character sheet", character_sheet_ready: "character sheet 完成", completed: "工作流完成", failed: "工作流失败",
   };
   return labels[String(stage ?? "")] ?? String(stage ?? "阶段");
 }
@@ -233,9 +249,9 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
             </dl>
             <p v-if="!visualIdentityTimeline.length" class="field-note">初始化后，这里会显示“生成 → 视觉理解 → 评审 → 再生成/完成”的时间轴。</p>
             <ol v-else class="timeline-list visual-identity-timeline" aria-label="视觉身份处理时间轴">
-              <li v-for="event in visualIdentityTimeline" :key="`${String(event.id ?? event.stage)}-${String(event.occurred_at ?? '')}`" :class="{ active: event.status === 'running' || event.stage === 'regenerate' }">
+              <li v-for="(event, index) in visualIdentityTimeline" :key="`${String(event.id ?? event.stage)}-${String(event.occurred_at ?? '')}`" :class="{ active: index === visualIdentityActiveEventIndex }">
                 <time :datetime="String(event.occurred_at ?? '')">{{ formatTimelineTime(event.occurred_at, scheduleTimezone) }}</time>
-                <div class="visual-identity-event-content"><strong>{{ visualIdentityStageLabel(event.stage) }}<span class="timeline-now-badge">{{ visualIdentityStatusLabel(event.status) }}</span></strong><span>{{ formatDisplayValue(event.summary) }}</span>
+                <div class="visual-identity-event-content"><strong>{{ visualIdentityStageLabel(event.stage) }}<span class="timeline-now-badge">{{ visualIdentityStatusLabel(visualIdentityEventStatus(event, index)) }}</span></strong><span>{{ formatDisplayValue(event.summary) }}</span>
                   <div v-if="visualIdentityAssetIds(event).length" class="visual-identity-assets"><img v-for="assetId in visualIdentityAssetIds(event)" :key="assetId" :src="`/api/media/${encodeURIComponent(assetId)}`" :alt="`${visualIdentityStageLabel(event.stage)}图片`" loading="lazy" /></div>
                 </div>
               </li>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, onUnmounted } from "vue";
 
 import Accordion from "@/components/ui/accordion/Accordion.vue";
 import AccordionContent from "@/components/ui/accordion/AccordionContent.vue";
@@ -15,8 +15,22 @@ const props = defineProps<{ section?: DiagnosticsSection | null }>();
 const emit = defineEmits<{ navigateSection: [section: DiagnosticsSection | null] }>();
 const controlCenter = useControlCenterStore();
 const currentSection = computed(() => props.section ?? null);
-const roleLabels: Record<string, string> = { initialization: "初始化", cognitive_assessment: "认知判断", action_realization: "回复生成", reflection: "反思", embedding: "Embedding", media_prompt: "媒体提示词", visual_identity_vision: "视觉身份·视觉理解", visual_identity_patch: "视觉身份·身份补丁" };
-function roleLabel(role: string) { return roleLabels[role] ?? role; }
+const scenarioLabels: Record<string, string> = { reply: "回复生成", autonomy_reply: "自治回复", cognitive_assessment: "认知判断", native_cognition: "原生事件认知", daily_review: "日评", schedule_generation: "计划生成", reflection: "反思", wake_up: "唤醒", initialization: "初始化", media_prompt: "媒体提示词", embedding: "Embedding" };
+const bindingLabels: Record<string, string> = { generic_llm: "通用 LLM", embedding: "Embedding" };
+const statusLabels: Record<string, string> = { queued: "排队中", running: "执行中", completed: "已完成", failed: "失败", cancelled: "已取消", timeout: "超时" };
+function scenarioLabel(scenario: string) { return scenarioLabels[scenario] ?? scenario; }
+function bindingLabel(role: string) { return bindingLabels[role] ?? role; }
+function statusLabel(status: string) { return statusLabels[status] ?? status; }
+function statusClass(status: string) { return `run-${status}`; }
+const queueSummary = computed(() => {
+  const counts = new Map<string, number>();
+  for (const run of controlCenter.diagnosticModelRuns) {
+    const role = run.bindingRole || run.role;
+    const count = Number(run.queuePendingCount ?? 0);
+    if (Number.isFinite(count)) counts.set(role, Math.max(counts.get(role) ?? 0, count));
+  }
+  return [...counts.entries()].map(([role, count]) => `${bindingLabel(role)} ${count}`).join(" · ");
+});
 function pretty(value: unknown) { return JSON.stringify(value, null, 2); }
 function responseText(value: unknown): string {
   if (!value || typeof value !== "object" || Array.isArray(value)) return "";
@@ -34,11 +48,16 @@ function workflowIdFor(value: Record<string, unknown>): string {
   for (const nested of Object.values(value)) if (nested && typeof nested === "object" && !Array.isArray(nested)) { const id: string = workflowIdFor(nested as Record<string, unknown>); if (id) return id; }
   return "";
 }
+let pollTimer: number | undefined;
 onMounted(() => {
   const correlationId = new URLSearchParams(window.location.search).get("correlation_id") ?? "";
   controlCenter.diagnosticsCorrelationFilter = correlationId;
   void controlCenter.loadDiagnostics();
+  pollTimer = window.setInterval(() => {
+    if (document.visibilityState === "visible") void controlCenter.loadDiagnostics();
+  }, 2000);
 });
+onUnmounted(() => { if (pollTimer !== undefined) window.clearInterval(pollTimer); });
 </script>
 
 <template>
@@ -69,8 +88,8 @@ onMounted(() => {
       <div v-else class="diagnostics-groups">
       <Accordion type="single" :default-value="currentSection" class="diagnostics-accordion">
         <AccordionItem v-if="currentSection === 'model-runs' && controlCenter.diagnosticModelRuns.length" value="model-runs" class="diagnostic-group diagnostics-drawer">
-          <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">MODEL RUNS</p><h2>模型运行</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnosticModelRuns.length }}</Badge></AccordionTrigger>
-          <AccordionContent><div class="diagnostic-drawer-body"><article v-for="run in controlCenter.diagnosticModelRuns" :key="run.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ roleLabel(run.role) }}</strong><Badge class="status-pill" variant="secondary">{{ run.status }}</Badge><small><time class="diagnostic-time" :datetime="run.createdAt">{{ formatRunTime(run.createdAt) }}</time> · {{ run.modelId }} · {{ run.correlationId }}</small></div><p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ run.errorCode }}</p><p v-if="run.role === 'media_prompt' && responseText(run.response)" class="diagnostic-generated-prompt"><strong>最终生图提示词：</strong>{{ responseText(run.response) }}</p><details><summary>查看 Prompt</summary><pre>{{ pretty(run.prompt) }}</pre></details><details v-if="run.response"><summary>查看 Response</summary><pre>{{ pretty(run.response) }}</pre></details></article></div></AccordionContent>
+          <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">MODEL RUNS</p><h2>模型运行<small v-if="queueSummary" class="queue-summary"> · 队列 {{ queueSummary }}</small></h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnosticModelRuns.length }}</Badge></AccordionTrigger>
+          <AccordionContent><div class="diagnostic-drawer-body"><article v-for="run in controlCenter.diagnosticModelRuns" :key="run.id" class="diagnostic-row"><div class="diagnostic-meta"><strong>{{ scenarioLabel(run.scenario || run.role) }}</strong><Badge class="status-pill" :class="statusClass(run.status)" variant="secondary">{{ statusLabel(run.status) }}</Badge><small>绑定：{{ bindingLabel(run.bindingRole || run.role) }} · {{ run.modelId }}<template v-if="run.priority"> · 优先级 {{ run.priority }}</template><template v-if="run.queuePosition"> · 队列第 {{ run.queuePosition }}</template> · <time class="diagnostic-time" :datetime="run.createdAt">{{ formatRunTime(run.createdAt) }}</time><template v-if="run.queuedAt && run.queuedAt !== run.createdAt"> · 排队 {{ formatRunTime(run.queuedAt) }}</template><template v-if="run.startedAt"> · 开始 {{ formatRunTime(run.startedAt) }}</template><template v-if="run.completedAt"> · 结束 {{ formatRunTime(run.completedAt) }}</template> · {{ run.correlationId }}</small></div><p v-if="run.errorCode" class="diagnostic-error"><strong>失败原因：</strong>{{ run.errorCode }}</p><p v-if="run.role === 'media_prompt' && responseText(run.response)" class="diagnostic-generated-prompt"><strong>最终生图提示词：</strong>{{ responseText(run.response) }}</p><details><summary>查看 Prompt</summary><pre>{{ pretty(run.prompt) }}</pre></details><details v-if="run.response"><summary>查看 Response</summary><pre>{{ pretty(run.response) }}</pre></details></article></div></AccordionContent>
         </AccordionItem>
         <AccordionItem v-if="currentSection === 'events' && controlCenter.diagnostics.length" value="events" class="diagnostic-group diagnostics-drawer">
           <AccordionTrigger class="diagnostics-drawer-summary section-heading"><div><p class="eyebrow">EVENTS</p><h2>系统事件</h2></div><Badge class="count-pill" variant="secondary">{{ controlCenter.diagnostics.length }}</Badge></AccordionTrigger>
@@ -147,6 +166,14 @@ onMounted(() => {
 
 .diagnostics-detail-header .back-link {
   justify-self: start;
+}
+
+.queue-summary {
+  margin-left: 8px;
+  color: var(--muted-ink);
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 @media (min-width: 761px) {

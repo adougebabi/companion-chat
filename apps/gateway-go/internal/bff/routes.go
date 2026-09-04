@@ -1191,7 +1191,10 @@ func validateProviderEndpoint(value map[string]any) bool {
 	return validateString(value["endpointId"], 1, 128) && validateString(value["kind"], 1, 64) && validateString(value["baseUrl"], 8, 1<<20) && validateString(value["secretPurpose"], 1, 128)
 }
 func validateModelRole(value map[string]any) bool {
-	return validateString(value["role"], 1, 64) && validateString(value["endpointId"], 1, 128) && validateString(value["modelId"], 1, 256) && validateInteger(value["tokenBudget"], 1) && validateInteger(value["timeoutSeconds"], 1)
+	role := stringValue(value["role"])
+	legacy := map[string]struct{}{"initialization": {}, "cognitive_assessment": {}, "action_realization": {}, "interaction": {}, "reflection": {}, "media_prompt": {}}
+	_, legacyRole := legacy[role]
+	return (role == "generic_llm" || role == "embedding" || legacyRole) && validateString(value["endpointId"], 1, 128) && validateString(value["modelId"], 1, 256) && validateInteger(value["tokenBudget"], 1) && validateInteger(value["timeoutSeconds"], 1)
 }
 func validateSettings(value map[string]any) bool {
 	if values, ok := value["values"]; ok && !isObject(values) {

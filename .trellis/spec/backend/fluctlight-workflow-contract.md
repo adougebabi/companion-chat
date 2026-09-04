@@ -411,10 +411,15 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
 
 ### 3. Contracts
 
-- Activation commits the wake-up intent in the same transaction as the
-  Fluctlight and the existing schedule/daily-review intents.
+- Activation commits only the stable `schedule.current_day` intent alongside
+  the Fluctlight aggregate. Once that current-day Schedule is accepted, the
+  acceptance transaction creates the stable `wake_up.current` and
+  `daily_review.current_day` intents. This makes the first cognition causally
+  downstream of an accepted Schedule rather than relying on Temporal's queue
+  ordering.
 - Worker startup idempotently backfills `wake_up.current` for existing
-  `active`/`paused` Fluctlights. Existing `pending`, `retry`, `started`, and
+  `active`/`paused` Fluctlights only when the current local-day Schedule is
+  already accepted. Existing `pending`, `retry`, `started`, and
   `cancel_requested` intents are preserved; failed/completed intents for
   still-live Fluctlights become retryable without creating a second workflow
   ID.
@@ -428,6 +433,12 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
   Fluctlight is requeued after reconciliation with a bounded delay. A
   deliberate cancellation or a `retired` Fluctlight is not automatically
   restarted.
+- Reconciliation does not inspect a `retry` intent before its
+  `next_attempt_at`; otherwise each polling pass can push the bounded retry
+  window forward forever. Wake-up recovery uses Temporal's
+  `ALLOW_DUPLICATE` policy for the stable workflow ID because both failed and
+  completed terminal executions may be requeued; the per-Fluctlight cycle key
+  remains the idempotency boundary.
 - A wake-up that proposes a Capability tool call freezes a generic
   `capability.action` on `interaction`; the CapabilityActionWorkflow reuses the
   same stable action/lease/result/reflection boundary as legacy autonomy
@@ -463,8 +474,14 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
 
 - Assert registry/dispatcher queue mapping, stable IDs, retry behavior, and
   lifecycle-only registration.
+- Assert activation creates only the schedule intent, Schedule acceptance
+  creates wake-up/daily-review intents atomically, and the first wake-up
+  timestamp follows Schedule acceptance.
 - Assert Worker startup backfills an existing live Fluctlight and requeues a
   terminal wake-up intent without duplicating the stable workflow ID.
+- Assert a retry with a future `next_attempt_at` is not requeued on every
+  reconciliation poll, and a due retry starts a new Temporal run with the
+  stable wake-up ID.
 - Assert a shared cognitive-assessment response such as `reply` cannot kill a
   Wake-up cycle when no capability tool call is present.
 - Assert the interval clamp and Continue-As-New cycle increment with Temporal's

@@ -42,6 +42,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if _, err := application.RecoverStaleModelRuns(ctx, 15*time.Minute); err != nil {
+		log.Printf("recover stale model runs: %v", err)
+	}
 	if settings.TemporalAddr == "" {
 		settings.TemporalAddr = "temporal:7233"
 	}

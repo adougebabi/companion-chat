@@ -50,6 +50,10 @@ Schedule version includes local date/timezone, generated-at/from, immutable item
   semantics. The same creation transaction also commits exactly one stable
   `schedule.current_day` intent for the Fluctlight; it never calls an LLM or
   starts Temporal directly.
+- The schedule workflow is the first lifecycle Provider call. Its accepted
+  current-day version transaction releases `wake_up.current` and
+  `daily_review.current_day`; neither wake-up nor reflection may run before
+  the Schedule exists.
 - The sole Worker intent dispatcher starts one long-lived workflow with
   `intent_id=schedule_intent:{fluctlight_id}`, `workflow_id=schedule:{fluctlight_id}`
   and queue `lifecycle`. Replays commit or start the same identity, not another

@@ -17,20 +17,19 @@ type scheduleEntry struct {
 
 func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID, localDate, timezone string, identity, lifeProfile map[string]any) (map[string]any, error) {
 	messages := []map[string]any{
-		{"role": "system", "content": "Return one compact JSON object with items and reschedule_policy. items must contain 8-16 objects covering the complete local day contiguously from 00:00 through the next 00:00 in the supplied timezone. Every item needs start_at, end_at, activity, scene, item_type, status, priority, flexibility, interruption_cost. Keep activity and scene each under 80 Chinese characters; use one concrete activity and one concrete scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent periods with the same activity and scene instead of producing many small segments. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1 (never a 1-10 score). Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."},
+		{"role": "system", "content": "Return one compact object with items and reschedule_policy. items must contain 8-16 objects covering the complete local day contiguously from 00:00 through the next 00:00 in the supplied timezone. Every item needs start_at, end_at, activity, scene, item_type, status, priority, flexibility, interruption_cost. Keep activity and scene each under 80 Chinese characters; use one concrete activity and one concrete scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent periods with the same activity and scene instead of producing many small segments. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1 (never a 1-10 score). Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."},
 		{"role": "user", "content": jsonString(map[string]any{
-			"fluctlight_id": fluctlightID,
-			"local_date":    localDate,
-			"timezone":      timezone,
-			"identity":      identity,
-			"life_profile":  lifeProfile,
+			"local_date":   localDate,
+			"timezone":     timezone,
+			"identity":     identity,
+			"life_profile": lifeProfile,
 		})},
 	}
 	// Schedule semantics are owned by the cognitive-assessment role. Reflection
 	// consumes an evidence window after the plan is accepted; using it here
 	// returns a reflection proposal shape instead of the required {items,...}
 	// schedule and leaves the lifecycle intent pending forever.
-	result, err := a.Provider.StructuredWithSchema(ctx, "cognitive_assessment", messages, "schedule_response", scheduleResponseSchema(), false)
+	result, err := a.Provider.StructuredWithSchema(WithProviderScenario(ctx, "schedule_generation"), "cognitive_assessment", messages, "schedule_response", scheduleResponseSchema(), false)
 	if err != nil {
 		return nil, fmt.Errorf("initial schedule provider request failed: %w", err)
 	}

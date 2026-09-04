@@ -17,7 +17,7 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0024_persona_layers" {
+	if Head != "0025_llm_queue" {
 		t.Fatalf("Head = %q", Head)
 	}
 }
@@ -34,6 +34,21 @@ func TestCompositeActionSchemaIncludesMessageMediaTarget(t *testing.T) {
 	}
 }
 
+func TestMediaIntentSchemaIncludesQualityGateState(t *testing.T) {
+	for _, fragment := range []string{
+		"provider_prompt text",
+		"quality_retry_count integer",
+		"quality_retry_guidance text",
+		"quality_verdict varchar(16)",
+		"quality_candidate_sha256 varchar(128)",
+		"quality_checked_at timestamptz",
+	} {
+		if !strings.Contains(schemaSQL+compatibilitySQL, fragment) {
+			t.Fatalf("media intent schema missing %q", fragment)
+		}
+	}
+}
+
 func TestPersonaLayerSchemaIncludesCanonicalStores(t *testing.T) {
 	for _, fragment := range []string{
 		"core_persona jsonb",
@@ -43,6 +58,25 @@ func TestPersonaLayerSchemaIncludesCanonicalStores(t *testing.T) {
 	} {
 		if !strings.Contains(schemaSQL+compatibilitySQL, fragment) {
 			t.Fatalf("persona layer schema missing %q", fragment)
+		}
+	}
+}
+
+func TestLLMQueueSchemaIncludesGenericBindingAndLifecycleFields(t *testing.T) {
+	if Head != "0025_llm_queue" {
+		t.Fatalf("Head = %q, want 0025_llm_queue", Head)
+	}
+	for _, fragment := range []string{
+		"binding_role varchar(64)",
+		"scenario varchar(128)",
+		"queued_at timestamptz",
+		"started_at timestamptz",
+		"completed_at timestamptz",
+		"llm.queue",
+		"'generic_llm'",
+	} {
+		if !strings.Contains(schemaSQL+compatibilitySQL, fragment) {
+			t.Fatalf("LLM queue migration is missing %q", fragment)
 		}
 	}
 }

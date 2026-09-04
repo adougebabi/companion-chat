@@ -253,9 +253,23 @@ func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, flu
 }
 
 func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID string) (map[string]any, error) {
+	// Reflection is the evidence-windowed learning pass over processed
+	// cognition facts. A wake-up may create the fact that feeds this window,
+	// but reflection never substitutes for the periodic wake-up trigger.
 	if fluctlightID == "" {
 		return nil, fmt.Errorf("reflection_fluctlight_id_required")
 	}
+	fluctlight, err := a.readFluctlightByID(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	if fluctlight.Status == "paused" {
+		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "paused", "reason": "fluctlight_paused"}, nil
+	}
+	if fluctlight.Status != "active" {
+		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "inactive", "reason": "fluctlight_not_active"}, nil
+	}
+	ctx = WithProviderExecutionGuard(ctx, a.providerGuardForFluctlight(fluctlightID))
 	var watermark, stateRevision int
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT watermark,state_revision FROM public.cognition_reflection_windows WHERE fluctlight_id=$1`, fluctlightID).Scan(&watermark, &stateRevision); err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
@@ -316,9 +330,16 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 			allowedEvidence["memory:"+memoryID] = struct{}{}
 		}
 	}
-	proposal, err := a.Provider.Structured(ctx, "reflection", []map[string]any{{"role": "system", "content": "Review only the supplied evidence and context. Return JSON with memory_candidates, relationship_candidates, developing_self_candidates, drive_candidates, preference_candidates, and trigger_candidates arrays. Never return personality_candidates or self_model_candidates. Developing Self claims describe only preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests; they must include category, claim, value, confidence, evidence_refs, and provenance. Never modify Core Persona or turn a one-off mood/reaction into a stable trait. Drive candidates use typed slots (pressure/scalar/categorical/set/bounded_object); preference candidates use the same typed value schemas. Every candidate must include complete typed fields and evidence_refs that reference an evidence id or sequence:N. Do not invent facts and do not use defaults."}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": compactCognitionContext(projection)})}})
+	proposal, err := a.Provider.Structured(WithProviderScenario(ctx, "reflection"), "reflection", []map[string]any{{"role": "system", "content": reflectionInstruction}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": compactCognitionContext(projection)})}})
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		if status, suppressed := providerSuppressionStatus(err); suppressed {
+			reason := "fluctlight_not_active"
+			if status == "paused" {
+				reason = "fluctlight_paused"
+			}
+			return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": status, "reason": reason}, nil
+		}
 		return nil, err
 	}
 	normalizedProposal := normalizeReflectionProposal(proposal)

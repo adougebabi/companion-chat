@@ -12,7 +12,7 @@ import (
 // Head identifies the additive Go-owned schema bundle. Released identifiers
 // are never rewritten; a new capability advances the head and preserves all
 // existing facts.
-const Head = "0024_persona_layers"
+const Head = "0025_llm_queue"
 
 // Runner applies the clean-start schema without importing the legacy runtime.
 // The statements are intentionally idempotent so an existing database keeps
@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS public.moments (id varchar(128) PRIMARY KEY, owner_fl
 CREATE TABLE IF NOT EXISTS public.moment_comments (id varchar(128) PRIMARY KEY, moment_id varchar(128) NOT NULL, author_actor_id varchar(128) NOT NULL, text text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.moment_reactions (moment_id varchar(128) NOT NULL, actor_id varchar(128) NOT NULL, kind varchar(32) NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(moment_id, actor_id));
 CREATE TABLE IF NOT EXISTS public.moment_read_positions (owner_fluctlight_id varchar(128) NOT NULL, actor_id varchar(128) NOT NULL, last_seen_at timestamptz, PRIMARY KEY(owner_fluctlight_id, actor_id));
-CREATE TABLE IF NOT EXISTS public.media_intents (id varchar(128) PRIMARY KEY, owner_fluctlight_id varchar(128) NOT NULL, kind varchar(32) NOT NULL, mime_type varchar(128) NOT NULL, prompt text NOT NULL, provider_request_id varchar(128) NOT NULL UNIQUE, provider_job_id varchar(256) UNIQUE, workflow_id varchar(128) NOT NULL UNIQUE, conversation_id varchar(128), message_id varchar(128), moment_id varchar(128), status varchar(32) NOT NULL DEFAULT 'pending', revision integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS public.media_intents (id varchar(128) PRIMARY KEY, owner_fluctlight_id varchar(128) NOT NULL, kind varchar(32) NOT NULL, mime_type varchar(128) NOT NULL, prompt text NOT NULL, provider_prompt text NOT NULL DEFAULT '', provider_request_id varchar(128) NOT NULL UNIQUE, provider_job_id varchar(256) UNIQUE, workflow_id varchar(128) NOT NULL UNIQUE, conversation_id varchar(128), message_id varchar(128), moment_id varchar(128), status varchar(32) NOT NULL DEFAULT 'pending', quality_retry_count integer NOT NULL DEFAULT 0, quality_retry_guidance text NOT NULL DEFAULT '', quality_verdict varchar(16) NOT NULL DEFAULT '', quality_candidate_sha256 varchar(128), quality_checked_at timestamptz, revision integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.media_assets (id varchar(128) PRIMARY KEY, owner_fluctlight_id varchar(128) NOT NULL, version varchar(128) NOT NULL, kind varchar(32) NOT NULL, mime_type varchar(128) NOT NULL, byte_size integer NOT NULL, sha256 varchar(128) NOT NULL, bucket varchar(256) NOT NULL, object_key text NOT NULL, object_version varchar(256), etag varchar(256), provider_request_id varchar(128) NOT NULL, workflow_id varchar(128) NOT NULL, status varchar(32) NOT NULL DEFAULT 'pending', created_at timestamptz NOT NULL DEFAULT now(), ready_at timestamptz, tombstoned_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS public.media_references (id varchar(128) PRIMARY KEY, asset_id varchar(128) NOT NULL, owner_fluctlight_id varchar(128) NOT NULL, target_type varchar(64) NOT NULL, target_id varchar(128) NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.media_tombstones (id varchar(128) PRIMARY KEY, asset_id varchar(128) NOT NULL, reason text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS public.platform_workflow_intents (intent_id varchar(1
 CREATE TABLE IF NOT EXISTS public.platform_outbox_events (id varchar(128) PRIMARY KEY, kind varchar(128) NOT NULL, aggregate_type varchar(96) NOT NULL, aggregate_id varchar(128) NOT NULL, fluctlight_id varchar(128), causation_id varchar(128) NOT NULL, correlation_id varchar(128) NOT NULL, idempotency_key varchar(256) NOT NULL UNIQUE, payload jsonb NOT NULL, occurred_at timestamptz NOT NULL DEFAULT now(), available_at timestamptz NOT NULL DEFAULT now(), attempt_policy jsonb NOT NULL, published_at timestamptz, completed_at timestamptz, failed_at timestamptz, claim_owner varchar(128), claim_until timestamptz, attempt_count integer NOT NULL DEFAULT 0, last_error text);
 CREATE TABLE IF NOT EXISTS public.platform_consumer_inbox (id bigserial PRIMARY KEY, consumer_group varchar(96) NOT NULL, event_id varchar(128) NOT NULL, result jsonb NOT NULL, applied_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.diagnostic_events (id varchar(128) PRIMARY KEY, event_type varchar(128) NOT NULL, severity varchar(32) NOT NULL, fluctlight_id varchar(128), causation_id varchar(128), correlation_id varchar(128) NOT NULL, payload jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
-CREATE TABLE IF NOT EXISTS public.diagnostic_model_runs (id varchar(128) PRIMARY KEY, role varchar(64) NOT NULL, endpoint_id varchar(128), model_id varchar(256) NOT NULL, prompt jsonb NOT NULL, response jsonb, status varchar(32) NOT NULL, error_code varchar(128), correlation_id varchar(128) NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS public.diagnostic_model_runs (id varchar(128) PRIMARY KEY, role varchar(64) NOT NULL, binding_role varchar(64) NOT NULL DEFAULT 'generic_llm', scenario varchar(128) NOT NULL DEFAULT '', priority integer NOT NULL DEFAULT 0, endpoint_id varchar(128), model_id varchar(256) NOT NULL, prompt jsonb NOT NULL, response jsonb, status varchar(32) NOT NULL, error_code varchar(128), correlation_id varchar(128) NOT NULL, queued_at timestamptz NOT NULL DEFAULT now(), started_at timestamptz, completed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.diagnostic_turns (id varchar(128) PRIMARY KEY, fluctlight_id varchar(128) NOT NULL, conversation_id varchar(128), source_event_id varchar(128), correlation_id varchar(128) NOT NULL, status varchar(32) NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.diagnostic_workflow_links (id varchar(128) PRIMARY KEY, correlation_id varchar(128) NOT NULL, workflow_id varchar(128) NOT NULL, intent_id varchar(128), event_id varchar(128), created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.diagnostic_retention (id bigserial PRIMARY KEY, resource varchar(64) NOT NULL UNIQUE, retention_days integer NOT NULL, max_rows integer NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());
@@ -197,6 +197,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_life_schedule_revision ON public.life_sched
 ALTER TABLE public.media_intents ADD COLUMN IF NOT EXISTS conversation_id varchar(128);
 ALTER TABLE public.media_intents ADD COLUMN IF NOT EXISTS message_id varchar(128);
 ALTER TABLE public.media_intents ADD COLUMN IF NOT EXISTS moment_id varchar(128);
+ALTER TABLE public.media_intents ADD COLUMN IF NOT EXISTS provider_prompt text NOT NULL DEFAULT '';
+ALTER TABLE public.media_intents ADD COLUMN IF NOT EXISTS quality_retry_count integer NOT NULL DEFAULT 0;
+ALTER TABLE public.media_intents ADD COLUMN IF NOT EXISTS quality_retry_guidance text NOT NULL DEFAULT '';
+ALTER TABLE public.media_intents ADD COLUMN IF NOT EXISTS quality_verdict varchar(16) NOT NULL DEFAULT '';
+ALTER TABLE public.media_intents ADD COLUMN IF NOT EXISTS quality_candidate_sha256 varchar(128);
+ALTER TABLE public.media_intents ADD COLUMN IF NOT EXISTS quality_checked_at timestamptz;
 ALTER TABLE public.media_assets ADD COLUMN IF NOT EXISTS object_version varchar(256);
 ALTER TABLE public.media_assets ADD COLUMN IF NOT EXISTS etag varchar(256);
 ALTER TABLE public.life_schedules ADD COLUMN IF NOT EXISTS previous_version_id varchar(128);
@@ -255,6 +261,20 @@ ALTER TABLE public.platform_outbox_events ADD COLUMN IF NOT EXISTS claim_owner v
 ALTER TABLE public.platform_outbox_events ADD COLUMN IF NOT EXISTS claim_until timestamptz;
 ALTER TABLE public.platform_outbox_events ADD COLUMN IF NOT EXISTS attempt_count integer NOT NULL DEFAULT 0;
 ALTER TABLE public.platform_outbox_events ADD COLUMN IF NOT EXISTS last_error text;
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS binding_role varchar(64) NOT NULL DEFAULT 'generic_llm';
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS scenario varchar(128) NOT NULL DEFAULT '';
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS priority integer NOT NULL DEFAULT 0;
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS queued_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS started_at timestamptz;
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+UPDATE public.diagnostic_model_runs SET binding_role=CASE WHEN role='embedding' THEN 'embedding' ELSE 'generic_llm' END WHERE binding_role IS NULL OR binding_role='' OR (binding_role='generic_llm' AND role='embedding');
+INSERT INTO public.runtime_settings(key,value_json) VALUES ('llm.queue','{"generated_concurrency":2,"embedding_concurrency":1}') ON CONFLICT (key) DO NOTHING;
+INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy)
+SELECT 'generic_llm',provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy
+FROM public.model_roles
+WHERE role IN ('action_realization','cognitive_assessment','interaction','reflection','initialization','media_prompt')
+ORDER BY CASE role WHEN 'action_realization' THEN 1 WHEN 'cognitive_assessment' THEN 2 WHEN 'interaction' THEN 3 WHEN 'reflection' THEN 4 WHEN 'initialization' THEN 5 ELSE 6 END
+LIMIT 1 ON CONFLICT (role) DO NOTHING;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_platform_consumer_inbox_group_event ON public.platform_consumer_inbox(consumer_group,event_id);
 CREATE INDEX IF NOT EXISTS ix_platform_outbox_available ON public.platform_outbox_events(published_at,failed_at,available_at,claim_until,occurred_at);
 `

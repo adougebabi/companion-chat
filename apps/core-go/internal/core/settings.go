@@ -63,8 +63,14 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 	clear := arrayValue(payload["clear_secrets"])
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		for key, value := range values {
-			if key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "diagnostics.retention" && key != "media.h3" {
+			if key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" {
 				return fmt.Errorf("unknown setting %s", key)
+			}
+			if key == "llm.queue" {
+				value = normalizeProviderQueueSettings(value)
+				if value == nil {
+					return errors.New("llm_queue_invalid")
+				}
 			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.runtime_settings (key,value_json,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at`, key, jsonString(value), time.Now().UTC()); err != nil {
 				return err
@@ -98,6 +104,34 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 		return nil, err
 	}
 	return a.ReadSettings(ctx, actorID)
+}
+
+func normalizeProviderQueueSettings(value any) map[string]any {
+	settings := map[string]any{
+		"generated_concurrency": providerQueueDefaultConcurrency,
+		"embedding_concurrency": providerQueueDefaultEmbedding,
+	}
+	input := mapValue(value)
+	if len(input) == 0 && value != nil {
+		return nil
+	}
+	for key := range input {
+		if key != "generated_concurrency" && key != "embedding_concurrency" {
+			return nil
+		}
+	}
+	for key, fallback := range map[string]int{"generated_concurrency": providerQueueDefaultConcurrency, "embedding_concurrency": providerQueueDefaultEmbedding} {
+		if raw, ok := input[key]; ok {
+			parsed, valid := numberFloat(raw)
+			if !valid || parsed != float64(int(parsed)) || int(parsed) < providerQueueMinConcurrency || int(parsed) > providerQueueMaxConcurrency {
+				return nil
+			}
+			settings[key] = int(parsed)
+		} else {
+			settings[key] = fallback
+		}
+	}
+	return settings
 }
 
 type encryptedValue struct{ ciphertext, nonce []byte }
@@ -136,7 +170,7 @@ func (a *App) ProviderEndpoints(ctx context.Context, actorID string) ([]map[stri
 		var configured bool
 		_ = a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.setting_secrets WHERE purpose=$1)`, purpose).Scan(&configured)
 		out = append(out, map[string]any{"id": id, "kind": kind, "base_url": base, "secret_configured": configured, "capability_status": status})
-		rolesRows, roleErr := a.DB.Pool().Query(ctx, `SELECT role FROM public.model_roles WHERE provider_endpoint_id=$1 ORDER BY role`, id)
+		rolesRows, roleErr := a.DB.Pool().Query(ctx, `SELECT role FROM public.model_roles WHERE provider_endpoint_id=$1 AND role IN ('generic_llm','embedding') ORDER BY role`, id)
 		if roleErr != nil {
 			return nil, roleErr
 		}
@@ -161,7 +195,7 @@ func (a *App) ProviderBindings(ctx context.Context, actorID string) ([]map[strin
 	if _, err := a.ReadSettings(ctx, actorID); err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT r.role,r.provider_endpoint_id,r.model_id,r.token_budget,r.timeout_seconds,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id ORDER BY r.role`)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT r.role,r.provider_endpoint_id,r.model_id,r.token_budget,r.timeout_seconds,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role IN ('generic_llm','embedding') ORDER BY r.role`)
 	if err != nil {
 		return nil, err
 	}

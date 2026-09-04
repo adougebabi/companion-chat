@@ -41,6 +41,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if _, err := application.RecoverStaleModelRuns(ctx, 15*time.Minute); err != nil {
+		log.Printf("recover stale model runs: %v", err)
+	}
 	coreworkflow.Configure(application)
 	if ensured, err := application.EnsureWakeUpIntents(ctx); err != nil {
 		log.Fatalf("ensure wake-up intents: %v", err)

@@ -107,12 +107,12 @@ func TestMergeVisualIdentityRendererConstraintsUpdatesOnlyExplicitConcepts(t *te
 	}
 }
 
-func TestVisualIdentityMediaPromptInstructionRequiresCharacterTurnaround(t *testing.T) {
+func TestVisualIdentityMediaPromptInstructionRequiresThreePanelCharacterSheet(t *testing.T) {
 	messages := addVisualIdentityMediaPromptInstruction("media_prompt", []map[string]any{
 		{"role": "system", "content": "generic"},
-		{"role": "user", "content": `{"purpose":"visual_identity","stage":"seed","render_intent":"character_turnaround"}`},
+		{"role": "user", "content": `{"purpose":"visual_identity","stage":"seed","render_intent":"character_design_sheet"}`},
 	})
-	if len(messages) != 2 || !strings.Contains(stringValue(messages[0]["content"]), "front view, side view, and back view") || !strings.Contains(stringValue(messages[0]["content"]), "no abstract silhouette") {
+	if len(messages) != 2 || !strings.Contains(stringValue(messages[0]["content"]), "three separate panels") || !strings.Contains(stringValue(messages[0]["content"]), "front full body standing straight") || !strings.Contains(stringValue(messages[0]["content"]), "no side view") {
 		t.Fatalf("visual identity prompt instruction = %#v", messages)
 	}
 }

@@ -141,7 +141,8 @@ export const useControlCenterStore = defineStore("control-center", {
     async loadDiagnostics() {
       const requestId = this.diagnosticsRequestId + 1;
       this.diagnosticsRequestId = requestId;
-      this.loading = true;
+      const initialLoad = !this.diagnosticsLoaded;
+      if (initialLoad) this.loading = true;
       this.error = "";
       this.diagnosticsWarning = "";
       this.diagnosticsNotice = "";
@@ -165,7 +166,7 @@ export const useControlCenterStore = defineStore("control-center", {
         this.diagnosticsLastLoadedAt = new Date().toISOString();
         if (!this.error) this.diagnosticsNotice = correlationId ? `已刷新 ${correlationId} 的诊断记录。` : "诊断记录已刷新。";
       } finally {
-        if (requestId === this.diagnosticsRequestId) this.loading = false;
+        if (requestId === this.diagnosticsRequestId && initialLoad) this.loading = false;
       }
     },
     async exportDiagnostics() {

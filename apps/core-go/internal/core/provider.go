@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -19,6 +20,9 @@ type ProviderClient struct {
 	DB          *PostgresRepository
 	SettingsKey []byte
 	HTTP        *http.Client
+	queueMu     sync.Mutex
+	generated   *providerQueue
+	embedding   *providerQueue
 }
 
 type providerAssignment struct {
@@ -32,22 +36,25 @@ type providerAssignment struct {
 }
 
 func (p *ProviderClient) assignment(ctx context.Context, role string) (providerAssignment, error) {
+	if !validProviderRole(role) {
+		return providerAssignment{}, fmt.Errorf("provider role %s invalid", role)
+	}
 	var endpointID, baseURL, modelID, purpose, capabilityStatus string
 	var timeoutSeconds, tokenBudget int
+	bindingRole := providerBindingRole(role)
 	err := p.DB.Pool().QueryRow(ctx, `
 		SELECT e.id,e.base_url, r.model_id, e.secret_purpose, r.timeout_seconds,r.token_budget,e.capability_status
 		FROM public.model_roles r
 		JOIN public.provider_endpoints e ON e.id = r.provider_endpoint_id
-		WHERE r.role = $1
-	`, role).Scan(&endpointID, &baseURL, &modelID, &purpose, &timeoutSeconds, &tokenBudget, &capabilityStatus)
+		WHERE r.role = $1 OR ($1 = 'generic_llm' AND r.role IN ('action_realization','cognitive_assessment','interaction','reflection','initialization','media_prompt'))
+		ORDER BY CASE WHEN r.role = $1 THEN 0 WHEN r.role = 'action_realization' THEN 1 WHEN r.role = 'cognitive_assessment' THEN 2 WHEN r.role = 'interaction' THEN 3 WHEN r.role = 'reflection' THEN 4 WHEN r.role = 'initialization' THEN 5 ELSE 6 END
+		LIMIT 1
+	`, bindingRole).Scan(&endpointID, &baseURL, &modelID, &purpose, &timeoutSeconds, &tokenBudget, &capabilityStatus)
 	if err != nil {
-		return providerAssignment{}, fmt.Errorf("provider role %s unavailable: %w", role, err)
-	}
-	if !validProviderRole(role) {
-		return providerAssignment{}, fmt.Errorf("provider role %s invalid", role)
+		return providerAssignment{}, fmt.Errorf("provider role %s unavailable: %w", bindingRole, err)
 	}
 	if strings.EqualFold(capabilityStatus, "failed") {
-		return providerAssignment{}, fmt.Errorf("provider role %s preflight failed", role)
+		return providerAssignment{}, fmt.Errorf("provider role %s preflight failed", bindingRole)
 	}
 	secret, err := p.secret(ctx, purpose)
 	if err != nil {
@@ -56,12 +63,12 @@ func (p *ProviderClient) assignment(ctx context.Context, role string) (providerA
 	if timeoutSeconds <= 0 {
 		timeoutSeconds = 120
 	}
-	return providerAssignment{Role: role, EndpointID: endpointID, BaseURL: strings.TrimRight(baseURL, "/"), ModelID: modelID, Secret: secret, Timeout: time.Duration(timeoutSeconds) * time.Second, TokenBudget: tokenBudget}, nil
+	return providerAssignment{Role: bindingRole, EndpointID: endpointID, BaseURL: strings.TrimRight(baseURL, "/"), ModelID: modelID, Secret: secret, Timeout: time.Duration(timeoutSeconds) * time.Second, TokenBudget: tokenBudget}, nil
 }
 
 func validProviderRole(role string) bool {
 	switch role {
-	case "initialization", "cognitive_assessment", "action_realization", "reflection", "embedding", "media_prompt", "visual_identity_vision", "visual_identity_patch":
+	case "generic_llm", "initialization", "cognitive_assessment", "action_realization", "interaction", "reflection", "embedding", "media_prompt", "visual_identity_vision", "visual_identity_patch":
 		return true
 	default:
 		return false
@@ -130,6 +137,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	}
 	messages = addVisualIdentityMediaPromptInstruction(role, messages)
 	messages = withChineseOutputInstruction(role, messages)
+	messages = formatProviderMessagesForRole(messages, role)
 	correlationID := diagnosticCorrelation(messages, "")
 	providerRequestID := "provider:" + stableDigest(role+":"+correlationID)
 	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, manifests, role, schemaName, schema, enableThinking)
@@ -141,126 +149,132 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	if err != nil {
 		return ProviderCompletion{}, err
 	}
-	requestCtx, cancel := context.WithTimeout(ctx, assignment.Timeout)
-	defer cancel()
-	request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/chat/completions", bytes.NewReader(body))
-	if err != nil {
-		return ProviderCompletion{}, err
-	}
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Idempotency-Key", providerRequestID)
-	request.Header.Set("X-Fluctlight-Provider-Request-Id", providerRequestID)
-	if assignment.Secret != "" {
-		request.Header.Set("Authorization", "Bearer "+assignment.Secret)
-	}
-	client := p.HTTP
-	if client == nil {
-		client = &http.Client{}
-	}
-	response, err := client.Do(request)
-	if err != nil {
-		p.recordProviderFailure(ctx, assignment, correlationID, messages, err.Error())
-		return ProviderCompletion{}, fmt.Errorf("provider request failed: %w", err)
-	}
-	defer response.Body.Close()
-	data, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
-	if err != nil {
-		p.recordProviderFailure(ctx, assignment, correlationID, messages, err.Error())
-		return ProviderCompletion{}, err
-	}
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		p.recordProviderFailure(ctx, assignment, correlationID, messages, fmt.Sprintf("http_%d", response.StatusCode))
-		return ProviderCompletion{}, fmt.Errorf("provider request returned HTTP %d", response.StatusCode)
-	}
-	var envelope map[string]any
-	if err := json.Unmarshal(data, &envelope); err != nil {
-		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_not_json")
-		return ProviderCompletion{}, fmt.Errorf("provider response is not JSON: %w", err)
-	}
-	choices, ok := envelope["choices"].([]any)
-	if !ok || len(choices) == 0 {
-		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_no_choices")
-		return ProviderCompletion{}, fmt.Errorf("provider response has no choices")
-	}
-	choice, ok := choices[0].(map[string]any)
-	if !ok {
-		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_choice_invalid")
-		return ProviderCompletion{}, fmt.Errorf("provider response choice is invalid")
-	}
-	message, ok := choice["message"].(map[string]any)
-	if !ok {
-		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_message_invalid")
-		return ProviderCompletion{}, fmt.Errorf("provider response message is invalid")
-	}
-	calls, err := NormalizeProviderToolCalls(message["tool_calls"], "", providerRequestID)
-	if err != nil {
-		p.recordProviderFailure(ctx, assignment, correlationID, messages, "tool_call_invalid")
-		return ProviderCompletion{}, err
-	}
-	logToolCallShapeNormalization(role, schemaName, "native", message["tool_calls"])
-	content, _ := message["content"].(string)
-	content = strings.TrimSpace(content)
-	// mlx-serve places structured JSON in reasoning_content when thinking is
-	// enabled, while leaving message.content empty. Treat that field as a
-	// structured control channel only; it is never exposed as visible text.
-	structuredCandidates := providerStructuredCandidates(message)
-	completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
-	var normalizedFields []string
-	if len(calls) > 0 {
-		for index := range completion.ToolCalls {
-			completion.ToolCalls[index].SourceFactID = ""
+	scenario := providerScenario(ctx, role, schemaName)
+	priority := providerPriority(scenario)
+	ctx = WithProviderScenario(ctx, scenario)
+	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
+	return runProviderQueued(p, ctx, assignment.Role, scenario, priority, diagnosticID, func(runCtx context.Context) (ProviderCompletion, error) {
+		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
+		defer cancel()
+		request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/chat/completions", bytes.NewReader(body))
+		if err != nil {
+			return ProviderCompletion{}, err
 		}
-		if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
-			completion.Structured, normalizedFields = normalizeProviderStructured(structured, schemaName, structuredSchema)
-			logStructuredNormalization(role, schemaName, normalizedFields, len(calls), len(structuredCandidates), false, message)
-		} else if jsonMode {
-			completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
-			completion.StructuredFallback = true
-			logStructuredNormalization(role, schemaName, normalizedFields, len(calls), len(structuredCandidates), true, message)
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Idempotency-Key", providerRequestID)
+		request.Header.Set("X-Fluctlight-Provider-Request-Id", providerRequestID)
+		if assignment.Secret != "" {
+			request.Header.Set("Authorization", "Bearer "+assignment.Secret)
 		}
-		providerResponse := map[string]any{"tool_calls": completion.ToolCalls, "text": content, "structured": completion.Structured}
+		client := p.HTTP
+		if client == nil {
+			client = &http.Client{}
+		}
+		response, err := client.Do(request)
+		if err != nil {
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, err.Error())
+			return ProviderCompletion{}, fmt.Errorf("provider request failed: %w", err)
+		}
+		defer response.Body.Close()
+		data, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
+		if err != nil {
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, err.Error())
+			return ProviderCompletion{}, err
+		}
+		if response.StatusCode < 200 || response.StatusCode >= 300 {
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, fmt.Sprintf("http_%d", response.StatusCode))
+			return ProviderCompletion{}, fmt.Errorf("provider request returned HTTP %d", response.StatusCode)
+		}
+		var envelope map[string]any
+		if err := json.Unmarshal(data, &envelope); err != nil {
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_not_json")
+			return ProviderCompletion{}, fmt.Errorf("provider response is not JSON: %w", err)
+		}
+		choices, ok := envelope["choices"].([]any)
+		if !ok || len(choices) == 0 {
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_no_choices")
+			return ProviderCompletion{}, fmt.Errorf("provider response has no choices")
+		}
+		choice, ok := choices[0].(map[string]any)
+		if !ok {
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_choice_invalid")
+			return ProviderCompletion{}, fmt.Errorf("provider response choice is invalid")
+		}
+		message, ok := choice["message"].(map[string]any)
+		if !ok {
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_message_invalid")
+			return ProviderCompletion{}, fmt.Errorf("provider response message is invalid")
+		}
+		calls, err := NormalizeProviderToolCalls(message["tool_calls"], "", providerRequestID)
+		if err != nil {
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, "tool_call_invalid")
+			return ProviderCompletion{}, err
+		}
+		logToolCallShapeNormalization(role, schemaName, "native", message["tool_calls"])
+		content, _ := message["content"].(string)
+		content = strings.TrimSpace(content)
+		// mlx-serve places structured JSON in reasoning_content when thinking is
+		// enabled, while leaving message.content empty. Treat that field as a
+		// structured control channel only; it is never exposed as visible text.
+		structuredCandidates := providerStructuredCandidates(message)
+		completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
+		var normalizedFields []string
+		if len(calls) > 0 {
+			for index := range completion.ToolCalls {
+				completion.ToolCalls[index].SourceFactID = ""
+			}
+			if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
+				completion.Structured, normalizedFields = normalizeProviderStructured(structured, schemaName, structuredSchema)
+				logStructuredNormalization(role, schemaName, normalizedFields, len(calls), len(structuredCandidates), false, message)
+			} else if jsonMode {
+				completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
+				completion.StructuredFallback = true
+				logStructuredNormalization(role, schemaName, normalizedFields, len(calls), len(structuredCandidates), true, message)
+			}
+			providerResponse := map[string]any{"tool_calls": completion.ToolCalls, "text": content, "structured": completion.Structured}
+			if len(normalizedFields) > 0 {
+				providerResponse["normalized_fields"] = normalizedFields
+			}
+			p.recordProviderSuccess(ctx, assignment, correlationID, messages, providerResponse)
+			return completion, nil
+		}
+		if len(structuredCandidates) == 0 {
+			if jsonMode {
+				completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
+				completion.StructuredFallback = true
+				logStructuredNormalization(role, schemaName, normalizedFields, 0, 0, true, message)
+				p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured, "normalization": "empty"})
+				return completion, nil
+			}
+			p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_content_empty")
+			return ProviderCompletion{}, fmt.Errorf("provider response content is empty")
+		}
+		if jsonMode || len(manifests) > 0 {
+			if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
+				completion.Structured, normalizedFields = normalizeProviderStructured(structured, schemaName, structuredSchema)
+				logStructuredNormalization(role, schemaName, normalizedFields, 0, len(structuredCandidates), false, message)
+				if len(manifests) > 0 {
+					logToolCallShapeNormalization(role, schemaName, "structured", structured["tool_calls"])
+					calls, callErr := NormalizeProviderToolCalls(completion.Structured["tool_calls"], "", providerRequestID)
+					if callErr != nil {
+						p.recordProviderFailure(ctx, assignment, correlationID, messages, "tool_call_invalid")
+						return ProviderCompletion{}, callErr
+					}
+					completion.ToolCalls = calls
+				}
+			} else if jsonMode {
+				completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
+				completion.StructuredFallback = true
+				logStructuredNormalization(role, schemaName, normalizedFields, 0, len(structuredCandidates), true, message)
+			}
+		}
+		providerResponse := map[string]any{"text": content, "structured": completion.Structured}
 		if len(normalizedFields) > 0 {
 			providerResponse["normalized_fields"] = normalizedFields
 		}
 		p.recordProviderSuccess(ctx, assignment, correlationID, messages, providerResponse)
 		return completion, nil
-	}
-	if len(structuredCandidates) == 0 {
-		if jsonMode {
-			completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
-			completion.StructuredFallback = true
-			logStructuredNormalization(role, schemaName, normalizedFields, 0, 0, true, message)
-			p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured, "normalization": "empty"})
-			return completion, nil
-		}
-		p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_content_empty")
-		return ProviderCompletion{}, fmt.Errorf("provider response content is empty")
-	}
-	if jsonMode || len(manifests) > 0 {
-		if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
-			completion.Structured, normalizedFields = normalizeProviderStructured(structured, schemaName, structuredSchema)
-			logStructuredNormalization(role, schemaName, normalizedFields, 0, len(structuredCandidates), false, message)
-			if len(manifests) > 0 {
-				logToolCallShapeNormalization(role, schemaName, "structured", structured["tool_calls"])
-				calls, callErr := NormalizeProviderToolCalls(completion.Structured["tool_calls"], "", providerRequestID)
-				if callErr != nil {
-					p.recordProviderFailure(ctx, assignment, correlationID, messages, "tool_call_invalid")
-					return ProviderCompletion{}, callErr
-				}
-				completion.ToolCalls = calls
-			}
-		} else if jsonMode {
-			completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
-			completion.StructuredFallback = true
-			logStructuredNormalization(role, schemaName, normalizedFields, 0, len(structuredCandidates), true, message)
-		}
-	}
-	providerResponse := map[string]any{"text": content, "structured": completion.Structured}
-	if len(normalizedFields) > 0 {
-		providerResponse["normalized_fields"] = normalizedFields
-	}
-	p.recordProviderSuccess(ctx, assignment, correlationID, messages, providerResponse)
-	return completion, nil
+	})
 }
 
 func addVisualIdentityMediaPromptInstruction(role string, messages []map[string]any) []map[string]any {
@@ -278,9 +292,9 @@ func addVisualIdentityMediaPromptInstruction(role string, messages []map[string]
 		}
 		stage := stringValue(concept["stage"])
 		if stage == "character_sheet" {
-			return prependSystemMessage(messages, map[string]any{"role": "system", "content": "This is a Visual Identity character sheet render. Preserve one consistent human character and produce a clean reference sheet with THREE SEPARATE FULL-BODY FIGURES visible simultaneously in one horizontal row: left figure front-facing, center figure in a true 90-degree side profile (left or right), right figure back-facing. The side-profile figure is mandatory, fully visible, and clearly separated; never collapse this into a front-and-back diptych. Use a neutral plain background. Do not turn the request into an artistic scene, editorial photo, landscape, abstract silhouette, or unrelated collage. Return only the final English image prompt."})
+			return prependSystemMessage(messages, map[string]any{"role": "system", "content": "This is a Visual Identity character sheet render. Use exactly this composition: Character design sheet, three separate panels on a white background. Left: front close-up portrait of the same character. Center: front full body standing straight. Right: back full body from behind. Symmetrical pose, no side view, high resolution concept art. Keep all three panels visible and clearly separated; never add a side-view panel or replace the center front full-body panel. Do not turn the request into an artistic scene, editorial photo, landscape, abstract silhouette, or unrelated collage. Return only the final English image prompt."})
 		}
-		return prependSystemMessage(messages, map[string]any{"role": "system", "content": "This is the first Visual Identity character-turnaround render. Preserve exactly one consistent human character and show THREE SEPARATE FULL-BODY FIGURES simultaneously in one horizontal row on one neutral plain studio/reference-sheet background: left figure front-facing, center figure in a true 90-degree side profile (left or right), right figure back-facing. The center side-profile figure is mandatory, fully visible, and clearly separated; never render only a front-and-back diptych. This is a character design reference, not an artistic scene or editorial photo: no abstract silhouette, no landscape, no decorative environment, no extra people, no unrelated collage, no logo or text. Return only the final English image prompt."})
+		return prependSystemMessage(messages, map[string]any{"role": "system", "content": "This is the first Visual Identity character-design-sheet render. Use exactly this composition: Character design sheet, three separate panels on a white background. Left: front close-up portrait of the same character. Center: front full body standing straight. Right: back full body from behind. Symmetrical pose, no side view, high resolution concept art. Keep all three panels visible and clearly separated; never render only a front-and-back diptych and never add a side-view panel. Do not turn the request into an artistic scene, editorial photo, landscape, abstract silhouette, or unrelated collage, no logo or text. Return only the final English image prompt."})
 	}
 	return messages
 }
@@ -595,83 +609,90 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 		return "", err
 	}
 	messages = withChineseOutputInstruction(role, messages)
+	messages = formatProviderMessagesForRole(messages, role)
 	correlationID := diagnosticCorrelation(messages, "")
 	body, err := json.Marshal(map[string]any{"model": assignment.ModelID, "messages": messages, "temperature": 0.7, "stream": true})
 	if err != nil {
 		return "", err
 	}
-	requestCtx, cancel := context.WithTimeout(ctx, assignment.Timeout)
-	defer cancel()
-	request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/chat/completions", bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Accept", "text/event-stream")
-	request.Header.Set("Idempotency-Key", "provider:"+stableDigest(role+":"+correlationID))
-	request.Header.Set("X-Fluctlight-Provider-Request-Id", "provider:"+stableDigest(role+":"+correlationID))
-	if assignment.Secret != "" {
-		request.Header.Set("Authorization", "Bearer "+assignment.Secret)
-	}
-	client := p.HTTP
-	if client == nil {
-		client = &http.Client{}
-	}
-	response, err := client.Do(request)
-	if err != nil {
-		return "", err
-	}
-	defer response.Body.Close()
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return "", fmt.Errorf("provider stream returned HTTP %d", response.StatusCode)
-	}
-	scanner := bufio.NewScanner(io.LimitReader(response.Body, 16<<20))
-	scanner.Buffer(make([]byte, 4<<10), 1<<20)
-	var builder strings.Builder
-	done := false
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, ":") {
-			continue
+	scenario := providerScenario(ctx, role, "")
+	priority := providerPriority(scenario)
+	ctx = WithProviderScenario(ctx, scenario)
+	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
+	return runProviderQueued(p, ctx, assignment.Role, scenario, priority, diagnosticID, func(runCtx context.Context) (string, error) {
+		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
+		defer cancel()
+		request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/chat/completions", bytes.NewReader(body))
+		if err != nil {
+			return "", err
 		}
-		if !strings.HasPrefix(line, "data:") {
-			continue
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Accept", "text/event-stream")
+		request.Header.Set("Idempotency-Key", "provider:"+stableDigest(role+":"+correlationID))
+		request.Header.Set("X-Fluctlight-Provider-Request-Id", "provider:"+stableDigest(role+":"+correlationID))
+		if assignment.Secret != "" {
+			request.Header.Set("Authorization", "Bearer "+assignment.Secret)
 		}
-		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-		if data == "[DONE]" {
-			done = true
-			break
+		client := p.HTTP
+		if client == nil {
+			client = &http.Client{}
 		}
-		var envelope struct {
-			Choices []struct {
-				Delta struct {
-					Content string `json:"content"`
-				} `json:"delta"`
-			} `json:"choices"`
+		response, err := client.Do(request)
+		if err != nil {
+			return "", err
 		}
-		if err := json.Unmarshal([]byte(data), &envelope); err != nil {
-			return "", fmt.Errorf("provider stream frame invalid: %w", err)
+		defer response.Body.Close()
+		if response.StatusCode < 200 || response.StatusCode >= 300 {
+			return "", fmt.Errorf("provider stream returned HTTP %d", response.StatusCode)
 		}
-		if len(envelope.Choices) == 0 || envelope.Choices[0].Delta.Content == "" {
-			continue
-		}
-		chunk := envelope.Choices[0].Delta.Content
-		builder.WriteString(chunk)
-		if onChunk != nil {
-			if err := onChunk(chunk); err != nil {
-				return "", err
+		scanner := bufio.NewScanner(io.LimitReader(response.Body, 16<<20))
+		scanner.Buffer(make([]byte, 4<<10), 1<<20)
+		var builder strings.Builder
+		done := false
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" || strings.HasPrefix(line, ":") {
+				continue
+			}
+			if !strings.HasPrefix(line, "data:") {
+				continue
+			}
+			data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+			if data == "[DONE]" {
+				done = true
+				break
+			}
+			var envelope struct {
+				Choices []struct {
+					Delta struct {
+						Content string `json:"content"`
+					} `json:"delta"`
+				} `json:"choices"`
+			}
+			if err := json.Unmarshal([]byte(data), &envelope); err != nil {
+				return "", fmt.Errorf("provider stream frame invalid: %w", err)
+			}
+			if len(envelope.Choices) == 0 || envelope.Choices[0].Delta.Content == "" {
+				continue
+			}
+			chunk := envelope.Choices[0].Delta.Content
+			builder.WriteString(chunk)
+			if onChunk != nil {
+				if err := onChunk(chunk); err != nil {
+					return "", err
+				}
 			}
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return "", err
-	}
-	if !done {
-		return "", errors.New("provider stream incomplete")
-	}
-	result := builder.String()
-	p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": result, "streamed": true})
-	return result, nil
+		if err := scanner.Err(); err != nil {
+			return "", err
+		}
+		if !done {
+			return "", errors.New("provider stream incomplete")
+		}
+		result := builder.String()
+		p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": result, "streamed": true})
+		return result, nil
+	})
 }
 
 func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []float64, error) {
@@ -684,45 +705,72 @@ func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []floa
 	if err != nil {
 		return "", nil, err
 	}
-	requestCtx, cancel := context.WithTimeout(ctx, assignment.Timeout)
-	defer cancel()
-	request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/embeddings", bytes.NewReader(body))
-	if err != nil {
-		return "", nil, err
-	}
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Idempotency-Key", "provider:"+stableDigest(correlationID))
-	request.Header.Set("X-Fluctlight-Provider-Request-Id", "provider:"+stableDigest(correlationID))
-	if assignment.Secret != "" {
-		request.Header.Set("Authorization", "Bearer "+assignment.Secret)
-	}
-	client := p.HTTP
-	if client == nil {
-		client = &http.Client{}
-	}
-	response, err := client.Do(request)
-	if err != nil {
-		p.recordProviderFailure(ctx, assignment, correlationID, []map[string]any{{"role": "user", "content": text}}, err.Error())
-		return "", nil, err
-	}
-	defer response.Body.Close()
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		p.recordProviderFailure(ctx, assignment, correlationID, []map[string]any{{"role": "user", "content": text}}, fmt.Sprintf("http_%d", response.StatusCode))
-		return "", nil, fmt.Errorf("embedding request returned HTTP %d", response.StatusCode)
-	}
-	var envelope struct {
-		Data []struct {
-			Embedding []float64 `json:"embedding"`
-		} `json:"data"`
-	}
-	if err := json.NewDecoder(io.LimitReader(response.Body, 8<<20)).Decode(&envelope); err != nil {
-		p.recordProviderFailure(ctx, assignment, correlationID, []map[string]any{{"role": "user", "content": text}}, "embedding_response_invalid")
-		return "", nil, err
-	}
-	if len(envelope.Data) == 0 || len(envelope.Data[0].Embedding) == 0 {
-		p.recordProviderFailure(ctx, assignment, correlationID, []map[string]any{{"role": "user", "content": text}}, "embedding_response_empty")
-		return "", nil, fmt.Errorf("embedding response is empty")
-	}
-	p.recordProviderSuccess(ctx, assignment, correlationID, []map[string]any{{"role": "user", "content": text}}, map[string]any{"dimensions": len(envelope.Data[0].Embedding)})
-	return assignment.ModelID, envelope.Data[0].Embedding, nil
+	prompt := []map[string]any{{"role": "user", "content": text}}
+	scenario := providerScenario(ctx, "embedding", "")
+	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, 0, prompt)
+	queuedResult, queuedErr := runProviderQueued(p, ctx, assignment.Role, scenario, 0, diagnosticID, func(runCtx context.Context) (struct {
+		model  string
+		vector []float64
+	}, error) {
+		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
+		defer cancel()
+		request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/embeddings", bytes.NewReader(body))
+		if err != nil {
+			return struct {
+				model  string
+				vector []float64
+			}{}, err
+		}
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Idempotency-Key", "provider:"+stableDigest(correlationID))
+		request.Header.Set("X-Fluctlight-Provider-Request-Id", "provider:"+stableDigest(correlationID))
+		if assignment.Secret != "" {
+			request.Header.Set("Authorization", "Bearer "+assignment.Secret)
+		}
+		client := p.HTTP
+		if client == nil {
+			client = &http.Client{}
+		}
+		response, err := client.Do(request)
+		if err != nil {
+			p.recordProviderFailure(runCtx, assignment, correlationID, prompt, err.Error())
+			return struct {
+				model  string
+				vector []float64
+			}{}, err
+		}
+		defer response.Body.Close()
+		if response.StatusCode < 200 || response.StatusCode >= 300 {
+			p.recordProviderFailure(runCtx, assignment, correlationID, prompt, fmt.Sprintf("http_%d", response.StatusCode))
+			return struct {
+				model  string
+				vector []float64
+			}{}, fmt.Errorf("embedding request returned HTTP %d", response.StatusCode)
+		}
+		var envelope struct {
+			Data []struct {
+				Embedding []float64 `json:"embedding"`
+			} `json:"data"`
+		}
+		if err := json.NewDecoder(io.LimitReader(response.Body, 8<<20)).Decode(&envelope); err != nil {
+			p.recordProviderFailure(runCtx, assignment, correlationID, prompt, "embedding_response_invalid")
+			return struct {
+				model  string
+				vector []float64
+			}{}, err
+		}
+		if len(envelope.Data) == 0 || len(envelope.Data[0].Embedding) == 0 {
+			p.recordProviderFailure(runCtx, assignment, correlationID, prompt, "embedding_response_empty")
+			return struct {
+				model  string
+				vector []float64
+			}{}, fmt.Errorf("embedding response is empty")
+		}
+		p.recordProviderSuccess(runCtx, assignment, correlationID, prompt, map[string]any{"dimensions": len(envelope.Data[0].Embedding)})
+		return struct {
+			model  string
+			vector []float64
+		}{model: assignment.ModelID, vector: envelope.Data[0].Embedding}, nil
+	})
+	return queuedResult.model, queuedResult.vector, queuedErr
 }

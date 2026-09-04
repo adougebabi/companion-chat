@@ -88,13 +88,19 @@ func browserDiagnostic(event map[string]any) map[string]any {
 
 func browserDiagnosticModelRun(row map[string]any) map[string]any {
 	result := map[string]any{
-		"id":            stringValue(first(row, "id")),
-		"role":          stringValue(first(row, "role")),
-		"modelId":       stringValue(first(row, "model_id")),
-		"prompt":        jsonValue(row["prompt"]),
-		"status":        stringValue(first(row, "status")),
-		"correlationId": stringValue(first(row, "correlation_id")),
-		"createdAt":     stringValue(first(row, "created_at")),
+		"id":                stringValue(first(row, "id")),
+		"role":              stringValue(first(row, "role")),
+		"bindingRole":       stringValue(first(row, "binding_role", "bindingRole")),
+		"scenario":          stringValue(first(row, "scenario")),
+		"priority":          first(row, "priority"),
+		"queuePendingCount": first(row, "queue_pending_count", "queuePendingCount"),
+		"queuePosition":     first(row, "queue_position", "queuePosition"),
+		"modelId":           stringValue(first(row, "model_id")),
+		"prompt":            jsonValue(row["prompt"]),
+		"status":            stringValue(first(row, "status")),
+		"correlationId":     stringValue(first(row, "correlation_id")),
+		"createdAt":         stringValue(first(row, "created_at")),
+		"queuedAt":          stringValue(first(row, "queued_at")),
 	}
 	if value, exists := row["endpoint_id"]; exists {
 		result["endpointId"] = value
@@ -104,6 +110,12 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 	}
 	if value, exists := row["error_code"]; exists {
 		result["errorCode"] = value
+	}
+	if value, exists := row["started_at"]; exists {
+		result["startedAt"] = value
+	}
+	if value, exists := row["completed_at"]; exists {
+		result["completedAt"] = value
 	}
 	return result
 }

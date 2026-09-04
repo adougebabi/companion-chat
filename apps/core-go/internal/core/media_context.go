@@ -156,7 +156,7 @@ func bindMediaPromptContext(prompt string) string {
 	if !strings.Contains(prompt, "context_binding") {
 		return prompt
 	}
-	return "The JSON below contains an authoritative context_binding snapshot captured during cognition. Preserve its current scene, activity, location, mood, concrete appearance, visual_identity, and renderer constraints (including the resolved chest LoRA weight). Do not replace a classroom or library with a bedroom unless context_override.explicit is true.\n\n" + prompt
+	return "The structured JSON payload below contains an authoritative context_binding snapshot captured during cognition. Preserve its current scene, activity, location, mood, concrete appearance, visual_identity, and renderer constraints (including the resolved chest LoRA weight). Do not replace a classroom or library with a bedroom unless context_override.explicit is true.\n\n" + prompt
 }
 
 func withContextAuthorityInstruction(messages []map[string]any) []map[string]any {
@@ -165,7 +165,7 @@ func withContextAuthorityInstruction(messages []map[string]any) []map[string]any
 	}
 	instruction := map[string]any{
 		"role":    "system",
-		"content": "The context.current_state and context.life_context in this request are the authoritative cognition-time snapshot. context.core_persona is a hard constraint; context.developing_self is evidence-backed soft context and must never override core_persona; current state is transient. Keep the decision and every capability argument consistent with the current scene, activity, location, mood, and concrete appearance fields present in the snapshot. Do not introduce a different room or activity. Only an explicit user request may change context, and that change must be represented with context_override.explicit=true in the affected capability concept.",
+		"content": providerContextAuthorityRule,
 	}
 	return prependSystemMessage(messages, instruction)
 }

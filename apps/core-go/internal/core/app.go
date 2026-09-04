@@ -52,6 +52,8 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 		Storage:     storage,
 		S3Bucket:    s3Bucket,
 	}
+	app.Provider.generated = newProviderQueue(providerQueueDefaultConcurrency)
+	app.Provider.embedding = newProviderQueue(providerQueueDefaultEmbedding)
 	app.Capabilities = NewCapabilityRegistry(
 		&imageCapabilityExecutor{app: app},
 		&visualIdentityCapabilityExecutor{app: app},
@@ -244,7 +246,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 		{"role": "system", "content": "Canonical visual appearance contract: if the description specifies a chest cup, put only the normalized label A/B/C/D in exactly core_persona.life_profile.appearance.chest_cup (example: {\"life_profile\":{\"appearance\":{\"chest_cup\":\"A\"}}}). Do not put cup labels in identity.body_type, identity.build, identity.chest, life_profile.physical_traits, or free-form visible_text. For male or non-applicable bodies, omit chest_cup; the renderer will mark it not_applicable. Keep other appearance fields under life_profile.appearance."},
 		{"role": "user", "content": description},
 	}
-	result, err := a.Provider.Structured(ctx, "initialization", messages)
+	result, err := a.Provider.Structured(WithProviderScenario(ctx, "initialization"), "initialization", messages)
 	if err != nil {
 		return nil, err
 	}

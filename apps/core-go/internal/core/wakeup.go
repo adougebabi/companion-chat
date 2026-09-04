@@ -205,7 +205,9 @@ func fallbackWakeUpActionWithoutCapability(proposedActionType string) (string, m
 	return "no_op", map[string]any{"status": "no_op", "reason": "action_requires_capability_call", "proposed_action_type": proposedActionType}
 }
 
-// ProcessWakeUp performs one complete internal-life cycle. It records the
+// ProcessWakeUp performs one complete internal-life cycle. Wake-up is the
+// periodic attention/thought/desire/agency trigger; it is not the reflection
+// window. It records the
 // model's attention/thought/desire/agency as a private cognition fact, then
 // schedules the existing reflection workflow against that fact. External
 // effects are frozen only after their capability contract and hard execution
@@ -228,9 +230,13 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
-	if fluctlight.Status != "active" && fluctlight.Status != "paused" {
+	if fluctlight.Status == "paused" {
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": "paused", "reason": "fluctlight_paused", "interval_seconds": settings.IntervalSeconds}, nil
+	}
+	if fluctlight.Status != "active" {
 		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": "inactive", "interval_seconds": settings.IntervalSeconds}, nil
 	}
+	ctx = WithProviderExecutionGuard(ctx, a.providerGuardForFluctlight(fluctlightID))
 	wakeID := "wake_up_" + stableDigest(fluctlightID+":"+fmt.Sprint(cycle))
 	var existingStatus, existingActionType string
 	var existingActionID, existingReflectionIntentID *string
@@ -263,11 +269,18 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		projection.VisualIdentity["missing"] = true
 	}
 	messages := withContextAuthorityInstruction([]map[string]any{
-		{"role": "system", "content": "You are evaluating one internal wake-up for a Fluctlight. Return JSON with attention, thought, desire, agency, and action_type. These fields describe the internal cognitive cycle, not visible prose. Keep each stage as a concise summary; do not provide private chain-of-thought or hidden reasoning. Do not invent facts. Choose no_op when no action is wanted. For a visible proactive_message or moment that needs an image, issue the media.image.generate tool call with the complete visual concept; do not return moment_media_request or message_media_request fields. If another installed capability is needed, issue its tool call and use its capability name as action_type; if the needed capability is missing, issue capability.request. When context.visual_identity.status is missing, you must call visual_identity.initialize exactly once and choose proactive_message so the Owner is told that you need to create your own visual identity. Never return visible text; response_intent is optional and must only explain an explicitly proposed action."},
+		{"role": "system", "content": wakeUpAssessmentInstruction + " When context.visual_identity.status is missing, you must call visual_identity.initialize exactly once and choose proactive_message so the Owner is told that you need to create your own visual identity. Never return visible text; response_intent is optional and must only explain an explicitly proposed action."},
 		{"role": "user", "content": jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "context": compactCognitionContext(projection)})},
 	})
-	completion, err := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "wake_up_response", wakeUpResponseSchema(), true)
+	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "wake_up"), "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "wake_up_response", wakeUpResponseSchema(), true)
 	if err != nil {
+		if status, suppressed := providerSuppressionStatus(err); suppressed {
+			reason := "fluctlight_not_active"
+			if status == "paused" {
+				reason = "fluctlight_paused"
+			}
+			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": status, "reason": reason, "interval_seconds": settings.IntervalSeconds}, nil
+		}
 		return nil, err
 	}
 	assessment := completion.Structured
@@ -398,11 +411,18 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			actualActionType = "no_op"
 			result = map[string]any{"status": "blocked", "reason": "proactive_target_invalid", "proposed_action_type": proposedActionType}
 		} else if proposedActionType == "proactive_message" || proposedActionType == "moment" {
-			visible, realizationErr := a.Provider.Text(ctx, "action_realization", []map[string]any{
-				{"role": "system", "content": "Realize the already-authorized wake-up action as one concise Chinese message. Preserve core_persona as a hard constraint, use developing_self only as soft context, and treat current_state as transient. For proactive_message address the Owner directly; for moment write one concise public Moment. Do not add semantic state or change the action type. If visual_identity_missing is true, use this sentence exactly: 顺便说一句，我现在还没有自己的视觉形象。如果方便的话，需要帮我创建一下。"},
+			visible, realizationErr := a.Provider.Text(WithProviderScenario(ctx, "wake_up"), "action_realization", []map[string]any{
+				{"role": "system", "content": actionRealizationInstruction + " If visual_identity_missing is true, use this sentence exactly: 顺便说一句，我现在还没有自己的视觉形象。如果方便的话，需要帮我创建一下。"},
 				{"role": "user", "content": jsonString(map[string]any{"action_type": proposedActionType, "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "response_intent": assessment["response_intent"], "visual_identity_missing": !visualIdentityActive, "context": compactCognitionContext(projection)})},
 			})
 			if realizationErr != nil {
+				if status, suppressed := providerSuppressionStatus(realizationErr); suppressed {
+					reason := "fluctlight_not_active"
+					if status == "paused" {
+						reason = "fluctlight_paused"
+					}
+					return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": status, "reason": reason, "interval_seconds": settings.IntervalSeconds}, nil
+				}
 				return nil, realizationErr
 			}
 			if strings.TrimSpace(visible) == "" || len([]rune(visible)) > 32000 {

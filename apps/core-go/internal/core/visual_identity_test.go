@@ -155,13 +155,18 @@ func TestVisualIdentityJSONEmptyTreatsDatabaseDefaultAsEmpty(t *testing.T) {
 	}
 }
 
-func TestEnforceVisualIdentityTurnaroundPromptRequiresDistinctSideProfile(t *testing.T) {
-	prompt := enforceVisualIdentityTurnaroundPrompt("front view, side view, back view", "seed")
-	if !strings.Contains(prompt, "three separate full-body figures") || !strings.Contains(prompt, "true 90-degree side profile") {
-		t.Fatalf("turnaround constraint missing: %s", prompt)
+func TestEnforceVisualIdentityPromptRequiresThreePanelLayout(t *testing.T) {
+	prompt := enforceVisualIdentityTurnaroundPrompt("character description", "seed")
+	expected := "Character design sheet, three separate panels on a white background. Left: front close-up portrait of character description. Center: front full body standing straight. Right: back full body from behind. Symmetrical pose, no side view, high resolution concept art."
+	if prompt != expected {
+		t.Fatalf("three-panel prompt = %q, want %q", prompt, expected)
 	}
-	if got := enforceVisualIdentityTurnaroundPrompt(prompt, "seed"); got != prompt {
-		t.Fatal("turnaround constraint was appended twice")
+	conceptPrompt := visualIdentityPromptFromConcept(map[string]any{
+		"purpose":         "visual_identity",
+		"visual_identity": map[string]any{"identity_snapshot": map[string]any{"identity": map[string]any{"visible_text": "一位20岁女性"}}},
+	})
+	if !strings.Contains(conceptPrompt, "一位20岁女性") || !strings.Contains(conceptPrompt, "no side view") || strings.Contains(conceptPrompt, "front view, side view") {
+		t.Fatalf("concept prompt = %q", conceptPrompt)
 	}
 	if got := enforceVisualIdentityTurnaroundPrompt("front view", "review"); got != "front view" {
 		t.Fatalf("review prompt should not receive seed layout constraint: %s", got)

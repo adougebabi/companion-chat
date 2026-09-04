@@ -22,7 +22,7 @@ func withChineseOutputInstruction(role string, messages []map[string]any) []map[
 	}
 	instruction := map[string]any{
 		"role":    "system",
-		"content": "除媒体提示词生成外，所有自然语言字段必须使用中文，包括 visible_text、response_intent、attention、thought、desire、agency、activity、scene、description 以及 reflection/initialization 的自然语言内容。JSON key、枚举值、工具名、ID 和时间戳属于协议字段，必须保持原样，不要翻译。",
+		"content": providerLanguageRule,
 	}
 	return prependSystemMessage(messages, instruction)
 }

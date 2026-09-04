@@ -844,3 +844,135 @@ Implemented the complete cognition growth vertical: structured appraisal/focus/i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 26: 摇光视觉身份工作流框架
+
+**Date**: 2026-09-03
+**Task**: 摇光视觉身份工作流框架
+**Branch**: `master`
+
+### Summary
+
+在独立工作树 codex/yaoguang-visual-identity 中完成 visual identity 聚合、初始化与 wake-up 触发、Temporal image→vision→patch→regenerate 框架、canonical/character-sheet 持久化、罩杯到胸部 LoRA adapter、Scene Image context binding，以及 Vue 时间轴和媒体事件合并；Go/Web/BFF/client 验证通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e596b12` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 27: 交互与 LLM 队列调度优化
+
+**Date**: 2026-09-04
+**Task**: 交互与 LLM 队列调度优化
+**Branch**: `master`
+
+### Summary
+
+完成聊天输入单行布局与提交即清空，修复 Vue 流式 assistant 文本只显示首个 token 的响应式问题；新增 generic_llm/embedding 双绑定兼容、按场景记录的 Provider 优先级队列、独立并发设置、诊断 queued/running/terminal 生命周期和唤醒失败后的 Continue-As-New 恢复。Go Core/BFF/Web/browser-client 全部质量检查通过；保留用户原有三份未提交后端 spec。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b96d870` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 28: 媒体提示词拍摄视角规则
+
+**Date**: 2026-09-04
+**Task**: 媒体提示词拍摄视角规则
+**Branch**: `master`
+
+### Summary
+
+将构图优先的前摄/后摄/全身镜/第三方拍摄规则写入 media_prompt 系统指令；补充单人、多人和完全模糊请求的设备可见性约束，更新媒体提示词契约与 Go 测试。go vet ./... 与 go test ./... 均通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `264177d` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 29: 生图后 LLM 质量验收闸门
+
+**Date**: 2026-09-04
+**Task**: 生图后 LLM 质量验收闸门
+**Branch**: `master`
+
+### Summary
+
+实现图片生成后的 C 阶段 LLM 质量验收：候选图片在 ready/发送前经过结构化 pass/retry/reject；验收基础设施故障按用户确认的 fail-open 记录 skipped 后直接交付；首次内容 retry 通过同一 MediaWorkflow 复用冻结概念和目标重生成一次，第二次或 reject 只失败媒体目标并保留正文；新增迁移字段、多模态输入、诊断脱敏、workflow/schema/状态测试与媒体契约同步。按用户要求跳过沙箱受限的 Redis listener 测试；其余 Go vet 和 Go 测试通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b9b6d23` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
