@@ -734,6 +734,25 @@ func (a *App) hasActiveVisualIdentity(ctx context.Context, fluctlightID string) 
 	return active, err
 }
 
+// visualIdentityWakeupNeedsInitialization suppresses the repeated missing
+// identity notice while an initialization session is already progressing. A
+// missing canonical during queued/running/awaiting-review is an in-flight
+// workflow state, not a request to start or announce the same workflow again.
+func (a *App) visualIdentityWakeupNeedsInitialization(ctx context.Context, fluctlightID string) (bool, error) {
+	active, err := a.hasActiveVisualIdentity(ctx, fluctlightID)
+	if err != nil {
+		return false, err
+	}
+	if active {
+		return false, nil
+	}
+	var pending bool
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_visual_identity_sessions WHERE fluctlight_id=$1 AND status IN ('queued','running','character_sheet_pending','awaiting_review'))`, fluctlightID).Scan(&pending); err != nil {
+		return false, err
+	}
+	return !pending, nil
+}
+
 // ProcessVisualIdentity advances one durable state-machine checkpoint. The
 // Worker may call it repeatedly; each checkpoint is idempotent and keeps large
 // provider payloads in PostgreSQL rather than Temporal history.

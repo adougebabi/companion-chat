@@ -259,6 +259,10 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
+	visualIdentityNeedsNotice, err := a.visualIdentityWakeupNeedsInitialization(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
 	if !visualIdentityActive {
 		// The missing identity is an authoritative domain fact. Keep it in the
 		// structured wake-up context so the persona can express the need without
@@ -312,7 +316,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	visualIdentityToolResults := make([]ToolResultV1, 0, 1)
-	if !visualIdentityActive {
+	if visualIdentityNeedsNotice {
 		remainingCalls := make([]ToolCallV1, 0, len(toolCalls))
 		visualIdentityCallCount := 0
 		for _, call := range toolCalls {
@@ -351,9 +355,20 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			}
 		}
 	}
-	if !visualIdentityActive {
+	if visualIdentityNeedsNotice {
 		assessment["visual_identity_missing"] = true
 		assessment["response_intent"] = "顺便说一句，我现在还没有自己的视觉形象。如果方便的话，需要帮我创建一下。"
+	} else {
+		// A local model may still echo a stale initializer call even though a
+		// session is already running. Do not execute a second trigger in that
+		// case; the durable session owns the next checkpoint.
+		filteredCalls := make([]ToolCallV1, 0, len(toolCalls))
+		for _, call := range toolCalls {
+			if call.Name != "visual_identity.initialize" {
+				filteredCalls = append(filteredCalls, call)
+			}
+		}
+		toolCalls = filteredCalls
 	}
 	composite, err := normalizeCompositeAction(assessment, toolCalls, wakeID, stringValue(assessment["action_type"]))
 	if err != nil {
@@ -363,7 +378,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	assessment["tool_calls"] = toolCalls
 	assessment["output_bindings"] = composite.OutputBindings
 	proposedActionType := stringValue(assessment["action_type"])
-	if !visualIdentityActive && (proposedActionType == "no_op" || len(visualIdentityToolResults) > 0) {
+	if visualIdentityNeedsNotice && (proposedActionType == "no_op" || len(visualIdentityToolResults) > 0) {
 		// Missing visual identity is an explicit wake-up responsibility. Promote
 		// an otherwise silent cycle into a concise proactive notice so the persona
 		// can tell the Owner it needs to create itself before the same transaction
