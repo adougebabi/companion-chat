@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 28
+- **Total Sessions**: 29
 - **Last Active**: 2026-09-04
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~945 | Active |
+| `journal-1.md` | ~978 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 29 | 2026-09-04 | 生图后 LLM 质量验收闸门 | `b9b6d23` | `master` |
 | 28 | 2026-09-04 | 媒体提示词拍摄视角规则 | `264177d` | `master` |
 | 27 | 2026-09-04 | 交互与 LLM 队列调度优化 | `b96d870` | `master` |
 | 26 | 2026-09-03 | 摇光视觉身份工作流框架 | `e596b12` | `master` |

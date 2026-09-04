@@ -943,3 +943,36 @@ Implemented the complete cognition growth vertical: structured appraisal/focus/i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 29: 生图后 LLM 质量验收闸门
+
+**Date**: 2026-09-04
+**Task**: 生图后 LLM 质量验收闸门
+**Branch**: `master`
+
+### Summary
+
+实现图片生成后的 C 阶段 LLM 质量验收：候选图片在 ready/发送前经过结构化 pass/retry/reject；验收基础设施故障按用户确认的 fail-open 记录 skipped 后直接交付；首次内容 retry 通过同一 MediaWorkflow 复用冻结概念和目标重生成一次，第二次或 reject 只失败媒体目标并保留正文；新增迁移字段、多模态输入、诊断脱敏、workflow/schema/状态测试与媒体契约同步。按用户要求跳过沙箱受限的 Redis listener 测试；其余 Go vet 和 Go 测试通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b9b6d23` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
