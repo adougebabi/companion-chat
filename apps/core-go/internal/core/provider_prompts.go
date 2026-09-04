@@ -4,7 +4,7 @@ package core
 // Schema and native tools carry protocol detail; the system message only
 // states semantic authority and the decision boundary the model must follow.
 const (
-	providerLanguageRule = "除 media_prompt 外，所有自然语言值使用中文；JSON key、枚举值、工具名、ID 和时间戳保持协议原文。"
+	providerLanguageRule = "除 media_prompt 外，所有自然语言值使用中文；协议 key、枚举值、工具名、ID 和时间戳保持原文。输入数据使用紧凑 YAML；带 [N]{字段} 的同构列表按表头顺序逐行读取。"
 
 	providerContextAuthorityRule = "context.current_state 是当前状态事实；core_persona 是硬约束，developing_self 是带证据的软线索。优先级为 core_persona > developing_self > current_state。决策和工具参数必须与 context 的 scene、activity、location、mood、appearance 一致，不得自行改换房间或活动。只有明确的用户请求可改变 context，并在对应 concept 中标记 context_override.explicit=true。"
 

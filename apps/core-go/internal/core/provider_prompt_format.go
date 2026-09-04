@@ -12,19 +12,23 @@ import (
 
 // formatProviderMessages converts only complete JSON payloads in user/tool
 // messages. System instructions and ordinary prose are intentionally left
-// untouched so response-format contracts remain explicit. YAML is selected
-// over Markdown/TOON because cognition payloads are deeply nested and contain
-// heterogeneous arrays; YAML removes JSON punctuation without asking every
-// configured model to learn a second tabular protocol.
+// untouched so response-format contracts remain explicit. Nested maps stay
+// YAML, while homogeneous object arrays use a compact TOON table because the
+// current cognition context repeats the same field names dozens of times.
 func formatProviderMessages(messages []map[string]any) []map[string]any {
+	return formatProviderMessagesForRole(messages, "")
+}
+
+func formatProviderMessagesForRole(messages []map[string]any, role string) []map[string]any {
 	formatted := make([]map[string]any, 0, len(messages))
+	useTOON := role != "media_prompt"
 	for _, message := range messages {
 		copyMessage := make(map[string]any, len(message))
 		for key, value := range message {
 			copyMessage[key] = value
 		}
 		if content, ok := message["content"].(string); ok && stringValue(message["role"]) != "system" {
-			copyMessage["content"] = formatProviderPromptContent(content)
+			copyMessage["content"] = formatProviderPromptContentWithMode(content, useTOON)
 		}
 		formatted = append(formatted, copyMessage)
 	}
@@ -32,6 +36,10 @@ func formatProviderMessages(messages []map[string]any) []map[string]any {
 }
 
 func formatProviderPromptContent(content string) string {
+	return formatProviderPromptContentWithMode(content, true)
+}
+
+func formatProviderPromptContentWithMode(content string, useTOON bool) string {
 	trimmed := strings.TrimSpace(content)
 	if trimmed == "" {
 		return content
@@ -45,7 +53,7 @@ func formatProviderPromptContent(content string) string {
 			return content
 		}
 	}
-	formatted := renderProviderYAML(value)
+	formatted := renderProviderYAMLWithMode(value, useTOON)
 	if prefix != "" {
 		return strings.TrimSpace(prefix) + "\n\n" + formatted
 	}
@@ -82,12 +90,20 @@ func decodeProviderJSONPayload(content string) (string, any, bool) {
 }
 
 func renderProviderYAML(value any) string {
+	return renderProviderYAMLWithMode(value, true)
+}
+
+func renderProviderYAMLWithMode(value any, useTOON bool) string {
 	var builder strings.Builder
-	renderProviderYAMLValue(&builder, value, 0)
+	renderProviderYAMLValueWithMode(&builder, value, 0, useTOON)
 	return strings.TrimRight(builder.String(), "\n")
 }
 
 func renderProviderYAMLValue(builder *strings.Builder, value any, indent int) {
+	renderProviderYAMLValueWithMode(builder, value, indent, true)
+}
+
+func renderProviderYAMLValueWithMode(builder *strings.Builder, value any, indent int, useTOON bool) {
 	switch typed := value.(type) {
 	case map[string]any:
 		keys := make([]string, 0, len(typed))
@@ -102,8 +118,31 @@ func renderProviderYAMLValue(builder *strings.Builder, value any, indent int) {
 		for _, key := range keys {
 			writeProviderIndent(builder, indent)
 			builder.WriteString(formatProviderYAMLKey(key))
+			if useTOON {
+				if rows, ok := typed[key].([]any); ok {
+					if fields, render := providerTOONFields(rows); render {
+						builder.WriteString("[")
+						builder.WriteString(strconv.Itoa(len(rows)))
+						builder.WriteString("]{")
+						builder.WriteString(strings.Join(fields, ","))
+						builder.WriteString("}:\n")
+						for _, row := range rows {
+							object := row.(map[string]any)
+							writeProviderIndent(builder, indent+2)
+							for index, field := range fields {
+								if index > 0 {
+									builder.WriteString("|")
+								}
+								builder.WriteString(formatProviderTOONCell(object[field]))
+							}
+							builder.WriteString("\n")
+						}
+						continue
+					}
+				}
+			}
 			builder.WriteString(":")
-			writeProviderYAMLChild(builder, typed[key], indent)
+			writeProviderYAMLChildWithMode(builder, typed[key], indent, useTOON)
 		}
 	case []any:
 		if len(typed) == 0 {
@@ -163,6 +202,10 @@ func providerYAMLMapKeys(value map[string]any) []string {
 }
 
 func writeProviderYAMLChild(builder *strings.Builder, value any, indent int) {
+	writeProviderYAMLChildWithMode(builder, value, indent, true)
+}
+
+func writeProviderYAMLChildWithMode(builder *strings.Builder, value any, indent int, useTOON bool) {
 	if text, ok := value.(string); ok && strings.ContainsAny(text, "\r\n") {
 		builder.WriteString(" |\n")
 		writeProviderYAMLBlock(builder, text, indent+2)
@@ -183,7 +226,61 @@ func writeProviderYAMLChild(builder *strings.Builder, value any, indent int) {
 		return
 	}
 	builder.WriteString("\n")
-	renderProviderYAMLValue(builder, value, indent+2)
+	renderProviderYAMLValueWithMode(builder, value, indent+2, useTOON)
+}
+
+func providerTOONFields(rows []any) ([]string, bool) {
+	if len(rows) < 2 {
+		return nil, false
+	}
+	first, ok := rows[0].(map[string]any)
+	if !ok || len(first) == 0 {
+		return nil, false
+	}
+	fields := providerYAMLMapKeys(first)
+	for _, raw := range rows {
+		object, ok := raw.(map[string]any)
+		if !ok || len(object) != len(fields) {
+			return nil, false
+		}
+		for _, field := range fields {
+			if _, exists := object[field]; !exists || !isProviderTOONCell(object[field]) {
+				return nil, false
+			}
+		}
+	}
+	return fields, true
+}
+
+func isProviderTOONCell(value any) bool {
+	switch typed := value.(type) {
+	case map[string]any:
+		return false
+	case []any:
+		for _, item := range typed {
+			if !isProviderYAMLScalar(item) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func formatProviderTOONCell(value any) string {
+	if list, ok := value.([]any); ok {
+		cells := make([]string, 0, len(list))
+		for _, item := range list {
+			cells = append(cells, formatProviderTOONCell(item))
+		}
+		return "[" + strings.Join(cells, ",") + "]"
+	}
+	if text, ok := value.(string); ok {
+		if text == "" || strings.TrimSpace(text) != text || strings.ContainsAny(text, "|\r\n") || text == "null" || text == "true" || text == "false" || looksLikeProviderYAMLNumber(text) {
+			return quoteProviderYAML(text)
+		}
+		return text
+	}
+	return formatProviderYAMLScalar(value)
 }
 
 func isProviderYAMLScalar(value any) bool {

@@ -8,12 +8,15 @@ import (
 func TestFormatProviderPromptContentUsesCompactYAMLForNestedJSON(t *testing.T) {
 	input := `{"context":{"name":"影者","count":2},"items":[{"kind":"user","text":"你好"},{"kind":"assistant","text":"收到"}]}`
 	got := formatProviderPromptContent(input)
-	for _, fragment := range []string{"\"", ","} {
+	for _, fragment := range []string{"\""} {
 		if strings.Contains(got, fragment) {
 			t.Fatalf("formatted prompt still contains %q: %s", fragment, got)
 		}
 	}
-	for _, fragment := range []string{"context:", "items:", "kind: user", "kind: assistant"} {
+	if strings.Count(got, ",") > 1 {
+		t.Fatalf("formatted prompt repeats comma delimiters: %s", got)
+	}
+	for _, fragment := range []string{"context:", "items[2]{kind,text}:", "user|你好", "assistant|收到"} {
 		if !strings.Contains(got, fragment) {
 			t.Fatalf("formatted prompt lost %q: %s", fragment, got)
 		}
@@ -58,5 +61,17 @@ func TestFormatProviderPromptContentFormatsJSONAfterAuthorityPreamble(t *testing
 	}
 	if strings.Contains(got, `\"`) {
 		t.Fatalf("prefixed JSON still contains escapes: %q", got)
+	}
+}
+
+func TestFormatProviderMessagesUsesTOONOnlyForNonMediaContexts(t *testing.T) {
+	content := `{"items":[{"id":"a","value":"one"},{"id":"b","value":"two"}]}`
+	generic := formatProviderMessagesForRole([]map[string]any{{"role": "user", "content": content}}, "cognitive_assessment")
+	if !strings.Contains(generic[0]["content"].(string), "items[2]{id,value}:") {
+		t.Fatalf("generic context did not use compact table: %q", generic[0]["content"])
+	}
+	media := formatProviderMessagesForRole([]map[string]any{{"role": "user", "content": content}}, "media_prompt")
+	if strings.Contains(media[0]["content"].(string), "items[2]{id,value}:") || !strings.Contains(media[0]["content"].(string), "- id: a") {
+		t.Fatalf("media prompt should remain standard YAML: %q", media[0]["content"])
 	}
 }
