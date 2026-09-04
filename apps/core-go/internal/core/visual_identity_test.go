@@ -1,6 +1,9 @@
 package core
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestNormalizeChestCupAndAdapter(t *testing.T) {
 	for _, test := range []struct {
@@ -70,6 +73,98 @@ func TestRendererConstraintsReadIdentityAppearanceAndHandleMale(t *testing.T) {
 	})
 	if err != nil || chest["chest_cup"] != "A" || chest["chest_lora_weight"] != float64(-5) {
 		t.Fatalf("chest constraints = %#v, %v", chest, err)
+	}
+}
+
+func TestNormalizeVisualIdentityFoundationUsesCanonicalAppearancePath(t *testing.T) {
+	persona := map[string]any{
+		"identity": map[string]any{
+			"gender":     "女性",
+			"appearance": map[string]any{"chest": "A cup"},
+		},
+		"life_profile": map[string]any{
+			"physical_traits": map[string]any{"bust_size": "B cup"},
+		},
+	}
+	normalizeVisualIdentityFoundation(persona)
+	appearance := mapValue(mapValue(persona["life_profile"])["appearance"])
+	if appearance["chest_cup"] != "B" {
+		t.Fatalf("canonical chest_cup = %#v", appearance["chest_cup"])
+	}
+	constraints, err := rendererConstraintsForCorePersona(persona)
+	if err != nil || constraints["chest_cup"] != "B" || constraints["chest_lora_weight"] != float64(-3) {
+		t.Fatalf("canonical renderer constraints = %#v, %v", constraints, err)
+	}
+}
+
+func TestNormalizeVisualIdentityFoundationNormalizesCanonicalDecoratedCup(t *testing.T) {
+	persona := map[string]any{
+		"identity":     map[string]any{"gender": "female"},
+		"life_profile": map[string]any{"appearance": map[string]any{"chest_cup": "A cup"}},
+	}
+	normalizeVisualIdentityFoundation(persona)
+	if got := mapValue(mapValue(persona["life_profile"])["appearance"])["chest_cup"]; got != "A" {
+		t.Fatalf("normalized canonical chest_cup = %#v", got)
+	}
+}
+
+func TestRendererConstraintsPreferCanonicalAppearanceOverLegacyAliases(t *testing.T) {
+	constraints, err := rendererConstraintsForCorePersona(map[string]any{
+		"identity": map[string]any{
+			"gender":     "female",
+			"appearance": map[string]any{"chest": "A cup"},
+		},
+		"life_profile": map[string]any{
+			"appearance":      map[string]any{"chest_cup": "B"},
+			"physical_traits": map[string]any{"bust_size": "C cup"},
+		},
+	})
+	if err != nil || constraints["chest_cup"] != "B" || constraints["chest_lora_weight"] != float64(-3) {
+		t.Fatalf("canonical precedence constraints = %#v, %v", constraints, err)
+	}
+}
+
+func TestInitializationSchemaDeclaresCanonicalChestCupPath(t *testing.T) {
+	schema := initializationResponseSchema()
+	corePersona := mapValue(mapValue(schema["properties"])["core_persona"])
+	lifeProfile := mapValue(mapValue(corePersona["properties"])["life_profile"])
+	appearance := mapValue(mapValue(lifeProfile["properties"])["appearance"])
+	chestCup := mapValue(mapValue(appearance["properties"])["chest_cup"])
+	if chestCup["type"] != "string" || len(arrayValue(chestCup["enum"])) != 4 {
+		t.Fatalf("canonical chest_cup schema = %#v", chestCup)
+	}
+}
+
+func TestVisualIdentityStageOrder(t *testing.T) {
+	if visualIdentityStageOrder(visualIdentityStageSeedReady) >= visualIdentityStageOrder(visualIdentityStageImageRequested) {
+		t.Fatal("seed_ready must sort before image_requested")
+	}
+	if visualIdentityStageOrder(visualIdentityStageVisionReady) >= visualIdentityStageOrder(visualIdentityStagePatchRequested) {
+		t.Fatal("vision_ready must sort before patch_requested")
+	}
+}
+
+func TestVisualIdentityJSONEmptyTreatsDatabaseDefaultAsEmpty(t *testing.T) {
+	for _, raw := range []string{"", "{}", " {} ", "null"} {
+		if !visualIdentityJSONEmpty([]byte(raw)) {
+			t.Fatalf("visualIdentityJSONEmpty(%q) = false", raw)
+		}
+	}
+	if visualIdentityJSONEmpty([]byte(`{"summary":"ok"}`)) {
+		t.Fatal("non-empty vision result was treated as empty")
+	}
+}
+
+func TestEnforceVisualIdentityTurnaroundPromptRequiresDistinctSideProfile(t *testing.T) {
+	prompt := enforceVisualIdentityTurnaroundPrompt("front view, side view, back view", "seed")
+	if !strings.Contains(prompt, "three separate full-body figures") || !strings.Contains(prompt, "true 90-degree side profile") {
+		t.Fatalf("turnaround constraint missing: %s", prompt)
+	}
+	if got := enforceVisualIdentityTurnaroundPrompt(prompt, "seed"); got != prompt {
+		t.Fatal("turnaround constraint was appended twice")
+	}
+	if got := enforceVisualIdentityTurnaroundPrompt("front view", "review"); got != "front view" {
+		t.Fatalf("review prompt should not receive seed layout constraint: %s", got)
 	}
 }
 

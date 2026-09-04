@@ -53,6 +53,50 @@ const (
 	visualIdentityStageFailed             = "failed"
 )
 
+// visualIdentityStageOrder is the domain order for timeline projection. All
+// events created inside one PostgreSQL transaction receive the same
+// transaction timestamp, so ordering by occurred_at alone can put
+// image_requested before the preceding seed_ready event. Keep the mapping in
+// code next to the stage constants and persist it for deterministic reads.
+func visualIdentityStageOrder(stage string) int {
+	switch stage {
+	case visualIdentityStageSessionCreated:
+		return 10
+	case visualIdentityStageSeedRequested:
+		return 20
+	case visualIdentityStageSeedReady:
+		return 30
+	case visualIdentityStageImageRequested:
+		return 40
+	case visualIdentityStageImageReady:
+		return 50
+	case visualIdentityStageVisionRequested:
+		return 60
+	case visualIdentityStageVisionReady:
+		return 70
+	case visualIdentityStagePatchRequested:
+		return 80
+	case visualIdentityStagePatchReady:
+		return 90
+	case visualIdentityStageRegenerate:
+		return 100
+	case visualIdentityStageAccepted:
+		return 110
+	case visualIdentityStageCharacterRequested:
+		return 120
+	case visualIdentityStageCharacterReady:
+		return 130
+	case visualIdentityStageCompleted:
+		return 140
+	case visualIdentityStageFailed:
+		return 150
+	default:
+		// Unknown stages should remain visible but sort after the known
+		// lifecycle rather than accidentally interleaving with initialization.
+		return 1000
+	}
+}
+
 // VisualIdentitySnapshot is the browser-safe, cognition-safe representation of
 // the current visual identity aggregate. Large model responses and provider
 // diagnostics stay in attempt rows and are never copied into this snapshot.
@@ -135,19 +179,62 @@ func chestRendererConstraints(lifeProfile map[string]any) (map[string]any, error
 }
 
 func chestCupCandidate(appearance map[string]any) string {
+	if appearance == nil {
+		return ""
+	}
 	for _, key := range []string{"chest_cup", "cup_size"} {
-		if value := strings.TrimSpace(stringValue(appearance[key])); value != "" {
-			return value
+		if raw := strings.TrimSpace(stringValue(appearance[key])); raw != "" {
+			if value := explicitChestCup(raw); value != "" {
+				return value
+			}
+			// These keys are semantic cup fields. Preserve an unsupported
+			// non-empty value so NormalizeChestCup can reject it explicitly
+			// instead of silently treating it as "not set".
+			return raw
 		}
 	}
 	// Free-form fields such as bust/body_type/build are accepted only when they
 	// already contain an explicit cup label. Values like “平胸” or “slim” are
 	// ordinary body descriptions and must not be guessed into a LoRA weight.
-	for _, key := range []string{"bust", "body_type", "build", "chest"} {
-		candidate := strings.ToUpper(strings.TrimSpace(stringValue(appearance[key])))
-		candidate = strings.TrimSpace(strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(candidate, "罩杯"), "杯"), " CUP"))
-		if candidate == "A" || candidate == "B" || candidate == "C" || candidate == "D" {
+	for _, key := range []string{"bust", "bust_size", "body_type", "build", "chest"} {
+		raw := strings.TrimSpace(stringValue(appearance[key]))
+		if candidate := explicitChestCup(raw); candidate != "" {
 			return candidate
+		}
+		// Preserve an explicitly cup-shaped but unsupported label (for
+		// example "E cup") so the adapter reports renderer_config_pending.
+		upper := strings.ToUpper(raw)
+		if strings.Contains(upper, "CUP") || strings.Contains(upper, "罩杯") || strings.Contains(upper, "杯") {
+			return raw
+		}
+	}
+	return ""
+}
+
+// explicitChestCup accepts the canonical A/B/C/D value and the small set of
+// legacy forms emitted by earlier initialization prompts (for example
+// "A cup", "A罩杯", or "A cup胸"). It deliberately does not infer a cup from
+// ordinary body words such as "slim" or "平胸".
+func explicitChestCup(value string) string {
+	candidate := strings.ToUpper(strings.TrimSpace(value))
+	if candidate == "" {
+		return ""
+	}
+	for _, cup := range []string{"A", "B", "C", "D"} {
+		if candidate == cup {
+			return cup
+		}
+		for _, suffix := range []string{" CUP", "CUP", "罩杯", "杯"} {
+			if !strings.HasPrefix(candidate, cup+suffix) {
+				continue
+			}
+			remainder := strings.TrimSpace(strings.TrimPrefix(candidate, cup+suffix))
+			// Some old visible descriptions used "A cup胸". Keep this
+			// compatibility path narrow and explicit; never match arbitrary
+			// prose after the label.
+			if remainder == "" || remainder == "胸" || remainder == "胸部" {
+				return cup
+			}
 		}
 	}
 	return ""
@@ -171,6 +258,38 @@ func rendererConstraintsForCorePersona(corePersona map[string]any) (map[string]a
 		return nil, err
 	}
 	if stringValue(constraints["chest_cup"]) == "" {
+		if value := chestCupCandidate(lifeProfile); value != "" {
+			cup, normalizeErr := NormalizeChestCup(value)
+			if normalizeErr != nil {
+				return nil, normalizeErr
+			}
+			weight, version, weightErr := chestCupToLoRAWeight(cup)
+			if weightErr != nil {
+				return nil, weightErr
+			}
+			constraints["chest_cup"] = cup
+			constraints["chest_lora_weight"] = weight
+			constraints["adapter_version"] = version
+		}
+	}
+	if stringValue(constraints["chest_cup"]) == "" {
+		if physicalTraits := mapValue(lifeProfile["physical_traits"]); len(physicalTraits) > 0 {
+			if value := chestCupCandidate(physicalTraits); value != "" {
+				cup, normalizeErr := NormalizeChestCup(value)
+				if normalizeErr != nil {
+					return nil, normalizeErr
+				}
+				weight, version, weightErr := chestCupToLoRAWeight(cup)
+				if weightErr != nil {
+					return nil, weightErr
+				}
+				constraints["chest_cup"] = cup
+				constraints["chest_lora_weight"] = weight
+				constraints["adapter_version"] = version
+			}
+		}
+	}
+	if stringValue(constraints["chest_cup"]) == "" {
 		if appearance := mapValue(identity["appearance"]); len(appearance) > 0 {
 			value := chestCupCandidate(appearance)
 			if value != "" {
@@ -187,21 +306,66 @@ func rendererConstraintsForCorePersona(corePersona map[string]any) (map[string]a
 				constraints["adapter_version"] = version
 			}
 		}
-		if value := chestCupCandidate(identity); value != "" {
-			cup, normalizeErr := NormalizeChestCup(value)
-			if normalizeErr != nil {
-				return nil, normalizeErr
+		if stringValue(constraints["chest_cup"]) == "" {
+			if value := chestCupCandidate(identity); value != "" {
+				cup, normalizeErr := NormalizeChestCup(value)
+				if normalizeErr != nil {
+					return nil, normalizeErr
+				}
+				weight, version, weightErr := chestCupToLoRAWeight(cup)
+				if weightErr != nil {
+					return nil, weightErr
+				}
+				constraints["chest_cup"] = cup
+				constraints["chest_lora_weight"] = weight
+				constraints["adapter_version"] = version
 			}
-			weight, version, weightErr := chestCupToLoRAWeight(cup)
-			if weightErr != nil {
-				return nil, weightErr
-			}
-			constraints["chest_cup"] = cup
-			constraints["chest_lora_weight"] = weight
-			constraints["adapter_version"] = version
 		}
 	}
 	return constraints, nil
+}
+
+// normalizeVisualIdentityFoundation establishes the one canonical semantic
+// location for the cup label. Initialization models may emit legacy aliases
+// while older data is still being migrated, but newly persisted Persona data
+// always carries life_profile.appearance.chest_cup.
+func normalizeVisualIdentityFoundation(corePersona map[string]any) {
+	if corePersona == nil {
+		return
+	}
+	lifeProfile := mapValue(corePersona["life_profile"])
+	appearance := mapValue(lifeProfile["appearance"])
+	if raw := stringValue(appearance["chest_cup"]); raw != "" {
+		// Even the canonical key may contain a legacy decorated value in an
+		// older foundation revision. Normalize it in place when it is valid;
+		// leave unsupported values untouched so the renderer can surface a
+		// configuration-pending error instead of guessing.
+		if cup, err := NormalizeChestCup(raw); err == nil {
+			appearance["chest_cup"] = cup
+		}
+	} else {
+		sources := []map[string]any{
+			appearance,
+			lifeProfile,
+			mapValue(lifeProfile["physical_traits"]),
+			mapValue(mapValue(corePersona["identity"])["appearance"]),
+			mapValue(corePersona["identity"]),
+			corePersona,
+		}
+		for _, source := range sources {
+			value := chestCupCandidate(source)
+			if value == "" {
+				continue
+			}
+			cup, err := NormalizeChestCup(value)
+			if err == nil {
+				appearance["chest_cup"] = cup
+			}
+			break
+		}
+	}
+	lifeProfile["appearance"] = appearance
+	corePersona["life_profile"] = lifeProfile
 }
 
 func visualIdentityProfileID(fluctlightID string) string {
@@ -231,6 +395,7 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 	if strings.TrimSpace(fluctlightID) == "" {
 		return "", errors.New("visual_identity_fluctlight_required")
 	}
+	normalizeVisualIdentityFoundation(corePersona)
 	profileID := visualIdentityProfileID(fluctlightID)
 	lifeProfile := mapValue(corePersona["life_profile"])
 	constraints, constraintErr := rendererConstraintsForCorePersona(corePersona)
@@ -252,10 +417,13 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 		// cup label because the model placed it under identity.body_type/build.
 		// Repair only the pre-canonical, missing profile and queued attempts; a
 		// canonical revision or an attempt with a frozen media intent is immutable.
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET identity_snapshot=$2,renderer_constraints=$3,adapter_version=$4,updated_at=now() WHERE id=$1 AND status='missing' AND current_revision=0`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='missing',identity_snapshot=$2,renderer_constraints=$3,adapter_version=$4,updated_at=now() WHERE id=$1 AND status IN ('missing','renderer_config_pending') AND current_revision=0`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
 			return "", err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() WHERE visual_identity_id=$1 AND media_intent_id IS NULL AND status='queued'`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
+			return "", err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts AS a SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() FROM public.media_intents AS m WHERE a.visual_identity_id=$1 AND a.media_intent_id=m.id AND a.candidate_asset_id IS NULL AND m.provider_job_id IS NULL AND a.status IN ('queued','image_queued','vision_queued','patch_queued')`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
 			return "", err
 		}
 	}
@@ -296,7 +464,7 @@ func appendVisualIdentityTimelineTx(ctx context.Context, tx pgx.Tx, sessionID, a
 	if assetIDs == nil {
 		assetIDs = []string{}
 	}
-	_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_visual_identity_timeline(id,session_id,attempt_id,fluctlight_id,stage,status,summary,asset_ids,metadata,correlation_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(id) DO NOTHING`, id, sessionID, nullableString(attemptID), fluctlightID, stage, status, visualIdentityBoundedText(summary, 512), jsonBytes(assetIDs), jsonBytes(metadata), visualIdentityBoundedText(correlationID, 128))
+	_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_visual_identity_timeline(id,session_id,attempt_id,fluctlight_id,stage,stage_order,status,summary,asset_ids,metadata,correlation_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT(id) DO NOTHING`, id, sessionID, nullableString(attemptID), fluctlightID, stage, visualIdentityStageOrder(stage), status, visualIdentityBoundedText(summary, 512), jsonBytes(assetIDs), jsonBytes(metadata), visualIdentityBoundedText(correlationID, 128))
 	return err
 }
 
@@ -310,6 +478,26 @@ func visualIdentityBoundedText(value string, limit int) string {
 		return string(runes[:limit])
 	}
 	return value
+}
+
+// enforceVisualIdentityTurnaroundPrompt adds a renderer-level composition
+// constraint after media_prompt returns. Some image models interpret the
+// shorter "front, side, back" wording as a two-panel front/back diptych. The
+// explicit three-figure layout makes the mandatory side profile unambiguous
+// without inventing any persona attributes.
+func enforceVisualIdentityTurnaroundPrompt(prompt, stage string) string {
+	if stage != "seed" && stage != "character_sheet" {
+		return strings.TrimSpace(prompt)
+	}
+	value := strings.TrimSpace(prompt)
+	if value == "" {
+		return value
+	}
+	const constraint = "three separate full-body figures visible at the same time in one horizontal row: left figure faces the camera in a front view, center figure is a true 90-degree side profile clearly showing the left or right silhouette, right figure faces away in a back view; keep all three figures fully visible and separated, never render only a front-and-back diptych"
+	if strings.Contains(strings.ToLower(value), "three separate full-body figures") {
+		return value
+	}
+	return value + ", " + constraint
 }
 
 // EnsureVisualIdentityInitialization creates or reuses the initialization
@@ -370,7 +558,7 @@ func (a *App) readVisualIdentityDetail(ctx context.Context, fluctlightID string)
 		"active_session_id":        snapshot.ActiveSessionID,
 		"timeline":                 []map[string]any{},
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT session_id,COALESCE(attempt_id,''),stage,status,summary,asset_ids,metadata,correlation_id,occurred_at FROM public.fluctlight_visual_identity_timeline WHERE fluctlight_id=$1 ORDER BY occurred_at,id LIMIT 200`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT session_id,COALESCE(attempt_id,''),stage,stage_order,status,summary,asset_ids,metadata,correlation_id,occurred_at FROM public.fluctlight_visual_identity_timeline WHERE fluctlight_id=$1 ORDER BY occurred_at,stage_order,id LIMIT 200`, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
@@ -378,12 +566,13 @@ func (a *App) readVisualIdentityDetail(ctx context.Context, fluctlightID string)
 	timeline := make([]map[string]any, 0)
 	for rows.Next() {
 		var sessionID, attemptID, stage, status, summary, correlation string
+		var stageOrder int
 		var assets, metadata []byte
 		var occurred time.Time
-		if err := rows.Scan(&sessionID, &attemptID, &stage, &status, &summary, &assets, &metadata, &correlation, &occurred); err != nil {
+		if err := rows.Scan(&sessionID, &attemptID, &stage, &stageOrder, &status, &summary, &assets, &metadata, &correlation, &occurred); err != nil {
 			return nil, err
 		}
-		timeline = append(timeline, map[string]any{"session_id": sessionID, "attempt_id": attemptID, "stage": stage, "status": status, "summary": summary, "asset_ids": decodeArray(assets), "metadata": decodeObject(metadata), "correlation_id": correlation, "occurred_at": occurred.Format(time.RFC3339Nano)})
+		timeline = append(timeline, map[string]any{"session_id": sessionID, "attempt_id": attemptID, "stage": stage, "stage_order": stageOrder, "status": status, "summary": summary, "asset_ids": decodeArray(assets), "metadata": decodeObject(metadata), "correlation_id": correlation, "occurred_at": occurred.Format(time.RFC3339Nano)})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -482,7 +671,7 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		if err != nil {
 			return nil, err
 		}
-		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_patch", []map[string]any{{"role": "system", "content": "Generate the first pure text-to-image prompt for a single human character turnaround reference sheet. The result must depict exactly one consistent human character, full body, shown in front view, side view, and back view together on one neutral plain studio/reference-sheet background. This is a character design reference, not an artistic scene or editorial photo: no abstract silhouette, no landscape, no decorative environment, no extra people, no collage of unrelated subjects, no logo or text. Return only the structured visual identity patch contract and do not invent unsupported identity facts."}, {"role": "user", "content": jsonString(map[string]any{"stage": "seed", "render_intent": "character_turnaround", "subject_count": 1, "views": []string{"front", "side", "back"}, "visual_identity": identity, "input_snapshot": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints)})}}, "visual_identity_seed_response", visualIdentitySeedResponseSchema(), false)
+		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_patch", []map[string]any{{"role": "system", "content": "Generate the first pure text-to-image prompt for a single human character turnaround reference sheet. The result must depict exactly one consistent human character using THREE SEPARATE FULL-BODY FIGURES visible simultaneously in one horizontal row: a left front-facing view, a center true 90-degree side profile (left or right), and a right back-facing view. The center side-profile figure is mandatory, fully visible, and clearly separated; never describe or produce only a front-and-back diptych. Use one neutral plain studio/reference-sheet background. This is a character design reference, not an artistic scene or editorial photo: no abstract silhouette, no landscape, no decorative environment, no extra people, no collage of unrelated subjects, no logo or text. Return only the structured visual identity patch contract and do not invent unsupported identity facts."}, {"role": "user", "content": jsonString(map[string]any{"stage": "seed", "render_intent": "character_turnaround", "subject_count": 1, "views": []string{"front", "side", "back"}, "visual_identity": identity, "input_snapshot": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints)})}}, "visual_identity_seed_response", visualIdentitySeedResponseSchema(), false)
 		if err != nil {
 			if visualIdentityProviderPending(err) {
 				_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageSeedRequested, "pending", "等待 visual_identity_patch 模型角色配置", nil)
@@ -532,7 +721,7 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		}
 		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageImageReady, "completed", "候选图已生成", []string{candidateAssetID})
 	}
-	if len(visionResult) == 0 {
+	if visualIdentityJSONEmpty(visionResult) {
 		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageVisionRequested, "running", "正在进行视觉理解", []string{candidateAssetID})
 		imageContent, imageErr := a.visualIdentityImageContent(ctx, candidateAssetID)
 		if imageErr != nil {
@@ -623,6 +812,11 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 	return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "character_sheet_queued"}, nil
 }
 
+func visualIdentityJSONEmpty(raw []byte) bool {
+	value := strings.TrimSpace(string(raw))
+	return value == "" || value == "{}" || value == "null"
+}
+
 func visualIdentityProviderPending(err error) bool {
 	if err == nil {
 		return false
@@ -675,9 +869,17 @@ func (a *App) refreshVisualIdentityRendererConstraints(ctx context.Context, fluc
 	if err := json.Unmarshal(raw, &persona); err != nil {
 		return err
 	}
+	normalizeVisualIdentityFoundation(persona)
 	constraints, err := rendererConstraintsForCorePersona(persona)
 	if err != nil {
-		return nil
+		// Keep a compatibility-created profile diagnosable. Swallowing this
+		// error leaves the aggregate as plain "missing" and lets the worker
+		// create an image without a valid renderer constraint.
+		constraints = map[string]any{
+			"schema_version":  visualIdentitySchemaVersion,
+			"adapter_version": visualIdentityAdapterVersion,
+			"error":           err.Error(),
+		}
 	}
 	identitySnapshot := map[string]any{
 		"schema_version": visualIdentitySchemaVersion,
@@ -685,22 +887,46 @@ func (a *App) refreshVisualIdentityRendererConstraints(ctx context.Context, fluc
 		"life_profile":   cloneMap(mapValue(persona["life_profile"])),
 	}
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET identity_snapshot=$2,renderer_constraints=$3,adapter_version=$4,updated_at=now() WHERE id=$1 AND status='missing' AND current_revision=0`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
+		profileStatus := "missing"
+		if stringValue(constraints["error"]) != "" {
+			profileStatus = visualIdentityStatusRendererPending
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status=$2,identity_snapshot=$3,renderer_constraints=$4,adapter_version=$5,updated_at=now() WHERE id=$1 AND status IN ('missing','renderer_config_pending') AND current_revision=0`, profileID, profileStatus, jsonBytes(identitySnapshot), jsonBytes(constraints), visualIdentityAdapterVersion); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() WHERE visual_identity_id=$1 AND media_intent_id IS NULL AND status='queued'`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() WHERE visual_identity_id=$1 AND media_intent_id IS NULL AND status IN ('queued','image_queued')`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
+			return err
+		}
+		// A compatibility-created attempt may already have a pending media
+		// intent from the previous build. It is still safe to repair its frozen
+		// renderer snapshot until ComfyUI has accepted a provider job; after
+		// that point the attempt must remain immutable.
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts AS a SET input_snapshot=$2,renderer_constraints=$3,updated_at=now() FROM public.media_intents AS m WHERE a.visual_identity_id=$1 AND a.media_intent_id=m.id AND a.candidate_asset_id IS NULL AND m.provider_job_id IS NULL AND a.status IN ('queued','image_queued','vision_queued','patch_queued')`, profileID, jsonBytes(identitySnapshot), jsonBytes(constraints)); err != nil {
 			return err
 		}
 		rows, err := tx.Query(ctx, `SELECT media_intent_id FROM public.fluctlight_visual_identity_attempts WHERE visual_identity_id=$1 AND media_intent_id IS NOT NULL AND candidate_asset_id IS NULL`, profileID)
 		if err != nil {
 			return err
 		}
-		defer rows.Close()
+		mediaIntentIDs := make([]string, 0)
 		for rows.Next() {
 			var mediaIntentID string
 			if err := rows.Scan(&mediaIntentID); err != nil {
+				rows.Close()
 				return err
 			}
+			mediaIntentIDs = append(mediaIntentIDs, mediaIntentID)
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return err
+		}
+		// pgx does not allow another statement on the same connection while a
+		// result set is open. Close the cursor before locking each media intent;
+		// otherwise this recovery path fails with the opaque "conn busy" error
+		// immediately after ComfyUI has finished successfully.
+		rows.Close()
+		for _, mediaIntentID := range mediaIntentIDs {
 			var providerJobID, status, prompt string
 			if err := tx.QueryRow(ctx, `SELECT COALESCE(provider_job_id,''),status,prompt FROM public.media_intents WHERE id=$1 FOR UPDATE`, mediaIntentID).Scan(&providerJobID, &status, &prompt); err != nil {
 				return err
@@ -719,7 +945,7 @@ func (a *App) refreshVisualIdentityRendererConstraints(ctx context.Context, fluc
 				return err
 			}
 		}
-		return rows.Err()
+		return nil
 	})
 }
 

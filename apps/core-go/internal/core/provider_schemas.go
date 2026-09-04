@@ -181,12 +181,23 @@ func initializationResponseSchema() map[string]any {
 		"provenance":    openObjectSchema(),
 		"status":        enumStringSchema("active", "uncertain"),
 	}, []string{"category", "claim", "value", "confidence", "evidence_refs", "provenance"}, false)
+	// Keep the visual appearance contract visible to the initialization model.
+	// life_profile intentionally remains extensible because the persona schema
+	// accepts domain-specific fields, but appearance.chest_cup is a typed,
+	// canonical location rather than another free-form alias.  The field is
+	// optional so male/non-applicable personas can omit it.
+	appearance := objectSchema(map[string]any{
+		"chest_cup": enumStringSchema("A", "B", "C", "D"),
+	}, nil, true)
+	lifeProfile := objectSchema(map[string]any{
+		"appearance": appearance,
+	}, nil, true)
 	corePersona := objectSchema(map[string]any{
 		"schema_version":    integerSchema(),
 		"identity":          openObjectSchema(),
 		"personality":       openObjectSchema(),
 		"behavioral_policy": openObjectSchema(),
-		"life_profile":      openObjectSchema(),
+		"life_profile":      lifeProfile,
 	}, []string{"identity", "personality", "behavioral_policy", "life_profile"}, false)
 	developingSelf := objectSchema(map[string]any{"claims": arraySchema(claim)}, []string{"claims"}, false)
 	return objectSchema(map[string]any{

@@ -122,7 +122,23 @@ const atmosphere = computed(() => {
 
 const contextPresence = computed(() => asRecord(context.value.presence));
 const visualIdentity = computed(() => asRecord(detail.value.visual_identity));
-const visualIdentityTimeline = computed(() => asRecords(visualIdentity.value.timeline));
+const visualIdentityStageRanks: Record<string, number> = {
+  session_created: 10, seed_requested: 20, seed_ready: 30, image_requested: 40, image_ready: 50,
+  vision_requested: 60, vision_ready: 70, patch_requested: 80, patch_ready: 90, regenerate: 100,
+  accepted: 110, character_sheet_requested: 120, character_sheet_ready: 130, completed: 140, failed: 150,
+};
+const visualIdentityTimeline = computed(() => asRecords(visualIdentity.value.timeline).slice().sort((left, right) => {
+  const leftTime = typeof left.occurred_at === "string" ? Date.parse(left.occurred_at) : Number.NaN;
+  const rightTime = typeof right.occurred_at === "string" ? Date.parse(right.occurred_at) : Number.NaN;
+  if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) return leftTime - rightTime;
+  const leftOrder = Number(left.stage_order);
+  const rightOrder = Number(right.stage_order);
+  if (Number.isFinite(leftOrder) && Number.isFinite(rightOrder) && leftOrder !== rightOrder) return leftOrder - rightOrder;
+  const leftRank = visualIdentityStageRanks[String(left.stage ?? "")] ?? 1000;
+  const rightRank = visualIdentityStageRanks[String(right.stage ?? "")] ?? 1000;
+  if (leftRank !== rightRank) return leftRank - rightRank;
+  return String(left.id ?? left.stage ?? "").localeCompare(String(right.id ?? right.stage ?? ""));
+}));
 const visualIdentityConstraints = computed(() => asRecord(visualIdentity.value.renderer_constraints));
 
 function visualIdentityAssetIds(event: JsonRecord): string[] {

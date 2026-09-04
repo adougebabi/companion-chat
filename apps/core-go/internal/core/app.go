@@ -241,12 +241,14 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 	}
 	messages := []map[string]any{
 		{"role": "system", "content": "Return one JSON object with core_persona, developing_self, initial_goals, and initial_intentions. core_persona must contain identity, personality, behavioral_policy, and life_profile. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_goals must be an array of objects with description, importance (0..1), and urgency (0..1). initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Do not return markdown or legacy foundation/personality candidate fields."},
+		{"role": "system", "content": "Canonical visual appearance contract: if the description specifies a chest cup, put only the normalized label A/B/C/D in exactly core_persona.life_profile.appearance.chest_cup (example: {\"life_profile\":{\"appearance\":{\"chest_cup\":\"A\"}}}). Do not put cup labels in identity.body_type, identity.build, identity.chest, life_profile.physical_traits, or free-form visible_text. For male or non-applicable bodies, omit chest_cup; the renderer will mark it not_applicable. Keep other appearance fields under life_profile.appearance."},
 		{"role": "user", "content": description},
 	}
 	result, err := a.Provider.Structured(ctx, "initialization", messages)
 	if err != nil {
 		return nil, err
 	}
+	normalizeVisualIdentityFoundation(mapValue(result["core_persona"]))
 	if !validInitialization(result) {
 		return nil, errors.New("initialization_persona_invalid")
 	}
@@ -501,6 +503,7 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 			intentions = value
 		}
 	}
+	normalizeVisualIdentityFoundation(corePersona)
 	developingSelfClaims := []any{}
 	if foundation != nil {
 		developingSelfClaims = arrayValue(mapValue(foundation["developing_self"])["claims"])

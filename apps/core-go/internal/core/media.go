@@ -71,9 +71,12 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 			return errors.New("media prompt generation returned empty text")
 		}
 		prompt = value
+		var concept map[string]any
+		if json.Unmarshal([]byte(intent.Prompt), &concept) == nil && stringValue(concept["purpose"]) == "visual_identity" {
+			prompt = enforceVisualIdentityTurnaroundPrompt(prompt, stringValue(concept["stage"]))
+		}
 		activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "submit"})
 		constraints := map[string]any{}
-		var concept map[string]any
 		if json.Unmarshal([]byte(intent.Prompt), &concept) == nil {
 			constraints = mapValue(concept["renderer_constraints"])
 		}
@@ -81,6 +84,13 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 		if err != nil {
 			return err
 		}
+		a.recordDiagnosticEvent(ctx, "media.comfyui.prompt_submitted", "info", intent.Owner, intent.ProviderRequestID, "media:"+intent.ID, map[string]any{
+			"media_intent_id":     intent.ID,
+			"provider_request_id": intent.ProviderRequestID,
+			"workflow_id":         intent.WorkflowID,
+			"stage":               stringValue(concept["stage"]),
+			"prompt":              visualIdentityBoundedText(prompt, 4000),
+		})
 		payload, _ := json.Marshal(map[string]any{"prompt": workflow})
 		request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/prompt", bytes.NewReader(payload))
 		if err != nil {
