@@ -588,6 +588,9 @@ func (a *App) EnsureDirectConversation(ctx context.Context, ownerID, fluctlightI
 	}
 	var id string
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2`, ownerID, fluctlightID).Scan(&id); err == nil {
+		if repairErr := a.backfillVisualIdentityConversationAssets(ctx, fluctlightID); repairErr != nil {
+			return id, repairErr
+		}
 		return id, nil
 	}
 	id = randomID("conversation_")
@@ -603,6 +606,14 @@ func (a *App) EnsureDirectConversation(ctx context.Context, ownerID, fluctlightI
 	})
 	if err == nil {
 		_ = a.DB.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2`, ownerID, fluctlightID).Scan(&id)
+	}
+	if err == nil {
+		// Repair Visual Identity assets created before media intents carried a
+		// conversation target. This is idempotent and makes already-completed
+		// reference images appear when the direct chat is opened.
+		if repairErr := a.backfillVisualIdentityConversationAssets(ctx, fluctlightID); repairErr != nil {
+			return id, repairErr
+		}
 	}
 	return id, err
 }
