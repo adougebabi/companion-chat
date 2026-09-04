@@ -604,6 +604,72 @@ func (a *App) EnsureVisualIdentityInitialization(ctx context.Context, fluctlight
 	return sessionID, err
 }
 
+func (a *App) visualIdentityConversationID(ctx context.Context, fluctlightID string) (string, error) {
+	var conversationID string
+	err := a.DB.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE fluctlight_actor_id=$1 ORDER BY created_at LIMIT 1`, fluctlightID).Scan(&conversationID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	return conversationID, err
+}
+
+// backfillVisualIdentityConversationAssets repairs media intents created by
+// older builds before Visual Identity media had a conversation target. It is
+// safe to run repeatedly because both the conversation message idempotency
+// key and media reference use stable IDs.
+func (a *App) backfillVisualIdentityConversationAssets(ctx context.Context, fluctlightID string) error {
+	conversationID, err := a.visualIdentityConversationID(ctx, fluctlightID)
+	if err != nil || conversationID == "" {
+		return err
+	}
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id FROM public.media_intents WHERE owner_fluctlight_id=$1 AND status='completed' ORDER BY created_at`, fluctlightID)
+	if err != nil {
+		return err
+	}
+	intentIDs := make([]string, 0)
+	for rows.Next() {
+		var intentID string
+		if err := rows.Scan(&intentID); err != nil {
+			rows.Close()
+			return err
+		}
+		intentIDs = append(intentIDs, intentID)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+	for _, intentID := range intentIDs {
+		intent, intentErr := a.readMediaIntent(ctx, intentID)
+		if intentErr != nil {
+			return intentErr
+		}
+		var concept map[string]any
+		if json.Unmarshal([]byte(intent.Prompt), &concept) != nil || stringValue(concept["purpose"]) != "visual_identity" {
+			continue
+		}
+		assetID := "asset_" + intent.ID
+		var ready bool
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_assets WHERE id=$1 AND owner_fluctlight_id=$2 AND status='ready')`, assetID, fluctlightID).Scan(&ready); err != nil {
+			return err
+		}
+		if !ready {
+			continue
+		}
+		if intent.ConversationID == nil {
+			if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET conversation_id=$2 WHERE id=$1 AND conversation_id IS NULL`, intent.ID, conversationID); err != nil {
+				return err
+			}
+			intent.ConversationID = &conversationID
+		}
+		if err := a.publishMediaAsset(ctx, intent, assetID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (a *App) readVisualIdentity(ctx context.Context, fluctlightID string) (VisualIdentitySnapshot, error) {
 	var result VisualIdentitySnapshot
 	var identity, constraints []byte
@@ -681,6 +747,11 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		return nil, err
 	}
 	if sessionStatus == "completed" || sessionStatus == "cancelled" || sessionStatus == "failed" || sessionStatus == visualIdentityStatusAwaitingReview {
+		if sessionStatus == "completed" {
+			if err := a.backfillVisualIdentityConversationAssets(ctx, fluctlightID); err != nil {
+				return nil, err
+			}
+		}
 		return map[string]any{"session_id": sessionID, "fluctlight_id": fluctlightID, "status": sessionStatus, "attempt": attempt}, nil
 	}
 	if maxAttempts < 1 {
@@ -707,6 +778,25 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 			return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "character_sheet_" + mediaStatus, "media_intent_id": characterSheetIntentID}, nil
 		}
 		assetID := "asset_" + characterSheetIntentID
+		characterIntent, intentErr := a.readMediaIntent(ctx, characterSheetIntentID)
+		if intentErr != nil {
+			return nil, intentErr
+		}
+		if characterIntent.ConversationID == nil {
+			if conversationID, conversationErr := a.visualIdentityConversationID(ctx, fluctlightID); conversationErr != nil {
+				return nil, conversationErr
+			} else if conversationID != "" {
+				if _, updateErr := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET conversation_id=$2 WHERE id=$1 AND conversation_id IS NULL`, characterSheetIntentID, conversationID); updateErr != nil {
+					return nil, updateErr
+				}
+				characterIntent.ConversationID = &conversationID
+			}
+		}
+		if characterIntent.ConversationID != nil {
+			if publishErr := a.publishMediaAsset(ctx, characterIntent, assetID); publishErr != nil {
+				return nil, publishErr
+			}
+		}
 		if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 			if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='active',character_sheet_asset_id=$2,active_session_id=$3,updated_at=now() WHERE id=$1`, profileID, assetID, sessionID); err != nil {
 				return err
@@ -762,12 +852,16 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		mediaIntentID = "media_intent_" + stableDigest(attemptID+":seed")
 		workflowID := "media_workflow_" + stableDigest(mediaIntentID)
 		requestID := "media_request_" + stableDigest(mediaIntentID)
+		conversationID, conversationErr := a.visualIdentityConversationID(ctx, fluctlightID)
+		if conversationErr != nil {
+			return nil, conversationErr
+		}
 		concept := map[string]any{"purpose": "visual_identity", "stage": "seed", "render_intent": "character_design_sheet", "subject_count": 1, "views": visualIdentityExpectedViews(), "prompt": seedPrompt, "visual_identity": identity, "renderer_constraints": decodeObject(constraints)}
 		err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 			if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET seed_prompt=$2,media_intent_id=$3,status='image_queued',updated_at=now() WHERE id=$1 AND seed_prompt IS NULL`, attemptID, seedPrompt, mediaIntentID); err != nil {
 				return err
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,status,revision) VALUES($1,$2,'image','image/png',$3,$4,$5,'pending',0) ON CONFLICT(id) DO NOTHING`, mediaIntentID, fluctlightID, jsonString(concept), requestID, workflowID); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,conversation_id,status,revision) VALUES($1,$2,'image','image/png',$3,$4,$5,$6,'pending',0) ON CONFLICT(id) DO NOTHING`, mediaIntentID, fluctlightID, jsonString(concept), requestID, workflowID, nullableString(conversationID)); err != nil {
 				return err
 			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'media','media.generation',$3) ON CONFLICT DO NOTHING`, "media_workflow_intent:"+mediaIntentID, workflowID, jsonBytes(map[string]any{"intent_id": mediaIntentID, "provider_request_id": requestID, "fluctlight_id": fluctlightID})); err != nil {
@@ -792,6 +886,25 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 			return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "image_" + mediaStatus, "media_intent_id": mediaIntentID}, nil
 		}
 		candidateAssetID = "asset_" + mediaIntentID
+		candidateIntent, intentErr := a.readMediaIntent(ctx, mediaIntentID)
+		if intentErr != nil {
+			return nil, intentErr
+		}
+		if candidateIntent.ConversationID == nil {
+			if conversationID, conversationErr := a.visualIdentityConversationID(ctx, fluctlightID); conversationErr != nil {
+				return nil, conversationErr
+			} else if conversationID != "" {
+				if _, updateErr := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET conversation_id=$2 WHERE id=$1 AND conversation_id IS NULL`, mediaIntentID, conversationID); updateErr != nil {
+					return nil, updateErr
+				}
+				candidateIntent.ConversationID = &conversationID
+			}
+		}
+		if candidateIntent.ConversationID != nil {
+			if publishErr := a.publishMediaAsset(ctx, candidateIntent, candidateAssetID); publishErr != nil {
+				return nil, publishErr
+			}
+		}
 		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET candidate_asset_id=$2,status='vision_queued',updated_at=now() WHERE id=$1 AND candidate_asset_id IS NULL`, attemptID, candidateAssetID); err != nil {
 			return nil, err
 		}
