@@ -910,3 +910,36 @@ Implemented the complete cognition growth vertical: structured appraisal/focus/i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 28: 媒体提示词拍摄视角规则
+
+**Date**: 2026-09-04
+**Task**: 媒体提示词拍摄视角规则
+**Branch**: `master`
+
+### Summary
+
+将构图优先的前摄/后摄/全身镜/第三方拍摄规则写入 media_prompt 系统指令；补充单人、多人和完全模糊请求的设备可见性约束，更新媒体提示词契约与 Go 测试。go vet ./... 与 go test ./... 均通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `264177d` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
