@@ -142,7 +142,7 @@ func bindMediaPromptContext(prompt string) string {
 	if !strings.Contains(prompt, "context_binding") {
 		return prompt
 	}
-	return "The JSON below contains an authoritative context_binding snapshot captured during cognition. Preserve its current scene, activity, location, mood, and concrete appearance. Do not replace a classroom or library with a bedroom unless context_override.explicit is true.\n\n" + prompt
+	return "The structured payload below contains an authoritative context_binding snapshot captured during cognition. Preserve its current scene, activity, location, mood, and concrete appearance. Do not replace a classroom or library with a bedroom unless context_override.explicit is true.\n\n" + prompt
 }
 
 func withContextAuthorityInstruction(messages []map[string]any) []map[string]any {
