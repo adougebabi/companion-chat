@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 26
-- **Last Active**: 2026-09-03
+- **Total Sessions**: 27
+- **Last Active**: 2026-09-04
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~879 | Active |
+| `journal-1.md` | ~912 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 27 | 2026-09-04 | 交互与 LLM 队列调度优化 | `b96d870` | `master` |
 | 26 | 2026-09-03 | 摇光视觉身份工作流框架 | `e596b12` | `master` |
 | 25 | 2026-09-02 | Persona 分层与防漂移 | `9b5b55e`, `8502886` | `master` |
 | 24 | 2026-09-01 | Complete personality growth and capability request loop | `9080d70` | `master` |

@@ -877,3 +877,36 @@ Implemented the complete cognition growth vertical: structured appraisal/focus/i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 27: 交互与 LLM 队列调度优化
+
+**Date**: 2026-09-04
+**Task**: 交互与 LLM 队列调度优化
+**Branch**: `master`
+
+### Summary
+
+完成聊天输入单行布局与提交即清空，修复 Vue 流式 assistant 文本只显示首个 token 的响应式问题；新增 generic_llm/embedding 双绑定兼容、按场景记录的 Provider 优先级队列、独立并发设置、诊断 queued/running/terminal 生命周期和唤醒失败后的 Continue-As-New 恢复。Go Core/BFF/Web/browser-client 全部质量检查通过；保留用户原有三份未提交后端 spec。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b96d870` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
