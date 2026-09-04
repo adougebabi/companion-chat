@@ -198,6 +198,7 @@ func TestProviderScenarioAndPriorityMapping(t *testing.T) {
 		{role: "reflection", wantScenario: "reflection", wantPriority: 70},
 		{role: "initialization", wantScenario: "initialization", wantPriority: 60},
 		{role: "media_prompt", wantScenario: "media_prompt", wantPriority: 80},
+		{role: "media_prompt", schema: "media_quality_acceptance_response", wantScenario: "media_quality_acceptance", wantPriority: 80},
 		{role: "embedding", wantScenario: "embedding", wantPriority: 50},
 	}
 	for _, testCase := range tests {

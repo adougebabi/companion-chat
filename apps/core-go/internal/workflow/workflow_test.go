@@ -1,10 +1,12 @@
 package workflow
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
 	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
@@ -69,6 +71,56 @@ func TestDailyReviewNeedsRetryWhenScheduleIsPending(t *testing.T) {
 	}
 	if dailyReviewNeedsRetry(map[string]any{"status": "completed"}) {
 		t.Fatal("completed daily review should not be retried")
+	}
+}
+
+func TestMediaWorkflowContinuesOneQualityRetry(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	attempts := 0
+	env.OnActivity(ProcessMediaActivity, mock.Anything, mock.Anything).Return(func(context.Context, Input) (map[string]any, error) {
+		attempts++
+		if attempts == 1 {
+			return map[string]any{"status": "quality_retry", "quality_retry_count": 1}, nil
+		}
+		return map[string]any{"status": "completed", "quality_verdict": "pass"}, nil
+	})
+	env.ExecuteWorkflow(MediaWorkflow, Input{IntentID: "media-quality-1"})
+	if !env.IsWorkflowCompleted() {
+		t.Fatal("media workflow did not complete")
+	}
+	if err := env.GetWorkflowError(); err != nil {
+		t.Fatalf("media workflow error = %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("activity attempts = %d, want 2", attempts)
+	}
+	var result map[string]any
+	if err := env.GetWorkflowResult(&result); err != nil {
+		t.Fatal(err)
+	}
+	if result["status"] != "completed" || result["quality_verdict"] != "pass" {
+		t.Fatalf("workflow result = %#v", result)
+	}
+}
+
+func TestMediaWorkflowStopsAfterOneQualityRetry(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	attempts := 0
+	env.OnActivity(ProcessMediaActivity, mock.Anything, mock.Anything).Return(func(context.Context, Input) (map[string]any, error) {
+		attempts++
+		return map[string]any{"status": "quality_retry", "quality_retry_count": attempts}, nil
+	})
+	env.ExecuteWorkflow(MediaWorkflow, Input{IntentID: "media-quality-2"})
+	if !env.IsWorkflowCompleted() {
+		t.Fatal("media workflow did not complete")
+	}
+	if attempts != 2 {
+		t.Fatalf("activity attempts = %d, want 2", attempts)
+	}
+	if err := env.GetWorkflowError(); err == nil || !strings.Contains(err.Error(), "quality retry loop exceeded") {
+		t.Fatalf("workflow error = %v, want quality retry loop error", err)
 	}
 }
 

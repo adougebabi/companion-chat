@@ -12,6 +12,7 @@ import (
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
 	enumspb "go.temporal.io/api/enums/v1"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
@@ -24,6 +25,7 @@ const (
 	InteractionQueue             = "interaction"
 	WorkerDeploymentName         = "fluctlight"
 	DefaultWorkerBuildID         = "platform-v1"
+	mediaActivityMaximumAttempts = 3
 	defaultWakeUpIntervalSeconds = 30 * 60
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
@@ -272,22 +274,28 @@ func dailyReviewNeedsRetry(result map[string]any) bool {
 }
 
 func MediaWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
-	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 20 * time.Minute, HeartbeatTimeout: 30 * time.Second, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3}})
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 20 * time.Minute, HeartbeatTimeout: 30 * time.Second, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: mediaActivityMaximumAttempts}})
 	control, err := registerWorkflowControl(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := control.waitUntilResumed(ctx); err != nil {
-		return nil, err
+	for attempt := 0; attempt < 2; attempt++ {
+		if err := control.waitUntilResumed(ctx); err != nil {
+			return nil, err
+		}
+		var result map[string]any
+		if err := workflow.ExecuteActivity(ctx, ProcessMediaActivity, input).Get(ctx, &result); err != nil {
+			return nil, err
+		}
+		if stringValue(result["status"]) == "quality_retry" {
+			if attempt == 0 {
+				continue
+			}
+			return nil, fmt.Errorf("media quality retry loop exceeded")
+		}
+		return result, nil
 	}
-	var result map[string]any
-	if err := workflow.ExecuteActivity(ctx, ProcessMediaActivity, input).Get(ctx, &result); err != nil {
-		return nil, err
-	}
-	if err := control.waitUntilResumed(ctx); err != nil {
-		return nil, err
-	}
-	return result, nil
+	return nil, fmt.Errorf("media workflow completed without a result")
 }
 
 func CurrentDayScheduleWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
@@ -497,14 +505,17 @@ func ProcessMediaActivity(ctx context.Context, input Input) (map[string]any, err
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
-	if err := application.ProcessMediaIntent(ctx, input.IntentID); err != nil {
+	result, err := application.ProcessMediaIntent(ctx, input.IntentID)
+	if err != nil {
 		// Keep the durable media target truthful after Temporal exhausts its
 		// bounded activity retries. The workflow intent reconciliation records
 		// the execution failure separately; this row is what product reads.
-		_, _ = application.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, input.IntentID)
+		if !activity.IsActivity(ctx) || activity.GetInfo(ctx).Attempt >= mediaActivityMaximumAttempts {
+			_, _ = application.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, input.IntentID)
+		}
 		return nil, err
 	}
-	return map[string]any{"intent_id": input.IntentID, "status": "completed"}, nil
+	return result, nil
 }
 
 func ProcessAutonomyActionActivity(ctx context.Context, input Input) (map[string]any, error) {

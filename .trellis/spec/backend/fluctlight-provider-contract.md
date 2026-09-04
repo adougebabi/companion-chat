@@ -37,6 +37,7 @@ embed(role, inputs) -> VersionedEmbeddings
 - `action_realization` requires streaming, abort propagation, bounded diagnostics, and correct UTF-8/chunk handling.
 - `embedding` requires an embedding endpoint and fixed dimensions recorded with each vector/index version.
 - `media_prompt` requires its declared structured/text output contract and cannot execute media generation itself.
+- `media_prompt` may serve both B text prompt generation and C structured multimodal acceptance using the same configured role/model; C transport, vision-capability, timeout, or schema failures are surfaced to the owning media flow as an infrastructure condition, never inferred as a content `pass` or `reject`.
 - Settings cannot activate a role until preflight proves required capabilities. Health may later degrade without making Core readiness false.
 - Every result records role, endpoint/model ID, capability/model version when available, prompt/schema version, timing, token usage/budget, and correlation IDs.
 - No implicit role/model fallback. Failure follows explicit interaction/workflow retry/deferred/no-op/terminal rules.

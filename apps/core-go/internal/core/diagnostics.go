@@ -84,6 +84,8 @@ func providerScenario(ctx context.Context, role, schemaName string) string {
 		return "daily_review"
 	case "schedule_response":
 		return "schedule_generation"
+	case "media_quality_acceptance_response":
+		return "media_quality_acceptance"
 	}
 	switch role {
 	case "action_realization":
@@ -110,6 +112,8 @@ func providerPriority(scenario string) int {
 	case "cognitive_assessment", "native_cognition", "daily_review", "schedule_generation":
 		return 90
 	case "media_prompt":
+		return 80
+	case "media_quality_acceptance":
 		return 80
 	case "reflection", "wake_up":
 		return 70
@@ -147,6 +151,10 @@ func redactDiagnostic(value any) any {
 		result := make(map[string]any, len(typed))
 		for key, child := range typed {
 			normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
+			if normalized == "imageurl" {
+				result[key] = map[string]any{"url": "[REDACTED_IMAGE_DATA]"}
+				continue
+			}
 			if _, secret := diagnosticSecretKeys[normalized]; secret {
 				result[key] = "[REDACTED]"
 				continue
@@ -163,6 +171,11 @@ func redactDiagnostic(value any) any {
 			result[index] = redactDiagnostic(child)
 		}
 		return result
+	case string:
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(typed)), "data:image/") {
+			return "[REDACTED_IMAGE_DATA]"
+		}
+		return typed
 	default:
 		return value
 	}

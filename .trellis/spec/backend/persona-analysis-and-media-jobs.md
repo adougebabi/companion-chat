@@ -91,6 +91,7 @@ Deterministic payload keys:
 - If normal poll enqueue fails, source settles complete and one `media_poll_compensation` job is enqueued with the source id, source job type, provider, external id, kind, target association, and deterministic key.
 - Compensation checks source completion and target state, reuses the frozen payload, and creates one poll job only when the target is still processing and the poll is absent.
 - Compensation retains the original activity/message association so a terminal missing-locator, missing-target, or invalid-target failure can mark the user-visible target failed under the same persona scope.
+- In the active Go Core media workflow, a C-stage quality retry is represented by the same `media_intent` and MediaWorkflow continuing one second Activity with a persisted retry count/guidance; it does not create a second visible placeholder or a second target association. The intent ID plus quality retry count remains the stable logical retry identity.
 - Generic dispatcher remains the owner of lease, retry/backoff, and terminal settlement.
 
 ### 4. Validation & Error Matrix

@@ -21,60 +21,76 @@ import (
 )
 
 type mediaIntent struct {
-	ID, Owner, Prompt, ProviderRequestID, ProviderJobID, WorkflowID string
-	Kind, MimeType, Status                                          string
-	ConversationID, MessageID, MomentID                             *string
+	ID, Owner, Prompt, ProviderPrompt, ProviderRequestID, ProviderJobID, WorkflowID string
+	Kind, MimeType, Status, QualityRetryGuidance, QualityVerdict                    string
+	QualityCandidateSHA                                                             string
+	QualityRetryCount                                                               int
+	ConversationID, MessageID, MomentID                                             *string
 }
 
-func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
+func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[string]any, error) {
 	stopHeartbeat := startMediaHeartbeat(ctx, intentID)
 	defer stopHeartbeat()
 	activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "loading"})
 	intent, err := a.readMediaIntent(ctx, intentID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	assetID := "asset_" + intent.ID
 	var ready bool
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_assets WHERE id=$1 AND status='ready')`, assetID).Scan(&ready); err != nil {
-		return err
+		return nil, err
 	}
 	if ready {
 		if err := a.publishMediaAsset(ctx, intent, assetID); err != nil {
-			return err
+			return nil, err
 		}
-		return a.markMediaIntentCompleted(ctx, intent.ID)
+		if err := a.markMediaIntentCompleted(ctx, intent.ID); err != nil {
+			return nil, err
+		}
+		return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": intent.QualityVerdict}, nil
+	}
+	if intent.Status == "completed" {
+		return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": intent.QualityVerdict}, nil
+	}
+	if intent.Status == "failed" {
+		return map[string]any{"intent_id": intent.ID, "status": "failed", "quality_verdict": intent.QualityVerdict}, nil
 	}
 	config, err := a.runtimeValue(ctx, "media.comfyui")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	baseURL, workflow, err := comfyConfig(config)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	prompt := intent.Prompt
 	providerJobID := intent.ProviderJobID
 	if providerJobID == "" {
-		// A retry with a persisted Provider job must poll that job directly. Do
-		// not regenerate the prompt (or submit another request) after the
-		// external job has already been accepted.
-		activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "prompt"})
-		prompt = bindMediaPromptContext(prompt)
-		value, providerErr := a.Provider.Text(WithProviderScenario(ctx, "media_prompt"), "media_prompt", []map[string]any{{"role": "system", "content": mediaPromptInstruction}, {"role": "user", "content": intent.Prompt}})
-		if providerErr != nil || strings.TrimSpace(value) == "" {
-			if providerErr != nil {
-				return fmt.Errorf("media prompt generation failed: %w", providerErr)
+		prompt := strings.TrimSpace(intent.ProviderPrompt)
+		if prompt == "" || intent.QualityVerdict == mediaQualityVerdictRetry {
+			activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "prompt"})
+			promptInput := bindMediaPromptContext(mediaPromptInput(intent))
+			value, providerErr := a.Provider.Text(WithProviderScenario(ctx, "media_prompt"), "media_prompt", []map[string]any{{"role": "system", "content": mediaPromptInstruction}, {"role": "user", "content": promptInput}})
+			if providerErr != nil || strings.TrimSpace(value) == "" {
+				if providerErr != nil {
+					return nil, fmt.Errorf("media prompt generation failed: %w", providerErr)
+				}
+				return nil, errors.New("media prompt generation returned empty text")
 			}
-			return errors.New("media prompt generation returned empty text")
+			prompt = strings.TrimSpace(value)
+			if err := a.persistMediaProviderPrompt(ctx, intent.ID, prompt); err != nil {
+				return nil, err
+			}
+			intent.ProviderPrompt = prompt
+			intent.QualityVerdict = ""
+			intent.QualityCandidateSHA = ""
 		}
-		prompt = value
 		activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "submit"})
 		workflow = replacePrompt(workflow, prompt)
 		payload, _ := json.Marshal(map[string]any{"prompt": workflow})
 		request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/prompt", bytes.NewReader(payload))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		request.Header.Set("Content-Type", "application/json")
 		client := a.Provider.HTTP
@@ -83,7 +99,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 		}
 		response, err := client.Do(request)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		data, _ := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 		response.Body.Close()
@@ -92,26 +108,28 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 			if len(detail) > 512 {
 				detail = detail[:512]
 			}
-			return fmt.Errorf("ComfyUI returned HTTP %d: %s", response.StatusCode, detail)
+			return nil, fmt.Errorf("ComfyUI returned HTTP %d: %s", response.StatusCode, detail)
 		}
 		var result map[string]any
 		if err := json.Unmarshal(data, &result); err != nil {
-			return err
+			return nil, err
 		}
 		providerJobID = stringValue(result["prompt_id"])
 		if providerJobID == "" {
-			return errors.New("ComfyUI prompt ID is missing")
+			return nil, errors.New("ComfyUI prompt ID is missing")
 		}
 		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET provider_job_id=$2,status='running' WHERE id=$1`, intent.ID, providerJobID); err != nil {
-			return err
+			return nil, err
 		}
+		intent.ProviderJobID = providerJobID
+		intent.Status = "running"
 	}
 	var output map[string]any
 	for attempt := 0; attempt < 900; attempt++ {
 		activity.RecordHeartbeat(ctx, map[string]any{"provider_job_id": providerJobID, "attempt": attempt})
 		value, done, err := pollComfy(ctx, baseURL, providerJobID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if done {
 			output = value
@@ -121,38 +139,89 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) error {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			return ctx.Err()
+			return nil, ctx.Err()
 		case <-timer.C:
 		}
 	}
 	if output == nil {
-		return errors.New("media generation timed out")
+		return nil, errors.New("media generation timed out")
 	}
 	contentType, content, err := downloadComfy(ctx, baseURL, output)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	digest := sha256.Sum256(content)
+	candidateSHA := hex.EncodeToString(digest[:])
+	quality := mediaQualityAcceptance{}
+	if (intent.QualityVerdict == mediaQualityVerdictPass || intent.QualityVerdict == mediaQualityVerdictSkip) && intent.QualityCandidateSHA == candidateSHA {
+		quality.Verdict = intent.QualityVerdict
+	} else {
+		quality, err = a.evaluateMediaQuality(ctx, intent, contentType, content)
+		if err != nil {
+			if errors.Is(err, context.Canceled) && ctx.Err() != nil {
+				return nil, err
+			}
+			quality = mediaQualityAcceptance{SchemaVersion: mediaQualitySchemaVersion, Verdict: mediaQualityVerdictSkip}
+			reason := mediaQualityInfrastructureReason(err)
+			a.recordDiagnosticEvent(ctx, "media.quality.acceptance", "warn", intent.Owner, "media:"+intent.ID, intent.ProviderRequestID, mediaQualityDiagnostic(quality, reason, candidateSHA, intent.QualityRetryCount))
+			if err := a.persistMediaQualityVerdict(ctx, intent.ID, providerJobID, mediaQualityVerdictSkip, candidateSHA); err != nil {
+				return nil, err
+			}
+			intent.QualityVerdict = mediaQualityVerdictSkip
+			intent.QualityCandidateSHA = candidateSHA
+		} else {
+			a.recordDiagnosticEvent(ctx, "media.quality.acceptance", "info", intent.Owner, "media:"+intent.ID, intent.ProviderRequestID, mediaQualityDiagnostic(quality, "", candidateSHA, intent.QualityRetryCount))
+			switch quality.Verdict {
+			case mediaQualityVerdictPass:
+				if err := a.persistMediaQualityVerdict(ctx, intent.ID, providerJobID, quality.Verdict, candidateSHA); err != nil {
+					return nil, err
+				}
+				intent.QualityVerdict = quality.Verdict
+				intent.QualityCandidateSHA = candidateSHA
+			case mediaQualityVerdictRetry:
+				if intent.QualityRetryCount >= 1 {
+					if err := a.rejectMediaQuality(ctx, intent.ID, providerJobID, candidateSHA); err != nil {
+						return nil, err
+					}
+					return map[string]any{"intent_id": intent.ID, "status": "failed", "quality_verdict": mediaQualityVerdictReject}, nil
+				}
+				if err := a.prepareMediaQualityRetry(ctx, intent.ID, providerJobID, quality.RetryGuidance, candidateSHA); err != nil {
+					return nil, err
+				}
+				return map[string]any{"intent_id": intent.ID, "status": "quality_retry", "quality_retry_count": intent.QualityRetryCount + 1}, nil
+			case mediaQualityVerdictReject:
+				if err := a.rejectMediaQuality(ctx, intent.ID, providerJobID, candidateSHA); err != nil {
+					return nil, err
+				}
+				return map[string]any{"intent_id": intent.ID, "status": "failed", "quality_verdict": mediaQualityVerdictReject}, nil
+			default:
+				return nil, errors.New("media quality verdict invalid")
+			}
+		}
 	}
 	objectKey := "media/" + assetID + "/v1"
 	_, err = a.Storage.PutObject(ctx, a.S3Bucket, objectKey, bytes.NewReader(content), int64(len(content)), minio.PutObjectOptions{ContentType: contentType})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	digest := sha256.Sum256(content)
 	version := "v1"
 	workflowID := intent.WorkflowID
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.media_assets (id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status,ready_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'ready',now()) ON CONFLICT (id) DO NOTHING`, assetID, intent.Owner, version, intent.Kind, contentType, len(content), hex.EncodeToString(digest[:]), a.S3Bucket, objectKey, intent.ProviderRequestID, workflowID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.media_assets (id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status,ready_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'ready',now()) ON CONFLICT (id) DO NOTHING`, assetID, intent.Owner, version, intent.Kind, contentType, len(content), candidateSHA, a.S3Bucket, objectKey, intent.ProviderRequestID, workflowID); err != nil {
 			return err
 		}
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := a.publishMediaAsset(ctx, intent, assetID); err != nil {
-		return err
+		return nil, err
 	}
-	return a.markMediaIntentCompleted(ctx, intent.ID)
+	if err := a.markMediaIntentCompleted(ctx, intent.ID); err != nil {
+		return nil, err
+	}
+	return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": quality.Verdict}, nil
 }
 
 func (a *App) markMediaIntentCompleted(ctx context.Context, intentID string) error {
@@ -205,7 +274,7 @@ func startMediaHeartbeat(ctx context.Context, intentID string) func() {
 
 func (a *App) readMediaIntent(ctx context.Context, intentID string) (mediaIntent, error) {
 	var i mediaIntent
-	err := a.DB.Pool().QueryRow(ctx, `SELECT id,owner_fluctlight_id,prompt,provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,conversation_id,message_id,moment_id FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.ConversationID, &i.MessageID, &i.MomentID)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT id,owner_fluctlight_id,prompt,COALESCE(provider_prompt,''),provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,quality_retry_count,COALESCE(quality_retry_guidance,''),COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),conversation_id,message_id,moment_id FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderPrompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.QualityRetryCount, &i.QualityRetryGuidance, &i.QualityVerdict, &i.QualityCandidateSHA, &i.ConversationID, &i.MessageID, &i.MomentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return i, ErrNotFound
 	}

@@ -34,6 +34,21 @@ func TestCompositeActionSchemaIncludesMessageMediaTarget(t *testing.T) {
 	}
 }
 
+func TestMediaIntentSchemaIncludesQualityGateState(t *testing.T) {
+	for _, fragment := range []string{
+		"provider_prompt text",
+		"quality_retry_count integer",
+		"quality_retry_guidance text",
+		"quality_verdict varchar(16)",
+		"quality_candidate_sha256 varchar(128)",
+		"quality_checked_at timestamptz",
+	} {
+		if !strings.Contains(schemaSQL+compatibilitySQL, fragment) {
+			t.Fatalf("media intent schema missing %q", fragment)
+		}
+	}
+}
+
 func TestPersonaLayerSchemaIncludesCanonicalStores(t *testing.T) {
 	for _, fragment := range []string{
 		"core_persona jsonb",

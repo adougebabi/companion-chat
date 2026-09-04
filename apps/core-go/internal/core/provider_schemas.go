@@ -20,6 +20,7 @@ func objectSchema(properties map[string]any, required []string, additionalProper
 func stringSchema() map[string]any  { return map[string]any{"type": "string"} }
 func numberSchema() map[string]any  { return map[string]any{"type": "number"} }
 func integerSchema() map[string]any { return map[string]any{"type": "integer", "minimum": 0} }
+func booleanSchema() map[string]any { return map[string]any{"type": "boolean"} }
 
 func enumStringSchema(values ...string) map[string]any {
 	enumValues := make([]any, len(values))
@@ -111,6 +112,28 @@ func wakeUpResponseSchema() map[string]any {
 		"evidence_refs":   arraySchema(stringSchema()),
 		"tool_calls":      arraySchema(toolCallSchema()),
 	}, []string{"attention", "thought", "desire", "agency", "appraisal", "action_type", "response_intent", "evidence_refs", "tool_calls"}, false)
+}
+
+func mediaQualityAcceptanceResponseSchema() map[string]any {
+	violation := objectSchema(map[string]any{
+		"code":     stringSchema(),
+		"severity": enumStringSchema("hard"),
+		"detail":   stringSchema(),
+	}, []string{"code", "severity", "detail"}, false)
+	observedFacts := objectSchema(map[string]any{
+		"subject_matches":    booleanSchema(),
+		"appearance_matches": booleanSchema(),
+		"scene_matches":      booleanSchema(),
+		"capture_matches":    booleanSchema(),
+		"framing_matches":    booleanSchema(),
+	}, []string{"subject_matches", "appearance_matches", "scene_matches", "capture_matches", "framing_matches"}, false)
+	return objectSchema(map[string]any{
+		"schema_version": integerSchema(),
+		"verdict":        enumStringSchema("pass", "retry", "reject"),
+		"violations":     arraySchema(violation),
+		"observed_facts": observedFacts,
+		"retry_guidance": stringSchema(),
+	}, []string{"schema_version", "verdict", "violations", "observed_facts", "retry_guidance"}, false)
 }
 
 func nativeCognitionResponseSchema() map[string]any {
