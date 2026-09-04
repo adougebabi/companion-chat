@@ -253,6 +253,9 @@ func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, flu
 }
 
 func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID string) (map[string]any, error) {
+	// Reflection is the evidence-windowed learning pass over processed
+	// cognition facts. A wake-up may create the fact that feeds this window,
+	// but reflection never substitutes for the periodic wake-up trigger.
 	if fluctlightID == "" {
 		return nil, fmt.Errorf("reflection_fluctlight_id_required")
 	}
@@ -316,7 +319,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 			allowedEvidence["memory:"+memoryID] = struct{}{}
 		}
 	}
-	proposal, err := a.Provider.Structured(ctx, "reflection", []map[string]any{{"role": "system", "content": reflectionInstruction}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": compactCognitionContext(projection)})}})
+	proposal, err := a.Provider.Structured(WithProviderScenario(ctx, "reflection"), "reflection", []map[string]any{{"role": "system", "content": reflectionInstruction}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": compactCognitionContext(projection)})}})
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err

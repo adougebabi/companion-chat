@@ -72,6 +72,23 @@ func TestProviderModelIDsAcceptsCommonModelListShapes(t *testing.T) {
 	}
 }
 
+func TestNormalizeProviderQueueSettingsClampsOnlyAcceptedRange(t *testing.T) {
+	valid := normalizeProviderQueueSettings(map[string]any{"generated_concurrency": float64(4), "embedding_concurrency": float64(2)})
+	if valid == nil || valid["generated_concurrency"] != 4 || valid["embedding_concurrency"] != 2 {
+		t.Fatalf("valid queue settings = %#v", valid)
+	}
+	for _, value := range []map[string]any{
+		{"generated_concurrency": float64(0)},
+		{"embedding_concurrency": float64(9)},
+		{"generated_concurrency": 1.5},
+		{"unknown": float64(2)},
+	} {
+		if got := normalizeProviderQueueSettings(value); got != nil {
+			t.Fatalf("invalid queue settings %#v normalized to %#v", value, got)
+		}
+	}
+}
+
 func equalStrings(left, right []string) bool {
 	if len(left) != len(right) {
 		return false

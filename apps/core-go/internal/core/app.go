@@ -52,6 +52,8 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 		Storage:     storage,
 		S3Bucket:    s3Bucket,
 	}
+	app.Provider.generated = newProviderQueue(providerQueueDefaultConcurrency)
+	app.Provider.embedding = newProviderQueue(providerQueueDefaultEmbedding)
 	app.Capabilities = NewCapabilityRegistry(
 		&imageCapabilityExecutor{app: app},
 		&sceneCapabilityExecutor{app: app},
@@ -242,7 +244,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 		{"role": "system", "content": "Return one JSON object with core_persona, developing_self, initial_goals, and initial_intentions. core_persona must contain identity, personality, behavioral_policy, and life_profile. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_goals must be an array of objects with description, importance (0..1), and urgency (0..1). initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Do not return markdown or legacy foundation/personality candidate fields."},
 		{"role": "user", "content": description},
 	}
-	result, err := a.Provider.Structured(ctx, "initialization", messages)
+	result, err := a.Provider.Structured(WithProviderScenario(ctx, "initialization"), "initialization", messages)
 	if err != nil {
 		return nil, err
 	}

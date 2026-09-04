@@ -396,7 +396,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		messages := []map[string]any{{"role": "system", "content": conversationAssessmentInstruction}, {"role": "user", "content": jsonString(map[string]any{"text": text, "context": compactCognitionContext(projection)})}}
 		messages = withContextAuthorityInstruction(messages)
 		manifests := a.capabilityRegistry().Manifests()
-		completion, completionErr := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", messages, manifests, "conversation_turn_response", cognitiveTurnResponseSchema(), true)
+		completion, completionErr := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "cognitive_assessment"), "cognitive_assessment", messages, manifests, "conversation_turn_response", cognitiveTurnResponseSchema(), true)
 		if completionErr != nil {
 			return TurnResult{}, completionErr
 		}
@@ -512,7 +512,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 	} else {
 		visiblePrompt := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(map[string]any{"response_plan": responsePlan, "context_projection": compactCognitionContext(projection), "tool_results": toolResults})}}
-		visible, err = a.Provider.StreamText(ctx, "action_realization", visiblePrompt, callbacks.onChunk)
+		visible, err = a.Provider.StreamText(WithProviderScenario(ctx, "reply"), "action_realization", visiblePrompt, callbacks.onChunk)
 		if err != nil {
 			if frozenFound || frozen.ID != "" {
 				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_failed")

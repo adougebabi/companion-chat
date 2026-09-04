@@ -133,7 +133,16 @@ func WakeUpWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	}
 	var result map[string]any
 	if err := workflow.ExecuteActivity(ctx, ProcessWakeUpActivity, input).Get(ctx, &result); err != nil {
-		return nil, err
+		// A provider/queue outage must not terminate the long-lived wake-up
+		// timer. Advance the cycle after the bounded activity retry; the durable
+		// cognition_wakeups unique key keeps a partially persisted prior cycle
+		// idempotent while the next cycle gets a fresh chance to run.
+		next := input
+		next.Cycle++
+		if sleepErr := workflow.Sleep(ctx, wakeUpInterval(nil)); sleepErr != nil {
+			return nil, err
+		}
+		return nil, workflow.NewContinueAsNewError(ctx, WakeUpWorkflow, next)
 	}
 	if stringValue(result["status"]) == "inactive" {
 		return result, nil

@@ -45,6 +45,15 @@ test("web keeps a failed turn retryable instead of allowing later messages to ov
   assert.match(viewSource, /store\.retry/);
 });
 
+test("chat clears accepted drafts and keeps every streamed token reactive", async () => {
+  const viewSource = await readFile(new URL("../src/views/ChatView.vue", import.meta.url), "utf8");
+  const storeSource = await readFile(new URL("../src/stores/conversations.ts", import.meta.url), "utf8");
+  assert.match(viewSource, /draft\.value = "";[\s\S]*await store\.send\(text\)/);
+  assert.match(viewSource, /class="composer-row"/);
+  assert.match(storeSource, /this\.messages\.splice\(draftIndex, 1, \{ \.\.\.this\.messages\[draftIndex\], text: assistantText \}\)/);
+  assert.match(storeSource, /terminalType !== "completed"/);
+});
+
 test("control center exposes the required product views", async () => {
   const source = vueSource;
   assert.match(source, /Diagnostics/);

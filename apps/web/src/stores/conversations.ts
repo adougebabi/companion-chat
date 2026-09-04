@@ -315,6 +315,7 @@ export const useConversationStore = defineStore("conversations", {
         let buffer = "";
         let assistantText = "";
         let expectedSequence = 0;
+        let terminalType: "completed" | "error" | null = null;
         const applyEvent = (event: BrowserTurnEvent) => {
           if (this.requestEpoch !== requestEpoch) return;
           if (event.turnId !== request.turnId) throw new Error("turn_id_mismatch");
@@ -337,7 +338,15 @@ export const useConversationStore = defineStore("conversations", {
               assistantDraft = streamedMessage;
               this.messages.push(streamedMessage);
             } else {
-              assistantDraft.text = assistantText;
+              // `assistantDraft` is the raw object originally pushed into a
+              // reactive Pinia array. Mutating that raw reference bypasses
+              // Vue's proxy, which made the UI freeze after the first token
+              // until a refresh. Replace the array entry so every delta is
+              // observable.
+              const draftIndex = this.messages.findIndex((message) => message.id === assistantDraft?.id);
+              if (draftIndex >= 0) {
+                this.messages.splice(draftIndex, 1, { ...this.messages[draftIndex], text: assistantText });
+              }
             }
           }
           if (event.type === "message" && payload.message) {
@@ -361,8 +370,10 @@ export const useConversationStore = defineStore("conversations", {
           if (event.type === "error") {
             const code = payload.code ?? "turn_failed";
             const detail = payload.detail?.trim();
+            terminalType = "error";
             throw new Error(detail ? `${code}: ${detail}` : code);
           }
+          if (event.type === "completed") terminalType = "completed";
         };
         while (true) {
           const next = await reader.read();
@@ -381,6 +392,7 @@ export const useConversationStore = defineStore("conversations", {
         if (buffer.trim()) {
           applyEvent(JSON.parse(buffer) as BrowserTurnEvent);
         }
+        if (terminalType !== "completed") throw new Error("turn_stream_incomplete");
         const page = await client.messages(request.conversationId);
         this.conversation = page.conversation;
         this.messages = page.messages;

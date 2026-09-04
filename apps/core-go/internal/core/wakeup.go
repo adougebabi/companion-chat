@@ -205,7 +205,9 @@ func fallbackWakeUpActionWithoutCapability(proposedActionType string) (string, m
 	return "no_op", map[string]any{"status": "no_op", "reason": "action_requires_capability_call", "proposed_action_type": proposedActionType}
 }
 
-// ProcessWakeUp performs one complete internal-life cycle. It records the
+// ProcessWakeUp performs one complete internal-life cycle. Wake-up is the
+// periodic attention/thought/desire/agency trigger; it is not the reflection
+// window. It records the
 // model's attention/thought/desire/agency as a private cognition fact, then
 // schedules the existing reflection workflow against that fact. External
 // effects are frozen only after their capability contract and hard execution
@@ -253,7 +255,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		{"role": "system", "content": wakeUpAssessmentInstruction},
 		{"role": "user", "content": jsonString(map[string]any{"context": compactCognitionContext(projection)})},
 	})
-	completion, err := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "wake_up_response", wakeUpResponseSchema(), true)
+	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "wake_up"), "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "wake_up_response", wakeUpResponseSchema(), true)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +332,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			actualActionType = "no_op"
 			result = map[string]any{"status": "blocked", "reason": "proactive_target_invalid", "proposed_action_type": proposedActionType}
 		} else if proposedActionType == "proactive_message" || proposedActionType == "moment" {
-			visible, realizationErr := a.Provider.Text(ctx, "action_realization", []map[string]any{
+			visible, realizationErr := a.Provider.Text(WithProviderScenario(ctx, "wake_up"), "action_realization", []map[string]any{
 				{"role": "system", "content": actionRealizationInstruction},
 				{"role": "user", "content": jsonString(map[string]any{"action_type": proposedActionType, "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "response_intent": assessment["response_intent"], "context": compactCognitionContext(projection)})},
 			})

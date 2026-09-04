@@ -4,9 +4,9 @@ export type DiagnosticsSection = "model-runs" | "events" | "workflows";
 export type WorkspaceSection = SettingsSection | DiagnosticsSection;
 
 export const settingsSections = [
-  { id: "model-role", label: "模型角色绑定", description: "为不同认知角色选择模型和预算" },
+  { id: "model-role", label: "模型角色绑定", description: "为通用 LLM 或 Embedding 选择模型和预算" },
   { id: "endpoint", label: "模型 Endpoint", description: "管理模型服务地址和协议" },
-  { id: "binding", label: "当前角色绑定", description: "查看每个角色当前使用的模型" },
+  { id: "binding", label: "当前角色绑定", description: "查看两个绑定目标当前使用的模型" },
   { id: "media", label: "ComfyUI", description: "图片生成服务与工作流" },
   { id: "operations", label: "运行策略", description: "自治行为与诊断保留" },
   { id: "owner", label: "所有者", description: "密码和本地会话" },

@@ -20,12 +20,12 @@ const controlCenter = useControlCenterStore();
 const currentSection = computed(() => props.section ?? null);
 
 const providerRoles = [
-  { value: "initialization", label: "初始化" }, { value: "cognitive_assessment", label: "认知判断" }, { value: "action_realization", label: "回复生成" }, { value: "reflection", label: "反思" }, { value: "embedding", label: "Embedding" }, { value: "media_prompt", label: "媒体提示词" },
+  { value: "generic_llm", label: "通用 LLM" }, { value: "embedding", label: "Embedding" },
 ] as const;
-const selectedProviderRole = ref<(typeof providerRoles)[number]["value"]>("cognitive_assessment");
+const selectedProviderRole = ref<(typeof providerRoles)[number]["value"]>("generic_llm");
 const roleEndpointId = ref(""); const roleModelId = ref(""); const roleTokenBudget = ref(2048); const roleTimeoutSeconds = ref(60);
 const endpointPickerId = ref(""); const endpointId = ref("primary"); const endpointUrl = ref(""); const endpointSecret = ref(""); const providerKind = ref("openai-compatible");
-const comfyUiUrl = ref(""); const comfyUiWorkflow = ref(""); const changedOwnerPassword = ref("");
+const comfyUiUrl = ref(""); const comfyUiWorkflow = ref(""); const changedOwnerPassword = ref(""); const llmQueueSettingsJson = ref("");
 const roleModelCopied = ref(false);
 const manualEndpointValue = "__new_manual_endpoint__";
 
@@ -36,10 +36,11 @@ function handleRoleEndpointChange(value: unknown) { if (typeof value !== "string
 function handleEndpointPickerChange(value: unknown) { if (typeof value !== "string") return; if (value === manualEndpointValue) { endpointPickerId.value = ""; return; } selectEndpoint(value); }
 function updateRoleTokenBudget(value: string | number) { roleTokenBudget.value = typeof value === "number" ? value : Number(value); }
 function updateRoleTimeout(value: string | number) { roleTimeoutSeconds.value = typeof value === "number" ? value : Number(value); }
-async function load() { await controlCenter.loadSettings(); const primary = controlCenter.providerEndpoints.find((endpoint) => endpoint.id === "primary")?.id ?? controlCenter.providerEndpoints[0]?.id ?? ""; selectEndpoint(primary); await selectRole(selectedProviderRole.value); const comfy = controlCenter.settings?.values["media.comfyui"]; if (comfy && typeof comfy === "object" && !Array.isArray(comfy)) { comfyUiUrl.value = String((comfy as Record<string, unknown>).baseUrl ?? ""); const workflow = (comfy as Record<string, unknown>).workflow; comfyUiWorkflow.value = workflow && typeof workflow === "object" ? JSON.stringify(workflow, null, 2) : ""; } const autonomy = controlCenter.settings?.values["product.autonomy"]; const wakeUp = controlCenter.settings?.values["product.wakeup"]; const retention = controlCenter.settings?.values["diagnostics.retention"]; controlCenter.autonomySettingsJson = JSON.stringify(autonomy && typeof autonomy === "object" && !Array.isArray(autonomy) ? autonomy : { mode: "active", allowed_actions: ["proactive_message", "memory_candidate", "relationship_candidate", "schedule_proposal", "media_request", "moment"], budget_remaining: 1 }, null, 2); controlCenter.wakeUpSettingsJson = JSON.stringify(wakeUp && typeof wakeUp === "object" && !Array.isArray(wakeUp) ? wakeUp : { enabled: true, interval_seconds: 1800 }, null, 2); controlCenter.diagnosticsRetentionJson = JSON.stringify(retention && typeof retention === "object" && !Array.isArray(retention) ? retention : { retention_days: 30, max_rows: 10000 }, null, 2); }
+async function load() { await controlCenter.loadSettings(); const primary = controlCenter.providerEndpoints.find((endpoint) => endpoint.id === "primary")?.id ?? controlCenter.providerEndpoints[0]?.id ?? ""; selectEndpoint(primary); await selectRole(selectedProviderRole.value); const comfy = controlCenter.settings?.values["media.comfyui"]; if (comfy && typeof comfy === "object" && !Array.isArray(comfy)) { comfyUiUrl.value = String((comfy as Record<string, unknown>).baseUrl ?? ""); const workflow = (comfy as Record<string, unknown>).workflow; comfyUiWorkflow.value = workflow && typeof workflow === "object" ? JSON.stringify(workflow, null, 2) : ""; } const autonomy = controlCenter.settings?.values["product.autonomy"]; const wakeUp = controlCenter.settings?.values["product.wakeup"]; const retention = controlCenter.settings?.values["diagnostics.retention"]; const queue = controlCenter.settings?.values["llm.queue"]; llmQueueSettingsJson.value = JSON.stringify(queue && typeof queue === "object" && !Array.isArray(queue) ? queue : { generated_concurrency: 2, embedding_concurrency: 1 }, null, 2); controlCenter.autonomySettingsJson = JSON.stringify(autonomy && typeof autonomy === "object" && !Array.isArray(autonomy) ? autonomy : { mode: "active", allowed_actions: ["proactive_message", "memory_candidate", "relationship_candidate", "schedule_proposal", "media_request", "moment"], budget_remaining: 1 }, null, 2); controlCenter.wakeUpSettingsJson = JSON.stringify(wakeUp && typeof wakeUp === "object" && !Array.isArray(wakeUp) ? wakeUp : { enabled: true, interval_seconds: 1800 }, null, 2); controlCenter.diagnosticsRetentionJson = JSON.stringify(retention && typeof retention === "object" && !Array.isArray(retention) ? retention : { retention_days: 30, max_rows: 10000 }, null, 2); }
 async function saveRole() { if (!roleEndpointId.value || !roleModelId.value.trim()) { controlCenter.error = "请为该模型角色选择 endpoint 和模型。"; return; } await controlCenter.configureModelRole({ role: selectedProviderRole.value, endpointId: roleEndpointId.value, modelId: roleModelId.value.trim(), tokenBudget: roleTokenBudget.value, timeoutSeconds: roleTimeoutSeconds.value }); if (!controlCenter.error) await selectRole(selectedProviderRole.value); }
 async function saveEndpoint() { if (!endpointId.value.trim() || !endpointUrl.value.trim()) { controlCenter.error = "请完整填写 endpoint 标识和服务地址。"; return; } if (endpointSecret.value) { await controlCenter.saveSettings({}, { [`provider:${endpointId.value.trim()}`]: endpointSecret.value }); if (controlCenter.error) return; } await controlCenter.configureProviderEndpoint({ endpointId: endpointId.value.trim(), kind: providerKind.value, baseUrl: endpointUrl.value.trim(), secretPurpose: `provider:${endpointId.value.trim()}` }); if (!controlCenter.error) { endpointSecret.value = ""; selectEndpoint(endpointId.value.trim()); await selectRole(selectedProviderRole.value); } }
 async function saveMedia() { if (!comfyUiUrl.value.trim() || !comfyUiWorkflow.value.trim()) { if (comfyUiUrl.value.trim() || comfyUiWorkflow.value.trim()) controlCenter.error = "请同时填写 ComfyUI URL 和图片工作流。"; return; } try { const workflow = JSON.parse(comfyUiWorkflow.value); if (!workflow || typeof workflow !== "object" || Array.isArray(workflow)) throw new Error("workflow_not_object"); await controlCenter.saveSettings({ "media.comfyui": { baseUrl: comfyUiUrl.value.trim(), workflow } }); } catch { controlCenter.error = "ComfyUI 图片工作流必须是 JSON 对象。"; } }
+async function saveQueueSettings() { try { const queue = JSON.parse(llmQueueSettingsJson.value) as Record<string, unknown>; if (!queue || Array.isArray(queue)) throw new Error("queue_not_object"); await controlCenter.saveSettings({ "llm.queue": queue }); } catch { controlCenter.error = "LLM 队列并发设置必须是 JSON 对象，生成式和 Embedding 并发范围为 1–8。"; } }
 async function changePassword() { const changed = await store.changePassword(changedOwnerPassword.value); if (changed) changedOwnerPassword.value = ""; }
 async function copyRoleModel() {
   if (!roleModelId.value || !navigator.clipboard) return;
@@ -78,7 +79,7 @@ onMounted(() => void load());
       <Accordion :key="currentSection" type="single" :default-value="currentSection" class="settings-accordion">
       <AccordionItem v-if="currentSection === 'model-role'" value="model-role" class="settings-section settings-drawer">
         <AccordionTrigger class="settings-drawer-summary section-heading w-full py-0 hover:no-underline">
-          <div><p class="eyebrow">MODEL ROLES</p><h2 id="model-role-title">模型角色绑定</h2><small>为不同认知角色选择模型和预算</small></div>
+          <div><p class="eyebrow">MODEL ROLES</p><h2 id="model-role-title">模型角色绑定</h2><small>为通用 LLM 或 Embedding 选择模型和预算</small></div>
         </AccordionTrigger>
         <AccordionContent>
           <div class="settings-drawer-body model-role-config">
@@ -198,6 +199,8 @@ onMounted(() => void load());
               <label for="autonomy-json">自治策略<Textarea id="autonomy-json" v-model="controlCenter.autonomySettingsJson" rows="5" spellcheck="false" /></label>
               <label for="wake-up-json">定期唤醒<Textarea id="wake-up-json" v-model="controlCenter.wakeUpSettingsJson" rows="3" spellcheck="false" /></label>
               <label for="retention-json">诊断保留策略<Textarea id="retention-json" v-model="controlCenter.diagnosticsRetentionJson" rows="4" spellcheck="false" /></label>
+              <label for="llm-queue-json">LLM 队列并发（生成式 / Embedding）<Textarea id="llm-queue-json" v-model="llmQueueSettingsJson" rows="3" spellcheck="false" /></label>
+              <Button class="primary-button" type="button" :disabled="controlCenter.saving" @click="saveQueueSettings">保存队列设置</Button>
               <Button class="primary-button" type="submit" :disabled="controlCenter.saving">保存运行策略</Button>
             </form>
           </div>

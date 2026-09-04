@@ -32,6 +32,7 @@ boundaries described below.
 | [Fluctlight Auth Contract](./fluctlight-auth-contract.md) | Single Owner Human setup, Argon2id, opaque sessions, cookie/CSRF transport, service identity, authorization, and recovery |
 | [Fluctlight Configuration Contract](./fluctlight-configuration-contract.md) | Startup env, PostgreSQL system settings, single-key AEAD, write-only secrets, validation, and redaction |
 | [Fluctlight Provider Contract](./fluctlight-provider-contract.md) | Endpoint/model roles, capability preflight, structured/stream/embedding behavior, budgets, provenance, and failure |
+| [Fluctlight Provider Queue Contract](./fluctlight-provider-queue-contract.md) | Generic/embedding bindings, trigger scenarios, priority/FIFO queues, concurrency settings, lifecycle diagnostics, and recovery |
 | [Fluctlight Life World Contract](./fluctlight-life-world-contract.md) | Local-day versioned Schedule, replan, Event/Context authority, timezone, pending state, and no heuristic routine |
 | [Fluctlight Autonomy Contract](./fluctlight-autonomy-contract.md) | Goal/Intention lifecycle, typed triggers, pre-authorized actions, budgets, frozen decisions, pause/cancel, and governance |
 | [Fluctlight Diagnostics Contract](./fluctlight-diagnostics-contract.md) | Built-in logs/prompts/model runs, correlation, typed redaction, retention, live query/export, and isolated failure |

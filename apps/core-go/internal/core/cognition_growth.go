@@ -255,7 +255,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	if err != nil {
 		return err
 	}
-	completion, err := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", []map[string]any{
+	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "native_cognition"), "cognitive_assessment", []map[string]any{
 		{"role": "system", "content": nativeCognitionInstruction},
 		{"role": "user", "content": jsonString(map[string]any{"event_type": eventType, "fact": json.RawMessage(payload), "context": compactCognitionContext(projection)})},
 	}, a.capabilityRegistry().Manifests(), "native_cognition_response", nativeCognitionResponseSchema(), true)

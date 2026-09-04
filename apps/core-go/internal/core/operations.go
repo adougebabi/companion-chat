@@ -589,6 +589,7 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 	if !validProviderRole(role) || endpoint == "" || model == "" {
 		return errors.New("provider_role_invalid")
 	}
+	bindingRole := providerBindingRole(role)
 	budget := intValue(payload["token_budget"])
 	timeout := intValue(payload["timeout_seconds"])
 	if budget <= 0 {
@@ -619,11 +620,11 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 		return errors.New("provider_model_not_available")
 	}
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(role) DO UPDATE SET provider_endpoint_id=excluded.provider_endpoint_id,model_id=excluded.model_id,token_budget=excluded.token_budget,timeout_seconds=excluded.timeout_seconds,required_capabilities=excluded.required_capabilities,retry_policy=excluded.retry_policy`, role, endpoint, model, budget, timeout, stringValue(payload["required_capabilities"]), jsonString(mapValue(payload["retry_policy"]))); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(role) DO UPDATE SET provider_endpoint_id=excluded.provider_endpoint_id,model_id=excluded.model_id,token_budget=excluded.token_budget,timeout_seconds=excluded.timeout_seconds,required_capabilities=excluded.required_capabilities,retry_policy=excluded.retry_policy`, bindingRole, endpoint, model, budget, timeout, stringValue(payload["required_capabilities"]), jsonString(mapValue(payload["retry_policy"]))); err != nil {
 			return err
 		}
-		preflightID := "provider_preflight_" + stableDigest(role+":"+endpoint+":"+model)
-		if _, err := tx.Exec(ctx, `INSERT INTO public.provider_preflights(id,role,result,capability_version,checked_at) VALUES($1,$2,'available',$3,now()) ON CONFLICT(id) DO UPDATE SET result='available',capability_version=excluded.capability_version,checked_at=now()`, preflightID, role, "models-v1"); err != nil {
+		preflightID := "provider_preflight_" + stableDigest(bindingRole+":"+endpoint+":"+model)
+		if _, err := tx.Exec(ctx, `INSERT INTO public.provider_preflights(id,role,result,capability_version,checked_at) VALUES($1,$2,'available',$3,now()) ON CONFLICT(id) DO UPDATE SET result='available',capability_version=excluded.capability_version,checked_at=now()`, preflightID, bindingRole, "models-v1"); err != nil {
 			return err
 		}
 		_, err := tx.Exec(ctx, `UPDATE public.provider_endpoints SET capability_status='available',checked_at=now() WHERE id=$1`, endpoint)
@@ -1110,7 +1111,7 @@ func (a *App) ModelRunsFiltered(ctx context.Context, actorID string, limit int, 
 	if limit > 500 {
 		limit = 500
 	}
-	query := `SELECT id,role,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at FROM public.diagnostic_model_runs`
+	query := `SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at FROM public.diagnostic_model_runs`
 	args := []any{}
 	if strings.TrimSpace(correlationID) != "" {
 		args = append(args, strings.TrimSpace(correlationID))
@@ -1125,14 +1126,23 @@ func (a *App) ModelRunsFiltered(ctx context.Context, actorID string, limit int, 
 	defer rows.Close()
 	out := make([]map[string]any, 0)
 	for rows.Next() {
-		var id, role, model, status, corr string
+		var id, role, bindingRole, scenario, model, status, corr string
+		var priority int
 		var endpoint, code *string
 		var prompt, response []byte
-		var created time.Time
-		if err := rows.Scan(&id, &role, &endpoint, &model, &prompt, &response, &status, &code, &corr, &created); err != nil {
+		var created, queued time.Time
+		var started, completed *time.Time
+		if err := rows.Scan(&id, &role, &bindingRole, &scenario, &priority, &endpoint, &model, &prompt, &response, &status, &code, &corr, &created, &queued, &started, &completed); err != nil {
 			return nil, err
 		}
-		out = append(out, map[string]any{"id": id, "role": role, "endpoint_id": endpoint, "model_id": model, "prompt": json.RawMessage(prompt), "response": json.RawMessage(response), "status": status, "error_code": code, "correlation_id": corr, "created_at": created.Format(time.RFC3339Nano)})
+		row := map[string]any{"id": id, "role": role, "binding_role": bindingRole, "scenario": scenario, "priority": priority, "endpoint_id": endpoint, "model_id": model, "prompt": json.RawMessage(prompt), "response": json.RawMessage(response), "status": status, "error_code": code, "correlation_id": corr, "created_at": created.Format(time.RFC3339Nano), "queued_at": queued.Format(time.RFC3339Nano)}
+		if started != nil {
+			row["started_at"] = started.Format(time.RFC3339Nano)
+		}
+		if completed != nil {
+			row["completed_at"] = completed.Format(time.RFC3339Nano)
+		}
+		out = append(out, row)
 	}
 	return out, rows.Err()
 }
@@ -1149,6 +1159,21 @@ func (a *App) DiagnosticsExport(ctx context.Context, actorID string) (map[string
 		return nil, err
 	}
 	return map[string]any{"events": events, "model_runs": runs}, nil
+}
+
+// RecoverStaleModelRuns closes lifecycle records left behind by a crashed API
+// or Worker process. The in-memory queue cannot resume a lost callback, so a
+// stale request is terminally marked with a bounded infrastructure reason;
+// its owning domain workflow remains responsible for retrying the operation.
+func (a *App) RecoverStaleModelRuns(ctx context.Context, olderThan time.Duration) (int64, error) {
+	if olderThan <= 0 {
+		olderThan = 15 * time.Minute
+	}
+	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.diagnostic_model_runs SET status='failed',error_code='provider_process_restarted',completed_at=COALESCE(completed_at,now()) WHERE status IN ('queued','running') AND COALESCE(started_at,queued_at,created_at) < now()-$1::interval`, fmt.Sprintf("%d seconds", int64(olderThan/time.Second)))
+	if err != nil {
+		return 0, err
+	}
+	return command.RowsAffected(), nil
 }
 
 // PruneDiagnostics enforces the local retention contract without touching any

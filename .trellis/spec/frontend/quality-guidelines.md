@@ -94,3 +94,68 @@ and `pnpm --filter @fluctlight/web build` are required before browser checks.
 Manual browser checks through the Nginx-served production image, plus API/NDJSON
 smoke and narrow/mobile viewport checks, remain the user-facing quality gate.
 Use a temporary or empty data directory for destructive UI checks when needed.
+
+## Scenario: Reactive NDJSON assistant streaming
+
+### 1. Scope / Trigger
+
+- Trigger: a chat view appends an optimistic assistant draft and applies
+  incremental `token` frames from the Core/BFF NDJSON stream.
+
+### 2. Signatures
+
+- `BrowserTurnEvent` keeps monotonic `sequence` and a terminal `completed` or
+  `error` frame.
+- The conversations Pinia store owns the transient assistant draft and replaces
+  the persisted page only after a valid terminal frame.
+
+### 3. Contracts
+
+- Never mutate the raw object reference kept in a reactive array after pushing
+  it; replace the array entry (`splice`/immutable map) so Vue observes every
+  token.
+- Flush `TextDecoder` at EOF, reject an incomplete stream, and remove a partial
+  assistant draft on error while retaining the retry payload.
+- Clear the accepted composer draft before awaiting the network request; an
+  unsent draft typed while another request is active is not cleared.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Token chunks arrive after the first token | The visible assistant text grows without a page refresh. |
+| UTF-8 or NDJSON line is split across reads | Buffer and decode incrementally; do not parse a partial frame. |
+| Stream ends without `completed` | Treat as failed/incomplete, remove the transient assistant, keep retry available. |
+| User submits non-empty text | Clear only that accepted draft immediately; keep unrelated active editing intact. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a Chinese sentence streamed in several byte/line fragments renders in
+  full while the request is open.
+- Base: a completed stream re-reads persisted messages and reconciles the
+  optimistic user/assistant entries.
+- Bad: assigning `assistantDraft.text = ...` on the raw object after pushing it
+  into a reactive array, which freezes the UI at the first chunk.
+
+### 6. Tests Required
+
+- Static regression asserts the store replaces the draft array entry and
+  requires a terminal frame.
+- Browser/client tests cover split UTF-8, split NDJSON, terminal errors and
+  retry cleanup; Web typecheck/build must pass.
+- Manual desktop and mobile checks confirm one-row composer layout and no draft
+  loss while a request is queued.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+assistantDraft.text = assistantText;
+```
+
+#### Correct
+
+```ts
+messages.splice(index, 1, { ...messages[index], text: assistantText });
+```

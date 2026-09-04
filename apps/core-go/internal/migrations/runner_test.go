@@ -17,7 +17,7 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0024_persona_layers" {
+	if Head != "0025_llm_queue" {
 		t.Fatalf("Head = %q", Head)
 	}
 }
@@ -43,6 +43,25 @@ func TestPersonaLayerSchemaIncludesCanonicalStores(t *testing.T) {
 	} {
 		if !strings.Contains(schemaSQL+compatibilitySQL, fragment) {
 			t.Fatalf("persona layer schema missing %q", fragment)
+		}
+	}
+}
+
+func TestLLMQueueSchemaIncludesGenericBindingAndLifecycleFields(t *testing.T) {
+	if Head != "0025_llm_queue" {
+		t.Fatalf("Head = %q, want 0025_llm_queue", Head)
+	}
+	for _, fragment := range []string{
+		"binding_role varchar(64)",
+		"scenario varchar(128)",
+		"queued_at timestamptz",
+		"started_at timestamptz",
+		"completed_at timestamptz",
+		"llm.queue",
+		"'generic_llm'",
+	} {
+		if !strings.Contains(schemaSQL+compatibilitySQL, fragment) {
+			t.Fatalf("LLM queue migration is missing %q", fragment)
 		}
 	}
 }

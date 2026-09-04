@@ -72,7 +72,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		{"role": "system", "content": dailyReviewInstruction},
 		{"role": "user", "content": jsonString(map[string]any{"local_date": localDate, "context": compactCognitionContext(projection), "goals": goals, "intentions": intentions})},
 	})
-	completion, err := a.Provider.StructuredWithToolsSchema(ctx, "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "daily_review_response", dailyReviewResponseSchema(), true)
+	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "daily_review"), "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "daily_review_response", dailyReviewResponseSchema(), true)
 	if err != nil {
 		// Some mlx-serve responses contain a malformed bookkeeping tool call
 		// (for example a scene_event without an id) before they emit any daily
@@ -121,7 +121,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	visible := ""
 	if actionType != "no_op" {
-		visible, err = a.Provider.Text(ctx, "action_realization", []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(map[string]any{"action_type": actionType, "response_intent": composite.ResponseIntent, "context": compactCognitionContext(projection)})}})
+		visible, err = a.Provider.Text(WithProviderScenario(ctx, "autonomy_reply"), "action_realization", []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(map[string]any{"action_type": actionType, "response_intent": composite.ResponseIntent, "context": compactCognitionContext(projection)})}})
 		if err != nil {
 			return nil, err
 		}
