@@ -261,6 +261,13 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	})
 	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "wake_up"), "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "wake_up_response", wakeUpResponseSchema(), true)
 	if err != nil {
+		if status, suppressed := providerSuppressionStatus(err); suppressed {
+			reason := "fluctlight_not_active"
+			if status == "paused" {
+				reason = "fluctlight_paused"
+			}
+			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": status, "reason": reason, "interval_seconds": settings.IntervalSeconds}, nil
+		}
 		return nil, err
 	}
 	assessment := completion.Structured
@@ -341,6 +348,13 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 				{"role": "user", "content": jsonString(map[string]any{"action_type": proposedActionType, "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "response_intent": assessment["response_intent"], "context": compactCognitionContext(projection)})},
 			})
 			if realizationErr != nil {
+				if status, suppressed := providerSuppressionStatus(realizationErr); suppressed {
+					reason := "fluctlight_not_active"
+					if status == "paused" {
+						reason = "fluctlight_paused"
+					}
+					return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": status, "reason": reason, "interval_seconds": settings.IntervalSeconds}, nil
+				}
 				return nil, realizationErr
 			}
 			if strings.TrimSpace(visible) == "" || len([]rune(visible)) > 32000 {

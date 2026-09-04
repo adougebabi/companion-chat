@@ -333,6 +333,13 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	proposal, err := a.Provider.Structured(WithProviderScenario(ctx, "reflection"), "reflection", []map[string]any{{"role": "system", "content": reflectionInstruction}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": compactCognitionContext(projection)})}})
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		if status, suppressed := providerSuppressionStatus(err); suppressed {
+			reason := "fluctlight_not_active"
+			if status == "paused" {
+				reason = "fluctlight_paused"
+			}
+			return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": status, "reason": reason}, nil
+		}
 		return nil, err
 	}
 	normalizedProposal := normalizeReflectionProposal(proposal)

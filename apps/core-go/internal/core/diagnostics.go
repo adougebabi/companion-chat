@@ -209,6 +209,16 @@ func providerRunErrorCode(err error) string {
 	return "provider_request_failed"
 }
 
+func providerSuppressionStatus(err error) (string, bool) {
+	if errors.Is(err, errProviderPaused) {
+		return "paused", true
+	}
+	if errors.Is(err, errProviderInactive) {
+		return "inactive", true
+	}
+	return "", false
+}
+
 func (a *App) recordModelRunLifecycle(ctx context.Context, role, endpointID, modelID, correlationID, scenario string, priority int, prompt any, response any, status, errorCode string) string {
 	if a == nil || a.DB == nil {
 		return ""

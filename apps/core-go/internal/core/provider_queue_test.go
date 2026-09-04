@@ -174,6 +174,18 @@ func TestProviderSuppressionErrorCodesAreBounded(t *testing.T) {
 	}
 }
 
+func TestProviderSuppressionStatusDistinguishesPausedAndInactive(t *testing.T) {
+	if status, ok := providerSuppressionStatus(errProviderPaused); !ok || status != "paused" {
+		t.Fatalf("paused suppression = %q, %t", status, ok)
+	}
+	if status, ok := providerSuppressionStatus(errProviderInactive); !ok || status != "inactive" {
+		t.Fatalf("inactive suppression = %q, %t", status, ok)
+	}
+	if status, ok := providerSuppressionStatus(errors.New("provider failed")); ok || status != "" {
+		t.Fatalf("ordinary error suppression = %q, %t", status, ok)
+	}
+}
+
 func TestProviderScenarioAndPriorityMapping(t *testing.T) {
 	tests := []struct {
 		role, schema, wantScenario string
