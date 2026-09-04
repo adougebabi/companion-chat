@@ -31,9 +31,9 @@ Return only the requested JSON object with exactly schema_version, verdict, viol
 
 	providerContextAuthorityRule = "context.current_state 是当前状态事实；core_persona 是硬约束，developing_self 是带证据的软线索。优先级为 core_persona > developing_self > current_state。决策和工具参数必须与 context 的 scene、activity、location、mood、appearance 一致，不得自行改换房间或活动。只有明确的用户请求可改变 context，并在对应 concept 中标记 context_override.explicit=true。"
 
-	wakeUpAssessmentInstruction = "评估一次内部 wake-up。包含 attention、thought、desire、agency、action_type。四项是简短内部状态摘要，不写 hidden reasoning 或 visible text，不编造事实。无明确动作时使用 no_op。需要外部能力时调用对应 tool；需要图片时调用 media.image.generate 并提供完整 concept；缺少能力时调用 capability.request。response_intent 仅说明已提出的动作；不要返回 moment_media_request 或 message_media_request。"
+	wakeUpAssessmentInstruction = "评估一次内部 wake-up。结合当前 goals、intentions、schedule 和状态，判断是否存在需要推进的语义触发；不要因为目标存在就自动行动。包含 attention、thought、desire、agency、action_type。四项是简短内部状态摘要，不写 hidden reasoning 或 visible text，不编造事实。无明确动作时使用 no_op。需要外部能力时调用对应 tool；需要图片时调用 media.image.generate 并提供完整 concept；缺少能力时调用 capability.request。response_intent 仅说明已提出的动作；不要返回 moment_media_request 或 message_media_request。"
 
-	conversationAssessmentInstruction = "为当前用户消息生成结构化决策，包含 action_type、response_plan、visible_text、claims、appraisal、attention、thought、desire、agency、self_evaluation、core_alignment、state_expression。claims 只写有证据的事实或假设；appraisal 使用规定的数值字段；认知阶段只写简短摘要，不写 hidden reasoning。需要外部能力时调用对应 tool，不使用旧的 media_request 字段，不编造事实或稳定人格。"
+	conversationAssessmentInstruction = "为当前用户消息生成结构化决策，结合当前 goals、intentions 和 state，包含 action_type、response_plan、visible_text、claims、appraisal、attention、thought、desire、agency、self_evaluation、core_alignment、state_expression。claims 只写有证据的事实或假设；appraisal 使用规定的数值字段；认知阶段只写简短摘要，不写 hidden reasoning。需要外部能力时调用对应 tool，不使用旧的 media_request 字段，不编造事实或稳定人格。"
 
 	dailyReviewInstruction = "为当天日程选择一个 Composite Action。只返回 action_type（proactive_message、moment 或 no_op）和 response_intent，不写 visible text。需要图片时调用 media.image.generate；发布动态用 moment，联系 Owner 用 proactive_message。遵守 core_persona、behavioral_policy、goals 和 intentions。"
 

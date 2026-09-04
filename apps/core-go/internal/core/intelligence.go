@@ -58,6 +58,8 @@ type ContextProjection struct {
 	PreferenceSlots        []map[string]any `json:"preference_slots"`
 	TriggerPreferences     []map[string]any `json:"trigger_preferences"`
 	VisualIdentity         map[string]any   `json:"visual_identity"`
+	Goals                  []map[string]any `json:"goals,omitempty"`
+	Intentions             []map[string]any `json:"intentions,omitempty"`
 }
 
 func contextProjectionFromValue(value any) (ContextProjection, bool) {
@@ -153,6 +155,10 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if err != nil {
 		return ContextProjection{}, err
 	}
+	goals, intentions, err := a.agencyProfile(ctx, fluctlightID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
 	visualIdentity, err := a.readVisualIdentityDetail(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -198,6 +204,7 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 		Hypotheses:   hypotheses,
 		Capabilities: capabilityManifestMaps(a.capabilityRegistry().Manifests()),
 		DriveSlots:   driveSlots, PreferenceSlots: preferenceSlots, TriggerPreferences: triggerPreferences, VisualIdentity: visualIdentity,
+		Goals: goals, Intentions: intentions,
 	}
 	if presence, ok := lifeContext["presence"].(map[string]any); ok {
 		projection.Presence = presence

@@ -58,7 +58,55 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	if len(projection.Presence) > 0 {
 		result["presence"] = projection.Presence
 	}
+	if goals := compactProviderGoals(projection.Goals); len(goals) > 0 {
+		result["goals"] = goals
+	}
+	if intentions := compactProviderIntentions(projection.Intentions); len(intentions) > 0 {
+		result["intentions"] = intentions
+	}
 	return stripProviderMetadata(result).(map[string]any)
+}
+
+func compactProviderGoals(goals []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(goals))
+	for _, goal := range goals {
+		item := map[string]any{}
+		for _, key := range []string{"description", "importance", "urgency", "progress"} {
+			if value, ok := goal[key]; ok && value != nil {
+				item[key] = value
+			}
+		}
+		if status := stringValue(goal["status"]); status != "" {
+			item["state"] = status
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactProviderIntentions(intentions []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(intentions))
+	for _, intention := range intentions {
+		item := map[string]any{}
+		for _, key := range []string{"goal", "action", "confidence", "preferred_time", "expiration"} {
+			if value, ok := intention[key]; ok && value != nil && value != "" {
+				if key == "expiration" {
+					item["deadline"] = value
+				} else {
+					item[key] = value
+				}
+			}
+		}
+		if status := stringValue(intention["status"]); status != "" {
+			item["state"] = status
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
 }
 
 func compactCorePersona(projection ContextProjection) map[string]any {

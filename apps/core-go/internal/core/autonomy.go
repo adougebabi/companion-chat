@@ -51,10 +51,6 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if err != nil {
 		return nil, err
 	}
-	goals, intentions, err := a.agencyProfile(ctx, fluctlightID)
-	if err != nil {
-		return nil, err
-	}
 	projection, err := a.BuildContextProjection(ctx, ownerID, fluctlightID, conversationID, "daily-review:"+fluctlightID+":"+localDate, "")
 	if err != nil {
 		return nil, err
@@ -70,7 +66,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	messages := withContextAuthorityInstruction([]map[string]any{
 		{"role": "system", "content": dailyReviewInstruction},
-		{"role": "user", "content": jsonString(map[string]any{"local_date": localDate, "context": compactCognitionContext(projection), "goals": goals, "intentions": intentions})},
+		{"role": "user", "content": jsonString(map[string]any{"local_date": localDate, "context": compactCognitionContext(projection)})},
 	})
 	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "daily_review"), "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "daily_review_response", dailyReviewResponseSchema(), true)
 	if err != nil {
@@ -223,19 +219,26 @@ func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[str
 	}
 	rows.Close()
 	intentions := make([]map[string]any, 0)
-	intentRows, err := a.DB.Pool().Query(ctx, `SELECT id,goal_id,action,status,confidence,expiration FROM public.fluctlight_intentions WHERE fluctlight_id=$1 AND status NOT IN ('cancelled','completed') ORDER BY created_at`, fluctlightID)
+	intentRows, err := a.DB.Pool().Query(ctx, `SELECT i.id,i.goal_id,g.description,i.action,i.status,i.confidence,i.preferred_time,i.expiration FROM public.fluctlight_intentions i LEFT JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND i.status NOT IN ('cancelled','completed','expired') AND i.expiration > now() ORDER BY i.created_at`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
 	for intentRows.Next() {
-		var id, goalID, action, status string
+		var id, goalID, goalDescription, action, status string
 		var confidence float64
-		var expiration time.Time
-		if err := intentRows.Scan(&id, &goalID, &action, &status, &confidence, &expiration); err != nil {
+		var preferredTime, expiration *time.Time
+		if err := intentRows.Scan(&id, &goalID, &goalDescription, &action, &status, &confidence, &preferredTime, &expiration); err != nil {
 			intentRows.Close()
 			return nil, nil, err
 		}
-		intentions = append(intentions, map[string]any{"id": id, "goal_id": goalID, "action": action, "status": status, "confidence": confidence, "expiration": expiration.Format(time.RFC3339)})
+		item := map[string]any{"id": id, "goal_id": goalID, "goal": goalDescription, "action": action, "status": status, "confidence": confidence}
+		if preferredTime != nil {
+			item["preferred_time"] = preferredTime.Format(time.RFC3339)
+		}
+		if expiration != nil {
+			item["expiration"] = expiration.Format(time.RFC3339)
+		}
+		intentions = append(intentions, item)
 	}
 	if err := intentRows.Err(); err != nil {
 		intentRows.Close()

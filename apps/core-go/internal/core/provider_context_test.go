@@ -210,3 +210,32 @@ func TestCompactMessageTimeKeepsDateAndSecondsWithoutSequence(t *testing.T) {
 		t.Fatalf("compact message time = %q", got)
 	}
 }
+
+func TestCompactCognitionContextIncludesGoalsAndIntentionsAsSemanticInputs(t *testing.T) {
+	compact := compactCognitionContext(ContextProjection{
+		CorePersona:  map[string]any{"authority": "hard_constraint", "data": map[string]any{}},
+		CurrentState: map[string]any{"authority": "transient_state", "data": map[string]any{}},
+		Goals: []map[string]any{{
+			"id": "goal_1234567890abcdef", "description": "完成当前项目", "status": "active",
+			"importance": 0.9, "urgency": 0.7, "progress": 0.2,
+		}},
+		Intentions: []map[string]any{{
+			"id": "intention_1234567890abcdef", "goal_id": "goal_1234567890abcdef", "goal": "完成当前项目",
+			"action": "检查待处理任务", "status": "pending", "confidence": 0.8, "expiration": "2026-09-05T00:00:00Z",
+		}},
+	})
+	goals := arrayValue(compact["goals"])
+	if len(goals) != 1 || stringValue(mapValue(goals[0])["description"]) != "完成当前项目" || stringValue(mapValue(goals[0])["state"]) != "active" {
+		t.Fatalf("compact goals = %#v", compact["goals"])
+	}
+	intentions := arrayValue(compact["intentions"])
+	if len(intentions) != 1 || stringValue(mapValue(intentions[0])["goal"]) != "完成当前项目" || stringValue(mapValue(intentions[0])["state"]) != "pending" || stringValue(mapValue(intentions[0])["deadline"]) == "" {
+		t.Fatalf("compact intentions = %#v", compact["intentions"])
+	}
+	encoded, _ := json.Marshal(compact)
+	for _, leaked := range []string{"goal_1234567890abcdef", "intention_1234567890abcdef", "goal_id", "status"} {
+		if strings.Contains(string(encoded), leaked) {
+			t.Fatalf("agency metadata leaked: %q in %s", leaked, encoded)
+		}
+	}
+}
