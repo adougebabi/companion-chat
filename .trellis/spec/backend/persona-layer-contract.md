@@ -34,6 +34,7 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 - Every Developing Self mutation records an outcome (`accepted`, `rejected`, `conflict`, `rollback`, or `forgotten`) with a stable reason code, evidence references, confidence, provenance, source window, and revision/CAS information.
 - Evidence references are validated against the Fluctlight-owned Reflection window. Fact IDs and `sequence:N` aliases resolving to the same fact count once. Repeated claims without new evidence are deterministic no-ops.
 - ContextProjection exposes canonical `core_persona`, `developing_self`, and `current_state` fields plus the existing identity/personality/policy compatibility view. Frozen actions retain the projection captured at assessment; realization never re-reads mutable Persona state.
+- Provider-facing serialization lifts the semantic Core Persona groups (`identity`, `personality`, `behavioral_policy`, `life_profile`) into the fixed system `# 人格设定` section. It omits schema/version, internal IDs, revisions, persistence timestamps, foreign keys, and automatic-evolution controls; Developing Self, Current State, memories, goals, intentions, recent messages, and `life_context.current_time/timezone` remain dynamic context sections.
 - Existing Persona fields keep their current Web presentation. New layer objects are displayed as bounded, read-only JSON; Developing Self governance uses explicit rollback/forget actions rather than arbitrary JSON replacement.
 
 ### 4. Validation & Error Matrix

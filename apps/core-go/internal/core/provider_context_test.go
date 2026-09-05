@@ -131,7 +131,8 @@ func TestCompactCognitionContextRetainsNonEmptySemanticCollections(t *testing.T)
 			t.Fatalf("non-empty collection %q was not retained: %#v", key, compact)
 		}
 	}
-	if !strings.Contains(stringValue(compact["recent_messages"]), "[09-03 00:00:00] user: hello") {
+	recent := arrayValue(compact["recent_messages"])
+	if len(recent) != 1 || stringValue(mapValue(recent[0])["role"]) != "user" || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 00:00:00" {
 		t.Fatalf("compact recent messages = %#v", compact["recent_messages"])
 	}
 }
@@ -157,9 +158,9 @@ func TestCompactCognitionContextRemovesDatabaseMetadataFromEvidence(t *testing.T
 			"status": "uncertain", "revision": 4, "updated_at": "2026-09-03T00:00:00Z", "fluctlight_id": "fl-db-id",
 		}},
 	})
-	message := stringValue(compact["recent_messages"])
-	if !strings.Contains(message, "[09-03 00:00:00] user: hello") {
-		t.Fatalf("message semantics changed: %#v", message)
+	recent := arrayValue(compact["recent_messages"])
+	if len(recent) != 1 || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 00:00:00" {
+		t.Fatalf("message semantics changed: %#v", recent)
 	}
 	memory := mapValue(arrayValue(compact["memories"])[0])
 	for _, key := range []string{"id", "source", "status", "revision", "visibility", "conversation_id", "event_refs"} {
@@ -172,11 +173,17 @@ func TestCompactCognitionContextRemovesDatabaseMetadataFromEvidence(t *testing.T
 			t.Fatalf("memory semantic field missing: %q: %#v", key, memory)
 		}
 	}
+	if memory["created_at"] != "2026-09-03T00:00:00Z" || len(arrayValue(memory["evidence_refs"])) != 1 {
+		t.Fatalf("memory grounding fields were removed: %#v", memory)
+	}
 	claim := mapValue(arrayValue(compact["developing_self"])[0])
 	for _, key := range []string{"id", "revision", "updated_at", "fluctlight_id"} {
 		if _, ok := claim[key]; ok {
 			t.Fatalf("Developing Self database field leaked: %q: %#v", key, claim)
 		}
+	}
+	if len(arrayValue(claim["evidence_refs"])) != 1 || claim["provenance_source"] != "owner_defined" {
+		t.Fatalf("Developing Self grounding fields were removed: %#v", claim)
 	}
 }
 
@@ -270,9 +277,9 @@ func TestCompactCognitionContextDoesNotRepeatCurrentUserMessage(t *testing.T) {
 	if _, ok := compact["current_user_text"]; ok {
 		t.Fatal("current user text was retained as a second context field")
 	}
-	recent := stringValue(compact["recent_messages"])
-	if strings.Contains(recent, "最新消息") || !strings.Contains(recent, "上一句") {
-		t.Fatalf("recent messages = %q", recent)
+	recent := arrayValue(compact["recent_messages"])
+	if len(recent) != 1 || strings.Contains(jsonString(recent[0]), "最新消息") || !strings.Contains(jsonString(recent[0]), "上一句") {
+		t.Fatalf("recent messages = %#v", recent)
 	}
 }
 

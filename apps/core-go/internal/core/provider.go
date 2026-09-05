@@ -150,8 +150,12 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 		return ProviderCompletion{}, err
 	}
 	messages = addVisualIdentityMediaPromptInstruction(role, messages)
-	messages = withChineseOutputInstruction(role, messages)
-	messages = formatProviderMessagesForRole(messages, role)
+	if role == "media_prompt" {
+		messages = withChineseOutputInstruction(role, messages)
+		messages = formatProviderMessagesForRole(messages, role)
+	} else {
+		messages = composeProviderMessages(role, messages)
+	}
 	correlationID := providerCorrelation(ctx)
 	if correlationID == "" {
 		correlationID = diagnosticCorrelation(messages, "")
@@ -625,8 +629,7 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 	if err != nil {
 		return "", err
 	}
-	messages = withChineseOutputInstruction(role, messages)
-	messages = formatProviderMessagesForRole(messages, role)
+	messages = composeProviderMessages(role, messages)
 	correlationID := diagnosticCorrelation(messages, "")
 	body, err := json.Marshal(map[string]any{"model": assignment.ModelID, "messages": messages, "temperature": 0.7, "stream": true})
 	if err != nil {

@@ -23,12 +23,11 @@ var providerHashPattern = regexp.MustCompile(`\b(?:message|memory|inbox|wake_fac
 // of the contract to reconcile.
 func compactCognitionContext(projection ContextProjection) map[string]any {
 	result := map[string]any{
-		"schema_version": projection.SchemaVersion,
-		"core_persona":   compactCorePersona(projection),
-		"current_state":  compactCurrentState(projection),
+		"core_persona":  compactCorePersona(projection),
+		"current_state": compactCurrentState(projection),
 	}
 	if len(projection.RecentMessages) > 0 {
-		if recent := compactRecentMessages(projection.RecentMessages, projection.CurrentUserText); recent != "" {
+		if recent := compactRecentMessages(projection.RecentMessages, projection.CurrentUserText); len(recent) > 0 {
 			result["recent_messages"] = recent
 		}
 	}
@@ -67,7 +66,7 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	if intentions := compactProviderIntentions(projection.Intentions); len(intentions) > 0 {
 		result["intentions"] = intentions
 	}
-	return stripProviderMetadata(result).(map[string]any)
+	return stripProviderContextMetadata(result).(map[string]any)
 }
 
 func compactProviderGoals(goals []map[string]any) []map[string]any {
@@ -139,6 +138,9 @@ func compactCorePersona(projection ContextProjection) map[string]any {
 	if identity := mapValue(data["identity"]); len(identity) > 0 {
 		delete(identity, "id")
 	}
+	delete(result, "id")
+	delete(result, "schema_version")
+	delete(data, "schema_version")
 	result["data"] = data
 	return result
 }
@@ -175,7 +177,7 @@ func compactCurrentState(projection ContextProjection) map[string]any {
 	return result
 }
 
-func compactRecentMessages(messages []map[string]any, currentUserText string) string {
+func compactRecentMessages(messages []map[string]any, currentUserText string) []map[string]any {
 	currentUserText = strings.TrimSpace(currentUserText)
 	skipIndex := -1
 	if currentUserText != "" {
@@ -188,7 +190,7 @@ func compactRecentMessages(messages []map[string]any, currentUserText string) st
 			}
 		}
 	}
-	var result strings.Builder
+	result := make([]map[string]any, 0, len(messages))
 	for index, message := range messages {
 		if index == skipIndex {
 			continue
@@ -202,15 +204,9 @@ func compactRecentMessages(messages []map[string]any, currentUserText string) st
 			kind = "message"
 		}
 		stamp := compactMessageTime(stringValue(message["created_at"]))
-		result.WriteString("[")
-		result.WriteString(stamp)
-		result.WriteString("] ")
-		result.WriteString(kind)
-		result.WriteString(": ")
-		result.WriteString(text)
-		result.WriteByte('\n')
+		result = append(result, map[string]any{"role": kind, "time": stamp, "content": text})
 	}
-	return strings.TrimRight(result.String(), "\n")
+	return result
 }
 
 func compactMessageTime(value string) string {
@@ -230,13 +226,16 @@ func compactDevelopingSelf(claims []map[string]any) []map[string]any {
 	result := make([]map[string]any, 0, len(claims))
 	for _, claim := range claims {
 		compact := make(map[string]any, 6)
-		for _, key := range []string{"category", "claim", "value", "confidence", "evidence_refs", "provenance", "status", "expires_at"} {
+		for _, key := range []string{"category", "claim", "value", "confidence", "evidence_refs"} {
 			if value, ok := claim[key]; ok && value != nil && value != "" {
 				if key == "evidence_refs" && len(arrayValue(value)) == 0 {
 					continue
 				}
 				compact[key] = value
 			}
+		}
+		if source := stringValue(mapValue(claim["provenance"])["source"]); source != "" {
+			compact["provenance_source"] = source
 		}
 		if len(compact) > 0 {
 			result = append(result, compact)
@@ -588,6 +587,58 @@ func providerMetadataKey(key string) bool {
 	}
 	switch normalized {
 	case "provenance", "status", "schema", "schemaversion", "evidencerefs", "source", "sequence", "revision", "createdat", "updatedat", "lastupdatedat", "occurredat", "expiresat", "checkedat", "generatedat", "instant", "conversation", "conversationref", "fluctlight", "fluctlightid", "sourcefact":
+		return true
+	default:
+		return false
+	}
+}
+
+// stripProviderContextMetadata removes storage/coordination metadata while
+// preserving semantic evidence references and memory creation time. Unlike
+// stripProviderMetadata, it never rewrites arbitrary natural-language strings
+// that merely resemble an internal ID.
+func stripProviderContextMetadata(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		result := make(map[string]any, len(typed))
+		for key, child := range typed {
+			if providerContextMetadataKey(key) {
+				continue
+			}
+			result[key] = stripProviderContextMetadata(child)
+		}
+		return result
+	case []map[string]any:
+		result := make([]map[string]any, 0, len(typed))
+		for _, item := range typed {
+			cleaned, _ := stripProviderContextMetadata(item).(map[string]any)
+			if len(cleaned) > 0 {
+				result = append(result, cleaned)
+			}
+		}
+		return result
+	case []any:
+		result := make([]any, 0, len(typed))
+		for _, child := range typed {
+			cleaned := stripProviderContextMetadata(child)
+			if object, ok := cleaned.(map[string]any); ok && len(object) == 0 {
+				continue
+			}
+			result = append(result, cleaned)
+		}
+		return result
+	default:
+		return value
+	}
+}
+
+func providerContextMetadataKey(key string) bool {
+	normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
+	if normalized == "id" || strings.HasSuffix(normalized, "id") {
+		return true
+	}
+	switch normalized {
+	case "schema", "schemaversion", "revision", "updatedat", "lastupdatedat", "occurredat", "expiresat", "checkedat", "generatedat", "instant", "conversation", "conversationref", "fluctlight", "fluctlightid", "sourcefact", "visibility", "foreignkey", "persistence", "transport", "status", "source", "provenance":
 		return true
 	default:
 		return false

@@ -275,7 +275,7 @@ func formatProviderTOONCell(value any) string {
 		return "[" + strings.Join(cells, ",") + "]"
 	}
 	if text, ok := value.(string); ok {
-		if text == "" || strings.TrimSpace(text) != text || strings.ContainsAny(text, "|\r\n") || text == "null" || text == "true" || text == "false" || looksLikeProviderYAMLNumber(text) {
+		if text == "" || strings.TrimSpace(text) != text || strings.ContainsAny(text, ",|[]\r\n") || text == "null" || text == "true" || text == "false" || looksLikeProviderYAMLNumber(text) {
 			return quoteProviderYAML(text)
 		}
 		return text

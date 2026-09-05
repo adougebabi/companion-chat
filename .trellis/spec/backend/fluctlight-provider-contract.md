@@ -259,6 +259,109 @@ metadata-free fact. Frozen Core records retain the complete protocol objects.
 - Assert every Provider system payload still has one leading system message;
   this context compaction must not alter native tools or persisted decisions.
 
+## Scenario: Fixed system and sectioned dynamic prompt composition
+
+### 1. Scope / Trigger
+
+- Trigger: a non-`media_prompt` Provider call serializes a cognition,
+  initialization, realization, daily-review, wake-up, native-cognition,
+  reflection, or schedule payload.
+- The composer changes only Provider-facing text organization and metadata
+  filtering; business schemas, Tool Calls, workflow state, and frozen replay
+  values remain unchanged.
+
+### 2. Signatures
+
+```text
+composeProviderMessages(role, messages) -> []ProviderMessage
+renderCorePersonaForProvider(core_persona) -> map
+formatProviderDynamicPromptContent(jsonText) -> string
+stripProviderContextMetadata(value) -> value
+```
+
+### 3. Contracts
+
+- Ordinary system content contains exactly two top-level sections: `# 运行协议`
+  and `# 人格设定`. Role-specific operation rules are nested under the run
+  protocol; they are never represented as Core Persona fields.
+- `# 人格设定` contains only semantic Core Persona groups:
+  `identity`, `personality`, `behavioral_policy`, and `life_profile`.
+  `schema_version`, any internal ID/revision, persistence timestamps,
+  foreign keys, transport metadata, and automatic-evolution control fields do
+  not enter the prompt.
+- Dynamic user content uses simple `#` headings. `# 当前上下文` contains
+  scene/activity/location/mood/appearance plus semantic
+  `life_context.current_time` and `timezone`; raw Core `instant` is omitted.
+- Developing Self, memories, goals, intentions, and recent messages use a
+  deterministic TOON table when rows are homogeneous and cells are safely
+  escaped. Nested objects, multimodal content, heterogeneous rows, and unsafe
+  cells use YAML-like output.
+- Memory `created_at` and evidence references are semantic grounding fields and
+  remain; storage IDs, revision/status/FK/audit fields do not. Evidence refs
+  are not removed merely because they look like IDs.
+- Recent messages retain role/kind, semantic time, content, and order. The
+  current operation input is not duplicated in recent history.
+- `media_prompt`, `media_quality_acceptance`, and Visual Identity media calls
+  retain their existing English/YAML/multimodal path and do not enter this
+  ordinary composer.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Core Persona exists in `context` or `context_projection` | Lift it once into system and remove the dynamic duplicate. |
+| No Core Persona exists (initialization/legacy payload) | Keep protocol and explicit empty initialization/persona state; never invent fixed traits. |
+| Metadata field is an internal ID/revision/FK/status | Omit from Provider content. |
+| Memory/developing-self evidence reference or memory semantic creation time | Preserve in the relevant section. |
+| TOON row contains delimiter/nested object or is heterogeneous | Fall back to YAML-like output; never emit ambiguous TOON. |
+| Current time is missing/malformed | Core supplies the canonical local-time fallback; raw `instant` remains internal. |
+| Media role reaches composer | Preserve media-specific formatter/instructions; ordinary protocol is not injected. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: one system message contains protocol/operation rules and a filtered
+  Core Persona; the user message contains current local time, context, TOON
+  memories/goals and recent messages without database IDs.
+- Base: a legacy projection has parallel identity fields; the composer rebuilds
+  one Core Persona envelope and keeps the dynamic context readable.
+- Bad: put `schema_version` or persona IDs in the system, delete all
+  `evidence_refs`, duplicate Core Persona in system and user, or turn a nested
+  relationship object into an unsafe TOON table.
+
+### 6. Tests Required
+
+- Assert every ordinary role emits one leading system with the fixed section
+  order and operation rules inside `# 运行协议`.
+- Assert Core Persona filtering removes internal metadata and retains all four
+  initialized semantic groups; initialization without a persona does not get
+  synthetic traits.
+- Assert dynamic headings/current time/timezone, current-user deduplication,
+  memory creation time/evidence refs, and Developing Self evidence refs.
+- Assert TOON output for homogeneous memory/goal/intention/message rows and
+  YAML fallback for nested/heterogeneous/delimiter-heavy values.
+- Assert media prompt/quality/Visual Identity payloads remain outside the
+  ordinary composer and preserve their language/format behavior.
+- Assert frozen realization still uses its captured projection and provider
+  schema/tool payloads remain unchanged.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+// Global denylist removes every field named evidence_refs and rewrites all
+// ID-looking natural language, losing grounding information.
+prompt = stripProviderMetadata(fullProjection)
+```
+
+#### Correct
+
+```go
+system, dynamic := composeProviderMessages(role, messages)
+// Scoped filtering removes storage metadata while preserving semantic time
+// and evidence references, then renders list sections as safe TOON/YAML.
+```
+
 ### 7. Wrong vs Correct
 
 #### Wrong
