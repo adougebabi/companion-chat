@@ -104,7 +104,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 		activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "submit"})
 		constraints := map[string]any{}
 		if json.Unmarshal([]byte(intent.Prompt), &concept) == nil {
-			constraints = mapValue(concept["renderer_constraints"])
+			constraints = mediaRendererConstraints(concept)
 		}
 		referenceImageFilename := ""
 		if mediaWorkflowNeedsVisualIdentityReference(workflow) {
@@ -266,6 +266,30 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 		return nil, err
 	}
 	return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": quality.Verdict}, nil
+}
+
+// mediaRendererConstraints resolves the renderer-owned values from both
+// durable media concept shapes. Newer cognition calls keep the authoritative
+// visual identity under context_binding, while Visual Identity jobs also
+// persist the same constraints at the concept root. Merge them so both the
+// ordinary and Visual Identity ComfyUI workflows receive the LoRA weight.
+func mediaRendererConstraints(concept map[string]any) map[string]any {
+	result := cloneMap(mapValue(concept["renderer_constraints"]))
+	if len(result) == 0 {
+		result = make(map[string]any)
+	}
+	binding := mapValue(concept["context_binding"])
+	visualIdentity := mapValue(binding["visual_identity"])
+	nested := mapValue(visualIdentity["renderer_constraints"])
+	if len(nested) == 0 {
+		nested = mapValue(mapValue(concept["visual_identity"])["renderer_constraints"])
+	}
+	for key, value := range nested {
+		if current, exists := result[key]; !exists || current == nil || current == "" {
+			result[key] = value
+		}
+	}
+	return result
 }
 
 func mediaComfyPromptSubmissionDiagnostic(intent mediaIntent, concept map[string]any, providerPrompt string, workflow map[string]any) map[string]any {

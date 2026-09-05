@@ -96,6 +96,33 @@ func TestReplaceMediaPlaceholdersKeepsPromptAndNumericLoRAType(t *testing.T) {
 	}
 }
 
+func TestMediaRendererConstraintsUsesCognitionContextBinding(t *testing.T) {
+	constraints := mediaRendererConstraints(map[string]any{
+		"context_binding": map[string]any{
+			"visual_identity": map[string]any{
+				"renderer_constraints": map[string]any{"chest_cup": "B", "chest_lora_weight": -3.0},
+			},
+		},
+	})
+	if constraints["chest_cup"] != "B" || constraints["chest_lora_weight"] != -3.0 {
+		t.Fatalf("nested renderer constraints = %#v", constraints)
+	}
+}
+
+func TestMediaRendererConstraintsRootValuesWinOverContextBinding(t *testing.T) {
+	constraints := mediaRendererConstraints(map[string]any{
+		"renderer_constraints": map[string]any{"chest_lora_weight": -5.0},
+		"context_binding": map[string]any{
+			"visual_identity": map[string]any{
+				"renderer_constraints": map[string]any{"chest_lora_weight": -3.0, "chest_cup": "B"},
+			},
+		},
+	})
+	if constraints["chest_lora_weight"] != -5.0 || constraints["chest_cup"] != "B" {
+		t.Fatalf("merged renderer constraints = %#v", constraints)
+	}
+}
+
 func TestVisualIdentityReferenceImagePlaceholderUsesUploadedFilename(t *testing.T) {
 	workflow := map[string]any{
 		"load_image": map[string]any{"inputs": map[string]any{"image": "{{visual_identity_reference_image}}"}},
