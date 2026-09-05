@@ -13,6 +13,7 @@ import (
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi"
 	coreworkflow "github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow"
+	"github.com/redis/go-redis/v9"
 	"go.temporal.io/sdk/client"
 )
 
@@ -57,6 +58,22 @@ func main() {
 	}
 	defer temporalClient.Close()
 	application.SetWorkflowRuntime(coreworkflow.NewTemporalRuntime(temporalClient, settings.TemporalNS, "fluctlight-core-api"))
+	var redisClient *redis.Client
+	if redisOptions, parseErr := redis.ParseURL(settings.RedisURL); parseErr == nil {
+		redisClient = redis.NewClient(redisOptions)
+		application.SetRedisClient(redisClient, "go-core-api")
+		redisCtx, redisCancel := context.WithTimeout(ctx, 2*time.Second)
+		if pingErr := redisClient.Ping(redisCtx).Err(); pingErr != nil {
+			log.Printf("Redis provider queue coordination unavailable; using local fallback: %v", pingErr)
+			application.SetRedisClient(nil, "")
+		}
+		redisCancel()
+	} else {
+		log.Printf("Redis provider queue coordination disabled: %v", parseErr)
+	}
+	if redisClient != nil {
+		defer redisClient.Close()
+	}
 	server := &http.Server{
 		Addr:              settings.ListenAddress,
 		Handler:           httpapi.NewApp(application, settings.ServiceKey, nil).Handler(),

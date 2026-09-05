@@ -294,7 +294,9 @@ func (a *App) PersistFrozenToolCalls(ctx context.Context, frozenID string, calls
 }
 
 func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID string, realization map[string]any) error {
-	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+	reflectionDelay := a.reflectionDelay(ctx)
+	nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var fluctlightID string
 		if err := tx.QueryRow(ctx, `SELECT fluctlight_id FROM public.cognition_frozen_actions WHERE id=$1 FOR UPDATE`, frozenID).Scan(&fluctlightID); err != nil {
 			return err
@@ -305,21 +307,25 @@ func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID strin
 		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',processed_at=now() WHERE id=$1`, inboxID); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:"+inboxID, "reflection:"+inboxID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": inboxID})); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) VALUES($1,$2,'lifecycle','reflection.run',$3,$4) ON CONFLICT DO NOTHING`, "reflection_intent:"+inboxID, "reflection:"+inboxID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": inboxID}), nextReflectionAt); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_action_results(id,fluctlight_id,action_id,source_fact_id,status,output,evidence_refs) VALUES($1,$2,$3,$4,'completed',$5,$6) ON CONFLICT(action_id) DO NOTHING`, "action_result_"+stableDigest(frozenID+":realization"), fluctlightID, frozenID, inboxID, jsonBytes(realization), jsonBytes([]string{inboxID})); err != nil {
 			return err
 		}
-		resultFactID, err := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", map[string]any{"action_id": frozenID, "source_fact_id": inboxID, "result": realization}, "action-result:"+frozenID)
+		_, err := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", map[string]any{"action_id": frozenID, "source_fact_id": inboxID, "result": realization}, "action-result:"+frozenID)
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:result:"+frozenID, "reflection:result:"+frozenID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": resultFactID, "action_id": frozenID})); err != nil {
-			return err
-		}
+		// The result fact is included in the same delayed reflection window as
+		// the user turn. One durable intent per turn avoids two reflection calls
+		// racing over the same evidence window.
 		return nil
 	})
+	if err == nil {
+		a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+	}
+	return err
 }
 
 func (a *App) FailTurnCognition(ctx context.Context, inboxID, frozenID, code string) error {

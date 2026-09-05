@@ -80,3 +80,14 @@ test("BrowserClient preserves structured diagnostics details", async () => {
     (error: unknown) => error instanceof BrowserApiError && error.details.correlation_id === "corr-1",
   );
 });
+
+test("BrowserClient requests the bounded media prompt diagnostics module", async () => {
+  let requestedUrl = "";
+  const client = new BrowserClient("http://fluctlight.local", async (input) => {
+    requestedUrl = String(input);
+    return Response.json([]);
+  });
+
+  await client.diagnosticMediaPrompts({ limit: 99 });
+  assert.equal(requestedUrl, "http://fluctlight.local/api/diagnostics/media-prompts?limit=20");
+});

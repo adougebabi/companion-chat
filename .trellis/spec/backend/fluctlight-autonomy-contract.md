@@ -208,6 +208,84 @@ the `reflection.run` intent are committed.
 - Assert a valid wake-up writes one sequenced `internal.wake_up` fact, one
   `cognition_wakeups` row, and one reflection intent; duplicate execution does
   not allocate another sequence.
+
+## Scenario: Redis expiration hints for delayed reflection and wake-up
+
+### 1. Scope / Trigger
+
+- Trigger: a user turn needs a quiet reflection delay, or a long-lived wake-up
+  cycle needs a low-latency dispatcher nudge after a Redis TTL expires.
+- PostgreSQL/Temporal remain the durable authority. Redis keyevent Pub/Sub is
+  an optimization and is allowed to lose notifications.
+
+### 2. Signatures
+
+- Reflection hint key: `fluctlight:reflection:due:<intent_id>` with TTL from
+  the existing `product.wakeup.interval_seconds` setting until a dedicated
+  reflection setting is introduced.
+- Wake-up hint key: `fluctlight:wakeup:due:<fluctlight_id>` with the same
+  clamped cadence.
+- `RedisTriggerListener.Run(ctx)` subscribes to
+  `__keyevent@*__:expired` and `HandleRedisExpiredTrigger(ctx, key)` updates
+  only pending/retry PostgreSQL intents.
+
+### 3. Contracts
+
+- A completed user turn creates one delayed `reflection.run` intent; its
+  action-result fact is included in that same evidence window rather than
+  creating a second reflection call for the turn.
+- Expiration handling only advances `next_attempt_at` for a matching pending or
+  retry intent. It never directly performs a provider call or starts a second
+  workflow.
+- Wake-up keeps Temporal `Sleep`/`ContinueAsNew` as the timer/recovery
+  authority; the Redis wake key is recreated after a successful cycle and is
+  also repaired at Worker startup.
+- `notify-keyspace-events Ex` is required in the Redis config. Listener
+  reconnect and periodic PostgreSQL due scans cover dropped Pub/Sub messages.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Duplicate expiration event | PG status predicate/stable workflow ID makes it a no-op. |
+| Listener disconnect or Redis restart | Startup repair and periodic durable dispatcher scan still run due work. |
+| Fluctlight paused/inactive/disabled | No new wake-up cycle is created or key renewed. |
+| Multiple reflection source facts | Preserve evidence window/watermark/CAS; do not merge by Fluctlight ID alone. |
+| Redis unavailable | User turn/workflow remains on PG/Temporal path; no business failure. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a key expires, the listener nudges a pending intent, and the existing
+  dispatcher starts one stable workflow.
+- Base: the listener misses the event; the intent's PG `next_attempt_at` and
+  Worker scan start it later.
+- Bad: perform reflection directly inside the Pub/Sub callback, use key payload
+  as the only business data, or replace the Temporal wake-up timer without a
+  durable recovery path.
+
+### 6. Tests Required
+
+- Assert key names/TTL calculation, one delayed reflection intent per user
+  turn, duplicate-event idempotency, listener reconnect, startup repair, and
+  pause/cancel/disabled behavior.
+- Run Redis/Compose expiration tests where local listener ports are available;
+  retain PG/Temporal fallback tests independently.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+case key := <-expired:
+    app.ProcessReflection(context.Background(), key)
+```
+
+#### Correct
+
+```go
+case key := <-expired:
+    app.HandleRedisExpiredTrigger(ctx, key) // durable PG nudge only
+```
 - Assert autonomy mode/allowlist/direct-target gates and frozen action delivery
   update the wake result without duplicating messages or Moments.
 

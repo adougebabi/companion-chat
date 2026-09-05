@@ -1,6 +1,6 @@
 export type WorkspaceView = "chat" | "moments" | "instances" | "diagnostics" | "settings";
 export type SettingsSection = "model-role" | "endpoint" | "binding" | "media" | "operations" | "owner";
-export type DiagnosticsSection = "model-runs" | "events" | "workflows";
+export type DiagnosticsSection = "model-runs" | "media-prompts" | "events" | "workflows";
 export type WorkspaceSection = SettingsSection | DiagnosticsSection;
 
 export const settingsSections = [
@@ -14,6 +14,7 @@ export const settingsSections = [
 
 export const diagnosticsSections = [
   { id: "model-runs", label: "模型运行", description: "最近 20 条模型调用记录" },
+  { id: "media-prompts", label: "媒体提示词", description: "最近 20 条媒体生成提示词" },
   { id: "events", label: "系统事件", description: "最近 20 条脱敏系统事件" },
   { id: "workflows", label: "工作流控制", description: "排查运行时工作流状态" },
 ] as const satisfies ReadonlyArray<{ id: DiagnosticsSection; label: string; description: string }>;

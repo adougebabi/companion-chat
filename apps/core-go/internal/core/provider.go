@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/redis/go-redis/v9"
 )
 
 type ProviderClient struct {
@@ -23,6 +24,19 @@ type ProviderClient struct {
 	queueMu     sync.Mutex
 	generated   *providerQueue
 	embedding   *providerQueue
+	redis       redis.UniversalClient
+	redisID     string
+}
+
+// SetRedisClient enables the optional cross-process queue coordinator. Redis
+// failures intentionally fall back to the existing local queue so synchronous
+// provider calls remain available during a Redis outage.
+func (p *ProviderClient) SetRedisClient(client redis.UniversalClient, processID string) {
+	if p == nil {
+		return
+	}
+	p.redis = client
+	p.redisID = strings.TrimSpace(processID)
 }
 
 type providerAssignment struct {
@@ -138,7 +152,10 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	messages = addVisualIdentityMediaPromptInstruction(role, messages)
 	messages = withChineseOutputInstruction(role, messages)
 	messages = formatProviderMessagesForRole(messages, role)
-	correlationID := diagnosticCorrelation(messages, "")
+	correlationID := providerCorrelation(ctx)
+	if correlationID == "" {
+		correlationID = diagnosticCorrelation(messages, "")
+	}
 	providerRequestID := "provider:" + stableDigest(role+":"+correlationID)
 	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, manifests, role, schemaName, schema, enableThinking)
 	structuredSchema := schema
@@ -152,7 +169,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	scenario := providerScenario(ctx, role, schemaName)
 	priority := providerPriority(scenario)
 	ctx = WithProviderScenario(ctx, scenario)
-	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
+	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
 	return runProviderQueued(p, ctx, assignment.Role, scenario, priority, diagnosticID, func(runCtx context.Context) (ProviderCompletion, error) {
 		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
 		defer cancel()
@@ -172,42 +189,42 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 		}
 		response, err := client.Do(request)
 		if err != nil {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, err.Error())
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, err.Error())
 			return ProviderCompletion{}, fmt.Errorf("provider request failed: %w", err)
 		}
 		defer response.Body.Close()
 		data, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
 		if err != nil {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, err.Error())
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, err.Error())
 			return ProviderCompletion{}, err
 		}
 		if response.StatusCode < 200 || response.StatusCode >= 300 {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, fmt.Sprintf("http_%d", response.StatusCode))
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, fmt.Sprintf("http_%d", response.StatusCode))
 			return ProviderCompletion{}, fmt.Errorf("provider request returned HTTP %d", response.StatusCode)
 		}
 		var envelope map[string]any
 		if err := json.Unmarshal(data, &envelope); err != nil {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_not_json")
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_not_json")
 			return ProviderCompletion{}, fmt.Errorf("provider response is not JSON: %w", err)
 		}
 		choices, ok := envelope["choices"].([]any)
 		if !ok || len(choices) == 0 {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_no_choices")
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_no_choices")
 			return ProviderCompletion{}, fmt.Errorf("provider response has no choices")
 		}
 		choice, ok := choices[0].(map[string]any)
 		if !ok {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_choice_invalid")
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_choice_invalid")
 			return ProviderCompletion{}, fmt.Errorf("provider response choice is invalid")
 		}
 		message, ok := choice["message"].(map[string]any)
 		if !ok {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_message_invalid")
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_message_invalid")
 			return ProviderCompletion{}, fmt.Errorf("provider response message is invalid")
 		}
 		calls, err := NormalizeProviderToolCalls(message["tool_calls"], "", providerRequestID)
 		if err != nil {
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, "tool_call_invalid")
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
 			return ProviderCompletion{}, err
 		}
 		logToolCallShapeNormalization(role, schemaName, "native", message["tool_calls"])
@@ -235,7 +252,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 			if len(normalizedFields) > 0 {
 				providerResponse["normalized_fields"] = normalizedFields
 			}
-			p.recordProviderSuccess(ctx, assignment, correlationID, messages, providerResponse)
+			p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, providerResponse)
 			return completion, nil
 		}
 		if len(structuredCandidates) == 0 {
@@ -243,10 +260,10 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 				completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
 				completion.StructuredFallback = true
 				logStructuredNormalization(role, schemaName, normalizedFields, 0, 0, true, message)
-				p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured, "normalization": "empty"})
+				p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured, "normalization": "empty"})
 				return completion, nil
 			}
-			p.recordProviderFailure(ctx, assignment, correlationID, messages, "response_content_empty")
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_content_empty")
 			return ProviderCompletion{}, fmt.Errorf("provider response content is empty")
 		}
 		if jsonMode || len(manifests) > 0 {
@@ -257,7 +274,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 					logToolCallShapeNormalization(role, schemaName, "structured", structured["tool_calls"])
 					calls, callErr := NormalizeProviderToolCalls(completion.Structured["tool_calls"], "", providerRequestID)
 					if callErr != nil {
-						p.recordProviderFailure(ctx, assignment, correlationID, messages, "tool_call_invalid")
+						p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
 						return ProviderCompletion{}, callErr
 					}
 					completion.ToolCalls = calls
@@ -272,7 +289,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 		if len(normalizedFields) > 0 {
 			providerResponse["normalized_fields"] = normalizedFields
 		}
-		p.recordProviderSuccess(ctx, assignment, correlationID, messages, providerResponse)
+		p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, providerResponse)
 		return completion, nil
 	})
 }
@@ -570,18 +587,18 @@ func providerSchemaForRole(role string) map[string]any {
 	}
 }
 
-func (p *ProviderClient) recordProviderSuccess(ctx context.Context, assignment providerAssignment, correlationID string, messages []map[string]any, response any) {
+func (p *ProviderClient) recordProviderSuccess(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, response any) {
 	app := &App{DB: p.DB}
-	app.recordModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, messages, response, "completed", "")
+	app.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, messages, response, "completed", "")
 }
 
-func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment providerAssignment, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
+func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
 	app := &App{DB: p.DB}
 	var response any
 	if len(diagnostic) > 0 {
 		response = diagnostic[0]
 	}
-	app.recordModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, messages, response, "failed", code)
+	app.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, messages, response, "failed", code)
 }
 
 func (p *ProviderClient) Structured(ctx context.Context, role string, messages []map[string]any) (map[string]any, error) {
@@ -618,7 +635,7 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 	scenario := providerScenario(ctx, role, "")
 	priority := providerPriority(scenario)
 	ctx = WithProviderScenario(ctx, scenario)
-	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
+	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
 	return runProviderQueued(p, ctx, assignment.Role, scenario, priority, diagnosticID, func(runCtx context.Context) (string, error) {
 		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
 		defer cancel()
@@ -690,7 +707,7 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 			return "", errors.New("provider stream incomplete")
 		}
 		result := builder.String()
-		p.recordProviderSuccess(ctx, assignment, correlationID, messages, map[string]any{"text": result, "streamed": true})
+		p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, map[string]any{"text": result, "streamed": true})
 		return result, nil
 	})
 }
@@ -707,7 +724,7 @@ func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []floa
 	}
 	prompt := []map[string]any{{"role": "user", "content": text}}
 	scenario := providerScenario(ctx, "embedding", "")
-	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, assignment.Role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, 0, prompt)
+	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, "embedding", assignment.EndpointID, assignment.ModelID, correlationID, scenario, 0, prompt)
 	queuedResult, queuedErr := runProviderQueued(p, ctx, assignment.Role, scenario, 0, diagnosticID, func(runCtx context.Context) (struct {
 		model  string
 		vector []float64
@@ -733,7 +750,7 @@ func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []floa
 		}
 		response, err := client.Do(request)
 		if err != nil {
-			p.recordProviderFailure(runCtx, assignment, correlationID, prompt, err.Error())
+			p.recordProviderFailure(runCtx, assignment, "embedding", correlationID, prompt, err.Error())
 			return struct {
 				model  string
 				vector []float64
@@ -741,7 +758,7 @@ func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []floa
 		}
 		defer response.Body.Close()
 		if response.StatusCode < 200 || response.StatusCode >= 300 {
-			p.recordProviderFailure(runCtx, assignment, correlationID, prompt, fmt.Sprintf("http_%d", response.StatusCode))
+			p.recordProviderFailure(runCtx, assignment, "embedding", correlationID, prompt, fmt.Sprintf("http_%d", response.StatusCode))
 			return struct {
 				model  string
 				vector []float64
@@ -753,20 +770,20 @@ func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []floa
 			} `json:"data"`
 		}
 		if err := json.NewDecoder(io.LimitReader(response.Body, 8<<20)).Decode(&envelope); err != nil {
-			p.recordProviderFailure(runCtx, assignment, correlationID, prompt, "embedding_response_invalid")
+			p.recordProviderFailure(runCtx, assignment, "embedding", correlationID, prompt, "embedding_response_invalid")
 			return struct {
 				model  string
 				vector []float64
 			}{}, err
 		}
 		if len(envelope.Data) == 0 || len(envelope.Data[0].Embedding) == 0 {
-			p.recordProviderFailure(runCtx, assignment, correlationID, prompt, "embedding_response_empty")
+			p.recordProviderFailure(runCtx, assignment, "embedding", correlationID, prompt, "embedding_response_empty")
 			return struct {
 				model  string
 				vector []float64
 			}{}, fmt.Errorf("embedding response is empty")
 		}
-		p.recordProviderSuccess(runCtx, assignment, correlationID, prompt, map[string]any{"dimensions": len(envelope.Data[0].Embedding)})
+		p.recordProviderSuccess(runCtx, assignment, "embedding", correlationID, prompt, map[string]any{"dimensions": len(envelope.Data[0].Embedding)})
 		return struct {
 			model  string
 			vector []float64

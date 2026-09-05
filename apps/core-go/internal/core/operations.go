@@ -1169,6 +1169,95 @@ func (a *App) ModelRunsFiltered(ctx context.Context, actorID string, limit int, 
 	}
 	return out, rows.Err()
 }
+
+// MediaPromptsFiltered returns the media-generation prompt projection used by
+// the diagnostics center. Media intent creation time is the stable initiation
+// order; provider/model runs and ComfyUI submission events are optional
+// enrichments of the same durable media intent rather than separate rows in
+// the general model-run list.
+func (a *App) MediaPromptsFiltered(ctx context.Context, actorID string, limit int) ([]map[string]any, error) {
+	if err := a.requireOwner(ctx, actorID); err != nil {
+		return nil, err
+	}
+	if limit < 1 {
+		limit = 20
+	}
+	if limit > 20 {
+		limit = 20
+	}
+	rows, err := a.DB.Pool().Query(ctx, `
+		SELECT mi.id,mi.owner_fluctlight_id,mi.kind,mi.mime_type,mi.prompt,mi.provider_prompt,
+			mi.provider_request_id,COALESCE(mi.provider_job_id,''),mi.workflow_id,mi.status,mi.created_at,
+			COALESCE(event.id,''),COALESCE(event.submitted_prompt,''),COALESCE(to_char(event.submitted_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),''),
+			COALESCE(run.id,''),COALESCE(run.role,''),COALESCE(run.binding_role,''),COALESCE(run.scenario,''),COALESCE(run.priority,0),
+			COALESCE(run.model_id,''),COALESCE(run.prompt,'null'::jsonb),COALESCE(run.response,'null'::jsonb),COALESCE(run.status,''),
+			COALESCE(run.error_code,''),COALESCE(to_char(run.queued_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),to_char(mi.created_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')),COALESCE(to_char(run.started_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),''),
+			COALESCE(to_char(run.completed_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'')
+		FROM public.media_intents mi
+		LEFT JOIN LATERAL (
+			SELECT e.id,e.payload->>'prompt' AS submitted_prompt,e.created_at AS submitted_at
+			FROM public.diagnostic_events e
+			WHERE e.event_type='media.comfyui.prompt_submitted' AND e.correlation_id='media:'||mi.id
+			ORDER BY e.created_at DESC,e.id DESC
+			LIMIT 1
+		) event ON true
+		LEFT JOIN LATERAL (
+			SELECT r.id,r.role,r.binding_role,r.scenario,r.priority,r.model_id,r.prompt,r.response,r.status,r.error_code,r.queued_at,r.started_at,r.completed_at
+			FROM public.diagnostic_model_runs r
+			WHERE r.correlation_id='media:'||mi.id AND r.scenario='media_prompt'
+			ORDER BY r.queued_at DESC,r.id DESC
+			LIMIT 1
+		) run ON true
+		ORDER BY mi.created_at DESC,mi.id DESC
+		LIMIT $1`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make([]map[string]any, 0)
+	for rows.Next() {
+		var id, owner, kind, mime, prompt, providerPrompt, requestID, jobID, workflow, status, eventID, submittedPrompt, submittedAt string
+		var runID, runRole, runBinding, runScenario, runModel, runStatus, runError, runQueued, runStarted, runCompleted string
+		var runPriority int
+		var runPrompt, runResponse []byte
+		var created time.Time
+		if err := rows.Scan(&id, &owner, &kind, &mime, &prompt, &providerPrompt, &requestID, &jobID, &workflow, &status, &created, &eventID, &submittedPrompt, &submittedAt, &runID, &runRole, &runBinding, &runScenario, &runPriority, &runModel, &runPrompt, &runResponse, &runStatus, &runError, &runQueued, &runStarted, &runCompleted); err != nil {
+			return nil, err
+		}
+		promptValue := any(prompt)
+		if json.Valid([]byte(prompt)) {
+			promptValue = json.RawMessage(prompt)
+		}
+		row := map[string]any{
+			"id": id, "media_intent_id": id, "fluctlight_id": owner, "kind": kind, "mime_type": mime,
+			"prompt": promptValue, "provider_prompt": providerPrompt, "submitted_prompt": submittedPrompt,
+			"provider_request_id": requestID, "provider_job_id": jobID, "workflow_id": workflow, "status": status,
+			"correlation_id": "media:" + id, "created_at": created.Format(time.RFC3339Nano),
+		}
+		if eventID != "" {
+			row["submitted_event_id"] = eventID
+			row["submitted_at"] = submittedAt
+		}
+		if runID != "" {
+			modelRun := map[string]any{
+				"id": runID, "role": runRole, "binding_role": runBinding, "scenario": runScenario,
+				"priority": runPriority, "model_id": runModel, "prompt": json.RawMessage(runPrompt),
+				"response": json.RawMessage(runResponse), "status": runStatus, "error_code": runError,
+				"queued_at": runQueued, "correlation_id": "media:" + id,
+			}
+			if runStarted != "" {
+				modelRun["started_at"] = runStarted
+			}
+			if runCompleted != "" {
+				modelRun["completed_at"] = runCompleted
+			}
+			row["model_run"] = modelRun
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
 func (a *App) DiagnosticsExport(ctx context.Context, actorID string) (map[string]any, error) {
 	if err := a.requireOwner(ctx, actorID); err != nil {
 		return nil, err
@@ -1181,7 +1270,11 @@ func (a *App) DiagnosticsExport(ctx context.Context, actorID string) (map[string
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"events": events, "model_runs": runs}, nil
+	mediaPrompts, err := a.MediaPromptsFiltered(ctx, actorID, 20)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"events": events, "model_runs": runs, "media_prompts": mediaPrompts}, nil
 }
 
 // RecoverStaleModelRuns closes lifecycle records left behind by a crashed API

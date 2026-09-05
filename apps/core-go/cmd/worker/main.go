@@ -69,6 +69,12 @@ func main() {
 	redisCancel()
 	hostname, _ := os.Hostname()
 	consumerID := fmt.Sprintf("go-worker-%s-%d", hostname, os.Getpid())
+	application.SetRedisClient(redisClient, consumerID)
+	if scheduled, err := application.ScheduleWakeUpTriggers(ctx); err != nil {
+		log.Printf("schedule Redis wake-up hints: %v", err)
+	} else if scheduled > 0 {
+		slog.Default().Info("Go Worker scheduled Redis wake-up hints", "count", scheduled)
+	}
 	publisher := platform.NewOutboxPublisher(application.DB.Pool(), redisClient, consumerID)
 	consumers := make([]*platform.EventConsumer, 0, len(platform.DurableConsumerGroups))
 	for _, group := range platform.DurableConsumerGroups {
@@ -79,6 +85,12 @@ func main() {
 		consumers = append(consumers, consumer)
 	}
 	logger := slog.Default()
+	triggerListener := core.NewRedisTriggerListener(application, redisClient)
+	go func() {
+		if err := triggerListener.Run(ctx); err != nil && ctx.Err() == nil {
+			logger.Warn("Redis trigger listener stopped", "error", err)
+		}
+	}()
 	_, fatalErrors, err := coreworkflow.StartWorkers(ctx, temporalClient, logger)
 	if err != nil {
 		log.Fatal(err)
@@ -123,6 +135,12 @@ func main() {
 				logger.Warn("Go Worker diagnostics retention retry", "error", err)
 			}
 		case <-dispatchTicker.C:
+			if _, err := application.Provider.ReconcileRedisQueue(ctx, "generic_llm"); err != nil {
+				logger.Warn("Go Worker Redis LLM queue reconciliation retry", "binding", "generic_llm", "error", err)
+			}
+			if _, err := application.Provider.ReconcileRedisQueue(ctx, "embedding"); err != nil {
+				logger.Warn("Go Worker Redis LLM queue reconciliation retry", "binding", "embedding", "error", err)
+			}
 			if _, err := publisher.PublishOnce(ctx, 50); err != nil {
 				logger.Warn("Go Worker outbox publisher retry", "error", err)
 			}

@@ -223,3 +223,14 @@ func TestProviderBindingRoleOnlyExposesTwoTargets(t *testing.T) {
 		}
 	}
 }
+
+func TestProviderCorrelationContextOverridesRenderedPromptDigest(t *testing.T) {
+	messages := []map[string]any{{"role": "user", "content": "media"}}
+	ctx := WithProviderCorrelation(context.Background(), "media:intent-1")
+	if got := providerCorrelation(ctx); got != "media:intent-1" {
+		t.Fatalf("providerCorrelation = %q", got)
+	}
+	if got := diagnosticCorrelation(messages, ""); got == "media:intent-1" {
+		t.Fatal("derived prompt correlation unexpectedly matched durable media correlation")
+	}
+}

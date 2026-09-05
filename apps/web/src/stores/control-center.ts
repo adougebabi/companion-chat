@@ -3,6 +3,7 @@ import {
   BrowserClient,
   BrowserApiError,
   type BrowserDiagnosticEvent,
+  type BrowserDiagnosticMediaPrompt,
   type BrowserDiagnosticModelRun,
   type BrowserSafeSettings,
 } from "@fluctlight/browser-client";
@@ -16,6 +17,7 @@ export const useControlCenterStore = defineStore("control-center", {
   state: () => ({
     diagnostics: [] as BrowserDiagnosticEvent[],
     diagnosticModelRuns: [] as BrowserDiagnosticModelRun[],
+    diagnosticMediaPrompts: [] as BrowserDiagnosticMediaPrompt[],
     workflows: [] as Array<Record<string, unknown>>,
     workflowId: "",
     workflowStatus: null as Record<string, unknown> | null,
@@ -148,16 +150,18 @@ export const useControlCenterStore = defineStore("control-center", {
       this.diagnosticsNotice = "";
       try {
         const correlationId = this.diagnosticsCorrelationFilter.trim() || undefined;
-        const [events, modelRuns, workflows] = await Promise.allSettled([
+        const [events, modelRuns, mediaPrompts, workflows] = await Promise.allSettled([
           client.diagnostics({ limit: 20, correlationId }),
           client.diagnosticModelRuns({ limit: 20, correlationId }),
+          client.diagnosticMediaPrompts({ limit: 20 }),
           client.listWorkflows(),
         ]);
         if (requestId !== this.diagnosticsRequestId) return;
         if (events.status === "fulfilled") this.diagnostics = events.value;
         if (modelRuns.status === "fulfilled") this.diagnosticModelRuns = modelRuns.value;
+        if (mediaPrompts.status === "fulfilled") this.diagnosticMediaPrompts = mediaPrompts.value;
         if (workflows.status === "fulfilled") this.workflows = workflows.value;
-        const readFailure = [events, modelRuns].find((result) => result.status === "rejected");
+        const readFailure = [events, modelRuns, mediaPrompts].find((result) => result.status === "rejected");
         if (readFailure?.status === "rejected") this.error = diagnosticsFailureMessage(readFailure.reason);
         if (workflows.status === "rejected") {
           this.diagnosticsWarning = "工作流运行时暂不可用；模型运行和系统事件仍可查看。";
@@ -572,6 +576,7 @@ export const useControlCenterStore = defineStore("control-center", {
         await client.clearDiagnostics();
         this.diagnostics = [];
         this.diagnosticModelRuns = [];
+        this.diagnosticMediaPrompts = [];
         this.workflows = [];
         this.diagnosticsWarning = "";
         this.diagnosticsNotice = "诊断记录已清空。";

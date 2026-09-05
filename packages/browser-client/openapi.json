@@ -350,6 +350,11 @@
         "operationId": "readDiagnosticModelRuns"
       }
     },
+    "/api/diagnostics/media-prompts": {
+      "get": {
+        "operationId": "readDiagnosticMediaPrompts"
+      }
+    },
     "/api/diagnostics/export": {
       "get": {
         "operationId": "exportDiagnostics"

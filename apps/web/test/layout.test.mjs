@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const navigationSource = await readFile(new URL("../src/app/navigation.ts", import.meta.url), "utf8");
+const globalStylesSource = await readFile(new URL("../src/styles/globals.css", import.meta.url), "utf8");
 const stylesSource = await readFile(new URL("../src/styles/app.css", import.meta.url), "utf8");
 const shellSource = await readFile(new URL("../src/components/layout/AppShell.vue", import.meta.url), "utf8");
 const appSource = await readFile(new URL("../src/App.vue", import.meta.url), "utf8");
@@ -55,6 +56,12 @@ test("media workflow settings accept unquoted placeholder templates", () => {
   assert.match(settingsSource, /\{\{chest_lora_weight\}\}/);
 });
 
+test("web typography does not depend on a runtime Google Fonts stylesheet", () => {
+  assert.doesNotMatch(globalStylesSource, /fonts\.googleapis\.com|fonts\.gstatic\.com/);
+  assert.match(globalStylesSource, /--font-sans:\s*"Noto Sans SC",\s*"PingFang SC",\s*"Hiragino Sans GB",\s*system-ui,\s*sans-serif/);
+  assert.match(stylesSource, /font-family:\s*"Noto Sans SC",\s*"PingFang SC",\s*"Hiragino Sans GB",\s*system-ui,\s*sans-serif/);
+});
+
 test("web controls are backed by the local shadcn-vue component layer", () => {
   assert.match(viteSource, /@tailwindcss\/vite/);
   assert.match(viteSource, /alias:[\s\S]*\"@\"/);
@@ -71,9 +78,13 @@ test("diagnostics is a quiet, recent-only disclosure surface", () => {
   assert.match(diagnosticsSource, /value="model-runs"/);
   assert.match(controlCenterSource, /client\.diagnostics\(\{ limit: 20/);
   assert.match(controlCenterSource, /client\.diagnosticModelRuns\(\{ limit: 20/);
+  assert.match(controlCenterSource, /client\.diagnosticMediaPrompts\(\{ limit: 20/);
   assert.match(diagnosticsSource, /queueSummary/);
   assert.match(diagnosticsSource, /queuePosition/);
   assert.match(diagnosticsSource, /statusLabels/);
+  assert.match(diagnosticsSource, /media-prompts/);
+  assert.match(diagnosticsSource, /提交给媒体服务的提示词/);
+  assert.match(navigationSource, /id: "media-prompts"/);
 });
 
 test("desktop secondary navigation is page-addressable and chat groups stay flat", () => {

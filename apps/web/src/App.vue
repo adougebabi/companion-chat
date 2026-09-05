@@ -29,7 +29,7 @@ function sectionFromLocation(view: WorkspaceView): WorkspaceSection | null {
   if (!section && view === "diagnostics" && params.get("correlation_id")) return "model-runs";
   if (!section) return null;
   if (view === "settings" && ["model-role", "endpoint", "binding", "media", "operations", "owner"].includes(section)) return section as SettingsSection;
-  if (view === "diagnostics" && ["model-runs", "events", "workflows"].includes(section)) return section as DiagnosticsSection;
+  if (view === "diagnostics" && ["model-runs", "media-prompts", "events", "workflows"].includes(section)) return section as DiagnosticsSection;
   return null;
 }
 
@@ -54,7 +54,7 @@ const showDetails = ref(false);
 const governanceRequest = ref(false);
 const createRequest = ref(0);
 const activeSettingsSection = computed<SettingsSection | null>(() => view.value === "settings" && activeSection.value && ["model-role", "endpoint", "binding", "media", "operations", "owner"].includes(activeSection.value) ? activeSection.value as SettingsSection : null);
-const activeDiagnosticsSection = computed<DiagnosticsSection | null>(() => view.value === "diagnostics" && activeSection.value && ["model-runs", "events", "workflows"].includes(activeSection.value) ? activeSection.value as DiagnosticsSection : null);
+const activeDiagnosticsSection = computed<DiagnosticsSection | null>(() => view.value === "diagnostics" && activeSection.value && ["model-runs", "media-prompts", "events", "workflows"].includes(activeSection.value) ? activeSection.value as DiagnosticsSection : null);
 const activeViewLabel = computed(() => ({ chat: "聊天", moments: "动态", instances: "聊天", diagnostics: "诊断中心", settings: "设置" })[view.value]);
 
 async function navigate(next: WorkspaceView, correlationId = "") {

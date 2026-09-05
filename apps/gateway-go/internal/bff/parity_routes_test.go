@@ -88,6 +88,7 @@ func browserRouteCases() []browserRouteCase {
 		{name: "diagnostics", method: http.MethodGet, path: "/api/diagnostics"},
 		{name: "diagnostics clear", method: http.MethodDelete, path: "/api/diagnostics"},
 		{name: "diagnostic model runs", method: http.MethodGet, path: "/api/diagnostics/model-runs"},
+		{name: "diagnostic media prompts", method: http.MethodGet, path: "/api/diagnostics/media-prompts"},
 		{name: "diagnostics export", method: http.MethodGet, path: "/api/diagnostics/export"},
 		{name: "media", method: http.MethodGet, path: "/api/media/asset-1"},
 	}
@@ -156,7 +157,7 @@ func fakeCoreForRoute(request *http.Request) (*http.Response, error) {
 		return jsonResponse(http.StatusOK, `{"role":"interaction","available":true,"capability_version":"v1"}`), nil
 	case (path == "/internal/fluctlights" || path == "/internal/actor-groups" || path == "/internal/moments" || strings.HasSuffix(path, "/moments") || strings.HasSuffix(path, "/autonomy-actions")) && request.Method == http.MethodGet:
 		return jsonResponse(http.StatusOK, `[]`), nil
-	case (path == "/internal/diagnostics" || path == "/internal/diagnostics/model-runs") && request.Method == http.MethodGet || strings.HasSuffix(path, "/workflows"):
+	case (path == "/internal/diagnostics" || path == "/internal/diagnostics/model-runs" || path == "/internal/diagnostics/media-prompts") && request.Method == http.MethodGet || strings.HasSuffix(path, "/workflows"):
 		return jsonResponse(http.StatusOK, `[]`), nil
 	case path == "/internal/diagnostics" && request.Method == http.MethodDelete:
 		return jsonResponse(http.StatusOK, `{"cleared":1}`), nil

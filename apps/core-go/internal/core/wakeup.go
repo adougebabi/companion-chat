@@ -467,6 +467,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
+	// Redis expiration is a low-latency hint only; the long-lived Temporal
+	// workflow remains the durable wake-up timer and recovery authority.
+	a.scheduleWakeUpTrigger(ctx, fluctlightID, settings.IntervalSeconds)
 	toolResults := make([]ToolResultV1, 0)
 	_ = factID
 	safeResult := make(map[string]any, len(result))

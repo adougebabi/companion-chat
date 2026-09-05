@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/redis/go-redis/v9"
 )
 
 type App struct {
@@ -28,6 +29,20 @@ type App struct {
 	ServiceKey   string
 	Storage      *minio.Client
 	S3Bucket     string
+	Redis        redis.UniversalClient
+}
+
+// SetRedisClient wires the optional Redis acceleration layers (provider queue
+// coordination and trigger notifications). Domain state remains PostgreSQL/
+// Temporal-owned when Redis is unavailable.
+func (a *App) SetRedisClient(client redis.UniversalClient, processID string) {
+	if a == nil {
+		return
+	}
+	a.Redis = client
+	if a.Provider != nil {
+		a.Provider.SetRedisClient(client, processID)
+	}
 }
 
 func (a *App) SetWorkflowRuntime(runtime WorkflowRuntime) {

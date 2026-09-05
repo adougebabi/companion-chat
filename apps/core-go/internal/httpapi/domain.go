@@ -540,6 +540,19 @@ func (s *Server) modelRuns(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, value)
 }
+
+func (s *Server) mediaPrompts(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.authorizeHuman(w, r)
+	if !ok || s.app == nil {
+		return
+	}
+	value, err := s.app.MediaPromptsFiltered(r.Context(), actor, queryLimit(r))
+	if err != nil {
+		s.opError(w, err, "diagnostics_media_prompts_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
 func (s *Server) exportDiagnostics(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.authorizeHuman(w, r)
 	if !ok || s.app == nil {

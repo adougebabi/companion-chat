@@ -47,6 +47,7 @@ function sectionIcon(section: WorkspaceSection) {
   if (section === "operations") return Gauge;
   if (section === "owner") return ShieldCheck;
   if (section === "model-runs") return Activity;
+  if (section === "media-prompts") return Image;
   if (section === "workflows") return Workflow;
   return Activity;
 }

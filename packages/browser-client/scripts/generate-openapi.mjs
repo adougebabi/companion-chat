@@ -70,6 +70,7 @@ const schema = {
     "/api/conversations/{conversationId}/turn": { post: { operationId: "conversationTurn" } },
     "/api/diagnostics": { get: { operationId: "readDiagnostics" }, delete: { operationId: "clearDiagnostics" } },
     "/api/diagnostics/model-runs": { get: { operationId: "readDiagnosticModelRuns" } },
+    "/api/diagnostics/media-prompts": { get: { operationId: "readDiagnosticMediaPrompts" } },
     "/api/diagnostics/export": { get: { operationId: "exportDiagnostics" } },
     "/api/media/{assetId}": { get: { operationId: "readMedia" } },
   },

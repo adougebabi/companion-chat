@@ -102,6 +102,12 @@ func (q *providerQueue) setLimit(value int) {
 	q.mu.Unlock()
 }
 
+func (q *providerQueue) currentLimit() int {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return q.limit
+}
+
 func (q *providerQueue) submit(ctx context.Context, priority int, run func(context.Context) error, onState func(string, error)) error {
 	if ctx == nil {
 		ctx = context.Background()
@@ -252,6 +258,16 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 	}
 	p.refreshQueueLimits(ctx)
 	queue := p.queueFor(role)
+	releaseRedis, redisEnabled, redisErr := p.acquireProviderRedisSlot(ctx, role, priority, queue.currentLimit(), diagnosticID)
+	if redisErr != nil {
+		if diagnosticID != "" {
+			(&App{DB: p.DB}).updateModelRunState(ctx, diagnosticID, providerRunFailed, redisErr)
+		}
+		return result, redisErr
+	}
+	if redisEnabled {
+		defer releaseRedis()
+	}
 	err := queue.submit(ctx, priority, func(runCtx context.Context) error {
 		if guard := providerExecutionGuard(runCtx); guard != nil {
 			if guardErr := guard(runCtx); guardErr != nil {

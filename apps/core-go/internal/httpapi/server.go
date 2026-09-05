@@ -103,6 +103,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /internal/diagnostics", s.diagnostics)
 	mux.HandleFunc("DELETE /internal/diagnostics", s.clearDiagnostics)
 	mux.HandleFunc("GET /internal/diagnostics/model-runs", s.modelRuns)
+	mux.HandleFunc("GET /internal/diagnostics/media-prompts", s.mediaPrompts)
 	mux.HandleFunc("GET /internal/diagnostics/export", s.exportDiagnostics)
 	mux.HandleFunc("GET /internal/diagnostics/workflows", s.workflowList)
 	mux.HandleFunc("GET /internal/diagnostics/workflows/{workflowID}/status", s.workflowStatus)

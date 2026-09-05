@@ -120,6 +120,36 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 	return result
 }
 
+func browserDiagnosticMediaPrompt(row map[string]any) map[string]any {
+	result := map[string]any{
+		"id":                stringValue(first(row, "id", "media_intent_id")),
+		"mediaIntentId":     stringValue(first(row, "media_intent_id", "id")),
+		"fluctlightId":      stringValue(first(row, "fluctlight_id")),
+		"kind":              stringValue(first(row, "kind")),
+		"mimeType":          stringValue(first(row, "mime_type")),
+		"prompt":            jsonValue(row["prompt"]),
+		"providerPrompt":    stringValue(first(row, "provider_prompt")),
+		"submittedPrompt":   stringValue(first(row, "submitted_prompt")),
+		"providerRequestId": stringValue(first(row, "provider_request_id")),
+		"providerJobId":     stringValue(first(row, "provider_job_id")),
+		"workflowId":        stringValue(first(row, "workflow_id")),
+		"status":            stringValue(first(row, "status")),
+		"correlationId":     stringValue(first(row, "correlation_id")),
+		"createdAt":         stringValue(first(row, "created_at")),
+	}
+	for _, field := range []struct{ from, to string }{{"submitted_event_id", "submittedEventId"}, {"submitted_at", "submittedAt"}} {
+		if value, exists := row[field.from]; exists && stringValue(value) != "" {
+			result[field.to] = value
+		}
+	}
+	if value, exists := row["model_run"]; exists {
+		if modelRun, ok := value.(map[string]any); ok {
+			result["modelRun"] = browserDiagnosticModelRun(modelRun)
+		}
+	}
+	return result
+}
+
 // jsonValue preserves diagnostic JSON values such as the provider message
 // array. objectValue is intentionally stricter for DTOs that require an
 // object, but Prompt/Response are documented as arbitrary JSON payloads.

@@ -304,6 +304,10 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.diagnosticModelRuns(response, request)
 		return
 	}
+	if path == "/api/diagnostics/media-prompts" && methodName == http.MethodGet {
+		s.diagnosticMediaPrompts(response, request)
+		return
+	}
 	if path == "/api/diagnostics/export" && methodName == http.MethodGet {
 		s.diagnosticsExport(response, request)
 		return
@@ -905,6 +909,24 @@ func (s *Server) diagnosticModelRuns(response http.ResponseWriter, request *http
 	result := make([]any, 0, len(rows))
 	for _, row := range rows {
 		result = append(result, browserDiagnosticModelRun(row))
+	}
+	writeJSON(response, http.StatusOK, result)
+}
+
+func (s *Server) diagnosticMediaPrompts(response http.ResponseWriter, request *http.Request) {
+	session, ok := s.requireSession(response, request)
+	if !ok {
+		return
+	}
+	query := url.Values{"limit": []string{strconv.Itoa(queryInt(request.URL.Query().Get("limit"), 20))}}
+	var rows []map[string]any
+	if err := s.core.doValue(request.Context(), http.MethodGet, "/internal/diagnostics/media-prompts?"+query.Encode(), session, nil, &rows); err != nil {
+		diagnosticsError(response, err)
+		return
+	}
+	result := make([]any, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, browserDiagnosticMediaPrompt(row))
 	}
 	writeJSON(response, http.StatusOK, result)
 }
