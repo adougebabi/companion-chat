@@ -74,6 +74,18 @@ created_at / ready_at / tombstoned_at / deleted_at
   flight. Once `provider_job_id` is persisted, retries skip prompt generation
   and poll that same job; a heartbeat timeout must not cause a second Provider
   submission.
+- When the final media Activity attempt fails, persist a bounded application
+  error to both the media target and its workflow intent before reconciliation
+  can apply a generic terminal fallback. Reconciliation may read the terminal
+  Temporal history to recover the leaf failure message, but a transient history
+  read failure must leave the intent eligible for a later pass instead of
+  permanently committing `workflow_terminal_failure`.
+- A media retry locks the media row and the optional workflow-intent row in
+  separate statements (PostgreSQL cannot `FOR UPDATE` the nullable side of a
+  `LEFT JOIN`). It rejects paused, started, and cancellation-requested
+  executions, repairs a missing legacy workflow intent, preserves the frozen
+  provider prompt, and distinguishes transient runtime restart failures from
+  permanent payload/identity errors.
 - Deletion first removes/invalidates active references and commits a tombstone/outbox intent. Physical object/version deletion is retryable and only then marks `deleted`.
 - Upload success followed by database failure reuses the same object key/request identity on retry or is collected as an orphan. It never creates a second user-visible asset.
 - Bucket versioning is enabled. Lifecycle rules remove obsolete/non-current versions according to an explicit retention policy.

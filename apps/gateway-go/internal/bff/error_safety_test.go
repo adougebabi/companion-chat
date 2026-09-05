@@ -60,6 +60,25 @@ func TestMediaNilBodyReturnsBoundedError(t *testing.T) {
 	}
 }
 
+func TestMediaRetryForwardsBoundedFailureReason(t *testing.T) {
+	handler := testBFF(t, func(request *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusConflict, `{"detail":{"code":"diagnostics_media_retry_failed","message":"diagnostics media retry failed","details":{"reason":"workflow restart failed: workflow is still running"}}}`), nil
+	})
+	response := invoke(handler, http.MethodPost, "http://gateway.test/api/diagnostics/media-prompts/media-1/retry", "{}", map[string]string{
+		"Origin":       "https://fluctlight.local",
+		"X-CSRF-Token": "csrf",
+	}, map[string]string{
+		sessionCookieName: "opaque",
+		csrfCookieName:    "csrf",
+	})
+	if response.Code != http.StatusConflict {
+		t.Fatalf("retry status = %d, body = %s", response.Code, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), "workflow restart failed: workflow is still running") {
+		t.Fatalf("retry reason missing: %s", response.Body.String())
+	}
+}
+
 func TestMediaStreamsRangeAndAllowListedHeaders(t *testing.T) {
 	handler := testBFF(t, func(request *http.Request) (*http.Response, error) {
 		if request.Header.Get("Range") != "bytes=0-3" {

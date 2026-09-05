@@ -593,8 +593,8 @@ export const useControlCenterStore = defineStore("control-center", {
         await client.retryDiagnosticMediaPrompt(intentId);
         this.diagnosticsNotice = "媒体生成已重新排队。";
         await this.loadDiagnostics();
-      } catch {
-        this.error = "媒体生成重试未被接受。";
+      } catch (error) {
+        this.error = mediaRetryFailureMessage(error);
       } finally { this.saving = false; }
     },
     async loadSettings() {
@@ -755,4 +755,13 @@ function diagnosticsFailureMessage(error: unknown): string {
     return `无法读取诊断信息：${error.message}`;
   }
   return "无法读取诊断信息，请确认 BFF 与 Core 均在运行。";
+}
+
+function mediaRetryFailureMessage(error: unknown): string {
+  if (!(error instanceof BrowserApiError)) return "媒体生成重试失败，请稍后重试。";
+  if (error.code === "unauthenticated") return "登录状态已失效，请重新登录后重试。";
+  if (error.status === 409) return "媒体生成仍在运行中，暂时不能重复重试。";
+  const reason = error.details.reason;
+  if (typeof reason === "string" && reason.trim()) return `媒体生成重试失败：${reason.trim()}`;
+  return error.userMessage || "媒体生成重试失败，请稍后重试。";
 }

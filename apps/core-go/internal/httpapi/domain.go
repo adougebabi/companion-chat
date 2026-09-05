@@ -42,6 +42,10 @@ func intValueHTTP(value any) int {
 	}
 }
 func (s *Server) opError(response http.ResponseWriter, err error, code string) {
+	s.opErrorWithDetails(response, err, code, nil)
+}
+
+func (s *Server) opErrorWithDetails(response http.ResponseWriter, err error, code string, details map[string]any) {
 	status := http.StatusUnprocessableEntity
 	if errors.Is(err, core.ErrWorkflowRuntime) {
 		status = http.StatusBadGateway
@@ -55,7 +59,18 @@ func (s *Server) opError(response http.ResponseWriter, err error, code string) {
 	if errors.Is(err, core.ErrConflict) || strings.Contains(strings.ToLower(err.Error()), "stale") || strings.Contains(strings.ToLower(err.Error()), "conflict") {
 		status = http.StatusConflict
 	}
-	writeError(response, status, code)
+	writeErrorDetails(response, status, code, details)
+}
+
+func boundedOperationError(err error) string {
+	if err == nil {
+		return ""
+	}
+	message := strings.Join(strings.Fields(err.Error()), " ")
+	if runes := []rune(message); len(runes) > 512 {
+		message = string(runes[:512])
+	}
+	return message
 }
 
 func (s *Server) revokeAll(w http.ResponseWriter, r *http.Request) {
@@ -561,7 +576,7 @@ func (s *Server) retryMediaPrompt(w http.ResponseWriter, r *http.Request) {
 	}
 	value, err := s.app.RetryMediaIntent(r.Context(), actor, r.PathValue("mediaIntentID"))
 	if err != nil {
-		s.opError(w, err, "diagnostics_media_retry_failed")
+		s.opErrorWithDetails(w, err, "diagnostics_media_retry_failed", map[string]any{"reason": boundedOperationError(err)})
 		return
 	}
 	writeJSON(w, http.StatusOK, value)

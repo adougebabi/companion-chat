@@ -8,9 +8,28 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	enumspb "go.temporal.io/api/enums/v1"
+	failurepb "go.temporal.io/api/failure/v1"
+	historypb "go.temporal.io/api/history/v1"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
+
+func TestTemporalTerminalFailureMessagePreservesActivityCause(t *testing.T) {
+	event := &historypb.HistoryEvent{
+		EventType: enumspb.EVENT_TYPE_WORKFLOW_EXECUTION_FAILED,
+		Attributes: &historypb.HistoryEvent_WorkflowExecutionFailedEventAttributes{
+			WorkflowExecutionFailedEventAttributes: &historypb.WorkflowExecutionFailedEventAttributes{
+				Failure: &failurepb.Failure{
+					Message: "activity task failed",
+					Cause:   &failurepb.Failure{Message: "media prompt generation failed: provider timeout"},
+				},
+			},
+		},
+	}
+	if got, want := temporalTerminalFailureMessage(event), "media prompt generation failed: provider timeout"; got != want {
+		t.Fatalf("temporalTerminalFailureMessage() = %q, want %q", got, want)
+	}
+}
 
 func TestNextLocalMidnightDelayUsesConfiguredTimezone(t *testing.T) {
 	location, err := time.LoadLocation("Asia/Shanghai")

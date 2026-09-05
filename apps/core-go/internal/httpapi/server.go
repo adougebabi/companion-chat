@@ -728,6 +728,17 @@ func writeError(response http.ResponseWriter, status int, code string) {
 	}})
 }
 
+func writeErrorDetails(response http.ResponseWriter, status int, code string, details map[string]any) {
+	detail := map[string]any{
+		"code":    code,
+		"message": humanMessage(code),
+	}
+	if len(details) > 0 {
+		detail["details"] = details
+	}
+	writeJSON(response, status, map[string]any{"detail": detail})
+}
+
 func humanMessage(code string) string {
 	code = strings.ReplaceAll(code, "_", " ")
 	if code == "" {

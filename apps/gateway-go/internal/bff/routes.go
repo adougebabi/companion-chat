@@ -743,7 +743,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if mediaIntentID, ok := match(path, "/api/diagnostics/media-prompts/:mediaIntentId/retry"); ok && methodName == http.MethodPost {
-		s.callMap(response, request, "/internal/diagnostics/media-prompts/"+escape(mediaIntentID)+"/retry", http.MethodPost, map[string]any{}, s.readOnlyError(422, "diagnostics_media_retry_failed", "Media prompt retry failed"), nil)
+		s.callMap(response, request, "/internal/diagnostics/media-prompts/"+escape(mediaIntentID)+"/retry", http.MethodPost, map[string]any{}, mediaRetryError, nil)
 		return
 	}
 
@@ -838,6 +838,26 @@ func (s *Server) mutationBody(response http.ResponseWriter, request *http.Reques
 
 func (s *Server) readOnlyError(status int, code, message string) routeError {
 	return func(response http.ResponseWriter, _ error) { writeError(response, status, code, message) }
+}
+
+func mediaRetryError(response http.ResponseWriter, err error) {
+	var coreErr *CoreError
+	if errors.As(err, &coreErr) {
+		status := coreErr.Status
+		switch {
+		case status == http.StatusUnauthorized:
+			status = http.StatusUnauthorized
+		case status == http.StatusForbidden:
+			status = http.StatusForbidden
+		case status >= http.StatusInternalServerError:
+			status = http.StatusBadGateway
+		case status < http.StatusBadRequest:
+			status = http.StatusUnprocessableEntity
+		}
+		writeErrorWithDetails(response, status, coreErr.Code, "Media prompt retry failed", coreErr.Details)
+		return
+	}
+	writeError(response, http.StatusBadGateway, "diagnostics_media_retry_failed", "Media prompt retry failed")
 }
 
 func providerRoleError(response http.ResponseWriter, err error) {

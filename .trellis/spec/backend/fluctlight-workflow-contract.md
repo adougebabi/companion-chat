@@ -31,6 +31,10 @@ Application task queues are `interaction`, `lifecycle`, and `media`. Every start
 - Long activities configure heartbeat, timeout, cooperative cancellation and bounded shutdown. Stale/cancelled executions cannot commit domain results.
 - Durable timers express pending events, delayed replies and lifecycle schedules without Redis delayed queues.
 - Runtime must support list/get, durable pause/resume semantics, cancel, retry/restart/reset or fork-from-checkpoint, and authorized/audited repair through application commands.
+- Reconciliation must preserve a bounded terminal failure reason from the
+  workflow history or Activity boundary. If history inspection is temporarily
+  unavailable, leave the durable intent eligible for another reconciliation
+  pass rather than replacing the reason with a generic terminal code.
 - Workflow code/history upgrades require deterministic replay tests, explicit Worker deployment/version routing and rollback/drain procedures; old history cannot be abandoned silently.
 - Long-lived histories use runtime-supported history rollover/continue-as-new policy before limits are approached.
 - Workflow/Activity/Provider/outbox/inbox/Fluctlight/correlation IDs appear in built-in diagnostics and structured logs.

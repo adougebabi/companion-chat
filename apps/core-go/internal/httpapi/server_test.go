@@ -28,6 +28,17 @@ func TestReadJSONRejectsTrailingValues(t *testing.T) {
 	}
 }
 
+func TestWriteErrorDetailsKeepsBoundedOperationReason(t *testing.T) {
+	response := httptest.NewRecorder()
+	writeErrorDetails(response, http.StatusConflict, "diagnostics_media_retry_failed", map[string]any{"reason": "workflow restart failed"})
+	if response.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusConflict)
+	}
+	if !strings.Contains(response.Body.String(), `"reason":"workflow restart failed"`) {
+		t.Fatalf("reason missing from error body: %s", response.Body.String())
+	}
+}
+
 func TestProviderRoleErrorCodePreservesPreflightReason(t *testing.T) {
 	cases := map[string]string{
 		"provider_model_not_available":                                   "provider_model_not_available",

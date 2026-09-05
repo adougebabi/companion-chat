@@ -89,6 +89,8 @@ test("diagnostics is a quiet, recent-only disclosure surface", () => {
   assert.match(diagnosticsSource, /failureStage/);
   assert.match(diagnosticsSource, /重试/);
   assert.match(controlCenterSource, /retryMediaPrompt/);
+  assert.match(controlCenterSource, /mediaRetryFailureMessage/);
+  assert.match(controlCenterSource, /details\.reason/);
   assert.match(navigationSource, /id: "media-prompts"/);
 });
 

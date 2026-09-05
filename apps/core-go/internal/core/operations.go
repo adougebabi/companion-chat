@@ -1290,21 +1290,37 @@ func (a *App) RetryMediaIntent(ctx context.Context, actorID, intentID string) (m
 	if err := a.requireOwner(ctx, actorID); err != nil {
 		return nil, err
 	}
-	var workflowID, mediaStatus, workflowStatus string
+	var workflowID, mediaStatus, workflowStatus, ownerFluctlightID, providerRequestID string
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx, `SELECT mi.workflow_id,mi.status,COALESCE(wi.status,'') FROM public.media_intents mi LEFT JOIN public.platform_workflow_intents wi ON wi.workflow_id=mi.workflow_id AND wi.intent_type='media.generation' WHERE mi.id=$1 FOR UPDATE`, intentID).Scan(&workflowID, &mediaStatus, &workflowStatus); errors.Is(err, pgx.ErrNoRows) {
+		if err := tx.QueryRow(ctx, `SELECT workflow_id,status,owner_fluctlight_id,provider_request_id FROM public.media_intents WHERE id=$1 FOR UPDATE`, intentID).Scan(&workflowID, &mediaStatus, &ownerFluctlightID, &providerRequestID); errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
+		} else if err != nil {
+			return err
+		}
+		// Lock the workflow row separately. PostgreSQL cannot apply FOR UPDATE
+		// to the nullable side of the outer join that is needed to repair legacy
+		// media rows without a workflow intent.
+		if err := tx.QueryRow(ctx, `SELECT status FROM public.platform_workflow_intents WHERE workflow_id=$1 AND intent_type='media.generation' FOR UPDATE`, workflowID).Scan(&workflowStatus); errors.Is(err, pgx.ErrNoRows) {
+			workflowStatus = ""
 		} else if err != nil {
 			return err
 		}
 		if mediaStatus != "failed" && workflowStatus != "failed" {
 			return ErrConflict
 		}
-		if workflowStatus == "started" {
+		if workflowStatus == "started" || workflowStatus == "paused" || workflowStatus == "cancel_requested" {
 			return ErrConflict
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET provider_job_id=NULL,status='pending',quality_verdict='',quality_candidate_sha256=NULL,quality_checked_at=NULL,revision=revision+1 WHERE id=$1`, intentID); err != nil {
 			return err
+		}
+		if workflowStatus == "" {
+			// Older media rows may predate the durable workflow-intent record.
+			// Recreate that record from the media intent before restarting so the
+			// retry does not get stuck at an irreversible not-found error.
+			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'media','media.generation',jsonb_build_object('intent_id',$3,'provider_request_id',$4,'fluctlight_id',$5)) ON CONFLICT (workflow_id) DO NOTHING`, "media_workflow_intent:"+intentID, workflowID, intentID, providerRequestID, ownerFluctlightID); err != nil {
+				return err
+			}
 		}
 		command, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',attempt_count=0,last_error=NULL,next_attempt_at=now(),started_at=NULL,completed_at=NULL WHERE workflow_id=$1 AND intent_type='media.generation'`, workflowID)
 		if err != nil {
@@ -1322,10 +1338,55 @@ func (a *App) RetryMediaIntent(ctx context.Context, actorID, intentID string) (m
 		return map[string]any{"media_intent_id": intentID, "workflow_id": workflowID, "status": "retry_queued"}, nil
 	}
 	if _, err := a.WorkflowCommand(ctx, actorID, workflowID, "restart", nil); err != nil {
-		_, _ = a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,next_attempt_at=now()+interval '5 seconds' WHERE workflow_id=$1 AND intent_type='media.generation'`, workflowID, err.Error())
-		return nil, err
+		bounded := visualIdentityBoundedText(strings.Join(strings.Fields(err.Error()), " "), 1024)
+		if mediaRetryRestartIsPermanent(err) {
+			if persistErr := a.persistPermanentMediaRetryFailure(ctx, intentID, workflowID, bounded); persistErr != nil {
+				return nil, fmt.Errorf("%w; retry state persistence failed: %v", err, persistErr)
+			}
+			return nil, err
+		}
+		if _, persistErr := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,next_attempt_at=now()+interval '5 seconds' WHERE workflow_id=$1 AND intent_type='media.generation'`, workflowID, bounded); persistErr != nil {
+			return nil, fmt.Errorf("%w; retry state persistence failed: %v", err, persistErr)
+		}
+		// The durable row is still queued for the Worker. A transient Temporal
+		// restart failure should not make the browser retry button unusable; the
+		// next dispatcher pass will retry using the same stable workflow ID.
+		return map[string]any{"media_intent_id": intentID, "workflow_id": workflowID, "status": "retry_queued"}, nil
 	}
 	return map[string]any{"media_intent_id": intentID, "workflow_id": workflowID, "status": "retry_queued"}, nil
+}
+
+func (a *App) persistPermanentMediaRetryFailure(ctx context.Context, intentID, workflowID, message string) error {
+	tx, err := a.DB.Pool().Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND status='pending'`, intentID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error=$2,completed_at=now() WHERE workflow_id=$1 AND intent_type='media.generation'`, workflowID, message); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func mediaRetryRestartIsPermanent(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	for _, marker := range []string{
+		"workflow payload is invalid",
+		"unsupported workflow intent type",
+		"workflow restart identity is incomplete",
+		"media_intent_not_found",
+	} {
+		if strings.Contains(message, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *App) DiagnosticsExport(ctx context.Context, actorID string) (map[string]any, error) {

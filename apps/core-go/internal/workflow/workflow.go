@@ -12,6 +12,8 @@ import (
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
 	enumspb "go.temporal.io/api/enums/v1"
+	failurepb "go.temporal.io/api/failure/v1"
+	historypb "go.temporal.io/api/history/v1"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
@@ -543,13 +545,45 @@ func ProcessMediaActivity(ctx context.Context, input Input) (map[string]any, err
 	if err != nil {
 		// Keep the durable media target truthful after Temporal exhausts its
 		// bounded activity retries. The workflow intent reconciliation records
-		// the execution failure separately; this row is what product reads.
-		if !activity.IsActivity(ctx) || activity.GetInfo(ctx).Attempt >= mediaActivityMaximumAttempts {
-			_, _ = application.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, input.IntentID)
+		// the execution failure separately; this row is what product reads. Save
+		// the bounded application error before reconciliation can replace it with
+		// the generic workflow_terminal_failure fallback.
+		terminal := !activity.IsActivity(ctx) || activity.GetInfo(ctx).Attempt >= mediaActivityMaximumAttempts
+		if terminal {
+			if repairErr := recordMediaActivityFailure(application, input.IntentID, err); repairErr != nil {
+				slog.Default().Warn("Go Worker could not persist terminal media failure", "intent_id", input.IntentID, "error", repairErr)
+			}
 		}
 		return nil, err
 	}
 	return result, nil
+}
+
+func recordMediaActivityFailure(application *core.App, intentID string, err error) error {
+	if application == nil || strings.TrimSpace(intentID) == "" || err == nil {
+		return nil
+	}
+	message := boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()})
+	if message == "" {
+		return nil
+	}
+	// Activity contexts may already be cancelled when the final attempt is
+	// being reported. A short detached context keeps the diagnostic write from
+	// being lost while retaining a strict upper bound on the repair query.
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(context.Background()), 2*time.Second)
+	defer cancel()
+	tx, err := application.DB.Pool().Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, intentID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET last_error=$2 WHERE workflow_id=(SELECT workflow_id FROM public.media_intents WHERE id=$1) AND intent_type='media.generation' AND status IN ('pending','started','retry')`, intentID, message); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func ProcessAutonomyActionActivity(ctx context.Context, input Input) (map[string]any, error) {
@@ -736,6 +770,21 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		} else if status == enumspb.WORKFLOW_EXECUTION_STATUS_FAILED || status == enumspb.WORKFLOW_EXECUTION_STATUS_TIMED_OUT || status == enumspb.WORKFLOW_EXECUTION_STATUS_TERMINATED {
 			intentStatus = "failed"
 		}
+		terminalFailure := ""
+		if intentStatus == "failed" {
+			runID := ""
+			if execution.WorkflowExecutionInfo.GetExecution() != nil {
+				runID = execution.WorkflowExecutionInfo.GetExecution().GetRunId()
+			}
+			var historyErr error
+			terminalFailure, historyErr = d.terminalFailureReason(ctx, normalizedWorkflowID(workflowID), runID)
+			if historyErr != nil {
+				// Keep the intent eligible for reconciliation. A transient history
+				// read failure must not make us commit the generic fallback forever.
+				slog.Default().Warn("Go Worker could not read terminal workflow failure", "intent_id", intentID, "workflow_id", workflowID, "error", historyErr)
+				continue
+			}
+		}
 		if intentType == "wake_up.current" {
 			var fluctlightStatus string
 			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlights WHERE id=(SELECT payload->>'fluctlight_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&fluctlightStatus); err == nil && wakeUpIntentShouldRetry(fluctlightStatus, intentStatus) {
@@ -763,7 +812,15 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				continue
 			}
 		}
-		if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(last_error,'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1`, intentID, intentStatus); err != nil {
+		if intentType == "media.generation" && intentStatus == "failed" {
+			// Activity code may not run on a timeout, cancellation, or worker
+			// crash. Close the product-facing media target here as the final
+			// reconciliation fallback so the retry action remains available.
+			if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=(SELECT payload->>'intent_id' FROM public.platform_workflow_intents WHERE intent_id=$1) AND status IN ('pending','running')`, intentID); err != nil {
+				return count, err
+			}
+		}
+		if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(NULLIF(last_error,''),NULLIF($3,''),'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1`, intentID, intentStatus, terminalFailure); err != nil {
 			return count, err
 		}
 		if d.Started != nil {
@@ -772,6 +829,62 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		count++
 	}
 	return count, rows.Err()
+}
+
+// terminalFailureReason reads the terminal workflow event because Temporal's
+// visibility response intentionally omits the failure payload. The reason is
+// used only as a bounded diagnostic string; stack traces and encoded details
+// are never copied into the product-facing error.
+func (d *Dispatcher) terminalFailureReason(ctx context.Context, workflowID, runID string) (string, error) {
+	if d == nil || d.Client == nil || strings.TrimSpace(workflowID) == "" {
+		return "", nil
+	}
+	iter := d.Client.GetWorkflowHistory(ctx, workflowID, runID, false, enumspb.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
+	last := ""
+	for iter.HasNext() {
+		event, err := iter.Next()
+		if err != nil {
+			return "", fmt.Errorf("read workflow history: %w", err)
+		}
+		if event == nil {
+			continue
+		}
+		if reason := temporalTerminalFailureMessage(event); reason != "" {
+			last = reason
+		}
+	}
+	return last, nil
+}
+
+func temporalTerminalFailureMessage(event *historypb.HistoryEvent) string {
+	if event == nil || event.GetEventType() != enumspb.EVENT_TYPE_WORKFLOW_EXECUTION_FAILED {
+		return ""
+	}
+	attrs := event.GetWorkflowExecutionFailedEventAttributes()
+	if attrs == nil {
+		return ""
+	}
+	return boundedTemporalFailureMessage(attrs.GetFailure())
+}
+
+func boundedTemporalFailureMessage(failure *failurepb.Failure) string {
+	if failure == nil {
+		return ""
+	}
+	// Temporal wraps Activity failures several times. The leaf is the useful
+	// application error (for example the provider/placeholder failure), while
+	// the outer message is usually only "activity task failed".
+	message := ""
+	for current := failure; current != nil; current = current.GetCause() {
+		if value := strings.TrimSpace(current.GetMessage()); value != "" {
+			message = value
+		}
+	}
+	message = strings.Join(strings.Fields(message), " ")
+	if runes := []rune(message); len(runes) > 1024 {
+		message = string(runes[:1024])
+	}
+	return message
 }
 
 func wakeUpIntentShouldRetry(fluctlightStatus, workflowStatus string) bool {
@@ -839,7 +952,12 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		}
 		var input Input
 		if err := json.Unmarshal(payload, &input); err != nil {
-			slog.Default().Warn("Go Worker intent payload invalid; leaving pending", "intent_id", intentID, "error", err)
+			reason := boundedTemporalFailureMessage(&failurepb.Failure{Message: "workflow payload invalid: " + err.Error()})
+			_, _ = d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error=$2,attempt_count=attempt_count+1,completed_at=now() WHERE intent_id=$1 AND status IN ('pending','retry')`, intentID, reason)
+			if intentType == "media.generation" {
+				_, _ = d.App.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=(SELECT payload->>'intent_id' FROM public.platform_workflow_intents WHERE intent_id=$1) AND status IN ('pending','running')`, intentID)
+			}
+			slog.Default().Warn("Go Worker intent payload invalid; marked failed", "intent_id", intentID, "error", err)
 			continue
 		}
 		if input.IntentID == "" {
