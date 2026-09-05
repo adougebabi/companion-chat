@@ -62,11 +62,16 @@ func TestBrowserDiagnosticMediaPromptMapsProviderAndSubmittedPrompts(t *testing.
 		"prompt": json.RawMessage(`{"scene":"cafe"}`), "provider_prompt": "A person in a cafe", "submitted_prompt": "A person in a cafe, high detail",
 		"provider_request_id": "request-1", "provider_job_id": "job-1", "workflow_id": "workflow-1", "status": "running",
 		"correlation_id": "media:media-1", "created_at": "2026-09-01T00:00:00Z", "submitted_event_id": "event-1", "submitted_at": "2026-09-01T00:00:01Z",
+		"request_payload": json.RawMessage(`{"prompt":{"3":{"inputs":{"strength_model":-3}}}}`), "error_message": "ComfyUI returned HTTP 400", "failure_stage": "submit", "attempt_count": 2,
 		"model_run": map[string]any{"id": "run-1", "role": "media_prompt", "binding_role": "generic_llm", "scenario": "media_prompt", "model_id": "model-1", "prompt": json.RawMessage(`[]`), "status": "completed", "correlation_id": "media:media-1", "created_at": "2026-09-01T00:00:00Z"},
 	}
 	mapped := browserDiagnosticMediaPrompt(row)
-	if mapped["mediaIntentId"] != "media-1" || mapped["providerPrompt"] != "A person in a cafe" || mapped["submittedPrompt"] != "A person in a cafe, high detail" || mapped["correlationId"] != "media:media-1" {
+	if mapped["mediaIntentId"] != "media-1" || mapped["providerPrompt"] != "A person in a cafe" || mapped["submittedPrompt"] != "A person in a cafe, high detail" || mapped["correlationId"] != "media:media-1" || mapped["errorMessage"] != "ComfyUI returned HTTP 400" || mapped["failureStage"] != "submit" || mapped["attemptCount"] != 2 {
 		t.Fatalf("media prompt mapping = %#v", mapped)
+	}
+	requestPayload, ok := mapped["requestPayload"].(map[string]any)
+	if !ok || requestPayload["prompt"] == nil {
+		t.Fatalf("request payload = %#v", mapped["requestPayload"])
 	}
 	modelRun, ok := mapped["modelRun"].(map[string]any)
 	if !ok || modelRun["role"] != "media_prompt" || modelRun["bindingRole"] != "generic_llm" {

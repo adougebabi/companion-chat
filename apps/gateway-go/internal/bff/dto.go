@@ -134,6 +134,7 @@ func browserDiagnosticMediaPrompt(row map[string]any) map[string]any {
 		"providerJobId":     stringValue(first(row, "provider_job_id")),
 		"workflowId":        stringValue(first(row, "workflow_id")),
 		"status":            stringValue(first(row, "status")),
+		"qualityVerdict":    stringValue(first(row, "quality_verdict")),
 		"correlationId":     stringValue(first(row, "correlation_id")),
 		"createdAt":         stringValue(first(row, "created_at")),
 	}
@@ -146,6 +147,17 @@ func browserDiagnosticMediaPrompt(row map[string]any) map[string]any {
 		if modelRun, ok := value.(map[string]any); ok {
 			result["modelRun"] = browserDiagnosticModelRun(modelRun)
 		}
+	}
+	if value, exists := row["request_payload"]; exists {
+		result["requestPayload"] = jsonValue(value)
+	}
+	for _, field := range []struct{ from, to string }{{"error_message", "errorMessage"}, {"failure_stage", "failureStage"}, {"workflow_status", "workflowStatus"}} {
+		if value, exists := row[field.from]; exists && stringValue(value) != "" {
+			result[field.to] = value
+		}
+	}
+	if value, exists := row["attempt_count"]; exists {
+		result["attemptCount"] = value
 	}
 	return result
 }

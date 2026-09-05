@@ -553,6 +553,19 @@ func (s *Server) mediaPrompts(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, value)
 }
+
+func (s *Server) retryMediaPrompt(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.authorizeHuman(w, r)
+	if !ok || s.app == nil {
+		return
+	}
+	value, err := s.app.RetryMediaIntent(r.Context(), actor, r.PathValue("mediaIntentID"))
+	if err != nil {
+		s.opError(w, err, "diagnostics_media_retry_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
 func (s *Server) exportDiagnostics(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.authorizeHuman(w, r)
 	if !ok || s.app == nil {

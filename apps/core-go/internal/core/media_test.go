@@ -147,3 +147,17 @@ func TestVisualIdentityMediaPromptInstructionRequiresThreePanelCharacterSheet(t 
 		t.Fatalf("visual identity prompt instruction = %#v", messages)
 	}
 }
+
+func TestMediaComfyPromptSubmissionDiagnosticIncludesFinalRequestPayload(t *testing.T) {
+	intent := mediaIntent{ID: "media-1", ProviderRequestID: "request-1", WorkflowID: "workflow-1"}
+	payload := mediaComfyPromptSubmissionDiagnostic(intent, map[string]any{"stage": "seed"}, "portrait", map[string]any{
+		"3": map[string]any{"inputs": map[string]any{"text": "portrait", "strength_model": -3.0}},
+	})
+	if payload["provider_prompt"] != "portrait" || payload["prompt"] != "portrait" {
+		t.Fatalf("provider prompt fields = %#v", payload)
+	}
+	requestPayload := mapValue(payload["request_payload"])
+	if mapValue(requestPayload["prompt"]) == nil || mapValue(mapValue(requestPayload["prompt"])["3"])["inputs"] == nil {
+		t.Fatalf("final ComfyUI request payload = %#v", payload["request_payload"])
+	}
+}

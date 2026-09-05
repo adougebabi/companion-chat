@@ -584,6 +584,19 @@ export const useControlCenterStore = defineStore("control-center", {
         this.error = "无法清空诊断信息。";
       } finally { this.saving = false; }
     },
+    async retryMediaPrompt(mediaIntentId: string) {
+      const intentId = mediaIntentId.trim();
+      if (!intentId) return;
+      this.saving = true;
+      this.error = "";
+      try {
+        await client.retryDiagnosticMediaPrompt(intentId);
+        this.diagnosticsNotice = "媒体生成已重新排队。";
+        await this.loadDiagnostics();
+      } catch {
+        this.error = "媒体生成重试未被接受。";
+      } finally { this.saving = false; }
+    },
     async loadSettings() {
       this.loading = true;
       this.error = "";

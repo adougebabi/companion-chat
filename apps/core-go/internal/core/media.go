@@ -130,19 +130,13 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 		if err != nil {
 			return nil, err
 		}
-		a.recordDiagnosticEvent(ctx, "media.comfyui.prompt_submitted", "info", intent.Owner, intent.ProviderRequestID, "media:"+intent.ID, map[string]any{
-			"media_intent_id":     intent.ID,
-			"provider_request_id": intent.ProviderRequestID,
-			"workflow_id":         intent.WorkflowID,
-			"stage":               stringValue(concept["stage"]),
-			"prompt":              visualIdentityBoundedText(prompt, 4000),
-		})
 		payload, _ := json.Marshal(map[string]any{"prompt": workflow})
 		request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/prompt", bytes.NewReader(payload))
 		if err != nil {
 			return nil, err
 		}
 		request.Header.Set("Content-Type", "application/json")
+		a.recordDiagnosticEvent(ctx, "media.comfyui.prompt_submitted", "info", intent.Owner, intent.ProviderRequestID, "media:"+intent.ID, mediaComfyPromptSubmissionDiagnostic(intent, concept, prompt, workflow))
 		client := a.Provider.HTTP
 		if client == nil {
 			client = &http.Client{Timeout: 30 * time.Second}
@@ -272,6 +266,21 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 		return nil, err
 	}
 	return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": quality.Verdict}, nil
+}
+
+func mediaComfyPromptSubmissionDiagnostic(intent mediaIntent, concept map[string]any, providerPrompt string, workflow map[string]any) map[string]any {
+	boundedPrompt := visualIdentityBoundedText(providerPrompt, 4000)
+	return map[string]any{
+		"media_intent_id":     intent.ID,
+		"provider_request_id": intent.ProviderRequestID,
+		"workflow_id":         intent.WorkflowID,
+		"stage":               stringValue(concept["stage"]),
+		// Keep prompt for compatibility with the existing event reader; the
+		// request_payload field is the authoritative ComfyUI HTTP body.
+		"prompt":          boundedPrompt,
+		"provider_prompt": boundedPrompt,
+		"request_payload": map[string]any{"prompt": workflow},
+	}
 }
 
 func (a *App) markMediaIntentCompleted(ctx context.Context, intentID string) error {

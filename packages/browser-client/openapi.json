@@ -355,6 +355,11 @@
         "operationId": "readDiagnosticMediaPrompts"
       }
     },
+    "/api/diagnostics/media-prompts/{mediaIntentId}/retry": {
+      "post": {
+        "operationId": "retryDiagnosticMediaPrompt"
+      }
+    },
     "/api/diagnostics/export": {
       "get": {
         "operationId": "exportDiagnostics"

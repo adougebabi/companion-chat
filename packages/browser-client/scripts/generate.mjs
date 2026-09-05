@@ -12,7 +12,7 @@ export type BrowserSetupStatus = { setupAvailable: boolean };
 export type BrowserSafeSettings = { values: Record<string, unknown>; configuredSecrets: string[] };
 export type BrowserDiagnosticEvent = { id: string; eventType: string; severity: string; fluctlightId?: string | null; causationId?: string | null; correlationId: string; payload: Record<string, unknown>; createdAt?: string | null };
 export type BrowserDiagnosticModelRun = { id: string; role: string; bindingRole?: string; scenario?: string; priority?: number; queuePendingCount?: number; queuePosition?: number; endpointId?: string | null; modelId: string; prompt: unknown; response?: unknown; status: string; errorCode?: string | null; correlationId: string; createdAt: string; queuedAt?: string; startedAt?: string | null; completedAt?: string | null };
-export type BrowserDiagnosticMediaPrompt = { id: string; mediaIntentId: string; fluctlightId: string; kind: string; mimeType: string; prompt: unknown; providerPrompt: string; submittedPrompt?: string; providerRequestId: string; providerJobId?: string; workflowId: string; status: string; correlationId: string; createdAt: string; submittedEventId?: string; submittedAt?: string; modelRun?: BrowserDiagnosticModelRun };
+export type BrowserDiagnosticMediaPrompt = { id: string; mediaIntentId: string; fluctlightId: string; kind: string; mimeType: string; prompt: unknown; providerPrompt: string; submittedPrompt?: string; requestPayload?: unknown; providerRequestId: string; providerJobId?: string; workflowId: string; status: string; qualityVerdict?: string; correlationId: string; createdAt: string; submittedEventId?: string; submittedAt?: string; errorMessage?: string; failureStage?: string; workflowStatus?: string; attemptCount?: number; modelRun?: BrowserDiagnosticModelRun };
 export type BrowserConversation = { id: string; createdByActorId: string; title?: string | null; revision: number; createdAt: string; updatedAt: string };
 export type BrowserParticipant = { conversationId: string; actorId: string; role: string; status: string; joinedAt: string; leftAt?: string | null };
 export type BrowserMessage = { id: string; conversationId: string; sequence: number; authorActorId: string; kind: string; text: string; attachmentRefs: string[]; createdAt: string };
@@ -146,6 +146,7 @@ export class BrowserClient {
     const limit = Math.min(Math.max(options.limit ?? 20, 1), 20);
     return this.json(\`/api/diagnostics/media-prompts?limit=\${limit}\`) as Promise<BrowserDiagnosticMediaPrompt[]>;
   }
+  async retryDiagnosticMediaPrompt(mediaIntentId: string): Promise<Record<string, unknown>> { return this.json(\`/api/diagnostics/media-prompts/\${encodeURIComponent(mediaIntentId)}/retry\`, { method: "POST", body: {} }) as Promise<Record<string, unknown>>; }
   async exportDiagnostics(options: { limit?: number; correlationId?: string } = {}): Promise<Record<string, unknown>> {
     const query = new URLSearchParams({ limit: String(options.limit ?? 500) });
     if (options.correlationId) query.set("correlationId", options.correlationId);

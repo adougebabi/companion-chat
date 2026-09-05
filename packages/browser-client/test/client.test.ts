@@ -91,3 +91,17 @@ test("BrowserClient requests the bounded media prompt diagnostics module", async
   await client.diagnosticMediaPrompts({ limit: 99 });
   assert.equal(requestedUrl, "http://fluctlight.local/api/diagnostics/media-prompts?limit=20");
 });
+
+test("BrowserClient exposes media prompt retry", async () => {
+  let requestedUrl = "";
+  let requestedMethod = "";
+  const client = new BrowserClient("http://fluctlight.local", async (input, init) => {
+    requestedUrl = String(input);
+    requestedMethod = init?.method ?? "";
+    return Response.json({ media_intent_id: "media-1", status: "retry_queued" });
+  });
+
+  await client.retryDiagnosticMediaPrompt("media-1");
+  assert.equal(requestedUrl, "http://fluctlight.local/api/diagnostics/media-prompts/media-1/retry");
+  assert.equal(requestedMethod, "POST");
+});

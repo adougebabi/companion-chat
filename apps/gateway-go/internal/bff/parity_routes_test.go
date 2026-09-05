@@ -89,6 +89,7 @@ func browserRouteCases() []browserRouteCase {
 		{name: "diagnostics clear", method: http.MethodDelete, path: "/api/diagnostics"},
 		{name: "diagnostic model runs", method: http.MethodGet, path: "/api/diagnostics/model-runs"},
 		{name: "diagnostic media prompts", method: http.MethodGet, path: "/api/diagnostics/media-prompts"},
+		{name: "diagnostic media prompt retry", method: http.MethodPost, path: "/api/diagnostics/media-prompts/media-1/retry"},
 		{name: "diagnostics export", method: http.MethodGet, path: "/api/diagnostics/export"},
 		{name: "media", method: http.MethodGet, path: "/api/media/asset-1"},
 	}
@@ -159,6 +160,8 @@ func fakeCoreForRoute(request *http.Request) (*http.Response, error) {
 		return jsonResponse(http.StatusOK, `[]`), nil
 	case (path == "/internal/diagnostics" || path == "/internal/diagnostics/model-runs" || path == "/internal/diagnostics/media-prompts") && request.Method == http.MethodGet || strings.HasSuffix(path, "/workflows"):
 		return jsonResponse(http.StatusOK, `[]`), nil
+	case strings.HasSuffix(path, "/media-prompts/media-1/retry"):
+		return jsonResponse(http.StatusOK, `{"media_intent_id":"media-1","status":"retry_queued"}`), nil
 	case path == "/internal/diagnostics" && request.Method == http.MethodDelete:
 		return jsonResponse(http.StatusOK, `{"cleared":1}`), nil
 	case strings.HasSuffix(path, "/history") || strings.HasSuffix(path, "/conversation") || strings.HasSuffix(path, "/conversations"):

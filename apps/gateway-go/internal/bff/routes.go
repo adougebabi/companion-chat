@@ -742,6 +742,10 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.callMap(response, request, "/internal/diagnostics/workflows/"+escape(workflowID)+"/restart", http.MethodPost, map[string]any{}, s.readOnlyError(422, "workflow_restart_failed", "Workflow restart failed"), nil)
 		return
 	}
+	if mediaIntentID, ok := match(path, "/api/diagnostics/media-prompts/:mediaIntentId/retry"); ok && methodName == http.MethodPost {
+		s.callMap(response, request, "/internal/diagnostics/media-prompts/"+escape(mediaIntentID)+"/retry", http.MethodPost, map[string]any{}, s.readOnlyError(422, "diagnostics_media_retry_failed", "Media prompt retry failed"), nil)
+		return
+	}
 
 	if assetID, ok := match(path, "/api/media/:assetId"); ok && methodName == http.MethodGet {
 		s.media(response, request, assetID)

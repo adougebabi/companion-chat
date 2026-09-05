@@ -83,7 +83,12 @@ test("diagnostics is a quiet, recent-only disclosure surface", () => {
   assert.match(diagnosticsSource, /queuePosition/);
   assert.match(diagnosticsSource, /statusLabels/);
   assert.match(diagnosticsSource, /media-prompts/);
-  assert.match(diagnosticsSource, /提交给媒体服务的提示词/);
+  assert.match(diagnosticsSource, /媒体模型生成的 Prompt/);
+  assert.match(diagnosticsSource, /实际发送给 ComfyUI 的 JSON/);
+  assert.match(diagnosticsSource, /失败原因/);
+  assert.match(diagnosticsSource, /failureStage/);
+  assert.match(diagnosticsSource, /重试/);
+  assert.match(controlCenterSource, /retryMediaPrompt/);
   assert.match(navigationSource, /id: "media-prompts"/);
 });
 

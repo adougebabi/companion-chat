@@ -294,6 +294,7 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
 .diagnostic-row pre, .advanced-section pre { max-width: 100%; max-height: min(65vh, 720px); margin: 10px 0 0; padding: 10px; overflow: auto; border-radius: 8px; background: #edf2f2; color: var(--ink-soft); white-space: pre-wrap; overflow-wrap: anywhere; font: .76rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .diagnostic-row summary { margin-top: 12px; color: var(--accent-strong); cursor: pointer; font-size: .82rem; }
 .diagnostic-error { color: #8e302e; font-size: .82rem; line-height: 1.5; }
+.diagnostic-meta-note { margin: 8px 0 0; color: var(--muted-ink); font-size: .82rem; line-height: 1.5; }
 .diagnostic-generated-prompt { margin: 10px 0 0; padding: 10px 12px; border-left: 3px solid var(--accent); border-radius: 6px; background: var(--accent-soft); color: var(--ink-soft); font-size: .82rem; line-height: 1.55; overflow-wrap: anywhere; }
 .advanced-section > summary { cursor: pointer; list-style: none; }
 .advanced-section > summary::-webkit-details-marker { display: none; }

@@ -1187,20 +1187,22 @@ func (a *App) MediaPromptsFiltered(ctx context.Context, actorID string, limit in
 	}
 	rows, err := a.DB.Pool().Query(ctx, `
 		SELECT mi.id,mi.owner_fluctlight_id,mi.kind,mi.mime_type,mi.prompt,mi.provider_prompt,
-			mi.provider_request_id,COALESCE(mi.provider_job_id,''),mi.workflow_id,mi.status,mi.created_at,
-			COALESCE(event.id,''),COALESCE(event.submitted_prompt,''),COALESCE(to_char(event.submitted_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),''),
+			mi.provider_request_id,COALESCE(mi.provider_job_id,''),mi.workflow_id,mi.status,COALESCE(mi.quality_verdict,''),COALESCE(mi.quality_retry_guidance,''),mi.created_at,
+			COALESCE(event.id,''),COALESCE(event.submitted_prompt,''),COALESCE(event.request_payload,'{}'::jsonb),COALESCE(to_char(event.submitted_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),''),
 			COALESCE(run.id,''),COALESCE(run.role,''),COALESCE(run.binding_role,''),COALESCE(run.scenario,''),COALESCE(run.priority,0),
 			COALESCE(run.model_id,''),COALESCE(run.prompt,'null'::jsonb),COALESCE(run.response,'null'::jsonb),COALESCE(run.status,''),
 			COALESCE(run.error_code,''),COALESCE(to_char(run.queued_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),to_char(mi.created_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')),COALESCE(to_char(run.started_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),''),
-			COALESCE(to_char(run.completed_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'')
+			COALESCE(to_char(run.completed_at,'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),''),LEFT(COALESCE(wi.last_error,''),1024),COALESCE(wi.status,''),COALESCE(wi.attempt_count,0),
+			CASE WHEN COALESCE(wi.last_error,'')='' THEN '' WHEN mi.provider_job_id IS NOT NULL AND mi.provider_job_id<>'' THEN 'poll_quality' WHEN event.id IS NOT NULL AND event.id<>'' THEN 'submit' ELSE 'prepare' END
 		FROM public.media_intents mi
 		LEFT JOIN LATERAL (
-			SELECT e.id,e.payload->>'prompt' AS submitted_prompt,e.created_at AS submitted_at
+			SELECT e.id,e.payload->>'prompt' AS submitted_prompt,e.payload->'request_payload' AS request_payload,e.created_at AS submitted_at
 			FROM public.diagnostic_events e
 			WHERE e.event_type='media.comfyui.prompt_submitted' AND e.correlation_id='media:'||mi.id
 			ORDER BY e.created_at DESC,e.id DESC
 			LIMIT 1
 		) event ON true
+		LEFT JOIN public.platform_workflow_intents wi ON wi.workflow_id=mi.workflow_id AND wi.intent_type='media.generation'
 		LEFT JOIN LATERAL (
 			SELECT r.id,r.role,r.binding_role,r.scenario,r.priority,r.model_id,r.prompt,r.response,r.status,r.error_code,r.queued_at,r.started_at,r.completed_at
 			FROM public.diagnostic_model_runs r
@@ -1216,12 +1218,12 @@ func (a *App) MediaPromptsFiltered(ctx context.Context, actorID string, limit in
 	defer rows.Close()
 	out := make([]map[string]any, 0)
 	for rows.Next() {
-		var id, owner, kind, mime, prompt, providerPrompt, requestID, jobID, workflow, status, eventID, submittedPrompt, submittedAt string
+		var id, owner, kind, mime, prompt, providerPrompt, requestID, jobID, workflow, status, qualityVerdict, qualityGuidance, eventID, submittedPrompt, submittedAt, workflowError, workflowStatus, failureStage string
 		var runID, runRole, runBinding, runScenario, runModel, runStatus, runError, runQueued, runStarted, runCompleted string
-		var runPriority int
-		var runPrompt, runResponse []byte
+		var runPriority, workflowAttempts int
+		var runPrompt, runResponse, submittedPayload []byte
 		var created time.Time
-		if err := rows.Scan(&id, &owner, &kind, &mime, &prompt, &providerPrompt, &requestID, &jobID, &workflow, &status, &created, &eventID, &submittedPrompt, &submittedAt, &runID, &runRole, &runBinding, &runScenario, &runPriority, &runModel, &runPrompt, &runResponse, &runStatus, &runError, &runQueued, &runStarted, &runCompleted); err != nil {
+		if err := rows.Scan(&id, &owner, &kind, &mime, &prompt, &providerPrompt, &requestID, &jobID, &workflow, &status, &qualityVerdict, &qualityGuidance, &created, &eventID, &submittedPrompt, &submittedPayload, &submittedAt, &runID, &runRole, &runBinding, &runScenario, &runPriority, &runModel, &runPrompt, &runResponse, &runStatus, &runError, &runQueued, &runStarted, &runCompleted, &workflowError, &workflowStatus, &workflowAttempts, &failureStage); err != nil {
 			return nil, err
 		}
 		promptValue := any(prompt)
@@ -1231,12 +1233,34 @@ func (a *App) MediaPromptsFiltered(ctx context.Context, actorID string, limit in
 		row := map[string]any{
 			"id": id, "media_intent_id": id, "fluctlight_id": owner, "kind": kind, "mime_type": mime,
 			"prompt": promptValue, "provider_prompt": providerPrompt, "submitted_prompt": submittedPrompt,
-			"provider_request_id": requestID, "provider_job_id": jobID, "workflow_id": workflow, "status": status,
+			"provider_request_id": requestID, "provider_job_id": jobID, "workflow_id": workflow, "status": status, "quality_verdict": qualityVerdict,
 			"correlation_id": "media:" + id, "created_at": created.Format(time.RFC3339Nano),
 		}
 		if eventID != "" {
 			row["submitted_event_id"] = eventID
+			if json.Valid(submittedPayload) && string(submittedPayload) != "{}" {
+				row["request_payload"] = json.RawMessage(submittedPayload)
+			}
 			row["submitted_at"] = submittedAt
+		}
+		if workflowError == "" && status == "failed" {
+			if qualityVerdict == mediaQualityVerdictReject {
+				workflowError = "媒体质量检查未通过"
+				if qualityGuidance != "" {
+					workflowError += ": " + qualityGuidance
+				}
+			} else {
+				workflowError = "媒体生成失败，但没有记录更详细的错误信息"
+			}
+			if failureStage == "" {
+				failureStage = "poll_quality"
+			}
+		}
+		if workflowError != "" {
+			row["error_message"] = workflowError
+			row["failure_stage"] = failureStage
+			row["workflow_status"] = workflowStatus
+			row["attempt_count"] = workflowAttempts
 		}
 		if runID != "" {
 			modelRun := map[string]any{
@@ -1256,6 +1280,52 @@ func (a *App) MediaPromptsFiltered(ctx context.Context, actorID string, limit in
 		out = append(out, row)
 	}
 	return out, rows.Err()
+}
+
+// RetryMediaIntent resets one failed media target while preserving its frozen
+// provider prompt. The existing workflow restart path is reused so a retry
+// gets a new ComfyUI submission and fresh diagnostic event without creating a
+// second media intent.
+func (a *App) RetryMediaIntent(ctx context.Context, actorID, intentID string) (map[string]any, error) {
+	if err := a.requireOwner(ctx, actorID); err != nil {
+		return nil, err
+	}
+	var workflowID, mediaStatus, workflowStatus string
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := tx.QueryRow(ctx, `SELECT mi.workflow_id,mi.status,COALESCE(wi.status,'') FROM public.media_intents mi LEFT JOIN public.platform_workflow_intents wi ON wi.workflow_id=mi.workflow_id AND wi.intent_type='media.generation' WHERE mi.id=$1 FOR UPDATE`, intentID).Scan(&workflowID, &mediaStatus, &workflowStatus); errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		} else if err != nil {
+			return err
+		}
+		if mediaStatus != "failed" && workflowStatus != "failed" {
+			return ErrConflict
+		}
+		if workflowStatus == "started" {
+			return ErrConflict
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET provider_job_id=NULL,status='pending',quality_verdict='',quality_candidate_sha256=NULL,quality_checked_at=NULL,revision=revision+1 WHERE id=$1`, intentID); err != nil {
+			return err
+		}
+		command, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',attempt_count=0,last_error=NULL,next_attempt_at=now(),started_at=NULL,completed_at=NULL WHERE workflow_id=$1 AND intent_type='media.generation'`, workflowID)
+		if err != nil {
+			return err
+		}
+		if command.RowsAffected() != 1 {
+			return ErrNotFound
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if a.Workflows == nil {
+		return map[string]any{"media_intent_id": intentID, "workflow_id": workflowID, "status": "retry_queued"}, nil
+	}
+	if _, err := a.WorkflowCommand(ctx, actorID, workflowID, "restart", nil); err != nil {
+		_, _ = a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,next_attempt_at=now()+interval '5 seconds' WHERE workflow_id=$1 AND intent_type='media.generation'`, workflowID, err.Error())
+		return nil, err
+	}
+	return map[string]any{"media_intent_id": intentID, "workflow_id": workflowID, "status": "retry_queued"}, nil
 }
 
 func (a *App) DiagnosticsExport(ctx context.Context, actorID string) (map[string]any, error) {
