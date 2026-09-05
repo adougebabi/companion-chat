@@ -976,3 +976,38 @@ Implemented the complete cognition growth vertical: structured appraisal/focus/i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 30: 系统问题治理：诊断、Redis 调度与反思唤醒
+
+**Date**: 2026-09-05
+**Task**: 系统问题治理：诊断、Redis 调度与反思唤醒
+**Branch**: `master`
+
+### Summary
+
+按单一 Trellis 总任务完成五项治理：盘点 11 个 Temporal 工作流并记录 Googleapis CSS 现状；移除 Google Fonts 运行时依赖并统一系统字体回退；新增独立媒体提示词诊断查询/展示与 media correlation，修正语义 role 与 binding_role；为 Provider generated queue 增加 Redis ZSET 跨进程优先级、FIFO、lease、续租、重入和故障回退；为用户 turn reflection 增加延迟 intent 与 Redis TTL 过期提示，为 wake-up 增加 Redis hint/listener/startup repair，同时保留 PostgreSQL/Temporal 权威。Core/BFF 全量 Go 测试、Go vet、Browser Client/Web 检查及 disposable Compose smoke 通过。提示词构成重构未纳入本任务，待后续确认。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `21df773` | (see git log) |
+| `2a886b9` | (see git log) |
+| `505d8fb` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
