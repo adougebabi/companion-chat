@@ -52,13 +52,13 @@
 
 ## Acceptance Criteria
 
-- [ ] 现状盘点产出可审阅的 workflow 清单，覆盖 workflow symbol、intent type、queue、activity、生产者、触发条件、管理入口和前端观测入口；同时给出 Googleapis CSS 的用途和构建/运行时验证结果。
-- [ ] 生产构建或部署验证不再依赖未批准的 Googleapis 运行时 CSS；字体回退链稳定，中文和英文界面无明显布局回归。
-- [ ] 诊断中心保留普通 LLM model runs，同时新增独立媒体提示词区块；仅显示最近 20 条、按发起时间倒序，并能显示脱敏后的 provider prompt/实际提交 prompt 及其关联信息。
-- [ ] 媒体诊断链路中，语义 role、binding role、scenario 和 media intent/correlation 关系可被 Core 查询、BFF 转换和 Vue 展示一致消费；不得破坏现有 owner-only、redaction 和 retention 行为。
-- [ ] 同一 Redis-backed LLM queue 在多进程场景下按现有 priority 与 FIFO 规则原子取任务；worker 崩溃、Redis 短暂不可用、provider 超时、取消和重试均有可验证的恢复路径，且 diagnostic model run 最终状态不悬挂。
-- [ ] Redis 过期事件触发反思/唤醒时最多产生一个有效 workflow/intent；listener 断线、Redis 重启或事件丢失后，补偿扫描能恢复 due work；现有 evidence window、watermark、CAS、cycle 唯一约束和 workflow management 不回归。
-- [ ] Go Core、Go BFF、Vue 客户端相关 lint/type/test/build 及必要的 Compose smoke 均通过；变更后的跨层 payload、路由和诊断展示有针对性测试。
+- [x] 现状盘点产出可审阅的 workflow 清单，覆盖 workflow symbol、intent type、queue、activity、生产者、触发条件、管理入口和前端观测入口；同时给出 Googleapis CSS 的用途和构建/运行时验证结果。
+- [x] 生产构建或部署验证不再依赖未批准的 Googleapis 运行时 CSS；字体回退链稳定，中文和英文界面无明显布局回归。
+- [x] 诊断中心保留普通 LLM model runs，同时新增独立媒体提示词区块；仅显示最近 20 条、按发起时间倒序，并能显示脱敏后的 provider prompt/实际提交 prompt 及其关联信息。
+- [x] 媒体诊断链路中，语义 role、binding role、scenario 和 media intent/correlation 关系可被 Core 查询、BFF 转换和 Vue 展示一致消费；不得破坏现有 owner-only、redaction 和 retention 行为。
+- [x] 同一 Redis-backed LLM queue 在多进程场景下按现有 priority 与 FIFO 规则原子取任务；worker 崩溃、Redis 短暂不可用、provider 超时、取消和重试均有可验证的恢复路径，且 diagnostic model run 最终状态不悬挂。
+- [x] Redis 过期事件触发反思/唤醒时最多产生一个有效 workflow/intent；listener 断线、Redis 重启或事件丢失后，补偿扫描能恢复 due work；现有 evidence window、watermark、CAS、cycle 唯一约束和 workflow management 不回归。
+- [x] Go Core、Go BFF、Vue 客户端相关 lint/type/test/build 及必要的 Compose smoke 均通过；变更后的跨层 payload、路由和诊断展示有针对性测试。
 
 ## Out of scope
 
