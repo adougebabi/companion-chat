@@ -64,3 +64,4 @@
 - Provider generated queue 增加 Redis ZSET pending/processing、Lua 原子 claim/release/requeue、lease renewal、job TTL 和 Redis 不可用回退；API/Worker 均接入可选 Redis client，embedding 仍独立。
 - Worker 增加 Redis expiration listener、startup wake-up hint repair 和每秒 provider queue lease reconciliation；用户 turn reflection intent 复用 `product.wakeup.interval_seconds` 作为 delay，并合并为每 turn 一个 delayed reflection intent。
 - `go test ./...`（Core）、`go test ./...`（BFF）、Browser Client typecheck/test 均通过。需要本地监听或 Docker 的 Redis/Compose integration smoke 在当前沙箱被禁止绑定端口，未冒充通过。
+- 后续获得 Docker 权限后，`FLUCTLIGHT_ENV_FILE=infra/compose/fluctlight.local.env infra/compose/run-platform-smoke.sh` 已成功完成：bind source 检查、Core/Worker/Temporal/PostgreSQL/Redis/MinIO/BFF/Web 健康检查，以及 migrate/minio-init/cutover 成功退出；脚本使用独立临时 project 并已清理容器/卷。

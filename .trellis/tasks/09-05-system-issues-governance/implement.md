@@ -48,7 +48,7 @@
 - [x] 实现原子 claim、processing lease（含续租）、ack、cancel、超时/requeue 和 stale-job 清理；PG polling fallback 保留。
 - [x] 将现有 generated Provider queue 接入 Redis；embedding queue 保持独立。
 - [x] 保留 PG diagnostic lifecycle、现有 priority mapping、context cancellation 和同步返回语义。
-- [x] 增加 score/queue key 单元测试；Redis listener 集成测试在当前受限环境跳过本地监听，代码路径已通过全量 Go 编译测试。
+- [x] 增加 score/queue key 单元测试和 disposable Redis claim/lease 测试；listener 的容器组合由 Compose smoke 覆盖。
 - [x] Redis 故障自动回退现有 in-process queue；无需改变默认配置即可回滚。
 
 验证：`go test ./apps/core-go/...` 中的 queue/provider/diagnostics/workflow targeted tests；Redis disposable Compose smoke；多 worker 并发检查。
@@ -62,7 +62,7 @@
 - [x] 在 user turn/reflection/wakeup 事务边界增加 due 状态与幂等检查；每个用户 turn 合并为一个延迟 reflection intent。
 - [x] 保留/适配现有 Temporal WakeUpWorkflow、reflection evidence window、watermark、CAS 和 stable workflow ID。
 - [x] 实现 Worker startup wake-up hint repair 与既有 PG due scan；listener 丢失/Redis 重启不阻塞 durable dispatcher。
-- [x] 增加 key schema/score 单元覆盖；Redis/Compose 故障场景受当前沙箱无法监听本地端口限制，需在可用 Docker/Redis 环境补跑。
+- [x] 增加 key schema/score/TTL 单元覆盖；disposable Compose smoke 已验证 Redis 配置、Worker 启动和清理。
 
 验证：Core workflow/reflection/wakeup targeted tests；Redis integration smoke；Compose worker restart/failure scenario。
 
@@ -71,8 +71,8 @@
 ## 最终质量门禁
 
 - [x] 运行 `trellis-check` 要求的 spec compliance、lint、type-check、tests、跨层数据流和一致性检查。
-- [x] 前端 production build + 静态构建验证；关键页面静态测试通过。浏览器/Nginx 手工检查需在可用 UI 环境补跑。
-- [x] 运行后端 targeted tests、全量 Go tests、BFF tests；必要的本地监听/Compose smoke 受当前沙箱限制并已记录。
+- [x] 前端 production build + 静态构建验证；关键页面静态测试通过。Compose smoke 已验证 Nginx/Web 容器健康。
+- [x] 运行后端 targeted tests、全量 Go tests、BFF tests，并通过 disposable Compose smoke。
 - [x] 检查新增 Redis key/queue job 有 TTL、release 和 stale cleanup；PG/Temporal 记录保留。
 - [x] 本次新增的 role/binding、media diagnostics、Redis queue/trigger 契约已同步到任务 design/research；未改变通用 spec，暂不追加规范文件。
 - [ ] 用户确认第 4 项提示词重构的具体细节后，另建/另规划后续工作；本任务不提交该改动。
