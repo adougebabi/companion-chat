@@ -193,6 +193,10 @@ database identifiers or state-machine bookkeeping fields.
 - `current_state.data` is the only place for `inner_state` and `life_context`;
   revision, persistence timestamps, and numeric decay-control parameters stay
   in Core.
+- `life_context.current_time` is the current local wall-clock time formatted
+  with the Fluctlight's canonical IANA `timezone`; it is the semantic time fact
+  used by wake-up, cognition, reply, daily-review, and reflection decisions.
+  The raw RFC3339 `instant` used for Core snapshots is not Provider input.
 - `recent_messages` keeps semantic order/kind/text/time and an attachment
   presence flag, but omits message IDs, `author_actor_id`, `source`, and empty
   attachment arrays.
@@ -228,6 +232,8 @@ database identifiers or state-machine bookkeeping fields.
 
 - Assert compact context contains one canonical three-layer shape and omits
   all parallel aliases, database IDs, revisions, timestamps, and empty lists.
+- Assert the Provider projection keeps the local `current_time` and canonical
+  `timezone` while omitting the raw Core `instant`.
 - Assert non-empty recent messages, memories, and typed slots retain semantic
   values and evidence references.
 - Assert legacy projection reconstruction does not lose Core Persona data.

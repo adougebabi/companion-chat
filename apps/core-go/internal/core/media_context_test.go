@@ -105,7 +105,7 @@ func TestWithContextAuthorityInstructionKeepsUserMessageLast(t *testing.T) {
 	if len(messages) != 2 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[1]["role"]) != "user" {
 		t.Fatalf("messages = %#v", messages)
 	}
-	if !strings.Contains(stringValue(messages[0]["content"]), "context.current_state") || !strings.Contains(stringValue(messages[0]["content"]), "decide") {
+	if !strings.Contains(stringValue(messages[0]["content"]), "context.current_state") || !strings.Contains(stringValue(messages[0]["content"]), "life_context.current_time") || !strings.Contains(stringValue(messages[0]["content"]), "decide") {
 		t.Fatalf("authority instruction = %#v", messages[0])
 	}
 }

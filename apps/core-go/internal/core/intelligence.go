@@ -131,6 +131,7 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if err != nil {
 		return ContextProjection{}, err
 	}
+	annotateLifeContextClock(lifeContext, stringValue(fluctlight.Identity["timezone"]))
 	memories, err := a.RetrieveMemoryContext(ctx, actorID, fluctlightID, conversationID, userText, 12, 2400)
 	if err != nil {
 		return ContextProjection{}, err
@@ -210,6 +211,31 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 		projection.Presence = presence
 	}
 	return projection, nil
+}
+
+// annotateLifeContextClock adds the semantic wall-clock facts that model
+// decisions need. The internal RFC3339 instant remains a Core-only snapshot
+// field and is removed by provider-context compaction.
+func annotateLifeContextClock(lifeContext map[string]any, timezone string) {
+	if lifeContext == nil {
+		return
+	}
+	timezone = canonicalTimezone(timezone)
+	if timezone == "" {
+		timezone = "Asia/Shanghai"
+	}
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return
+	}
+	instant := time.Now().UTC()
+	if raw := stringValue(lifeContext["instant"]); raw != "" {
+		if parsed, parseErr := time.Parse(time.RFC3339Nano, raw); parseErr == nil {
+			instant = parsed
+		}
+	}
+	lifeContext["current_time"] = instant.In(location).Format("2006-01-02 15:04:05 MST")
+	lifeContext["timezone"] = timezone
 }
 
 func capabilityManifestMaps(manifests []CapabilityManifest) []map[string]any {

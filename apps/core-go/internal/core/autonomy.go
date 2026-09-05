@@ -131,6 +131,8 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 			return nil, fmt.Errorf("daily_review_output_binding_invalid: %w", err)
 		}
 	}
+	deliveryStatus := ""
+	deliveredMessageID := ""
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		insertAction := func() error {
 			payload := map[string]any{"text": visible, "conversation_id": conversationID, "response_intent": composite.ResponseIntent, "decision": composite}
@@ -138,11 +140,28 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 				payload["tool_calls"] = composite.ToolCalls
 				payload["output_bindings"] = composite.OutputBindings
 			}
+			if deliveryStatus != "" {
+				payload["delivery_status"] = deliveryStatus
+				payload["message_id"] = deliveredMessageID
+				payload["tool_calls_suppressed"] = true
+			}
 			_, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions (id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id,created_at,settled_at) VALUES ($1,$2,$3,$4,'{}','{}','completed',$5,$6,now(),now())`, actionID, fluctlightID, actionType, jsonBytes(payload), workflowID, providerID)
 			return err
 		}
 		if actionType == "proactive_message" {
-			messageID, err := appendAssistantTxWithID(ctx, tx, conversationID, fluctlightID, visible, "proactive:"+actionID)
+			messageID, duplicate, err := recentExactAssistantMessageTx(ctx, tx, conversationID, fluctlightID, visible, proactiveMessageDuplicateWindow)
+			if err != nil {
+				return err
+			}
+			if duplicate {
+				deliveryStatus = "duplicate_suppressed"
+				deliveredMessageID = messageID
+				if err := insertAction(); err != nil {
+					return err
+				}
+				return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, workflowID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed", "delivery_status": deliveryStatus, "message_id": messageID})
+			}
+			messageID, err = appendAssistantTxWithID(ctx, tx, conversationID, fluctlightID, visible, "proactive:"+actionID)
 			if err != nil {
 				return err
 			}
@@ -195,7 +214,12 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": "completed", "owner_actor_id": ownerID}, nil
+	result := map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": "completed", "owner_actor_id": ownerID}
+	if deliveryStatus != "" {
+		result["delivery_status"] = deliveryStatus
+		result["message_id"] = deliveredMessageID
+	}
+	return result, nil
 }
 
 func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {

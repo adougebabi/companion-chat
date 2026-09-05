@@ -288,8 +288,8 @@ func compactStateMap(value any, keys []string) map[string]any {
 }
 
 func compactLifeContext(context map[string]any) map[string]any {
-	result := make(map[string]any, 5)
-	for _, key := range []string{"source", "scene", "activity", "location", "instant"} {
+	result := make(map[string]any, 6)
+	for _, key := range []string{"source", "scene", "activity", "location", "current_time", "timezone"} {
 		if value, ok := context[key]; ok && value != nil && value != "" {
 			result[key] = value
 		}

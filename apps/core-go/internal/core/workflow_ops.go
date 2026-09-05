@@ -37,8 +37,35 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 		if conversationID == "" || text == "" {
 			return a.failAutonomyAction(ctx, actionID, "proactive_target_invalid")
 		}
+		duplicateSuppressed := false
+		duplicateMessageID := ""
 		err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-			messageID, err := appendAssistantTxWithID(ctx, tx, conversationID, fluctlightID, text, "proactive:"+actionID)
+			messageID, duplicate, err := recentExactAssistantMessageTx(ctx, tx, conversationID, fluctlightID, text, proactiveMessageDuplicateWindow)
+			if err != nil {
+				return err
+			}
+			if duplicate {
+				duplicateSuppressed = true
+				duplicateMessageID = messageID
+				deliveryResult := map[string]any{
+					"status":          "completed",
+					"action_status":   "completed",
+					"delivery_status": "duplicate_suppressed",
+					"message_id":      messageID,
+				}
+				command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=payload || $2::jsonb,status='completed',settled_at=now() WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(map[string]any{"delivery_status": "duplicate_suppressed", "message_id": messageID, "tool_calls_suppressed": true}))
+				if err != nil {
+					return err
+				}
+				if command.RowsAffected() != 1 {
+					return ErrConflict
+				}
+				if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, deliveryResult); err != nil {
+					return err
+				}
+				return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed", "delivery_status": "duplicate_suppressed", "message_id": messageID, "aggregate_sequence": 1})
+			}
+			messageID, err = appendAssistantTxWithID(ctx, tx, conversationID, fluctlightID, text, "proactive:"+actionID)
 			if err != nil {
 				return err
 			}
@@ -76,6 +103,9 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 		})
 		if err != nil {
 			return nil, err
+		}
+		if duplicateSuppressed {
+			return map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed", "delivery_status": "duplicate_suppressed", "message_id": duplicateMessageID}, nil
 		}
 		return map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed"}, nil
 	}

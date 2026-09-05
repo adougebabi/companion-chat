@@ -47,6 +47,11 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
 - A proactive message requires an already-existing direct Conversation ID at
   freeze time. A model proposal without that factual target is rejected; code
   never creates a conversation merely to make a proactive message possible.
+- Autonomous proactive delivery suppresses an exact duplicate assistant text
+  already sent by the same Fluctlight in the same Conversation during the
+  recent duplicate window (12 hours). Suppression completes and audits the
+  Action with `delivery_status=duplicate_suppressed`; it does not alter normal
+  user-triggered reply handling.
 - A Moment is shared-feed content by default (`participants`). The current
   product exposes the Owner's authorized instances only; future Fluctlight
   cross-feed/group readers extend consumption without changing Moment history.
@@ -65,6 +70,7 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
 | Action targets forbidden infrastructure/destructive capability | Hard reject regardless of LLM confidence. |
 | Proactive proposal has no direct Conversation target | Reject before autonomy freeze; do not create a conversation or fallback message. |
 | Daily review is retried/replayed | Reuse the stable local-date fact ID; do not create duplicate Moment or proactive Action. |
+| Proactive text exactly matches a recent assistant message | Complete the autonomous Action with `duplicate_suppressed`; do not append another visible message. |
 
 When a daily-review activity returns `schedule_pending`, the workflow waits a
 bounded interval and continues as new with an empty `local_date`; the next
@@ -87,6 +93,8 @@ boundary.
 - Policy tests for permission, budget, quiet hours, cooldown, concurrency, screen/mute, and forbidden Actions.
 - Governance tests for inspect/pause/resume/cancel, cooperative workflow cancellation, immutable history, audit, and active/paused mode.
 - Concurrency tests with direct interaction, lifecycle Event, and due Intention for one Fluctlight inbox.
+- Assert recent exact proactive text is suppressed transactionally while
+  different text and text outside the duplicate window still deliver.
 - Anti-heuristic tests prove time/engagement facts are LLM inputs and code does not infer relationship/action meaning.
 
 ### T04 Ownership And Governance Persistence

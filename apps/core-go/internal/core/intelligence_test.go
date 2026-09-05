@@ -1,6 +1,29 @@
 package core
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
+
+func TestAnnotateLifeContextClockUsesPersonaTimezone(t *testing.T) {
+	lifeContext := map[string]any{"instant": "2026-09-05T01:30:00Z"}
+	annotateLifeContextClock(lifeContext, "Asia/Shanghai")
+	if lifeContext["timezone"] != "Asia/Shanghai" {
+		t.Fatalf("timezone = %#v, want Asia/Shanghai", lifeContext["timezone"])
+	}
+	if lifeContext["current_time"] != "2026-09-05 09:30:00 CST" {
+		t.Fatalf("current_time = %#v, want local wall-clock value", lifeContext["current_time"])
+	}
+}
+
+func TestAnnotateLifeContextClockFallsBackToNowForMalformedInstant(t *testing.T) {
+	lifeContext := map[string]any{"instant": "not-a-timestamp"}
+	annotateLifeContextClock(lifeContext, "UTC")
+	value := stringValue(lifeContext["current_time"])
+	if value == "" || !strings.HasSuffix(value, " UTC") {
+		t.Fatalf("current_time = %q, want a UTC wall-clock value", value)
+	}
+}
 
 func TestNormalizeResponsePlanFiltersUnsupportedAndRepeatedClaims(t *testing.T) {
 	context := ContextProjection{

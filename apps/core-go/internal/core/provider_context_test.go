@@ -211,6 +211,22 @@ func TestCompactMessageTimeKeepsDateAndSecondsWithoutSequence(t *testing.T) {
 	}
 }
 
+func TestCompactCognitionContextKeepsSemanticCurrentTimeAndTimezone(t *testing.T) {
+	compact := compactCognitionContext(ContextProjection{
+		CorePersona: map[string]any{"authority": "hard_constraint", "data": map[string]any{}},
+		CurrentState: map[string]any{"authority": "transient_state", "data": map[string]any{
+			"life_context": map[string]any{"instant": "2026-09-05T01:30:00Z", "current_time": "2026-09-05 09:30:00 CST", "timezone": "Asia/Shanghai", "scene": "书房"},
+		}},
+	})
+	life := mapValue(mapValue(mapValue(compact["current_state"])["data"])["life_context"])
+	if life["current_time"] != "2026-09-05 09:30:00 CST" || life["timezone"] != "Asia/Shanghai" || life["scene"] != "书房" {
+		t.Fatalf("semantic current time context = %#v", life)
+	}
+	if _, ok := life["instant"]; ok {
+		t.Fatal("raw instant metadata leaked alongside current_time")
+	}
+}
+
 func TestCompactCognitionContextIncludesGoalsAndIntentionsAsSemanticInputs(t *testing.T) {
 	compact := compactCognitionContext(ContextProjection{
 		CorePersona:  map[string]any{"authority": "hard_constraint", "data": map[string]any{}},
