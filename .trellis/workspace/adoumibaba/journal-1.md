@@ -1011,3 +1011,36 @@ Implemented the complete cognition growth vertical: structured appraisal/focus/i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 31: 提示词构成重构：system/persona 与 TOON 动态上下文
+
+**Date**: 2026-09-06
+**Task**: 提示词构成重构：system/persona 与 TOON 动态上下文
+**Branch**: `master`
+
+### Summary
+
+完成提示词构成重构：普通非 media_prompt Provider 调用统一生成单一首位 system，包含固定 # 运行协议与过滤后的 # 人格设定；Core Persona 仅保留 identity/personality/behavioral_policy/life_profile 语义字段，排除 schema_version、内部 ID、revision、数据库审计字段和自动演化控制。动态 user/context 以简单标题拆分，保留 scene/activity/location/mood/appearance、life_context.current_time/timezone；memory、Developing Self、goals、intentions、recent messages 使用安全 TOON，嵌套/不安全结构 fallback YAML；保留 semantic evidence_refs 和 memory created_at，避免自然语言 ID-like 文本被误删。初始化、cognition、realization、daily review、wake-up、native cognition、reflection、schedule 保持 schema/tools/streaming 语义，media_prompt/media quality/Visual Identity 特例不变。Provider/Persona 规范同步更新；Core/BFF/Web 全量检查、go vet 和 disposable Compose smoke 通过。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0a5ca23` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

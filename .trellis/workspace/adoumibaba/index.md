@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 30
-- **Last Active**: 2026-09-05
+- **Total Sessions**: 31
+- **Last Active**: 2026-09-06
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1013 | Active |
+| `journal-1.md` | ~1046 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 31 | 2026-09-06 | 提示词构成重构：system/persona 与 TOON 动态上下文 | `0a5ca23` | `master` |
 | 30 | 2026-09-05 | 系统问题治理：诊断、Redis 调度与反思唤醒 | `21df773`, `2a886b9`, `505d8fb` | `master` |
 | 29 | 2026-09-04 | 生图后 LLM 质量验收闸门 | `b9b6d23` | `master` |
 | 28 | 2026-09-04 | 媒体提示词拍摄视角规则 | `264177d` | `master` |
