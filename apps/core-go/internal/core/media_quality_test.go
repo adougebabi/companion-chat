@@ -162,3 +162,23 @@ func TestMediaPromptInputCarriesOnlyFrozenRetryFeedback(t *testing.T) {
 		t.Fatalf("retry input lost prior provider prompt: %s", input)
 	}
 }
+
+func TestMediaPromptInputOmitsVisualIdentityWorkflowHistory(t *testing.T) {
+	input := mediaPromptInput(mediaIntent{Prompt: `{"scene":"library","context_binding":{"visual_identity":{"status":"active","identity_snapshot":{"identity":{"name":"影者"}},"renderer_constraints":{"chest_cup":"B","chest_lora_weight":-3},"timeline":[{"stage":"seed_requested","summary":"工作流节点"}],"canonical_asset_id":"asset-1"}}}`})
+	if strings.Contains(input, "timeline") || strings.Contains(input, "seed_requested") || strings.Contains(input, "canonical_asset_id") || strings.Contains(input, "identity_snapshot") {
+		t.Fatalf("media prompt retained visual identity workflow metadata: %s", input)
+	}
+	if !strings.Contains(input, "chest_cup") || !strings.Contains(input, "chest_lora_weight") {
+		t.Fatalf("media prompt lost renderer constraints: %s", input)
+	}
+}
+
+func TestMediaQualityConceptKeepsIdentitySemanticsWithoutTimeline(t *testing.T) {
+	input := compactMediaConceptForProvider(`{"purpose":"visual_identity","visual_identity":{"identity_snapshot":{"identity":{"visible_text":"一位短发角色"}},"timeline":[{"stage":"vision_ready"}]},"renderer_constraints":{"chest_cup":"B"}}`)
+	if !strings.Contains(input, "一位短发角色") || !strings.Contains(input, "chest_cup") {
+		t.Fatalf("visual identity semantics were removed: %s", input)
+	}
+	if strings.Contains(input, "timeline") || strings.Contains(input, "vision_ready") {
+		t.Fatalf("visual identity timeline leaked: %s", input)
+	}
+}

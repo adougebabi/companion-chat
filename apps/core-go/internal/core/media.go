@@ -484,7 +484,7 @@ func visualIdentityReferenceAssetID(concept map[string]any) string {
 		if len(visualIdentity) == 0 {
 			visualIdentity = mapValue(value)
 		}
-		for _, key := range []string{"character_sheet_asset_id", "canonical_asset_id"} {
+		for _, key := range []string{"reference_asset_id", "character_sheet_asset_id", "canonical_asset_id"} {
 			if assetID := stringValue(visualIdentity[key]); assetID != "" {
 				return assetID
 			}

@@ -197,16 +197,30 @@ database identifiers or state-machine bookkeeping fields.
   with the Fluctlight's canonical IANA `timezone`; it is the semantic time fact
   used by wake-up, cognition, reply, daily-review, and reflection decisions.
   The raw RFC3339 `instant` used for Core snapshots is not Provider input.
-- `recent_messages` keeps semantic order/kind/text/time and an attachment
-  presence flag, but omits message IDs, `author_actor_id`, `source`, and empty
-  attachment arrays.
+- `visual_identity` in cognition context is limited to availability and the
+  small renderer constraint set needed for a decision. Identity snapshots,
+  workflow timeline stages, asset lists, and adapter/revision metadata stay in
+  Core/media workflows. Media prompt input uses the same bounded projection;
+  reference asset IDs remain only in the durable Core concept for renderer
+  lookup.
+- `recent_messages` keeps semantic order/kind/text/time, but omits message IDs,
+  `author_actor_id`, `source`, and attachment arrays.
 - Memory input keeps type/content/confidence/importance/emotional significance,
   creation time, and evidence references; storage status, revision, visibility,
   conversation foreign keys, and duplicate source/event IDs stay in Core.
 - Empty optional collections are omitted. Native Provider `tools` remains the
   sole complete capability schema; `context.capabilities` is never duplicated.
+- The current conversation message is carried once by its owning operation;
+  `recent_messages` excludes that newest user entry when it is already present
+  as the operation input.
 - The full `ContextProjection` may still be persisted inside a frozen decision
   for replay; compaction only affects Provider-facing user content.
+
+Action realization, reflection, and native cognition also use operation-owned
+semantic projections: realization receives a compact response plan and only
+tool outcome fields, reflection evidence uses a short `sequence:N`
+`evidence_ref` plus a metadata-free payload, and native cognition receives a
+metadata-free fact. Frozen Core records retain the complete protocol objects.
 
 ### 4. Validation & Error Matrix
 
@@ -234,6 +248,11 @@ database identifiers or state-machine bookkeeping fields.
   all parallel aliases, database IDs, revisions, timestamps, and empty lists.
 - Assert the Provider projection keeps the local `current_time` and canonical
   `timezone` while omitting the raw Core `instant`.
+- Assert Visual Identity workflow timeline/asset metadata is absent from
+  cognition and media prompt projections while renderer constraints remain.
+- Assert realization plans/results and reflection/native evidence facts keep
+  semantic outcomes while omitting protocol IDs, schemas, revisions, and
+  transport metadata.
 - Assert non-empty recent messages, memories, and typed slots retain semantic
   values and evidence references.
 - Assert legacy projection reconstruction does not lose Core Persona data.

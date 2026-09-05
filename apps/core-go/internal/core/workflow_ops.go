@@ -360,7 +360,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 			allowedEvidence["memory:"+memoryID] = struct{}{}
 		}
 	}
-	proposal, err := a.Provider.Structured(WithProviderScenario(ctx, "reflection"), "reflection", []map[string]any{{"role": "system", "content": reflectionInstruction}, {"role": "user", "content": jsonString(map[string]any{"from_sequence": watermark + 1, "to_sequence": toSequence, "evidence": evidence, "context": compactCognitionContext(projection)})}})
+	proposal, err := a.Provider.Structured(WithProviderScenario(ctx, "reflection"), "reflection", []map[string]any{{"role": "system", "content": reflectionInstruction}, {"role": "user", "content": jsonString(map[string]any{"evidence": compactReflectionEvidence(evidence), "context": compactCognitionContext(projection)})}})
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		if status, suppressed := providerSuppressionStatus(err); suppressed {

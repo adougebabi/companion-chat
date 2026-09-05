@@ -1,6 +1,8 @@
 package core
 
 import (
+	"encoding/json"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -10,8 +12,8 @@ var providerHashPattern = regexp.MustCompile(`\b(?:message|memory|inbox|wake_fac
 
 // compactCognitionContext is the Provider-facing projection of a full
 // ContextProjection. The full projection remains the durable/replayable
-// internal value; this DTO keeps the semantic three-layer context, the stable
-// visual identity snapshot, and non-empty evidence collections needed by the
+// internal value; this DTO keeps the semantic three-layer context, bounded
+// visual identity facts, and non-empty evidence collections needed by the
 // current operation.
 //
 // In particular, capability manifests are intentionally absent here. Calls
@@ -25,11 +27,10 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 		"core_persona":   compactCorePersona(projection),
 		"current_state":  compactCurrentState(projection),
 	}
-	if projection.CurrentUserText != "" {
-		result["current_user_text"] = projection.CurrentUserText
-	}
 	if len(projection.RecentMessages) > 0 {
-		result["recent_messages"] = compactRecentMessages(projection.RecentMessages)
+		if recent := compactRecentMessages(projection.RecentMessages, projection.CurrentUserText); recent != "" {
+			result["recent_messages"] = recent
+		}
 	}
 	if len(projection.DevelopingSelf) > 0 {
 		result["developing_self"] = compactDevelopingSelf(projection.DevelopingSelf)
@@ -53,7 +54,9 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 		result["trigger_preferences"] = projection.TriggerPreferences
 	}
 	if len(projection.VisualIdentity) > 0 {
-		result["visual_identity"] = projection.VisualIdentity
+		if visualIdentity := compactVisualIdentity(projection.VisualIdentity); len(visualIdentity) > 0 {
+			result["visual_identity"] = visualIdentity
+		}
 	}
 	if len(projection.Presence) > 0 {
 		result["presence"] = projection.Presence
@@ -172,9 +175,24 @@ func compactCurrentState(projection ContextProjection) map[string]any {
 	return result
 }
 
-func compactRecentMessages(messages []map[string]any) string {
+func compactRecentMessages(messages []map[string]any, currentUserText string) string {
+	currentUserText = strings.TrimSpace(currentUserText)
+	skipIndex := -1
+	if currentUserText != "" {
+		// History is ordered oldest-to-newest. Skip only the newest matching
+		// user message, so an earlier identical message remains evidence.
+		for index := len(messages) - 1; index >= 0; index-- {
+			if stringValue(messages[index]["kind"]) == "user" && strings.TrimSpace(stringValue(messages[index]["text"])) == currentUserText {
+				skipIndex = index
+				break
+			}
+		}
+	}
 	var result strings.Builder
-	for _, message := range messages {
+	for index, message := range messages {
+		if index == skipIndex {
+			continue
+		}
 		kind := stringValue(message["kind"])
 		text := strings.TrimSpace(stringValue(message["text"]))
 		if kind == "" && text == "" {
@@ -295,6 +313,230 @@ func compactLifeContext(context map[string]any) map[string]any {
 		}
 	}
 	return result
+}
+
+// compactVisualIdentity keeps only the durable visual facts that a cognition
+// model can use. Workflow timeline stages, asset references, revision/status
+// bookkeeping, and renderer adapter metadata belong to Core/media workers and
+// must not be copied into every wake-up or chat prompt.
+func compactVisualIdentity(value map[string]any) map[string]any {
+	if len(value) == 0 {
+		return nil
+	}
+	result := make(map[string]any, 2)
+	status := stringValue(value["status"])
+	if missing, ok := value["missing"].(bool); ok {
+		result["missing"] = missing
+	}
+	switch status {
+	case "active":
+		result["available"] = true
+	case "missing":
+		result["available"] = false
+		result["missing"] = true
+	case "renderer_config_pending":
+		result["available"] = false
+		result["renderer_config_pending"] = true
+	case "", "queued", "running", "awaiting_review":
+		result["available"] = false
+	default:
+		result["available"] = false
+	}
+	if constraints := compactRendererConstraints(mapValue(value["renderer_constraints"])); len(constraints) > 0 {
+		result["renderer_constraints"] = constraints
+	}
+	return result
+}
+
+func compactVisualIdentityForMedia(value map[string]any) map[string]any {
+	result := compactVisualIdentity(value)
+	if result == nil {
+		result = make(map[string]any, 2)
+	}
+	if reference := firstString(stringValue(value["character_sheet_asset_id"]), stringValue(value["canonical_asset_id"])); reference != "" {
+		// This is retained in the durable media concept for Core's ComfyUI
+		// reference-image lookup. Provider-facing media input strips it again.
+		result["reference_asset_id"] = reference
+	}
+	return result
+}
+
+func compactVisualIdentityForMediaProvider(value map[string]any) map[string]any {
+	result := compactVisualIdentity(value)
+	if result == nil {
+		result = make(map[string]any, 2)
+	}
+	if snapshot := mapValue(value["identity_snapshot"]); len(snapshot) > 0 {
+		compactSnapshot := make(map[string]any, 2)
+		if identity := stripProviderMetadata(mapValue(snapshot["identity"])); len(mapValue(identity)) > 0 {
+			compactSnapshot["identity"] = identity
+		}
+		if lifeProfile := stripProviderMetadata(mapValue(snapshot["life_profile"])); len(mapValue(lifeProfile)) > 0 {
+			compactSnapshot["life_profile"] = lifeProfile
+		}
+		if len(compactSnapshot) > 0 {
+			result["identity_snapshot"] = compactSnapshot
+		}
+	}
+	return result
+}
+
+func compactRendererConstraints(value map[string]any) map[string]any {
+	result := make(map[string]any, 3)
+	for _, key := range []string{"chest_cup", "chest_lora_weight", "chest_lora_applicable"} {
+		if item, ok := value[key]; ok && item != nil && item != "" {
+			result[key] = item
+		}
+	}
+	return result
+}
+
+// compactResponsePlanForProvider is the small semantic hand-off consumed by
+// action realization. The full plan remains frozen for replay, but IDs,
+// schema/revision fields, capability calls, and internal candidate buckets do
+// not help a model write the visible reply.
+func compactResponsePlanForProvider(plan map[string]any) map[string]any {
+	result := make(map[string]any, 8)
+	for _, key := range []string{"answer_mode", "action_type", "response_intent", "tone"} {
+		if value, ok := plan[key]; ok && value != nil && value != "" {
+			result[key] = value
+		}
+	}
+	for _, key := range []string{"approved_claims", "uncertain_claims"} {
+		claims := compactResponseClaims(arrayValue(plan[key]))
+		if len(claims) > 0 {
+			result[key] = claims
+		}
+	}
+	if outline := stripProviderMetadata(plan["response_outline"]); len(arrayValue(outline)) > 0 {
+		result["response_outline"] = outline
+	}
+	if evaluation := compactResponseEvaluation(mapValue(plan["self_evaluation"])); len(evaluation) > 0 {
+		result["self_evaluation"] = evaluation
+	}
+	for _, key := range []string{"core_alignment", "state_expression"} {
+		if value := stripProviderMetadata(mapValue(plan[key])); len(mapValue(value)) > 0 {
+			result[key] = value
+		}
+	}
+	return result
+}
+
+func compactResponseClaims(claims []any) []map[string]any {
+	result := make([]map[string]any, 0, len(claims))
+	for _, raw := range claims {
+		claim := mapValue(raw)
+		item := make(map[string]any, 3)
+		for _, key := range []string{"kind", "content", "confidence"} {
+			if value, ok := claim[key]; ok && value != nil && value != "" {
+				item[key] = value
+			}
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactResponseEvaluation(value map[string]any) map[string]any {
+	result := make(map[string]any, 2)
+	for _, key := range []string{"mode", "confidence"} {
+		if item, ok := value[key]; ok && item != nil && item != "" {
+			result[key] = item
+		}
+	}
+	return result
+}
+
+func compactToolResultsForProvider(results []ToolResultV1) []map[string]any {
+	result := make([]map[string]any, 0, len(results))
+	for _, tool := range results {
+		item := make(map[string]any, 4)
+		for _, key := range []string{"name", "status", "error_code"} {
+			value := map[string]any{"name": tool.Name, "status": tool.Status, "error_code": tool.ErrorCode}[key]
+			if value != nil && value != "" {
+				item[key] = value
+			}
+		}
+		if tool.Output != nil {
+			item["output"] = stripProviderMetadata(tool.Output)
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactReflectionEvidence(evidence []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(evidence))
+	for _, item := range evidence {
+		compact := make(map[string]any, 2)
+		if eventType := stringValue(item["event_type"]); eventType != "" {
+			compact["event_type"] = eventType
+		}
+		if sequence, ok := item["sequence"]; ok && sequence != nil {
+			// Keep a short stable reference so reflection candidates can cite the
+			// evidence without exposing the database fact ID or hash.
+			compact["evidence_ref"] = "sequence:" + fmt.Sprint(sequence)
+		}
+		if payload := stripProviderMetadata(item["payload"]); len(mapValue(payload)) > 0 {
+			compact["payload"] = payload
+		}
+		if len(compact) > 0 {
+			result = append(result, compact)
+		}
+	}
+	return result
+}
+
+func compactProviderFact(raw []byte) any {
+	var value any
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return map[string]any{}
+	}
+	return stripProviderMetadata(value)
+}
+
+// compactMediaConceptForProvider separates the durable media concept used by
+// Core/ComfyUI from the smaller semantic payload sent to a media prompt or
+// quality model. Reference asset IDs stay in the persisted concept so Core
+// can upload them, but workflow/timeline and transport metadata are omitted
+// from the LLM-facing copy.
+func compactMediaConceptForProvider(raw string) string {
+	var value map[string]any
+	if err := json.Unmarshal([]byte(raw), &value); err != nil || len(value) == 0 {
+		return raw
+	}
+	result := cloneMap(value)
+	if binding := mapValue(result["context_binding"]); len(binding) > 0 {
+		compactBinding := make(map[string]any, 4)
+		if lifeContext := compactLifeContext(mapValue(binding["life_context"])); len(lifeContext) > 0 {
+			compactBinding["life_context"] = lifeContext
+		}
+		if visualIdentity := compactVisualIdentity(mapValue(binding["visual_identity"])); len(visualIdentity) > 0 {
+			compactBinding["visual_identity"] = visualIdentity
+		}
+		if appearance := mapValue(binding["appearance"]); len(appearance) > 0 {
+			compactBinding["appearance"] = appearance
+		}
+		if innerState := compactInnerState(mapValue(binding["inner_state"])); len(innerState) > 0 {
+			compactBinding["inner_state"] = innerState
+		}
+		result["context_binding"] = compactBinding
+	}
+	if visualIdentity := compactVisualIdentityForMediaProvider(mapValue(result["visual_identity"])); len(visualIdentity) > 0 {
+		result["visual_identity"] = visualIdentity
+	}
+	if constraints := compactRendererConstraints(mapValue(result["renderer_constraints"])); len(constraints) > 0 {
+		result["renderer_constraints"] = constraints
+	}
+	cleaned, ok := stripProviderMetadata(result).(map[string]any)
+	if !ok {
+		return raw
+	}
+	return jsonString(cleaned)
 }
 
 // stripProviderMetadata removes persistence/coordination fields from the

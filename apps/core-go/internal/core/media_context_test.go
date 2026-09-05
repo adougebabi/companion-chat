@@ -87,6 +87,28 @@ func TestBindMediaContextIncludesVisualIdentityAndLifeProfileAppearance(t *testi
 	}
 }
 
+func TestAlignMediaConceptKeepsReferenceAssetInDurableBinding(t *testing.T) {
+	concept, _ := alignMediaConceptWithContext(map[string]any{"subject": "自己"}, ContextProjection{
+		VisualIdentity: map[string]any{
+			"status":               "active",
+			"canonical_asset_id":   "asset-canonical",
+			"renderer_constraints": map[string]any{"chest_cup": "B", "chest_lora_weight": -3.0},
+			"timeline":             []map[string]any{{"stage": "image_ready"}},
+		},
+	})
+	binding := mapValue(concept["context_binding"])
+	visual := mapValue(binding["visual_identity"])
+	if visual["reference_asset_id"] != "asset-canonical" {
+		t.Fatalf("reference asset was not retained: %#v", visual)
+	}
+	if got := visualIdentityReferenceAssetID(concept); got != "asset-canonical" {
+		t.Fatalf("reference asset lookup = %q", got)
+	}
+	if _, ok := visual["timeline"]; ok {
+		t.Fatalf("workflow timeline leaked into durable media binding: %#v", visual)
+	}
+}
+
 func TestBindMediaPromptContextAddsAuthorityOnlyWhenSnapshotExists(t *testing.T) {
 	if got := bindMediaPromptContext(`{"subject":"a cat"}`); got != `{"subject":"a cat"}` {
 		t.Fatalf("prompt without snapshot changed: %q", got)

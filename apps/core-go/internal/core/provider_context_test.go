@@ -62,7 +62,7 @@ func TestCompactCognitionContextKeepsOnlyCanonicalLayersAndNonEmptyEvidence(t *t
 			t.Fatalf("compact context contains duplicate/empty field %q: %#v", key, compact)
 		}
 	}
-	for _, key := range []string{"current_user_text", "core_persona", "developing_self", "current_state"} {
+	for _, key := range []string{"core_persona", "developing_self", "current_state"} {
 		if _, ok := compact[key]; !ok {
 			t.Fatalf("compact context is missing canonical field %q: %#v", key, compact)
 		}
@@ -224,6 +224,128 @@ func TestCompactCognitionContextKeepsSemanticCurrentTimeAndTimezone(t *testing.T
 	}
 	if _, ok := life["instant"]; ok {
 		t.Fatal("raw instant metadata leaked alongside current_time")
+	}
+}
+
+func TestCompactCognitionContextOmitsVisualIdentityWorkflowTimeline(t *testing.T) {
+	compact := compactCognitionContext(ContextProjection{
+		CorePersona:  map[string]any{"authority": "hard_constraint", "data": map[string]any{}},
+		CurrentState: map[string]any{"authority": "transient_state", "data": map[string]any{}},
+		VisualIdentity: map[string]any{
+			"status":               "active",
+			"identity_snapshot":    map[string]any{"identity": map[string]any{"name": "影者"}},
+			"renderer_constraints": map[string]any{"schema_version": "visual-identity.v1", "chest_cup": "B", "chest_lora_weight": -3.0, "adapter_version": "chest-cup-adapter.v1"},
+			"canonical_asset_id":   "asset-character-sheet",
+			"active_session_id":    "visual_identity_session-1",
+			"timeline":             []map[string]any{{"stage": "seed_requested", "stage_order": 20, "summary": "正在生成", "asset_ids": []any{"asset-1"}}},
+		},
+	})
+	visual := mapValue(compact["visual_identity"])
+	if visual["available"] != true {
+		t.Fatalf("visual identity availability = %#v", visual["available"])
+	}
+	if _, ok := visual["timeline"]; ok {
+		t.Fatal("visual identity workflow timeline leaked into cognition context")
+	}
+	if _, ok := visual["identity_snapshot"]; ok {
+		t.Fatal("full visual identity snapshot leaked into cognition context")
+	}
+	constraints := mapValue(visual["renderer_constraints"])
+	if constraints["chest_cup"] != "B" || constraints["chest_lora_weight"] != -3.0 {
+		t.Fatalf("renderer constraints = %#v", constraints)
+	}
+	if _, ok := constraints["adapter_version"]; ok {
+		t.Fatal("renderer adapter metadata leaked into cognition context")
+	}
+}
+
+func TestCompactCognitionContextDoesNotRepeatCurrentUserMessage(t *testing.T) {
+	compact := compactCognitionContext(ContextProjection{
+		CurrentUserText: "最新消息",
+		RecentMessages: []map[string]any{
+			{"kind": "assistant", "text": "上一句", "created_at": "2026-09-05T01:29:00Z"},
+			{"kind": "user", "text": "最新消息", "created_at": "2026-09-05T01:30:00Z"},
+		},
+	})
+	if _, ok := compact["current_user_text"]; ok {
+		t.Fatal("current user text was retained as a second context field")
+	}
+	recent := stringValue(compact["recent_messages"])
+	if strings.Contains(recent, "最新消息") || !strings.Contains(recent, "上一句") {
+		t.Fatalf("recent messages = %q", recent)
+	}
+}
+
+func TestCompactResponsePlanForProviderRemovesProtocolFields(t *testing.T) {
+	compact := compactResponsePlanForProvider(map[string]any{
+		"schema_version": "fluctlight.response-plan.v1", "source_fact_id": "fact-1", "context_revision": 3,
+		"answer_mode": "direct", "response_intent": "简短回复", "tone": "自然",
+		"approved_claims":  []any{map[string]any{"kind": "observed_fact", "content": "已确认", "confidence": 0.9, "evidence_refs": []any{"fact-1"}}},
+		"response_outline": []any{"先回应", "再说明"},
+		"self_evaluation":  map[string]any{"mode": "accepted", "confidence": 0.8, "reason_codes": []any{"internal"}},
+		"tool_calls":       []any{map[string]any{"id": "call-1", "name": "scene_event"}},
+		"composite_action": map[string]any{"schema_version": "internal"},
+	})
+	for _, key := range []string{"schema_version", "source_fact_id", "context_revision", "tool_calls", "composite_action", "visible_text"} {
+		if _, ok := compact[key]; ok {
+			t.Fatalf("protocol field %q leaked: %#v", key, compact)
+		}
+	}
+	claim := mapValue(arrayValue(compact["approved_claims"])[0])
+	if claim["content"] != "已确认" || claim["confidence"] != 0.9 {
+		t.Fatalf("compact claim = %#v", claim)
+	}
+	if _, ok := claim["evidence_refs"]; ok {
+		t.Fatal("claim evidence refs leaked into realization prompt")
+	}
+}
+
+func TestCompactToolResultsForProviderKeepsOnlyOutcome(t *testing.T) {
+	compact := compactToolResultsForProvider([]ToolResultV1{{
+		ToolCallID: "call-1", Name: "scene_event", Status: "completed", Output: map[string]any{"event_id": "event-1", "summary": "在书房"},
+		ErrorCode: "", Retryable: false, ProviderRequestID: "provider-1", CorrelationID: "corr-1", SchemaVersion: ToolResultSchemaVersion,
+	}})
+	if len(compact) != 1 {
+		t.Fatalf("compact tool results = %#v", compact)
+	}
+	item := compact[0]
+	if item["name"] != "scene_event" || item["status"] != "completed" || stringValue(mapValue(item["output"])["summary"]) != "在书房" {
+		t.Fatalf("compact tool result = %#v", item)
+	}
+	for _, key := range []string{"tool_call_id", "provider_request_id", "correlation_id", "schema_version", "retryable"} {
+		if _, ok := item[key]; ok {
+			t.Fatalf("tool protocol field %q leaked: %#v", key, item)
+		}
+	}
+}
+
+func TestCompactReflectionEvidenceUsesShortSequenceReferences(t *testing.T) {
+	compact := compactReflectionEvidence([]map[string]any{{
+		"id": "fact-long-id", "sequence": 7, "event_type": "conversation.turn",
+		"payload": map[string]any{"turn_id": "turn-long-id", "text": "你好", "status": "processed", "summary": "有效事实"},
+	}})
+	if len(compact) != 1 || compact[0]["event_type"] != "conversation.turn" || compact[0]["evidence_ref"] != "sequence:7" {
+		t.Fatalf("compact reflection evidence = %#v", compact)
+	}
+	payload := mapValue(compact[0]["payload"])
+	if payload["summary"] != "有效事实" {
+		t.Fatalf("compact reflection payload = %#v", payload)
+	}
+	for _, key := range []string{"id", "turn_id", "status"} {
+		if _, ok := payload[key]; ok {
+			t.Fatalf("reflection payload field %q leaked: %#v", key, payload)
+		}
+	}
+}
+
+func TestCompactProviderFactRemovesTransportMetadata(t *testing.T) {
+	fact := compactProviderFact([]byte(`{"source_fact_id":"fact-1","event_type":"presence.updated","payload":{"presence_id":"presence-1","current_task":"阅读","status":"active"}}`))
+	encoded := string(jsonString(fact))
+	if strings.Contains(encoded, "source_fact_id") || strings.Contains(encoded, "presence_id") || strings.Contains(encoded, "status") {
+		t.Fatalf("provider fact metadata leaked: %s", encoded)
+	}
+	if !strings.Contains(encoded, "current_task") {
+		t.Fatalf("provider fact lost semantic field: %s", encoded)
 	}
 }
 

@@ -52,12 +52,12 @@ func alignMediaConceptWithContext(concept map[string]any, projection ContextProj
 	binding := map[string]any{
 		"source":           "cognition.life_context",
 		"context_revision": projection.ContextRevision,
-		"life_context":     cloneMap(projection.LifeContext),
+		"life_context":     compactLifeContext(projection.LifeContext),
 	}
-	if len(projection.VisualIdentity) > 0 {
-		binding["visual_identity"] = cloneMap(projection.VisualIdentity)
+	if visualIdentity := compactVisualIdentityForMedia(projection.VisualIdentity); len(visualIdentity) > 0 {
+		binding["visual_identity"] = visualIdentity
 	}
-	if innerState := cloneMap(projection.InnerState); len(innerState) > 0 {
+	if innerState := compactInnerState(projection.InnerState); len(innerState) > 0 {
 		binding["inner_state"] = innerState
 	}
 	if appearance := visualIdentityAppearance(projection); len(appearance) > 0 {

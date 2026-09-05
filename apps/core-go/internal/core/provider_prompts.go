@@ -37,7 +37,7 @@ Return only the requested JSON object with exactly schema_version, verdict, viol
 
 	dailyReviewInstruction = "为当天日程选择一个 Composite Action。只返回 action_type（proactive_message、moment 或 no_op）和 response_intent，不写 visible text。需要图片时调用 media.image.generate；发布动态用 moment，联系 Owner 用 proactive_message。遵守 core_persona、behavioral_policy、goals 和 intentions。"
 
-	reflectionInstruction = "只基于 evidence 和 context 生成 memory_candidates、relationship_candidates、developing_self_candidates、drive_candidates、preference_candidates、trigger_candidates。不得返回 personality_candidates 或 self_model_candidates，不修改 Core Persona，不把一次性情绪变成稳定特征。每个候选都必须有完整类型字段和 evidence_refs；不得编造事实或使用默认值。"
+	reflectionInstruction = "只基于 evidence 和 context 生成 memory_candidates、relationship_candidates、developing_self_candidates、drive_candidates、preference_candidates、trigger_candidates。evidence_ref 是每条 evidence 的唯一引用，候选的 evidence_refs 只使用这些引用。不得返回 personality_candidates 或 self_model_candidates，不修改 Core Persona，不把一次性情绪变成稳定特征。每个候选都必须有完整类型字段和 evidence_refs；不得编造事实或使用默认值。"
 
 	nativeCognitionInstruction = "评估一个世界事实，包含 appraisal、attention、thought、desire、agency。appraisal 使用规定的数值字段；其余为简短摘要，不写 hidden reasoning 或 visible text，不编造事实。"
 

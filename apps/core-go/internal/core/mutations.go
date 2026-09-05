@@ -511,7 +511,17 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			}
 		}
 	} else {
-		visiblePrompt := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(map[string]any{"response_plan": responsePlan, "context_projection": compactCognitionContext(projection), "tool_results": toolResults})}}
+		realizationPayload := map[string]any{
+			"response_plan":      compactResponsePlanForProvider(responsePlan),
+			"context_projection": compactCognitionContext(projection),
+		}
+		if strings.TrimSpace(text) != "" {
+			realizationPayload["current_user_text"] = text
+		}
+		if compactResults := compactToolResultsForProvider(toolResults); len(compactResults) > 0 {
+			realizationPayload["tool_results"] = compactResults
+		}
+		visiblePrompt := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(realizationPayload)}}
 		visible, err = a.Provider.StreamText(WithProviderScenario(ctx, "reply"), "action_realization", visiblePrompt, callbacks.onChunk)
 		if err != nil {
 			if frozenFound || frozen.ID != "" {
