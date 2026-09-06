@@ -49,6 +49,15 @@ func normalizeRelationshipRole(value any) (map[string]any, error) {
 	if label != "" {
 		result["label"] = label
 	}
+	if addressing := mapValue(role["addressing"]); len(addressing) > 0 {
+		preferred := strings.TrimSpace(stringValue(addressing["preferred"]))
+		if len([]rune(preferred)) > 128 {
+			return nil, errors.New("relationship_addressing_invalid")
+		}
+		if preferred != "" {
+			result["addressing"] = map[string]any{"preferred": preferred}
+		}
+	}
 	return result, nil
 }
 

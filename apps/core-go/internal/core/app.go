@@ -257,7 +257,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 		return nil, errors.New("description_invalid")
 	}
 	messages := []map[string]any{
-		{"role": "system", "content": "Return one JSON object with core_persona, developing_self, initial_goals, and initial_intentions. core_persona must contain identity, personality, behavioral_policy, and life_profile. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_goals must be an array of objects with description, importance (0..1), urgency (0..1), and optional scope (general or relationship) plus target_actor_id for relationship goals. initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Do not return markdown or legacy foundation/personality candidate fields."},
+		{"role": "system", "content": "You are initializing actor_self, the current Fluctlight. The fixed Actor ref actor_user always means the current authenticated Human user; use actor_user as target_actor_id when a relationship or goal refers to that user, never a database ID. Return one JSON object with core_persona, developing_self, initial_relationships, initial_goals, and initial_intentions. core_persona must contain identity, personality, behavioral_policy, and life_profile. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_relationships may describe actor_self's relationship to actor_user; role is the social relationship, and role.addressing.preferred is the way actor_self should address actor_user. Do not infer a relationship only because actor_user is the current user; return unknown when the description does not establish one. initial_goals must be an array of objects with description, importance (0..1), urgency (0..1), and optional scope (general or relationship) plus target_actor_id for relationship goals. initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Do not return markdown or legacy foundation/personality candidate fields."},
 		{"role": "system", "content": "Canonical visual appearance contract: if the description specifies a chest cup, put only the normalized label A/B/C/D in exactly core_persona.life_profile.appearance.chest_cup (example: {\"life_profile\":{\"appearance\":{\"chest_cup\":\"A\"}}}). Do not put cup labels in identity.body_type, identity.build, identity.chest, life_profile.physical_traits, or free-form visible_text. For male or non-applicable bodies, omit chest_cup; the renderer will mark it not_applicable. Keep other appearance fields under life_profile.appearance."},
 		{"role": "user", "content": description},
 	}
@@ -583,7 +583,7 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if err := a.insertAgency(ctx, tx, id, actorID, goals, intentions); err != nil {
 			return err
 		}
-		if err := a.insertRelationshipSeeds(ctx, tx, id, foundation); err != nil {
+		if err := a.insertRelationshipSeeds(ctx, tx, id, actorID, foundation); err != nil {
 			return err
 		}
 		return nil
@@ -652,7 +652,7 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 		if scope != "general" && scope != "relationship" {
 			return errors.New("initial_goal_scope_invalid")
 		}
-		targetActorIDValue := stringValue(item["target_actor_id"])
+		targetActorIDValue := resolveInitializationActorRef(stringValue(item["target_actor_id"]), actorID, fluctlightID)
 		targetActorID := nullableString(targetActorIDValue)
 		if scope == "relationship" && targetActorID == nil {
 			return errors.New("initial_relationship_goal_target_required")
@@ -683,7 +683,18 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 	return nil
 }
 
-func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlightID string, foundation map[string]any) error {
+func resolveInitializationActorRef(value, humanActorID, fluctlightID string) string {
+	switch strings.TrimSpace(value) {
+	case "actor_user":
+		return humanActorID
+	case "actor_self":
+		return fluctlightID
+	default:
+		return strings.TrimSpace(value)
+	}
+}
+
+func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlightID, humanActorID string, foundation map[string]any) error {
 	seeds := arrayValue(foundation["initial_relationships"])
 	if len(seeds) == 0 {
 		lifeProfile := mapValue(mapValue(foundation["core_persona"])["life_profile"])
@@ -691,7 +702,7 @@ func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlight
 	}
 	for index, raw := range seeds {
 		item := mapValue(raw)
-		target := strings.TrimSpace(stringValue(item["target_actor_id"]))
+		target := resolveInitializationActorRef(stringValue(item["target_actor_id"]), humanActorID, fluctlightID)
 		if target == "" {
 			return errors.New("initial_relationship_target_required")
 		}

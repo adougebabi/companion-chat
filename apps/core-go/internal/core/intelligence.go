@@ -190,7 +190,8 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 			recentMessages = append(recentMessages, map[string]any{"id": message.ID, "sequence": message.Sequence, "author_actor_id": message.AuthorActorID, "kind": message.Kind, "text": message.Text, "attachment_refs": message.AttachmentRefs, "created_at": message.CreatedAt.Format(time.RFC3339Nano), "source": "message:" + message.ID})
 		}
 	}
-	actors, selfActor, currentSpeaker := a.buildActorProjection(ctx, fluctlightID, actorID, recentMessages)
+	fluctlightDisplayName := firstString(fluctlight.Identity["name"], firstString(fluctlight.Identity["display_name"], "摇光"))
+	actors, selfActor, currentSpeaker := a.buildActorProjection(ctx, fluctlightID, actorID, fluctlightDisplayName, recentMessages)
 	developingSelfClaims, err := a.listDevelopingSelfClaims(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -254,8 +255,8 @@ func filterAgencyForTarget(goals, intentions []map[string]any, targetActorID str
 	return filteredGoals, filteredIntentions
 }
 
-func (a *App) buildActorProjection(ctx context.Context, selfActorID, speakerActorID string, messages []map[string]any) ([]map[string]any, map[string]any, map[string]any) {
-	self := map[string]any{"ref": "self_actor", "actor_id": selfActorID, "type": "fluctlight"}
+func (a *App) buildActorProjection(ctx context.Context, selfActorID, speakerActorID, selfDisplayName string, messages []map[string]any) ([]map[string]any, map[string]any, map[string]any) {
+	self := map[string]any{"ref": "actor_self", "actor_id": selfActorID, "type": "fluctlight", "display_name": firstString(selfDisplayName, "摇光")}
 	actors := []map[string]any{self}
 	refs := map[string]map[string]any{selfActorID: self}
 	add := func(actorID, ref, fallbackType string) {
@@ -268,12 +269,22 @@ func (a *App) buildActorProjection(ctx context.Context, selfActorID, speakerActo
 		}
 		actorType := fallbackType
 		_ = a.DB.Pool().QueryRow(ctx, `SELECT actor_type FROM public.actors WHERE id=$1`, actorID).Scan(&actorType)
-		actor := map[string]any{"ref": ref, "actor_id": actorID, "type": firstString(actorType, "unknown")}
+		displayName := ""
+		if firstString(actorType, "unknown") == "fluctlight" {
+			_ = a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(identity->>'name','') FROM public.fluctlights WHERE id=$1`, actorID).Scan(&displayName)
+		}
+		actor := map[string]any{"ref": ref, "actor_id": actorID, "type": firstString(actorType, "unknown"), "display_name": firstString(displayName, ref)}
 		refs[actorID] = actor
 		actors = append(actors, actor)
 	}
 	if strings.TrimSpace(speakerActorID) != "" {
-		add(speakerActorID, "actor_a", "human")
+		var speakerType string
+		_ = a.DB.Pool().QueryRow(ctx, `SELECT actor_type FROM public.actors WHERE id=$1`, speakerActorID).Scan(&speakerType)
+		if speakerType == "human" || speakerType == "" {
+			add(speakerActorID, "actor_user", "human")
+		} else {
+			add(speakerActorID, "actor_b", speakerType)
+		}
 	}
 	next := 2
 	for _, message := range messages {

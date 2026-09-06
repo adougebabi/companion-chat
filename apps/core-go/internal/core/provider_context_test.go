@@ -387,22 +387,37 @@ func TestCompactCognitionContextIncludesGoalsAndIntentionsAsSemanticInputs(t *te
 
 func TestCompactCognitionContextUsesActorAliasesForMessagesAndRelationships(t *testing.T) {
 	projection := ContextProjection{
-		SelfActor:      map[string]any{"ref": "self_actor", "actor_id": "fl-1", "type": "fluctlight"},
-		CurrentSpeaker: map[string]any{"ref": "actor_a", "actor_id": "human-1", "type": "human"},
+		SelfActor:      map[string]any{"ref": "actor_self", "actor_id": "fl-1", "type": "fluctlight"},
+		CurrentSpeaker: map[string]any{"ref": "actor_user", "actor_id": "human-1", "type": "human", "display_name": "actor_user"},
 		Actors: []map[string]any{
-			{"ref": "self_actor", "actor_id": "fl-1", "type": "fluctlight"},
-			{"ref": "actor_a", "actor_id": "human-1", "type": "human"},
+			{"ref": "actor_self", "actor_id": "fl-1", "type": "fluctlight", "display_name": "影者"},
+			{"ref": "actor_user", "actor_id": "human-1", "type": "human", "display_name": "actor_user"},
 		},
 		RecentMessages: []map[string]any{{"author_actor_id": "human-1", "kind": "user", "text": "你好", "created_at": "2026-09-06T00:00:00Z"}},
 		Relationships:  []map[string]any{{"target_actor_id": "human-1", "role": map[string]any{"primary": "friend"}, "trend": "stable", "revision": 1}},
 	}
 	compact := compactCognitionContext(projection)
 	encoded := jsonString(compact)
-	if strings.Contains(encoded, "human-1") || !strings.Contains(encoded, "actor_a") {
+	if strings.Contains(encoded, "human-1") || !strings.Contains(encoded, "actor_user") {
 		t.Fatalf("actor ids were not projected safely: %s", encoded)
 	}
 	recent := arrayValue(compact["recent_messages"])
-	if len(recent) != 1 || stringValue(mapValue(recent[0])["sender"]) != "actor_a" {
+	if len(recent) != 1 || stringValue(mapValue(recent[0])["sender"]) != "actor_user" {
 		t.Fatalf("recent message sender = %#v", recent)
+	}
+}
+
+func TestCompactRecentMessagesUsesActorUserAndFluctlightDisplayName(t *testing.T) {
+	messages := []map[string]any{
+		{"author_actor_id": "human-1", "kind": "user", "text": "你好"},
+		{"author_actor_id": "fl-1", "kind": "assistant", "text": "hello"},
+	}
+	actors := []map[string]any{
+		{"actor_id": "human-1", "ref": "actor_user", "type": "human", "display_name": "actor_user"},
+		{"actor_id": "fl-1", "ref": "actor_self", "type": "fluctlight", "display_name": "影者"},
+	}
+	compact := compactRecentMessagesForActors(messages, "", actors)
+	if len(compact) != 2 || stringValue(compact[0]["sender"]) != "actor_user" || stringValue(compact[1]["sender"]) != "影者" {
+		t.Fatalf("actor sender rendering = %#v", compact)
 	}
 }

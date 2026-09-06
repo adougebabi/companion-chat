@@ -695,6 +695,10 @@ func validateReflectionProposal(value map[string]any, allowedEvidence map[string
 }
 
 func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlightID string, proposal map[string]any, allowedEvidence map[string]struct{}, sourceWindow string) error {
+	var humanActorID string
+	if err := tx.QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&humanActorID); err != nil {
+		return err
+	}
 	for _, raw := range arrayValue(proposal["memory_candidates"]) {
 		item := mapValue(raw)
 		if !validateEvidenceRefs(arrayValue(item["evidence_refs"]), allowedEvidence) {
@@ -713,7 +717,7 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 	}
 	for index, raw := range arrayValue(proposal["relationship_candidates"]) {
 		item := mapValue(raw)
-		target := stringValue(item["target_actor_id"])
+		target := resolveInitializationActorRef(stringValue(item["target_actor_id"]), humanActorID, fluctlightID)
 		role, err := normalizeRelationshipRole(item["role"])
 		if err != nil {
 			return err
@@ -754,7 +758,8 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 		if op == "create" {
 			goalID = "goal_reflection_" + stableDigest(sourceWindow+":"+fmt.Sprint(index)+":"+stringValue(item["description"]))
 			scope := firstString(item["scope"], "general")
-			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goals(id,fluctlight_id,source,scope,target_actor_id,description,importance,urgency,progress,status,evidence_refs,revision) VALUES($1,$2,'reflection',$3,$4,$5,$6,$7,$8,'active',$9,0) ON CONFLICT DO NOTHING`, goalID, fluctlightID, scope, nullableString(stringValue(item["target_actor_id"])), stringValue(item["description"]), jsonBytes(defaultGoalNumber(item["importance"], 0.5)), jsonBytes(defaultGoalNumber(item["urgency"], 0.5)), jsonBytes(defaultGoalNumber(item["progress"], 0.0)), jsonBytes(arrayValue(item["evidence_refs"]))); err != nil {
+			targetActorID := resolveInitializationActorRef(stringValue(item["target_actor_id"]), humanActorID, fluctlightID)
+			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goals(id,fluctlight_id,source,scope,target_actor_id,description,importance,urgency,progress,status,evidence_refs,revision) VALUES($1,$2,'reflection',$3,$4,$5,$6,$7,$8,'active',$9,0) ON CONFLICT DO NOTHING`, goalID, fluctlightID, scope, nullableString(targetActorID), stringValue(item["description"]), jsonBytes(defaultGoalNumber(item["importance"], 0.5)), jsonBytes(defaultGoalNumber(item["urgency"], 0.5)), jsonBytes(defaultGoalNumber(item["progress"], 0.0)), jsonBytes(arrayValue(item["evidence_refs"]))); err != nil {
 				return err
 			}
 		} else {
@@ -775,7 +780,8 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 			} else if op == "pause" {
 				status = "paused"
 			}
-			if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_goals SET description=COALESCE(NULLIF($2,''),description),scope=COALESCE(NULLIF($3,''),scope),target_actor_id=COALESCE(NULLIF($4,''),target_actor_id),status=$5,evidence_refs=$6,revision=$7,updated_at=now() WHERE id=$1 AND fluctlight_id=$8 AND revision=$9`, goalID, stringValue(item["description"]), stringValue(item["scope"]), stringValue(item["target_actor_id"]), status, jsonBytes(arrayValue(item["evidence_refs"])), currentRevision+1, fluctlightID, currentRevision); err != nil {
+			targetActorID := resolveInitializationActorRef(stringValue(item["target_actor_id"]), humanActorID, fluctlightID)
+			if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_goals SET description=COALESCE(NULLIF($2,''),description),scope=COALESCE(NULLIF($3,''),scope),target_actor_id=COALESCE(NULLIF($4,''),target_actor_id),status=$5,evidence_refs=$6,revision=$7,updated_at=now() WHERE id=$1 AND fluctlight_id=$8 AND revision=$9`, goalID, stringValue(item["description"]), stringValue(item["scope"]), targetActorID, status, jsonBytes(arrayValue(item["evidence_refs"])), currentRevision+1, fluctlightID, currentRevision); err != nil {
 				return err
 			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goal_revisions(id,goal_id,fluctlight_id,from_status,to_status,actor_id,reason) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`, "goal_revision_"+stableDigest(sourceWindow+":"+fmt.Sprint(index)+":"+goalID), goalID, fluctlightID, previousStatus, status, fluctlightID, nullableString(stringValue(item["reason"]))); err != nil {
@@ -797,7 +803,8 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 				return ErrNotFound
 			}
 			intentionID = "intention_reflection_" + stableDigest(sourceWindow+":"+fmt.Sprint(index)+":"+goalID+":"+stringValue(item["action"]))
-			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intentions(id,fluctlight_id,goal_id,action,trigger,confidence,expiration,evidence_refs,permission_snapshot,budget_snapshot,status,revision) VALUES($1,$2,$3,$4,$5,$6,now()+interval '24 hours',$7,'{}','{}','pending',0) ON CONFLICT DO NOTHING`, intentionID, fluctlightID, goalID, stringValue(item["action"]), jsonBytes(map[string]any{"type": "semantic", "source": "reflection", "target_actor_id": stringValue(item["target_actor_id"])}), jsonBytes(defaultGoalNumber(item["confidence"], 0.5)), jsonBytes(arrayValue(item["evidence_refs"]))); err != nil {
+			targetActorID := resolveInitializationActorRef(stringValue(item["target_actor_id"]), humanActorID, fluctlightID)
+			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intentions(id,fluctlight_id,goal_id,action,trigger,confidence,expiration,evidence_refs,permission_snapshot,budget_snapshot,status,revision) VALUES($1,$2,$3,$4,$5,$6,now()+interval '24 hours',$7,'{}','{}','pending',0) ON CONFLICT DO NOTHING`, intentionID, fluctlightID, goalID, stringValue(item["action"]), jsonBytes(map[string]any{"type": "semantic", "source": "reflection", "target_actor_id": targetActorID}), jsonBytes(defaultGoalNumber(item["confidence"], 0.5)), jsonBytes(arrayValue(item["evidence_refs"]))); err != nil {
 				return err
 			}
 		} else {

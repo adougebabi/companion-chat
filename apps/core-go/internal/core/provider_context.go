@@ -287,7 +287,7 @@ func compactActorRef(value map[string]any) map[string]any {
 		return nil
 	}
 	result := map[string]any{}
-	for _, key := range []string{"ref", "type", "role", "label"} {
+	for _, key := range []string{"ref", "type", "role", "label", "display_name"} {
 		if raw, ok := value[key]; ok && raw != nil && raw != "" {
 			result[key] = raw
 		}
@@ -334,12 +334,16 @@ func compactRecentMessagesForActors(messages []map[string]any, currentUserText s
 		stamp := compactMessageTime(stringValue(message["created_at"]))
 		item := map[string]any{"role": kind, "time": stamp, "content": text}
 		if sender := actorRefForID(actors, stringValue(message["author_actor_id"])); len(sender) > 0 {
-			item["sender"] = sender["ref"]
+			if stringValue(sender["type"]) == "human" {
+				item["sender"] = "actor_user"
+			} else {
+				item["sender"] = firstString(sender["display_name"], stringValue(sender["ref"]))
+			}
 			item["actor_type"] = sender["type"]
 		} else if kind == "user" {
-			item["sender"] = "actor_a"
+			item["sender"] = "actor_user"
 		} else if kind == "assistant" {
-			item["sender"] = "self_actor"
+			item["sender"] = "actor_self"
 		}
 		result = append(result, item)
 	}

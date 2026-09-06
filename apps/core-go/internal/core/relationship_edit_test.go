@@ -26,3 +26,15 @@ func TestValidateRelationshipMetricsBoundsValues(t *testing.T) {
 		t.Fatal("expected out-of-range metric to be rejected")
 	}
 }
+
+func TestResolveInitializationActorRefKeepsCanonicalPromptAliases(t *testing.T) {
+	if got := resolveInitializationActorRef("actor_user", "human-1", "fl-1"); got != "human-1" {
+		t.Fatalf("actor_user resolved to %q", got)
+	}
+	if got := resolveInitializationActorRef("actor_self", "human-1", "fl-1"); got != "fl-1" {
+		t.Fatalf("actor_self resolved to %q", got)
+	}
+	if got := resolveInitializationActorRef("actor-other", "human-1", "fl-1"); got != "actor-other" {
+		t.Fatalf("other actor ref changed to %q", got)
+	}
+}
