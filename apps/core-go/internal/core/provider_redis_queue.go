@@ -14,6 +14,7 @@ import (
 const (
 	providerRedisQueuePrefix = "fluctlight:llm"
 	providerRedisLease       = 2 * time.Minute
+	providerRedisPendingTTL  = providerRedisLease
 	providerRedisJobTTL      = 24 * time.Hour
 	providerRedisPoll        = 40 * time.Millisecond
 	providerRedisScoreUnit   = int64(1_000_000_000_000)
@@ -31,8 +32,9 @@ for _, member in ipairs(expired) do
   local original = redis.call('HGET', 'fluctlight:llm:job:' .. member, 'score')
   if original then
     redis.call('ZADD', KEYS[1], original, member)
-    redis.call('HSET', 'fluctlight:llm:job:' .. member, 'status', 'queued')
+    redis.call('HSET', 'fluctlight:llm:job:' .. member, 'status', 'queued', 'pending_owner', 'reconciler', 'pending_until', now + lease)
     redis.call('HDEL', 'fluctlight:llm:job:' .. member, 'owner', 'lease_until')
+    redis.call('EXPIRE', 'fluctlight:llm:job:' .. member, 120)
   end
   redis.call('ZREM', KEYS[2], member)
 end
@@ -47,12 +49,21 @@ if redis.call('ZCARD', KEYS[2]) >= limit then
   return 0
 end
 local first = redis.call('ZRANGE', KEYS[1], 0, 0)[1]
-if first and redis.call('EXISTS', 'fluctlight:llm:job:' .. first) == 0 then
-  redis.call('ZREM', KEYS[1], first)
-  if first == job then
-    return -1
+if first then
+  local firstKey = 'fluctlight:llm:job:' .. first
+  local firstExists = redis.call('EXISTS', firstKey)
+  local pendingUntil = redis.call('HGET', firstKey, 'pending_until')
+  -- Pending jobs created by an older build have no lease and cannot be
+  -- associated with a live caller. Remove them instead of blocking every
+  -- later request until the long job TTL expires.
+  if firstExists == 0 or not pendingUntil or tonumber(pendingUntil) <= now then
+    redis.call('ZREM', KEYS[1], first)
+    redis.call('DEL', firstKey)
+    if first == job then
+      return -1
+    end
+    return 0
   end
-  return 0
 end
 if first ~= job then
   return 0
@@ -60,6 +71,8 @@ end
 redis.call('ZREM', KEYS[1], job)
 redis.call('ZADD', KEYS[2], now + lease, job)
 redis.call('HSET', 'fluctlight:llm:job:' .. job, 'status', 'processing', 'owner', owner, 'lease_until', now + lease)
+redis.call('HDEL', 'fluctlight:llm:job:' .. job, 'pending_owner', 'pending_until')
+redis.call('EXPIRE', 'fluctlight:llm:job:' .. job, 86400)
 return 1
 `)
 
@@ -92,6 +105,19 @@ redis.call('EXPIRE', jobKey, ARGV[4])
 return 1
 `)
 
+var providerRedisRenewPendingScript = redis.NewScript(`
+local jobKey = 'fluctlight:llm:job:' .. ARGV[2]
+if redis.call('HGET', jobKey, 'status') ~= 'queued' then
+  return 0
+end
+if redis.call('HGET', jobKey, 'pending_owner') ~= ARGV[3] then
+  return 0
+end
+redis.call('HSET', jobKey, 'pending_until', ARGV[1])
+redis.call('EXPIRE', jobKey, ARGV[4])
+return 1
+`)
+
 var providerRedisRequeueExpiredScript = redis.NewScript(`
 local now = tonumber(ARGV[1])
 local members = redis.call('ZRANGE', KEYS[2], '-inf', now, 'BYSCORE')
@@ -100,12 +126,22 @@ for _, member in ipairs(members) do
   local original = redis.call('HGET', jobKey, 'score')
   if original and redis.call('EXISTS', jobKey) == 1 then
     redis.call('ZADD', KEYS[1], original, member)
-    redis.call('HSET', jobKey, 'status', 'queued')
+    redis.call('HSET', jobKey, 'status', 'queued', 'pending_owner', 'reconciler', 'pending_until', now + 120000)
     redis.call('HDEL', jobKey, 'owner', 'lease_until')
+    redis.call('EXPIRE', jobKey, 120)
   else
     redis.call('DEL', jobKey)
   end
   redis.call('ZREM', KEYS[2], member)
+end
+local pendingMembers = redis.call('ZRANGE', KEYS[1], 0, -1)
+for _, member in ipairs(pendingMembers) do
+  local jobKey = 'fluctlight:llm:job:' .. member
+  local pendingUntil = redis.call('HGET', jobKey, 'pending_until')
+  if redis.call('EXISTS', jobKey) == 0 or not pendingUntil or tonumber(pendingUntil) <= now then
+    redis.call('ZREM', KEYS[1], member)
+    redis.call('DEL', jobKey)
+  end
 end
 return #members
 `)
@@ -161,10 +197,12 @@ func (p *ProviderClient) acquireProviderRedisSlot(ctx context.Context, role stri
 	score := providerRedisScore(priority, sequence)
 	jobID := diagnosticID + ":" + randomID("queue_")
 	jobKey := providerRedisQueuePrefix + ":job:" + jobID
-	if err := p.redis.HSet(ctx, jobKey, map[string]any{"model_run_id": diagnosticID, "role": role, "priority": priority, "score": score, "status": "queued"}).Err(); err != nil {
+	owner := p.redisOwner()
+	pendingUntil := time.Now().Add(providerRedisPendingTTL).UnixMilli()
+	if err := p.redis.HSet(ctx, jobKey, map[string]any{"model_run_id": diagnosticID, "role": role, "priority": priority, "score": score, "status": "queued", "pending_owner": owner, "pending_until": pendingUntil}).Err(); err != nil {
 		return func() {}, false, nil
 	}
-	if err := p.redis.Expire(ctx, jobKey, providerRedisJobTTL).Err(); err != nil {
+	if err := p.redis.Expire(ctx, jobKey, providerRedisPendingTTL).Err(); err != nil {
 		_ = p.redis.Del(context.Background(), jobKey).Err()
 		return func() {}, false, nil
 	}
@@ -172,11 +210,15 @@ func (p *ProviderClient) acquireProviderRedisSlot(ctx context.Context, role stri
 		_ = p.redis.Del(context.Background(), jobKey).Err()
 		return func() {}, false, nil
 	}
-	owner := p.redisOwner()
 	claim := func() (int64, error) {
 		return providerRedisClaimScript.Run(ctx, p.redis, []string{pendingKey, processingKey}, strconv.FormatInt(time.Now().UnixMilli(), 10), strconv.Itoa(limit), strconv.FormatInt(providerRedisLease.Milliseconds(), 10), owner, jobID).Int64()
 	}
+	nextPendingHeartbeat := time.Now().Add(providerRedisPendingTTL / 3)
 	for {
+		if time.Now().After(nextPendingHeartbeat) {
+			_ = providerRedisRenewPendingScript.Run(ctx, p.redis, []string{pendingKey}, strconv.FormatInt(time.Now().Add(providerRedisPendingTTL).UnixMilli(), 10), jobID, owner, strconv.FormatInt(int64(providerRedisPendingTTL/time.Second), 10)).Err()
+			nextPendingHeartbeat = time.Now().Add(providerRedisPendingTTL / 3)
+		}
 		state, claimErr := claim()
 		if claimErr != nil {
 			_ = p.cancelProviderRedisJob(context.Background(), pendingKey, processingKey, jobID)

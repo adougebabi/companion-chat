@@ -63,6 +63,11 @@ idempotency, and side effects.
 - Redis claim moves a short-lived job from pending to processing atomically,
   renews its lease while the local provider closure runs, and removes it only
   when the same owner releases it. Redis errors fall back to the local queue.
+- Pending jobs also carry a short lease and caller heartbeat. Claim and
+  reconciliation remove legacy or expired pending members (including hashes
+  left by a crashed process) so one orphan cannot block every later request
+  until the long job-hash TTL expires. A successful Redis `Expire` command must
+  be checked through its `.Err()` result; a command object is not an error.
 
 ## 6. Good / Base / Bad Cases
 

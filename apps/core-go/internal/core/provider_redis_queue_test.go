@@ -61,3 +61,32 @@ func TestProviderRedisSlotHonorsPriorityAndLease(t *testing.T) {
 		t.Fatalf("processing members after release = %d", got)
 	}
 }
+
+func TestProviderRedisSlotDropsLegacyPendingOrphan(t *testing.T) {
+	server, err := miniredis.Run()
+	if err != nil {
+		t.Skipf("Redis integration test requires a local listener: %v", err)
+	}
+	defer server.Close()
+	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
+	defer client.Close()
+	provider := &ProviderClient{redis: client, redisID: "test-provider"}
+	pendingKey, _, _ := providerRedisKeys("generic_llm")
+	orphanID := "legacy-orphan"
+	if err := client.HSet(context.Background(), providerRedisQueuePrefix+":job:"+orphanID, map[string]any{
+		"model_run_id": "old-run", "role": "reply", "priority": 1, "score": 1, "status": "queued",
+	}).Err(); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.ZAdd(context.Background(), pendingKey, redis.Z{Score: 1, Member: orphanID}).Err(); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+	defer cancel()
+	release, enabled, err := provider.acquireProviderRedisSlot(ctx, "reply", 100, 1, "run-new")
+	if err != nil || !enabled {
+		t.Fatalf("acquire after orphan cleanup = enabled:%v err:%v", enabled, err)
+	}
+	release()
+}
