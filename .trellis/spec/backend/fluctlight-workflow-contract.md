@@ -38,6 +38,10 @@ Application task queues are `interaction`, `lifecycle`, and `media`. Every start
 - Workflow code/history upgrades require deterministic replay tests, explicit Worker deployment/version routing and rollback/drain procedures; old history cannot be abandoned silently.
 - Long-lived histories use runtime-supported history rollover/continue-as-new policy before limits are approached.
 - Workflow/Activity/Provider/outbox/inbox/Fluctlight/correlation IDs appear in built-in diagnostics and structured logs.
+- Visual Identity initialization is an internal lifecycle capability. Its
+  queued/ready timeline is projected to Diagnostics/Visual Identity surfaces;
+  initialization alone must not create a proactive chat message or narrate
+  internal scene/state transitions to the Owner.
 - Exactly one workflow runtime is allowed. Celery, custom queues, Redis delayed work and concurrent old/new workflow engines are prohibited.
 
 ### 4. Validation & Error Matrix

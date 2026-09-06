@@ -826,7 +826,7 @@ func resolveDecisionAction(decision map[string]any) (string, map[string]any) {
 			concept = mediaConceptValue(plan["media_request"])
 		}
 	}
-	return action, concept
+	return normalizeConversationActionType(action), concept
 }
 
 func mediaConceptValue(value any) map[string]any {

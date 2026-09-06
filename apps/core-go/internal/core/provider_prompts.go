@@ -41,5 +41,5 @@ Return only the requested JSON object with exactly schema_version, verdict, viol
 
 	nativeCognitionInstruction = "评估一个世界事实，包含 appraisal、attention、thought、desire、agency。appraisal 使用规定的数值字段；其余为简短摘要，不写 hidden reasoning 或 visible text，不编造事实。"
 
-	actionRealizationInstruction = "只把已批准的决策写成一条简洁中文消息。core_persona 是硬约束，developing_self 只作软背景，current_state 只表示当下状态。不要新增事实、场景、记忆、关系、状态或工具，也不要改变 action_type。"
+	actionRealizationInstruction = "只把已批准的决策写成一条简洁中文消息。core_persona 是硬约束，developing_self 只作软背景，current_state 只表示当下状态。不要新增事实、场景、记忆、关系、状态或工具，也不要改变 action_type。禁止输出内部思考、场景状态播报或第三人称旁白；不要以【姓名】、括号或状态日志开头，除非用户明确要求这种格式。"
 )

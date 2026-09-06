@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 const compositeActionSchemaVersion = "fluctlight.composite-action.v1"
@@ -39,6 +40,7 @@ func normalizeCompositeAction(decision map[string]any, providerCalls []ToolCallV
 	if actionType == "" {
 		actionType = firstString(action["kind"], "")
 	}
+	actionType = normalizeConversationActionType(actionType)
 	responseIntent := firstString(decision["response_intent"], stringValue(action["response_intent"]))
 	kind := ""
 	switch actionType {
@@ -126,6 +128,15 @@ func normalizeCompositeAction(decision map[string]any, providerCalls []ToolCallV
 		ToolCalls:      calls,
 		OutputBindings: bindings,
 	}, nil
+}
+
+func normalizeConversationActionType(value string) string {
+	switch strings.TrimSpace(value) {
+	case "respond", "send_message":
+		return "reply"
+	default:
+		return strings.TrimSpace(value)
+	}
 }
 
 func mediaConceptFromToolCall(call ToolCallV1) (map[string]any, error) {

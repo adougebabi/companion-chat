@@ -49,6 +49,19 @@ func TestNormalizeCompositeActionUsesConversationTargetForProactiveMessage(t *te
 	}
 }
 
+func TestNormalizeCompositeActionMapsRespondToReply(t *testing.T) {
+	action, err := normalizeCompositeAction(map[string]any{
+		"action_type":  "respond",
+		"visible_text": "已经整理好了。",
+	}, nil, "fact-respond", "reply")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action.ActionType != "reply" || action.Kind != "conversation_turn" {
+		t.Fatalf("respond action = %#v", action)
+	}
+}
+
 func TestCompositeOutputValidationUsesTypedTargetKinds(t *testing.T) {
 	registry := NewCapabilityRegistry(testManifestExecutor{manifest: CapabilityManifest{
 		Name:             "calendar.event.create",

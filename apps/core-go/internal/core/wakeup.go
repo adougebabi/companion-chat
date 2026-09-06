@@ -259,7 +259,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
-	visualIdentityNeedsNotice, err := a.visualIdentityWakeupNeedsInitialization(ctx, fluctlightID)
+	visualIdentityNeedsInitialization, err := a.visualIdentityWakeupNeedsInitialization(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		projection.VisualIdentity["missing"] = true
 	}
 	messages := withContextAuthorityInstruction([]map[string]any{
-		{"role": "system", "content": wakeUpAssessmentInstruction + " When context.visual_identity.status is missing, you must call visual_identity.initialize exactly once and choose proactive_message so the Owner is told that you need to create your own visual identity. Never return visible text; response_intent is optional and must only explain an explicitly proposed action."},
+		{"role": "system", "content": wakeUpAssessmentInstruction + " When context.visual_identity.status is missing, call visual_identity.initialize exactly once as an internal capability. Do not announce the visual-identity initialization in chat, do not create a proactive_message solely for this initialization, and never return visible text for this internal trigger."},
 		{"role": "user", "content": jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "context": compactCognitionContext(projection)})},
 	})
 	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "wake_up"), "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "wake_up_response", wakeUpResponseSchema(), true)
@@ -316,7 +316,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	visualIdentityToolResults := make([]ToolResultV1, 0, 1)
-	if visualIdentityNeedsNotice {
+	if visualIdentityNeedsInitialization {
 		remainingCalls := make([]ToolCallV1, 0, len(toolCalls))
 		visualIdentityCallCount := 0
 		for _, call := range toolCalls {
@@ -355,10 +355,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			}
 		}
 	}
-	if visualIdentityNeedsNotice {
-		assessment["visual_identity_missing"] = true
-		assessment["response_intent"] = "顺便说一句，我现在还没有自己的视觉形象。如果方便的话，需要帮我创建一下。"
-	} else {
+	if !visualIdentityNeedsInitialization {
 		// A local model may still echo a stale initializer call even though a
 		// session is already running. Do not execute a second trigger in that
 		// case; the durable session owns the next checkpoint.
@@ -378,14 +375,6 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	assessment["tool_calls"] = toolCalls
 	assessment["output_bindings"] = composite.OutputBindings
 	proposedActionType := stringValue(assessment["action_type"])
-	if visualIdentityNeedsNotice && (proposedActionType == "no_op" || len(visualIdentityToolResults) > 0) {
-		// Missing visual identity is an explicit wake-up responsibility. Promote
-		// an otherwise silent cycle into a concise proactive notice so the persona
-		// can tell the Owner it needs to create itself before the same transaction
-		// queues the idempotent Visual Identity workflow.
-		proposedActionType = "proactive_message"
-		assessment["action_type"] = proposedActionType
-	}
 	actualActionType := proposedActionType
 	deferredOutput := hasDeferredOutputToolCalls(toolCalls, a.capabilityRegistry())
 	if proposedActionType == "moment" {
@@ -427,8 +416,8 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			result = map[string]any{"status": "blocked", "reason": "proactive_target_invalid", "proposed_action_type": proposedActionType}
 		} else if proposedActionType == "proactive_message" || proposedActionType == "moment" {
 			visible, realizationErr := a.Provider.Text(WithProviderScenario(ctx, "wake_up"), "action_realization", []map[string]any{
-				{"role": "system", "content": actionRealizationInstruction + " If visual_identity_missing is true, use this sentence exactly: 顺便说一句，我现在还没有自己的视觉形象。如果方便的话，需要帮我创建一下。"},
-				{"role": "user", "content": jsonString(map[string]any{"action_type": proposedActionType, "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "response_intent": assessment["response_intent"], "visual_identity_missing": !visualIdentityActive, "context": compactCognitionContext(projection)})},
+				{"role": "system", "content": actionRealizationInstruction},
+				{"role": "user", "content": jsonString(map[string]any{"action_type": proposedActionType, "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "response_intent": assessment["response_intent"], "context": compactCognitionContext(projection)})},
 			})
 			if realizationErr != nil {
 				if status, suppressed := providerSuppressionStatus(realizationErr); suppressed {
