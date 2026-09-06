@@ -1044,3 +1044,36 @@ Implemented the complete cognition growth vertical: structured appraisal/focus/i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 32: 统一 Actor 语义与关系治理
+
+**Date**: 2026-09-06
+**Task**: 统一 Actor 语义与关系治理
+**Branch**: `master`
+
+### Summary
+
+完成 Human/Fluctlight Actor 统一语义、按当前说话者生成 system 关系快照、关系初始化与 Reflection 目标演进、只读 relationship.lookup capability、关系编辑/CAS/审计 API，以及详情和治理 UI 的当前用户标识。Core 全量测试、BFF 定向路由测试、Go vet、Web 测试/typecheck/build 通过；BFF httptest 与 browser-client tsx runner 的完整测试受当前沙箱 IPC/端口权限限制。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ecd325e` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
