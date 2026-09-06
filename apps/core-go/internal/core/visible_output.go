@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"strings"
 )
 
@@ -14,8 +13,8 @@ func normalizeVisibleReply(value string) string {
 	if trimmed == "" {
 		return ""
 	}
-	var object map[string]any
-	if json.Unmarshal([]byte(trimmed), &object) != nil || object == nil {
+	object, ok := visibleReplyObject(trimmed)
+	if !ok {
 		return trimmed
 	}
 	if action := mapValue(object["action"]); len(action) > 0 {
@@ -36,14 +35,34 @@ func normalizeVisibleReply(value string) string {
 
 func visibleReplyIsStructured(value string) bool {
 	trimmed := strings.TrimSpace(value)
-	if trimmed == "" || (trimmed[0] != '{' && trimmed[0] != '[') {
+	if !visibleReplyLooksStructured(trimmed) {
 		return false
 	}
-	var object map[string]any
-	if json.Unmarshal([]byte(trimmed), &object) != nil || object == nil {
+	object, ok := visibleReplyObject(trimmed)
+	if !ok {
 		return false
 	}
 	return len(mapValue(object["action"])) > 0
+}
+
+func visibleReplyObject(value string) (map[string]any, bool) {
+	structured, ok := parseStructuredCandidate(value, 0)
+	return structured, ok && structured != nil
+}
+
+func visibleReplyLooksStructured(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return false
+	}
+	if trimmed[0] == '{' || trimmed[0] == '[' || strings.HasPrefix(trimmed, "<think>") {
+		return true
+	}
+	if strings.HasPrefix(trimmed, "```") {
+		firstLine := strings.SplitN(trimmed, "\n", 2)[0]
+		return firstLine == "```" || strings.EqualFold(firstLine, "```json")
+	}
+	return false
 }
 
 // newVisibleReplyStream buffers only JSON-looking output so a protocol object
@@ -72,7 +91,7 @@ func newVisibleReplyStream(onChunk func(string) error) (func(string) error, func
 			emitted = true
 			return onChunk(normalizeVisibleReply(candidate))
 		}
-		if candidate[0] == '{' || candidate[0] == '[' {
+		if visibleReplyLooksStructured(candidate) {
 			// Hold a bounded JSON-looking prefix until the complete object arrives;
 			// malformed/ordinary prose is flushed rather than held indefinitely.
 			if len([]rune(candidate)) <= 4096 {
