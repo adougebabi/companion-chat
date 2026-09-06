@@ -30,6 +30,17 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 	if status != "frozen" {
 		return nil, fmt.Errorf("autonomy action is not executable: %s", status)
 	}
+	policyActionType := actionType
+	if policyActionType == "capability" {
+		policyActionType = "capability"
+	}
+	policyDecision, policyErr := a.evaluateAutonomyPolicy(ctx, fluctlightID, policyActionType, time.Now().UTC(), actionID)
+	if policyErr != nil {
+		return nil, policyErr
+	}
+	if !policyDecision.Allowed {
+		return a.failAutonomyAction(ctx, actionID, "policy_"+policyDecision.Reason)
+	}
 	data := decodeObject(payload)
 	if actionType == "proactive_message" {
 		conversationID := stringValue(data["conversation_id"])
@@ -207,6 +218,13 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 	if status != "frozen" {
 		return nil, fmt.Errorf("capability action is not executable: %s", status)
 	}
+	policyDecision, policyErr := a.evaluateAutonomyPolicy(ctx, fluctlightID, "capability", time.Now().UTC(), actionID)
+	if policyErr != nil {
+		return nil, policyErr
+	}
+	if !policyDecision.Allowed {
+		return a.failAutonomyAction(ctx, actionID, "policy_"+policyDecision.Reason)
+	}
 	data := decodeObject(payload)
 	calls := toolCallsFromValue(data["tool_calls"])
 	if len(calls) == 0 {
@@ -340,6 +358,30 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		}
 	}
 	rows.Close()
+	// Appraisal is an authoritative semantic interpretation of each processed
+	// fact. Include it in the same reflection evidence window so relationship
+	// significance is not silently discarded between cognition and reflection.
+	appraisalRows, appraisalErr := a.DB.Pool().Query(ctx, `SELECT id,source_fact_id,payload,evidence_refs FROM public.cognition_appraisals WHERE fluctlight_id=$1 AND source_fact_id IN (SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND sequence<=$3 AND status='processed')`, fluctlightID, watermark, toSequence)
+	if appraisalErr != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, appraisalErr
+	}
+	{
+		for appraisalRows.Next() {
+			var id, sourceFactID string
+			var payload, refs []byte
+			if scanErr := appraisalRows.Scan(&id, &sourceFactID, &payload, &refs); scanErr != nil {
+				appraisalRows.Close()
+				_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+				return nil, scanErr
+			}
+			appraisalEvidenceID := "appraisal:" + id
+			allowedEvidence[appraisalEvidenceID] = struct{}{}
+			allowedEvidence[id] = struct{}{}
+			evidence = append(evidence, map[string]any{"id": appraisalEvidenceID, "sequence": toSequence, "event_type": "cognition.appraisal", "payload": json.RawMessage(payload), "source_fact_id": sourceFactID, "evidence_refs": decodeArray(refs)})
+		}
+		appraisalRows.Close()
+	}
 	if len(evidence) == 0 {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "no_op", "watermark": watermark}, nil

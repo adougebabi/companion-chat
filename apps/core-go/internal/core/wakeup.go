@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -394,6 +395,25 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	policySnapshot := map[string]any{}
 	policyReason := ""
+	policyBlocked := false
+	policyActionType := proposedActionType
+	if policyActionType == "no_op" && len(toolCalls) > 0 {
+		policyActionType = toolCalls[0].Name
+	}
+	if policyActionType != "no_op" {
+		policyDecision, policyErr := a.EvaluateAutonomyPolicy(ctx, fluctlightID, policyActionType, time.Now().UTC())
+		if policyErr != nil {
+			return nil, policyErr
+		}
+		policySnapshot = policyDecision.Snapshot
+		if !policyDecision.Allowed {
+			policyBlocked = true
+			policyReason = policyDecision.Reason
+			actualActionType = "no_op"
+			toolCalls = nil
+			result = map[string]any{"status": "blocked", "reason": policyReason, "proposed_action_type": proposedActionType}
+		}
+	}
 	if len(toolCalls) > 0 && fluctlight.Status == "paused" {
 		actualActionType = "no_op"
 		result = map[string]any{"status": "blocked", "reason": "fluctlight_paused", "proposed_action_type": proposedActionType}
@@ -402,7 +422,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		policySnapshot = map[string]any{"mode": "active", "authorization": "capability_manifest"}
 		result = map[string]any{"status": "queued", "proposed_action_type": proposedActionType}
 	}
-	if proposedActionType != "no_op" {
+	if proposedActionType != "no_op" && !policyBlocked {
 		if fluctlight.Status == "paused" {
 			policySnapshot = map[string]any{"mode": "paused", "allowed_actions": []string{}}
 			policyReason = "fluctlight_paused"
@@ -566,6 +586,9 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			return err
 		}
 		if actionID != "" && actionType == "capability" {
+			if err := reserveAutonomyBudgetTx(ctx, tx, fluctlightID); err != nil {
+				return err
+			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(map[string]any{"wake_up_id": wakeID, "source_fact_id": factID, "conversation_id": conversationID, "tool_calls": toolCalls}), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": internalDynamics["revision"]}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
 				return err
 			}
@@ -573,6 +596,9 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 				return err
 			}
 		} else if actionID != "" {
+			if err := reserveAutonomyBudgetTx(ctx, tx, fluctlightID); err != nil {
+				return err
+			}
 			visible := stringValue(result["text"])
 			// Keep the action strict: a frozen action can never be queued without a
 			// visible payload from the realization stage.

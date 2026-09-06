@@ -122,6 +122,17 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if actionType != "proactive_message" && actionType != "moment" && actionType != "no_op" {
 		return nil, errors.New("daily_review_decision_invalid")
 	}
+	policySnapshot := map[string]any{}
+	if actionType != "no_op" {
+		policyDecision, policyErr := a.EvaluateAutonomyPolicy(ctx, fluctlightID, actionType, time.Now().UTC())
+		if policyErr != nil {
+			return nil, policyErr
+		}
+		policySnapshot = policyDecision.Snapshot
+		if !policyDecision.Allowed {
+			return map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": "blocked", "reason": policyDecision.Reason, "policy_snapshot": policySnapshot}, nil
+		}
+	}
 	visible := ""
 	if actionType != "no_op" {
 		realizationMessages := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(map[string]any{"action_type": actionType, "response_intent": composite.ResponseIntent, "context": compactCognitionContext(projection)})}}
@@ -144,6 +155,11 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	deliveryStatus := ""
 	deliveredMessageID := ""
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if actionType != "no_op" {
+			if err := reserveAutonomyBudgetTx(ctx, tx, fluctlightID); err != nil {
+				return err
+			}
+		}
 		insertAction := func() error {
 			payload := map[string]any{"text": visible, "conversation_id": conversationID, "response_intent": composite.ResponseIntent, "decision": composite}
 			if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
@@ -158,7 +174,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 				payload["message_id"] = deliveredMessageID
 				payload["tool_calls_suppressed"] = true
 			}
-			_, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions (id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id,created_at,settled_at) VALUES ($1,$2,$3,$4,'{}','{}','completed',$5,$6,now(),now())`, actionID, fluctlightID, actionType, jsonBytes(payload), workflowID, providerID)
+			_, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions (id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id,created_at,settled_at) VALUES ($1,$2,$3,$4,$5,'{}','completed',$6,$7,now(),now())`, actionID, fluctlightID, actionType, jsonBytes(payload), jsonBytes(policySnapshot), workflowID, providerID)
 			return err
 		}
 		if actionType == "proactive_message" {
@@ -225,6 +241,19 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		return insertAction()
 	})
 	if err != nil {
+		return nil, err
+	}
+	if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		payload := map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed", "local_date": localDate, "delivery_status": deliveryStatus, "message_id": deliveredMessageID}
+		factID, factErr := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", payload, "daily-review-result:"+actionID)
+		if factErr != nil {
+			return factErr
+		}
+		if _, factErr := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:daily:"+actionID, "reflection:daily:"+actionID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID})); factErr != nil {
+			return factErr
+		}
+		return appendOutboxTx(ctx, tx, "autonomy.result.recorded", "fluctlight", fluctlightID, fluctlightID, actionID, "daily-review-result:"+actionID, "daily-review-result:"+actionID, payload)
+	}); err != nil {
 		return nil, err
 	}
 	result := map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": "completed", "owner_actor_id": ownerID}
