@@ -382,6 +382,11 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		}
 	}
 	proposal = filteredProposal
+	resolveReflectionActorAliases(proposal, projection.Actors, ownerActorID, fluctlightID)
+	if err := a.validateReflectionRelationshipTargets(ctx, fluctlightID, proposal); err != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, err
+	}
 	if err := validateReflectionProposal(proposal, allowedEvidence); err != nil {
 		a.recordDiagnosticEvent(ctx, "developing_self.candidate.rejected", "warn", fluctlightID, "reflection:"+fluctlightID, correlationID, map[string]any{"reason_code": err.Error(), "proposal": proposal})
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
@@ -420,6 +425,80 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		return nil, err
 	}
 	return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "applied", "watermark": toSequence, "proposal_id": proposalID}, nil
+}
+
+func (a *App) validateReflectionRelationshipTargets(ctx context.Context, fluctlightID string, proposal map[string]any) error {
+	var ownerActorID string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerActorID); err != nil {
+		return err
+	}
+	var corePersona []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&corePersona); err != nil {
+		return err
+	}
+	profiles := personalityProfileIDs(decodeObject(corePersona))
+	activeProfile := "default"
+	_ = a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(active_profile_id,'default') FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&activeProfile)
+	seen := map[string]struct{}{}
+	for _, raw := range arrayValue(proposal["relationship_candidates"]) {
+		item := mapValue(raw)
+		target := strings.TrimSpace(stringValue(item["target_actor_id"]))
+		if target == "" || target == fluctlightID {
+			return errors.New("reflection_relationship_target_invalid")
+		}
+		profileID, _ := normalizeProfileID(stringValue(item["profile_id"]), activeProfile)
+		if _, ok := profiles[profileID]; !ok {
+			return errors.New("reflection_relationship_profile_invalid")
+		}
+		key := profileID + ":" + target
+		if _, duplicate := seen[key]; duplicate {
+			return errors.New("reflection_relationship_duplicate")
+		}
+		seen[key] = struct{}{}
+		var actorType, status string
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT actor_type,status FROM public.actors WHERE id=$1`, target).Scan(&actorType, &status); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errors.New("reflection_relationship_target_not_found")
+			}
+			return err
+		}
+		if status != "active" || (actorType != "human" && actorType != "fluctlight") {
+			return errors.New("reflection_relationship_target_invalid")
+		}
+		if actorType == "human" && target != ownerActorID {
+			return errors.New("reflection_relationship_target_forbidden")
+		}
+		if actorType == "fluctlight" {
+			var createdBy string
+			if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, target).Scan(&createdBy); err != nil || createdBy != ownerActorID {
+				return errors.New("reflection_relationship_target_forbidden")
+			}
+		}
+	}
+	return nil
+}
+
+func resolveReflectionActorAliases(proposal map[string]any, actors []map[string]any, ownerActorID, fluctlightID string) {
+	aliases := map[string]string{"actor_user": ownerActorID, "actor_self": fluctlightID}
+	for _, actor := range actors {
+		if ref := strings.TrimSpace(stringValue(actor["ref"])); ref != "" {
+			if id := strings.TrimSpace(stringValue(actor["actor_id"])); id != "" {
+				aliases[ref] = id
+			}
+		}
+	}
+	for _, key := range []string{"relationship_candidates", "goal_candidates", "intention_candidates"} {
+		for _, raw := range arrayValue(proposal[key]) {
+			item := mapValue(raw)
+			for _, field := range []string{"target_actor_id", "counterparty_id"} {
+				if alias := strings.TrimSpace(stringValue(item[field])); alias != "" {
+					if resolved := aliases[alias]; resolved != "" {
+						item[field] = resolved
+					}
+				}
+			}
+		}
+	}
 }
 
 // normalizeReflectionProposal keeps the reflection boundary tolerant of
@@ -477,14 +556,14 @@ func normalizeReflectionProposal(value map[string]any) map[string]any {
 					normalized["emotional_significance"] = 0.0
 				}
 				if stringValue(normalized["content"]) == "" || stringValue(normalized["type"]) == "" || normalized["importance"] == nil {
-					continue
+					normalized["__invalid_candidate"] = true
 				}
 			case "relationship_candidates":
 				if stringValue(normalized["target_actor_id"]) == "" {
 					normalized["target_actor_id"] = normalized["counterparty_id"]
 				}
 				if stringValue(normalized["trend"]) == "" || stringValue(normalized["target_actor_id"]) == "" {
-					continue
+					normalized["__invalid_candidate"] = true
 				}
 			case "goal_candidates":
 				if stringValue(normalized["operation"]) == "" {
@@ -550,16 +629,12 @@ func filterReflectionEvidence(proposal map[string]any, allowed map[string]struct
 		for _, raw := range arrayValue(proposal[key]) {
 			item := mapValue(raw)
 			refs := arrayValue(item["evidence_refs"])
-			validRefs := make([]any, 0, len(refs))
-			for _, ref := range refs {
-				if _, ok := allowed[stringValue(ref)]; ok {
-					validRefs = append(validRefs, ref)
-				}
+			if len(refs) == 0 || !validateEvidenceRefs(refs, allowed) {
+				// Preserve the malformed candidate so validation fails closed and
+				// the reflection watermark remains retryable. Never repair a
+				// provider proposal by silently deleting foreign evidence.
+				item["__invalid_evidence"] = true
 			}
-			if len(validRefs) == 0 {
-				continue
-			}
-			item["evidence_refs"] = validRefs
 			filtered = append(filtered, item)
 		}
 		proposal[key] = filtered
@@ -607,6 +682,12 @@ func validateReflectionProposal(value map[string]any, allowedEvidence map[string
 			if len(item) == 0 {
 				return errors.New("reflection_candidate_invalid")
 			}
+			if invalid, _ := item["__invalid_candidate"].(bool); invalid {
+				return errors.New("reflection_candidate_invalid")
+			}
+			if invalid, _ := item["__invalid_evidence"].(bool); invalid {
+				return errors.New("reflection_evidence_invalid")
+			}
 			refs := arrayValue(item["evidence_refs"])
 			if !validateEvidenceRefs(refs, allowedEvidence) {
 				return errors.New("reflection_evidence_invalid")
@@ -627,7 +708,7 @@ func validateReflectionProposal(value map[string]any, allowedEvidence map[string
 					return errors.New("reflection_memory_visibility_invalid")
 				}
 				perspectives, perspectiveErr := normalizePersonalityPerspectives(item["personality_perspectives"])
-				if perspectiveErr != nil || !validatePerspectiveEvidence(perspectives, allowedEvidence) {
+				if perspectiveErr != nil || !requirePerspectiveEvidence(perspectives) || !validatePerspectiveEvidence(perspectives, allowedEvidence) {
 					return errors.New("reflection_memory_perspective_invalid")
 				}
 			}
@@ -635,6 +716,18 @@ func validateReflectionProposal(value map[string]any, allowedEvidence map[string
 				return errors.New("reflection_relationship_fields_invalid")
 			}
 			if key == "relationship_candidates" {
+				trend := stringValue(item["trend"])
+				if trend != "improving" && trend != "stable" && trend != "declining" {
+					return errors.New("reflection_relationship_trend_invalid")
+				}
+				if _, err := validateRelationshipMetrics(item["metrics"]); err != nil {
+					return errors.New("reflection_relationship_metrics_invalid")
+				}
+				if rawRevision, present := item["expected_revision"]; present {
+					if _, ok := nonNegativeRevision(rawRevision); !ok {
+						return errors.New("reflection_relationship_revision_invalid")
+					}
+				}
 				if _, err := normalizeRelationshipRole(item["role"]); err != nil {
 					return errors.New("reflection_relationship_role_invalid")
 				}
@@ -716,7 +809,7 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 			return errors.New("reflection_memory_evidence_invalid")
 		}
 		perspectives, perspectiveErr := normalizePersonalityPerspectives(item["personality_perspectives"])
-		if perspectiveErr != nil || !validatePerspectiveEvidence(perspectives, allowedEvidence) {
+		if perspectiveErr != nil || !requirePerspectiveEvidence(perspectives) || !validatePerspectiveEvidence(perspectives, allowedEvidence) {
 			return errors.New("reflection_memory_perspective_invalid")
 		}
 		if !validatePersonalityPerspectiveProfiles(corePersona, perspectives) {
@@ -753,7 +846,11 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 		}
 		var relationshipID string
 		var revision int
+		expectedRevision, hasExpectedRevision := nonNegativeRevision(item["expected_revision"])
 		if err := tx.QueryRow(ctx, `SELECT id,revision FROM public.relationships WHERE owner_fluctlight_id=$1 AND profile_id=$2 AND target_actor_id=$3 FOR UPDATE`, fluctlightID, profileID, target).Scan(&relationshipID, &revision); errors.Is(err, pgx.ErrNoRows) {
+			if hasExpectedRevision && expectedRevision != 0 {
+				return errors.New("reflection_relationship_revision_conflict")
+			}
 			relationshipID = "relationship_" + stableDigest(fluctlightID+":"+profileID+":"+target)
 			if _, err := tx.Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,profile_id,target_actor_id,role,metrics,trend,summary,emotional_association,provenance,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,0) ON CONFLICT DO NOTHING`, relationshipID, fluctlightID, profileID, target, jsonBytes(role), jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(provenance)); err != nil {
 				return err
@@ -762,8 +859,11 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 		} else if err != nil {
 			return err
 		} else {
+			if !hasExpectedRevision || revision != expectedRevision {
+				return errors.New("reflection_relationship_revision_conflict")
+			}
 			revision++
-			if _, err := tx.Exec(ctx, `UPDATE public.relationships SET role=$2,metrics=$3,trend=$4,summary=$5,emotional_association=$6,provenance=$7,revision=$8,updated_at=now() WHERE id=$1`, relationshipID, jsonBytes(role), jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(provenance), revision); err != nil {
+			if _, err := tx.Exec(ctx, `UPDATE public.relationships SET role=$2,metrics=$3,trend=$4,summary=$5,emotional_association=$6,provenance=$7,revision=$8,updated_at=now() WHERE id=$1 AND revision=$9`, relationshipID, jsonBytes(role), jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(provenance), revision, expectedRevision); err != nil {
 				return err
 			}
 		}

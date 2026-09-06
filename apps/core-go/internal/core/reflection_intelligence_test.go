@@ -47,12 +47,17 @@ func TestNormalizeReflectionProposalKeepsValidAliasesAndDropsIncompleteCandidate
 	if len(self) != 1 || stringValue(mapValue(self[0])["category"]) != "preference" || stringValue(mapValue(self[0])["claim"]) != "我偏好克制的色彩" {
 		t.Fatalf("normalized developing-self candidates = %#v", self)
 	}
-	if got := len(arrayValue(proposal["relationship_candidates"])); got != 0 {
-		t.Fatalf("incomplete relationship candidates = %d, want 0", got)
+	if got := len(arrayValue(proposal["relationship_candidates"])); got != 1 || !boolValueForTest(mapValue(arrayValue(proposal["relationship_candidates"])[0])["__invalid_candidate"]) {
+		t.Fatalf("incomplete relationship candidates = %#v", proposal["relationship_candidates"])
 	}
 }
 
-func TestFilterReflectionEvidenceKeepsAuthorizedReferences(t *testing.T) {
+func boolValueForTest(value any) bool {
+	result, _ := value.(bool)
+	return result
+}
+
+func TestFilterReflectionEvidencePreservesForeignReferencesForFailClosedValidation(t *testing.T) {
 	proposal := map[string]any{
 		"memory_candidates": []any{map[string]any{
 			"type": "semantic", "content": "喜欢蓝灰色", "importance": 0.8,
@@ -61,8 +66,11 @@ func TestFilterReflectionEvidenceKeepsAuthorizedReferences(t *testing.T) {
 	}
 	filtered := filterReflectionEvidence(proposal, map[string]struct{}{"memory-1": {}})
 	items := arrayValue(filtered["memory_candidates"])
-	if len(items) != 1 || len(arrayValue(mapValue(items[0])["evidence_refs"])) != 1 || stringValue(arrayValue(mapValue(items[0])["evidence_refs"])[0]) != "memory-1" {
-		t.Fatalf("filtered evidence = %#v", items)
+	if len(items) != 1 || len(arrayValue(mapValue(items[0])["evidence_refs"])) != 2 {
+		t.Fatalf("evidence was silently repaired: %#v", items)
+	}
+	if err := validateReflectionProposal(filtered, map[string]struct{}{"memory-1": {}}); err == nil {
+		t.Fatal("foreign evidence should remain invalid")
 	}
 }
 

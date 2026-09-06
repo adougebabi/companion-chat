@@ -161,7 +161,77 @@ func filterCorePersona(value map[string]any) map[string]any {
 	result := make(map[string]any, 4)
 	for _, group := range []string{"identity", "personality", "behavioral_policy", "life_profile", "personality_system"} {
 		if source := mapValue(value[group]); len(source) > 0 {
-			result[group] = filterCorePersonaValue(source)
+			if group == "personality_system" {
+				result[group] = filterPersonalitySystem(source)
+			} else {
+				result[group] = filterCorePersonaValue(source)
+			}
+		}
+	}
+	return result
+}
+
+// Personality profile and switching identifiers are semantic protocol values,
+// unlike persistence IDs elsewhere in Core Persona. Keep them so cognition can
+// name the active profile and reference a declared switch trigger.
+func filterPersonalitySystem(value map[string]any) map[string]any {
+	result := make(map[string]any, len(value))
+	for key, child := range value {
+		normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
+		switch normalized {
+		case "activeprofileid", "profileid", "fromprofileid", "targetprofileid", "triggerid":
+			result[key] = child
+		case "profiles", "switching":
+			if list, ok := child.([]any); ok {
+				result[key] = filterSemanticProfileList(list)
+			} else if object := mapValue(child); len(object) > 0 {
+				result[key] = filterSemanticProfileValue(object)
+			}
+		default:
+			if nested := mapValue(child); len(nested) > 0 {
+				result[key] = filterCorePersonaValue(nested)
+			} else if list, ok := child.([]any); ok {
+				result[key] = filterCorePersonaList(list)
+			} else {
+				result[key] = child
+			}
+		}
+	}
+	return result
+}
+
+func filterSemanticProfileList(list []any) []any {
+	result := make([]any, 0, len(list))
+	for _, item := range list {
+		if object := mapValue(item); len(object) > 0 {
+			result = append(result, filterSemanticProfileValue(object))
+		} else {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func filterSemanticProfileValue(value map[string]any) map[string]any {
+	result := make(map[string]any, len(value))
+	for key, child := range value {
+		normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
+		if normalized == "id" || normalized == "profileid" || normalized == "activeprofileid" || normalized == "fromprofileid" || normalized == "targetprofileid" || normalized == "triggerid" || normalized == "name" {
+			result[key] = child
+			continue
+		}
+		if normalized == "rules" {
+			if list, ok := child.([]any); ok {
+				result[key] = filterSemanticProfileList(list)
+				continue
+			}
+		}
+		if nested := mapValue(child); len(nested) > 0 {
+			result[key] = filterCorePersonaValue(nested)
+		} else if list, ok := child.([]any); ok {
+			result[key] = filterCorePersonaList(list)
+		} else {
+			result[key] = child
 		}
 	}
 	return result

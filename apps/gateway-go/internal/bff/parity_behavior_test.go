@@ -80,13 +80,13 @@ func TestBFFMapsNestedBrowserPayloadsToCore(t *testing.T) {
 		t.Fatalf("activation status = %d: %s", activation.Code, activation.Body.String())
 	}
 	assertCoreBody(t, seen, "/internal/fluctlight-creations/activate", map[string]any{
-		"request_id":            "request",
-		"initialization_mode":   "llm_defined",
-		"name":                  nil,
-		"core_persona":          map[string]any{"identity": map[string]any{}, "personality": map[string]any{}, "behavioral_policy": map[string]any{}, "life_profile": map[string]any{}},
-		"developing_self":       map[string]any{"claims": []any{}},
-		"initial_goals":         []any{map[string]any{"name": "goal"}},
-		"initial_intentions":    []any{map[string]any{"name": "intent"}},
+		"request_id":          "request",
+		"initialization_mode": "llm_defined",
+		"name":                nil,
+		"core_persona":        map[string]any{"identity": map[string]any{}, "personality": map[string]any{}, "behavioral_policy": map[string]any{}, "life_profile": map[string]any{}},
+		"developing_self":     map[string]any{"claims": []any{}},
+		"initial_goals":       []any{map[string]any{"name": "goal"}},
+		"initial_intentions":  []any{map[string]any{"name": "intent"}},
 	})
 
 	history := invoke(handler, http.MethodGet, "http://gateway.test/api/conversations/conversation-1/messages?beforeSequence=5&limit=10", "", nil, map[string]string{sessionCookieName: "opaque"})

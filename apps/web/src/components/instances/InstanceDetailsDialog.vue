@@ -32,6 +32,10 @@ function asRecords(value: unknown): JsonRecord[] {
   return Array.isArray(value) ? value.filter((item): item is JsonRecord => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
 }
 
+function relationshipKey(value: JsonRecord): string {
+  return `${String(value.target_actor_id ?? "")}::${String(value.profile_id ?? "shared")}`;
+}
+
 function jsonDisplay(value: unknown): string {
   if (value === undefined) return "未提供";
   try {
@@ -360,7 +364,7 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
           <section class="detail-block">
             <div class="detail-block-heading"><p class="eyebrow">关系与记忆</p><h3>关系状态</h3></div>
             <p v-if="!relationships.length" class="field-note">尚未形成关系状态。</p>
-            <ul v-else class="modal-detail-list"><li v-for="relationship in relationships" :key="String(relationship.target_actor_id)"><strong>{{ formatDisplayValue(relationship.target_actor_id) }}<span v-if="relationship.is_current_user" class="status-pill">当前用户</span></strong><small>{{ relationship.target_actor_type === "human" ? "Human" : relationship.target_actor_type === "fluctlight" ? "Fluctlight" : "Actor" }} · {{ formatDisplayValue((relationship.role as Record<string, unknown> | undefined)?.label ?? (relationship.role as Record<string, unknown> | undefined)?.primary ?? "unknown") }} · {{ enumLabel(relationship.trend) }}<template v-if="relationship.summary"> · {{ formatDisplayValue(relationship.summary) }}</template></small></li></ul>
+            <ul v-else class="modal-detail-list"><li v-for="relationship in relationships" :key="relationshipKey(relationship)"><strong>{{ formatDisplayValue(relationship.target_actor_id) }}<span v-if="relationship.is_current_user" class="status-pill">当前用户</span></strong><small>{{ relationship.target_actor_type === "human" ? "Human" : relationship.target_actor_type === "fluctlight" ? "Fluctlight" : "Actor" }} · profile {{ formatDisplayValue(relationship.profile_id ?? "shared") }} · {{ formatDisplayValue((relationship.role as Record<string, unknown> | undefined)?.label ?? (relationship.role as Record<string, unknown> | undefined)?.primary ?? "unknown") }} · {{ enumLabel(relationship.trend) }}<template v-if="relationship.summary"> · {{ formatDisplayValue(relationship.summary) }}</template></small></li></ul>
             <h3>可展示记忆</h3>
             <p v-if="!memories.length" class="field-note">暂无可展示的记忆。</p>
             <ul v-else class="modal-detail-list"><li v-for="memory in memories" :key="String(memory.id)"><strong>{{ formatDisplayValue(memory.content) }}</strong><small>{{ enumLabel(memory.type) }} · {{ enumLabel(memory.status) }}</small></li></ul>

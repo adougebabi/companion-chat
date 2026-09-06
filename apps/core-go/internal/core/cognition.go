@@ -232,7 +232,7 @@ func (a *App) LoadFrozenTurn(ctx context.Context, inboxID string) (frozenTurn, b
 }
 
 func (a *App) PersistTurnDecision(ctx context.Context, inboxID, fluctlightID, conversationID, turnID, action string, decision, concept map[string]any) (frozenTurn, error) {
-	if action != "reply" && action != "media_request" {
+	if action != "reply" && action != "media_request" && action != "no_op" {
 		return frozenTurn{}, errors.New("decision_effect_invalid")
 	}
 	assessmentID := "assessment_" + stableDigest(inboxID)

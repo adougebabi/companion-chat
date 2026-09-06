@@ -27,6 +27,10 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 		"status":            fluctlight.Status,
 		"current_revision":  fluctlight.CurrentRevision,
 	}
+	detail["personality_runtime"], err = a.readPersonalityRuntime(ctx, fluctlightID, stringValue(mapValue(fluctlight.CorePersona["personality_system"])["active_profile_id"]))
+	if err != nil {
+		return nil, err
+	}
 	inner, err := a.readInnerState(ctx, fluctlightID)
 	if err != nil && err != ErrNotFound {
 		return nil, err

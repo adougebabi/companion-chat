@@ -581,7 +581,11 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/relationships/rollback", http.MethodPost, map[string]any{"target_actor_id": body["targetActorId"], "target_revision": body["targetRevision"], "expected_revision": body["expectedRevision"], "evidence_refs": body["evidenceRefs"]}, s.readOnlyError(422, "relationship_rollback_failed", "Relationship could not be rolled back"), nil)
+		mapped := map[string]any{"target_actor_id": body["targetActorId"], "target_revision": body["targetRevision"], "expected_revision": body["expectedRevision"], "evidence_refs": body["evidenceRefs"]}
+		if profileID, exists := body["profileId"]; exists {
+			mapped["profile_id"] = profileID
+		}
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/relationships/rollback", http.MethodPost, mapped, s.readOnlyError(422, "relationship_rollback_failed", "Relationship could not be rolled back"), nil)
 		return
 	}
 	if fluctlightID, targetActorID, ok := match2(path, "/api/fluctlights/:fluctlightId/relationships/:targetActorId"); ok && methodName == http.MethodPut {
@@ -593,6 +597,9 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			"expected_revision": body["expectedRevision"],
 			"evidence_refs":     body["evidenceRefs"],
 			"reason":            body["reason"],
+		}
+		if profileID, exists := body["profileId"]; exists {
+			mapped["profile_id"] = profileID
 		}
 		for from, to := range map[string]string{"role": "role", "metrics": "metrics", "trend": "trend", "summary": "summary", "emotionalAssociation": "emotional_association"} {
 			if value, exists := body[from]; exists {
@@ -1359,10 +1366,19 @@ func validateMemoryForget(value map[string]any) bool {
 	return validateInteger(value["expectedRevision"], 0) && validateEvidence(value["evidenceRefs"])
 }
 func validateRelationshipRollback(value map[string]any) bool {
-	return validateString(value["targetActorId"], 1, 128) && validateInteger(value["targetRevision"], 0) && validateInteger(value["expectedRevision"], 0) && validateEvidence(value["evidenceRefs"])
+	if !validateString(value["targetActorId"], 1, 128) || !validateInteger(value["targetRevision"], 0) || !validateInteger(value["expectedRevision"], 0) || !validateEvidence(value["evidenceRefs"]) {
+		return false
+	}
+	if profileID, exists := value["profileId"]; exists && !validateString(profileID, 1, 128) {
+		return false
+	}
+	return true
 }
 func validateRelationshipEdit(value map[string]any) bool {
 	if !validateInteger(value["expectedRevision"], 0) || !validateEvidence(value["evidenceRefs"]) || !validateString(value["reason"], 1, 2048) {
+		return false
+	}
+	if profileID, exists := value["profileId"]; exists && !validateString(profileID, 1, 128) {
 		return false
 	}
 	if role, exists := value["role"]; exists && !isObject(role) {

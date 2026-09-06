@@ -50,17 +50,18 @@ func TestContextProjectionFromValuePreservesLayeredAuthority(t *testing.T) {
 func TestValidInitializationUsesLayeredContract(t *testing.T) {
 	valid := map[string]any{
 		"core_persona": map[string]any{
-			"identity":           map[string]any{"name": "冷静的她", "timezone": "Asia/Shanghai"},
-			"personality":        map[string]any{"independence": 0.9},
-			"behavioral_policy":  map[string]any{"response_style": "克制"},
-			"life_profile":       map[string]any{"character_constraints": []any{"不刻意讨好"}},
+			"schema_version":     1,
+			"identity":           defaultIdentity("", "冷静的她"),
+			"personality":        defaultPersonality(),
+			"behavioral_policy":  defaultPolicy(),
+			"life_profile":       defaultLifeProfile(),
 			"personality_system": defaultPersonalitySystem(),
 		},
 		"developing_self": map[string]any{"claims": []any{map[string]any{
 			"category": "preference", "claim": "我可能喜欢安静", "value": map[string]any{"preference": "安静"}, "confidence": 0.8,
 			"evidence_refs": []any{}, "provenance": map[string]any{"source": "owner_defined"},
 		}}},
-		"initial_goals": []any{}, "initial_intentions": []any{},
+		"schema_version": 1, "initial_relationships": []any{}, "initial_goals": []any{}, "initial_intentions": []any{}, "extensions": map[string]any{},
 	}
 	if !validInitialization(valid) {
 		t.Fatal("layered initialization should be valid")

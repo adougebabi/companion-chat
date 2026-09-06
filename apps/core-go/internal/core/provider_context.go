@@ -22,6 +22,10 @@ var providerHashPattern = regexp.MustCompile(`\b(?:message|memory|inbox|wake_fac
 // user content needlessly doubles prompt size and gives the model two copies
 // of the contract to reconcile.
 func compactCognitionContext(projection ContextProjection) map[string]any {
+	activeProfileID := stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"])
+	profileRelationships := selectActiveProfileRelationships(projection.Relationships, activeProfileID)
+	profileGoals := filterActiveProfileRows(projection.Goals, activeProfileID)
+	profileIntentions := filterActiveProfileRows(projection.Intentions, activeProfileID)
 	result := map[string]any{
 		"core_persona":  compactCorePersona(projection),
 		"current_state": compactCurrentState(projection),
@@ -49,8 +53,8 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	if len(projection.Memories) > 0 {
 		result["memories"] = compactMemoriesForProfile(projection.Memories, stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"]))
 	}
-	if len(projection.Relationships) > 0 {
-		result["relationships"] = compactRelationships(projection.Relationships, projection.Actors)
+	if len(profileRelationships) > 0 {
+		result["relationships"] = compactRelationships(profileRelationships, projection.Actors)
 	}
 	if len(projection.Hypotheses) > 0 {
 		result["hypotheses"] = projection.Hypotheses
@@ -72,10 +76,10 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	if len(projection.Presence) > 0 {
 		result["presence"] = projection.Presence
 	}
-	if goals := compactProviderGoalsForActors(projection.Goals, projection.Actors); len(goals) > 0 {
+	if goals := compactProviderGoalsForActors(profileGoals, projection.Actors); len(goals) > 0 {
 		result["goals"] = goals
 	}
-	if intentions := compactProviderIntentions(projection.Intentions); len(intentions) > 0 {
+	if intentions := compactProviderIntentions(profileIntentions); len(intentions) > 0 {
 		result["intentions"] = intentions
 	}
 	return stripProviderContextMetadata(result).(map[string]any)
@@ -136,10 +140,12 @@ func compactActorRelationshipContext(projection ContextProjection) map[string]an
 		if _, ok := result["relationship"]; !ok {
 			result["relationship"] = map[string]any{"role": map[string]any{"label": "unknown"}, "trend": "stable", "revision": 0, "provenance": map[string]any{"source": "unestablished"}}
 		}
-		if goals := compactProviderGoalsForActors(relationshipGoalsForTarget(projection.Goals, targetID), projection.Actors); len(goals) > 0 {
+		profileGoals := filterActiveProfileRows(projection.Goals, activeProfileID)
+		profileIntentions := filterActiveProfileRows(projection.Intentions, activeProfileID)
+		if goals := compactProviderGoalsForActors(relationshipGoalsForTarget(profileGoals, targetID), projection.Actors); len(goals) > 0 {
 			result["goals"] = goals
 		}
-		if intentions := relationshipIntentionsForTarget(projection.Intentions, targetID); len(intentions) > 0 {
+		if intentions := relationshipIntentionsForTarget(profileIntentions, targetID); len(intentions) > 0 {
 			result["intentions"] = intentions
 		}
 	}
@@ -152,6 +158,9 @@ func compactRelationship(value map[string]any) map[string]any {
 		if raw, ok := value[key]; ok && raw != nil {
 			result[key] = raw
 		}
+	}
+	if revision, ok := value["revision"]; ok && revision != nil {
+		result["expected_revision"] = revision
 	}
 	return result
 }

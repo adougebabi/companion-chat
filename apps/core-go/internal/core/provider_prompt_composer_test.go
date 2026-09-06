@@ -59,6 +59,29 @@ func TestComposeProviderMessagesSeparatesFixedPersonaAndDynamicContext(t *testin
 	}
 }
 
+func TestComposeProviderMessagesPreservesSemanticPersonalityIdentifiers(t *testing.T) {
+	messages := []map[string]any{{"role": "user", "content": jsonString(map[string]any{
+		"context": map[string]any{"core_persona": map[string]any{"data": map[string]any{
+			"identity": map[string]any{"name": "影者", "id": "fluctlight_internal"},
+			"personality_system": map[string]any{
+				"active_profile_id": "guarded",
+				"profiles":          []any{map[string]any{"id": "warm", "name": "温柔"}, map[string]any{"id": "guarded", "name": "克制"}},
+				"switching":         map[string]any{"rules": []any{map[string]any{"id": "stress_trigger", "condition": "压力"}}},
+			},
+		}}},
+	})}}
+	formatted := composeProviderMessages("cognitive_assessment", messages)
+	system := stringValue(formatted[0]["content"])
+	for _, fragment := range []string{"active_profile_id: guarded", "id: warm", "id: guarded", "id: stress_trigger"} {
+		if !strings.Contains(system, fragment) {
+			t.Fatalf("semantic profile identifier %q missing: %s", fragment, system)
+		}
+	}
+	if strings.Contains(system, "fluctlight_internal") {
+		t.Fatalf("persistence actor id leaked: %s", system)
+	}
+}
+
 func TestComposeProviderMessagesRendersActorRelationshipSystemContext(t *testing.T) {
 	projection := ContextProjection{
 		SelfActor:      map[string]any{"ref": "actor_self", "type": "fluctlight", "actor_id": "fl-1", "display_name": "影者"},

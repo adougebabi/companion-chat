@@ -5,12 +5,14 @@ import "testing"
 func TestValidInitializationAcceptsOpenRelationshipLabelAndActorUser(t *testing.T) {
 	value := map[string]any{
 		"core_persona": map[string]any{
-			"identity":           map[string]any{"name": "影者"},
-			"personality":        map[string]any{"curiosity": 0.8},
-			"behavioral_policy":  map[string]any{"response_style": "温和"},
-			"life_profile":       map[string]any{"character_constraints": []any{}},
+			"schema_version":     1,
+			"identity":           defaultIdentity("", "影者"),
+			"personality":        defaultPersonality(),
+			"behavioral_policy":  defaultPolicy(),
+			"life_profile":       defaultLifeProfile(),
 			"personality_system": defaultPersonalitySystem(),
 		},
+		"schema_version":        1,
 		"developing_self":       map[string]any{"claims": []any{}},
 		"initial_relationships": []any{map[string]any{"target_actor_id": "actor_user", "role": map[string]any{"label": "准恋人/暧昧对象", "addressing": map[string]any{"preferred": "你", "self_reference": "夏希/希希"}}}},
 		"initial_goals":         []any{},

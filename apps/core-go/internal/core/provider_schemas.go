@@ -103,7 +103,7 @@ func cognitiveTurnResponseSchema() map[string]any {
 		"reason":            stringSchema(),
 		"confidence":        unitNumberSchema(),
 		"evidence_refs":     arraySchema(stringSchema()),
-	}, []string{"decision", "from_profile_id", "target_profile_id", "reason", "confidence", "evidence_refs"}, false)
+	}, []string{"decision", "from_profile_id", "target_profile_id", "trigger_id", "reason", "confidence", "evidence_refs"}, false)
 	properties := map[string]any{
 		"action_type":                stringSchema(),
 		"response_intent":            stringSchema(),
@@ -235,7 +235,7 @@ func initializationResponseSchema() map[string]any {
 		"core_values": arraySchema(jsonValueSchema()),
 		"worldview":   nullableStringSchema(),
 		"notes":       nullableStringSchema(),
-	}, []string{"name"}, false)
+	}, []string{"name", "age", "gender", "occupation", "residence", "timezone", "birthday", "background", "biography", "core_values", "worldview", "notes"}, false)
 	personality := objectSchema(map[string]any{
 		"openness":          unitNumberSchema(),
 		"conscientiousness": unitNumberSchema(),
@@ -251,7 +251,7 @@ func initializationResponseSchema() map[string]any {
 		"sociability":       unitNumberSchema(),
 		"risk_tolerance":    unitNumberSchema(),
 		"update_policy":     openObjectSchema(),
-	}, nil, false)
+	}, []string{"openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism", "curiosity", "independence", "patience", "empathy", "assertiveness", "humor", "sociability", "risk_tolerance", "update_policy"}, false)
 	behavioralPolicy := objectSchema(map[string]any{
 		"response_style":       stringSchema(),
 		"message_length":       stringSchema(),
@@ -268,7 +268,7 @@ func initializationResponseSchema() map[string]any {
 		"conflict_style":       stringSchema(),
 		"refusal_style":        stringSchema(),
 		"intimacy_expression":  stringSchema(),
-	}, nil, false)
+	}, []string{"response_style", "message_length", "emoji_frequency", "punctuation_style", "humor_style", "sarcasm_tendency", "directness", "initiative", "topic_initiation", "silence_tolerance", "response_delay", "emotional_expression", "conflict_style", "refusal_style", "intimacy_expression"}, false)
 	appearance := objectSchema(map[string]any{
 		"chest_cup": enumStringSchema("A", "B", "C", "D"),
 	}, nil, true)
@@ -280,7 +280,7 @@ func initializationResponseSchema() map[string]any {
 		"recurring_commitments": arraySchema(jsonValueSchema()),
 		"relationship_seeds":    arraySchema(openObjectSchema()),
 		"character_constraints": arraySchema(jsonValueSchema()),
-	}, nil, false)
+	}, []string{"appearance", "social_background", "preferences", "life_habits", "recurring_commitments", "relationship_seeds", "character_constraints"}, false)
 	goal := objectSchema(map[string]any{
 		"description":     stringSchema(),
 		"profile_id":      stringSchema(),
@@ -361,7 +361,7 @@ func initializationResponseSchema() map[string]any {
 		"initial_intentions":    arraySchema(intention),
 		"initial_relationships": arraySchema(relationship),
 		"extensions":            openObjectSchema(),
-	}, []string{"core_persona", "developing_self", "initial_relationships", "initial_goals", "initial_intentions", "extensions"}, false)
+	}, []string{"schema_version", "core_persona", "developing_self", "initial_relationships", "initial_goals", "initial_intentions", "extensions"}, false)
 }
 
 func visualIdentityVisionResponseSchema() map[string]any {

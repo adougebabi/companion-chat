@@ -353,10 +353,6 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 		return TurnResult{UserMessage: user, Assistant: replayed, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
 	}
-	projection, err := a.BuildContextProjection(ctx, actorID, fluctlightID, conversationID, inboxID, text)
-	if err != nil {
-		return TurnResult{}, err
-	}
 	var decision map[string]any
 	var action string
 	var mediaConcept map[string]any
@@ -367,6 +363,23 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	frozen, frozenFound, err := a.LoadFrozenTurn(ctx, inboxID)
 	if err != nil {
 		return TurnResult{}, err
+	}
+	var projection ContextProjection
+	if frozenFound && frozen.Status == "frozen" {
+		frozenDecision := mapValue(frozen.Payload["decision"])
+		if savedProjection, ok := contextProjectionFromValue(frozenDecision["context_projection"]); ok {
+			projection = savedProjection
+		} else {
+			projection, err = a.BuildContextProjection(ctx, actorID, fluctlightID, conversationID, inboxID, text)
+			if err != nil {
+				return TurnResult{}, err
+			}
+		}
+	} else {
+		projection, err = a.BuildContextProjection(ctx, actorID, fluctlightID, conversationID, inboxID, text)
+		if err != nil {
+			return TurnResult{}, err
+		}
 	}
 	if frozenFound && frozen.Status == "frozen" {
 		action = frozen.ActionType
@@ -416,6 +429,11 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				return TurnResult{}, personalityErr
 			}
 			if len(personalityRuntime) > 0 {
+				refreshedProjection, refreshErr := a.BuildContextProjection(ctx, actorID, fluctlightID, conversationID, inboxID, text)
+				if refreshErr != nil {
+					return TurnResult{}, refreshErr
+				}
+				projection = refreshedProjection
 				projection.PersonalityRuntime = personalityRuntime
 				decision["personality_runtime"] = personalityRuntime
 			}
@@ -447,7 +465,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, err
 		}
 		decision["composite_action"] = composite
-		if action != "reply" && action != "media_request" {
+		if action != "reply" && action != "media_request" && action != "no_op" {
 			return TurnResult{}, errors.New("decision_effect_invalid")
 		}
 		if nested, ok := decision["decision"].(map[string]any); ok {
@@ -462,8 +480,19 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, err
 		}
 	}
-	if action != "reply" && action != "media_request" {
+	if action != "reply" && action != "media_request" && action != "no_op" {
 		return TurnResult{}, errors.New("decision_effect_invalid")
+	}
+	if action == "no_op" {
+		if len(toolCalls) > 0 {
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "no_op_tool_calls_invalid")
+			return TurnResult{}, errors.New("no_op_tool_calls_invalid")
+		}
+		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"status": "no_op", "response_intent": stringValue(responsePlan["response_intent"])}); err != nil {
+			return TurnResult{}, err
+		}
+		claimSettled = true
+		return TurnResult{UserMessage: user, Assistant: map[string]any{}, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
 	}
 	if action == "media_request" && len(mediaConcept) == 0 {
 		mediaConcept = mediaConceptValue(decision["media_request"])
@@ -515,45 +544,34 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 	}
 	var visible string
-	if len(toolCalls) == 0 && action == "reply" && len(arrayValue(responsePlan["omitted_claims"])) == 0 && stringValue(mapValue(responsePlan["self_evaluation"])["mode"]) == "accepted" {
-		visible = normalizeVisibleReply(firstString(responsePlan["visible_text"], ""))
+	realizationPayload := map[string]any{
+		"response_plan":      compactResponsePlanForProvider(responsePlan),
+		"context_projection": compactCognitionContext(projection),
 	}
-	if visible != "" {
-		if callbacks.onChunk != nil {
-			if err := callbacks.onChunk(visible); err != nil {
-				return TurnResult{}, err
-			}
+	if strings.TrimSpace(text) != "" {
+		realizationPayload["current_message"] = map[string]any{"sender": compactActorRef(projection.CurrentSpeaker), "content": text}
+		realizationPayload["current_user_text"] = text
+	}
+	if compactResults := compactToolResultsForProvider(toolResults); len(compactResults) > 0 {
+		realizationPayload["tool_results"] = compactResults
+	}
+	visiblePrompt := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(realizationPayload)}}
+	visiblePrompt = withActorRelationshipSystemContext(visiblePrompt, projection)
+	streamChunk, streamEmitted := newVisibleReplyStream(callbacks.onChunk)
+	visible, err = a.Provider.StreamText(WithProviderScenario(ctx, "reply"), "action_realization", visiblePrompt, streamChunk)
+	if err != nil {
+		if frozenFound || frozen.ID != "" {
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_failed")
 		}
-	} else {
-		realizationPayload := map[string]any{
-			"response_plan":      compactResponsePlanForProvider(responsePlan),
-			"context_projection": compactCognitionContext(projection),
-		}
-		if strings.TrimSpace(text) != "" {
-			realizationPayload["current_message"] = map[string]any{"sender": compactActorRef(projection.CurrentSpeaker), "content": text}
-			realizationPayload["current_user_text"] = text
-		}
-		if compactResults := compactToolResultsForProvider(toolResults); len(compactResults) > 0 {
-			realizationPayload["tool_results"] = compactResults
-		}
-		visiblePrompt := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(realizationPayload)}}
-		visiblePrompt = withActorRelationshipSystemContext(visiblePrompt, projection)
-		streamChunk, streamEmitted := newVisibleReplyStream(callbacks.onChunk)
-		visible, err = a.Provider.StreamText(WithProviderScenario(ctx, "reply"), "action_realization", visiblePrompt, streamChunk)
-		if err != nil {
-			if frozenFound || frozen.ID != "" {
-				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_failed")
-			}
+		return TurnResult{}, err
+	}
+	normalizedVisible := normalizeVisibleReply(visible)
+	if !streamEmitted() && callbacks.onChunk != nil && normalizedVisible != "" {
+		if err := callbacks.onChunk(normalizedVisible); err != nil {
 			return TurnResult{}, err
 		}
-		normalizedVisible := normalizeVisibleReply(visible)
-		if !streamEmitted() && callbacks.onChunk != nil && normalizedVisible != "" {
-			if err := callbacks.onChunk(normalizedVisible); err != nil {
-				return TurnResult{}, err
-			}
-		}
-		visible = normalizedVisible
 	}
+	visible = normalizedVisible
 	if strings.TrimSpace(visible) == "" {
 		if frozenFound || frozen.ID != "" {
 			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_empty")

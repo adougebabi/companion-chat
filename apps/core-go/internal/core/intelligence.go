@@ -142,7 +142,6 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if err != nil {
 		return ContextProjection{}, err
 	}
-	activeProfileID := stringValue(personalityRuntime["active_profile_id"])
 	memories, err := a.RetrieveMemoryContext(ctx, actorID, fluctlightID, conversationID, userText, 12, 2400)
 	if err != nil {
 		return ContextProjection{}, err
@@ -151,7 +150,6 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if err != nil {
 		return ContextProjection{}, err
 	}
-	relationships = selectActiveProfileRelationships(relationships, activeProfileID)
 	if conversationID != "" {
 		filtered := make([]map[string]any, 0, 1)
 		for _, relationship := range relationships {
@@ -184,8 +182,6 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if conversationID != "" {
 		goals, intentions = filterAgencyForTarget(goals, intentions, actorID)
 	}
-	goals = filterActiveProfileRows(goals, activeProfileID)
-	intentions = filterActiveProfileRows(intentions, activeProfileID)
 	visualIdentity, err := a.readVisualIdentityDetail(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -202,7 +198,13 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 		}
 	}
 	fluctlightDisplayName := firstString(fluctlight.Identity["name"], firstString(fluctlight.Identity["display_name"], "摇光"))
-	actors, selfActor, currentSpeaker := a.buildActorProjection(ctx, fluctlightID, actorID, fluctlightDisplayName, recentMessages)
+	relationshipActorIDs := make([]string, 0, len(relationships))
+	for _, relationship := range relationships {
+		if target := strings.TrimSpace(stringValue(relationship["target_actor_id"])); target != "" {
+			relationshipActorIDs = append(relationshipActorIDs, target)
+		}
+	}
+	actors, selfActor, currentSpeaker := a.buildActorProjection(ctx, fluctlightID, actorID, fluctlightDisplayName, recentMessages, relationshipActorIDs)
 	developingSelfClaims, err := a.listDevelopingSelfClaims(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -313,7 +315,7 @@ func selectActiveProfileRelationships(values []map[string]any, activeProfileID s
 	return result
 }
 
-func (a *App) buildActorProjection(ctx context.Context, selfActorID, speakerActorID, selfDisplayName string, messages []map[string]any) ([]map[string]any, map[string]any, map[string]any) {
+func (a *App) buildActorProjection(ctx context.Context, selfActorID, speakerActorID, selfDisplayName string, messages []map[string]any, extraActorIDs []string) ([]map[string]any, map[string]any, map[string]any) {
 	self := map[string]any{"ref": "actor_self", "actor_id": selfActorID, "type": "fluctlight", "display_name": firstString(selfDisplayName, "摇光")}
 	actors := []map[string]any{self}
 	refs := map[string]map[string]any{selfActorID: self}
@@ -351,6 +353,16 @@ func (a *App) buildActorProjection(ctx context.Context, selfActorID, speakerActo
 			continue
 		}
 		if _, exists := refs[actorID]; exists {
+			continue
+		}
+		add(actorID, fmt.Sprintf("actor_%c", rune('a'+next)), "unknown")
+		next++
+	}
+	for _, actorID := range extraActorIDs {
+		if strings.TrimSpace(actorID) == "" {
+			continue
+		}
+		if _, exists := refs[strings.TrimSpace(actorID)]; exists {
 			continue
 		}
 		add(actorID, fmt.Sprintf("actor_%c", rune('a'+next)), "unknown")
@@ -483,9 +495,9 @@ func (a *App) RetrieveMemoryContext(ctx context.Context, actorID, fluctlightID, 
 	// make ordinary cognition fail. When available, it contributes a bounded
 	// cosine score after the authorization query has already selected rows.
 	if strings.TrimSpace(query) != "" {
-		if _, assignmentErr := a.Provider.assignment(ctx, "embedding"); assignmentErr == nil {
+		if embeddingAssignment, assignmentErr := a.Provider.assignment(ctx, "embedding"); assignmentErr == nil {
 			if _, queryVector, embedErr := a.Provider.Embed(ctx, query); embedErr == nil {
-				vectorRows, vectorErr := a.DB.Pool().Query(ctx, `SELECT e.memory_id,e.embedding FROM public.memory_embeddings e JOIN public.memories m ON m.id=e.memory_id WHERE m.owner_fluctlight_id=$1 AND m.status='active' AND e.status='ready' AND e.memory_revision=m.revision ORDER BY e.created_at DESC LIMIT 200`, fluctlightID)
+				vectorRows, vectorErr := a.DB.Pool().Query(ctx, `SELECT e.memory_id,e.embedding FROM public.memory_embeddings e JOIN public.memories m ON m.id=e.memory_id WHERE m.owner_fluctlight_id=$1 AND m.status='active' AND e.status='ready' AND e.model_id=$2 AND e.memory_revision=m.revision ORDER BY e.created_at DESC LIMIT 200`, fluctlightID, embeddingAssignment.ModelID)
 				if vectorErr == nil {
 					vectors := make(map[string][]float64)
 					for vectorRows.Next() {

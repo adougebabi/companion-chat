@@ -13,9 +13,13 @@ import (
 // persisted Core Persona. A single-profile persona still has the implicit
 // "default" profile so legacy rows can safely remain shared (NULL scope).
 func personalityProfileIDs(corePersona map[string]any) map[string]struct{} {
-	result := map[string]struct{}{"default": {}}
+	result := map[string]struct{}{}
 	system := mapValue(corePersona["personality_system"])
-	for _, raw := range arrayValue(system["profiles"]) {
+	profiles := arrayValue(system["profiles"])
+	if len(profiles) == 0 && stringValue(system["active_profile_id"]) == "default" {
+		result["default"] = struct{}{}
+	}
+	for _, raw := range profiles {
 		if id := strings.TrimSpace(stringValue(mapValue(raw)["id"])); id != "" {
 			result[id] = struct{}{}
 		}
@@ -69,10 +73,12 @@ func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string,
 	var current, previous string
 	var revision int
 	var cooldownUntil *time.Time
+	runtimeExists := true
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT active_profile_id,COALESCE(previous_profile_id,''),revision,cooldown_until FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&current, &previous, &revision, &cooldownUntil); err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return nil, err
 		}
+		runtimeExists = false
 		current = "default"
 	}
 	target := strings.TrimSpace(stringValue(decision["target_profile_id"]))
@@ -129,6 +135,10 @@ func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string,
 	if target != current {
 		previous = current
 	}
+	triggerID := strings.TrimSpace(stringValue(decision["trigger_id"]))
+	if target != current && triggerID == "" {
+		return nil, errors.New("personality_trigger_required")
+	}
 	reason := strings.TrimSpace(stringValue(decision["reason"]))
 	newRevision := revision
 	var switchCooldownUntil *time.Time
@@ -138,7 +148,15 @@ func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string,
 			value := time.Now().UTC().Add(time.Duration(seconds * float64(time.Second)))
 			switchCooldownUntil = &value
 		}
-		if _, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,previous_profile_id,revision,switch_reason,switched_at,cooldown_until,updated_at) VALUES($1,$2,$3,$4,$5,now(),$6,now()) ON CONFLICT(fluctlight_id) DO UPDATE SET active_profile_id=excluded.active_profile_id,previous_profile_id=excluded.previous_profile_id,revision=excluded.revision,switch_reason=excluded.switch_reason,switched_at=excluded.switched_at,cooldown_until=excluded.cooldown_until,updated_at=excluded.updated_at`, fluctlightID, target, nullableString(previous), newRevision, reason, switchCooldownUntil); err != nil {
+		if runtimeExists {
+			commandTag, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_personality_runtime SET active_profile_id=$2,previous_profile_id=$3,revision=$4,switch_reason=$5,switched_at=now(),cooldown_until=$6,updated_at=now() WHERE fluctlight_id=$1 AND revision=$7`, fluctlightID, target, nullableString(previous), newRevision, reason, switchCooldownUntil, revision)
+			if err != nil {
+				return nil, err
+			}
+			if commandTag.RowsAffected() != 1 {
+				return nil, errors.New("personality_runtime_revision_conflict")
+			}
+		} else if _, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,previous_profile_id,revision,switch_reason,switched_at,cooldown_until,updated_at) VALUES($1,$2,$3,$4,$5,now(),$6,now()) ON CONFLICT DO NOTHING`, fluctlightID, target, nullableString(previous), newRevision, reason, switchCooldownUntil); err != nil {
 			return nil, err
 		}
 	}

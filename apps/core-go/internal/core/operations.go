@@ -328,7 +328,15 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 				return err
 			}
 			if len(decodeObject(corePersona)) == 0 {
-				corePersona = jsonBytes(map[string]any{"schema_version": 1, "identity": decodeObject(identity), "personality": decodeObject(personality), "behavioral_policy": decodeObject(policy), "life_profile": decodeObject(life)})
+				var currentCore []byte
+				if err := tx.QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&currentCore); err != nil {
+					return err
+				}
+				fallback := map[string]any{"schema_version": 1, "identity": decodeObject(identity), "personality": decodeObject(personality), "behavioral_policy": decodeObject(policy), "life_profile": decodeObject(life)}
+				if system := mapValue(decodeObject(currentCore)["personality_system"]); len(system) > 0 {
+					fallback["personality_system"] = system
+				}
+				corePersona = jsonBytes(fallback)
 			}
 			if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,core_persona=$3,identity=$4,personality=$5,behavioral_policy=$6,life_profile=$7,provenance=$8,updated_at=now() WHERE id=$1`, fluctlightID, revision, corePersona, identity, personality, policy, life, provenance); err != nil {
 				return err
@@ -390,7 +398,15 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 			return err
 		}
 		if len(decodeObject(corePersona)) == 0 {
-			corePersona = jsonBytes(map[string]any{"schema_version": 1, "identity": decodeObject(identity), "personality": decodeObject(personality), "behavioral_policy": decodeObject(policy), "life_profile": decodeObject(life)})
+			var currentCore []byte
+			if err := tx.QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&currentCore); err != nil {
+				return err
+			}
+			fallback := map[string]any{"schema_version": 1, "identity": decodeObject(identity), "personality": decodeObject(personality), "behavioral_policy": decodeObject(policy), "life_profile": decodeObject(life)}
+			if system := mapValue(decodeObject(currentCore)["personality_system"]); len(system) > 0 {
+				fallback["personality_system"] = system
+			}
+			corePersona = jsonBytes(fallback)
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,core_persona=$3,identity=$4,personality=$5,behavioral_policy=$6,life_profile=$7,provenance=$8,updated_at=now() WHERE id=$1`, fluctlightID, newRevision, corePersona, identity, personality, policy, life, provenance); err != nil {
 			return err

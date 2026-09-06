@@ -101,6 +101,9 @@ func (a *App) RecordMemory(ctx context.Context, fluctlightID, actorID string, pa
 	if err != nil {
 		return nil, err
 	}
+	if !requirePerspectiveEvidence(record.PersonalityPerspectives) {
+		return nil, errors.New("memory_perspective_evidence_required")
+	}
 	if !validatePersonalityPerspectiveProfiles(fluctlight.CorePersona, record.PersonalityPerspectives) {
 		return nil, errors.New("memory_perspective_profile_invalid")
 	}
@@ -276,6 +279,15 @@ func validatePerspectiveEvidence(values []any, allowed map[string]struct{}) bool
 			if _, ok := allowed[strings.TrimSpace(stringValue(ref))]; !ok {
 				return false
 			}
+		}
+	}
+	return true
+}
+
+func requirePerspectiveEvidence(values []any) bool {
+	for _, raw := range values {
+		if len(arrayValue(mapValue(raw)["evidence_refs"])) == 0 {
+			return false
 		}
 	}
 	return true

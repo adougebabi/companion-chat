@@ -40,6 +40,9 @@ function jsonDisplay(value: unknown): string {
   try { return JSON.stringify(value ?? {}, null, 2); }
   catch { return "无法展示该字段"; }
 }
+function relationshipKey(relationship: Record<string, unknown>): string {
+  return `${String(relationship.target_actor_id ?? "")}::${String(relationship.profile_id ?? "shared")}`;
+}
 
 async function retire() {
   const id = store.fluctlightId;
@@ -113,26 +116,26 @@ function capabilityRequestStatus(value: unknown): string {
       <details class="governance-section">
         <summary class="section-heading"><span class="section-index">03</span><div><p class="eyebrow">关系与记忆操作</p><h2>关系与记忆</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
         <p v-if="!(controlCenter.fluctlightDetail.relationships as unknown[])?.length" class="field-note">尚未形成关系状态。</p>
-        <ul v-else class="detail-list relationship-governance-list"><li v-for="relationship in controlCenter.fluctlightDetail.relationships as Array<Record<string, unknown>>" :key="String(relationship.target_actor_id)">
+        <ul v-else class="detail-list relationship-governance-list"><li v-for="relationship in controlCenter.fluctlightDetail.relationships as Array<Record<string, unknown>>" :key="relationshipKey(relationship)">
           <strong>{{ formatDisplayValue(relationship.target_actor_id) }}<span v-if="relationship.is_current_user" class="status-pill">当前用户</span></strong>
-          <small>{{ relationship.target_actor_type === "human" ? "Human" : relationship.target_actor_type === "fluctlight" ? "Fluctlight" : "Actor" }} · {{ formatDisplayValue((relationship.role as Record<string, unknown> | undefined)?.label ?? (relationship.role as Record<string, unknown> | undefined)?.primary ?? "unknown") }} · {{ enumLabel(relationship.trend) }} · {{ labelFor("revision") }} {{ formatDisplayValue(relationship.revision) }}</small>
-          <template v-if="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)]">
+          <small>{{ relationship.target_actor_type === "human" ? "Human" : relationship.target_actor_type === "fluctlight" ? "Fluctlight" : "Actor" }} · profile {{ formatDisplayValue(relationship.profile_id ?? "shared") }} · {{ formatDisplayValue((relationship.role as Record<string, unknown> | undefined)?.label ?? (relationship.role as Record<string, unknown> | undefined)?.primary ?? "unknown") }} · {{ enumLabel(relationship.trend) }} · {{ labelFor("revision") }} {{ formatDisplayValue(relationship.revision) }}</small>
+          <template v-if="controlCenter.relationshipEditDrafts[relationshipKey(relationship)]">
             <div class="form-grid">
-              <label :for="'relationship-trend-' + String(relationship.target_actor_id)">趋势
-                <select :id="'relationship-trend-' + String(relationship.target_actor_id)" v-model="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)].trend" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm">
+              <label :for="'relationship-trend-' + relationshipKey(relationship)">趋势
+                <select :id="'relationship-trend-' + relationshipKey(relationship)" v-model="controlCenter.relationshipEditDrafts[relationshipKey(relationship)].trend" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm">
                   <option value="improving">升温</option><option value="stable">稳定</option><option value="declining">降温</option>
                 </select>
               </label>
-              <label :for="'relationship-summary-' + String(relationship.target_actor_id)">关系摘要<Input :id="'relationship-summary-' + String(relationship.target_actor_id)" v-model="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)].summary" maxlength="32000" /></label>
+              <label :for="'relationship-summary-' + relationshipKey(relationship)">关系摘要<Input :id="'relationship-summary-' + relationshipKey(relationship)" v-model="controlCenter.relationshipEditDrafts[relationshipKey(relationship)].summary" maxlength="32000" /></label>
             </div>
-            <label :for="'relationship-role-' + String(relationship.target_actor_id)">关系角色 JSON<Textarea :id="'relationship-role-' + String(relationship.target_actor_id)" v-model="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)].role" rows="3" spellcheck="false" /></label>
+            <label :for="'relationship-role-' + relationshipKey(relationship)">关系角色 JSON<Textarea :id="'relationship-role-' + relationshipKey(relationship)" v-model="controlCenter.relationshipEditDrafts[relationshipKey(relationship)].role" rows="3" spellcheck="false" /></label>
             <div class="form-grid">
-              <label :for="'relationship-metrics-' + String(relationship.target_actor_id)">关系指标 JSON<Textarea :id="'relationship-metrics-' + String(relationship.target_actor_id)" v-model="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)].metrics" rows="3" spellcheck="false" /></label>
-              <label :for="'relationship-emotion-' + String(relationship.target_actor_id)">情绪关联 JSON<Textarea :id="'relationship-emotion-' + String(relationship.target_actor_id)" v-model="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)].emotionalAssociation" rows="3" spellcheck="false" /></label>
+              <label :for="'relationship-metrics-' + relationshipKey(relationship)">关系指标 JSON<Textarea :id="'relationship-metrics-' + relationshipKey(relationship)" v-model="controlCenter.relationshipEditDrafts[relationshipKey(relationship)].metrics" rows="3" spellcheck="false" /></label>
+              <label :for="'relationship-emotion-' + relationshipKey(relationship)">情绪关联 JSON<Textarea :id="'relationship-emotion-' + relationshipKey(relationship)" v-model="controlCenter.relationshipEditDrafts[relationshipKey(relationship)].emotionalAssociation" rows="3" spellcheck="false" /></label>
             </div>
             <div class="inline-controls">
               <Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving" @click="controlCenter.editRelationship(store.fluctlightId, relationship)">保存关系</Button>
-              <Input v-model="controlCenter.relationshipRollbackTargets[String(relationship.target_actor_id)]" aria-label="关系回滚目标版本" type="number" min="0" step="1" placeholder="回滚目标版本" />
+              <Input v-model="controlCenter.relationshipRollbackTargets[relationshipKey(relationship)]" aria-label="关系回滚目标版本" type="number" min="0" step="1" placeholder="回滚目标版本" />
               <Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.rollbackRelationship(store.fluctlightId, relationship)">回滚关系</Button>
             </div>
           </template>

@@ -472,7 +472,7 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 	if name == "" {
 		name = stringValue(identity["name"])
 	}
-	initialization := map[string]any{"core_persona": corePersona, "developing_self": mapValue(body["developing_self"]), "initial_goals": arrayValue(body["initial_goals"]), "initial_intentions": arrayValue(body["initial_intentions"]), "initial_relationships": arrayValue(body["initial_relationships"])}
+	initialization := map[string]any{"schema_version": body["schema_version"], "core_persona": corePersona, "developing_self": mapValue(body["developing_self"]), "initial_goals": arrayValue(body["initial_goals"]), "initial_intentions": arrayValue(body["initial_intentions"]), "initial_relationships": arrayValue(body["initial_relationships"]), "extensions": mapValue(body["extensions"])}
 	if mode == "blank_slate" {
 		initialization = nil
 	}

@@ -274,6 +274,9 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 }
 
 func validInitialization(value map[string]any) bool {
+	if _, ok := numberFloat(value["schema_version"]); !ok {
+		return false
+	}
 	for key := range value {
 		if _, ok := map[string]struct{}{"schema_version": {}, "core_persona": {}, "developing_self": {}, "initial_goals": {}, "initial_intentions": {}, "initial_relationships": {}, "extensions": {}}[key]; !ok {
 			return false
@@ -290,6 +293,12 @@ func validInitialization(value map[string]any) bool {
 		if child, ok := corePersona[key].(map[string]any); !ok || len(child) == 0 {
 			return false
 		}
+	}
+	if !hasInitializationKeys(mapValue(corePersona["identity"]), []string{"name", "age", "gender", "occupation", "residence", "timezone", "birthday", "background", "biography", "core_values", "worldview", "notes"}) ||
+		!hasInitializationKeys(mapValue(corePersona["personality"]), []string{"openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism", "curiosity", "independence", "patience", "empathy", "assertiveness", "humor", "sociability", "risk_tolerance", "update_policy"}) ||
+		!hasInitializationKeys(mapValue(corePersona["behavioral_policy"]), []string{"response_style", "message_length", "emoji_frequency", "punctuation_style", "humor_style", "sarcasm_tendency", "directness", "initiative", "topic_initiation", "silence_tolerance", "response_delay", "emotional_expression", "conflict_style", "refusal_style", "intimacy_expression"}) ||
+		!hasInitializationKeys(mapValue(corePersona["life_profile"]), []string{"appearance", "social_background", "preferences", "life_habits", "recurring_commitments", "relationship_seeds", "character_constraints"}) {
+		return false
 	}
 	for key := range corePersona {
 		if _, ok := map[string]struct{}{"schema_version": {}, "identity": {}, "personality": {}, "behavioral_policy": {}, "life_profile": {}, "personality_system": {}}[key]; !ok {
@@ -362,10 +371,16 @@ func validInitialization(value map[string]any) bool {
 		if provenance := mapValue(claim["provenance"]); stringValue(provenance["source"]) == "" {
 			return false
 		}
-		if refs, ok := claim["evidence_refs"].([]any); !ok && claim["evidence_refs"] != nil {
+		refs, refsPresent := claim["evidence_refs"]
+		if !refsPresent {
 			return false
-		} else if ok && len(refs) > 0 {
-			for _, ref := range refs {
+		}
+		refValues, ok := refs.([]any)
+		if !ok {
+			return false
+		}
+		if len(refValues) > 0 {
+			for _, ref := range refValues {
 				if strings.TrimSpace(stringValue(ref)) == "" {
 					return false
 				}
@@ -430,6 +445,15 @@ func validInitialization(value map[string]any) bool {
 	return true
 }
 
+func hasInitializationKeys(value map[string]any, keys []string) bool {
+	for _, key := range keys {
+		if _, ok := value[key]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
 func isObjectValue(value any) bool {
 	object, ok := value.(map[string]any)
 	return ok && object != nil
@@ -481,9 +505,6 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 		}
 	}
 	persona := mapValue(result["core_persona"])
-	if _, ok := persona["personality_system"]; !ok {
-		persona["personality_system"] = defaultPersonalitySystem()
-	}
 	knownPersona := map[string]map[string]struct{}{
 		"identity":           {"name": {}, "age": {}, "gender": {}, "occupation": {}, "residence": {}, "timezone": {}, "birthday": {}, "background": {}, "biography": {}, "core_values": {}, "worldview": {}, "notes": {}},
 		"personality":        {"openness": {}, "conscientiousness": {}, "extraversion": {}, "agreeableness": {}, "neuroticism": {}, "curiosity": {}, "independence": {}, "patience": {}, "empathy": {}, "assertiveness": {}, "humor": {}, "sociability": {}, "risk_tolerance": {}, "update_policy": {}},

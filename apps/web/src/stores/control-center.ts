@@ -12,6 +12,7 @@ import { planDefaultGroupMembership } from "../lib/group-membership";
 import { normalizeActorGroups, type ActorGroupSnapshot } from "../lib/actor-groups";
 
 const client = new BrowserClient(bffOrigin);
+const relationshipKey = (relationship: Record<string, unknown>): string => `${String(relationship.target_actor_id ?? "")}::${String(relationship.profile_id ?? "shared")}`;
 
 export const useControlCenterStore = defineStore("control-center", {
   state: () => ({
@@ -253,8 +254,8 @@ export const useControlCenterStore = defineStore("control-center", {
         this.fluctlightDetail = await client.detail(fluctlightId);
         const relationships = Array.isArray(this.fluctlightDetail.relationships) ? this.fluctlightDetail.relationships as Array<Record<string, unknown>> : [];
         this.relationshipEditDrafts = Object.fromEntries(relationships.map((relationship) => {
-          const target = String(relationship.target_actor_id ?? "");
-          return [target, {
+          const key = relationshipKey(relationship);
+          return [key, {
             role: JSON.stringify(relationship.role ?? { primary: "unknown", secondary: [] }, null, 2),
             metrics: JSON.stringify(relationship.metrics ?? {}, null, 2),
             trend: String(relationship.trend ?? "stable"),
@@ -448,16 +449,18 @@ export const useControlCenterStore = defineStore("control-center", {
     },
     async rollbackRelationship(fluctlightId: string | null, relationship: Record<string, unknown>) {
       const evidenceRefs = this.governanceEvidence.split(",").map((value) => value.trim()).filter(Boolean);
-      const targetRevision = Number(this.relationshipRollbackTargets[String(relationship.target_actor_id)]);
+      const key = relationshipKey(relationship);
+      const targetRevision = Number(this.relationshipRollbackTargets[key]);
       if (!fluctlightId || !evidenceRefs.length || !Number.isInteger(targetRevision) || targetRevision < 0) { this.error = "关系回滚需要目标 revision 和至少一条证据引用。"; return; }
       this.saving = true;
-      try { await client.rollbackRelationship(fluctlightId, { targetActorId: String(relationship.target_actor_id), targetRevision, expectedRevision: Number(relationship.revision ?? 0), evidenceRefs }); await this.loadFluctlightDetail(fluctlightId); }
+      try { await client.rollbackRelationship(fluctlightId, { targetActorId: String(relationship.target_actor_id), profileId: String(relationship.profile_id ?? "") || undefined, targetRevision, expectedRevision: Number(relationship.revision ?? 0), evidenceRefs }); await this.loadFluctlightDetail(fluctlightId); }
       catch { this.error = "无法回滚关系，目标或当前版本可能已变化。"; }
       finally { this.saving = false; }
     },
     async editRelationship(fluctlightId: string | null, relationship: Record<string, unknown>) {
       const targetActorId = String(relationship.target_actor_id ?? "");
-      const draft = this.relationshipEditDrafts[targetActorId];
+      const key = relationshipKey(relationship);
+      const draft = this.relationshipEditDrafts[key];
       const evidenceRefs = this.governanceEvidence.split(",").map((value) => value.trim()).filter(Boolean);
       const reason = this.governanceReason.trim();
       if (!fluctlightId || !targetActorId || !draft || !evidenceRefs.length || !reason) {
@@ -482,6 +485,7 @@ export const useControlCenterStore = defineStore("control-center", {
       this.error = "";
       try {
         await client.editRelationship(fluctlightId, targetActorId, {
+          profileId: String(relationship.profile_id ?? "") || undefined,
           expectedRevision: Number(relationship.revision ?? 0),
           role,
           metrics,
