@@ -73,6 +73,7 @@ func TestLLMQueueSchemaIncludesGenericBindingAndLifecycleFields(t *testing.T) {
 		"started_at timestamptz",
 		"completed_at timestamptz",
 		"llm.queue",
+		`"generated_concurrency":1`,
 		"'generic_llm'",
 	} {
 		if !strings.Contains(schemaSQL+compatibilitySQL, fragment) {

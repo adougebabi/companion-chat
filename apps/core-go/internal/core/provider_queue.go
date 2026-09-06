@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	providerQueueDefaultConcurrency = 2
+	providerQueueDefaultConcurrency = 1
 	providerQueueDefaultEmbedding   = 1
 	providerQueueMinConcurrency     = 1
 	providerQueueMaxConcurrency     = 8

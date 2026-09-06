@@ -268,7 +268,8 @@ ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS queued_at time
 ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS started_at timestamptz;
 ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS completed_at timestamptz;
 UPDATE public.diagnostic_model_runs SET binding_role=CASE WHEN role='embedding' THEN 'embedding' ELSE 'generic_llm' END WHERE binding_role IS NULL OR binding_role='' OR (binding_role='generic_llm' AND role='embedding');
-INSERT INTO public.runtime_settings(key,value_json) VALUES ('llm.queue','{"generated_concurrency":2,"embedding_concurrency":1}') ON CONFLICT (key) DO NOTHING;
+INSERT INTO public.runtime_settings(key,value_json) VALUES ('llm.queue','{"generated_concurrency":1,"embedding_concurrency":1}') ON CONFLICT (key) DO NOTHING;
+UPDATE public.runtime_settings SET value_json='{"generated_concurrency":1,"embedding_concurrency":1}',updated_at=now() WHERE key='llm.queue' AND value_json='{"generated_concurrency":2,"embedding_concurrency":1}';
 INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy)
 SELECT 'generic_llm',provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy
 FROM public.model_roles

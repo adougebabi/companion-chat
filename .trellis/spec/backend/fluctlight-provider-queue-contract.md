@@ -41,7 +41,7 @@ idempotency, and side effects.
 | Condition | Result |
 | --- | --- |
 | Binding role is not `generic_llm` or `embedding` | Reject configuration; legacy role-shaped clients are normalized to `generic_llm` only for compatibility. |
-| Queue concurrency is missing | Use generated=2 and embedding=1. |
+| Queue concurrency is missing | Use generated=1 and embedding=1. |
 | Queue concurrency is non-integer or outside 1–8 | Reject settings; keep previous values. |
 | Same-priority requests | FIFO by enqueue sequence. |
 | Queue/HTTP context is cancelled | Mark cancelled, release the slot, and never block later requests. |
@@ -50,7 +50,7 @@ idempotency, and side effects.
 ## 5. Contracts: ordering and lifecycle
 
 - Generated requests and embedding requests have separate queues and limits.
-  Defaults are generated=2 and embedding=1; each setting is clamped to 1–8.
+  Defaults are generated=1 and embedding=1; each setting is clamped to 1–8.
 - Generated priority is `reply` (100), cognitive/native/daily-review/plan (90),
   media prompt (80), reflection/wake-up (70), initialization (60). A priority
   heap uses enqueue sequence as the tie breaker, so equal priorities are FIFO.
@@ -83,7 +83,7 @@ idempotency, and side effects.
 `runtime_settings["llm.queue"]` stores:
 
 ```json
-{"generated_concurrency": 2, "embedding_concurrency": 1}
+{"generated_concurrency": 1, "embedding_concurrency": 1}
 ```
 
 Unknown keys, non-integers, and values outside 1–8 are rejected. Missing values
