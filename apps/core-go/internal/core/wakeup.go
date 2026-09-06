@@ -317,6 +317,11 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
+	if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {
+		if normalized, normalizeErr := normalizeOutputPreferenceDecision(preference, stringValue(projection.PersonalityRuntime["active_profile_id"])); normalizeErr == nil {
+			assessment["output_preference_decision"] = normalized
+		}
+	}
 	visualIdentityToolResults := make([]ToolResultV1, 0, 1)
 	if visualIdentityNeedsInitialization {
 		remainingCalls := make([]ToolCallV1, 0, len(toolCalls))
