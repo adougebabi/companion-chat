@@ -25,6 +25,10 @@
 ### 3. Contracts
 
 - Visible text may stream from provider `content`; structured controls are accumulated and validated before any side effect is applied.
+- If a text-only realization provider returns a structured action wrapper,
+  treat it as transport/control data and expose only its user-facing
+  `content`/`text` value; `action_type`, arguments, and the wrapper object must
+  never be persisted or emitted as conversation text.
 - Native tool calls, parsed provider sidecars, and legacy media/pending markers are normalized at one application boundary. New affect/memory behavior must not add text markers.
 - Machine-readable argument shape belongs to the canonical capability catalog and provider `tools` payload. The model-facing system prompt contains only short behavioral guidance; it must not duplicate JSON schema bounds, dispatcher internals, or legacy marker syntax. Flow validators remain authoritative for ownership, time windows, policy, idempotency, and transactions.
 - Native-capable providers receive the catalog directly. Legacy marker adapters remain compatibility fallbacks and must not be advertised in the normal prompt. A future provider-specific capability profile may filter tools, but the current base implementation sends the universal catalog unchanged.

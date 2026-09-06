@@ -173,6 +173,18 @@ func TestMediaPromptInputOmitsVisualIdentityWorkflowHistory(t *testing.T) {
 	}
 }
 
+func TestMediaPromptConceptFiltersRequestAndCharacterMetadata(t *testing.T) {
+	input := compactMediaConceptForProvider(`{"user_request":"给我画一张她在窗边的照片","character":{"id":"character-1","description":"internal card"},"scene":"图书馆","action":"阅读","appearance":{"hair":"短发"},"context_binding":{"life_context":{"scene":"图书馆"}}}`)
+	if strings.Contains(input, "user_request") || strings.Contains(input, "character") || strings.Contains(input, "internal card") {
+		t.Fatalf("media prompt retained non-rendering metadata: %s", input)
+	}
+	for _, fragment := range []string{"scene", "图书馆", "action", "阅读", "appearance", "短发"} {
+		if !strings.Contains(input, fragment) {
+			t.Fatalf("media prompt lost semantic field %q: %s", fragment, input)
+		}
+	}
+}
+
 func TestMediaQualityConceptKeepsIdentitySemanticsWithoutTimeline(t *testing.T) {
 	input := compactMediaConceptForProvider(`{"purpose":"visual_identity","visual_identity":{"identity_snapshot":{"identity":{"visible_text":"一位短发角色"}},"timeline":[{"stage":"vision_ready"}]},"renderer_constraints":{"chest_cup":"B"}}`)
 	if !strings.Contains(input, "一位短发角色") || !strings.Contains(input, "chest_cup") {

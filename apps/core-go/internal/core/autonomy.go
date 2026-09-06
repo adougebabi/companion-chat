@@ -121,6 +121,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		if err != nil {
 			return nil, err
 		}
+		visible = normalizeVisibleReply(visible)
 	}
 	if actionType == "proactive_message" {
 		if err := validateCompositeOutputCalls(composite.ToolCalls, "conversation_message", a.capabilityRegistry()); err != nil {

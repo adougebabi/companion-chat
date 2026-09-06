@@ -84,7 +84,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 			}
 		} else if prompt == "" || intent.QualityVerdict == mediaQualityVerdictRetry {
 			activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "prompt"})
-			promptInput := bindMediaPromptContext(mediaPromptInput(intent))
+			promptInput := mediaPromptInput(intent)
 			providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "media_prompt"), "media:"+intent.ID)
 			value, providerErr := a.Provider.Text(providerCtx, "media_prompt", []map[string]any{{"role": "system", "content": mediaPromptInstruction}, {"role": "user", "content": promptInput}})
 			if providerErr != nil || strings.TrimSpace(value) == "" {

@@ -502,7 +502,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	}
 	var visible string
 	if len(toolCalls) == 0 && action == "reply" && len(arrayValue(responsePlan["omitted_claims"])) == 0 && stringValue(mapValue(responsePlan["self_evaluation"])["mode"]) == "accepted" {
-		visible = firstString(responsePlan["visible_text"], "")
+		visible = normalizeVisibleReply(firstString(responsePlan["visible_text"], ""))
 	}
 	if visible != "" {
 		if callbacks.onChunk != nil {
@@ -522,13 +522,21 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			realizationPayload["tool_results"] = compactResults
 		}
 		visiblePrompt := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(realizationPayload)}}
-		visible, err = a.Provider.StreamText(WithProviderScenario(ctx, "reply"), "action_realization", visiblePrompt, callbacks.onChunk)
+		streamChunk, streamEmitted := newVisibleReplyStream(callbacks.onChunk)
+		visible, err = a.Provider.StreamText(WithProviderScenario(ctx, "reply"), "action_realization", visiblePrompt, streamChunk)
 		if err != nil {
 			if frozenFound || frozen.ID != "" {
 				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_failed")
 			}
 			return TurnResult{}, err
 		}
+		normalizedVisible := normalizeVisibleReply(visible)
+		if !streamEmitted() && callbacks.onChunk != nil && normalizedVisible != "" {
+			if err := callbacks.onChunk(normalizedVisible); err != nil {
+				return TurnResult{}, err
+			}
+		}
+		visible = normalizedVisible
 	}
 	if strings.TrimSpace(visible) == "" {
 		if frozenFound || frozen.ID != "" {

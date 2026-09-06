@@ -109,16 +109,6 @@ func TestAlignMediaConceptKeepsReferenceAssetInDurableBinding(t *testing.T) {
 	}
 }
 
-func TestBindMediaPromptContextAddsAuthorityOnlyWhenSnapshotExists(t *testing.T) {
-	if got := bindMediaPromptContext(`{"subject":"a cat"}`); got != `{"subject":"a cat"}` {
-		t.Fatalf("prompt without snapshot changed: %q", got)
-	}
-	got := bindMediaPromptContext(`{"context_binding":{"life_context":{"scene":"图书馆"}}}`)
-	if len(got) <= len(`{"context_binding":{"life_context":{"scene":"图书馆"}}}`) || !strings.Contains(got, "authoritative context_binding") {
-		t.Fatalf("prompt with snapshot was not annotated: %q", got)
-	}
-}
-
 func TestWithContextAuthorityInstructionKeepsUserMessageLast(t *testing.T) {
 	messages := withContextAuthorityInstruction([]map[string]any{
 		{"role": "system", "content": "decide"},

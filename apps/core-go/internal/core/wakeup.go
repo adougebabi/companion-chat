@@ -440,6 +440,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 				}
 				return nil, realizationErr
 			}
+			visible = normalizeVisibleReply(visible)
 			if strings.TrimSpace(visible) == "" || len([]rune(visible)) > 32000 {
 				return nil, errors.New("wake_up_realization_empty")
 			}

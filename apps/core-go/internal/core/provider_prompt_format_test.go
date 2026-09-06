@@ -75,3 +75,17 @@ func TestFormatProviderMessagesUsesTOONOnlyForNonMediaContexts(t *testing.T) {
 		t.Fatalf("media prompt should remain standard YAML: %q", media[0]["content"])
 	}
 }
+
+func TestMediaPromptUserPayloadIsOnlyFormattedYAML(t *testing.T) {
+	content := `{"context_binding":{"life_context":{"scene":"图书馆"}},"scene":"图书馆","action":"阅读"}`
+	formatted := formatProviderMessagesForRole([]map[string]any{{"role": "user", "content": content}}, "media_prompt")
+	got := formatted[0]["content"].(string)
+	if strings.Contains(got, "authoritative context_binding") || strings.Contains(got, "The structured JSON payload") {
+		t.Fatalf("media prompt authority preamble leaked into user payload: %q", got)
+	}
+	for _, fragment := range []string{"context_binding:", "scene: 图书馆", "action: 阅读"} {
+		if !strings.Contains(got, fragment) {
+			t.Fatalf("media prompt YAML missing %q: %q", fragment, got)
+		}
+	}
+}

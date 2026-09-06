@@ -535,7 +535,50 @@ func compactMediaConceptForProvider(raw string) string {
 	if !ok {
 		return raw
 	}
-	return jsonString(cleaned)
+	return jsonString(filterMediaProviderConcept(cleaned))
+}
+
+var mediaProviderConceptKeys = map[string]struct{}{
+	"purpose": {}, "stage": {}, "render_intent": {},
+	"scene": {}, "activity": {}, "location": {}, "mood": {},
+	"action": {}, "pose": {}, "expression": {}, "appearance": {}, "wardrobe": {},
+	"lighting": {}, "style": {}, "color": {}, "palette": {},
+	"camera": {}, "framing": {}, "composition": {}, "angle": {},
+	"capture": {}, "capture_intent": {}, "capture_relationship": {},
+	"device": {}, "device_visibility": {}, "mirror": {}, "photographer": {},
+	"human_subjects": {}, "humanSubjects": {}, "non_human_objects": {}, "nonHumanObjects": {},
+	"subjects": {}, "people": {}, "objects": {}, "props": {},
+	"exclusions": {}, "negative_prompt": {}, "constraints": {},
+	"visual_concept": {}, "prompt": {}, "subject_count": {}, "views": {},
+	"context_binding": {}, "renderer_constraints": {}, "visual_identity": {},
+	"context_override": {},
+}
+
+func filterMediaProviderConcept(value map[string]any) map[string]any {
+	result := make(map[string]any, len(value))
+	for key, child := range value {
+		if _, allowed := mediaProviderConceptKeys[key]; !allowed {
+			continue
+		}
+		if key == "context_binding" {
+			binding := cloneMap(mapValue(child))
+			// Inner state is useful to cognition but is not an image-rendering
+			// instruction. Keep the media user payload focused on scene, identity,
+			// appearance, and renderer constraints.
+			delete(binding, "inner_state")
+			result[key] = binding
+			continue
+		}
+		if key == "context_override" {
+			override := mapValue(child)
+			if explicit, ok := override["explicit"].(bool); ok && explicit {
+				result[key] = map[string]any{"explicit": true}
+			}
+			continue
+		}
+		result[key] = child
+	}
+	return result
 }
 
 // stripProviderMetadata removes persistence/coordination fields from the
