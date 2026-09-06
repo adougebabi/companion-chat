@@ -42,6 +42,18 @@ func openObjectSchema() map[string]any {
 	return map[string]any{"type": "object", "additionalProperties": true}
 }
 
+func nullableStringSchema() map[string]any {
+	return map[string]any{"anyOf": []any{stringSchema(), map[string]any{"type": "null"}}}
+}
+
+func nullableNumberSchema() map[string]any {
+	return map[string]any{"anyOf": []any{numberSchema(), map[string]any{"type": "null"}}}
+}
+
+func jsonValueSchema() map[string]any {
+	return map[string]any{"anyOf": []any{stringSchema(), numberSchema(), booleanSchema(), map[string]any{"type": "null"}, openObjectSchema(), arraySchema(openObjectSchema())}}
+}
+
 // MLX strict-json-schema rejects an unconstrained `{}` schema by hanging while
 // compiling the response grammar. Persona values are intentionally rendered
 // as open JSON objects for the first slice, which preserves arbitrary nested
@@ -187,6 +199,65 @@ func reflectionResponseSchema() map[string]any {
 }
 
 func initializationResponseSchema() map[string]any {
+	identity := objectSchema(map[string]any{
+		"name":        stringSchema(),
+		"age":         nullableNumberSchema(),
+		"gender":      nullableStringSchema(),
+		"occupation":  nullableStringSchema(),
+		"residence":   nullableStringSchema(),
+		"timezone":    nullableStringSchema(),
+		"birthday":    nullableStringSchema(),
+		"background":  nullableStringSchema(),
+		"biography":   nullableStringSchema(),
+		"core_values": arraySchema(jsonValueSchema()),
+		"worldview":   nullableStringSchema(),
+		"notes":       nullableStringSchema(),
+	}, []string{"name"}, false)
+	personality := objectSchema(map[string]any{
+		"openness":          unitNumberSchema(),
+		"conscientiousness": unitNumberSchema(),
+		"extraversion":      unitNumberSchema(),
+		"agreeableness":     unitNumberSchema(),
+		"neuroticism":       unitNumberSchema(),
+		"curiosity":         unitNumberSchema(),
+		"independence":      unitNumberSchema(),
+		"patience":          unitNumberSchema(),
+		"empathy":           unitNumberSchema(),
+		"assertiveness":     unitNumberSchema(),
+		"humor":             unitNumberSchema(),
+		"sociability":       unitNumberSchema(),
+		"risk_tolerance":    unitNumberSchema(),
+		"update_policy":     openObjectSchema(),
+	}, nil, false)
+	behavioralPolicy := objectSchema(map[string]any{
+		"response_style":       stringSchema(),
+		"message_length":       stringSchema(),
+		"emoji_frequency":      unitNumberSchema(),
+		"punctuation_style":    stringSchema(),
+		"humor_style":          stringSchema(),
+		"sarcasm_tendency":     unitNumberSchema(),
+		"directness":           unitNumberSchema(),
+		"initiative":           unitNumberSchema(),
+		"topic_initiation":     unitNumberSchema(),
+		"silence_tolerance":    unitNumberSchema(),
+		"response_delay":       numberSchema(),
+		"emotional_expression": unitNumberSchema(),
+		"conflict_style":       stringSchema(),
+		"refusal_style":        stringSchema(),
+		"intimacy_expression":  stringSchema(),
+	}, nil, false)
+	appearance := objectSchema(map[string]any{
+		"chest_cup": enumStringSchema("A", "B", "C", "D"),
+	}, nil, true)
+	lifeProfile := objectSchema(map[string]any{
+		"appearance":            appearance,
+		"social_background":     openObjectSchema(),
+		"preferences":           openObjectSchema(),
+		"life_habits":           arraySchema(jsonValueSchema()),
+		"recurring_commitments": arraySchema(jsonValueSchema()),
+		"relationship_seeds":    arraySchema(openObjectSchema()),
+		"character_constraints": arraySchema(jsonValueSchema()),
+	}, nil, false)
 	goal := objectSchema(map[string]any{
 		"description":     stringSchema(),
 		"importance":      unitNumberSchema(),
@@ -217,32 +288,23 @@ func initializationResponseSchema() map[string]any {
 		"provenance":    openObjectSchema(),
 		"status":        enumStringSchema("active", "uncertain"),
 	}, []string{"category", "claim", "value", "confidence", "evidence_refs", "provenance"}, false)
-	// Keep the visual appearance contract visible to the initialization model.
-	// life_profile intentionally remains extensible because the persona schema
-	// accepts domain-specific fields, but appearance.chest_cup is a typed,
-	// canonical location rather than another free-form alias.  The field is
-	// optional so male/non-applicable personas can omit it.
-	appearance := objectSchema(map[string]any{
-		"chest_cup": enumStringSchema("A", "B", "C", "D"),
-	}, nil, true)
-	lifeProfile := objectSchema(map[string]any{
-		"appearance": appearance,
-	}, nil, true)
 	corePersona := objectSchema(map[string]any{
 		"schema_version":    integerSchema(),
-		"identity":          openObjectSchema(),
-		"personality":       openObjectSchema(),
-		"behavioral_policy": openObjectSchema(),
+		"identity":          identity,
+		"personality":       personality,
+		"behavioral_policy": behavioralPolicy,
 		"life_profile":      lifeProfile,
 	}, []string{"identity", "personality", "behavioral_policy", "life_profile"}, false)
 	developingSelf := objectSchema(map[string]any{"claims": arraySchema(claim)}, []string{"claims"}, false)
 	return objectSchema(map[string]any{
+		"schema_version":        integerSchema(),
 		"core_persona":          corePersona,
 		"developing_self":       developingSelf,
 		"initial_goals":         arraySchema(goal),
 		"initial_intentions":    arraySchema(intention),
 		"initial_relationships": arraySchema(relationship),
-	}, []string{"core_persona", "developing_self", "initial_goals", "initial_intentions"}, false)
+		"extensions":            openObjectSchema(),
+	}, []string{"core_persona", "developing_self", "initial_relationships", "initial_goals", "initial_intentions", "extensions"}, false)
 }
 
 func visualIdentityVisionResponseSchema() map[string]any {

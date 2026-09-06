@@ -9,45 +9,39 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-var validRelationshipRoleCodes = map[string]struct{}{
-	"unknown": {}, "owner": {}, "creator": {}, "romantic_partner": {},
-	"family": {}, "friend": {}, "collaborator": {}, "mentor": {},
-	"mentee": {}, "peer": {}, "rival": {}, "stranger": {},
-	"trusted_companion": {},
-}
-
 func normalizeRelationshipRole(value any) (map[string]any, error) {
 	role := mapValue(value)
 	if len(role) == 0 {
-		return map[string]any{"primary": "unknown", "secondary": []any{}}, nil
-	}
-	primary := strings.TrimSpace(stringValue(role["primary"]))
-	if primary == "" {
-		return nil, errors.New("relationship_role_primary_required")
-	}
-	if _, ok := validRelationshipRoleCodes[primary]; !ok {
-		return nil, fmt.Errorf("relationship_role_invalid: %s", primary)
-	}
-	secondary := make([]any, 0)
-	for _, raw := range arrayValue(role["secondary"]) {
-		code := strings.TrimSpace(stringValue(raw))
-		if code == "" {
-			continue
-		}
-		if _, ok := validRelationshipRoleCodes[code]; !ok {
-			return nil, fmt.Errorf("relationship_role_invalid: %s", code)
-		}
-		if code != primary && !containsStringValue(secondary, code) {
-			secondary = append(secondary, code)
-		}
+		return map[string]any{"label": "unknown", "addressing": map[string]any{}}, nil
 	}
 	label := strings.TrimSpace(stringValue(role["label"]))
+	if label == "" {
+		label = strings.TrimSpace(stringValue(role["primary"]))
+	}
 	if len([]rune(label)) > 256 {
 		return nil, errors.New("relationship_role_label_invalid")
 	}
-	result := map[string]any{"primary": primary, "secondary": secondary}
+	result := map[string]any{}
 	if label != "" {
 		result["label"] = label
+	}
+	if category := strings.TrimSpace(stringValue(role["category"])); category != "" {
+		if len([]rune(category)) > 128 {
+			return nil, errors.New("relationship_role_category_invalid")
+		}
+		result["category"] = category
+	}
+	if secondary := arrayValue(role["secondary"]); len(secondary) > 0 {
+		labels := make([]any, 0, len(secondary))
+		for _, raw := range secondary {
+			value := strings.TrimSpace(stringValue(raw))
+			if value != "" && len([]rune(value)) <= 128 {
+				labels = append(labels, value)
+			}
+		}
+		if len(labels) > 0 {
+			result["secondary"] = labels
+		}
 	}
 	if addressing := mapValue(role["addressing"]); len(addressing) > 0 {
 		preferred := strings.TrimSpace(stringValue(addressing["preferred"]))
@@ -56,7 +50,13 @@ func normalizeRelationshipRole(value any) (map[string]any, error) {
 		}
 		if preferred != "" {
 			result["addressing"] = map[string]any{"preferred": preferred}
+			if selfReference := strings.TrimSpace(stringValue(addressing["self_reference"])); selfReference != "" && len([]rune(selfReference)) <= 128 {
+				result["addressing"].(map[string]any)["self_reference"] = selfReference
+			}
 		}
+	}
+	if len(result) == 0 {
+		return nil, errors.New("relationship_role_empty")
 	}
 	return result, nil
 }

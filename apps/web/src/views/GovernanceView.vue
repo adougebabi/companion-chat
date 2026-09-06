@@ -115,7 +115,7 @@ function capabilityRequestStatus(value: unknown): string {
         <p v-if="!(controlCenter.fluctlightDetail.relationships as unknown[])?.length" class="field-note">尚未形成关系状态。</p>
         <ul v-else class="detail-list relationship-governance-list"><li v-for="relationship in controlCenter.fluctlightDetail.relationships as Array<Record<string, unknown>>" :key="String(relationship.target_actor_id)">
           <strong>{{ formatDisplayValue(relationship.target_actor_id) }}<span v-if="relationship.is_current_user" class="status-pill">当前用户</span></strong>
-          <small>{{ relationship.target_actor_type === "human" ? "Human" : relationship.target_actor_type === "fluctlight" ? "Fluctlight" : "Actor" }} · {{ formatDisplayValue((relationship.role as Record<string, unknown> | undefined)?.primary ?? "unknown") }} · {{ enumLabel(relationship.trend) }} · {{ labelFor("revision") }} {{ formatDisplayValue(relationship.revision) }}</small>
+          <small>{{ relationship.target_actor_type === "human" ? "Human" : relationship.target_actor_type === "fluctlight" ? "Fluctlight" : "Actor" }} · {{ formatDisplayValue((relationship.role as Record<string, unknown> | undefined)?.label ?? (relationship.role as Record<string, unknown> | undefined)?.primary ?? "unknown") }} · {{ enumLabel(relationship.trend) }} · {{ labelFor("revision") }} {{ formatDisplayValue(relationship.revision) }}</small>
           <template v-if="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)]">
             <div class="form-grid">
               <label :for="'relationship-trend-' + String(relationship.target_actor_id)">趋势

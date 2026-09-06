@@ -257,7 +257,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 		return nil, errors.New("description_invalid")
 	}
 	messages := []map[string]any{
-		{"role": "system", "content": "You are initializing actor_self, the current Fluctlight. The fixed Actor ref actor_user always means the current authenticated Human user; use actor_user as target_actor_id when a relationship or goal refers to that user, never a database ID. Return one JSON object with core_persona, developing_self, initial_relationships, initial_goals, and initial_intentions. core_persona must contain identity, personality, behavioral_policy, and life_profile. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_relationships may describe actor_self's relationship to actor_user; role is the social relationship, and role.addressing.preferred is the way actor_self should address actor_user. Do not infer a relationship only because actor_user is the current user; return unknown when the description does not establish one. initial_goals must be an array of objects with description, importance (0..1), urgency (0..1), and optional scope (general or relationship) plus target_actor_id for relationship goals. initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Do not return markdown or legacy foundation/personality candidate fields."},
+		{"role": "system", "content": "You are initializing actor_self, the current Fluctlight. The fixed Actor ref actor_user always means the current authenticated Human user; use actor_user as target_actor_id when a relationship or goal refers to that user, never a database ID. Return exactly one JSON object with exactly these top-level fields: schema_version, core_persona, developing_self, initial_relationships, initial_goals, initial_intentions, extensions. Always return all arrays, using [] when empty. All known fields must stay in their canonical groups; put any not-yet-classified field only under extensions, never invent another top-level field. Known identity fields are name, age, gender, occupation, residence, timezone, birthday, background, biography, core_values, worldview, and notes. Known personality fields are openness, conscientiousness, extraversion, agreeableness, neuroticism, curiosity, independence, patience, empathy, assertiveness, humor, sociability, risk_tolerance, and update_policy. Known behavioral_policy fields are response_style, message_length, emoji_frequency, punctuation_style, humor_style, sarcasm_tendency, directness, initiative, topic_initiation, silence_tolerance, response_delay, emotional_expression, conflict_style, refusal_style, and intimacy_expression. Known life_profile fields are appearance, social_background, preferences, life_habits, recurring_commitments, relationship_seeds, and character_constraints. core_persona must contain identity, personality, behavioral_policy, and life_profile. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_relationships may describe actor_self's relationship to actor_user; role is an open semantic object with a label and optional role.addressing.preferred/self_reference. Do not infer a relationship only because actor_user is the current user; return an unknown role when the description does not establish one. initial_goals must be an array of objects with description, importance (0..1), urgency (0..1), and optional scope (general or relationship) plus target_actor_id for relationship goals. initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Do not return markdown or legacy foundation/personality candidate fields."},
 		{"role": "system", "content": "Canonical visual appearance contract: if the description specifies a chest cup, put only the normalized label A/B/C/D in exactly core_persona.life_profile.appearance.chest_cup (example: {\"life_profile\":{\"appearance\":{\"chest_cup\":\"A\"}}}). Do not put cup labels in identity.body_type, identity.build, identity.chest, life_profile.physical_traits, or free-form visible_text. For male or non-applicable bodies, omit chest_cup; the renderer will mark it not_applicable. Keep other appearance fields under life_profile.appearance."},
 		{"role": "user", "content": description},
 	}
@@ -265,6 +265,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 	if err != nil {
 		return nil, err
 	}
+	result = normalizeInitializationResponse(result)
 	normalizeVisualIdentityFoundation(mapValue(result["core_persona"]))
 	if !validInitialization(result) {
 		return nil, errors.New("initialization_persona_invalid")
@@ -274,9 +275,12 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 
 func validInitialization(value map[string]any) bool {
 	for key := range value {
-		if _, ok := map[string]struct{}{"core_persona": {}, "developing_self": {}, "initial_goals": {}, "initial_intentions": {}, "initial_relationships": {}}[key]; !ok {
+		if _, ok := map[string]struct{}{"schema_version": {}, "core_persona": {}, "developing_self": {}, "initial_goals": {}, "initial_intentions": {}, "initial_relationships": {}, "extensions": {}}[key]; !ok {
 			return false
 		}
+	}
+	if extensions, ok := value["extensions"]; ok && !isObjectValue(extensions) {
+		return false
 	}
 	corePersona, ok := value["core_persona"].(map[string]any)
 	if !ok || len(corePersona) == 0 {
@@ -357,7 +361,7 @@ func validInitialization(value map[string]any) bool {
 							}
 						}
 					}
-				} else {
+				} else if key == "initial_intentions" {
 					if strings.TrimSpace(stringValue(item["action"])) == "" {
 						return false
 					}
@@ -390,6 +394,76 @@ func validInitialization(value map[string]any) bool {
 		}
 	}
 	return true
+}
+
+func isObjectValue(value any) bool {
+	object, ok := value.(map[string]any)
+	return ok && object != nil
+}
+
+func normalizeInitializationResponse(value map[string]any) map[string]any {
+	result := cloneMap(value)
+	if result == nil {
+		result = map[string]any{}
+	}
+	extensions := mapValue(result["extensions"])
+	if extensions == nil {
+		extensions = map[string]any{}
+	}
+	if _, ok := result["schema_version"]; !ok {
+		result["schema_version"] = 2
+	}
+	if _, ok := result["initial_relationships"]; !ok {
+		if raw, exists := result["relationships"]; exists {
+			result["initial_relationships"] = raw
+			delete(result, "relationships")
+		} else if raw, exists := result["relationship_seeds"]; exists {
+			result["initial_relationships"] = raw
+			delete(result, "relationship_seeds")
+		} else {
+			lifeProfile := mapValue(mapValue(result["core_persona"])["life_profile"])
+			result["initial_relationships"] = lifeProfile["relationship_seeds"]
+			delete(lifeProfile, "relationship_seeds")
+		}
+	}
+	if result["initial_relationships"] == nil {
+		result["initial_relationships"] = []any{}
+	}
+	if result["initial_goals"] == nil {
+		result["initial_goals"] = []any{}
+	}
+	if result["initial_intentions"] == nil {
+		result["initial_intentions"] = []any{}
+	}
+	if raw, ok := result["other"]; ok {
+		extensions["other"] = raw
+		delete(result, "other")
+	}
+	knownTopLevel := map[string]struct{}{"schema_version": {}, "core_persona": {}, "developing_self": {}, "initial_relationships": {}, "initial_goals": {}, "initial_intentions": {}, "extensions": {}}
+	for key, raw := range result {
+		if _, ok := knownTopLevel[key]; !ok {
+			extensions["top_level."+key] = raw
+			delete(result, key)
+		}
+	}
+	persona := mapValue(result["core_persona"])
+	knownPersona := map[string]map[string]struct{}{
+		"identity":          {"name": {}, "age": {}, "gender": {}, "occupation": {}, "residence": {}, "timezone": {}, "birthday": {}, "background": {}, "biography": {}, "core_values": {}, "worldview": {}, "notes": {}},
+		"personality":       {"openness": {}, "conscientiousness": {}, "extraversion": {}, "agreeableness": {}, "neuroticism": {}, "curiosity": {}, "independence": {}, "patience": {}, "empathy": {}, "assertiveness": {}, "humor": {}, "sociability": {}, "risk_tolerance": {}, "update_policy": {}},
+		"behavioral_policy": {"response_style": {}, "message_length": {}, "emoji_frequency": {}, "punctuation_style": {}, "humor_style": {}, "sarcasm_tendency": {}, "directness": {}, "initiative": {}, "topic_initiation": {}, "silence_tolerance": {}, "response_delay": {}, "emotional_expression": {}, "conflict_style": {}, "refusal_style": {}, "intimacy_expression": {}},
+		"life_profile":      {"appearance": {}, "social_background": {}, "preferences": {}, "life_habits": {}, "recurring_commitments": {}, "relationship_seeds": {}, "character_constraints": {}},
+	}
+	for group, allowed := range knownPersona {
+		fields := mapValue(persona[group])
+		for key, raw := range fields {
+			if _, ok := allowed[key]; !ok {
+				extensions["core_persona."+group+"."+key] = raw
+				delete(fields, key)
+			}
+		}
+	}
+	result["extensions"] = extensions
+	return result
 }
 
 // Providers sometimes group goals/intentions by horizon instead of emitting
@@ -493,6 +567,9 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 	if mode != "blank_slate" && mode != "llm_defined" {
 		return Fluctlight{}, errors.New("initialization_mode_invalid")
 	}
+	if foundation != nil {
+		foundation = normalizeInitializationResponse(foundation)
+	}
 	if mode == "llm_defined" && (foundation == nil || !validInitialization(foundation)) {
 		return Fluctlight{}, errors.New("initialization_persona_invalid")
 	}
@@ -510,6 +587,9 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 	lifeProfile := mapValue(corePersona["life_profile"])
 	provenance := defaultProvenance()
 	if foundation != nil {
+		if extensions := mapValue(foundation["extensions"]); len(extensions) > 0 {
+			provenance["initialization_extensions"] = extensions
+		}
 		if value, ok := foundation["core_persona"].(map[string]any); ok {
 			corePersona = value
 		}

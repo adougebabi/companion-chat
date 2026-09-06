@@ -3,18 +3,20 @@ package core
 import "testing"
 
 func TestNormalizeRelationshipRole(t *testing.T) {
-	role, err := normalizeRelationshipRole(map[string]any{"primary": "romantic_partner", "secondary": []any{"trusted_companion", "romantic_partner"}, "label": "伴侣"})
+	role, err := normalizeRelationshipRole(map[string]any{"label": "准恋人/暧昧对象", "addressing": map[string]any{"preferred": "你", "self_reference": "夏希/希希"}})
 	if err != nil {
 		t.Fatalf("normalize role: %v", err)
 	}
-	if role["primary"] != "romantic_partner" || len(arrayValue(role["secondary"])) != 1 || role["label"] != "伴侣" {
+	addressing := mapValue(role["addressing"])
+	if role["label"] != "准恋人/暧昧对象" || stringValue(addressing["preferred"]) != "你" || stringValue(addressing["self_reference"]) != "夏希/希希" {
 		t.Fatalf("normalized role = %#v", role)
 	}
 }
 
-func TestNormalizeRelationshipRoleRejectsUnknownCode(t *testing.T) {
-	if _, err := normalizeRelationshipRole(map[string]any{"primary": "made_up"}); err == nil {
-		t.Fatal("expected unknown relationship role to be rejected")
+func TestNormalizeRelationshipRoleAcceptsUnclassifiedLabel(t *testing.T) {
+	role, err := normalizeRelationshipRole(map[string]any{"primary": "made_up"})
+	if err != nil || role["label"] != "made_up" {
+		t.Fatalf("unclassified relationship role = %#v, err=%v", role, err)
 	}
 }
 

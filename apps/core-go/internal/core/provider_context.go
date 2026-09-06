@@ -93,7 +93,7 @@ func compactActorRelationshipContext(projection ContextProjection) map[string]an
 			}
 		}
 		if _, ok := result["relationship"]; !ok {
-			result["relationship"] = map[string]any{"role": map[string]any{"primary": "unknown", "secondary": []any{}}, "trend": "stable", "revision": 0, "provenance": map[string]any{"source": "unestablished"}}
+			result["relationship"] = map[string]any{"role": map[string]any{"label": "unknown"}, "trend": "stable", "revision": 0, "provenance": map[string]any{"source": "unestablished"}}
 		}
 		if goals := compactProviderGoalsForActors(relationshipGoalsForTarget(projection.Goals, targetID), projection.Actors); len(goals) > 0 {
 			result["goals"] = goals
