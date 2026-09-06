@@ -571,8 +571,8 @@ func (a *App) GovernAutonomy(ctx context.Context, actorID, actionID, toStatus, r
 	if toStatus != "paused" && toStatus != "cancelled" && toStatus != "failed" && toStatus != "frozen" && toStatus != "completed" {
 		return nil, errors.New("autonomy_status_invalid")
 	}
-	var fluctlightID, from string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,status FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&fluctlightID, &from); err != nil {
+	var fluctlightID, from, workflowID string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,status,workflow_id FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&fluctlightID, &from, &workflowID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
@@ -596,7 +596,19 @@ func (a *App) GovernAutonomy(ctx context.Context, actorID, actionID, toStatus, r
 	}); err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": actionID, "status": toStatus, "from_status": from, "reason": reason}, nil
+	result := map[string]any{"id": actionID, "status": toStatus, "from_status": from, "reason": reason}
+	if (toStatus == "cancelled" || toStatus == "paused") && strings.TrimSpace(workflowID) != "" && a.Workflows != nil {
+		command := "cancel"
+		if toStatus == "paused" {
+			command = "pause"
+		}
+		if workflowResult, workflowErr := a.WorkflowCommand(ctx, actorID, workflowID, command, map[string]any{"action_id": actionID, "reason": reason}); workflowErr != nil {
+			result["workflow_command_error"] = workflowErr.Error()
+		} else {
+			result["workflow_command"] = workflowResult
+		}
+	}
+	return result, nil
 }
 
 func nullableString(value string) any {
