@@ -74,6 +74,10 @@ created_at / ready_at / tombstoned_at / deleted_at
   must not silently lose `chest_lora_weight` when the same frozen concept is
   routed through it.
 - The external Provider job ID is persisted on the committed media intent immediately after submission. Activity retries reuse that ID for polling and cancellation; they never submit a second Provider job for the same intent. A ready asset is the authoritative replay boundary, so retries only reapply idempotent conversation/Moment projections.
+- Visual Identity seed/candidate/character-sheet media intents are workflow-owned
+  assets. They do not bind to the direct conversation or create assistant chat
+  messages; Diagnostics and the Visual Identity timeline are their projection
+  surfaces.
 - A downloaded image candidate must pass the C-stage visual consistency gate before Core writes a `ready` asset or creates a media reference. C reuses the configured `media_prompt` model with the frozen media concept, authoritative context, final provider prompt, and a bounded private image input. An explicit `pass` permits normal upload/publish; an infrastructure-only C failure (model unavailable/timeout/unsupported vision/invalid response or unsafe candidate read) records `skipped` and fail-open publishes the Provider-successful candidate. An explicit content `retry` may re-run B and the Provider once with the same frozen concept/target; an explicit `reject` or exhausted retry fails only the media target and never attaches the candidate.
 - Long media activities record an initial and periodic Temporal heartbeat while
   prompt generation, Provider submission, object download, or polling is in
