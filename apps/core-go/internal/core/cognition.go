@@ -73,10 +73,12 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 		claimOwner = "go-cognition:" + randomID("worker_")
 	}
 	var payload []byte
+	var fluctlightID string
+	var sequence int
 	var status, claimedBy string
 	var claimedAt *time.Time
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx, `SELECT payload,status,COALESCE(claimed_by,''),claimed_at FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&payload, &status, &claimedBy, &claimedAt); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,sequence,payload,status,COALESCE(claimed_by,''),claimed_at FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&fluctlightID, &sequence, &payload, &status, &claimedBy, &claimedAt); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -86,6 +88,19 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 			return nil
 		}
 		if status == "claimed" && claimedBy != "" && claimedAt != nil && time.Since(*claimedAt) < 10*time.Minute {
+			return ErrConflict
+		}
+		var lastProcessed int
+		if err := tx.QueryRow(ctx, `SELECT last_processed_sequence FROM public.cognition_inbox_heads WHERE fluctlight_id=$1`, fluctlightID).Scan(&lastProcessed); err == nil {
+			if sequence > lastProcessed+1 {
+				return ErrConflict
+			}
+		}
+		var earlierPending bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence<$2 AND status IN ('pending','claimed'))`, fluctlightID, sequence).Scan(&earlierPending); err != nil {
+			return err
+		}
+		if earlierPending {
 			return ErrConflict
 		}
 		_, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now(),attempt_count=attempt_count+1 WHERE id=$1`, inboxID, claimOwner)
