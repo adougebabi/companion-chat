@@ -59,6 +59,12 @@ MemoryEmbedding
 - The native `memory_event` capability may omit `emotional_significance`; the
   Runtime normalizes the missing optional signal to `0` (no inferred emotional
   weight) while retaining the required authoritative field on the Memory row.
+- A shared Memory has one canonical fact row. Optional `personality_perspectives`
+  contains at most one validated interpretation per declared personality
+  profile, with bounded evidence references; retrieval selects only the active
+  profile perspective and never duplicates the Memory row. Perspective evidence
+  is validated against the same cognition/reflection evidence window as the
+  parent Memory.
 
 ### 4. Validation & Error Matrix
 

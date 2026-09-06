@@ -421,3 +421,70 @@ func TestCompactRecentMessagesUsesActorUserAndFluctlightDisplayName(t *testing.T
 		t.Fatalf("actor sender rendering = %#v", compact)
 	}
 }
+
+func TestCompactMemoriesUsesActiveProfilePerspectiveWithoutDuplicatingMemory(t *testing.T) {
+	memories := []map[string]any{{
+		"type": "episodic", "content": "actor_user 昨天说很累", "confidence": 0.9,
+		"perspectives": []any{
+			map[string]any{"profile_id": "warm", "interpretation": "主动关心", "emotion": "担心"},
+			map[string]any{"profile_id": "guarded", "interpretation": "保持空间", "emotion": "克制"},
+		},
+	}}
+	compact := compactMemoriesForProfile(memories, "guarded")
+	if len(compact) != 1 || len(compact[0]) == 0 {
+		t.Fatalf("compact memories = %#v", compact)
+	}
+	perspective := mapValue(compact[0]["current_profile_perspective"])
+	if stringValue(perspective["interpretation"]) != "保持空间" || stringValue(compact[0]["content"]) == "" {
+		t.Fatalf("active profile perspective = %#v", compact)
+	}
+}
+
+func TestSelectActiveProfileRelationshipsPrefersDominantProfileAndSharedFallback(t *testing.T) {
+	values := []map[string]any{
+		{"target_actor_id": "actor_user", "profile_id": "", "summary": "shared"},
+		{"target_actor_id": "actor_user", "profile_id": "guarded", "summary": "guarded"},
+		{"target_actor_id": "actor_other", "profile_id": "warm", "summary": "other"},
+	}
+	selected := selectActiveProfileRelationships(values, "guarded")
+	if len(selected) != 1 || stringValue(selected[0]["summary"]) != "guarded" {
+		t.Fatalf("selected relationships = %#v", selected)
+	}
+}
+
+func TestNormalizeOutputPreferenceDecisionBlocksUnsupportedChannels(t *testing.T) {
+	result, err := normalizeOutputPreferenceDecision(map[string]any{
+		"matched": true, "channel": "moment", "reason": "分享", "confidence": 0.8,
+	}, "warm")
+	if err != nil {
+		t.Fatalf("normalizeOutputPreferenceDecision() error = %v", err)
+	}
+	matched, _ := result["matched"].(bool)
+	if matched || stringValue(result["status"]) != "unsupported" || stringValue(result["profile_id"]) != "warm" {
+		t.Fatalf("normalized decision = %#v", result)
+	}
+}
+
+func TestProviderMetadataKeepsPersonalityProfileIdentifiers(t *testing.T) {
+	cleaned, ok := stripProviderContextMetadata(map[string]any{
+		"active_profile_id": "guarded", "profile_id": "warm", "message_id": "internal",
+	}).(map[string]any)
+	if !ok || stringValue(cleaned["active_profile_id"]) != "guarded" || stringValue(cleaned["profile_id"]) != "warm" {
+		t.Fatalf("profile identifiers were stripped: %#v", cleaned)
+	}
+	if _, exists := cleaned["message_id"]; exists {
+		t.Fatalf("internal message id leaked: %#v", cleaned)
+	}
+}
+
+func TestEvaluateOutputPreferenceActionRequiresCapabilityBinding(t *testing.T) {
+	base := map[string]any{"matched": true, "channel": "image", "profile_id": "warm"}
+	withoutCall := evaluateOutputPreferenceAction(base, "reply", nil)
+	if stringValue(withoutCall["status"]) != "matched_without_capability_request" {
+		t.Fatalf("unbound image preference = %#v", withoutCall)
+	}
+	withCall := evaluateOutputPreferenceAction(base, "reply", []ToolCallV1{{Name: "media.image.generate"}})
+	if stringValue(withCall["status"]) != "authorized" {
+		t.Fatalf("bound image preference = %#v", withCall)
+	}
+}

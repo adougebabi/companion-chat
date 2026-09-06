@@ -29,6 +29,9 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	if self := compactActorRef(projection.SelfActor); len(self) > 0 {
 		result["self_actor"] = self
 	}
+	if system := compactPersonalitySystem(projection.PersonalitySystem, projection.PersonalityRuntime); len(system) > 0 {
+		result["personality_system"] = system
+	}
 	if speaker := compactActorRef(projection.CurrentSpeaker); len(speaker) > 0 {
 		result["current_speaker"] = speaker
 	}
@@ -44,7 +47,7 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 		result["developing_self"] = compactDevelopingSelf(projection.DevelopingSelf)
 	}
 	if len(projection.Memories) > 0 {
-		result["memories"] = compactMemories(projection.Memories)
+		result["memories"] = compactMemoriesForProfile(projection.Memories, stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"]))
 	}
 	if len(projection.Relationships) > 0 {
 		result["relationships"] = compactRelationships(projection.Relationships, projection.Actors)
@@ -78,6 +81,34 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	return stripProviderContextMetadata(result).(map[string]any)
 }
 
+func compactPersonalitySystem(system, runtime map[string]any) map[string]any {
+	if len(system) == 0 && len(runtime) == 0 {
+		return nil
+	}
+	result := cloneMap(system)
+	if result == nil {
+		result = map[string]any{}
+	}
+	delete(result, "extensions")
+	if active := stringValue(mapValue(runtime)["active_profile_id"]); active != "" {
+		result["active_profile_id"] = active
+		for _, raw := range arrayValue(system["profiles"]) {
+			profile := mapValue(raw)
+			if stringValue(profile["id"]) == active {
+				result["active_profile"] = profile
+				break
+			}
+		}
+	}
+	if previous := stringValue(mapValue(runtime)["previous_profile_id"]); previous != "" {
+		result["previous_profile_id"] = previous
+	}
+	if revision := intValue(mapValue(runtime)["revision"]); revision > 0 {
+		result["runtime_revision"] = revision
+	}
+	return result
+}
+
 func compactActorRelationshipContext(projection ContextProjection) map[string]any {
 	result := map[string]any{}
 	if self := compactActorRef(projection.SelfActor); len(self) > 0 {
@@ -86,11 +117,21 @@ func compactActorRelationshipContext(projection ContextProjection) map[string]an
 	if speaker := compactActorRef(projection.CurrentSpeaker); len(speaker) > 0 {
 		result["target_actor"] = speaker
 		targetID := stringValue(projection.CurrentSpeaker["actor_id"])
+		activeProfileID := stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"])
+		var fallbackRelationship map[string]any
 		for _, relationship := range projection.Relationships {
 			if stringValue(relationship["target_actor_id"]) == targetID {
-				result["relationship"] = compactRelationship(relationship)
-				break
+				if stringValue(relationship["profile_id"]) == activeProfileID && activeProfileID != "" {
+					result["relationship"] = compactRelationship(relationship)
+					break
+				}
+				if stringValue(relationship["profile_id"]) == "" {
+					fallbackRelationship = relationship
+				}
 			}
+		}
+		if _, ok := result["relationship"]; !ok && len(fallbackRelationship) > 0 {
+			result["relationship"] = compactRelationship(fallbackRelationship)
 		}
 		if _, ok := result["relationship"]; !ok {
 			result["relationship"] = map[string]any{"role": map[string]any{"label": "unknown"}, "trend": "stable", "revision": 0, "provenance": map[string]any{"source": "unestablished"}}
@@ -399,6 +440,10 @@ func compactDevelopingSelf(claims []map[string]any) []map[string]any {
 }
 
 func compactMemories(memories []map[string]any) []map[string]any {
+	return compactMemoriesForProfile(memories, "")
+}
+
+func compactMemoriesForProfile(memories []map[string]any, activeProfileID string) []map[string]any {
 	result := make([]map[string]any, 0, len(memories))
 	for _, memory := range memories {
 		compact := make(map[string]any, 7)
@@ -410,11 +455,33 @@ func compactMemories(memories []map[string]any) []map[string]any {
 				compact[key] = value
 			}
 		}
+		perspectives := arrayValue(memory["personality_perspectives"])
+		if len(perspectives) == 0 {
+			perspectives = arrayValue(memory["perspectives"])
+		}
+		if perspective := memoryPerspectiveForProfile(perspectives, activeProfileID); len(perspective) > 0 {
+			compact["current_profile_perspective"] = perspective
+		}
 		if len(compact) > 0 {
 			result = append(result, compact)
 		}
 	}
 	return result
+}
+
+func memoryPerspectiveForProfile(values []any, activeProfileID string) map[string]any {
+	if strings.TrimSpace(activeProfileID) == "" {
+		return nil
+	}
+	for _, raw := range values {
+		perspective := mapValue(raw)
+		if stringValue(perspective["profile_id"]) == activeProfileID {
+			result := cloneMap(perspective)
+			delete(result, "profile_id")
+			return result
+		}
+	}
+	return nil
 }
 
 func compactInnerState(inner map[string]any) map[string]any {
@@ -550,10 +617,16 @@ func compactRendererConstraints(value map[string]any) map[string]any {
 // not help a model write the visible reply.
 func compactResponsePlanForProvider(plan map[string]any) map[string]any {
 	result := make(map[string]any, 8)
-	for _, key := range []string{"answer_mode", "action_type", "response_intent", "tone"} {
+	for _, key := range []string{"answer_mode", "action_type", "response_intent", "tone", "profile_id"} {
 		if value, ok := plan[key]; ok && value != nil && value != "" {
 			result[key] = value
 		}
+	}
+	if decision := stripProviderMetadata(mapValue(plan["personality_decision"])); len(mapValue(decision)) > 0 {
+		result["personality_decision"] = decision
+	}
+	if decision := stripProviderMetadata(mapValue(plan["output_preference_decision"])); len(mapValue(decision)) > 0 {
+		result["output_preference_decision"] = decision
 	}
 	for _, key := range []string{"approved_claims", "uncertain_claims"} {
 		claims := compactResponseClaims(arrayValue(plan[key]))
@@ -779,6 +852,12 @@ func stripProviderMetadata(value any) any {
 
 func providerMetadataKey(key string) bool {
 	normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
+	// Personality profile identifiers are semantic protocol values: the model
+	// must be able to name the dominant profile and request a valid switch.
+	switch normalized {
+	case "profileid", "activeprofileid", "fromprofileid", "targetprofileid", "currentprofileid":
+		return false
+	}
 	if normalized == "id" || strings.HasSuffix(normalized, "id") {
 		return true
 	}
@@ -831,6 +910,10 @@ func stripProviderContextMetadata(value any) any {
 
 func providerContextMetadataKey(key string) bool {
 	normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
+	switch normalized {
+	case "profileid", "activeprofileid", "fromprofileid", "targetprofileid", "currentprofileid":
+		return false
+	}
 	if normalized == "id" || strings.HasSuffix(normalized, "id") {
 		return true
 	}

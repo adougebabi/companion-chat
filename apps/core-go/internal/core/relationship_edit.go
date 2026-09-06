@@ -94,6 +94,13 @@ func (a *App) EditRelationship(ctx context.Context, actorID, fluctlightID, targe
 	if len(evidence) == 0 {
 		return nil, errors.New("relationship_evidence_required")
 	}
+	profileID := strings.TrimSpace(stringValue(payload["profile_id"]))
+	if profileID == "" {
+		_ = a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(active_profile_id,'default') FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&profileID)
+		if profileID == "" {
+			profileID = "default"
+		}
+	}
 
 	var result map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
@@ -101,7 +108,8 @@ func (a *App) EditRelationship(ctx context.Context, actorID, fluctlightID, targe
 		var revision int
 		var role, metrics, emotional, provenance []byte
 		var summary *string
-		if err := tx.QueryRow(ctx, `SELECT id,role,metrics,trend,summary,emotional_association,provenance,revision FROM public.relationships WHERE owner_fluctlight_id=$1 AND target_actor_id=$2 FOR UPDATE`, fluctlightID, targetActorID).Scan(&id, &role, &metrics, &trend, &summary, &emotional, &provenance, &revision); err != nil {
+		var storedProfileID *string
+		if err := tx.QueryRow(ctx, `SELECT id,profile_id,role,metrics,trend,summary,emotional_association,provenance,revision FROM public.relationships WHERE owner_fluctlight_id=$1 AND target_actor_id=$2 AND (profile_id=$3 OR profile_id IS NULL) ORDER BY CASE WHEN profile_id=$3 THEN 0 ELSE 1 END LIMIT 1 FOR UPDATE`, fluctlightID, targetActorID, profileID).Scan(&id, &storedProfileID, &role, &metrics, &trend, &summary, &emotional, &provenance, &revision); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -162,7 +170,10 @@ func (a *App) EditRelationship(ctx context.Context, actorID, fluctlightID, targe
 		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_governance(id,relationship_id,revision_id,action,actor_id,reason) VALUES($1,$2,$3,'edit',$4,$5)`, randomID("relationship_governance_"), id, revisionID, actorID, nullableString(reason)); err != nil {
 			return err
 		}
-		result = map[string]any{"id": id, "relationship_id": id, "target_actor_id": targetActorID, "revision": newRevision, "role": roleValue, "metrics": metricsValue, "trend": trend, "summary": summary, "emotional_association": emotionalValue, "provenance": provenanceValue, "status": "updated"}
+		result = map[string]any{"id": id, "relationship_id": id, "profile_id": profileID, "target_actor_id": targetActorID, "revision": newRevision, "role": roleValue, "metrics": metricsValue, "trend": trend, "summary": summary, "emotional_association": emotionalValue, "provenance": provenanceValue, "status": "updated"}
+		if storedProfileID != nil && strings.TrimSpace(*storedProfileID) != "" {
+			result["profile_id"] = *storedProfileID
+		}
 		_ = provenance
 		return nil
 	})

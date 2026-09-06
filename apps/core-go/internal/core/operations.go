@@ -454,13 +454,18 @@ func validateFoundationChanges(changes map[string]any) error {
 }
 
 func (a *App) ReviseMemory(ctx context.Context, actorID, id, content string, expected *int, refs []any) (map[string]any, error) {
+	return a.reviseMemory(ctx, actorID, id, content, expected, refs, nil)
+}
+
+func (a *App) reviseMemory(ctx context.Context, actorID, id, content string, expected *int, refs []any, perspectiveOverride []byte) (map[string]any, error) {
 	if strings.TrimSpace(content) == "" || len([]rune(content)) > 32000 || len(refs) == 0 || expected == nil {
 		return nil, errors.New("memory_revision_invalid")
 	}
 	var owner, old string
+	var perspectives []byte
 	var revision, newRevision int
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,content,revision FROM public.memories WHERE id=$1 FOR UPDATE`, id).Scan(&owner, &old, &revision); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,content,personality_perspectives,revision FROM public.memories WHERE id=$1 FOR UPDATE`, id).Scan(&owner, &old, &perspectives, &revision); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -477,10 +482,13 @@ func (a *App) ReviseMemory(ctx context.Context, actorID, id, content string, exp
 			return errors.New("memory_revision_stale")
 		}
 		newRevision = revision + 1
-		if _, err := tx.Exec(ctx, `UPDATE public.memories SET content=$2,revision=$3,evidence_refs=$4,last_confirmed_at=now(),search_document=to_tsvector('simple',$2) WHERE id=$1`, id, content, newRevision, jsonBytes(refs)); err != nil {
+		if len(perspectiveOverride) == 0 {
+			perspectiveOverride = perspectives
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.memories SET content=$2,personality_perspectives=$3,revision=$4,evidence_refs=$5,last_confirmed_at=now(),search_document=to_tsvector('simple',$2) WHERE id=$1`, id, content, perspectiveOverride, newRevision, jsonBytes(refs)); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,status,actor_id,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,'active',$6,$7,$8) ON CONFLICT DO NOTHING`, randomID("memory_revision_"), id, newRevision, revision, content, actorID, jsonBytes(refs), "memory:"+id+":"+fmt.Sprint(newRevision)); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,personality_perspectives,status,actor_id,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,'active',$7,$8,$9) ON CONFLICT DO NOTHING`, randomID("memory_revision_"), id, newRevision, revision, content, perspectiveOverride, actorID, jsonBytes(refs), "memory:"+id+":"+fmt.Sprint(newRevision)); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.memory_embeddings SET status='stale' WHERE memory_id=$1 AND memory_revision<>$2 AND status <> 'stale'`, id, newRevision); err != nil {
@@ -506,9 +514,10 @@ func (a *App) ForgetMemory(ctx context.Context, actorID, id string, expected *in
 		return nil, errors.New("memory_forget_invalid")
 	}
 	var owner string
+	var perspectives []byte
 	var revision, newRevision int
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,revision FROM public.memories WHERE id=$1 FOR UPDATE`, id).Scan(&owner, &revision); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,personality_perspectives,revision FROM public.memories WHERE id=$1 FOR UPDATE`, id).Scan(&owner, &perspectives, &revision); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -528,7 +537,7 @@ func (a *App) ForgetMemory(ctx context.Context, actorID, id string, expected *in
 		if _, err := tx.Exec(ctx, `UPDATE public.memories SET status='forgotten',revision=$2,evidence_refs=$3 WHERE id=$1`, id, newRevision, jsonBytes(refs)); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,status,actor_id,evidence_refs,idempotency_key) SELECT $1,id,$2,$3,content,'forgotten',$4,$5,$6 FROM public.memories WHERE id=$7 ON CONFLICT DO NOTHING`, randomID("memory_revision_"), newRevision, revision, actorID, jsonBytes(refs), "memory-forget:"+id+":"+fmt.Sprint(newRevision), id); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,personality_perspectives,status,actor_id,evidence_refs,idempotency_key) SELECT $1,id,$2,$3,content,$4,'forgotten',$5,$6,$7 FROM public.memories WHERE id=$8 ON CONFLICT DO NOTHING`, randomID("memory_revision_"), newRevision, revision, perspectives, actorID, jsonBytes(refs), "memory-forget:"+id+":"+fmt.Sprint(newRevision), id); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.memory_embeddings SET status='stale' WHERE memory_id=$1 AND status <> 'stale'`, id); err != nil {
@@ -710,14 +719,22 @@ func (a *App) RollbackRelationship(ctx context.Context, actorID, fluctlightID st
 	if len(evidence) == 0 {
 		return nil, errors.New("relationship_evidence_required")
 	}
+	profileID := strings.TrimSpace(stringValue(payload["profile_id"]))
+	if profileID == "" {
+		_ = a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(active_profile_id,'default') FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&profileID)
+		if profileID == "" {
+			profileID = "default"
+		}
+	}
 	var result map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var id string
+		var storedProfileID *string
 		var revision int
 		var role, metrics, emotional, provenance []byte
 		var trend string
 		var summary *string
-		if err := tx.QueryRow(ctx, `SELECT id,revision,role,metrics,trend,summary,emotional_association,provenance FROM public.relationships WHERE owner_fluctlight_id=$1 AND target_actor_id=$2 FOR UPDATE`, fluctlightID, target).Scan(&id, &revision, &role, &metrics, &trend, &summary, &emotional, &provenance); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT id,profile_id,revision,role,metrics,trend,summary,emotional_association,provenance FROM public.relationships WHERE owner_fluctlight_id=$1 AND target_actor_id=$2 AND (profile_id=$3 OR profile_id IS NULL) ORDER BY CASE WHEN profile_id=$3 THEN 0 ELSE 1 END LIMIT 1 FOR UPDATE`, fluctlightID, target, profileID).Scan(&id, &storedProfileID, &revision, &role, &metrics, &trend, &summary, &emotional, &provenance); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -749,7 +766,10 @@ func (a *App) RollbackRelationship(ctx context.Context, actorID, fluctlightID st
 		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_governance(id,relationship_id,revision_id,action,actor_id,reason) VALUES($1,$2,$3,'rollback',$4,$5)`, randomID("relationship_governance_"), id, newRevisionID, actorID, nullableString(stringValue(payload["reason"]))); err != nil {
 			return err
 		}
-		result = map[string]any{"id": id, "relationship_id": id, "revision": newRevision, "target_revision": sourceRevision, "status": "rolled_back"}
+		result = map[string]any{"id": id, "relationship_id": id, "profile_id": profileID, "revision": newRevision, "target_revision": sourceRevision, "status": "rolled_back"}
+		if storedProfileID != nil && strings.TrimSpace(*storedProfileID) != "" {
+			result["profile_id"] = *storedProfileID
+		}
 		_ = role
 		_ = metrics
 		_ = emotional

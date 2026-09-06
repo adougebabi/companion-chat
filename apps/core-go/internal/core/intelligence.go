@@ -45,6 +45,8 @@ type ContextProjection struct {
 	DevelopingSelfRevision int              `json:"developing_self_revision"`
 	CurrentStateRevision   int              `json:"current_state_revision"`
 	CorePersona            map[string]any   `json:"core_persona"`
+	PersonalitySystem      map[string]any   `json:"personality_system,omitempty"`
+	PersonalityRuntime     map[string]any   `json:"personality_runtime,omitempty"`
 	DevelopingSelf         []map[string]any `json:"developing_self"`
 	CurrentState           map[string]any   `json:"current_state"`
 	Identity               map[string]any   `json:"identity"`
@@ -135,6 +137,12 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 		return ContextProjection{}, err
 	}
 	annotateLifeContextClock(lifeContext, stringValue(fluctlight.Identity["timezone"]))
+	personalitySystem := mapValue(fluctlight.CorePersona["personality_system"])
+	personalityRuntime, err := a.readPersonalityRuntime(ctx, fluctlightID, stringValue(personalitySystem["active_profile_id"]))
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	activeProfileID := stringValue(personalityRuntime["active_profile_id"])
 	memories, err := a.RetrieveMemoryContext(ctx, actorID, fluctlightID, conversationID, userText, 12, 2400)
 	if err != nil {
 		return ContextProjection{}, err
@@ -143,6 +151,7 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if err != nil {
 		return ContextProjection{}, err
 	}
+	relationships = selectActiveProfileRelationships(relationships, activeProfileID)
 	if conversationID != "" {
 		filtered := make([]map[string]any, 0, 1)
 		for _, relationship := range relationships {
@@ -175,6 +184,8 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if conversationID != "" {
 		goals, intentions = filterAgencyForTarget(goals, intentions, actorID)
 	}
+	goals = filterActiveProfileRows(goals, activeProfileID)
+	intentions = filterActiveProfileRows(intentions, activeProfileID)
 	visualIdentity, err := a.readVisualIdentityDetail(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -213,7 +224,7 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 		FluctlightID:  fluctlightID, ConversationID: conversationID, SourceFactID: sourceFactID,
 		CurrentUserText: userText, SelfActor: selfActor, CurrentSpeaker: currentSpeaker, Actors: actors, RecentMessages: recentMessages, ContextRevision: fluctlight.CurrentRevision,
 		CorePersonaRevision: fluctlight.CurrentRevision, DevelopingSelfRevision: developingSelfRevision, CurrentStateRevision: intValue(inner["revision"]),
-		CorePersona:    map[string]any{"authority": "hard_constraint", "data": fluctlight.CorePersona},
+		CorePersona: map[string]any{"authority": "hard_constraint", "data": fluctlight.CorePersona}, PersonalitySystem: personalitySystem, PersonalityRuntime: personalityRuntime,
 		DevelopingSelf: developingSelf,
 		CurrentState:   map[string]any{"authority": "transient_state", "data": map[string]any{"inner_state": inner, "life_context": lifeContext}},
 		Identity:       fluctlight.Identity, Personality: fluctlight.Personality,
@@ -253,6 +264,53 @@ func filterAgencyForTarget(goals, intentions []map[string]any, targetActorID str
 		}
 	}
 	return filteredGoals, filteredIntentions
+}
+
+// filterActiveProfileRows keeps shared rows and rows owned by the currently
+// dominant profile. Profile-specific agency must never leak another
+// personality's goals into cognition; shared rows remain a deliberate
+// fallback for legacy and cross-profile facts.
+func filterActiveProfileRows(values []map[string]any, activeProfileID string) []map[string]any {
+	activeProfileID = strings.TrimSpace(activeProfileID)
+	result := make([]map[string]any, 0, len(values))
+	for _, value := range values {
+		profileID := strings.TrimSpace(stringValue(value["profile_id"]))
+		if profileID == "" || (activeProfileID != "" && profileID == activeProfileID) {
+			result = append(result, value)
+		}
+	}
+	return result
+}
+
+func selectActiveProfileRelationships(values []map[string]any, activeProfileID string) []map[string]any {
+	activeProfileID = strings.TrimSpace(activeProfileID)
+	selected := make(map[string]map[string]any)
+	order := make([]string, 0, len(values))
+	for _, value := range values {
+		target := strings.TrimSpace(stringValue(value["target_actor_id"]))
+		if target == "" {
+			continue
+		}
+		profileID := strings.TrimSpace(stringValue(value["profile_id"]))
+		if profileID != "" && activeProfileID != "" && profileID != activeProfileID {
+			continue
+		}
+		current, exists := selected[target]
+		if !exists {
+			selected[target] = value
+			order = append(order, target)
+			continue
+		}
+		currentProfile := strings.TrimSpace(stringValue(current["profile_id"]))
+		if profileID == activeProfileID && currentProfile != activeProfileID {
+			selected[target] = value
+		}
+	}
+	result := make([]map[string]any, 0, len(order))
+	for _, target := range order {
+		result = append(result, selected[target])
+	}
+	return result
 }
 
 func (a *App) buildActorProjection(ctx context.Context, selfActorID, speakerActorID, selfDisplayName string, messages []map[string]any) ([]map[string]any, map[string]any, map[string]any) {
@@ -366,7 +424,7 @@ func (a *App) RetrieveMemoryContext(ctx context.Context, actorID, fluctlightID, 
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerActorID); err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,confidence,importance,emotional_significance,visibility,status,revision,created_at,COALESCE(ts_rank_cd(search_document,plainto_tsquery('simple',$2)),0) FROM public.memories WHERE owner_fluctlight_id=$1 AND status='active' ORDER BY created_at DESC,id DESC LIMIT 200`, fluctlightID, query)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision,created_at,COALESCE(ts_rank_cd(search_document,plainto_tsquery('simple',$2)),0) FROM public.memories WHERE owner_fluctlight_id=$1 AND status='active' ORDER BY created_at DESC,id DESC LIMIT 200`, fluctlightID, query)
 	if err != nil {
 		return nil, err
 	}
@@ -380,13 +438,13 @@ func (a *App) RetrieveMemoryContext(ctx context.Context, actorID, fluctlightID, 
 	scored := make([]scoredMemory, 0)
 	for rows.Next() {
 		var id, typ, content, visibility, status string
-		var actorRefs, eventRefs, evidenceRefs []byte
+		var actorRefs, eventRefs, evidenceRefs, perspectives []byte
 		var conversationRef *string
 		var confidence, importance, emotional float64
 		var revision int
 		var created time.Time
 		var searchRank float64
-		if err := rows.Scan(&id, &typ, &content, &actorRefs, &conversationRef, &eventRefs, &evidenceRefs, &confidence, &importance, &emotional, &visibility, &status, &revision, &created, &searchRank); err != nil {
+		if err := rows.Scan(&id, &typ, &content, &actorRefs, &conversationRef, &eventRefs, &evidenceRefs, &perspectives, &confidence, &importance, &emotional, &visibility, &status, &revision, &created, &searchRank); err != nil {
 			return nil, err
 		}
 		actors := decodeArray(actorRefs)
@@ -412,6 +470,9 @@ func (a *App) RetrieveMemoryContext(ctx context.Context, actorID, fluctlightID, 
 			"conversation_id": conversationRef, "event_refs": decodeArray(eventRefs),
 			"evidence_refs": decodeArray(evidenceRefs), "source": "memory:" + id,
 			"created_at": created.Format(time.RFC3339Nano),
+		}
+		if values := decodeArray(perspectives); len(values) > 0 {
+			value["personality_perspectives"] = values
 		}
 		scored = append(scored, scoredMemory{value: value, score: score, created: created})
 	}
@@ -565,6 +626,24 @@ func normalizeResponsePlan(decision map[string]any, sourceFactID string, context
 		"core_alignment":   mapValue(base["core_alignment"]),
 		"state_expression": mapValue(base["state_expression"]),
 	}
+	if personalityDecision := mapValue(decision["personality_decision"]); len(personalityDecision) > 0 {
+		plan["personality_decision"] = personalityDecision
+		if profileID := stringValue(personalityDecision["target_profile_id"]); profileID != "" {
+			plan["profile_id"] = profileID
+		}
+	}
+	if outputDecision := mapValue(decision["output_preference_decision"]); len(outputDecision) > 0 {
+		if normalized, err := normalizeOutputPreferenceDecision(outputDecision, stringValue(mapValue(context.PersonalityRuntime)["active_profile_id"])); err != nil {
+			return nil, err
+		} else {
+			plan["output_preference_decision"] = normalized
+		}
+	}
+	if stringValue(plan["profile_id"]) == "" {
+		if active := stringValue(mapValue(context.PersonalityRuntime)["active_profile_id"]); active != "" {
+			plan["profile_id"] = active
+		}
+	}
 	if len(mapValue(plan["core_alignment"])) == 0 {
 		plan["core_alignment"] = mapValue(decision["core_alignment"])
 	}
@@ -617,6 +696,66 @@ func normalizeResponsePlan(decision map[string]any, sourceFactID string, context
 		return nil, err
 	}
 	return plan, nil
+}
+
+func normalizeOutputPreferenceDecision(value map[string]any, activeProfileID string) (map[string]any, error) {
+	result := cloneMap(value)
+	channel := strings.TrimSpace(stringValue(result["channel"]))
+	if channel == "" {
+		channel = "none"
+	}
+	switch channel {
+	case "text", "image", "none":
+		// These channels are currently realized by the conversation path.
+	case "voice", "moment":
+		// The schema can receive these future channels for forward-compatible
+		// personas, but this runtime must not silently execute them yet.
+		result["matched"] = false
+		result["status"] = "unsupported"
+		result["reason"] = "output_channel_not_installed"
+	default:
+		return nil, errors.New("output_preference_channel_invalid")
+	}
+	result["channel"] = channel
+	if _, ok := result["matched"].(bool); !ok {
+		return nil, errors.New("output_preference_matched_invalid")
+	}
+	if confidence, ok := numberFloat(result["confidence"]); !ok || confidence < 0 || confidence > 1 {
+		return nil, errors.New("output_preference_confidence_invalid")
+	}
+	if activeProfileID != "" {
+		result["profile_id"] = activeProfileID
+	}
+	return result, nil
+}
+
+// evaluateOutputPreferenceAction is the final Core-owned reconciliation
+// between the model's semantic preference decision and the frozen action. It
+// never invents a media concept or executes a side effect; it records whether
+// the requested channel was actually bound to an installed capability.
+func evaluateOutputPreferenceAction(value map[string]any, action string, calls []ToolCallV1) map[string]any {
+	result := cloneMap(value)
+	matched, _ := result["matched"].(bool)
+	channel := stringValue(result["channel"])
+	if channel == "image" && matched {
+		bound := action == "media_request"
+		for _, call := range calls {
+			if call.Name == "media.image.generate" {
+				bound = true
+				break
+			}
+		}
+		if bound {
+			result["status"] = "authorized"
+		} else {
+			result["status"] = "matched_without_capability_request"
+		}
+	} else if channel == "text" && matched && action == "reply" {
+		result["status"] = "authorized"
+	} else if channel == "none" || !matched {
+		result["status"] = "no_op"
+	}
+	return result
 }
 
 func validateResponsePlan(plan map[string]any) error {

@@ -75,6 +75,17 @@ func cognitiveStageSchema() map[string]any {
 	return map[string]any{"anyOf": []any{stringSchema(), openObjectSchema()}}
 }
 
+func outputPreferenceDecisionSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"matched":    booleanSchema(),
+		"channel":    enumStringSchema("text", "image", "voice", "moment", "none"),
+		"profile_id": stringSchema(),
+		"trigger_id": stringSchema(),
+		"reason":     stringSchema(),
+		"confidence": unitNumberSchema(),
+	}, []string{"matched", "channel", "profile_id", "trigger_id", "reason", "confidence"}, false)
+}
+
 func claimSchema() map[string]any {
 	return openObjectSchema()
 }
@@ -84,31 +95,43 @@ func toolCallSchema() map[string]any {
 }
 
 func cognitiveTurnResponseSchema() map[string]any {
+	personalityDecision := objectSchema(map[string]any{
+		"decision":          enumStringSchema("keep", "switch"),
+		"from_profile_id":   stringSchema(),
+		"target_profile_id": stringSchema(),
+		"trigger_id":        stringSchema(),
+		"reason":            stringSchema(),
+		"confidence":        unitNumberSchema(),
+		"evidence_refs":     arraySchema(stringSchema()),
+	}, []string{"decision", "from_profile_id", "target_profile_id", "reason", "confidence", "evidence_refs"}, false)
 	properties := map[string]any{
-		"action_type":      stringSchema(),
-		"response_intent":  stringSchema(),
-		"visible_text":     stringSchema(),
-		"response_plan":    openObjectSchema(),
-		"core_alignment":   openObjectSchema(),
-		"state_expression": openObjectSchema(),
-		"claims":           arraySchema(claimSchema()),
-		"appraisal":        appraisalResponseSchema(),
-		"attention":        cognitiveStageSchema(),
-		"thought":          cognitiveStageSchema(),
-		"desire":           cognitiveStageSchema(),
-		"agency":           cognitiveStageSchema(),
-		"self_evaluation":  openObjectSchema(),
-		"tool_calls":       arraySchema(toolCallSchema()),
-		"evidence_refs":    arraySchema(stringSchema()),
+		"action_type":                stringSchema(),
+		"response_intent":            stringSchema(),
+		"visible_text":               stringSchema(),
+		"response_plan":              openObjectSchema(),
+		"personality_decision":       personalityDecision,
+		"output_preference_decision": outputPreferenceDecisionSchema(),
+		"core_alignment":             openObjectSchema(),
+		"state_expression":           openObjectSchema(),
+		"claims":                     arraySchema(claimSchema()),
+		"appraisal":                  appraisalResponseSchema(),
+		"attention":                  cognitiveStageSchema(),
+		"thought":                    cognitiveStageSchema(),
+		"desire":                     cognitiveStageSchema(),
+		"agency":                     cognitiveStageSchema(),
+		"self_evaluation":            openObjectSchema(),
+		"tool_calls":                 arraySchema(toolCallSchema()),
+		"evidence_refs":              arraySchema(stringSchema()),
 	}
-	return objectSchema(properties, []string{"action_type", "response_intent", "visible_text", "response_plan", "claims", "appraisal", "attention", "thought", "desire", "agency", "self_evaluation", "tool_calls", "evidence_refs"}, false)
+	return objectSchema(properties, []string{"action_type", "response_intent", "visible_text", "response_plan", "personality_decision", "output_preference_decision", "claims", "appraisal", "attention", "thought", "desire", "agency", "self_evaluation", "tool_calls", "evidence_refs"}, false)
 }
 
 func dailyReviewResponseSchema() map[string]any {
 	return objectSchema(map[string]any{
-		"action_type":     enumStringSchema("proactive_message", "moment", "no_op"),
-		"response_intent": stringSchema(),
-		"tool_calls":      arraySchema(toolCallSchema()),
+		"action_type":                enumStringSchema("proactive_message", "moment", "no_op"),
+		"response_intent":            stringSchema(),
+		"tool_calls":                 arraySchema(toolCallSchema()),
+		"output_preference_decision": outputPreferenceDecisionSchema(),
 	}, []string{"action_type", "response_intent", "tool_calls"}, false)
 }
 
@@ -260,6 +283,7 @@ func initializationResponseSchema() map[string]any {
 	}, nil, false)
 	goal := objectSchema(map[string]any{
 		"description":     stringSchema(),
+		"profile_id":      stringSchema(),
 		"importance":      unitNumberSchema(),
 		"urgency":         unitNumberSchema(),
 		"scope":           enumStringSchema("general", "relationship"),
@@ -267,11 +291,13 @@ func initializationResponseSchema() map[string]any {
 	}, []string{"description", "importance", "urgency"}, false)
 	intention := objectSchema(map[string]any{
 		"action":     stringSchema(),
+		"profile_id": stringSchema(),
 		"goal_index": integerSchema(),
 		"confidence": unitNumberSchema(),
 	}, []string{"action", "goal_index", "confidence"}, false)
 	relationship := objectSchema(map[string]any{
 		"target_actor_id":       stringSchema(),
+		"profile_id":            stringSchema(),
 		"role":                  openObjectSchema(),
 		"metrics":               openObjectSchema(),
 		"trend":                 enumStringSchema("improving", "stable", "declining"),
@@ -279,6 +305,36 @@ func initializationResponseSchema() map[string]any {
 		"emotional_association": openObjectSchema(),
 		"evidence_refs":         arraySchema(stringSchema()),
 	}, []string{"target_actor_id", "role"}, false)
+	personalityProfile := objectSchema(map[string]any{
+		"id":                     stringSchema(),
+		"name":                   stringSchema(),
+		"identity":               openObjectSchema(),
+		"personality":            openObjectSchema(),
+		"behavioral_policy":      openObjectSchema(),
+		"emotional_state":        openObjectSchema(),
+		"voice":                  openObjectSchema(),
+		"body_language":          openObjectSchema(),
+		"behavior_state_machine": openObjectSchema(),
+		"behavior_loops":         jsonValueSchema(),
+		"scenario_behavior":      jsonValueSchema(),
+		"secrets":                jsonValueSchema(),
+		"intimacy_progression":   jsonValueSchema(),
+		"output_preferences":     jsonValueSchema(),
+		"fears":                  arraySchema(jsonValueSchema()),
+		"desires":                arraySchema(jsonValueSchema()),
+		"extensions":             openObjectSchema(),
+	}, []string{"id"}, false)
+	personalitySystem := objectSchema(map[string]any{
+		"mode":                   enumStringSchema("single", "multiple"),
+		"profiles":               arraySchema(personalityProfile),
+		"active_profile_id":      stringSchema(),
+		"switching":              openObjectSchema(),
+		"influence":              openObjectSchema(),
+		"conflict_resolution":    openObjectSchema(),
+		"integration":            openObjectSchema(),
+		"behavior_state_machine": openObjectSchema(),
+		"extensions":             openObjectSchema(),
+	}, []string{"mode", "profiles", "active_profile_id", "switching", "influence", "conflict_resolution", "integration", "behavior_state_machine", "extensions"}, false)
 	claim := objectSchema(map[string]any{
 		"category":      enumStringSchema("preference", "habit", "sensitivity", "emotion_pattern", "self_perception", "capability", "interest"),
 		"claim":         stringSchema(),
@@ -289,12 +345,13 @@ func initializationResponseSchema() map[string]any {
 		"status":        enumStringSchema("active", "uncertain"),
 	}, []string{"category", "claim", "value", "confidence", "evidence_refs", "provenance"}, false)
 	corePersona := objectSchema(map[string]any{
-		"schema_version":    integerSchema(),
-		"identity":          identity,
-		"personality":       personality,
-		"behavioral_policy": behavioralPolicy,
-		"life_profile":      lifeProfile,
-	}, []string{"identity", "personality", "behavioral_policy", "life_profile"}, false)
+		"schema_version":     integerSchema(),
+		"identity":           identity,
+		"personality":        personality,
+		"behavioral_policy":  behavioralPolicy,
+		"life_profile":       lifeProfile,
+		"personality_system": personalitySystem,
+	}, []string{"identity", "personality", "behavioral_policy", "life_profile", "personality_system"}, false)
 	developingSelf := objectSchema(map[string]any{"claims": arraySchema(claim)}, []string{"claims"}, false)
 	return objectSchema(map[string]any{
 		"schema_version":        integerSchema(),

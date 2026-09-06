@@ -410,6 +410,16 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if decision == nil {
 			decision = map[string]any{}
 		}
+		if personalityDecision := mapValue(decision["personality_decision"]); len(personalityDecision) > 0 {
+			personalityRuntime, personalityErr := a.applyPersonalityDecision(ctx, fluctlightID, personalityDecision)
+			if personalityErr != nil {
+				return TurnResult{}, personalityErr
+			}
+			if len(personalityRuntime) > 0 {
+				projection.PersonalityRuntime = personalityRuntime
+				decision["personality_runtime"] = personalityRuntime
+			}
+		}
 		responsePlan, err = normalizeResponsePlan(decision, inboxID, projection)
 		if err != nil {
 			return TurnResult{}, err
@@ -428,6 +438,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 		if len(mediaConcept) > 0 {
 			mediaConcept, _ = alignMediaConceptWithContext(mediaConcept, projection)
+		}
+		if preferenceDecision := mapValue(responsePlan["output_preference_decision"]); len(preferenceDecision) > 0 {
+			responsePlan["output_preference_decision"] = evaluateOutputPreferenceAction(preferenceDecision, action, toolCalls)
 		}
 		composite, err = normalizeCompositeAction(decision, toolCalls, inboxID, action)
 		if err != nil {

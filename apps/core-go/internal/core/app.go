@@ -257,7 +257,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 		return nil, errors.New("description_invalid")
 	}
 	messages := []map[string]any{
-		{"role": "system", "content": "You are initializing actor_self, the current Fluctlight. The fixed Actor ref actor_user always means the current authenticated Human user; use actor_user as target_actor_id when a relationship or goal refers to that user, never a database ID. Return exactly one JSON object with exactly these top-level fields: schema_version, core_persona, developing_self, initial_relationships, initial_goals, initial_intentions, extensions. Always return all arrays, using [] when empty. All known fields must stay in their canonical groups; put any not-yet-classified field only under extensions, never invent another top-level field. Known identity fields are name, age, gender, occupation, residence, timezone, birthday, background, biography, core_values, worldview, and notes. Known personality fields are openness, conscientiousness, extraversion, agreeableness, neuroticism, curiosity, independence, patience, empathy, assertiveness, humor, sociability, risk_tolerance, and update_policy. Known behavioral_policy fields are response_style, message_length, emoji_frequency, punctuation_style, humor_style, sarcasm_tendency, directness, initiative, topic_initiation, silence_tolerance, response_delay, emotional_expression, conflict_style, refusal_style, and intimacy_expression. Known life_profile fields are appearance, social_background, preferences, life_habits, recurring_commitments, relationship_seeds, and character_constraints. core_persona must contain identity, personality, behavioral_policy, and life_profile. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_relationships may describe actor_self's relationship to actor_user; role is an open semantic object with a label and optional role.addressing.preferred/self_reference. Do not infer a relationship only because actor_user is the current user; return an unknown role when the description does not establish one. initial_goals must be an array of objects with description, importance (0..1), urgency (0..1), and optional scope (general or relationship) plus target_actor_id for relationship goals. initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Do not return markdown or legacy foundation/personality candidate fields."},
+		{"role": "system", "content": "You are initializing actor_self, the current Fluctlight. The fixed Actor ref actor_user always means the current authenticated Human user; use actor_user as target_actor_id when a relationship or goal refers to that user, never a database ID. Return exactly one JSON object with exactly these top-level fields: schema_version, core_persona, developing_self, initial_relationships, initial_goals, initial_intentions, extensions. Always return all arrays, using [] when empty. All known fields must stay in their canonical groups; put any not-yet-classified field only under extensions, never invent another top-level field. Known identity fields are name, age, gender, occupation, residence, timezone, birthday, background, biography, core_values, worldview, and notes. Known personality fields are openness, conscientiousness, extraversion, agreeableness, neuroticism, curiosity, independence, patience, empathy, assertiveness, humor, sociability, risk_tolerance, and update_policy. Known behavioral_policy fields are response_style, message_length, emoji_frequency, punctuation_style, humor_style, sarcasm_tendency, directness, initiative, topic_initiation, silence_tolerance, response_delay, emotional_expression, conflict_style, refusal_style, and intimacy_expression. Known life_profile fields are appearance, social_background, preferences, life_habits, recurring_commitments, relationship_seeds, and character_constraints. core_persona must contain identity, personality, behavioral_policy, life_profile, and personality_system. personality_system must contain mode, profiles, active_profile_id, switching, influence, conflict_resolution, integration, behavior_state_machine, and extensions. Each personality_system.profiles item is an independent personality and must have a stable id; when a relationship, goal, or intention belongs to one personality, include its profile_id. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_relationships may describe actor_self's relationship to actor_user; role is an open semantic object with a label and optional role.addressing.preferred/self_reference. Do not infer a relationship only because actor_user is the current user; return an unknown role when the description does not establish one. initial_goals must be an array of objects with description, importance (0..1), urgency (0..1), and optional scope (general or relationship) plus target_actor_id for relationship goals; include profile_id when the goal belongs to a personality. initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), confidence (0..1), and profile_id when the intention belongs to a personality. Do not return markdown or legacy foundation/personality candidate fields."},
 		{"role": "system", "content": "Canonical visual appearance contract: if the description specifies a chest cup, put only the normalized label A/B/C/D in exactly core_persona.life_profile.appearance.chest_cup (example: {\"life_profile\":{\"appearance\":{\"chest_cup\":\"A\"}}}). Do not put cup labels in identity.body_type, identity.build, identity.chest, life_profile.physical_traits, or free-form visible_text. For male or non-applicable bodies, omit chest_cup; the renderer will mark it not_applicable. Keep other appearance fields under life_profile.appearance."},
 		{"role": "user", "content": description},
 	}
@@ -292,12 +292,46 @@ func validInitialization(value map[string]any) bool {
 		}
 	}
 	for key := range corePersona {
-		if _, ok := map[string]struct{}{"schema_version": {}, "identity": {}, "personality": {}, "behavioral_policy": {}, "life_profile": {}}[key]; !ok {
+		if _, ok := map[string]struct{}{"schema_version": {}, "identity": {}, "personality": {}, "behavioral_policy": {}, "life_profile": {}, "personality_system": {}}[key]; !ok {
 			return false
 		}
 	}
 	if timezone := stringValue(mapValue(corePersona["identity"])["timezone"]); timezone != "" {
 		if _, err := time.LoadLocation(canonicalTimezone(timezone)); err != nil {
+			return false
+		}
+	}
+	system, ok := corePersona["personality_system"].(map[string]any)
+	if !ok || len(system) == 0 {
+		return false
+	}
+	if mode := stringValue(system["mode"]); mode != "single" && mode != "multiple" {
+		return false
+	}
+	if strings.TrimSpace(stringValue(system["active_profile_id"])) == "" {
+		return false
+	}
+	profiles, ok := system["profiles"].([]any)
+	if !ok {
+		return false
+	}
+	seenProfiles := map[string]struct{}{}
+	for _, raw := range profiles {
+		profile := mapValue(raw)
+		profileID := strings.TrimSpace(stringValue(profile["id"]))
+		if profileID == "" {
+			return false
+		}
+		if _, exists := seenProfiles[profileID]; exists {
+			return false
+		}
+		seenProfiles[profileID] = struct{}{}
+		if _, ok := profile["extensions"]; !ok {
+			return false
+		}
+	}
+	if active := stringValue(system["active_profile_id"]); active != "default" {
+		if _, exists := seenProfiles[active]; !exists {
 			return false
 		}
 	}
@@ -447,11 +481,15 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 		}
 	}
 	persona := mapValue(result["core_persona"])
+	if _, ok := persona["personality_system"]; !ok {
+		persona["personality_system"] = defaultPersonalitySystem()
+	}
 	knownPersona := map[string]map[string]struct{}{
-		"identity":          {"name": {}, "age": {}, "gender": {}, "occupation": {}, "residence": {}, "timezone": {}, "birthday": {}, "background": {}, "biography": {}, "core_values": {}, "worldview": {}, "notes": {}},
-		"personality":       {"openness": {}, "conscientiousness": {}, "extraversion": {}, "agreeableness": {}, "neuroticism": {}, "curiosity": {}, "independence": {}, "patience": {}, "empathy": {}, "assertiveness": {}, "humor": {}, "sociability": {}, "risk_tolerance": {}, "update_policy": {}},
-		"behavioral_policy": {"response_style": {}, "message_length": {}, "emoji_frequency": {}, "punctuation_style": {}, "humor_style": {}, "sarcasm_tendency": {}, "directness": {}, "initiative": {}, "topic_initiation": {}, "silence_tolerance": {}, "response_delay": {}, "emotional_expression": {}, "conflict_style": {}, "refusal_style": {}, "intimacy_expression": {}},
-		"life_profile":      {"appearance": {}, "social_background": {}, "preferences": {}, "life_habits": {}, "recurring_commitments": {}, "relationship_seeds": {}, "character_constraints": {}},
+		"identity":           {"name": {}, "age": {}, "gender": {}, "occupation": {}, "residence": {}, "timezone": {}, "birthday": {}, "background": {}, "biography": {}, "core_values": {}, "worldview": {}, "notes": {}},
+		"personality":        {"openness": {}, "conscientiousness": {}, "extraversion": {}, "agreeableness": {}, "neuroticism": {}, "curiosity": {}, "independence": {}, "patience": {}, "empathy": {}, "assertiveness": {}, "humor": {}, "sociability": {}, "risk_tolerance": {}, "update_policy": {}},
+		"behavioral_policy":  {"response_style": {}, "message_length": {}, "emoji_frequency": {}, "punctuation_style": {}, "humor_style": {}, "sarcasm_tendency": {}, "directness": {}, "initiative": {}, "topic_initiation": {}, "silence_tolerance": {}, "response_delay": {}, "emotional_expression": {}, "conflict_style": {}, "refusal_style": {}, "intimacy_expression": {}},
+		"life_profile":       {"appearance": {}, "social_background": {}, "preferences": {}, "life_habits": {}, "recurring_commitments": {}, "relationship_seeds": {}, "character_constraints": {}},
+		"personality_system": {"mode": {}, "profiles": {}, "active_profile_id": {}, "switching": {}, "influence": {}, "conflict_resolution": {}, "integration": {}, "behavior_state_machine": {}, "extensions": {}},
 	}
 	for group, allowed := range knownPersona {
 		fields := mapValue(persona[group])
@@ -462,8 +500,39 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 			}
 		}
 	}
+	normalizePersonalityProfiles(mapValue(persona["personality_system"]))
 	result["extensions"] = extensions
 	return result
+}
+
+func normalizePersonalityProfiles(system map[string]any) {
+	profiles := arrayValue(system["profiles"])
+	if len(profiles) == 0 {
+		return
+	}
+	known := map[string]struct{}{
+		"id": {}, "name": {}, "identity": {}, "personality": {}, "behavioral_policy": {},
+		"emotional_state": {}, "voice": {}, "body_language": {}, "behavior_state_machine": {},
+		"behavior_loops": {}, "scenario_behavior": {}, "secrets": {}, "intimacy_progression": {},
+		"output_preferences": {}, "fears": {}, "desires": {}, "extensions": {},
+	}
+	for _, raw := range profiles {
+		profile := mapValue(raw)
+		if len(profile) == 0 {
+			continue
+		}
+		extensions := mapValue(profile["extensions"])
+		if len(extensions) == 0 {
+			extensions = map[string]any{}
+		}
+		for key, value := range profile {
+			if _, ok := known[key]; !ok {
+				extensions[key] = value
+				delete(profile, key)
+			}
+		}
+		profile["extensions"] = extensions
+	}
 }
 
 // Providers sometimes group goals/intentions by horizon instead of emitting
@@ -535,11 +604,21 @@ func defaultIdentity(id, name string) map[string]any {
 
 func defaultCorePersona(id, name string) map[string]any {
 	return map[string]any{
-		"schema_version":    1,
-		"identity":          defaultIdentity(id, name),
-		"personality":       defaultPersonality(),
-		"behavioral_policy": defaultPolicy(),
-		"life_profile":      defaultLifeProfile(),
+		"schema_version":     1,
+		"identity":           defaultIdentity(id, name),
+		"personality":        defaultPersonality(),
+		"behavioral_policy":  defaultPolicy(),
+		"life_profile":       defaultLifeProfile(),
+		"personality_system": defaultPersonalitySystem(),
+	}
+}
+
+func defaultPersonalitySystem() map[string]any {
+	return map[string]any{
+		"mode": "single", "profiles": []any{}, "active_profile_id": "default",
+		"switching": map[string]any{"rules": []any{}}, "influence": map[string]any{"edges": []any{}},
+		"conflict_resolution": map[string]any{}, "integration": map[string]any{},
+		"behavior_state_machine": map[string]any{}, "extensions": map[string]any{},
 	}
 }
 
@@ -648,6 +727,9 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_inner_states (fluctlight_id,revision,pad,mood,momentum,regulation,drives,conflicts,last_updated_at) VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8)`, id, jsonBytes(pad), jsonBytes(mood), jsonBytes(momentum), jsonBytes(regulation), jsonBytes(drives), jsonBytes(conflicts), now); err != nil {
 			return err
 		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,revision,updated_at) VALUES($1,$2,0,$3) ON CONFLICT DO NOTHING`, id, initialPersonalityProfileID(corePersona), now); err != nil {
+			return err
+		}
 		if err := a.insertDevelopingSelfSeeds(ctx, tx, id, developingSelfClaims); err != nil {
 			return err
 		}
@@ -660,10 +742,12 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents (intent_id,workflow_id,task_queue,intent_type,payload) VALUES ($1,$2,'lifecycle','schedule.current_day',$3) ON CONFLICT DO NOTHING`, "schedule_intent:"+id, "schedule:"+id, jsonBytes(map[string]any{"fluctlight_id": id})); err != nil {
 			return err
 		}
-		if err := a.insertAgency(ctx, tx, id, actorID, goals, intentions); err != nil {
+		profileIDs := personalityProfileIDs(corePersona)
+		defaultProfileID := initialPersonalityProfileID(corePersona)
+		if err := a.insertAgency(ctx, tx, id, actorID, goals, intentions, defaultProfileID, profileIDs); err != nil {
 			return err
 		}
-		if err := a.insertRelationshipSeeds(ctx, tx, id, actorID, foundation); err != nil {
+		if err := a.insertRelationshipSeeds(ctx, tx, id, actorID, foundation, defaultProfileID, profileIDs); err != nil {
 			return err
 		}
 		return nil
@@ -673,6 +757,19 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 	}
 	result, err = a.DB.GetFluctlight(ctx, id, actorID)
 	return result, err
+}
+
+func initialPersonalityProfileID(corePersona map[string]any) string {
+	system := mapValue(corePersona["personality_system"])
+	if active := strings.TrimSpace(stringValue(system["active_profile_id"])); active != "" {
+		return active
+	}
+	for _, raw := range arrayValue(system["profiles"]) {
+		if id := strings.TrimSpace(stringValue(mapValue(raw)["id"])); id != "" {
+			return id
+		}
+	}
+	return "default"
 }
 
 func (a *App) insertDirectConversation(ctx context.Context, tx pgx.Tx, ownerID, fluctlightID string) error {
@@ -723,11 +820,15 @@ func (a *App) EnsureDirectConversation(ctx context.Context, ownerID, fluctlightI
 	return id, err
 }
 
-func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID string, goals, intentions []any) error {
+func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID string, goals, intentions []any, defaultProfileID string, profileIDs map[string]struct{}) error {
 	goalIDs := make([]string, len(goals))
 	for index, raw := range goals {
 		item := mapValue(raw)
 		goalIDs[index] = fmt.Sprintf("goal_initial_%s_%d", fluctlightID, index)
+		profileID, _ := normalizeProfileID(stringValue(item["profile_id"]), defaultProfileID)
+		if _, ok := profileIDs[profileID]; !ok {
+			return errors.New("initial_goal_profile_invalid")
+		}
 		scope := firstString(item["scope"], "general")
 		if scope != "general" && scope != "relationship" {
 			return errors.New("initial_goal_scope_invalid")
@@ -746,17 +847,28 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 				return ErrNotFound
 			}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goals (id,fluctlight_id,source,scope,target_actor_id,description,importance,urgency,progress,status,evidence_refs,revision) VALUES ($1,$2,'self',$3,$4,$5,$6,$7,$8,'active',$9,0) ON CONFLICT DO NOTHING`, goalIDs[index], fluctlightID, scope, targetActorID, stringValue(item["description"]), jsonBytes(item["importance"]), jsonBytes(item["urgency"]), jsonBytes(0.0), jsonBytes([]string{"foundation:" + fluctlightID})); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goals (id,fluctlight_id,profile_id,source,scope,target_actor_id,description,importance,urgency,progress,status,evidence_refs,revision) VALUES ($1,$2,$3,'self',$4,$5,$6,$7,$8,$9,'active',$10,0) ON CONFLICT DO NOTHING`, goalIDs[index], fluctlightID, profileID, scope, targetActorID, stringValue(item["description"]), jsonBytes(item["importance"]), jsonBytes(item["urgency"]), jsonBytes(0.0), jsonBytes([]string{"foundation:" + fluctlightID})); err != nil {
 			return err
 		}
 	}
 	for index, raw := range intentions {
 		item := mapValue(raw)
+		profileID, _ := normalizeProfileID(stringValue(item["profile_id"]), defaultProfileID)
+		if _, ok := profileIDs[profileID]; !ok {
+			return errors.New("initial_intention_profile_invalid")
+		}
 		goalIndex := intValue(item["goal_index"])
 		if goalIndex < 0 || goalIndex >= len(goalIDs) {
 			return errors.New("initial_intention_goal_invalid")
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intentions (id,fluctlight_id,goal_id,action,trigger,confidence,expiration,evidence_refs,permission_snapshot,budget_snapshot,status,revision) VALUES ($1,$2,$3,$4,$5,$6,now()+interval '24 hours',$7,'{}','{}','pending',0) ON CONFLICT DO NOTHING`, fmt.Sprintf("intention_initial_%s_%d", fluctlightID, index), fluctlightID, goalIDs[goalIndex], stringValue(item["action"]), jsonBytes(map[string]any{"type": "semantic", "schema_version": "semantic.trigger.v1", "evidence_refs": []string{"foundation:" + fluctlightID}}), jsonBytes(item["confidence"]), jsonBytes([]string{"foundation:" + fluctlightID})); err != nil {
+		var goalProfileID string
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(profile_id,'') FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2`, goalIDs[goalIndex], fluctlightID).Scan(&goalProfileID); err != nil {
+			return err
+		}
+		if goalProfileID != profileID {
+			return errors.New("initial_intention_profile_goal_mismatch")
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intentions (id,fluctlight_id,profile_id,goal_id,action,trigger,confidence,expiration,evidence_refs,permission_snapshot,budget_snapshot,status,revision) VALUES ($1,$2,$3,$4,$5,$6,$7,now()+interval '24 hours',$8,'{}','{}','pending',0) ON CONFLICT DO NOTHING`, fmt.Sprintf("intention_initial_%s_%d", fluctlightID, index), fluctlightID, profileID, goalIDs[goalIndex], stringValue(item["action"]), jsonBytes(map[string]any{"type": "semantic", "schema_version": "semantic.trigger.v1", "evidence_refs": []string{"foundation:" + fluctlightID}}), jsonBytes(item["confidence"]), jsonBytes([]string{"foundation:" + fluctlightID})); err != nil {
 			return err
 		}
 	}
@@ -774,7 +886,7 @@ func resolveInitializationActorRef(value, humanActorID, fluctlightID string) str
 	}
 }
 
-func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlightID, humanActorID string, foundation map[string]any) error {
+func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlightID, humanActorID string, foundation map[string]any, defaultProfileID string, profileIDs map[string]struct{}) error {
 	seeds := arrayValue(foundation["initial_relationships"])
 	if len(seeds) == 0 {
 		lifeProfile := mapValue(mapValue(foundation["core_persona"])["life_profile"])
@@ -782,6 +894,10 @@ func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlight
 	}
 	for index, raw := range seeds {
 		item := mapValue(raw)
+		profileID, _ := normalizeProfileID(stringValue(item["profile_id"]), defaultProfileID)
+		if _, ok := profileIDs[profileID]; !ok {
+			return errors.New("initial_relationship_profile_invalid")
+		}
 		target := resolveInitializationActorRef(stringValue(item["target_actor_id"]), humanActorID, fluctlightID)
 		if target == "" {
 			return errors.New("initial_relationship_target_required")
@@ -810,11 +926,11 @@ func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlight
 		}
 		refs := arrayValue(item["evidence_refs"])
 		provenance := map[string]any{"source": "initialization", "evidence_refs": refs}
-		relationshipID := "relationship_" + stableDigest(fluctlightID+":"+target)
-		if _, err := tx.Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,target_actor_id,role,metrics,trend,summary,emotional_association,provenance,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,0) ON CONFLICT (id) DO NOTHING`, relationshipID, fluctlightID, target, jsonBytes(role), jsonBytes(metrics), trend, nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(provenance)); err != nil {
+		relationshipID := "relationship_" + stableDigest(fluctlightID+":"+profileID+":"+target)
+		if _, err := tx.Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,profile_id,target_actor_id,role,metrics,trend,summary,emotional_association,provenance,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,0) ON CONFLICT (id) DO NOTHING`, relationshipID, fluctlightID, profileID, target, jsonBytes(role), jsonBytes(metrics), trend, nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(provenance)); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_revisions(id,relationship_id,revision,base_revision,role,metrics,trend,summary,emotional_association,evidence_refs,actor_id,idempotency_key) VALUES($1,$2,0,0,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT DO NOTHING`, "relationship_revision_"+stableDigest(fluctlightID+":"+target+":initial"), relationshipID, jsonBytes(role), jsonBytes(metrics), trend, nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(refs), fluctlightID, "relationship-initialization:"+fluctlightID+":"+target+":"+fmt.Sprint(index)); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_revisions(id,relationship_id,revision,base_revision,role,metrics,trend,summary,emotional_association,evidence_refs,actor_id,idempotency_key) VALUES($1,$2,0,0,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT DO NOTHING`, "relationship_revision_"+stableDigest(fluctlightID+":"+profileID+":"+target+":initial"), relationshipID, jsonBytes(role), jsonBytes(metrics), trend, nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(refs), fluctlightID, "relationship-initialization:"+fluctlightID+":"+profileID+":"+target+":"+fmt.Sprint(index)); err != nil {
 			return err
 		}
 	}

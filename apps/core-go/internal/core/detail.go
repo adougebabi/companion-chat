@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -200,67 +201,84 @@ func (a *App) readInnerState(ctx context.Context, fluctlightID string) (map[stri
 }
 
 func (a *App) readAgency(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {
-	goalsRows, err := a.DB.Pool().Query(ctx, `SELECT id,scope,target_actor_id,description,status,importance,urgency,progress FROM public.fluctlight_goals WHERE fluctlight_id=$1 ORDER BY created_at`, fluctlightID)
+	goalsRows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,status,importance,urgency,progress FROM public.fluctlight_goals WHERE fluctlight_id=$1 ORDER BY created_at`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
 	goals := make([]map[string]any, 0)
 	for goalsRows.Next() {
 		var id, scope, desc, status string
+		var profileID *string
 		var targetActorID *string
 		var importance, urgency, progress []byte
-		if err := goalsRows.Scan(&id, &scope, &targetActorID, &desc, &status, &importance, &urgency, &progress); err != nil {
+		if err := goalsRows.Scan(&id, &profileID, &scope, &targetActorID, &desc, &status, &importance, &urgency, &progress); err != nil {
 			goalsRows.Close()
 			return nil, nil, err
 		}
 		item := map[string]any{"id": id, "scope": scope, "description": desc, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress)}
+		if profileID != nil && strings.TrimSpace(*profileID) != "" {
+			item["profile_id"] = *profileID
+		}
 		if targetActorID != nil {
 			item["target_actor_id"] = *targetActorID
 		}
 		goals = append(goals, item)
 	}
 	goalsRows.Close()
-	intentionRows, err := a.DB.Pool().Query(ctx, `SELECT id,goal_id,action,status,confidence FROM public.fluctlight_intentions WHERE fluctlight_id=$1 ORDER BY created_at`, fluctlightID)
+	intentionRows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,goal_id,action,status,confidence FROM public.fluctlight_intentions WHERE fluctlight_id=$1 ORDER BY created_at`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
 	intentions := make([]map[string]any, 0)
 	for intentionRows.Next() {
-		var id, goalID, action, status string
+		var id, action, status string
+		var profileID, goalID *string
 		var confidence []byte
-		if err := intentionRows.Scan(&id, &goalID, &action, &status, &confidence); err != nil {
+		if err := intentionRows.Scan(&id, &profileID, &goalID, &action, &status, &confidence); err != nil {
 			intentionRows.Close()
 			return nil, nil, err
 		}
-		intentions = append(intentions, map[string]any{"id": id, "goal_id": goalID, "action": action, "status": status, "confidence": jsonNumber(confidence)})
+		item := map[string]any{"id": id, "action": action, "status": status, "confidence": jsonNumber(confidence)}
+		if profileID != nil && strings.TrimSpace(*profileID) != "" {
+			item["profile_id"] = *profileID
+		}
+		if goalID != nil && strings.TrimSpace(*goalID) != "" {
+			item["goal_id"] = *goalID
+		}
+		intentions = append(intentions, item)
 	}
 	intentionRows.Close()
 	return goals, intentions, nil
 }
 
 func (a *App) readRelationships(ctx context.Context, fluctlightID, currentHumanActorID string) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT r.target_actor_id,COALESCE(a.actor_type,'unknown'),(r.target_actor_id=$2),r.role,r.metrics,r.trend,r.summary,r.emotional_association,r.provenance,r.revision FROM public.relationships r LEFT JOIN public.actors a ON a.id=r.target_actor_id WHERE r.owner_fluctlight_id=$1 ORDER BY r.updated_at DESC`, fluctlightID, currentHumanActorID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT r.profile_id,r.target_actor_id,COALESCE(a.actor_type,'unknown'),(r.target_actor_id=$2),r.role,r.metrics,r.trend,r.summary,r.emotional_association,r.provenance,r.revision FROM public.relationships r LEFT JOIN public.actors a ON a.id=r.target_actor_id WHERE r.owner_fluctlight_id=$1 ORDER BY r.updated_at DESC`, fluctlightID, currentHumanActorID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	out := make([]map[string]any, 0)
 	for rows.Next() {
+		var profileID *string
 		var target, actorType, trend string
 		var isCurrentUser bool
 		var role, metrics, emotional, provenance []byte
 		var summary *string
 		var rev int
-		if err := rows.Scan(&target, &actorType, &isCurrentUser, &role, &metrics, &trend, &summary, &emotional, &provenance, &rev); err != nil {
+		if err := rows.Scan(&profileID, &target, &actorType, &isCurrentUser, &role, &metrics, &trend, &summary, &emotional, &provenance, &rev); err != nil {
 			return nil, err
 		}
-		out = append(out, map[string]any{"target_actor_id": target, "target_actor_type": actorType, "is_current_user": isCurrentUser, "role": decodeObject(role), "metrics": decodeObject(metrics), "trend": trend, "summary": summary, "emotional_association": decodeObject(emotional), "provenance": decodeObject(provenance), "revision": rev})
+		item := map[string]any{"target_actor_id": target, "target_actor_type": actorType, "is_current_user": isCurrentUser, "role": decodeObject(role), "metrics": decodeObject(metrics), "trend": trend, "summary": summary, "emotional_association": decodeObject(emotional), "provenance": decodeObject(provenance), "revision": rev}
+		if profileID != nil && strings.TrimSpace(*profileID) != "" {
+			item["profile_id"] = *profileID
+		}
+		out = append(out, item)
 	}
 	return out, nil
 }
 
 func (a *App) readMemories(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,confidence,importance,emotional_significance,visibility,status,revision,created_at FROM public.memories WHERE owner_fluctlight_id=$1 AND status='active' ORDER BY created_at DESC,id DESC LIMIT 100`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision,created_at FROM public.memories WHERE owner_fluctlight_id=$1 AND status='active' ORDER BY created_at DESC,id DESC LIMIT 100`, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
@@ -268,15 +286,19 @@ func (a *App) readMemories(ctx context.Context, fluctlightID string) ([]map[stri
 	out := make([]map[string]any, 0)
 	for rows.Next() {
 		var id, typ, content, visibility, status string
-		var actorRefs, eventRefs, evidenceRefs []byte
+		var actorRefs, eventRefs, evidenceRefs, perspectives []byte
 		var conversationID *string
 		var confidence, importance, emotional float64
 		var rev int
 		var created time.Time
-		if err := rows.Scan(&id, &typ, &content, &actorRefs, &conversationID, &eventRefs, &evidenceRefs, &confidence, &importance, &emotional, &visibility, &status, &rev, &created); err != nil {
+		if err := rows.Scan(&id, &typ, &content, &actorRefs, &conversationID, &eventRefs, &evidenceRefs, &perspectives, &confidence, &importance, &emotional, &visibility, &status, &rev, &created); err != nil {
 			return nil, err
 		}
-		out = append(out, map[string]any{"id": id, "owner_fluctlight_id": fluctlightID, "type": typ, "content": content, "actor_refs": decodeArray(actorRefs), "conversation_id": conversationID, "event_refs": decodeArray(eventRefs), "evidence_refs": decodeArray(evidenceRefs), "confidence": confidence, "importance": importance, "emotional_significance": emotional, "visibility": visibility, "status": status, "revision": rev, "created_at": created.Format(time.RFC3339Nano)})
+		item := map[string]any{"id": id, "owner_fluctlight_id": fluctlightID, "type": typ, "content": content, "actor_refs": decodeArray(actorRefs), "conversation_id": conversationID, "event_refs": decodeArray(eventRefs), "evidence_refs": decodeArray(evidenceRefs), "confidence": confidence, "importance": importance, "emotional_significance": emotional, "visibility": visibility, "status": status, "revision": rev, "created_at": created.Format(time.RFC3339Nano)}
+		if values := decodeArray(perspectives); len(values) > 0 {
+			item["personality_perspectives"] = values
+		}
+		out = append(out, item)
 	}
 	return out, nil
 }

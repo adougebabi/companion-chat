@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -97,6 +98,11 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if decision == nil {
 		decision = map[string]any{}
 	}
+	if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
+		if normalized, normalizeErr := normalizeOutputPreferenceDecision(preference, stringValue(projection.PersonalityRuntime["active_profile_id"])); normalizeErr == nil {
+			decision["output_preference_decision"] = normalized
+		}
+	}
 	toolCalls := completion.ToolCalls
 	if completion.StructuredFallback && len(toolCalls) > 0 {
 		// A DailyReview native tool call without its action_type cannot be bound
@@ -140,6 +146,9 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		insertAction := func() error {
 			payload := map[string]any{"text": visible, "conversation_id": conversationID, "response_intent": composite.ResponseIntent, "decision": composite}
+			if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
+				payload["output_preference_decision"] = preference
+			}
 			if len(composite.ToolCalls) > 0 {
 				payload["tool_calls"] = composite.ToolCalls
 				payload["output_bindings"] = composite.OutputBindings
@@ -228,19 +237,23 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 
 func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {
 	goals := make([]map[string]any, 0)
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,scope,target_actor_id,description,status,importance,urgency,progress FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status <> 'forgotten' ORDER BY created_at`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,status,importance,urgency,progress FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status <> 'forgotten' ORDER BY created_at`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
 	for rows.Next() {
 		var id, scope, description, status string
+		var profileID *string
 		var targetActorID *string
 		var importance, urgency, progress []byte
-		if err := rows.Scan(&id, &scope, &targetActorID, &description, &status, &importance, &urgency, &progress); err != nil {
+		if err := rows.Scan(&id, &profileID, &scope, &targetActorID, &description, &status, &importance, &urgency, &progress); err != nil {
 			rows.Close()
 			return nil, nil, err
 		}
 		item := map[string]any{"id": id, "scope": scope, "description": description, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress)}
+		if profileID != nil && strings.TrimSpace(*profileID) != "" {
+			item["profile_id"] = *profileID
+		}
 		if targetActorID != nil {
 			item["target_actor_id"] = *targetActorID
 		}
@@ -252,19 +265,31 @@ func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[str
 	}
 	rows.Close()
 	intentions := make([]map[string]any, 0)
-	intentRows, err := a.DB.Pool().Query(ctx, `SELECT i.id,i.goal_id,g.description,i.action,i.status,i.confidence,i.preferred_time,i.expiration FROM public.fluctlight_intentions i LEFT JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND i.status NOT IN ('cancelled','completed','expired') AND i.expiration > now() ORDER BY i.created_at`, fluctlightID)
+	intentRows, err := a.DB.Pool().Query(ctx, `SELECT i.id,i.profile_id,i.goal_id,COALESCE(g.description,''),i.action,i.status,i.confidence,i.preferred_time,i.expiration,i.trigger FROM public.fluctlight_intentions i LEFT JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND i.status NOT IN ('cancelled','completed','expired') AND i.expiration > now() ORDER BY i.created_at`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
 	for intentRows.Next() {
-		var id, goalID, goalDescription, action, status string
+		var id, goalDescription, action, status string
+		var profileID, goalID *string
+		var trigger []byte
 		var confidence float64
 		var preferredTime, expiration *time.Time
-		if err := intentRows.Scan(&id, &goalID, &goalDescription, &action, &status, &confidence, &preferredTime, &expiration); err != nil {
+		if err := intentRows.Scan(&id, &profileID, &goalID, &goalDescription, &action, &status, &confidence, &preferredTime, &expiration, &trigger); err != nil {
 			intentRows.Close()
 			return nil, nil, err
 		}
-		item := map[string]any{"id": id, "goal_id": goalID, "goal": goalDescription, "action": action, "status": status, "confidence": confidence}
+		item := map[string]any{"id": id, "goal": goalDescription, "action": action, "status": status, "confidence": confidence}
+		if profileID != nil && strings.TrimSpace(*profileID) != "" {
+			item["profile_id"] = *profileID
+		}
+		if goalID != nil && strings.TrimSpace(*goalID) != "" {
+			item["goal_id"] = *goalID
+		}
+		triggerValue := decodeObject(trigger)
+		if target := strings.TrimSpace(stringValue(triggerValue["target_actor_id"])); target != "" {
+			item["target_actor_id"] = target
+		}
 		if preferredTime != nil {
 			item["preferred_time"] = preferredTime.Format(time.RFC3339)
 		}

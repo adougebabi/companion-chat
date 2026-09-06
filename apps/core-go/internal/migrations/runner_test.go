@@ -75,6 +75,26 @@ func TestRelationshipGovernanceSchemaIncludesActorRoleAndGoalScope(t *testing.T)
 	}
 }
 
+func TestPersonalityRuntimeSchemaExists(t *testing.T) {
+	if !strings.Contains(schemaSQL, "fluctlight_personality_runtime") {
+		t.Fatal("personality runtime table is missing")
+	}
+}
+
+func TestPersonalityScopedAgencyRelationshipAndMemorySchema(t *testing.T) {
+	for _, fragment := range []string{
+		"fluctlight_goals (id varchar(128) PRIMARY KEY, fluctlight_id varchar(128) NOT NULL, profile_id varchar(128)",
+		"fluctlight_intentions (id varchar(128) PRIMARY KEY, fluctlight_id varchar(128) NOT NULL, profile_id varchar(128)",
+		"relationships (id varchar(128) PRIMARY KEY, owner_fluctlight_id varchar(128) NOT NULL, profile_id varchar(128)",
+		"personality_perspectives jsonb NOT NULL DEFAULT '[]'",
+		"ALTER TABLE public.memory_revisions ADD COLUMN IF NOT EXISTS personality_perspectives",
+	} {
+		if !strings.Contains(schemaSQL+compatibilitySQL, fragment) {
+			t.Fatalf("personality-scoped schema is missing %q", fragment)
+		}
+	}
+}
+
 func TestLLMQueueSchemaIncludesGenericBindingAndLifecycleFields(t *testing.T) {
 	if Head != "0025_llm_queue" {
 		t.Fatalf("Head = %q, want 0025_llm_queue", Head)

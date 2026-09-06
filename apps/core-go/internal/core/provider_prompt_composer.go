@@ -159,7 +159,7 @@ func filterCorePersona(value map[string]any) map[string]any {
 		value = data
 	}
 	result := make(map[string]any, 4)
-	for _, group := range []string{"identity", "personality", "behavioral_policy", "life_profile"} {
+	for _, group := range []string{"identity", "personality", "behavioral_policy", "life_profile", "personality_system"} {
 		if source := mapValue(value[group]); len(source) > 0 {
 			result[group] = filterCorePersonaValue(source)
 		}

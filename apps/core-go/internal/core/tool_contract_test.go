@@ -480,10 +480,27 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 		}
 	}
 	cognitive := cognitiveTurnResponseSchema()
-	for _, key := range []string{"action_type", "appraisal", "attention", "thought", "desire", "agency"} {
+	for _, key := range []string{"action_type", "appraisal", "attention", "thought", "desire", "agency", "personality_decision", "output_preference_decision"} {
 		if !containsSchemaRequired(cognitive, key) {
 			t.Fatalf("cognitive schema missing required field %q: %#v", key, cognitive)
 		}
+	}
+	outputDecision := mapValue(mapValue(cognitive["properties"])["output_preference_decision"])
+	if !containsSchemaRequired(outputDecision, "profile_id") || !containsSchemaRequired(outputDecision, "trigger_id") {
+		t.Fatalf("output preference decision must identify its profile and trigger: %#v", outputDecision)
+	}
+	personalityDecision := mapValue(mapValue(cognitive["properties"])["personality_decision"])
+	if !containsSchemaRequired(personalityDecision, "from_profile_id") {
+		t.Fatalf("personality decision must identify its source profile: %#v", personalityDecision)
+	}
+	memoryParameters := mapValue(memoryCapabilityManifest().Parameters)
+	perspectives := mapValue(mapValue(memoryParameters["properties"])["personality_perspectives"])
+	if perspectives["type"] != "array" {
+		t.Fatalf("memory perspectives must be an array: %#v", perspectives)
+	}
+	perspectiveItem := mapValue(perspectives["items"])
+	if !containsSchemaRequired(perspectiveItem, "profile_id") || !containsSchemaRequired(perspectiveItem, "interpretation") {
+		t.Fatalf("memory perspective schema is incomplete: %#v", perspectiveItem)
 	}
 	daily := dailyReviewResponseSchema()
 	actionSchema := mapValue(mapValue(daily["properties"])["action_type"])

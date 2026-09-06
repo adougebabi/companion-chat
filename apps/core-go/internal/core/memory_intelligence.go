@@ -32,7 +32,11 @@ func memoryCapabilityManifest() CapabilityManifest {
 				"importance":             map[string]any{"type": "number", "minimum": 0, "maximum": 1},
 				"emotional_significance": map[string]any{"type": "number", "minimum": 0, "maximum": 1},
 				"visibility":             map[string]any{"type": "string", "enum": []any{"private", "owner", "participants"}},
-				"actor_refs":             map[string]any{"type": "array"}, "event_refs": map[string]any{"type": "array"},
+				"personality_perspectives": map[string]any{"type": "array", "maxItems": 16, "items": objectSchema(map[string]any{
+					"profile_id": stringSchema(), "interpretation": stringSchema(), "emotion": stringSchema(),
+					"evidence_refs": arraySchema(stringSchema()), "provenance": openObjectSchema(),
+				}, []string{"profile_id", "interpretation"}, false)},
+				"actor_refs": map[string]any{"type": "array"}, "event_refs": map[string]any{"type": "array"},
 				"evidence_refs":   map[string]any{"type": "array", "minItems": 1},
 				"source_fact_id":  map[string]any{"type": "string", "minLength": 1},
 				"idempotency_key": map[string]any{"type": "string", "minLength": 1, "maxLength": 256},
@@ -63,6 +67,11 @@ func (a *App) applyMemoryCapability(ctx context.Context, fluctlightID, conversat
 		refs = append(refs, sourceFactID)
 	}
 	args["evidence_refs"] = refs
+	if perspectives, err := normalizePersonalityPerspectives(args["personality_perspectives"]); err != nil {
+		return failedToolResult(call, "memory_perspective_invalid", false, err.Error()), err
+	} else {
+		args["personality_perspectives"] = bindPerspectiveEvidence(perspectives, sourceFactID)
+	}
 	if stringValue(args["idempotency_key"]) == "" {
 		args["idempotency_key"] = "tool:" + call.ID
 	}
@@ -84,12 +93,16 @@ func (a *App) RecordMemory(ctx context.Context, fluctlightID, actorID string, pa
 	if fluctlightID == "" || actorID == "" {
 		return nil, errors.New("memory_owner_required")
 	}
-	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
+	fluctlight, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID)
+	if err != nil {
 		return nil, err
 	}
 	record, err := normalizeMemoryRecord(fluctlightID, payload)
 	if err != nil {
 		return nil, err
+	}
+	if !validatePersonalityPerspectiveProfiles(fluctlight.CorePersona, record.PersonalityPerspectives) {
+		return nil, errors.New("memory_perspective_profile_invalid")
 	}
 	var result map[string]any
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
@@ -104,13 +117,14 @@ func (a *App) RollbackMemory(ctx context.Context, actorID, memoryID string, targ
 		return nil, errors.New("memory_rollback_invalid")
 	}
 	var content string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT r.content FROM public.memory_revisions r JOIN public.memories m ON m.id=r.memory_id JOIN public.fluctlights f ON f.id=m.owner_fluctlight_id WHERE r.memory_id=$1 AND r.revision=$2 AND f.created_by_actor_id=$3`, memoryID, targetRevision, actorID).Scan(&content); err != nil {
+	var perspectives []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT r.content,r.personality_perspectives FROM public.memory_revisions r JOIN public.memories m ON m.id=r.memory_id JOIN public.fluctlights f ON f.id=m.owner_fluctlight_id WHERE r.memory_id=$1 AND r.revision=$2 AND f.created_by_actor_id=$3`, memoryID, targetRevision, actorID).Scan(&content, &perspectives); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, err
 	}
-	result, err := a.ReviseMemory(ctx, actorID, memoryID, content, &expectedRevision, append(evidenceRefs, "rollback:"+fmt.Sprint(targetRevision)))
+	result, err := a.reviseMemory(ctx, actorID, memoryID, content, &expectedRevision, append(evidenceRefs, "rollback:"+fmt.Sprint(targetRevision)), perspectives)
 	if err != nil {
 		return nil, err
 	}
@@ -120,20 +134,21 @@ func (a *App) RollbackMemory(ctx context.Context, actorID, memoryID string, targ
 }
 
 type memoryRecordInput struct {
-	ID                    string
-	FluctlightID          string
-	Type                  string
-	Content               string
-	ActorRefs             []any
-	ConversationID        *string
-	EventRefs             []any
-	EvidenceRefs          []any
-	Confidence            float64
-	Importance            float64
-	EmotionalSignificance float64
-	Visibility            string
-	IdempotencyKey        string
-	OccurredAt            *time.Time
+	ID                      string
+	FluctlightID            string
+	Type                    string
+	Content                 string
+	ActorRefs               []any
+	ConversationID          *string
+	EventRefs               []any
+	EvidenceRefs            []any
+	PersonalityPerspectives []any
+	Confidence              float64
+	Importance              float64
+	EmotionalSignificance   float64
+	Visibility              string
+	IdempotencyKey          string
+	OccurredAt              *time.Time
 }
 
 func normalizeMemoryRecord(fluctlightID string, payload map[string]any) (memoryRecordInput, error) {
@@ -176,7 +191,104 @@ func normalizeMemoryRecord(fluctlightID string, payload map[string]any) (memoryR
 	if value := stringValue(payload["conversation_id"]); value != "" {
 		conversationID = &value
 	}
-	return memoryRecordInput{ID: "memory_" + stableDigest(fluctlightID+":"+idempotency), FluctlightID: fluctlightID, Type: typeName, Content: content, ActorRefs: arrayValue(payload["actor_refs"]), ConversationID: conversationID, EventRefs: arrayValue(payload["event_refs"]), EvidenceRefs: evidence, Confidence: confidence, Importance: importance, EmotionalSignificance: emotional, Visibility: visibility, IdempotencyKey: idempotency}, nil
+	perspectives, err := normalizePersonalityPerspectives(payload["personality_perspectives"])
+	if err != nil {
+		return memoryRecordInput{}, err
+	}
+	return memoryRecordInput{ID: "memory_" + stableDigest(fluctlightID+":"+idempotency), FluctlightID: fluctlightID, Type: typeName, Content: content, ActorRefs: arrayValue(payload["actor_refs"]), ConversationID: conversationID, EventRefs: arrayValue(payload["event_refs"]), EvidenceRefs: evidence, PersonalityPerspectives: bindPerspectiveEvidence(perspectives, firstString(stringValue(payload["source_fact_id"]), "")), Confidence: confidence, Importance: importance, EmotionalSignificance: emotional, Visibility: visibility, IdempotencyKey: idempotency}, nil
+}
+
+func normalizePersonalityPerspectives(value any) ([]any, error) {
+	if value != nil {
+		switch value.(type) {
+		case []any, []map[string]any, []string:
+		default:
+			return nil, errors.New("memory_perspectives_invalid")
+		}
+	}
+	raw := arrayValue(value)
+	if len(raw) > 16 {
+		return nil, errors.New("memory_perspectives_too_many")
+	}
+	result := make([]any, 0, len(raw))
+	seen := map[string]struct{}{}
+	for index, item := range raw {
+		perspective := mapValue(item)
+		if len(perspective) == 0 {
+			return nil, fmt.Errorf("memory_perspective_%d_invalid", index)
+		}
+		profileID := strings.TrimSpace(stringValue(perspective["profile_id"]))
+		interpretation := strings.TrimSpace(stringValue(perspective["interpretation"]))
+		if profileID == "" || len([]rune(profileID)) > 128 || interpretation == "" || len([]rune(interpretation)) > 4000 {
+			return nil, fmt.Errorf("memory_perspective_%d_invalid", index)
+		}
+		if _, exists := seen[profileID]; exists {
+			return nil, errors.New("memory_perspective_duplicate_profile")
+		}
+		seen[profileID] = struct{}{}
+		clean := map[string]any{"profile_id": profileID, "interpretation": interpretation}
+		if emotion := strings.TrimSpace(stringValue(perspective["emotion"])); emotion != "" {
+			if len([]rune(emotion)) > 512 {
+				return nil, fmt.Errorf("memory_perspective_%d_invalid", index)
+			}
+			clean["emotion"] = emotion
+		}
+		refs := arrayValue(perspective["evidence_refs"])
+		cleanRefs := make([]any, 0, len(refs))
+		for _, ref := range refs {
+			value := strings.TrimSpace(stringValue(ref))
+			if value == "" || len([]rune(value)) > 256 {
+				return nil, fmt.Errorf("memory_perspective_%d_evidence_invalid", index)
+			}
+			cleanRefs = append(cleanRefs, value)
+		}
+		if len(cleanRefs) > 0 {
+			clean["evidence_refs"] = cleanRefs
+		}
+		if provenance := mapValue(perspective["provenance"]); len(provenance) > 0 {
+			clean["provenance"] = cloneMap(provenance)
+		}
+		result = append(result, clean)
+	}
+	return result, nil
+}
+
+func bindPerspectiveEvidence(values []any, sourceFactID string) []any {
+	if strings.TrimSpace(sourceFactID) == "" {
+		return values
+	}
+	result := make([]any, 0, len(values))
+	for _, raw := range values {
+		item := cloneMap(mapValue(raw))
+		refs := arrayValue(item["evidence_refs"])
+		if !containsStringValue(refs, sourceFactID) {
+			refs = append(refs, sourceFactID)
+		}
+		item["evidence_refs"] = refs
+		result = append(result, item)
+	}
+	return result
+}
+
+func validatePerspectiveEvidence(values []any, allowed map[string]struct{}) bool {
+	for _, raw := range values {
+		for _, ref := range arrayValue(mapValue(raw)["evidence_refs"]) {
+			if _, ok := allowed[strings.TrimSpace(stringValue(ref))]; !ok {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func validatePersonalityPerspectiveProfiles(corePersona map[string]any, values []any) bool {
+	profiles := personalityProfileIDs(corePersona)
+	for _, raw := range values {
+		if _, ok := profiles[strings.TrimSpace(stringValue(mapValue(raw)["profile_id"]))]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func requiredBoundedNumber(value any) (float64, error) {
@@ -201,10 +313,11 @@ func containsStringValue(values []any, expected string) bool {
 
 func recordMemoryTx(ctx context.Context, tx pgx.Tx, record memoryRecordInput, actorID string) (map[string]any, error) {
 	var existingOwner, existingType, existingContent string
+	var existingPerspectives []byte
 	var existingRevision int
-	err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,type,content,revision FROM public.memories WHERE id=$1`, record.ID).Scan(&existingOwner, &existingType, &existingContent, &existingRevision)
+	err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,type,content,personality_perspectives,revision FROM public.memories WHERE id=$1`, record.ID).Scan(&existingOwner, &existingType, &existingContent, &existingPerspectives, &existingRevision)
 	if err == nil {
-		if existingOwner != record.FluctlightID || existingType != record.Type || existingContent != record.Content {
+		if existingOwner != record.FluctlightID || existingType != record.Type || existingContent != record.Content || jsonString(decodeArray(existingPerspectives)) != jsonString(record.PersonalityPerspectives) {
 			return nil, ErrConflict
 		}
 		return map[string]any{"id": record.ID, "fluctlight_id": record.FluctlightID, "status": "active", "revision": existingRevision, "replayed": true}, nil
@@ -217,16 +330,16 @@ func recordMemoryTx(ctx context.Context, tx pgx.Tx, record memoryRecordInput, ac
 		return nil, err
 	}
 	if generated == "ALWAYS" {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,confidence,importance,emotional_significance,visibility,status,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'active',0)`, record.ID, record.FluctlightID, record.Type, record.Content, jsonBytes(record.ActorRefs), record.ConversationID, jsonBytes(record.EventRefs), jsonBytes(record.EvidenceRefs), record.Confidence, record.Importance, record.EmotionalSignificance, record.Visibility); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'active',0)`, record.ID, record.FluctlightID, record.Type, record.Content, jsonBytes(record.ActorRefs), record.ConversationID, jsonBytes(record.EventRefs), jsonBytes(record.EvidenceRefs), jsonBytes(record.PersonalityPerspectives), record.Confidence, record.Importance, record.EmotionalSignificance, record.Visibility); err != nil {
 			return nil, err
 		}
 	} else {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,confidence,importance,emotional_significance,visibility,status,revision,search_document) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'active',0,to_tsvector('simple',$4))`, record.ID, record.FluctlightID, record.Type, record.Content, jsonBytes(record.ActorRefs), record.ConversationID, jsonBytes(record.EventRefs), jsonBytes(record.EvidenceRefs), record.Confidence, record.Importance, record.EmotionalSignificance, record.Visibility); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision,search_document) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'active',0,to_tsvector('simple',$4))`, record.ID, record.FluctlightID, record.Type, record.Content, jsonBytes(record.ActorRefs), record.ConversationID, jsonBytes(record.EventRefs), jsonBytes(record.EvidenceRefs), jsonBytes(record.PersonalityPerspectives), record.Confidence, record.Importance, record.EmotionalSignificance, record.Visibility); err != nil {
 			return nil, err
 		}
 	}
 	revisionID := "memory_revision_" + stableDigest(record.ID+":0")
-	if _, err := tx.Exec(ctx, `INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,status,actor_id,evidence_refs,idempotency_key) VALUES($1,$2,0,0,$3,'active',$4,$5,$6) ON CONFLICT(idempotency_key) DO NOTHING`, revisionID, record.ID, record.Content, actorID, jsonBytes(record.EvidenceRefs), "memory-record:"+record.IdempotencyKey); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,personality_perspectives,status,actor_id,evidence_refs,idempotency_key) VALUES($1,$2,0,0,$3,$4,'active',$5,$6,$7) ON CONFLICT(idempotency_key) DO NOTHING`, revisionID, record.ID, record.Content, jsonBytes(record.PersonalityPerspectives), actorID, jsonBytes(record.EvidenceRefs), "memory-record:"+record.IdempotencyKey); err != nil {
 		return nil, err
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','memory.embedding',$3) ON CONFLICT DO NOTHING`, "memory_embedding_intent:"+record.ID+":0", "memory_embedding:"+record.ID+":0", jsonBytes(map[string]any{"memory_id": record.ID, "revision": 0})); err != nil {

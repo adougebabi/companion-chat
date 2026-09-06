@@ -53,14 +53,20 @@ func (executor *relationshipLookupCapabilityExecutor) Execute(ctx context.Contex
 		}
 	}
 	var actorType, trend string
+	var activeProfileID string
+	_ = executor.app.DB.Pool().QueryRow(ctx, `SELECT COALESCE(active_profile_id,'default') FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&activeProfileID)
 	var role, metrics, summary, emotional, provenance []byte
 	var revision int
-	if err := executor.app.DB.Pool().QueryRow(ctx, `SELECT COALESCE(a.actor_type,'unknown'),r.role,r.metrics,r.trend,r.summary,r.emotional_association,r.provenance,r.revision FROM public.relationships r LEFT JOIN public.actors a ON a.id=r.target_actor_id WHERE r.owner_fluctlight_id=$1 AND r.target_actor_id=$2`, fluctlightID, target).Scan(&actorType, &role, &metrics, &trend, &summary, &emotional, &provenance, &revision); err != nil {
+	var profileID *string
+	if err := executor.app.DB.Pool().QueryRow(ctx, `SELECT r.profile_id,COALESCE(a.actor_type,'unknown'),r.role,r.metrics,r.trend,r.summary,r.emotional_association,r.provenance,r.revision FROM public.relationships r LEFT JOIN public.actors a ON a.id=r.target_actor_id WHERE r.owner_fluctlight_id=$1 AND r.target_actor_id=$2 AND (r.profile_id=$3 OR r.profile_id IS NULL) ORDER BY CASE WHEN r.profile_id=$3 THEN 0 ELSE 1 END LIMIT 1`, fluctlightID, target, activeProfileID).Scan(&profileID, &actorType, &role, &metrics, &trend, &summary, &emotional, &provenance, &revision); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return failedToolResult(call, "relationship_lookup_not_found", false, "relationship is not established"), ErrNotFound
 		}
 		return failedToolResult(call, "relationship_lookup_failed", true, err.Error()), err
 	}
 	result := map[string]any{"target_actor_id": target, "target_actor_type": actorType, "role": decodeObject(role), "metrics": decodeObject(metrics), "trend": trend, "summary": summary, "emotional_association": decodeObject(emotional), "provenance": decodeObject(provenance), "revision": revision}
+	if profileID != nil && strings.TrimSpace(*profileID) != "" {
+		result["profile_id"] = *profileID
+	}
 	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: result, ProviderRequestID: call.ProviderRequestID, CorrelationID: "relationship:" + stableDigest(fluctlightID+":"+target), SchemaVersion: ToolResultSchemaVersion}, nil
 }
