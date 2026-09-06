@@ -131,6 +131,11 @@ func main() {
 				return
 			}
 		case <-retentionTicker.C:
+			if recovered, err := application.RecoverStaleModelRuns(ctx, 15*time.Minute); err != nil {
+				logger.Warn("Go Worker stale model-run recovery retry", "error", err)
+			} else if recovered > 0 {
+				logger.Info("Go Worker recovered stale model runs", "count", recovered)
+			}
 			if _, err := application.PruneDiagnostics(ctx, 30*24*time.Hour, 10000); err != nil {
 				logger.Warn("Go Worker diagnostics retention retry", "error", err)
 			}
