@@ -133,17 +133,10 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 			return map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": "blocked", "reason": policyDecision.Reason, "policy_snapshot": policySnapshot}, nil
 		}
 	}
-	visible := ""
-	if actionType != "no_op" {
-		realizationMessages := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(map[string]any{"action_type": actionType, "response_intent": composite.ResponseIntent, "context": compactCognitionContext(projection)})}}
-		realizationMessages = withActorRelationshipSystemContext(realizationMessages, projection)
-		visible, err = a.Provider.Text(WithProviderScenario(ctx, "autonomy_reply"), "action_realization", realizationMessages)
-		if err != nil {
-			return nil, err
-		}
-		visible = normalizeVisibleReply(visible)
-	}
 	if actionType == "proactive_message" {
+		if conversationID == "" {
+			return nil, errors.New("proactive_target_invalid")
+		}
 		if err := validateCompositeOutputCalls(composite.ToolCalls, "conversation_message", a.capabilityRegistry()); err != nil {
 			return nil, fmt.Errorf("daily_review_output_binding_invalid: %w", err)
 		}
@@ -152,96 +145,62 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 			return nil, fmt.Errorf("daily_review_output_binding_invalid: %w", err)
 		}
 	}
-	deliveryStatus := ""
-	deliveredMessageID := ""
+	payload := map[string]any{"conversation_id": conversationID, "response_intent": composite.ResponseIntent, "decision": composite, "source_fact_id": "daily-review:" + fluctlightID + ":" + localDate}
+	if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
+		payload["output_preference_decision"] = preference
+	}
+	if len(composite.ToolCalls) > 0 {
+		payload["tool_calls"] = composite.ToolCalls
+		payload["output_bindings"] = composite.OutputBindings
+	}
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if actionType != "no_op" {
 			if err := reserveAutonomyBudgetTx(ctx, tx, fluctlightID); err != nil {
 				return err
 			}
 		}
-		insertAction := func() error {
-			payload := map[string]any{"text": visible, "conversation_id": conversationID, "response_intent": composite.ResponseIntent, "decision": composite}
-			if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
-				payload["output_preference_decision"] = preference
-			}
-			if len(composite.ToolCalls) > 0 {
-				payload["tool_calls"] = composite.ToolCalls
-				payload["output_bindings"] = composite.OutputBindings
-			}
-			if deliveryStatus != "" {
-				payload["delivery_status"] = deliveryStatus
-				payload["message_id"] = deliveredMessageID
-				payload["tool_calls_suppressed"] = true
-			}
-			_, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions (id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id,created_at,settled_at) VALUES ($1,$2,$3,$4,$5,'{}','completed',$6,$7,now(),now())`, actionID, fluctlightID, actionType, jsonBytes(payload), jsonBytes(policySnapshot), workflowID, providerID)
+		status := "frozen"
+		if actionType == "no_op" {
+			status = "completed"
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions (id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id,created_at,settled_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),CASE WHEN $7='completed' THEN now() ELSE NULL END)`, actionID, fluctlightID, actionType, jsonBytes(payload), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": projection.ContextRevision}), status, workflowID, providerID); err != nil {
 			return err
 		}
-		if actionType == "proactive_message" {
-			messageID, duplicate, err := recentExactAssistantMessageTx(ctx, tx, conversationID, fluctlightID, visible, proactiveMessageDuplicateWindow)
-			if err != nil {
+		if status == "frozen" {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','autonomy.action',$3) ON CONFLICT DO NOTHING`, "autonomy_daily_intent:"+actionID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "local_date": localDate})); err != nil {
 				return err
 			}
-			if duplicate {
-				deliveryStatus = "duplicate_suppressed"
-				deliveredMessageID = messageID
-				if err := insertAction(); err != nil {
-					return err
-				}
-				return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, workflowID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed", "delivery_status": deliveryStatus, "message_id": messageID})
-			}
-			messageID, err = appendAssistantTxWithID(ctx, tx, conversationID, fluctlightID, visible, "proactive:"+actionID)
-			if err != nil {
-				return err
-			}
-			composite = bindCompositeActionOutput(composite, "conversation_message", messageID)
-			var toolResults []ToolResultV1
-			if len(composite.ToolCalls) > 0 {
-				toolResults, err = a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, workflowID, actionID, composite.ToolCalls, nil, composite.OutputBindings[0])
-				if err != nil {
-					return err
-				}
-			}
-			if err := insertAction(); err != nil {
-				return err
-			}
-			if len(toolResults) > 0 {
-				if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(payload,'{tool_results}',$2::jsonb,true) WHERE id=$1`, actionID, jsonBytes(toolResults)); err != nil {
-					return err
-				}
-			}
-			return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, workflowID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed"})
+			return appendOutboxTx(ctx, tx, "autonomy.action.frozen", "autonomy_action", actionID, fluctlightID, actionID, workflowID, "autonomy-freeze:"+actionID, map[string]any{"action_type": actionType, "workflow_id": workflowID})
 		}
-		if actionType == "moment" {
-			if len([]rune(visible)) == 0 || len([]rune(visible)) > 32000 {
-				return errors.New("moment_text_invalid")
-			}
-			momentID := "moment_" + stableDigest(actionID)
-			if _, err := tx.Exec(ctx, `INSERT INTO public.moments (id,owner_fluctlight_id,author_actor_id,text,visibility,status,media_asset_ids) VALUES ($1,$2,$3,$4,'participants','visible','[]') ON CONFLICT DO NOTHING`, momentID, fluctlightID, fluctlightID, visible); err != nil {
-				return err
-			}
-			composite = bindCompositeActionOutput(composite, "moment", momentID)
-			var toolResults []ToolResultV1
-			if len(composite.ToolCalls) > 0 {
-				toolResults, err = a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, workflowID, actionID, composite.ToolCalls, nil, composite.OutputBindings[0])
-				if err != nil {
-					return err
-				}
-			}
-			if err := insertAction(); err != nil {
-				return err
-			}
-			if len(toolResults) > 0 {
-				if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(payload,'{tool_results}',$2::jsonb,true) WHERE id=$1`, actionID, jsonBytes(toolResults)); err != nil {
-					return err
-				}
-			}
-			return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, workflowID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed"})
-		}
-		return insertAction()
+		return nil
 	})
 	if err != nil {
 		return nil, err
+	}
+	deliveryStatus := ""
+	deliveredMessageID := ""
+	if actionType != "no_op" {
+		realizationMessages := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(map[string]any{"action_type": actionType, "response_intent": composite.ResponseIntent, "context": compactCognitionContext(projection)})}}
+		realizationMessages = withActorRelationshipSystemContext(realizationMessages, projection)
+		visible, realizationErr := a.Provider.Text(WithProviderScenario(ctx, "autonomy_reply"), "action_realization", realizationMessages)
+		if realizationErr != nil {
+			_, _ = a.failAutonomyAction(ctx, actionID, "realization_failed")
+			return nil, realizationErr
+		}
+		visible = normalizeVisibleReply(visible)
+		if visible == "" || len([]rune(visible)) > 32000 {
+			_, _ = a.failAutonomyAction(ctx, actionID, "realization_empty")
+			return nil, errors.New("daily_review_realization_empty")
+		}
+		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(payload,'{text}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(visible)); err != nil {
+			return nil, err
+		}
+		execution, executionErr := a.ProcessAutonomyAction(ctx, actionID)
+		if executionErr != nil {
+			return nil, executionErr
+		}
+		deliveryStatus = stringValue(execution["delivery_status"])
+		deliveredMessageID = stringValue(execution["message_id"])
 	}
 	if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		payload := map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed", "local_date": localDate, "delivery_status": deliveryStatus, "message_id": deliveredMessageID}
