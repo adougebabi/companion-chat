@@ -202,18 +202,20 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		deliveryStatus = stringValue(execution["delivery_status"])
 		deliveredMessageID = stringValue(execution["message_id"])
 	}
-	if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		payload := map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed", "local_date": localDate, "delivery_status": deliveryStatus, "message_id": deliveredMessageID}
-		factID, factErr := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", payload, "daily-review-result:"+actionID)
-		if factErr != nil {
-			return factErr
+	if actionType == "no_op" {
+		if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			payload := map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed", "local_date": localDate, "delivery_status": deliveryStatus, "message_id": deliveredMessageID}
+			factID, factErr := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", payload, "daily-review-result:"+actionID)
+			if factErr != nil {
+				return factErr
+			}
+			if _, factErr := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:daily:"+actionID, "reflection:daily:"+actionID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID})); factErr != nil {
+				return factErr
+			}
+			return appendOutboxTx(ctx, tx, "autonomy.result.recorded", "fluctlight", fluctlightID, fluctlightID, actionID, "daily-review-result:"+actionID, "daily-review-result:"+actionID, payload)
+		}); err != nil {
+			return nil, err
 		}
-		if _, factErr := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:daily:"+actionID, "reflection:daily:"+actionID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID})); factErr != nil {
-			return factErr
-		}
-		return appendOutboxTx(ctx, tx, "autonomy.result.recorded", "fluctlight", fluctlightID, fluctlightID, actionID, "daily-review-result:"+actionID, "daily-review-result:"+actionID, payload)
-	}); err != nil {
-		return nil, err
 	}
 	result := map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": "completed", "owner_actor_id": ownerID}
 	if deliveryStatus != "" {
