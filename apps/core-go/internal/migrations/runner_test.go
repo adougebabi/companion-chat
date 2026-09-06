@@ -62,6 +62,19 @@ func TestPersonaLayerSchemaIncludesCanonicalStores(t *testing.T) {
 	}
 }
 
+func TestRelationshipGovernanceSchemaIncludesActorRoleAndGoalScope(t *testing.T) {
+	for _, fragment := range []string{
+		"role jsonb NOT NULL DEFAULT '{}'",
+		"provenance jsonb NOT NULL DEFAULT '{}'",
+		"scope varchar(32) NOT NULL DEFAULT 'general'",
+		"target_actor_id varchar(128)",
+	} {
+		if !strings.Contains(schemaSQL+compatibilitySQL, fragment) {
+			t.Fatalf("relationship schema missing %q", fragment)
+		}
+	}
+}
+
 func TestLLMQueueSchemaIncludesGenericBindingAndLifecycleFields(t *testing.T) {
 	if Head != "0025_llm_queue" {
 		t.Fatalf("Head = %q, want 0025_llm_queue", Head)

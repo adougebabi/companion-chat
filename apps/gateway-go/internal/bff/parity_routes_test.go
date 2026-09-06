@@ -64,6 +64,7 @@ func browserRouteCases() []browserRouteCase {
 		{name: "memory revise", method: http.MethodPut, path: "/api/memories/memory-1", body: `{"expectedRevision":0,"content":"updated","evidenceRefs":["evidence"]}`},
 		{name: "memory forget", method: http.MethodPost, path: "/api/memories/memory-1/forget", body: `{"expectedRevision":0,"evidenceRefs":["evidence"]}`},
 		{name: "relationship rollback", method: http.MethodPost, path: "/api/fluctlights/fl-1/relationships/rollback", body: `{"targetActorId":"actor","targetRevision":0,"expectedRevision":0,"evidenceRefs":["evidence"]}`},
+		{name: "relationship edit", method: http.MethodPut, path: "/api/fluctlights/fl-1/relationships/actor", body: `{"expectedRevision":0,"role":{"primary":"friend"},"metrics":{"trust":0.8},"trend":"improving","summary":"trusted","emotionalAssociation":{},"evidenceRefs":["evidence"],"reason":"corrected"}`},
 		{name: "autonomy list", method: http.MethodGet, path: "/api/fluctlights/fl-1/autonomy-actions"},
 		{name: "autonomy govern", method: http.MethodPost, path: "/api/autonomy-actions/action-1/govern", body: `{"status":"paused","reason":"test"}`},
 		{name: "life event create", method: http.MethodPost, path: "/api/fluctlights/fl-1/events", body: `{"kind":"meeting","startAt":"2026-01-01T10:00:00Z","endAt":"2026-01-01T11:00:00Z","evidenceRefs":["evidence"]}`},

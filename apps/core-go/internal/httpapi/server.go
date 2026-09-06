@@ -77,6 +77,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/foundation-revisions/{revisionID}/reject", s.rejectFoundation)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/foundation-revisions/rollback", s.rollbackFoundation)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/relationships/rollback", s.rollbackRelationship)
+	mux.HandleFunc("PUT /internal/fluctlights/{fluctlightID}/relationships/{targetActorID}", s.editRelationship)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/events", s.createEvent)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/events/{eventID}/cancel", s.cancelEvent)
 	mux.HandleFunc("PUT /internal/fluctlights/{fluctlightID}/presence", s.setPresence)
@@ -471,7 +472,7 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 	if name == "" {
 		name = stringValue(identity["name"])
 	}
-	initialization := map[string]any{"core_persona": corePersona, "developing_self": mapValue(body["developing_self"]), "initial_goals": arrayValue(body["initial_goals"]), "initial_intentions": arrayValue(body["initial_intentions"])}
+	initialization := map[string]any{"core_persona": corePersona, "developing_self": mapValue(body["developing_self"]), "initial_goals": arrayValue(body["initial_goals"]), "initial_intentions": arrayValue(body["initial_intentions"]), "initial_relationships": arrayValue(body["initial_relationships"])}
 	if mode == "blank_slate" {
 		initialization = nil
 	}

@@ -36,6 +36,9 @@ type ContextProjection struct {
 	ConversationID         string           `json:"conversation_id"`
 	SourceFactID           string           `json:"source_fact_id"`
 	CurrentUserText        string           `json:"current_user_text"`
+	SelfActor              map[string]any   `json:"self_actor"`
+	CurrentSpeaker         map[string]any   `json:"current_speaker,omitempty"`
+	Actors                 []map[string]any `json:"actors,omitempty"`
 	RecentMessages         []map[string]any `json:"recent_messages"`
 	ContextRevision        int              `json:"context_revision"`
 	CorePersonaRevision    int              `json:"core_persona_revision"`
@@ -136,9 +139,18 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if err != nil {
 		return ContextProjection{}, err
 	}
-	relationships, err := a.readRelationships(ctx, fluctlightID)
+	relationships, err := a.readRelationships(ctx, fluctlightID, actorID)
 	if err != nil {
 		return ContextProjection{}, err
+	}
+	if conversationID != "" {
+		filtered := make([]map[string]any, 0, 1)
+		for _, relationship := range relationships {
+			if stringValue(relationship["target_actor_id"]) == strings.TrimSpace(actorID) {
+				filtered = append(filtered, relationship)
+			}
+		}
+		relationships = filtered
 	}
 	hypotheses, err := a.readActiveHypotheses(ctx, fluctlightID)
 	if err != nil {
@@ -160,6 +172,9 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if err != nil {
 		return ContextProjection{}, err
 	}
+	if conversationID != "" {
+		goals, intentions = filterAgencyForTarget(goals, intentions, actorID)
+	}
 	visualIdentity, err := a.readVisualIdentityDetail(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -175,6 +190,7 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 			recentMessages = append(recentMessages, map[string]any{"id": message.ID, "sequence": message.Sequence, "author_actor_id": message.AuthorActorID, "kind": message.Kind, "text": message.Text, "attachment_refs": message.AttachmentRefs, "created_at": message.CreatedAt.Format(time.RFC3339Nano), "source": "message:" + message.ID})
 		}
 	}
+	actors, selfActor, currentSpeaker := a.buildActorProjection(ctx, fluctlightID, actorID, recentMessages)
 	developingSelfClaims, err := a.listDevelopingSelfClaims(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -194,7 +210,7 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	projection := ContextProjection{
 		SchemaVersion: "fluctlight.context.v2",
 		FluctlightID:  fluctlightID, ConversationID: conversationID, SourceFactID: sourceFactID,
-		CurrentUserText: userText, RecentMessages: recentMessages, ContextRevision: fluctlight.CurrentRevision,
+		CurrentUserText: userText, SelfActor: selfActor, CurrentSpeaker: currentSpeaker, Actors: actors, RecentMessages: recentMessages, ContextRevision: fluctlight.CurrentRevision,
 		CorePersonaRevision: fluctlight.CurrentRevision, DevelopingSelfRevision: developingSelfRevision, CurrentStateRevision: intValue(inner["revision"]),
 		CorePersona:    map[string]any{"authority": "hard_constraint", "data": fluctlight.CorePersona},
 		DevelopingSelf: developingSelf,
@@ -211,6 +227,71 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 		projection.Presence = presence
 	}
 	return projection, nil
+}
+
+func filterAgencyForTarget(goals, intentions []map[string]any, targetActorID string) ([]map[string]any, []map[string]any) {
+	filteredGoals := make([]map[string]any, 0, len(goals))
+	allowedGoalIDs := map[string]struct{}{}
+	for _, goal := range goals {
+		if stringValue(goal["scope"]) != "relationship" || stringValue(goal["target_actor_id"]) == strings.TrimSpace(targetActorID) {
+			filteredGoals = append(filteredGoals, goal)
+			if id := stringValue(goal["id"]); id != "" {
+				allowedGoalIDs[id] = struct{}{}
+			}
+		}
+	}
+	filteredIntentions := make([]map[string]any, 0, len(intentions))
+	for _, intention := range intentions {
+		goalID := stringValue(intention["goal_id"])
+		if goalID == "" {
+			filteredIntentions = append(filteredIntentions, intention)
+			continue
+		}
+		if _, ok := allowedGoalIDs[goalID]; ok {
+			filteredIntentions = append(filteredIntentions, intention)
+		}
+	}
+	return filteredGoals, filteredIntentions
+}
+
+func (a *App) buildActorProjection(ctx context.Context, selfActorID, speakerActorID string, messages []map[string]any) ([]map[string]any, map[string]any, map[string]any) {
+	self := map[string]any{"ref": "self_actor", "actor_id": selfActorID, "type": "fluctlight"}
+	actors := []map[string]any{self}
+	refs := map[string]map[string]any{selfActorID: self}
+	add := func(actorID, ref, fallbackType string) {
+		actorID = strings.TrimSpace(actorID)
+		if actorID == "" {
+			return
+		}
+		if _, exists := refs[actorID]; exists {
+			return
+		}
+		actorType := fallbackType
+		_ = a.DB.Pool().QueryRow(ctx, `SELECT actor_type FROM public.actors WHERE id=$1`, actorID).Scan(&actorType)
+		actor := map[string]any{"ref": ref, "actor_id": actorID, "type": firstString(actorType, "unknown")}
+		refs[actorID] = actor
+		actors = append(actors, actor)
+	}
+	if strings.TrimSpace(speakerActorID) != "" {
+		add(speakerActorID, "actor_a", "human")
+	}
+	next := 2
+	for _, message := range messages {
+		actorID := stringValue(message["author_actor_id"])
+		if actorID == "" {
+			continue
+		}
+		if _, exists := refs[actorID]; exists {
+			continue
+		}
+		add(actorID, fmt.Sprintf("actor_%c", rune('a'+next)), "unknown")
+		next++
+	}
+	var speaker map[string]any
+	if value, ok := refs[strings.TrimSpace(speakerActorID)]; ok {
+		speaker = value
+	}
+	return actors, self, speaker
 }
 
 // annotateLifeContextClock adds the semantic wall-clock facts that model

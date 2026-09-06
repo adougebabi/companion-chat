@@ -177,24 +177,37 @@ func reflectionResponseSchema() map[string]any {
 	return objectSchema(map[string]any{
 		"memory_candidates":          candidates,
 		"relationship_candidates":    candidates,
+		"goal_candidates":            candidates,
+		"intention_candidates":       candidates,
 		"developing_self_candidates": arraySchema(developingSelfCandidate),
 		"drive_candidates":           candidates,
 		"preference_candidates":      candidates,
 		"trigger_candidates":         candidates,
-	}, []string{"memory_candidates", "relationship_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"}, false)
+	}, []string{"memory_candidates", "relationship_candidates", "goal_candidates", "intention_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"}, false)
 }
 
 func initializationResponseSchema() map[string]any {
 	goal := objectSchema(map[string]any{
-		"description": stringSchema(),
-		"importance":  unitNumberSchema(),
-		"urgency":     unitNumberSchema(),
+		"description":     stringSchema(),
+		"importance":      unitNumberSchema(),
+		"urgency":         unitNumberSchema(),
+		"scope":           enumStringSchema("general", "relationship"),
+		"target_actor_id": stringSchema(),
 	}, []string{"description", "importance", "urgency"}, false)
 	intention := objectSchema(map[string]any{
 		"action":     stringSchema(),
 		"goal_index": integerSchema(),
 		"confidence": unitNumberSchema(),
 	}, []string{"action", "goal_index", "confidence"}, false)
+	relationship := objectSchema(map[string]any{
+		"target_actor_id":       stringSchema(),
+		"role":                  openObjectSchema(),
+		"metrics":               openObjectSchema(),
+		"trend":                 enumStringSchema("improving", "stable", "declining"),
+		"summary":               stringSchema(),
+		"emotional_association": openObjectSchema(),
+		"evidence_refs":         arraySchema(stringSchema()),
+	}, []string{"target_actor_id", "role"}, false)
 	claim := objectSchema(map[string]any{
 		"category":      enumStringSchema("preference", "habit", "sensitivity", "emotion_pattern", "self_perception", "capability", "interest"),
 		"claim":         stringSchema(),
@@ -224,10 +237,11 @@ func initializationResponseSchema() map[string]any {
 	}, []string{"identity", "personality", "behavioral_policy", "life_profile"}, false)
 	developingSelf := objectSchema(map[string]any{"claims": arraySchema(claim)}, []string{"claims"}, false)
 	return objectSchema(map[string]any{
-		"core_persona":       corePersona,
-		"developing_self":    developingSelf,
-		"initial_goals":      arraySchema(goal),
-		"initial_intentions": arraySchema(intention),
+		"core_persona":          corePersona,
+		"developing_self":       developingSelf,
+		"initial_goals":         arraySchema(goal),
+		"initial_intentions":    arraySchema(intention),
+		"initial_relationships": arraySchema(relationship),
 	}, []string{"core_persona", "developing_self", "initial_goals", "initial_intentions"}, false)
 }
 

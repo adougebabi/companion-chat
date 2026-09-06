@@ -34,6 +34,7 @@ const schema = {
     "/api/memories/{memoryId}": { put: { operationId: "reviseMemory" } },
     "/api/memories/{memoryId}/forget": { post: { operationId: "forgetMemory" } },
     "/api/fluctlights/{fluctlightId}/relationships/rollback": { post: { operationId: "rollbackRelationship" } },
+    "/api/fluctlights/{fluctlightId}/relationships/{targetActorId}": { put: { operationId: "editRelationship" } },
     "/api/fluctlights/{fluctlightId}/autonomy-actions": { get: { operationId: "listAutonomyActions" } },
     "/api/autonomy-actions/{actionId}/govern": { post: { operationId: "governAutonomyAction" } },
     "/api/fluctlights/{fluctlightId}/events": { post: { operationId: "createLifeEvent" } },

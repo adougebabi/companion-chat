@@ -430,7 +430,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		mapped := map[string]any{"request_id": body["requestId"], "initialization_mode": body["initializationMode"], "name": body["name"], "core_persona": body["corePersona"], "developing_self": body["developingSelf"]}
-		for from, to := range map[string]string{"initialGoals": "initial_goals", "initialIntentions": "initial_intentions"} {
+		for from, to := range map[string]string{"initialGoals": "initial_goals", "initialIntentions": "initial_intentions", "initialRelationships": "initial_relationships"} {
 			if value, exists := body[from]; exists {
 				mapped[to] = value
 			}
@@ -582,6 +582,24 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/relationships/rollback", http.MethodPost, map[string]any{"target_actor_id": body["targetActorId"], "target_revision": body["targetRevision"], "expected_revision": body["expectedRevision"], "evidence_refs": body["evidenceRefs"]}, s.readOnlyError(422, "relationship_rollback_failed", "Relationship could not be rolled back"), nil)
+		return
+	}
+	if fluctlightID, targetActorID, ok := match2(path, "/api/fluctlights/:fluctlightId/relationships/:targetActorId"); ok && methodName == http.MethodPut {
+		body, valid := s.mutationBody(response, request, validateRelationshipEdit)
+		if !valid {
+			return
+		}
+		mapped := map[string]any{
+			"expected_revision": body["expectedRevision"],
+			"evidence_refs":     body["evidenceRefs"],
+			"reason":            body["reason"],
+		}
+		for from, to := range map[string]string{"role": "role", "metrics": "metrics", "trend": "trend", "summary": "summary", "emotionalAssociation": "emotional_association"} {
+			if value, exists := body[from]; exists {
+				mapped[to] = value
+			}
+		}
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/relationships/"+escape(targetActorID), http.MethodPut, mapped, s.readOnlyError(422, "relationship_edit_failed", "Relationship could not be edited"), nil)
 		return
 	}
 
@@ -1306,7 +1324,7 @@ func validateActivation(value map[string]any) bool {
 	if self, exists := value["developingSelf"]; exists && !isObject(self) {
 		return false
 	}
-	for _, key := range []string{"initialGoals", "initialIntentions"} {
+	for _, key := range []string{"initialGoals", "initialIntentions", "initialRelationships"} {
 		if item, exists := value[key]; exists {
 			if _, ok := item.([]any); !ok {
 				return false
@@ -1342,6 +1360,27 @@ func validateMemoryForget(value map[string]any) bool {
 }
 func validateRelationshipRollback(value map[string]any) bool {
 	return validateString(value["targetActorId"], 1, 128) && validateInteger(value["targetRevision"], 0) && validateInteger(value["expectedRevision"], 0) && validateEvidence(value["evidenceRefs"])
+}
+func validateRelationshipEdit(value map[string]any) bool {
+	if !validateInteger(value["expectedRevision"], 0) || !validateEvidence(value["evidenceRefs"]) || !validateString(value["reason"], 1, 2048) {
+		return false
+	}
+	if role, exists := value["role"]; exists && !isObject(role) {
+		return false
+	}
+	if metrics, exists := value["metrics"]; exists && !isObject(metrics) {
+		return false
+	}
+	if emotional, exists := value["emotionalAssociation"]; exists && !isObject(emotional) {
+		return false
+	}
+	if trend, exists := value["trend"]; exists && stringValue(trend) != "improving" && stringValue(trend) != "stable" && stringValue(trend) != "declining" {
+		return false
+	}
+	if summary, exists := value["summary"]; exists && !validateString(summary, 0, 32000) {
+		return false
+	}
+	return true
 }
 func validateAutonomyGovernance(value map[string]any) bool {
 	status := stringValue(value["status"])

@@ -113,7 +113,30 @@ function capabilityRequestStatus(value: unknown): string {
       <details class="governance-section">
         <summary class="section-heading"><span class="section-index">03</span><div><p class="eyebrow">关系与记忆操作</p><h2>关系与记忆</h2></div><span class="disclosure-icon" aria-hidden="true">⌄</span></summary>
         <p v-if="!(controlCenter.fluctlightDetail.relationships as unknown[])?.length" class="field-note">尚未形成关系状态。</p>
-        <ul v-else class="detail-list"><li v-for="relationship in controlCenter.fluctlightDetail.relationships as Array<Record<string, unknown>>" :key="String(relationship.target_actor_id)"><strong>{{ formatDisplayValue(relationship.target_actor_id) }}</strong><small>{{ enumLabel(relationship.trend) }} · {{ labelFor("revision") }} {{ formatDisplayValue(relationship.revision) }}</small><div class="inline-controls"><Input v-model="controlCenter.relationshipRollbackTargets[String(relationship.target_actor_id)]" aria-label="关系回滚目标版本" type="number" min="0" step="1" placeholder="目标版本" /><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.rollbackRelationship(store.fluctlightId, relationship)">回滚关系</Button></div></li></ul>
+        <ul v-else class="detail-list relationship-governance-list"><li v-for="relationship in controlCenter.fluctlightDetail.relationships as Array<Record<string, unknown>>" :key="String(relationship.target_actor_id)">
+          <strong>{{ formatDisplayValue(relationship.target_actor_id) }}<span v-if="relationship.is_current_user" class="status-pill">当前用户</span></strong>
+          <small>{{ relationship.target_actor_type === "human" ? "Human" : relationship.target_actor_type === "fluctlight" ? "Fluctlight" : "Actor" }} · {{ formatDisplayValue((relationship.role as Record<string, unknown> | undefined)?.primary ?? "unknown") }} · {{ enumLabel(relationship.trend) }} · {{ labelFor("revision") }} {{ formatDisplayValue(relationship.revision) }}</small>
+          <template v-if="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)]">
+            <div class="form-grid">
+              <label :for="'relationship-trend-' + String(relationship.target_actor_id)">趋势
+                <select :id="'relationship-trend-' + String(relationship.target_actor_id)" v-model="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)].trend" class="border-input rounded-lg border bg-transparent px-2.5 py-2 text-sm">
+                  <option value="improving">升温</option><option value="stable">稳定</option><option value="declining">降温</option>
+                </select>
+              </label>
+              <label :for="'relationship-summary-' + String(relationship.target_actor_id)">关系摘要<Input :id="'relationship-summary-' + String(relationship.target_actor_id)" v-model="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)].summary" maxlength="32000" /></label>
+            </div>
+            <label :for="'relationship-role-' + String(relationship.target_actor_id)">关系角色 JSON<Textarea :id="'relationship-role-' + String(relationship.target_actor_id)" v-model="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)].role" rows="3" spellcheck="false" /></label>
+            <div class="form-grid">
+              <label :for="'relationship-metrics-' + String(relationship.target_actor_id)">关系指标 JSON<Textarea :id="'relationship-metrics-' + String(relationship.target_actor_id)" v-model="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)].metrics" rows="3" spellcheck="false" /></label>
+              <label :for="'relationship-emotion-' + String(relationship.target_actor_id)">情绪关联 JSON<Textarea :id="'relationship-emotion-' + String(relationship.target_actor_id)" v-model="controlCenter.relationshipEditDrafts[String(relationship.target_actor_id)].emotionalAssociation" rows="3" spellcheck="false" /></label>
+            </div>
+            <div class="inline-controls">
+              <Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving" @click="controlCenter.editRelationship(store.fluctlightId, relationship)">保存关系</Button>
+              <Input v-model="controlCenter.relationshipRollbackTargets[String(relationship.target_actor_id)]" aria-label="关系回滚目标版本" type="number" min="0" step="1" placeholder="回滚目标版本" />
+              <Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.rollbackRelationship(store.fluctlightId, relationship)">回滚关系</Button>
+            </div>
+          </template>
+        </li></ul>
         <p v-if="!(controlCenter.fluctlightDetail.memories as unknown[])?.length" class="field-note">暂无可展示的记忆。</p>
         <ul v-else class="detail-list"><li v-for="memory in controlCenter.fluctlightDetail.memories as Array<Record<string, unknown>>" :key="String(memory.id)"><strong>{{ formatDisplayValue(memory.content) }}</strong><div class="inline-controls"><Input v-model="controlCenter.memoryEdits[String(memory.id)]" :aria-label="'修正记忆 ' + memory.id" maxlength="4096" placeholder="修正内容" /><Button class="text-button" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.reviseMemory(memory)">修正</Button><Button class="text-button danger-text" variant="ghost" type="button" :disabled="controlCenter.saving" @click="controlCenter.forgetMemory(memory)">遗忘</Button></div></li></ul>
         <label for="governance-evidence">证据引用</label><Input id="governance-evidence" v-model="controlCenter.governanceEvidence" maxlength="4096" placeholder="以逗号分隔，例如 event_123, message_456" />

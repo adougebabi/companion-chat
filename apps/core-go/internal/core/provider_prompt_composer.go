@@ -9,7 +9,8 @@ import (
 const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字面量保持原文。
 2. 约束优先级：core_persona（硬约束）> developing_self（带证据线索）> current_state（当前事实）。
 3. 上下文绑定：决策与工具参数必须严格锚定 context（scene, activity, location, mood, appearance）。除用户明确要求外，禁止擅自变更场景；用户显式变更时标明 context_override.explicit=true。
-4. 认知与生成准则：
+4. Actor 语义：Human 与 Fluctlight 都是 Actor；消息发送者以 Actor 与关系上下文为准，不要把 transport role=user 当作唯一的“用户”身份。
+5. 认知与生成准则：
    - 认知字段仅写简短摘要，禁止输出推理长文。
    - claims 仅保留有证据的事实或假设，禁止幻觉捏造。
    - 依赖外部能力时直接触发标准 Tool Call。
@@ -27,10 +28,17 @@ func composeProviderMessages(role string, messages []map[string]any) []map[strin
 	}
 	operationRules := make([]string, 0, len(messages))
 	corePersona := map[string]any(nil)
+	actorRelationshipContext := map[string]any(nil)
 	nonSystem := make([]map[string]any, 0, len(messages))
 	for _, message := range messages {
 		if stringValue(message["role"]) == "system" {
 			content := systemMessageContent(message)
+			if _, value, parsed := decodeProviderJSONPayload(strings.TrimSpace(content)); parsed {
+				if relationship := mapValue(mapValue(value)["actor_relationship_context"]); len(relationship) > 0 {
+					actorRelationshipContext = relationship
+					continue
+				}
+			}
 			if content != "" && content != providerLanguageRule && content != providerContextAuthorityRule {
 				operationRules = append(operationRules, content)
 			}
@@ -60,12 +68,12 @@ func composeProviderMessages(role string, messages []map[string]any) []map[strin
 		nonSystem = append(nonSystem, copyMessage)
 	}
 	result := make([]map[string]any, 0, len(nonSystem)+1)
-	result = append(result, map[string]any{"role": "system", "content": renderProviderSystem(operationRules, corePersona, role)})
+	result = append(result, map[string]any{"role": "system", "content": renderProviderSystem(operationRules, corePersona, actorRelationshipContext, role)})
 	result = append(result, nonSystem...)
 	return result
 }
 
-func renderProviderSystem(operationRules []string, persona map[string]any, role string) string {
+func renderProviderSystem(operationRules []string, persona, actorRelationshipContext map[string]any, role string) string {
 	var builder strings.Builder
 	builder.WriteString("# 运行协议\n\n")
 	builder.WriteString(providerRuntimeProtocol)
@@ -76,6 +84,11 @@ func renderProviderSystem(operationRules []string, persona map[string]any, role 
 			builder.WriteString(strings.ReplaceAll(strings.TrimSpace(rule), "\n", " "))
 			builder.WriteByte('\n')
 		}
+	}
+	if len(actorRelationshipContext) > 0 {
+		builder.WriteString("\n# Actor 与关系上下文\n\n")
+		builder.WriteString(renderProviderYAMLWithMode(actorRelationshipContext, false))
+		builder.WriteByte('\n')
 	}
 	builder.WriteString("\n# 人格设定\n\n")
 	if len(persona) == 0 {
@@ -245,10 +258,12 @@ func renderProviderDynamicDocument(value map[string]any) string {
 			renderProviderDynamicSection(&builder, section.title, raw, section.toon)
 		}
 	}
-	for _, key := range []string{"text", "current_user_text", "event_type", "fact", "evidence", "response_plan", "tool_results", "local_date"} {
+	for _, key := range []string{"current_message", "text", "current_user_text", "event_type", "fact", "evidence", "response_plan", "tool_results", "local_date"} {
 		if raw, exists := value[key]; exists && !isEmptyProviderValue(raw) {
 			title := "操作输入"
-			if key == "text" || key == "current_user_text" {
+			if key == "current_message" {
+				title = "本次 Actor 消息"
+			} else if key == "text" || key == "current_user_text" {
 				title = "本次用户输入"
 			}
 			renderProviderDynamicSection(&builder, title, map[string]any{key: raw}, false)

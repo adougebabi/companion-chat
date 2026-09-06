@@ -276,6 +276,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		{"role": "system", "content": wakeUpAssessmentInstruction + " When context.visual_identity.status is missing, call visual_identity.initialize exactly once as an internal capability. Do not announce the visual-identity initialization in chat, do not create a proactive_message solely for this initialization, and never return visible text for this internal trigger."},
 		{"role": "user", "content": jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "context": compactCognitionContext(projection)})},
 	})
+	messages = withActorRelationshipSystemContext(messages, projection)
 	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "wake_up"), "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "wake_up_response", wakeUpResponseSchema(), true)
 	if err != nil {
 		if status, suppressed := providerSuppressionStatus(err); suppressed {
@@ -415,10 +416,12 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			actualActionType = "no_op"
 			result = map[string]any{"status": "blocked", "reason": "proactive_target_invalid", "proposed_action_type": proposedActionType}
 		} else if proposedActionType == "proactive_message" || proposedActionType == "moment" {
-			visible, realizationErr := a.Provider.Text(WithProviderScenario(ctx, "wake_up"), "action_realization", []map[string]any{
+			realizationMessages := []map[string]any{
 				{"role": "system", "content": actionRealizationInstruction},
 				{"role": "user", "content": jsonString(map[string]any{"action_type": proposedActionType, "attention": assessment["attention"], "thought": assessment["thought"], "desire": assessment["desire"], "agency": assessment["agency"], "response_intent": assessment["response_intent"], "context": compactCognitionContext(projection)})},
-			})
+			}
+			realizationMessages = withActorRelationshipSystemContext(realizationMessages, projection)
+			visible, realizationErr := a.Provider.Text(WithProviderScenario(ctx, "wake_up"), "action_realization", realizationMessages)
 			if realizationErr != nil {
 				if status, suppressed := providerSuppressionStatus(realizationErr); suppressed {
 					reason := "fluctlight_not_active"

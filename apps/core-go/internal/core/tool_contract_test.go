@@ -205,6 +205,16 @@ func TestDefaultNativeCapabilitySlotsAreVersioned(t *testing.T) {
 	}
 }
 
+func TestRelationshipLookupCapabilityIsReadOnly(t *testing.T) {
+	manifest := relationshipLookupCapabilityManifest()
+	if manifest.Name != "relationship.lookup" || manifest.SideEffectClass != "read_only" || manifest.Parameters == nil {
+		t.Fatalf("relationship lookup manifest = %#v", manifest)
+	}
+	if manifest.IsDeferredOutput() {
+		t.Fatal("relationship lookup must not be a deferred output")
+	}
+}
+
 type testManifestExecutor struct{ manifest CapabilityManifest }
 
 func (executor testManifestExecutor) Manifest() CapabilityManifest { return executor.manifest }

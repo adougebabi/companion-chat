@@ -257,7 +257,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 		return nil, errors.New("description_invalid")
 	}
 	messages := []map[string]any{
-		{"role": "system", "content": "Return one JSON object with core_persona, developing_self, initial_goals, and initial_intentions. core_persona must contain identity, personality, behavioral_policy, and life_profile. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_goals must be an array of objects with description, importance (0..1), and urgency (0..1). initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Do not return markdown or legacy foundation/personality candidate fields."},
+		{"role": "system", "content": "Return one JSON object with core_persona, developing_self, initial_goals, and initial_intentions. core_persona must contain identity, personality, behavioral_policy, and life_profile. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_goals must be an array of objects with description, importance (0..1), urgency (0..1), and optional scope (general or relationship) plus target_actor_id for relationship goals. initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), and confidence (0..1). Do not return markdown or legacy foundation/personality candidate fields."},
 		{"role": "system", "content": "Canonical visual appearance contract: if the description specifies a chest cup, put only the normalized label A/B/C/D in exactly core_persona.life_profile.appearance.chest_cup (example: {\"life_profile\":{\"appearance\":{\"chest_cup\":\"A\"}}}). Do not put cup labels in identity.body_type, identity.build, identity.chest, life_profile.physical_traits, or free-form visible_text. For male or non-applicable bodies, omit chest_cup; the renderer will mark it not_applicable. Keep other appearance fields under life_profile.appearance."},
 		{"role": "user", "content": description},
 	}
@@ -274,7 +274,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 
 func validInitialization(value map[string]any) bool {
 	for key := range value {
-		if _, ok := map[string]struct{}{"core_persona": {}, "developing_self": {}, "initial_goals": {}, "initial_intentions": {}}[key]; !ok {
+		if _, ok := map[string]struct{}{"core_persona": {}, "developing_self": {}, "initial_goals": {}, "initial_intentions": {}, "initial_relationships": {}}[key]; !ok {
 			return false
 		}
 	}
@@ -334,7 +334,7 @@ func validInitialization(value map[string]any) bool {
 			}
 		}
 	}
-	for _, key := range []string{"initial_goals", "initial_intentions"} {
+	for _, key := range []string{"initial_goals", "initial_intentions", "initial_relationships"} {
 		if raw, exists := value[key]; exists && raw != nil {
 			items, ok := raw.([]any)
 			if !ok {
@@ -371,6 +371,22 @@ func validInitialization(value map[string]any) bool {
 					}
 				}
 			}
+		}
+	}
+	for _, raw := range arrayValue(value["initial_relationships"]) {
+		item := mapValue(raw)
+		if strings.TrimSpace(stringValue(item["target_actor_id"])) == "" {
+			return false
+		}
+		if _, err := normalizeRelationshipRole(item["role"]); err != nil {
+			return false
+		}
+		if _, err := validateRelationshipMetrics(item["metrics"]); err != nil {
+			return false
+		}
+		trend := firstString(item["trend"], "stable")
+		if trend != "improving" && trend != "stable" && trend != "declining" {
+			return false
 		}
 	}
 	return true
@@ -567,6 +583,9 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if err := a.insertAgency(ctx, tx, id, actorID, goals, intentions); err != nil {
 			return err
 		}
+		if err := a.insertRelationshipSeeds(ctx, tx, id, foundation); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -629,7 +648,25 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 	for index, raw := range goals {
 		item := mapValue(raw)
 		goalIDs[index] = fmt.Sprintf("goal_initial_%s_%d", fluctlightID, index)
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goals (id,fluctlight_id,source,description,importance,urgency,progress,status,evidence_refs,revision) VALUES ($1,$2,'self',$3,$4,$5,$6,'active',$7,0) ON CONFLICT DO NOTHING`, goalIDs[index], fluctlightID, stringValue(item["description"]), jsonBytes(item["importance"]), jsonBytes(item["urgency"]), jsonBytes(0.0), jsonBytes([]string{"foundation:" + fluctlightID})); err != nil {
+		scope := firstString(item["scope"], "general")
+		if scope != "general" && scope != "relationship" {
+			return errors.New("initial_goal_scope_invalid")
+		}
+		targetActorIDValue := stringValue(item["target_actor_id"])
+		targetActorID := nullableString(targetActorIDValue)
+		if scope == "relationship" && targetActorID == nil {
+			return errors.New("initial_relationship_goal_target_required")
+		}
+		if targetActorIDValue != "" {
+			var exists bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.actors WHERE id=$1 AND status='active')`, targetActorIDValue).Scan(&exists); err != nil {
+				return err
+			}
+			if !exists {
+				return ErrNotFound
+			}
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goals (id,fluctlight_id,source,scope,target_actor_id,description,importance,urgency,progress,status,evidence_refs,revision) VALUES ($1,$2,'self',$3,$4,$5,$6,$7,$8,'active',$9,0) ON CONFLICT DO NOTHING`, goalIDs[index], fluctlightID, scope, targetActorID, stringValue(item["description"]), jsonBytes(item["importance"]), jsonBytes(item["urgency"]), jsonBytes(0.0), jsonBytes([]string{"foundation:" + fluctlightID})); err != nil {
 			return err
 		}
 	}
@@ -640,6 +677,53 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 			return errors.New("initial_intention_goal_invalid")
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intentions (id,fluctlight_id,goal_id,action,trigger,confidence,expiration,evidence_refs,permission_snapshot,budget_snapshot,status,revision) VALUES ($1,$2,$3,$4,$5,$6,now()+interval '24 hours',$7,'{}','{}','pending',0) ON CONFLICT DO NOTHING`, fmt.Sprintf("intention_initial_%s_%d", fluctlightID, index), fluctlightID, goalIDs[goalIndex], stringValue(item["action"]), jsonBytes(map[string]any{"type": "semantic", "schema_version": "semantic.trigger.v1", "evidence_refs": []string{"foundation:" + fluctlightID}}), jsonBytes(item["confidence"]), jsonBytes([]string{"foundation:" + fluctlightID})); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlightID string, foundation map[string]any) error {
+	seeds := arrayValue(foundation["initial_relationships"])
+	if len(seeds) == 0 {
+		lifeProfile := mapValue(mapValue(foundation["core_persona"])["life_profile"])
+		seeds = arrayValue(lifeProfile["relationship_seeds"])
+	}
+	for index, raw := range seeds {
+		item := mapValue(raw)
+		target := strings.TrimSpace(stringValue(item["target_actor_id"]))
+		if target == "" {
+			return errors.New("initial_relationship_target_required")
+		}
+		var actorType, status string
+		if err := tx.QueryRow(ctx, `SELECT actor_type,status FROM public.actors WHERE id=$1`, target).Scan(&actorType, &status); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrNotFound
+			}
+			return err
+		}
+		if status != "active" || (actorType != "human" && actorType != "fluctlight") {
+			return errors.New("initial_relationship_target_invalid")
+		}
+		role, err := normalizeRelationshipRole(item["role"])
+		if err != nil {
+			return err
+		}
+		metrics, err := validateRelationshipMetrics(item["metrics"])
+		if err != nil {
+			return err
+		}
+		trend := firstString(item["trend"], "stable")
+		if trend != "improving" && trend != "stable" && trend != "declining" {
+			return errors.New("initial_relationship_trend_invalid")
+		}
+		refs := arrayValue(item["evidence_refs"])
+		provenance := map[string]any{"source": "initialization", "evidence_refs": refs}
+		relationshipID := "relationship_" + stableDigest(fluctlightID+":"+target)
+		if _, err := tx.Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,target_actor_id,role,metrics,trend,summary,emotional_association,provenance,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,0) ON CONFLICT (id) DO NOTHING`, relationshipID, fluctlightID, target, jsonBytes(role), jsonBytes(metrics), trend, nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(provenance)); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_revisions(id,relationship_id,revision,base_revision,role,metrics,trend,summary,emotional_association,evidence_refs,actor_id,idempotency_key) VALUES($1,$2,0,0,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT DO NOTHING`, "relationship_revision_"+stableDigest(fluctlightID+":"+target+":initial"), relationshipID, jsonBytes(role), jsonBytes(metrics), trend, nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(refs), fluctlightID, "relationship-initialization:"+fluctlightID+":"+target+":"+fmt.Sprint(index)); err != nil {
 			return err
 		}
 	}

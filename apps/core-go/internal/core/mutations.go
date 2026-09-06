@@ -393,7 +393,8 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			}
 		}
 	} else {
-		messages := []map[string]any{{"role": "system", "content": conversationAssessmentInstruction}, {"role": "user", "content": jsonString(map[string]any{"text": text, "context": compactCognitionContext(projection)})}}
+		messages := []map[string]any{{"role": "system", "content": conversationAssessmentInstruction}, {"role": "user", "content": jsonString(map[string]any{"current_message": map[string]any{"sender": compactActorRef(projection.CurrentSpeaker), "content": text}, "text": text, "context": compactCognitionContext(projection)})}}
+		messages = withActorRelationshipSystemContext(messages, projection)
 		messages = withContextAuthorityInstruction(messages)
 		manifests := a.capabilityRegistry().Manifests()
 		completion, completionErr := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "cognitive_assessment"), "cognitive_assessment", messages, manifests, "conversation_turn_response", cognitiveTurnResponseSchema(), true)
@@ -516,12 +517,14 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			"context_projection": compactCognitionContext(projection),
 		}
 		if strings.TrimSpace(text) != "" {
+			realizationPayload["current_message"] = map[string]any{"sender": compactActorRef(projection.CurrentSpeaker), "content": text}
 			realizationPayload["current_user_text"] = text
 		}
 		if compactResults := compactToolResultsForProvider(toolResults); len(compactResults) > 0 {
 			realizationPayload["tool_results"] = compactResults
 		}
 		visiblePrompt := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(realizationPayload)}}
+		visiblePrompt = withActorRelationshipSystemContext(visiblePrompt, projection)
 		streamChunk, streamEmitted := newVisibleReplyStream(callbacks.onChunk)
 		visible, err = a.Provider.StreamText(WithProviderScenario(ctx, "reply"), "action_realization", visiblePrompt, streamChunk)
 		if err != nil {

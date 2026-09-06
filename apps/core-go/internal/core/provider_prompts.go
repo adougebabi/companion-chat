@@ -33,11 +33,11 @@ Return only the requested JSON object with exactly schema_version, verdict, viol
 
 	wakeUpAssessmentInstruction = "评估一次内部 wake-up。结合当前 goals、intentions、schedule 和状态，判断是否存在需要推进的语义触发；不要因为目标存在就自动行动。包含 attention、thought、desire、agency、action_type。四项是简短内部状态摘要，不写 hidden reasoning 或 visible text，不编造事实。无明确动作时使用 no_op。需要外部能力时调用对应 tool；需要图片时调用 media.image.generate 并提供完整 concept；缺少能力时调用 capability.request。response_intent 仅说明已提出的动作；不要返回 moment_media_request 或 message_media_request。"
 
-	conversationAssessmentInstruction = "为当前用户消息生成结构化决策，结合当前 goals、intentions 和 state，包含 action_type、response_plan、visible_text、claims、appraisal、attention、thought、desire、agency、self_evaluation、core_alignment、state_expression。claims 只写有证据的事实或假设；appraisal 使用规定的数值字段；认知阶段只写简短摘要，不写 hidden reasoning。需要外部能力时调用对应 tool，不使用旧的 media_request 字段，不编造事实或稳定人格。"
+	conversationAssessmentInstruction = "为当前 Actor 消息生成结构化决策。你就是 system context 中的 self_actor；结合当前说话者与其关系、goals、intentions 和 state，判断是否回复或行动。包含 action_type、response_plan、visible_text、claims、appraisal、attention、thought、desire、agency、self_evaluation、core_alignment、state_expression。claims 只写有证据的事实或假设；appraisal 使用规定的数值字段；认知阶段只写简短摘要，不写 hidden reasoning。需要外部能力时调用对应 tool，不使用旧的 media_request 字段，不编造事实或稳定人格。"
 
-	dailyReviewInstruction = "为当天日程选择一个 Composite Action。只返回 action_type（proactive_message、moment 或 no_op）和 response_intent，不写 visible text。需要图片时调用 media.image.generate；发布动态用 moment，联系 Owner 用 proactive_message。遵守 core_persona、behavioral_policy、goals 和 intentions。"
+	dailyReviewInstruction = "为当天日程选择一个 Composite Action。只返回 action_type（proactive_message、moment 或 no_op）和 response_intent，不写 visible text。需要图片时调用 media.image.generate；发布动态用 moment，联系关系目标 Actor 用 proactive_message。遵守 core_persona、behavioral_policy、goals 和 intentions。"
 
-	reflectionInstruction = "只基于 evidence 和 context 生成 memory_candidates、relationship_candidates、developing_self_candidates、drive_candidates、preference_candidates、trigger_candidates。evidence_ref 是每条 evidence 的唯一引用，候选的 evidence_refs 只使用这些引用。不得返回 personality_candidates 或 self_model_candidates，不修改 Core Persona，不把一次性情绪变成稳定特征。每个候选都必须有完整类型字段和 evidence_refs；不得编造事实或使用默认值。"
+	reflectionInstruction = "只基于 evidence 和 context 生成 memory_candidates、relationship_candidates、goal_candidates、intention_candidates、developing_self_candidates、drive_candidates、preference_candidates、trigger_candidates。关系候选只描述你（self_actor）与目标 Actor 的关系变化。关系目标也必须是你的第一人称目标，使用 target_actor_id 绑定目标 Actor，不要把自己写成帮助两个其他 Actor 的第三方。evidence_ref 是每条 evidence 的唯一引用，候选的 evidence_refs 只使用这些引用。不得返回 personality_candidates 或 self_model_candidates，不修改 Core Persona，不把一次性情绪变成稳定特征。每个候选都必须有完整类型字段和 evidence_refs；不得编造事实或使用默认值。"
 
 	nativeCognitionInstruction = "评估一个世界事实，包含 appraisal、attention、thought、desire、agency。appraisal 使用规定的数值字段；其余为简短摘要，不写 hidden reasoning 或 visible text，不编造事实。"
 

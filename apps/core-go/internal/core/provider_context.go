@@ -26,8 +26,17 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 		"core_persona":  compactCorePersona(projection),
 		"current_state": compactCurrentState(projection),
 	}
+	if self := compactActorRef(projection.SelfActor); len(self) > 0 {
+		result["self_actor"] = self
+	}
+	if speaker := compactActorRef(projection.CurrentSpeaker); len(speaker) > 0 {
+		result["current_speaker"] = speaker
+	}
+	if actors := compactActorRefs(projection.Actors); len(actors) > 0 {
+		result["actors"] = actors
+	}
 	if len(projection.RecentMessages) > 0 {
-		if recent := compactRecentMessages(projection.RecentMessages, projection.CurrentUserText); len(recent) > 0 {
+		if recent := compactRecentMessagesForActors(projection.RecentMessages, projection.CurrentUserText, projection.Actors); len(recent) > 0 {
 			result["recent_messages"] = recent
 		}
 	}
@@ -38,7 +47,7 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 		result["memories"] = compactMemories(projection.Memories)
 	}
 	if len(projection.Relationships) > 0 {
-		result["relationships"] = projection.Relationships
+		result["relationships"] = compactRelationships(projection.Relationships, projection.Actors)
 	}
 	if len(projection.Hypotheses) > 0 {
 		result["hypotheses"] = projection.Hypotheses
@@ -60,7 +69,7 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	if len(projection.Presence) > 0 {
 		result["presence"] = projection.Presence
 	}
-	if goals := compactProviderGoals(projection.Goals); len(goals) > 0 {
+	if goals := compactProviderGoalsForActors(projection.Goals, projection.Actors); len(goals) > 0 {
 		result["goals"] = goals
 	}
 	if intentions := compactProviderIntentions(projection.Intentions); len(intentions) > 0 {
@@ -69,17 +78,109 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	return stripProviderContextMetadata(result).(map[string]any)
 }
 
+func compactActorRelationshipContext(projection ContextProjection) map[string]any {
+	result := map[string]any{}
+	if self := compactActorRef(projection.SelfActor); len(self) > 0 {
+		result["self_actor"] = self
+	}
+	if speaker := compactActorRef(projection.CurrentSpeaker); len(speaker) > 0 {
+		result["target_actor"] = speaker
+		targetID := stringValue(projection.CurrentSpeaker["actor_id"])
+		for _, relationship := range projection.Relationships {
+			if stringValue(relationship["target_actor_id"]) == targetID {
+				result["relationship"] = compactRelationship(relationship)
+				break
+			}
+		}
+		if _, ok := result["relationship"]; !ok {
+			result["relationship"] = map[string]any{"role": map[string]any{"primary": "unknown", "secondary": []any{}}, "trend": "stable", "revision": 0, "provenance": map[string]any{"source": "unestablished"}}
+		}
+		if goals := compactProviderGoalsForActors(relationshipGoalsForTarget(projection.Goals, targetID), projection.Actors); len(goals) > 0 {
+			result["goals"] = goals
+		}
+		if intentions := relationshipIntentionsForTarget(projection.Intentions, targetID); len(intentions) > 0 {
+			result["intentions"] = intentions
+		}
+	}
+	return result
+}
+
+func compactRelationship(value map[string]any) map[string]any {
+	result := map[string]any{}
+	for _, key := range []string{"role", "metrics", "trend", "summary", "emotional_association", "provenance", "revision"} {
+		if raw, ok := value[key]; ok && raw != nil {
+			result[key] = raw
+		}
+	}
+	return result
+}
+
+func compactRelationships(values []map[string]any, actors []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(values))
+	for _, relationship := range values {
+		item := compactRelationship(relationship)
+		if actor := actorRefForID(actors, stringValue(relationship["target_actor_id"])); len(actor) > 0 {
+			item["target_actor"] = compactActorRef(actor)
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func relationshipGoalsForTarget(goals []map[string]any, targetID string) []map[string]any {
+	result := make([]map[string]any, 0)
+	for _, goal := range goals {
+		if stringValue(goal["scope"]) == "relationship" && stringValue(goal["target_actor_id"]) == targetID {
+			result = append(result, goal)
+		}
+	}
+	return result
+}
+
+func relationshipIntentionsForTarget(intentions []map[string]any, targetID string) []map[string]any {
+	result := make([]map[string]any, 0)
+	for _, intention := range intentions {
+		if stringValue(intention["target_actor_id"]) == targetID {
+			result = append(result, intention)
+		}
+	}
+	return result
+}
+
+func withActorRelationshipSystemContext(messages []map[string]any, projection ContextProjection) []map[string]any {
+	contextValue := compactActorRelationshipContext(projection)
+	if len(contextValue) == 0 {
+		return messages
+	}
+	system := map[string]any{"role": "system", "content": jsonString(map[string]any{"actor_relationship_context": contextValue})}
+	return append([]map[string]any{system}, messages...)
+}
+
 func compactProviderGoals(goals []map[string]any) []map[string]any {
+	return compactProviderGoalsForActors(goals, nil)
+}
+
+func compactProviderGoalsForActors(goals []map[string]any, actors []map[string]any) []map[string]any {
 	result := make([]map[string]any, 0, len(goals))
 	for _, goal := range goals {
 		item := map[string]any{}
-		for _, key := range []string{"description", "importance", "urgency", "progress"} {
+		for _, key := range []string{"description", "importance", "urgency", "progress", "scope", "target_actor_id"} {
 			if value, ok := goal[key]; ok && value != nil {
 				item[key] = value
 			}
 		}
 		if status := stringValue(goal["status"]); status != "" {
 			item["state"] = status
+		}
+		if target := stringValue(goal["target_actor_id"]); target != "" {
+			delete(item, "target_actor_id")
+			if actor := actorRefForID(actors, target); len(actor) > 0 {
+				item["target_actor"] = compactActorRef(actor)
+			} else {
+				item["target_actor"] = map[string]any{"ref": "actor_unknown", "type": "unknown"}
+			}
 		}
 		if len(item) > 0 {
 			result = append(result, item)
@@ -178,6 +279,33 @@ func compactCurrentState(projection ContextProjection) map[string]any {
 }
 
 func compactRecentMessages(messages []map[string]any, currentUserText string) []map[string]any {
+	return compactRecentMessagesForActors(messages, currentUserText, nil)
+}
+
+func compactActorRef(value map[string]any) map[string]any {
+	if len(value) == 0 {
+		return nil
+	}
+	result := map[string]any{}
+	for _, key := range []string{"ref", "type", "role", "label"} {
+		if raw, ok := value[key]; ok && raw != nil && raw != "" {
+			result[key] = raw
+		}
+	}
+	return result
+}
+
+func compactActorRefs(values []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(values))
+	for _, value := range values {
+		if compact := compactActorRef(value); len(compact) > 0 {
+			result = append(result, compact)
+		}
+	}
+	return result
+}
+
+func compactRecentMessagesForActors(messages []map[string]any, currentUserText string, actors []map[string]any) []map[string]any {
 	currentUserText = strings.TrimSpace(currentUserText)
 	skipIndex := -1
 	if currentUserText != "" {
@@ -204,9 +332,31 @@ func compactRecentMessages(messages []map[string]any, currentUserText string) []
 			kind = "message"
 		}
 		stamp := compactMessageTime(stringValue(message["created_at"]))
-		result = append(result, map[string]any{"role": kind, "time": stamp, "content": text})
+		item := map[string]any{"role": kind, "time": stamp, "content": text}
+		if sender := actorRefForID(actors, stringValue(message["author_actor_id"])); len(sender) > 0 {
+			item["sender"] = sender["ref"]
+			item["actor_type"] = sender["type"]
+		} else if kind == "user" {
+			item["sender"] = "actor_a"
+		} else if kind == "assistant" {
+			item["sender"] = "self_actor"
+		}
+		result = append(result, item)
 	}
 	return result
+}
+
+func actorRefForID(actors []map[string]any, actorID string) map[string]any {
+	actorID = strings.TrimSpace(actorID)
+	if actorID == "" {
+		return nil
+	}
+	for _, actor := range actors {
+		if stringValue(actor["actor_id"]) == actorID {
+			return actor
+		}
+	}
+	return nil
 }
 
 func compactMessageTime(value string) string {

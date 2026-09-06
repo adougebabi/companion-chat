@@ -48,6 +48,7 @@ export const useControlCenterStore = defineStore("control-center", {
     governanceEvidence: "",
     memoryEdits: {} as Record<string, string>,
     relationshipRollbackTargets: {} as Record<string, string>,
+    relationshipEditDrafts: {} as Record<string, { role: string; metrics: string; trend: string; summary: string; emotionalAssociation: string }>,
     autonomyActions: [] as Array<{ id: string; action_type: string; status: string; workflow_id: string; created_at: string }>,
     capabilityRequests: [] as Array<Record<string, unknown>>,
     capabilityRequestVersions: {} as Record<string, string>,
@@ -248,7 +249,20 @@ export const useControlCenterStore = defineStore("control-center", {
       if (!fluctlightId) { this.fluctlightDetail = null; return; }
       this.loading = true;
       this.error = "";
-      try { this.fluctlightDetail = await client.detail(fluctlightId); }
+      try {
+        this.fluctlightDetail = await client.detail(fluctlightId);
+        const relationships = Array.isArray(this.fluctlightDetail.relationships) ? this.fluctlightDetail.relationships as Array<Record<string, unknown>> : [];
+        this.relationshipEditDrafts = Object.fromEntries(relationships.map((relationship) => {
+          const target = String(relationship.target_actor_id ?? "");
+          return [target, {
+            role: JSON.stringify(relationship.role ?? { primary: "unknown", secondary: [] }, null, 2),
+            metrics: JSON.stringify(relationship.metrics ?? {}, null, 2),
+            trend: String(relationship.trend ?? "stable"),
+            summary: String(relationship.summary ?? ""),
+            emotionalAssociation: JSON.stringify(relationship.emotional_association ?? {}, null, 2),
+          }];
+        }));
+      }
       catch { this.error = "无法加载 Fluctlight 的当前状态。"; }
       finally { this.loading = false; }
     },
@@ -439,6 +453,47 @@ export const useControlCenterStore = defineStore("control-center", {
       this.saving = true;
       try { await client.rollbackRelationship(fluctlightId, { targetActorId: String(relationship.target_actor_id), targetRevision, expectedRevision: Number(relationship.revision ?? 0), evidenceRefs }); await this.loadFluctlightDetail(fluctlightId); }
       catch { this.error = "无法回滚关系，目标或当前版本可能已变化。"; }
+      finally { this.saving = false; }
+    },
+    async editRelationship(fluctlightId: string | null, relationship: Record<string, unknown>) {
+      const targetActorId = String(relationship.target_actor_id ?? "");
+      const draft = this.relationshipEditDrafts[targetActorId];
+      const evidenceRefs = this.governanceEvidence.split(",").map((value) => value.trim()).filter(Boolean);
+      const reason = this.governanceReason.trim();
+      if (!fluctlightId || !targetActorId || !draft || !evidenceRefs.length || !reason) {
+        this.error = "编辑关系需要填写完整内容、证据引用和治理原因。";
+        return;
+      }
+      const parseObject = (value: string, field: string): Record<string, unknown> | null => {
+        try {
+          const parsed = JSON.parse(value) as unknown;
+          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(field);
+          return parsed as Record<string, unknown>;
+        } catch {
+          this.error = `${field}必须是 JSON 对象。`;
+          return null;
+        }
+      };
+      const role = parseObject(draft.role, "关系角色");
+      const metrics = parseObject(draft.metrics, "关系指标");
+      const emotionalAssociation = parseObject(draft.emotionalAssociation, "情绪关联");
+      if (!role || !metrics || !emotionalAssociation) return;
+      this.saving = true;
+      this.error = "";
+      try {
+        await client.editRelationship(fluctlightId, targetActorId, {
+          expectedRevision: Number(relationship.revision ?? 0),
+          role,
+          metrics,
+          trend: draft.trend,
+          summary: draft.summary,
+          emotionalAssociation,
+          evidenceRefs,
+          reason,
+        });
+        this.governanceReason = "";
+        await this.loadFluctlightDetail(fluctlightId);
+      } catch { this.error = "无法编辑关系，当前版本可能已变化。"; }
       finally { this.saving = false; }
     },
     async loadAutonomyActions(fluctlightId: string | null) {

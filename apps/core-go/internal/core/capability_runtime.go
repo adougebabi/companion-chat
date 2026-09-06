@@ -20,6 +20,7 @@ func (a *App) capabilityRegistry() *CapabilityRegistry {
 		&sceneCapabilityExecutor{app: a},
 		&presenceCapabilityExecutor{app: a},
 		&memoryCapabilityExecutor{app: a},
+		&relationshipLookupCapabilityExecutor{app: a},
 		&capabilityRequestExecutor{app: a},
 	)
 }

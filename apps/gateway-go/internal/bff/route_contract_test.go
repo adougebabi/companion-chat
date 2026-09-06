@@ -41,8 +41,8 @@ func TestGoRouteInventoryMatchesBrowserOpenAPI(t *testing.T) {
 			continue
 		}
 		matches := make([]string, 0, 1)
-		for template := range document.Paths {
-			if concretePathMatchesTemplate(route.path, template) {
+		for template, operations := range document.Paths {
+			if _, methodExists := operations[strings.ToLower(route.method)]; methodExists && concretePathMatchesTemplate(route.path, template) {
 				matches = append(matches, template)
 			}
 		}

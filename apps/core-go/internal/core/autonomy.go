@@ -68,6 +68,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		{"role": "system", "content": dailyReviewInstruction},
 		{"role": "user", "content": jsonString(map[string]any{"local_date": localDate, "context": compactCognitionContext(projection)})},
 	})
+	messages = withActorRelationshipSystemContext(messages, projection)
 	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "daily_review"), "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "daily_review_response", dailyReviewResponseSchema(), true)
 	if err != nil {
 		// Some mlx-serve responses contain a malformed bookkeeping tool call
@@ -117,7 +118,9 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	visible := ""
 	if actionType != "no_op" {
-		visible, err = a.Provider.Text(WithProviderScenario(ctx, "autonomy_reply"), "action_realization", []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(map[string]any{"action_type": actionType, "response_intent": composite.ResponseIntent, "context": compactCognitionContext(projection)})}})
+		realizationMessages := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(map[string]any{"action_type": actionType, "response_intent": composite.ResponseIntent, "context": compactCognitionContext(projection)})}}
+		realizationMessages = withActorRelationshipSystemContext(realizationMessages, projection)
+		visible, err = a.Provider.Text(WithProviderScenario(ctx, "autonomy_reply"), "action_realization", realizationMessages)
 		if err != nil {
 			return nil, err
 		}
@@ -225,18 +228,23 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 
 func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {
 	goals := make([]map[string]any, 0)
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,description,status,importance,urgency,progress FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status <> 'forgotten' ORDER BY created_at`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,scope,target_actor_id,description,status,importance,urgency,progress FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status <> 'forgotten' ORDER BY created_at`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
 	for rows.Next() {
-		var id, description, status string
+		var id, scope, description, status string
+		var targetActorID *string
 		var importance, urgency, progress []byte
-		if err := rows.Scan(&id, &description, &status, &importance, &urgency, &progress); err != nil {
+		if err := rows.Scan(&id, &scope, &targetActorID, &description, &status, &importance, &urgency, &progress); err != nil {
 			rows.Close()
 			return nil, nil, err
 		}
-		goals = append(goals, map[string]any{"id": id, "description": description, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress)})
+		item := map[string]any{"id": id, "scope": scope, "description": description, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress)}
+		if targetActorID != nil {
+			item["target_actor_id"] = *targetActorID
+		}
+		goals = append(goals, item)
 	}
 	if err := rows.Err(); err != nil {
 		rows.Close()

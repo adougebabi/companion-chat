@@ -714,10 +714,10 @@ func (a *App) RollbackRelationship(ctx context.Context, actorID, fluctlightID st
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var id string
 		var revision int
-		var metrics, emotional []byte
+		var role, metrics, emotional, provenance []byte
 		var trend string
 		var summary *string
-		if err := tx.QueryRow(ctx, `SELECT id,revision,metrics,trend,summary,emotional_association FROM public.relationships WHERE owner_fluctlight_id=$1 AND target_actor_id=$2 FOR UPDATE`, fluctlightID, target).Scan(&id, &revision, &metrics, &trend, &summary, &emotional); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT id,revision,role,metrics,trend,summary,emotional_association,provenance FROM public.relationships WHERE owner_fluctlight_id=$1 AND target_actor_id=$2 FOR UPDATE`, fluctlightID, target).Scan(&id, &revision, &role, &metrics, &trend, &summary, &emotional, &provenance); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -727,10 +727,10 @@ func (a *App) RollbackRelationship(ctx context.Context, actorID, fluctlightID st
 			return ErrConflict
 		}
 		var sourceRevision int
-		var sourceMetrics, sourceEmotional []byte
+		var sourceRole, sourceMetrics, sourceEmotional []byte
 		var sourceTrend string
 		var sourceSummary *string
-		if err := tx.QueryRow(ctx, `SELECT revision,metrics,trend,summary,emotional_association FROM public.relationship_revisions WHERE relationship_id=$1 AND revision=$2`, id, targetRevision).Scan(&sourceRevision, &sourceMetrics, &sourceTrend, &sourceSummary, &sourceEmotional); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT revision,role,metrics,trend,summary,emotional_association FROM public.relationship_revisions WHERE relationship_id=$1 AND revision=$2`, id, targetRevision).Scan(&sourceRevision, &sourceRole, &sourceMetrics, &sourceTrend, &sourceSummary, &sourceEmotional); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -738,19 +738,22 @@ func (a *App) RollbackRelationship(ctx context.Context, actorID, fluctlightID st
 		}
 		newRevision := revision + 1
 		refs := append(append([]any{}, evidence...), "rollback:"+fmt.Sprint(targetRevision))
-		if _, err := tx.Exec(ctx, `UPDATE public.relationships SET metrics=$2,trend=$3,summary=$4,emotional_association=$5,revision=$6,updated_at=now() WHERE id=$1 AND revision=$7`, id, sourceMetrics, sourceTrend, sourceSummary, sourceEmotional, newRevision, expected); err != nil {
+		rollbackProvenance := map[string]any{"source": "manual", "action": "rollback", "actor_id": actorID, "evidence_refs": refs}
+		if _, err := tx.Exec(ctx, `UPDATE public.relationships SET role=$2,metrics=$3,trend=$4,summary=$5,emotional_association=$6,provenance=$7,revision=$8,updated_at=now() WHERE id=$1 AND revision=$9`, id, sourceRole, sourceMetrics, sourceTrend, sourceSummary, sourceEmotional, jsonBytes(rollbackProvenance), newRevision, expected); err != nil {
 			return err
 		}
 		newRevisionID := randomID("relationship_revision_")
-		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_revisions(id,relationship_id,revision,base_revision,metrics,trend,summary,emotional_association,evidence_refs,actor_id,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, newRevisionID, id, newRevision, expected, sourceMetrics, sourceTrend, sourceSummary, sourceEmotional, jsonBytes(refs), actorID, "relationship-rollback:"+id+":"+fmt.Sprint(targetRevision)+":"+fmt.Sprint(expected)); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_revisions(id,relationship_id,revision,base_revision,role,metrics,trend,summary,emotional_association,evidence_refs,actor_id,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, newRevisionID, id, newRevision, expected, sourceRole, sourceMetrics, sourceTrend, sourceSummary, sourceEmotional, jsonBytes(refs), actorID, "relationship-rollback:"+id+":"+fmt.Sprint(targetRevision)+":"+fmt.Sprint(expected)); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_governance(id,relationship_id,revision_id,action,actor_id,reason) VALUES($1,$2,$3,'rollback',$4,$5)`, randomID("relationship_governance_"), id, newRevisionID, actorID, nullableString(stringValue(payload["reason"]))); err != nil {
 			return err
 		}
 		result = map[string]any{"id": id, "relationship_id": id, "revision": newRevision, "target_revision": sourceRevision, "status": "rolled_back"}
+		_ = role
 		_ = metrics
 		_ = emotional
+		_ = provenance
 		return nil
 	})
 	return result, err

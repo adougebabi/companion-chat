@@ -59,6 +59,31 @@ func TestComposeProviderMessagesSeparatesFixedPersonaAndDynamicContext(t *testin
 	}
 }
 
+func TestComposeProviderMessagesRendersActorRelationshipSystemContext(t *testing.T) {
+	projection := ContextProjection{
+		SelfActor:      map[string]any{"ref": "self_actor", "type": "fluctlight", "actor_id": "fl-1"},
+		CurrentSpeaker: map[string]any{"ref": "actor_a", "type": "human", "actor_id": "human-1"},
+		Relationships: []map[string]any{{
+			"target_actor_id": "human-1",
+			"role":            map[string]any{"primary": "romantic_partner"},
+			"trend":           "improving",
+			"revision":        3,
+		}},
+	}
+	messages := withActorRelationshipSystemContext([]map[string]any{{"role": "user", "content": `{"current_message":{"sender":{"ref":"actor_a","type":"human"},"content":"你好"}}`}}, projection)
+	formatted := composeProviderMessages("cognitive_assessment", messages)
+	if len(formatted) != 2 {
+		t.Fatalf("formatted messages = %#v", formatted)
+	}
+	system := stringValue(formatted[0]["content"])
+	if !strings.Contains(system, "# Actor 与关系上下文") || !strings.Contains(system, "romantic_partner") || !strings.Contains(system, "actor_a") {
+		t.Fatalf("relationship context missing from system: %s", system)
+	}
+	if strings.Contains(system, "human-1") {
+		t.Fatalf("raw actor id leaked into provider system: %s", system)
+	}
+}
+
 func TestComposeProviderMessagesKeepsMediaPromptOutOfOrdinaryComposer(t *testing.T) {
 	messages := []map[string]any{
 		{"role": "system", "content": "media prompt instruction"},

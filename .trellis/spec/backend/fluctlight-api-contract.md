@@ -226,3 +226,58 @@ group.actor_ids.includes(fluctlightId);
 this.actorGroups = normalizeActorGroups(await client.listActorGroups());
 group.actor_ids.includes(fluctlightId); // always a string[]
 ```
+
+## Scenario: Actor Relationship Projection And Governance
+
+### 1. Scope / Trigger
+
+- Trigger: relationship state crosses Core, BFF, browser detail/governance, or Provider context boundaries.
+- Human and Fluctlight are both Actors. created_by_actor_id and Owner account remain authorization metadata; they do not automatically create a social Relationship.
+
+### 2. Signatures
+
+    GET /api/fluctlights/{fluctlightId}/detail
+    PUT /api/fluctlights/{fluctlightId}/relationships/{targetActorId}
+    POST /api/fluctlights/{fluctlightId}/relationships/rollback
+    relationship.lookup({target_actor_id}) -> read-only direct relationship
+
+Edit request fields include expectedRevision, role, metrics, trend, summary, emotionalAssociation, evidenceRefs, and reason.
+
+### 3. Contracts
+
+- Detail relationship rows include target_actor_id, target_actor_type, is_current_user, role, metrics, trend, summary, provenance and revision.
+- is_current_user is computed by Core from the authenticated Human Actor ID; a browser field cannot establish authority or override the marker.
+- targetActorId is path identity and is immutable during an edit. A successful edit appends relationship_revisions and relationship_governance rows with action=edit.
+- Relationship provenance distinguishes initialization, reflection, and manual; authorization metadata is separate from social relationship data.
+- Provider context uses a leading system relationship snapshot for self and the current speaker. Transport role=user is not the domain sender identity.
+- Reflection may autonomously create/update relationship-scoped goals and intentions. Conversation cognition reads the snapshot but does not mutate long-lived relationship or agency rows.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Missing/negative expectedRevision | 422; no mutation |
+| Missing evidence refs or reason | BFF rejects before Core; no mutation |
+| Unknown role code, invalid trend, or metric outside 0..1 | 422; no revision |
+| Stale expected revision | 409; no mutation |
+| Browser submits a different Actor as current user | Ignore/reject; session Actor remains authoritative |
+| Relationship lookup targets a non-participant Actor | Read-only lookup rejected; no relationship data returned |
+
+### 5. Good/Base/Bad Cases
+
+- Good: the UI labels a Human relationship as “当前用户”, edits its role with revision 3, and detail reload shows revision 4 plus an audit row.
+- Base: a Fluctlight target is shown as Fluctlight with the same relationship editor; no User-only code path is used.
+- Bad: treating created_by_actor_id as the social role, allowing target Actor replacement in a PUT, or returning the full relationship list from a lookup.
+
+### 6. Tests Required
+
+- Core detail tests assert actor type and authenticated-current-user marker.
+- Relationship edit tests assert role/metrics/trend/summary persistence, CAS, immutable target, provenance and governance audit.
+- BFF tests assert camelCase↔snake_case mapping, validation and route/OpenAPI parity.
+- Browser tests assert current-user labeling, safe relationship rendering, editor fields and conflict recovery after refresh.
+- Provider projection tests assert mixed Human/Fluctlight sender aliases and no raw Actor IDs in model-facing context.
+
+### 7. Wrong vs Correct
+
+Wrong: infer the social role owner from created_by_actor_id.
+Correct: compute is_current_user from the authenticated session Actor, and read the social role from the persisted Relationship.

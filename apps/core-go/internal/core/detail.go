@@ -74,7 +74,7 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	}
 	detail["goals"] = goals
 	detail["intentions"] = intentions
-	detail["relationships"], err = a.readRelationships(ctx, fluctlightID)
+	detail["relationships"], err = a.readRelationships(ctx, fluctlightID, actorID)
 	if err != nil {
 		return nil, err
 	}
@@ -200,19 +200,24 @@ func (a *App) readInnerState(ctx context.Context, fluctlightID string) (map[stri
 }
 
 func (a *App) readAgency(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {
-	goalsRows, err := a.DB.Pool().Query(ctx, `SELECT id,description,status,importance,urgency,progress FROM public.fluctlight_goals WHERE fluctlight_id=$1 ORDER BY created_at`, fluctlightID)
+	goalsRows, err := a.DB.Pool().Query(ctx, `SELECT id,scope,target_actor_id,description,status,importance,urgency,progress FROM public.fluctlight_goals WHERE fluctlight_id=$1 ORDER BY created_at`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
 	goals := make([]map[string]any, 0)
 	for goalsRows.Next() {
-		var id, desc, status string
+		var id, scope, desc, status string
+		var targetActorID *string
 		var importance, urgency, progress []byte
-		if err := goalsRows.Scan(&id, &desc, &status, &importance, &urgency, &progress); err != nil {
+		if err := goalsRows.Scan(&id, &scope, &targetActorID, &desc, &status, &importance, &urgency, &progress); err != nil {
 			goalsRows.Close()
 			return nil, nil, err
 		}
-		goals = append(goals, map[string]any{"id": id, "description": desc, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress)})
+		item := map[string]any{"id": id, "scope": scope, "description": desc, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress)}
+		if targetActorID != nil {
+			item["target_actor_id"] = *targetActorID
+		}
+		goals = append(goals, item)
 	}
 	goalsRows.Close()
 	intentionRows, err := a.DB.Pool().Query(ctx, `SELECT id,goal_id,action,status,confidence FROM public.fluctlight_intentions WHERE fluctlight_id=$1 ORDER BY created_at`, fluctlightID)
@@ -233,22 +238,23 @@ func (a *App) readAgency(ctx context.Context, fluctlightID string) ([]map[string
 	return goals, intentions, nil
 }
 
-func (a *App) readRelationships(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT target_actor_id,metrics,trend,summary,revision FROM public.relationships WHERE owner_fluctlight_id=$1 ORDER BY updated_at DESC`, fluctlightID)
+func (a *App) readRelationships(ctx context.Context, fluctlightID, currentHumanActorID string) ([]map[string]any, error) {
+	rows, err := a.DB.Pool().Query(ctx, `SELECT r.target_actor_id,COALESCE(a.actor_type,'unknown'),(r.target_actor_id=$2),r.role,r.metrics,r.trend,r.summary,r.emotional_association,r.provenance,r.revision FROM public.relationships r LEFT JOIN public.actors a ON a.id=r.target_actor_id WHERE r.owner_fluctlight_id=$1 ORDER BY r.updated_at DESC`, fluctlightID, currentHumanActorID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	out := make([]map[string]any, 0)
 	for rows.Next() {
-		var target, trend string
-		var metrics []byte
+		var target, actorType, trend string
+		var isCurrentUser bool
+		var role, metrics, emotional, provenance []byte
 		var summary *string
 		var rev int
-		if err := rows.Scan(&target, &metrics, &trend, &summary, &rev); err != nil {
+		if err := rows.Scan(&target, &actorType, &isCurrentUser, &role, &metrics, &trend, &summary, &emotional, &provenance, &rev); err != nil {
 			return nil, err
 		}
-		out = append(out, map[string]any{"target_actor_id": target, "metrics": decodeObject(metrics), "trend": trend, "summary": summary, "revision": rev})
+		out = append(out, map[string]any{"target_actor_id": target, "target_actor_type": actorType, "is_current_user": isCurrentUser, "role": decodeObject(role), "metrics": decodeObject(metrics), "trend": trend, "summary": summary, "emotional_association": decodeObject(emotional), "provenance": decodeObject(provenance), "revision": rev})
 	}
 	return out, nil
 }

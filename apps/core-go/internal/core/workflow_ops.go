@@ -374,7 +374,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	}
 	normalizedProposal := normalizeReflectionProposal(proposal)
 	filteredProposal := filterReflectionEvidence(normalizedProposal, allowedEvidence)
-	for _, key := range []string{"memory_candidates", "relationship_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "goal_candidates", "intention_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
 		beforeCount := len(arrayValue(normalizedProposal[key]))
 		afterCount := len(arrayValue(filteredProposal[key]))
 		if beforeCount > afterCount {
@@ -427,8 +427,8 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 // candidates. A malformed optional candidate is omitted; valid candidates in
 // the same proposal can still advance the watermark and be applied.
 func normalizeReflectionProposal(value map[string]any) map[string]any {
-	result := make(map[string]any, 7)
-	for _, key := range []string{"memory_candidates", "relationship_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
+	result := make(map[string]any, 9)
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "goal_candidates", "intention_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
 		rawCandidates := value[key]
 		if rawCandidates == nil {
 			switch key {
@@ -486,6 +486,20 @@ func normalizeReflectionProposal(value map[string]any) map[string]any {
 				if stringValue(normalized["trend"]) == "" || stringValue(normalized["target_actor_id"]) == "" {
 					continue
 				}
+			case "goal_candidates":
+				if stringValue(normalized["operation"]) == "" {
+					normalized["operation"] = firstString(normalized["action"], "create")
+				}
+				if stringValue(normalized["operation"]) == "create" && stringValue(normalized["description"]) == "" {
+					continue
+				}
+			case "intention_candidates":
+				if stringValue(normalized["operation"]) == "" {
+					normalized["operation"] = "create"
+				}
+				if stringValue(normalized["action"]) == "" && stringValue(normalized["operation"]) == "create" {
+					continue
+				}
 			case "developing_self_candidates":
 				if stringValue(normalized["category"]) == "" {
 					normalized["category"] = firstString(normalized["dimension"], firstString(normalized["type"], ""))
@@ -531,7 +545,7 @@ func normalizeReflectionProposal(value map[string]any) map[string]any {
 }
 
 func filterReflectionEvidence(proposal map[string]any, allowed map[string]struct{}) map[string]any {
-	for _, key := range []string{"memory_candidates", "relationship_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "goal_candidates", "intention_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
 		filtered := make([]any, 0)
 		for _, raw := range arrayValue(proposal[key]) {
 			item := mapValue(raw)
@@ -579,7 +593,7 @@ func (a *App) setReflectionWindowIdle(ctx context.Context, fluctlightID string) 
 }
 
 func validateReflectionProposal(value map[string]any, allowedEvidence map[string]struct{}) error {
-	for _, key := range []string{"memory_candidates", "relationship_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
+	for _, key := range []string{"memory_candidates", "relationship_candidates", "goal_candidates", "intention_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
 		raw, ok := value[key]
 		if !ok || raw == nil {
 			continue
@@ -615,6 +629,36 @@ func validateReflectionProposal(value map[string]any, allowedEvidence map[string
 			}
 			if key == "relationship_candidates" && (stringValue(item["target_actor_id"]) == "" || stringValue(item["trend"]) == "") {
 				return errors.New("reflection_relationship_fields_invalid")
+			}
+			if key == "relationship_candidates" {
+				if _, err := normalizeRelationshipRole(item["role"]); err != nil {
+					return errors.New("reflection_relationship_role_invalid")
+				}
+			}
+			if key == "goal_candidates" {
+				op := firstString(item["operation"], "create")
+				if op != "create" && op != "update" && op != "complete" && op != "pause" {
+					return errors.New("reflection_goal_operation_invalid")
+				}
+				scope := firstString(item["scope"], "general")
+				if scope != "general" && scope != "relationship" {
+					return errors.New("reflection_goal_scope_invalid")
+				}
+				if scope == "relationship" && stringValue(item["target_actor_id"]) == "" {
+					return errors.New("reflection_goal_target_invalid")
+				}
+				if op == "create" && stringValue(item["description"]) == "" {
+					return errors.New("reflection_goal_description_invalid")
+				}
+			}
+			if key == "intention_candidates" {
+				op := firstString(item["operation"], "create")
+				if op != "create" && op != "update" && op != "complete" && op != "pause" {
+					return errors.New("reflection_intention_operation_invalid")
+				}
+				if op == "create" && (stringValue(item["goal_id"]) == "" || stringValue(item["action"]) == "") {
+					return errors.New("reflection_intention_fields_invalid")
+				}
 			}
 			if key == "developing_self_candidates" {
 				if stringValue(item["category"]) == "" || !validateDevelopingSelfCategory(stringValue(item["category"])) || stringValue(item["claim"]) == "" || item["value"] == nil {
@@ -670,6 +714,11 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 	for index, raw := range arrayValue(proposal["relationship_candidates"]) {
 		item := mapValue(raw)
 		target := stringValue(item["target_actor_id"])
+		role, err := normalizeRelationshipRole(item["role"])
+		if err != nil {
+			return err
+		}
+		provenance := map[string]any{"source": "reflection", "evidence_refs": arrayValue(item["evidence_refs"])}
 		revisionKey := "reflection:" + fluctlightID + ":" + sourceWindow + ":" + fmt.Sprint(index)
 		var alreadyApplied bool
 		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.relationship_revisions WHERE idempotency_key=$1)`, revisionKey).Scan(&alreadyApplied); err != nil {
@@ -682,7 +731,7 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 		var revision int
 		if err := tx.QueryRow(ctx, `SELECT id,revision FROM public.relationships WHERE owner_fluctlight_id=$1 AND target_actor_id=$2 FOR UPDATE`, fluctlightID, target).Scan(&relationshipID, &revision); errors.Is(err, pgx.ErrNoRows) {
 			relationshipID = "relationship_" + stableDigest(fluctlightID+":"+target)
-			if _, err := tx.Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,target_actor_id,metrics,trend,summary,emotional_association,revision) VALUES($1,$2,$3,$4,$5,$6,$7,0) ON CONFLICT DO NOTHING`, relationshipID, fluctlightID, target, jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"]))); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,target_actor_id,role,metrics,trend,summary,emotional_association,provenance,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,0) ON CONFLICT DO NOTHING`, relationshipID, fluctlightID, target, jsonBytes(role), jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(provenance)); err != nil {
 				return err
 			}
 			revision = 0
@@ -690,12 +739,91 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 			return err
 		} else {
 			revision++
-			if _, err := tx.Exec(ctx, `UPDATE public.relationships SET metrics=$2,trend=$3,summary=$4,emotional_association=$5,revision=$6,updated_at=now() WHERE id=$1`, relationshipID, jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), revision); err != nil {
+			if _, err := tx.Exec(ctx, `UPDATE public.relationships SET role=$2,metrics=$3,trend=$4,summary=$5,emotional_association=$6,provenance=$7,revision=$8,updated_at=now() WHERE id=$1`, relationshipID, jsonBytes(role), jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(provenance), revision); err != nil {
 				return err
 			}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_revisions(id,relationship_id,revision,base_revision,metrics,trend,summary,emotional_association,evidence_refs,actor_id,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT DO NOTHING`, "relationship_revision_"+stableDigest(fluctlightID+":"+target+":"+fmt.Sprint(index)+":"+fmt.Sprint(revision)), relationshipID, revision, maxInt(0, revision-1), jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(arrayValue(item["evidence_refs"])), fluctlightID, revisionKey); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_revisions(id,relationship_id,revision,base_revision,role,metrics,trend,summary,emotional_association,evidence_refs,actor_id,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT DO NOTHING`, "relationship_revision_"+stableDigest(fluctlightID+":"+target+":"+fmt.Sprint(index)+":"+fmt.Sprint(revision)), relationshipID, revision, maxInt(0, revision-1), jsonBytes(role), jsonBytes(mapValue(item["metrics"])), stringValue(item["trend"]), nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(arrayValue(item["evidence_refs"])), fluctlightID, revisionKey); err != nil {
 			return err
+		}
+	}
+	for index, raw := range arrayValue(proposal["goal_candidates"]) {
+		item := mapValue(raw)
+		op := firstString(item["operation"], "create")
+		goalID := stringValue(item["goal_id"])
+		if op == "create" {
+			goalID = "goal_reflection_" + stableDigest(sourceWindow+":"+fmt.Sprint(index)+":"+stringValue(item["description"]))
+			scope := firstString(item["scope"], "general")
+			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goals(id,fluctlight_id,source,scope,target_actor_id,description,importance,urgency,progress,status,evidence_refs,revision) VALUES($1,$2,'reflection',$3,$4,$5,$6,$7,$8,'active',$9,0) ON CONFLICT DO NOTHING`, goalID, fluctlightID, scope, nullableString(stringValue(item["target_actor_id"])), stringValue(item["description"]), jsonBytes(defaultGoalNumber(item["importance"], 0.5)), jsonBytes(defaultGoalNumber(item["urgency"], 0.5)), jsonBytes(defaultGoalNumber(item["progress"], 0.0)), jsonBytes(arrayValue(item["evidence_refs"]))); err != nil {
+				return err
+			}
+		} else {
+			if goalID == "" {
+				return errors.New("reflection_goal_id_required")
+			}
+			var previousStatus string
+			var currentRevision int
+			if err := tx.QueryRow(ctx, `SELECT status,revision FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, goalID, fluctlightID).Scan(&previousStatus, &currentRevision); err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					return ErrNotFound
+				}
+				return err
+			}
+			status := previousStatus
+			if op == "complete" {
+				status = "completed"
+			} else if op == "pause" {
+				status = "paused"
+			}
+			if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_goals SET description=COALESCE(NULLIF($2,''),description),scope=COALESCE(NULLIF($3,''),scope),target_actor_id=COALESCE(NULLIF($4,''),target_actor_id),status=$5,evidence_refs=$6,revision=$7,updated_at=now() WHERE id=$1 AND fluctlight_id=$8 AND revision=$9`, goalID, stringValue(item["description"]), stringValue(item["scope"]), stringValue(item["target_actor_id"]), status, jsonBytes(arrayValue(item["evidence_refs"])), currentRevision+1, fluctlightID, currentRevision); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goal_revisions(id,goal_id,fluctlight_id,from_status,to_status,actor_id,reason) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`, "goal_revision_"+stableDigest(sourceWindow+":"+fmt.Sprint(index)+":"+goalID), goalID, fluctlightID, previousStatus, status, fluctlightID, nullableString(stringValue(item["reason"]))); err != nil {
+				return err
+			}
+		}
+	}
+	for index, raw := range arrayValue(proposal["intention_candidates"]) {
+		item := mapValue(raw)
+		op := firstString(item["operation"], "create")
+		intentionID := stringValue(item["intention_id"])
+		if op == "create" {
+			goalID := stringValue(item["goal_id"])
+			var ownsGoal bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2)`, goalID, fluctlightID).Scan(&ownsGoal); err != nil {
+				return err
+			}
+			if !ownsGoal {
+				return ErrNotFound
+			}
+			intentionID = "intention_reflection_" + stableDigest(sourceWindow+":"+fmt.Sprint(index)+":"+goalID+":"+stringValue(item["action"]))
+			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intentions(id,fluctlight_id,goal_id,action,trigger,confidence,expiration,evidence_refs,permission_snapshot,budget_snapshot,status,revision) VALUES($1,$2,$3,$4,$5,$6,now()+interval '24 hours',$7,'{}','{}','pending',0) ON CONFLICT DO NOTHING`, intentionID, fluctlightID, goalID, stringValue(item["action"]), jsonBytes(map[string]any{"type": "semantic", "source": "reflection", "target_actor_id": stringValue(item["target_actor_id"])}), jsonBytes(defaultGoalNumber(item["confidence"], 0.5)), jsonBytes(arrayValue(item["evidence_refs"]))); err != nil {
+				return err
+			}
+		} else {
+			if intentionID == "" {
+				return errors.New("reflection_intention_id_required")
+			}
+			var previousStatus string
+			var currentRevision int
+			if err := tx.QueryRow(ctx, `SELECT status,revision FROM public.fluctlight_intentions WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, intentionID, fluctlightID).Scan(&previousStatus, &currentRevision); err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					return ErrNotFound
+				}
+				return err
+			}
+			status := previousStatus
+			if op == "complete" {
+				status = "completed"
+			} else if op == "pause" {
+				status = "paused"
+			}
+			if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_intentions SET action=COALESCE(NULLIF($2,''),action),status=$3,evidence_refs=$4,revision=$5,updated_at=now() WHERE id=$1 AND fluctlight_id=$6 AND revision=$7`, intentionID, stringValue(item["action"]), status, jsonBytes(arrayValue(item["evidence_refs"])), currentRevision+1, fluctlightID, currentRevision); err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intention_revisions(id,intention_id,fluctlight_id,from_status,to_status,actor_id,reason) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`, "intention_revision_"+stableDigest(sourceWindow+":"+fmt.Sprint(index)+":"+intentionID), intentionID, fluctlightID, previousStatus, status, fluctlightID, nullableString(stringValue(item["reason"]))); err != nil {
+				return err
+			}
 		}
 	}
 	for _, raw := range arrayValue(proposal["developing_self_candidates"]) {
@@ -728,6 +856,13 @@ func boundedNumber(value any, fallback float64) float64 {
 		return fallback
 	}
 	return parsed
+}
+
+func defaultGoalNumber(value any, fallback float64) float64 {
+	if parsed, ok := numberFloat(value); ok && parsed >= 0 && parsed <= 1 {
+		return parsed
+	}
+	return fallback
 }
 
 func maxInt(a, b int) int {

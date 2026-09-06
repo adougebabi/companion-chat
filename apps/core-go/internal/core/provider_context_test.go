@@ -384,3 +384,25 @@ func TestCompactCognitionContextIncludesGoalsAndIntentionsAsSemanticInputs(t *te
 		}
 	}
 }
+
+func TestCompactCognitionContextUsesActorAliasesForMessagesAndRelationships(t *testing.T) {
+	projection := ContextProjection{
+		SelfActor:      map[string]any{"ref": "self_actor", "actor_id": "fl-1", "type": "fluctlight"},
+		CurrentSpeaker: map[string]any{"ref": "actor_a", "actor_id": "human-1", "type": "human"},
+		Actors: []map[string]any{
+			{"ref": "self_actor", "actor_id": "fl-1", "type": "fluctlight"},
+			{"ref": "actor_a", "actor_id": "human-1", "type": "human"},
+		},
+		RecentMessages: []map[string]any{{"author_actor_id": "human-1", "kind": "user", "text": "你好", "created_at": "2026-09-06T00:00:00Z"}},
+		Relationships:  []map[string]any{{"target_actor_id": "human-1", "role": map[string]any{"primary": "friend"}, "trend": "stable", "revision": 1}},
+	}
+	compact := compactCognitionContext(projection)
+	encoded := jsonString(compact)
+	if strings.Contains(encoded, "human-1") || !strings.Contains(encoded, "actor_a") {
+		t.Fatalf("actor ids were not projected safely: %s", encoded)
+	}
+	recent := arrayValue(compact["recent_messages"])
+	if len(recent) != 1 || stringValue(mapValue(recent[0])["sender"]) != "actor_a" {
+		t.Fatalf("recent message sender = %#v", recent)
+	}
+}

@@ -370,6 +370,22 @@ func (s *Server) rollbackRelationship(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, value)
 }
+func (s *Server) editRelationship(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.authorizeHuman(w, r)
+	if !ok || s.app == nil {
+		return
+	}
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
+	value, err := s.app.EditRelationship(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("targetActorID"), body)
+	if err != nil {
+		s.opError(w, err, "relationship_edit_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
 func (s *Server) governAutonomy(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.authorizeHuman(w, r)
 	if !ok || s.app == nil {

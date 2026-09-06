@@ -167,6 +167,11 @@
         "operationId": "rollbackRelationship"
       }
     },
+    "/api/fluctlights/{fluctlightId}/relationships/{targetActorId}": {
+      "put": {
+        "operationId": "editRelationship"
+      }
+    },
     "/api/fluctlights/{fluctlightId}/autonomy-actions": {
       "get": {
         "operationId": "listAutonomyActions"
