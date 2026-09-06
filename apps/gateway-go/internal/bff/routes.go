@@ -429,7 +429,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		mapped := map[string]any{"request_id": body["requestId"], "initialization_mode": body["initializationMode"], "name": body["name"], "core_persona": body["corePersona"], "developing_self": body["developingSelf"]}
+		mapped := map[string]any{"request_id": body["requestId"], "initialization_mode": body["initializationMode"], "schema_version": body["schemaVersion"], "name": body["name"], "core_persona": body["corePersona"], "developing_self": body["developingSelf"], "extensions": body["extensions"]}
 		for from, to := range map[string]string{"initialGoals": "initial_goals", "initialIntentions": "initial_intentions", "initialRelationships": "initial_relationships"} {
 			if value, exists := body[from]; exists {
 				mapped[to] = value
@@ -1319,7 +1319,7 @@ func validateActivation(value map[string]any) bool {
 	if !validateString(value["requestId"], 1, 256) || (mode != "blank_slate" && mode != "llm_defined") {
 		return false
 	}
-	if mode == "llm_defined" && (!isObject(value["corePersona"]) || !isObject(value["developingSelf"])) {
+	if mode == "llm_defined" && (!isObject(value["corePersona"]) || !isObject(value["developingSelf"]) || !validateInteger(value["schemaVersion"], 1)) {
 		return false
 	}
 	if mode == "blank_slate" && !validateString(value["name"], 1, 256) {

@@ -97,9 +97,12 @@ async function openGovernanceFor(id: string) {
 
 async function activateCreatedFluctlight(body: {
   initializationMode: "blank_slate" | "llm_defined";
+  schemaVersion?: number;
   name?: string;
   corePersona?: Record<string, unknown>;
   developingSelf?: Record<string, unknown>;
+  extensions?: Record<string, unknown>;
+  initialRelationships?: Array<Record<string, unknown>>;
   initialGoals?: Array<Record<string, unknown>>;
   initialIntentions?: Array<Record<string, unknown>>;
 }) {
@@ -150,10 +153,13 @@ async function activatePreview() {
     if (!foundation.core_persona || typeof foundation.core_persona !== "object" || Array.isArray(foundation.core_persona) || !foundation.developing_self || typeof foundation.developing_self !== "object" || Array.isArray(foundation.developing_self)) throw new Error("invalid_preview");
     await activateCreatedFluctlight({
       initializationMode: "llm_defined",
+      schemaVersion: typeof foundation.schema_version === "number" ? foundation.schema_version : undefined,
       corePersona: foundation.core_persona as Record<string, unknown>,
       developingSelf: foundation.developing_self as Record<string, unknown>,
+      extensions: foundation.extensions && typeof foundation.extensions === "object" && !Array.isArray(foundation.extensions) ? foundation.extensions as Record<string, unknown> : undefined,
       initialGoals: creationInitialGoals.value,
       initialIntentions: creationInitialIntentions.value,
+      initialRelationships: Array.isArray(foundation.initial_relationships) ? foundation.initial_relationships.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [],
     });
   } catch {
     controlCenter.error = "预览必须包含 core_persona 和 developing_self 对象。";

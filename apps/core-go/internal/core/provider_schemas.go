@@ -351,7 +351,7 @@ func initializationResponseSchema() map[string]any {
 		"behavioral_policy":  behavioralPolicy,
 		"life_profile":       lifeProfile,
 		"personality_system": personalitySystem,
-	}, []string{"identity", "personality", "behavioral_policy", "life_profile", "personality_system"}, false)
+	}, []string{"schema_version", "identity", "personality", "behavioral_policy", "life_profile", "personality_system"}, false)
 	developingSelf := objectSchema(map[string]any{"claims": arraySchema(claim)}, []string{"claims"}, false)
 	return objectSchema(map[string]any{
 		"schema_version":        integerSchema(),

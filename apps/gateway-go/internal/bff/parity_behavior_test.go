@@ -75,18 +75,21 @@ func TestBFFMapsNestedBrowserPayloadsToCore(t *testing.T) {
 		}},
 	})
 
-	activation := invoke(handler, http.MethodPost, "http://gateway.test/api/fluctlight-creations/activate", `{"requestId":"request","initializationMode":"llm_defined","corePersona":{"identity":{},"personality":{},"behavioral_policy":{},"life_profile":{}},"developingSelf":{"claims":[]},"initialGoals":[{"name":"goal"}],"initialIntentions":[{"name":"intent"}]}`, mutationHeaders, mutationCookies)
+	activation := invoke(handler, http.MethodPost, "http://gateway.test/api/fluctlight-creations/activate", `{"requestId":"request","initializationMode":"llm_defined","schemaVersion":1,"corePersona":{"identity":{},"personality":{},"behavioral_policy":{},"life_profile":{},"personality_system":{}},"developingSelf":{"claims":[]},"extensions":{"future":true},"initialGoals":[{"name":"goal"}],"initialIntentions":[{"name":"intent"}],"initialRelationships":[]}`, mutationHeaders, mutationCookies)
 	if activation.Code != http.StatusOK {
 		t.Fatalf("activation status = %d: %s", activation.Code, activation.Body.String())
 	}
 	assertCoreBody(t, seen, "/internal/fluctlight-creations/activate", map[string]any{
-		"request_id":          "request",
-		"initialization_mode": "llm_defined",
-		"name":                nil,
-		"core_persona":        map[string]any{"identity": map[string]any{}, "personality": map[string]any{}, "behavioral_policy": map[string]any{}, "life_profile": map[string]any{}},
-		"developing_self":     map[string]any{"claims": []any{}},
-		"initial_goals":       []any{map[string]any{"name": "goal"}},
-		"initial_intentions":  []any{map[string]any{"name": "intent"}},
+		"request_id":            "request",
+		"initialization_mode":   "llm_defined",
+		"name":                  nil,
+		"schema_version":        float64(1),
+		"extensions":            map[string]any{"future": true},
+		"core_persona":          map[string]any{"identity": map[string]any{}, "personality": map[string]any{}, "behavioral_policy": map[string]any{}, "life_profile": map[string]any{}, "personality_system": map[string]any{}},
+		"developing_self":       map[string]any{"claims": []any{}},
+		"initial_goals":         []any{map[string]any{"name": "goal"}},
+		"initial_intentions":    []any{map[string]any{"name": "intent"}},
+		"initial_relationships": []any{},
 	})
 
 	history := invoke(handler, http.MethodGet, "http://gateway.test/api/conversations/conversation-1/messages?beforeSequence=5&limit=10", "", nil, map[string]string{sessionCookieName: "opaque"})

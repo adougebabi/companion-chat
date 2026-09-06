@@ -300,6 +300,9 @@ func validInitialization(value map[string]any) bool {
 		!hasInitializationKeys(mapValue(corePersona["life_profile"]), []string{"appearance", "social_background", "preferences", "life_habits", "recurring_commitments", "relationship_seeds", "character_constraints"}) {
 		return false
 	}
+	if _, ok := numberFloat(corePersona["schema_version"]); !ok {
+		return false
+	}
 	for key := range corePersona {
 		if _, ok := map[string]struct{}{"schema_version": {}, "identity": {}, "personality": {}, "behavioral_policy": {}, "life_profile": {}, "personality_system": {}}[key]; !ok {
 			return false

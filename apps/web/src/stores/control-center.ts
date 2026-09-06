@@ -130,11 +130,14 @@ export const useControlCenterStore = defineStore("control-center", {
     async activateFluctlight(body: {
       requestId: string;
       initializationMode: "blank_slate" | "llm_defined";
+      schemaVersion?: number;
       name?: string;
       corePersona?: Record<string, unknown>;
       developingSelf?: Record<string, unknown>;
+      extensions?: Record<string, unknown>;
       initialGoals?: Array<Record<string, unknown>>;
       initialIntentions?: Array<Record<string, unknown>>;
+      initialRelationships?: Array<Record<string, unknown>>;
     }) {
       this.saving = true;
       this.error = "";
