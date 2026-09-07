@@ -222,3 +222,23 @@ project was rebuilt again from this worktree. A post-rebuild public sweep passed
   matching `Content-Range`.
 - Cases 3–7 re-read the final blank, described/detail-schedule, Moment and
   proactive fixtures through the host-published BFF; all assertions passed.
+
+## Go Actor sender E2E (2026-09-07)
+
+The disposable `run-go-actor-chat-smoke.sh` acceptance script was executed
+against a freshly rebuilt Compose project with PostgreSQL, Temporal, Core,
+Worker, BFF and Web. It created two active Fluctlights, created a conversation
+with both as participants, and sent a turn through the public BFF using
+`senderActorId` for the second Fluctlight.
+
+The PostgreSQL assertion passed:
+
+- `conversation_messages` contained exactly one message with the second
+  Fluctlight as `author_actor_id` and the expected text;
+- both Fluctlights were active participants in the conversation;
+- the turn reached Core and returned the bounded provider-unconfigured error,
+  while the user fact remained durably persisted.
+
+This is the first real Compose evidence that an authorized Fluctlight can be a
+conversation sender without being confused with `actor_user` or the target
+Fluctlight.
