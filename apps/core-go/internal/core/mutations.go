@@ -237,7 +237,17 @@ func (a *App) HandleTurn(ctx context.Context, actorID, conversationID string, pa
 	return a.handleTurn(ctx, actorID, conversationID, payload, turnCallbacks{}, false)
 }
 
+// HandleActorTurn is the internal/group-chat entry point. Authorization stays
+// anchored to the Owner Human while the persisted message and cognition
+// speaker use the actual Actor (including another Fluctlight).
+func (a *App) HandleActorTurn(ctx context.Context, ownerActorID, senderActorID, conversationID string, payload map[string]any) (TurnResult, error) {
+	copyPayload := cloneMap(payload)
+	copyPayload["authorization_actor_id"] = ownerActorID
+	return a.handleTurn(ctx, senderActorID, conversationID, copyPayload, turnCallbacks{}, false)
+}
+
 func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, payload map[string]any, callbacks turnCallbacks, claimStream bool) (TurnResult, error) {
+	authorizationActorID := firstString(payload["authorization_actor_id"], actorID)
 	fluctlightID := stringValue(payload["fluctlight_id"])
 	text := stringValue(payload["text"])
 	idempotency := stringValue(payload["idempotency_key"])
@@ -248,8 +258,13 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if fluctlightID == "" || text == "" || idempotency == "" {
 		return TurnResult{}, errors.New("conversation_turn_invalid")
 	}
-	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
+	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, authorizationActorID); err != nil {
 		return TurnResult{}, err
+	}
+	if authorizationActorID != actorID {
+		if err := a.authorizeActorTurn(ctx, authorizationActorID, actorID, fluctlightID, conversationID); err != nil {
+			return TurnResult{}, err
+		}
 	}
 	var user map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
@@ -370,13 +385,13 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if savedProjection, ok := contextProjectionFromValue(frozenDecision["context_projection"]); ok {
 			projection = savedProjection
 		} else {
-			projection, err = a.BuildContextProjection(ctx, actorID, fluctlightID, conversationID, inboxID, text)
+			projection, err = a.buildTurnProjection(ctx, authorizationActorID, actorID, fluctlightID, conversationID, inboxID, text)
 			if err != nil {
 				return TurnResult{}, err
 			}
 		}
 	} else {
-		projection, err = a.BuildContextProjection(ctx, actorID, fluctlightID, conversationID, inboxID, text)
+		projection, err = a.buildTurnProjection(ctx, authorizationActorID, actorID, fluctlightID, conversationID, inboxID, text)
 		if err != nil {
 			return TurnResult{}, err
 		}
@@ -429,7 +444,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				return TurnResult{}, personalityErr
 			}
 			if len(personalityRuntime) > 0 {
-				refreshedProjection, refreshErr := a.BuildContextProjection(ctx, actorID, fluctlightID, conversationID, inboxID, text)
+				refreshedProjection, refreshErr := a.buildTurnProjection(ctx, authorizationActorID, actorID, fluctlightID, conversationID, inboxID, text)
 				if refreshErr != nil {
 					return TurnResult{}, refreshErr
 				}
@@ -650,6 +665,70 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	}
 	claimSettled = true
 	return TurnResult{UserMessage: user, Assistant: assistant, MediaIntentID: mediaIntent, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
+}
+
+func (a *App) authorizeActorTurn(ctx context.Context, ownerActorID, senderActorID, fluctlightID, conversationID string) error {
+	var actorType, status string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT actor_type,status FROM public.actors WHERE id=$1`, senderActorID).Scan(&actorType, &status); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrUnauthorized
+		}
+		return err
+	}
+	if status != "active" || (actorType != "human" && actorType != "fluctlight") {
+		return ErrUnauthorized
+	}
+	if actorType == "fluctlight" {
+		var createdBy string
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, senderActorID).Scan(&createdBy); err != nil || createdBy != ownerActorID {
+			return ErrUnauthorized
+		}
+	}
+	var participants int
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT COUNT(*) FROM public.conversation_participants WHERE conversation_id=$1 AND actor_id IN ($2,$3) AND status='active'`, conversationID, senderActorID, fluctlightID).Scan(&participants); err != nil {
+		return err
+	}
+	if participants != 2 {
+		return errors.New("conversation_not_found")
+	}
+	return nil
+}
+
+func (a *App) buildTurnProjection(ctx context.Context, authorizationActorID, speakerActorID, fluctlightID, conversationID, sourceFactID, userText string) (ContextProjection, error) {
+	if authorizationActorID == speakerActorID {
+		return a.BuildContextProjection(ctx, authorizationActorID, fluctlightID, conversationID, sourceFactID, userText)
+	}
+	projection, err := a.BuildContextProjection(ctx, authorizationActorID, fluctlightID, conversationID, sourceFactID, userText)
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	fluctlight, err := a.DB.GetFluctlight(ctx, fluctlightID, authorizationActorID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	displayName := firstString(fluctlight.Identity["name"], "摇光")
+	extraIDs := make([]string, 0, len(projection.Relationships))
+	for _, relationship := range projection.Relationships {
+		if target := stringValue(relationship["target_actor_id"]); target != "" {
+			extraIDs = append(extraIDs, target)
+		}
+	}
+	actors, selfActor, currentSpeaker := a.buildActorProjection(ctx, fluctlightID, speakerActorID, displayName, projection.RecentMessages, extraIDs)
+	relationships, err := a.readRelationships(ctx, fluctlightID, authorizationActorID)
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	filtered := make([]map[string]any, 0, 1)
+	for _, relationship := range relationships {
+		if stringValue(relationship["target_actor_id"]) == speakerActorID {
+			filtered = append(filtered, relationship)
+		}
+	}
+	projection.Actors = actors
+	projection.SelfActor = selfActor
+	projection.CurrentSpeaker = currentSpeaker
+	projection.Relationships = filtered
+	return projection, nil
 }
 
 func (a *App) recoverFrozenTurnAfterAssistant(ctx context.Context, inboxID, fluctlightID, conversationID, assistantID, visible string) (string, bool, error) {
