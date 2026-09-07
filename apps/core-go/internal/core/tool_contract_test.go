@@ -116,12 +116,26 @@ func TestToolCallValidateRequiresRegisteredCapability(t *testing.T) {
 
 func TestToolCallPayloadKeepsProviderSchemaAtBoundary(t *testing.T) {
 	payload := ToolCallPayload(ExternalCapabilityManifests())
-	if len(payload) != 1 {
+	if len(payload) != 2 {
 		t.Fatalf("tool payload = %#v", payload)
 	}
-	function, ok := payload[0]["function"].(map[string]any)
-	if !ok || function["name"] != "media.image.generate" {
-		t.Fatalf("function payload = %#v", payload[0])
+	names := make(map[string]struct{}, len(payload))
+	for _, item := range payload {
+		function, ok := item["function"].(map[string]any)
+		if !ok {
+			t.Fatalf("function payload = %#v", item)
+		}
+		parameters, ok := function["parameters"].(map[string]any)
+		if !ok || parameters["type"] != "object" {
+			t.Fatalf("parameters payload = %#v", function)
+		}
+		names[stringValue(function["name"])] = struct{}{}
+	}
+	if _, ok := names["conversation.reply"]; !ok {
+		t.Fatalf("conversation.reply manifest missing = %#v", names)
+	}
+	if _, ok := names["media.image.generate"]; !ok {
+		t.Fatalf("media manifest missing = %#v", names)
 	}
 	manifest := imageCapabilityManifest()
 	if len(manifest.TargetKinds) != 2 || manifest.TargetKinds[0] != "conversation_message" || manifest.TargetKinds[1] != "moment" {
@@ -133,9 +147,9 @@ func TestToolCallPayloadKeepsProviderSchemaAtBoundary(t *testing.T) {
 	if err := manifest.ValidateOutput(map[string]any{"media_intent_id": "intent"}); err == nil {
 		t.Fatal("missing typed output target fields must be rejected")
 	}
-	parameters, ok := function["parameters"].(map[string]any)
-	if !ok || parameters["type"] != "object" {
-		t.Fatalf("parameters payload = %#v", function)
+	replyManifest := conversationReplyCapabilityManifest()
+	if !replyManifest.IsDeferredOutput() || replyManifest.TargetKinds[0] != "conversation_message" {
+		t.Fatalf("conversation reply must be a deferred conversation output: %#v", replyManifest)
 	}
 }
 
@@ -232,7 +246,7 @@ func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 		t.Fatalf("tool_choice = %#v", payload["tool_choice"])
 	}
 	tools, ok := payload["tools"].([]map[string]any)
-	if !ok || len(tools) != 1 {
+	if !ok || len(tools) != 2 {
 		t.Fatalf("tools = %#v", payload["tools"])
 	}
 	if payload["max_tokens"] != 512 {
@@ -480,10 +494,14 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 		}
 	}
 	cognitive := cognitiveTurnResponseSchema()
-	for _, key := range []string{"action_type", "appraisal", "attention", "thought", "desire", "agency", "personality_decision", "output_preference_decision"} {
-		if !containsSchemaRequired(cognitive, key) {
-			t.Fatalf("cognitive schema missing required field %q: %#v", key, cognitive)
+	for _, key := range []string{"action_type", "appraisal", "attention", "thought", "desire", "agency", "personality_decision", "output_preference_decision", "tool_calls"} {
+		if _, ok := mapValue(cognitive["properties"])[key]; !ok {
+			t.Fatalf("cognitive schema missing property %q: %#v", key, cognitive)
 		}
+	}
+	cognitiveActionSchema := mapValue(mapValue(cognitive["properties"])["action_type"])
+	if len(arrayValue(cognitiveActionSchema["enum"])) != 3 {
+		t.Fatalf("cognitive action_type must have reply/media_request/no_op enum: %#v", cognitiveActionSchema)
 	}
 	outputDecision := mapValue(mapValue(cognitive["properties"])["output_preference_decision"])
 	if !containsSchemaRequired(outputDecision, "profile_id") || !containsSchemaRequired(outputDecision, "trigger_id") {
@@ -505,13 +523,13 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 		t.Fatalf("cognitive claim schema must be closed: %#v", claimSchemaValue)
 	}
 	responsePlan := mapValue(mapValue(cognitive["properties"])["response_plan"])
-	if !containsSchemaRequired(responsePlan, "profile_id") {
-		t.Fatalf("response plan must identify the active profile: %#v", responsePlan)
+	if _, ok := mapValue(responsePlan["properties"])["profile_id"]; !ok {
+		t.Fatalf("response plan must expose the active profile: %#v", responsePlan)
 	}
 	selfEvaluation := mapValue(mapValue(cognitive["properties"])["self_evaluation"])
 	for _, key := range []string{"mode", "reason_codes", "confidence"} {
-		if !containsSchemaRequired(selfEvaluation, key) {
-			t.Fatalf("self evaluation schema missing required field %q: %#v", key, selfEvaluation)
+		if _, ok := mapValue(selfEvaluation["properties"])[key]; !ok {
+			t.Fatalf("self evaluation schema missing property %q: %#v", key, selfEvaluation)
 		}
 	}
 	memoryParameters := mapValue(memoryCapabilityManifest().Parameters)

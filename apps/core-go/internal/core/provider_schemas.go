@@ -111,13 +111,14 @@ func selfEvaluationSchema() map[string]any {
 		"confidence":   unitNumberSchema(),
 		"note":         stringSchema(),
 		"extensions":   openObjectSchema(),
-	}, []string{"mode", "reason_codes", "confidence"}, false)
+	}, nil, false)
 }
 
 func responsePlanSchema() map[string]any {
 	return objectSchema(map[string]any{
 		"profile_id":       stringSchema(),
 		"visible_text":     stringSchema(),
+		"action_type":      enumStringSchema("reply", "media_request", "no_op"),
 		"answer_mode":      stringSchema(),
 		"response_outline": arraySchema(stringSchema()),
 		"tone":             stringSchema(),
@@ -129,7 +130,7 @@ func responsePlanSchema() map[string]any {
 		"tool_calls":       arraySchema(toolCallSchema()),
 		"claims":           arraySchema(claimSchema()),
 		"extensions":       openObjectSchema(),
-	}, []string{"profile_id"}, false)
+	}, nil, false)
 }
 
 func coreAlignmentSchema() map[string]any {
@@ -159,7 +160,7 @@ func cognitiveTurnResponseSchema() map[string]any {
 		"evidence_refs":     arraySchema(stringSchema()),
 	}, []string{"decision", "from_profile_id", "target_profile_id", "trigger_id", "reason", "confidence", "evidence_refs"}, false)
 	properties := map[string]any{
-		"action_type":                stringSchema(),
+		"action_type":                enumStringSchema("reply", "media_request", "no_op"),
 		"response_intent":            stringSchema(),
 		"visible_text":               stringSchema(),
 		"response_plan":              responsePlanSchema(),
@@ -177,7 +178,10 @@ func cognitiveTurnResponseSchema() map[string]any {
 		"tool_calls":                 arraySchema(toolCallSchema()),
 		"evidence_refs":              arraySchema(stringSchema()),
 	}
-	return objectSchema(properties, []string{"action_type", "response_intent", "visible_text", "response_plan", "personality_decision", "output_preference_decision", "claims", "appraisal", "attention", "thought", "desire", "agency", "self_evaluation", "tool_calls", "evidence_refs"}, false)
+	// Conversation replies are represented by the conversation.reply tool call;
+	// the former visible_text and cognition sidecars remain optional compatibility
+	// fields. Core supplies a neutral appraisal only when persistence needs one.
+	return objectSchema(properties, nil, false)
 }
 
 func dailyReviewResponseSchema() map[string]any {

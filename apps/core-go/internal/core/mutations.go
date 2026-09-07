@@ -443,7 +443,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		// call (for example scene_event) and no JSON sidecar. This is a valid
 		// internal cognition outcome: execute the tool and settle the turn as
 		// no_op instead of requiring a user-visible reply.
-		toolOnlyNoReply = completion.StructuredFallback && len(toolCalls) > 0 && !toolCallsRequireDeferredOutput(toolCalls, a.capabilityRegistry())
+		if completion.StructuredFallback && len(toolCalls) > 0 && len(mapValue(decision["appraisal"])) == 0 {
+			decision["appraisal"] = toolOnlyCognitionAppraisal(inboxID)
+		}
+		toolOnlyNoReply = completion.StructuredFallback && len(toolCalls) > 0 && !hasConversationReplyToolCall(toolCalls) && !toolCallsRequireDeferredOutput(toolCalls, a.capabilityRegistry())
 		if toolOnlyNoReply {
 			decision["appraisal"] = toolOnlyCognitionAppraisal(inboxID)
 			decision["action_type"] = "no_op"
@@ -600,6 +603,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	// response plan, so it must be sent directly instead of being replaced by a
 	// second action_realization request.
 	visible = normalizeVisibleReply(firstString(responsePlan["visible_text"], stringValue(decision["visible_text"])))
+	if strings.TrimSpace(visible) == "" {
+		visible = replyTextFromToolCalls(toolCalls)
+	}
 	if strings.TrimSpace(visible) == "" {
 		if frozenFound || frozen.ID != "" {
 			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "cognition_visible_text_missing")
@@ -926,6 +932,30 @@ func toolOnlyCognitionAppraisal(sourceFactID string) map[string]any {
 		"relationship_significance": 0.0, "expected_effect": 0.0,
 		"evidence_refs": []any{sourceFactID}, "event_kind": "tool_only_action", "direction": "none",
 	}
+}
+
+func hasConversationReplyToolCall(calls []ToolCallV1) bool {
+	for _, call := range calls {
+		if call.Name == "conversation.reply" {
+			return true
+		}
+	}
+	return false
+}
+
+func replyTextFromToolCalls(calls []ToolCallV1) string {
+	for _, call := range calls {
+		if call.Name != "conversation.reply" {
+			continue
+		}
+		var args map[string]any
+		if json.Unmarshal(call.Arguments, &args) == nil {
+			if text := strings.TrimSpace(stringValue(args["text"])); text != "" {
+				return normalizeVisibleReply(text)
+			}
+		}
+	}
+	return ""
 }
 
 func resolveDecisionAction(decision map[string]any) (string, map[string]any) {

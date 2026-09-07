@@ -131,6 +131,15 @@ func TestNormalizeResponsePlanAllowsToolOnlyNoOpWithoutVisibleText(t *testing.T)
 	}
 }
 
+func TestReplyTextFromToolCallsUsesConversationReplyPayload(t *testing.T) {
+	text := replyTextFromToolCalls([]ToolCallV1{
+		{Name: "conversation.reply", Arguments: []byte(`{"text":"收到～"}`)},
+	})
+	if text != "收到～" {
+		t.Fatalf("reply text = %q, want 收到～", text)
+	}
+}
+
 func TestEvaluateClaimsRejectsInvalidKindsAndConfidence(t *testing.T) {
 	context := ContextProjection{}
 	if _, _, _, err := evaluateClaims([]any{map[string]any{"kind": "made_up", "content": "x", "confidence": 0.5}}, "fact", context); err == nil {

@@ -197,7 +197,25 @@ func ToolCallPayload(manifests []CapabilityManifest) []map[string]any {
 // Video/audio/search slots are added only when their executable adapters exist;
 // advertising an unavailable capability would make the model contract lie.
 func ExternalCapabilityManifests() []CapabilityManifest {
-	return []CapabilityManifest{imageCapabilityManifest()}
+	return []CapabilityManifest{conversationReplyCapabilityManifest(), imageCapabilityManifest()}
+}
+
+func conversationReplyCapabilityManifest() CapabilityManifest {
+	return CapabilityManifest{
+		Name: "conversation.reply", Version: "v1",
+		Description: "Deliver the final user-visible text for the current conversation turn.",
+		Parameters: map[string]any{
+			"type": "object", "additionalProperties": false,
+			"required":   []any{"text"},
+			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}},
+		},
+		OutputSchema: map[string]any{
+			"type": "object", "additionalProperties": false,
+			"required":   []any{"text"},
+			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}},
+		},
+		TargetKinds: []string{"conversation_message"}, SideEffectClass: "external_async", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
+	}
 }
 
 func imageCapabilityManifest() CapabilityManifest {

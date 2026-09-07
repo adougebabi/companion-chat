@@ -15,6 +15,7 @@ func (a *App) capabilityRegistry() *CapabilityRegistry {
 		return a.Capabilities
 	}
 	return NewCapabilityRegistry(
+		&conversationReplyCapabilityExecutor{},
 		&imageCapabilityExecutor{app: a},
 		&visualIdentityCapabilityExecutor{app: a},
 		&sceneCapabilityExecutor{app: a},
@@ -143,6 +144,35 @@ func normalizeToolCallMetadata(calls []ToolCallV1, sourceFactID, identityScope s
 }
 
 type imageCapabilityExecutor struct{ app *App }
+
+type conversationReplyCapabilityExecutor struct{}
+
+func (executor *conversationReplyCapabilityExecutor) Manifest() CapabilityManifest {
+	return conversationReplyCapabilityManifest()
+}
+
+func (executor *conversationReplyCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
+	return deferredToolResult(call, "conversation_output_target_pending"), nil
+}
+
+func (executor *conversationReplyCapabilityExecutor) ExecuteDeferredTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID, identityScope string, call ToolCallV1, binding OutputBindingV1) (ToolResultV1, error) {
+	if binding.TargetKind != "conversation_message" || strings.TrimSpace(binding.TargetRef) == "" {
+		return failedToolResult(call, "reply_target_invalid", false, "conversation.reply requires a conversation message target"), errors.New("reply target invalid")
+	}
+	var args map[string]any
+	if err := json.Unmarshal(call.Arguments, &args); err != nil {
+		return failedToolResult(call, "reply_arguments_invalid", false, err.Error()), err
+	}
+	text := strings.TrimSpace(stringValue(args["text"]))
+	if text == "" || len([]rune(text)) > 32000 {
+		return failedToolResult(call, "reply_text_invalid", false, "reply text must be between 1 and 32000 characters"), errors.New("reply text invalid")
+	}
+	return ToolResultV1{
+		ToolCallID: call.ID, Name: call.Name, Status: "completed",
+		Output:    map[string]any{"text": text, "target_kind": binding.TargetKind, "target_ref": binding.TargetRef},
+		Retryable: false, ProviderRequestID: call.ProviderRequestID, CorrelationID: "reply:" + call.ID, SchemaVersion: ToolResultSchemaVersion,
+	}, nil
+}
 
 type visualIdentityCapabilityExecutor struct{ app *App }
 
