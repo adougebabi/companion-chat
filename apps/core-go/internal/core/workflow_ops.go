@@ -881,6 +881,9 @@ func (a *App) applyReflectionCandidates(ctx context.Context, tx pgx.Tx, fluctlig
 		if err != nil {
 			return err
 		}
+		if err := validateMemoryActorScopeTx(ctx, tx, record, humanActorID); err != nil {
+			return err
+		}
 		if _, err := recordMemoryTx(ctx, tx, record, fluctlightID); err != nil {
 			return err
 		}

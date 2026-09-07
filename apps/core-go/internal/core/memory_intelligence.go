@@ -109,10 +109,57 @@ func (a *App) RecordMemory(ctx context.Context, fluctlightID, actorID string, pa
 	}
 	var result map[string]any
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := validateMemoryActorScopeTx(ctx, tx, record, actorID); err != nil {
+			return err
+		}
 		result, err = recordMemoryTx(ctx, tx, record, actorID)
 		return err
 	})
 	return result, err
+}
+
+func validateMemoryActorScopeTx(ctx context.Context, tx pgx.Tx, record memoryRecordInput, ownerActorID string) error {
+	for _, raw := range record.ActorRefs {
+		actorID := strings.TrimSpace(stringValue(raw))
+		if actorID == "actor_user" {
+			actorID = ownerActorID
+		}
+		if actorID == "actor_self" {
+			actorID = record.FluctlightID
+		}
+		if actorID == "" {
+			return errors.New("memory_actor_ref_invalid")
+		}
+		var actorType, status string
+		if err := tx.QueryRow(ctx, `SELECT actor_type,status FROM public.actors WHERE id=$1`, actorID).Scan(&actorType, &status); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errors.New("memory_actor_ref_not_found")
+			}
+			return err
+		}
+		if status != "active" || (actorType != "human" && actorType != "fluctlight") {
+			return errors.New("memory_actor_ref_invalid")
+		}
+		if actorType == "human" && actorID != ownerActorID {
+			return errors.New("memory_actor_ref_forbidden")
+		}
+		if actorType == "fluctlight" {
+			var createdBy string
+			if err := tx.QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, actorID).Scan(&createdBy); err != nil || createdBy != ownerActorID {
+				return errors.New("memory_actor_ref_forbidden")
+			}
+		}
+		if record.ConversationID != nil {
+			var participant bool
+			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_participants WHERE conversation_id=$1 AND actor_id=$2 AND status='active')`, *record.ConversationID, actorID).Scan(&participant); err != nil {
+				return err
+			}
+			if !participant {
+				return errors.New("memory_actor_ref_conversation_forbidden")
+			}
+		}
+	}
+	return nil
 }
 
 func (a *App) RollbackMemory(ctx context.Context, actorID, memoryID string, targetRevision, expectedRevision int, evidenceRefs []any) (map[string]any, error) {
