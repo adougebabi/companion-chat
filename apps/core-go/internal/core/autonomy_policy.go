@@ -21,10 +21,18 @@ type AutonomyPolicyDecision struct {
 }
 
 func (a *App) EvaluateAutonomyPolicy(ctx context.Context, fluctlightID, actionType string, now time.Time) (AutonomyPolicyDecision, error) {
-	return a.evaluateAutonomyPolicy(ctx, fluctlightID, actionType, now, "")
+	return a.evaluateAutonomyPolicyWithBudget(ctx, fluctlightID, actionType, now, "", false)
 }
 
 func (a *App) evaluateAutonomyPolicy(ctx context.Context, fluctlightID, actionType string, now time.Time, excludeActionID string) (AutonomyPolicyDecision, error) {
+	return a.evaluateAutonomyPolicyWithBudget(ctx, fluctlightID, actionType, now, excludeActionID, false)
+}
+
+func (a *App) evaluateAutonomyPolicyAllowReserved(ctx context.Context, fluctlightID, actionType string, now time.Time, excludeActionID string) (AutonomyPolicyDecision, error) {
+	return a.evaluateAutonomyPolicyWithBudget(ctx, fluctlightID, actionType, now, excludeActionID, true)
+}
+
+func (a *App) evaluateAutonomyPolicyWithBudget(ctx context.Context, fluctlightID, actionType string, now time.Time, excludeActionID string, budgetReserved bool) (AutonomyPolicyDecision, error) {
 	if strings.TrimSpace(actionType) == "" || actionType == "no_op" {
 		return AutonomyPolicyDecision{Allowed: true, Snapshot: map[string]any{"mode": "active", "action_type": actionType}}, nil
 	}
@@ -80,7 +88,7 @@ func (a *App) evaluateAutonomyPolicy(ctx context.Context, fluctlightID, actionTy
 		return autonomyDenied(mode, "cooldown_active", mode, allowed, budgetText, quietRaw, cooldown, concurrency, revision), nil
 	}
 	budget, parseErr := strconv.ParseFloat(strings.TrimSpace(budgetText), 64)
-	if parseErr == nil && budget <= 0 {
+	if !budgetReserved && parseErr == nil && budget <= 0 {
 		return autonomyDenied(mode, "budget_exhausted", mode, allowed, budgetText, quietRaw, cooldown, concurrency, revision), nil
 	}
 	if concurrency < 1 {

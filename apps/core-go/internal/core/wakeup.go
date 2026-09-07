@@ -479,6 +479,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if actualActionType != "no_op" {
 		actionID = "autonomy_wake_" + stableDigest(wakeID)
 		result["action_id"] = actionID
+		policySnapshot["budget_reserved"] = true
 	}
 	reflectionIntentID := "reflection_intent:wake:" + wakeID
 	factID, err := a.persistWakeUp(ctx, wakeID, fluctlightID, cycle, projection.InnerState, assessment, actualActionType, actionID, result, reflectionIntentID, policySnapshot, conversationID, toolCalls)

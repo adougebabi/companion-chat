@@ -17,8 +17,8 @@ import (
 // silently converted into success.
 func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[string]any, error) {
 	var fluctlightID, actionType, status, workflowID, providerRequestID string
-	var payload []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,action_type,status,workflow_id,provider_request_id,payload FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&fluctlightID, &actionType, &status, &workflowID, &providerRequestID, &payload); err != nil {
+	var payload, policySnapshotRaw []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,action_type,status,workflow_id,provider_request_id,payload,policy_snapshot FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&fluctlightID, &actionType, &status, &workflowID, &providerRequestID, &payload, &policySnapshotRaw); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
@@ -34,7 +34,15 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 	if policyActionType == "capability" {
 		policyActionType = "capability"
 	}
-	policyDecision, policyErr := a.evaluateAutonomyPolicy(ctx, fluctlightID, policyActionType, time.Now().UTC(), actionID)
+	reserved := false
+	if value, ok := mapValue(decodeObject(policySnapshotRaw))["budget_reserved"].(bool); ok {
+		reserved = value
+	}
+	policyEvaluator := a.evaluateAutonomyPolicy
+	if reserved {
+		policyEvaluator = a.evaluateAutonomyPolicyAllowReserved
+	}
+	policyDecision, policyErr := policyEvaluator(ctx, fluctlightID, policyActionType, time.Now().UTC(), actionID)
 	if policyErr != nil {
 		return nil, policyErr
 	}
@@ -205,8 +213,8 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 
 func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map[string]any, error) {
 	var fluctlightID, status string
-	var payload []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,status,payload FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&fluctlightID, &status, &payload); err != nil {
+	var payload, policySnapshotRaw []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,status,payload,policy_snapshot FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&fluctlightID, &status, &payload, &policySnapshotRaw); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
@@ -218,7 +226,15 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 	if status != "frozen" {
 		return nil, fmt.Errorf("capability action is not executable: %s", status)
 	}
-	policyDecision, policyErr := a.evaluateAutonomyPolicy(ctx, fluctlightID, "capability", time.Now().UTC(), actionID)
+	reserved := false
+	if value, ok := mapValue(decodeObject(policySnapshotRaw))["budget_reserved"].(bool); ok {
+		reserved = value
+	}
+	policyEvaluator := a.evaluateAutonomyPolicy
+	if reserved {
+		policyEvaluator = a.evaluateAutonomyPolicyAllowReserved
+	}
+	policyDecision, policyErr := policyEvaluator(ctx, fluctlightID, "capability", time.Now().UTC(), actionID)
 	if policyErr != nil {
 		return nil, policyErr
 	}

@@ -132,6 +132,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		if !policyDecision.Allowed {
 			return map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": "blocked", "reason": policyDecision.Reason, "policy_snapshot": policySnapshot}, nil
 		}
+		policySnapshot["budget_reserved"] = true
 	}
 	if actionType == "proactive_message" {
 		if conversationID == "" {
