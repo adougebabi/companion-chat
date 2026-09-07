@@ -396,6 +396,10 @@ type workflowControl struct {
 }
 
 func registerWorkflowControl(ctx workflow.Context) (*workflowControl, error) {
+	// Keep an explicit replay marker for every long-lived workflow. Existing
+	// histories resolve to DefaultVersion; new histories carry version 1 so a
+	// future contract change can branch deterministically with GetVersion.
+	_ = workflow.GetVersion(ctx, "go-core-workflow-contract", workflow.DefaultVersion, 1)
 	control := &workflowControl{}
 	if err := workflow.SetQueryHandler(ctx, "status", func() (string, error) {
 		if control.paused {
