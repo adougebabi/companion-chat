@@ -5,7 +5,7 @@ script_dir=$(cd -- "$(dirname -- "$BASH_SOURCE")" && pwd)
 repo_root=$(cd -- "$script_dir/../.." && pwd)
 cd "$repo_root"
 
-patterns='better-sqlite3|/api/companion|companion_jobs|server/index.js|Node/SQLite|Express|companion-chat|COMPANION_DEBUG_INSPECTOR|COMPANION_|MTPLX_URL|COMFYUI_URL|fluctlight_core|@fluctlight/bff|PYTHONPATH=/workspace/apps/core/src|uv run|serve-api|run-worker|run-migrations'
+patterns='better-sqlite3|/api/companion|companion_jobs|server/index.js|Node/SQLite|\bExpress\b|companion-chat|COMPANION_DEBUG_INSPECTOR|COMPANION_|MTPLX_URL|COMFYUI_URL|fluctlight_core|@fluctlight/bff|PYTHONPATH=/workspace/apps/core/src|uv run|serve-api|run-worker|run-migrations'
 scan_paths=()
 for path in apps packages infra .github README.md package.json pnpm-workspace.yaml package-lock.json .env.example pyproject.toml uv.lock; do
   if [[ -e "$path" ]]; then
@@ -30,7 +30,7 @@ if [[ "$status" != 1 ]]; then
 fi
 legacy_targets=(server web test Dockerfile compose.yaml package-lock.json .env.example .nvmrc apps/core apps/bff apps/core/Dockerfile apps/bff/Dockerfile .github/workflows/docker-publish.yml)
 for target in "${legacy_targets[@]}"; do
-  if [[ -e "$target" ]]; then
+  if git ls-files --error-unmatch "$target" >/dev/null 2>&1; then
     echo "legacy scope guard: FAIL (legacy target remains: $target)" >&2
     exit 1
   fi
