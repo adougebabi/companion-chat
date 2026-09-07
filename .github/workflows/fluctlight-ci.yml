@@ -26,6 +26,76 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/core-go/go.mod
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install browser workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Test Go Core
+        working-directory: apps/core-go
+        run: go test -race ./...
+
+      - name: Test Go BFF
+        working-directory: apps/gateway-go
+        run: go test -race ./...
+
+      - name: Vet Go Core and BFF
+        run: |
+          go -C apps/core-go vet ./...
+          go -C apps/gateway-go vet ./...
+
+      - name: Build Go Core and BFF
+        run: |
+          go -C apps/core-go build ./...
+          go -C apps/gateway-go build ./...
+
+      - name: Verify Go formatting
+        run: test -z "$(find apps/core-go apps/gateway-go -name '*.go' -print0 | xargs -0 gofmt -l)"
+
+      - name: Verify Go-only runtime references
+        run: ./infra/acceptance/go-core-reference-guard.sh
+
+      - name: Verify legacy deletion scope
+        run: ./infra/acceptance/legacy-scope-guard.sh
+
+      - name: Regenerate API clients
+        run: pnpm generate
+
+      - name: Check generated artifacts are clean
+        run: git diff --exit-code
+
+      - name: Check Go Core OpenAPI route parity
+        run: ./infra/acceptance/check-core-openapi.sh
+
+      - name: Check Compose bind sources
+        run: ./infra/acceptance/check-compose-bind-sources.sh
+
+      - name: Validate Go-only Compose topology
+        run: docker compose --env-file infra/compose/fluctlight.env.example -f infra/compose/fluctlight.compose.yml config --quiet
+
+      - name: Typecheck browser workspace
+        run: pnpm typecheck
+
+      - name: Test browser workspace
+        run: pnpm test
+
+      - name: Build browser workspace
+        run: pnpm build
+
 #      - name: Set up Go
 #        uses: actions/setup-go@v5
 #        with:
