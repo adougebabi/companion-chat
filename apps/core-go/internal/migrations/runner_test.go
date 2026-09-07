@@ -114,3 +114,12 @@ func TestLLMQueueSchemaIncludesGenericBindingAndLifecycleFields(t *testing.T) {
 		}
 	}
 }
+
+func TestMigrationBridgeAcceptsOnlyReleasedHead(t *testing.T) {
+	if ReleasedHead != "0020_media_provider_job" {
+		t.Fatalf("ReleasedHead = %q", ReleasedHead)
+	}
+	if Head == ReleasedHead {
+		t.Fatal("bridge head must differ from current Go head")
+	}
+}

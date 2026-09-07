@@ -13,6 +13,7 @@ import (
 // are never rewritten; a new capability advances the head and preserves all
 // existing facts.
 const Head = "0025_llm_queue"
+const ReleasedHead = "0020_media_provider_job"
 
 // Runner applies the clean-start schema without importing the legacy runtime.
 // The statements are intentionally idempotent so an existing database keeps
@@ -57,6 +58,9 @@ func (r *Runner) Apply(ctx context.Context) error {
 		return errors.New("migration ledger contains multiple heads")
 	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
+		if strings.TrimSpace(revisions[0]) != ReleasedHead {
+			return fmt.Errorf("unsupported migration head %q; expected %s or %s", revisions[0], ReleasedHead, Head)
+		}
 		// The schema bundle is additive and preserves existing rows.  This is
 		// the one-time bridge for databases created by the released schema chain
 		// chain; future migrations must add a new Go bundle and head.
