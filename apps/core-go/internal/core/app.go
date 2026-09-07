@@ -70,6 +70,7 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 	app.Provider.generated = newProviderQueue(providerQueueDefaultConcurrency)
 	app.Provider.embedding = newProviderQueue(providerQueueDefaultEmbedding)
 	app.Capabilities = NewCapabilityRegistry(
+		&conversationReplyCapabilityExecutor{},
 		&imageCapabilityExecutor{app: app},
 		&visualIdentityCapabilityExecutor{app: app},
 		&sceneCapabilityExecutor{app: app},
