@@ -1300,7 +1300,7 @@ func validateCapabilityRequestReview(value map[string]any) bool {
 }
 func validateConversationCreate(value map[string]any) bool {
 	actors, ok := value["participantActorIds"]
-	if !ok || len(stringArray(actors)) != len(array(actors)) || len(array(actors)) < 1 || len(array(actors)) > 1 {
+	if !ok || len(stringArray(actors)) != len(array(actors)) || len(array(actors)) < 1 || len(array(actors)) > 8 {
 		return false
 	}
 	if title, exists := value["title"]; exists && !validateString(title, 0, 256) {

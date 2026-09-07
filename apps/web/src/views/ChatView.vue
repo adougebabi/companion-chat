@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import type { BrowserMessage } from "@fluctlight/browser-client";
 
 import Button from "@/components/ui/button/Button.vue";
@@ -19,6 +19,17 @@ const draft = ref("");
 type ComposerTarget = { focus?: () => void; $el?: unknown };
 const composer = ref<ComposerTarget | null>(null);
 const transcript = ref<HTMLElement | null>(null);
+const senderOptions = computed(() => {
+  const participants = store.conversationParticipants;
+  return participants
+    .filter((participant) => participant.status === "active" && participant.actorId !== store.fluctlightId)
+    .map((participant) => {
+      if (participant.role === "owner") return { id: "", label: "我（actor_user）" };
+      const fluctlight = store.fluctlights.find((item) => item.id === participant.actorId);
+      const name = typeof fluctlight?.identity.name === "string" && fluctlight.identity.name.trim() ? fluctlight.identity.name : participant.actorId;
+      return { id: participant.actorId, label: `${name}（${participant.actorId}）` };
+    });
+});
 
 function focusComposer() {
   const target = composer.value;
@@ -157,7 +168,14 @@ watch(() => store.messages.length, (messageCount, previousCount) => {
           <Button class="primary-button send-button" type="submit" :disabled="store.sending || !store.hasConversation || !store.selectedFluctlight || !draft.trim()">发送</Button>
         </div>
       </div>
-      <div class="composer-footer"><span class="composer-hint">Enter 发送 · Shift + Enter 换行</span></div>
+      <div class="composer-footer">
+        <span class="composer-hint">Enter 发送 · Shift + Enter 换行</span>
+        <label v-if="senderOptions.length > 1" class="sender-picker" for="conversation-sender">发送身份
+          <select id="conversation-sender" v-model="store.senderActorId" :disabled="store.sending">
+            <option v-for="option in senderOptions" :key="option.id || 'actor_user'" :value="option.id">{{ option.label }}</option>
+          </select>
+        </label>
+      </div>
     </form>
   </section>
 </template>

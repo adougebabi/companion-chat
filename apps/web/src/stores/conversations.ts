@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import {
   BrowserClient,
   type BrowserConversation,
+  type BrowserParticipant,
   type BrowserMessage,
   type BrowserTurnEvent,
 } from "@fluctlight/browser-client";
@@ -25,6 +26,7 @@ type RetryTurn = {
   idempotencyKey: string;
   turnId: string;
   attachmentRefs: string[];
+  senderActorId?: string;
 };
 export type FluctlightListItem = {
   id: string;
@@ -98,6 +100,7 @@ function lastSequence(messages: BrowserMessage[]): number {
 export const useConversationStore = defineStore("conversations", {
   state: () => ({
     conversation: null as BrowserConversation | null,
+    conversationParticipants: [] as BrowserParticipant[],
     fluctlightId: null as string | null,
     fluctlights: [] as FluctlightListItem[],
     messages: [] as BrowserMessage[],
@@ -115,6 +118,7 @@ export const useConversationStore = defineStore("conversations", {
     requestEpoch: 0,
     retrying: false,
     queuedText: null as string | null,
+    senderActorId: null as string | null,
   }),
   getters: {
     hasConversation: (state) => Boolean(state.conversation?.id),
@@ -241,7 +245,9 @@ export const useConversationStore = defineStore("conversations", {
       try {
         const page = await client.directConversation(fluctlightId);
         this.conversation = page.conversation;
+        this.conversationParticipants = page.participants;
         this.messages = page.messages;
+        this.senderActorId = null;
         this.nextBeforeSequence = page.nextBeforeSequence ?? null;
         this.fluctlightId = fluctlightId;
         if (this.retryTurn?.fluctlightId !== fluctlightId) {
@@ -260,8 +266,10 @@ export const useConversationStore = defineStore("conversations", {
     clearActiveConversation() {
       this.invalidateRequest();
       this.conversation = null;
+      this.conversationParticipants = [];
       this.fluctlightId = null;
       this.messages = [];
+      this.senderActorId = null;
       this.nextBeforeSequence = null;
       this.retryTurn = null;
       persistRetry(null);
@@ -292,9 +300,10 @@ export const useConversationStore = defineStore("conversations", {
             idempotencyKey: `turn-${randomId()}`,
             turnId: `turn_${randomId()}`,
             attachmentRefs: this.attachmentRef ? [this.attachmentRef] : [],
+            senderActorId: this.senderActorId ?? undefined,
           };
       if (!retry) {
-        const userMessage = createLocalMessage(conversationId, normalized, this.messages.length + 1);
+        const userMessage = createLocalMessage(conversationId, normalized, this.messages.length + 1, request.senderActorId ?? "human");
         this.messages.push(userMessage);
       }
       let assistantDraft: BrowserMessage | null = null;
@@ -304,6 +313,7 @@ export const useConversationStore = defineStore("conversations", {
           {
             text: request.text,
             fluctlightId: request.fluctlightId,
+            senderActorId: request.senderActorId,
             attachmentRefs: request.attachmentRefs,
             idempotencyKey: request.idempotencyKey,
             turnId: request.turnId,
