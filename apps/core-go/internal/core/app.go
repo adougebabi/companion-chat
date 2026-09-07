@@ -910,6 +910,46 @@ func resolveInitializationActorRef(value, humanActorID, fluctlightID string) str
 	}
 }
 
+// resolveConversationActorAlias maps provider-facing group aliases back to
+// real Actor IDs using the authoritative participant order. The model sees
+// actor_user/actor_self/actor_b...; persistence and capability lookup always
+// operate on the real IDs.
+func (a *App) resolveConversationActorAlias(ctx context.Context, conversationID, humanActorID, fluctlightID, value string) string {
+	value = strings.TrimSpace(value)
+	if value == "actor_user" {
+		return humanActorID
+	}
+	if value == "actor_self" {
+		return fluctlightID
+	}
+	if !strings.HasPrefix(value, "actor_") || len(value) != len("actor_")+1 {
+		return value
+	}
+	index := int(value[len(value)-1] - 'b')
+	if index < 0 {
+		return value
+	}
+	rows, err := a.DB.Pool().Query(ctx, `SELECT actor_id FROM public.conversation_participants WHERE conversation_id=$1 AND status='active' ORDER BY joined_at,actor_id`, conversationID)
+	if err != nil {
+		return value
+	}
+	defer rows.Close()
+	others := make([]string, 0)
+	for rows.Next() {
+		var actorID string
+		if rows.Scan(&actorID) != nil {
+			return value
+		}
+		if actorID != humanActorID && actorID != fluctlightID {
+			others = append(others, actorID)
+		}
+	}
+	if index < len(others) {
+		return others[index]
+	}
+	return value
+}
+
 func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlightID, humanActorID string, foundation map[string]any, defaultProfileID string, profileIDs map[string]struct{}) error {
 	seeds := arrayValue(foundation["initial_relationships"])
 	if len(seeds) == 0 {

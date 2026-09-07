@@ -44,6 +44,9 @@ func (executor *relationshipLookupCapabilityExecutor) Execute(ctx context.Contex
 	}
 	target = resolveInitializationActorRef(target, humanActorID, fluctlightID)
 	if conversationID != "" {
+		target = executor.app.resolveConversationActorAlias(ctx, conversationID, humanActorID, fluctlightID, target)
+	}
+	if conversationID != "" {
 		var participant bool
 		if err := executor.app.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_participants WHERE conversation_id=$1 AND actor_id=$2 AND status='active')`, conversationID, target).Scan(&participant); err != nil {
 			return failedToolResult(call, "relationship_lookup_scope_failed", true, err.Error()), err
