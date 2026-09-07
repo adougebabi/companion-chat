@@ -327,7 +327,12 @@ func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID strin
 			return err
 		}
 		if sourceActorID != "" {
-			if err := a.recordRelationshipInteractionTx(ctx, tx, fluctlightID, sourceActorID); err != nil {
+			var appraisalPayload []byte
+			meaningful := false
+			if appraisalErr := tx.QueryRow(ctx, `SELECT payload FROM public.cognition_appraisals WHERE source_fact_id=$1`, inboxID).Scan(&appraisalPayload); appraisalErr == nil {
+				meaningful = numberOrZero(mapValue(decodeObject(appraisalPayload))["relationship_significance"]) > 0
+			}
+			if err := a.recordRelationshipInteractionTx(ctx, tx, fluctlightID, sourceActorID, meaningful); err != nil {
 				return err
 			}
 		}

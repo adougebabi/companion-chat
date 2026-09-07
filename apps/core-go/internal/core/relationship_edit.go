@@ -12,7 +12,7 @@ import (
 // recordRelationshipInteractionTx records the durable interaction fact for an
 // already-established directed Relationship. It intentionally updates only
 // interaction metadata; semantic metrics/trend remain LLM/reflection-owned.
-func (a *App) recordRelationshipInteractionTx(ctx context.Context, tx pgx.Tx, fluctlightID, targetActorID string) error {
+func (a *App) recordRelationshipInteractionTx(ctx context.Context, tx pgx.Tx, fluctlightID, targetActorID string, meaningful bool) error {
 	targetActorID = strings.TrimSpace(targetActorID)
 	if targetActorID == "" {
 		return nil
@@ -28,7 +28,7 @@ func (a *App) recordRelationshipInteractionTx(ctx context.Context, tx pgx.Tx, fl
 		}
 		return err
 	}
-	_, err := tx.Exec(ctx, `UPDATE public.relationships SET interaction_frequency=interaction_frequency+1,last_interaction_at=now(),updated_at=now() WHERE id=$1`, relationshipID)
+	_, err := tx.Exec(ctx, `UPDATE public.relationships SET interaction_frequency=interaction_frequency+1,last_interaction_at=now(),last_meaningful_interaction_at=CASE WHEN $2 THEN now() ELSE last_meaningful_interaction_at END,updated_at=now() WHERE id=$1`, relationshipID, meaningful)
 	return err
 }
 
