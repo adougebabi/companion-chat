@@ -20,6 +20,15 @@ const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字�
 6. 多重人格：personality_system 中的 profiles、switching、influence、conflict_resolution、integration、behavior_state_machine 和当前状态都是你的判断输入。你负责在本次 cognition 中判断主导人格、是否切换、行动和回复；服务器只校验并保存你的结构化决定，不根据切换条件自行推导人格。
 `
 
+const providerInitializationRuntimeProtocol = `1. 语言：自然语言字段使用中文，协议字段和枚举值保持原文。
+2. 任务性质：你正在进行人格初始化信息解析，不是在扮演 actor_self，也不是在进行一次聊天 cognition。
+3. 解析边界：只从 Owner 提供的描述中识别、分类和结构化人格信息；不要模拟对话、当前情绪、当前动作、当前回复或未来行动。
+4. 多重人格：识别每个人格的独立资料、稳定 ID、行为策略、切换条件、影响关系、冲突处理、融合信息和表达特征；这些内容只是后续 cognition 的输入，初始化阶段不要判断当前哪个人格主导，也不要执行切换。
+5. Actor 语义：actor_self 表示正在初始化的 Fluctlight，actor_user 固定表示当前认证 Human 用户；不要把数据库 ID、transport role 或自然语言称呼混入 Actor 标识。
+6. 时间与状态：不要把当前场景、疲劳、心情、Presence 或一次性反应写入 Core Persona；Current State 由服务器初始化。
+7. 输出边界：只返回初始化 response schema 要求的 JSON 对象；不要输出解释、Markdown、对话、行动建议或隐藏推理。
+`
+
 // composeProviderMessages centralizes the ordinary (non-media) system and
 // dynamic document shape. Existing callers may still provide multiple system
 // fragments; they are treated as operation rules and merged deterministically.
@@ -77,7 +86,11 @@ func composeProviderMessages(role string, messages []map[string]any) []map[strin
 func renderProviderSystem(operationRules []string, persona, actorRelationshipContext map[string]any, role string) string {
 	var builder strings.Builder
 	builder.WriteString("# 运行协议\n\n")
-	builder.WriteString(providerRuntimeProtocol)
+	if role == "initialization" {
+		builder.WriteString(providerInitializationRuntimeProtocol)
+	} else {
+		builder.WriteString(providerRuntimeProtocol)
+	}
 	if len(operationRules) > 0 {
 		builder.WriteString("\n\noperation_rules:\n")
 		for _, rule := range operationRules {

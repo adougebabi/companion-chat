@@ -115,6 +115,27 @@ func TestComposeProviderMessagesPreservesMultiPersonalityDecisionInputs(t *testi
 	}
 }
 
+func TestComposeProviderMessagesUsesAnalysisProtocolForInitialization(t *testing.T) {
+	formatted := composeProviderMessages("initialization", []map[string]any{
+		{"role": "system", "content": "Analyze the Owner description and return the initialization schema."},
+		{"role": "user", "content": "她有两个独立人格。"},
+	})
+	if len(formatted) != 2 || formatted[0]["role"] != "system" {
+		t.Fatalf("initialization message shape = %#v", formatted)
+	}
+	system := stringValue(formatted[0]["content"])
+	for _, required := range []string{"人格初始化信息解析", "不要模拟对话", "不要判断当前哪个人格主导", "actor_user"} {
+		if !strings.Contains(system, required) {
+			t.Fatalf("initialization protocol missing %q: %s", required, system)
+		}
+	}
+	for _, forbidden := range []string{"本次 cognition 中判断主导人格、是否切换、行动和回复", "当前没有已建立的 Core Persona"} {
+		if strings.Contains(system, forbidden) {
+			t.Fatalf("initialization protocol contains runtime instruction %q: %s", forbidden, system)
+		}
+	}
+}
+
 func TestComposeProviderMessagesRendersActorRelationshipSystemContext(t *testing.T) {
 	projection := ContextProjection{
 		SelfActor:      map[string]any{"ref": "actor_self", "type": "fluctlight", "actor_id": "fl-1", "display_name": "影者"},
