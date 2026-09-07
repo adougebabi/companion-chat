@@ -53,6 +53,33 @@ func (a *App) ExecuteToolCalls(ctx context.Context, fluctlightID, conversationID
 			return results, fmt.Errorf("capability %q has no executor", call.Name)
 		}
 		manifest := manifests[call.Name]
+		if manifest.RequiresPreflight {
+			if preflightErr := a.preflightCapability(ctx, fluctlightID, manifest); preflightErr != nil {
+				result := failedToolResult(call, "tool_preflight_failed", true, preflightErr.Error())
+				results = append(results, result)
+				return results, preflightErr
+			}
+		}
+		if manifest.ConcurrencyClass == "exclusive" && !manifest.IsDeferredOutput() {
+			result, lockErr := a.executeExclusiveCapability(ctx, fluctlightID, conversationID, sourceFactID, call, executor)
+			if lockErr != nil {
+				results = append(results, result)
+				return results, lockErr
+			}
+			results = append(results, result)
+			if validationErr := result.Validate(call); validationErr != nil {
+				return results, validationErr
+			}
+			if validationErr := manifest.ValidateOutput(result.Output); validationErr != nil {
+				return results, validationErr
+			}
+			if call.ActionID != "" {
+				if persistErr := a.persistActionResult(ctx, fluctlightID, call.ActionID, sourceFactID, result); persistErr != nil {
+					return results, persistErr
+				}
+			}
+			continue
+		}
 		if manifest.IsDeferredOutput() {
 			// External async slots are output-producing capabilities. Their
 			// durable intent must be created only after the Composite Action has
@@ -208,6 +235,21 @@ func (a *App) settleDeferredToolCallsTx(ctx context.Context, tx pgx.Tx, fluctlig
 		if !toolCallNeedsDeferredSettlement(call, registry) {
 			continue
 		}
+		manifest := manifests[call.Name]
+		if manifest.RequiresPreflight {
+			if err := a.preflightCapabilityTx(ctx, tx, manifest); err != nil {
+				return results, err
+			}
+		}
+		if manifest.ConcurrencyClass == "exclusive" {
+			var acquired bool
+			if err := tx.QueryRow(ctx, `SELECT pg_try_advisory_xact_lock(hashtext($1))`, "capability:"+fluctlightID+":"+call.Name).Scan(&acquired); err != nil {
+				return results, err
+			}
+			if !acquired {
+				return results, errors.New("tool_capability_busy")
+			}
+		}
 		if result, ok := toolResultForCall(results, call.ID); ok && result.Status == "completed" {
 			continue
 		}
@@ -237,6 +279,61 @@ func (a *App) settleDeferredToolCallsTx(ctx context.Context, tx pgx.Tx, fluctlig
 		results = replaceToolResult(results, result)
 	}
 	return results, nil
+}
+
+func (a *App) preflightCapability(ctx context.Context, fluctlightID string, manifest CapabilityManifest) error {
+	switch manifest.Name {
+	case "media.image.generate":
+		config, err := a.runtimeValue(ctx, "media.comfyui")
+		if err != nil {
+			return err
+		}
+		_, _, err = comfyConfig(config)
+		return err
+	default:
+		if manifest.RequiresPreflight {
+			return fmt.Errorf("capability %s has no preflight implementation", manifest.Name)
+		}
+		return nil
+	}
+}
+
+func (a *App) preflightCapabilityTx(ctx context.Context, tx pgx.Tx, manifest CapabilityManifest) error {
+	if manifest.Name != "media.image.generate" {
+		if manifest.RequiresPreflight {
+			return fmt.Errorf("capability %s has no preflight implementation", manifest.Name)
+		}
+		return nil
+	}
+	var raw string
+	if err := tx.QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='media.comfyui'`).Scan(&raw); err != nil {
+		return err
+	}
+	var config map[string]any
+	if err := json.Unmarshal([]byte(raw), &config); err != nil {
+		return err
+	}
+	_, _, err := comfyConfig(config)
+	return err
+}
+
+func (a *App) executeExclusiveCapability(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1, executor CapabilityExecutor) (ToolResultV1, error) {
+	conn, err := a.DB.Pool().Acquire(ctx)
+	if err != nil {
+		return failedToolResult(call, "tool_capability_busy", true, err.Error()), err
+	}
+	defer conn.Release()
+	var acquired bool
+	if err := conn.QueryRow(ctx, `SELECT pg_try_advisory_lock(hashtext($1))`, "capability:"+fluctlightID+":"+call.Name).Scan(&acquired); err != nil {
+		return failedToolResult(call, "tool_capability_busy", true, err.Error()), err
+	}
+	if !acquired {
+		return failedToolResult(call, "tool_capability_busy", true, "capability is already running"), errors.New("tool_capability_busy")
+	}
+	defer func() {
+		_, _ = conn.Exec(context.Background(), `SELECT pg_advisory_unlock(hashtext($1))`, "capability:"+fluctlightID+":"+call.Name)
+	}()
+	return executor.Execute(ctx, fluctlightID, conversationID, sourceFactID, call)
 }
 
 func toolCallNeedsDeferredSettlement(call ToolCallV1, registry *CapabilityRegistry) bool {
