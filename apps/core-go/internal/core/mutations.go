@@ -559,39 +559,21 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 	}
 	var visible string
-	realizationPayload := map[string]any{
-		"response_plan":      compactResponsePlanForProvider(responsePlan),
-		"context_projection": compactCognitionContext(projection),
-	}
-	if strings.TrimSpace(text) != "" {
-		realizationPayload["current_message"] = map[string]any{"sender": compactActorRef(projection.CurrentSpeaker), "content": text}
-		realizationPayload["current_user_text"] = text
-	}
-	if compactResults := compactToolResultsForProvider(toolResults); len(compactResults) > 0 {
-		realizationPayload["tool_results"] = compactResults
-	}
-	visiblePrompt := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(realizationPayload)}}
-	visiblePrompt = withActorRelationshipSystemContext(visiblePrompt, projection)
-	streamChunk, streamEmitted := newVisibleReplyStream(callbacks.onChunk)
-	visible, err = a.Provider.StreamText(WithProviderScenario(ctx, "reply"), "action_realization", visiblePrompt, streamChunk)
-	if err != nil {
-		if frozenFound || frozen.ID != "" {
-			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_failed")
-		}
-		return TurnResult{}, err
-	}
-	normalizedVisible := normalizeVisibleReply(visible)
-	if !streamEmitted() && callbacks.onChunk != nil && normalizedVisible != "" {
-		if err := callbacks.onChunk(normalizedVisible); err != nil {
-			return TurnResult{}, err
-		}
-	}
-	visible = normalizedVisible
+	// The conversation cognition call is the single semantic pass. Its
+	// visible_text is selected together with the active personality, action and
+	// response plan, so it must be sent directly instead of being replaced by a
+	// second action_realization request.
+	visible = normalizeVisibleReply(firstString(responsePlan["visible_text"], stringValue(decision["visible_text"])))
 	if strings.TrimSpace(visible) == "" {
 		if frozenFound || frozen.ID != "" {
-			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "realization_empty")
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "cognition_visible_text_missing")
 		}
-		return TurnResult{}, errors.New("realization_empty")
+		return TurnResult{}, errors.New("cognition_visible_text_missing")
+	}
+	if callbacks.onChunk != nil {
+		if err := callbacks.onChunk(visible); err != nil {
+			return TurnResult{}, err
+		}
 	}
 	assistantID := randomID("message_")
 	var assistant map[string]any

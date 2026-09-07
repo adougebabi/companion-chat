@@ -62,6 +62,19 @@ func TestNormalizeResponsePlanFiltersUnsupportedAndRepeatedClaims(t *testing.T) 
 	}
 }
 
+func TestNormalizeResponsePlanPreservesCognitionVisibleTextAsFinalReply(t *testing.T) {
+	plan, err := normalizeResponsePlan(map[string]any{
+		"action_type": "reply", "response_intent": "回应用户", "visible_text": "这是认知阶段决定的最终回复。",
+		"claims": []any{},
+	}, "fact-visible", ContextProjection{ContextRevision: 1, PersonalityRuntime: map[string]any{"active_profile_id": "warm"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stringValue(plan["visible_text"]) != "这是认知阶段决定的最终回复。" {
+		t.Fatalf("response plan lost cognition visible_text: %#v", plan)
+	}
+}
+
 func TestEvaluateClaimsRejectsInvalidKindsAndConfidence(t *testing.T) {
 	context := ContextProjection{}
 	if _, _, _, err := evaluateClaims([]any{map[string]any{"kind": "made_up", "content": "x", "confidence": 0.5}}, "fact", context); err == nil {
