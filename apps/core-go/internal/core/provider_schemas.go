@@ -201,7 +201,77 @@ func scheduleResponseSchema() map[string]any {
 }
 
 func reflectionResponseSchema() map[string]any {
-	candidates := arraySchema(openObjectSchema())
+	memoryCandidate := objectSchema(map[string]any{
+		"type":                     enumStringSchema("episodic", "semantic", "relationship", "autobiographical"),
+		"content":                  stringSchema(),
+		"confidence":               unitNumberSchema(),
+		"importance":               unitNumberSchema(),
+		"emotional_significance":   unitNumberSchema(),
+		"visibility":               enumStringSchema("private", "owner", "participants", "public"),
+		"evidence_refs":            arraySchema(stringSchema()),
+		"personality_perspectives": arraySchema(openObjectSchema()),
+		"actor_refs":               arraySchema(stringSchema()),
+		"event_refs":               arraySchema(stringSchema()),
+		"conversation_id":          stringSchema(),
+		"idempotency_key":          stringSchema(),
+		"provenance":               openObjectSchema(),
+	}, []string{"type", "content", "confidence", "importance", "emotional_significance", "visibility", "evidence_refs"}, true)
+	relationshipCandidate := objectSchema(map[string]any{
+		"target_actor_id":       stringSchema(),
+		"profile_id":            stringSchema(),
+		"role":                  openObjectSchema(),
+		"metrics":               openObjectSchema(),
+		"trend":                 enumStringSchema("improving", "stable", "declining"),
+		"summary":               stringSchema(),
+		"emotional_association": openObjectSchema(),
+		"provenance":            openObjectSchema(),
+		"expected_revision":     integerSchema(),
+		"evidence_refs":         arraySchema(stringSchema()),
+		// Keep semantic completeness fail-closed in validateReflectionProposal. The
+		// provider normalizer fills JSON-Schema required fields with zero values;
+		// omitting role/metrics/expected_revision here lets the runtime distinguish
+		// an omitted snapshot from an explicit revision 0 and reject it safely.
+	}, []string{"target_actor_id", "trend", "evidence_refs"}, true)
+	goalCandidate := objectSchema(map[string]any{
+		"operation":       enumStringSchema("create", "update", "complete", "pause"),
+		"goal_id":         stringSchema(),
+		"profile_id":      stringSchema(),
+		"description":     stringSchema(),
+		"scope":           enumStringSchema("general", "relationship"),
+		"target_actor_id": stringSchema(),
+		"importance":      unitNumberSchema(),
+		"urgency":         unitNumberSchema(),
+		"progress":        unitNumberSchema(),
+		"reason":          stringSchema(),
+		"evidence_refs":   arraySchema(stringSchema()),
+	}, []string{"operation", "evidence_refs"}, true)
+	intentionCandidate := objectSchema(map[string]any{
+		"operation":       enumStringSchema("create", "update", "complete", "pause"),
+		"intention_id":    stringSchema(),
+		"profile_id":      stringSchema(),
+		"goal_id":         stringSchema(),
+		"action":          stringSchema(),
+		"target_actor_id": stringSchema(),
+		"confidence":      unitNumberSchema(),
+		"reason":          stringSchema(),
+		"evidence_refs":   arraySchema(stringSchema()),
+	}, []string{"operation", "evidence_refs"}, true)
+	slotCandidate := objectSchema(map[string]any{
+		"operation":     enumStringSchema("create", "update", "complete", "pause"),
+		"key":           stringSchema(),
+		"label":         stringSchema(),
+		"description":   stringSchema(),
+		"value_schema":  stringSchema(),
+		"value":         jsonValueSchema(),
+		"confidence":    unitNumberSchema(),
+		"evidence_refs": arraySchema(stringSchema()),
+	}, []string{"key", "value", "confidence", "evidence_refs"}, true)
+	triggerCandidate := objectSchema(map[string]any{
+		"key":           stringSchema(),
+		"value":         jsonValueSchema(),
+		"confidence":    unitNumberSchema(),
+		"evidence_refs": arraySchema(stringSchema()),
+	}, []string{"key", "value", "confidence", "evidence_refs"}, true)
 	developingSelfCandidate := objectSchema(map[string]any{
 		"category":      enumStringSchema("preference", "habit", "sensitivity", "emotion_pattern", "self_perception", "capability", "interest"),
 		"claim":         stringSchema(),
@@ -211,14 +281,14 @@ func reflectionResponseSchema() map[string]any {
 		"provenance":    openObjectSchema(),
 	}, []string{"category", "claim", "value", "confidence", "evidence_refs", "provenance"}, false)
 	return objectSchema(map[string]any{
-		"memory_candidates":          candidates,
-		"relationship_candidates":    candidates,
-		"goal_candidates":            candidates,
-		"intention_candidates":       candidates,
+		"memory_candidates":          arraySchema(memoryCandidate),
+		"relationship_candidates":    arraySchema(relationshipCandidate),
+		"goal_candidates":            arraySchema(goalCandidate),
+		"intention_candidates":       arraySchema(intentionCandidate),
 		"developing_self_candidates": arraySchema(developingSelfCandidate),
-		"drive_candidates":           candidates,
-		"preference_candidates":      candidates,
-		"trigger_candidates":         candidates,
+		"drive_candidates":           arraySchema(slotCandidate),
+		"preference_candidates":      arraySchema(slotCandidate),
+		"trigger_candidates":         arraySchema(triggerCandidate),
 	}, []string{"memory_candidates", "relationship_candidates", "goal_candidates", "intention_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"}, false)
 }
 

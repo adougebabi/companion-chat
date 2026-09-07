@@ -52,6 +52,60 @@ func TestNormalizeReflectionProposalKeepsValidAliasesAndDropsIncompleteCandidate
 	}
 }
 
+func TestNormalizeReflectionRelationshipRequiresCompleteCASnapshot(t *testing.T) {
+	proposal := normalizeReflectionProposal(map[string]any{
+		"relationship_candidates": []any{
+			map[string]any{
+				"target_actor_id": "actor_user",
+				"trend":           "improving",
+				"role":            map[string]any{"label": "恋人"},
+				"metrics":         map[string]any{"trust": 0.8},
+				"evidence_refs":   []any{"fact-1"},
+			},
+			map[string]any{
+				"counterparty_id":   "actor_user",
+				"relationship_type": "朋友",
+				"trend":             "stable",
+				"metrics":           map[string]any{},
+				"expected_revision": 2,
+				"evidence_refs":     []any{"fact-1"},
+			},
+		},
+	})
+	items := arrayValue(proposal["relationship_candidates"])
+	if len(items) != 2 {
+		t.Fatalf("normalized relationships = %#v", items)
+	}
+	if !boolValueForTest(mapValue(items[0])["__invalid_candidate"]) {
+		t.Fatal("relationship without expected_revision must be rejected")
+	}
+	second := mapValue(items[1])
+	if boolValueForTest(second["__invalid_candidate"]) || stringValue(mapValue(second["role"])["label"]) != "朋友" || intValue(second["expected_revision"]) != 2 {
+		t.Fatalf("relationship alias normalization = %#v", second)
+	}
+	if err := validateReflectionProposal(proposal, map[string]struct{}{"fact-1": {}}); err == nil {
+		t.Fatal("incomplete relationship snapshot should fail closed")
+	}
+}
+
+func TestValidateReflectionRelationshipRejectsUnsupportedTrendAndMetrics(t *testing.T) {
+	base := map[string]any{
+		"target_actor_id":   "actor_user",
+		"role":              map[string]any{"label": "朋友"},
+		"metrics":           map[string]any{"trust": 0.8},
+		"expected_revision": 0,
+		"evidence_refs":     []any{"fact-1"},
+	}
+	invalidTrend := map[string]any{"relationship_candidates": []any{map[string]any{"target_actor_id": "actor_user", "role": base["role"], "metrics": base["metrics"], "trend": "unknown", "expected_revision": 0, "evidence_refs": []any{"fact-1"}}}}
+	if err := validateReflectionProposal(invalidTrend, map[string]struct{}{"fact-1": {}}); err == nil {
+		t.Fatal("unsupported relationship trend should be rejected")
+	}
+	invalidMetrics := map[string]any{"relationship_candidates": []any{map[string]any{"target_actor_id": "actor_user", "role": base["role"], "metrics": map[string]any{"trust": 2}, "trend": "stable", "expected_revision": 0, "evidence_refs": []any{"fact-1"}}}}
+	if err := validateReflectionProposal(invalidMetrics, map[string]struct{}{"fact-1": {}}); err == nil {
+		t.Fatal("out-of-range relationship metric should be rejected")
+	}
+}
+
 func boolValueForTest(value any) bool {
 	result, _ := value.(bool)
 	return result

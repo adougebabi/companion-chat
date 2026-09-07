@@ -382,6 +382,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	assessment["tool_calls"] = toolCalls
 	assessment["output_bindings"] = composite.OutputBindings
 	proposedActionType := stringValue(assessment["action_type"])
+	if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {
+		assessment["output_preference_decision"] = evaluateOutputPreferenceAction(preference, proposedActionType, toolCalls)
+	}
 	actualActionType := proposedActionType
 	deferredOutput := hasDeferredOutputToolCalls(toolCalls, a.capabilityRegistry())
 	if proposedActionType == "moment" {
@@ -551,6 +554,9 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 		"desire": assessment["desire"], "agency": assessment["agency"], "action_type": actionType,
 		"response_intent": assessment["response_intent"], "evidence_refs": assessment["evidence_refs"],
 	}
+	if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {
+		payload["output_preference_decision"] = preference
+	}
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, wakeID); err != nil {
 			return err
@@ -595,7 +601,11 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			if err := reserveAutonomyBudgetTx(ctx, tx, fluctlightID); err != nil {
 				return err
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(map[string]any{"wake_up_id": wakeID, "source_fact_id": factID, "conversation_id": conversationID, "tool_calls": toolCalls}), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": internalDynamics["revision"]}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
+			actionPayload := map[string]any{"wake_up_id": wakeID, "source_fact_id": factID, "conversation_id": conversationID, "tool_calls": toolCalls}
+			if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {
+				actionPayload["output_preference_decision"] = preference
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(actionPayload), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": internalDynamics["revision"]}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
 				return err
 			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','capability.action',$3) ON CONFLICT DO NOTHING`, "capability_wake_intent:"+wakeID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "wake_up_id": wakeID, "source_fact_id": factID})); err != nil {
@@ -611,7 +621,11 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			if visible == "" {
 				return errors.New("wake_up_action_payload_empty")
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(map[string]any{"wake_up_id": wakeID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"], "tool_calls": toolCalls, "output_bindings": assessment["output_bindings"]}), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": internalDynamics["revision"]}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
+			actionPayload := map[string]any{"wake_up_id": wakeID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"], "tool_calls": toolCalls, "output_bindings": assessment["output_bindings"]}
+			if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {
+				actionPayload["output_preference_decision"] = preference
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(actionPayload), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": internalDynamics["revision"]}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
 				return err
 			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','autonomy.action',$3) ON CONFLICT DO NOTHING`, "autonomy_wake_intent:"+wakeID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "wake_up_id": wakeID})); err != nil {

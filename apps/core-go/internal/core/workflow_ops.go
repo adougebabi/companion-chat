@@ -620,7 +620,17 @@ func normalizeReflectionProposal(value map[string]any) map[string]any {
 				if stringValue(normalized["target_actor_id"]) == "" {
 					normalized["target_actor_id"] = normalized["counterparty_id"]
 				}
-				if stringValue(normalized["trend"]) == "" || stringValue(normalized["target_actor_id"]) == "" {
+				if len(mapValue(normalized["role"])) == 0 && strings.TrimSpace(stringValue(normalized["relationship_type"])) != "" {
+					normalized["role"] = map[string]any{"label": strings.TrimSpace(stringValue(normalized["relationship_type"]))}
+				}
+				if normalized["expected_revision"] == nil && normalized["revision"] != nil {
+					normalized["expected_revision"] = normalized["revision"]
+				}
+				// Relationship writes are compare-and-swap operations. A partial
+				// candidate must never overwrite an existing role/metrics object with
+				// the normalizer's unknown/empty defaults, so require the complete
+				// semantic snapshot that was shown to the model.
+				if stringValue(normalized["trend"]) == "" || stringValue(normalized["target_actor_id"]) == "" || len(mapValue(normalized["role"])) == 0 || normalized["metrics"] == nil || normalized["expected_revision"] == nil {
 					normalized["__invalid_candidate"] = true
 				}
 			case "goal_candidates":
@@ -770,7 +780,7 @@ func validateReflectionProposal(value map[string]any, allowedEvidence map[string
 					return errors.New("reflection_memory_perspective_invalid")
 				}
 			}
-			if key == "relationship_candidates" && (stringValue(item["target_actor_id"]) == "" || stringValue(item["trend"]) == "") {
+			if key == "relationship_candidates" && (stringValue(item["target_actor_id"]) == "" || stringValue(item["trend"]) == "" || len(mapValue(item["role"])) == 0 || item["metrics"] == nil || item["expected_revision"] == nil) {
 				return errors.New("reflection_relationship_fields_invalid")
 			}
 			if key == "relationship_candidates" {
@@ -785,6 +795,8 @@ func validateReflectionProposal(value map[string]any, allowedEvidence map[string
 					if _, ok := nonNegativeRevision(rawRevision); !ok {
 						return errors.New("reflection_relationship_revision_invalid")
 					}
+				} else {
+					return errors.New("reflection_relationship_revision_required")
 				}
 				if _, err := normalizeRelationshipRole(item["role"]); err != nil {
 					return errors.New("reflection_relationship_role_invalid")

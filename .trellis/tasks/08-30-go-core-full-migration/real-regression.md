@@ -242,3 +242,29 @@ The PostgreSQL assertion passed:
 This is the first real Compose evidence that an authorized Fluctlight can be a
 conversation sender without being confused with `actor_user` or the target
 Fluctlight.
+
+## Go Temporal active-workflow acceptance (2026-09-07)
+
+The new disposable Go-only acceptance harness
+`infra/acceptance/run-go-active-workflow.sh` was executed with the private
+Compose environment. It used the real PostgreSQL, Redis, MinIO, Temporal,
+Core, Worker, BFF and Web services, and removed the project, network and
+volumes on exit.
+
+The harness verified:
+
+- Core readiness through the Go image's `wget` probe at
+  `/health/ready`;
+- `PlatformControlWorkflow` started on the Worker-owned `lifecycle` queue;
+- the signal-driven control workflow received `stop=true` and completed;
+- Temporal history length was 11 events;
+- Deployment Versioning metadata was `deploymentName=fluctlight` and
+  `buildId=platform-v1`;
+- the workflow reached `WORKFLOW_EXECUTION_STATUS_COMPLETED` and did not
+  reach a failure, cancellation, termination or timeout state.
+
+The first two runs deliberately exposed harness defects before this accepted
+result: an empty boolean signal leaves the workflow running, and current
+Temporal CLI JSON emits enum-prefixed status names. Both were corrected in the
+harness; the final run passed with cleanup confirmed (no
+`fluctlight-go-active-*` containers remained).

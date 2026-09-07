@@ -286,6 +286,11 @@ commit_reflection(proposal, *, expected_watermark, applier) -> None
 - Reflection validates every candidate's required fields, enum, numeric bounds,
   evidence and timestamp before writing. `applier.apply(..., tx=tx)` and the
   proposal/watermark update share one Unit of Work.
+- A relationship candidate must carry the complete relationship snapshot
+  visible in the reflection context (`role`, `metrics`, `trend`, and
+  `expected_revision`) plus in-window `evidence_refs`; a partial candidate is
+  rejected instead of being normalized to `unknown` or an empty object. The
+  relationship update uses `expected_revision` as its CAS boundary.
 - Reflection prompts include the actual bounded evidence window, not only
   sequence numbers.
 

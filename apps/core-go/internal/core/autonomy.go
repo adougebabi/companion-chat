@@ -122,6 +122,9 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if actionType != "proactive_message" && actionType != "moment" && actionType != "no_op" {
 		return nil, errors.New("daily_review_decision_invalid")
 	}
+	if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
+		decision["output_preference_decision"] = evaluateOutputPreferenceAction(preference, actionType, composite.ToolCalls)
+	}
 	policySnapshot := map[string]any{}
 	if actionType != "no_op" {
 		policyDecision, policyErr := a.EvaluateAutonomyPolicy(ctx, fluctlightID, actionType, time.Now().UTC())
