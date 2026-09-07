@@ -83,6 +83,12 @@ func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string,
 	}
 	target := strings.TrimSpace(stringValue(decision["target_profile_id"]))
 	from := strings.TrimSpace(stringValue(decision["from_profile_id"]))
+	if choice == "switch" && from == "" {
+		return nil, errors.New("personality_source_profile_required")
+	}
+	if choice == "switch" && target == "" {
+		return nil, errors.New("personality_target_profile_required")
+	}
 	if from != "" && from != current {
 		return nil, errors.New("personality_source_profile_stale")
 	}

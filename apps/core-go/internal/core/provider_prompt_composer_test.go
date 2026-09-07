@@ -82,6 +82,39 @@ func TestComposeProviderMessagesPreservesSemanticPersonalityIdentifiers(t *testi
 	}
 }
 
+func TestComposeProviderMessagesPreservesMultiPersonalityDecisionInputs(t *testing.T) {
+	messages := []map[string]any{{"role": "user", "content": jsonString(map[string]any{
+		"context": map[string]any{"core_persona": map[string]any{"data": map[string]any{
+			"personality_system": map[string]any{
+				"mode": "multiple", "active_profile_id": "warm",
+				"profiles": []any{map[string]any{
+					"id": "warm", "name": "温柔", "voice": map[string]any{"speed": 0.8, "volume": 0.4},
+					"body_language":        map[string]any{"posture": "开放"},
+					"behavior_loops":       map[string]any{"loops": []any{"先安抚再行动"}},
+					"scenario_behavior":    map[string]any{"conflict": "先询问"},
+					"secrets":              map[string]any{"information_asymmetry": map[string]any{"owner": "隐藏"}},
+					"intimacy_progression": map[string]any{"stage": "升温"},
+					"output_preferences":   map[string]any{"channels": []any{"text", "image"}},
+					"fears":                []any{"失去信任"}, "desires": []any{"持续靠近"},
+					"extensions": map[string]any{"future_field": "保留"},
+				}},
+				"switching":              map[string]any{"rules": []any{map[string]any{"id": "stress", "condition": "高压", "target_profile_id": "guarded"}}},
+				"influence":              map[string]any{"edges": []any{map[string]any{"from_profile_id": "warm", "to_profile_id": "guarded", "strength": 0.7, "direction": "toward"}}},
+				"conflict_resolution":    map[string]any{"strategy": "dominant_profile", "dominant_profile_id": "warm"},
+				"integration":            map[string]any{"fusion_progress": 0.35, "stage": "分离共存"},
+				"behavior_state_machine": map[string]any{"initial_state": "calm"},
+			},
+		}}},
+	})}}
+	formatted := composeProviderMessages("cognitive_assessment", messages)
+	system := stringValue(formatted[0]["content"])
+	for _, fragment := range []string{"speed: 0.8", "volume: 0.4", "posture: 开放", "先安抚再行动", "隐藏", "升温", "持续靠近", "stress", "target_profile_id: guarded", "fusion_progress: 0.35", "dominant_profile_id: warm"} {
+		if !strings.Contains(system, fragment) {
+			t.Fatalf("multi-personality decision input %q missing: %s", fragment, system)
+		}
+	}
+}
+
 func TestComposeProviderMessagesRendersActorRelationshipSystemContext(t *testing.T) {
 	projection := ContextProjection{
 		SelfActor:      map[string]any{"ref": "actor_self", "type": "fluctlight", "actor_id": "fl-1", "display_name": "影者"},

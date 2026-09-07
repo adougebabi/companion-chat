@@ -382,28 +382,28 @@ func initializationResponseSchema() map[string]any {
 		"identity":               openObjectSchema(),
 		"personality":            openObjectSchema(),
 		"behavioral_policy":      openObjectSchema(),
-		"emotional_state":        openObjectSchema(),
-		"voice":                  openObjectSchema(),
-		"body_language":          openObjectSchema(),
-		"behavior_state_machine": openObjectSchema(),
-		"behavior_loops":         jsonValueSchema(),
-		"scenario_behavior":      jsonValueSchema(),
-		"secrets":                jsonValueSchema(),
-		"intimacy_progression":   jsonValueSchema(),
-		"output_preferences":     jsonValueSchema(),
+		"emotional_state":        personalityEmotionalStateSchema(),
+		"voice":                  personalityVoiceSchema(),
+		"body_language":          personalityBodyLanguageSchema(),
+		"behavior_state_machine": personalityStateMachineSchema(),
+		"behavior_loops":         personalityBehaviorLoopsSchema(),
+		"scenario_behavior":      personalityScenarioBehaviorSchema(),
+		"secrets":                personalitySecretsSchema(),
+		"intimacy_progression":   personalityIntimacySchema(),
+		"output_preferences":     personalityOutputPreferencesSchema(),
 		"fears":                  arraySchema(jsonValueSchema()),
 		"desires":                arraySchema(jsonValueSchema()),
 		"extensions":             openObjectSchema(),
-	}, []string{"id"}, false)
+	}, personalityProfileFieldNames(), false)
 	personalitySystem := objectSchema(map[string]any{
 		"mode":                   enumStringSchema("single", "multiple"),
 		"profiles":               arraySchema(personalityProfile),
 		"active_profile_id":      stringSchema(),
-		"switching":              openObjectSchema(),
-		"influence":              openObjectSchema(),
-		"conflict_resolution":    openObjectSchema(),
-		"integration":            openObjectSchema(),
-		"behavior_state_machine": openObjectSchema(),
+		"switching":              personalitySwitchingSchema(),
+		"influence":              personalityInfluenceSchema(),
+		"conflict_resolution":    personalityConflictResolutionSchema(),
+		"integration":            personalityIntegrationSchema(),
+		"behavior_state_machine": personalityStateMachineSchema(),
 		"extensions":             openObjectSchema(),
 	}, []string{"mode", "profiles", "active_profile_id", "switching", "influence", "conflict_resolution", "integration", "behavior_state_machine", "extensions"}, false)
 	claim := objectSchema(map[string]any{
@@ -433,6 +433,75 @@ func initializationResponseSchema() map[string]any {
 		"initial_relationships": arraySchema(relationship),
 		"extensions":            openObjectSchema(),
 	}, []string{"schema_version", "core_persona", "developing_self", "initial_relationships", "initial_goals", "initial_intentions", "extensions"}, false)
+}
+
+// personalityProfileFieldNames is the complete known personality contract.
+// Unknown future material belongs in extensions rather than becoming an
+// accidental second protocol shape.
+func personalityProfileFieldNames() []string {
+	return []string{
+		"id", "name", "identity", "personality", "behavioral_policy", "emotional_state",
+		"voice", "body_language", "behavior_state_machine", "behavior_loops", "scenario_behavior",
+		"secrets", "intimacy_progression", "output_preferences", "fears", "desires", "extensions",
+	}
+}
+
+func personalityEmotionalStateSchema() map[string]any {
+	return objectSchema(map[string]any{"baseline": jsonValueSchema(), "triggers": arraySchema(jsonValueSchema()), "expression": openObjectSchema(), "regulation": openObjectSchema(), "extensions": openObjectSchema()}, nil, false)
+}
+
+func personalityVoiceSchema() map[string]any {
+	return objectSchema(map[string]any{"tone": stringSchema(), "pitch": stringSchema(), "speed": numberSchema(), "volume": numberSchema(), "timbre": stringSchema(), "speech_patterns": arraySchema(jsonValueSchema()), "sensory_features": arraySchema(jsonValueSchema()), "extensions": openObjectSchema()}, nil, false)
+}
+
+func personalityBodyLanguageSchema() map[string]any {
+	return objectSchema(map[string]any{"posture": stringSchema(), "gestures": arraySchema(jsonValueSchema()), "movement_style": stringSchema(), "gaze": stringSchema(), "proximity": stringSchema(), "extensions": openObjectSchema()}, nil, false)
+}
+
+func personalityStateMachineSchema() map[string]any {
+	return objectSchema(map[string]any{"initial_state": stringSchema(), "states": arraySchema(jsonValueSchema()), "transitions": arraySchema(jsonValueSchema()), "extensions": openObjectSchema()}, nil, false)
+}
+
+func personalityBehaviorLoopsSchema() map[string]any {
+	return personalityStructuredValueSchema(map[string]any{"loops": arraySchema(jsonValueSchema()), "interruptions": arraySchema(jsonValueSchema()), "extensions": openObjectSchema()})
+}
+
+func personalityScenarioBehaviorSchema() map[string]any {
+	return objectSchema(map[string]any{"default": jsonValueSchema(), "mappings": openObjectSchema(), "overrides": openObjectSchema(), "extensions": openObjectSchema()}, nil, false)
+}
+
+func personalitySecretsSchema() map[string]any {
+	return personalityStructuredValueSchema(map[string]any{"items": arraySchema(jsonValueSchema()), "disclosures": arraySchema(jsonValueSchema()), "information_asymmetry": openObjectSchema(), "extensions": openObjectSchema()})
+}
+
+func personalityIntimacySchema() map[string]any {
+	return personalityStructuredValueSchema(map[string]any{"stage": stringSchema(), "milestones": arraySchema(jsonValueSchema()), "next_steps": arraySchema(jsonValueSchema()), "boundaries": arraySchema(jsonValueSchema()), "extensions": openObjectSchema()})
+}
+
+func personalityOutputPreferencesSchema() map[string]any {
+	return personalityStructuredValueSchema(map[string]any{"channels": arraySchema(stringSchema()), "image": openObjectSchema(), "voice": openObjectSchema(), "moment": openObjectSchema(), "triggers": arraySchema(jsonValueSchema()), "frequency": jsonValueSchema(), "extensions": openObjectSchema()})
+}
+
+func personalitySwitchingSchema() map[string]any {
+	rule := objectSchema(map[string]any{"id": stringSchema(), "condition": stringSchema(), "priority": numberSchema(), "target_profile_id": stringSchema(), "cooldown_seconds": numberSchema(), "evidence_refs": arraySchema(stringSchema()), "extensions": openObjectSchema()}, []string{"id", "condition", "target_profile_id"}, false)
+	return objectSchema(map[string]any{"rules": arraySchema(rule), "cooldown_seconds": numberSchema(), "default_profile_id": stringSchema(), "extensions": openObjectSchema()}, nil, false)
+}
+
+func personalityInfluenceSchema() map[string]any {
+	edge := objectSchema(map[string]any{"from_profile_id": stringSchema(), "to_profile_id": stringSchema(), "strength": unitNumberSchema(), "direction": stringSchema(), "condition": stringSchema(), "extensions": openObjectSchema()}, []string{"from_profile_id", "to_profile_id", "strength", "direction"}, false)
+	return objectSchema(map[string]any{"edges": arraySchema(edge), "extensions": openObjectSchema()}, nil, false)
+}
+
+func personalityConflictResolutionSchema() map[string]any {
+	return objectSchema(map[string]any{"strategy": stringSchema(), "priority": arraySchema(stringSchema()), "dominant_profile_id": stringSchema(), "tie_breaker": stringSchema(), "extensions": openObjectSchema()}, nil, false)
+}
+
+func personalityIntegrationSchema() map[string]any {
+	return objectSchema(map[string]any{"fusion_progress": unitNumberSchema(), "stage": stringSchema(), "shared_memory_policy": stringSchema(), "milestones": arraySchema(jsonValueSchema()), "extensions": openObjectSchema()}, nil, false)
+}
+
+func personalityStructuredValueSchema(properties map[string]any) map[string]any {
+	return map[string]any{"anyOf": []any{objectSchema(properties, nil, false), arraySchema(openObjectSchema())}}
 }
 
 func visualIdentityVisionResponseSchema() map[string]any {

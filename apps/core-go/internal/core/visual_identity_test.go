@@ -135,6 +135,21 @@ func TestInitializationSchemaDeclaresCanonicalChestCupPath(t *testing.T) {
 	}
 }
 
+func TestInitializationSchemaRequiresCompletePersonalityProfile(t *testing.T) {
+	schema := initializationResponseSchema()
+	corePersona := mapValue(mapValue(schema["properties"])["core_persona"])
+	system := mapValue(mapValue(corePersona["properties"])["personality_system"])
+	profiles := mapValue(mapValue(system["properties"])["profiles"])
+	profile := mapValue(profiles["items"])
+	required := arrayValue(profile["required"])
+	if len(required) != len(personalityProfileFieldNames()) {
+		t.Fatalf("personality profile required fields = %#v", required)
+	}
+	if profile["additionalProperties"] != false {
+		t.Fatalf("personality profile must reserve unknown fields under extensions: %#v", profile)
+	}
+}
+
 func TestVisualIdentityStageOrder(t *testing.T) {
 	if visualIdentityStageOrder(visualIdentityStageSeedReady) >= visualIdentityStageOrder(visualIdentityStageImageRequested) {
 		t.Fatal("seed_ready must sort before image_requested")

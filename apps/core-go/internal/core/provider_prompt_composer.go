@@ -17,6 +17,7 @@ const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字�
    - 不得绕过标准 Tool Call，直接声称外部能力已经完成。
    - 不得把模型生成的内容伪装成已经发生的事实。
    - 不得把 developing_self 或 current_state 升级为 Core Persona。
+6. 多重人格：personality_system 中的 profiles、switching、influence、conflict_resolution、integration、behavior_state_machine 和当前状态都是你的判断输入。你负责在本次 cognition 中判断主导人格、是否切换、行动和回复；服务器只校验并保存你的结构化决定，不根据切换条件自行推导人格。
 `
 
 // composeProviderMessages centralizes the ordinary (non-media) system and
@@ -181,7 +182,7 @@ func filterPersonalitySystem(value map[string]any) map[string]any {
 		switch normalized {
 		case "activeprofileid", "profileid", "fromprofileid", "targetprofileid", "triggerid":
 			result[key] = child
-		case "profiles", "switching":
+		case "profiles", "switching", "influence", "conflictresolution", "integration", "behaviorstatemachine":
 			if list, ok := child.([]any); ok {
 				result[key] = filterSemanticProfileList(list)
 			} else if object := mapValue(child); len(object) > 0 {
@@ -216,11 +217,11 @@ func filterSemanticProfileValue(value map[string]any) map[string]any {
 	result := make(map[string]any, len(value))
 	for key, child := range value {
 		normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
-		if normalized == "id" || normalized == "profileid" || normalized == "activeprofileid" || normalized == "fromprofileid" || normalized == "targetprofileid" || normalized == "triggerid" || normalized == "name" {
+		if normalized == "id" || normalized == "profileid" || normalized == "activeprofileid" || normalized == "fromprofileid" || normalized == "targetprofileid" || normalized == "currentprofileid" || normalized == "dominantprofileid" || normalized == "defaultprofileid" || normalized == "triggerid" || normalized == "name" {
 			result[key] = child
 			continue
 		}
-		if normalized == "rules" {
+		if normalized == "rules" || normalized == "edges" {
 			if list, ok := child.([]any); ok {
 				result[key] = filterSemanticProfileList(list)
 				continue

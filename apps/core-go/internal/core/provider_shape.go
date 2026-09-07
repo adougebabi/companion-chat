@@ -59,6 +59,12 @@ func normalizeStructuredShape(value map[string]any, schema map[string]any) (map[
 }
 
 func normalizeProviderStructured(value map[string]any, schemaName string, schema map[string]any) (map[string]any, []string) {
+	// Initialization is strict: a missing required field must remain missing so
+	// validInitialization can reject an incomplete personality contract. Other
+	// operations retain their typed-shape normalization behavior.
+	if schemaName == "initialization_response" {
+		return value, nil
+	}
 	result, fields := normalizeStructuredShape(value, schema)
 	if (schemaName == "wake_up_response" || schemaName == "daily_review_response") && stringValue(result["action_type"]) == "" {
 		copy := make(map[string]any, len(result)+1)

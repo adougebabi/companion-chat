@@ -166,6 +166,10 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	if structuredSchema == nil {
 		structuredSchema = providerSchemaForRole(role)
 	}
+	normalizationSchemaName := schemaName
+	if normalizationSchemaName == "" {
+		normalizationSchemaName = providerSchemaName(role)
+	}
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return ProviderCompletion{}, err
@@ -245,10 +249,10 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 				completion.ToolCalls[index].SourceFactID = ""
 			}
 			if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
-				completion.Structured, normalizedFields = normalizeProviderStructured(structured, schemaName, structuredSchema)
+				completion.Structured, normalizedFields = normalizeProviderStructured(structured, normalizationSchemaName, structuredSchema)
 				logStructuredNormalization(role, schemaName, normalizedFields, len(calls), len(structuredCandidates), false, message)
 			} else if jsonMode {
-				completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
+				completion.Structured, normalizedFields = emptyProviderStructured(normalizationSchemaName, structuredSchema)
 				completion.StructuredFallback = true
 				logStructuredNormalization(role, schemaName, normalizedFields, len(calls), len(structuredCandidates), true, message)
 			}
@@ -261,7 +265,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 		}
 		if len(structuredCandidates) == 0 {
 			if jsonMode {
-				completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
+				completion.Structured, normalizedFields = emptyProviderStructured(normalizationSchemaName, structuredSchema)
 				completion.StructuredFallback = true
 				logStructuredNormalization(role, schemaName, normalizedFields, 0, 0, true, message)
 				p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured, "normalization": "empty"})
@@ -272,7 +276,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 		}
 		if jsonMode || len(manifests) > 0 {
 			if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
-				completion.Structured, normalizedFields = normalizeProviderStructured(structured, schemaName, structuredSchema)
+				completion.Structured, normalizedFields = normalizeProviderStructured(structured, normalizationSchemaName, structuredSchema)
 				logStructuredNormalization(role, schemaName, normalizedFields, 0, len(structuredCandidates), false, message)
 				if len(manifests) > 0 {
 					logToolCallShapeNormalization(role, schemaName, "structured", structured["tool_calls"])
@@ -284,7 +288,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 					completion.ToolCalls = calls
 				}
 			} else if jsonMode {
-				completion.Structured, normalizedFields = emptyProviderStructured(schemaName, structuredSchema)
+				completion.Structured, normalizedFields = emptyProviderStructured(normalizationSchemaName, structuredSchema)
 				completion.StructuredFallback = true
 				logStructuredNormalization(role, schemaName, normalizedFields, 0, len(structuredCandidates), true, message)
 			}

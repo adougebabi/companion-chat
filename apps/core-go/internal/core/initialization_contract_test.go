@@ -24,6 +24,46 @@ func TestValidInitializationAcceptsOpenRelationshipLabelAndActorUser(t *testing.
 	}
 }
 
+func TestValidInitializationRequiresCompleteDeclaredPersonalityProfile(t *testing.T) {
+	persona := defaultCorePersona("", "影者")
+	system := defaultPersonalitySystem()
+	system["mode"] = "multiple"
+	system["active_profile_id"] = "warm"
+	system["profiles"] = []any{completeInitializationProfile("warm")}
+	persona["personality_system"] = system
+	value := map[string]any{
+		"core_persona": persona, "schema_version": 1,
+		"developing_self": map[string]any{"claims": []any{}}, "initial_relationships": []any{},
+		"initial_goals": []any{}, "initial_intentions": []any{}, "extensions": map[string]any{},
+	}
+	if !validInitialization(value) {
+		t.Fatal("complete personality profile should be valid")
+	}
+	profile := completeInitializationProfile("warm")
+	delete(profile, "voice")
+	system["profiles"] = []any{profile}
+	if validInitialization(value) {
+		t.Fatal("missing personality voice contract should be rejected")
+	}
+}
+
+func completeInitializationProfile(id string) map[string]any {
+	return map[string]any{
+		"id": id, "name": id, "identity": map[string]any{}, "personality": map[string]any{},
+		"behavioral_policy": map[string]any{}, "emotional_state": map[string]any{}, "voice": map[string]any{},
+		"body_language": map[string]any{}, "behavior_state_machine": map[string]any{}, "behavior_loops": map[string]any{},
+		"scenario_behavior": map[string]any{}, "secrets": map[string]any{}, "intimacy_progression": map[string]any{},
+		"output_preferences": []any{}, "fears": []any{}, "desires": []any{}, "extensions": map[string]any{},
+	}
+}
+
+func TestInitializationShapeDoesNotFillMissingPersonalityFields(t *testing.T) {
+	value, changed := normalizeProviderStructured(map[string]any{"core_persona": map[string]any{}}, "initialization_response", initializationResponseSchema())
+	if changed != nil || len(mapValue(value["core_persona"])) != 0 {
+		t.Fatalf("initialization shape was silently repaired: value=%#v changed=%#v", value, changed)
+	}
+}
+
 func TestNormalizeInitializationResponseMovesUnknownFieldsToExtensions(t *testing.T) {
 	value := normalizeInitializationResponse(map[string]any{
 		"core_persona": map[string]any{

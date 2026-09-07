@@ -257,7 +257,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 		return nil, errors.New("description_invalid")
 	}
 	messages := []map[string]any{
-		{"role": "system", "content": "You are initializing actor_self, the current Fluctlight. The fixed Actor ref actor_user always means the current authenticated Human user; use actor_user as target_actor_id when a relationship or goal refers to that user, never a database ID. Return exactly one JSON object with exactly these top-level fields: schema_version, core_persona, developing_self, initial_relationships, initial_goals, initial_intentions, extensions. Always return all arrays, using [] when empty. All known fields must stay in their canonical groups; put any not-yet-classified field only under extensions, never invent another top-level field. Known identity fields are name, age, gender, occupation, residence, timezone, birthday, background, biography, core_values, worldview, and notes. Known personality fields are openness, conscientiousness, extraversion, agreeableness, neuroticism, curiosity, independence, patience, empathy, assertiveness, humor, sociability, risk_tolerance, and update_policy. Known behavioral_policy fields are response_style, message_length, emoji_frequency, punctuation_style, humor_style, sarcasm_tendency, directness, initiative, topic_initiation, silence_tolerance, response_delay, emotional_expression, conflict_style, refusal_style, and intimacy_expression. Known life_profile fields are appearance, social_background, preferences, life_habits, recurring_commitments, relationship_seeds, and character_constraints. core_persona must contain identity, personality, behavioral_policy, life_profile, and personality_system. personality_system must contain mode, profiles, active_profile_id, switching, influence, conflict_resolution, integration, behavior_state_machine, and extensions. Each personality_system.profiles item is an independent personality and must have a stable id; when a relationship, goal, or intention belongs to one personality, include its profile_id. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_relationships may describe actor_self's relationship to actor_user; role is an open semantic object with a label and optional role.addressing.preferred/self_reference. Do not infer a relationship only because actor_user is the current user; return an unknown role when the description does not establish one. initial_goals must be an array of objects with description, importance (0..1), urgency (0..1), and optional scope (general or relationship) plus target_actor_id for relationship goals; include profile_id when the goal belongs to a personality. initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), confidence (0..1), and profile_id when the intention belongs to a personality. Do not return markdown or legacy foundation/personality candidate fields."},
+		{"role": "system", "content": "You are initializing actor_self, the current Fluctlight. The fixed Actor ref actor_user always means the current authenticated Human user; use actor_user as target_actor_id when a relationship or goal refers to that user, never a database ID. Return exactly one JSON object with exactly these top-level fields: schema_version, core_persona, developing_self, initial_relationships, initial_goals, initial_intentions, extensions. Always return all defined fields and arrays, using [] or {} only where the schema declares an empty value. All known fields must stay in their canonical groups; put any not-yet-classified field only under extensions, never invent another top-level field. Known identity fields are name, age, gender, occupation, residence, timezone, birthday, background, biography, core_values, worldview, and notes. Known personality fields are openness, conscientiousness, extraversion, agreeableness, neuroticism, curiosity, independence, patience, empathy, assertiveness, humor, sociability, risk_tolerance, and update_policy. Known behavioral_policy fields are response_style, message_length, emoji_frequency, punctuation_style, humor_style, sarcasm_tendency, directness, initiative, topic_initiation, silence_tolerance, response_delay, emotional_expression, conflict_style, refusal_style, and intimacy_expression. Known life_profile fields are appearance, social_background, preferences, life_habits, recurring_commitments, relationship_seeds, and character_constraints. core_persona must contain identity, personality, behavioral_policy, life_profile, and personality_system. personality_system must contain mode, profiles, active_profile_id, switching, influence, conflict_resolution, integration, behavior_state_machine, and extensions. Every personality_system.profiles item must independently define id, name, identity, personality, behavioral_policy, emotional_state, voice, body_language, behavior_state_machine, behavior_loops, scenario_behavior, secrets, intimacy_progression, output_preferences, fears, desires, and extensions. voice should explicitly describe known sound fields such as tone, pitch, speed, volume, timbre, and speech_patterns; body_language should describe posture, gestures, movement_style, gaze, and proximity; switching.rules should identify each condition and target profile; influence.edges should identify source, target, strength, direction, and condition; integration should describe fusion_progress and stage; conflict_resolution should describe strategy, priority, dominant_profile_id, and tie_breaker. These are semantic inputs for the later cognition decision; do not make the server infer switching from them. When a relationship, goal, or intention belongs to one personality, include its profile_id. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_relationships may describe actor_self's relationship to actor_user; role is an open semantic object with a label and optional role.addressing.preferred/self_reference. Do not infer a relationship only because actor_user is the current user; return an unknown role when the description does not establish one. initial_goals must be an array of objects with description, importance (0..1), urgency (0..1), and optional scope (general or relationship) plus target_actor_id for relationship goals; include profile_id when the goal belongs to a personality. initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), confidence (0..1), and profile_id when the intention belongs to a personality. Do not return markdown or legacy foundation/personality candidate fields."},
 		{"role": "system", "content": "Canonical visual appearance contract: if the description specifies a chest cup, put only the normalized label A/B/C/D in exactly core_persona.life_profile.appearance.chest_cup (example: {\"life_profile\":{\"appearance\":{\"chest_cup\":\"A\"}}}). Do not put cup labels in identity.body_type, identity.build, identity.chest, life_profile.physical_traits, or free-form visible_text. For male or non-applicable bodies, omit chest_cup; the renderer will mark it not_applicable. Keep other appearance fields under life_profile.appearance."},
 		{"role": "user", "content": description},
 	}
@@ -265,12 +265,30 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 	if err != nil {
 		return nil, err
 	}
+	if !hasInitializationEnvelope(result) {
+		return nil, errors.New("initialization_persona_invalid")
+	}
 	result = normalizeInitializationResponse(result)
 	normalizeVisualIdentityFoundation(mapValue(result["core_persona"]))
 	if !validInitialization(result) {
 		return nil, errors.New("initialization_persona_invalid")
 	}
 	return result, nil
+}
+
+func hasInitializationEnvelope(value map[string]any) bool {
+	if value == nil {
+		return false
+	}
+	if _, ok := numberFloat(value["schema_version"]); !ok || !isObjectValue(value["core_persona"]) || !isObjectValue(value["developing_self"]) || !isObjectValue(value["extensions"]) {
+		return false
+	}
+	for _, key := range []string{"initial_relationships", "initial_goals", "initial_intentions"} {
+		if _, ok := value[key].([]any); !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func validInitialization(value map[string]any) bool {
@@ -320,6 +338,9 @@ func validInitialization(value map[string]any) bool {
 	if mode := stringValue(system["mode"]); mode != "single" && mode != "multiple" {
 		return false
 	}
+	if !hasInitializationKeys(system, []string{"mode", "profiles", "active_profile_id", "switching", "influence", "conflict_resolution", "integration", "behavior_state_machine", "extensions"}) {
+		return false
+	}
 	if strings.TrimSpace(stringValue(system["active_profile_id"])) == "" {
 		return false
 	}
@@ -338,8 +359,10 @@ func validInitialization(value map[string]any) bool {
 			return false
 		}
 		seenProfiles[profileID] = struct{}{}
-		if _, ok := profile["extensions"]; !ok {
-			return false
+		for _, field := range personalityProfileFieldNames() {
+			if _, ok := profile[field]; !ok {
+				return false
+			}
 		}
 	}
 	if active := stringValue(system["active_profile_id"]); active != "default" {
@@ -669,6 +692,9 @@ func defaultInnerState() (map[string]any, map[string]any, map[string]any, map[st
 func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name string, mode string, foundation map[string]any, goals, intentions []any) (Fluctlight, error) {
 	if mode != "blank_slate" && mode != "llm_defined" {
 		return Fluctlight{}, errors.New("initialization_mode_invalid")
+	}
+	if mode == "llm_defined" && !hasInitializationEnvelope(foundation) {
+		return Fluctlight{}, errors.New("initialization_persona_invalid")
 	}
 	if foundation != nil {
 		foundation = normalizeInitializationResponse(foundation)

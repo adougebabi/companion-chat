@@ -490,8 +490,10 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 		t.Fatalf("output preference decision must identify its profile and trigger: %#v", outputDecision)
 	}
 	personalityDecision := mapValue(mapValue(cognitive["properties"])["personality_decision"])
-	if !containsSchemaRequired(personalityDecision, "from_profile_id") {
-		t.Fatalf("personality decision must identify its source profile: %#v", personalityDecision)
+	for _, key := range []string{"from_profile_id", "target_profile_id", "trigger_id"} {
+		if !containsSchemaRequired(personalityDecision, key) {
+			t.Fatalf("personality decision must identify %q: %#v", key, personalityDecision)
+		}
 	}
 	memoryParameters := mapValue(memoryCapabilityManifest().Parameters)
 	perspectives := mapValue(mapValue(memoryParameters["properties"])["personality_perspectives"])

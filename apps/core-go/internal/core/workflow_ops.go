@@ -498,6 +498,32 @@ func (a *App) validateReflectionRelationshipTargets(ctx context.Context, fluctli
 	activeProfile := "default"
 	_ = a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(active_profile_id,'default') FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&activeProfile)
 	seen := map[string]struct{}{}
+	validateTarget := func(target string) error {
+		target = strings.TrimSpace(target)
+		if target == "" {
+			return nil
+		}
+		var actorType, status string
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT actor_type,status FROM public.actors WHERE id=$1`, target).Scan(&actorType, &status); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errors.New("reflection_target_not_found")
+			}
+			return err
+		}
+		if status != "active" || (actorType != "human" && actorType != "fluctlight") {
+			return errors.New("reflection_target_invalid")
+		}
+		if actorType == "human" && target != ownerActorID {
+			return errors.New("reflection_target_forbidden")
+		}
+		if actorType == "fluctlight" {
+			var createdBy string
+			if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, target).Scan(&createdBy); err != nil || createdBy != ownerActorID {
+				return errors.New("reflection_target_forbidden")
+			}
+		}
+		return nil
+	}
 	for _, raw := range arrayValue(proposal["relationship_candidates"]) {
 		item := mapValue(raw)
 		target := strings.TrimSpace(stringValue(item["target_actor_id"]))
@@ -513,27 +539,39 @@ func (a *App) validateReflectionRelationshipTargets(ctx context.Context, fluctli
 			return errors.New("reflection_relationship_duplicate")
 		}
 		seen[key] = struct{}{}
-		var actorType, status string
-		if err := a.DB.Pool().QueryRow(ctx, `SELECT actor_type,status FROM public.actors WHERE id=$1`, target).Scan(&actorType, &status); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return errors.New("reflection_relationship_target_not_found")
-			}
-			return err
+		if err := validateTarget(target); err != nil {
+			return wrapReflectionTargetError("reflection_relationship_", err)
 		}
-		if status != "active" || (actorType != "human" && actorType != "fluctlight") {
-			return errors.New("reflection_relationship_target_invalid")
+	}
+	for _, raw := range arrayValue(proposal["goal_candidates"]) {
+		item := mapValue(raw)
+		profileID, _ := normalizeProfileID(stringValue(item["profile_id"]), activeProfile)
+		if _, ok := profiles[profileID]; !ok {
+			return errors.New("reflection_goal_profile_invalid")
 		}
-		if actorType == "human" && target != ownerActorID {
-			return errors.New("reflection_relationship_target_forbidden")
+		target := resolveInitializationActorRef(stringValue(item["target_actor_id"]), ownerActorID, fluctlightID)
+		if err := validateTarget(target); err != nil {
+			return wrapReflectionTargetError("reflection_goal_", err)
 		}
-		if actorType == "fluctlight" {
-			var createdBy string
-			if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, target).Scan(&createdBy); err != nil || createdBy != ownerActorID {
-				return errors.New("reflection_relationship_target_forbidden")
-			}
+	}
+	for _, raw := range arrayValue(proposal["intention_candidates"]) {
+		item := mapValue(raw)
+		profileID, _ := normalizeProfileID(stringValue(item["profile_id"]), activeProfile)
+		if _, ok := profiles[profileID]; !ok {
+			return errors.New("reflection_intention_profile_invalid")
+		}
+		target := resolveInitializationActorRef(stringValue(item["target_actor_id"]), ownerActorID, fluctlightID)
+		if err := validateTarget(target); err != nil {
+			return wrapReflectionTargetError("reflection_intention_", err)
 		}
 	}
 	return nil
+}
+
+func wrapReflectionTargetError(prefix string, err error) error {
+	code := err.Error()
+	code = strings.TrimPrefix(code, "reflection_")
+	return errors.New(prefix + code)
 }
 
 func resolveReflectionActorAliases(proposal map[string]any, actors []map[string]any, ownerActorID, fluctlightID string) {
