@@ -15,6 +15,13 @@
   requires the separate `action_realization` call. Compatibility action names
   such as `respond` normalize to the canonical `reply` action before this
   decision.
+- A chat cognition may intentionally return only an immediate native tool call
+  (for example `scene_event`) with no visible text. Core executes and settles
+  that tool as a completed `no_op`, emits the persisted user message and one
+  `completed` frame without an assistant token, and must not turn the absence
+  of a reply into `conversation_turn_failed`. Deferred output tools still
+  require a concrete assistant/Moment target and are not eligible for this
+  no-op path.
 - Canonical turn schema: `schemaVersion: 'companion.turn.v1'` with `control.affectEvents[]`, `control.driveSignals[]`, `control.memoryWrites[]`, `control.appraisals[]`, `control.memoryConsolidations[]`, `control.selfModelClaims[]`, `control.agencyIntentions[]`, and `control.capabilityCalls[]`.
 - Appraisal candidate: `companion.appraisal.v1` with model rationale, confidence, evidence references, optional `interactionFactId`, and only allowlisted reducer candidates. The application must validate an optional fact link against the current persona and source message before persistence.
 - Memory consolidation candidate: `companion.memory-consolidation.v1` with exactly one bounded `key`/`value` claim or free-form `claim`, evidence/source-fact references, revision/status, and optional `interactionFactId`. It is an auditable candidate ledger entry, not an automatic write to `companion_memories`.

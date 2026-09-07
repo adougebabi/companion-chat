@@ -375,6 +375,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	var toolResults []ToolResultV1
 	var responsePlan map[string]any
 	var composite CompositeActionV1
+	toolOnlyNoReply := false
 	frozen, frozenFound, err := a.LoadFrozenTurn(ctx, inboxID)
 	if err != nil {
 		return TurnResult{}, err
@@ -438,6 +439,16 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if decision == nil {
 			decision = map[string]any{}
 		}
+		// A thinking-enabled Provider may return only an immediate native tool
+		// call (for example scene_event) and no JSON sidecar. This is a valid
+		// internal cognition outcome: execute the tool and settle the turn as
+		// no_op instead of requiring a user-visible reply.
+		toolOnlyNoReply = completion.StructuredFallback && len(toolCalls) > 0 && !toolCallsRequireDeferredOutput(toolCalls, a.capabilityRegistry())
+		if toolOnlyNoReply {
+			decision["appraisal"] = toolOnlyCognitionAppraisal(inboxID)
+			decision["action_type"] = "no_op"
+			decision["response_intent"] = ""
+		}
 		if personalityDecision := mapValue(decision["personality_decision"]); len(personalityDecision) > 0 {
 			personalityRuntime, personalityErr := a.applyPersonalityDecision(ctx, fluctlightID, personalityDecision)
 			if personalityErr != nil {
@@ -465,6 +476,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			action, mediaConcept, err = resolveToolCallAction(toolCalls, toolManifestMap(manifests))
 			if err != nil {
 				return TurnResult{}, err
+			}
+			if toolOnlyNoReply {
+				action = "no_op"
 			}
 		} else {
 			action, mediaConcept = resolveDecisionAction(decision)
@@ -499,12 +513,34 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		return TurnResult{}, errors.New("decision_effect_invalid")
 	}
 	if action == "no_op" {
-		if len(toolCalls) > 0 {
-			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "no_op_tool_calls_invalid")
-			return TurnResult{}, errors.New("no_op_tool_calls_invalid")
+		for index := range toolCalls {
+			toolCalls[index].ActionID = frozen.ID
 		}
-		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"status": "no_op", "response_intent": stringValue(responsePlan["response_intent"])}); err != nil {
+		if len(toolCalls) > 0 && !frozenFound {
+			if err := a.PersistFrozenToolCalls(ctx, frozen.ID, toolCalls); err != nil {
+				return TurnResult{}, err
+			}
+		}
+		if len(toolCalls) > 0 && len(toolResults) == 0 {
+			toolResults, err = a.ExecuteToolCalls(ctx, fluctlightID, conversationID, inboxID, toolCalls)
+			if err != nil {
+				if len(toolResults) > 0 {
+					_ = a.PersistToolResults(ctx, frozen.ID, toolResults)
+				}
+				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "tool_call_failed")
+				return TurnResult{}, err
+			}
+			if err := a.PersistToolResults(ctx, frozen.ID, toolResults); err != nil {
+				return TurnResult{}, err
+			}
+		}
+		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"status": "no_op", "response_intent": stringValue(responsePlan["response_intent"]), "tool_results": toolResults}); err != nil {
 			return TurnResult{}, err
+		}
+		if callbacks.onActionResult != nil {
+			if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
+				return TurnResult{}, err
+			}
 		}
 		claimSettled = true
 		return TurnResult{UserMessage: user, Assistant: map[string]any{}, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
@@ -876,7 +912,20 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 		}
 		return nil
 	}
-	return writeFrame("completed", map[string]any{"message_ids": []string{stringValue(result.Assistant["id"])}})
+	messageIDs := make([]string, 0, 1)
+	if messageID := stringValue(result.Assistant["id"]); messageID != "" {
+		messageIDs = append(messageIDs, messageID)
+	}
+	return writeFrame("completed", map[string]any{"message_ids": messageIDs})
+}
+
+func toolOnlyCognitionAppraisal(sourceFactID string) map[string]any {
+	return map[string]any{
+		"relevance": 0.0, "goal_congruence": 0.0, "reward": 0.0, "loss": 0.0,
+		"social_threat": 0.0, "controllability": 1.0, "responsibility": 0.0,
+		"relationship_significance": 0.0, "expected_effect": 0.0,
+		"evidence_refs": []any{sourceFactID}, "event_kind": "tool_only_action", "direction": "none",
+	}
 }
 
 func resolveDecisionAction(decision map[string]any) (string, map[string]any) {

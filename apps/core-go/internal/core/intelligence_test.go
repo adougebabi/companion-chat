@@ -110,6 +110,27 @@ func TestNormalizeResponsePlanAcceptsLegacyClaimAliasAndSemanticEvidence(t *test
 	}
 }
 
+func TestNormalizeResponsePlanAllowsToolOnlyNoOpWithoutVisibleText(t *testing.T) {
+	plan, err := normalizeResponsePlan(map[string]any{
+		"action_type":     "no_op",
+		"response_intent": "",
+		"appraisal":       toolOnlyCognitionAppraisal("fact-tool-only"),
+		"claims":          []any{},
+	}, "fact-tool-only", ContextProjection{
+		ContextRevision:    1,
+		PersonalityRuntime: map[string]any{"active_profile_id": "default"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stringValue(plan["action_type"]) != "no_op" {
+		t.Fatalf("action_type = %#v, want no_op", plan["action_type"])
+	}
+	if _, ok := plan["visible_text"]; ok {
+		t.Fatalf("tool-only plan unexpectedly contains visible_text: %#v", plan)
+	}
+}
+
 func TestEvaluateClaimsRejectsInvalidKindsAndConfidence(t *testing.T) {
 	context := ContextProjection{}
 	if _, _, _, err := evaluateClaims([]any{map[string]any{"kind": "made_up", "content": "x", "confidence": 0.5}}, "fact", context); err == nil {
