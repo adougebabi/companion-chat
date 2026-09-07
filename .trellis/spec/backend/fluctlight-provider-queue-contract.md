@@ -51,9 +51,12 @@ idempotency, and side effects.
 
 - Generated requests and embedding requests have separate queues and limits.
   Defaults are generated=1 and embedding=1; each setting is clamped to 1–8.
-- Generated priority is `reply` (100), cognitive/native/daily-review/plan (90),
-  media prompt (80), reflection/wake-up (70), initialization (60). A priority
-  heap uses enqueue sequence as the tie breaker, so equal priorities are FIFO.
+- Generated priority is interactive `reply` and conversation
+  `cognitive_assessment` (100), native/daily-review/plan (90), media prompt
+  (80), reflection/wake-up (70), initialization (60). Interactive cognition
+  must outrank background schedule generation so a private chat cannot be
+  starved by lifecycle work. A priority heap uses enqueue sequence as the tie
+  breaker, so equal priorities are FIFO.
 - A run transitions `queued → running → completed|failed|cancelled|timeout`.
   `queued_at`, `started_at`, `completed_at`, scenario, priority, binding role,
   model, and correlation ID stay on one row. Prompt/response remain redacted.
@@ -71,8 +74,9 @@ idempotency, and side effects.
 
 ## 6. Good / Base / Bad Cases
 
-- Good: a reply (priority 100) starts ahead of an older reflection (70), while
-  two embedding jobs use their own single slot.
+- Good: a reply or interactive cognition (priority 100) starts ahead of an
+  older schedule-generation job (90) or reflection (70), while two embedding
+  jobs use their own single slot.
 - Base: a legacy `action_realization` row is copied to `generic_llm`; the
   diagnostic still says `scenario=reply` and the actual model ID.
 - Bad: an embedding row is used as the generative fallback, or a queued row is

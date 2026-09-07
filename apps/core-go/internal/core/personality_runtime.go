@@ -70,6 +70,18 @@ func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string,
 	if choice != "keep" && choice != "switch" {
 		return nil, errors.New("personality_decision_invalid")
 	}
+	// Legacy Fluctlights may predate the personality-runtime row. Their
+	// persisted Core Persona still declares the semantic initial profile, so a
+	// missing runtime row must fall back to that profile rather than the literal
+	// "default". Otherwise a valid LLM decision such as keep(base) is rejected
+	// as personality_source_profile_stale before the first chat frame.
+	var rawPersona []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&rawPersona); err != nil {
+		return nil, err
+	}
+	corePersona := decodeObject(rawPersona)
+	initialProfile := initialPersonalityProfileID(corePersona)
+	system := mapValue(corePersona["personality_system"])
 	var current, previous string
 	var revision int
 	var cooldownUntil *time.Time
@@ -79,7 +91,10 @@ func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string,
 			return nil, err
 		}
 		runtimeExists = false
-		current = "default"
+		current = initialProfile
+	}
+	if strings.TrimSpace(current) == "" {
+		current = initialProfile
 	}
 	target := strings.TrimSpace(stringValue(decision["target_profile_id"]))
 	from := strings.TrimSpace(stringValue(decision["from_profile_id"]))
@@ -90,7 +105,16 @@ func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string,
 		return nil, errors.New("personality_target_profile_required")
 	}
 	if from != "" && from != current {
-		return nil, errors.New("personality_source_profile_stale")
+		// Legacy single-profile personas may not have a personality_system or a
+		// runtime row at all. A keep decision from such a persona can still carry
+		// a provider-side label such as "base"; there is no declared profile to
+		// compare, so it must not be rejected as a stale switch source.
+		declaredProfiles := personalityProfileIDs(corePersona)
+		hasPersonalitySystem := len(mapValue(corePersona["personality_system"])) > 0
+		if choice != "keep" || hasPersonalitySystem || len(declaredProfiles) > 0 {
+			return nil, errors.New("personality_source_profile_stale")
+		}
+		from = current
 	}
 	if choice == "keep" || target == "" {
 		target = current
@@ -101,11 +125,6 @@ func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string,
 	if cooldownUntil != nil && time.Now().UTC().Before(cooldownUntil.UTC()) && target != current {
 		return nil, errors.New("personality_switch_cooldown")
 	}
-	var rawPersona []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&rawPersona); err != nil {
-		return nil, err
-	}
-	system := mapValue(decodeObject(rawPersona)["personality_system"])
 	if target != "default" {
 		found := false
 		for _, raw := range arrayValue(system["profiles"]) {
@@ -118,7 +137,8 @@ func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string,
 			return nil, errors.New("personality_target_profile_not_found")
 		}
 	}
-	if triggerID := strings.TrimSpace(stringValue(decision["trigger_id"])); triggerID != "" {
+	triggerID := strings.TrimSpace(stringValue(decision["trigger_id"]))
+	if choice == "switch" && triggerID != "" {
 		matched := false
 		for _, raw := range arrayValue(system["switching"]) {
 			if stringValue(mapValue(raw)["id"]) == triggerID {
@@ -141,7 +161,6 @@ func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string,
 	if target != current {
 		previous = current
 	}
-	triggerID := strings.TrimSpace(stringValue(decision["trigger_id"]))
 	if target != current && triggerID == "" {
 		return nil, errors.New("personality_trigger_required")
 	}

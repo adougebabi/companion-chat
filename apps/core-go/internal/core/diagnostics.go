@@ -123,9 +123,9 @@ func providerScenario(ctx context.Context, role, schemaName string) string {
 
 func providerPriority(scenario string) int {
 	switch scenario {
-	case "reply", "autonomy_reply":
+	case "reply", "autonomy_reply", "cognitive_assessment":
 		return 100
-	case "cognitive_assessment", "native_cognition", "daily_review", "schedule_generation":
+	case "native_cognition", "daily_review", "schedule_generation":
 		return 90
 	case "media_prompt":
 		return 80

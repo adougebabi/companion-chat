@@ -192,7 +192,7 @@ func TestProviderScenarioAndPriorityMapping(t *testing.T) {
 		wantPriority               int
 	}{
 		{role: "action_realization", wantScenario: "reply", wantPriority: 100},
-		{role: "cognitive_assessment", wantScenario: "cognitive_assessment", wantPriority: 90},
+		{role: "cognitive_assessment", wantScenario: "cognitive_assessment", wantPriority: 100},
 		{role: "cognitive_assessment", schema: "daily_review_response", wantScenario: "daily_review", wantPriority: 90},
 		{role: "cognitive_assessment", schema: "wake_up_response", wantScenario: "wake_up", wantPriority: 70},
 		{role: "reflection", wantScenario: "reflection", wantPriority: 70},
