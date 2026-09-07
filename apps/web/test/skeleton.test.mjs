@@ -27,6 +27,7 @@ test("web chat keeps the generated browser client at its boundary", async () => 
   assert.match(source, /directConversation/);
   assert.match(source, /persistSelection/);
   assert.match(source, /fluctlightId,/);
+  assert.match(source, /senderActorId/);
   assert.match(source, /retryTurn/);
   assert.match(source, /retrying/);
   assert.match(source, /queuedText/);
@@ -43,6 +44,8 @@ test("web keeps a failed turn retryable instead of allowing later messages to ov
   assert.match(source, /turnId: request\.turnId/);
   assert.match(viewSource, /store\.canRetry/);
   assert.match(viewSource, /store\.retry/);
+  assert.match(viewSource, /conversation-sender/);
+  assert.match(viewSource, /senderOptions/);
 });
 
 test("chat clears accepted drafts and keeps every streamed token reactive", async () => {
