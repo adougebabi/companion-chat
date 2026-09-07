@@ -237,6 +237,9 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			"attachment_refs": stringArray(body["attachmentRefs"]),
 			"idempotency_key": body["idempotencyKey"],
 		}
+		if value, exists := body["senderActorId"]; exists {
+			mapped["sender_actor_id"] = value
+		}
 		if value, exists := body["turnId"]; exists {
 			mapped["turn_id"] = value
 		}
@@ -1484,6 +1487,9 @@ func validateConversationTurn(value map[string]any) bool {
 		}
 	}
 	if turnID, ok := value["turnId"]; ok && !validateString(turnID, 1, 256) {
+		return false
+	}
+	if sender, exists := value["senderActorId"]; exists && !validateString(sender, 1, 128) {
 		return false
 	}
 	return true

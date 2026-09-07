@@ -867,7 +867,14 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 		}
 		return nil
 	}
-	result, err := a.handleTurn(ctx, actorID, conversationID, payload, turnCallbacks{
+	turnActorID := actorID
+	turnPayload := payload
+	if sender := strings.TrimSpace(stringValue(payload["sender_actor_id"])); sender != "" && sender != actorID {
+		turnActorID = sender
+		turnPayload = cloneMap(payload)
+		turnPayload["authorization_actor_id"] = actorID
+	}
+	result, err := a.handleTurn(ctx, turnActorID, conversationID, turnPayload, turnCallbacks{
 		onActionResult: func(framePayload map[string]any) error {
 			return writeFrame("action_result", framePayload)
 		},

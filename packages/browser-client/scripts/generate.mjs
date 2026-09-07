@@ -125,7 +125,7 @@ export class BrowserClient {
   async markRead(conversationId: string, body: { readSequence: number; deliveredSequence?: number }): Promise<void> {
     await this.json(\`/api/conversations/\${encodeURIComponent(conversationId)}/read\`, { method: "POST", body });
   }
-  async turn(conversationId: string, body: { text: string; fluctlightId: string; attachmentRefs?: string[]; idempotencyKey: string; turnId?: string }, signal?: AbortSignal): Promise<Response> {
+  async turn(conversationId: string, body: { text: string; fluctlightId: string; senderActorId?: string; attachmentRefs?: string[]; idempotencyKey: string; turnId?: string }, signal?: AbortSignal): Promise<Response> {
     const response = await this.fetcher(this.url(\`/api/conversations/\${encodeURIComponent(conversationId)}/turn\`), {
       method: "POST", credentials: "include", headers: { "content-type": "application/json", accept: "application/x-ndjson", ...this.csrfHeaders() }, body: JSON.stringify(body), signal,
     });
