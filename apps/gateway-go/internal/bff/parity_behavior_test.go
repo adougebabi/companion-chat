@@ -91,6 +91,11 @@ func TestBFFMapsNestedBrowserPayloadsToCore(t *testing.T) {
 		"initial_intentions":    []any{map[string]any{"name": "intent"}},
 		"initial_relationships": []any{},
 	})
+	turn := invoke(handler, http.MethodPost, "http://gateway.test/api/conversations/group-1/turn", `{"text":"代摇光发言","fluctlightId":"fl-1","senderActorId":"fl-2","idempotencyKey":"turn-1"}`, mutationHeaders, mutationCookies)
+	if turn.Code != http.StatusOK {
+		t.Fatalf("actor turn status = %d: %s", turn.Code, turn.Body.String())
+	}
+	assertCoreBody(t, seen, "/internal/conversations/group-1/turn", map[string]any{"text": "代摇光发言", "fluctlight_id": "fl-1", "sender_actor_id": "fl-2", "attachment_refs": []any{}, "idempotency_key": "turn-1"})
 
 	history := invoke(handler, http.MethodGet, "http://gateway.test/api/conversations/conversation-1/messages?beforeSequence=5&limit=10", "", nil, map[string]string{sessionCookieName: "opaque"})
 	if history.Code != http.StatusOK {
