@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
+	"time"
 )
 
 const (
@@ -257,8 +258,12 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 		return result, errors.New("provider_unavailable")
 	}
 	p.refreshQueueLimits(ctx)
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	stopWatch := p.watchProviderCancellation(runCtx, cancel)
+	defer stopWatch()
 	queue := p.queueFor(role)
-	releaseRedis, redisEnabled, redisErr := p.acquireProviderRedisSlot(ctx, role, priority, queue.currentLimit(), diagnosticID)
+	releaseRedis, redisEnabled, redisErr := p.acquireProviderRedisSlot(runCtx, role, priority, queue.currentLimit(), diagnosticID)
 	if redisErr != nil {
 		if diagnosticID != "" {
 			(&App{DB: p.DB}).updateModelRunState(ctx, diagnosticID, providerRunFailed, redisErr)
@@ -268,14 +273,14 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 	if redisEnabled {
 		defer releaseRedis()
 	}
-	err := queue.submit(ctx, priority, func(runCtx context.Context) error {
-		if guard := providerExecutionGuard(runCtx); guard != nil {
-			if guardErr := guard(runCtx); guardErr != nil {
+	err := queue.submit(runCtx, priority, func(taskCtx context.Context) error {
+		if guard := providerExecutionGuard(taskCtx); guard != nil {
+			if guardErr := guard(taskCtx); guardErr != nil {
 				return guardErr
 			}
 		}
 		var runErr error
-		result, runErr = fn(runCtx)
+		result, runErr = fn(taskCtx)
 		return runErr
 	}, func(status string, runErr error) {
 		if p.DB == nil || diagnosticID == "" {
@@ -284,6 +289,38 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 		(&App{DB: p.DB}).updateModelRunState(ctx, diagnosticID, status, runErr)
 	})
 	return result, err
+}
+
+func (p *ProviderClient) watchProviderCancellation(ctx context.Context, cancel context.CancelFunc) func() {
+	marker := providerCancellationMarker(ctx)
+	if p == nil || p.redis == nil || marker == "" {
+		return func() {}
+	}
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+		key := providerCognitionCancelPrefix + marker
+		for {
+			select {
+			case <-stop:
+				return
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if exists, err := p.redis.Exists(context.Background(), key).Result(); err == nil && exists > 0 {
+					cancel()
+					return
+				}
+			}
+		}
+	}()
+	return func() {
+		close(stop)
+		<-done
+	}
 }
 
 func providerRunStatusForError(err error) string {

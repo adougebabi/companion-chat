@@ -167,6 +167,7 @@ func (a *App) enqueueTurnFactClaimed(ctx context.Context, actorID, fluctlightID,
 
 func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any, claimOwner string) (string, error) {
 	inboxID := "inbox_" + stableDigest("turn:"+idempotency)
+	supersededIDs := make([]string, 0)
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var existing, existingText, existingStatus, existingClaimedBy string
 		var existingPayload []byte
@@ -198,6 +199,28 @@ func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
+		rows, err := tx.Query(ctx, `
+			UPDATE public.cognition_inbox
+			SET status='failed',error_code='superseded_by_newer_turn',processed_at=now(),claimed_by=NULL,claimed_at=NULL
+			WHERE fluctlight_id=$1 AND event_type='conversation.turn'
+			  AND payload->>'conversation_id'=$2 AND status IN ('pending','claimed')
+			RETURNING id`, fluctlightID, conversationID)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var oldID string
+			if err := rows.Scan(&oldID); err != nil {
+				rows.Close()
+				return err
+			}
+			supersededIDs = append(supersededIDs, oldID)
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return err
+		}
+		rows.Close()
 		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox_heads(fluctlight_id,next_sequence,last_processed_sequence) VALUES($1,1,0) ON CONFLICT DO NOTHING`, fluctlightID); err != nil {
 			return err
 		}
@@ -220,7 +243,7 @@ func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 			claimedBy = claimOwner
 			claimedAt = time.Now().UTC()
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,claimed_by,claimed_at) VALUES($1,$2,$3,'conversation.turn',$4,$5,$6,$7,now(),$8,$9,$10)`, inboxID, fluctlightID, sequence, jsonBytes(payload), turnID, "turn:"+turnID, idempotency, status, claimedBy, claimedAt)
+		_, err = tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,claimed_by,claimed_at) VALUES($1,$2,$3,'conversation.turn',$4,$5,$6,$7,now(),$8,$9,$10)`, inboxID, fluctlightID, sequence, jsonBytes(payload), turnID, "turn:"+turnID, idempotency, status, claimedBy, claimedAt)
 		if err != nil {
 			return err
 		}
@@ -229,7 +252,30 @@ func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 		}
 		return appendOutboxTx(ctx, tx, "cognition.fact.created", "fluctlight", fluctlightID, fluctlightID, turnID, "turn:"+turnID, "cognition:"+idempotency, payload)
 	})
+	if err == nil {
+		for _, oldID := range supersededIDs {
+			a.cancelCognitionFact(ctx, oldID)
+		}
+	}
 	return inboxID, err
+}
+
+func (a *App) cancelCognitionFact(ctx context.Context, inboxID string) {
+	if a == nil || a.Redis == nil || strings.TrimSpace(inboxID) == "" {
+		return
+	}
+	_ = a.Redis.Set(ctx, providerCognitionCancelPrefix+inboxID, "1", 10*time.Minute).Err()
+}
+
+func (a *App) cognitionFactSuperseded(ctx context.Context, inboxID string) bool {
+	if a == nil || a.DB == nil || strings.TrimSpace(inboxID) == "" {
+		return false
+	}
+	var status, errorCode string
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&status, &errorCode); err != nil {
+		return false
+	}
+	return status == "failed" && errorCode == "superseded_by_newer_turn"
 }
 
 func (a *App) LoadFrozenTurn(ctx context.Context, inboxID string) (frozenTurn, bool, error) {
@@ -311,8 +357,8 @@ func (a *App) PersistFrozenToolCalls(ctx context.Context, frozenID string, calls
 func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID string, realization map[string]any) error {
 	reflectionDelay := a.reflectionDelay(ctx)
 	nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
+	fluctlightID := ""
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var fluctlightID string
 		if err := tx.QueryRow(ctx, `SELECT fluctlight_id FROM public.cognition_frozen_actions WHERE id=$1 FOR UPDATE`, frozenID).Scan(&fluctlightID); err != nil {
 			return err
 		}
@@ -353,6 +399,7 @@ func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID strin
 	})
 	if err == nil {
 		a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+		a.scheduleWakeUpTrigger(ctx, fluctlightID, int(reflectionDelay/time.Second))
 	}
 	return err
 }

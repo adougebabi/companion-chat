@@ -28,6 +28,8 @@ type turnCallbacks struct {
 	onChunk        func(string) error
 }
 
+var errCognitionTurnSuperseded = errors.New("cognition_turn_superseded")
+
 func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
 	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
 		return nil, err
@@ -326,6 +328,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if err != nil {
 		return TurnResult{}, err
 	}
+	ctx = WithProviderCancellationKey(ctx, inboxID)
 	if claimStream {
 		defer func() {
 			if claimSettled || claimOwner == "" {
@@ -428,13 +431,20 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		manifests := a.capabilityRegistry().Manifests()
 		completion, completionErr := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "cognitive_assessment"), "cognitive_assessment", messages, manifests, "conversation_turn_response", cognitiveTurnResponseSchema(), true)
 		if completionErr != nil {
+			if a.cognitionFactSuperseded(ctx, inboxID) {
+				return TurnResult{}, errCognitionTurnSuperseded
+			}
 			return TurnResult{}, completionErr
+		}
+		if a.cognitionFactSuperseded(ctx, inboxID) {
+			return TurnResult{}, errCognitionTurnSuperseded
 		}
 		decision = completion.Structured
 		toolCalls = completion.ToolCalls
 		for index := range toolCalls {
 			toolCalls[index].SourceFactID = inboxID
 		}
+		toolCalls = normalizeConversationReplyCalls(toolCalls)
 		toolCalls = bindMediaContextToToolCalls(toolCalls, projection)
 		if decision == nil {
 			decision = map[string]any{}
@@ -507,6 +517,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				}
 			}
 		}
+		if a.cognitionFactSuperseded(ctx, inboxID) {
+			return TurnResult{}, errCognitionTurnSuperseded
+		}
 		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, conversationID, turnID, action, decision, mediaConcept)
 		if err != nil {
 			return TurnResult{}, err
@@ -536,6 +549,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			if err := a.PersistToolResults(ctx, frozen.ID, toolResults); err != nil {
 				return TurnResult{}, err
 			}
+		}
+		if a.cognitionFactSuperseded(ctx, inboxID) {
+			return TurnResult{}, errCognitionTurnSuperseded
 		}
 		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"status": "no_op", "response_intent": stringValue(responsePlan["response_intent"]), "tool_results": toolResults}); err != nil {
 			return TurnResult{}, err
@@ -686,6 +702,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent, "tool_results": toolResults}); err != nil {
 			return TurnResult{}, err
 		}
+	}
+	if a.cognitionFactSuperseded(ctx, inboxID) {
+		return TurnResult{}, errCognitionTurnSuperseded
 	}
 	claimSettled = true
 	return TurnResult{UserMessage: user, Assistant: assistant, MediaIntentID: mediaIntent, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
@@ -907,6 +926,9 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 		},
 	}, true)
 	if err != nil {
+		if errors.Is(err, errCognitionTurnSuperseded) {
+			return writeFrame("completed", map[string]any{"message_ids": []string{}})
+		}
 		if !started || ctx.Err() != nil {
 			return err
 		}
@@ -941,6 +963,33 @@ func hasConversationReplyToolCall(calls []ToolCallV1) bool {
 		}
 	}
 	return false
+}
+
+// normalizeConversationReplyCalls accepts the transitional model behavior
+// where the Provider requests the just-installed conversation.reply slot via
+// capability.request. The text inside desired_contract is already the model's
+// final reply; route it through the canonical reply tool instead of persisting
+// a capability proposal or dropping the message.
+func normalizeConversationReplyCalls(calls []ToolCallV1) []ToolCallV1 {
+	result := make([]ToolCallV1, len(calls))
+	copy(result, calls)
+	for index := range result {
+		if result[index].Name != "capability.request" {
+			continue
+		}
+		var args map[string]any
+		if json.Unmarshal(result[index].Arguments, &args) != nil || stringValue(args["capability_key"]) != "conversation.reply" {
+			continue
+		}
+		contract := mapValue(args["desired_contract"])
+		text := strings.TrimSpace(stringValue(contract["text"]))
+		if text == "" {
+			continue
+		}
+		result[index].Name = "conversation.reply"
+		result[index].Arguments = jsonBytes(map[string]any{"text": text})
+	}
+	return result
 }
 
 func replyTextFromToolCalls(calls []ToolCallV1) string {

@@ -22,6 +22,11 @@
   of a reply into `conversation_turn_failed`. Deferred output tools still
   require a concrete assistant/Moment target and are not eligible for this
   no-op path.
+- When a newer turn is accepted for the same conversation, older pending or
+  claimed conversation cognition facts are marked superseded. Their Provider
+  queue/request receives a bounded cancellation marker; the stale stream settles
+  as an empty `completed` turn and cannot persist a later assistant result over
+  the newer message.
 - Canonical turn schema: `schemaVersion: 'companion.turn.v1'` with `control.affectEvents[]`, `control.driveSignals[]`, `control.memoryWrites[]`, `control.appraisals[]`, `control.memoryConsolidations[]`, `control.selfModelClaims[]`, `control.agencyIntentions[]`, and `control.capabilityCalls[]`.
 - Appraisal candidate: `companion.appraisal.v1` with model rationale, confidence, evidence references, optional `interactionFactId`, and only allowlisted reducer candidates. The application must validate an optional fact link against the current persona and source message before persistence.
 - Memory consolidation candidate: `companion.memory-consolidation.v1` with exactly one bounded `key`/`value` claim or free-form `claim`, evidence/source-fact references, revision/status, and optional `interactionFactId`. It is an auditable candidate ledger entry, not an automatic write to `companion_memories`.

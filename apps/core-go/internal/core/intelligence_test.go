@@ -140,6 +140,15 @@ func TestReplyTextFromToolCallsUsesConversationReplyPayload(t *testing.T) {
 	}
 }
 
+func TestNormalizeConversationReplyCallsAcceptsCapabilityRequestTransition(t *testing.T) {
+	calls := normalizeConversationReplyCalls([]ToolCallV1{{
+		ID: "call-1", Name: "capability.request", Arguments: []byte(`{"capability_key":"conversation.reply","desired_contract":{"text":"在呢。"}}`),
+	}})
+	if len(calls) != 1 || calls[0].Name != "conversation.reply" || replyTextFromToolCalls(calls) != "在呢。" {
+		t.Fatalf("normalized reply calls = %#v", calls)
+	}
+}
+
 func TestEvaluateClaimsRejectsInvalidKindsAndConfidence(t *testing.T) {
 	context := ContextProjection{}
 	if _, _, _, err := evaluateClaims([]any{map[string]any{"kind": "made_up", "content": "x", "confidence": 0.5}}, "fact", context); err == nil {

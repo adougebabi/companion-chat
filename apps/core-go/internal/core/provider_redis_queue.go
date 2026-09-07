@@ -12,13 +12,28 @@ import (
 )
 
 const (
-	providerRedisQueuePrefix = "fluctlight:llm"
-	providerRedisLease       = 2 * time.Minute
-	providerRedisPendingTTL  = providerRedisLease
-	providerRedisJobTTL      = 24 * time.Hour
-	providerRedisPoll        = 40 * time.Millisecond
-	providerRedisScoreUnit   = int64(1_000_000_000_000)
+	providerRedisQueuePrefix      = "fluctlight:llm"
+	providerCognitionCancelPrefix = "fluctlight:cognition:cancel:"
+	providerRedisLease            = 2 * time.Minute
+	providerRedisPendingTTL       = providerRedisLease
+	providerRedisJobTTL           = 24 * time.Hour
+	providerRedisPoll             = 40 * time.Millisecond
+	providerRedisScoreUnit        = int64(1_000_000_000_000)
 )
+
+type providerCancellationKey struct{}
+
+func WithProviderCancellationKey(ctx context.Context, sourceFactID string) context.Context {
+	return context.WithValue(ctx, providerCancellationKey{}, strings.TrimSpace(sourceFactID))
+}
+
+func providerCancellationMarker(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	value, _ := ctx.Value(providerCancellationKey{}).(string)
+	return strings.TrimSpace(value)
+}
 
 var providerRedisClaimScript = redis.NewScript(`
 local now = tonumber(ARGV[1])

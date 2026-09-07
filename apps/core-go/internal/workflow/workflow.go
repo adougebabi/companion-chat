@@ -156,10 +156,9 @@ func VisualIdentityWorkflow(ctx workflow.Context, input Input) (map[string]any, 
 	return nil, workflow.NewContinueAsNewError(ctx, VisualIdentityWorkflow, input)
 }
 
-// WakeUpWorkflow is the internal-life timer. Each activity invocation owns
-// exactly one cycle; ContinueAsNew keeps the durable timer alive without
-// allowing history to grow indefinitely. The cadence is returned by Core so a
-// settings change takes effect on the next cycle after a Worker restart.
+// WakeUpWorkflow executes one internal-life cycle. The next cycle is released
+// by the Redis debounce hint after the configured quiet period; PostgreSQL and
+// the stable workflow intent remain the durable authorities.
 func WakeUpWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 2}})
 	control, err := registerWorkflowControl(ctx)
@@ -171,30 +170,14 @@ func WakeUpWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	}
 	var result map[string]any
 	if err := workflow.ExecuteActivity(ctx, ProcessWakeUpActivity, input).Get(ctx, &result); err != nil {
-		// A provider/queue outage must not terminate the long-lived wake-up
-		// timer. Advance the cycle after the bounded activity retry; the durable
-		// cognition_wakeups unique key keeps a partially persisted prior cycle
-		// idempotent while the next cycle gets a fresh chance to run.
-		next := input
-		next.Cycle++
-		if sleepErr := workflow.Sleep(ctx, wakeUpInterval(nil)); sleepErr != nil {
-			return nil, err
-		}
-		return nil, workflow.NewContinueAsNewError(ctx, WakeUpWorkflow, next)
+		// A failed cycle is reconciled as a retryable intent. Do not schedule a
+		// next quiet-period key when no wake-up fact was committed.
+		return nil, err
 	}
 	if stringValue(result["status"]) == "inactive" {
 		return result, nil
 	}
-	interval := wakeUpInterval(result)
-	if err := control.waitUntilResumed(ctx); err != nil {
-		return nil, err
-	}
-	if err := workflow.Sleep(ctx, interval); err != nil {
-		return nil, err
-	}
-	next := input
-	next.Cycle++
-	return nil, workflow.NewContinueAsNewError(ctx, WakeUpWorkflow, next)
+	return result, nil
 }
 
 func wakeUpInterval(result map[string]any) time.Duration {
@@ -895,7 +878,7 @@ func wakeUpIntentShouldRetry(fluctlightStatus, workflowStatus string) bool {
 	if fluctlightStatus != "active" && fluctlightStatus != "paused" {
 		return false
 	}
-	return workflowStatus == "failed" || workflowStatus == "completed"
+	return workflowStatus == "failed"
 }
 
 // workflowIDReusePolicy gives wake-up recovery the reuse semantics required by

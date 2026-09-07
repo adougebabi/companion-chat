@@ -42,8 +42,9 @@ func (a *App) scheduleWakeUpTrigger(ctx context.Context, fluctlightID string, in
 	_ = a.Redis.Set(ctx, wakeUpTriggerPrefix+fluctlightID, fluctlightID, time.Duration(intervalSeconds)*time.Second).Err()
 }
 
-// ScheduleWakeUpTriggers repairs Redis hints for durable wake-up intents. It
-// never creates a workflow and is safe to run at every Worker start.
+// ScheduleWakeUpTriggers repairs Redis quiet-period hints for completed
+// wake-up intents. It never creates a workflow and is safe to run at every
+// Worker start.
 func (a *App) ScheduleWakeUpTriggers(ctx context.Context) (int64, error) {
 	if a == nil || a.Redis == nil {
 		return 0, nil
@@ -52,7 +53,7 @@ func (a *App) ScheduleWakeUpTriggers(ctx context.Context) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT DISTINCT payload->>'fluctlight_id' FROM public.platform_workflow_intents WHERE intent_type='wake_up.current' AND status IN ('pending','retry','started') AND payload->>'fluctlight_id' IS NOT NULL`)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT DISTINCT payload->>'fluctlight_id' FROM public.platform_workflow_intents WHERE intent_type='wake_up.current' AND status='completed' AND payload->>'fluctlight_id' IS NOT NULL`)
 	if err != nil {
 		return 0, err
 	}
@@ -70,9 +71,9 @@ func (a *App) ScheduleWakeUpTriggers(ctx context.Context) (int64, error) {
 }
 
 // HandleRedisExpiredTrigger turns a best-effort keyevent into a durable
-// dispatcher hint. The PG status predicate and stable workflow IDs make
-// duplicate/lost notifications harmless; the regular dispatcher scan remains
-// the recovery path when Pub/Sub is disconnected.
+// dispatcher hint. Expiring a completed wake-up advances its cycle and makes
+// the one-shot intent retryable; duplicate/lost notifications remain harmless
+// because PostgreSQL and stable workflow IDs are authoritative.
 func (a *App) HandleRedisExpiredTrigger(ctx context.Context, key string) error {
 	if strings.HasPrefix(key, reflectionTriggerPrefix) {
 		intentID := strings.TrimPrefix(key, reflectionTriggerPrefix)
@@ -87,7 +88,14 @@ func (a *App) HandleRedisExpiredTrigger(ctx context.Context, key string) error {
 		if fluctlightID == "" {
 			return nil
 		}
-		_, err := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET next_attempt_at=now() WHERE intent_type='wake_up.current' AND payload->>'fluctlight_id'=$1 AND status IN ('pending','retry')`, fluctlightID)
+		_, err := a.DB.Pool().Exec(ctx, `
+			UPDATE public.platform_workflow_intents
+			SET status=CASE WHEN status='completed' THEN 'retry' ELSE status END,
+				next_attempt_at=now(),
+				started_at=CASE WHEN status='completed' THEN NULL ELSE started_at END,
+				completed_at=CASE WHEN status='completed' THEN NULL ELSE completed_at END,
+				payload=CASE WHEN status='completed' THEN jsonb_set(payload,'{cycle}',to_jsonb(COALESCE((payload->>'cycle')::integer,0)+1),true) ELSE payload END
+			WHERE intent_type='wake_up.current' AND payload->>'fluctlight_id'=$1 AND status IN ('completed','pending','retry')`, fluctlightID)
 		return err
 	}
 	return nil

@@ -414,7 +414,7 @@ rows = await session.execute(priority_order(statement).limit(limit))
 intent_type: wake_up.current
 task_queue: lifecycle
 payload: {fluctlight_id: string, cycle: integer}
-workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
+workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
 ```
 
 ### 3. Contracts
@@ -428,19 +428,21 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
 - Worker startup idempotently backfills `wake_up.current` for existing
   `active`/`paused` Fluctlights only when the current local-day Schedule is
   already accepted. Existing `pending`, `retry`, `started`, and
-  `cancel_requested` intents are preserved; failed/completed intents for
-  still-live Fluctlights become retryable without creating a second workflow
-  ID.
-- `WakeUpWorkflow` sleeps for the interval returned by Core and increments the
-  cycle only through `ContinueAsNew`; the workflow ID stays stable while each
-  cycle's fact/action/reflection IDs are derived from `(fluctlight_id, cycle)`.
+  `cancel_requested` intents are preserved; failed intents for still-live
+  Fluctlights become retryable without creating a second workflow ID. Completed
+  intents wait for the Redis quiet-period hint.
+- `WakeUpWorkflow` executes one cycle and returns. Core sets a Redis
+  `fluctlight:wakeup:due:<fluctlight_id>` quiet-period hint after a completed
+  user turn and after a successful wake-up; expiry advances the durable intent
+  cycle and dispatches the stable workflow ID again. PostgreSQL/Temporal remain
+  authoritative and Redis is only a low-latency nudge.
 - The Worker registers the workflow and activity only on `lifecycle`, and the
   dispatcher treats `wake_up.current` as a lifecycle intent with the same
   retry/reconcile semantics as other Go workflows.
-- A terminal failed/completed wake-up workflow for an `active`/`paused`
-  Fluctlight is requeued after reconciliation with a bounded delay. A
-  deliberate cancellation or a `retired` Fluctlight is not automatically
-  restarted.
+- A terminal failed wake-up workflow for an `active`/`paused` Fluctlight is
+  requeued after reconciliation with a bounded delay. A completed workflow
+  waits for its Redis quiet-period hint. A deliberate cancellation or a
+  `retired` Fluctlight is not automatically restarted.
 - Reconciliation does not inspect a `retry` intent before its
   `next_attempt_at`; otherwise each polling pass can push the bounded retry
   window forward forever. Wake-up recovery uses Temporal's
@@ -465,7 +467,7 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> ContinueAsNew
 | Worker restart after a start but before status update | Reuse the stable workflow ID and let reconciliation repair the ledger |
 | Existing live Fluctlight has no wake-up intent | Worker startup inserts the stable `wake_up.current` intent idempotently |
 | Wake-up activity/provider failure | Reconcile requeues the live Fluctlight's intent after a bounded delay; preserve the failure in diagnostics |
-| Assessment returns a chat-only action without a capability call | Preserve the internal stages and persist the external choice as a bounded `no_op`; do not terminate the long-lived timer |
+| Assessment returns a chat-only action without a capability call | Preserve the internal stages and persist the external choice as a bounded `no_op`; the next cycle waits for the quiet-period hint |
 | Wake-up is cancelled or Fluctlight is retired | Do not auto-restart the workflow |
 | History grows across cycles | Continue-As-New preserves the Fluctlight/cycle identity and bounds history |
 
@@ -513,6 +515,5 @@ go func() {
 
 ```go
 workflow.ExecuteActivity(ctx, ProcessWakeUpActivity, input).Get(ctx, &result)
-workflow.Sleep(ctx, wakeUpInterval(result))
-return nil, workflow.NewContinueAsNewError(ctx, WakeUpWorkflow, nextInput)
+return result, nil // Core schedules the Redis quiet-period hint after commit
 ```

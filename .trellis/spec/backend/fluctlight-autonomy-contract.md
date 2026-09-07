@@ -127,15 +127,15 @@ autonomy_policy.freeze_and_schedule(decision, current_policy, tx=tx)
 
 ### 1. Scope / Trigger
 
-- Trigger: an active Fluctlight reaches the next durable wake-up boundary, or a
-  Worker resumes its long-lived `wake_up.current` workflow after restart.
+- Trigger: an active Fluctlight's quiet-period Redis hint expires, or a Worker
+  repairs a completed `wake_up.current` intent after restart.
 - Purpose: give the Fluctlight a bounded internal cycle even when no human or
   life-world event arrived, while keeping external autonomy governed.
 
 ### 2. Signatures
 
 ```text
-WakeUpWorkflow(ctx, {fluctlight_id, cycle}) -> ContinueAsNew(cycle + 1)
+WakeUpWorkflow(ctx, {fluctlight_id, cycle}) -> WakeUpResult
 ProcessWakeUp(ctx, fluctlight_id, cycle) -> WakeUpResult
 ```
 
@@ -168,9 +168,12 @@ the `reflection.run` intent are committed.
   `reflection.run` intent. Reflection consumes it through the normal evidence
   window and watermark/CAS boundary; a wake-up does not write self-model or
   personality values directly.
-- `WakeUpWorkflow` uses Temporal `Sleep` plus `ContinueAsNew`, never an
-  in-memory ticker or a second delayed-job system. Inactive Fluctlights end the
-  workflow; disabled wake-ups remain durable and sleep at the clamped cadence.
+- `WakeUpWorkflow` executes one cycle and completes. Core resets a Redis
+  `fluctlight:wakeup:due:<fluctlight_id>` quiet-period hint after a completed
+  user turn and after a successful wake-up; expiry advances the durable intent
+  cycle and dispatches the stable workflow ID again. PostgreSQL/Temporal remain
+  authoritative and Redis is only a debounce/recovery hint. Inactive or
+  disabled Fluctlights do not schedule another quiet-period key.
 
 ### 4. Validation & Error Matrix
 
@@ -226,20 +229,21 @@ the `reflection.run` intent are committed.
 - Wake-up hint key: `fluctlight:wakeup:due:<fluctlight_id>` with the same
   clamped cadence.
 - `RedisTriggerListener.Run(ctx)` subscribes to
-  `__keyevent@*__:expired` and `HandleRedisExpiredTrigger(ctx, key)` updates
-  only pending/retry PostgreSQL intents.
+  `__keyevent@*__:expired` and `HandleRedisExpiredTrigger(ctx, key)` advances
+  only the matching PostgreSQL due state.
 
 ### 3. Contracts
 
 - A completed user turn creates one delayed `reflection.run` intent; its
   action-result fact is included in that same evidence window rather than
   creating a second reflection call for the turn.
-- Expiration handling only advances `next_attempt_at` for a matching pending or
-  retry intent. It never directly performs a provider call or starts a second
-  workflow.
-- Wake-up keeps Temporal `Sleep`/`ContinueAsNew` as the timer/recovery
-  authority; the Redis wake key is recreated after a successful cycle and is
-  also repaired at Worker startup.
+- Expiration handling advances `next_attempt_at` and the wake-up cycle for a
+  matching completed wake-up intent. It never directly performs a provider call
+  or starts a second workflow.
+- Wake-up executes one Temporal cycle at a time; the Redis wake key is reset
+  after each completed user turn and successful wake-up, and is repaired for
+  completed intents at Worker startup. PostgreSQL/Temporal remain the durable
+  authority.
 - `notify-keyspace-events Ex` is required in the Redis config. Listener
   reconnect and periodic PostgreSQL due scans cover dropped Pub/Sub messages.
 

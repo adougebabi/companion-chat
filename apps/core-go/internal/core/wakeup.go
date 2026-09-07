@@ -66,10 +66,9 @@ func (a *App) readWakeUpSettings(ctx context.Context) (WakeUpSettings, error) {
 }
 
 // EnsureWakeUpIntents repairs the durable entry point for Fluctlights that
-// were created before the periodic wake-up feature existed. Terminal wake-up
-// intents for still-live Fluctlights are made retryable, while pending/retry/
-// started intents are left untouched so a running Temporal execution cannot be
-// duplicated.
+// were created before the wake-up debounce feature existed. Failed intents for
+// still-live Fluctlights are made retryable; completed intents wait for their
+// Redis quiet-period hint instead of being launched immediately at startup.
 func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 	var ensured int64
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
@@ -113,7 +112,7 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 				  AND s.status = 'accepted'
 				  AND s.local_date = (now() AT TIME ZONE COALESCE(NULLIF(f.identity->>'timezone',''),'Asia/Shanghai'))::date
 			  )
-			  AND i.status IN ('completed', 'failed')`)
+			  AND i.status = 'failed'`)
 		if err != nil {
 			return err
 		}
