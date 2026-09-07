@@ -322,6 +322,15 @@ func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID strin
 		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',processed_at=now() WHERE id=$1`, inboxID); err != nil {
 			return err
 		}
+		var sourceActorID string
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(payload->>'actor_id','') FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&sourceActorID); err != nil {
+			return err
+		}
+		if sourceActorID != "" {
+			if err := a.recordRelationshipInteractionTx(ctx, tx, fluctlightID, sourceActorID); err != nil {
+				return err
+			}
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) VALUES($1,$2,'lifecycle','reflection.run',$3,$4) ON CONFLICT DO NOTHING`, "reflection_intent:"+inboxID, "reflection:"+inboxID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": inboxID}), nextReflectionAt); err != nil {
 			return err
 		}

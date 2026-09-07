@@ -9,6 +9,29 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// recordRelationshipInteractionTx records the durable interaction fact for an
+// already-established directed Relationship. It intentionally updates only
+// interaction metadata; semantic metrics/trend remain LLM/reflection-owned.
+func (a *App) recordRelationshipInteractionTx(ctx context.Context, tx pgx.Tx, fluctlightID, targetActorID string) error {
+	targetActorID = strings.TrimSpace(targetActorID)
+	if targetActorID == "" {
+		return nil
+	}
+	var activeProfile string
+	_ = tx.QueryRow(ctx, `SELECT COALESCE(active_profile_id,'default') FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&activeProfile)
+	var relationshipID string
+	if err := tx.QueryRow(ctx, `SELECT id FROM public.relationships WHERE owner_fluctlight_id=$1 AND target_actor_id=$2 AND (profile_id=$3 OR profile_id IS NULL) ORDER BY CASE WHEN profile_id=$3 THEN 0 ELSE 1 END,updated_at DESC LIMIT 1 FOR UPDATE`, fluctlightID, targetActorID, activeProfile).Scan(&relationshipID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// An unknown relationship remains unknown; an interaction alone must
+			// not invent a semantic relationship row.
+			return nil
+		}
+		return err
+	}
+	_, err := tx.Exec(ctx, `UPDATE public.relationships SET interaction_frequency=interaction_frequency+1,last_interaction_at=now(),updated_at=now() WHERE id=$1`, relationshipID)
+	return err
+}
+
 func normalizeRelationshipRole(value any) (map[string]any, error) {
 	role := mapValue(value)
 	if len(role) == 0 {
