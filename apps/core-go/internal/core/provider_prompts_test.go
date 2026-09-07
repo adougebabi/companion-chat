@@ -15,7 +15,7 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 		{name: "language", value: providerLanguageRule, max: 100, must: []string{"自然语言内容使用中文", "协议字面量保持原文"}},
 		{name: "context", value: providerContextAuthorityRule, max: 420, must: []string{"core_persona", "developing_self", "current_state", "context_override.explicit=true"}},
 		{name: "wake-up", value: wakeUpAssessmentInstruction, max: 600, must: []string{"attention", "thought", "desire", "agency", "action_type", "media.image.generate", "capability.request", "no_op", "visible text"}},
-		{name: "conversation", value: conversationAssessmentInstruction, max: 650, must: []string{"response_plan", "claims", "appraisal", "state_expression", "media_request"}},
+		{name: "conversation", value: conversationAssessmentInstruction, max: 900, must: []string{"response_plan", "claims", "appraisal", "state_expression", "kind", "content", "evidence_refs", "current_message.content"}},
 		{name: "daily-review", value: dailyReviewInstruction, max: 420, must: []string{"proactive_message", "moment", "no_op", "response_intent"}},
 		{name: "reflection", value: reflectionInstruction, max: 650, must: []string{"memory_candidates", "developing_self_candidates", "evidence_refs", "Core Persona"}},
 		{name: "native-cognition", value: nativeCognitionInstruction, max: 300, must: []string{"appraisal", "attention", "thought", "desire", "agency"}},

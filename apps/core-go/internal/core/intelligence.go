@@ -682,6 +682,7 @@ func normalizeResponsePlan(decision map[string]any, sourceFactID string, context
 	if len(claims) == 0 {
 		claims = append(arrayValue(base["approved_claims"]), arrayValue(base["uncertain_claims"])...)
 	}
+	claims = normalizeCognitionClaims(claims, sourceFactID)
 	approved, uncertain, omitted, err := evaluateClaims(claims, sourceFactID, context)
 	if err != nil {
 		return nil, err
@@ -696,7 +697,7 @@ func normalizeResponsePlan(decision map[string]any, sourceFactID string, context
 		}
 		plan["self_evaluation"] = map[string]any{"mode": mode, "reason_codes": []any{}, "confidence": 1.0}
 	} else {
-		if _, ok := self["mode"]; !ok {
+		if strings.TrimSpace(stringValue(self["mode"])) == "" {
 			self["mode"] = "accepted"
 		}
 		plan["self_evaluation"] = self
@@ -708,6 +709,55 @@ func normalizeResponsePlan(decision map[string]any, sourceFactID string, context
 		return nil, err
 	}
 	return plan, nil
+}
+
+// normalizeCognitionClaims keeps the persisted claim contract canonical while
+// accepting the two provider-side conventions that appeared before the
+// response schema was closed: `claim` as an alias for `content`, and semantic
+// context references such as `current_message.content` or
+// `life_context.activity`. These aliases are bound to the current source fact;
+// Core does not trust arbitrary provider-supplied IDs as evidence.
+func normalizeCognitionClaims(raw []any, sourceFactID string) []any {
+	result := make([]any, 0, len(raw))
+	for _, item := range raw {
+		claim := mapValue(item)
+		if len(claim) == 0 {
+			result = append(result, item)
+			continue
+		}
+		normalized := cloneMap(claim)
+		if stringValue(normalized["content"]) == "" {
+			if legacy := strings.TrimSpace(stringValue(normalized["claim"])); legacy != "" {
+				normalized["content"] = legacy
+			}
+		}
+		if stringValue(normalized["kind"]) == "" && stringValue(normalized["claim_type"]) == "" && stringValue(normalized["claim"]) != "" {
+			normalized["kind"] = ClaimObservedFact
+		}
+		refs := arrayValue(normalized["evidence_refs"])
+		if len(refs) > 0 {
+			canonical := make([]any, 0, len(refs))
+			for _, rawRef := range refs {
+				ref := strings.TrimSpace(stringValue(rawRef))
+				if isSemanticCognitionEvidenceRef(ref) {
+					// The current life context is part of the frozen turn
+					// projection, so the turn fact is the durable evidence anchor.
+					ref = sourceFactID
+				}
+				canonical = append(canonical, ref)
+			}
+			normalized["evidence_refs"] = canonical
+		}
+		result = append(result, normalized)
+	}
+	return result
+}
+
+func isSemanticCognitionEvidenceRef(value string) bool {
+	if value == "current_message" || value == "current_message.content" || value == "current_life_context" || value == "life_context" {
+		return true
+	}
+	return strings.HasPrefix(value, "life_context.") || strings.HasPrefix(value, "current_state.")
 }
 
 func normalizeOutputPreferenceDecision(value map[string]any, activeProfileID string) (map[string]any, error) {

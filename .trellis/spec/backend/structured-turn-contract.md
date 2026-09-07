@@ -292,6 +292,13 @@ ProcessReflection(ctx, fluctlightID, correlationID) -> ReflectionOutcome
   Unsupported self-claims are omitted or downgraded and are never promoted to
   long-term Memory/Personality merely because an assistant message contains
   them.
+- The cognition response schema is closed for persisted claims: each claim
+  uses `kind`, `content`, `confidence`, and `evidence_refs` (with optional
+  `repetition_key`). Older provider aliases such as `claim` are normalized to
+  `content` only at the cognition application boundary. Semantic references such as
+  `current_message.content` or `life_context.*` are bound to the current
+  source fact before persistence; arbitrary provider-supplied IDs are not
+  trusted as evidence.
 - Repetition of the same normalized claim/topic without new evidence is a
   deterministic no-op: it does not raise confidence, create another Memory or
   Life World row, or re-enter the same context section.

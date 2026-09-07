@@ -75,6 +75,41 @@ func TestNormalizeResponsePlanPreservesCognitionVisibleTextAsFinalReply(t *testi
 	}
 }
 
+func TestNormalizeResponsePlanAcceptsLegacyClaimAliasAndSemanticEvidence(t *testing.T) {
+	plan, err := normalizeResponsePlan(map[string]any{
+		"action_type":  "reply",
+		"visible_text": "在的。",
+		"claims": []any{map[string]any{
+			"claim":         "林夏希正在工作室制作cos道具",
+			"evidence_refs": []any{"life_context.activity=制作cos道具", "current_message.content"},
+		}},
+		"appraisal": map[string]any{
+			"relevance": 0.8, "goal_congruence": 0.6, "reward": 0.7, "loss": 0.1,
+			"social_threat": 0.0, "controllability": 0.8, "responsibility": 0.5,
+			"relationship_significance": 0.7, "expected_effect": 0.6, "evidence_refs": []any{},
+		},
+	}, "fact-visible", ContextProjection{
+		ContextRevision:    1,
+		PersonalityRuntime: map[string]any{"active_profile_id": "warm"},
+		LifeContext:        map[string]any{"activity": "制作cos道具", "scene": "工作室"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	uncertain := arrayValue(plan["uncertain_claims"])
+	if len(uncertain) != 1 {
+		t.Fatalf("uncertain claims = %#v, want one claim", plan["uncertain_claims"])
+	}
+	claim := mapValue(uncertain[0])
+	if stringValue(claim["kind"]) != ClaimObservedFact || stringValue(claim["content"]) != "林夏希正在工作室制作cos道具" {
+		t.Fatalf("normalized claim = %#v", claim)
+	}
+	refs := arrayValue(claim["evidence_refs"])
+	if len(refs) != 2 || stringValue(refs[0]) != "fact-visible" || stringValue(refs[1]) != "fact-visible" {
+		t.Fatalf("normalized evidence refs = %#v", refs)
+	}
+}
+
 func TestEvaluateClaimsRejectsInvalidKindsAndConfidence(t *testing.T) {
 	context := ContextProjection{}
 	if _, _, _, err := evaluateClaims([]any{map[string]any{"kind": "made_up", "content": "x", "confidence": 0.5}}, "fact", context); err == nil {

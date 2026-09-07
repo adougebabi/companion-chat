@@ -87,11 +87,65 @@ func outputPreferenceDecisionSchema() map[string]any {
 }
 
 func claimSchema() map[string]any {
-	return openObjectSchema()
+	// Claims are persisted by the cognition layer, so this is intentionally a
+	// closed contract rather than an open provider extension point. The legacy
+	// `claim` alias is normalized at the application boundary for providers that
+	// still emit it, but new responses must use kind/content.
+	return objectSchema(map[string]any{
+		"kind":           enumStringSchema("confirmed_fact", "observed_fact", "supported_hypothesis", "uncertain_hypothesis", "unsupported_self_claim"),
+		"content":        stringSchema(),
+		"confidence":     unitNumberSchema(),
+		"evidence_refs":  arraySchema(stringSchema()),
+		"repetition_key": stringSchema(),
+	}, []string{"kind", "content", "confidence", "evidence_refs"}, false)
 }
 
 func toolCallSchema() map[string]any {
 	return openObjectSchema()
+}
+
+func selfEvaluationSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"mode":         enumStringSchema("accepted", "uncertain", "omit", "deferred"),
+		"reason_codes": arraySchema(stringSchema()),
+		"confidence":   unitNumberSchema(),
+		"note":         stringSchema(),
+		"extensions":   openObjectSchema(),
+	}, []string{"mode", "reason_codes", "confidence"}, false)
+}
+
+func responsePlanSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"profile_id":       stringSchema(),
+		"visible_text":     stringSchema(),
+		"answer_mode":      stringSchema(),
+		"response_outline": arraySchema(stringSchema()),
+		"tone":             stringSchema(),
+		"strategy":         stringSchema(),
+		"length":           stringSchema(),
+		"self_evaluation":  selfEvaluationSchema(),
+		"core_alignment":   openObjectSchema(),
+		"state_expression": openObjectSchema(),
+		"tool_calls":       arraySchema(toolCallSchema()),
+		"claims":           arraySchema(claimSchema()),
+		"extensions":       openObjectSchema(),
+	}, []string{"profile_id"}, false)
+}
+
+func coreAlignmentSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"aligned":    booleanSchema(),
+		"note":       stringSchema(),
+		"extensions": openObjectSchema(),
+	}, nil, false)
+}
+
+func stateExpressionSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"body":       stringSchema(),
+		"mood":       stringSchema(),
+		"extensions": openObjectSchema(),
+	}, nil, false)
 }
 
 func cognitiveTurnResponseSchema() map[string]any {
@@ -108,18 +162,18 @@ func cognitiveTurnResponseSchema() map[string]any {
 		"action_type":                stringSchema(),
 		"response_intent":            stringSchema(),
 		"visible_text":               stringSchema(),
-		"response_plan":              openObjectSchema(),
+		"response_plan":              responsePlanSchema(),
 		"personality_decision":       personalityDecision,
 		"output_preference_decision": outputPreferenceDecisionSchema(),
-		"core_alignment":             openObjectSchema(),
-		"state_expression":           openObjectSchema(),
+		"core_alignment":             coreAlignmentSchema(),
+		"state_expression":           stateExpressionSchema(),
 		"claims":                     arraySchema(claimSchema()),
 		"appraisal":                  appraisalResponseSchema(),
 		"attention":                  cognitiveStageSchema(),
 		"thought":                    cognitiveStageSchema(),
 		"desire":                     cognitiveStageSchema(),
 		"agency":                     cognitiveStageSchema(),
-		"self_evaluation":            openObjectSchema(),
+		"self_evaluation":            selfEvaluationSchema(),
 		"tool_calls":                 arraySchema(toolCallSchema()),
 		"evidence_refs":              arraySchema(stringSchema()),
 	}

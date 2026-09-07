@@ -495,6 +495,25 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 			t.Fatalf("personality decision must identify %q: %#v", key, personalityDecision)
 		}
 	}
+	claimSchemaValue := mapValue(mapValue(mapValue(cognitive["properties"])["claims"])["items"])
+	for _, key := range []string{"kind", "content", "confidence", "evidence_refs"} {
+		if !containsSchemaRequired(claimSchemaValue, key) {
+			t.Fatalf("cognitive claim schema missing required field %q: %#v", key, claimSchemaValue)
+		}
+	}
+	if claimSchemaValue["additionalProperties"] != false {
+		t.Fatalf("cognitive claim schema must be closed: %#v", claimSchemaValue)
+	}
+	responsePlan := mapValue(mapValue(cognitive["properties"])["response_plan"])
+	if !containsSchemaRequired(responsePlan, "profile_id") {
+		t.Fatalf("response plan must identify the active profile: %#v", responsePlan)
+	}
+	selfEvaluation := mapValue(mapValue(cognitive["properties"])["self_evaluation"])
+	for _, key := range []string{"mode", "reason_codes", "confidence"} {
+		if !containsSchemaRequired(selfEvaluation, key) {
+			t.Fatalf("self evaluation schema missing required field %q: %#v", key, selfEvaluation)
+		}
+	}
 	memoryParameters := mapValue(memoryCapabilityManifest().Parameters)
 	perspectives := mapValue(mapValue(memoryParameters["properties"])["personality_perspectives"])
 	if perspectives["type"] != "array" {
