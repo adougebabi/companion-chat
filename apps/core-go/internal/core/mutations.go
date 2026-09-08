@@ -948,13 +948,13 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 		if !started || ctx.Err() != nil {
 			return err
 		}
-		// Headers and at least one frame are already committed. Emit the one
-		// terminal error with the next monotonic sequence instead of letting the
-		// HTTP handler append a duplicate sequence-zero error.
-		if writeErr := writeFrame("error", map[string]any{"code": "conversation_turn_failed", "message": "The turn could not be completed"}); writeErr != nil {
-			return writeErr
-		}
-		return nil
+		// Visible output/action_result has already reached the client. A later
+		// lifecycle failure (claims, deferred settlement, reflection scheduling,
+		// or CompleteTurnCognition) must not turn that successful visible turn
+		// into a conversation_turn_failed frame. Keep the failure in server logs;
+		// the durable frozen action/inbox remains available for reconciliation.
+		slog.Default().Error("Go Core conversation turn lifecycle settlement failed after visible output", "error", err, "turn_id", turnID)
+		return writeFrame("completed", map[string]any{"message_ids": []string{}, "status": "settlement_deferred"})
 	}
 	messageIDs := make([]string, 0, 1)
 	if messageID := stringValue(result.Assistant["id"]); messageID != "" {
