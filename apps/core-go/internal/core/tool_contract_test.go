@@ -264,10 +264,17 @@ func TestAffectEventCapabilityOwnsSemanticEmotionInput(t *testing.T) {
 func TestConversationCapabilityCatalogOmitsMomentOutput(t *testing.T) {
 	registry := NewCapabilityRegistry(&conversationReplyCapabilityExecutor{}, &momentPublishCapabilityExecutor{}, &imageCapabilityExecutor{})
 	manifests := capabilityManifestsExcept(registry, "moment.publish")
+	foundImage := false
 	for _, manifest := range manifests {
 		if manifest.Name == "moment.publish" {
 			t.Fatalf("moment.publish leaked into conversation catalog: %#v", manifests)
 		}
+		if manifest.Name == "media.image.generate" {
+			foundImage = true
+		}
+	}
+	if !foundImage {
+		t.Fatal("media.image.generate missing from conversation catalog")
 	}
 }
 
