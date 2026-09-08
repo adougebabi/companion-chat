@@ -504,8 +504,8 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		// such as affect_event may still execute in the no_op path. Deferred
 		// output calls without a conversation/Moment target remain deferred and
 		// are recorded without turning the text turn into an error.
-		if normalizedAction, suppressed := normalizeMissingConversationReplyAction(action, toolCalls); suppressed {
-			action = normalizedAction
+		if !hasConversationReplyToolCall(toolCalls) && (action == "reply" || action == "media_request") {
+			action = "no_op"
 			mediaConcept = nil
 			decision["action_type"] = "no_op"
 			decision["response_intent"] = ""
@@ -556,21 +556,20 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if len(toolCalls) > 0 && len(toolResults) == 0 {
 			toolResults, err = a.ExecuteToolCalls(ctx, fluctlightID, conversationID, inboxID, toolCalls)
 			if err != nil {
-				if len(toolResults) > 0 {
-					_ = a.PersistToolResults(ctx, frozen.ID, toolResults)
-				}
-				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "tool_call_failed")
-				return TurnResult{}, err
+				// All cognition Tools are optional. Keep the failed ToolResults for
+				// diagnostics/replay, but do not turn a no-visible-reply turn into a
+				// conversation failure.
+				slog.Default().Warn("Go Core optional Tool failed during no-op turn", "turn_id", turnID, "error", err, "tool_results", toolResults)
 			}
 			if err := a.PersistToolResults(ctx, frozen.ID, toolResults); err != nil {
-				return TurnResult{}, err
+				slog.Default().Warn("Go Core could not persist optional Tool results during no-op turn", "turn_id", turnID, "error", err)
 			}
 		}
 		if a.cognitionFactSuperseded(ctx, inboxID) {
 			return TurnResult{}, errCognitionTurnSuperseded
 		}
 		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"status": "no_op", "response_intent": stringValue(responsePlan["response_intent"]), "tool_results": toolResults}); err != nil {
-			return TurnResult{}, err
+			slog.Default().Warn("Go Core could not complete no-op cognition lifecycle", "turn_id", turnID, "error", err)
 		}
 		if callbacks.onActionResult != nil {
 			if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
@@ -974,25 +973,19 @@ func toolOnlyCognitionAppraisal(sourceFactID string) map[string]any {
 
 func hasConversationReplyToolCall(calls []ToolCallV1) bool {
 	for _, call := range calls {
-		if call.Name != "conversation.reply" {
-			continue
-		}
-		var args map[string]any
-		if json.Unmarshal(call.Arguments, &args) == nil && strings.TrimSpace(stringValue(args["text"])) != "" {
+		if conversationReplyCallHasText(call) {
 			return true
 		}
 	}
 	return false
 }
 
-func normalizeMissingConversationReplyAction(action string, calls []ToolCallV1) (string, bool) {
-	if hasConversationReplyToolCall(calls) {
-		return action, false
+func conversationReplyCallHasText(call ToolCallV1) bool {
+	if call.Name != "conversation.reply" {
+		return false
 	}
-	if action == "reply" || action == "media_request" {
-		return "no_op", true
-	}
-	return action, false
+	var args map[string]any
+	return json.Unmarshal(call.Arguments, &args) == nil && strings.TrimSpace(stringValue(args["text"])) != ""
 }
 
 // normalizeConversationReplyCalls accepts the transitional model behavior

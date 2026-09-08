@@ -94,7 +94,8 @@ func (a *App) ExecuteToolCalls(ctx context.Context, fluctlightID, conversationID
 			}
 			if result.Status == "completed" {
 				if validationErr := manifest.ValidateOutput(result.Output); validationErr != nil {
-					return results, validationErr
+					results[len(results)-1] = failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error())
+					continue
 				}
 			}
 			if result.Status == "failed" && optionalToolFailureNonFatal(call) {
@@ -128,7 +129,8 @@ func (a *App) ExecuteToolCalls(ctx context.Context, fluctlightID, conversationID
 		}
 		if result.Status == "completed" {
 			if validationErr := manifest.ValidateOutput(result.Output); validationErr != nil {
-				return results, validationErr
+				results[len(results)-1] = failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error())
+				continue
 			}
 		}
 		if result.Status == "failed" && optionalToolFailureNonFatal(call) {
@@ -601,14 +603,16 @@ func resolveToolCallAction(calls []ToolCallV1, manifests map[string]CapabilityMa
 	if len(calls) == 0 {
 		return "", nil, errors.New("at least one capability call is required for this turn")
 	}
-	action := "reply"
+	// Tool Calls are optional proposals, not a reply gate. A valid reply Tool
+	// selects a visible conversation action; every other Tool-only turn remains
+	// no_op while the Runtime still attempts each returned Tool independently.
+	_ = manifests
+	action := "no_op"
 	for _, call := range calls {
-		if err := call.Validate(manifests); err != nil {
-			return "", nil, err
+		if call.Name == "conversation.reply" && conversationReplyCallHasText(call) {
+			action = "reply"
+			break
 		}
-		// Every registered slot remains a capability of the same reply
-		// Composite Action. Whether it is immediate or deferred is determined
-		// by its manifest, never by embedding the tool name in an action type.
 	}
 	return action, nil, nil
 }

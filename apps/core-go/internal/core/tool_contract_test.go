@@ -198,7 +198,7 @@ func TestCapabilityRegistryIsAnExtensibleSlot(t *testing.T) {
 	}
 }
 
-func TestCapabilityRequestIsAdvertisedAndKeepsReplyAction(t *testing.T) {
+func TestCapabilityRequestIsAdvertisedAsOptionalToolAction(t *testing.T) {
 	manifest := capabilityRequestManifest()
 	if manifest.Name != "capability.request" || manifest.Parameters == nil {
 		t.Fatalf("capability request manifest = %#v", manifest)
@@ -208,8 +208,8 @@ func TestCapabilityRequestIsAdvertisedAndKeepsReplyAction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if action != "reply" {
-		t.Fatalf("capability request action = %q, want reply", action)
+	if action != "no_op" {
+		t.Fatalf("capability request action = %q, want no_op", action)
 	}
 }
 
@@ -286,12 +286,14 @@ func TestImageDeferredFailureDoesNotClassifyConversationReplyAsFatal(t *testing.
 	}
 }
 
-func TestMissingConversationReplyBecomesNoOp(t *testing.T) {
-	if action, suppressed := normalizeMissingConversationReplyAction("reply", []ToolCallV1{{Name: "affect_event"}}); action != "no_op" || !suppressed {
-		t.Fatalf("missing reply action = %q suppressed=%t", action, suppressed)
+func TestToolOnlyActionDoesNotRequireConversationReply(t *testing.T) {
+	action, _, err := resolveToolCallAction([]ToolCallV1{{Name: "affect_event"}}, toolManifestMap([]CapabilityManifest{affectEventCapabilityManifest()}))
+	if err != nil || action != "no_op" {
+		t.Fatalf("tool-only action = %q err=%v", action, err)
 	}
-	if action, suppressed := normalizeMissingConversationReplyAction("reply", []ToolCallV1{{Name: "conversation.reply", Arguments: json.RawMessage(`{"text":"你好"}`)}}); action != "reply" || suppressed {
-		t.Fatalf("reply action = %q suppressed=%t", action, suppressed)
+	action, _, err = resolveToolCallAction([]ToolCallV1{{Name: "conversation.reply", Arguments: json.RawMessage(`{"text":"你好"}`)}}, toolManifestMap([]CapabilityManifest{conversationReplyCapabilityManifest()}))
+	if err != nil || action != "reply" {
+		t.Fatalf("reply action = %q err=%v", action, err)
 	}
 }
 
@@ -643,7 +645,7 @@ func TestResolveToolCallActionSupportsNativeObservationSlots(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve = %v", err)
 	}
-	if action != "reply" || len(concept) != 0 {
+	if action != "no_op" || len(concept) != 0 {
 		t.Fatalf("action=%q concept=%#v", action, concept)
 	}
 }
@@ -658,7 +660,7 @@ func TestResolveToolCallActionKeepsMediaAsReplyComposite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if action != "reply" || len(concept) != 0 {
-		t.Fatalf("action=%q concept=%#v; media must remain a reply composite", action, concept)
+	if action != "no_op" || len(concept) != 0 {
+		t.Fatalf("action=%q concept=%#v; media-only calls are no-op outputs", action, concept)
 	}
 }
