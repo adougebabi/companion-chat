@@ -116,7 +116,7 @@ func TestToolCallValidateRequiresRegisteredCapability(t *testing.T) {
 
 func TestToolCallPayloadKeepsProviderSchemaAtBoundary(t *testing.T) {
 	payload := ToolCallPayload(ExternalCapabilityManifests())
-	if len(payload) != 3 {
+	if len(payload) != 4 {
 		t.Fatalf("tool payload = %#v", payload)
 	}
 	names := make(map[string]struct{}, len(payload))
@@ -136,6 +136,9 @@ func TestToolCallPayloadKeepsProviderSchemaAtBoundary(t *testing.T) {
 	}
 	if _, ok := names["moment.publish"]; !ok {
 		t.Fatalf("moment.publish manifest missing = %#v", names)
+	}
+	if _, ok := names["affect_event"]; !ok {
+		t.Fatalf("affect_event manifest missing = %#v", names)
 	}
 	if _, ok := names["media.image.generate"]; !ok {
 		t.Fatalf("media manifest missing = %#v", names)
@@ -245,6 +248,19 @@ func TestMomentPublishCapabilityIsRegisteredDeferredOutput(t *testing.T) {
 	}
 }
 
+func TestAffectEventCapabilityOwnsSemanticEmotionInput(t *testing.T) {
+	manifest := affectEventCapabilityManifest()
+	if manifest.Name != "affect_event" || manifest.IsDeferredOutput() {
+		t.Fatalf("affect manifest = %#v", manifest)
+	}
+	if !containsSchemaRequired(manifest.Parameters, "event") {
+		t.Fatalf("affect parameters = %#v", manifest.Parameters)
+	}
+	if containsSchemaRequired(mapValue(mapValue(manifest.Parameters["properties"])["event"]), "pad") {
+		t.Fatal("affect event must not expose raw PAD input")
+	}
+}
+
 func TestConversationCapabilityCatalogOmitsMomentOutput(t *testing.T) {
 	registry := NewCapabilityRegistry(&conversationReplyCapabilityExecutor{}, &momentPublishCapabilityExecutor{}, &imageCapabilityExecutor{})
 	manifests := capabilityManifestsExcept(registry, "moment.publish")
@@ -272,7 +288,7 @@ func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 		t.Fatalf("tool_choice = %#v", payload["tool_choice"])
 	}
 	tools, ok := payload["tools"].([]map[string]any)
-	if !ok || len(tools) != 3 {
+	if !ok || len(tools) != 4 {
 		t.Fatalf("tools = %#v", payload["tools"])
 	}
 	if payload["max_tokens"] != 512 {

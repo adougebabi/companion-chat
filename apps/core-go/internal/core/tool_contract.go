@@ -197,7 +197,7 @@ func ToolCallPayload(manifests []CapabilityManifest) []map[string]any {
 // Video/audio/search slots are added only when their executable adapters exist;
 // advertising an unavailable capability would make the model contract lie.
 func ExternalCapabilityManifests() []CapabilityManifest {
-	return []CapabilityManifest{conversationReplyCapabilityManifest(), imageCapabilityManifest(), momentPublishCapabilityManifest()}
+	return []CapabilityManifest{conversationReplyCapabilityManifest(), imageCapabilityManifest(), momentPublishCapabilityManifest(), affectEventCapabilityManifest()}
 }
 
 func conversationReplyCapabilityManifest() CapabilityManifest {

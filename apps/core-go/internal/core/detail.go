@@ -201,7 +201,16 @@ func (a *App) readInnerState(ctx context.Context, fluctlightID string) (map[stri
 		}
 		return nil, err
 	}
-	return map[string]any{"pad": decodeObject(pad), "mood": decodeObject(mood), "momentum": decodeObject(momentum), "regulation": decodeObject(regulation), "drives": decodeArray(drives), "conflicts": decodeArray(conflicts), "revision": revision, "last_updated_at": updated.Format(time.RFC3339Nano)}, nil
+	moodValue := decodeObject(mood)
+	// Older rows were initialized with a nil mood label. Keep the read model
+	// truthful and usable while affect_event gradually writes explicit labels.
+	if stringValue(moodValue["label"]) == "" {
+		moodValue["label"] = "平静"
+		if stringValue(moodValue["source"]) == "" {
+			moodValue["source"] = "server_default"
+		}
+	}
+	return map[string]any{"pad": decodeObject(pad), "mood": moodValue, "momentum": decodeObject(momentum), "regulation": decodeObject(regulation), "drives": decodeArray(drives), "conflicts": decodeArray(conflicts), "revision": revision, "last_updated_at": updated.Format(time.RFC3339Nano)}, nil
 }
 
 func (a *App) readAgency(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {

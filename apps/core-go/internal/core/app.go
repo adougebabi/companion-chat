@@ -77,6 +77,7 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 		&sceneCapabilityExecutor{app: app},
 		&presenceCapabilityExecutor{app: app},
 		&memoryCapabilityExecutor{app: app},
+		&affectEventCapabilityExecutor{app: app},
 		&relationshipLookupCapabilityExecutor{app: app},
 		&capabilityRequestExecutor{app: app},
 	)
@@ -689,7 +690,7 @@ func defaultProvenance() map[string]any {
 }
 
 func defaultInnerState() (map[string]any, map[string]any, map[string]any, map[string]any, []any, []any) {
-	return map[string]any{"pleasure": 0.0, "arousal": 0.0, "dominance": 0.0}, map[string]any{"label": nil, "intensity": 0.0, "source": "regulation"}, map[string]any{"value": 0.0, "trend": 0.0}, map[string]any{"stress": 0.0, "stability": 1.0}, []any{}, []any{}
+	return map[string]any{"pleasure": 0.0, "arousal": 0.0, "dominance": 0.0}, map[string]any{"label": "平静", "intensity": 0.0, "source": "server_default"}, map[string]any{"value": 0.0, "trend": 0.0}, map[string]any{"stress": 0.0, "stability": 1.0}, []any{}, []any{}
 }
 
 func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name string, mode string, foundation map[string]any, goals, intentions []any) (Fluctlight, error) {
