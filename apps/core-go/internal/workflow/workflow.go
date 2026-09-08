@@ -31,6 +31,7 @@ const (
 	defaultWakeUpIntervalSeconds = 30 * 60
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
+	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'schedule.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'visual_identity.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 ELSE 8 END"
 	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type FROM public.platform_workflow_intents WHERE status IN ('pending','started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
@@ -918,7 +919,11 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		query += ` WHERE (status IS NULL OR status IN ('pending','retry')) AND (next_attempt_at IS NULL OR next_attempt_at <= now())`
 	}
 	args = append(args, limit)
-	query += fmt.Sprintf(` ORDER BY CASE WHEN intent_type LIKE 'schedule.%%' THEN 0 WHEN intent_type LIKE 'visual_identity.%%' THEN 1 WHEN intent_type LIKE 'wake_up.%%' THEN 2 WHEN intent_type LIKE 'daily_review.%%' THEN 3 WHEN intent_type LIKE 'autonomy.%%' THEN 4 WHEN intent_type LIKE 'capability.%%' THEN 5 WHEN intent_type LIKE 'media.%%' THEN 6 WHEN intent_type LIKE 'reflection.%%' THEN 7 ELSE 8 END, created_at, intent_id LIMIT $%d`, len(args))
+	// Keep schedule repair first, but dispatch media before visual-identity
+	// retries. VisualIdentity activities can legitimately run for 20 minutes;
+	// placing them ahead of media with a small LIMIT can starve every ordinary
+	// image intent while the lifecycle queue repeatedly retries those workflows.
+	query += fmt.Sprintf(" ORDER BY %s, created_at, intent_id LIMIT $%d", dispatcherIntentOrder, len(args))
 	rows, err := d.App.DB.Pool().Query(ctx, query, args...)
 	if err != nil {
 		return 0, err

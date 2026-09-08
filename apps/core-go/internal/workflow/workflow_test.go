@@ -194,6 +194,12 @@ func TestWakeUpRetryBackoffIsNotRequeuedBeforeDueTime(t *testing.T) {
 	}
 }
 
+func TestDispatcherPrioritizesMediaBeforeVisualIdentityRetries(t *testing.T) {
+	if !strings.Contains(dispatcherIntentOrder, "WHEN intent_type LIKE 'media.%' THEN 1") || !strings.Contains(dispatcherIntentOrder, "WHEN intent_type LIKE 'visual_identity.%' THEN 2") {
+		t.Fatalf("dispatcher intent order = %s", dispatcherIntentOrder)
+	}
+}
+
 func TestWorkflowFunctionRegistryIncludesPlatformBoundaries(t *testing.T) {
 	for _, intentType := range []string{"cognition.processing", "platform.control", "wake_up.current", "capability.action", "visual_identity.initialize"} {
 		if fn, err := workflowFunction(intentType); err != nil || fn == nil {
