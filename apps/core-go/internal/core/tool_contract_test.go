@@ -278,6 +278,15 @@ func TestConversationCapabilityCatalogOmitsMomentOutput(t *testing.T) {
 	}
 }
 
+func TestImageDeferredFailureDoesNotClassifyConversationReplyAsFatal(t *testing.T) {
+	if !deferredOutputFailureIsNonFatal(ToolCallV1{Name: "media.image.generate"}) {
+		t.Fatal("image deferred failures should be non-fatal to text delivery")
+	}
+	if deferredOutputFailureIsNonFatal(ToolCallV1{Name: "conversation.reply"}) {
+		t.Fatal("conversation reply failures must remain fatal")
+	}
+}
+
 type testManifestExecutor struct{ manifest CapabilityManifest }
 
 func (executor testManifestExecutor) Manifest() CapabilityManifest { return executor.manifest }

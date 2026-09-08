@@ -317,6 +317,10 @@ func (a *App) settleDeferredToolCallsTx(ctx context.Context, tx pgx.Tx, fluctlig
 		manifest := manifests[call.Name]
 		if manifest.RequiresPreflight {
 			if err := a.preflightCapabilityTx(ctx, tx, manifest); err != nil {
+				if deferredOutputFailureIsNonFatal(call) {
+					results = replaceToolResult(results, failedToolResult(call, "media_preflight_failed", true, err.Error()))
+					continue
+				}
 				return results, err
 			}
 		}
@@ -349,15 +353,36 @@ func (a *App) settleDeferredToolCallsTx(ctx context.Context, tx pgx.Tx, fluctlig
 		if validationErr := result.Validate(call); validationErr != nil {
 			return results, validationErr
 		}
-		if validationErr := manifests[call.Name].ValidateOutput(result.Output); validationErr != nil {
-			return results, validationErr
+		if result.Status == "completed" {
+			if validationErr := manifests[call.Name].ValidateOutput(result.Output); validationErr != nil {
+				return results, validationErr
+			}
 		}
 		if err != nil {
+			if deferredOutputFailureIsNonFatal(call) {
+				results = replaceToolResult(results, result)
+				continue
+			}
 			return results, err
+		}
+		if result.Status == "failed" && deferredOutputFailureIsNonFatal(call) {
+			results = replaceToolResult(results, result)
+			continue
+		}
+		if validationErr := manifests[call.Name].ValidateOutput(result.Output); validationErr != nil {
+			return results, validationErr
 		}
 		results = replaceToolResult(results, result)
 	}
 	return results, nil
+}
+
+// Image generation is an optional companion effect for a text conversation.
+// A missing/invalid ComfyUI configuration or a failed media intent must be
+// persisted as a failed ToolResult without rolling back the already valid
+// conversation.reply output. Core still treats the reply Tool itself as fatal.
+func deferredOutputFailureIsNonFatal(call ToolCallV1) bool {
+	return call.Name == "media.image.generate"
 }
 
 func (a *App) preflightCapability(ctx context.Context, fluctlightID string, manifest CapabilityManifest) error {
