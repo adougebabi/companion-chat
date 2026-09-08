@@ -256,7 +256,7 @@ func (a *App) authAudit(ctx context.Context, action, actorID, result, details st
 }
 
 func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[string]any, error) {
-	if strings.TrimSpace(description) == "" || len(description) > 12000 {
+	if strings.TrimSpace(description) == "" || len(description) > 60000 {
 		return nil, errors.New("description_invalid")
 	}
 	messages := []map[string]any{
