@@ -255,7 +255,7 @@ func imageCapabilityManifest() CapabilityManifest {
 				"target_ref":      map[string]any{"type": "string"},
 			},
 		},
-		TargetKinds:       []string{"conversation_message", "moment"},
+		TargetKinds:       []string{"conversation_message", "moment", "wake_up"},
 		SideEffectClass:   "external_async",
 		ConcurrencyClass:  "exclusive",
 		SupportsCancel:    true,

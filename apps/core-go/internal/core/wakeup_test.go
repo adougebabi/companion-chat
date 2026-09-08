@@ -94,3 +94,23 @@ func TestWakeUpChatOnlyActionFallsBackToNoOp(t *testing.T) {
 		t.Fatalf("fallback result = %#v", result)
 	}
 }
+
+func TestWakeUpToolOnlyReplyBecomesProactiveMessage(t *testing.T) {
+	assessment := wakeUpAssessmentFromToolCalls([]ToolCallV1{
+		{Name: "affect_event", Arguments: json.RawMessage(`{"event":{"type":"happy"}}`)},
+		{Name: "conversation.reply", Arguments: json.RawMessage(`{"text":"在呢。"}`)},
+	})
+	if assessment == nil || assessment["action_type"] != "proactive_message" {
+		t.Fatalf("tool-only wake-up assessment = %#v", assessment)
+	}
+}
+
+func TestWakeUpToolOnlyNativeCapabilityRemainsNoOpAction(t *testing.T) {
+	assessment := wakeUpAssessmentFromToolCalls([]ToolCallV1{
+		{Name: "affect_event", Arguments: json.RawMessage(`{"event":{"type":"excited"}}`)},
+		{Name: "media.image.generate", Arguments: json.RawMessage(`{"concept":{"subject":"a character"}}`)},
+	})
+	if assessment == nil || assessment["action_type"] != "no_op" {
+		t.Fatalf("tool-only capability assessment = %#v", assessment)
+	}
+}

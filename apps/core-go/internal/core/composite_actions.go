@@ -177,7 +177,10 @@ func validateCompositeOutputCalls(calls []ToolCallV1, targetKind string, registr
 		}
 		manifest := manifests[call.Name]
 		if !manifest.IsDeferredOutput() {
-			return fmt.Errorf("capability %q is not an output slot", call.Name)
+			// Native state/memory/affect capabilities are independent optional
+			// calls that may accompany a visible output. They are executed by the
+			// action runtime and must not invalidate the reply or media binding.
+			continue
 		}
 		if !containsStringValue(stringSliceAny(manifest.TargetKinds), targetKind) {
 			return fmt.Errorf("capability %q does not support target %q", call.Name, targetKind)
@@ -196,6 +199,19 @@ func hasDeferredOutputToolCalls(calls []ToolCallV1, registry *CapabilityRegistry
 		}
 	}
 	return false
+}
+
+func splitDeferredOutputToolCalls(calls []ToolCallV1, registry *CapabilityRegistry) (deferred, immediate []ToolCallV1) {
+	for _, call := range calls {
+		if registry != nil {
+			if executor, ok := registry.Lookup(call.Name); ok && executor.Manifest().IsDeferredOutput() {
+				deferred = append(deferred, call)
+				continue
+			}
+		}
+		immediate = append(immediate, call)
+	}
+	return deferred, immediate
 }
 
 func bindCompositeActionOutput(action CompositeActionV1, targetKind, targetRef string) CompositeActionV1 {

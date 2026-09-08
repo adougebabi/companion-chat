@@ -193,6 +193,42 @@ func fallbackWakeUpActionWithoutCapability(proposedActionType string) (string, m
 	return "no_op", map[string]any{"status": "no_op", "reason": "action_requires_capability_call", "proposed_action_type": proposedActionType}
 }
 
+// wakeUpAssessmentFromToolCalls keeps a tool-only wake-up valid. Thinking
+// providers are allowed to express the whole wake-up decision through native
+// calls and omit the optional JSON sidecar. Output calls still determine the
+// product action; any other registered calls remain capability work attached
+// to the same wake-up.
+func wakeUpAssessmentFromToolCalls(calls []ToolCallV1) map[string]any {
+	if len(calls) == 0 {
+		return nil
+	}
+	for _, call := range calls {
+		switch call.Name {
+		case "conversation.reply":
+			if conversationReplyCallHasText(call) {
+				return map[string]any{
+					"action_type":     "proactive_message",
+					"response_intent": "通过 conversation.reply 向 actor_user 发送主动私聊",
+					"evidence_refs":   []any{},
+				}
+			}
+		case "moment.publish":
+			if textFromOutputCapabilityCall([]ToolCallV1{call}, "moment.publish") != "" {
+				return map[string]any{
+					"action_type":     "moment",
+					"response_intent": "通过 moment.publish 发布主动动态",
+					"evidence_refs":   []any{},
+				}
+			}
+		}
+	}
+	return map[string]any{
+		"action_type":     "no_op",
+		"response_intent": "执行本次 wake-up 返回的已注册能力",
+		"evidence_refs":   []any{},
+	}
+}
+
 // ProcessWakeUp performs one bounded proactive-action assessment. Wake-up is
 // not a second cognition/reflection pass: it decides whether a Moment, direct
 // message, or installed capability should be proposed, records that decision,
@@ -247,10 +283,6 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
-	visualIdentityNeedsInitialization, err := a.visualIdentityWakeupNeedsInitialization(ctx, fluctlightID)
-	if err != nil {
-		return nil, err
-	}
 	if !visualIdentityActive {
 		// The missing identity is an authoritative domain fact. Keep it in the
 		// structured wake-up context so the persona can express the need without
@@ -277,12 +309,15 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	assessment := completion.Structured
-	toolCalls := completion.ToolCalls
-	if completion.StructuredFallback {
-		// A provider fallback is not a semantic wake-up decision. Do not invent
-		// attention, thought, desire, agency, or appraisal values merely to make
-		// the durable row writable; Temporal must retry the provider activity.
-		return nil, errors.New("wake_up_assessment_invalid")
+	toolCalls := normalizeConversationReplyCalls(completion.ToolCalls)
+	// A tool-only completion is a valid wake-up decision. The tools are the
+	// model's decision surface; the JSON sidecar is optional metadata and must
+	// not be used as a gate that discards an otherwise executable reply/media or
+	// native capability call.
+	if completion.StructuredFallback || len(assessment) == 0 || (len(toolCalls) > 0 && (stringValue(assessment["action_type"]) == "" || stringValue(assessment["action_type"]) == "no_op")) {
+		if derived := wakeUpAssessmentFromToolCalls(toolCalls); derived != nil {
+			assessment = derived
+		}
 	}
 	if assessment == nil {
 		return nil, errors.New("wake_up_assessment_invalid")
@@ -298,57 +333,22 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		}
 	}
 	visualIdentityToolResults := make([]ToolResultV1, 0, 1)
-	if visualIdentityNeedsInitialization {
-		remainingCalls := make([]ToolCallV1, 0, len(toolCalls))
-		visualIdentityCallCount := 0
-		for _, call := range toolCalls {
-			if call.Name != "visual_identity.initialize" {
-				remainingCalls = append(remainingCalls, call)
-				continue
-			}
-			visualIdentityCallCount++
-			if visualIdentityCallCount > 1 {
-				return nil, errors.New("visual_identity_trigger_duplicate")
-			}
-			call.SourceFactID = wakeID
-			results, executeErr := a.ExecuteToolCalls(ctx, fluctlightID, conversationID, wakeID, []ToolCallV1{call})
-			visualIdentityToolResults = append(visualIdentityToolResults, results...)
-			if executeErr != nil {
-				return nil, executeErr
-			}
+	remainingCalls := make([]ToolCallV1, 0, len(toolCalls))
+	for _, call := range toolCalls {
+		if call.Name != "visual_identity.initialize" {
+			remainingCalls = append(remainingCalls, call)
+			continue
 		}
-		toolCalls = remainingCalls
-		if len(visualIdentityToolResults) == 0 && fluctlight.Status == "active" {
-			// Local models may still omit a required tool call even when the
-			// structured wake-up contract asks for it. Repair that protocol miss
-			// through the same native tool executor (never by inserting the intent
-			// directly), so the visible notice and durable workflow cannot drift.
-			call := ToolCallV1{
-				ID:                "visual_identity_wakeup_" + stableDigest(wakeID),
-				Name:              "visual_identity.initialize",
-				Arguments:         json.RawMessage(`{}`),
-				SourceFactID:      wakeID,
-				ProviderRequestID: "provider_wakeup_visual_identity_" + stableDigest(wakeID),
-			}
-			results, executeErr := a.ExecuteToolCalls(ctx, fluctlightID, conversationID, wakeID, []ToolCallV1{call})
-			visualIdentityToolResults = append(visualIdentityToolResults, results...)
-			if executeErr != nil {
-				return nil, executeErr
-			}
+		call.SourceFactID = wakeID
+		results, executeErr := a.ExecuteToolCalls(ctx, fluctlightID, conversationID, wakeID, []ToolCallV1{call})
+		visualIdentityToolResults = append(visualIdentityToolResults, results...)
+		// Tool failures are recorded in the result and must not discard the
+		// wake-up decision or its other optional calls.
+		if executeErr != nil {
+			continue
 		}
 	}
-	if !visualIdentityNeedsInitialization {
-		// A local model may still echo a stale initializer call even though a
-		// session is already running. Do not execute a second trigger in that
-		// case; the durable session owns the next checkpoint.
-		filteredCalls := make([]ToolCallV1, 0, len(toolCalls))
-		for _, call := range toolCalls {
-			if call.Name != "visual_identity.initialize" {
-				filteredCalls = append(filteredCalls, call)
-			}
-		}
-		toolCalls = filteredCalls
-	}
+	toolCalls = remainingCalls
 	composite, err := normalizeCompositeAction(assessment, toolCalls, wakeID, stringValue(assessment["action_type"]))
 	if err != nil {
 		return nil, err
@@ -556,7 +556,7 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			if visible == "" {
 				return errors.New("wake_up_action_payload_empty")
 			}
-			actionPayload := map[string]any{"wake_up_id": wakeID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"], "tool_calls": toolCalls, "output_bindings": assessment["output_bindings"]}
+			actionPayload := map[string]any{"wake_up_id": wakeID, "source_fact_id": factID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"], "tool_calls": toolCalls, "output_bindings": assessment["output_bindings"]}
 			if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {
 				actionPayload["output_preference_decision"] = preference
 			}

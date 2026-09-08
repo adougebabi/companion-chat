@@ -299,6 +299,10 @@ func (executor *imageCapabilityExecutor) ExecuteDeferredTx(ctx context.Context, 
 		messageID = binding.TargetRef
 	case "moment":
 		momentID = binding.TargetRef
+	case "wake_up":
+		// A wake-up image is a standalone media intent. It has no chat/feed
+		// attachment yet; the wake-up/action ID remains the stable provenance
+		// scope and the media workflow owns the eventual asset.
 	default:
 		return failedToolResult(call, "tool_target_invalid", false, "unsupported output target"), errors.New("tool target invalid")
 	}

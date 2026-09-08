@@ -90,12 +90,11 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 		if status == "claimed" && claimedBy != "" && claimedAt != nil && time.Since(*claimedAt) < 10*time.Minute {
 			return ErrConflict
 		}
-		var lastProcessed int
-		if err := tx.QueryRow(ctx, `SELECT last_processed_sequence FROM public.cognition_inbox_heads WHERE fluctlight_id=$1`, fluctlightID).Scan(&lastProcessed); err == nil {
-			if sequence > lastProcessed+1 {
-				return ErrConflict
-			}
-		}
+		// Ordering is enforced by the durable pending/claimed predecessor
+		// check below. Do not reject a recoverable turn merely because the head's
+		// last_processed_sequence was not advanced by an older synchronous
+		// stream request or by a superseded turn; that would strand a frozen
+		// action after the request process dies before message settlement.
 		var earlierPending bool
 		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence<$2 AND status IN ('pending','claimed'))`, fluctlightID, sequence).Scan(&earlierPending); err != nil {
 			return err
@@ -366,6 +365,9 @@ func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID strin
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',processed_at=now() WHERE id=$1`, inboxID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads h SET last_processed_sequence=GREATEST(h.last_processed_sequence,i.sequence) FROM public.cognition_inbox i WHERE h.fluctlight_id=i.fluctlight_id AND i.id=$1`, inboxID); err != nil {
 			return err
 		}
 		var sourceActorID string

@@ -32,7 +32,7 @@ const (
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
 	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'media.%' THEN 0 WHEN intent_type LIKE 'schedule.%' THEN 1 WHEN intent_type LIKE 'visual_identity.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 ELSE 8 END"
-	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type FROM public.platform_workflow_intents WHERE status IN ('pending','started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
+	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type FROM public.platform_workflow_intents WHERE status IN ('pending','started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type='cognition.processing') ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
 var runtime struct {
@@ -736,6 +736,20 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		var intentID, workflowID, intentType string
 		if err := rows.Scan(&intentID, &workflowID, &intentType); err != nil {
 			return count, err
+		}
+		if intentType == "cognition.processing" {
+			var intentStatus, inboxStatus string
+			var claimedAt *time.Time
+			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT i.status,COALESCE(c.status,''),c.claimed_at FROM public.platform_workflow_intents i LEFT JOIN public.cognition_inbox c ON c.id=i.payload->>'inbox_id' WHERE i.intent_id=$1`, intentID).Scan(&intentStatus, &inboxStatus, &claimedAt); err == nil && intentStatus == "failed" && (inboxStatus == "pending" || (inboxStatus == "claimed" && (claimedAt == nil || time.Since(*claimedAt) >= 10*time.Minute))) {
+				if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1 AND status='failed'`, intentID); err != nil {
+					return count, err
+				}
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+				continue
+			}
 		}
 		execution, describeErr := d.Client.DescribeWorkflowExecution(ctx, normalizedWorkflowID(workflowID), "")
 		if describeErr != nil {

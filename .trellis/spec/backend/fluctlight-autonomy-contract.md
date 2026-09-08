@@ -159,12 +159,20 @@ the `reflection.run` intent are committed.
   `product.wakeup.enabled=false` as an explicit pause of the internal timer.
 - The model owns the semantic action decision and may propose `no_op`, a
   `proactive_message`, a `moment`, or any installed Capability slot through a
-  tool call. Core stores the frozen action decision and never asks Wake-up to
-  synthesize attention/thought/desire/agency/appraisal state.
+  tool call. A thinking-enabled Provider may return only Tool calls and omit
+  the optional JSON sidecar; Core derives the minimal action assessment from
+  the returned output/native calls instead of rejecting the wake-up.
+  Core stores the frozen action decision and never asks Wake-up to synthesize
+  attention/thought/desire/agency/appraisal state.
 - `moment` output uses the registered `moment.publish` deferred Capability slot;
   proactive private delivery uses `conversation.reply`. The output text is
   supplied by the capability call and is bound to the durable Moment or direct
-  Conversation target before execution.
+  Conversation target before execution. Native calls such as affect, memory,
+  scene, or relationship updates may accompany a deferred output call; they
+  must not invalidate or suppress the output call.
+- A standalone wake-up `media.image.generate` call is bound to the wake-up
+  action as its durable provenance target and creates a media intent without
+  requiring a chat message or Moment.
 - A proposed external action is frozen only after its Capability manifest,
   arguments, source fact, Owner authorization, hard safety, resource and
   idempotency checks pass. There is no product-type allowlist; visible text is
@@ -186,7 +194,8 @@ the `reflection.run` intent are committed.
 | Condition | Result |
 | --- | --- |
 | Missing/negative cycle or Fluctlight ID | Reject with `wake_up_*_required/invalid`; no fact or action |
-| Wake-up assessment omits the action decision, returns an unsupported action, or exceeds bounded field size | Reject; no synthetic cognition state or fallback action is persisted |
+| Wake-up assessment has neither an action decision nor any Tool call, returns an unsupported action, or exceeds bounded field size | Reject; no synthetic cognition state or fallback action is persisted |
+| Wake-up returns only valid registered Tool calls | Accept the tool-only decision; derive `proactive_message`/`moment` for output calls or a capability/no-op action for native calls |
 | Provider failure or invalid JSON | Workflow retries; after exhaustion the source intent remains auditable and no fabricated action decision is written |
 | Autonomy paused or capability is not installed/authorized | Persist the internal cycle as `blocked`/`deferred`; do not create an external Action |
 | Capability arguments or manifest are malformed | Fail closed and persist the internal cycle without an external Action |

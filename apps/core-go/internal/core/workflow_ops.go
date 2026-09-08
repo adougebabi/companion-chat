@@ -89,18 +89,24 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			}
 			calls := toolCallsFromValue(data["tool_calls"])
 			binding := OutputBindingV1{TargetKind: "conversation_message", TargetRef: messageID}
+			deferredCalls, immediateCalls := splitDeferredOutputToolCalls(calls, a.capabilityRegistry())
 			toolResults := make([]ToolResultV1, 0, len(calls))
-			if len(calls) > 0 {
-				calls = normalizeToolCallMetadata(calls, firstString(data["source_fact_id"], actionID), actionID)
-				if err := validateCompositeOutputCalls(calls, binding.TargetKind, a.capabilityRegistry()); err != nil {
+			if len(immediateCalls) > 0 {
+				immediateResults, _ := a.ExecuteToolCalls(ctx, fluctlightID, conversationID, firstString(data["source_fact_id"], actionID), immediateCalls)
+				toolResults = append(toolResults, immediateResults...)
+			}
+			if len(deferredCalls) > 0 {
+				deferredCalls = normalizeToolCallMetadata(deferredCalls, firstString(data["source_fact_id"], actionID), actionID)
+				if err := validateCompositeOutputCalls(deferredCalls, binding.TargetKind, a.capabilityRegistry()); err != nil {
 					return err
 				}
-				toolResults, err = a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, firstString(data["source_fact_id"], actionID), actionID, calls, nil, binding)
-				if err != nil {
-					return err
+				settled, settleErr := a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, firstString(data["source_fact_id"], actionID), actionID, deferredCalls, toolResults, binding)
+				if settleErr != nil {
+					return settleErr
 				}
-				bound := make([]OutputBindingV1, 0, len(calls))
-				for _, call := range calls {
+				toolResults = settled
+				bound := make([]OutputBindingV1, 0, len(deferredCalls))
+				for _, call := range deferredCalls {
 					bound = append(bound, OutputBindingV1{ToolCallID: call.ID, TargetKind: binding.TargetKind, TargetRef: binding.TargetRef})
 				}
 				if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(payload,'{output_bindings}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(bound)); err != nil {
@@ -139,19 +145,24 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			}
 			calls := toolCallsFromValue(data["tool_calls"])
 			binding := OutputBindingV1{TargetKind: "moment", TargetRef: momentID}
+			deferredCalls, immediateCalls := splitDeferredOutputToolCalls(calls, a.capabilityRegistry())
 			toolResults := make([]ToolResultV1, 0, len(calls))
-			if len(calls) > 0 {
-				calls = normalizeToolCallMetadata(calls, firstString(data["source_fact_id"], actionID), actionID)
-				if err := validateCompositeOutputCalls(calls, binding.TargetKind, a.capabilityRegistry()); err != nil {
+			if len(immediateCalls) > 0 {
+				immediateResults, _ := a.ExecuteToolCalls(ctx, fluctlightID, stringValue(data["conversation_id"]), firstString(data["source_fact_id"], actionID), immediateCalls)
+				toolResults = append(toolResults, immediateResults...)
+			}
+			if len(deferredCalls) > 0 {
+				deferredCalls = normalizeToolCallMetadata(deferredCalls, firstString(data["source_fact_id"], actionID), actionID)
+				if err := validateCompositeOutputCalls(deferredCalls, binding.TargetKind, a.capabilityRegistry()); err != nil {
 					return err
 				}
-				settled, settleErr := a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, firstString(data["source_fact_id"], actionID), actionID, calls, nil, binding)
+				settled, settleErr := a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, firstString(data["source_fact_id"], actionID), actionID, deferredCalls, toolResults, binding)
 				if settleErr != nil {
 					return settleErr
 				}
 				toolResults = settled
-				bound := make([]OutputBindingV1, 0, len(calls))
-				for _, call := range calls {
+				bound := make([]OutputBindingV1, 0, len(deferredCalls))
+				for _, call := range deferredCalls {
 					bound = append(bound, OutputBindingV1{ToolCallID: call.ID, TargetKind: binding.TargetKind, TargetRef: binding.TargetRef})
 				}
 				if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(payload,'{output_bindings}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(bound)); err != nil {
@@ -278,22 +289,28 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 		if !ok {
 			return a.failAutonomyAction(ctx, actionID, "capability_unavailable")
 		}
-		if manifest.IsDeferredOutput() {
-			// A capability action without a Composite Action output target cannot
-			// safely execute an external async slot. Targeted actions are settled
-			// by the proactive_message/moment branches above.
-			return a.failAutonomyAction(ctx, actionID, "capability_output_target_missing")
-		}
+		_ = manifest
 	}
 	for index := range calls {
 		calls[index].ActionID = actionID
 		calls[index].SourceFactID = sourceFactID
 	}
-	results, err := a.ExecuteToolCalls(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls)
-	if err != nil {
-		_, _ = a.DB.Pool().Exec(ctx, `UPDATE public.autonomy_actions SET status='failed',error_code=$2,settled_at=now() WHERE id=$1 AND status='frozen'`, actionID, "capability_action_failed")
-		_, _ = a.DB.Pool().Exec(ctx, `UPDATE public.cognition_wakeups SET result=result || $2::jsonb WHERE action_id=$1`, actionID, jsonBytes(map[string]any{"status": "failed", "action_status": "failed", "tool_results": results}))
-		return nil, err
+	deferredCalls, immediateCalls := splitDeferredOutputToolCalls(calls, a.capabilityRegistry())
+	results := make([]ToolResultV1, 0, len(calls))
+	if len(immediateCalls) > 0 {
+		immediateResults, _ := a.ExecuteToolCalls(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, immediateCalls)
+		results = append(results, immediateResults...)
+	}
+	if len(deferredCalls) > 0 {
+		settled, settleErr := withDeferredCapabilityActionResults(ctx, a, fluctlightID, sourceFactID, actionID, deferredCalls, results)
+		if settleErr != nil {
+			// Deferred capability failures are optional Tool results. Keep the
+			// action and wake-up auditable; do not turn a valid wake-up into a
+			// workflow failure because one requested capability was unavailable.
+			results = append(results, settled...)
+		} else {
+			results = settled
+		}
 	}
 	result := map[string]any{"status": "completed", "action_status": "completed", "tool_results": results}
 	if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
@@ -309,6 +326,18 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 		return nil, err
 	}
 	return map[string]any{"action_id": actionID, "action_type": "capability", "status": "completed", "tool_results": results}, nil
+}
+
+func withDeferredCapabilityActionResults(ctx context.Context, app *App, fluctlightID, sourceFactID, actionID string, calls []ToolCallV1, existing []ToolResultV1) ([]ToolResultV1, error) {
+	results := append([]ToolResultV1(nil), existing...)
+	err := withTransaction(ctx, app.DB.Pool(), func(tx pgx.Tx) error {
+		settled, err := app.settleDeferredToolCallsTx(ctx, tx, fluctlightID, sourceFactID, actionID, calls, results, OutputBindingV1{TargetKind: "wake_up", TargetRef: actionID})
+		if err == nil {
+			results = settled
+		}
+		return err
+	})
+	return results, err
 }
 
 func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (map[string]any, error) {

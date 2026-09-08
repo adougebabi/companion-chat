@@ -39,6 +39,10 @@ created_at / ready_at / tombstoned_at / deleted_at
 - A text Moment is published first. Its optional image starts only from an
   already-frozen `moment_media_request` decided by cognition, never from an
   existing asset list, a keyword branch, or a renderer inference.
+- A wake-up may request a standalone `media.image.generate` call without a
+  conversation or Moment output. Its `wake_up` target is represented by the
+  stable action provenance; the media intent remains durable and un-attached
+  until a later product projection explicitly references the generated asset.
 - `MediaIntent.moment_id` is the durable target reference. It is nullable for
   conversation media and mandatory for Moment-image work; it is backed by the
   `media_intents.moment_id -> moments.id` foreign key.

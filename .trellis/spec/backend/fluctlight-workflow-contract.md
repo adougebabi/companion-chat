@@ -186,6 +186,11 @@ registerMediaWorkflows(mediaWorker)
 
 - A failed claim becomes `pending` with `claimed_by` and `claimed_at` cleared;
   it remains eligible for the durable retry path.
+- Cognition claim ordering is determined by earlier inbox rows that are still
+  `pending`/`claimed`, not solely by a lagging `last_processed_sequence`.
+  A synchronous request may freeze a turn before its process dies; a Worker
+  retry must be able to claim that same frozen turn once earlier active rows
+  are terminal.
 - If the assistant message for the same `turn_id` is already persisted, claim
   cleanup settles the inbox as `processed` and clears the lease instead of
   leaving a half-completed turn permanently claimed.

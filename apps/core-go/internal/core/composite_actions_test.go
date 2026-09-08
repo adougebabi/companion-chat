@@ -81,6 +81,27 @@ func TestCompositeOutputValidationUsesTypedTargetKinds(t *testing.T) {
 	}
 }
 
+func TestCompositeOutputValidationAllowsOptionalNativeCallsAlongsideOutput(t *testing.T) {
+	registry := NewCapabilityRegistry(
+		testManifestExecutor{manifest: CapabilityManifest{
+			Name: "calendar.event.create", Version: "v1", Description: "Create a calendar event.",
+			Parameters: map[string]any{"type": "object"}, TargetKinds: []string{"conversation_message"},
+			SideEffectClass: "external_async", ConcurrencyClass: "exclusive",
+		}},
+		testManifestExecutor{manifest: CapabilityManifest{
+			Name: "affect_event", Version: "v1", Description: "Record an affect event.",
+			Parameters: map[string]any{"type": "object"}, SideEffectClass: "state", ConcurrencyClass: "shared",
+		}},
+	)
+	calls := []ToolCallV1{
+		{ID: "call-output", Name: "calendar.event.create", Arguments: json.RawMessage(`{"title":"demo"}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1", SchemaVersion: ToolCallSchemaVersion},
+		{ID: "call-native", Name: "affect_event", Arguments: json.RawMessage(`{"event":{"type":"happy"}}`), SourceFactID: "fact-1", ProviderRequestID: "provider-2", SchemaVersion: ToolCallSchemaVersion},
+	}
+	if err := validateCompositeOutputCalls(calls, "conversation_message", registry); err != nil {
+		t.Fatalf("optional native call rejected beside output call: %v", err)
+	}
+}
+
 func TestNormalizeCompositeActionDoesNotDuplicateCanonicalMediaCall(t *testing.T) {
 	action, err := normalizeCompositeAction(map[string]any{
 		"action_type":          "moment",

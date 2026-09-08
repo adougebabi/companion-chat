@@ -144,7 +144,7 @@ func TestToolCallPayloadKeepsProviderSchemaAtBoundary(t *testing.T) {
 		t.Fatalf("media manifest missing = %#v", names)
 	}
 	manifest := imageCapabilityManifest()
-	if len(manifest.TargetKinds) != 2 || manifest.TargetKinds[0] != "conversation_message" || manifest.TargetKinds[1] != "moment" {
+	if len(manifest.TargetKinds) != 3 || manifest.TargetKinds[0] != "conversation_message" || manifest.TargetKinds[1] != "moment" || manifest.TargetKinds[2] != "wake_up" {
 		t.Fatalf("media target kinds = %#v", manifest.TargetKinds)
 	}
 	if !manifest.IsDeferredOutput() || manifest.OutputSchema == nil {
