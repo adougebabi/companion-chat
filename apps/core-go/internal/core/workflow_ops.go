@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -211,6 +210,29 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 	return a.failAutonomyAction(ctx, actionID, "unsupported_action_type")
 }
 
+func reflectionEvidenceRefs(evidence []map[string]any) []string {
+	refs := make([]string, 0, len(evidence))
+	seen := make(map[string]struct{}, len(evidence))
+	for _, item := range evidence {
+		sequence := stringValue(item["sequence"])
+		if sequence == "" {
+			if raw, ok := item["sequence"]; ok && raw != nil {
+				sequence = fmt.Sprint(raw)
+			}
+		}
+		if sequence == "" {
+			continue
+		}
+		ref := "sequence:" + sequence
+		if _, ok := seen[ref]; ok {
+			continue
+		}
+		seen[ref] = struct{}{}
+		refs = append(refs, ref)
+	}
+	return refs
+}
+
 func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map[string]any, error) {
 	var fluctlightID, status string
 	var payload, policySnapshotRaw []byte
@@ -368,20 +390,23 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		}
 		allowedEvidence[id] = struct{}{}
 		allowedEvidence[fmt.Sprintf("sequence:%d", sequence)] = struct{}{}
-		evidence = append(evidence, map[string]any{"id": id, "sequence": sequence, "event_type": typ, "payload": json.RawMessage(payload)})
+		evidence = append(evidence, map[string]any{"id": id, "sequence": sequence, "event_type": typ, "payload": decodeJSONValue(payload)})
 		if sequence > toSequence {
 			toSequence = sequence
 		}
 	}
 	rows.Close()
 	// Appraisal is an authoritative semantic interpretation of each processed
-	// fact. Include it in the same reflection evidence window so relationship
-	// significance is not silently discarded between cognition and reflection.
+	// fact. Merge it into the corresponding source event rather than appending a
+	// second evidence row with the window's maximum sequence. This keeps one
+	// evidence item per source sequence and prevents reflection prompts from
+	// appearing to accumulate duplicate cognition records.
 	appraisalRows, appraisalErr := a.DB.Pool().Query(ctx, `SELECT id,source_fact_id,payload,evidence_refs FROM public.cognition_appraisals WHERE fluctlight_id=$1 AND source_fact_id IN (SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND sequence<=$3 AND status='processed')`, fluctlightID, watermark, toSequence)
 	if appraisalErr != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, appraisalErr
 	}
+	appraisalsByFact := make(map[string]map[string]any)
 	{
 		for appraisalRows.Next() {
 			var id, sourceFactID string
@@ -394,9 +419,15 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 			appraisalEvidenceID := "appraisal:" + id
 			allowedEvidence[appraisalEvidenceID] = struct{}{}
 			allowedEvidence[id] = struct{}{}
-			evidence = append(evidence, map[string]any{"id": appraisalEvidenceID, "sequence": toSequence, "event_type": "cognition.appraisal", "payload": json.RawMessage(payload), "source_fact_id": sourceFactID, "evidence_refs": decodeArray(refs)})
+			appraisalsByFact[sourceFactID] = map[string]any{"id": appraisalEvidenceID, "payload": decodeJSONValue(payload), "evidence_refs": decodeArray(refs)}
 		}
 		appraisalRows.Close()
+	}
+	for _, item := range evidence {
+		if appraisal := appraisalsByFact[stringValue(item["id"])]; len(appraisal) > 0 {
+			item["appraisal"] = appraisal["payload"]
+			item["appraisal_evidence_refs"] = appraisal["evidence_refs"]
+		}
 	}
 	if len(evidence) == 0 {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
@@ -418,7 +449,15 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 			allowedEvidence["memory:"+memoryID] = struct{}{}
 		}
 	}
-	proposal, err := a.Provider.Structured(WithProviderScenario(ctx, "reflection"), "reflection", []map[string]any{{"role": "system", "content": reflectionInstruction}, {"role": "user", "content": jsonString(map[string]any{"evidence": compactReflectionEvidence(evidence), "context": compactCognitionContext(projection)})}})
+	completion, err := a.Provider.StructuredWithToolsSchema(
+		WithProviderScenario(ctx, "reflection"),
+		"reflection",
+		[]map[string]any{{"role": "system", "content": reflectionInstruction}, {"role": "user", "content": jsonString(map[string]any{"evidence": compactReflectionEvidence(evidence), "context": compactCognitionContext(projection)})}},
+		nil,
+		"reflection_response",
+		reflectionResponseSchema(),
+		false,
+	)
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		if status, suppressed := providerSuppressionStatus(err); suppressed {
@@ -430,6 +469,11 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		}
 		return nil, err
 	}
+	if completion.StructuredFallback || completion.Structured == nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, errors.New("reflection_structured_response_invalid")
+	}
+	proposal := completion.Structured
 	normalizedProposal := normalizeReflectionProposal(proposal)
 	filteredProposal := filterReflectionEvidence(normalizedProposal, allowedEvidence)
 	for _, key := range []string{"memory_candidates", "relationship_candidates", "goal_candidates", "intention_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"} {
@@ -459,7 +503,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		if latestStateRevision != stateRevision {
 			return ErrConflict
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_reflection_proposals(id,fluctlight_id,from_sequence,to_sequence,base_state_revision,payload,evidence_refs,correlation_id,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'proposed') ON CONFLICT(id) DO NOTHING`, proposalID, fluctlightID, watermark+1, toSequence, stateRevision, jsonBytes(proposal), jsonBytes(evidence), correlationID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_reflection_proposals(id,fluctlight_id,from_sequence,to_sequence,base_state_revision,payload,evidence_refs,correlation_id,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'proposed') ON CONFLICT(id) DO NOTHING`, proposalID, fluctlightID, watermark+1, toSequence, stateRevision, jsonBytes(proposal), jsonBytes(reflectionEvidenceRefs(evidence)), correlationID); err != nil {
 			return err
 		}
 		if err := a.applyReflectionCandidates(ctx, tx, fluctlightID, proposal, allowedEvidence, proposalID); err != nil {

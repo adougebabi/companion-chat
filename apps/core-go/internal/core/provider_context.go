@@ -716,14 +716,49 @@ func compactReflectionEvidence(evidence []map[string]any) []map[string]any {
 			// evidence without exposing the database fact ID or hash.
 			compact["evidence_ref"] = "sequence:" + fmt.Sprint(sequence)
 		}
-		if payload := stripProviderMetadata(item["payload"]); len(mapValue(payload)) > 0 {
+		if payload := stripProviderMetadata(decodeProviderJSONValue(item["payload"])); !isEmptyReflectionProviderValue(payload) {
 			compact["payload"] = payload
+		}
+		if appraisal := stripProviderMetadata(decodeProviderJSONValue(item["appraisal"])); !isEmptyReflectionProviderValue(appraisal) {
+			compact["appraisal"] = appraisal
 		}
 		if len(compact) > 0 {
 			result = append(result, compact)
 		}
 	}
 	return result
+}
+
+// decodeProviderJSONValue normalizes values read from JSONB columns before
+// applying provider redaction. pgx may scan JSONB into json.RawMessage (or
+// []byte); treating those values as opaque bytes makes mapValue return an
+// empty object and silently drops the evidence from Reflection prompts.
+func decodeProviderJSONValue(value any) any {
+	switch typed := value.(type) {
+	case json.RawMessage:
+		return decodeJSONValue([]byte(typed))
+	case []byte:
+		return decodeJSONValue(typed)
+	default:
+		return value
+	}
+}
+
+func isEmptyReflectionProviderValue(value any) bool {
+	switch typed := value.(type) {
+	case nil:
+		return true
+	case map[string]any:
+		return len(typed) == 0
+	case []any:
+		return len(typed) == 0
+	case []map[string]any:
+		return len(typed) == 0
+	case string:
+		return strings.TrimSpace(typed) == ""
+	default:
+		return false
+	}
 }
 
 func compactProviderFact(raw []byte) any {

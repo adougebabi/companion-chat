@@ -197,7 +197,7 @@ func ToolCallPayload(manifests []CapabilityManifest) []map[string]any {
 // Video/audio/search slots are added only when their executable adapters exist;
 // advertising an unavailable capability would make the model contract lie.
 func ExternalCapabilityManifests() []CapabilityManifest {
-	return []CapabilityManifest{conversationReplyCapabilityManifest(), imageCapabilityManifest()}
+	return []CapabilityManifest{conversationReplyCapabilityManifest(), imageCapabilityManifest(), momentPublishCapabilityManifest()}
 }
 
 func conversationReplyCapabilityManifest() CapabilityManifest {
@@ -215,6 +215,28 @@ func conversationReplyCapabilityManifest() CapabilityManifest {
 			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}},
 		},
 		TargetKinds: []string{"conversation_message"}, SideEffectClass: "external_async", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
+	}
+}
+
+func momentPublishCapabilityManifest() CapabilityManifest {
+	return CapabilityManifest{
+		Name: "moment.publish", Version: "v1",
+		Description: "Publish the final text of one Fluctlight Moment to the shared feed.",
+		Parameters: map[string]any{
+			"type": "object", "additionalProperties": false,
+			"required":   []any{"text"},
+			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}},
+		},
+		OutputSchema: map[string]any{
+			"type": "object", "additionalProperties": false,
+			"required": []any{"text", "target_kind", "target_ref"},
+			"properties": map[string]any{
+				"text":        map[string]any{"type": "string"},
+				"target_kind": map[string]any{"type": "string"},
+				"target_ref":  map[string]any{"type": "string"},
+			},
+		},
+		TargetKinds: []string{"moment"}, SideEffectClass: "external_async", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
 	}
 }
 

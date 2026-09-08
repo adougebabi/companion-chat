@@ -140,10 +140,12 @@ ProcessWakeUp(ctx, fluctlight_id, cycle) -> WakeUpResult
 ```
 
 `WakeUpResult` contains `wake_up_id`, `cycle`, `status`, `action_type`,
-`action_id`, `reflection_intent_id`, and `interval_seconds`. The persisted
-`cognition_wakeups` row records `attention`, `thought`, `desire`, `agency`, an
-`internal_dynamics` snapshot, the requested/actual action type, and the bounded
-action result. The corresponding `internal.wake_up` cognition fact is assigned
+`action_id`, `reflection_intent_id`, and `interval_seconds`. Wake-up is an
+action assessment only; it does not run a second cognition-stage pass or mutate
+Current State. The persisted `cognition_wakeups` row keeps the current
+`internal_dynamics` snapshot for audit compatibility, the requested/actual
+action type, and the bounded action result. Legacy stage columns remain empty
+for new rows. The corresponding `internal.wake_up` cognition fact is assigned
 the next per-Fluctlight sequence and is marked processed only after its row and
 the `reflection.run` intent are committed.
 
@@ -155,10 +157,14 @@ the `reflection.run` intent are committed.
 - The default interval is 1800 seconds. Core clamps configured
   `product.wakeup.interval_seconds` to 300–86400 seconds and accepts
   `product.wakeup.enabled=false` as an explicit pause of the internal timer.
-- The model owns the semantic stage summaries (`attention`, `thought`,
-  `desire`, `agency`) and may propose `no_op`, a legacy visible action, or any
-  installed Capability slot through a tool call. Core stores concise summaries,
-  never hidden chain-of-thought.
+- The model owns the semantic action decision and may propose `no_op`, a
+  `proactive_message`, a `moment`, or any installed Capability slot through a
+  tool call. Core stores the frozen action decision and never asks Wake-up to
+  synthesize attention/thought/desire/agency/appraisal state.
+- `moment` output uses the registered `moment.publish` deferred Capability slot;
+  proactive private delivery uses `conversation.reply`. The output text is
+  supplied by the capability call and is bound to the durable Moment or direct
+  Conversation target before execution.
 - A proposed external action is frozen only after its Capability manifest,
   arguments, source fact, Owner authorization, hard safety, resource and
   idempotency checks pass. There is no product-type allowlist; visible text is
@@ -180,8 +186,8 @@ the `reflection.run` intent are committed.
 | Condition | Result |
 | --- | --- |
 | Missing/negative cycle or Fluctlight ID | Reject with `wake_up_*_required/invalid`; no fact or action |
-| Wake-up assessment omits a stage, returns an unsupported action, or exceeds bounded summary size | Reject; no synthetic thought or fallback action is persisted |
-| Provider failure or invalid JSON | Workflow retries; after exhaustion the source intent remains auditable and no fabricated stage is written |
+| Wake-up assessment omits the action decision, returns an unsupported action, or exceeds bounded field size | Reject; no synthetic cognition state or fallback action is persisted |
+| Provider failure or invalid JSON | Workflow retries; after exhaustion the source intent remains auditable and no fabricated action decision is written |
 | Autonomy paused or capability is not installed/authorized | Persist the internal cycle as `blocked`/`deferred`; do not create an external Action |
 | Capability arguments or manifest are malformed | Fail closed and persist the internal cycle without an external Action |
 | Proactive action has no direct conversation | Persist the internal cycle with `proactive_target_invalid`; do not create a conversation |
@@ -206,8 +212,9 @@ the `reflection.run` intent are committed.
   maps it to the lifecycle queue; assert stable cycle IDs across retries.
 - Assert interval defaults, lower/upper clamps, disabled behavior, and
   Continue-As-New cycle increment.
-- Assert missing stages/invalid actions/provider failures never create a wake
-  fact or an external Action.
+- Assert missing action decisions/invalid actions/provider failures never create
+  a wake fact or an external Action; assert `moment.publish` is registered and
+  binds text to the durable Moment target.
 - Assert a valid wake-up writes one sequenced `internal.wake_up` fact, one
   `cognition_wakeups` row, and one reflection intent; duplicate execution does
   not allocate another sequence.

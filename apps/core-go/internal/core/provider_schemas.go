@@ -195,17 +195,12 @@ func dailyReviewResponseSchema() map[string]any {
 
 func wakeUpResponseSchema() map[string]any {
 	return objectSchema(map[string]any{
-		"attention":                  cognitiveStageSchema(),
-		"thought":                    cognitiveStageSchema(),
-		"desire":                     cognitiveStageSchema(),
-		"agency":                     cognitiveStageSchema(),
-		"appraisal":                  appraisalResponseSchema(),
 		"action_type":                stringSchema(),
 		"response_intent":            stringSchema(),
 		"evidence_refs":              arraySchema(stringSchema()),
 		"tool_calls":                 arraySchema(toolCallSchema()),
 		"output_preference_decision": outputPreferenceDecisionSchema(),
-	}, []string{"attention", "thought", "desire", "agency", "appraisal", "action_type", "response_intent", "evidence_refs", "tool_calls"}, false)
+	}, []string{"action_type", "response_intent", "evidence_refs", "tool_calls"}, false)
 }
 
 func mediaQualityAcceptanceResponseSchema() map[string]any {

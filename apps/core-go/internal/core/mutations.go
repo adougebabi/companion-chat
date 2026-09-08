@@ -428,7 +428,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		messages := []map[string]any{{"role": "system", "content": conversationAssessmentInstruction}, {"role": "user", "content": jsonString(map[string]any{"current_message": map[string]any{"sender": compactActorRef(projection.CurrentSpeaker), "content": text}, "text": text, "context": compactCognitionContext(projection)})}}
 		messages = withActorRelationshipSystemContext(messages, projection)
 		messages = withContextAuthorityInstruction(messages)
-		manifests := a.capabilityRegistry().Manifests()
+		// Moment publication is a Wake-up/autonomy output, not an ordinary
+		// interactive reply capability. Keep it registered globally for the
+		// Runtime while withholding it from the conversation tool catalog.
+		manifests := capabilityManifestsExcept(a.capabilityRegistry(), "moment.publish")
 		completion, completionErr := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "cognitive_assessment"), "cognitive_assessment", messages, manifests, "conversation_turn_response", cognitiveTurnResponseSchema(), true)
 		if completionErr != nil {
 			if a.cognitionFactSuperseded(ctx, inboxID) {

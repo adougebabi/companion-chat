@@ -1,8 +1,11 @@
 package core
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
-func TestNormalizeWakeUpAssessmentKeepsInternalStages(t *testing.T) {
+func TestNormalizeWakeUpAssessmentPreservesOptionalLegacyFields(t *testing.T) {
 	value, err := normalizeWakeUpAssessment(map[string]any{
 		"appraisal": map[string]any{
 			"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.0,
@@ -23,6 +26,33 @@ func TestNormalizeWakeUpAssessmentKeepsInternalStages(t *testing.T) {
 	}
 	if refs, ok := value["evidence_refs"].([]any); !ok || len(refs) != 0 {
 		t.Fatalf("evidence refs = %#v", value["evidence_refs"])
+	}
+}
+
+func TestNormalizeWakeUpAssessmentAcceptsActionOnlyDecision(t *testing.T) {
+	value, err := normalizeWakeUpAssessment(map[string]any{
+		"action_type":     "moment",
+		"response_intent": "发布一条简短动态",
+		"evidence_refs":   []any{"life_context.scene"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value["action_type"] != "moment" || stringValue(value["response_intent"]) == "" {
+		t.Fatalf("normalized action-only wake-up = %#v", value)
+	}
+	if _, ok := value["appraisal"]; ok {
+		t.Fatalf("wake-up action decision must not synthesize appraisal: %#v", value)
+	}
+}
+
+func TestTextFromOutputCapabilityCallReadsFinalText(t *testing.T) {
+	call := ToolCallV1{Name: "moment.publish", Arguments: json.RawMessage(`{"text":"  今天有点风。  "}`)}
+	if got := textFromOutputCapabilityCall([]ToolCallV1{call}, "moment.publish"); got != "今天有点风。" {
+		t.Fatalf("output capability text = %q", got)
+	}
+	if got := textFromOutputCapabilityCall([]ToolCallV1{call}, "conversation.reply"); got != "" {
+		t.Fatalf("wrong output capability should be empty: %q", got)
 	}
 }
 
@@ -62,38 +92,5 @@ func TestWakeUpChatOnlyActionFallsBackToNoOp(t *testing.T) {
 	}
 	if result["status"] != "no_op" || result["reason"] != "action_requires_capability_call" || result["proposed_action_type"] != "reply" {
 		t.Fatalf("fallback result = %#v", result)
-	}
-}
-
-func TestFallbackWakeUpAssessmentIsValidNoOp(t *testing.T) {
-	assessment, err := normalizeWakeUpAssessment(fallbackWakeUpAssessment())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if assessment["action_type"] != "no_op" {
-		t.Fatalf("fallback action = %#v", assessment["action_type"])
-	}
-	for _, field := range []string{"attention", "thought", "desire", "agency"} {
-		if assessment[field] == nil {
-			t.Fatalf("fallback %s is empty", field)
-		}
-	}
-}
-
-func TestWakeUpAssessmentWithOnlyToolCallsUsesDeterministicNoOp(t *testing.T) {
-	if !wakeUpAssessmentHasNoStages(map[string]any{
-		"attention": "", "thought": "", "desire": "", "agency": "", "action_type": "no_op",
-	}, []ToolCallV1{{Name: "scene_event"}}) {
-		t.Fatal("empty stages plus bookkeeping tool call should use no-op fallback")
-	}
-	if wakeUpAssessmentHasNoStages(map[string]any{
-		"attention": "观察", "thought": "", "desire": "", "agency": "", "action_type": "no_op",
-	}, []ToolCallV1{{Name: "scene_event"}}) {
-		t.Fatal("a non-empty stage must not be treated as an omitted assessment")
-	}
-	if wakeUpAssessmentHasNoStages(map[string]any{
-		"attention": "", "thought": "", "desire": "", "agency": "", "action_type": "no_op",
-	}, nil) {
-		t.Fatal("an empty assessment without tool calls remains invalid")
 	}
 }

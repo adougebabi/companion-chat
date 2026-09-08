@@ -184,17 +184,14 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	deliveryStatus := ""
 	deliveredMessageID := ""
 	if actionType != "no_op" {
-		realizationMessages := []map[string]any{{"role": "system", "content": actionRealizationInstruction}, {"role": "user", "content": jsonString(map[string]any{"action_type": actionType, "response_intent": composite.ResponseIntent, "context": compactCognitionContext(projection)})}}
-		realizationMessages = withActorRelationshipSystemContext(realizationMessages, projection)
-		visible, realizationErr := a.Provider.Text(WithProviderScenario(ctx, "autonomy_reply"), "action_realization", realizationMessages)
-		if realizationErr != nil {
-			_, _ = a.failAutonomyAction(ctx, actionID, "realization_failed")
-			return nil, realizationErr
+		callName := "moment.publish"
+		if actionType == "proactive_message" {
+			callName = "conversation.reply"
 		}
-		visible = normalizeVisibleReply(visible)
-		if visible == "" || len([]rune(visible)) > 32000 {
-			_, _ = a.failAutonomyAction(ctx, actionID, "realization_empty")
-			return nil, errors.New("daily_review_realization_empty")
+		visible := textFromOutputCapabilityCall(composite.ToolCalls, callName)
+		if visible == "" {
+			_, _ = a.failAutonomyAction(ctx, actionID, "output_capability_text_missing")
+			return nil, fmt.Errorf("daily_review_%s_required", strings.ReplaceAll(callName, ".", "_"))
 		}
 		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(payload,'{text}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(visible)); err != nil {
 			return nil, err

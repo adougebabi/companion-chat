@@ -8,8 +8,8 @@ import (
 
 const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字面量保持原文。
 2. 约束优先级：core_persona（硬约束）> developing_self（带证据线索）> current_state（当前事实）。
-3. 上下文绑定：决策与工具参数必须严格锚定 context（scene, activity, location, mood, appearance）。除用户明确要求外，禁止擅自变更场景；用户显式变更时标明 context_override.explicit=true。
-4. Actor 语义：Human 与 Fluctlight 都是 Actor；消息发送者以 Actor 与关系上下文为准，不要把 transport role=user 当作唯一的“用户”身份。
+3. 上下文绑定：决策与工具参数必须严格锚定 context（scene, activity, location, mood, appearance）。除 actor_user 明确要求外，禁止擅自变更场景；actor_user 显式变更时标明 context_override.explicit=true。
+4. Actor 语义：Human 与 Fluctlight 都是 Actor；消息发送者以 Actor 与关系上下文为准，不要把 transport role=user 当作 actor_user 身份。
 5. 认知与生成准则：
    - 认知字段仅写简短摘要，禁止输出推理长文。
    - claims 仅保留有证据的事实或假设，禁止幻觉捏造。
@@ -348,7 +348,7 @@ func renderProviderDynamicDocument(value map[string]any) string {
 			if key == "current_message" {
 				title = "本次 Actor 消息"
 			} else if key == "text" || key == "current_user_text" {
-				title = "本次用户输入"
+				title = "本次 actor_user 输入"
 			}
 			renderProviderDynamicSection(&builder, title, map[string]any{key: raw}, false)
 		}

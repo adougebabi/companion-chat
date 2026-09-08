@@ -46,7 +46,7 @@ func TestComposeProviderMessagesSeparatesFixedPersonaAndDynamicContext(t *testin
 		}
 	}
 	user := stringValue(formatted[1]["content"])
-	for _, heading := range []string{"# 当前上下文", "# 记忆", "# 最近对话", "# 本次用户输入"} {
+	for _, heading := range []string{"# 当前上下文", "# 记忆", "# 最近对话", "# 本次 actor_user 输入"} {
 		if !strings.Contains(user, heading) {
 			t.Fatalf("dynamic heading %q missing: %s", heading, user)
 		}

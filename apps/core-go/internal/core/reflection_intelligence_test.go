@@ -145,3 +145,15 @@ func TestReflectionNormalizesTypedDriveAndPreferenceSlots(t *testing.T) {
 		t.Fatalf("typed slots rejected = %v", err)
 	}
 }
+
+func TestReflectionEvidenceRefsUseOneStableSequenceRefPerSourceFact(t *testing.T) {
+	evidence := []map[string]any{
+		{"sequence": 16, "event_type": "conversation.turn"},
+		{"sequence": 17, "event_type": "autonomy.result"},
+		{"sequence": 17, "event_type": "cognition.appraisal"},
+	}
+	refs := reflectionEvidenceRefs(evidence)
+	if len(refs) != 2 || refs[0] != "sequence:16" || refs[1] != "sequence:17" {
+		t.Fatalf("reflection evidence refs = %#v", refs)
+	}
+}

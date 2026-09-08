@@ -16,6 +16,7 @@ func (a *App) capabilityRegistry() *CapabilityRegistry {
 	}
 	return NewCapabilityRegistry(
 		&conversationReplyCapabilityExecutor{},
+		&momentPublishCapabilityExecutor{},
 		&imageCapabilityExecutor{app: a},
 		&visualIdentityCapabilityExecutor{app: a},
 		&sceneCapabilityExecutor{app: a},
@@ -24,6 +25,24 @@ func (a *App) capabilityRegistry() *CapabilityRegistry {
 		&relationshipLookupCapabilityExecutor{app: a},
 		&capabilityRequestExecutor{app: a},
 	)
+}
+
+func capabilityManifestsExcept(registry *CapabilityRegistry, excluded ...string) []CapabilityManifest {
+	if registry == nil {
+		return nil
+	}
+	blocked := make(map[string]struct{}, len(excluded))
+	for _, name := range excluded {
+		blocked[name] = struct{}{}
+	}
+	result := make([]CapabilityManifest, 0)
+	for _, manifest := range registry.Manifests() {
+		if _, skip := blocked[manifest.Name]; skip {
+			continue
+		}
+		result = append(result, manifest)
+	}
+	return result
 }
 
 // ExecuteToolCalls is the Runtime-owned capability boundary.  It validates a
@@ -147,6 +166,8 @@ type imageCapabilityExecutor struct{ app *App }
 
 type conversationReplyCapabilityExecutor struct{}
 
+type momentPublishCapabilityExecutor struct{}
+
 func (executor *conversationReplyCapabilityExecutor) Manifest() CapabilityManifest {
 	return conversationReplyCapabilityManifest()
 }
@@ -171,6 +192,33 @@ func (executor *conversationReplyCapabilityExecutor) ExecuteDeferredTx(ctx conte
 		ToolCallID: call.ID, Name: call.Name, Status: "completed",
 		Output:    map[string]any{"text": text, "target_kind": binding.TargetKind, "target_ref": binding.TargetRef},
 		Retryable: false, ProviderRequestID: call.ProviderRequestID, CorrelationID: "reply:" + call.ID, SchemaVersion: ToolResultSchemaVersion,
+	}, nil
+}
+
+func (executor *momentPublishCapabilityExecutor) Manifest() CapabilityManifest {
+	return momentPublishCapabilityManifest()
+}
+
+func (executor *momentPublishCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
+	return deferredToolResult(call, "moment_output_target_pending"), nil
+}
+
+func (executor *momentPublishCapabilityExecutor) ExecuteDeferredTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID, identityScope string, call ToolCallV1, binding OutputBindingV1) (ToolResultV1, error) {
+	if binding.TargetKind != "moment" || strings.TrimSpace(binding.TargetRef) == "" {
+		return failedToolResult(call, "moment_target_invalid", false, "moment.publish requires a Moment target"), errors.New("moment target invalid")
+	}
+	var args map[string]any
+	if err := json.Unmarshal(call.Arguments, &args); err != nil {
+		return failedToolResult(call, "moment_arguments_invalid", false, err.Error()), err
+	}
+	text := strings.TrimSpace(stringValue(args["text"]))
+	if text == "" || len([]rune(text)) > 32000 {
+		return failedToolResult(call, "moment_text_invalid", false, "moment text must be between 1 and 32000 characters"), errors.New("moment text invalid")
+	}
+	return ToolResultV1{
+		ToolCallID: call.ID, Name: call.Name, Status: "completed",
+		Output:    map[string]any{"text": text, "target_kind": binding.TargetKind, "target_ref": binding.TargetRef},
+		Retryable: false, ProviderRequestID: call.ProviderRequestID, CorrelationID: "moment:" + call.ID, SchemaVersion: ToolResultSchemaVersion,
 	}, nil
 }
 

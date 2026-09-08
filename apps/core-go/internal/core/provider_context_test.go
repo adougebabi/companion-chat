@@ -330,9 +330,10 @@ func TestCompactToolResultsForProviderKeepsOnlyOutcome(t *testing.T) {
 func TestCompactReflectionEvidenceUsesShortSequenceReferences(t *testing.T) {
 	compact := compactReflectionEvidence([]map[string]any{{
 		"id": "fact-long-id", "sequence": 7, "event_type": "conversation.turn",
-		"payload": map[string]any{"turn_id": "turn-long-id", "text": "你好", "status": "processed", "summary": "有效事实"},
+		"payload":   map[string]any{"turn_id": "turn-long-id", "text": "你好", "status": "processed", "summary": "有效事实"},
+		"appraisal": map[string]any{"relationship_significance": 0.8},
 	}})
-	if len(compact) != 1 || compact[0]["event_type"] != "conversation.turn" || compact[0]["evidence_ref"] != "sequence:7" {
+	if len(compact) != 1 || compact[0]["event_type"] != "conversation.turn" || compact[0]["evidence_ref"] != "sequence:7" || len(mapValue(compact[0]["appraisal"])) != 1 {
 		t.Fatalf("compact reflection evidence = %#v", compact)
 	}
 	payload := mapValue(compact[0]["payload"])
@@ -343,6 +344,30 @@ func TestCompactReflectionEvidenceUsesShortSequenceReferences(t *testing.T) {
 		if _, ok := payload[key]; ok {
 			t.Fatalf("reflection payload field %q leaked: %#v", key, payload)
 		}
+	}
+}
+
+func TestCompactReflectionEvidenceDecodesJSONBPayloadAndAppraisal(t *testing.T) {
+	compact := compactReflectionEvidence([]map[string]any{{
+		"id": "fact-long-id", "sequence": 8, "event_type": "conversation.turn",
+		"payload":   json.RawMessage(`{"sender":"actor_user","content":"你好","status":"processed"}`),
+		"appraisal": json.RawMessage(`{"relationship_significance":0.9,"event_kind":"check_in"}`),
+	}})
+	if len(compact) != 1 {
+		t.Fatalf("compact reflection evidence = %#v", compact)
+	}
+	item := compact[0]
+	if stringValue(item["evidence_ref"]) != "sequence:8" {
+		t.Fatalf("evidence ref = %#v", item["evidence_ref"])
+	}
+	if stringValue(mapValue(item["payload"])["content"]) != "你好" {
+		t.Fatalf("JSONB payload was dropped: %#v", item)
+	}
+	if numberOrZero(mapValue(item["appraisal"])["relationship_significance"]) != 0.9 {
+		t.Fatalf("JSONB appraisal was dropped: %#v", item)
+	}
+	if _, ok := mapValue(item["payload"])["status"]; ok {
+		t.Fatal("provider metadata leaked from JSONB payload")
 	}
 }
 

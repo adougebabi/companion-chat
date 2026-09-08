@@ -116,7 +116,7 @@ func TestToolCallValidateRequiresRegisteredCapability(t *testing.T) {
 
 func TestToolCallPayloadKeepsProviderSchemaAtBoundary(t *testing.T) {
 	payload := ToolCallPayload(ExternalCapabilityManifests())
-	if len(payload) != 2 {
+	if len(payload) != 3 {
 		t.Fatalf("tool payload = %#v", payload)
 	}
 	names := make(map[string]struct{}, len(payload))
@@ -133,6 +133,9 @@ func TestToolCallPayloadKeepsProviderSchemaAtBoundary(t *testing.T) {
 	}
 	if _, ok := names["conversation.reply"]; !ok {
 		t.Fatalf("conversation.reply manifest missing = %#v", names)
+	}
+	if _, ok := names["moment.publish"]; !ok {
+		t.Fatalf("moment.publish manifest missing = %#v", names)
 	}
 	if _, ok := names["media.image.generate"]; !ok {
 		t.Fatalf("media manifest missing = %#v", names)
@@ -229,6 +232,29 @@ func TestRelationshipLookupCapabilityIsReadOnly(t *testing.T) {
 	}
 }
 
+func TestMomentPublishCapabilityIsRegisteredDeferredOutput(t *testing.T) {
+	manifest := momentPublishCapabilityManifest()
+	if manifest.Name != "moment.publish" || !manifest.IsDeferredOutput() {
+		t.Fatalf("moment publish manifest = %#v", manifest)
+	}
+	if !containsStringValue(stringSliceAny(manifest.TargetKinds), "moment") {
+		t.Fatalf("moment publish target kinds = %#v", manifest.TargetKinds)
+	}
+	if !containsSchemaRequired(manifest.Parameters, "text") {
+		t.Fatalf("moment publish parameters = %#v", manifest.Parameters)
+	}
+}
+
+func TestConversationCapabilityCatalogOmitsMomentOutput(t *testing.T) {
+	registry := NewCapabilityRegistry(&conversationReplyCapabilityExecutor{}, &momentPublishCapabilityExecutor{}, &imageCapabilityExecutor{})
+	manifests := capabilityManifestsExcept(registry, "moment.publish")
+	for _, manifest := range manifests {
+		if manifest.Name == "moment.publish" {
+			t.Fatalf("moment.publish leaked into conversation catalog: %#v", manifests)
+		}
+	}
+}
+
 type testManifestExecutor struct{ manifest CapabilityManifest }
 
 func (executor testManifestExecutor) Manifest() CapabilityManifest { return executor.manifest }
@@ -246,7 +272,7 @@ func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 		t.Fatalf("tool_choice = %#v", payload["tool_choice"])
 	}
 	tools, ok := payload["tools"].([]map[string]any)
-	if !ok || len(tools) != 2 {
+	if !ok || len(tools) != 3 {
 		t.Fatalf("tools = %#v", payload["tools"])
 	}
 	if payload["max_tokens"] != 512 {
@@ -451,15 +477,14 @@ func TestNormalizeStructuredShapeOnlyRepairsAbnormalFields(t *testing.T) {
 
 func TestEmptyProviderStructuredUsesOperationTypedEmptyValues(t *testing.T) {
 	value, fields := emptyProviderStructured("wake_up_response", wakeUpResponseSchema())
-	if value["action_type"] != "no_op" || value["attention"] != "" || value["thought"] != "" || value["desire"] != "" || value["agency"] != "" {
+	if value["action_type"] != "no_op" || value["response_intent"] != "" {
 		t.Fatalf("wake-up empty values = %#v", value)
 	}
 	if refs := arrayValue(value["evidence_refs"]); len(refs) != 0 {
 		t.Fatalf("wake-up evidence refs = %#v", refs)
 	}
-	appraisal := mapValue(value["appraisal"])
-	if len(appraisal) == 0 || appraisal["relevance"] != float64(0) || len(arrayValue(appraisal["evidence_refs"])) != 0 {
-		t.Fatalf("wake-up empty appraisal = %#v", appraisal)
+	if len(arrayValue(value["tool_calls"])) != 0 {
+		t.Fatalf("wake-up empty tool calls = %#v", value["tool_calls"])
 	}
 	if len(fields) == 0 {
 		t.Fatal("empty fallback should report normalized fields")
