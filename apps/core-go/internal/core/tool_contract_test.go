@@ -279,11 +279,10 @@ func TestConversationCapabilityCatalogOmitsMomentOutput(t *testing.T) {
 }
 
 func TestImageDeferredFailureDoesNotClassifyConversationReplyAsFatal(t *testing.T) {
-	if !deferredOutputFailureIsNonFatal(ToolCallV1{Name: "media.image.generate"}) {
-		t.Fatal("image deferred failures should be non-fatal to text delivery")
-	}
-	if deferredOutputFailureIsNonFatal(ToolCallV1{Name: "conversation.reply"}) {
-		t.Fatal("conversation reply failures must remain fatal")
+	for _, name := range []string{"media.image.generate", "conversation.reply"} {
+		if !optionalToolFailureNonFatal(ToolCallV1{Name: name}) {
+			t.Fatalf("tool %s should be optional", name)
+		}
 	}
 }
 
@@ -291,8 +290,16 @@ func TestMissingConversationReplyBecomesNoOp(t *testing.T) {
 	if action, suppressed := normalizeMissingConversationReplyAction("reply", []ToolCallV1{{Name: "affect_event"}}); action != "no_op" || !suppressed {
 		t.Fatalf("missing reply action = %q suppressed=%t", action, suppressed)
 	}
-	if action, suppressed := normalizeMissingConversationReplyAction("reply", []ToolCallV1{{Name: "conversation.reply"}}); action != "reply" || suppressed {
+	if action, suppressed := normalizeMissingConversationReplyAction("reply", []ToolCallV1{{Name: "conversation.reply", Arguments: json.RawMessage(`{"text":"你好"}`)}}); action != "reply" || suppressed {
 		t.Fatalf("reply action = %q suppressed=%t", action, suppressed)
+	}
+}
+
+func TestOptionalToolFailuresDoNotAbortConversation(t *testing.T) {
+	for _, name := range []string{"affect_event", "scene_event", "presence_event", "memory_event", "relationship.lookup", "capability.request"} {
+		if !optionalToolFailureNonFatal(ToolCallV1{Name: name}) {
+			t.Fatalf("tool %s should be optional", name)
+		}
 	}
 }
 

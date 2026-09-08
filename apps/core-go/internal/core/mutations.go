@@ -974,7 +974,11 @@ func toolOnlyCognitionAppraisal(sourceFactID string) map[string]any {
 
 func hasConversationReplyToolCall(calls []ToolCallV1) bool {
 	for _, call := range calls {
-		if call.Name == "conversation.reply" {
+		if call.Name != "conversation.reply" {
+			continue
+		}
+		var args map[string]any
+		if json.Unmarshal(call.Arguments, &args) == nil && strings.TrimSpace(stringValue(args["text"])) != "" {
 			return true
 		}
 	}

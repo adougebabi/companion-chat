@@ -60,43 +60,53 @@ func (a *App) ExecuteToolCalls(ctx context.Context, fluctlightID, conversationID
 		if err := call.Validate(manifests); err != nil {
 			result := failedToolResult(call, "tool_call_rejected", false, err.Error())
 			results = append(results, result)
-			return results, err
+			continue
 		}
 		if call.SourceFactID != sourceFactID {
 			result := failedToolResult(call, "tool_call_source_invalid", false, "source fact does not match the current turn")
 			results = append(results, result)
-			return results, errors.New("tool call source fact invalid")
+			continue
 		}
 		executor, ok := registry.Lookup(call.Name)
 		if !ok {
 			result := failedToolResult(call, "tool_capability_unavailable", false, "capability has no Runtime executor")
 			results = append(results, result)
-			return results, fmt.Errorf("capability %q has no executor", call.Name)
+			continue
 		}
 		manifest := manifests[call.Name]
 		if manifest.RequiresPreflight {
 			if preflightErr := a.preflightCapability(ctx, fluctlightID, manifest); preflightErr != nil {
 				result := failedToolResult(call, "tool_preflight_failed", true, preflightErr.Error())
 				results = append(results, result)
-				return results, preflightErr
+				continue
 			}
 		}
 		if manifest.ConcurrencyClass == "exclusive" && !manifest.IsDeferredOutput() {
 			result, lockErr := a.executeExclusiveCapability(ctx, fluctlightID, conversationID, sourceFactID, call, executor)
 			if lockErr != nil {
 				results = append(results, result)
-				return results, lockErr
+				continue
 			}
 			results = append(results, result)
 			if validationErr := result.Validate(call); validationErr != nil {
-				return results, validationErr
+				results[len(results)-1] = failedToolResult(call, "tool_result_invalid", false, validationErr.Error())
+				continue
+			}
+			if result.Status == "completed" {
+				if validationErr := manifest.ValidateOutput(result.Output); validationErr != nil {
+					return results, validationErr
+				}
+			}
+			if result.Status == "failed" && optionalToolFailureNonFatal(call) {
+				continue
 			}
 			if validationErr := manifest.ValidateOutput(result.Output); validationErr != nil {
-				return results, validationErr
+				results[len(results)-1] = failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error())
+				continue
 			}
 			if call.ActionID != "" {
 				if persistErr := a.persistActionResult(ctx, fluctlightID, call.ActionID, sourceFactID, result); persistErr != nil {
-					return results, persistErr
+					continue
 				}
 			}
 			continue
@@ -113,21 +123,35 @@ func (a *App) ExecuteToolCalls(ctx context.Context, fluctlightID, conversationID
 		result, err := executor.Execute(ctx, fluctlightID, conversationID, sourceFactID, call)
 		results = append(results, result)
 		if validationErr := result.Validate(call); validationErr != nil {
-			return results, validationErr
+			results[len(results)-1] = failedToolResult(call, "tool_result_invalid", false, validationErr.Error())
+			continue
+		}
+		if result.Status == "completed" {
+			if validationErr := manifest.ValidateOutput(result.Output); validationErr != nil {
+				return results, validationErr
+			}
+		}
+		if result.Status == "failed" && optionalToolFailureNonFatal(call) {
+			continue
 		}
 		if validationErr := manifest.ValidateOutput(result.Output); validationErr != nil {
-			return results, validationErr
+			results[len(results)-1] = failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error())
+			continue
 		}
 		if call.ActionID != "" {
 			if persistErr := a.persistActionResult(ctx, fluctlightID, call.ActionID, sourceFactID, result); persistErr != nil {
-				return results, persistErr
+				continue
 			}
 		}
 		if err != nil {
-			return results, err
+			continue
 		}
 	}
 	return results, nil
+}
+
+func optionalToolFailureNonFatal(call ToolCallV1) bool {
+	return strings.TrimSpace(call.Name) != ""
 }
 
 func deferredToolResult(call ToolCallV1, reason string) ToolResultV1 {
@@ -309,7 +333,8 @@ func (a *App) settleDeferredToolCallsTx(ctx context.Context, tx pgx.Tx, fluctlig
 	results := append([]ToolResultV1(nil), existing...)
 	for _, call := range normalizeToolCallMetadata(calls, sourceFactID, identityScope) {
 		if err := call.Validate(manifests); err != nil {
-			return results, err
+			results = replaceToolResult(results, failedToolResult(call, "tool_call_rejected", false, err.Error()))
+			continue
 		}
 		if !toolCallNeedsDeferredSettlement(call, registry) {
 			continue
@@ -317,20 +342,19 @@ func (a *App) settleDeferredToolCallsTx(ctx context.Context, tx pgx.Tx, fluctlig
 		manifest := manifests[call.Name]
 		if manifest.RequiresPreflight {
 			if err := a.preflightCapabilityTx(ctx, tx, manifest); err != nil {
-				if deferredOutputFailureIsNonFatal(call) {
-					results = replaceToolResult(results, failedToolResult(call, "media_preflight_failed", true, err.Error()))
-					continue
-				}
-				return results, err
+				results = replaceToolResult(results, failedToolResult(call, "tool_preflight_failed", true, err.Error()))
+				continue
 			}
 		}
 		if manifest.ConcurrencyClass == "exclusive" {
 			var acquired bool
 			if err := tx.QueryRow(ctx, `SELECT pg_try_advisory_xact_lock(hashtext($1))`, "capability:"+fluctlightID+":"+call.Name).Scan(&acquired); err != nil {
-				return results, err
+				results = replaceToolResult(results, failedToolResult(call, "tool_capability_busy", true, err.Error()))
+				continue
 			}
 			if !acquired {
-				return results, errors.New("tool_capability_busy")
+				results = replaceToolResult(results, failedToolResult(call, "tool_capability_busy", true, "capability is already running"))
+				continue
 			}
 		}
 		if result, ok := toolResultForCall(results, call.ID); ok && result.Status == "completed" {
@@ -338,11 +362,13 @@ func (a *App) settleDeferredToolCallsTx(ctx context.Context, tx pgx.Tx, fluctlig
 		}
 		executor, ok := registry.Lookup(call.Name)
 		if !ok {
-			return results, fmt.Errorf("capability %q has no executor", call.Name)
+			results = replaceToolResult(results, failedToolResult(call, "tool_capability_unavailable", false, "capability has no executor"))
+			continue
 		}
 		deferred, ok := executor.(DeferredCapabilityExecutor)
 		if !ok {
-			return results, fmt.Errorf("capability %q cannot bind output target", call.Name)
+			results = replaceToolResult(results, failedToolResult(call, "tool_target_invalid", false, "capability cannot bind output target"))
+			continue
 		}
 		callBinding := binding
 		callBinding.ToolCallID = call.ID
@@ -351,38 +377,30 @@ func (a *App) settleDeferredToolCallsTx(ctx context.Context, tx pgx.Tx, fluctlig
 			result.SchemaVersion = ToolResultSchemaVersion
 		}
 		if validationErr := result.Validate(call); validationErr != nil {
-			return results, validationErr
+			results = replaceToolResult(results, failedToolResult(call, "tool_result_invalid", false, validationErr.Error()))
+			continue
 		}
 		if result.Status == "completed" {
 			if validationErr := manifests[call.Name].ValidateOutput(result.Output); validationErr != nil {
-				return results, validationErr
+				results = replaceToolResult(results, failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error()))
+				continue
 			}
 		}
 		if err != nil {
-			if deferredOutputFailureIsNonFatal(call) {
-				results = replaceToolResult(results, result)
-				continue
-			}
-			return results, err
+			results = replaceToolResult(results, result)
+			continue
 		}
-		if result.Status == "failed" && deferredOutputFailureIsNonFatal(call) {
+		if result.Status == "failed" {
 			results = replaceToolResult(results, result)
 			continue
 		}
 		if validationErr := manifests[call.Name].ValidateOutput(result.Output); validationErr != nil {
-			return results, validationErr
+			results = replaceToolResult(results, failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error()))
+			continue
 		}
 		results = replaceToolResult(results, result)
 	}
 	return results, nil
-}
-
-// Image generation is an optional companion effect for a text conversation.
-// A missing/invalid ComfyUI configuration or a failed media intent must be
-// persisted as a failed ToolResult without rolling back the already valid
-// conversation.reply output. Core still treats the reply Tool itself as fatal.
-func deferredOutputFailureIsNonFatal(call ToolCallV1) bool {
-	return call.Name == "media.image.generate"
 }
 
 func (a *App) preflightCapability(ctx context.Context, fluctlightID string, manifest CapabilityManifest) error {
