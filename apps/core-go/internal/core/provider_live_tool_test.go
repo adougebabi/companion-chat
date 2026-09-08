@@ -34,7 +34,7 @@ func TestLiveProviderRecognizesImageGenerationIntent(t *testing.T) {
 	manifests := []CapabilityManifest{conversationReplyCapabilityManifest(), imageCapabilityManifest(), affectEventCapabilityManifest()}
 	messages := composeProviderMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": conversationAssessmentInstruction},
-		{"role": "user", "content": "请把刚才这个雨后窗边、整理好衣服和小道具的场景，呈现成一份完整的视觉作品概念，并按照当前角色状态补全构图与氛围。"},
+		{"role": "user", "content": "我希望你实际把刚才这个雨后窗边、整理好衣服和小道具的场景制作成一份视觉作品，同时用一句话告诉我你准备采用的构图重点。"},
 	})
 	payload := providerChatPayloadWithSchema(model, messages, 1800, false, manifests, "cognitive_assessment", "conversation_turn_response", cognitiveTurnResponseSchema(), true)
 	body, err := json.Marshal(payload)
@@ -70,14 +70,21 @@ func TestLiveProviderRecognizesImageGenerationIntent(t *testing.T) {
 	}
 	message := mapValue(mapValue(choices[0])["message"])
 	toolCalls := arrayValue(message["tool_calls"])
+	foundImage := false
+	foundReply := false
 	for _, raw := range toolCalls {
 		call := mapValue(raw)
 		function := mapValue(call["function"])
-		if stringValue(function["name"]) == "media.image.generate" {
-			return
+		switch stringValue(function["name"]) {
+		case "media.image.generate":
+			foundImage = true
+		case "conversation.reply":
+			foundReply = true
 		}
 	}
-	t.Fatalf("live Provider did not call media.image.generate; tool_calls=%s response=%s", fmt.Sprint(toolCalls), boundedLiveProviderBody(responseBody))
+	if !foundImage || !foundReply {
+		t.Fatalf("live Provider must call both media.image.generate and conversation.reply; image=%t reply=%t tool_calls=%s response=%s", foundImage, foundReply, fmt.Sprint(toolCalls), boundedLiveProviderBody(responseBody))
+	}
 }
 
 func boundedLiveProviderBody(value []byte) string {

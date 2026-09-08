@@ -15,7 +15,7 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 		{name: "language", value: providerLanguageRule, max: 100, must: []string{"自然语言内容使用中文", "协议字面量保持原文"}},
 		{name: "context", value: providerContextAuthorityRule, max: 420, must: []string{"core_persona", "developing_self", "current_state", "context_override.explicit=true"}},
 		{name: "wake-up", value: wakeUpAssessmentInstruction, max: 900, must: []string{"action_type", "moment.publish", "conversation.reply", "media.image.generate", "capability.request", "no_op", "visible text"}},
-		{name: "conversation", value: conversationAssessmentInstruction, max: 2400, must: []string{"conversation.reply", "affect_event", "media.image.generate", "图片生成意愿", "实际产生视觉输出", "claims", "response_plan", "no_op", "visible_text", "kind", "content", "evidence_refs", "current_message.content"}},
+		{name: "conversation", value: conversationAssessmentInstruction, max: 2800, must: []string{"conversation.reply", "affect_event", "media.image.generate", "图片生成意愿", "独立决策", "claims", "response_plan", "no_op", "visible_text", "kind", "content", "evidence_refs", "current_message.content"}},
 		{name: "daily-review", value: dailyReviewInstruction, max: 700, must: []string{"proactive_message", "moment", "moment.publish", "conversation.reply", "no_op", "response_intent"}},
 		{name: "reflection", value: reflectionInstruction, max: 650, must: []string{"memory_candidates", "developing_self_candidates", "evidence_refs", "Core Persona"}},
 		{name: "native-cognition", value: nativeCognitionInstruction, max: 300, must: []string{"appraisal", "attention", "thought", "desire", "agency"}},
