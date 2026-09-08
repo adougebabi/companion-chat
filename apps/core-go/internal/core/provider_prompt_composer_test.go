@@ -161,6 +161,35 @@ func TestComposeProviderMessagesRendersActorRelationshipSystemContext(t *testing
 	}
 }
 
+func TestComposeProviderMessagesSeparatesRelationshipFromMergedSystemRules(t *testing.T) {
+	projection := ContextProjection{
+		SelfActor:      map[string]any{"ref": "actor_self", "type": "fluctlight", "actor_id": "fl-1", "display_name": "影者"},
+		CurrentSpeaker: map[string]any{"ref": "actor_user", "type": "human", "actor_id": "human-1", "display_name": "actor_user"},
+		Relationships: []map[string]any{{
+			"target_actor_id": "human-1",
+			"role":            map[string]any{"label": "恋人"},
+			"trend":           "improving",
+			"revision":        1,
+		}},
+	}
+	messages := withActorRelationshipSystemContext([]map[string]any{
+		{"role": "system", "content": conversationAssessmentInstruction},
+		{"role": "user", "content": `{"current_message":{"content":"请帮我做成视觉作品，并告诉我构图重点"}}`},
+	}, projection)
+	messages = withContextAuthorityInstruction(messages)
+	formatted := composeProviderMessages("cognitive_assessment", messages)
+	system := stringValue(formatted[0]["content"])
+	if !strings.Contains(system, "# Actor 与关系上下文") || !strings.Contains(system, "label: 恋人") {
+		t.Fatalf("relationship context missing after system merge: %s", system)
+	}
+	if strings.Contains(system, "actor_relationship_context") {
+		t.Fatalf("relationship envelope leaked into operation rules: %s", system)
+	}
+	if strings.Count(system, "# 人格设定") != 1 || strings.Count(system, "# Actor 与关系上下文") != 1 {
+		t.Fatalf("system sections duplicated: %s", system)
+	}
+}
+
 func TestComposeProviderMessagesKeepsMediaPromptOutOfOrdinaryComposer(t *testing.T) {
 	messages := []map[string]any{
 		{"role": "system", "content": "media prompt instruction"},

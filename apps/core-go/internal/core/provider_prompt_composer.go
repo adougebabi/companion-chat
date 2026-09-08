@@ -43,7 +43,10 @@ func composeProviderMessages(role string, messages []map[string]any) []map[strin
 	for _, message := range messages {
 		if stringValue(message["role"]) == "system" {
 			content := systemMessageContent(message)
-			if _, value, parsed := decodeProviderJSONPayload(strings.TrimSpace(content)); parsed {
+			if cleaned, relationship, parsed := extractEmbeddedActorRelationshipContext(content); parsed {
+				actorRelationshipContext = relationship
+				content = cleaned
+			} else if _, value, parsed := decodeProviderJSONPayload(strings.TrimSpace(content)); parsed {
 				if relationship := mapValue(mapValue(value)["actor_relationship_context"]); len(relationship) > 0 {
 					actorRelationshipContext = relationship
 					continue
@@ -81,6 +84,35 @@ func composeProviderMessages(role string, messages []map[string]any) []map[strin
 	result = append(result, map[string]any{"role": "system", "content": renderProviderSystem(operationRules, corePersona, actorRelationshipContext, role)})
 	result = append(result, nonSystem...)
 	return result
+}
+
+// extractEmbeddedActorRelationshipContext handles the merged-system-message
+// shape produced by prependSystemMessage. The relationship JSON may sit
+// between the context authority rule and the operation rule, so it is not a
+// complete JSON document anymore and decodeProviderJSONPayload cannot parse it
+// as a standalone system message. Remove only that envelope and keep the
+// surrounding operation rules separate from the Actor relationship section.
+func extractEmbeddedActorRelationshipContext(content string) (string, map[string]any, bool) {
+	marker := `{"actor_relationship_context"`
+	start := strings.Index(content, marker)
+	if start < 0 {
+		return content, nil, false
+	}
+	var value map[string]any
+	decoder := json.NewDecoder(strings.NewReader(content[start:]))
+	if err := decoder.Decode(&value); err != nil {
+		return content, nil, false
+	}
+	relationship := mapValue(value["actor_relationship_context"])
+	if len(relationship) == 0 {
+		return content, nil, false
+	}
+	consumed := int(decoder.InputOffset())
+	if consumed <= 0 || start+consumed > len(content) {
+		return content, nil, false
+	}
+	cleaned := strings.TrimSpace(content[:start] + "\n" + content[start+consumed:])
+	return cleaned, relationship, true
 }
 
 func renderProviderSystem(operationRules []string, persona, actorRelationshipContext map[string]any, role string) string {

@@ -499,6 +499,19 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		} else {
 			action, mediaConcept = resolveDecisionAction(decision)
 		}
+		// A missing conversation.reply is an intentional no-visible-reply
+		// decision, not a malformed conversation turn. Immediate native tools
+		// such as affect_event may still execute in the no_op path. Deferred
+		// output calls without a conversation/Moment target remain deferred and
+		// are recorded without turning the text turn into an error.
+		if normalizedAction, suppressed := normalizeMissingConversationReplyAction(action, toolCalls); suppressed {
+			action = normalizedAction
+			mediaConcept = nil
+			decision["action_type"] = "no_op"
+			decision["response_intent"] = ""
+			responsePlan["visible_text"] = ""
+			decision["visible_text"] = ""
+		}
 		if len(mediaConcept) > 0 {
 			mediaConcept, _ = alignMediaConceptWithContext(mediaConcept, projection)
 		}
@@ -966,6 +979,16 @@ func hasConversationReplyToolCall(calls []ToolCallV1) bool {
 		}
 	}
 	return false
+}
+
+func normalizeMissingConversationReplyAction(action string, calls []ToolCallV1) (string, bool) {
+	if hasConversationReplyToolCall(calls) {
+		return action, false
+	}
+	if action == "reply" || action == "media_request" {
+		return "no_op", true
+	}
+	return action, false
 }
 
 // normalizeConversationReplyCalls accepts the transitional model behavior

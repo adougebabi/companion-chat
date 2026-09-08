@@ -287,6 +287,15 @@ func TestImageDeferredFailureDoesNotClassifyConversationReplyAsFatal(t *testing.
 	}
 }
 
+func TestMissingConversationReplyBecomesNoOp(t *testing.T) {
+	if action, suppressed := normalizeMissingConversationReplyAction("reply", []ToolCallV1{{Name: "affect_event"}}); action != "no_op" || !suppressed {
+		t.Fatalf("missing reply action = %q suppressed=%t", action, suppressed)
+	}
+	if action, suppressed := normalizeMissingConversationReplyAction("reply", []ToolCallV1{{Name: "conversation.reply"}}); action != "reply" || suppressed {
+		t.Fatalf("reply action = %q suppressed=%t", action, suppressed)
+	}
+}
+
 type testManifestExecutor struct{ manifest CapabilityManifest }
 
 func (executor testManifestExecutor) Manifest() CapabilityManifest { return executor.manifest }
