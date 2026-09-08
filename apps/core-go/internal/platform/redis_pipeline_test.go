@@ -185,3 +185,75 @@ func TestRedisConsumerReclaimsPendingDelivery(t *testing.T) {
 	_, _ = pool.Exec(ctx, `DELETE FROM public.platform_consumer_effects WHERE event_id=$1`, eventID)
 	_, _ = pool.Exec(ctx, `DELETE FROM public.platform_consumer_inbox WHERE event_id=$1`, eventID)
 }
+
+func TestRedisConsumerSequenceGapReleasesDatabaseConnection(t *testing.T) {
+	databaseURL := os.Getenv("GO_CORE_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("GO_CORE_TEST_DATABASE_URL is not set")
+	}
+	server, err := miniredis.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
+	defer client.Close()
+
+	config, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config.MaxConns = 1
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	group := "sequence-gap-group-" + stableDigest(time.Now().UTC().String())
+	aggregateID := "sequence-gap-aggregate-" + stableDigest(time.Now().UTC().String())
+	if _, err := pool.Exec(ctx, `INSERT INTO public.platform_consumer_heads(consumer_group,aggregate_type,aggregate_id,last_sequence) VALUES($1,'test',$2,1)`, group, aggregateID); err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Exec(context.Background(), `DELETE FROM public.platform_consumer_failures WHERE consumer_group=$1`, group)
+	defer pool.Exec(context.Background(), `DELETE FROM public.platform_consumer_heads WHERE consumer_group=$1`, group)
+
+	consumer := NewEventConsumer(pool, client, group, "sequence-gap-consumer")
+	consumer.StartID = "$"
+	consumer.MinIdle = time.Hour
+	if err := consumer.EnsureGroup(ctx); err != nil {
+		t.Fatal(err)
+	}
+	eventID := "sequence-gap-event-" + stableDigest(time.Now().UTC().String())
+	event, err := json.Marshal(EventEnvelope{
+		EventID:           eventID,
+		EventType:         "sequence.gap",
+		SchemaVersion:     "event.v1",
+		AggregateType:     "test",
+		AggregateID:       aggregateID,
+		AggregateSequence: 3,
+		CausationID:       "cause",
+		CorrelationID:     "corr",
+		OccurredAt:        time.Now().UTC(),
+		Payload:           json.RawMessage(`{}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.XAdd(ctx, &redis.XAddArgs{Stream: EventStream, Values: map[string]any{"event": string(event)}}).Result(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := consumer.ConsumeOnce(ctx, 1); err == nil {
+		t.Fatal("ConsumeOnce() error = nil, want aggregate sequence gap")
+	}
+
+	var failureCount int
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM public.platform_consumer_failures WHERE consumer_group=$1`, group).Scan(&failureCount); err != nil {
+		t.Fatalf("query failure after sequence gap: %v", err)
+	}
+	if failureCount != 1 {
+		t.Fatalf("consumer failure count = %d, want 1", failureCount)
+	}
+}

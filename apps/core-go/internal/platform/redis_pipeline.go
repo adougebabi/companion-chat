@@ -254,6 +254,11 @@ func (c *EventConsumer) process(ctx context.Context, message redis.XMessage) err
 	if err != nil {
 		return err
 	}
+	// Register rollback immediately after Begin. The sequence validation below
+	// can return before the normal inbox/effect path (for example on an
+	// aggregate gap); leaving rollback until after that validation leaks an
+	// idle-in-transaction connection and eventually starves the Worker pool.
+	defer tx.Rollback(ctx)
 	if event.AggregateSequence > 0 && event.AggregateType != "" && event.AggregateID != "" {
 		var lastSequence int
 		if err := tx.QueryRow(ctx, `SELECT last_sequence FROM public.platform_consumer_heads WHERE consumer_group=$1 AND aggregate_type=$2 AND aggregate_id=$3 FOR UPDATE`, c.Group, event.AggregateType, event.AggregateID).Scan(&lastSequence); err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -262,7 +267,6 @@ func (c *EventConsumer) process(ctx context.Context, message redis.XMessage) err
 			return fmt.Errorf("consumer aggregate sequence gap: have %d, received %d", lastSequence, event.AggregateSequence)
 		}
 	}
-	defer tx.Rollback(ctx)
 	var inboxID int64
 	err = tx.QueryRow(ctx, `INSERT INTO public.platform_consumer_inbox(consumer_group,event_id,result) VALUES($1,$2,$3) ON CONFLICT(consumer_group,event_id) DO NOTHING RETURNING id`, c.Group, event.EventID, []byte(eventValue)).Scan(&inboxID)
 	if errors.Is(err, pgx.ErrNoRows) {

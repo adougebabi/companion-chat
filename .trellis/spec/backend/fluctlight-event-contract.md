@@ -127,6 +127,10 @@ await redis.xack(stream, group, event.stream_id)
   or poison consumer from spinning indefinitely.
 - Duplicate group/event deliveries reuse the existing inbox result and create
   no second effect. Aggregate sequence gaps are rejected rather than guessed.
+- The consumer registers its rollback guard immediately after `Begin`, before
+  sequence-head validation. Gap/error early returns must release the
+  transaction and connection; an idle transaction must never be allowed to
+  exhaust the Worker pool and starve workflow dispatch.
 - Worker owns publisher and all configured durable groups; API never polls
   Redis or Temporal queues.
 

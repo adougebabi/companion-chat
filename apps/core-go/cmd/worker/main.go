@@ -19,6 +19,8 @@ import (
 	"go.temporal.io/sdk/client"
 )
 
+const workerTickOperationTimeout = 15 * time.Second
+
 func main() {
 	settings, err := config.FromEnv(os.LookupEnv)
 	if err != nil {
@@ -140,28 +142,52 @@ func main() {
 				logger.Warn("Go Worker diagnostics retention retry", "error", err)
 			}
 		case <-dispatchTicker.C:
-			if _, err := application.Provider.ReconcileRedisQueue(ctx, "generic_llm"); err != nil {
+			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+				_, err := application.Provider.ReconcileRedisQueue(operationCtx, "generic_llm")
+				return err
+			}); err != nil {
 				logger.Warn("Go Worker Redis LLM queue reconciliation retry", "binding", "generic_llm", "error", err)
 			}
-			if _, err := application.Provider.ReconcileRedisQueue(ctx, "embedding"); err != nil {
+			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+				_, err := application.Provider.ReconcileRedisQueue(operationCtx, "embedding")
+				return err
+			}); err != nil {
 				logger.Warn("Go Worker Redis LLM queue reconciliation retry", "binding", "embedding", "error", err)
 			}
-			if _, err := publisher.PublishOnce(ctx, 50); err != nil {
+			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+				_, err := publisher.PublishOnce(operationCtx, 50)
+				return err
+			}); err != nil {
 				logger.Warn("Go Worker outbox publisher retry", "error", err)
 			}
 			for _, consumer := range consumers {
-				if _, err := consumer.ConsumeOnce(ctx, 25); err != nil {
+				if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+					_, err := consumer.ConsumeOnce(operationCtx, 25)
+					return err
+				}); err != nil {
 					logger.Warn("Go Worker event consumer retry", "group", consumer.Group, "error", err)
 				}
 			}
-			if _, err := dispatcher.DispatchOnce(ctx, 20); err != nil {
+			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+				_, err := dispatcher.DispatchOnce(operationCtx, 20)
+				return err
+			}); err != nil {
 				logger.Warn("Go Worker dispatcher retry", "error", err)
 			}
-			if _, err := dispatcher.ReconcileOnce(ctx, 50); err != nil {
+			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+				_, err := dispatcher.ReconcileOnce(operationCtx, 50)
+				return err
+			}); err != nil {
 				logger.Warn("Go Worker intent reconciliation retry", "error", err)
 			}
 		}
 	}
+}
+
+func runWorkerTickOperation(parent context.Context, operation func(context.Context) error) error {
+	operationCtx, cancel := context.WithTimeout(parent, workerTickOperationTimeout)
+	defer cancel()
+	return operation(operationCtx)
 }
 
 func writeWorkerHealth(path string) error {
