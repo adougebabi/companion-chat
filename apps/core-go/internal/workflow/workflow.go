@@ -31,7 +31,7 @@ const (
 	defaultWakeUpIntervalSeconds = 30 * 60
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
-	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'schedule.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'visual_identity.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 ELSE 8 END"
+	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'media.%' THEN 0 WHEN intent_type LIKE 'schedule.%' THEN 1 WHEN intent_type LIKE 'visual_identity.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 ELSE 8 END"
 	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type FROM public.platform_workflow_intents WHERE status IN ('pending','started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
@@ -903,21 +903,12 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 	if d.Started == nil {
 		d.Started = make(map[string]struct{})
 	}
-	query := `SELECT intent_id,workflow_id,task_queue,intent_type,payload FROM public.platform_workflow_intents`
-	args := make([]any, 0, len(d.Started)+1)
-	if len(d.Started) > 0 {
-		placeholders := make([]string, 0, len(d.Started))
-		index := 1
-		for intentID := range d.Started {
-			placeholders = append(placeholders, fmt.Sprintf("$%d", index))
-			args = append(args, intentID)
-			index++
-		}
-		query += ` WHERE intent_id NOT IN (` + strings.Join(placeholders, ",") + `)`
-		query += ` AND (status IS NULL OR status IN ('pending','retry')) AND (next_attempt_at IS NULL OR next_attempt_at <= now())`
-	} else {
-		query += ` WHERE (status IS NULL OR status IN ('pending','retry')) AND (next_attempt_at IS NULL OR next_attempt_at <= now())`
-	}
+	// PostgreSQL status is authoritative. Do not exclude IDs from the
+	// in-memory Started map: a prior dispatch can have been reset to pending by
+	// reconciliation/retry while this process still retains the old map entry.
+	// Such an intent must be eligible for dispatch again.
+	query := `SELECT intent_id,workflow_id,task_queue,intent_type,payload FROM public.platform_workflow_intents WHERE (status IS NULL OR status IN ('pending','retry')) AND (next_attempt_at IS NULL OR next_attempt_at <= now())`
+	args := make([]any, 0, 1)
 	args = append(args, limit)
 	// Keep schedule repair first, but dispatch media before visual-identity
 	// retries. VisualIdentity activities can legitimately run for 20 minutes;
@@ -938,9 +929,6 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		var payload []byte
 		if err := rows.Scan(&intentID, &workflowID, &queue, &intentType, &payload); err != nil {
 			return count, err
-		}
-		if _, ok := d.Started[intentID]; ok {
-			continue
 		}
 		var input Input
 		if err := json.Unmarshal(payload, &input); err != nil {

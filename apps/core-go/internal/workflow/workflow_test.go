@@ -195,7 +195,7 @@ func TestWakeUpRetryBackoffIsNotRequeuedBeforeDueTime(t *testing.T) {
 }
 
 func TestDispatcherPrioritizesMediaBeforeVisualIdentityRetries(t *testing.T) {
-	if !strings.Contains(dispatcherIntentOrder, "WHEN intent_type LIKE 'media.%' THEN 1") || !strings.Contains(dispatcherIntentOrder, "WHEN intent_type LIKE 'visual_identity.%' THEN 2") {
+	if !strings.Contains(dispatcherIntentOrder, "WHEN intent_type LIKE 'media.%' THEN 0") || !strings.Contains(dispatcherIntentOrder, "WHEN intent_type LIKE 'visual_identity.%' THEN 2") {
 		t.Fatalf("dispatcher intent order = %s", dispatcherIntentOrder)
 	}
 }
