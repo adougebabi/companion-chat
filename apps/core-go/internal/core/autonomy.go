@@ -83,17 +83,11 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 			return nil, err
 		}
 	}
-	if completion.StructuredFallback {
-		// Thinking-enabled mlx-serve responses may emit only bookkeeping tool
-		// calls (for example scene_event/memory_event) and omit the structured
-		// daily-review action. Retry the same evidence window without tools and
-		// thinking so the model must choose an explicit action_type. If that
-		// transport retry also fails, retain the safe no-op behavior below rather
-		// than inferring an external side effect from an unrelated tool call.
-		if retry, retryErr := a.Provider.StructuredWithSchema(ctx, "cognitive_assessment", messages, "daily_review_response", dailyReviewResponseSchema(), false); retryErr == nil {
-			completion = ProviderCompletion{Structured: retry}
-		}
-	}
+	// A structured fallback with native calls is still a valid tool-only
+	// assessment. Do not issue a second no-tools model request here: that would
+	// discard schedule/scene changes and turn an optional capability decision
+	// into an unrelated retry. An empty fallback with no calls naturally settles
+	// as a safe no-op below.
 	decision := completion.Structured
 	if decision == nil {
 		decision = map[string]any{}
@@ -104,22 +98,20 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		}
 	}
 	toolCalls := completion.ToolCalls
-	if completion.StructuredFallback && len(toolCalls) > 0 {
-		// A DailyReview native tool call without its action_type cannot be bound
-		// safely to a Moment or Owner conversation. Preserve the review as a
-		// no-op rather than guessing the output target.
-		toolCalls = nil
-	}
+	// A thinking-enabled Provider may express a schedule/scene/native update
+	// entirely through optional capability calls and omit the JSON sidecar. Keep
+	// those calls: `no_op + tool_calls` is a valid capability-only review and
+	// must not be converted into a silent no-op or a no-tools retry.
 	toolCalls = bindMediaContextToToolCalls(toolCalls, projection)
 	composite, err := normalizeCompositeAction(decision, toolCalls, workflowID, "no_op")
 	if err != nil {
 		return nil, err
 	}
-	if composite.ActionType == "no_op" && len(composite.ToolCalls) > 0 {
-		return nil, errors.New("daily_review_tool_target_invalid")
-	}
 	actionType := composite.ActionType
-	if actionType != "proactive_message" && actionType != "moment" && actionType != "no_op" {
+	if actionType == "no_op" && len(composite.ToolCalls) > 0 {
+		actionType = "capability"
+	}
+	if actionType != "proactive_message" && actionType != "moment" && actionType != "capability" && actionType != "no_op" {
 		return nil, errors.New("daily_review_decision_invalid")
 	}
 	if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
@@ -148,6 +140,13 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		if err := validateCompositeOutputCalls(composite.ToolCalls, "moment", a.capabilityRegistry()); err != nil {
 			return nil, fmt.Errorf("daily_review_output_binding_invalid: %w", err)
 		}
+	} else if actionType == "capability" {
+		// Capability-only reviews have no visible output target. Each registered
+		// capability remains optional; the durable capability.action intent records
+		// individual results without requiring conversation.reply or moment.publish.
+		if len(composite.ToolCalls) == 0 {
+			return nil, errors.New("daily_review_capability_calls_empty")
+		}
 	}
 	payload := map[string]any{"conversation_id": conversationID, "response_intent": composite.ResponseIntent, "decision": composite, "source_fact_id": "daily-review:" + fluctlightID + ":" + localDate}
 	if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
@@ -171,10 +170,17 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 			return err
 		}
 		if status == "frozen" {
-			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','autonomy.action',$3) ON CONFLICT DO NOTHING`, "autonomy_daily_intent:"+actionID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "local_date": localDate})); err != nil {
+			intentType := "autonomy.action"
+			intentIDPrefix := "autonomy_daily_intent:"
+			if actionType == "capability" {
+				intentType = "capability.action"
+				intentIDPrefix = "capability_daily_intent:"
+			}
+			_, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction',$3,$4) ON CONFLICT DO NOTHING`, intentIDPrefix+actionID, workflowID, intentType, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "local_date": localDate}))
+			if err != nil {
 				return err
 			}
-			return appendOutboxTx(ctx, tx, "autonomy.action.frozen", "autonomy_action", actionID, fluctlightID, actionID, workflowID, "autonomy-freeze:"+actionID, map[string]any{"action_type": actionType, "workflow_id": workflowID})
+			return appendOutboxTx(ctx, tx, "autonomy.action.frozen", "autonomy_action", actionID, fluctlightID, actionID, workflowID, "autonomy-freeze:"+actionID, map[string]any{"action_type": actionType, "workflow_id": workflowID, "intent_type": intentType})
 		}
 		return nil
 	})
@@ -183,7 +189,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	deliveryStatus := ""
 	deliveredMessageID := ""
-	if actionType != "no_op" {
+	if actionType != "no_op" && actionType != "capability" {
 		callName := "moment.publish"
 		if actionType == "proactive_message" {
 			callName = "conversation.reply"
@@ -218,7 +224,14 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 			return nil, err
 		}
 	}
-	result := map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": "completed", "owner_actor_id": ownerID}
+	resultStatus := "completed"
+	if actionType == "capability" {
+		// Capability calls are executed by the durable capability.action intent.
+		// Returning queued here avoids running them twice and lets their single
+		// settlement create the authoritative autonomy.result/reflection facts.
+		resultStatus = "queued"
+	}
+	result := map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": resultStatus, "owner_actor_id": ownerID}
 	if deliveryStatus != "" {
 		result["delivery_status"] = deliveryStatus
 		result["message_id"] = deliveredMessageID

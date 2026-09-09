@@ -73,6 +73,9 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 			result["visual_identity"] = visualIdentity
 		}
 	}
+	if schedule := compactScheduleForProvider(projection.Schedule); len(schedule) > 0 {
+		result["schedule"] = schedule
+	}
 	if len(projection.Presence) > 0 {
 		result["presence"] = projection.Presence
 	}
@@ -82,7 +85,15 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	if intentions := compactProviderIntentions(profileIntentions); len(intentions) > 0 {
 		result["intentions"] = intentions
 	}
-	return stripProviderContextMetadata(result).(map[string]any)
+	cleaned := stripProviderContextMetadata(result).(map[string]any)
+	// `status` is storage metadata for most projections, but it is semantic
+	// input for schedule.replan: the model must be able to carry the current
+	// item's planned/completed state into a replacement schedule. Restore only
+	// the already-sanitized schedule DTO; it contains no persistence IDs.
+	if schedule := compactScheduleForProvider(projection.Schedule); len(schedule) > 0 {
+		cleaned["schedule"] = schedule
+	}
+	return cleaned
 }
 
 func compactPersonalitySystem(system, runtime map[string]any) map[string]any {
@@ -535,11 +546,86 @@ func compactStateMap(value any, keys []string) map[string]any {
 }
 
 func compactLifeContext(context map[string]any) map[string]any {
-	result := make(map[string]any, 6)
+	result := make(map[string]any, 7)
 	for _, key := range []string{"source", "scene", "activity", "location", "current_time", "timezone"} {
 		if value, ok := context[key]; ok && value != nil && value != "" {
 			result[key] = value
 		}
+	}
+	if schedule := compactScheduleForProvider(mapValue(context["schedule"])); len(schedule) > 0 {
+		result["schedule"] = schedule
+	}
+	return result
+}
+
+// compactScheduleForProvider keeps the semantic plan needed for an LLM-owned
+// replan while removing storage IDs and coordination metadata. The revision is
+// intentionally exposed as expected_revision because it is the CAS input of
+// schedule.replan, not a provider-facing storage detail.
+func compactScheduleForProvider(value map[string]any) map[string]any {
+	if len(value) == 0 {
+		return nil
+	}
+	result := map[string]any{}
+	for _, key := range []string{"local_date", "timezone", "completed_before", "reschedule_policy"} {
+		if raw, ok := value[key]; ok && raw != nil && raw != "" {
+			result[key] = raw
+		}
+	}
+	revision := intValue(value["revision"])
+	if revision == 0 {
+		revision = intValue(value["expected_revision"])
+	}
+	if revision >= 0 {
+		result["expected_revision"] = revision
+	}
+	items := make([]map[string]any, 0)
+	for _, raw := range arrayValue(value["items"]) {
+		item := mapValue(raw)
+		if len(item) == 0 {
+			continue
+		}
+		compact := map[string]any{}
+		for _, key := range []string{"start_at", "end_at", "activity", "scene", "item_type", "status", "priority", "flexibility", "interruption_cost"} {
+			if child, ok := item[key]; ok && child != nil && child != "" {
+				compact[key] = child
+			}
+		}
+		if len(compact) > 0 {
+			items = append(items, compact)
+		}
+	}
+	if len(items) > 0 {
+		result["items"] = items
+	}
+	// Make the temporal decision boundary explicit. The full item list remains
+	// available for schedule.replan, while these projections tell the model
+	// which item is in progress and which future items are candidates for
+	// invalidation after a sudden scene/event change. This is semantic context,
+	// not a Go-side decision to replan.
+	boundary := time.Now().UTC()
+	if raw := stringValue(result["completed_before"]); raw != "" {
+		if parsed, err := time.Parse(time.RFC3339Nano, raw); err == nil {
+			boundary = parsed
+		}
+	}
+	upcoming := make([]map[string]any, 0)
+	for _, item := range items {
+		start, startErr := time.Parse(time.RFC3339Nano, stringValue(item["start_at"]))
+		end, endErr := time.Parse(time.RFC3339Nano, stringValue(item["end_at"]))
+		if startErr != nil || endErr != nil {
+			continue
+		}
+		if !boundary.Before(start) && boundary.Before(end) {
+			result["current_item"] = item
+			continue
+		}
+		if !start.Before(boundary) {
+			upcoming = append(upcoming, item)
+		}
+	}
+	if len(upcoming) > 0 {
+		result["upcoming_items"] = upcoming
 	}
 	return result
 }

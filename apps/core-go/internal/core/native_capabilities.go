@@ -13,16 +13,17 @@ import (
 func sceneCapabilityManifest() CapabilityManifest {
 	return CapabilityManifest{
 		Name: "scene_event", Version: "v1",
-		Description: "Record an evidence-backed scene/activity/location candidate for the Fluctlight life world.",
+		Description: "Start, switch, or end the Fluctlight's current evidence-backed scene/activity/location. Use operation=switch when the current scene has materially changed; do not infer a switch from prose alone. This tool records the scene only; if the change invalidates the current or future schedule, independently call schedule.replan.",
 		Parameters: map[string]any{
 			"type": "object", "additionalProperties": false,
-			"required": []any{"scene", "activity", "evidence_refs", "confidence"},
+			"required": []any{"operation", "evidence_refs", "confidence"},
 			"properties": map[string]any{
-				"scene":    map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
-				"activity": map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
-				"location": map[string]any{"type": "string", "maxLength": 512},
-				"kind":     map[string]any{"type": "string", "enum": []any{"confirmed", "observed", "inferred", "hypothesis"}},
-				"start_at": map[string]any{"type": "string"}, "end_at": map[string]any{"type": "string"},
+				"operation": map[string]any{"type": "string", "enum": []any{"start", "switch", "end"}},
+				"scene":     map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
+				"activity":  map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
+				"location":  map[string]any{"type": "string", "maxLength": 512},
+				"kind":      map[string]any{"type": "string", "enum": []any{"confirmed", "observed", "inferred", "hypothesis"}},
+				"start_at":  map[string]any{"type": "string"}, "end_at": map[string]any{"type": "string"},
 				"source_fact_id":  map[string]any{"type": "string", "minLength": 1},
 				"evidence_refs":   map[string]any{"type": "array", "minItems": 1},
 				"confidence":      map[string]any{"type": "number", "minimum": 0, "maximum": 1},
@@ -62,9 +63,17 @@ func (a *App) applySceneCapability(ctx context.Context, fluctlightID, conversati
 	if source := stringValue(args["source_fact_id"]); source != "" && source != sourceFactID {
 		return failedToolResult(call, "scene_source_invalid", false, "source fact does not match current cognition fact"), errors.New("scene source fact invalid")
 	}
+	operation, operationErr := normalizeSceneOperation(args)
+	if operationErr != nil {
+		errorCode := "scene_operation_invalid"
+		if strings.TrimSpace(stringValue(args["operation"])) == "" {
+			errorCode = "scene_operation_required"
+		}
+		return failedToolResult(call, errorCode, false, operationErr.Error()), operationErr
+	}
 	scene, activity := strings.TrimSpace(stringValue(args["scene"])), strings.TrimSpace(stringValue(args["activity"]))
-	if scene == "" || activity == "" {
-		return failedToolResult(call, "scene_fields_required", false, "scene and activity are required"), errors.New("scene and activity are required")
+	if operation != "end" && (scene == "" || activity == "") {
+		return failedToolResult(call, "scene_fields_required", false, "scene and activity are required for start or switch"), errors.New("scene and activity are required")
 	}
 	confidence, err := boundedNumberOrError(args["confidence"], -1)
 	if err != nil || confidence < 0 {
@@ -89,25 +98,108 @@ func (a *App) applySceneCapability(ctx context.Context, fluctlightID, conversati
 	}
 	eventID := "event_" + stableDigest(fluctlightID+":"+idempotency)
 	inboxID := ""
+	previousScene := map[string]any{}
+	existingEvent := false
+	existingStatus := status
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		// life_events uses a partial unique index because legacy rows may not
-		// have an idempotency key. PostgreSQL can only infer that index when the
-		// conflict target repeats its predicate; omitting it raises SQLSTATE
-		// 42P10 and turns an otherwise valid native scene tool call into a
-		// retryable failure.
-		if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs,idempotency_key,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT(fluctlight_id,idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING`, eventID, fluctlightID, "scene_"+kind, start, end, scene, nullableString(stringValue(args["activity"])), nullableString(stringValue(args["location"])), status, jsonBytes(refs), idempotency, sceneExpiry(status, end)); err != nil {
+		// Idempotency must be checked before closing the active scene. Otherwise a
+		// retry of a successful switch would truncate the newly-created scene and
+		// only then discover the unique-key conflict on INSERT.
+		var existingID, existingKind string
+		if err := tx.QueryRow(ctx, `
+			SELECT id,kind,status
+			FROM public.life_events
+			WHERE fluctlight_id=$1 AND idempotency_key=$2
+			LIMIT 1
+			FOR UPDATE`, fluctlightID, idempotency).Scan(&existingID, &existingKind, &existingStatus); err == nil {
+			eventID = existingID
+			existingEvent = true
+			if existingKind == "scene_end" {
+				existingStatus = "ended"
+			}
+			return nil
+		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
-		inboxID, err = a.enqueueNativeFactTx(ctx, tx, fluctlightID, conversationID, sourceFactID, "life.scene.updated", "scene:"+idempotency, map[string]any{"event_id": eventID, "scene": scene, "activity": activity, "location": stringValue(args["location"]), "status": status})
+		// A switch is a replacement of the currently active scene, not a second
+		// overlapping scene. Close active scene facts before inserting the new
+		// projection. The same close step makes an explicit end operation durable
+		// without relying on a text parser or schedule heuristics.
+		var previousSceneValue, previousActivity, previousLocation *string
+		var previousStart time.Time
+		if err := tx.QueryRow(ctx, `
+			SELECT scene,activity,location,start_at
+			FROM public.life_events
+			WHERE fluctlight_id=$1 AND status IN ('confirmed','inferred')
+			  AND start_at <= $2 AND end_at > $2
+			  AND (expires_at IS NULL OR expires_at > $2)
+			ORDER BY CASE WHEN status='confirmed' THEN 0 ELSE 1 END,start_at DESC,id DESC
+			LIMIT 1
+			FOR UPDATE`, fluctlightID, start).Scan(&previousSceneValue, &previousActivity, &previousLocation, &previousStart); err == nil {
+			previousScene = map[string]any{
+				"scene":    previousSceneValue,
+				"activity": previousActivity,
+				"location": previousLocation,
+				"start_at": previousStart.Format(time.RFC3339Nano),
+			}
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if operation == "switch" || operation == "end" {
+			if _, err := tx.Exec(ctx, `
+				UPDATE public.life_events
+				SET end_at=LEAST(end_at,$2), expires_at=COALESCE(expires_at,$2)
+				WHERE fluctlight_id=$1 AND status IN ('confirmed','inferred')
+				  AND start_at <= $2 AND end_at > $2
+				  AND (expires_at IS NULL OR expires_at > $2)`, fluctlightID, start); err != nil {
+				return err
+			}
+		}
+		if operation == "end" {
+			// Keep an auditable end marker without making it the active context.
+			endMarkerExpiry := start
+			markerEnd := start.Add(time.Second)
+			if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs,idempotency_key,expires_at) VALUES($1,$2,$3,$4,$5,NULL,NULL,NULL,'confirmed',$6,$7,$8) ON CONFLICT(fluctlight_id,idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING`, eventID, fluctlightID, "scene_end", start, markerEnd, jsonBytes(refs), idempotency, endMarkerExpiry); err != nil {
+				return err
+			}
+		} else {
+			// life_events uses a partial unique index because legacy rows may not
+			// have an idempotency key. PostgreSQL can only infer that index when the
+			// conflict target repeats its predicate; omitting it raises SQLSTATE
+			// 42P10 and turns an otherwise valid native scene tool call into a
+			// retryable failure.
+			if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs,idempotency_key,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT(fluctlight_id,idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING`, eventID, fluctlightID, "scene_"+kind, start, end, scene, nullableString(activity), nullableString(stringValue(args["location"])), status, jsonBytes(refs), idempotency, sceneExpiry(status, end)); err != nil {
+				return err
+			}
+		}
+		inboxID, err = a.enqueueNativeFactTx(ctx, tx, fluctlightID, conversationID, sourceFactID, "life.scene.updated", "scene:"+idempotency, map[string]any{"event_id": eventID, "operation": operation, "scene": scene, "activity": activity, "location": stringValue(args["location"]), "previous_scene": previousScene, "status": status})
 		if err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "life.scene.updated", "fluctlight", fluctlightID, fluctlightID, sourceFactID, "scene:"+eventID, "scene:"+idempotency, map[string]any{"event_id": eventID, "status": status, "aggregate_sequence": 1})
+		return appendOutboxTx(ctx, tx, "life.scene.updated", "fluctlight", fluctlightID, fluctlightID, sourceFactID, "scene:"+eventID, "scene:"+idempotency, map[string]any{"event_id": eventID, "operation": operation, "previous_scene": previousScene, "status": status, "aggregate_sequence": 1})
 	})
 	if err != nil {
 		return failedToolResult(call, "scene_persist_failed", true, err.Error()), err
 	}
-	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: map[string]any{"event_id": eventID, "inbox_id": inboxID, "status": status}, ProviderRequestID: call.ProviderRequestID, CorrelationID: "scene:" + eventID, SchemaVersion: ToolResultSchemaVersion}, nil
+	if existingEvent {
+		return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: map[string]any{"event_id": eventID, "inbox_id": inboxID, "operation": operation, "previous_scene": previousScene, "status": existingStatus}, ProviderRequestID: call.ProviderRequestID, CorrelationID: "scene:" + eventID, SchemaVersion: ToolResultSchemaVersion}, nil
+	}
+	resultStatus := status
+	if operation == "end" {
+		resultStatus = "ended"
+	}
+	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: map[string]any{"event_id": eventID, "inbox_id": inboxID, "operation": operation, "previous_scene": previousScene, "status": resultStatus}, ProviderRequestID: call.ProviderRequestID, CorrelationID: "scene:" + eventID, SchemaVersion: ToolResultSchemaVersion}, nil
+}
+
+func normalizeSceneOperation(args map[string]any) (string, error) {
+	operation := strings.TrimSpace(stringValue(args["operation"]))
+	if operation == "" {
+		return "", errors.New("operation is required and must be start, switch, or end")
+	}
+	if operation != "start" && operation != "switch" && operation != "end" {
+		return "", errors.New("operation must be start, switch, or end")
+	}
+	return operation, nil
 }
 
 func (a *App) applyPresenceCapability(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {

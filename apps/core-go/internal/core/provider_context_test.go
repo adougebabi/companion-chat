@@ -39,6 +39,17 @@ func TestCompactCognitionContextKeepsOnlyCanonicalLayersAndNonEmptyEvidence(t *t
 				"life_context": map[string]any{"scene": "图书馆"},
 			},
 		},
+		Schedule: map[string]any{
+			"local_date":       "2026-09-08",
+			"timezone":         "Asia/Shanghai",
+			"revision":         3,
+			"completed_before": "2026-09-08T10:00:00+08:00",
+			"items": []any{map[string]any{
+				"start_at": "2026-09-08T00:00:00+08:00", "end_at": "2026-09-08T10:00:00+08:00",
+				"activity": "睡眠", "scene": "卧室", "item_type": "planned", "status": "planned",
+				"priority": "0.5", "flexibility": "0.4", "interruption_cost": "0.2",
+			}},
+		},
 		// These fields intentionally duplicate the canonical layer data. They must
 		// not appear in the Provider-facing DTO.
 		Identity:           map[string]any{"name": "影者"},
@@ -66,6 +77,14 @@ func TestCompactCognitionContextKeepsOnlyCanonicalLayersAndNonEmptyEvidence(t *t
 		if _, ok := compact[key]; !ok {
 			t.Fatalf("compact context is missing canonical field %q: %#v", key, compact)
 		}
+	}
+	schedule := mapValue(compact["schedule"])
+	if intValue(schedule["expected_revision"]) != 3 || stringValue(schedule["completed_before"]) == "" || len(arrayValue(schedule["items"])) != 1 {
+		t.Fatalf("schedule was not preserved in compact context: %#v", compact["schedule"])
+	}
+	item := mapValue(arrayValue(schedule["items"])[0])
+	if stringValue(item["status"]) != "planned" {
+		t.Fatalf("schedule item status was dropped from compact context: %#v", item)
 	}
 	for _, key := range []string{"fluctlight_id", "conversation_id", "source_fact_id", "context_revision", "core_persona_revision", "developing_self_revision", "current_state_revision"} {
 		if _, ok := compact[key]; ok {
@@ -109,6 +128,27 @@ func TestCompactCognitionContextKeepsOnlyCanonicalLayersAndNonEmptyEvidence(t *t
 	}
 	if strings.Contains(string(encoded), "memory_event") {
 		t.Fatal("native capability manifest leaked into compact user context")
+	}
+}
+
+func TestCompactScheduleForProviderAnnotatesCurrentAndUpcomingItems(t *testing.T) {
+	schedule := compactScheduleForProvider(map[string]any{
+		"local_date":       "2026-09-08",
+		"timezone":         "Asia/Shanghai",
+		"revision":         7,
+		"completed_before": "2026-09-08T10:00:00+08:00",
+		"items": []any{
+			map[string]any{"start_at": "2026-09-08T00:00:00+08:00", "end_at": "2026-09-08T08:00:00+08:00", "activity": "睡眠", "scene": "卧室"},
+			map[string]any{"start_at": "2026-09-08T08:00:00+08:00", "end_at": "2026-09-08T12:00:00+08:00", "activity": "工作", "scene": "工作室"},
+			map[string]any{"start_at": "2026-09-08T12:00:00+08:00", "end_at": "2026-09-08T13:00:00+08:00", "activity": "午餐", "scene": "厨房"},
+		},
+	})
+	if stringValue(mapValue(schedule["current_item"])["activity"]) != "工作" {
+		t.Fatalf("current schedule item = %#v", schedule["current_item"])
+	}
+	upcoming := arrayValue(schedule["upcoming_items"])
+	if len(upcoming) != 1 || stringValue(mapValue(upcoming[0])["activity"]) != "午餐" {
+		t.Fatalf("upcoming schedule items = %#v", schedule["upcoming_items"])
 	}
 }
 

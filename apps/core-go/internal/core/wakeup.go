@@ -381,7 +381,12 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	policyBlocked := false
 	policyActionType := proposedActionType
 	if policyActionType == "no_op" && len(toolCalls) > 0 {
-		policyActionType = toolCalls[0].Name
+		// Native scene/schedule/affect/memory calls are optional capabilities,
+		// not separate autonomous product actions. Authorize the capability
+		// bundle once; do not make the first tool name decide whether the whole
+		// wake-up is blocked (for example, schedule.replan is not an
+		// `allowed_actions` product output).
+		policyActionType = "capability"
 	}
 	if policyActionType != "no_op" {
 		policyDecision, policyErr := a.EvaluateAutonomyPolicy(ctx, fluctlightID, policyActionType, time.Now().UTC())

@@ -20,6 +20,7 @@ func (a *App) capabilityRegistry() *CapabilityRegistry {
 		&imageCapabilityExecutor{app: a},
 		&visualIdentityCapabilityExecutor{app: a},
 		&sceneCapabilityExecutor{app: a},
+		&scheduleReplanCapabilityExecutor{app: a},
 		&presenceCapabilityExecutor{app: a},
 		&memoryCapabilityExecutor{app: a},
 		&affectEventCapabilityExecutor{app: a},

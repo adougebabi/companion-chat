@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"sort"
 	"strconv"
@@ -129,13 +130,23 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 		if len(evidence) == 0 {
 			evidence = []any{"owner:" + actorID}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedules (id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision,generated_at,reschedule_policy) VALUES ($1,$2,$3,$4,'accepted','owner',$5,$6,$7,$8)`, scheduleID, fluctlightID, localDate, timezone, jsonBytes(evidence), revision, now, jsonBytes(payload["reschedule_policy"])); err != nil {
+		generatedFrom := firstString(payload["generated_from"], "owner")
+		if sourceFactID := stringValue(payload["source_fact_id"]); sourceFactID != "" && !containsStringValue(evidence, sourceFactID) {
+			evidence = append(evidence, sourceFactID)
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedules (id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision,generated_at,reschedule_policy) VALUES ($1,$2,$3,$4,'accepted',$5,$6,$7,$8,$9)`, scheduleID, fluctlightID, localDate, timezone, generatedFrom, jsonBytes(evidence), revision, now, jsonBytes(payload["reschedule_policy"])); err != nil {
 			return err
 		}
 		var previousID string
-		_ = tx.QueryRow(ctx, `SELECT id FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND revision=$3`, fluctlightID, localDate, current).Scan(&previousID)
+		if current > 0 {
+			if err := tx.QueryRow(ctx, `SELECT id FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND revision=$3`, fluctlightID, localDate, current).Scan(&previousID); err != nil {
+				return err
+			}
+		}
 		if previousID != "" {
-			_, _ = tx.Exec(ctx, `UPDATE public.life_schedules SET previous_version_id=$2 WHERE id=$1`, scheduleID, previousID)
+			if _, err := tx.Exec(ctx, `UPDATE public.life_schedules SET previous_version_id=$2 WHERE id=$1`, scheduleID, previousID); err != nil {
+				return err
+			}
 		}
 		var previousEnd *time.Time
 		for _, entry := range entries {
@@ -155,7 +166,17 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 		if err := insertPostScheduleLifecycleIntentsTx(ctx, tx, fluctlightID, localDate, timezone); err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "schedule.accepted", "fluctlight", fluctlightID, fluctlightID, scheduleID, "schedule:"+scheduleID, "schedule-outbox:"+scheduleID, map[string]any{"schedule_id": scheduleID, "local_date": localDate.Format("2006-01-02"), "revision": revision})
+		outboxKind := "schedule.accepted"
+		if generatedFrom == "model_replan" {
+			outboxKind = "schedule.replanned"
+		}
+		causationID := firstString(payload["source_fact_id"], scheduleID)
+		correlationID := firstString(payload["correlation_id"], "schedule:"+scheduleID)
+		return appendOutboxTx(ctx, tx, outboxKind, "fluctlight", fluctlightID, causationID, scheduleID, correlationID, "schedule-outbox:"+scheduleID, map[string]any{
+			"schedule_id": scheduleID, "local_date": localDate.Format("2006-01-02"), "revision": revision,
+			"generated_from": generatedFrom, "source_fact_id": payload["source_fact_id"], "conversation_id": payload["conversation_id"],
+			"trigger": payload["trigger"], "reason": payload["reason"], "completed_before": payload["completed_before"], "evidence_refs": evidence,
+		})
 	})
 	if err != nil {
 		return nil, err
@@ -169,11 +190,49 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 func (a *App) ReplanSchedule(ctx context.Context, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
 	boundaryValue := stringValue(payload["completed_before"])
 	if boundaryValue == "" {
-		return a.AcceptSchedule(ctx, actorID, fluctlightID, payload)
+		return nil, errors.New("completed_before_required")
 	}
 	boundary, err := time.Parse(time.RFC3339, boundaryValue)
 	if err != nil {
 		return nil, errors.New("completed_before_invalid")
+	}
+	current, err := a.currentAcceptedSchedule(ctx, fluctlightID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.New("schedule_replan_schedule_missing")
+		}
+		return nil, err
+	}
+	if stringValue(payload["local_date"]) != stringValue(current["local_date"]) {
+		return nil, errors.New("schedule_replan_local_date_invalid")
+	}
+	if canonicalTimezone(stringValue(payload["timezone"])) != canonicalTimezone(stringValue(current["timezone"])) {
+		return nil, errors.New("schedule_replan_timezone_invalid")
+	}
+	if intValue(payload["expected_revision"]) <= 0 || intValue(payload["expected_revision"]) != intValue(current["revision"]) {
+		return nil, ErrConflict
+	}
+	if err := validateScheduleReplanItems(arrayValue(payload["items"])); err != nil {
+		return nil, err
+	}
+	location, err := time.LoadLocation(canonicalTimezone(stringValue(current["timezone"])))
+	if err != nil {
+		return nil, fmt.Errorf("schedule_timezone_invalid: %w", err)
+	}
+	day, err := time.ParseInLocation("2006-01-02", stringValue(current["local_date"]), location)
+	if err != nil {
+		return nil, errors.New("schedule_replan_local_date_invalid")
+	}
+	dayStart := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, location)
+	dayEnd := dayStart.AddDate(0, 0, 1)
+	if boundary.Before(dayStart) || boundary.After(dayEnd) {
+		return nil, errors.New("schedule_replan_completed_before_out_of_day")
+	}
+	if err := validateScheduleReplanBoundary(boundary, time.Now().In(location)); err != nil {
+		return nil, err
+	}
+	if err := validateCompletedScheduleHistory(current, payload, boundary); err != nil {
+		return nil, err
 	}
 	for _, raw := range arrayValue(payload["items"]) {
 		item := mapValue(raw)
@@ -187,6 +246,87 @@ func (a *App) ReplanSchedule(ctx context.Context, actorID, fluctlightID string, 
 		}
 	}
 	return a.AcceptSchedule(ctx, actorID, fluctlightID, payload)
+}
+
+// validateScheduleReplanBoundary prevents a stale model response from moving
+// the immutable-history boundary backwards. A provider may take a little time
+// to finish, so the guard allows a small clock/request skew, but it must still
+// describe approximately "everything completed up to now". The boundary is
+// also not allowed to be in the future, because that would make an interval
+// that is currently running look completed and therefore immutable.
+func validateScheduleReplanBoundary(boundary, now time.Time) error {
+	const (
+		maxBoundaryAge    = 5 * time.Minute
+		maxBoundaryFuture = 30 * time.Second
+	)
+	if boundary.Before(now.Add(-maxBoundaryAge)) {
+		return errors.New("schedule_replan_completed_before_stale")
+	}
+	if boundary.After(now.Add(maxBoundaryFuture)) {
+		return errors.New("schedule_replan_completed_before_future")
+	}
+	return nil
+}
+
+// validateCompletedScheduleHistory makes the immutable accepted schedule the
+// authority for the part of the day that has already happened. A replan may
+// replace only the current/future portion; if the active item crosses the
+// boundary, the replacement must first truncate it at that boundary with the
+// same semantic fields.
+func validateCompletedScheduleHistory(current, proposal map[string]any, boundary time.Time) error {
+	currentItems := arrayValue(current["items"])
+	proposalItems := arrayValue(proposal["items"])
+	for _, raw := range currentItems {
+		old := mapValue(raw)
+		oldStart, startErr := parseScheduleTime(stringValue(old["start_at"]))
+		oldEnd, endErr := parseScheduleTime(stringValue(old["end_at"]))
+		if startErr != nil || endErr != nil || !oldEnd.After(oldStart) {
+			return errors.New("schedule_replan_current_history_invalid")
+		}
+		if oldEnd.After(boundary) && !oldStart.Before(boundary) {
+			continue
+		}
+		wantEnd := oldEnd
+		if oldStart.Before(boundary) && oldEnd.After(boundary) {
+			wantEnd = boundary
+		}
+		if !findScheduleItemWithFields(proposalItems, old, oldStart, wantEnd) {
+			return errors.New("schedule_replan_completed_history_changed")
+		}
+	}
+	return nil
+}
+
+func findScheduleItemWithFields(items []any, want map[string]any, wantStart, wantEnd time.Time) bool {
+	for _, raw := range items {
+		item := mapValue(raw)
+		start, startErr := parseScheduleTime(stringValue(item["start_at"]))
+		end, endErr := parseScheduleTime(stringValue(item["end_at"]))
+		if startErr != nil || endErr != nil || !start.Equal(wantStart) || !end.Equal(wantEnd) {
+			continue
+		}
+		if !sameScheduleItemSemantics(want, item) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+func sameScheduleItemSemantics(left, right map[string]any) bool {
+	for _, key := range []string{"activity", "scene", "item_type", "status"} {
+		if strings.TrimSpace(stringValue(left[key])) != strings.TrimSpace(stringValue(right[key])) {
+			return false
+		}
+	}
+	for _, key := range []string{"priority", "flexibility", "interruption_cost"} {
+		leftValue, leftOK := numberFloat(normalizeScheduleScalar(left[key]))
+		rightValue, rightOK := numberFloat(normalizeScheduleScalar(right[key]))
+		if !leftOK || !rightOK || math.Abs(leftValue-rightValue) > 0.000001 {
+			return false
+		}
+	}
+	return true
 }
 
 // insertPostScheduleLifecycleIntentsTx releases the cognition-producing

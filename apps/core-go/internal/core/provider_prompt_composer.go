@@ -354,6 +354,7 @@ func renderProviderDynamicDocument(value map[string]any) string {
 		toon  bool
 	}{
 		{"developing_self", "Developing Self", true},
+		{"schedule", "当前日程", true},
 		{"current_state", "当前状态", false},
 		{"memories", "记忆", true},
 		{"goals", "当前目标", true},
@@ -370,6 +371,8 @@ func renderProviderDynamicDocument(value map[string]any) string {
 		if raw, exists := contextValue[section.key]; exists && !isEmptyProviderValue(raw) {
 			if section.key == "current_state" {
 				raw = providerCurrentStateDocument(mapValue(raw))
+			} else if section.key == "schedule" {
+				raw = compactScheduleForProvider(mapValue(raw))
 			}
 			renderProviderDynamicSection(&builder, section.title, raw, section.toon)
 		}

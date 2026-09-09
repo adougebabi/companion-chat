@@ -53,6 +53,7 @@ type ContextProjection struct {
 	Personality            map[string]any   `json:"personality"`
 	BehavioralPolicy       map[string]any   `json:"behavioral_policy"`
 	InnerState             map[string]any   `json:"inner_state"`
+	Schedule               map[string]any   `json:"schedule,omitempty"`
 	LifeContext            map[string]any   `json:"life_context"`
 	Presence               map[string]any   `json:"presence,omitempty"`
 	Memories               []map[string]any `json:"memories"`
@@ -229,6 +230,7 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 		CorePersona: map[string]any{"authority": "hard_constraint", "data": fluctlight.CorePersona}, PersonalitySystem: personalitySystem, PersonalityRuntime: personalityRuntime,
 		DevelopingSelf: developingSelf,
 		CurrentState:   map[string]any{"authority": "transient_state", "data": map[string]any{"inner_state": inner, "life_context": lifeContext}},
+		Schedule:       schedule,
 		Identity:       fluctlight.Identity, Personality: fluctlight.Personality,
 		BehavioralPolicy: fluctlight.BehavioralPolicy, InnerState: inner,
 		LifeContext: lifeContext, Memories: memories, Relationships: relationships,

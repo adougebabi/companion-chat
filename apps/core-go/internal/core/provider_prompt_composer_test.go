@@ -21,6 +21,11 @@ func TestComposeProviderMessagesSeparatesFixedPersonaAndDynamicContext(t *testin
 					},
 				},
 				"current_state": map[string]any{"data": map[string]any{"life_context": map[string]any{"scene": "咖啡馆", "current_time": "2026-09-06 00:10:00 CST", "timezone": "Asia/Shanghai"}}},
+				"schedule": map[string]any{
+					"local_date": "2026-09-06", "timezone": "Asia/Shanghai", "revision": 2,
+					"completed_before": "2026-09-06T00:10:00+08:00",
+					"items":            []any{map[string]any{"start_at": "2026-09-06T00:00:00+08:00", "end_at": "2026-09-06T08:00:00+08:00", "activity": "睡眠", "scene": "卧室", "item_type": "planned", "status": "planned", "priority": 0.5, "flexibility": 0.5, "interruption_cost": 0.5}},
+				},
 				"memories": []any{
 					map[string]any{"type": "preference", "content": "喜欢安静的咖啡馆", "confidence": 0.9, "importance": 0.7, "created_at": "2026-09-01T00:00:00Z", "evidence_refs": []any{"fact_a"}},
 					map[string]any{"type": "preference", "content": "不喜欢被连续追问", "confidence": 0.8, "importance": 0.6, "created_at": "2026-09-02T00:00:00Z", "evidence_refs": []any{"fact_b"}},
@@ -46,10 +51,13 @@ func TestComposeProviderMessagesSeparatesFixedPersonaAndDynamicContext(t *testin
 		}
 	}
 	user := stringValue(formatted[1]["content"])
-	for _, heading := range []string{"# 当前上下文", "# 记忆", "# 最近对话", "# 本次 actor_user 输入"} {
+	for _, heading := range []string{"# 当前上下文", "# 当前日程", "# 记忆", "# 最近对话", "# 本次 actor_user 输入"} {
 		if !strings.Contains(user, heading) {
 			t.Fatalf("dynamic heading %q missing: %s", heading, user)
 		}
+	}
+	if !strings.Contains(user, "expected_revision: 2") || !strings.Contains(user, "completed_before") {
+		t.Fatalf("schedule was dropped from provider dynamic payload: %s", user)
 	}
 	if strings.Contains(user, "core_persona") || strings.Contains(user, "fluctlight_1234567890abcdef") {
 		t.Fatalf("core persona remained in dynamic context: %s", user)

@@ -346,21 +346,28 @@ func (a *App) readSchedule(ctx context.Context, fluctlightID string) (map[string
 		}
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,start_at,end_at,activity,scene,status FROM public.life_schedule_items WHERE schedule_id=$1 ORDER BY start_at`, id)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,start_at,end_at,activity,scene,item_type,status,priority,flexibility,interruption_cost FROM public.life_schedule_items WHERE schedule_id=$1 ORDER BY start_at`, id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	items := make([]map[string]any, 0)
 	for rows.Next() {
-		var itemID, activity, scene, itemStatus string
+		var itemID, activity, scene, itemType, itemStatus, priority, flexibility, interruptionCost string
 		var start, end time.Time
-		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemStatus); err != nil {
+		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost); err != nil {
 			return nil, err
 		}
-		items = append(items, map[string]any{"id": itemID, "start_at": start.Format(time.RFC3339Nano), "end_at": end.Format(time.RFC3339Nano), "activity": activity, "scene": scene, "status": itemStatus})
+		items = append(items, map[string]any{"id": itemID, "start_at": start.Format(time.RFC3339Nano), "end_at": end.Format(time.RFC3339Nano), "activity": activity, "scene": scene, "item_type": itemType, "status": itemStatus, "priority": scheduleContextNumber(priority), "flexibility": scheduleContextNumber(flexibility), "interruption_cost": scheduleContextNumber(interruptionCost)})
 	}
-	return map[string]any{"id": id, "local_date": localDate.Format("2006-01-02"), "timezone": timezone, "revision": rev, "status": status, "reschedule_policy": decodeJSONValue(reschedulePolicy), "items": items}, nil
+	return map[string]any{"id": id, "local_date": localDate.Format("2006-01-02"), "timezone": timezone, "revision": rev, "status": status, "completed_before": time.Now().UTC().Format(time.RFC3339Nano), "reschedule_policy": decodeJSONValue(reschedulePolicy), "items": items}, nil
+}
+
+func scheduleContextNumber(value string) any {
+	if parsed, ok := numberFloat(value); ok {
+		return parsed
+	}
+	return normalizeScheduleScalar(value)
 }
 
 func decodeJSONValue(value []byte) any {

@@ -225,6 +225,30 @@ func TestDefaultNativeCapabilitySlotsAreVersioned(t *testing.T) {
 	}
 }
 
+func TestSceneCapabilityAdvertisesExplicitTransitionOperation(t *testing.T) {
+	manifest := sceneCapabilityManifest()
+	if manifest.Name != "scene_event" {
+		t.Fatalf("scene manifest name = %q", manifest.Name)
+	}
+	if !containsSchemaRequired(manifest.Parameters, "operation") {
+		t.Fatalf("scene operation must be required: %#v", manifest.Parameters)
+	}
+	operation := mapValue(mapValue(manifest.Parameters["properties"])["operation"])
+	values := arrayValue(operation["enum"])
+	for _, want := range []string{"start", "switch", "end"} {
+		found := false
+		for _, raw := range values {
+			if stringValue(raw) == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("scene operation enum missing %q: %#v", want, operation)
+		}
+	}
+}
+
 func TestRelationshipLookupCapabilityIsReadOnly(t *testing.T) {
 	manifest := relationshipLookupCapabilityManifest()
 	if manifest.Name != "relationship.lookup" || manifest.SideEffectClass != "read_only" || manifest.Parameters == nil {
