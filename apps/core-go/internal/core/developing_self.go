@@ -224,7 +224,7 @@ func (a *App) writeDevelopingSelfRevision(ctx context.Context, tx pgx.Tx, fluctl
 	if value, ok := numberFloat(candidate["confidence"]); ok {
 		confidence = value
 	}
-	_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_developing_self_revisions(id,fluctlight_id,claim_id,revision,base_revision,change_type,candidate,before_value,after_value,confidence,evidence_refs,provenance,source_window,reason_code,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) ON CONFLICT(id) DO NOTHING`, revisionID, fluctlightID, nullableString(claimID), revision, baseRevision, changeType, jsonBytes(candidate), before, after, confidence, jsonBytes(refs), jsonBytes(mapValue(candidate["provenance"])), nullableString(sourceWindow), reasonCode, status)
+	_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_developing_self_revisions(id,fluctlight_id,claim_id,revision,base_revision,change_type,candidate,before_value,after_value,confidence,evidence_refs,provenance,source_window,reason_code,status,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) ON CONFLICT(id) DO NOTHING`, revisionID, fluctlightID, nullableString(claimID), revision, baseRevision, changeType, jsonBytes(candidate), before, after, confidence, jsonBytes(refs), jsonBytes(mapValue(candidate["provenance"])), nullableString(sourceWindow), reasonCode, status, revisionID)
 	return err
 }
 

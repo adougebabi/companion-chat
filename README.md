@@ -39,8 +39,9 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
 对象存储；BFF 不承载领域规则；所有领域事实和写入都由 Go Core 统一完成。
 
 一次交互大致经过以下路径：用户消息先以幂等方式写入 PostgreSQL，Core 生成
-认知上下文并调用 `cognitive_assessment`，冻结可执行决策后再执行能力调用，
-最后通过 `action_realization` 生成可见回复并写回对话。需要跨进程、重试或长
+认知上下文并调用一次 Main `cognitive_assessment`；同一结构化结果同时携带可见
+回复与能力调用，Core 冻结后执行并原子写回，不再调用同轮
+`action_realization` 或发送 `role=tool` continuation。需要跨进程、重试或长
 时间运行的工作会先记录为 durable intent，再由 Worker 投递给 Temporal 执行。
 
 ## 当前能力
@@ -74,17 +75,31 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
 - **持续人格模型**：身份、人格、行为策略、生活档案、内部状态、目标、意图、
   关系、记忆、任意 Drive/Preference typed slots 和 Foundation revision 都由
   PostgreSQL 持久化，并支持版本、证据和审计追踪。
-- **认知运行时**：将感知、评估、状态更新、决策、能力执行、回复实现和反思拆成
-  明确阶段；模型负责语义判断，服务器负责权限、数值边界、幂等和最终提交。
-- **记忆与检索**：支持工作记忆、情景记忆、语义记忆、关系记忆和自传记忆；检索
-  以授权为前提，当前以全文/词法检索为主，并为 pgvector 和异步 Embedding 保留
-  扩展位置。
+- **认知运行时**：将感知、评估、状态更新、决策、能力执行、可见交付和反思拆成
+  明确阶段；模型负责语义判断，服务器负责权限、数值边界、幂等和最终提交。Affect
+  使用`affect.reducer.v2`按真实elapsed time衰减；Drive由模型提交带opaque ref的语义方向/
+  强度/置信度，Core计算pressure与conflict。tool-only结果不会合成默认appraisal。
+- **记忆与检索**：工作记忆保持为当前对话/认知的 bounded read model；长期 Memory
+  只包含 episodic、semantic、relationship 和 autobiographical。`memory_event`、Reflection
+  与 Owner 治理共用 `memory.lifecycle.v2` authority，支持 create/confirm/revise/merge/
+  supersede/deprecate/forget/完整 lineage rollback，revision、governance、embedding intent
+  和 outbox 同事务提交。检索先在 PostgreSQL 按 owner/visibility/viewer/conversation/status
+  授权，再执行 bounded FTS/词法/salience 排名；内部 Scene/Goal/Outcome/Reflection cue
+  默认不会发送给 Embedding Provider。Provider 只看到 opaque Memory ref 和裁剪后的语义，
+  assistant 可见文案不会作为 Reflection Memory 事实回灌。
 - **自治与生活世界**：围绕 Goal、Intention、Schedule、Event、Presence 和每日
-  Review 组织自主行为；自治动作可暂停、取消、重试，并受预算和治理策略约束。
-- **能力注册与安全执行**：能力通过 manifest 声明参数、side effect、并发、取消、
-  重试和 preflight 属性；Provider 只能看到工具契约，不能直接访问领域表。若模型
-  发现缺少能力，可以调用 `capability.request` 写入 Owner 可审核的全局需求池，
-  插件由人工接入现有 `CapabilityExecutor` slot。
+  Review 组织自主行为；qualified Intention 由稳定 `intention.trigger` Temporal
+  workflow 处理 typed time/event/semantic trigger，到期只产生
+  `agency.intention_due` cognition fact，真实 Outcome 再机械结算 attempt。自治动作
+  可暂停、取消、重试，并受预算和治理策略约束。
+- **能力注册与安全执行**：能力通过 `CapabilityDefinition` 声明薄输入、side effect、
+  并发、取消、重试、preflight、surface 和 RequiredContext；Provider 只能看到统一
+  渲染后的工具契约，不能直接访问领域表或伪造 Runtime-owned `PreparedPayload`。
+  Capability 只注入窄领域依赖；所有调用先冻结Runtime provenance/PreparedPayload，事务型
+  Memory/Affect/Scene/Schedule/自治变更与可见目标、result和ActionOutcome共享调用方提交边界。
+  若模型发现缺少能力，可以调用
+  `capability.request` 写入 Owner 可审核的全局需求池；新增能力实现 `Capability` 后
+  在 composition root 注册即可。
 - **媒体流水线**：通过 ComfyUI 生成媒体，轮询外部任务并把图片、视频或音频写入
   私有 MinIO/S3；媒体带有校验信息、版本和引用关系，浏览器只能通过 BFF 代理读取。
 - **可靠异步执行**：PostgreSQL outbox 负责事务内记录事件，Worker 发布到 Redis
@@ -97,8 +112,8 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
 
 当前 Core 将摇光的主动性拆成两个相互衔接的循环：
 
-1. **外部/内部唤醒循环**：`Event / Internal State → Trigger → Wake-up → Attention → Thought → Desire → Agency → Action → Experience`。除了对话和生活事件外，每个激活的 Fluctlight 都会启动一个长期存活的 `wake_up.current` Temporal workflow。默认每 30 分钟执行一次，模型在唤醒时读取人格、内部状态、日程、关系、记忆和最近对话，产出结构化的 `attention`、`thought`、`desire`、`agency`；动作通过已安装的 Capability manifest、硬安全和稳定执行边界冻结，交付仍由 Worker 负责。
-2. **人格成长循环**：`Experience → Reflection → Self Model → Drive / Preference → 下一次 Attention`。每次唤醒都会写入带 sequence 和 provenance 的 `internal.wake_up` cognition fact，并创建 `reflection.run` intent，沿用现有 Reflection 的证据窗口、水位和 CAS 约束，允许模型在有足够证据时提出 self-model/personality 演进，以及任意 typed Drive/Preference slot 和未来 Trigger 偏好。
+1. **外部/内部唤醒循环**：`Event / Internal State → Trigger → Wake-up → Attention → Thought → Desire → Agency → Action → Experience`。每个周期由稳定 `wake_up.current` durable intent 启动一次 Temporal workflow；周期完成后 Redis quiet-period hint 仅负责低延迟唤醒，PostgreSQL/Temporal 仍是 authority。模型读取人格、内部状态、日程、关系、记忆和最近结果，动作经过 Capability Definition、硬安全和冻结边界。
+2. **演化循环**：`Experience / ActionOutcome → Reflection V2 → governed domain revisions → 下一次 ContextProjection`。`reflection.run` 消费严格裁剪的 evidence window；模型只提出 opaque-ref 语义候选，Core 在一个事务内应用 Memory、Relationship、Goal/Intention、Affect profile、Drive/Preference/Trigger、Developing Self 与 profile-scoped Personality/Behavior overlays，同时提交 disposition、revision 和 watermark。Identity/Core Persona、Owner、安全、Provider 与基础设施不允许自动演化。
 
 唤醒周期可在 Web「运行策略」中通过 `product.wakeup` 调整：
 
@@ -108,12 +123,13 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
 
 唤醒记录保存在 `cognition_wakeups`，可随 Core 实例详情读取，并在 Web 治理页查看
 近期摘要；它们是私有认知事实，不会自动变成可见消息。外显联系、动态
-或媒体仍必须经过自治模式、允许动作和已有冻结/治理边界；暂停自治只阻止新的外显
+  或媒体仍必须经过自治模式、允许动作和已有冻结/治理边界；暂停自治只阻止新的外显
 动作，不会让内部唤醒和反思停止。
 
 当摇光判断当前能力不足时，会调用 `capability.request`，将需求及其经历证据写入
-全局需求池。Owner 可以在治理页审核、拒绝或接受需求；真正的插件接入仍由人工完成，
-通过 `CapabilityExecutor`/`CapabilityManifest` 注册后再标记对应需求为 `fulfilled`。
+全局需求池。Owner 可以在治理页审核、拒绝或接受需求；真正的能力接入由实现 direct
+`Capability`、声明 `CapabilityDefinition`/`RequiredContext` 并在 composition root 注册后
+再标记对应需求为 `fulfilled`。
 
 ## 架构分层
 
@@ -300,7 +316,7 @@ Provider secrets；不要尝试从旧数据或旧环境变量中解密、复制�
 
 1. **更强的记忆检索**：在授权优先的前提下，把当前全文/词法检索与 pgvector、
    异步 Embedding、混合排序和 prompt budget 结合，提升长期记忆的召回质量与可解释性。
-2. **可插拔能力生态**：沿用 Capability manifest、preflight、取消、重试和审计契约，
+2. **可插拔能力生态**：沿用 Capability Definition、RequiredContext、preflight、取消、重试和审计契约，
    逐步接入更多真实可执行的外部能力。视频、音频、搜索等能力只有在适配器真正
    可执行后才会对模型公开，避免工具契约与实际运行能力不一致。
 3. **媒体能力扩展**：复用现有 ComfyUI、MinIO/S3、校验和恢复链路，完善视频、音频

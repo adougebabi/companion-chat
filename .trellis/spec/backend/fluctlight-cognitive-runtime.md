@@ -13,13 +13,12 @@
 
 Canonical application interfaces:
 
-```python
-assess(command: AssessObservation) -> SemanticAssessmentV1
-propose_decision(command: ProposeDecision) -> DecisionProposalV1
-reflect(command: ReflectEvidenceWindow) -> ReflectionProposalV1
-apply_state(command: ApplySemanticAssessment) -> StateTransition
-execute(command: ExecuteFrozenDecision) -> ActionResult
-realize(command: RealizeFrozenAction) -> AsyncIterator[VisibleChunk]
+```go
+ProcessCognitionInbox(ctx, inboxID) -> result
+ProcessNativeCognitionFact(ctx, inboxID) -> error
+ProcessReflection(ctx, fluctlightID, correlationID) -> ReflectionApplyResult
+CompileReflectionPlan(proposal, evolutionContext, policy, now) -> ReflectionEvolutionPlan
+ApplyReflectionPlan(state, plan, appliers) -> (nextState, result)
 ```
 
 Required structured results:
@@ -56,20 +55,27 @@ DecisionProposalV1
   evidence_refs[]
   model / model_version / prompt_version
 
-ReflectionProposalV1
+ReflectionProposalV2
   schema_version
+  summary
   memory_candidates[]
-  relationship_candidates[]
-  drive_recalibration_candidates[]
-  personality_revision_candidates[]
-  autobiographical_candidates[]
-  evidence_refs[]
-  model / model_version / prompt_version
+  relationship_observations[]
+  goal_candidates[] / intention_candidates[]
+  emotional_summary / affect_recalibration_candidates[]
+  drive_candidates[] / preference_candidates[] / trigger_candidates[]
+  developing_self_candidates[]
+  personality_evolution_candidates[]
+  behavior_policy_evolution_candidates[]
 ```
 
 The Go Core policy result records `accepted`, `rejected`, or `deferred`, policy reason codes, current revision, requested/applied numeric changes, idempotency key, and the frozen action when one exists.
 
-Interactive work uses two model stages. `assess` / `propose_decision` return no user-visible content. Go Core validates and freezes the action before `realize` is called. `realize` may produce language or media content for that frozen action but cannot return semantic state candidates.
+Direct conversation uses exactly one Main cognition. That response owns both
+the visible assistant text and the structured/native Capability calls; Core
+validates, freezes and settles it without a same-turn `role=tool` continuation
+or a second realization call. Background surfaces may complete as explicit
+`no_op`; direct conversation without visible text fails with
+`cognition_visible_text_missing` and retains the same durable retry identity.
 
 #### Foundation Expression Context
 
@@ -108,27 +114,30 @@ Interactive work uses two model stages. `assess` / `propose_decision` return no 
   mutable context; they replay the persisted fact and never enqueue the same
   ID with a newly assembled payload.
 - Assessment for that fact may choose only `no_op`, `proactive_message`, or
-  `moment`. The decision contains no visible text. It may include a
-  `moment_media_request` only when the model judges that the Moment needs an
-  image; it is a complete frozen visual concept, not an asset ID or video job.
+  `moment`. The decision contains no visible text. A Moment that needs an
+  image includes a frozen `media.image.generate` CapabilityInvocation with a
+  thin `intent`; Core prepares the visual concept and target binding, not the
+  Main LLM.
 - Realization writes the visible direct-message or Moment text from the frozen
   action. It cannot decide whether to request an image. The frozen image
   concept, when present, remains unchanged for the media-prompt role.
 
 #### Compound Decision Effects
 
-- A cognitive decision returns ordered `effects[]`, not one overloaded action
-  with undocumented fields. Each effect has a response-local `id`, one explicit
-  `action_type`, and a typed payload.
-- For a conversation fact, the first effect is `reply` or `no_op`; later effects
-  may include `media_request` and `moment`. For a daily-review fact, effects
-  may include `proactive_message`, `moment`, or `no_op`.
-- Each effect is frozen with a stable ID. The primary reply owns the browser
-  stream; later effects become independent autonomy Actions and may create their
-  own MediaIntent. Retrying one effect never repeats a sibling effect.
-- A visual concept belongs in explicit `media_request` / `moment_media_request`,
-  never inside `response_intent`. The realization stage creates visible text
-  only; it cannot add, remove, or reinterpret effects.
+- A cognitive decision returns one ordered root CapabilityInvocation sidecar,
+  alongside the visible action projection. Each invocation has a stable call
+  ID, source fact, provider request ID, sequence and Definition-owned target
+  metadata; it is frozen before execution and never copied into a nested
+  response-plan field.
+- For a conversation fact, `conversation.reply` is the optional visible output
+  capability; other invocations may independently record image, scene,
+  presence, schedule, memory or affect changes. Daily review uses the same
+  invocation model for `proactive_message`, `moment`, or capability-only
+  actions. Retrying one invocation never creates a sibling invocation.
+- Image intent is kept in the `media.image.generate` invocation. Capability
+  Prepare resolves the declared context slots and freezes the internal visual
+  concept before durable media-intent settlement. Realization creates visible
+  text only and cannot add, remove, or reinterpret invocations.
 
 ### 3. Contracts
 
@@ -214,8 +223,12 @@ Deterministic code may parse and validate protocol facts: JSON/schema, IDs, acto
 - Negative architecture tests scan Go Core and Go BFF production paths for newly introduced semantic regex/keyword dictionaries and require explicit review for any natural-language matching.
 - State-transition tests assert numeric policy owns requested/applied deltas, clamps canonical ranges, records policy/model versions, and is independent of Worker tick frequency.
 - Decision tests assert policy rejection produces no effect and no code-selected semantic alternative.
-- Two-stage tests assert assessment emits no visible content, final action is frozen before realization, no-content actions skip realization, and realization cannot return semantic side effects.
-- Realization failure/retry tests assert the same frozen decision is reused without another implicit assessment.
+- Single-Main tests assert one `conversation_turn_response`, zero `role=tool`
+  messages, zero `action_realization` calls, and frozen retry without another
+  Main request. Capability-local HOW planners are counted by their own schema,
+  not as a second Main cognition.
+- Delivery failure/retry tests assert the same frozen decision and message
+  identities are reused without another implicit assessment.
 - Concurrency tests assert per-Fluctlight ordering, cross-Fluctlight parallelism, stable action delivery, stale-reflection rejection, and media-result inbox re-entry.
 - Reflection tests assert identity/personality/memory/relationship candidates require evidence windows and cannot be created from one visible message by application code.
 - End-to-end tests inject a fake semantic provider and verify `facts -> structured result -> policy -> transaction/workflow -> observable outcome` without testing past the cognitive module interface.
@@ -228,6 +241,15 @@ command. The transition increments the inner-state revision exactly once and
 records requested/applied deltas for PAD, momentum, mood intensity, and every
 drive touched by the typed assessment. A model-provided `raw_numeric_delta`,
 including an empty object, is invalid input rather than a no-op fallback.
+
+PAD plus `momentum.value`, numeric `momentum.trend`, and `*_momentum` fields are
+bipolar `-1..1`; mood/regulation/Drive/conflict pressure are unit `0..1`.
+Elapsed-time decay uses the frozen `affect.reducer.v2` profile and is partition
+invariant. An unsupported policy version, stale State/AffectProfile revision,
+foreign appraisal evidence, or non-finite value fails closed. Built-in and
+active typed Drives receive opaque refs; the model can propose semantic
+increase/decrease signals, while Core computes pressure and opposed-signal
+conflict. A capability-only result with no appraisal performs no state change.
 
 ### 7. Wrong vs Correct
 
@@ -286,11 +308,29 @@ commit_reflection(proposal, *, expected_watermark, applier) -> None
 - Reflection validates every candidate's required fields, enum, numeric bounds,
   evidence and timestamp before writing. `applier.apply(..., tx=tx)` and the
   proposal/watermark update share one Unit of Work.
-- A relationship candidate must carry the complete relationship snapshot
-  visible in the reflection context (`role`, `metrics`, `trend`, and
-  `expected_revision`) plus in-window `evidence_refs`; a partial candidate is
-  rejected instead of being normalized to `unknown` or an empty object. The
-  relationship update uses `expected_revision` as its CAS boundary.
+- The raw Reflection object is checked against the closed response schema
+  before alias normalization. An empty object, scalar candidate, wrong
+  container, unknown field, or foreign opaque ref invalidates the proposal;
+  normalization must never erase it and advance the watermark as `no_change`.
+- Reflection Memory evidence may cite the current sequence observation,
+  its authoritative appraisal, an allowlisted ActionOutcome, or an authorized
+  opaque Memory ref. `autonomy.result` is projected through a field allowlist;
+  visible assistant realization and raw expected/observed/runtime IDs never
+  become learning evidence.
+- Memory target/merge refs resolve only through the frozen
+  `ContextReferenceIndex`. Core derives internal IDs, expected revisions,
+  owner/profile/Conversation scope, provenance/idempotency and embedding work.
+  Conflicting/unknown Conversation evidence fails rather than widening a new
+  Memory to global scope.
+- A Reflection apply must update the already-claimed watermark row with
+  exactly one CAS write. Zero affected rows are a conflict even at watermark
+  zero; an `INSERT ... ON CONFLICT DO NOTHING` fallback cannot authorize
+  committed domain mutations.
+- A Reflection V2 relationship observation carries only an opaque
+  `target_ref`, semantic observation/direction/strength/confidence and bounded
+  evidence refs. Core resolves the frozen Relationship snapshot, owns numeric
+  metric changes and enforces its revision CAS; Provider-supplied database IDs,
+  metrics, revisions and provenance are rejected by the closed schema.
 - Reflection prompts include the actual bounded evidence window, not only
   sequence numbers.
 
@@ -301,17 +341,20 @@ commit_reflection(proposal, *, expected_watermark, applier) -> None
 | Secondary `reply`/`no_op` in a conversation decision | Typed failure; no action or media intent is frozen. |
 | Missing/unsupported reflection `type`, `content`, `confidence`, trend or metrics | `ReflectionValidationError`; watermark unchanged. |
 | Reflection applier fails | Entire candidate/proposal/watermark transaction rolls back. |
+| Empty/scalar/unknown-field Reflection candidate | Reject before normalization; keep watermark unchanged and release the window lease. |
+| Memory ref is wrong-kind/stale/overlapping or evidence scope conflicts | Reject before apply or roll back on live CAS; no partial governance. |
+| Claimed watermark CAS updates zero rows | Roll back proposal and all domain mutations; do not insert/fall through. |
 | Duplicate action/effect retry | Stable IDs replay existing rows; no duplicate user/assistant/media effect. |
 
 ### 5. Good / Base / Bad Cases
 
-- Good: `[reply, media_request]` validates, freezes the reply, then settles the
-  media action independently.
+- Good: `[conversation.reply, media.image.generate]` validates, freezes the
+  root invocations, then settles the output targets independently.
 - Base: an empty candidate list is a valid reflection no-op and advances only a
   valid evidence watermark.
-- Bad: process `[reply, media_request, no_op]`, freeze the reply/media, then
-  discover the invalid sibling; or use `.get("type", "episodic")` to hide a
-  malformed candidate.
+- Bad: process a visible reply and a failed required CapabilityInvocation,
+  freeze the output, then discover the invalid sibling; or use
+  `.get("type", "episodic")` to hide a malformed candidate.
 
 ### 6. Tests Required
 
@@ -319,6 +362,10 @@ commit_reflection(proposal, *, expected_watermark, applier) -> None
 - Assert invalid siblings cause zero `_freeze` calls and one failed settlement.
 - Reflection tests for missing fields, unsupported enums, malformed timestamps,
   duplicate candidates, retry and watermark rollback after applier failure.
+- Memory Reflection tests cover all six lifecycle candidates, opaque ref
+  compilation, assistant-prose exclusion, cross-Conversation rejection,
+  stale target CAS, exact duplicate disposition, rollback of Memory/revision/
+  governance/embedding/outbox/proposal/watermark, and next projection refs.
 - Prompt test asserts evidence payloads are present in the reflection request.
 
 ### 7. Wrong vs Correct

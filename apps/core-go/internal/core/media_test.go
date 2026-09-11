@@ -38,29 +38,6 @@ func TestStableFluctlightID(t *testing.T) {
 	}
 }
 
-func TestResolveDecisionActionAcceptsStructuredStringConcept(t *testing.T) {
-	action, concept := resolveDecisionAction(map[string]any{
-		"action_type":    "media_request",
-		"visual_concept": "雨后的上海街角，北向窗与老相机",
-	})
-	if action != "media_request" {
-		t.Fatalf("action = %q", action)
-	}
-	if concept["visual_concept"] != "雨后的上海街角，北向窗与老相机" {
-		t.Fatalf("concept was not preserved: %#v", concept)
-	}
-}
-
-func TestResolveDecisionActionDoesNotInventMissingConcept(t *testing.T) {
-	action, concept := resolveDecisionAction(map[string]any{"action_type": "media_request"})
-	if action != "media_request" {
-		t.Fatalf("action = %q", action)
-	}
-	if len(concept) != 0 {
-		t.Fatalf("unexpected invented concept: %#v", concept)
-	}
-}
-
 func TestAppendUniqueAssetRefIsIdempotent(t *testing.T) {
 	refs := []any{"asset_existing"}
 	refs = appendUniqueAssetRef(refs, "asset_new")

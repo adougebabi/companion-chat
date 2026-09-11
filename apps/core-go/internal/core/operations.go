@@ -294,21 +294,32 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 	}
 	var result map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
+			return err
+		}
 		var revision, baseRevision int
-		var status string
+		var status, storedReason string
 		var corePersona, identity, personality, policy, life, provenance []byte
-		if err := tx.QueryRow(ctx, `SELECT revision,base_revision,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance FROM public.fluctlight_foundation_revisions WHERE id=$1 AND fluctlight_id=$2 AND actor_id=$3 FOR UPDATE`, revisionID, fluctlightID, actorID).Scan(&revision, &baseRevision, &status, &corePersona, &identity, &personality, &policy, &life, &provenance); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT revision,base_revision,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance,COALESCE(reason,'') FROM public.fluctlight_foundation_revisions WHERE id=$1 AND fluctlight_id=$2 AND actor_id=$3 FOR UPDATE`, revisionID, fluctlightID, actorID).Scan(&revision, &baseRevision, &status, &corePersona, &identity, &personality, &policy, &life, &provenance, &storedReason); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
 			return err
 		}
 		if status != "proposed" {
+			if status == action+"ed" && storedReason == reason {
+				result = map[string]any{"id": revisionID, "fluctlight_id": fluctlightID, "revision": revision, "status": status, "reason": reason, "replayed": true}
+				return nil
+			}
+			if status == action+"ed" {
+				return errors.New("foundation_decision_idempotency_conflict")
+			}
 			return errors.New("foundation_revision_not_proposed")
 		}
 		var current int
 		var lifecycleStatus string
-		if err := tx.QueryRow(ctx, `SELECT current_revision,status FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2 FOR UPDATE`, fluctlightID, actorID).Scan(&current, &lifecycleStatus); err != nil {
+		var currentIdentity []byte
+		if err := tx.QueryRow(ctx, `SELECT current_revision,status,identity FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2 FOR UPDATE`, fluctlightID, actorID).Scan(&current, &lifecycleStatus, &currentIdentity); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -341,13 +352,16 @@ func (a *App) SetFoundationDecisionExpected(ctx context.Context, actorID, fluctl
 			if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,core_persona=$3,identity=$4,personality=$5,behavioral_policy=$6,life_profile=$7,provenance=$8,updated_at=now() WHERE id=$1`, fluctlightID, revision, corePersona, identity, personality, policy, life, provenance); err != nil {
 				return err
 			}
+			if err := a.applyLifeContextTimezoneChangeTx(ctx, tx, fluctlightID, actorID, revisionID, revision, decodeObject(currentIdentity), decodeObject(identity)); err != nil {
+				return err
+			}
 		} else if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_foundation_revisions SET status='rejected',foundation_status=$2,rejected_at=now(),reason=$3 WHERE id=$1`, revisionID, lifecycleStatus, nullableString(reason)); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_governance(id,fluctlight_id,revision_id,action,actor_id,reason) VALUES($1,$2,$3,$4,$5,$6)`, randomID("foundation_governance_"), fluctlightID, revisionID, action, actorID, nullableString(reason)); err != nil {
 			return err
 		}
-		result = map[string]any{"id": revisionID, "fluctlight_id": fluctlightID, "revision": revision, "status": action + "ed", "reason": reason}
+		result = map[string]any{"id": revisionID, "fluctlight_id": fluctlightID, "revision": revision, "status": action + "ed", "reason": reason, "replayed": false}
 		return nil
 	})
 	return result, err
@@ -367,9 +381,26 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 		return nil, errors.New("expected_revision_invalid")
 	}
 	var result map[string]any
+	idempotencyKey := "foundation-rollback:" + fluctlightID + ":" + fmt.Sprint(target) + ":" + fmt.Sprint(expected)
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
+			return err
+		}
+		var replayID, replayStatus, replayReason, replayActor string
+		var replayRevision, replayBase int
+		var replayChanges []byte
+		if replayErr := tx.QueryRow(ctx, `SELECT id,revision,base_revision,status,actor_id,COALESCE(reason,''),changes FROM public.fluctlight_foundation_revisions WHERE idempotency_key=$1 FOR UPDATE`, idempotencyKey).Scan(&replayID, &replayRevision, &replayBase, &replayStatus, &replayActor, &replayReason, &replayChanges); replayErr == nil {
+			if replayStatus != "accepted" || replayActor != actorID || replayReason != reason || replayBase != expected || intValue(decodeObject(replayChanges)["rollback_from_revision"]) != target {
+				return errors.New("foundation_rollback_idempotency_conflict")
+			}
+			result = map[string]any{"id": replayID, "fluctlight_id": fluctlightID, "revision": replayRevision, "target_revision": target, "status": "accepted", "reason": reason, "replayed": true}
+			return nil
+		} else if !errors.Is(replayErr, pgx.ErrNoRows) {
+			return replayErr
+		}
 		var current int
-		if err := tx.QueryRow(ctx, `SELECT current_revision FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2 FOR UPDATE`, fluctlightID, actorID).Scan(&current); err != nil {
+		var currentIdentity []byte
+		if err := tx.QueryRow(ctx, `SELECT current_revision,identity FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2 FOR UPDATE`, fluctlightID, actorID).Scan(&current, &currentIdentity); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -394,7 +425,7 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 		}
 		newRevision := current + 1
 		newID := randomID("foundation_revision_")
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions(id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key) SELECT $1,fluctlight_id,$2,$3,'owner_rollback','accepted',$4,initialization_mode,'active',foundation_created_at,confidence,jsonb_build_object('rollback_from_revision',$5),core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,$6,$7 FROM public.fluctlight_foundation_revisions WHERE id=$8`, newID, newRevision, current, actorID, target, nullableString(reason), "foundation-rollback:"+fluctlightID+":"+fmt.Sprint(target), sourceID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_revisions(id,fluctlight_id,revision,base_revision,source,status,actor_id,initialization_mode,foundation_status,foundation_created_at,confidence,changes,core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,reason,idempotency_key) SELECT $1,fluctlight_id,$2,$3,'owner_rollback','accepted',$4,initialization_mode,'active',foundation_created_at,confidence,jsonb_build_object('rollback_from_revision',$5),core_persona,identity,personality,behavioral_policy,life_profile,provenance,evidence_refs,$6,$7 FROM public.fluctlight_foundation_revisions WHERE id=$8`, newID, newRevision, current, actorID, target, nullableString(reason), idempotencyKey, sourceID); err != nil {
 			return err
 		}
 		if len(decodeObject(corePersona)) == 0 {
@@ -411,10 +442,13 @@ func (a *App) RollbackFoundation(ctx context.Context, actorID, fluctlightID stri
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlights SET current_revision=$2,core_persona=$3,identity=$4,personality=$5,behavioral_policy=$6,life_profile=$7,provenance=$8,updated_at=now() WHERE id=$1`, fluctlightID, newRevision, corePersona, identity, personality, policy, life, provenance); err != nil {
 			return err
 		}
+		if err := a.applyLifeContextTimezoneChangeTx(ctx, tx, fluctlightID, actorID, newID, newRevision, decodeObject(currentIdentity), decodeObject(identity)); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_foundation_governance(id,fluctlight_id,revision_id,action,actor_id,reason) VALUES($1,$2,$3,'rollback',$4,$5)`, randomID("foundation_governance_"), fluctlightID, newID, actorID, nullableString(reason)); err != nil {
 			return err
 		}
-		result = map[string]any{"id": newID, "fluctlight_id": fluctlightID, "revision": newRevision, "target_revision": target, "status": "accepted", "reason": reason}
+		result = map[string]any{"id": newID, "fluctlight_id": fluctlightID, "revision": newRevision, "target_revision": target, "status": "accepted", "reason": reason, "replayed": false}
 		_ = evidence
 		return nil
 	})
@@ -470,109 +504,53 @@ func validateFoundationChanges(changes map[string]any) error {
 }
 
 func (a *App) ReviseMemory(ctx context.Context, actorID, id, content string, expected *int, refs []any) (map[string]any, error) {
-	return a.reviseMemory(ctx, actorID, id, content, expected, refs, nil)
-}
-
-func (a *App) reviseMemory(ctx context.Context, actorID, id, content string, expected *int, refs []any, perspectiveOverride []byte) (map[string]any, error) {
 	if strings.TrimSpace(content) == "" || len([]rune(content)) > 32000 || len(refs) == 0 || expected == nil {
 		return nil, errors.New("memory_revision_invalid")
 	}
-	var owner, old string
-	var perspectives []byte
-	var revision, newRevision int
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,content,personality_perspectives,revision FROM public.memories WHERE id=$1 FOR UPDATE`, id).Scan(&owner, &old, &perspectives, &revision); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return ErrNotFound
-			}
-			return err
-		}
-		var authorized bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2)`, owner, actorID).Scan(&authorized); err != nil {
-			return err
-		}
-		if !authorized {
-			return ErrUnauthorized
-		}
-		if expected != nil && *expected != revision {
-			return errors.New("memory_revision_stale")
-		}
-		newRevision = revision + 1
-		if len(perspectiveOverride) == 0 {
-			perspectiveOverride = perspectives
-		}
-		if _, err := tx.Exec(ctx, `UPDATE public.memories SET content=$2,personality_perspectives=$3,revision=$4,evidence_refs=$5,last_confirmed_at=now(),search_document=to_tsvector('simple',$2) WHERE id=$1`, id, content, perspectiveOverride, newRevision, jsonBytes(refs)); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,personality_perspectives,status,actor_id,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,'active',$7,$8,$9) ON CONFLICT DO NOTHING`, randomID("memory_revision_"), id, newRevision, revision, content, perspectiveOverride, actorID, jsonBytes(refs), "memory:"+id+":"+fmt.Sprint(newRevision)); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE public.memory_embeddings SET status='stale' WHERE memory_id=$1 AND memory_revision<>$2 AND status <> 'stale'`, id, newRevision); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','memory.embedding',$3) ON CONFLICT DO NOTHING`, "memory_embedding_intent:"+id+":"+fmt.Sprint(newRevision), "memory_embedding:"+id+":"+fmt.Sprint(newRevision), jsonBytes(map[string]any{"memory_id": id, "revision": newRevision})); err != nil {
-			return err
-		}
-		if err := appendOutboxTx(ctx, tx, "memory.revised", "memory", id, owner, actorID, "memory:"+id, "memory-outbox:"+id+":"+fmt.Sprint(newRevision), map[string]any{"memory_id": id, "revision": newRevision, "aggregate_sequence": newRevision*2 + 1}); err != nil {
-			return err
-		}
-		return appendOutboxTx(ctx, tx, "memory.embedding.requested", "memory", id, owner, actorID, "memory:"+id, "memory-embedding:"+id+":"+fmt.Sprint(newRevision), map[string]any{"memory_id": id, "revision": newRevision, "aggregate_sequence": newRevision*2 + 2})
-	})
+	evidenceRefs, err := ownerMemoryEvidence(refs)
 	if err != nil {
 		return nil, err
 	}
-	_ = old
-	return map[string]any{"id": id, "content": content, "revision": newRevision, "status": "active"}, nil
+	row, _, err := a.readOwnedMemoryRevisionSnapshot(ctx, actorID, id, *expected)
+	if err != nil {
+		return nil, err
+	}
+	semantic := &MemorySemanticInput{Type: row.Type, Content: strings.TrimSpace(content), Confidence: row.Confidence, Importance: row.Importance, EmotionalSignificance: row.EmotionalSignificance}
+	command := buildOwnerMemoryCommand(row, actorID, MemoryRevise, *expected, evidenceRefs, semantic, "owner_memory_revise", nil, nil)
+	result, err := a.applyOwnerMemoryCommand(ctx, command)
+	if err != nil {
+		return nil, err
+	}
+	return memoryApplyResultMap(result), nil
 }
 
 func (a *App) ForgetMemory(ctx context.Context, actorID, id string, expected *int, refs []any) (map[string]any, error) {
 	if len(refs) == 0 || expected == nil {
 		return nil, errors.New("memory_forget_invalid")
 	}
-	var owner string
-	var perspectives []byte
-	var revision, newRevision int
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx, `SELECT owner_fluctlight_id,personality_perspectives,revision FROM public.memories WHERE id=$1 FOR UPDATE`, id).Scan(&owner, &perspectives, &revision); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return ErrNotFound
-			}
-			return err
-		}
-		var authorized bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2)`, owner, actorID).Scan(&authorized); err != nil {
-			return err
-		}
-		if !authorized {
-			return ErrUnauthorized
-		}
-		if expected != nil && *expected != revision {
-			return errors.New("memory_revision_stale")
-		}
-		newRevision = revision + 1
-		if _, err := tx.Exec(ctx, `UPDATE public.memories SET status='forgotten',revision=$2,evidence_refs=$3 WHERE id=$1`, id, newRevision, jsonBytes(refs)); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,personality_perspectives,status,actor_id,evidence_refs,idempotency_key) SELECT $1,id,$2,$3,content,$4,'forgotten',$5,$6,$7 FROM public.memories WHERE id=$8 ON CONFLICT DO NOTHING`, randomID("memory_revision_"), newRevision, revision, perspectives, actorID, jsonBytes(refs), "memory-forget:"+id+":"+fmt.Sprint(newRevision), id); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE public.memory_embeddings SET status='stale' WHERE memory_id=$1 AND status <> 'stale'`, id); err != nil {
-			return err
-		}
-		return appendOutboxTx(ctx, tx, "memory.forgotten", "memory", id, owner, actorID, "memory:"+id, "memory-forget-outbox:"+id+":"+fmt.Sprint(newRevision), map[string]any{"memory_id": id, "revision": newRevision, "aggregate_sequence": newRevision*2 + 1})
-	})
+	evidenceRefs, err := ownerMemoryEvidence(refs)
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": id, "status": "forgotten", "revision": newRevision, "evidence_refs": refs}, nil
+	row, _, err := a.readOwnedMemoryRevisionSnapshot(ctx, actorID, id, *expected)
+	if err != nil {
+		return nil, err
+	}
+	command := buildOwnerMemoryCommand(row, actorID, MemoryForget, *expected, evidenceRefs, nil, "owner_memory_forget", nil, nil)
+	result, err := a.applyOwnerMemoryCommand(ctx, command)
+	if err != nil {
+		return nil, err
+	}
+	return memoryApplyResultMap(result), nil
 }
 
 func (a *App) GovernAutonomy(ctx context.Context, actorID, actionID, toStatus, reason string) (map[string]any, error) {
-	if toStatus != "paused" && toStatus != "cancelled" && toStatus != "failed" && toStatus != "frozen" && toStatus != "completed" {
+	if toStatus != "paused" && toStatus != "cancelled" && toStatus != "failed" && toStatus != "frozen" {
 		return nil, errors.New("autonomy_status_invalid")
 	}
-	var fluctlightID, from, workflowID string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,status,workflow_id FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&fluctlightID, &from, &workflowID); err != nil {
+	var fluctlightID, from, workflowID, actionType string
+	var rawPayload []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,status,workflow_id,action_type,payload FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&fluctlightID, &from, &workflowID, &actionType, &rawPayload); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
@@ -582,7 +560,7 @@ func (a *App) GovernAutonomy(ctx context.Context, actorID, actionID, toStatus, r
 		return nil, ErrUnauthorized
 	}
 	if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET status=$2::varchar,error_code=CASE WHEN $2::varchar='failed' THEN $3 ELSE error_code END WHERE id=$1 AND status=$4`, actionID, toStatus, reason, from)
+		command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET status=$2::varchar,error_code=CASE WHEN $2::varchar='failed' THEN $3 ELSE error_code END,settled_at=CASE WHEN $2::varchar IN ('failed','cancelled') THEN now() ELSE settled_at END WHERE id=$1 AND status=$4`, actionID, toStatus, reason, from)
 		if err != nil {
 			return err
 		}
@@ -591,6 +569,43 @@ func (a *App) GovernAutonomy(ctx context.Context, actorID, actionID, toStatus, r
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_governance(id,fluctlight_id,action_id,from_status,to_status,actor_id,reason) VALUES($1,$2,$3,$4,$5,$6,$7)`, randomID("autonomy_governance_"), fluctlightID, actionID, from, toStatus, actorID, reason); err != nil {
 			return err
+		}
+		if toStatus == "failed" || toStatus == "cancelled" {
+			payload := decodeObject(rawPayload)
+			causality, err := frozenDecisionCausality(payload)
+			if err != nil {
+				return err
+			}
+			settlement := map[string]any{"status": toStatus, "action_status": toStatus, "reason": reason}
+			if toStatus == "failed" {
+				settlement["error_code"] = firstString(reason, "autonomy_governed_failed")
+			}
+			for key, value := range causality {
+				settlement[key] = value
+			}
+			results, resultsErr := capabilityResultsFromValue(payload["capability_results"])
+			if resultsErr != nil {
+				results = nil
+				settlement["reason_code"] = "capability_results_invalid"
+			}
+			outcomes, outcomeErr := buildActionOutcomes(actionID, fluctlightID, firstString(payload["source_fact_id"], actionID), actionType, results, settlement, a.capabilityRegistry())
+			if outcomeErr != nil {
+				outcomes, outcomeErr = buildActionOutcomes(actionID, fluctlightID, firstString(payload["source_fact_id"], actionID), actionType, nil, settlement, a.capabilityRegistry())
+			}
+			if outcomeErr != nil {
+				return outcomeErr
+			}
+			if err := persistActionOutcomesTx(ctx, tx, outcomes); err != nil {
+				return err
+			}
+			factPayload := map[string]any{"action_id": actionID, "result": settlement, "outcomes": outcomes}
+			factID, err := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", factPayload, "action-result:"+actionID)
+			if err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:result:"+actionID, "reflection:result:"+actionID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID})); err != nil {
+				return err
+			}
 		}
 		return appendOutboxTx(ctx, tx, "autonomy.governed", "autonomy_action", actionID, fluctlightID, actorID, "autonomy:"+actionID, "autonomy-governance:"+actionID+":"+toStatus, map[string]any{"from_status": from, "to_status": toStatus})
 	}); err != nil {
@@ -825,42 +840,137 @@ func (a *App) CreateLifeEvent(ctx context.Context, actorID, fluctlightID string,
 	if len(refs) == 0 {
 		return nil, errors.New("life_event_evidence_required")
 	}
-	idempotency := stringValue(payload["idempotency_key"])
-	if idempotency == "" {
-		idempotency = "owner:" + actorID + ":" + start.UTC().Format(time.RFC3339Nano) + ":" + stringValue(payload["kind"])
+	idempotency := strings.TrimSpace(stringValue(payload["idempotency_key"]))
+	if idempotency == "" || len([]rune(idempotency)) > 256 {
+		return nil, errors.New("life_event_idempotency_key_required")
+	}
+	expectedLifeRevision := strings.TrimSpace(stringValue(payload["expected_life_context_revision"]))
+	if expectedLifeRevision == "" {
+		return nil, errors.New("life_context_revision_required")
 	}
 	id := "event_" + stableDigest(fluctlightID+":"+idempotency)
+	requestDigest := stableDigest(jsonString(map[string]any{
+		"fluctlight_id": fluctlightID, "kind": stringValue(payload["kind"]), "start_at": start.UTC().Format(time.RFC3339Nano),
+		"end_at": end.UTC().Format(time.RFC3339Nano), "scene": stringValue(payload["scene"]), "activity": stringValue(payload["activity"]),
+		"location": stringValue(payload["location"]), "evidence_refs": refs, "idempotency_key": idempotency,
+		"expected_life_context_revision": expectedLifeRevision,
+	}))
+	var result map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'confirmed',$9,$10) ON CONFLICT(fluctlight_id,idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING`, id, fluctlightID, stringValue(payload["kind"]), start, end, nullableString(stringValue(payload["scene"])), nullableString(stringValue(payload["activity"])), nullableString(stringValue(payload["location"])), jsonBytes(refs), idempotency); err != nil {
+		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
 			return err
 		}
-		if _, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, stringValue(payload["conversation_id"]), "owner:"+actorID, "life.event.created", "life-event:"+idempotency, map[string]any{"event_id": id, "kind": stringValue(payload["kind"])}); err != nil {
+		var existingID, existingDigest string
+		var existingResult []byte
+		if replayErr := tx.QueryRow(ctx, `SELECT id,COALESCE(request_digest,''),result FROM public.life_events WHERE fluctlight_id=$1 AND idempotency_key=$2 FOR UPDATE`, fluctlightID, idempotency).Scan(&existingID, &existingDigest, &existingResult); replayErr == nil {
+			if existingDigest != requestDigest {
+				return errors.New("life_event_idempotency_conflict")
+			}
+			result = decodeObject(existingResult)
+			if len(result) == 0 {
+				return errors.New("life_event_replay_result_invalid")
+			}
+			id = existingID
+			result["replayed"] = true
+			return nil
+		} else if !errors.Is(replayErr, pgx.ErrNoRows) {
+			return replayErr
+		}
+		applyAt := time.Now().UTC()
+		if _, err := a.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expectedLifeRevision, applyAt); err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "life.event.created", "fluctlight", fluctlightID, fluctlightID, actorID, "life:"+id, "life-event:"+idempotency, map[string]any{"event_id": id, "aggregate_sequence": 1})
+		inserted, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,revision,evidence_refs,idempotency_key,request_digest,result) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'confirmed',1,$9,$10,$11,'{}')`, id, fluctlightID, stringValue(payload["kind"]), start, end, nullableString(stringValue(payload["scene"])), nullableString(stringValue(payload["activity"])), nullableString(stringValue(payload["location"])), jsonBytes(refs), idempotency, requestDigest)
+		if err != nil {
+			return err
+		}
+		if inserted.RowsAffected() != 1 {
+			return ErrConflict
+		}
+		_, resultingLife, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, applyAt)
+		if err != nil {
+			return err
+		}
+		inboxID, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, stringValue(payload["conversation_id"]), "owner:"+actorID, "life.event.created", "life-event:"+stableDigest(fluctlightID+"\x1f"+idempotency), map[string]any{"event_id": id, "kind": stringValue(payload["kind"]), "expected_context_revision": expectedLifeRevision, "resulting_context_revision": resultingLife["context_revision"]})
+		if err != nil {
+			return err
+		}
+		result = map[string]any{
+			"id": id, "fluctlight_id": fluctlightID, "status": "confirmed", "revision": 1,
+			"idempotency_key": idempotency, "inbox_id": inboxID, "expected_context_revision": expectedLifeRevision,
+			"resulting_context_revision": resultingLife["context_revision"], "replayed": false,
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.life_events SET result=$2 WHERE id=$1 AND revision=1`, id, jsonBytes(result)); err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "life.event.created", "fluctlight", fluctlightID, fluctlightID, actorID, "life:"+id, "life-event:"+fluctlightID+":"+stableDigest(idempotency), map[string]any{"event_id": id, "revision": 1, "aggregate_sequence": 1})
 	})
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": id, "fluctlight_id": fluctlightID, "status": "confirmed", "idempotency_key": idempotency}, nil
+	return result, nil
 }
-func (a *App) CancelLifeEvent(ctx context.Context, actorID, fluctlightID, eventID string) error {
+func (a *App) CancelLifeEvent(ctx context.Context, actorID, fluctlightID, eventID string, payload map[string]any) (map[string]any, error) {
 	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
-		return err
+		return nil, err
 	}
-	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		cmd, err := tx.Exec(ctx, `UPDATE public.life_events SET status='cancelled' WHERE id=$1 AND fluctlight_id=$2 AND status <> 'cancelled'`, eventID, fluctlightID)
+	expectedEventRevision, ok := positiveRevision(payload["expected_event_revision"])
+	if !ok {
+		return nil, errors.New("life_event_revision_required")
+	}
+	expectedLifeRevision := strings.TrimSpace(stringValue(payload["expected_life_context_revision"]))
+	if expectedLifeRevision == "" {
+		return nil, errors.New("life_context_revision_required")
+	}
+	idempotency := strings.TrimSpace(stringValue(payload["idempotency_key"]))
+	if idempotency == "" || len([]rune(idempotency)) > 256 {
+		return nil, errors.New("life_event_cancel_idempotency_key_required")
+	}
+	requestDigest := stableDigest(jsonString(map[string]any{
+		"fluctlight_id": fluctlightID, "event_id": eventID, "expected_event_revision": expectedEventRevision,
+		"expected_life_context_revision": expectedLifeRevision, "idempotency_key": idempotency,
+	}))
+	var result map[string]any
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
+			return err
+		}
+		if replay, found, err := lifeContextCommandResultTx(ctx, tx, fluctlightID, "event.cancel", eventID, idempotency, requestDigest, "life_event_cancel_idempotency_conflict"); err != nil {
+			return err
+		} else if found {
+			result = replay
+			return nil
+		}
+		applyAt := time.Now().UTC()
+		if _, err := a.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expectedLifeRevision, applyAt); err != nil {
+			return err
+		}
+		var resultingEventRevision int
+		if err := tx.QueryRow(ctx, `UPDATE public.life_events SET status='cancelled',revision=revision+1,updated_at=$4 WHERE id=$1 AND fluctlight_id=$2 AND status <> 'cancelled' AND revision=$3 RETURNING revision`, eventID, fluctlightID, expectedEventRevision, applyAt).Scan(&resultingEventRevision); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrConflict
+			}
+			return err
+		}
+		_, resultingLife, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, applyAt)
 		if err != nil {
 			return err
 		}
-		if cmd.RowsAffected() == 0 {
-			return ErrNotFound
-		}
-		if _, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, "", eventID, "life.event.cancelled", "life-cancel:"+eventID, map[string]any{"event_id": eventID}); err != nil {
+		inboxID, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, "", eventID, "life.event.cancelled", "life-cancel:"+stableDigest(fluctlightID+"\x1f"+idempotency), map[string]any{"event_id": eventID, "revision": resultingEventRevision, "expected_context_revision": expectedLifeRevision, "resulting_context_revision": resultingLife["context_revision"]})
+		if err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "life.event.cancelled", "fluctlight", fluctlightID, fluctlightID, eventID, "life:"+eventID, "life-cancel:"+eventID, map[string]any{"event_id": eventID, "aggregate_sequence": 1})
+		result = map[string]any{
+			"id": eventID, "fluctlight_id": fluctlightID, "status": "cancelled", "revision": resultingEventRevision,
+			"idempotency_key": idempotency, "inbox_id": inboxID, "expected_context_revision": expectedLifeRevision,
+			"resulting_context_revision": resultingLife["context_revision"], "replayed": false,
+		}
+		if err := storeLifeContextCommandResultTx(ctx, tx, fluctlightID, "event.cancel", eventID, idempotency, requestDigest, result); err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "life.event.cancelled", "fluctlight", fluctlightID, fluctlightID, eventID, "life:"+eventID, "life-cancel:"+fluctlightID+":"+stableDigest(idempotency), map[string]any{"event_id": eventID, "aggregate_sequence": resultingEventRevision})
 	})
+	return result, err
 }
 func (a *App) SetPresence(ctx context.Context, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
 	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
@@ -869,63 +979,153 @@ func (a *App) SetPresence(ctx context.Context, actorID, fluctlightID string, pay
 	if stringValue(payload["scene"]) != "" || stringValue(payload["activity"]) != "" || stringValue(payload["location"]) != "" {
 		return nil, errors.New("presence_overlay_cannot_replace_scene")
 	}
-	idempotency := stringValue(payload["idempotency_key"])
-	if idempotency == "" {
-		idempotency = "owner:" + actorID + ":" + time.Now().UTC().Format(time.RFC3339Nano)
+	idempotency := strings.TrimSpace(stringValue(payload["idempotency_key"]))
+	if idempotency == "" || len([]rune(idempotency)) > 256 {
+		return nil, errors.New("presence_idempotency_key_required")
+	}
+	expectedLifeRevision := strings.TrimSpace(stringValue(payload["expected_life_context_revision"]))
+	if expectedLifeRevision == "" {
+		return nil, errors.New("life_context_revision_required")
 	}
 	id := "presence_overlay_" + stableDigest(fluctlightID+":"+idempotency)
-	var expiresAt any
+	var requestedExpiry *time.Time
 	if raw := stringValue(payload["expires_at"]); raw != "" {
 		parsed, err := time.Parse(time.RFC3339, raw)
-		if err != nil || !parsed.After(time.Now().UTC()) {
+		if err != nil {
 			return nil, errors.New("presence_expiration_invalid")
 		}
-		expiresAt = parsed
+		parsed = parsed.UTC()
+		requestedExpiry = &parsed
 	}
 	currentTask := nullableString(stringValue(payload["current_task"]))
 	userPresence := nullableString(stringValue(payload["user_presence"]))
 	if currentTask == nil && userPresence == nil {
 		return nil, errors.New("presence_overlay_fields_required")
 	}
+	requestDigest := stableDigest(jsonString(map[string]any{"fluctlight_id": fluctlightID, "actor_id": actorID, "current_task": currentTask, "user_presence": userPresence, "requested_expires_at": requestedExpiry, "idempotency_key": idempotency, "expected_life_context_revision": expectedLifeRevision}))
+	var result map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.life_presence_overlays(id,fluctlight_id,actor_id,scene,activity,location,current_task,user_presence,expires_at) VALUES($1,$2,$3,NULL,NULL,NULL,$4,$5,$6) ON CONFLICT(id) DO NOTHING`, id, fluctlightID, actorID, currentTask, userPresence, expiresAt); err != nil {
+		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
 			return err
 		}
-		if _, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, "", "owner:"+actorID, "life.presence.updated", "presence:"+idempotency, map[string]any{"overlay_id": id, "current_task": stringValue(payload["current_task"]), "user_presence": stringValue(payload["user_presence"])}); err != nil {
+		var existingDigest string
+		var existingResult []byte
+		if replayErr := tx.QueryRow(ctx, `SELECT COALESCE(request_digest,''),result FROM public.life_presence_overlays WHERE fluctlight_id=$1 AND idempotency_key=$2 FOR UPDATE`, fluctlightID, idempotency).Scan(&existingDigest, &existingResult); replayErr == nil {
+			if existingDigest != requestDigest {
+				return errors.New("presence_idempotency_conflict")
+			}
+			result = decodeObject(existingResult)
+			if len(result) == 0 {
+				return errors.New("presence_replay_result_invalid")
+			}
+			result["replayed"] = true
+			return nil
+		} else if !errors.Is(replayErr, pgx.ErrNoRows) {
+			return replayErr
+		}
+		applyAt := time.Now().UTC()
+		expiresAt := applyAt.Add(presenceDefaultDuration)
+		if requestedExpiry != nil {
+			expiresAt = requestedExpiry.UTC()
+		}
+		if !expiresAt.After(applyAt) || expiresAt.After(applyAt.Add(presenceMaxDuration)) {
+			return errors.New("presence_expiration_invalid")
+		}
+		if _, err := a.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expectedLifeRevision, applyAt); err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "life.presence.updated", "fluctlight", fluctlightID, fluctlightID, actorID, "presence:"+id, "presence:"+idempotency, map[string]any{"overlay_id": id, "aggregate_sequence": 1})
+		if _, err := tx.Exec(ctx, `UPDATE public.life_presence_overlays SET status='superseded',revision=revision+1,superseded_by_overlay_id=$2,updated_at=$3 WHERE fluctlight_id=$1 AND status='active'`, fluctlightID, id, applyAt); err != nil {
+			return err
+		}
+		inserted, err := tx.Exec(ctx, `INSERT INTO public.life_presence_overlays(id,fluctlight_id,actor_id,scene,activity,location,current_task,user_presence,status,revision,idempotency_key,request_digest,result,expires_at,created_at,updated_at) VALUES($1,$2,$3,NULL,NULL,NULL,$4,$5,'active',1,$6,$7,'{}',$8,$9,$9)`, id, fluctlightID, actorID, currentTask, userPresence, idempotency, requestDigest, expiresAt, applyAt)
+		if err != nil {
+			return err
+		}
+		if inserted.RowsAffected() != 1 {
+			return ErrConflict
+		}
+		_, resultingLife, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, applyAt)
+		if err != nil {
+			return err
+		}
+		inboxID, err := a.enqueueNativeFactTx(ctx, tx, fluctlightID, "", "owner:"+actorID, "life.presence.updated", "presence:"+stableDigest(fluctlightID+"\x1f"+idempotency), map[string]any{"overlay_id": id, "current_task": stringValue(payload["current_task"]), "user_presence": stringValue(payload["user_presence"]), "expected_context_revision": expectedLifeRevision, "resulting_context_revision": resultingLife["context_revision"]})
+		if err != nil {
+			return err
+		}
+		result = map[string]any{
+			"id": id, "fluctlight_id": fluctlightID, "actor_id": actorID, "current_task": payload["current_task"],
+			"user_presence": payload["user_presence"], "expires_at": expiresAt.Format(time.RFC3339Nano), "revision": 1,
+			"status":          "active",
+			"idempotency_key": idempotency, "inbox_id": inboxID, "expected_context_revision": expectedLifeRevision,
+			"resulting_context_revision": resultingLife["context_revision"], "replayed": false,
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.life_presence_overlays SET result=$2 WHERE id=$1 AND revision=1`, id, jsonBytes(result)); err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "life.presence.updated", "fluctlight", fluctlightID, fluctlightID, actorID, "presence:"+id, "presence:"+fluctlightID+":"+stableDigest(idempotency), map[string]any{"overlay_id": id, "revision": 1, "aggregate_sequence": 1})
 	})
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": id, "fluctlight_id": fluctlightID, "actor_id": actorID, "current_task": payload["current_task"], "user_presence": payload["user_presence"], "expires_at": payload["expires_at"], "idempotency_key": idempotency}, nil
+	return result, nil
 }
-func (a *App) CancelSchedule(ctx context.Context, actorID, fluctlightID, scheduleID string) error {
-	return a.CancelScheduleExpected(ctx, actorID, fluctlightID, scheduleID, nil)
-}
-
-func (a *App) CancelScheduleExpected(ctx context.Context, actorID, fluctlightID, scheduleID string, expected *int) error {
+func (a *App) CancelScheduleExpected(ctx context.Context, actorID, fluctlightID, scheduleID string, payload map[string]any) (map[string]any, error) {
 	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
-		return err
+		return nil, err
 	}
-	query := `UPDATE public.life_schedules SET status='cancelled' WHERE id=$1 AND fluctlight_id=$2 AND status='accepted'`
-	args := []any{scheduleID, fluctlightID}
-	if expected != nil {
-		query += ` AND revision=$3`
-		args = append(args, *expected)
+	expectedScheduleRevision, ok := positiveRevision(payload["expected_revision"])
+	if !ok {
+		return nil, errors.New("schedule_revision_required")
 	}
-	cmd, err := a.DB.Pool().Exec(ctx, query, args...)
-	if err != nil {
-		return err
+	expectedLifeRevision := strings.TrimSpace(stringValue(payload["expected_life_context_revision"]))
+	if expectedLifeRevision == "" {
+		return nil, errors.New("life_context_revision_required")
 	}
-	if cmd.RowsAffected() == 0 {
-		if expected != nil {
-			return ErrConflict
+	idempotency := strings.TrimSpace(stringValue(payload["idempotency_key"]))
+	if idempotency == "" || len([]rune(idempotency)) > 256 {
+		return nil, errors.New("schedule_cancel_idempotency_key_required")
+	}
+	requestDigest := stableDigest(jsonString(map[string]any{
+		"fluctlight_id": fluctlightID, "schedule_id": scheduleID, "expected_revision": expectedScheduleRevision,
+		"expected_life_context_revision": expectedLifeRevision, "idempotency_key": idempotency,
+	}))
+	var result map[string]any
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
+			return err
 		}
-		return ErrNotFound
-	}
-	return nil
+		if replay, found, err := lifeContextCommandResultTx(ctx, tx, fluctlightID, "schedule.cancel", scheduleID, idempotency, requestDigest, "schedule_cancel_idempotency_conflict"); err != nil {
+			return err
+		} else if found {
+			result = replay
+			return nil
+		}
+		applyAt := time.Now().UTC()
+		if _, err := a.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expectedLifeRevision, applyAt); err != nil {
+			return err
+		}
+		var resultingScheduleRevision int
+		if err := tx.QueryRow(ctx, `UPDATE public.life_schedules SET status='cancelled',revision=revision+1,updated_at=$4 WHERE id=$1 AND fluctlight_id=$2 AND status='accepted' AND revision=$3 RETURNING revision`, scheduleID, fluctlightID, expectedScheduleRevision, applyAt).Scan(&resultingScheduleRevision); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrConflict
+			}
+			return err
+		}
+		_, resultingLife, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, applyAt)
+		if err != nil {
+			return err
+		}
+		result = map[string]any{
+			"id": scheduleID, "fluctlight_id": fluctlightID, "status": "cancelled", "revision": resultingScheduleRevision,
+			"idempotency_key": idempotency, "expected_context_revision": expectedLifeRevision,
+			"resulting_context_revision": resultingLife["context_revision"], "replayed": false,
+		}
+		if err := storeLifeContextCommandResultTx(ctx, tx, fluctlightID, "schedule.cancel", scheduleID, idempotency, requestDigest, result); err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "schedule.cancelled", "fluctlight", fluctlightID, scheduleID, scheduleID, "schedule:"+scheduleID, "schedule-cancel:"+fluctlightID+":"+stableDigest(idempotency), map[string]any{"schedule_id": scheduleID, "aggregate_sequence": resultingScheduleRevision})
+	})
+	return result, err
 }
 
 func (a *App) AllMoments(ctx context.Context, actorID string, includeHidden bool, limit int) ([]map[string]any, error) {
@@ -1417,6 +1617,9 @@ func (a *App) persistPermanentMediaRetryFailure(ctx context.Context, intentID, w
 		return err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error=$2,completed_at=now() WHERE workflow_id=$1 AND intent_type='media.generation'`, workflowID, message); err != nil {
+		return err
+	}
+	if _, err := a.settleActionOutcomeByExternalRefTx(ctx, tx, intentID, ActionOutcomeFailed, map[string]any{"media_intent_id": intentID, "status": "failed", "reason_code": "media_workflow_terminal_failure"}, "media_workflow_terminal_failure"); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

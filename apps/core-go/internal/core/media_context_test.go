@@ -1,111 +1,73 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
 )
 
-func TestAlignMediaConceptWithContextKeepsVisualFieldsAndRepairsState(t *testing.T) {
-	projection := ContextProjection{
-		FluctlightID:    "fl-1",
-		SourceFactID:    "fact-1",
-		ContextRevision: 7,
-		LifeContext:     map[string]any{"scene": "教室/图书馆", "activity": "大学课程/自习", "location": "校内"},
-		InnerState:      map[string]any{"mood": map[string]any{"label": "专注"}},
-		Identity:        map[string]any{"appearance": map[string]any{"hair": "长发"}},
+func TestImageCapabilityPrepareConsumesResolvedContext(t *testing.T) {
+	capability := imageGenerateCapability{}
+	invocation := CapabilityInvocation{CallID: "image-1", CapabilityName: "media.image.generate", Arguments: []byte(`{"intent":"portrait"}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}
+	resolved := CapabilityContext{
+		Visual: &VisualIdentityContext{Data: map[string]any{"asset_id": "visual-1"}},
+		Life:   &CurrentLifeContext{Data: map[string]any{"scene": "studio"}},
+		Outfit: &AppearanceContext{Data: map[string]any{"hair": "long"}},
+		State:  &CurrentStateContext{Data: map[string]any{"mood": map[string]any{"label": "calm"}}},
 	}
-	concept, fields := alignMediaConceptWithContext(map[string]any{
-		"subject":  "苏星洛",
-		"pose":     "举起手机自拍",
-		"scene":    "卧室",
-		"activity": "睡觉",
-		"outfit":   "JK制服",
-	}, projection)
-	if concept["subject"] != "苏星洛" || concept["pose"] != "举起手机自拍" || concept["outfit"] != "JK制服" {
-		t.Fatalf("normal visual fields changed: %#v", concept)
-	}
-	if concept["scene"] != "教室/图书馆" || concept["activity"] != "大学课程/自习" || concept["location"] != "校内" {
-		t.Fatalf("context fields were not aligned: %#v", concept)
-	}
-	binding := mapValue(concept["context_binding"])
-	if binding["source"] != "cognition.life_context" || binding["context_revision"] != 7 {
-		t.Fatalf("context binding = %#v", binding)
-	}
-	if len(fields) != 5 || fields[0] != "activity" || fields[1] != "hair" || fields[2] != "location" || fields[3] != "mood" || fields[4] != "scene" {
-		t.Fatalf("changed fields = %#v", fields)
-	}
-}
-
-func TestAlignMediaConceptHonorsExplicitContextOverride(t *testing.T) {
-	projection := ContextProjection{LifeContext: map[string]any{"scene": "图书馆"}}
-	concept, fields := alignMediaConceptWithContext(map[string]any{
-		"scene":            "卧室",
-		"context_override": map[string]any{"explicit": true},
-	}, projection)
-	if concept["scene"] != "卧室" || len(fields) != 0 {
-		t.Fatalf("explicit override was changed: concept=%#v fields=%#v", concept, fields)
-	}
-}
-
-func TestBindMediaContextToToolCallsAddsFrozenSnapshot(t *testing.T) {
-	projection := ContextProjection{FluctlightID: "fl-1", SourceFactID: "fact-1", ContextRevision: 3, LifeContext: map[string]any{"scene": "图书馆", "activity": "自习"}}
-	calls := bindMediaContextToToolCalls([]ToolCallV1{{ID: "call-1", Name: "media.image.generate", Arguments: json.RawMessage(`{"concept":{"scene":"卧室","subject":"苏星洛"}}`)}}, projection)
-	if len(calls) != 1 {
-		t.Fatalf("calls = %#v", calls)
-	}
-	var args map[string]any
-	if err := json.Unmarshal(calls[0].Arguments, &args); err != nil {
+	prepared, err := capability.Prepare(nil, invocation, resolved)
+	if err != nil {
 		t.Fatal(err)
 	}
-	concept := mapValue(args["concept"])
-	if concept["scene"] != "图书馆" || concept["subject"] != "苏星洛" {
-		t.Fatalf("bound concept = %#v", concept)
+	if string(prepared.Arguments) != string(invocation.Arguments) {
+		t.Fatalf("provider arguments changed during prepare: before=%s after=%s", invocation.Arguments, prepared.Arguments)
 	}
-	if binding := mapValue(concept["context_binding"]); binding["context_revision"] != float64(3) {
-		t.Fatalf("bound context = %#v", binding)
+	rawConcept, found, decodeErr := capabilityPreparedData(prepared, "media_concept")
+	if decodeErr != nil || !found {
+		t.Fatalf("prepared image payload missing: found=%v err=%v payload=%s", found, decodeErr, prepared.PreparedPayload)
+	}
+	concept := mapValue(rawConcept)
+	binding := mapValue(concept["context_binding"])
+	if stringValue(concept["intent"]) != "portrait" || stringValue(mapValue(binding["current_life"])["scene"]) != "studio" || stringValue(mapValue(binding["appearance"])["hair"]) != "long" {
+		t.Fatalf("prepared image payload lost context: %#v", concept)
 	}
 }
 
-func TestBindMediaContextIncludesVisualIdentityAndLifeProfileAppearance(t *testing.T) {
-	projection := ContextProjection{
-		ContextRevision: 5,
-		VisualIdentity: map[string]any{
-			"status":               "active",
-			"identity_snapshot":    map[string]any{"life_profile": map[string]any{"appearance": map[string]any{"chest_cup": "B", "hair": "long"}}},
-			"renderer_constraints": map[string]any{"chest_lora_weight": -3.0},
-		},
+func TestImageIntentAndCanonicalContextReachMediaPromptInput(t *testing.T) {
+	capability := imageGenerateCapability{}
+	invocation := CapabilityInvocation{CallID: "image-2", CapabilityName: "media.image.generate", Arguments: []byte(`{"intent":"在窗边读书"}`), SourceFactID: "fact-2", ProviderRequestID: "provider-2"}
+	resolved := CapabilityContext{
+		Visual: &VisualIdentityContext{Data: map[string]any{"status": "active", "renderer_constraints": map[string]any{"chest_cup": "B"}}},
+		Life:   &CurrentLifeContext{Data: map[string]any{"scene": "窗边", "activity": "阅读", "location": "客厅"}},
+		Outfit: &AppearanceContext{Data: map[string]any{"outfit": "针织衫"}},
+		State:  &CurrentStateContext{Data: map[string]any{"mood": map[string]any{"label": "平静", "intensity": 0.4}, "pad": map[string]any{"pleasure": 0.3, "arousal": 0.1, "dominance": 0.2}}},
 	}
-	concept, _ := alignMediaConceptWithContext(map[string]any{"subject": "自己"}, projection)
-	binding := mapValue(concept["context_binding"])
-	if len(mapValue(binding["visual_identity"])) == 0 {
-		t.Fatalf("visual identity missing from binding: %#v", binding)
+	prepared, err := capability.Prepare(context.Background(), invocation, resolved)
+	if err != nil {
+		t.Fatal(err)
 	}
-	appearance := mapValue(binding["appearance"])
-	if appearance["chest_cup"] != "B" || appearance["hair"] != "long" {
-		t.Fatalf("appearance missing from binding: %#v", binding)
+	rawConcept, found, err := capabilityPreparedData(prepared, "media_concept")
+	if err != nil || !found {
+		t.Fatalf("prepared concept missing: found=%v err=%v", found, err)
 	}
-}
-
-func TestAlignMediaConceptKeepsReferenceAssetInDurableBinding(t *testing.T) {
-	concept, _ := alignMediaConceptWithContext(map[string]any{"subject": "自己"}, ContextProjection{
-		VisualIdentity: map[string]any{
-			"status":               "active",
-			"canonical_asset_id":   "asset-canonical",
-			"renderer_constraints": map[string]any{"chest_cup": "B", "chest_lora_weight": -3.0},
-			"timeline":             []map[string]any{{"stage": "image_ready"}},
-		},
-	})
-	binding := mapValue(concept["context_binding"])
-	visual := mapValue(binding["visual_identity"])
-	if visual["reference_asset_id"] != "asset-canonical" {
-		t.Fatalf("reference asset was not retained: %#v", visual)
+	promptInput := mediaPromptInput(mediaIntent{Prompt: jsonString(rawConcept)})
+	var providerConcept map[string]any
+	if err := json.Unmarshal([]byte(promptInput), &providerConcept); err != nil {
+		t.Fatalf("media prompt input is not JSON: %v: %s", err, promptInput)
 	}
-	if got := visualIdentityReferenceAssetID(concept); got != "asset-canonical" {
-		t.Fatalf("reference asset lookup = %q", got)
+	binding := mapValue(providerConcept["context_binding"])
+	if stringValue(providerConcept["intent"]) != "在窗边读书" ||
+		stringValue(mapValue(binding["current_life"])["scene"]) != "窗边" ||
+		stringValue(mapValue(mapValue(binding["current_state"])["mood"])["label"]) != "平静" ||
+		stringValue(mapValue(binding["appearance"])["outfit"]) != "针织衫" ||
+		stringValue(mapValue(mapValue(binding["visual_identity"])["renderer_constraints"])["chest_cup"]) != "B" {
+		t.Fatalf("canonical media intent/context was lost: %s", promptInput)
 	}
-	if _, ok := visual["timeline"]; ok {
-		t.Fatalf("workflow timeline leaked into durable media binding: %#v", visual)
+	for _, legacy := range []string{"life_context", "inner_state"} {
+		if _, found := binding[legacy]; found {
+			t.Fatalf("legacy media context key %q remains: %s", legacy, promptInput)
+		}
 	}
 }
 

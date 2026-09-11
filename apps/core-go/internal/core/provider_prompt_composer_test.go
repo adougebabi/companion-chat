@@ -67,6 +67,44 @@ func TestComposeProviderMessagesSeparatesFixedPersonaAndDynamicContext(t *testin
 	}
 }
 
+func TestRecentActionOutcomeProviderRequestUsesOnlySafeProjection(t *testing.T) {
+	ref := "outcome:ctx_0123456789abcdef0123456789abcdef"
+	projection := ContextProjection{
+		CorePersona:  map[string]any{"authority": "hard_constraint", "data": map[string]any{}},
+		CurrentState: map[string]any{"authority": "transient_state", "data": map[string]any{}},
+		RecentOutcomes: []map[string]any{{
+			"ref": ref, "id": "outcome_internal", "action_id": "action_internal", "call_id": "call_internal",
+			"capability_name": "media.image.generate", "status": "completed", "success_boundary": "durable_media_intent_created",
+			"occurred_at": "2026-09-10T12:00:00Z", "goal_refs": []any{"goal:ctx_0123456789abcdef0123456789abcdef"},
+			"expected":           map[string]any{"text": "private expected text"},
+			"observed":           map[string]any{"status": "completed", "target_kind": "conversation_message", "text": "private assistant text", "target_ref": "message_internal"},
+			"context_references": map[string]any{ref: map[string]any{"entity_id": "internal_entity"}},
+			"evidence_refs":      []any{"fact_internal"}, "provenance": map[string]any{"provider_request_id": "provider_internal"},
+		}},
+	}
+	contextValue := compactCognitionContext(projection)
+	formatted := composeProviderMessages("cognitive_assessment", []map[string]any{{
+		"role": "user", "content": jsonString(map[string]any{"context": contextValue}),
+	}})
+	if len(formatted) != 2 || stringValue(formatted[0]["role"]) != "system" || stringValue(formatted[1]["role"]) != "user" {
+		t.Fatalf("formatted messages=%#v", formatted)
+	}
+	user := stringValue(formatted[1]["content"])
+	for _, allowed := range []string{"# 近期行动结果", ref, "media.image.generate", "completed", "durable_media_intent_created", "target_kind"} {
+		if !strings.Contains(user, allowed) {
+			t.Fatalf("allowlisted outcome field %q missing: %s", allowed, user)
+		}
+	}
+	for _, forbidden := range []string{
+		"outcome_internal", "action_internal", "call_internal", "private expected text", "private assistant text",
+		"message_internal", "context_references", "internal_entity", "evidence_refs", "fact_internal", "provenance", "provider_internal", "expected",
+	} {
+		if strings.Contains(user, forbidden) {
+			t.Fatalf("provider request leaked outcome field %q: %s", forbidden, user)
+		}
+	}
+}
+
 func TestComposeProviderMessagesPreservesSemanticPersonalityIdentifiers(t *testing.T) {
 	messages := []map[string]any{{"role": "user", "content": jsonString(map[string]any{
 		"context": map[string]any{"core_persona": map[string]any{"data": map[string]any{
@@ -181,7 +219,7 @@ func TestComposeProviderMessagesSeparatesRelationshipFromMergedSystemRules(t *te
 		}},
 	}
 	messages := withActorRelationshipSystemContext([]map[string]any{
-		{"role": "system", "content": conversationAssessmentInstruction},
+		{"role": "system", "content": capabilityConversationPolicyInstruction},
 		{"role": "user", "content": `{"current_message":{"content":"请帮我做成视觉作品，并告诉我构图重点"}}`},
 	}, projection)
 	messages = withContextAuthorityInstruction(messages)

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -31,41 +30,49 @@ var validClaimKinds = map[string]struct{}{
 // Reflection, and native capability slots. It deliberately carries provenance
 // alongside semantic values so model output cannot become an unowned fact.
 type ContextProjection struct {
-	SchemaVersion          string           `json:"schema_version"`
-	FluctlightID           string           `json:"fluctlight_id"`
-	ConversationID         string           `json:"conversation_id"`
-	SourceFactID           string           `json:"source_fact_id"`
-	CurrentUserText        string           `json:"current_user_text"`
-	SelfActor              map[string]any   `json:"self_actor"`
-	CurrentSpeaker         map[string]any   `json:"current_speaker,omitempty"`
-	Actors                 []map[string]any `json:"actors,omitempty"`
-	RecentMessages         []map[string]any `json:"recent_messages"`
-	ContextRevision        int              `json:"context_revision"`
-	CorePersonaRevision    int              `json:"core_persona_revision"`
-	DevelopingSelfRevision int              `json:"developing_self_revision"`
-	CurrentStateRevision   int              `json:"current_state_revision"`
-	CorePersona            map[string]any   `json:"core_persona"`
-	PersonalitySystem      map[string]any   `json:"personality_system,omitempty"`
-	PersonalityRuntime     map[string]any   `json:"personality_runtime,omitempty"`
-	DevelopingSelf         []map[string]any `json:"developing_self"`
-	CurrentState           map[string]any   `json:"current_state"`
-	Identity               map[string]any   `json:"identity"`
-	Personality            map[string]any   `json:"personality"`
-	BehavioralPolicy       map[string]any   `json:"behavioral_policy"`
-	InnerState             map[string]any   `json:"inner_state"`
-	Schedule               map[string]any   `json:"schedule,omitempty"`
-	LifeContext            map[string]any   `json:"life_context"`
-	Presence               map[string]any   `json:"presence,omitempty"`
-	Memories               []map[string]any `json:"memories"`
-	Relationships          []map[string]any `json:"relationships"`
-	Hypotheses             []map[string]any `json:"hypotheses"`
-	Capabilities           []map[string]any `json:"capabilities"`
-	DriveSlots             []map[string]any `json:"drive_slots"`
-	PreferenceSlots        []map[string]any `json:"preference_slots"`
-	TriggerPreferences     []map[string]any `json:"trigger_preferences"`
-	VisualIdentity         map[string]any   `json:"visual_identity"`
-	Goals                  []map[string]any `json:"goals,omitempty"`
-	Intentions             []map[string]any `json:"intentions,omitempty"`
+	SchemaVersion          string                `json:"schema_version"`
+	FluctlightID           string                `json:"fluctlight_id"`
+	OwnerActorID           string                `json:"owner_actor_id"`
+	ConversationID         string                `json:"conversation_id"`
+	SourceFactID           string                `json:"source_fact_id"`
+	CurrentUserText        string                `json:"current_user_text"`
+	SelfActor              map[string]any        `json:"self_actor"`
+	CurrentSpeaker         map[string]any        `json:"current_speaker,omitempty"`
+	Actors                 []map[string]any      `json:"actors,omitempty"`
+	RecentMessages         []map[string]any      `json:"recent_messages"`
+	ContextRevision        int                   `json:"context_revision"`
+	CorePersonaRevision    int                   `json:"core_persona_revision"`
+	DevelopingSelfRevision int                   `json:"developing_self_revision"`
+	CurrentStateRevision   int                   `json:"current_state_revision"`
+	LifeContextRevision    string                `json:"life_context_revision"`
+	CorePersona            map[string]any        `json:"core_persona"`
+	PersonalitySystem      map[string]any        `json:"personality_system,omitempty"`
+	PersonalityRuntime     map[string]any        `json:"personality_runtime,omitempty"`
+	EffectivePersona       map[string]any        `json:"effective_persona,omitempty"`
+	EvolutionOverlays      []map[string]any      `json:"evolution_overlays,omitempty"`
+	DevelopingSelf         []map[string]any      `json:"developing_self"`
+	CurrentState           map[string]any        `json:"current_state"`
+	Identity               map[string]any        `json:"identity"`
+	Personality            map[string]any        `json:"personality"`
+	BehavioralPolicy       map[string]any        `json:"behavioral_policy"`
+	InnerState             map[string]any        `json:"inner_state"`
+	AffectProfile          map[string]any        `json:"affect_profile,omitempty"`
+	Schedule               map[string]any        `json:"schedule,omitempty"`
+	LifeContext            map[string]any        `json:"life_context"`
+	Presence               map[string]any        `json:"presence,omitempty"`
+	Memories               []map[string]any      `json:"memories"`
+	MemoryRetrievalTrace   MemoryRetrievalTrace  `json:"memory_retrieval_trace,omitempty"`
+	Relationships          []map[string]any      `json:"relationships"`
+	Hypotheses             []map[string]any      `json:"hypotheses"`
+	Capabilities           []map[string]any      `json:"capabilities"`
+	DriveSlots             []map[string]any      `json:"drive_slots"`
+	PreferenceSlots        []map[string]any      `json:"preference_slots"`
+	TriggerPreferences     []map[string]any      `json:"trigger_preferences"`
+	VisualIdentity         map[string]any        `json:"visual_identity"`
+	Goals                  []map[string]any      `json:"goals,omitempty"`
+	Intentions             []map[string]any      `json:"intentions,omitempty"`
+	RecentOutcomes         []map[string]any      `json:"recent_outcomes,omitempty"`
+	ReferenceIndex         ContextReferenceIndex `json:"context_reference_index"`
 }
 
 func contextProjectionFromValue(value any) (ContextProjection, bool) {
@@ -76,6 +83,11 @@ func contextProjectionFromValue(value any) (ContextProjection, bool) {
 	var projection ContextProjection
 	if err := json.Unmarshal(data, &projection); err != nil || projection.FluctlightID == "" {
 		return ContextProjection{}, false
+	}
+	if projection.SchemaVersion == "fluctlight.context.v3" {
+		if err := projection.ReferenceIndex.Validate(); err != nil || projection.ReferenceIndex.FluctlightID != projection.FluctlightID || projection.ReferenceIndex.OwnerActorID != projection.OwnerActorID || projection.ReferenceIndex.SpeakerActorID != strings.TrimSpace(stringValue(projection.CurrentSpeaker["actor_id"])) || projection.ReferenceIndex.ConversationID != projection.ConversationID {
+			return ContextProjection{}, false
+		}
 	}
 	return projection, true
 }
@@ -91,7 +103,6 @@ type ResponsePlan struct {
 	OmittedClaims    []map[string]any `json:"omitted_claims"`
 	Outline          []any            `json:"response_outline"`
 	Tone             string           `json:"tone,omitempty"`
-	ToolCalls        []ToolCallV1     `json:"tool_calls"`
 	NativeCandidates []map[string]any `json:"native_candidates"`
 	SelfEvaluation   map[string]any   `json:"self_evaluation"`
 	CoreAlignment    map[string]any   `json:"core_alignment,omitempty"`
@@ -118,7 +129,32 @@ type Claim struct {
 // BuildContextProjection composes one bounded, provenance-carrying view for a
 // turn. It is intentionally a read model; mutations go through domain owners.
 func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID, conversationID, sourceFactID, userText string) (ContextProjection, error) {
-	fluctlight, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID)
+	mode := MemoryConversationGlobalOnly
+	operation := MemoryForNativeCognition
+	if strings.TrimSpace(conversationID) != "" {
+		mode = MemoryConversationExact
+		operation = MemoryForConversation
+	}
+	return a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
+		AuthorizationActorID: actorID, SpeakerActorID: actorID, FluctlightID: fluctlightID,
+		ConversationID: conversationID, SourceFactID: sourceFactID, CurrentUserText: userText,
+		MemoryOperation: operation, MemoryConversationMode: mode,
+	})
+}
+
+func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProjectionRequest) (ContextProjection, error) {
+	retry, _ := ctx.Value(contextProjectionRetryKey{}).(int)
+	actorID := strings.TrimSpace(request.AuthorizationActorID)
+	speakerActorID := strings.TrimSpace(request.SpeakerActorID)
+	if speakerActorID == "" {
+		speakerActorID = actorID
+	}
+	fluctlightID := strings.TrimSpace(request.FluctlightID)
+	conversationID := strings.TrimSpace(request.ConversationID)
+	sourceFactID := strings.TrimSpace(request.SourceFactID)
+	userText := request.CurrentUserText
+	projectionAt := time.Now().UTC()
+	fluctlight, schedule, lifeContext, err := a.readFoundationLifeSnapshotAt(ctx, fluctlightID, actorID, projectionAt)
 	if err != nil {
 		return ContextProjection{}, err
 	}
@@ -129,32 +165,29 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if inner == nil {
 		inner = map[string]any{}
 	}
-	schedule, err := a.readSchedule(ctx, fluctlightID)
+	affectPolicy, affectProfile, err := a.readAffectProfile(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
 	}
-	lifeContext, err := a.resolveContext(ctx, fluctlightID, schedule)
-	if err != nil {
-		return ContextProjection{}, err
-	}
+	inner = projectAffectStateAt(inner, affectPolicy, projectionAt)
 	annotateLifeContextClock(lifeContext, stringValue(fluctlight.Identity["timezone"]))
 	personalitySystem := mapValue(fluctlight.CorePersona["personality_system"])
 	personalityRuntime, err := a.readPersonalityRuntime(ctx, fluctlightID, stringValue(personalitySystem["active_profile_id"]))
 	if err != nil {
 		return ContextProjection{}, err
 	}
-	memories, err := a.RetrieveMemoryContext(ctx, actorID, fluctlightID, conversationID, userText, 12, 2400)
+	effectivePersona, evolutionOverlays, err := a.readEffectivePersonaProjection(ctx, fluctlight, personalitySystem, personalityRuntime)
 	if err != nil {
 		return ContextProjection{}, err
 	}
-	relationships, err := a.readRelationships(ctx, fluctlightID, actorID)
+	relationships, err := a.readRelationships(ctx, fluctlightID, speakerActorID)
 	if err != nil {
 		return ContextProjection{}, err
 	}
 	if conversationID != "" {
 		filtered := make([]map[string]any, 0, 1)
 		for _, relationship := range relationships {
-			if stringValue(relationship["target_actor_id"]) == strings.TrimSpace(actorID) {
+			if stringValue(relationship["target_actor_id"]) == speakerActorID {
 				filtered = append(filtered, relationship)
 			}
 		}
@@ -168,6 +201,7 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	if err != nil {
 		return ContextProjection{}, err
 	}
+	inner["drives"] = mergeEffectiveDriveState(inner["drives"], driveSlots)
 	preferenceSlots, err := a.readPreferenceSlots(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -181,15 +215,30 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 		return ContextProjection{}, err
 	}
 	if conversationID != "" {
-		goals, intentions = filterAgencyForTarget(goals, intentions, actorID)
+		goals, intentions = filterAgencyForTarget(goals, intentions, speakerActorID)
 	}
+	recentOutcomes, err := a.readRecentActionOutcomes(ctx, fluctlightID, 12)
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	memoryCues := buildProjectionMemoryCues(request.MemoryOperation, request.MemoryCues, userText, lifeContext, goals, intentions, recentOutcomes, hypotheses)
+	viewers := []string{speakerActorID}
+	memoryPlan, err := buildMemoryQueryPlan(request.MemoryOperation, viewers, request.MemoryConversationMode, conversationID, request.AllowedConversationIDs, stringValue(mapValue(personalityRuntime)["active_profile_id"]), memoryCues, 12, 2400)
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	memoryResult, err := a.retrieveMemoryWithPlan(ctx, actorID, fluctlightID, memoryPlan)
+	if err != nil {
+		return ContextProjection{}, err
+	}
+	memories := memoryResult.Items
 	visualIdentity, err := a.readVisualIdentityDetail(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
 	}
 	recentMessages := make([]map[string]any, 0)
 	if conversationID != "" {
-		history, historyErr := a.DB.History(ctx, conversationID, actorID, nil, 12)
+		history, historyErr := a.DB.History(ctx, conversationID, speakerActorID, nil, 12)
 		if historyErr != nil {
 			return ContextProjection{}, historyErr
 		}
@@ -205,7 +254,7 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 			relationshipActorIDs = append(relationshipActorIDs, target)
 		}
 	}
-	actors, selfActor, currentSpeaker := a.buildActorProjection(ctx, fluctlightID, actorID, fluctlightDisplayName, recentMessages, relationshipActorIDs)
+	actors, selfActor, currentSpeaker := a.buildActorProjection(ctx, fluctlightID, speakerActorID, fluctlightDisplayName, recentMessages, relationshipActorIDs)
 	developingSelfClaims, err := a.listDevelopingSelfClaims(ctx, fluctlightID)
 	if err != nil {
 		return ContextProjection{}, err
@@ -224,26 +273,42 @@ func (a *App) BuildContextProjection(ctx context.Context, actorID, fluctlightID,
 	}
 	projection := ContextProjection{
 		SchemaVersion: "fluctlight.context.v2",
-		FluctlightID:  fluctlightID, ConversationID: conversationID, SourceFactID: sourceFactID,
+		FluctlightID:  fluctlightID, OwnerActorID: actorID, ConversationID: conversationID, SourceFactID: sourceFactID,
 		CurrentUserText: userText, SelfActor: selfActor, CurrentSpeaker: currentSpeaker, Actors: actors, RecentMessages: recentMessages, ContextRevision: fluctlight.CurrentRevision,
 		CorePersonaRevision: fluctlight.CurrentRevision, DevelopingSelfRevision: developingSelfRevision, CurrentStateRevision: intValue(inner["revision"]),
-		CorePersona: map[string]any{"authority": "hard_constraint", "data": fluctlight.CorePersona}, PersonalitySystem: personalitySystem, PersonalityRuntime: personalityRuntime,
+		LifeContextRevision: stringValue(lifeContext["context_revision"]),
+		CorePersona:         map[string]any{"authority": "hard_constraint", "data": fluctlight.CorePersona}, PersonalitySystem: personalitySystem, PersonalityRuntime: personalityRuntime,
+		EffectivePersona: effectivePersona, EvolutionOverlays: evolutionOverlays,
 		DevelopingSelf: developingSelf,
-		CurrentState:   map[string]any{"authority": "transient_state", "data": map[string]any{"inner_state": inner, "life_context": lifeContext}},
+		CurrentState:   map[string]any{"authority": "transient_state", "data": map[string]any{"inner_state": inner, "affect_profile": affectProfile, "life_context": lifeContext}},
 		Schedule:       schedule,
 		Identity:       fluctlight.Identity, Personality: fluctlight.Personality,
-		BehavioralPolicy: fluctlight.BehavioralPolicy, InnerState: inner,
-		LifeContext: lifeContext, Memories: memories, Relationships: relationships,
+		BehavioralPolicy: fluctlight.BehavioralPolicy, InnerState: inner, AffectProfile: affectProfile,
+		LifeContext: lifeContext, Memories: memories, MemoryRetrievalTrace: memoryResult.Trace, Relationships: relationships,
 		Hypotheses:   hypotheses,
-		Capabilities: capabilityManifestMaps(a.capabilityRegistry().Manifests()),
+		Capabilities: capabilityDefinitionMaps(a.capabilityRegistry().Definitions()),
 		DriveSlots:   driveSlots, PreferenceSlots: preferenceSlots, TriggerPreferences: triggerPreferences, VisualIdentity: visualIdentity,
-		Goals: goals, Intentions: intentions,
+		Goals: goals, Intentions: intentions, RecentOutcomes: recentOutcomes,
 	}
 	if presence, ok := lifeContext["presence"].(map[string]any); ok {
 		projection.Presence = presence
 	}
+	if err := a.validateCognitionAuthorityRevisions(ctx, fluctlightID, projection.ContextRevision, projection.CurrentStateRevision, projection.LifeContextRevision, projectionAt); err != nil {
+		if (errors.Is(err, ErrFoundationRevisionStale) || errors.Is(err, ErrCurrentStateRevisionStale) || errors.Is(err, ErrLifeContextStale)) && retry < 2 {
+			return a.BuildContextProjectionFor(context.WithValue(ctx, contextProjectionRetryKey{}, retry+1), request)
+		}
+		if errors.Is(err, ErrFoundationRevisionStale) || errors.Is(err, ErrCurrentStateRevisionStale) || errors.Is(err, ErrLifeContextStale) {
+			return ContextProjection{}, ErrContextProjectionUnstable
+		}
+		return ContextProjection{}, err
+	}
+	if err := buildContextReferenceIndex(&projection); err != nil {
+		return ContextProjection{}, err
+	}
 	return projection, nil
 }
+
+type contextProjectionRetryKey struct{}
 
 func filterAgencyForTarget(goals, intentions []map[string]any, targetActorID string) ([]map[string]any, []map[string]any) {
 	filteredGoals := make([]map[string]any, 0, len(goals))
@@ -402,16 +467,16 @@ func annotateLifeContextClock(lifeContext map[string]any, timezone string) {
 	lifeContext["timezone"] = timezone
 }
 
-func capabilityManifestMaps(manifests []CapabilityManifest) []map[string]any {
-	result := make([]map[string]any, 0, len(manifests))
-	for _, manifest := range manifests {
+func capabilityDefinitionMaps(definitions []CapabilityDefinition) []map[string]any {
+	result := make([]map[string]any, 0, len(definitions))
+	for _, definition := range definitions {
 		result = append(result, map[string]any{
-			"name": manifest.Name, "version": manifest.Version,
-			"description": manifest.Description, "side_effect_class": manifest.SideEffectClass,
-			"concurrency_class": manifest.ConcurrencyClass, "target_kinds": manifest.TargetKinds,
-			"input_schema": manifest.Parameters, "output_schema": manifest.OutputSchema,
-			"supports_cancel": manifest.SupportsCancel, "supports_retry": manifest.SupportsRetry,
-			"requires_preflight": manifest.RequiresPreflight,
+			"name": definition.Name, "version": definition.Version,
+			"description": definition.Description, "side_effect_class": definition.SideEffectClass,
+			"concurrency_class": definition.ConcurrencyClass, "target_kinds": definition.TargetKinds,
+			"input_schema": definition.InputSchema, "output_schema": definition.OutputSchema,
+			"supports_cancel": definition.SupportsCancel, "supports_retry": definition.SupportsRetry,
+			"requires_preflight": definition.RequiresPreflight,
 		})
 	}
 	return result
@@ -421,129 +486,20 @@ func capabilityManifestMaps(manifests []CapabilityManifest) []map[string]any {
 // deliberately bounded and deterministic; vector/FTS providers can be added
 // behind this authority without changing the prompt contract.
 func (a *App) RetrieveMemoryContext(ctx context.Context, actorID, fluctlightID, conversationID, query string, limit, tokenBudget int) ([]map[string]any, error) {
-	if limit < 1 {
-		limit = 1
+	mode := MemoryConversationGlobalOnly
+	if strings.TrimSpace(conversationID) != "" {
+		mode = MemoryConversationExact
 	}
-	if limit > 50 {
-		limit = 50
-	}
-	if tokenBudget < 128 {
-		tokenBudget = 128
-	}
-	fluctlight, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID)
-	if err != nil {
-		return nil, err
-	}
-	var ownerActorID string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerActorID); err != nil {
-		return nil, err
-	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision,created_at,COALESCE(ts_rank_cd(search_document,plainto_tsquery('simple',$2)),0) FROM public.memories WHERE owner_fluctlight_id=$1 AND status='active' ORDER BY created_at DESC,id DESC LIMIT 200`, fluctlightID, query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	queryTokens := tokenize(query)
-	type scoredMemory struct {
-		value   map[string]any
-		score   float64
-		created time.Time
-	}
-	scored := make([]scoredMemory, 0)
-	for rows.Next() {
-		var id, typ, content, visibility, status string
-		var actorRefs, eventRefs, evidenceRefs, perspectives []byte
-		var conversationRef *string
-		var confidence, importance, emotional float64
-		var revision int
-		var created time.Time
-		var searchRank float64
-		if err := rows.Scan(&id, &typ, &content, &actorRefs, &conversationRef, &eventRefs, &evidenceRefs, &perspectives, &confidence, &importance, &emotional, &visibility, &status, &revision, &created, &searchRank); err != nil {
-			return nil, err
-		}
-		actors := decodeArray(actorRefs)
-		if !memoryVisibleToActor(visibility, fluctlight.ID, ownerActorID, actorID, actors) {
-			continue
-		}
-		if conversationID != "" && conversationRef != nil && *conversationRef != "" && *conversationRef != conversationID {
-			// Conversation-scoped memories remain useful only to the same
-			// conversation; private/global memories have a NULL scope.
-			continue
-		}
-		score := importance + emotional*0.5 + confidence*0.25 + searchRank
-		lowerContent := strings.ToLower(content)
-		for _, token := range queryTokens {
-			if strings.Contains(lowerContent, token) {
-				score += 1
-			}
-		}
-		value := map[string]any{
-			"id": id, "type": typ, "content": content, "confidence": confidence,
-			"importance": importance, "emotional_significance": emotional,
-			"visibility": visibility, "status": status, "revision": revision,
-			"conversation_id": conversationRef, "event_refs": decodeArray(eventRefs),
-			"evidence_refs": decodeArray(evidenceRefs), "source": "memory:" + id,
-			"created_at": created.Format(time.RFC3339Nano),
-		}
-		if values := decodeArray(perspectives); len(values) > 0 {
-			value["personality_perspectives"] = values
-		}
-		scored = append(scored, scoredMemory{value: value, score: score, created: created})
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	// Vector ranking is optional: a missing/degraded embedding role must not
-	// make ordinary cognition fail. When available, it contributes a bounded
-	// cosine score after the authorization query has already selected rows.
+	cues := []MemoryQueryCue{}
 	if strings.TrimSpace(query) != "" {
-		if embeddingAssignment, assignmentErr := a.Provider.assignment(ctx, "embedding"); assignmentErr == nil {
-			if _, queryVector, embedErr := a.Provider.Embed(ctx, query); embedErr == nil {
-				vectorRows, vectorErr := a.DB.Pool().Query(ctx, `SELECT e.memory_id,e.embedding FROM public.memory_embeddings e JOIN public.memories m ON m.id=e.memory_id WHERE m.owner_fluctlight_id=$1 AND m.status='active' AND e.status='ready' AND e.model_id=$2 AND e.memory_revision=m.revision ORDER BY e.created_at DESC LIMIT 200`, fluctlightID, embeddingAssignment.ModelID)
-				if vectorErr == nil {
-					vectors := make(map[string][]float64)
-					for vectorRows.Next() {
-						var memoryID string
-						var raw []byte
-						if scanErr := vectorRows.Scan(&memoryID, &raw); scanErr != nil {
-							continue
-						}
-						var vector []float64
-						if json.Unmarshal(raw, &vector) == nil {
-							vectors[memoryID] = vector
-						}
-					}
-					vectorRows.Close()
-					for index := range scored {
-						memoryID := stringValue(scored[index].value["id"])
-						if vector := vectors[memoryID]; len(vector) == len(queryVector) && len(vector) > 0 {
-							scored[index].score += cosineSimilarity(queryVector, vector)
-						}
-					}
-				}
-			}
-		}
+		cues = append(cues, MemoryQueryCue{Kind: "query", Text: query})
 	}
-	sort.SliceStable(scored, func(i, j int) bool {
-		if scored[i].score != scored[j].score {
-			return scored[i].score > scored[j].score
-		}
-		return scored[i].created.After(scored[j].created)
-	})
-	result := make([]map[string]any, 0, limit)
-	used := 0
-	for _, item := range scored {
-		if len(result) >= limit {
-			break
-		}
-		cost := len([]rune(stringValue(item.value["content"]))) + 32
-		if used+cost > tokenBudget && len(result) > 0 {
-			break
-		}
-		used += cost
-		result = append(result, item.value)
+	plan, err := buildMemoryQueryPlan(MemoryForConversation, []string{actorID}, mode, conversationID, nil, "", cues, limit, tokenBudget)
+	if err != nil {
+		return nil, err
 	}
-	return result, nil
+	result, err := a.retrieveMemoryWithPlan(ctx, actorID, fluctlightID, plan)
+	return result.Items, err
 }
 
 func cosineSimilarity(left, right []float64) float64 {
@@ -562,7 +518,7 @@ func cosineSimilarity(left, right []float64) float64 {
 	return dot / (math.Sqrt(leftNorm) * math.Sqrt(rightNorm))
 }
 
-func memoryVisibleToActor(visibility, fluctlightID, ownerActorID, actorID string, actorRefs []any) bool {
+func memoryVisibleToActor(visibility, _ string, ownerActorID, actorID string, actorRefs []any) bool {
 	switch visibility {
 	case "private", "owner", "":
 		return ownerActorID == actorID
@@ -571,7 +527,7 @@ func memoryVisibleToActor(visibility, fluctlightID, ownerActorID, actorID string
 			return true
 		}
 		for _, value := range actorRefs {
-			if stringValue(value) == actorID || stringValue(value) == fluctlightID {
+			if stringValue(value) == actorID {
 				return true
 			}
 		}
@@ -670,11 +626,14 @@ func normalizeResponsePlan(decision map[string]any, sourceFactID string, context
 	if intent := firstString(base["response_intent"], firstString(decision["response_intent"], "")); intent != "" {
 		plan["response_intent"] = intent
 	}
-	if calls := toolCallsFromValue(base["tool_calls"]); len(calls) > 0 {
-		plan["tool_calls"] = calls
+	// Capability invocations live only in the root canonical sidecar. The
+	// response plan is a visible projection and is never a replay source.
+	calls, callsErr := capabilityInvocationsFromValue(decision["capability_invocations"])
+	if callsErr != nil {
+		return nil, callsErr
 	}
 	compositeActionType := firstString(plan["action_type"], firstString(decision["action_type"], "reply"))
-	if composite, compositeErr := normalizeCompositeAction(decision, toolCallsFromValue(plan["tool_calls"]), sourceFactID, compositeActionType); compositeErr == nil {
+	if composite, compositeErr := normalizeCompositeAction(decision, calls, sourceFactID, compositeActionType); compositeErr == nil {
 		plan["composite_action"] = composite
 	}
 	if text := firstString(base["visible_text"], firstString(base["draft"], "")); text != "" {
@@ -797,16 +756,22 @@ func normalizeOutputPreferenceDecision(value map[string]any, activeProfileID str
 // between the model's semantic preference decision and the frozen action. It
 // never invents a media concept or executes a side effect; it records whether
 // the requested channel was actually bound to an installed capability.
-func evaluateOutputPreferenceAction(value map[string]any, action string, calls []ToolCallV1) map[string]any {
+func evaluateOutputPreferenceAction(value map[string]any, action string, calls []CapabilityInvocation, registries ...*CapabilityRegistry) map[string]any {
 	result := cloneMap(value)
 	matched, _ := result["matched"].(bool)
 	channel := stringValue(result["channel"])
 	if channel == "image" && matched {
-		bound := action == "media_request"
-		for _, call := range calls {
-			if call.Name == "media.image.generate" {
-				bound = true
-				break
+		bound := false
+		var registry *CapabilityRegistry
+		if len(registries) > 0 {
+			registry = registries[0]
+		}
+		for _, invocation := range calls {
+			if registry != nil {
+				if definition, ok := registry.Definition(invocation.CapabilityName); ok && definition.OutputRole == "media" && definition.IsDeferredOutput() {
+					bound = true
+					break
+				}
 			}
 		}
 		if bound {

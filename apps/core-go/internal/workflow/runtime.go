@@ -284,6 +284,8 @@ func workflowFunction(intentType string) (any, error) {
 		return MediaWorkflow, nil
 	case "reflection.run":
 		return ReflectionWorkflow, nil
+	case "intention.trigger":
+		return IntentionTriggerWorkflow, nil
 	case "memory.embedding":
 		return MemoryEmbeddingWorkflow, nil
 	case "cognition.processing":

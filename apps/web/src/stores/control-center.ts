@@ -56,6 +56,7 @@ export const useControlCenterStore = defineStore("control-center", {
     lifeEvent: { kind: "", startAt: "", endAt: "", scene: "", activity: "", location: "" },
     presence: { currentTask: "", userPresence: "" },
     scheduleDraftJson: "",
+    lifeCommandKeys: {} as Record<string, string>,
     actorGroups: [] as ActorGroupSnapshot[],
     newActorGroupName: "",
     selectedActorGroupId: "",
@@ -68,6 +69,13 @@ export const useControlCenterStore = defineStore("control-center", {
     error: "",
   }),
   actions: {
+    lifeCommandKey(identity: string): string {
+		if (!this.lifeCommandKeys[identity]) this.lifeCommandKeys[identity] = `owner-ui:${crypto.randomUUID()}`;
+		return this.lifeCommandKeys[identity];
+	},
+    clearLifeCommandKey(identity: string) {
+		delete this.lifeCommandKeys[identity];
+	},
     async analyzeFluctlight(description: string) {
       this.error = "";
       this.analysisFailureCorrelationId = "";
@@ -532,14 +540,22 @@ export const useControlCenterStore = defineStore("control-center", {
       const evidenceRefs = this.governanceEvidence.split(",").map((value) => value.trim()).filter(Boolean);
       const event = this.lifeEvent;
       if (!fluctlightId || !event.kind.trim() || !event.startAt || !event.endAt || !evidenceRefs.length) { this.error = "创建 Event 需要类型、起止时间和证据引用。"; return; }
-      this.saving = true;
+	  const context = this.fluctlightDetail?.context as Record<string, unknown> | null | undefined;
+	  const expectedLifeContextRevision = String(context?.context_revision ?? "");
+	  if (!expectedLifeContextRevision) { this.error = "当前生活上下文缺少 revision，请刷新后重试。"; return; }
+	  const commandIdentity = `event:create:${fluctlightId}:${expectedLifeContextRevision}:${JSON.stringify(event)}:${JSON.stringify(evidenceRefs)}`;
+	  const idempotencyKey = this.lifeCommandKey(commandIdentity);
+	  this.saving = true;
       try {
         await client.createLifeEvent(fluctlightId, {
           ...event,
           startAt: new Date(event.startAt).toISOString(),
           endAt: new Date(event.endAt).toISOString(),
           evidenceRefs,
+		  expectedLifeContextRevision,
+		  idempotencyKey,
         });
+		this.clearLifeCommandKey(commandIdentity);
         this.lifeEvent = { kind: "", startAt: "", endAt: "", scene: "", activity: "", location: "" };
         await this.loadFluctlightDetail(fluctlightId);
       }
@@ -548,8 +564,13 @@ export const useControlCenterStore = defineStore("control-center", {
     },
     async setPresence(fluctlightId: string | null) {
       if (!fluctlightId) return;
+	  const context = this.fluctlightDetail?.context as Record<string, unknown> | null | undefined;
+	  const expectedLifeContextRevision = String(context?.context_revision ?? "");
+	  if (!expectedLifeContextRevision || (!this.presence.currentTask && !this.presence.userPresence)) { this.error = "更新 Presence 需要当前上下文 revision 和至少一个状态字段。"; return; }
+	  const commandIdentity = `presence:set:${fluctlightId}:${expectedLifeContextRevision}:${JSON.stringify(this.presence)}`;
+	  const idempotencyKey = this.lifeCommandKey(commandIdentity);
       this.saving = true;
-      try { await client.setLifePresence(fluctlightId, { currentTask: this.presence.currentTask || undefined, userPresence: this.presence.userPresence || undefined }); await this.loadFluctlightDetail(fluctlightId); }
+	  try { await client.setLifePresence(fluctlightId, { currentTask: this.presence.currentTask || undefined, userPresence: this.presence.userPresence || undefined, expectedLifeContextRevision, idempotencyKey }); this.clearLifeCommandKey(commandIdentity); await this.loadFluctlightDetail(fluctlightId); }
       catch { this.error = "无法更新 Presence overlay。"; }
       finally { this.saving = false; }
     },
@@ -563,13 +584,22 @@ export const useControlCenterStore = defineStore("control-center", {
       } catch { this.error = "日程必须是包含 localDate、timezone 和 items 的 JSON 对象。"; return; }
       const currentSchedule = this.fluctlightDetail?.schedule as Record<string, unknown> | null | undefined;
       const expectedRevision = currentSchedule?.revision;
+	  const context = this.fluctlightDetail?.context as Record<string, unknown> | null | undefined;
+	  const expectedLifeContextRevision = String(context?.context_revision ?? "");
+	  if (!expectedLifeContextRevision) { this.error = "当前生活上下文缺少 revision，请刷新后重试。"; return; }
+	  const normalizedExpectedRevision = typeof expectedRevision === "number" ? expectedRevision : 0;
+	  const commandIdentity = `schedule:accept:${fluctlightId}:${normalizedExpectedRevision}:${expectedLifeContextRevision}:${JSON.stringify(draft)}:${JSON.stringify(evidenceRefs)}`;
+	  const idempotencyKey = this.lifeCommandKey(commandIdentity);
       this.saving = true;
       try {
         await client.acceptLifeSchedule(fluctlightId, {
-          ...(draft as { localDate: string; timezone: string; items: Array<{ startAt: string; endAt: string; activity: string; scene: string }> }),
+	          ...(draft as { localDate: string; timezone: string; items: Array<{ startAt: string; endAt: string; activity: string; scene: string; location?: string }> }),
           evidenceRefs,
-          expectedRevision: typeof expectedRevision === "number" ? expectedRevision : undefined,
+		  expectedRevision: normalizedExpectedRevision,
+		  expectedLifeContextRevision,
+		  idempotencyKey,
         });
+		this.clearLifeCommandKey(commandIdentity);
         this.scheduleDraftJson = "";
         await this.loadFluctlightDetail(fluctlightId);
       } catch { this.error = "无法提交日程。它必须覆盖完整本地日，并与当前 revision 一致。"; }
@@ -577,16 +607,27 @@ export const useControlCenterStore = defineStore("control-center", {
     },
     async cancelSchedule(fluctlightId: string | null) {
       const schedule = this.fluctlightDetail?.schedule as Record<string, unknown> | null | undefined;
-      if (!fluctlightId || !schedule?.id || typeof schedule.revision !== "number") return;
+	  const context = this.fluctlightDetail?.context as Record<string, unknown> | null | undefined;
+	  const expectedLifeContextRevision = String(context?.context_revision ?? "");
+	  if (!fluctlightId || !schedule?.id || typeof schedule.revision !== "number" || !expectedLifeContextRevision) return;
+	  const commandIdentity = `schedule:cancel:${fluctlightId}:${String(schedule.id)}:${schedule.revision}:${expectedLifeContextRevision}`;
+	  const idempotencyKey = this.lifeCommandKey(commandIdentity);
       this.saving = true;
-      try { await client.cancelLifeSchedule(fluctlightId, String(schedule.id), schedule.revision); await this.loadFluctlightDetail(fluctlightId); }
+	  try { await client.cancelLifeSchedule(fluctlightId, String(schedule.id), { expectedRevision: schedule.revision, expectedLifeContextRevision, idempotencyKey }); this.clearLifeCommandKey(commandIdentity); await this.loadFluctlightDetail(fluctlightId); }
       catch { this.error = "无法取消日程，当前版本可能已变化。"; }
       finally { this.saving = false; }
     },
     async cancelLifeEvent(fluctlightId: string | null, eventId: string) {
       if (!fluctlightId) return;
+	  const context = this.fluctlightDetail?.context as Record<string, unknown> | null | undefined;
+	  const event = (this.fluctlightDetail?.events as Array<Record<string, unknown>> | undefined)?.find((item) => String(item.id) === eventId);
+	  const expectedLifeContextRevision = String(context?.context_revision ?? "");
+	  const expectedEventRevision = Number(event?.revision ?? 0);
+	  if (!expectedLifeContextRevision || expectedEventRevision < 1) { this.error = "Event revision 已变化，请刷新后重试。"; return; }
+	  const commandIdentity = `event:cancel:${fluctlightId}:${eventId}:${expectedEventRevision}:${expectedLifeContextRevision}`;
+	  const idempotencyKey = this.lifeCommandKey(commandIdentity);
       this.saving = true;
-      try { await client.cancelLifeEvent(fluctlightId, eventId); await this.loadFluctlightDetail(fluctlightId); }
+	  try { await client.cancelLifeEvent(fluctlightId, eventId, { expectedEventRevision, expectedLifeContextRevision, idempotencyKey }); this.clearLifeCommandKey(commandIdentity); await this.loadFluctlightDetail(fluctlightId); }
       catch { this.error = "无法取消 Event。"; }
       finally { this.saving = false; }
     },

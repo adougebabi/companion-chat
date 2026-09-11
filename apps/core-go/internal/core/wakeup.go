@@ -198,28 +198,23 @@ func fallbackWakeUpActionWithoutCapability(proposedActionType string) (string, m
 // calls and omit the optional JSON sidecar. Output calls still determine the
 // product action; any other registered calls remain capability work attached
 // to the same wake-up.
-func wakeUpAssessmentFromToolCalls(calls []ToolCallV1) map[string]any {
+func wakeUpAssessmentFromToolCalls(calls []CapabilityInvocation, registries ...*CapabilityRegistry) map[string]any {
 	if len(calls) == 0 {
 		return nil
 	}
-	for _, call := range calls {
-		switch call.Name {
-		case "conversation.reply":
-			if conversationReplyCallHasText(call) {
-				return map[string]any{
-					"action_type":     "proactive_message",
-					"response_intent": "通过 conversation.reply 向 actor_user 发送主动私聊",
-					"evidence_refs":   []any{},
-				}
+	if len(registries) > 0 && registries[0] != nil {
+		for _, invocation := range calls {
+			definition, ok := registries[0].Definition(invocation.CapabilityName)
+			if !ok || (!containsCapabilityTarget(definition.TargetKinds, "conversation_message") && !containsCapabilityTarget(definition.TargetKinds, "moment")) {
+				continue
 			}
-		case "moment.publish":
-			if textFromOutputCapabilityCall([]ToolCallV1{call}, "moment.publish") != "" {
-				return map[string]any{
-					"action_type":     "moment",
-					"response_intent": "通过 moment.publish 发布主动动态",
-					"evidence_refs":   []any{},
-				}
+			if text := capabilityInvocationText(invocation); text == "" {
+				continue
 			}
+			if containsCapabilityTarget(definition.TargetKinds, "conversation_message") {
+				return map[string]any{"action_type": "proactive_message", "response_intent": "通过已注册输出能力向 actor_user 发送主动私聊", "evidence_refs": []any{}}
+			}
+			return map[string]any{"action_type": "moment", "response_intent": "通过已注册输出能力发布主动动态", "evidence_refs": []any{}}
 		}
 	}
 	return map[string]any{
@@ -262,6 +257,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	ctx = WithProviderExecutionGuard(ctx, a.providerGuardForFluctlight(fluctlightID))
 	wakeID := "wake_up_" + stableDigest(fluctlightID+":"+fmt.Sprint(cycle))
+	frozenActionID := "autonomy_wake_" + stableDigest(wakeID)
 	var existingStatus, existingActionType string
 	var existingActionID, existingReflectionIntentID *string
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,action_type,action_id,reflection_intent_id FROM public.cognition_wakeups WHERE id=$1`, wakeID).Scan(&existingStatus, &existingActionType, &existingActionID, &existingReflectionIntentID); err == nil {
@@ -275,7 +271,15 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	conversationID := ""
 	_ = a.DB.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE fluctlight_actor_id=$1 ORDER BY created_at LIMIT 1`, fluctlightID).Scan(&conversationID)
-	projection, err := a.BuildContextProjection(ctx, ownerID, fluctlightID, conversationID, wakeID, "")
+	memoryMode := MemoryConversationGlobalOnly
+	if conversationID != "" {
+		memoryMode = MemoryConversationExact
+	}
+	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
+		AuthorizationActorID: ownerID, SpeakerActorID: ownerID, FluctlightID: fluctlightID,
+		ConversationID: conversationID, SourceFactID: wakeID,
+		MemoryOperation: MemoryForWakeUp, MemoryConversationMode: memoryMode,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -293,11 +297,11 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		projection.VisualIdentity["missing"] = true
 	}
 	messages := withContextAuthorityInstruction([]map[string]any{
-		{"role": "system", "content": wakeUpAssessmentInstruction + " When context.visual_identity.status is missing, call visual_identity.initialize exactly once as an internal capability. Do not announce the visual-identity initialization in chat, do not create a proactive_message solely for this initialization, and never return visible text for this internal trigger."},
+		{"role": "system", "content": capabilityWakeUpPolicyInstruction},
 		{"role": "user", "content": jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "context": compactCognitionContext(projection)})},
 	})
 	messages = withActorRelationshipSystemContext(messages, projection)
-	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "wake_up"), "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "wake_up_response", wakeUpResponseSchema(), true)
+	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "wake_up"), "cognitive_assessment", messages, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceWakeUp), "wake_up_response", wakeUpResponseSchema(), true)
 	if err != nil {
 		if status, suppressed := providerSuppressionStatus(err); suppressed {
 			reason := "fluctlight_not_active"
@@ -309,21 +313,39 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	assessment := completion.Structured
-	toolCalls := normalizeConversationReplyCalls(completion.ToolCalls)
+	toolCalls := append([]CapabilityInvocation(nil), completion.ToolCalls...)
 	// A tool-only completion is a valid wake-up decision. The tools are the
 	// model's decision surface; the JSON sidecar is optional metadata and must
 	// not be used as a gate that discards an otherwise executable reply/media or
 	// native capability call.
 	if completion.StructuredFallback || len(assessment) == 0 || (len(toolCalls) > 0 && (stringValue(assessment["action_type"]) == "" || stringValue(assessment["action_type"]) == "no_op")) {
-		if derived := wakeUpAssessmentFromToolCalls(toolCalls); derived != nil {
+		if derived := wakeUpAssessmentFromToolCalls(toolCalls, a.capabilityRegistry()); derived != nil {
 			assessment = derived
 		}
 	}
 	if assessment == nil {
 		return nil, errors.New("wake_up_assessment_invalid")
 	}
-	toolCalls = bindMediaContextToToolCalls(toolCalls, projection)
 	assessment, err = normalizeWakeUpAssessment(assessment)
+	if err != nil {
+		return nil, err
+	}
+	influences, err := freezeDecisionInfluences(assessment, projection, false)
+	if err != nil {
+		return nil, err
+	}
+	if stringValue(assessment["action_type"]) != "no_op" || len(toolCalls) > 0 {
+		if err := requireDecisionInfluences(influences, "wake_up_influences_required"); err != nil {
+			return nil, err
+		}
+	}
+	// Capability-local planning is HOW work and may perform Provider I/O. It
+	// starts only after the semantic decision and all cited refs are validated.
+	toolCalls, err = a.bindCapabilityInvocationsToProjection(toolCalls, projection, frozenActionID, wakeID, CapabilitySurfaceWakeUp)
+	if err != nil {
+		return nil, err
+	}
+	toolCalls, err = a.prepareCapabilityInvocations(ctx, fluctlightID, conversationID, wakeID, toolCalls)
 	if err != nil {
 		return nil, err
 	}
@@ -332,49 +354,36 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			assessment["output_preference_decision"] = normalized
 		}
 	}
-	visualIdentityToolResults := make([]ToolResultV1, 0, 1)
-	remainingCalls := make([]ToolCallV1, 0, len(toolCalls))
-	for _, call := range toolCalls {
-		if call.Name != "visual_identity.initialize" {
-			remainingCalls = append(remainingCalls, call)
-			continue
-		}
-		call.SourceFactID = wakeID
-		results, executeErr := a.ExecuteToolCalls(ctx, fluctlightID, conversationID, wakeID, []ToolCallV1{call})
-		visualIdentityToolResults = append(visualIdentityToolResults, results...)
-		// Tool failures are recorded in the result and must not discard the
-		// wake-up decision or its other optional calls.
-		if executeErr != nil {
-			continue
-		}
-	}
-	toolCalls = remainingCalls
+	// All calls, including WakeUp-only internal capabilities, remain on the
+	// same generic capability action. Definition failure policy decides whether
+	// an error is required or optional; no concrete name is split out here.
+	visualIdentityToolResults := make([]CapabilityResult, 0)
 	composite, err := normalizeCompositeAction(assessment, toolCalls, wakeID, stringValue(assessment["action_type"]))
 	if err != nil {
 		return nil, err
 	}
 	toolCalls = composite.ToolCalls
-	assessment["tool_calls"] = toolCalls
+	assessment["capability_invocations"] = toolCalls
 	assessment["output_bindings"] = composite.OutputBindings
 	proposedActionType := stringValue(assessment["action_type"])
 	if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {
-		assessment["output_preference_decision"] = evaluateOutputPreferenceAction(preference, proposedActionType, toolCalls)
+		assessment["output_preference_decision"] = evaluateOutputPreferenceAction(preference, proposedActionType, toolCalls, a.capabilityRegistry())
 	}
 	actualActionType := proposedActionType
-	deferredOutput := hasDeferredOutputToolCalls(toolCalls, a.capabilityRegistry())
+	deferredOutput := hasDeferredOutputCapabilities(toolCalls, a.capabilityRegistry())
 	if proposedActionType == "moment" {
-		if err := validateCompositeOutputCalls(toolCalls, "moment", a.capabilityRegistry()); err != nil {
+		if err := validateCompositeOutputCapabilities(toolCalls, "moment", a.capabilityRegistry()); err != nil {
 			return nil, fmt.Errorf("wake_up_output_binding_invalid: %w", err)
 		}
 	} else if proposedActionType == "proactive_message" {
-		if err := validateCompositeOutputCalls(toolCalls, "conversation_message", a.capabilityRegistry()); err != nil {
+		if err := validateCompositeOutputCapabilities(toolCalls, "conversation_message", a.capabilityRegistry()); err != nil {
 			return nil, fmt.Errorf("wake_up_output_binding_invalid: %w", err)
 		}
 	}
 	mediaComposite := deferredOutput && (proposedActionType == "moment" || proposedActionType == "proactive_message")
 	result := map[string]any{"status": "no_op"}
 	if len(visualIdentityToolResults) > 0 {
-		result["visual_identity_tool_results"] = visualIdentityToolResults
+		result["visual_identity_capability_results"] = visualIdentityToolResults
 	}
 	policySnapshot := map[string]any{}
 	policyReason := ""
@@ -424,13 +433,13 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			actualActionType = "no_op"
 			result = map[string]any{"status": "blocked", "reason": "proactive_target_invalid", "proposed_action_type": proposedActionType}
 		} else if proposedActionType == "proactive_message" || proposedActionType == "moment" {
-			callName := "moment.publish"
+			targetKind := "moment"
 			if proposedActionType == "proactive_message" {
-				callName = "conversation.reply"
+				targetKind = "conversation_message"
 			}
-			visible := textFromOutputCapabilityCall(toolCalls, callName)
+			visible := textFromOutputBinding(toolCalls, targetKind, a.capabilityRegistry())
 			if visible == "" {
-				return nil, fmt.Errorf("wake_up_%s_required", strings.ReplaceAll(callName, ".", "_"))
+				return nil, fmt.Errorf("wake_up_%s_required", targetKind)
 			}
 			result = map[string]any{"status": "queued"}
 			result["text"] = visible
@@ -444,23 +453,23 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		}
 	}
 	if len(visualIdentityToolResults) > 0 {
-		result["visual_identity_tool_results"] = visualIdentityToolResults
+		result["visual_identity_capability_results"] = visualIdentityToolResults
 	}
 	var actionID string
 	if actualActionType != "no_op" {
-		actionID = "autonomy_wake_" + stableDigest(wakeID)
+		actionID = frozenActionID
 		result["action_id"] = actionID
 		policySnapshot["budget_reserved"] = true
 	}
 	reflectionIntentID := "reflection_intent:wake:" + wakeID
-	factID, err := a.persistWakeUp(ctx, wakeID, fluctlightID, cycle, projection.InnerState, assessment, actualActionType, actionID, result, reflectionIntentID, policySnapshot, conversationID, toolCalls)
+	factID, err := a.persistWakeUp(ctx, wakeID, fluctlightID, cycle, projection.ContextRevision, projection.CurrentStateRevision, projection.InnerState, projection.LifeContextRevision, assessment, actualActionType, actionID, result, reflectionIntentID, policySnapshot, conversationID, toolCalls)
 	if err != nil {
 		return nil, err
 	}
 	// Redis expiration is a low-latency hint only; the long-lived Temporal
 	// workflow remains the durable wake-up timer and recovery authority.
 	a.scheduleWakeUpTrigger(ctx, fluctlightID, settings.IntervalSeconds)
-	toolResults := make([]ToolResultV1, 0)
+	capabilityResults := make([]CapabilityResult, 0)
 	_ = factID
 	safeResult := make(map[string]any, len(result))
 	for key, value := range result {
@@ -468,27 +477,38 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			safeResult[key] = value
 		}
 	}
-	safeResult["tool_results"] = toolResults
+	safeResult["capability_results"] = capabilityResults
 	return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "status": "completed", "action_type": actualActionType, "action_id": nullableString(actionID), "reflection_intent_id": reflectionIntentID, "result": safeResult, "interval_seconds": settings.IntervalSeconds}, nil
 }
 
-func textFromOutputCapabilityCall(calls []ToolCallV1, name string) string {
-	for _, call := range calls {
-		if call.Name != name {
-			continue
+func capabilityInvocationText(invocation CapabilityInvocation) string {
+	var args map[string]any
+	if json.Unmarshal(invocation.Arguments, &args) != nil {
+		return ""
+	}
+	text := normalizeVisibleReply(stringValue(args["text"]))
+	if text == "" || len([]rune(text)) > 32000 {
+		return ""
+	}
+	return text
+}
+
+func textFromOutputBinding(calls []CapabilityInvocation, targetKind string, registry *CapabilityRegistry) string {
+	for _, invocation := range calls {
+		if registry != nil {
+			definition, ok := registry.Definition(invocation.CapabilityName)
+			if !ok || definition.OutputRole != targetKind || !containsCapabilityTarget(definition.TargetKinds, targetKind) {
+				continue
+			}
 		}
-		var args map[string]any
-		if json.Unmarshal(call.Arguments, &args) != nil {
-			continue
-		}
-		if text := normalizeVisibleReply(stringValue(args["text"])); text != "" && len([]rune(text)) <= 32000 {
+		if text := capabilityInvocationText(invocation); text != "" {
 			return text
 		}
 	}
 	return ""
 }
 
-func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cycle int, internalDynamics map[string]any, assessment map[string]any, actionType, actionID string, result map[string]any, reflectionIntentID string, policySnapshot map[string]any, conversationID string, toolCalls []ToolCallV1) (string, error) {
+func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cycle, foundationRevision, currentStateRevision int, internalDynamics map[string]any, lifeContextRevision string, assessment map[string]any, actionType, actionID string, result map[string]any, reflectionIntentID string, policySnapshot map[string]any, conversationID string, toolCalls []CapabilityInvocation) (string, error) {
 	factID := "wake_fact_" + stableDigest(wakeID)
 	workflowID := "autonomy_wake:" + wakeID
 	payload := map[string]any{
@@ -496,10 +516,20 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 		"cycle": cycle, "action_type": actionType,
 		"response_intent": assessment["response_intent"], "evidence_refs": assessment["evidence_refs"],
 	}
+	causality, err := frozenDecisionCausality(assessment)
+	if err != nil {
+		return "", err
+	}
+	for key, value := range causality {
+		payload[key] = value
+	}
 	if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {
 		payload["output_preference_decision"] = preference
 	}
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundationRevision, currentStateRevision, lifeContextRevision, time.Now().UTC()); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, wakeID); err != nil {
 			return err
 		}
@@ -526,6 +556,9 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 		// current snapshot for audit compatibility and leave Current State alone.
 		stagePlaceholder := map[string]any{}
 		wakeResult := map[string]any{"status": result["status"], "action_id": nullableString(actionID), "conversation_id": nullableString(conversationID)}
+		for key, value := range causality {
+			wakeResult[key] = value
+		}
 		for key, value := range result {
 			if key != "text" {
 				wakeResult[key] = value
@@ -541,11 +574,16 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			if err := reserveAutonomyBudgetTx(ctx, tx, fluctlightID); err != nil {
 				return err
 			}
-			actionPayload := map[string]any{"wake_up_id": wakeID, "source_fact_id": factID, "conversation_id": conversationID, "tool_calls": toolCalls}
+			actionPayload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "wake_up_id": wakeID, "source_fact_id": factID, "conversation_id": conversationID, "capability_invocations": toolCalls, "capability_results": []CapabilityResult{}}
+			actionPayload["context_reference_version"] = contextReferenceIndexVersion
+			actionPayload["context_reference_index"] = assessment["context_reference_index"]
+			actionPayload["influences"] = assessment["influences"]
+			actionPayload["goal_refs"] = assessment["goal_refs"]
+			actionPayload["intention_refs"] = assessment["intention_refs"]
 			if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {
 				actionPayload["output_preference_decision"] = preference
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(actionPayload), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": internalDynamics["revision"]}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(actionPayload), jsonBytes(policySnapshot), jsonBytes(map[string]any{"foundation_revision": foundationRevision, "life_context_revision": lifeContextRevision, "current_state_revision": currentStateRevision}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
 				return err
 			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','capability.action',$3) ON CONFLICT DO NOTHING`, "capability_wake_intent:"+wakeID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "wake_up_id": wakeID, "source_fact_id": factID})); err != nil {
@@ -561,11 +599,16 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			if visible == "" {
 				return errors.New("wake_up_action_payload_empty")
 			}
-			actionPayload := map[string]any{"wake_up_id": wakeID, "source_fact_id": factID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"], "tool_calls": toolCalls, "output_bindings": assessment["output_bindings"]}
+			actionPayload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "wake_up_id": wakeID, "source_fact_id": factID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"], "capability_invocations": toolCalls, "capability_results": []CapabilityResult{}, "output_bindings": assessment["output_bindings"]}
+			actionPayload["context_reference_version"] = contextReferenceIndexVersion
+			actionPayload["context_reference_index"] = assessment["context_reference_index"]
+			actionPayload["influences"] = assessment["influences"]
+			actionPayload["goal_refs"] = assessment["goal_refs"]
+			actionPayload["intention_refs"] = assessment["intention_refs"]
 			if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {
 				actionPayload["output_preference_decision"] = preference
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(actionPayload), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": internalDynamics["revision"]}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(actionPayload), jsonBytes(policySnapshot), jsonBytes(map[string]any{"foundation_revision": foundationRevision, "life_context_revision": lifeContextRevision, "current_state_revision": currentStateRevision}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
 				return err
 			}
 			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','autonomy.action',$3) ON CONFLICT DO NOTHING`, "autonomy_wake_intent:"+wakeID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "wake_up_id": wakeID})); err != nil {
@@ -580,16 +623,16 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 	return factID, err
 }
 
-func (a *App) persistWakeToolResults(ctx context.Context, wakeID string, results []ToolResultV1) error {
+func (a *App) persistWakeCapabilityResults(ctx context.Context, wakeID string, results []CapabilityResult) error {
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `UPDATE public.cognition_wakeups SET result=result || $2::jsonb WHERE id=$1`, wakeID, jsonBytes(map[string]any{"tool_results": results})); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.cognition_wakeups SET result=result || $2::jsonb WHERE id=$1`, wakeID, jsonBytes(map[string]any{"capability_results": results})); err != nil {
 			return err
 		}
 		var fluctlightID string
 		if err := tx.QueryRow(ctx, `SELECT fluctlight_id FROM public.cognition_wakeups WHERE id=$1`, wakeID).Scan(&fluctlightID); err != nil {
 			return err
 		}
-		factID, err := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "capability.requested", map[string]any{"wake_up_id": wakeID, "tool_results": results}, "capability-result:"+wakeID)
+		factID, err := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "capability.requested", map[string]any{"wake_up_id": wakeID, "capability_results": results}, "capability-result:"+wakeID)
 		if err != nil {
 			return err
 		}

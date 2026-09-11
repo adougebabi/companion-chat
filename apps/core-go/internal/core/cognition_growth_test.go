@@ -1,11 +1,32 @@
 package core
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestNormalizeAppraisalRejectsRawOutOfRangeValues(t *testing.T) {
 	_, err := normalizeAppraisal(map[string]any{"relevance": 1.5})
 	if err == nil {
 		t.Fatal("out-of-range appraisal should be rejected")
+	}
+}
+
+func TestNormalizeAppraisalRejectsUnknownAndNonFiniteNumericFields(t *testing.T) {
+	base := map[string]any{
+		"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.0, "social_threat": 0.0,
+		"controllability": 0.5, "responsibility": 0.5, "relationship_significance": 0.0, "expected_effect": 0.5,
+		"evidence_refs": []any{}, "event_kind": "test", "direction": "mixed",
+	}
+	unknown := cloneMap(base)
+	unknown["raw_numeric_delta"] = map[string]any{"pad.pleasure": 1.0}
+	if _, err := normalizeAppraisal(unknown); err == nil {
+		t.Fatal("runtime-owned raw numeric appraisal field was accepted")
+	}
+	nonFinite := cloneMap(base)
+	nonFinite["reward"] = math.NaN()
+	if _, err := normalizeAppraisal(nonFinite); err == nil {
+		t.Fatal("non-finite appraisal value was accepted")
 	}
 }
 
@@ -22,7 +43,7 @@ func TestReduceInternalDynamicsUsesBoundedCoreDelta(t *testing.T) {
 	if result["revision"] != 5 {
 		t.Fatalf("revision = %#v", result["revision"])
 	}
-	if got := applied["pad.pleasure"]; got != 0.1 {
+	if got := numberOrZero(applied["pad.pleasure"]); math.Abs(got-0.1) > 1e-12 {
 		t.Fatalf("pleasure delta = %#v, want 0.1", got)
 	}
 	pad := mapValue(result["pad"])

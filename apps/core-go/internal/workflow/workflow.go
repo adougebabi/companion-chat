@@ -113,15 +113,19 @@ func ensureWorkerDeploymentCurrentVersion(ctx context.Context, handle WorkerDepl
 }
 
 type Input struct {
-	IntentID     string `json:"intent_id"`
-	FluctlightID string `json:"fluctlight_id"`
-	SessionID    string `json:"session_id"`
-	LocalDate    string `json:"local_date"`
-	Cycle        int    `json:"cycle"`
-	ActionID     string `json:"action_id"`
-	MemoryID     string `json:"memory_id"`
-	Revision     int    `json:"revision"`
-	InboxID      string `json:"inbox_id"`
+	IntentID           string `json:"intent_id"`
+	FluctlightID       string `json:"fluctlight_id"`
+	SessionID          string `json:"session_id"`
+	LocalDate          string `json:"local_date"`
+	Cycle              int    `json:"cycle"`
+	ActionID           string `json:"action_id"`
+	MemoryID           string `json:"memory_id"`
+	Revision           int    `json:"revision"`
+	ProviderEndpointID string `json:"provider_endpoint_id"`
+	ModelID            string `json:"model_id"`
+	InboxID            string `json:"inbox_id"`
+	IntentionID        string `json:"intention_id"`
+	DueAt              string `json:"due_at"`
 }
 
 // VisualIdentityWorkflow coordinates the image/vision/patch loop while the
@@ -227,6 +231,45 @@ func CognitionProcessingWorkflow(ctx workflow.Context, input Input) (map[string]
 	return result, nil
 }
 
+// IntentionTriggerWorkflow owns the durable wait/reassessment boundary for a
+// typed Intention. Time triggers sleep on Temporal history; event and semantic
+// triggers periodically ask Core whether a new authoritative fact exists.
+func IntentionTriggerWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 5 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	if input.IntentionID == "" {
+		return nil, fmt.Errorf("intention id is required")
+	}
+	if input.DueAt != "" {
+		dueAt, parseErr := time.Parse(time.RFC3339Nano, input.DueAt)
+		if parseErr != nil {
+			return nil, fmt.Errorf("intention due_at invalid: %w", parseErr)
+		}
+		if delay := dueAt.Sub(workflow.Now(ctx)); delay > 0 {
+			if err := workflow.Sleep(ctx, delay); err != nil {
+				return nil, err
+			}
+		}
+	}
+	var result map[string]any
+	if err := workflow.ExecuteActivity(ctx, ProcessIntentionTriggerActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	if stringValue(result["status"]) == "pending" {
+		if err := workflow.Sleep(ctx, time.Minute); err != nil {
+			return nil, err
+		}
+		return nil, workflow.NewContinueAsNewError(ctx, IntentionTriggerWorkflow, input)
+	}
+	return result, nil
+}
+
 func PlatformControlWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
 	control, err := registerWorkflowControl(ctx)
 	if err != nil {
@@ -277,16 +320,10 @@ func DailyReviewWorkflow(ctx workflow.Context, input Input) (map[string]any, err
 	if stringValue(result["status"]) == "inactive" {
 		return result, nil
 	}
-	if err := control.waitUntilResumed(ctx); err != nil {
-		return nil, err
-	}
-	delay := nextLocalMidnightDelay(workflow.Now(ctx), stringValue(result["timezone"]))
-	if err := workflow.Sleep(ctx, delay); err != nil {
-		return nil, err
-	}
-	next := input
-	next.LocalDate = ""
-	return nil, workflow.NewContinueAsNewError(ctx, DailyReviewWorkflow, next)
+	// A date-scoped daily-review workflow is one-shot after that date settles.
+	// The next accepted local-day Schedule creates the next date-scoped intent;
+	// keeping this workflow alive would accumulate one permanent reviewer per day.
+	return result, nil
 }
 
 func dailyReviewNeedsRetry(result map[string]any) bool {
@@ -520,6 +557,14 @@ func ProcessCognitionActivity(ctx context.Context, input Input) (map[string]any,
 	return application.ProcessCognitionInbox(ctx, input.InboxID)
 }
 
+func ProcessIntentionTriggerActivity(ctx context.Context, input Input) (map[string]any, error) {
+	application := app()
+	if application == nil {
+		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	return application.ProcessIntentionTrigger(ctx, input.IntentionID)
+}
+
 func PlatformControlActivity(ctx context.Context, input Input) (map[string]any, error) {
 	return map[string]any{"status": "ready", "intent_id": input.IntentID}, nil
 }
@@ -603,7 +648,7 @@ func ProcessMemoryEmbeddingActivity(ctx context.Context, input Input) (map[strin
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
-	return application.ProcessMemoryEmbeddingAt(ctx, input.MemoryID, input.Revision)
+	return application.ProcessMemoryEmbeddingIntentAt(ctx, input.IntentID, input.MemoryID, input.Revision, input.ProviderEndpointID, input.ModelID)
 }
 
 func EnsureCurrentDayScheduleActivity(ctx context.Context, input Input) (map[string]any, error) {
@@ -668,6 +713,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterWorkflow(DailyReviewWorkflow)
 			w.RegisterWorkflow(CurrentDayScheduleWorkflow)
 			w.RegisterWorkflow(ReflectionWorkflow)
+			w.RegisterWorkflow(IntentionTriggerWorkflow)
 			w.RegisterWorkflow(MemoryEmbeddingWorkflow)
 			w.RegisterWorkflow(PlatformControlWorkflow)
 			w.RegisterWorkflow(VisualIdentityWorkflow)
@@ -675,6 +721,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterActivity(ProcessWakeUpActivity)
 			w.RegisterActivity(EnsureCurrentDayScheduleActivity)
 			w.RegisterActivity(ProcessReflectionActivity)
+			w.RegisterActivity(ProcessIntentionTriggerActivity)
 			w.RegisterActivity(ProcessMemoryEmbeddingActivity)
 			w.RegisterActivity(PlatformControlActivity)
 			w.RegisterActivity(ProcessVisualIdentityActivity)
@@ -1017,6 +1064,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = InteractionQueue
 		case "reflection.run":
 			workflowFn = ReflectionWorkflow
+			taskQueue = LifecycleQueue
+		case "intention.trigger":
+			workflowFn = IntentionTriggerWorkflow
 			taskQueue = LifecycleQueue
 		case "memory.embedding":
 			workflowFn = MemoryEmbeddingWorkflow

@@ -55,24 +55,58 @@ func TestBFFMapsNestedBrowserPayloadsToCore(t *testing.T) {
 		"clear_secrets": []any{"old:key"},
 	})
 
-	schedule := invoke(handler, http.MethodPost, "http://gateway.test/api/fluctlights/fl-1/schedules", `{"localDate":"2026-01-01","timezone":"UTC","items":[{"startAt":"2026-01-01T10:00:00Z","endAt":"2026-01-01T11:00:00Z","activity":"work","scene":"office","itemType":"focus","interruptionCost":0.25}],"evidenceRefs":["event"],"expectedRevision":3,"completedBefore":"2025-12-31T00:00:00Z"}`, mutationHeaders, mutationCookies)
+	schedule := invoke(handler, http.MethodPost, "http://gateway.test/api/fluctlights/fl-1/schedules", `{"localDate":"2026-01-01","timezone":"UTC","items":[{"startAt":"2026-01-01T10:00:00Z","endAt":"2026-01-01T11:00:00Z","activity":"work","scene":"office","location":"Shanghai","itemType":"focus","interruptionCost":0.25}],"evidenceRefs":["event"],"expectedRevision":3,"expectedLifeContextRevision":"life_ctx_0123456789abcdef0123456789abcdef","idempotencyKey":"schedule-command-1","completedBefore":"2025-12-31T00:00:00Z"}`, mutationHeaders, mutationCookies)
 	if schedule.Code != http.StatusOK {
 		t.Fatalf("schedule status = %d: %s", schedule.Code, schedule.Body.String())
 	}
 	assertCoreBody(t, seen, "/internal/fluctlights/fl-1/schedules", map[string]any{
-		"local_date":        "2026-01-01",
-		"timezone":          "UTC",
-		"evidence_refs":     []any{"event"},
-		"expected_revision": float64(3),
-		"completed_before":  "2025-12-31T00:00:00Z",
+		"local_date":                     "2026-01-01",
+		"timezone":                       "UTC",
+		"evidence_refs":                  []any{"event"},
+		"expected_revision":              float64(3),
+		"expected_life_context_revision": "life_ctx_0123456789abcdef0123456789abcdef",
+		"idempotency_key":                "schedule-command-1",
+		"completed_before":               "2025-12-31T00:00:00Z",
 		"items": []any{map[string]any{
 			"start_at":          "2026-01-01T10:00:00Z",
 			"end_at":            "2026-01-01T11:00:00Z",
 			"activity":          "work",
 			"scene":             "office",
+			"location":          "Shanghai",
 			"item_type":         "focus",
 			"interruption_cost": float64(0.25),
 		}},
+	})
+
+	lifeRevision := "life_ctx_0123456789abcdef0123456789abcdef"
+	event := invoke(handler, http.MethodPost, "http://gateway.test/api/fluctlights/fl-1/events", `{"kind":"meeting","startAt":"2026-01-01T10:00:00Z","endAt":"2026-01-01T11:00:00Z","evidenceRefs":["fact"],"expectedLifeContextRevision":"`+lifeRevision+`","idempotencyKey":"event-create-1"}`, mutationHeaders, mutationCookies)
+	if event.Code != http.StatusOK {
+		t.Fatalf("event status = %d: %s", event.Code, event.Body.String())
+	}
+	assertCoreBody(t, seen, "/internal/fluctlights/fl-1/events", map[string]any{
+		"kind": "meeting", "start_at": "2026-01-01T10:00:00Z", "end_at": "2026-01-01T11:00:00Z",
+		"evidence_refs": []any{"fact"}, "expected_life_context_revision": lifeRevision, "idempotency_key": "event-create-1",
+	})
+	eventCancel := invoke(handler, http.MethodPost, "http://gateway.test/api/fluctlights/fl-1/events/event-1/cancel", `{"expectedEventRevision":3,"expectedLifeContextRevision":"`+lifeRevision+`","idempotencyKey":"event-cancel-1"}`, mutationHeaders, mutationCookies)
+	if eventCancel.Code != http.StatusNoContent {
+		t.Fatalf("event cancel status = %d: %s", eventCancel.Code, eventCancel.Body.String())
+	}
+	assertCoreBody(t, seen, "/internal/fluctlights/fl-1/events/event-1/cancel", map[string]any{
+		"expected_event_revision": float64(3), "expected_life_context_revision": lifeRevision, "idempotency_key": "event-cancel-1",
+	})
+	presence := invoke(handler, http.MethodPut, "http://gateway.test/api/fluctlights/fl-1/presence", `{"currentTask":"review","expiresAt":"2026-01-01T12:00:00Z","expectedLifeContextRevision":"`+lifeRevision+`","idempotencyKey":"presence-1"}`, mutationHeaders, mutationCookies)
+	if presence.Code != http.StatusOK {
+		t.Fatalf("presence status = %d: %s", presence.Code, presence.Body.String())
+	}
+	assertCoreBody(t, seen, "/internal/fluctlights/fl-1/presence", map[string]any{
+		"current_task": "review", "expires_at": "2026-01-01T12:00:00Z", "expected_life_context_revision": lifeRevision, "idempotency_key": "presence-1",
+	})
+	scheduleCancel := invoke(handler, http.MethodPost, "http://gateway.test/api/fluctlights/fl-1/schedules/schedule-1/cancel", `{"expectedRevision":4,"expectedLifeContextRevision":"`+lifeRevision+`","idempotencyKey":"schedule-cancel-1"}`, mutationHeaders, mutationCookies)
+	if scheduleCancel.Code != http.StatusNoContent {
+		t.Fatalf("schedule cancel status = %d: %s", scheduleCancel.Code, scheduleCancel.Body.String())
+	}
+	assertCoreBody(t, seen, "/internal/fluctlights/fl-1/schedules/schedule-1/cancel", map[string]any{
+		"expected_revision": float64(4), "expected_life_context_revision": lifeRevision, "idempotency_key": "schedule-cancel-1",
 	})
 
 	activation := invoke(handler, http.MethodPost, "http://gateway.test/api/fluctlight-creations/activate", `{"requestId":"request","initializationMode":"llm_defined","schemaVersion":1,"corePersona":{"identity":{},"personality":{},"behavioral_policy":{},"life_profile":{},"personality_system":{}},"developingSelf":{"claims":[]},"extensions":{"future":true},"initialGoals":[{"name":"goal"}],"initialIntentions":[{"name":"intent"}],"initialRelationships":[]}`, mutationHeaders, mutationCookies)

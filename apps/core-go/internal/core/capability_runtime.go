@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -14,313 +15,319 @@ func (a *App) capabilityRegistry() *CapabilityRegistry {
 	if a != nil && a.Capabilities != nil {
 		return a.Capabilities
 	}
-	return NewCapabilityRegistry(
-		&conversationReplyCapabilityExecutor{},
-		&momentPublishCapabilityExecutor{},
-		&imageCapabilityExecutor{app: a},
-		&visualIdentityCapabilityExecutor{app: a},
-		&sceneCapabilityExecutor{app: a},
-		&scheduleReplanCapabilityExecutor{app: a},
-		&presenceCapabilityExecutor{app: a},
-		&memoryCapabilityExecutor{app: a},
-		&affectEventCapabilityExecutor{app: a},
-		&relationshipLookupCapabilityExecutor{app: a},
-		&capabilityRequestExecutor{app: a},
-	)
+	registry, _ := NewCapabilityRegistry(builtinCapabilities(a)...)
+	return registry
 }
 
-func capabilityManifestsExcept(registry *CapabilityRegistry, excluded ...string) []CapabilityManifest {
+func (a *App) capabilityRuntime() *CapabilityRuntime {
+	if a != nil && a.Runtime != nil {
+		return a.Runtime
+	}
+	registry := a.capabilityRegistry()
+	if a == nil || a.ContextResolver == nil {
+		return nil
+	}
+	resolver := a.ContextResolver
+	runtime, err := NewCapabilityRuntime(registry, resolver)
+	if err != nil {
+		return nil
+	}
+	if a != nil {
+		a.Runtime = runtime
+	}
+	return runtime
+}
+
+func capabilityCatalog(registry *CapabilityRegistry, surface CapabilitySurface) []CapabilityDefinition {
 	if registry == nil {
 		return nil
 	}
-	blocked := make(map[string]struct{}, len(excluded))
-	for _, name := range excluded {
-		blocked[name] = struct{}{}
-	}
-	result := make([]CapabilityManifest, 0)
-	for _, manifest := range registry.Manifests() {
-		if _, skip := blocked[manifest.Name]; skip {
-			continue
-		}
-		result = append(result, manifest)
-	}
-	return result
+	return registry.Catalog(surface)
 }
 
-// ExecuteToolCalls is the Runtime-owned capability boundary.  It validates a
-// normalized call, then invokes only a registered native or external slot.
-// Each executor is replaceable while the Runtime retains domain authority.
-func (a *App) ExecuteToolCalls(ctx context.Context, fluctlightID, conversationID, sourceFactID string, calls []ToolCallV1) ([]ToolResultV1, error) {
-	if len(calls) == 0 {
-		return []ToolResultV1{}, nil
+// ExecuteCapabilities is the standalone planning/query entry point. It never
+// self-commits a transactional Capability; callers that own an action use the
+// frozen plan plus settleDeferredCapabilitiesTx in their Unit of Work.
+func (a *App) ExecuteCapabilities(ctx context.Context, fluctlightID, conversationID, sourceFactID string, invocations []CapabilityInvocation) ([]CapabilityResult, error) {
+	return a.executeCapabilities(ctx, fluctlightID, conversationID, sourceFactID, invocations, nil, true, true, true)
+}
+
+func (a *App) planCapabilitiesForTransaction(ctx context.Context, fluctlightID, conversationID, sourceFactID string, invocations []CapabilityInvocation, existing []CapabilityResult) ([]CapabilityResult, error) {
+	// Transaction plans are built only after the caller has frozen and
+	// persisted Capability Prepare output. Re-running the preparer here would
+	// make planner I/O depend on the settlement attempt instead of the frozen
+	// replay boundary.
+	return a.executeCapabilities(ctx, fluctlightID, conversationID, sourceFactID, invocations, existing, true, false, false)
+}
+
+func (a *App) executeCapabilities(ctx context.Context, fluctlightID, conversationID, sourceFactID string, invocations []CapabilityInvocation, existing []CapabilityResult, deferTransactional, persistStandaloneOutcomes, prepareInvocations bool) ([]CapabilityResult, error) {
+	if len(invocations) == 0 {
+		return []CapabilityResult{}, nil
 	}
-	registry := a.capabilityRegistry()
-	manifests := toolManifestMap(registry.Manifests())
-	results := make([]ToolResultV1, 0, len(calls))
-	for _, call := range normalizeToolCallMetadata(calls, sourceFactID, sourceFactID) {
-		if err := call.Validate(manifests); err != nil {
-			result := failedToolResult(call, "tool_call_rejected", false, err.Error())
-			results = append(results, result)
+	runtime := a.capabilityRuntime()
+	if runtime == nil {
+		results := make([]CapabilityResult, 0, len(invocations))
+		for _, invocation := range invocations {
+			results = append(results, failedCapabilityResultDetail(invocation, "capability_not_found", false, "capability runtime is unavailable"))
+		}
+		return results, ErrCapabilityNotFound
+	}
+	registry := runtime.Registry
+	results := append([]CapabilityResult(nil), existing...)
+	var firstErr error
+	for index := range invocations {
+		invocation := normalizeCapabilityInvocationMetadata(invocations[index], fluctlightID, conversationID, sourceFactID, sourceFactID, index)
+		invocations[index] = invocation
+		if existingResult, found := capabilityResultForCall(results, invocation.CallID); found && existingResult.Status == "completed" {
+			if existingResult.CapabilityName != invocation.CapabilityName {
+				return results, fmt.Errorf("capability result identity mismatch for call %q", invocation.CallID)
+			}
 			continue
 		}
-		if call.SourceFactID != sourceFactID {
-			result := failedToolResult(call, "tool_call_source_invalid", false, "source fact does not match the current turn")
-			results = append(results, result)
-			continue
-		}
-		executor, ok := registry.Lookup(call.Name)
+		definition, ok := registry.Definition(invocation.CapabilityName)
 		if !ok {
-			result := failedToolResult(call, "tool_capability_unavailable", false, "capability has no Runtime executor")
-			results = append(results, result)
+			result := failedCapabilityResultDetail(invocation, "capability_not_found", false, invocation.CapabilityName)
+			results = replaceCapabilityResult(results, result)
+			if firstErr == nil {
+				firstErr = fmt.Errorf("%w: %s", ErrCapabilityNotFound, invocation.CapabilityName)
+			}
 			continue
 		}
-		manifest := manifests[call.Name]
-		if manifest.RequiresPreflight {
-			if preflightErr := a.preflightCapability(ctx, fluctlightID, manifest); preflightErr != nil {
-				result := failedToolResult(call, "tool_preflight_failed", true, preflightErr.Error())
-				results = append(results, result)
-				continue
+		capability, ok := registry.LookupCapability(invocation.CapabilityName)
+		if !ok {
+			result := failedCapabilityResultDetail(invocation, "capability_not_found", false, "implementation is not registered")
+			results = replaceCapabilityResult(results, result)
+			if firstErr == nil {
+				firstErr = fmt.Errorf("%w: %s", ErrCapabilityNotFound, invocation.CapabilityName)
 			}
+			continue
 		}
-		if manifest.ConcurrencyClass == "exclusive" && !manifest.IsDeferredOutput() {
-			result, lockErr := a.executeExclusiveCapability(ctx, fluctlightID, conversationID, sourceFactID, call, executor)
-			if lockErr != nil {
-				results = append(results, result)
-				continue
+		executionClass, classErr := classifyCapabilityExecution(capability, definition)
+		if classErr != nil {
+			result := failedCapabilityResultDetail(invocation, "capability_execution_class_invalid", false, classErr.Error())
+			results = replaceCapabilityResult(results, result)
+			if firstErr == nil && definition.FailurePolicy == FailurePolicyRequiredForVisibleClaim {
+				firstErr = classErr
 			}
-			results = append(results, result)
-			if validationErr := result.Validate(call); validationErr != nil {
-				results[len(results)-1] = failedToolResult(call, "tool_result_invalid", false, validationErr.Error())
-				continue
-			}
-			if result.Status == "completed" {
-				if validationErr := manifest.ValidateOutput(result.Output); validationErr != nil {
-					results[len(results)-1] = failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error())
+			continue
+		}
+		if prepareInvocations {
+			if len(invocation.PreparedPayload) > 0 {
+				if _, prepareErr := decodeCapabilityPreparedPayload(invocation.PreparedPayload); prepareErr != nil {
+					result := failedCapabilityResultDetail(invocation, "capability_prepared_payload_invalid", false, prepareErr.Error())
+					results = replaceCapabilityResult(results, result)
+					if firstErr == nil && definition.FailurePolicy == FailurePolicyRequiredForVisibleClaim {
+						firstErr = prepareErr
+					}
 					continue
 				}
-			}
-			if result.Status == "failed" && optionalToolFailureNonFatal(call) {
-				continue
-			}
-			if validationErr := manifest.ValidateOutput(result.Output); validationErr != nil {
-				results[len(results)-1] = failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error())
-				continue
-			}
-			if call.ActionID != "" {
-				if persistErr := a.persistActionResult(ctx, fluctlightID, call.ActionID, sourceFactID, result); persistErr != nil {
+			} else {
+				prepared, _, prepareErr := runtime.Prepare(ctx, invocation)
+				if prepareErr != nil {
+					code, retryable := capabilityErrorInfo(prepareErr, "capability_prepare_failed", true)
+					result := failedCapabilityResultDetail(invocation, code, retryable, prepareErr.Error())
+					results = replaceCapabilityResult(results, result)
+					if firstErr == nil && definition.FailurePolicy == FailurePolicyRequiredForVisibleClaim {
+						firstErr = prepareErr
+					}
 					continue
 				}
+				invocation = prepared
+				invocations[index] = prepared
 			}
+		}
+		_, transactional := capability.(TransactionalCapability)
+		if deferTransactional && (executionClass == CapabilityExecutionTransactionalMutation || (executionClass == CapabilityExecutionExternalAsyncIntent && transactional)) {
+			results = replaceCapabilityResult(results, CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "deferred", Output: map[string]any{"reason": "transaction_pending"}, Retryable: true, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "capability:" + invocation.CallID, RequiredContext: append([]ContextSlot(nil), definition.RequiredContext...)})
 			continue
 		}
-		if manifest.IsDeferredOutput() {
-			// External async slots are output-producing capabilities. Their
-			// durable intent must be created only after the Composite Action has
-			// a concrete target (for example a newly persisted message). The
-			// caller settles this deferred result at that boundary.
-			result := deferredToolResult(call, "output_target_pending")
-			results = append(results, result)
+		if executionClass == CapabilityExecutionDeferredOutput || (executionClass == CapabilityExecutionExternalAsyncIntent && definition.IsDeferredOutput()) {
+			results = replaceCapabilityResult(results, CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "deferred", Output: map[string]any{"reason": "output_target_pending"}, Retryable: true, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "capability:" + invocation.CallID, RequiredContext: append([]ContextSlot(nil), definition.RequiredContext...)})
 			continue
 		}
-		result, err := executor.Execute(ctx, fluctlightID, conversationID, sourceFactID, call)
-		results = append(results, result)
-		if validationErr := result.Validate(call); validationErr != nil {
-			results[len(results)-1] = failedToolResult(call, "tool_result_invalid", false, validationErr.Error())
-			continue
+		var result CapabilityResult
+		var err error
+		if definition.ConcurrencyClass == "exclusive" && a != nil && a.DB != nil {
+			result, err = a.executeExclusiveCapabilityCanonical(ctx, fluctlightID, invocation, capability)
+		} else {
+			result, err = runtime.Execute(ctx, invocation)
 		}
-		if result.Status == "completed" {
-			if validationErr := manifest.ValidateOutput(result.Output); validationErr != nil {
-				results[len(results)-1] = failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error())
+		results = replaceCapabilityResult(results, result)
+		if err != nil && firstErr == nil && definition.FailurePolicy == FailurePolicyRequiredForVisibleClaim {
+			firstErr = err
+		}
+	}
+	if persistStandaloneOutcomes {
+		if persistErr := a.persistStandaloneCapabilityOutcomes(ctx, fluctlightID, invocations, results, firstErr); persistErr != nil && firstErr == nil {
+			firstErr = persistErr
+		}
+	}
+	return results, firstErr
+}
+
+func (a *App) prepareCapabilityInvocations(ctx context.Context, fluctlightID, conversationID, sourceFactID string, invocations []CapabilityInvocation, existing ...[]CapabilityResult) ([]CapabilityInvocation, error) {
+	prepared := append([]CapabilityInvocation(nil), invocations...)
+	runtime := a.capabilityRuntime()
+	if runtime == nil {
+		return nil, ErrCapabilityNotFound
+	}
+	for index := range prepared {
+		prepared[index] = normalizeCapabilityInvocationMetadata(prepared[index], fluctlightID, conversationID, sourceFactID, sourceFactID, index)
+		if len(existing) > 0 {
+			if result, found := capabilityResultForCall(existing[0], prepared[index].CallID); found && result.Status == "completed" {
 				continue
 			}
 		}
-		if result.Status == "failed" && optionalToolFailureNonFatal(call) {
-			continue
+		_, ok := runtime.Registry.Definition(prepared[index].CapabilityName)
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", ErrCapabilityNotFound, prepared[index].CapabilityName)
 		}
-		if validationErr := manifest.ValidateOutput(result.Output); validationErr != nil {
-			results[len(results)-1] = failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error())
-			continue
-		}
-		if call.ActionID != "" {
-			if persistErr := a.persistActionResult(ctx, fluctlightID, call.ActionID, sourceFactID, result); persistErr != nil {
-				continue
+		if len(prepared[index].PreparedPayload) > 0 {
+			if _, err := decodeCapabilityPreparedPayload(prepared[index].PreparedPayload); err != nil {
+				return nil, fmt.Errorf("%w: %v", ErrInvalidArguments, err)
 			}
+			continue
 		}
+		invocation, _, err := runtime.Prepare(ctx, prepared[index])
 		if err != nil {
+			return nil, err
+		}
+		prepared[index] = invocation
+	}
+	return prepared, nil
+}
+
+func (a *App) bindCapabilityInvocationsToProjection(invocations []CapabilityInvocation, projection ContextProjection, actionID, sourceFactID string, surface CapabilitySurface) ([]CapabilityInvocation, error) {
+	bound := append([]CapabilityInvocation(nil), invocations...)
+	registry := a.capabilityRegistry()
+	for index := range bound {
+		bound[index] = normalizeCapabilityInvocationMetadata(bound[index], projection.FluctlightID, projection.ConversationID, sourceFactID, sourceFactID, index)
+		bound[index].ActionID = actionID
+		bound[index].Metadata.Surface = surface
+		definition, ok := registry.Definition(bound[index].CapabilityName)
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", ErrCapabilityNotFound, bound[index].CapabilityName)
+		}
+		bound[index].ContextSnapshot = capabilitySnapshotForProjection(projection, definition.RequiredContext, actionID)
+	}
+	return bound, nil
+}
+
+func normalizeCapabilityInvocationMetadata(invocation CapabilityInvocation, fluctlightID, conversationID, sourceFactID, identityScope string, sequence int) CapabilityInvocation {
+	if invocation.CallID == "" {
+		return invocation
+	}
+	if invocation.SourceFactID == "" {
+		invocation.SourceFactID = sourceFactID
+	}
+	if invocation.ProviderRequestID == "" {
+		invocation.ProviderRequestID = "provider:" + stableDigest(identityScope+":"+invocation.CallID)
+	}
+	if invocation.Sequence < 0 {
+		invocation.Sequence = sequence
+	}
+	if invocation.Metadata.FluctlightID == "" {
+		invocation.Metadata.FluctlightID = fluctlightID
+	}
+	if invocation.Metadata.ConversationID == "" {
+		invocation.Metadata.ConversationID = conversationID
+	}
+	if invocation.Metadata.Surface == "" {
+		invocation.Metadata.Surface = CapabilitySurfaceConversation
+	}
+	if invocation.Intent == "" {
+		var args map[string]any
+		if json.Unmarshal(invocation.Arguments, &args) == nil {
+			invocation.Intent = stringValue(args["intent"])
+		}
+	}
+	if invocation.SchemaVersion == "" {
+		invocation.SchemaVersion = CapabilityInvocationSchemaVersion
+	}
+	return invocation
+}
+
+func (a *App) executeExclusiveCapabilityCanonical(ctx context.Context, fluctlightID string, invocation CapabilityInvocation, capability Capability) (CapabilityResult, error) {
+	conn, err := a.DB.Pool().Acquire(ctx)
+	if err != nil {
+		return failedCapabilityResultDetail(invocation, "capability_busy", true, err.Error()), err
+	}
+	defer conn.Release()
+	var acquired bool
+	lockKey := "capability:" + fluctlightID + ":" + invocation.CapabilityName
+	if err := conn.QueryRow(ctx, `SELECT pg_try_advisory_lock(hashtext($1))`, lockKey).Scan(&acquired); err != nil {
+		return failedCapabilityResultDetail(invocation, "capability_busy", true, err.Error()), err
+	}
+	if !acquired {
+		return failedCapabilityResultDetail(invocation, "capability_busy", true, "capability is already running"), errors.New("capability_busy")
+	}
+	defer func() {
+		unlockCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
+		defer cancel()
+		_, _ = conn.Exec(unlockCtx, `SELECT pg_advisory_unlock(hashtext($1))`, lockKey)
+	}()
+	return a.capabilityRuntime().Execute(ctx, invocation)
+}
+
+func requiredCapabilityFailureCanonical(results []CapabilityResult, invocations []CapabilityInvocation, registry *CapabilityRegistry, settled bool) error {
+	if registry == nil {
+		return newCapabilityError("capability_not_found", false, fmt.Errorf("%w: registry is unavailable", ErrCapabilityNotFound))
+	}
+	for _, invocation := range invocations {
+		definition, ok := registry.Definition(invocation.CapabilityName)
+		if !ok {
+			return newCapabilityError("capability_not_found", false, fmt.Errorf("required capability %q is unavailable", invocation.CapabilityName))
+		}
+		if definition.FailurePolicy != FailurePolicyRequiredForVisibleClaim {
 			continue
 		}
-	}
-	return results, nil
-}
-
-func optionalToolFailureNonFatal(call ToolCallV1) bool {
-	return strings.TrimSpace(call.Name) != ""
-}
-
-func deferredToolResult(call ToolCallV1, reason string) ToolResultV1 {
-	return ToolResultV1{
-		ToolCallID:        call.ID,
-		Name:              call.Name,
-		Status:            "deferred",
-		Output:            map[string]any{"reason": reason},
-		Retryable:         true,
-		ProviderRequestID: call.ProviderRequestID,
-		CorrelationID:     "tool:" + strings.TrimSpace(call.ID),
-		SchemaVersion:     ToolResultSchemaVersion,
-	}
-}
-
-func normalizeToolCallMetadata(calls []ToolCallV1, sourceFactID, identityScope string) []ToolCallV1 {
-	result := make([]ToolCallV1, len(calls))
-	copy(result, calls)
-	for index := range result {
-		if result[index].SourceFactID == "" {
-			result[index].SourceFactID = sourceFactID
+		result, found := capabilityResultForCall(results, invocation.CallID)
+		if !found {
+			return newCapabilityError("capability_result_missing", false, fmt.Errorf("required capability %q has no result", invocation.CapabilityName))
 		}
-		if result[index].ProviderRequestID == "" {
-			result[index].ProviderRequestID = "provider:" + stableDigest(identityScope+":"+result[index].ID)
+		if result.CallID != invocation.CallID || result.CapabilityName != invocation.CapabilityName {
+			return newCapabilityError("capability_result_identity_mismatch", false, fmt.Errorf("required capability %q result identity mismatch", invocation.CapabilityName))
 		}
-		if result[index].SchemaVersion == "" {
-			result[index].SchemaVersion = ToolCallSchemaVersion
+		if result.Status == "failed" || result.Status == "rejected" || (settled && result.Status != "completed") {
+			code := result.ErrorCode
+			if code == "" {
+				code = "capability_execution_failed"
+			}
+			return newCapabilityError(code, result.Retryable, fmt.Errorf("required capability %q failed", invocation.CapabilityName))
 		}
-		if result[index].Sequence < 0 {
-			result[index].Sequence = index
+		if !settled && result.Status != "completed" && result.Status != "deferred" {
+			return newCapabilityError("capability_result_status_invalid", false, fmt.Errorf("required capability %q returned invalid status %q", invocation.CapabilityName, result.Status))
 		}
 	}
-	return result
+	return nil
 }
 
-type imageCapabilityExecutor struct{ app *App }
-
-type conversationReplyCapabilityExecutor struct{}
-
-type momentPublishCapabilityExecutor struct{}
-
-func (executor *conversationReplyCapabilityExecutor) Manifest() CapabilityManifest {
-	return conversationReplyCapabilityManifest()
-}
-
-func (executor *conversationReplyCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	return deferredToolResult(call, "conversation_output_target_pending"), nil
-}
-
-func (executor *conversationReplyCapabilityExecutor) ExecuteDeferredTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID, identityScope string, call ToolCallV1, binding OutputBindingV1) (ToolResultV1, error) {
-	if binding.TargetKind != "conversation_message" || strings.TrimSpace(binding.TargetRef) == "" {
-		return failedToolResult(call, "reply_target_invalid", false, "conversation.reply requires a conversation message target"), errors.New("reply target invalid")
+func capabilityFailureInfo(err error, results []CapabilityResult, invocations []CapabilityInvocation, registry *CapabilityRegistry, fallbackCode string) (string, bool) {
+	code, retryable := capabilityErrorInfo(err, fallbackCode, true)
+	if errors.Is(err, ErrCapabilityNotFound) || errors.Is(err, ErrInvalidArguments) || errors.Is(err, ErrConflict) {
+		retryable = false
 	}
-	var args map[string]any
-	if err := json.Unmarshal(call.Arguments, &args); err != nil {
-		return failedToolResult(call, "reply_arguments_invalid", false, err.Error()), err
+	resultByCall := make(map[string]CapabilityResult, len(results))
+	for _, result := range results {
+		resultByCall[result.CallID] = result
 	}
-	text := strings.TrimSpace(stringValue(args["text"]))
-	if text == "" || len([]rune(text)) > 32000 {
-		return failedToolResult(call, "reply_text_invalid", false, "reply text must be between 1 and 32000 characters"), errors.New("reply text invalid")
+	for _, invocation := range invocations {
+		definition, found := registry.Definition(invocation.CapabilityName)
+		if !found || definition.FailurePolicy != FailurePolicyRequiredForVisibleClaim {
+			continue
+		}
+		result, found := resultByCall[invocation.CallID]
+		if !found || (result.Status != "failed" && result.Status != "rejected") {
+			continue
+		}
+		if strings.TrimSpace(result.ErrorCode) != "" {
+			code = strings.TrimSpace(result.ErrorCode)
+		}
+		if !result.Retryable {
+			return code, false
+		}
 	}
-	return ToolResultV1{
-		ToolCallID: call.ID, Name: call.Name, Status: "completed",
-		Output:    map[string]any{"text": text, "target_kind": binding.TargetKind, "target_ref": binding.TargetRef},
-		Retryable: false, ProviderRequestID: call.ProviderRequestID, CorrelationID: "reply:" + call.ID, SchemaVersion: ToolResultSchemaVersion,
-	}, nil
-}
-
-func (executor *momentPublishCapabilityExecutor) Manifest() CapabilityManifest {
-	return momentPublishCapabilityManifest()
-}
-
-func (executor *momentPublishCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	return deferredToolResult(call, "moment_output_target_pending"), nil
-}
-
-func (executor *momentPublishCapabilityExecutor) ExecuteDeferredTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID, identityScope string, call ToolCallV1, binding OutputBindingV1) (ToolResultV1, error) {
-	if binding.TargetKind != "moment" || strings.TrimSpace(binding.TargetRef) == "" {
-		return failedToolResult(call, "moment_target_invalid", false, "moment.publish requires a Moment target"), errors.New("moment target invalid")
-	}
-	var args map[string]any
-	if err := json.Unmarshal(call.Arguments, &args); err != nil {
-		return failedToolResult(call, "moment_arguments_invalid", false, err.Error()), err
-	}
-	text := strings.TrimSpace(stringValue(args["text"]))
-	if text == "" || len([]rune(text)) > 32000 {
-		return failedToolResult(call, "moment_text_invalid", false, "moment text must be between 1 and 32000 characters"), errors.New("moment text invalid")
-	}
-	return ToolResultV1{
-		ToolCallID: call.ID, Name: call.Name, Status: "completed",
-		Output:    map[string]any{"text": text, "target_kind": binding.TargetKind, "target_ref": binding.TargetRef},
-		Retryable: false, ProviderRequestID: call.ProviderRequestID, CorrelationID: "moment:" + call.ID, SchemaVersion: ToolResultSchemaVersion,
-	}, nil
-}
-
-type visualIdentityCapabilityExecutor struct{ app *App }
-
-func (executor *visualIdentityCapabilityExecutor) Manifest() CapabilityManifest {
-	return visualIdentityInitializeCapabilityManifest()
-}
-
-func (executor *visualIdentityCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	if !strings.HasPrefix(strings.TrimSpace(sourceFactID), "wake_up_") {
-		return failedToolResult(call, "visual_identity_trigger_invalid", false, "visual identity initialization is only callable from WakeUp"), errors.New("visual identity trigger invalid")
-	}
-	sessionID, err := executor.app.EnsureVisualIdentityInitialization(ctx, fluctlightID, "wakeup", sourceFactID)
-	if err != nil {
-		return failedToolResult(call, "visual_identity_initialization_failed", true, err.Error()), err
-	}
-	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: map[string]any{"session_id": sessionID, "status": "queued"}, Retryable: false, ProviderRequestID: call.ProviderRequestID, CorrelationID: "visual_identity:" + sessionID, SchemaVersion: ToolResultSchemaVersion}, nil
-}
-
-func (executor *imageCapabilityExecutor) Manifest() CapabilityManifest {
-	return imageCapabilityManifest()
-}
-
-func (executor *imageCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	return executor.app.executeImageToolCall(ctx, fluctlightID, conversationID, sourceFactID, call)
-}
-
-// DeferredCapabilityExecutor is the optional second phase for an external
-// async slot. Runtime first validates/records the call, then supplies the
-// concrete Composite Action binding once the output resource has an ID.
-// Implementations own their provider-intent persistence while Runtime owns
-// when this phase is allowed to run.
-type DeferredCapabilityExecutor interface {
-	CapabilityExecutor
-	ExecuteDeferredTx(context.Context, pgx.Tx, string, string, string, ToolCallV1, OutputBindingV1) (ToolResultV1, error)
-}
-
-func (executor *imageCapabilityExecutor) ExecuteDeferredTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID, identityScope string, call ToolCallV1, binding OutputBindingV1) (ToolResultV1, error) {
-	concept, err := mediaConceptFromToolCall(call)
-	if err != nil {
-		return failedToolResult(call, "media_concept_invalid", false, err.Error()), err
-	}
-	manifest := executor.Manifest()
-	if !containsStringValue(stringSliceAny(manifest.TargetKinds), binding.TargetKind) {
-		return failedToolResult(call, "tool_target_invalid", false, "capability does not support this output target"), errors.New("tool target invalid")
-	}
-	conversationID, messageID, momentID := "", "", ""
-	switch binding.TargetKind {
-	case "conversation_message":
-		messageID = binding.TargetRef
-	case "moment":
-		momentID = binding.TargetRef
-	case "wake_up":
-		// A wake-up image is a standalone media intent. It has no chat/feed
-		// attachment yet; the wake-up/action ID remains the stable provenance
-		// scope and the media workflow owns the eventual asset.
-	default:
-		return failedToolResult(call, "tool_target_invalid", false, "unsupported output target"), errors.New("tool target invalid")
-	}
-	intentID, workflowID, providerRequestID := mediaToolCallIdentity(identityScope, call)
-	if err := executor.app.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, intentID, workflowID, providerRequestID, conversationID, messageID, momentID); err != nil {
-		return failedToolResult(call, "media_intent_failed", true, err.Error()), err
-	}
-	return ToolResultV1{
-		ToolCallID:        call.ID,
-		Name:              call.Name,
-		Status:            "completed",
-		Output:            map[string]any{"media_intent_id": intentID, "target_kind": binding.TargetKind, "target_ref": binding.TargetRef},
-		Retryable:         false,
-		ProviderRequestID: providerRequestID,
-		CorrelationID:     "tool:" + call.ID,
-		SchemaVersion:     ToolResultSchemaVersion,
-	}, nil
+	return code, retryable
 }
 
 func stringSliceAny(values []string) []any {
@@ -331,160 +338,115 @@ func stringSliceAny(values []string) []any {
 	return result
 }
 
-func (a *App) settleDeferredToolCallsTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID, identityScope string, calls []ToolCallV1, existing []ToolResultV1, binding OutputBindingV1) ([]ToolResultV1, error) {
-	if len(calls) == 0 {
-		return existing, nil
+// settleDeferredCapabilitiesTx performs the output-target phase for canonical
+// invocations. It keeps external/provider work out of the transaction and
+// returns a result for every deferred invocation, including bounded failures.
+func (a *App) settleDeferredCapabilitiesTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID, identityScope string, invocations []CapabilityInvocation, existing []CapabilityResult, binding OutputBindingV1) ([]CapabilityResult, error) {
+	results := append([]CapabilityResult(nil), existing...)
+	if len(invocations) == 0 {
+		return results, nil
 	}
-	registry := a.capabilityRegistry()
-	manifests := toolManifestMap(registry.Manifests())
-	results := append([]ToolResultV1(nil), existing...)
-	for _, call := range normalizeToolCallMetadata(calls, sourceFactID, identityScope) {
-		if err := call.Validate(manifests); err != nil {
-			results = replaceToolResult(results, failedToolResult(call, "tool_call_rejected", false, err.Error()))
-			continue
+	runtime := a.capabilityRuntime()
+	if runtime == nil {
+		for _, invocation := range invocations {
+			results = replaceCapabilityResult(results, failedCapabilityResultDetail(invocation, "capability_not_found", false, "capability runtime is unavailable"))
 		}
-		if !toolCallNeedsDeferredSettlement(call, registry) {
-			continue
-		}
-		manifest := manifests[call.Name]
-		if manifest.RequiresPreflight {
-			if err := a.preflightCapabilityTx(ctx, tx, manifest); err != nil {
-				results = replaceToolResult(results, failedToolResult(call, "tool_preflight_failed", true, err.Error()))
-				continue
-			}
-		}
-		if manifest.ConcurrencyClass == "exclusive" {
-			var acquired bool
-			if err := tx.QueryRow(ctx, `SELECT pg_try_advisory_xact_lock(hashtext($1))`, "capability:"+fluctlightID+":"+call.Name).Scan(&acquired); err != nil {
-				results = replaceToolResult(results, failedToolResult(call, "tool_capability_busy", true, err.Error()))
-				continue
-			}
-			if !acquired {
-				results = replaceToolResult(results, failedToolResult(call, "tool_capability_busy", true, "capability is already running"))
-				continue
-			}
-		}
-		if result, ok := toolResultForCall(results, call.ID); ok && result.Status == "completed" {
-			continue
-		}
-		executor, ok := registry.Lookup(call.Name)
+		return results, ErrCapabilityNotFound
+	}
+	for index := range invocations {
+		invocation := normalizeCapabilityInvocationMetadata(invocations[index], fluctlightID, "", sourceFactID, identityScope, index)
+		invocations[index] = invocation
+		definition, ok := runtime.Registry.Definition(invocation.CapabilityName)
 		if !ok {
-			results = replaceToolResult(results, failedToolResult(call, "tool_capability_unavailable", false, "capability has no executor"))
+			results = replaceCapabilityResult(results, failedCapabilityResultDetail(invocation, "capability_not_found", false, invocation.CapabilityName))
 			continue
 		}
-		deferred, ok := executor.(DeferredCapabilityExecutor)
-		if !ok {
-			results = replaceToolResult(results, failedToolResult(call, "tool_target_invalid", false, "capability cannot bind output target"))
+		capability, found := runtime.Registry.LookupCapability(invocation.CapabilityName)
+		if !found {
+			results = replaceCapabilityResult(results, failedCapabilityResultDetail(invocation, "capability_not_found", false, "implementation is not registered"))
 			continue
 		}
-		callBinding := binding
-		callBinding.ToolCallID = call.ID
-		result, err := deferred.ExecuteDeferredTx(ctx, tx, fluctlightID, sourceFactID, identityScope, call, callBinding)
-		if result.SchemaVersion == "" {
-			result.SchemaVersion = ToolResultSchemaVersion
-		}
-		if validationErr := result.Validate(call); validationErr != nil {
-			results = replaceToolResult(results, failedToolResult(call, "tool_result_invalid", false, validationErr.Error()))
+		executionClass, classErr := classifyCapabilityExecution(capability, definition)
+		if classErr != nil {
+			results = replaceCapabilityResult(results, failedCapabilityResultDetail(invocation, "capability_execution_class_invalid", false, classErr.Error()))
 			continue
 		}
-		if result.Status == "completed" {
-			if validationErr := manifests[call.Name].ValidateOutput(result.Output); validationErr != nil {
-				results = replaceToolResult(results, failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error()))
-				continue
+		_, transactional := capability.(TransactionalCapability)
+		if executionClass != CapabilityExecutionTransactionalMutation && executionClass != CapabilityExecutionDeferredOutput && !(executionClass == CapabilityExecutionExternalAsyncIntent && (definition.IsDeferredOutput() || transactional)) {
+			continue
+		}
+		if existingResult, found := capabilityResultForCall(results, invocation.CallID); found && existingResult.Status == "completed" {
+			continue
+		}
+		if definition.IsDeferredOutput() && binding.TargetKind == "" {
+			continue
+		}
+		var result CapabilityResult
+		var err error
+		if transactional {
+			applyTx := tx
+			var savepoint pgx.Tx
+			if tx != nil {
+				savepoint, err = tx.Begin(ctx)
+				if err == nil {
+					applyTx = savepoint
+				}
 			}
+			if err == nil {
+				result, err = runtime.ExecuteTransactional(ctx, applyTx, invocation)
+			}
+			if savepoint != nil {
+				if err != nil {
+					_ = savepoint.Rollback(ctx)
+				} else if commitErr := savepoint.Commit(ctx); commitErr != nil {
+					err = commitErr
+				}
+			}
+		} else {
+			callBinding := binding
+			callBinding.ToolCallID = invocation.CallID
+			invocation.Metadata.OutputBinding = &callBinding
+			invocations[index] = invocation
+			result, err = runtime.ExecuteDeferred(ctx, tx, invocation, callBinding)
 		}
 		if err != nil {
-			results = replaceToolResult(results, result)
-			continue
+			// ExecuteDeferred already normalizes identity/status, but make the
+			// transaction boundary fail-closed even for a faulty implementation.
+			result.CallID = invocation.CallID
+			result.CapabilityName = invocation.CapabilityName
+			result.Status = "failed"
+			if result.ErrorCode == "" {
+				result.ErrorCode, result.Retryable = capabilityErrorInfo(err, "capability_execution_failed", true)
+			}
 		}
-		if result.Status == "failed" {
-			results = replaceToolResult(results, result)
-			continue
+		if result.ProviderRequestID == "" {
+			result.ProviderRequestID = invocation.ProviderRequestID
 		}
-		if validationErr := manifests[call.Name].ValidateOutput(result.Output); validationErr != nil {
-			results = replaceToolResult(results, failedToolResult(call, "tool_result_output_invalid", false, validationErr.Error()))
-			continue
+		if result.CorrelationID == "" {
+			result.CorrelationID = "capability:" + invocation.CallID
 		}
-		results = replaceToolResult(results, result)
+		if result.Status == "completed" {
+			if validationErr := definition.ValidateOutput(result.Output); validationErr != nil {
+				result = failedCapabilityResultDetail(invocation, "capability_output_invalid", false, validationErr.Error())
+			}
+		}
+		results = replaceCapabilityResult(results, result)
 	}
 	return results, nil
 }
 
-func (a *App) preflightCapability(ctx context.Context, fluctlightID string, manifest CapabilityManifest) error {
-	switch manifest.Name {
-	case "media.image.generate":
-		config, err := a.runtimeValue(ctx, "media.comfyui")
-		if err != nil {
-			return err
-		}
-		_, _, err = comfyConfig(config)
-		return err
-	default:
-		if manifest.RequiresPreflight {
-			return fmt.Errorf("capability %s has no preflight implementation", manifest.Name)
-		}
-		return nil
-	}
-}
-
-func (a *App) preflightCapabilityTx(ctx context.Context, tx pgx.Tx, manifest CapabilityManifest) error {
-	if manifest.Name != "media.image.generate" {
-		if manifest.RequiresPreflight {
-			return fmt.Errorf("capability %s has no preflight implementation", manifest.Name)
-		}
-		return nil
-	}
-	var raw string
-	if err := tx.QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='media.comfyui'`).Scan(&raw); err != nil {
-		return err
-	}
-	var config map[string]any
-	if err := json.Unmarshal([]byte(raw), &config); err != nil {
-		return err
-	}
-	_, _, err := comfyConfig(config)
-	return err
-}
-
-func (a *App) executeExclusiveCapability(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1, executor CapabilityExecutor) (ToolResultV1, error) {
-	conn, err := a.DB.Pool().Acquire(ctx)
-	if err != nil {
-		return failedToolResult(call, "tool_capability_busy", true, err.Error()), err
-	}
-	defer conn.Release()
-	var acquired bool
-	if err := conn.QueryRow(ctx, `SELECT pg_try_advisory_lock(hashtext($1))`, "capability:"+fluctlightID+":"+call.Name).Scan(&acquired); err != nil {
-		return failedToolResult(call, "tool_capability_busy", true, err.Error()), err
-	}
-	if !acquired {
-		return failedToolResult(call, "tool_capability_busy", true, "capability is already running"), errors.New("tool_capability_busy")
-	}
-	defer func() {
-		_, _ = conn.Exec(context.Background(), `SELECT pg_advisory_unlock(hashtext($1))`, "capability:"+fluctlightID+":"+call.Name)
-	}()
-	return executor.Execute(ctx, fluctlightID, conversationID, sourceFactID, call)
-}
-
-func toolCallNeedsDeferredSettlement(call ToolCallV1, registry *CapabilityRegistry) bool {
-	if registry == nil {
-		return false
-	}
-	executor, ok := registry.Lookup(call.Name)
-	return ok && executor.Manifest().IsDeferredOutput()
-}
-
-func toolResultForCall(results []ToolResultV1, callID string) (ToolResultV1, bool) {
+func capabilityResultForCall(results []CapabilityResult, callID string) (CapabilityResult, bool) {
 	for _, result := range results {
-		if result.ToolCallID == callID {
+		if result.CallID == callID {
 			return result, true
 		}
 	}
-	return ToolResultV1{}, false
+	return CapabilityResult{}, false
 }
 
-func replaceToolResult(results []ToolResultV1, replacement ToolResultV1) []ToolResultV1 {
+func replaceCapabilityResult(results []CapabilityResult, replacement CapabilityResult) []CapabilityResult {
 	for index := range results {
-		if results[index].ToolCallID == replacement.ToolCallID {
+		if results[index].CallID == replacement.CallID {
 			results[index] = replacement
 			return results
 		}
@@ -492,110 +454,88 @@ func replaceToolResult(results []ToolResultV1, replacement ToolResultV1) []ToolR
 	return append(results, replacement)
 }
 
-type sceneCapabilityExecutor struct{ app *App }
-
-func (executor *sceneCapabilityExecutor) Manifest() CapabilityManifest {
-	return sceneCapabilityManifest()
-}
-
-func (executor *sceneCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	return executor.app.applySceneCapability(ctx, fluctlightID, conversationID, sourceFactID, call)
-}
-
-type presenceCapabilityExecutor struct{ app *App }
-
-func (executor *presenceCapabilityExecutor) Manifest() CapabilityManifest {
-	return presenceCapabilityManifest()
-}
-
-type memoryCapabilityExecutor struct{ app *App }
-
-func (executor *memoryCapabilityExecutor) Manifest() CapabilityManifest {
-	return memoryCapabilityManifest()
-}
-
-func (executor *memoryCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	return executor.app.applyMemoryCapability(ctx, fluctlightID, conversationID, sourceFactID, call)
-}
-
-func (executor *presenceCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	return executor.app.applyPresenceCapability(ctx, fluctlightID, conversationID, sourceFactID, call)
-}
-
-func (a *App) executeImageToolCall(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	var arguments map[string]any
-	if err := json.Unmarshal(call.Arguments, &arguments); err != nil {
-		return failedToolResult(call, "tool_arguments_invalid", false, err.Error()), err
+// capabilityResultsAfterSettlementFailure converts any output-target result
+// that could not be committed into an explicit failed result. A transaction
+// rollback means that even a capability which returned completed did not leave
+// its durable target behind; replay must therefore retry/quarantine it instead
+// of treating the provisional result as success.
+func capabilityResultsAfterSettlementFailure(results []CapabilityResult, invocations []CapabilityInvocation, registry *CapabilityRegistry, code string) []CapabilityResult {
+	if code == "" {
+		code = "capability_settlement_failed"
 	}
-	concept := mapValue(arguments["concept"])
-	if len(concept) == 0 {
-		return failedToolResult(call, "media_concept_invalid", false, "concept is required"), errors.New("media concept is required")
+	settled := append([]CapabilityResult(nil), results...)
+	if registry == nil {
+		for _, invocation := range invocations {
+			settled = replaceCapabilityResult(settled, failedCapabilityResult(invocation, code, true))
+		}
+		return settled
 	}
-	// The call id is the idempotency boundary for this external effect.  A
-	// retry after a crash reuses the same intent/workflow/provider request IDs.
-	base := sourceFactID + ":" + call.ID
-	intentID := "media_intent_" + stableDigest(base)
-	workflowID := "media_workflow_" + stableDigest(base)
-	providerRequestID := "media_request_" + stableDigest(base)
-	if err := a.createMediaIntentWithIdentity(ctx, fluctlightID, conversationID, concept, intentID, workflowID, providerRequestID); err != nil {
-		return failedToolResult(call, "media_intent_failed", true, err.Error()), err
+	for _, invocation := range invocations {
+		definition, ok := registry.Definition(invocation.CapabilityName)
+		capability, capabilityFound := registry.LookupCapability(invocation.CapabilityName)
+		_, transactional := capability.(TransactionalCapability)
+		if !ok || (!definition.IsDeferredOutput() && (!capabilityFound || !transactional)) {
+			continue
+		}
+		result, found := capabilityResultForCall(settled, invocation.CallID)
+		if found && result.Status == "completed" {
+			result.Status = "failed"
+			result.ErrorCode = code
+			result.Retryable = true
+			result.CallID = invocation.CallID
+			result.CapabilityName = invocation.CapabilityName
+			if result.ProviderRequestID == "" {
+				result.ProviderRequestID = invocation.ProviderRequestID
+			}
+			settled = replaceCapabilityResult(settled, result)
+			continue
+		}
+		if !found || result.Status == "deferred" {
+			settled = replaceCapabilityResult(settled, failedCapabilityResult(invocation, code, true))
+		}
 	}
-	return ToolResultV1{
-		ToolCallID:        call.ID,
-		Name:              call.Name,
-		Status:            "completed",
-		Output:            map[string]any{"media_intent_id": intentID},
-		Retryable:         false,
-		ProviderRequestID: providerRequestID,
-		CorrelationID:     "tool:" + call.ID,
-		SchemaVersion:     ToolResultSchemaVersion,
-	}, nil
+	return settled
 }
 
-func failedToolResult(call ToolCallV1, code string, retryable bool, detail string) ToolResultV1 {
-	return ToolResultV1{
-		ToolCallID:        call.ID,
-		Name:              call.Name,
-		Status:            "failed",
-		ErrorCode:         code,
-		Retryable:         retryable,
-		ProviderRequestID: call.ProviderRequestID,
-		CorrelationID:     "tool:" + strings.TrimSpace(call.ID),
-		SchemaVersion:     ToolResultSchemaVersion,
-		Output:            map[string]any{"detail": detail},
+func capabilityResultsFromValue(value any) ([]CapabilityResult, error) {
+	if value == nil {
+		return []CapabilityResult{}, nil
 	}
-}
-
-func toolCallsFromValue(value any) []ToolCallV1 {
-	data, err := json.Marshal(toolCallArrayValue(value))
+	data, err := json.Marshal(value)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("capability result payload invalid: %w", err)
 	}
-	var result []ToolCallV1
-	if json.Unmarshal(data, &result) != nil {
-		return nil
+	if string(data) == "null" {
+		return []CapabilityResult{}, nil
 	}
-	return result
+	var results []CapabilityResult
+	if err := json.Unmarshal(data, &results); err != nil {
+		return nil, fmt.Errorf("capability result payload invalid: %w", err)
+	}
+	seen := make(map[string]struct{}, len(results))
+	for index := range results {
+		if strings.TrimSpace(results[index].CallID) == "" || strings.TrimSpace(results[index].CapabilityName) == "" {
+			return nil, fmt.Errorf("capability result %d identity is missing", index)
+		}
+		if _, duplicate := seen[results[index].CallID]; duplicate {
+			return nil, fmt.Errorf("capability result %d call id is duplicated", index)
+		}
+		seen[results[index].CallID] = struct{}{}
+		switch results[index].Status {
+		case "completed", "failed", "rejected", "deferred":
+		default:
+			return nil, fmt.Errorf("capability result %d status is invalid", index)
+		}
+	}
+	return results, nil
 }
 
-func toolResultsFromValue(value any) []ToolResultV1 {
-	data, err := json.Marshal(arrayValue(value))
-	if err != nil {
-		return nil
-	}
-	var result []ToolResultV1
-	if json.Unmarshal(data, &result) != nil {
-		return nil
-	}
-	return result
-}
-
-func mediaIntentIDFromToolResults(results []ToolResultV1) string {
+func mediaIntentIDFromCapabilityResults(results []CapabilityResult) string {
 	for _, result := range results {
 		if result.Status != "completed" {
 			continue
 		}
-		if output, ok := result.Output.(map[string]any); ok {
+		if output := mapValue(result.Output); len(output) > 0 {
 			if id := stringValue(output["media_intent_id"]); id != "" {
 				return id
 			}
@@ -604,32 +544,53 @@ func mediaIntentIDFromToolResults(results []ToolResultV1) string {
 	return ""
 }
 
-func resolveToolCallAction(calls []ToolCallV1, manifests map[string]CapabilityManifest) (string, map[string]any, error) {
-	if len(calls) == 0 {
-		return "", nil, errors.New("at least one capability call is required for this turn")
-	}
-	// Tool Calls are optional proposals, not a reply gate. A valid reply Tool
-	// selects a visible conversation action; every other Tool-only turn remains
-	// no_op while the Runtime still attempts each returned Tool independently.
-	_ = manifests
-	action := "no_op"
-	for _, call := range calls {
-		if call.Name == "conversation.reply" && conversationReplyCallHasText(call) {
-			action = "reply"
-			break
-		}
-	}
-	return action, nil, nil
-}
-
-func toolCallsRequireDeferredOutput(calls []ToolCallV1, registry *CapabilityRegistry) bool {
+func hasConversationReplyCapability(invocations []CapabilityInvocation, registry *CapabilityRegistry) bool {
 	if registry == nil {
 		return false
 	}
-	for _, call := range calls {
-		if executor, ok := registry.Lookup(call.Name); ok && executor.Manifest().IsDeferredOutput() {
+	for _, invocation := range invocations {
+		if definition, ok := registry.Definition(invocation.CapabilityName); ok && definition.OutputRole == "conversation_message" {
 			return true
 		}
 	}
 	return false
+}
+
+func replyTextFromCapabilityInvocations(invocations []CapabilityInvocation, registry *CapabilityRegistry) string {
+	if registry == nil {
+		return ""
+	}
+	for _, invocation := range invocations {
+		definition, ok := registry.Definition(invocation.CapabilityName)
+		if !ok || definition.OutputRole != "conversation_message" {
+			continue
+		}
+		var args map[string]any
+		if json.Unmarshal(invocation.Arguments, &args) != nil {
+			continue
+		}
+		if text := normalizeVisibleReply(stringValue(args["text"])); text != "" {
+			return text
+		}
+	}
+	return ""
+}
+
+func resolveCapabilityAction(invocations []CapabilityInvocation, definitions map[string]CapabilityDefinition) (string, error) {
+	if len(invocations) == 0 {
+		return "", errors.New("at least one capability invocation is required")
+	}
+	for _, invocation := range invocations {
+		definition, ok := definitions[invocation.CapabilityName]
+		if !ok {
+			continue
+		}
+		if invocation.Metadata.OutputBinding != nil && invocation.Metadata.OutputBinding.TargetKind == "conversation_message" {
+			return "reply", nil
+		}
+		if definition.OutputRole == "conversation_message" {
+			return "reply", nil
+		}
+	}
+	return "no_op", nil
 }

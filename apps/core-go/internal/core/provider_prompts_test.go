@@ -13,11 +13,11 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 		must  []string
 	}{
 		{name: "language", value: providerLanguageRule, max: 100, must: []string{"自然语言内容使用中文", "协议字面量保持原文"}},
-		{name: "context", value: providerContextAuthorityRule, max: 420, must: []string{"core_persona", "developing_self", "current_state", "context_override.explicit=true"}},
-		{name: "wake-up", value: wakeUpAssessmentInstruction, max: 1600, must: []string{"action_type", "moment.publish", "conversation.reply", "media.image.generate", "scene_event", "schedule.replan", "completed_before", "operation", "switch", "capability.request", "no_op", "visible text"}},
-		{name: "conversation", value: conversationAssessmentInstruction, max: 4200, must: []string{"conversation.reply", "可选", "affect_event", "media.image.generate", "图片生成意愿", "scene_event", "schedule.replan", "completed_before", "arguments.operation", "switch", "独立决策", "claims", "response_plan", "no_op", "visible_text", "kind", "content", "evidence_refs", "current_message.content"}},
-		{name: "daily-review", value: dailyReviewInstruction, max: 1000, must: []string{"proactive_message", "moment", "moment.publish", "conversation.reply", "schedule.replan", "no_op", "response_intent"}},
-		{name: "reflection", value: reflectionInstruction, max: 650, must: []string{"memory_candidates", "developing_self_candidates", "evidence_refs", "Core Persona"}},
+		{name: "context", value: providerContextAuthorityRule, max: 520, must: []string{"core_persona", "developing_self", "current_state", "confirmed Event", "inferred Event", "accepted Schedule item", "context_override.explicit=true"}},
+		{name: "wake-up", value: capabilityWakeUpPolicyInstruction, max: 700, must: []string{"action_type", "response_intent", "no_op", "能力调用"}},
+		{name: "conversation", value: capabilityConversationPolicyInstruction, max: 900, must: []string{"认知决策", "能力调用", "direct conversation", "可见回复", "evidence_refs"}},
+		{name: "daily-review", value: capabilityDailyReviewPolicyInstruction, max: 700, must: []string{"proactive_message", "moment", "no_op", "response_intent"}},
+		{name: "reflection", value: reflectionV2Instruction, max: 850, must: []string{"memory_candidates", "relationship_observations", "emotional_summary", "personality_evolution_candidates", "behavior_policy_evolution_candidates", "evidence_refs", "Core Persona"}},
 		{name: "native-cognition", value: nativeCognitionInstruction, max: 300, must: []string{"appraisal", "attention", "thought", "desire", "agency"}},
 		{name: "realization", value: actionRealizationInstruction, max: 320, must: []string{"core_persona", "developing_self", "current_state", "action_type"}},
 		//{name: "media-prompt", value: mediaPromptInstruction, max: 4000, must: []string{"Determine the intended framing before choosing a camera relationship", "body-part or partial-body close-up", "rear-camera phone self-capture", "face or upper-body close-up", "front-camera phone selfie", "full-length mirror", "photographer and the camera/phone used by that photographer must remain outside the image", "If neither framing nor capture relationship is specified", "quality_feedback", "Do not add a human subject"}},

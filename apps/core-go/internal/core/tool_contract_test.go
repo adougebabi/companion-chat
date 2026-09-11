@@ -7,14 +7,43 @@ import (
 	"testing"
 )
 
-type testCapabilityExecutor struct{}
+type testCapability struct{}
 
-func (testCapabilityExecutor) Manifest() CapabilityManifest {
-	return CapabilityManifest{Name: "search.lookup", Version: "v1", Description: "Look up a bounded fact.", SideEffectClass: "read_only", ConcurrencyClass: "parallel"}
+func testCapabilityDefinitions() []CapabilityDefinition {
+	return []CapabilityDefinition{
+		conversationReplyCapabilityDefinition(),
+		momentPublishCapabilityDefinition(),
+		imageCapabilityDefinition(),
+		affectEventCapabilityDefinition(),
+	}
 }
 
-func (testCapabilityExecutor) Execute(_ context.Context, _, _, _ string, call ToolCallV1) (ToolResultV1, error) {
-	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: map[string]any{"value": "ok"}, SchemaVersion: ToolResultSchemaVersion}, nil
+func definitionMapForName(definitions map[string]CapabilityDefinition, name string) CapabilityDefinition {
+	return definitions[name]
+}
+
+func testInvocations(calls []ToolCallV1) []CapabilityInvocation {
+	result := make([]CapabilityInvocation, 0, len(calls))
+	for _, call := range calls {
+		invocation := CapabilityInvocation{CallID: call.ID, CapabilityName: call.Name, Arguments: append(json.RawMessage(nil), call.Arguments...), SourceFactID: call.SourceFactID, ProviderRequestID: call.ProviderRequestID, ActionID: call.ActionID, Sequence: call.Sequence, SchemaVersion: CapabilityInvocationSchemaVersion}
+		if invocation.SourceFactID == "" {
+			invocation.SourceFactID = "fact-1"
+		}
+		if invocation.ProviderRequestID == "" {
+			invocation.ProviderRequestID = "provider-1"
+		}
+		result = append(result, invocation)
+	}
+	return result
+}
+
+func (testCapability) Definition() CapabilityDefinition {
+	return CapabilityDefinition{Name: "search.lookup", Version: "v1", Type: CapabilityTypeQuery, Description: "Look up a bounded fact.", SideEffectClass: "read_only", ConcurrencyClass: "parallel", FailurePolicy: FailurePolicyOptionalInternal, InputSchema: map[string]any{"type": "object"}}
+}
+func (testCapability) RequiredContext() []ContextSlot { return nil }
+
+func (testCapability) Execute(_ context.Context, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
+	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"value": "ok"}, ProviderRequestID: invocation.ProviderRequestID}, nil
 }
 
 func TestNormalizeProviderToolCallsAcceptsNativeAndSidecarShapes(t *testing.T) {
@@ -38,7 +67,7 @@ func TestNormalizeProviderToolCallsAcceptsNativeAndSidecarShapes(t *testing.T) {
 	if len(calls) != 2 || calls[0].Sequence != 0 || calls[1].Sequence != 1 {
 		t.Fatalf("normalized calls = %#v", calls)
 	}
-	if calls[0].SchemaVersion != ToolCallSchemaVersion || calls[0].SourceFactID != "fact-1" {
+	if calls[0].SchemaVersion != CapabilityInvocationSchemaVersion || calls[0].SourceFactID != "fact-1" {
 		t.Fatalf("normalized metadata = %#v", calls[0])
 	}
 	var firstArgs map[string]any
@@ -61,7 +90,7 @@ func TestNormalizeProviderToolCallsWrapsSingleObject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("single object normalization error = %v", err)
 	}
-	if len(calls) != 1 || calls[0].ID != "call_single" || calls[0].Sequence != 0 {
+	if len(calls) != 1 || calls[0].CallID != "call_single" || calls[0].Sequence != 0 {
 		t.Fatalf("normalized single call = %#v", calls)
 	}
 }
@@ -94,28 +123,28 @@ func TestNormalizeProviderToolCallsRejectsMalformedOrDuplicateCalls(t *testing.T
 }
 
 func TestToolCallValidateRequiresRegisteredCapability(t *testing.T) {
-	manifests := toolManifestMap(ExternalCapabilityManifests())
+	definitions := capabilityDefinitionMap(testCapabilityDefinitions())
 	calls, err := NormalizeProviderToolCalls([]any{map[string]any{
 		"id":   "call",
 		"name": "media.image.generate",
 		"arguments": map[string]any{
-			"concept": map[string]any{"subject": "a cat"},
+			"intent": "a cat",
 		},
 	}}, "fact", "provider")
 	if err != nil {
 		t.Fatalf("normalize = %v", err)
 	}
-	if err := calls[0].Validate(manifests); err != nil {
+	if err := calls[0].Validate(definitionMapForName(definitions, "media.image.generate")); err != nil {
 		t.Fatalf("registered capability rejected = %v", err)
 	}
-	calls[0].Name = "media.video.generate"
-	if err := calls[0].Validate(manifests); err == nil {
+	calls[0].CapabilityName = "media.video.generate"
+	if err := calls[0].Validate(definitionMapForName(definitions, "media.image.generate")); err == nil {
 		t.Fatal("expected unavailable capability error")
 	}
 }
 
-func TestToolCallPayloadKeepsProviderSchemaAtBoundary(t *testing.T) {
-	payload := ToolCallPayload(ExternalCapabilityManifests())
+func TestCapabilityRendererKeepsProviderSchemaAtBoundary(t *testing.T) {
+	payload := RenderCapabilityTools(testCapabilityDefinitions())
 	if len(payload) != 4 {
 		t.Fatalf("tool payload = %#v", payload)
 	}
@@ -143,68 +172,74 @@ func TestToolCallPayloadKeepsProviderSchemaAtBoundary(t *testing.T) {
 	if _, ok := names["media.image.generate"]; !ok {
 		t.Fatalf("media manifest missing = %#v", names)
 	}
-	manifest := imageCapabilityManifest()
-	if len(manifest.TargetKinds) != 3 || manifest.TargetKinds[0] != "conversation_message" || manifest.TargetKinds[1] != "moment" || manifest.TargetKinds[2] != "wake_up" {
-		t.Fatalf("media target kinds = %#v", manifest.TargetKinds)
+	definition := imageCapabilityDefinition()
+	if len(definition.TargetKinds) != 3 || definition.TargetKinds[0] != "conversation_message" || definition.TargetKinds[1] != "moment" || definition.TargetKinds[2] != "wake_up" {
+		t.Fatalf("media target kinds = %#v", definition.TargetKinds)
 	}
-	if !manifest.IsDeferredOutput() || manifest.OutputSchema == nil {
-		t.Fatalf("media manifest must be a typed deferred output slot: %#v", manifest)
+	if !definition.IsDeferredOutput() || definition.OutputSchema == nil {
+		t.Fatalf("media definition must be a typed deferred output slot: %#v", definition)
 	}
-	if err := manifest.ValidateOutput(map[string]any{"media_intent_id": "intent"}); err == nil {
+	if err := definition.ValidateOutput(map[string]any{"media_intent_id": "intent"}); err == nil {
 		t.Fatal("missing typed output target fields must be rejected")
 	}
-	replyManifest := conversationReplyCapabilityManifest()
-	if !replyManifest.IsDeferredOutput() || replyManifest.TargetKinds[0] != "conversation_message" {
-		t.Fatalf("conversation reply must be a deferred conversation output: %#v", replyManifest)
+	replyDefinition := conversationReplyCapabilityDefinition()
+	if !replyDefinition.IsDeferredOutput() || replyDefinition.TargetKinds[0] != "conversation_message" {
+		t.Fatalf("conversation reply must be a deferred conversation output: %#v", replyDefinition)
+	}
+	if len(replyDefinition.RequiredContext) != 1 || replyDefinition.RequiredContext[0] != SlotCurrentLife {
+		t.Fatalf("conversation reply must freeze the current Life Context: %#v", replyDefinition.RequiredContext)
 	}
 }
 
 func TestVisualIdentityInitializationManifestIsWakeUpCapability(t *testing.T) {
-	manifest := visualIdentityInitializeCapabilityManifest()
-	if manifest.Name != "visual_identity.initialize" || manifest.IsDeferredOutput() || manifest.SideEffectClass != "native_projection" {
-		t.Fatalf("visual identity manifest = %#v", manifest)
+	definition := visualIdentityInitializeCapabilityDefinition()
+	if definition.Name != "visual_identity.initialize" || definition.IsDeferredOutput() || definition.SideEffectClass != "native_projection" {
+		t.Fatalf("visual identity definition = %#v", definition)
 	}
-	if err := manifest.ValidateOutput(map[string]any{"session_id": "session-1", "status": "queued"}); err != nil {
-		t.Fatalf("manifest output rejected: %v", err)
+	if err := definition.ValidateOutput(map[string]any{"session_id": "session-1", "status": "queued"}); err != nil {
+		t.Fatalf("definition output rejected: %v", err)
 	}
 }
 
 func TestCapabilityRegistryIsAnExtensibleSlot(t *testing.T) {
-	registry := NewCapabilityRegistry(testCapabilityExecutor{})
-	manifests := registry.Manifests()
-	if len(manifests) != 1 || manifests[0].Name != "search.lookup" {
-		t.Fatalf("manifests = %#v", manifests)
+	registry, err := NewCapabilityRegistry(testCapability{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	definitions := registry.Definitions()
+	if len(definitions) != 1 || definitions[0].Name != "search.lookup" {
+		t.Fatalf("definitions = %#v", definitions)
 	}
 	calls, err := NormalizeProviderToolCalls([]any{map[string]any{"id": "call", "name": "search.lookup", "arguments": `{ "query": "fluctlight" }`}}, "fact", "provider")
 	if err != nil {
 		t.Fatalf("normalize = %v", err)
 	}
-	if err := calls[0].Validate(toolManifestMap(manifests)); err != nil {
+	if err := calls[0].Validate(testCapability{}.Definition()); err != nil {
 		t.Fatalf("call validation = %v", err)
 	}
 	result, ok := registry.Lookup("search.lookup")
 	if !ok || result == nil {
 		t.Fatalf("lookup = %#v, ok=%v", result, ok)
 	}
-	output, err := result.Execute(context.Background(), "fl", "conv", "fact", calls[0])
+	output, err := result.Execute(context.Background(), calls[0], CapabilityContext{})
 	if err != nil {
 		t.Fatalf("execute = %v", err)
 	}
 	if err := output.Validate(calls[0]); err != nil {
 		t.Fatalf("result validation = %v", err)
 	}
-	if err := registry.Register(testCapabilityExecutor{}); err == nil {
+	if err := registry.Register(testCapability{}); err == nil {
 		t.Fatal("expected duplicate capability registration error")
 	}
 }
 
 func TestCapabilityRequestIsAdvertisedAsOptionalToolAction(t *testing.T) {
-	manifest := capabilityRequestManifest()
-	if manifest.Name != "capability.request" || manifest.Parameters == nil {
-		t.Fatalf("capability request manifest = %#v", manifest)
+	definition := capabilityRequestDefinition()
+	if definition.Name != "capability.request" || definition.InputSchema == nil {
+		t.Fatalf("capability request definition = %#v", definition)
 	}
 	call := ToolCallV1{ID: "need-1", Name: "capability.request", Arguments: json.RawMessage(`{"capability_key":"calendar.read","title":"读取日历","description":"需要知道日程安排","rationale":"帮助安排后续行动","desired_contract":{},"evidence_refs":["fact-1"]}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1", SchemaVersion: ToolCallSchemaVersion}
-	action, _, err := resolveToolCallAction([]ToolCallV1{call}, toolManifestMap([]CapabilityManifest{manifest}))
+	action, err := resolveCapabilityAction(testInvocations([]ToolCallV1{call}), capabilityDefinitionMap([]CapabilityDefinition{definition}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,26 +249,29 @@ func TestCapabilityRequestIsAdvertisedAsOptionalToolAction(t *testing.T) {
 }
 
 func TestDefaultNativeCapabilitySlotsAreVersioned(t *testing.T) {
-	registry := NewCapabilityRegistry(testCapabilityExecutor{})
-	for _, manifest := range []CapabilityManifest{sceneCapabilityManifest(), presenceCapabilityManifest(), memoryCapabilityManifest()} {
-		if err := registry.Register(testManifestExecutor{manifest: manifest}); err != nil {
-			t.Fatalf("register %s = %v", manifest.Name, err)
+	registry, err := NewCapabilityRegistry(testCapability{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, definition := range []CapabilityDefinition{sceneCapabilityDefinition(), presenceCapabilityDefinition(), memoryCapabilityDefinition()} {
+		if err := registry.Register(testCapabilityWithDefinition{definition: definition}); err != nil {
+			t.Fatalf("register %s = %v", definition.Name, err)
 		}
 	}
-	if got := len(registry.Manifests()); got != 4 {
-		t.Fatalf("manifest count = %d", got)
+	if got := len(registry.Definitions()); got != 4 {
+		t.Fatalf("definition count = %d", got)
 	}
 }
 
 func TestSceneCapabilityAdvertisesExplicitTransitionOperation(t *testing.T) {
-	manifest := sceneCapabilityManifest()
-	if manifest.Name != "scene_event" {
-		t.Fatalf("scene manifest name = %q", manifest.Name)
+	definition := sceneCapabilityDefinition()
+	if definition.Name != "scene_event" {
+		t.Fatalf("scene definition name = %q", definition.Name)
 	}
-	if !containsSchemaRequired(manifest.Parameters, "operation") {
-		t.Fatalf("scene operation must be required: %#v", manifest.Parameters)
+	if !containsSchemaRequired(definition.InputSchema, "operation") {
+		t.Fatalf("scene operation must be required: %#v", definition.InputSchema)
 	}
-	operation := mapValue(mapValue(manifest.Parameters["properties"])["operation"])
+	operation := mapValue(mapValue(definition.InputSchema["properties"])["operation"])
 	values := arrayValue(operation["enum"])
 	for _, want := range []string{"start", "switch", "end"} {
 		found := false
@@ -250,50 +288,53 @@ func TestSceneCapabilityAdvertisesExplicitTransitionOperation(t *testing.T) {
 }
 
 func TestRelationshipLookupCapabilityIsReadOnly(t *testing.T) {
-	manifest := relationshipLookupCapabilityManifest()
-	if manifest.Name != "relationship.lookup" || manifest.SideEffectClass != "read_only" || manifest.Parameters == nil {
-		t.Fatalf("relationship lookup manifest = %#v", manifest)
+	definition := relationshipLookupCapabilityDefinition()
+	if definition.Name != "relationship.lookup" || definition.SideEffectClass != "read_only" || definition.InputSchema == nil {
+		t.Fatalf("relationship lookup definition = %#v", definition)
 	}
-	if manifest.IsDeferredOutput() {
+	if definition.IsDeferredOutput() {
 		t.Fatal("relationship lookup must not be a deferred output")
 	}
 }
 
 func TestMomentPublishCapabilityIsRegisteredDeferredOutput(t *testing.T) {
-	manifest := momentPublishCapabilityManifest()
-	if manifest.Name != "moment.publish" || !manifest.IsDeferredOutput() {
-		t.Fatalf("moment publish manifest = %#v", manifest)
+	definition := momentPublishCapabilityDefinition()
+	if definition.Name != "moment.publish" || !definition.IsDeferredOutput() {
+		t.Fatalf("moment publish definition = %#v", definition)
 	}
-	if !containsStringValue(stringSliceAny(manifest.TargetKinds), "moment") {
-		t.Fatalf("moment publish target kinds = %#v", manifest.TargetKinds)
+	if !containsStringValue(stringSliceAny(definition.TargetKinds), "moment") {
+		t.Fatalf("moment publish target kinds = %#v", definition.TargetKinds)
 	}
-	if !containsSchemaRequired(manifest.Parameters, "text") {
-		t.Fatalf("moment publish parameters = %#v", manifest.Parameters)
+	if !containsSchemaRequired(definition.InputSchema, "text") {
+		t.Fatalf("moment publish parameters = %#v", definition.InputSchema)
 	}
 }
 
 func TestAffectEventCapabilityOwnsSemanticEmotionInput(t *testing.T) {
-	manifest := affectEventCapabilityManifest()
-	if manifest.Name != "affect_event" || manifest.IsDeferredOutput() {
-		t.Fatalf("affect manifest = %#v", manifest)
+	definition := affectEventCapabilityDefinition()
+	if definition.Name != "affect_event" || definition.IsDeferredOutput() {
+		t.Fatalf("affect definition = %#v", definition)
 	}
-	if !containsSchemaRequired(manifest.Parameters, "event") {
-		t.Fatalf("affect parameters = %#v", manifest.Parameters)
+	if !containsSchemaRequired(definition.InputSchema, "event") {
+		t.Fatalf("affect parameters = %#v", definition.InputSchema)
 	}
-	if containsSchemaRequired(mapValue(mapValue(manifest.Parameters["properties"])["event"]), "pad") {
+	if containsSchemaRequired(mapValue(mapValue(definition.InputSchema["properties"])["event"]), "pad") {
 		t.Fatal("affect event must not expose raw PAD input")
 	}
 }
 
 func TestConversationCapabilityCatalogOmitsMomentOutput(t *testing.T) {
-	registry := NewCapabilityRegistry(&conversationReplyCapabilityExecutor{}, &momentPublishCapabilityExecutor{}, &imageCapabilityExecutor{})
-	manifests := capabilityManifestsExcept(registry, "moment.publish")
+	registry, err := NewCapabilityRegistry(conversationReplyCapability{}, momentPublishCapability{}, imageGenerateCapability{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	definitions := registry.Catalog(CapabilitySurfaceConversation)
 	foundImage := false
-	for _, manifest := range manifests {
-		if manifest.Name == "moment.publish" {
-			t.Fatalf("moment.publish leaked into conversation catalog: %#v", manifests)
+	for _, definition := range definitions {
+		if definition.Name == "moment.publish" {
+			t.Fatalf("moment.publish leaked into conversation catalog: %#v", definitions)
 		}
-		if manifest.Name == "media.image.generate" {
+		if definition.Name == "media.image.generate" {
 			foundImage = true
 		}
 	}
@@ -303,42 +344,59 @@ func TestConversationCapabilityCatalogOmitsMomentOutput(t *testing.T) {
 }
 
 func TestImageDeferredFailureDoesNotClassifyConversationReplyAsFatal(t *testing.T) {
-	for _, name := range []string{"media.image.generate", "conversation.reply"} {
-		if !optionalToolFailureNonFatal(ToolCallV1{Name: name}) {
-			t.Fatalf("tool %s should be optional", name)
-		}
+	registry, err := NewCapabilityRegistry(imageGenerateCapability{}, conversationReplyCapability{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if definition, ok := registry.Definition("media.image.generate"); !ok || definition.FailurePolicy != FailurePolicyRequiredForVisibleClaim {
+		t.Fatalf("image capability policy = %#v", definition)
+	}
+	if definition, ok := registry.Definition("conversation.reply"); !ok || definition.FailurePolicy != FailurePolicyRequiredForVisibleClaim {
+		t.Fatalf("reply capability policy = %#v", definition)
 	}
 }
 
 func TestToolOnlyActionDoesNotRequireConversationReply(t *testing.T) {
-	action, _, err := resolveToolCallAction([]ToolCallV1{{Name: "affect_event"}}, toolManifestMap([]CapabilityManifest{affectEventCapabilityManifest()}))
+	action, err := resolveCapabilityAction([]CapabilityInvocation{{CapabilityName: "affect_event"}}, capabilityDefinitionMap([]CapabilityDefinition{affectEventCapabilityDefinition()}))
 	if err != nil || action != "no_op" {
 		t.Fatalf("tool-only action = %q err=%v", action, err)
 	}
-	action, _, err = resolveToolCallAction([]ToolCallV1{{Name: "conversation.reply", Arguments: json.RawMessage(`{"text":"你好"}`)}}, toolManifestMap([]CapabilityManifest{conversationReplyCapabilityManifest()}))
+	action, err = resolveCapabilityAction([]CapabilityInvocation{{CapabilityName: "conversation.reply", Arguments: json.RawMessage(`{"text":"你好"}`)}}, capabilityDefinitionMap([]CapabilityDefinition{conversationReplyCapabilityDefinition()}))
 	if err != nil || action != "reply" {
 		t.Fatalf("reply action = %q err=%v", action, err)
 	}
 }
 
 func TestOptionalToolFailuresDoNotAbortConversation(t *testing.T) {
-	for _, name := range []string{"affect_event", "scene_event", "presence_event", "memory_event", "relationship.lookup", "capability.request"} {
-		if !optionalToolFailureNonFatal(ToolCallV1{Name: name}) {
+	registry, err := NewCapabilityRegistry(affectEventCapability{}, memoryEventCapability{}, relationshipLookupCapability{}, capabilityRequestCapability{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"affect_event", "relationship.lookup", "capability.request"} {
+		if definition, ok := registry.Definition(name); !ok || definition.FailurePolicy != FailurePolicyOptionalInternal {
 			t.Fatalf("tool %s should be optional", name)
 		}
 	}
+	if definition, ok := registry.Definition("memory_event"); !ok || definition.FailurePolicy != FailurePolicyRequiredForVisibleClaim {
+		t.Fatalf("explicit Memory write must fail the turn when its claimed revision cannot commit: %#v", definition)
+	}
 }
 
-type testManifestExecutor struct{ manifest CapabilityManifest }
+type testCapabilityWithDefinition struct{ definition CapabilityDefinition }
 
-func (executor testManifestExecutor) Manifest() CapabilityManifest { return executor.manifest }
-func (executor testManifestExecutor) Execute(_ context.Context, _, _, _ string, call ToolCallV1) (ToolResultV1, error) {
-	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", SchemaVersion: ToolResultSchemaVersion}, nil
+func (executor testCapabilityWithDefinition) Definition() CapabilityDefinition {
+	return executor.definition
+}
+func (executor testCapabilityWithDefinition) RequiredContext() []ContextSlot {
+	return executor.definition.RequiredContext
+}
+func (executor testCapabilityWithDefinition) Execute(_ context.Context, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
+	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", ProviderRequestID: invocation.ProviderRequestID}, nil
 }
 
 func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 	messages := []map[string]any{{"role": "user", "content": "draw a cat"}}
-	payload := providerChatPayload("model", messages, 512, false, ExternalCapabilityManifests())
+	payload := providerChatPayload("model", messages, 512, false, testCapabilityDefinitions())
 	if _, ok := payload["response_format"]; ok {
 		t.Fatal("tool-call payload must not force JSON response_format")
 	}
@@ -363,7 +421,7 @@ func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 }
 
 func TestStructuredProviderPayloadUsesJSONFormatAndCognitiveThinking(t *testing.T) {
-	assessment := providerChatPayloadForRole("model", []map[string]any{{"role": "user", "content": "hello"}}, 512, true, ExternalCapabilityManifests(), "cognitive_assessment")
+	assessment := providerChatPayloadForRole("model", []map[string]any{{"role": "user", "content": "hello"}}, 512, true, testCapabilityDefinitions(), "cognitive_assessment")
 	format, ok := assessment["response_format"].(map[string]any)
 	if !ok || format["type"] != "json_schema" {
 		t.Fatalf("cognitive assessment must request JSON output: %#v", assessment)
@@ -390,7 +448,7 @@ func TestStructuredProviderPayloadUsesJSONFormatAndCognitiveThinking(t *testing.
 }
 
 func TestDailyReviewProviderPayloadUsesItsCompositeActionSchema(t *testing.T) {
-	payload := providerChatPayloadWithSchema("model", nil, 512, true, ExternalCapabilityManifests(), "cognitive_assessment", "daily_review_response", dailyReviewResponseSchema(), true)
+	payload := providerChatPayloadWithSchema("model", nil, 512, true, testCapabilityDefinitions(), "cognitive_assessment", "daily_review_response", dailyReviewResponseSchema(), true)
 	format, ok := payload["response_format"].(map[string]any)
 	if !ok {
 		t.Fatalf("daily review response_format = %#v", payload["response_format"])
@@ -586,10 +644,25 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 			t.Fatalf("schedule item %s must have maximum 1: %#v", key, value)
 		}
 	}
-	reflection := reflectionResponseSchema()
-	for _, key := range []string{"memory_candidates", "developing_self_candidates", "drive_candidates", "trigger_candidates"} {
+	reflection := reflectionProposalV2ProviderSchema()
+	for _, key := range []string{"memory_candidates", "relationship_observations", "emotional_summary", "developing_self_candidates", "drive_candidates", "trigger_candidates", "personality_evolution_candidates", "behavior_policy_evolution_candidates"} {
 		if !containsSchemaRequired(reflection, key) {
 			t.Fatalf("reflection schema missing required field %q: %#v", key, reflection)
+		}
+	}
+	memoryCandidate := mapValue(mapValue(mapValue(reflection["properties"])["memory_candidates"])["items"])
+	if memoryCandidate["additionalProperties"] != false {
+		t.Fatalf("reflection Memory candidate must be closed: %#v", memoryCandidate)
+	}
+	memoryCandidateProperties := mapValue(memoryCandidate["properties"])
+	for _, required := range []string{"operation", "target_ref", "merge_refs", "evidence_refs", "semantic_reason"} {
+		if _, ok := memoryCandidateProperties[required]; !ok {
+			t.Fatalf("reflection Memory candidate missing %q: %#v", required, memoryCandidate)
+		}
+	}
+	for _, runtimeOwned := range []string{"memory_id", "expected_revision", "profile_id", "visibility", "personality_perspectives", "actor_refs", "event_refs", "conversation_id", "idempotency_key", "provenance"} {
+		if _, ok := memoryCandidateProperties[runtimeOwned]; ok {
+			t.Fatalf("reflection Memory candidate exposes runtime field %q: %#v", runtimeOwned, memoryCandidate)
 		}
 	}
 	cognitive := cognitiveTurnResponseSchema()
@@ -599,8 +672,8 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 		}
 	}
 	cognitiveActionSchema := mapValue(mapValue(cognitive["properties"])["action_type"])
-	if len(arrayValue(cognitiveActionSchema["enum"])) != 3 {
-		t.Fatalf("cognitive action_type must have reply/media_request/no_op enum: %#v", cognitiveActionSchema)
+	if values := arrayValue(cognitiveActionSchema["enum"]); len(values) != 1 || stringValue(values[0]) != "reply" {
+		t.Fatalf("direct cognitive action_type must require reply: %#v", cognitiveActionSchema)
 	}
 	outputDecision := mapValue(mapValue(cognitive["properties"])["output_preference_decision"])
 	if !containsSchemaRequired(outputDecision, "profile_id") || !containsSchemaRequired(outputDecision, "trigger_id") {
@@ -631,14 +704,16 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 			t.Fatalf("self evaluation schema missing property %q: %#v", key, selfEvaluation)
 		}
 	}
-	memoryParameters := mapValue(memoryCapabilityManifest().Parameters)
-	perspectives := mapValue(mapValue(memoryParameters["properties"])["personality_perspectives"])
-	if perspectives["type"] != "array" {
-		t.Fatalf("memory perspectives must be an array: %#v", perspectives)
+	memorySchema := mapValue(memoryCapabilityDefinition().InputSchema)
+	memoryProperties := mapValue(memorySchema["properties"])
+	for _, runtimeOwned := range []string{"operation", "target_ref", "merge_refs", "memory_id", "expected_revision", "personality_perspectives", "profile_id", "evidence_refs", "provenance", "idempotency_key", "visibility", "actor_refs", "event_refs", "conversation_id", "source_fact_id"} {
+		if _, found := memoryProperties[runtimeOwned]; found {
+			t.Fatalf("memory provider schema exposes runtime-owned field %q: %#v", runtimeOwned, memoryProperties)
+		}
 	}
-	perspectiveItem := mapValue(perspectives["items"])
-	if !containsSchemaRequired(perspectiveItem, "profile_id") || !containsSchemaRequired(perspectiveItem, "interpretation") {
-		t.Fatalf("memory perspective schema is incomplete: %#v", perspectiveItem)
+	typeSchema := mapValue(memoryProperties["type"])
+	if containsStringValue(arrayValue(typeSchema["enum"]), "working") {
+		t.Fatalf("durable working Memory leaked into memory_event schema: %#v", typeSchema)
 	}
 	daily := dailyReviewResponseSchema()
 	actionSchema := mapValue(mapValue(daily["properties"])["action_type"])
@@ -657,7 +732,7 @@ func containsSchemaRequired(schema map[string]any, key string) bool {
 }
 
 func TestResolveToolCallActionSupportsNativeObservationSlots(t *testing.T) {
-	manifests := toolManifestMap([]CapabilityManifest{sceneCapabilityManifest(), presenceCapabilityManifest(), memoryCapabilityManifest()})
+	manifests := capabilityDefinitionMap([]CapabilityDefinition{sceneCapabilityDefinition(), presenceCapabilityDefinition(), memoryCapabilityDefinition()})
 	calls, err := NormalizeProviderToolCalls([]any{
 		map[string]any{"id": "scene", "name": "scene_event", "arguments": map[string]any{"scene": "cafe", "activity": "read", "source_fact_id": "fact", "evidence_refs": []any{"fact"}, "confidence": 0.8}},
 		map[string]any{"id": "presence", "name": "presence_event", "arguments": map[string]any{"current_task": "chat", "source_fact_id": "fact", "evidence_refs": []any{"fact"}, "confidence": 0.9}},
@@ -665,7 +740,8 @@ func TestResolveToolCallActionSupportsNativeObservationSlots(t *testing.T) {
 	if err != nil {
 		t.Fatalf("normalize = %v", err)
 	}
-	action, concept, err := resolveToolCallAction(calls, manifests)
+	action, err := resolveCapabilityAction(calls, manifests)
+	concept := map[string]any{}
 	if err != nil {
 		t.Fatalf("resolve = %v", err)
 	}
@@ -680,7 +756,8 @@ func TestResolveToolCallActionKeepsMediaAsReplyComposite(t *testing.T) {
 		Arguments:    json.RawMessage(`{"concept":{"scene":"window"}}`),
 		SourceFactID: "fact", ProviderRequestID: "provider", SchemaVersion: ToolCallSchemaVersion,
 	}
-	action, concept, err := resolveToolCallAction([]ToolCallV1{call}, toolManifestMap(ExternalCapabilityManifests()))
+	action, err := resolveCapabilityAction(testInvocations([]ToolCallV1{call}), capabilityDefinitionMap(testCapabilityDefinitions()))
+	concept := map[string]any{}
 	if err != nil {
 		t.Fatal(err)
 	}

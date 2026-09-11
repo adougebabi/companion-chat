@@ -32,7 +32,23 @@ type turnCallbacks struct {
 var errCognitionTurnSuperseded = errors.New("cognition_turn_superseded")
 
 func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
-	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
+	return a.acceptScheduleWithTx(ctx, nil, actorID, fluctlightID, payload)
+}
+
+func (a *App) acceptScheduleTx(ctx context.Context, tx pgx.Tx, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
+	return a.acceptScheduleWithTx(ctx, tx, actorID, fluctlightID, payload)
+}
+
+func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
+	if callerTx != nil {
+		var authorized bool
+		if err := callerTx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2)`, fluctlightID, actorID).Scan(&authorized); err != nil {
+			return nil, err
+		}
+		if !authorized {
+			return nil, ErrUnauthorized
+		}
+	} else if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
 		return nil, err
 	}
 	localDate, err := time.Parse("2006-01-02", stringValue(payload["local_date"]))
@@ -50,13 +66,14 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 	if len(items) == 0 {
 		return nil, errors.New("schedule_accept_failed")
 	}
-	var expected *int
-	if raw, ok := payload["expected_revision"]; ok && raw != nil {
-		value := intValue(raw)
-		expected = &value
+	expectedRevision, expectedOK := nonNegativeRevision(payload["expected_revision"])
+	if !expectedOK {
+		return nil, errors.New("schedule_expected_revision_required")
 	}
-	scheduleID := randomID("schedule_")
-	now := time.Now().UTC()
+	expectedLifeRevision := strings.TrimSpace(stringValue(payload["expected_life_context_revision"]))
+	if expectedLifeRevision == "" {
+		return nil, errors.New("life_context_revision_required")
+	}
 	revision := 1
 	location, _ := time.LoadLocation(timezone)
 	type scheduleEntry struct {
@@ -76,6 +93,9 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 		}
 		if strings.TrimSpace(stringValue(item["activity"])) == "" || strings.TrimSpace(stringValue(item["scene"])) == "" {
 			return nil, errors.New("schedule item activity and scene are required")
+		}
+		if len([]rune(strings.TrimSpace(stringValue(item["location"])))) > 512 {
+			return nil, errors.New("schedule item location is too long")
 		}
 		for _, field := range []string{"priority", "flexibility", "interruption_cost"} {
 			if rawValue, ok := item[field]; ok && rawValue != nil {
@@ -103,12 +123,59 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 			return nil, errors.New("schedule item outside local day")
 		}
 	}
-	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+	idempotencyKey := strings.TrimSpace(stringValue(payload["idempotency_key"]))
+	if idempotencyKey == "" || len([]rune(idempotencyKey)) > 256 {
+		return nil, errors.New("schedule_idempotency_key_required")
+	}
+	evidence := arrayValue(payload["evidence_refs"])
+	if len(evidence) == 0 {
+		evidence = []any{"owner:" + actorID}
+	}
+	if sourceFactID := stringValue(payload["source_fact_id"]); sourceFactID != "" && !containsStringValue(evidence, sourceFactID) {
+		evidence = append(evidence, sourceFactID)
+	}
+	requestDigest := scheduleAcceptanceRequestDigest(payload, evidence)
+	scheduleID := "schedule_" + stableDigest(fluctlightID+":"+idempotencyKey)
+	var result map[string]any
+	apply := func(tx pgx.Tx) error {
+		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, fluctlightID+":"+localDate.Format("2006-01-02")); err != nil {
 			return err
 		}
+		var existingID, existingDigest string
+		var existingResult []byte
+		replayErr := tx.QueryRow(ctx, `SELECT id,COALESCE(request_digest,''),result FROM public.life_schedules WHERE fluctlight_id=$1 AND idempotency_key=$2 FOR UPDATE`, fluctlightID, idempotencyKey).Scan(&existingID, &existingDigest, &existingResult)
+		if replayErr == nil {
+			if existingDigest == "" || existingDigest != requestDigest {
+				return errors.New("schedule_idempotency_conflict")
+			}
+			result = decodeObject(existingResult)
+			if len(result) == 0 {
+				return errors.New("schedule_replay_result_invalid")
+			}
+			scheduleID = existingID
+			result["replayed"] = true
+			return nil
+		}
+		if !errors.Is(replayErr, pgx.ErrNoRows) {
+			return replayErr
+		}
+		applyAt := time.Now().UTC()
+		if _, err := a.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expectedLifeRevision, applyAt); err != nil {
+			return err
+		}
+		currentTimezone, err := readLifeContextTimezoneWith(ctx, tx, fluctlightID)
+		if err != nil {
+			return err
+		}
+		if currentTimezone != timezone {
+			return errors.New("schedule_timezone_stale")
+		}
+		var currentID string
 		var current int
-		err := tx.QueryRow(ctx, `SELECT revision FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted' ORDER BY revision DESC LIMIT 1`, fluctlightID, localDate).Scan(&current)
+		err = tx.QueryRow(ctx, `SELECT id,revision FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted' ORDER BY revision DESC LIMIT 1`, fluctlightID, localDate).Scan(&currentID, &current)
 		found := err == nil
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return err
@@ -116,35 +183,23 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 		if errors.Is(err, pgx.ErrNoRows) {
 			current = 0
 		}
-		if found && expected == nil {
-			return errors.New("schedule acceptance requires expected revision")
-		}
-		if expected != nil && *expected != current {
+		if expectedRevision != current {
 			return ErrConflict
 		}
-		revision = current + 1
+		var latestRevision int
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(MAX(revision),0) FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2`, fluctlightID, localDate).Scan(&latestRevision); err != nil {
+			return err
+		}
+		revision = latestRevision + 1
 		if _, err := tx.Exec(ctx, `UPDATE public.life_schedules SET status='superseded' WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted'`, fluctlightID, localDate); err != nil {
 			return err
 		}
-		evidence := arrayValue(payload["evidence_refs"])
-		if len(evidence) == 0 {
-			evidence = []any{"owner:" + actorID}
-		}
 		generatedFrom := firstString(payload["generated_from"], "owner")
-		if sourceFactID := stringValue(payload["source_fact_id"]); sourceFactID != "" && !containsStringValue(evidence, sourceFactID) {
-			evidence = append(evidence, sourceFactID)
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedules (id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision,generated_at,reschedule_policy) VALUES ($1,$2,$3,$4,'accepted',$5,$6,$7,$8,$9)`, scheduleID, fluctlightID, localDate, timezone, generatedFrom, jsonBytes(evidence), revision, now, jsonBytes(payload["reschedule_policy"])); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedules (id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision,generated_at,reschedule_policy,idempotency_key,request_digest,result,updated_at) VALUES ($1,$2,$3,$4,'accepted',$5,$6,$7,$8,$9,$10,$11,'{}',$8)`, scheduleID, fluctlightID, localDate, timezone, generatedFrom, jsonBytes(evidence), revision, applyAt, jsonBytes(payload["reschedule_policy"]), idempotencyKey, requestDigest); err != nil {
 			return err
 		}
-		var previousID string
-		if current > 0 {
-			if err := tx.QueryRow(ctx, `SELECT id FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND revision=$3`, fluctlightID, localDate, current).Scan(&previousID); err != nil {
-				return err
-			}
-		}
-		if previousID != "" {
-			if _, err := tx.Exec(ctx, `UPDATE public.life_schedules SET previous_version_id=$2 WHERE id=$1`, scheduleID, previousID); err != nil {
+		if found {
+			if _, err := tx.Exec(ctx, `UPDATE public.life_schedules SET previous_version_id=$2 WHERE id=$1`, scheduleID, currentID); err != nil {
 				return err
 			}
 		}
@@ -155,7 +210,7 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 			if previousEnd != nil && !start.Equal(*previousEnd) {
 				return errors.New("schedule items must be contiguous")
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,item_type,status,priority,flexibility,interruption_cost) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, randomID("schedule_item_"), scheduleID, start, end, strings.TrimSpace(stringValue(item["activity"])), strings.TrimSpace(stringValue(item["scene"])), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5)); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,location,item_type,status,priority,flexibility,interruption_cost) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, randomID("schedule_item_"), scheduleID, start, end, strings.TrimSpace(stringValue(item["activity"])), strings.TrimSpace(stringValue(item["scene"])), nullableString(stringValue(item["location"])), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5)); err != nil {
 				return err
 			}
 			previousEnd = &end
@@ -164,6 +219,19 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 			return errors.New("schedule item time is invalid")
 		}
 		if err := insertPostScheduleLifecycleIntentsTx(ctx, tx, fluctlightID, localDate, timezone); err != nil {
+			return err
+		}
+		_, resultingLife, err := resolveLifeContextSnapshotWith(ctx, tx, fluctlightID, applyAt)
+		if err != nil {
+			return err
+		}
+		result = map[string]any{
+			"id": scheduleID, "local_date": localDate.Format("2006-01-02"), "timezone": timezone,
+			"revision": revision, "status": "accepted", "reschedule_policy": payload["reschedule_policy"],
+			"expected_context_revision": expectedLifeRevision, "resulting_context_revision": resultingLife["context_revision"],
+			"idempotency_key": idempotencyKey, "replayed": false,
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.life_schedules SET result=$2 WHERE id=$1 AND revision=$3`, scheduleID, jsonBytes(result), revision); err != nil {
 			return err
 		}
 		outboxKind := "schedule.accepted"
@@ -177,17 +245,49 @@ func (a *App) AcceptSchedule(ctx context.Context, actorID, fluctlightID string, 
 			"generated_from": generatedFrom, "source_fact_id": payload["source_fact_id"], "conversation_id": payload["conversation_id"],
 			"trigger": payload["trigger"], "reason": payload["reason"], "completed_before": payload["completed_before"], "evidence_refs": evidence,
 		})
-	})
+	}
+	if callerTx != nil {
+		err = apply(callerTx)
+	} else {
+		err = withTransaction(ctx, a.DB.Pool(), apply)
+	}
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"id": scheduleID, "local_date": localDate.Format("2006-01-02"), "timezone": timezone, "revision": revision, "status": "accepted", "reschedule_policy": payload["reschedule_policy"]}, nil
+	return result, nil
+}
+
+func scheduleAcceptanceRequestDigest(payload map[string]any, evidence []any) string {
+	return stableDigest(jsonString(map[string]any{
+		"local_date":                     payload["local_date"],
+		"timezone":                       canonicalTimezone(stringValue(payload["timezone"])),
+		"expected_revision":              payload["expected_revision"],
+		"items":                          payload["items"],
+		"reschedule_policy":              payload["reschedule_policy"],
+		"completed_before":               payload["completed_before"],
+		"generated_from":                 payload["generated_from"],
+		"source_fact_id":                 payload["source_fact_id"],
+		"conversation_id":                payload["conversation_id"],
+		"trigger":                        payload["trigger"],
+		"reason":                         payload["reason"],
+		"evidence_refs":                  evidence,
+		"expected_life_context_revision": payload["expected_life_context_revision"],
+		"capability_call_hint":           payload["idempotency_key"],
+	}))
 }
 
 // ReplanSchedule shares the immutable acceptance/CAS path but refuses to
 // rewrite a completed interval. Callers provide the completed boundary in
 // RFC3339; completed items must be carried forward unchanged by the planner.
 func (a *App) ReplanSchedule(ctx context.Context, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
+	return a.replanScheduleWithTx(ctx, nil, actorID, fluctlightID, payload)
+}
+
+func (a *App) replanScheduleTx(ctx context.Context, tx pgx.Tx, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
+	return a.replanScheduleWithTx(ctx, tx, actorID, fluctlightID, payload)
+}
+
+func (a *App) replanScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
 	boundaryValue := stringValue(payload["completed_before"])
 	if boundaryValue == "" {
 		return nil, errors.New("completed_before_required")
@@ -196,7 +296,12 @@ func (a *App) ReplanSchedule(ctx context.Context, actorID, fluctlightID string, 
 	if err != nil {
 		return nil, errors.New("completed_before_invalid")
 	}
-	current, err := a.currentAcceptedSchedule(ctx, fluctlightID)
+	var current map[string]any
+	if callerTx != nil {
+		current, err = a.currentAcceptedScheduleTx(ctx, callerTx, fluctlightID)
+	} else {
+		current, err = a.currentAcceptedSchedule(ctx, fluctlightID)
+	}
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, errors.New("schedule_replan_schedule_missing")
@@ -244,6 +349,9 @@ func (a *App) ReplanSchedule(ctx context.Context, actorID, fluctlightID string, 
 		if start.Before(boundary) && end.After(boundary) {
 			return nil, errors.New("schedule replan crosses completed boundary")
 		}
+	}
+	if callerTx != nil {
+		return a.acceptScheduleTx(ctx, callerTx, actorID, fluctlightID, payload)
 	}
 	return a.AcceptSchedule(ctx, actorID, fluctlightID, payload)
 }
@@ -314,7 +422,7 @@ func findScheduleItemWithFields(items []any, want map[string]any, wantStart, wan
 }
 
 func sameScheduleItemSemantics(left, right map[string]any) bool {
-	for _, key := range []string{"activity", "scene", "item_type", "status"} {
+	for _, key := range []string{"activity", "scene", "location", "item_type", "status"} {
 		if strings.TrimSpace(stringValue(left[key])) != strings.TrimSpace(stringValue(right[key])) {
 			return false
 		}
@@ -415,12 +523,13 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		var existingSequence int
 		var existingAuthor string
 		var existingAttachments []byte
-		err := tx.QueryRow(ctx, `SELECT id,sequence,text,author_actor_id,attachment_refs FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, idempotency).Scan(&existingID, &existingSequence, &existingText, &existingAuthor, &existingAttachments)
+		var existingCreatedAt time.Time
+		err := tx.QueryRow(ctx, `SELECT id,sequence,text,author_actor_id,attachment_refs,created_at FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, idempotency).Scan(&existingID, &existingSequence, &existingText, &existingAuthor, &existingAttachments, &existingCreatedAt)
 		if err == nil {
 			if existingAuthor != actorID || existingText != text || !jsonEqual(existingAttachments, payload["attachment_refs"]) {
 				return ErrConflict
 			}
-			user = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": existingSequence, "author_actor_id": existingAuthor, "kind": "user", "text": existingText, "attachment_refs": decodeArray(existingAttachments)}
+			user = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": existingSequence, "author_actor_id": existingAuthor, "kind": "user", "text": existingText, "attachment_refs": decodeArray(existingAttachments), "created_at": existingCreatedAt.UTC().Format(time.RFC3339Nano)}
 			return nil
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
@@ -448,10 +557,11 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if attachments == nil {
 			attachments = []any{}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES ($1,$2,$3,$4,'user',$5,$6,$7)`, messageID, conversationID, seq, actorID, text, jsonBytes(attachments), idempotency); err != nil {
+		var createdAt time.Time
+		if err := tx.QueryRow(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES ($1,$2,$3,$4,'user',$5,$6,$7) RETURNING created_at`, messageID, conversationID, seq, actorID, text, jsonBytes(attachments), idempotency).Scan(&createdAt); err != nil {
 			return err
 		}
-		user = map[string]any{"id": messageID, "conversation_id": conversationID, "sequence": seq, "author_actor_id": actorID, "kind": "user", "text": text, "attachment_refs": attachments}
+		user = map[string]any{"id": messageID, "conversation_id": conversationID, "sequence": seq, "author_actor_id": actorID, "kind": "user", "text": text, "attachment_refs": attachments, "created_at": createdAt.UTC().Format(time.RFC3339Nano)}
 		return nil
 	})
 	if err != nil {
@@ -479,49 +589,84 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			}
 		}()
 	}
+	userFrameEmitted := false
+	emitUserFrame := func() error {
+		if userFrameEmitted || callbacks.onActionResult == nil {
+			return nil
+		}
+		if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
+			return err
+		}
+		userFrameEmitted = true
+		return nil
+	}
+	emitAssistantFrame := func(message map[string]any) error {
+		if callbacks.onActionResult == nil || len(message) == 0 {
+			return nil
+		}
+		return callbacks.onActionResult(map[string]any{"message": message, "correlation_id": "turn:" + turnID})
+	}
+	// The user message transaction is committed before cognition starts. Emit
+	// that authoritative row immediately so the browser does not depend solely
+	// on an in-memory optimistic bubble while the Provider is thinking.
+	if err := emitUserFrame(); err != nil {
+		return TurnResult{}, err
+	}
+	if a.cognitionFactSuperseded(ctx, inboxID) {
+		return TurnResult{}, errCognitionTurnSuperseded
+	}
 	var replayed map[string]any
 	var replayedID, replayedText string
 	var replayedSequence int
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT id,sequence,text FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, "assistant:"+turnID).Scan(&replayedID, &replayedSequence, &replayedText); err == nil {
-		replayed = map[string]any{"id": replayedID, "conversation_id": conversationID, "sequence": replayedSequence, "author_actor_id": fluctlightID, "kind": "assistant", "text": replayedText, "attachment_refs": []any{}}
+	var replayedCreatedAt time.Time
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT id,sequence,text,created_at FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, "assistant:"+turnID).Scan(&replayedID, &replayedSequence, &replayedText, &replayedCreatedAt); err == nil {
+		replayed = map[string]any{"id": replayedID, "conversation_id": conversationID, "sequence": replayedSequence, "author_actor_id": fluctlightID, "kind": "assistant", "text": replayedText, "attachment_refs": []any{}, "created_at": replayedCreatedAt.UTC().Format(time.RFC3339Nano)}
 		if mediaIntent, recovered, recoveryErr := a.recoverFrozenTurnAfterAssistant(ctx, inboxID, fluctlightID, conversationID, replayedID, replayedText); recoveryErr != nil {
 			return TurnResult{}, recoveryErr
 		} else if recovered {
-			if callbacks.onActionResult != nil {
-				if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
-					return TurnResult{}, err
-				}
+			if err := emitUserFrame(); err != nil {
+				return TurnResult{}, err
 			}
 			if callbacks.onChunk != nil {
 				if err := callbacks.onChunk(replayedText); err != nil {
 					return TurnResult{}, err
 				}
 			}
-			return TurnResult{UserMessage: user, Assistant: replayed, MediaIntentID: mediaIntent, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
-		}
-		if callbacks.onActionResult != nil {
-			if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
+			if err := emitAssistantFrame(replayed); err != nil {
 				return TurnResult{}, err
 			}
+			return TurnResult{UserMessage: user, Assistant: replayed, MediaIntentID: mediaIntent, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
+		}
+		if err := emitUserFrame(); err != nil {
+			return TurnResult{}, err
 		}
 		if callbacks.onChunk != nil {
 			if err := callbacks.onChunk(replayedText); err != nil {
 				return TurnResult{}, err
 			}
 		}
+		if err := emitAssistantFrame(replayed); err != nil {
+			return TurnResult{}, err
+		}
 		return TurnResult{UserMessage: user, Assistant: replayed, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
 	}
 	var decision map[string]any
 	var action string
-	var mediaConcept map[string]any
-	var toolCalls []ToolCallV1
-	var toolResults []ToolResultV1
+	var capabilityInvocations []CapabilityInvocation
+	var capabilityResults []CapabilityResult
 	var responsePlan map[string]any
 	var composite CompositeActionV1
+	var personalityPlan *personalityDecisionPlan
 	toolOnlyNoReply := false
 	frozen, frozenFound, err := a.LoadFrozenTurn(ctx, inboxID)
 	if err != nil {
 		return TurnResult{}, err
+	}
+	if frozenFound && frozen.Status == "failed" {
+		return TurnResult{}, fmt.Errorf("cognition turn is quarantined: %s", frozen.ErrorCode)
+	}
+	if frozenFound && frozen.Status == "completed" {
+		return TurnResult{}, errors.New("completed cognition action is missing its assistant output")
 	}
 	var projection ContextProjection
 	if frozenFound && frozen.Status == "frozen" {
@@ -529,10 +674,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if savedProjection, ok := contextProjectionFromValue(frozenDecision["context_projection"]); ok {
 			projection = savedProjection
 		} else {
-			projection, err = a.buildTurnProjection(ctx, authorizationActorID, actorID, fluctlightID, conversationID, inboxID, text)
-			if err != nil {
-				return TurnResult{}, err
-			}
+			return TurnResult{}, errors.New("frozen_context_projection_missing")
 		}
 	} else {
 		projection, err = a.buildTurnProjection(ctx, authorizationActorID, actorID, fluctlightID, conversationID, inboxID, text)
@@ -543,36 +685,48 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if frozenFound && frozen.Status == "frozen" {
 		action = frozen.ActionType
 		decision = mapValue(frozen.Payload["decision"])
+		if err := validateFrozenDecisionInfluences(decision); err != nil {
+			return TurnResult{}, err
+		}
+		if raw, exists := decision["personality_transition"]; exists {
+			personalityPlan, err = personalityDecisionPlanFromValue(raw)
+			if err != nil || personalityPlan == nil || personalityPlan.FluctlightID != fluctlightID {
+				return TurnResult{}, errors.New("personality_decision_plan_invalid")
+			}
+		}
 		if savedProjection, ok := contextProjectionFromValue(decision["context_projection"]); ok {
 			projection = savedProjection
 		}
-		mediaConcept = mapValue(frozen.Payload["media_concept"])
-		toolCalls = toolCallsFromValue(decision["tool_calls"])
+		capabilityInvocations, err = capabilityInvocationsFromValue(frozen.Payload["capability_invocations"])
+		if err != nil {
+			return TurnResult{}, err
+		}
 		if loaded, ok := compositeActionFromValue(decision["composite_action"]); ok {
 			composite = loaded
-		} else {
-			composite, err = normalizeCompositeAction(decision, toolCalls, inboxID, action)
-			if err != nil {
-				return TurnResult{}, err
+			composite.ToolCalls = capabilityInvocations
+			if len(composite.CapabilityCallIDs) == 0 {
+				composite.CapabilityCallIDs = capabilityCallIDs(capabilityInvocations)
 			}
+		} else {
+			return TurnResult{}, errors.New("frozen_composite_action_missing")
 		}
-		toolResults = toolResultsFromValue(frozen.Payload["tool_results"])
+		capabilityResults, err = capabilityResultsFromValue(frozen.Payload["capability_results"])
+		if err != nil {
+			return TurnResult{}, err
+		}
 		responsePlan = mapValue(decision["response_plan"])
 		if len(responsePlan) == 0 {
-			responsePlan, err = normalizeResponsePlan(decision, inboxID, projection)
-			if err != nil {
-				return TurnResult{}, err
-			}
+			return TurnResult{}, errors.New("frozen_response_plan_missing")
 		}
 	} else {
-		messages := []map[string]any{{"role": "system", "content": conversationAssessmentInstruction}, {"role": "user", "content": jsonString(map[string]any{"current_message": map[string]any{"sender": compactActorRef(projection.CurrentSpeaker), "content": text}, "text": text, "context": compactCognitionContext(projection)})}}
+		messages := []map[string]any{{"role": "system", "content": capabilityConversationPolicyInstruction}, {"role": "user", "content": jsonString(map[string]any{"current_message": map[string]any{"sender": compactActorRef(projection.CurrentSpeaker), "content": text}, "text": text, "context": compactCognitionContext(projection)})}}
 		messages = withActorRelationshipSystemContext(messages, projection)
 		messages = withContextAuthorityInstruction(messages)
 		// Moment publication is a Wake-up/autonomy output, not an ordinary
 		// interactive reply capability. Keep it registered globally for the
 		// Runtime while withholding it from the conversation tool catalog.
-		manifests := capabilityManifestsExcept(a.capabilityRegistry(), "moment.publish")
-		completion, completionErr := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "cognitive_assessment"), "cognitive_assessment", messages, manifests, "conversation_turn_response", cognitiveTurnResponseSchema(), true)
+		definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceConversation)
+		completion, completionErr := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "cognitive_assessment"), "cognitive_assessment", messages, definitions, "conversation_turn_response", cognitiveTurnResponseSchema(), true)
 		if completionErr != nil {
 			if a.cognitionFactSuperseded(ctx, inboxID) {
 				return TurnResult{}, errCognitionTurnSuperseded
@@ -583,53 +737,60 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, errCognitionTurnSuperseded
 		}
 		decision = completion.Structured
-		toolCalls = completion.ToolCalls
-		for index := range toolCalls {
-			toolCalls[index].SourceFactID = inboxID
+		capabilityInvocations = append([]CapabilityInvocation(nil), completion.ToolCalls...)
+		for index := range capabilityInvocations {
+			capabilityInvocations[index] = normalizeCapabilityInvocationMetadata(capabilityInvocations[index], fluctlightID, conversationID, inboxID, inboxID, index)
 		}
-		toolCalls = normalizeConversationReplyCalls(toolCalls)
-		toolCalls = bindMediaContextToToolCalls(toolCalls, projection)
 		if decision == nil {
 			decision = map[string]any{}
 		}
 		// A thinking-enabled Provider may return only an immediate native tool
 		// call (for example scene_event) and no JSON sidecar. This is a valid
-		// internal cognition outcome: execute the tool and settle the turn as
-		// no_op instead of requiring a user-visible reply.
-		if completion.StructuredFallback && len(toolCalls) > 0 && len(mapValue(decision["appraisal"])) == 0 {
-			decision["appraisal"] = toolOnlyCognitionAppraisal(inboxID)
-		}
-		toolOnlyNoReply = completion.StructuredFallback && len(toolCalls) > 0 && !hasConversationReplyToolCall(toolCalls) && !toolCallsRequireDeferredOutput(toolCalls, a.capabilityRegistry())
+		// capability-only outcome, but it is not evidence for a synthetic affect
+		// appraisal.
+		toolOnlyNoReply = completion.StructuredFallback && len(capabilityInvocations) > 0 && !hasConversationReplyCapability(capabilityInvocations, a.capabilityRegistry()) && !hasDeferredOutputCapabilities(capabilityInvocations, a.capabilityRegistry())
+		skipCognitiveStateTransition := toolOnlyNoReply && len(mapValue(decision["appraisal"])) == 0
 		if toolOnlyNoReply {
-			decision["appraisal"] = toolOnlyCognitionAppraisal(inboxID)
 			decision["action_type"] = "no_op"
 			decision["response_intent"] = ""
 		}
+		// Influences are validated against exactly the Core-owned projection that
+		// the Provider saw. The mapping is frozen before a personality switch or
+		// any other state transition can refresh execution context.
+		if _, err := freezeDecisionInfluences(decision, projection, false); err != nil {
+			return TurnResult{}, err
+		}
+		if skipCognitiveStateTransition {
+			decision["cognitive_state_transition"] = "not_proposed"
+		}
 		if personalityDecision := mapValue(decision["personality_decision"]); len(personalityDecision) > 0 {
-			personalityRuntime, personalityErr := a.applyPersonalityDecision(ctx, fluctlightID, personalityDecision)
-			if personalityErr != nil {
-				return TurnResult{}, personalityErr
+			personalityPlan, err = a.preparePersonalityDecision(ctx, fluctlightID, personalityDecision)
+			if err != nil {
+				return TurnResult{}, err
 			}
-			if len(personalityRuntime) > 0 {
-				refreshedProjection, refreshErr := a.buildTurnProjection(ctx, authorizationActorID, actorID, fluctlightID, conversationID, inboxID, text)
-				if refreshErr != nil {
-					return TurnResult{}, refreshErr
-				}
-				projection = refreshedProjection
-				projection.PersonalityRuntime = personalityRuntime
-				decision["personality_runtime"] = personalityRuntime
+			if personalityPlan != nil {
+				decision["personality_transition"] = personalityPlan
 			}
+		}
+		// Normalize the root sidecar once; the response plan never receives a
+		// second nested tool_calls copy.
+		if len(capabilityInvocations) > 0 {
+			decision["capability_invocations"] = capabilityInvocations
 		}
 		responsePlan, err = normalizeResponsePlan(decision, inboxID, projection)
 		if err != nil {
 			return TurnResult{}, err
 		}
-		responsePlan["tool_calls"] = toolCalls
+		// Root tool_calls is the sole provider codec sidecar. Keep it on the
+		// frozen decision; response_plan is a visible-plan projection only.
 		decision["response_plan"] = responsePlan
 		decision["context_projection"] = projection
-		if len(toolCalls) > 0 {
-			decision["tool_calls"] = toolCalls
-			action, mediaConcept, err = resolveToolCallAction(toolCalls, toolManifestMap(manifests))
+		if len(capabilityInvocations) > 0 {
+			definitionMap := make(map[string]CapabilityDefinition, len(definitions))
+			for _, definition := range definitions {
+				definitionMap[definition.Name] = definition
+			}
+			action, err = resolveCapabilityAction(capabilityInvocations, definitionMap)
 			if err != nil {
 				return TurnResult{}, err
 			}
@@ -637,135 +798,169 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				action = "no_op"
 			}
 		} else {
-			action, mediaConcept = resolveDecisionAction(decision)
+			action = normalizeConversationActionType(stringValue(decision["action_type"]))
 		}
-		// A missing conversation.reply is an intentional no-visible-reply
-		// decision, not a malformed conversation turn. Immediate native tools
-		// such as affect_event may still execute in the no_op path. Deferred
-		// output calls without a conversation/Moment target remain deferred and
-		// are recorded without turning the text turn into an error.
-		if !hasConversationReplyToolCall(toolCalls) && (action == "reply" || action == "media_request") {
-			action = "no_op"
-			mediaConcept = nil
-			decision["action_type"] = "no_op"
-			decision["response_intent"] = ""
-			responsePlan["visible_text"] = ""
-			decision["visible_text"] = ""
+		// A direct user turn has exactly one terminal product contract: either the
+		// same Main cognition supplies visible text, or the turn fails explicitly
+		// and remains retryable. A successful no-op makes the user's double-check
+		// message look delivered while producing no assistant row.
+		visibleCandidate := normalizeVisibleReply(firstString(responsePlan["visible_text"], stringValue(decision["visible_text"])))
+		if visibleCandidate == "" {
+			visibleCandidate = replyTextFromCapabilityInvocations(capabilityInvocations, a.capabilityRegistry())
 		}
-		if len(mediaConcept) > 0 {
-			mediaConcept, _ = alignMediaConceptWithContext(mediaConcept, projection)
+		if visibleCandidate == "" {
+			return TurnResult{}, errors.New("cognition_visible_text_missing")
 		}
+		action = "reply"
+		decision["action_type"] = "reply"
+		responsePlan["visible_text"] = visibleCandidate
+		decision["visible_text"] = visibleCandidate
 		if preferenceDecision := mapValue(responsePlan["output_preference_decision"]); len(preferenceDecision) > 0 {
-			responsePlan["output_preference_decision"] = evaluateOutputPreferenceAction(preferenceDecision, action, toolCalls)
+			responsePlan["output_preference_decision"] = evaluateOutputPreferenceAction(preferenceDecision, action, capabilityInvocations, a.capabilityRegistry())
 		}
-		composite, err = normalizeCompositeAction(decision, toolCalls, inboxID, action)
+		composite, err = normalizeCompositeAction(decision, capabilityInvocations, inboxID, action)
 		if err != nil {
 			return TurnResult{}, err
 		}
 		decision["composite_action"] = composite
-		if action != "reply" && action != "media_request" && action != "no_op" {
+		if action != "reply" && action != "no_op" {
 			return TurnResult{}, errors.New("decision_effect_invalid")
-		}
-		if nested, ok := decision["decision"].(map[string]any); ok {
-			for key, value := range nested {
-				if _, exists := decision[key]; !exists {
-					decision[key] = value
-				}
-			}
 		}
 		if a.cognitionFactSuperseded(ctx, inboxID) {
 			return TurnResult{}, errCognitionTurnSuperseded
 		}
-		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, conversationID, turnID, action, decision, mediaConcept)
+		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, conversationID, turnID, action, decision)
 		if err != nil {
 			return TurnResult{}, err
 		}
 	}
-	if action != "reply" && action != "media_request" && action != "no_op" {
+	if action != "reply" && action != "no_op" {
 		return TurnResult{}, errors.New("decision_effect_invalid")
 	}
 	if action == "no_op" {
-		for index := range toolCalls {
-			toolCalls[index].ActionID = frozen.ID
+		_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "cognition_visible_text_missing")
+		return TurnResult{}, errors.New("cognition_visible_text_missing")
+	}
+	capabilityInvocations, err = capabilityInvocationsFromValue(frozen.Payload["capability_invocations"])
+	if err != nil {
+		return TurnResult{}, err
+	}
+	for index := range capabilityInvocations {
+		capabilityInvocations[index].ActionID = frozen.ID
+	}
+	if len(capabilityInvocations) > 0 {
+		capabilityInvocations, err = a.prepareCapabilityInvocations(ctx, fluctlightID, conversationID, inboxID, capabilityInvocations, capabilityResults)
+		if err != nil {
+			code, _ := capabilityErrorInfo(err, "capability_prepare_failed", true)
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
+			return TurnResult{}, err
 		}
-		if len(toolCalls) > 0 && !frozenFound {
-			if err := a.PersistFrozenToolCalls(ctx, frozen.ID, toolCalls); err != nil {
-				return TurnResult{}, err
-			}
+		// The prepared invocation is the crash/replay boundary. No Capability may
+		// execute until its runtime-owned plan and context snapshot are durable.
+		if err := a.persistFrozenCapabilityInvocations(ctx, frozen.ID, capabilityInvocations); err != nil {
+			return TurnResult{}, err
 		}
-		if len(toolCalls) > 0 && len(toolResults) == 0 {
-			toolResults, err = a.ExecuteToolCalls(ctx, fluctlightID, conversationID, inboxID, toolCalls)
+	}
+	if action == "no_op" {
+		if len(capabilityInvocations) > 0 {
+			capabilityResults, err = a.planCapabilitiesForTransaction(ctx, fluctlightID, conversationID, inboxID, capabilityInvocations, capabilityResults)
 			if err != nil {
-				// All cognition Tools are optional. Keep the failed ToolResults for
-				// diagnostics/replay, but do not turn a no-visible-reply turn into a
-				// conversation failure.
-				slog.Default().Warn("Go Core optional Tool failed during no-op turn", "turn_id", turnID, "error", err, "tool_results", toolResults)
+				// Optional capability failures remain structured diagnostics. Required
+				// state-changing failures are checked immediately below and quarantine
+				// the frozen turn before any visible output exists.
+				slog.Default().Warn("Go Core capability failed during no-op turn", "turn_id", turnID, "error", err, "capability_results", capabilityResults)
 			}
-			if err := a.PersistToolResults(ctx, frozen.ID, toolResults); err != nil {
-				slog.Default().Warn("Go Core could not persist optional Tool results during no-op turn", "turn_id", turnID, "error", err)
+		}
+		reflectionDelay := a.reflectionDelay(ctx)
+		nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
+		// Appraisal/Current State, native mutations, claims, action result and
+		// inbox settlement share this one transaction. A failure leaves only the
+		// immutable frozen plan for deterministic retry/quarantine.
+		settleErr := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, projection.ContextRevision, projection.CurrentStateRevision, projection.LifeContextRevision, time.Now().UTC()); err != nil {
+				return err
 			}
+			if _, err := a.applyPersonalityDecisionPlanTx(ctx, tx, fluctlightID, personalityPlan); err != nil {
+				return err
+			}
+			if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, decision, action, frozen.ID, frozen.StateRev); err != nil {
+				return err
+			}
+			if len(capabilityInvocations) > 0 {
+				settled, settleErr := a.settleDeferredCapabilitiesTx(ctx, tx, fluctlightID, inboxID, inboxID, capabilityInvocations, capabilityResults, OutputBindingV1{})
+				if settleErr != nil {
+					return settleErr
+				}
+				capabilityResults = settled
+				if err := a.persistFrozenCapabilityInvocationsTx(ctx, tx, frozen.ID, capabilityInvocations); err != nil {
+					return err
+				}
+				command, err := tx.Exec(ctx, `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(payload,'{capability_results}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, frozen.ID, jsonBytes(capabilityResults))
+				if err != nil {
+					return err
+				}
+				if command.RowsAffected() != 1 {
+					return ErrConflict
+				}
+				if requiredErr := requiredCapabilityFailureCanonical(capabilityResults, capabilityInvocations, a.capabilityRegistry(), false); requiredErr != nil {
+					return requiredErr
+				}
+			}
+			if err := persistClaimsTx(ctx, tx, fluctlightID, inboxID, responsePlan); err != nil {
+				return err
+			}
+			_, err := a.completeTurnCognitionTx(ctx, tx, inboxID, frozen.ID, map[string]any{"status": "no_op", "response_intent": stringValue(responsePlan["response_intent"]), "capability_results": capabilityResults}, nextReflectionAt)
+			return err
+		})
+		if settleErr != nil {
+			if len(capabilityInvocations) > 0 {
+				capabilityResults = capabilityResultsAfterSettlementFailure(capabilityResults, capabilityInvocations, a.capabilityRegistry(), "capability_settlement_failed")
+				_ = a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults)
+			}
+			code := "structured_turn_settlement_failed"
+			if errors.Is(settleErr, ErrLifeContextStale) {
+				code = "life_context_stale"
+			}
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
+			return TurnResult{}, settleErr
 		}
 		if a.cognitionFactSuperseded(ctx, inboxID) {
 			return TurnResult{}, errCognitionTurnSuperseded
 		}
-		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"status": "no_op", "response_intent": stringValue(responsePlan["response_intent"]), "tool_results": toolResults}); err != nil {
-			slog.Default().Warn("Go Core could not complete no-op cognition lifecycle", "turn_id", turnID, "error", err)
-		}
-		if callbacks.onActionResult != nil {
-			if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
-				return TurnResult{}, err
-			}
+		a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+		a.scheduleWakeUpTrigger(ctx, fluctlightID, int(reflectionDelay/time.Second))
+		if err := emitUserFrame(); err != nil {
+			return TurnResult{}, err
 		}
 		claimSettled = true
 		return TurnResult{UserMessage: user, Assistant: map[string]any{}, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
 	}
-	if action == "media_request" && len(mediaConcept) == 0 {
-		mediaConcept = mediaConceptValue(decision["media_request"])
-		if len(mediaConcept) == 0 {
-			mediaConcept = mediaConceptValue(decision["visual_concept"])
-		}
-		if len(mediaConcept) == 0 {
-			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "media_concept_invalid")
-			return TurnResult{}, errors.New("media_concept_invalid")
-		}
-	}
-	for index := range toolCalls {
-		toolCalls[index].ActionID = frozen.ID
-	}
-	if len(toolCalls) > 0 && !frozenFound {
-		if err := a.PersistFrozenToolCalls(ctx, frozen.ID, toolCalls); err != nil {
-			return TurnResult{}, err
-		}
-	}
-	if callbacks.onActionResult != nil {
-		if err := callbacks.onActionResult(map[string]any{"message": user, "correlation_id": "turn:" + turnID}); err != nil {
-			return TurnResult{}, err
-		}
-	}
 	mediaIntent := ""
-	if len(toolCalls) > 0 {
-		if len(toolResults) == 0 {
-			toolResults, err = a.ExecuteToolCalls(ctx, fluctlightID, conversationID, inboxID, toolCalls)
-			if err != nil {
-				// Preserve the structured failure before settling the frozen action.
-				// This keeps native capability diagnostics replayable instead of
-				// reducing every executor error to `tool_call_failed`.
-				if len(toolResults) > 0 {
-					_ = a.PersistToolResults(ctx, frozen.ID, toolResults)
-				}
-				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "tool_call_failed")
-				return TurnResult{}, err
+	if len(capabilityInvocations) > 0 {
+		capabilityResults, err = a.planCapabilitiesForTransaction(ctx, fluctlightID, conversationID, inboxID, capabilityInvocations, capabilityResults)
+		if err != nil {
+			// Preserve the structured failure before settling the frozen action.
+			// This keeps native capability diagnostics replayable instead of
+			// reducing every executor error to `tool_call_failed`.
+			if len(capabilityResults) > 0 {
+				_ = a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults)
 			}
-			if err := a.PersistToolResults(ctx, frozen.ID, toolResults); err != nil {
-				return TurnResult{}, err
-			}
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "tool_call_failed")
+			return TurnResult{}, err
 		}
-		if toolCallsRequireDeferredOutput(toolCalls, a.capabilityRegistry()) {
+		if err := a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults); err != nil {
+			return TurnResult{}, err
+		}
+		if requiredErr := requiredCapabilityFailureCanonical(capabilityResults, capabilityInvocations, a.capabilityRegistry(), false); requiredErr != nil {
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "required_capability_failed")
+			return TurnResult{}, requiredErr
+		}
+		if hasDeferredOutputCapabilities(capabilityInvocations, a.capabilityRegistry()) {
 			// External async tools are deliberately deferred until the assistant
 			// message exists, so their intent can bind to that concrete output.
 			// A replay may already have a completed result; otherwise settlement
 			// happens in the message transaction below.
-			mediaIntent = mediaIntentIDFromToolResults(toolResults)
+			mediaIntent = mediaIntentIDFromCapabilityResults(capabilityResults)
 		}
 	}
 	var visible string
@@ -775,7 +970,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	// second action_realization request.
 	visible = normalizeVisibleReply(firstString(responsePlan["visible_text"], stringValue(decision["visible_text"])))
 	if strings.TrimSpace(visible) == "" {
-		visible = replyTextFromToolCalls(toolCalls)
+		visible = replyTextFromCapabilityInvocations(capabilityInvocations, a.capabilityRegistry())
 	}
 	if strings.TrimSpace(visible) == "" {
 		if frozenFound || frozen.ID != "" {
@@ -783,18 +978,26 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 		return TurnResult{}, errors.New("cognition_visible_text_missing")
 	}
-	if callbacks.onChunk != nil {
-		if err := callbacks.onChunk(visible); err != nil {
-			return TurnResult{}, err
-		}
-	}
 	assistantID := randomID("message_")
 	var assistant map[string]any
+	reflectionDelay := a.reflectionDelay(ctx)
+	nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var existingID string
-		if err := tx.QueryRow(ctx, `SELECT id FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, "assistant:"+turnID).Scan(&existingID); err == nil {
+		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, projection.ContextRevision, projection.CurrentStateRevision, projection.LifeContextRevision, time.Now().UTC()); err != nil {
+			return err
+		}
+		if _, err := a.applyPersonalityDecisionPlanTx(ctx, tx, fluctlightID, personalityPlan); err != nil {
+			return err
+		}
+		if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, decision, action, frozen.ID, frozen.StateRev); err != nil {
+			return err
+		}
+		var existingID, existingText string
+		var existingSequence int
+		var existingCreatedAt time.Time
+		if err := tx.QueryRow(ctx, `SELECT id,sequence,text,created_at FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, "assistant:"+turnID).Scan(&existingID, &existingSequence, &existingText, &existingCreatedAt); err == nil {
 			assistantID = existingID
-			assistant = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": 0, "author_actor_id": fluctlightID, "kind": "assistant", "text": visible, "attachment_refs": []any{}}
+			assistant = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": existingSequence, "author_actor_id": fluctlightID, "kind": "assistant", "text": existingText, "attachment_refs": []any{}, "created_at": existingCreatedAt.UTC().Format(time.RFC3339Nano)}
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		} else {
@@ -805,58 +1008,73 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			if _, err := tx.Exec(ctx, `UPDATE public.conversation_heads SET next_sequence=$2 WHERE conversation_id=$1`, conversationID, seq+1); err != nil {
 				return err
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES ($1,$2,$3,$4,'assistant',$5,'[]',$6)`, assistantID, conversationID, seq, fluctlightID, visible, "assistant:"+turnID); err != nil {
+			var createdAt time.Time
+			if err := tx.QueryRow(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES ($1,$2,$3,$4,'assistant',$5,'[]',$6) RETURNING created_at`, assistantID, conversationID, seq, fluctlightID, visible, "assistant:"+turnID).Scan(&createdAt); err != nil {
 				return err
 			}
-			assistant = map[string]any{"id": assistantID, "conversation_id": conversationID, "sequence": seq, "author_actor_id": fluctlightID, "kind": "assistant", "text": visible, "attachment_refs": []any{}}
+			assistant = map[string]any{"id": assistantID, "conversation_id": conversationID, "sequence": seq, "author_actor_id": fluctlightID, "kind": "assistant", "text": visible, "attachment_refs": []any{}, "created_at": createdAt.UTC().Format(time.RFC3339Nano)}
 		}
-		if len(toolCalls) > 0 {
+		if len(capabilityInvocations) > 0 {
 			composite = bindCompositeActionOutput(composite, "conversation_message", assistantID)
 			bound := OutputBindingV1{ToolCallID: "", TargetKind: "conversation_message", TargetRef: assistantID}
-			settled, settleErr := a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, inboxID, inboxID, toolCalls, toolResults, bound)
+			settled, settleErr := a.settleDeferredCapabilitiesTx(ctx, tx, fluctlightID, inboxID, inboxID, capabilityInvocations, capabilityResults, bound)
 			if settleErr != nil {
 				return settleErr
 			}
-			toolResults = settled
-			mediaIntent = mediaIntentIDFromToolResults(toolResults)
-			if _, err := tx.Exec(ctx, `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(jsonb_set(payload,'{tool_results}',$2::jsonb,true),'{decision,composite_action}',$3::jsonb,true) WHERE id=$1 AND status='frozen'`, frozen.ID, jsonBytes(toolResults), jsonBytes(composite)); err != nil {
+			capabilityResults = settled
+			if requiredErr := requiredCapabilityFailureCanonical(capabilityResults, capabilityInvocations, a.capabilityRegistry(), true); requiredErr != nil {
+				return requiredErr
+			}
+			if err := a.persistFrozenCapabilityInvocationsTx(ctx, tx, frozen.ID, capabilityInvocations); err != nil {
+				return err
+			}
+			mediaIntent = mediaIntentIDFromCapabilityResults(capabilityResults)
+			if _, err := tx.Exec(ctx, `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(jsonb_set(jsonb_set(payload,'{capability_results}',$2::jsonb,true),'{decision,composite_action}',$3::jsonb,true),'{capability_invocations}',$4::jsonb,true) WHERE id=$1 AND status='frozen'`, frozen.ID, jsonBytes(capabilityResults), jsonBytes(composite), jsonBytes(capabilityInvocations)); err != nil {
 				return err
 			}
 		}
-		if len(toolCalls) == 0 {
+		if len(capabilityInvocations) == 0 {
 			composite = bindCompositeActionOutput(composite, "conversation_message", assistantID)
 			if _, err := tx.Exec(ctx, `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(payload,'{decision,composite_action}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, frozen.ID, jsonBytes(composite)); err != nil {
 				return err
 			}
 		}
-		if action == "media_request" && mediaIntent == "" {
-			concept := mediaConcept
-			if len(concept) == 0 {
-				concept = mediaConceptValue(decision["media_request"])
-			}
-			if len(concept) == 0 {
-				concept = mediaConceptValue(decision["visual_concept"])
-			}
-			if len(concept) == 0 {
-				return errors.New("media_concept_invalid")
-			}
-			legacyIntentID := "media_intent_" + stableDigest(inboxID+":legacy-media")
-			legacyWorkflowID := "media_workflow_" + stableDigest(inboxID+":legacy-media")
-			legacyRequestID := "media_request_" + stableDigest(inboxID+":legacy-media")
-			if err := a.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, legacyIntentID, legacyWorkflowID, legacyRequestID, "", assistantID, ""); err != nil {
-				return err
-			}
-			mediaIntent = legacyIntentID
+		if err := persistClaimsTx(ctx, tx, fluctlightID, inboxID, responsePlan); err != nil {
+			return err
 		}
-		return persistClaimsTx(ctx, tx, fluctlightID, inboxID, responsePlan)
+		_, err := a.completeTurnCognitionTx(ctx, tx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent, "capability_results": capabilityResults}, nextReflectionAt)
+		return err
 	})
 	if err != nil {
-		return TurnResult{}, err
-	}
-	if frozen.ID != "" {
-		if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent, "tool_results": toolResults}); err != nil {
+		if errors.Is(err, errCognitionTurnSuperseded) {
 			return TurnResult{}, err
 		}
+		// The output transaction rolled back. Any deferred target result is no
+		// longer durable (including a capability that returned completed before
+		// the rollback), so record an explicit bounded failure for replay and
+		// quarantine the frozen turn. This is also required when the transaction
+		// failed before the deferred settlement callback was reached.
+		capabilityResults = capabilityResultsAfterSettlementFailure(capabilityResults, capabilityInvocations, a.capabilityRegistry(), "capability_settlement_failed")
+		_ = a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults)
+		code := "capability_settlement_failed"
+		if errors.Is(err, ErrLifeContextStale) {
+			code = "life_context_stale"
+		}
+		_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
+		return TurnResult{}, err
+	}
+	a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+	a.scheduleWakeUpTrigger(ctx, fluctlightID, int(reflectionDelay/time.Second))
+	if err := emitUserFrame(); err != nil {
+		return TurnResult{}, err
+	}
+	if callbacks.onChunk != nil {
+		if err := callbacks.onChunk(visible); err != nil {
+			return TurnResult{}, err
+		}
+	}
+	if err := emitAssistantFrame(assistant); err != nil {
+		return TurnResult{}, err
 	}
 	if a.cognitionFactSuperseded(ctx, inboxID) {
 		return TurnResult{}, errCognitionTurnSuperseded
@@ -893,124 +1111,99 @@ func (a *App) authorizeActorTurn(ctx context.Context, ownerActorID, senderActorI
 }
 
 func (a *App) buildTurnProjection(ctx context.Context, authorizationActorID, speakerActorID, fluctlightID, conversationID, sourceFactID, userText string) (ContextProjection, error) {
-	if authorizationActorID == speakerActorID {
-		return a.BuildContextProjection(ctx, authorizationActorID, fluctlightID, conversationID, sourceFactID, userText)
-	}
-	projection, err := a.BuildContextProjection(ctx, authorizationActorID, fluctlightID, conversationID, sourceFactID, userText)
-	if err != nil {
-		return ContextProjection{}, err
-	}
-	fluctlight, err := a.DB.GetFluctlight(ctx, fluctlightID, authorizationActorID)
-	if err != nil {
-		return ContextProjection{}, err
-	}
-	displayName := firstString(fluctlight.Identity["name"], "摇光")
-	extraIDs := make([]string, 0, len(projection.Relationships))
-	for _, relationship := range projection.Relationships {
-		if target := stringValue(relationship["target_actor_id"]); target != "" {
-			extraIDs = append(extraIDs, target)
-		}
-	}
-	actors, selfActor, currentSpeaker := a.buildActorProjection(ctx, fluctlightID, speakerActorID, displayName, projection.RecentMessages, extraIDs)
-	relationships, err := a.readRelationships(ctx, fluctlightID, authorizationActorID)
-	if err != nil {
-		return ContextProjection{}, err
-	}
-	filtered := make([]map[string]any, 0, 1)
-	for _, relationship := range relationships {
-		if stringValue(relationship["target_actor_id"]) == speakerActorID {
-			filtered = append(filtered, relationship)
-		}
-	}
-	projection.Actors = actors
-	projection.SelfActor = selfActor
-	projection.CurrentSpeaker = currentSpeaker
-	projection.Relationships = filtered
-	return projection, nil
+	return a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
+		AuthorizationActorID:   authorizationActorID,
+		SpeakerActorID:         speakerActorID,
+		FluctlightID:           fluctlightID,
+		ConversationID:         conversationID,
+		SourceFactID:           sourceFactID,
+		CurrentUserText:        userText,
+		MemoryOperation:        MemoryForConversation,
+		MemoryConversationMode: MemoryConversationExact,
+	})
 }
 
 func (a *App) recoverFrozenTurnAfterAssistant(ctx context.Context, inboxID, fluctlightID, conversationID, assistantID, visible string) (string, bool, error) {
 	frozen, found, err := a.LoadFrozenTurn(ctx, inboxID)
-	if err != nil || !found || frozen.Status != "frozen" {
+	if err != nil || !found {
 		return "", false, err
 	}
+	if frozen.Status == "failed" {
+		return "", false, fmt.Errorf("cognition turn is quarantined: %s", frozen.ErrorCode)
+	}
+	if frozen.Status != "frozen" {
+		return "", false, nil
+	}
 	decision := mapValue(frozen.Payload["decision"])
-	calls := toolCallsFromValue(decision["tool_calls"])
-	results := toolResultsFromValue(frozen.Payload["tool_results"])
+	var personalityPlan *personalityDecisionPlan
+	if raw, exists := decision["personality_transition"]; exists {
+		personalityPlan, err = personalityDecisionPlanFromValue(raw)
+		if err != nil || personalityPlan == nil || personalityPlan.FluctlightID != fluctlightID {
+			return "", true, errors.New("personality_decision_plan_invalid")
+		}
+	}
+	invocations, err := capabilityInvocationsFromValue(frozen.Payload["capability_invocations"])
+	if err != nil {
+		return "", false, err
+	}
+	results, err := capabilityResultsFromValue(frozen.Payload["capability_results"])
+	if err != nil {
+		return "", false, err
+	}
 	action := frozen.ActionType
 	composite, ok := compositeActionFromValue(decision["composite_action"])
 	if !ok {
-		composite, err = normalizeCompositeAction(decision, calls, inboxID, action)
+		composite, err = normalizeCompositeAction(decision, invocations, inboxID, action)
 		if err != nil {
 			return "", true, err
 		}
+	} else {
+		composite.ToolCalls = invocations
 	}
-	mediaIntent := mediaIntentIDFromToolResults(results)
+	mediaIntent := mediaIntentIDFromCapabilityResults(results)
+	reflectionDelay := a.reflectionDelay(ctx)
+	nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if len(calls) > 0 {
+		if _, err := a.applyPersonalityDecisionPlanTx(ctx, tx, fluctlightID, personalityPlan); err != nil {
+			return err
+		}
+		if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, decision, action, frozen.ID, frozen.StateRev); err != nil {
+			return err
+		}
+		if len(invocations) > 0 {
 			composite = bindCompositeActionOutput(composite, "conversation_message", assistantID)
-			settled, settleErr := a.settleDeferredToolCallsTx(ctx, tx, fluctlightID, inboxID, inboxID, calls, results, OutputBindingV1{TargetKind: "conversation_message", TargetRef: assistantID})
+			settled, settleErr := a.settleDeferredCapabilitiesTx(ctx, tx, fluctlightID, inboxID, inboxID, invocations, results, OutputBindingV1{TargetKind: "conversation_message", TargetRef: assistantID})
 			if settleErr != nil {
 				return settleErr
 			}
 			results = settled
-			mediaIntent = mediaIntentIDFromToolResults(results)
+			mediaIntent = mediaIntentIDFromCapabilityResults(results)
 		}
-		if action == "media_request" && mediaIntent == "" {
-			concept := mapValue(frozen.Payload["media_concept"])
-			if len(concept) == 0 {
-				concept = mediaConceptValue(decision["media_request"])
-			}
-			if len(concept) == 0 {
-				concept = mediaConceptValue(decision["visual_concept"])
-			}
-			if len(concept) == 0 {
-				return errors.New("media_concept_invalid")
-			}
-			intentID := "media_intent_" + stableDigest(inboxID+":legacy-media")
-			if err := a.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, intentID, "media_workflow_"+stableDigest(inboxID+":legacy-media"), "media_request_"+stableDigest(inboxID+":legacy-media"), "", assistantID, ""); err != nil {
-				return err
-			}
-			mediaIntent = intentID
+		if requiredErr := requiredCapabilityFailureCanonical(results, invocations, a.capabilityRegistry(), true); requiredErr != nil {
+			return requiredErr
 		}
-		payloadUpdate := `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(jsonb_set(payload,'{tool_results}',$2::jsonb,true),'{decision,composite_action}',$3::jsonb,true) WHERE id=$1 AND status='frozen'`
-		_, err := tx.Exec(ctx, payloadUpdate, frozen.ID, jsonBytes(results), jsonBytes(composite))
+		payloadUpdate := `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(jsonb_set(jsonb_set(payload,'{capability_results}',$2::jsonb,true),'{capability_invocations}',$3::jsonb,true),'{decision,composite_action}',$4::jsonb,true) WHERE id=$1 AND status='frozen'`
+		if _, err := tx.Exec(ctx, payloadUpdate, frozen.ID, jsonBytes(results), jsonBytes(invocations), jsonBytes(composite)); err != nil {
+			return err
+		}
+		if err := persistClaimsTx(ctx, tx, fluctlightID, inboxID, mapValue(decision["response_plan"])); err != nil {
+			return err
+		}
+		_, err := a.completeTurnCognitionTx(ctx, tx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent, "capability_results": results}, nextReflectionAt)
 		return err
 	})
 	if err != nil {
+		if errors.Is(err, errCognitionTurnSuperseded) {
+			return "", true, err
+		}
+		results = capabilityResultsAfterSettlementFailure(results, invocations, a.capabilityRegistry(), "capability_settlement_failed")
+		_ = a.PersistCapabilityResults(ctx, frozen.ID, results)
+		_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "capability_settlement_failed")
 		return "", true, err
 	}
-	if err := a.CompleteTurnCognition(ctx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent, "tool_results": results}); err != nil {
-		return "", true, err
-	}
+	a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+	a.scheduleWakeUpTrigger(ctx, fluctlightID, int(reflectionDelay/time.Second))
 	return mediaIntent, true, nil
-}
-
-func (a *App) createMediaIntent(ctx context.Context, fluctlightID, conversationID string, concept map[string]any) (string, error) {
-	id := randomID("media_intent_")
-	workflowID := randomID("media_workflow_")
-	requestID := randomID("media_request_")
-	return id, a.createMediaIntentWithIdentity(ctx, fluctlightID, conversationID, concept, id, workflowID, requestID)
-}
-
-func (a *App) createMediaIntentWithIdentity(ctx context.Context, fluctlightID, conversationID string, concept map[string]any, id, workflowID, requestID string) error {
-	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		return a.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, id, workflowID, requestID, conversationID, "", "")
-	})
-}
-
-func (a *App) createMediaIntentTarget(ctx context.Context, fluctlightID string, concept map[string]any, id, workflowID, requestID, conversationID, messageID, momentID string) error {
-	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		return a.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, id, workflowID, requestID, conversationID, messageID, momentID)
-	})
-}
-
-// createMediaIntentTx is retained for callers that only have the legacy
-// conversation-or-moment target shape. New composite actions should use
-// createMediaIntentTargetTx so a generated asset can bind directly to a
-// concrete message or Moment output.
-func (a *App) createMediaIntentTx(ctx context.Context, tx pgx.Tx, fluctlightID string, concept map[string]any, id, workflowID, requestID, conversationID, momentID string) error {
-	return a.createMediaIntentTargetTx(ctx, tx, fluctlightID, concept, id, workflowID, requestID, conversationID, "", momentID)
 }
 
 func (a *App) createMediaIntentTargetTx(ctx context.Context, tx pgx.Tx, fluctlightID string, concept map[string]any, id, workflowID, requestID, conversationID, messageID, momentID string) error {
@@ -1087,149 +1280,16 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 		if !started || ctx.Err() != nil {
 			return err
 		}
-		// Visible output/action_result has already reached the client. A later
-		// lifecycle failure (claims, deferred settlement, reflection scheduling,
-		// or CompleteTurnCognition) must not turn that successful visible turn
-		// into a conversation_turn_failed frame. Keep the failure in server logs;
-		// the durable frozen action/inbox remains available for reconciliation.
+		// A callback may have emitted a previously committed frame, but a later
+		// required settlement/lifecycle failure is never presented as success.
 		slog.Default().Error("Go Core conversation turn lifecycle settlement failed after visible output", "error", err, "turn_id", turnID)
-		return writeFrame("completed", map[string]any{"message_ids": []string{}, "status": "settlement_deferred"})
+		return writeFrame("error", map[string]any{"status": "failed", "error": "conversation_settlement_failed"})
 	}
 	messageIDs := make([]string, 0, 1)
 	if messageID := stringValue(result.Assistant["id"]); messageID != "" {
 		messageIDs = append(messageIDs, messageID)
 	}
 	return writeFrame("completed", map[string]any{"message_ids": messageIDs})
-}
-
-func toolOnlyCognitionAppraisal(sourceFactID string) map[string]any {
-	return map[string]any{
-		"relevance": 0.0, "goal_congruence": 0.0, "reward": 0.0, "loss": 0.0,
-		"social_threat": 0.0, "controllability": 1.0, "responsibility": 0.0,
-		"relationship_significance": 0.0, "expected_effect": 0.0,
-		"evidence_refs": []any{sourceFactID}, "event_kind": "tool_only_action", "direction": "none",
-	}
-}
-
-func hasConversationReplyToolCall(calls []ToolCallV1) bool {
-	for _, call := range calls {
-		if conversationReplyCallHasText(call) {
-			return true
-		}
-	}
-	return false
-}
-
-func conversationReplyCallHasText(call ToolCallV1) bool {
-	if call.Name != "conversation.reply" {
-		return false
-	}
-	var args map[string]any
-	return json.Unmarshal(call.Arguments, &args) == nil && strings.TrimSpace(stringValue(args["text"])) != ""
-}
-
-// normalizeConversationReplyCalls accepts the transitional model behavior
-// where the Provider requests the just-installed conversation.reply slot via
-// capability.request. The text inside desired_contract is already the model's
-// final reply; route it through the canonical reply tool instead of persisting
-// a capability proposal or dropping the message.
-func normalizeConversationReplyCalls(calls []ToolCallV1) []ToolCallV1 {
-	result := make([]ToolCallV1, len(calls))
-	copy(result, calls)
-	for index := range result {
-		if result[index].Name != "capability.request" {
-			continue
-		}
-		var args map[string]any
-		if json.Unmarshal(result[index].Arguments, &args) != nil || stringValue(args["capability_key"]) != "conversation.reply" {
-			continue
-		}
-		contract := mapValue(args["desired_contract"])
-		text := strings.TrimSpace(stringValue(contract["text"]))
-		if text == "" {
-			continue
-		}
-		result[index].Name = "conversation.reply"
-		result[index].Arguments = jsonBytes(map[string]any{"text": text})
-	}
-	return result
-}
-
-func replyTextFromToolCalls(calls []ToolCallV1) string {
-	for _, call := range calls {
-		if call.Name != "conversation.reply" {
-			continue
-		}
-		var args map[string]any
-		if json.Unmarshal(call.Arguments, &args) == nil {
-			if text := strings.TrimSpace(stringValue(args["text"])); text != "" {
-				return normalizeVisibleReply(text)
-			}
-		}
-	}
-	return ""
-}
-
-func resolveDecisionAction(decision map[string]any) (string, map[string]any) {
-	action := firstString(decision["action_type"], "")
-	concept := mediaConceptValue(decision["media_request"])
-	if len(concept) == 0 {
-		concept = mediaConceptValue(decision["visual_concept"])
-	}
-	if nested, ok := decision["decision"].(map[string]any); ok {
-		if action == "" {
-			action = firstString(nested["action_type"], "")
-		}
-		if len(concept) == 0 {
-			concept = mediaConceptValue(nested["media_request"])
-		}
-		if effects, ok := nested["effects"].([]any); ok {
-			for _, raw := range effects {
-				effect := mapValue(raw)
-				kind := firstString(effect["action_type"], firstString(effect["type"], ""))
-				if kind == "reply" {
-					if action == "" {
-						action = "reply"
-					}
-					continue
-				}
-				if kind == "media_request" {
-					action = "media_request"
-					if len(concept) == 0 {
-						concept = mediaConceptValue(effect["payload"])
-						if len(concept) == 0 {
-							concept = mediaConceptValue(effect["visual_concept"])
-						}
-					}
-				}
-				if kind == "moment" || kind == "proactive_message" {
-					action = kind
-				}
-			}
-		}
-	}
-	if action == "" {
-		action = firstString(decision["action"], "")
-	}
-	if plan := mapValue(decision["response_plan"]); len(plan) > 0 {
-		if action == "" {
-			action = firstString(plan["action_type"], "")
-		}
-		if len(concept) == 0 {
-			concept = mediaConceptValue(plan["media_request"])
-		}
-	}
-	return normalizeConversationActionType(action), concept
-}
-
-func mediaConceptValue(value any) map[string]any {
-	if object := mapValue(value); len(object) > 0 {
-		return object
-	}
-	if text := stringValue(value); text != "" {
-		return map[string]any{"visual_concept": text}
-	}
-	return map[string]any{}
 }
 
 func jsonString(value any) string { data, _ := json.Marshal(value); return string(data) }
@@ -1256,17 +1316,23 @@ func numberString(value any, fallback float64) string {
 }
 
 func numberFloat(value any) (float64, bool) {
+	finite := func(value float64, ok bool) (float64, bool) {
+		if !ok || math.IsNaN(value) || math.IsInf(value, 0) {
+			return 0, false
+		}
+		return value, true
+	}
 	switch v := value.(type) {
 	case float64:
-		return v, true
+		return finite(v, true)
 	case int:
 		return float64(v), true
 	case json.Number:
 		parsed, err := v.Float64()
-		return parsed, err == nil
+		return finite(parsed, err == nil)
 	case string:
 		parsed, err := strconv.ParseFloat(strings.TrimSpace(v), 64)
-		return parsed, err == nil
+		return finite(parsed, err == nil)
 	default:
 		return 0, false
 	}

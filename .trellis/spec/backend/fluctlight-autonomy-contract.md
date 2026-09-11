@@ -36,9 +36,14 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
   duration or Schedule text.
 - Execution rechecks current permission, per-action budget, quiet hours, cooldown, concurrency, Context, Schedule, Relationship, state revisions, and expiration.
 - Go Core freezes the accepted final decision. Retry reuses it and stable IDs rather than re-assessing implicitly.
+- Capability Prepare and pure queries happen before the settlement transaction,
+  but every transactional mutation for a proactive message, Moment, or
+  capability-only Action executes inside the same caller-owned transaction as
+  its durable target, CapabilityResult, ActionOutcome, result fact, and action
+  status. A required sibling failure rolls that complete boundary back.
 - Allowed pre-authorized Actions: any installed, preflighted Capability slot plus
   internal Memory/Relationship/Goal/Intention candidates. Product code does not
-  restrict the semantic Action type; the capability manifest and Core hard
+  restrict the semantic Action type; the CapabilityDefinition and Core hard
   safety/authorization boundary remain authoritative.
 - Forbidden autonomous Actions: identity-anchor/safety/Owner permission change, Provider/infrastructure setting change, destructive other-Actor/Fluctlight data action, budget bypass, or external irreversible action without a future explicit authorization model.
 - Owner may inspect/pause/resume/cancel pending Goal/Intention/workflow and set `autonomy_mode` plus per-action policy. Governance appends history and audit; it does not erase facts.
@@ -65,6 +70,7 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
 | Permission disabled, budget exhausted, quiet hours/cooldown active | Deny/defer by explicit policy and record reason; do not reinterpret semantics. |
 | State/Schedule/Relationship revision changed before freeze | Requalify/re-assess explicitly; do not execute stale action. |
 | Frozen Action retry | Reuse same decision/workflow/Provider IDs; no duplicate action. |
+| Transactional Capability succeeds but a required sibling/target/outcome settlement fails | Roll back the mutation and target; keep/retry the frozen action only when the failure is retryable, otherwise settle a bounded failed ActionOutcome. |
 | Owner pauses/cancels | Append lifecycle/audit transition, cancel cooperative workflow, preserve history. |
 | Paused Fluctlight receives direct Human message | Process explicit interaction; do not create unrelated autonomous external Actions. |
 | Action targets forbidden infrastructure/destructive capability | Hard reject regardless of LLM confidence. |
@@ -85,6 +91,8 @@ boundary.
 - Good: Owner pauses autonomy; Schedule and affect decay continue while pending external intentions remain paused.
 - Base: a due Intention is denied by quiet hours and explicitly deferred without changing its semantic meaning.
 - Bad: “no message for 10 minutes” directly sends a message, regex creates a Goal, cancellation deletes history, or LLM changes Provider settings.
+- Bad: call a transactional Capability through a standalone/resume path, commit
+  it, and only then start the message/Moment/action-result transaction.
 
 ### 6. Tests Required
 
@@ -96,6 +104,8 @@ boundary.
 - Assert recent exact proactive text is suppressed transactionally while
   different text and text outside the duplicate window still deliver.
 - Anti-heuristic tests prove time/engagement facts are LLM inputs and code does not infer relationship/action meaning.
+- Atomic action tests execute an optional transactional sibling followed by a
+  required failure and assert the first mutation does not survive.
 
 ### T04 Ownership And Governance Persistence
 
@@ -173,10 +183,10 @@ the `reflection.run` intent are committed.
 - A standalone wake-up `media.image.generate` call is bound to the wake-up
   action as its durable provenance target and creates a media intent without
   requiring a chat message or Moment.
-- A proposed external action is frozen only after its Capability manifest,
+- A proposed external action is frozen only after its CapabilityDefinition,
   arguments, source fact, Owner authorization, hard safety, resource and
   idempotency checks pass. There is no product-type allowlist; visible text is
-  produced once by `action_realization` where needed and delivery remains
+  supplied by the output CapabilityInvocation and delivery remains
   workflow-owned.
 - Every wake-up commits a processed `internal.wake_up` fact and one stable
   `reflection.run` intent. Reflection consumes it through the normal evidence
@@ -194,11 +204,11 @@ the `reflection.run` intent are committed.
 | Condition | Result |
 | --- | --- |
 | Missing/negative cycle or Fluctlight ID | Reject with `wake_up_*_required/invalid`; no fact or action |
-| Wake-up assessment has neither an action decision nor any Tool call, returns an unsupported action, or exceeds bounded field size | Reject; no synthetic cognition state or fallback action is persisted |
-| Wake-up returns only valid registered Tool calls | Accept the tool-only decision; derive `proactive_message`/`moment` for output calls or a capability/no-op action for native calls |
+| Wake-up assessment has neither an action decision nor any CapabilityInvocation, returns an unsupported action, or exceeds bounded field size | Reject; no synthetic cognition state or fallback action is persisted |
+| Wake-up returns only valid registered CapabilityInvocations | Accept the tool-only decision; derive `proactive_message`/`moment` for output calls or a capability/no-op action for native calls |
 | Provider failure or invalid JSON | Workflow retries; after exhaustion the source intent remains auditable and no fabricated action decision is written |
 | Autonomy paused or capability is not installed/authorized | Persist the internal cycle as `blocked`/`deferred`; do not create an external Action |
-| Capability arguments or manifest are malformed | Fail closed and persist the internal cycle without an external Action |
+| Capability arguments or Definition are malformed | Fail closed and persist the internal cycle without an external Action |
 | Proactive action has no direct conversation | Persist the internal cycle with `proactive_target_invalid`; do not create a conversation |
 | Duplicate cycle retry | Return the existing `cognition_wakeups` row and stable action/reflection IDs; do not consume another sequence |
 | Reflection has no valid candidate | Advance only its evidence watermark; do not manufacture self-model or personality changes |
@@ -325,7 +335,7 @@ PreferenceSlot {key, label, description, value_schema, value, confidence,
                 evidence_refs, revision, status, update_policy}
 capability.request({capability_key, title, description, rationale,
                     desired_contract, side_effect_class, priority,
-                    evidence_refs, idempotency_key}) -> ToolResultV1
+                    evidence_refs, idempotency_key}) -> CapabilityResult
 ```
 
 ### 3. Contracts
@@ -343,7 +353,8 @@ capability.request({capability_key, title, description, rationale,
   Fluctlight's source fact and evidence remain separate.
 - Owner review moves a request through `proposed`, `reviewing`, `accepted`,
   `rejected`, `fulfilled`, or `cancelled`. Only a manually registered and
-  preflighted CapabilityExecutor may be marked fulfilled.
+  preflighted direct `Capability` with a valid `CapabilityDefinition` may be
+  marked fulfilled.
 
 ### 4. Validation & Error Matrix
 
@@ -353,7 +364,7 @@ capability.request({capability_key, title, description, rationale,
 | Duplicate slot revision idempotency | Replay existing revision; no second state change |
 | Missing capability request fields or malformed contract | Reject tool call; no request row |
 | Same Fluctlight/tool idempotency replay | Return existing request; no duplicate request or outbox event |
-| Fulfilled request without a registered matching CapabilityExecutor | Reject review; keep status unchanged |
+| Fulfilled request without a registered matching direct Capability | Reject review; keep status unchanged |
 
 ### 5. Good/Base/Bad Cases
 
@@ -369,7 +380,7 @@ capability.request({capability_key, title, description, rationale,
 
 - Slot tests cover arbitrary keys, typed schemas, bounds, supersede, CAS,
   evidence, idempotency and projection visibility.
-- Capability request tests cover manifest exposure, source ownership, contract
+- Capability request tests cover Definition catalog exposure, source ownership, contract
   bounds, global aggregate counts, status transitions and fulfilled-version
   checks.
 
@@ -410,4 +421,77 @@ fact, reflection := persistWakeUp(assessment, stableCycleID)
 if policy.Allows(assessment.ActionType) {
 	freezeAutonomyAction(assessment, fact, tx)
 }
+```
+
+## Scenario: Goal/Intention Trigger And Outcome Closure
+
+### 1. Scope / Trigger
+
+- Trigger: a V2 Intention becomes `qualified`, a typed trigger becomes due, or
+  a primary ActionOutcome settles an Intention attempt.
+
+### 2. Signatures
+
+```text
+persistIntentionAuthorityTx(... qualified ...) -> intention.trigger intent
+IntentionTriggerWorkflow(Input{intention_id,due_at})
+ProcessIntentionTrigger(ctx,intention_id) -> pending|due|expired
+persistActionOutcomesTx(... primary outcome ...) -> IntentionAttempt settlement
+```
+
+### 3. Contracts
+
+- A qualified Intention creates one revision-scoped `intention.trigger`
+  workflow intent. A time trigger sleeps in Temporal history until `due_at`;
+  event triggers compare typed event identity; semantic triggers only react to
+  the existence of a new processed fact and never inspect keywords.
+- Trigger maturity writes one stable `agency.intention_due` fact and attempt
+  identity. That fact re-enters the ordinary Main cognition/Capability path;
+  it never executes an action directly.
+- A decision serving the due Intention must cite both Goal and Intention opaque
+  refs. The primary completed/failed/cancelled/suppressed ActionOutcome
+  mechanically settles exactly one attempt. Only a completed, Goal-bound
+  Outcome may support a Reflection V2 Goal progress proposal.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Free-form trigger/code/keyword expression | Reject; only time/event/semantic typed shapes are valid. |
+| Same trigger revision is replayed | Return the same due fact, inbox and attempt IDs. |
+| Intention expires before trigger apply | Append `expired`; create no due fact/action. |
+| Due decision omits Goal/Intention influence refs | Fail before freeze; do not execute a Capability. |
+| Failed/cancelled/suppressed Outcome | Requalify or cancel according to mechanical policy; never advance Goal progress. |
+| Same primary Outcome is replayed | Reuse the stored attempt settlement; no second revision. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a time Intention sleeps durably, emits one due fact, executes one
+  Capability, settles one attempt and later advances Goal progress from its
+  completed Outcome.
+- Base: a due cognition defers/no-ops; the attempt settles suppressed and the
+  Intention becomes eligible for later reassessment.
+- Bad: poll message text for intent keywords, execute from the timer callback,
+  or mark Goal complete because assistant prose says it succeeded.
+
+### 6. Tests Required
+
+- `TestIntentionTriggerWorkflowUsesDurableTemporalTimerBeforeActivity`.
+- `TestIntentionTriggerProductionFlowCreatesDueFactAndSettlesFromOutcome`.
+- Goal progress tests must cover completed versus failed/suppressed Outcomes,
+  criterion indexes, Goal binding, CAS and replay.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+if strings.Contains(message, "remind me") { executeAction() }
+```
+
+#### Correct
+
+```go
+due := ProcessIntentionTrigger(ctx, intentionID)
+// due writes a cognition fact; the normal Main cognition chooses the action.
 ```

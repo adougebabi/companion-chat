@@ -76,11 +76,12 @@ function mediaUrl(assetId: string) {
 
 function deliveryStatus(message: BrowserMessage): "pending" | "failed" | "sent" | "none" {
   if (message.kind !== "user") return "none";
-  if (
-    store.canRetry &&
-    store.retryTurn?.conversationId === message.conversationId &&
-    store.retryTurn.text === message.text
-  ) return "failed";
+	if (store.queuedMessageId === message.id) return "pending";
+	if (
+	  store.canRetry &&
+	  store.retryTurn?.conversationId === message.conversationId &&
+	  store.retryTurn.messageId === message.id
+	) return "failed";
   const latestUserMessage = [...store.messages].reverse().find((item) => item.kind === "user");
   return store.sending && latestUserMessage?.id === message.id ? "pending" : "sent";
 }

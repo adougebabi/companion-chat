@@ -595,13 +595,39 @@ func (a *App) EnsureVisualIdentityInitialization(ctx context.Context, fluctlight
 	if err := json.Unmarshal(raw, &persona); err != nil {
 		return "", err
 	}
+	return a.EnsureVisualIdentityInitializationWithPersona(ctx, fluctlightID, triggerType, sourceFactID, persona)
+}
+
+// EnsureVisualIdentityInitializationWithPersona consumes the resolved/frozen
+// Core Persona chosen by the Capability context. The transaction still checks
+// the live Fluctlight lifecycle before creating a durable workflow intent, but
+// it does not silently replace the decision snapshot with a second persona
+// read.
+func (a *App) EnsureVisualIdentityInitializationWithPersona(ctx context.Context, fluctlightID, triggerType, sourceFactID string, persona map[string]any) (string, error) {
+	if len(persona) == 0 {
+		return "", errors.New("visual identity persona context is required")
+	}
 	var sessionID string
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var status string
+		if err := tx.QueryRow(ctx, `SELECT status FROM public.fluctlights WHERE id=$1 FOR SHARE`, fluctlightID).Scan(&status); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrNotFound
+			}
+			return err
+		}
+		if status == "retired" {
+			return ErrNotFound
+		}
 		var err error
 		sessionID, err = a.ensureVisualIdentityInitializationTx(ctx, tx, fluctlightID, triggerType, sourceFactID, persona)
 		return err
 	})
 	return sessionID, err
+}
+
+func (a *App) EnsureVisualIdentityInitializationWithPersonaTx(ctx context.Context, tx pgx.Tx, fluctlightID, triggerType, sourceFactID string, persona map[string]any) (string, error) {
+	return a.ensureVisualIdentityInitializationTx(ctx, tx, fluctlightID, triggerType, sourceFactID, persona)
 }
 
 func (a *App) readVisualIdentity(ctx context.Context, fluctlightID string) (VisualIdentitySnapshot, error) {
@@ -737,6 +763,9 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 				return err
 			}
 			if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET status='completed',updated_at=now() WHERE id=$1`, visualIdentityAttemptID(sessionID, attempt)); err != nil {
+				return err
+			}
+			if _, err := a.settleActionOutcomeByExternalRefTx(ctx, tx, sessionID, ActionOutcomeCompleted, map[string]any{"session_id": sessionID, "asset_id": assetID, "delivery_status": "visual_identity_ready"}, ""); err != nil {
 				return err
 			}
 			if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, visualIdentityAttemptID(sessionID, attempt), fluctlightID, visualIdentityStageCharacterReady, "completed", "character sheet 已生成", []string{assetID}, nil, "visual_identity:"+sessionID); err != nil {

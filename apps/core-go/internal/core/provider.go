@@ -121,12 +121,12 @@ func (p *ProviderClient) complete(ctx context.Context, role string, messages []m
 // normalized into ProviderCompletion before the application sees them. The
 // request always asks for the operation's strict JSON Schema; the cognitive
 // assessment default additionally enables the provider's thinking mode.
-func (p *ProviderClient) StructuredWithTools(ctx context.Context, role string, messages []map[string]any, manifests []CapabilityManifest) (ProviderCompletion, error) {
-	return p.completeWithTools(ctx, role, messages, true, manifests)
+func (p *ProviderClient) StructuredWithTools(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition) (ProviderCompletion, error) {
+	return p.completeWithTools(ctx, role, messages, true, definitions)
 }
 
-func (p *ProviderClient) completeWithTools(ctx context.Context, role string, messages []map[string]any, jsonMode bool, manifests []CapabilityManifest) (ProviderCompletion, error) {
-	return p.completeWithToolsSchema(ctx, role, messages, jsonMode, manifests, "", nil, role == "cognitive_assessment")
+func (p *ProviderClient) completeWithTools(ctx context.Context, role string, messages []map[string]any, jsonMode bool, definitions []CapabilityDefinition) (ProviderCompletion, error) {
+	return p.completeWithToolsSchema(ctx, role, messages, jsonMode, definitions, "", nil, role == "cognitive_assessment")
 }
 
 func (p *ProviderClient) StructuredWithSchema(ctx context.Context, role string, messages []map[string]any, schemaName string, schema map[string]any, enableThinking bool) (map[string]any, error) {
@@ -140,11 +140,11 @@ func (p *ProviderClient) StructuredWithSchema(ctx context.Context, role string, 
 	return completion.Structured, nil
 }
 
-func (p *ProviderClient) StructuredWithToolsSchema(ctx context.Context, role string, messages []map[string]any, manifests []CapabilityManifest, schemaName string, schema map[string]any, enableThinking bool) (ProviderCompletion, error) {
-	return p.completeWithToolsSchema(ctx, role, messages, true, manifests, schemaName, schema, enableThinking)
+func (p *ProviderClient) StructuredWithToolsSchema(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool) (ProviderCompletion, error) {
+	return p.completeWithToolsSchema(ctx, role, messages, true, definitions, schemaName, schema, enableThinking)
 }
 
-func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role string, messages []map[string]any, jsonMode bool, manifests []CapabilityManifest, schemaName string, schema map[string]any, enableThinking bool) (ProviderCompletion, error) {
+func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role string, messages []map[string]any, jsonMode bool, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool) (ProviderCompletion, error) {
 	assignment, err := p.assignment(ctx, role)
 	if err != nil {
 		return ProviderCompletion{}, err
@@ -161,7 +161,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 		correlationID = diagnosticCorrelation(messages, "")
 	}
 	providerRequestID := "provider:" + stableDigest(role+":"+correlationID)
-	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, manifests, role, schemaName, schema, enableThinking)
+	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, definitions, role, schemaName, schema, enableThinking)
 	structuredSchema := schema
 	if structuredSchema == nil {
 		structuredSchema = providerSchemaForRole(role)
@@ -274,11 +274,11 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_content_empty")
 			return ProviderCompletion{}, fmt.Errorf("provider response content is empty")
 		}
-		if jsonMode || len(manifests) > 0 {
+		if jsonMode || len(definitions) > 0 {
 			if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
 				completion.Structured, normalizedFields = normalizeProviderStructured(structured, normalizationSchemaName, structuredSchema)
 				logStructuredNormalization(role, schemaName, normalizedFields, 0, len(structuredCandidates), false, message)
-				if len(manifests) > 0 {
+				if len(definitions) > 0 {
 					logToolCallShapeNormalization(role, schemaName, "structured", structured["tool_calls"])
 					calls, callErr := NormalizeProviderToolCalls(completion.Structured["tool_calls"], "", providerRequestID)
 					if callErr != nil {
@@ -517,23 +517,24 @@ func providerResponseDiagnostic(message map[string]any, candidates []string, too
 	return result
 }
 
-func providerChatPayload(model string, messages []map[string]any, tokenBudget int, jsonMode bool, manifests []CapabilityManifest) map[string]any {
-	return providerChatPayloadForRole(model, messages, tokenBudget, jsonMode, manifests, "")
+func providerChatPayload(model string, messages []map[string]any, tokenBudget int, jsonMode bool, definitions []CapabilityDefinition) map[string]any {
+	return providerChatPayloadForRole(model, messages, tokenBudget, jsonMode, definitions, "")
 }
 
-func providerChatPayloadForRole(model string, messages []map[string]any, tokenBudget int, jsonMode bool, manifests []CapabilityManifest, role string) map[string]any {
-	return providerChatPayloadWithSchema(model, messages, tokenBudget, jsonMode, manifests, role, "", nil, role == "cognitive_assessment")
+func providerChatPayloadForRole(model string, messages []map[string]any, tokenBudget int, jsonMode bool, definitions []CapabilityDefinition, role string) map[string]any {
+	return providerChatPayloadWithSchema(model, messages, tokenBudget, jsonMode, definitions, role, "", nil, role == "cognitive_assessment")
 }
 
-func providerChatPayloadWithSchema(model string, messages []map[string]any, tokenBudget int, jsonMode bool, manifests []CapabilityManifest, role, schemaName string, schema map[string]any, enableThinking bool) map[string]any {
+func providerChatPayloadWithSchema(model string, messages []map[string]any, tokenBudget int, jsonMode bool, definitions []CapabilityDefinition, role, schemaName string, schema map[string]any, enableThinking bool) map[string]any {
+	definitionList := definitions
 	payload := map[string]any{
 		"model":       model,
 		"messages":    messages,
 		"temperature": 0.7,
 		"stream":      false,
 	}
-	if len(manifests) > 0 {
-		payload["tools"] = ToolCallPayload(manifests)
+	if len(definitionList) > 0 {
+		payload["tools"] = RenderCapabilityTools(definitionList)
 		payload["tool_choice"] = "auto"
 		if jsonMode {
 			payload["response_format"] = providerResponseFormatForSchema(role, schemaName, schema)
@@ -585,7 +586,7 @@ func providerSchemaForRole(role string) map[string]any {
 	case "initialization":
 		return initializationResponseSchema()
 	case "reflection":
-		return reflectionResponseSchema()
+		return reflectionProposalV2ProviderSchema()
 	case "visual_identity_vision":
 		return visualIdentityVisionResponseSchema()
 	case "visual_identity_patch":
@@ -724,6 +725,13 @@ func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []floa
 	if err != nil {
 		return "", nil, err
 	}
+	return p.embedWithAssignment(ctx, text, assignment)
+}
+
+func (p *ProviderClient) embedWithAssignment(ctx context.Context, text string, assignment providerAssignment) (string, []float64, error) {
+	if assignment.Role != "embedding" || strings.TrimSpace(assignment.EndpointID) == "" || strings.TrimSpace(assignment.ModelID) == "" || strings.TrimSpace(assignment.BaseURL) == "" {
+		return "", nil, errors.New("embedding_assignment_invalid")
+	}
 	correlationID := "embedding:" + stableDigest(assignment.ModelID+":"+text)
 	body, err := json.Marshal(map[string]any{"model": assignment.ModelID, "input": []string{text}, "encoding_format": "float"})
 	if err != nil {
@@ -797,4 +805,24 @@ func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []floa
 		}{model: assignment.ModelID, vector: envelope.Data[0].Embedding}, nil
 	})
 	return queuedResult.model, queuedResult.vector, queuedErr
+}
+
+func (p *ProviderClient) embeddingAssignmentByID(ctx context.Context, endpointID, modelID string) (providerAssignment, error) {
+	endpointID = strings.TrimSpace(endpointID)
+	modelID = strings.TrimSpace(modelID)
+	if endpointID == "" || modelID == "" {
+		return providerAssignment{}, errors.New("embedding_assignment_identity_invalid")
+	}
+	var baseURL, purpose, capabilityStatus string
+	if err := p.DB.Pool().QueryRow(ctx, `SELECT base_url,secret_purpose,capability_status FROM public.provider_endpoints WHERE id=$1`, endpointID).Scan(&baseURL, &purpose, &capabilityStatus); err != nil {
+		return providerAssignment{}, err
+	}
+	if strings.EqualFold(capabilityStatus, "failed") {
+		return providerAssignment{}, errors.New("embedding_assignment_preflight_failed")
+	}
+	secret, err := p.secret(ctx, purpose)
+	if err != nil {
+		return providerAssignment{}, err
+	}
+	return providerAssignment{Role: "embedding", EndpointID: endpointID, BaseURL: strings.TrimRight(baseURL, "/"), ModelID: modelID, Secret: secret, Timeout: 120 * time.Second}, nil
 }

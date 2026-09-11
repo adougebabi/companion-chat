@@ -522,3 +522,71 @@ go func() {
 workflow.ExecuteActivity(ctx, ProcessWakeUpActivity, input).Get(ctx, &result)
 return result, nil // Core schedules the Redis quiet-period hint after commit
 ```
+
+## Scenario: Intention Trigger Workflow
+
+### 1. Scope / Trigger
+
+- Trigger: an Intention authority revision enters `qualified` with a closed
+  time, event or semantic trigger.
+
+### 2. Signatures
+
+```text
+intent_type: intention.trigger
+task_queue: lifecycle
+payload: {intent_id,fluctlight_id,intention_id,intention_ref,intention_revision,trigger_type,due_at?}
+workflow: IntentionTriggerWorkflow -> ProcessIntentionTriggerActivity
+```
+
+### 3. Contracts
+
+- The intent/workflow ID includes Intention entity and revision, so trigger
+  edits cannot reuse stale history. Pause/cancel/complete/expire requests mark
+  still-active trigger intents `cancel_requested`.
+- Time waits use `workflow.Sleep`, not process timers. Event/semantic monitors
+  use bounded Continue-As-New polling until a processed fact newer than the
+  Intention revision exists; Core performs the typed match and writes the due
+  fact transactionally.
+- Worker registry, management runtime and committed-intent dispatcher all map
+  `intention.trigger` to the lifecycle queue. No other workflow runtime owns it.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Missing `intention_id` or malformed `due_at` | Workflow fails with bounded validation error; no due fact. |
+| Timer not yet due | Temporal history waits; Activity is not called early. |
+| No new event/semantic fact | Return `pending`, wait one minute, Continue-As-New. |
+| Duplicate dispatch/start | Stable workflow ID and due-fact identity suppress duplicates. |
+| Domain status no longer qualified/due | Complete without action and preserve authority history. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: Worker restart replays the timer and executes the same trigger
+  Activity once at or after `due_at`.
+- Base: an event monitor observes no new fact and continues with bounded
+  history.
+- Bad: use `time.After`, Redis TTL or in-memory polling as trigger authority.
+
+### 6. Tests Required
+
+- Temporal tests assert timer ordering, registration, dispatch mapping and
+  Continue-As-New behavior.
+- PostgreSQL tests assert qualified-intent workflow intent creation, due-fact
+  replay, expiration and outcome settlement.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+time.AfterFunc(delay, func() { app.ProcessIntentionTrigger(ctx, id) })
+```
+
+#### Correct
+
+```go
+workflow.Sleep(ctx, delay)
+workflow.ExecuteActivity(ctx, ProcessIntentionTriggerActivity, input)
+```

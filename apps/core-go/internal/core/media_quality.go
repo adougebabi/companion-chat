@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 const (
@@ -236,21 +238,23 @@ func (a *App) prepareMediaQualityRetry(ctx context.Context, intentID, providerJo
 }
 
 func (a *App) rejectMediaQuality(ctx context.Context, intentID, providerJobID, candidateSHA string) error {
-	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET quality_verdict='reject',quality_candidate_sha256=$2,quality_checked_at=now(),status='failed',revision=revision+1 WHERE id=$1 AND provider_job_id=$3 AND status='running'`, intentID, candidateSHA, providerJobID)
-	if err != nil {
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		command, err := tx.Exec(ctx, `UPDATE public.media_intents SET quality_verdict='reject',quality_candidate_sha256=$2,quality_checked_at=now(),status='failed',revision=revision+1 WHERE id=$1 AND provider_job_id=$3 AND status='running'`, intentID, candidateSHA, providerJobID)
+		if err != nil {
+			return err
+		}
+		if command.RowsAffected() != 1 {
+			var status, verdict string
+			if err := tx.QueryRow(ctx, `SELECT status,COALESCE(quality_verdict,'') FROM public.media_intents WHERE id=$1`, intentID).Scan(&status, &verdict); err != nil {
+				return err
+			}
+			if status != "failed" || verdict != mediaQualityVerdictReject {
+				return errors.New("media quality reject cannot be persisted")
+			}
+		}
+		_, err = a.settleActionOutcomeByExternalRefTx(ctx, tx, intentID, ActionOutcomeFailed, map[string]any{"media_intent_id": intentID, "status": "failed", "reason_code": "media_quality_rejected"}, "media_quality_rejected")
 		return err
-	}
-	if command.RowsAffected() == 1 {
-		return nil
-	}
-	var status, verdict string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,COALESCE(quality_verdict,'') FROM public.media_intents WHERE id=$1`, intentID).Scan(&status, &verdict); err != nil {
-		return err
-	}
-	if status == "failed" && verdict == mediaQualityVerdictReject {
-		return nil
-	}
-	return errors.New("media quality reject cannot be persisted")
+	})
 }
 
 func mediaQualityInfrastructureReason(err error) string {

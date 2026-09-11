@@ -94,6 +94,7 @@ func TestEnqueueTurnFactClaimedReplaysCommittedAssistant(t *testing.T) {
 		fluctlightID,
 		jsonBytes(map[string]any{"actor_id": actorID, "conversation_id": conversationID, "turn_id": turnID, "text": "test"}),
 		"turn:"+turnID,
+		"turn:"+turnID,
 		idempotencyKey,
 		claimOwner,
 	)

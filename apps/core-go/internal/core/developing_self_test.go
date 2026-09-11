@@ -73,7 +73,7 @@ func TestValidInitializationUsesLayeredContract(t *testing.T) {
 }
 
 func TestLayeredContractsDoNotExposeLegacyAutomaticPersonalityTargets(t *testing.T) {
-	reflection := reflectionResponseSchema()
+	reflection := reflectionProposalV2ProviderSchema()
 	for _, key := range []string{"personality_candidates", "self_model_candidates"} {
 		if containsSchemaRequired(reflection, key) {
 			t.Fatalf("legacy reflection key %q is still required", key)

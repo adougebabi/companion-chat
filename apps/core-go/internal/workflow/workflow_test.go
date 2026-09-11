@@ -93,6 +93,24 @@ func TestDailyReviewNeedsRetryWhenScheduleIsPending(t *testing.T) {
 	}
 }
 
+func TestIntentionTriggerWorkflowUsesDurableTemporalTimerBeforeActivity(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	dueAt := env.Now().Add(2 * time.Minute).UTC()
+	activityAt := time.Time{}
+	env.OnActivity(ProcessIntentionTriggerActivity, mock.Anything, mock.Anything).Return(func(context.Context, Input) (map[string]any, error) {
+		activityAt = env.Now()
+		return map[string]any{"status": "due", "intention_id": "intention-1"}, nil
+	})
+	env.ExecuteWorkflow(IntentionTriggerWorkflow, Input{IntentionID: "intention-1", DueAt: dueAt.Format(time.RFC3339Nano)})
+	if err := env.GetWorkflowError(); err != nil {
+		t.Fatal(err)
+	}
+	if activityAt.Before(dueAt) {
+		t.Fatalf("Intention trigger activity ran before durable timer: activity=%s due=%s", activityAt, dueAt)
+	}
+}
+
 func TestMediaWorkflowContinuesOneQualityRetry(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	env := suite.NewTestWorkflowEnvironment()

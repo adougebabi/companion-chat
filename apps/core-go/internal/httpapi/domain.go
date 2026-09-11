@@ -424,7 +424,11 @@ func (s *Server) cancelEvent(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	if err := s.app.CancelLifeEvent(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("eventID")); err != nil {
+	body, valid := s.body(w, r)
+	if !valid {
+		return
+	}
+	if _, err := s.app.CancelLifeEvent(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("eventID"), body); err != nil {
 		s.opError(w, err, "life_event_cancel_failed")
 		return
 	}
@@ -455,7 +459,7 @@ func (s *Server) cancelSchedule(w http.ResponseWriter, r *http.Request) {
 	if !valid {
 		return
 	}
-	if err := s.app.CancelScheduleExpected(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("scheduleID"), expected(body, "expected_revision")); err != nil {
+	if _, err := s.app.CancelScheduleExpected(r.Context(), actor, r.PathValue("fluctlightID"), r.PathValue("scheduleID"), body); err != nil {
 		s.opError(w, err, "schedule_cancel_failed")
 		return
 	}

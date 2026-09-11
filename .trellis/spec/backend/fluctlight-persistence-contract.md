@@ -161,6 +161,18 @@ tables: `fluctlights`, `fluctlight_foundation_revisions`,
 - Actor audit fields reference `public.actors`; PAD/momentum ranges are
   bounded in code and PostgreSQL constraints. Domain contracts do not expose
   SQLAlchemy rows.
+- The current local migration chain is
+  `0026_capability_runtime -> 0027_project_health_evolution -> 0028_affect_canonical -> 0029_memory_lifecycle -> 0030_life_context_revision -> 0031_evolution_authority`.
+  `0027` and `0028` are digest-frozen; `0028` owns AffectProfile backfill/reconciliation,
+  complete PAD/momentum/Drive/Profile constraints, and the unique
+  `(fluctlight_id,source_event_id)` state-transition boundary. `0029` adds
+  Memory canonical identity, full revisions/governance, audited repair,
+  embedding tuple/binding constraints and operation-aware retrieval indexes;
+  it never rewrites Memory history. `0030` and `0031` are clean-start cutovers:
+  any existing business authority blocks the upgrade and requires explicit
+  database rebuild; neither revision backfills or reinterprets active/completed
+  business rows. A failure in a later revision rolls back its schema effects
+  and ledger together.
 
 ### 4. Validation & Error Matrix
 
@@ -172,6 +184,12 @@ tables: `fluctlights`, `fluctlight_foundation_revisions`,
 | Retirement audit points to a synthetic/nonexistent revision | Reject/rollback; governance must reference a real accepted revision. |
 | Intention references a Goal owned by another Fluctlight | Reject before insert. |
 | PAD/momentum/normalized JSON value is non-finite or outside its canonical range | Reject in value object and database constraint. |
+| Required PAD/Profile JSON key is omitted after `0028` | PostgreSQL constraint rejects the write; `CHECK NULL` must not count as valid. |
+| `0028` preflight fails after an `0026` start | Roll back `0027` effects and keep the ledger at `0026`. |
+| `0029` sees pre-lifecycle/unverifiably repaired Memory, duplicate identity, malformed embedding/active intent | Roll back all `0029` schema effects and keep the ledger at `0028`. |
+| `0030` or `0031` sees any pre-cutover business authority | Reject clean-start cutover; preserve the previous ledger/schema and require explicit rebuild. |
+| `0031` Goal/Intention/Reflection/evolution row violates closed replay/CAS authority | Abort the owning transaction; never store `null` where an authority JSON array is required. |
+| Ledger head contains surrounding whitespace | Reject the noncanonical ledger; never insert a second head. |
 
 ### 5. Good / Base / Bad Cases
 
@@ -189,6 +207,18 @@ tables: `fluctlights`, `fluctlight_foundation_revisions`,
   optional timestamps, lifecycle metadata, stale CAS, and idempotency replay.
 - Run migration SQL/real-PostgreSQL checks for actor FKs, composite Goal
   ownership, JSON numeric checks, empty-to-head, and `0002`-to-head upgrade.
+- Run isolated PostgreSQL routes for `0026→0027→0028`, `0027→0028`, malformed
+  rollback, required-key/typed-Drive constraints, rerun idempotency, and
+  noncanonical ledger rejection. Mutation tests create and delete their own
+  randomly named database instead of writing to the supplied database.
+- Run isolated PostgreSQL routes for empty and explicitly repaired
+  `0028→0029`, rerun idempotency, unverifiable repair, duplicate active
+  canonical key/revision/embedding tuple, malformed durable `working` Memory,
+  malformed active embedding intent, post-cutover constraints and ledger rollback.
+- Run isolated PostgreSQL routes for empty `0029→0030→0031`, direct empty
+  `0030→0031`, nonempty-business rejection, deferred replay-ready constraints,
+  head rerun, transaction rollback, Goal/Intention CAS, Reflection watermark,
+  overlay persistence and process-restart replay.
 - Assert assessment revision increments once even when elapsed wall-time decay
   is applied, and requested/applied audit includes mood and drive fields.
 

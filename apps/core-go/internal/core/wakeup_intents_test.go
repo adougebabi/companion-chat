@@ -21,7 +21,8 @@ func TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight(t *testing.T) {
 	}
 	defer pool.Close()
 
-	fluctlightID := "test-wakeup-intent-" + stableDigest(t.Name())
+	fixtureKey := stableDigest(t.Name() + time.Now().UTC().Format(time.RFC3339Nano))
+	fluctlightID := "test-wakeup-intent-" + fixtureKey
 	intentID := "wake_up_intent:" + fluctlightID
 	location, err := time.LoadLocation("Asia/Shanghai")
 	if err != nil {
@@ -37,17 +38,21 @@ func TestEnsureWakeUpIntentsRepairsExistingLiveFluctlight(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	scheduleID := "test-schedule-" + fixtureKey
+	scheduleResult := jsonBytes(map[string]any{"id": scheduleID, "status": "accepted", "revision": 1, "expected_context_revision": "life_ctx_before", "resulting_context_revision": "life_ctx_after", "replayed": false})
 	_, err = pool.Exec(ctx, `
-		INSERT INTO public.life_schedules(id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision)
-		VALUES($1,$2,$3,'Asia/Shanghai','accepted','test','[]',1)
-		ON CONFLICT (id) DO NOTHING`, "test-schedule-"+stableDigest(t.Name()), fluctlightID, localDate)
+		INSERT INTO public.life_schedules(id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision,idempotency_key,request_digest,result)
+		VALUES($1,$2,$3,'Asia/Shanghai','accepted','test','[]',1,$1,$4,$5)
+		ON CONFLICT (id) DO NOTHING`, scheduleID, fluctlightID, localDate, stableDigest(scheduleID), scheduleResult)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		_, _ = pool.Exec(ctx, `DELETE FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID)
-		_, _ = pool.Exec(ctx, `DELETE FROM public.life_schedules WHERE fluctlight_id=$1`, fluctlightID)
-		_, _ = pool.Exec(ctx, `DELETE FROM public.fluctlights WHERE id=$1`, fluctlightID)
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, _ = pool.Exec(cleanupCtx, `DELETE FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID)
+		_, _ = pool.Exec(cleanupCtx, `DELETE FROM public.life_schedules WHERE fluctlight_id=$1`, fluctlightID)
+		_, _ = pool.Exec(cleanupCtx, `DELETE FROM public.fluctlights WHERE id=$1`, fluctlightID)
 	})
 
 	app := &App{DB: &PostgresRepository{pool: pool}}

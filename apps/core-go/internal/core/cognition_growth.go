@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -16,10 +18,16 @@ func normalizeAppraisal(value any) (map[string]any, error) {
 	if len(appraisal) == 0 {
 		return nil, errors.New("appraisal_required")
 	}
-	result := make(map[string]any, len(appraisal))
-	for key, raw := range appraisal {
-		result[key] = raw
+	allowed := map[string]struct{}{"evidence_refs": {}, "event_kind": {}, "direction": {}, "drive_signals": {}}
+	for _, field := range appraisalFields {
+		allowed[field] = struct{}{}
 	}
+	for key := range appraisal {
+		if _, ok := allowed[key]; !ok {
+			return nil, fmt.Errorf("appraisal_field_%s_forbidden", key)
+		}
+	}
+	result := make(map[string]any, len(allowed))
 	for _, field := range appraisalFields {
 		parsed, err := requiredBoundedNumber(appraisal[field])
 		if err != nil {
@@ -53,10 +61,16 @@ func normalizeAppraisal(value any) (map[string]any, error) {
 	if direction := stringValue(appraisal["direction"]); direction != "" {
 		result["direction"] = direction
 	}
+	if driveSignals, exists := appraisal["drive_signals"]; exists {
+		result["drive_signals"] = driveSignals
+	}
 	return result, nil
 }
 
 func clampGrowth(value float64) float64 {
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		return 0
+	}
 	if value < -0.1 {
 		return -0.1
 	}
@@ -67,6 +81,9 @@ func clampGrowth(value float64) float64 {
 }
 
 func clampUnit(value float64) float64 {
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		return 0
+	}
 	if value < 0 {
 		return 0
 	}
@@ -77,40 +94,16 @@ func clampUnit(value float64) float64 {
 }
 
 func reduceInternalDynamics(current map[string]any, appraisal map[string]any) (map[string]any, map[string]any, map[string]any) {
-	result := map[string]any{}
-	for key, value := range current {
-		result[key] = value
-	}
-	pad := cloneMap(mapValue(current["pad"]))
-	mood := cloneMap(mapValue(current["mood"]))
-	momentum := cloneMap(mapValue(current["momentum"]))
-	regulation := cloneMap(mapValue(current["regulation"]))
-	for key, value := range pad {
-		if number, ok := numberFloat(value); ok {
-			pad[key] = clampUnit(number)
-		}
-	}
-	for key, value := range mood {
-		if number, ok := numberFloat(value); ok {
-			mood[key] = clampUnit(number)
-		}
-	}
-	for key, value := range momentum {
-		if number, ok := numberFloat(value); ok {
-			momentum[key] = clampUnit(number)
-		}
-	}
-	for key, value := range regulation {
-		if number, ok := numberFloat(value); ok {
-			regulation[key] = clampUnit(number)
-		}
-	}
+	return reduceInternalDynamicsWithProfile(current, appraisal, defaultAffectProfile(), nil, time.Now().UTC())
+}
+
+func reduceInternalDynamicsWithProfile(current map[string]any, appraisal map[string]any, profile AffectProfile, drives []driveSemanticSignal, at time.Time) (map[string]any, map[string]any, map[string]any) {
 	reward := numberOrZero(appraisal["reward"])
 	loss := numberOrZero(appraisal["loss"])
 	threat := numberOrZero(appraisal["social_threat"])
 	controllability := numberOrZero(appraisal["controllability"])
 	expectedEffect := numberOrZero(appraisal["expected_effect"])
-	requested := map[string]any{
+	requested := map[string]float64{
 		"pad.pleasure":         reward - 0.5 - loss,
 		"pad.arousal":          threat + (expectedEffect-0.5)*0.25,
 		"pad.dominance":        controllability - 0.5 - threat*0.5,
@@ -118,26 +111,7 @@ func reduceInternalDynamics(current map[string]any, appraisal map[string]any) (m
 		"momentum.value":       expectedEffect - 0.5,
 		"regulation.stability": controllability - 0.5,
 	}
-	applied := make(map[string]any, len(requested))
-	apply := func(target map[string]any, key, auditKey string, delta float64) {
-		before := numberOrZero(target[key])
-		bounded := clampGrowth(delta)
-		target[key] = clampUnit(before + bounded)
-		applied[auditKey] = bounded
-	}
-	apply(pad, "pleasure", "pad.pleasure", numberOrZero(requested["pad.pleasure"]))
-	apply(pad, "arousal", "pad.arousal", numberOrZero(requested["pad.arousal"]))
-	apply(pad, "dominance", "pad.dominance", numberOrZero(requested["pad.dominance"]))
-	apply(mood, "intensity", "mood.intensity", numberOrZero(requested["mood.intensity"]))
-	apply(momentum, "value", "momentum.value", numberOrZero(requested["momentum.value"]))
-	apply(regulation, "stability", "regulation.stability", numberOrZero(requested["regulation.stability"]))
-	result["pad"] = pad
-	result["mood"] = mood
-	result["momentum"] = momentum
-	result["regulation"] = regulation
-	result["revision"] = int(numberOrZero(current["revision"])) + 1
-	result["last_updated_at"] = time.Now().UTC().Format(time.RFC3339Nano)
-	return result, requested, applied
+	return reduceAffectState(current, profile, affectReductionInput{Requested: requested, Drives: drives, Source: "appraisal"}, at)
 }
 
 func numberOrZero(value any) float64 {
@@ -156,8 +130,11 @@ func cloneMap(value map[string]any) map[string]any {
 	return decodeObject(jsonBytes(value))
 }
 
-func (a *App) persistCognitiveStagesTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID string, assessment map[string]any, actionType, actionID string) (map[string]any, error) {
+func (a *App) persistCognitiveStagesTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID string, assessment map[string]any, actionType, actionID string, expectedRevision int) (map[string]any, error) {
 	stages := cognitiveStagePayload(assessment)
+	if err := validateFrozenDecisionInfluences(stages); err != nil {
+		return nil, err
+	}
 	appraisal, err := normalizeAppraisal(stages["appraisal"])
 	if err != nil {
 		return nil, err
@@ -170,16 +147,54 @@ func (a *App) persistCognitiveStagesTx(ctx context.Context, tx pgx.Tx, fluctligh
 		refs = append(refs, sourceFactID)
 	}
 	appraisal["evidence_refs"] = refs
+	causality, err := frozenDecisionCausality(stages)
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range causality {
+		appraisal[key] = value
+	}
+	driveSignals, err := frozenDecisionDriveSignals(stages)
+	if err != nil {
+		return nil, err
+	}
+	if version := stringValue(stages["context_reference_version"]); version != "" {
+		appraisal["context_reference_version"] = version
+		appraisal["context_reference_index"] = stages["context_reference_index"]
+	}
 	var currentRevision int
 	var pad, mood, momentum, regulation, drives, conflicts []byte
 	var lastUpdated time.Time
 	if err := tx.QueryRow(ctx, `SELECT revision,pad,mood,momentum,regulation,drives,conflicts,last_updated_at FROM public.fluctlight_inner_states WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&currentRevision, &pad, &mood, &momentum, &regulation, &drives, &conflicts, &lastUpdated); err != nil {
 		return nil, err
 	}
+	if expectedRevision >= 0 && currentRevision != expectedRevision {
+		return nil, ErrConflict
+	}
 	current := map[string]any{"pad": decodeObject(pad), "mood": decodeObject(mood), "momentum": decodeObject(momentum), "regulation": decodeObject(regulation), "drives": decodeArray(drives), "conflicts": decodeArray(conflicts), "revision": currentRevision, "last_updated_at": lastUpdated.Format(time.RFC3339Nano)}
-	resulting, requested, applied := reduceInternalDynamics(current, appraisal)
+	var liveProfileRevision int
+	if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_affect_profiles WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&liveProfileRevision); err != nil {
+		return nil, err
+	}
+	profile, profileProjection, err := a.readAffectProfileTx(ctx, tx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	if projection, ok := contextProjectionFromValue(stages["context_projection"]); ok && len(projection.AffectProfile) > 0 {
+		if intValue(projection.AffectProfile["revision"]) != liveProfileRevision {
+			return nil, newCapabilityError("affect_profile_revision_conflict", false, ErrConflict)
+		}
+		profile, err = affectProfileFromProjection(projection.AffectProfile)
+		if err != nil {
+			return nil, err
+		}
+		profileProjection = cloneMap(projection.AffectProfile)
+	}
+	current["affect_profile"] = profileProjection
+	transitionAt := time.Now().UTC()
+	resulting, requested, applied := reduceInternalDynamicsWithProfile(current, appraisal, profile, driveSignals, transitionAt)
 	newRevision := currentRevision + 1
-	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_inner_states SET revision=$2,pad=$3,mood=$4,momentum=$5,regulation=$6,last_updated_at=now() WHERE fluctlight_id=$1 AND revision=$7`, fluctlightID, newRevision, jsonBytes(resulting["pad"]), jsonBytes(resulting["mood"]), jsonBytes(resulting["momentum"]), jsonBytes(resulting["regulation"]), currentRevision)
+	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_inner_states SET revision=$2,pad=$3,mood=$4,momentum=$5,regulation=$6,drives=$7,conflicts=$8,last_updated_at=$9 WHERE fluctlight_id=$1 AND revision=$10`, fluctlightID, newRevision, jsonBytes(resulting["pad"]), jsonBytes(resulting["mood"]), jsonBytes(resulting["momentum"]), jsonBytes(resulting["regulation"]), jsonBytes(resulting["drives"]), jsonBytes(resulting["conflicts"]), transitionAt, currentRevision)
 	if err != nil {
 		return nil, err
 	}
@@ -195,14 +210,32 @@ func (a *App) persistCognitiveStagesTx(ctx context.Context, tx pgx.Tx, fluctligh
 		return nil, err
 	}
 	dynamicsID := "dynamics_" + stableDigest(sourceFactID)
-	if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_internal_dynamics(id,fluctlight_id,source_fact_id,previous_state,resulting_state,requested_delta,applied_delta,policy_version,model_version,evidence_refs,status,revision) VALUES($1,$2,$3,$4,$5,$6,$7,'growth.reducer.v1','configured',$8,'applied',$9) ON CONFLICT DO NOTHING`, dynamicsID, fluctlightID, sourceFactID, jsonBytes(current), jsonBytes(resulting), jsonBytes(requested), jsonBytes(applied), jsonBytes(arrayValue(appraisal["evidence_refs"])), newRevision); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_internal_dynamics(id,fluctlight_id,source_fact_id,previous_state,resulting_state,requested_delta,applied_delta,policy_version,model_version,evidence_refs,status,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'configured',$9,'applied',$10) ON CONFLICT DO NOTHING`, dynamicsID, fluctlightID, sourceFactID, jsonBytes(current), jsonBytes(resulting), jsonBytes(requested), jsonBytes(applied), profile.PolicyVersion, jsonBytes(arrayValue(appraisal["evidence_refs"])), newRevision); err != nil {
 		return nil, err
 	}
 	stateRevisionID := "state_revision_" + stableDigest(sourceFactID)
-	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_state_revisions(id,fluctlight_id,source_event_id,expected_revision,resulting_revision,previous_state,resulting_state,requested_delta,applied_delta,result,reason_code,policy_version,model_version,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'applied','cognitive_growth','growth.reducer.v1','configured',$10,$11) ON CONFLICT DO NOTHING`, stateRevisionID, fluctlightID, sourceFactID, currentRevision, newRevision, jsonBytes(current), jsonBytes(resulting), jsonBytes(requested), jsonBytes(applied), jsonBytes(arrayValue(appraisal["evidence_refs"])), "state:"+sourceFactID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_state_revisions(id,fluctlight_id,source_event_id,expected_revision,resulting_revision,previous_state,resulting_state,requested_delta,applied_delta,result,reason_code,policy_version,model_version,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'applied','cognitive_growth',$10,'configured',$11,$12) ON CONFLICT DO NOTHING`, stateRevisionID, fluctlightID, sourceFactID, currentRevision, newRevision, jsonBytes(current), jsonBytes(resulting), jsonBytes(requested), jsonBytes(applied), profile.PolicyVersion, jsonBytes(arrayValue(appraisal["evidence_refs"])), "state:"+sourceFactID); err != nil {
 		return nil, err
 	}
 	return resulting, nil
+}
+
+func (a *App) applyFrozenCognitiveStagesTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID string, assessment map[string]any, actionType, actionID string, expectedRevision int) error {
+	if stringValue(cognitiveStagePayload(assessment)["cognitive_state_transition"]) == "not_proposed" {
+		return nil
+	}
+	var existing bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_appraisals WHERE source_fact_id=$1)`, sourceFactID).Scan(&existing); err != nil {
+		return err
+	}
+	if existing {
+		// Historical frozen turns may already have committed their appraisal
+		// before the unified settlement boundary existed. Preserve that audit row
+		// without applying a second state revision during recovery.
+		return nil
+	}
+	_, err := a.persistCognitiveStagesTx(ctx, tx, fluctlightID, sourceFactID, assessment, actionType, actionID, expectedRevision)
+	return err
 }
 
 func cognitiveStagePayload(value map[string]any) map[string]any {
@@ -239,61 +272,198 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,event_type,payload FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&fluctlightID, &eventType, &payload); err != nil {
 		return err
 	}
-	var existing bool
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_appraisals WHERE source_fact_id=$1)`, inboxID).Scan(&existing); err != nil {
+	factPayload := decodeObject(payload)
+	frozen, frozenFound, err := a.LoadFrozenTurn(ctx, inboxID)
+	if err != nil {
 		return err
 	}
-	if existing {
+	if frozenFound && frozen.Status == "completed" {
 		return nil
 	}
-	var ownerID string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerID); err != nil {
+	if frozenFound && frozen.Status == "failed" {
+		return errors.New("native_cognition_frozen_failed")
+	}
+	var existingAppraisal bool
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_appraisals WHERE source_fact_id=$1)`, inboxID).Scan(&existingAppraisal); err != nil {
 		return err
 	}
-	projection, err := a.BuildContextProjection(ctx, ownerID, fluctlightID, "", inboxID, "")
-	if err != nil {
-		return err
+	if existingAppraisal && !frozenFound {
+		// A pre-unified appraisal without its frozen decision cannot be safely
+		// reassessed: doing so would reinterpret a source whose state transition
+		// has already committed.
+		return errors.New("native_cognition_appraisal_without_frozen_action")
 	}
-	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "native_cognition"), "cognitive_assessment", []map[string]any{
-		{"role": "system", "content": nativeCognitionInstruction},
-		{"role": "user", "content": jsonString(map[string]any{"event_type": eventType, "fact": compactProviderFact(payload), "context": compactCognitionContext(projection)})},
-	}, capabilityManifestsExcept(a.capabilityRegistry(), "affect_event", "moment.publish", "conversation.reply"), "native_cognition_response", nativeCognitionResponseSchema(), true)
-	if err != nil {
-		return err
-	}
-	stages, err := normalizeCognitiveStages(completion.Structured)
-	if err != nil {
-		return err
-	}
-	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		_, err := a.persistCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, stages, "no_op", "")
-		return err
-	})
-}
-
-func (a *App) persistActionResult(ctx context.Context, fluctlightID, actionID, sourceFactID string, result ToolResultV1) error {
-	resultID := "action_result_" + stableDigest(actionID+":"+result.ToolCallID)
-	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var exists bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_action_results WHERE action_id=$1)`, actionID).Scan(&exists); err != nil {
+	var projection ContextProjection
+	var stages map[string]any
+	var capabilityInvocations []CapabilityInvocation
+	var capabilityResults []CapabilityResult
+	if frozenFound {
+		stages = mapValue(frozen.Payload["decision"])
+		if err := validateFrozenDecisionInfluences(stages); err != nil {
 			return err
 		}
-		if exists {
-			return nil
+		var ok bool
+		projection, ok = contextProjectionFromValue(stages["context_projection"])
+		if !ok {
+			return errors.New("native_cognition_projection_invalid")
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_action_results(id,fluctlight_id,action_id,source_fact_id,status,output,error_code,evidence_refs) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(action_id) DO NOTHING`, resultID, fluctlightID, actionID, sourceFactID, result.Status, jsonBytes(result.Output), nullableString(result.ErrorCode), jsonBytes([]any{sourceFactID})); err != nil {
-			return err
-		}
-		payload := map[string]any{"action_id": actionID, "source_fact_id": sourceFactID, "result": result}
-		factID, err := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", payload, "action-result:"+actionID)
+		capabilityInvocations, err = capabilityInvocationsFromValue(frozen.Payload["capability_invocations"])
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:action:"+actionID, "reflection:action:"+actionID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID})); err != nil {
+		capabilityResults, err = capabilityResultsFromValue(frozen.Payload["capability_results"])
+		if err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "autonomy.result.recorded", "fluctlight", fluctlightID, fluctlightID, actionID, "action-result:"+actionID, "action-result:"+actionID, payload)
+	} else {
+		var ownerID string
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerID); err != nil {
+			return err
+		}
+		projection, err = a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
+			AuthorizationActorID: ownerID, SpeakerActorID: ownerID, FluctlightID: fluctlightID,
+			SourceFactID: inboxID, MemoryOperation: MemoryForNativeCognition,
+			MemoryConversationMode: MemoryConversationGlobalOnly,
+			MemoryCues:             []MemoryQueryCue{{Kind: "native_event_type", Text: eventType}, {Kind: "native_fact", Text: jsonString(compactProviderFact(payload))}},
+		})
+		if err != nil {
+			return err
+		}
+		providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "native_cognition"), "native-cognition:"+inboxID)
+		completion, err := a.Provider.StructuredWithToolsSchema(providerCtx, "cognitive_assessment", []map[string]any{
+			{"role": "system", "content": nativeCognitionInstruction},
+			{"role": "user", "content": jsonString(map[string]any{"event_type": eventType, "fact": compactProviderFact(payload), "context": compactCognitionContext(projection)})},
+		}, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceNativeCognition), "native_cognition_response", nativeCognitionResponseSchema(), true)
+		if err != nil {
+			return err
+		}
+		stages, err = normalizeCognitiveStages(completion.Structured)
+		if err != nil {
+			return err
+		}
+		influences, err := freezeDecisionInfluences(stages, projection, false)
+		if err != nil {
+			return err
+		}
+		capabilityInvocations = append([]CapabilityInvocation(nil), completion.ToolCalls...)
+		for index := range capabilityInvocations {
+			capabilityInvocations[index] = normalizeCapabilityInvocationMetadata(capabilityInvocations[index], fluctlightID, "", inboxID, inboxID, index)
+			capabilityInvocations[index].Metadata.Surface = CapabilitySurfaceNativeCognition
+		}
+		if len(capabilityInvocations) > 0 {
+			if err := requireDecisionInfluences(influences, "native_cognition_influences_required"); err != nil {
+				return err
+			}
+		}
+		stages["capability_invocations"] = capabilityInvocations
+		stages["context_projection"] = projection
+		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, "", inboxID, "no_op", stages)
+		if err != nil {
+			return err
+		}
+		// PersistTurnDecision installs the stable ActionID and action-bound
+		// ContextSnapshot. Continue with that durable canonical invocation rather
+		// than the pre-freeze Provider envelope.
+		capabilityInvocations, err = capabilityInvocationsFromValue(frozen.Payload["capability_invocations"])
+		if err != nil {
+			return err
+		}
+	}
+	if eventType == intentionDueFactType {
+		goalRef := strings.TrimSpace(stringValue(factPayload["goal_ref"]))
+		intentionRef := strings.TrimSpace(stringValue(factPayload["intention_ref"]))
+		if goalRef == "" || intentionRef == "" || !containsString(decisionServiceRefValues(stages["goal_refs"]), goalRef) || !containsString(decisionServiceRefValues(stages["intention_refs"]), intentionRef) {
+			return errors.New("intention_due_service_influences_required")
+		}
+	}
+	for index := range capabilityInvocations {
+		capabilityInvocations[index].ActionID = frozen.ID
+		capabilityInvocations[index].Metadata.Surface = CapabilitySurfaceNativeCognition
+	}
+	capabilityInvocations, err = a.prepareCapabilityInvocations(ctx, fluctlightID, "", inboxID, capabilityInvocations, capabilityResults)
+	if err != nil {
+		code, retryable := capabilityErrorInfo(err, "capability_prepare_failed", true)
+		if errors.Is(err, ErrCapabilityNotFound) || errors.Is(err, ErrInvalidArguments) {
+			retryable = false
+		}
+		if !retryable {
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
+		}
+		return err
+	}
+	if err := a.persistFrozenCapabilityInvocations(ctx, frozen.ID, capabilityInvocations); err != nil {
+		return err
+	}
+	capabilityResults, err = a.planCapabilitiesForTransaction(ctx, fluctlightID, "", inboxID, capabilityInvocations, capabilityResults)
+	if err != nil {
+		if len(capabilityResults) > 0 {
+			_ = a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults)
+		}
+		code, retryable := capabilityFailureInfo(err, capabilityResults, capabilityInvocations, a.capabilityRegistry(), "capability_plan_failed")
+		if !retryable {
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
+		}
+		return err
+	}
+	reflectionDelay := a.reflectionDelay(ctx)
+	nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
+	settlement := map[string]any{"status": "completed", "capability_results": capabilityResults}
+	if eventType == intentionDueFactType && len(capabilityInvocations) == 0 {
+		settlement["status"] = "suppressed"
+		settlement["reason_code"] = "intention_deferred"
+	}
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, projection.ContextRevision, projection.CurrentStateRevision, projection.LifeContextRevision, time.Now().UTC()); err != nil {
+			return err
+		}
+		if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, stages, "no_op", frozen.ID, frozen.StateRev); err != nil {
+			return err
+		}
+		settled, settleErr := a.settleDeferredCapabilitiesTx(ctx, tx, fluctlightID, inboxID, frozen.ID, capabilityInvocations, capabilityResults, OutputBindingV1{TargetKind: "wake_up", TargetRef: frozen.ID})
+		if settleErr != nil {
+			return settleErr
+		}
+		capabilityResults = settled
+		if requiredErr := requiredCapabilityFailureCanonical(capabilityResults, capabilityInvocations, a.capabilityRegistry(), true); requiredErr != nil {
+			return requiredErr
+		}
+		if err := a.persistFrozenCapabilityInvocationsTx(ctx, tx, frozen.ID, capabilityInvocations); err != nil {
+			return err
+		}
+		command, err := tx.Exec(ctx, `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(payload,'{capability_results}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, frozen.ID, jsonBytes(capabilityResults))
+		if err != nil {
+			return err
+		}
+		if command.RowsAffected() != 1 {
+			return ErrConflict
+		}
+		settlement["capability_results"] = capabilityResults
+		_, err = a.completeTurnCognitionTx(ctx, tx, inboxID, frozen.ID, settlement, nextReflectionAt)
+		return err
 	})
+	if err != nil {
+		if len(capabilityInvocations) > 0 {
+			capabilityResults = capabilityResultsAfterSettlementFailure(capabilityResults, capabilityInvocations, a.capabilityRegistry(), "capability_settlement_failed")
+			_ = a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults)
+		}
+		code, retryable := capabilityFailureInfo(err, capabilityResults, capabilityInvocations, a.capabilityRegistry(), "native_cognition_settlement_failed")
+		if errors.Is(err, ErrLifeContextStale) {
+			code = "life_context_stale"
+			retryable = false
+		}
+		if errors.Is(err, ErrConflict) {
+			if code == "native_cognition_settlement_failed" {
+				code = "native_cognition_state_conflict"
+			}
+			retryable = false
+		}
+		if !retryable {
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
+		}
+		return err
+	}
+	a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+	return nil
 }
 
 func appendProcessedCognitionFactTx(ctx context.Context, tx pgx.Tx, fluctlightID, eventType string, payload map[string]any, idempotency string) (string, error) {

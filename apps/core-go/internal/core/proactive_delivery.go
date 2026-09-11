@@ -53,3 +53,36 @@ func recentExactAssistantMessageTx(ctx context.Context, tx pgx.Tx, conversationI
 	}
 	return messageID, true, nil
 }
+
+// recentExactAssistantMessage is a non-locking preflight used to avoid
+// executing immediate capability side effects for a delivery that is already
+// present. The transaction-scoped check remains authoritative and closes the
+// race with another delivery; this preflight only prevents needless work on
+// the common replay path.
+func recentExactAssistantMessage(ctx context.Context, db *PostgresRepository, conversationID, actorID, text string, window time.Duration) (string, bool, error) {
+	if db == nil || db.Pool() == nil || conversationID == "" || actorID == "" || text == "" {
+		return "", false, nil
+	}
+	if window <= 0 {
+		window = proactiveMessageDuplicateWindow
+	}
+	var messageID string
+	err := db.Pool().QueryRow(ctx, `
+		SELECT id
+		FROM public.conversation_messages
+		WHERE conversation_id=$1
+		  AND author_actor_id=$2
+		  AND kind='assistant'
+		  AND text=$3
+		  AND created_at >= now() - ($4::double precision * interval '1 second')
+		ORDER BY created_at DESC, id DESC
+		LIMIT 1
+	`, conversationID, actorID, text, window.Seconds()).Scan(&messageID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return messageID, true, nil
+}

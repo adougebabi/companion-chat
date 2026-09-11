@@ -39,6 +39,14 @@ BrowserTurnEventV1
   committed/reviewed together; hand-written duplicate DTOs are prohibited.
 - Internal Core NDJSON is parsed incrementally across arbitrary byte/chunk boundaries, schema-validated, redacted, and mapped to browser events.
 - One browser turn has monotonic sequence and exactly one terminal event. BFF never forwards hidden assessment, Provider chunks, credentials, database rows, or workflow internals.
+- Optimistic/queued/stream drafts use a local message/turn/idempotency identity
+  and never guess an authoritative server sequence. An authoritative assistant
+  may replace only the draft bound to its own turn; it cannot match an unrelated
+  queued user bubble merely because a sequence number or text happens to match.
+- Post-stream history is merged monotonically under the request epoch. A stale
+  history response cannot erase stream-confirmed/queued messages or overwrite a
+  later selected conversation; refresh/crash recovery keeps queued text bound
+  to its original conversation until durable submission.
 - Browser disconnect/abort cancels BFF upstream read and Core request. BFF suppresses later browser writes while Core settles committed work independently.
 - BFF media route obtains a Go Core authorization grant and proxies only the granted object/version/range with bounded headers.
 - Go package boundaries organize transport/config lifecycle; the BFF is not a
@@ -64,6 +72,8 @@ BrowserTurnEventV1
 | Core returns typed domain error | Map by error code/status table; do not parse message text. |
 | Media grant expired/range mismatched | Stop proxy and return bounded media error; do not mint another grant implicitly. |
 | Core returns a successful media status without a body | Return bounded `media_unavailable`; do not panic or emit a false successful response. |
+| Older retry assistant arrives while a newer user message is queued | Reconcile by local turn identity; preserve the queued user bubble and send it under its original conversation binding. |
+| Post-stream history or previous-conversation request returns late | Epoch check and monotonic merge ignore stale regression; newer selection/messages remain authoritative. |
 | BFF code imports storage/workflow/domain internals | Architecture-test failure. |
 
 ### 5. Good / Base / Bad Cases
@@ -89,6 +99,9 @@ BrowserTurnEventV1
   header allow-list tests.
 - Architecture tests rejecting BFF imports of PostgreSQL, Redis, Temporal, Core internals, domain repositories, and semantic heuristic modules.
 - Browser tests consume generated client types and do not duplicate wire DTO definitions.
+- Conversation-delivery regressions cover successful old retry plus queued new
+  user turn, stale post-stream history, repeated text, conversation switching,
+  and authoritative Core→BFF message fields.
 
 ### 7. Wrong vs Correct
 

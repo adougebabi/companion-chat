@@ -627,7 +627,10 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		mapped := map[string]any{"kind": body["kind"], "start_at": body["startAt"], "end_at": body["endAt"], "evidence_refs": body["evidenceRefs"]}
+		mapped := map[string]any{
+			"kind": body["kind"], "start_at": body["startAt"], "end_at": body["endAt"], "evidence_refs": body["evidenceRefs"],
+			"expected_life_context_revision": body["expectedLifeContextRevision"], "idempotency_key": body["idempotencyKey"],
+		}
 		for from, to := range map[string]string{"scene": "scene", "activity": "activity", "location": "location"} {
 			if value, exists := body[from]; exists {
 				mapped[to] = value
@@ -637,7 +640,13 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if fluctlightID, eventID, ok := match2(path, "/api/fluctlights/:fluctlightId/events/:eventId/cancel"); ok && methodName == http.MethodPost {
-		s.callNoContent(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/events/"+escape(eventID)+"/cancel", http.MethodPost, map[string]any{}, 422, "life_event_cancel_failed", "Life event could not be cancelled")
+		body, valid := s.mutationBody(response, request, validateLifeEventCancel)
+		if !valid {
+			return
+		}
+		s.callNoContent(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/events/"+escape(eventID)+"/cancel", http.MethodPost, map[string]any{
+			"expected_event_revision": body["expectedEventRevision"], "expected_life_context_revision": body["expectedLifeContextRevision"], "idempotency_key": body["idempotencyKey"],
+		}, 422, "life_event_cancel_failed", "Life event could not be cancelled")
 		return
 	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/presence"); ok && methodName == http.MethodPut {
@@ -645,12 +654,15 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		mapped := map[string]any{}
+		mapped := map[string]any{"expected_life_context_revision": body["expectedLifeContextRevision"], "idempotency_key": body["idempotencyKey"]}
 		if value, exists := body["currentTask"]; exists {
 			mapped["current_task"] = value
 		}
 		if value, exists := body["userPresence"]; exists {
 			mapped["user_presence"] = value
+		}
+		if value, exists := body["expiresAt"]; exists {
+			mapped["expires_at"] = value
 		}
 		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/presence", http.MethodPut, mapped, s.readOnlyError(422, "life_presence_failed", "Presence could not be updated"), nil)
 		return
@@ -664,6 +676,9 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		for _, value := range array(body["items"]) {
 			item := objectValue(value)
 			mapped := map[string]any{"start_at": item["startAt"], "end_at": item["endAt"], "activity": item["activity"], "scene": item["scene"]}
+			if v, exists := item["location"]; exists {
+				mapped["location"] = v
+			}
 			for from, to := range map[string]string{"itemType": "item_type", "status": "status", "priority": "priority", "flexibility": "flexibility", "interruptionCost": "interruption_cost"} {
 				if v, exists := item[from]; exists {
 					mapped[to] = v
@@ -671,9 +686,10 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			}
 			items = append(items, mapped)
 		}
-		mapped := map[string]any{"local_date": body["localDate"], "timezone": body["timezone"], "items": items, "evidence_refs": body["evidenceRefs"]}
-		if value, exists := body["expectedRevision"]; exists {
-			mapped["expected_revision"] = value
+		mapped := map[string]any{
+			"local_date": body["localDate"], "timezone": body["timezone"], "items": items, "evidence_refs": body["evidenceRefs"],
+			"expected_revision": body["expectedRevision"], "expected_life_context_revision": body["expectedLifeContextRevision"],
+			"idempotency_key": body["idempotencyKey"],
 		}
 		if value, exists := body["completedBefore"]; exists {
 			mapped["completed_before"] = value
@@ -682,11 +698,13 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if fluctlightID, scheduleID, ok := match2(path, "/api/fluctlights/:fluctlightId/schedules/:scheduleId/cancel"); ok && methodName == http.MethodPost {
-		body, valid := s.mutationBody(response, request, validateExpectedRevision)
+		body, valid := s.mutationBody(response, request, validateScheduleCancel)
 		if !valid {
 			return
 		}
-		s.callNoContent(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/schedules/"+escape(scheduleID)+"/cancel", http.MethodPost, map[string]any{"expected_revision": body["expectedRevision"]}, 422, "schedule_cancel_failed", "Schedule could not be cancelled")
+		s.callNoContent(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/schedules/"+escape(scheduleID)+"/cancel", http.MethodPost, map[string]any{
+			"expected_revision": body["expectedRevision"], "expected_life_context_revision": body["expectedLifeContextRevision"], "idempotency_key": body["idempotencyKey"],
+		}, 422, "schedule_cancel_failed", "Schedule could not be cancelled")
 		return
 	}
 
@@ -1406,7 +1424,7 @@ func validateAutonomyGovernance(value map[string]any) bool {
 	return (status == "paused" || status == "deferred" || status == "cancelled") && validateString(value["reason"], 1, 1024)
 }
 func validateLifeEvent(value map[string]any) bool {
-	if !validateString(value["kind"], 1, 128) || !validateString(value["startAt"], 1, 1<<20) || !validateString(value["endAt"], 1, 1<<20) || !validateEvidence(value["evidenceRefs"]) {
+	if !validateString(value["kind"], 1, 128) || !validateString(value["startAt"], 1, 1<<20) || !validateString(value["endAt"], 1, 1<<20) || !validateEvidence(value["evidenceRefs"]) || !validateLifeContextCommandIdentity(value) {
 		return false
 	}
 	for _, key := range []string{"scene", "activity", "location"} {
@@ -1416,23 +1434,35 @@ func validateLifeEvent(value map[string]any) bool {
 	}
 	return true
 }
+func validateLifeEventCancel(value map[string]any) bool {
+	return validateInteger(value["expectedEventRevision"], 1) && validateLifeContextCommandIdentity(value)
+}
 func validatePresence(value map[string]any) bool {
+	if !validateLifeContextCommandIdentity(value) {
+		return false
+	}
 	if task, ok := value["currentTask"]; ok && !validateString(task, 0, 512) {
 		return false
 	}
 	if presence, ok := value["userPresence"]; ok && !validateString(presence, 0, 128) {
 		return false
 	}
-	return true
+	if expiresAt, ok := value["expiresAt"]; ok && !validateString(expiresAt, 1, 64) {
+		return false
+	}
+	return stringValue(value["currentTask"]) != "" || stringValue(value["userPresence"]) != ""
 }
 func validateSchedule(value map[string]any) bool {
 	items := array(value["items"])
-	if len(items) < 1 || len(items) > 128 || !validateString(value["localDate"], 10, 10) || !validateString(value["timezone"], 1, 128) || !validateEvidence(value["evidenceRefs"]) {
+	if len(items) < 1 || len(items) > 128 || !validateString(value["localDate"], 10, 10) || !validateString(value["timezone"], 1, 128) || !validateEvidence(value["evidenceRefs"]) || !validateInteger(value["expectedRevision"], 0) || !validateLifeContextCommandIdentity(value) {
 		return false
 	}
 	for _, raw := range items {
 		item := objectValue(raw)
 		if !validateString(item["startAt"], 1, 1<<20) || !validateString(item["endAt"], 1, 1<<20) || !validateString(item["activity"], 1, 128) || !validateString(item["scene"], 1, 128) {
+			return false
+		}
+		if location, exists := item["location"]; exists && !validateString(location, 0, 512) {
 			return false
 		}
 		for _, key := range []string{"priority", "flexibility", "interruptionCost"} {
@@ -1446,10 +1476,13 @@ func validateSchedule(value map[string]any) bool {
 			}
 		}
 	}
-	if v, ok := value["expectedRevision"]; ok && !validateInteger(v, 0) {
-		return false
-	}
 	return true
+}
+func validateScheduleCancel(value map[string]any) bool {
+	return validateInteger(value["expectedRevision"], 1) && validateLifeContextCommandIdentity(value)
+}
+func validateLifeContextCommandIdentity(value map[string]any) bool {
+	return validateString(value["expectedLifeContextRevision"], 1, 64) && validateString(value["idempotencyKey"], 1, 256)
 }
 func validateReaction(value map[string]any) bool {
 	if kind, ok := value["kind"]; ok {

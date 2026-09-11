@@ -4,8 +4,36 @@ import { fileURLToPath } from "node:url";
 const root = new URL("../", import.meta.url);
 const schema = JSON.parse(await readFile(new URL("openapi.json", root), "utf8"));
 const paths = Object.keys(schema.paths).sort();
+const requestTypeNames = [
+  "BrowserLifeEventRequest",
+  "BrowserLifeEventCancelRequest",
+  "BrowserPresenceRequest",
+  "BrowserScheduleItemRequest",
+  "BrowserScheduleRequest",
+  "BrowserScheduleCancelRequest",
+];
+const typeForSchema = (value) => {
+  if (value?.$ref) return value.$ref.split("/").pop();
+  if (Array.isArray(value?.anyOf)) return value.anyOf.map(typeForSchema).join(" | ");
+  if (value?.type === "string") return "string";
+  if (value?.type === "integer" || value?.type === "number") return "number";
+  if (value?.type === "boolean") return "boolean";
+  if (value?.type === "array") return `Array<${typeForSchema(value.items)}>`;
+  if (value?.type === "object" || value?.properties) {
+    const required = new Set(value.required ?? []);
+    const fields = Object.entries(value.properties ?? {}).map(([name, child]) => `${name}${required.has(name) ? "" : "?"}: ${typeForSchema(child)}`);
+    return `{ ${fields.join("; ")} }`;
+  }
+  return "unknown";
+};
+const requestTypes = requestTypeNames.map((name) => {
+  const component = schema.components?.schemas?.[name];
+  if (!component) throw new Error(`OpenAPI component ${name} is missing`);
+  return `export type ${name} = ${typeForSchema(component)};`;
+}).join("\n");
 const source = `// Generated from packages/browser-client/openapi.json. Do not edit by hand.
 export const browserOperations = ${JSON.stringify(paths)} as const;
+${requestTypes}
 export type BrowserHealth = { status: string; role: string };
 export type BrowserSession = { authenticated: boolean; actorId?: string };
 export type BrowserSetupStatus = { setupAvailable: boolean };
@@ -103,11 +131,11 @@ export class BrowserClient {
   async editRelationship(fluctlightId: string, targetActorId: string, body: { profileId?: string; expectedRevision: number; role?: Record<string, unknown>; metrics?: Record<string, unknown>; trend?: string; summary?: string; emotionalAssociation?: Record<string, unknown>; evidenceRefs: string[]; reason: string }): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/relationships/\${encodeURIComponent(targetActorId)}\`, { method: "PUT", body }) as Promise<Record<string, unknown>>; }
   async listAutonomyActions(fluctlightId: string): Promise<Array<{ id: string; action_type: string; status: string; workflow_id: string; created_at: string }>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/autonomy-actions\`) as Promise<Array<{ id: string; action_type: string; status: string; workflow_id: string; created_at: string }>>; }
   async governAutonomyAction(actionId: string, body: { status: "paused" | "deferred" | "cancelled"; reason: string }): Promise<Record<string, unknown>> { return this.json(\`/api/autonomy-actions/\${encodeURIComponent(actionId)}/govern\`, { method: "POST", body }) as Promise<Record<string, unknown>>; }
-  async createLifeEvent(fluctlightId: string, body: { kind: string; startAt: string; endAt: string; scene?: string; activity?: string; location?: string; evidenceRefs: string[] }): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/events\`, { method: "POST", body }) as Promise<Record<string, unknown>>; }
-  async cancelLifeEvent(fluctlightId: string, eventId: string): Promise<void> { await this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/events/\${encodeURIComponent(eventId)}/cancel\`, { method: "POST", body: {} }); }
-  async setLifePresence(fluctlightId: string, body: { currentTask?: string; userPresence?: string }): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/presence\`, { method: "PUT", body }) as Promise<Record<string, unknown>>; }
-  async acceptLifeSchedule(fluctlightId: string, body: { localDate: string; timezone: string; items: Array<{ startAt: string; endAt: string; activity: string; scene: string; itemType?: string; status?: string; priority?: number; flexibility?: number; interruptionCost?: number }>; evidenceRefs: string[]; expectedRevision?: number; completedBefore?: string }): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/schedules\`, { method: "POST", body }) as Promise<Record<string, unknown>>; }
-  async cancelLifeSchedule(fluctlightId: string, scheduleId: string, expectedRevision: number): Promise<void> { await this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/schedules/\${encodeURIComponent(scheduleId)}/cancel\`, { method: "POST", body: { expectedRevision } }); }
+  async createLifeEvent(fluctlightId: string, body: BrowserLifeEventRequest): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/events\`, { method: "POST", body }) as Promise<Record<string, unknown>>; }
+  async cancelLifeEvent(fluctlightId: string, eventId: string, body: BrowserLifeEventCancelRequest): Promise<void> { await this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/events/\${encodeURIComponent(eventId)}/cancel\`, { method: "POST", body }); }
+  async setLifePresence(fluctlightId: string, body: BrowserPresenceRequest): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/presence\`, { method: "PUT", body }) as Promise<Record<string, unknown>>; }
+  async acceptLifeSchedule(fluctlightId: string, body: BrowserScheduleRequest): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/schedules\`, { method: "POST", body }) as Promise<Record<string, unknown>>; }
+  async cancelLifeSchedule(fluctlightId: string, scheduleId: string, body: BrowserScheduleCancelRequest): Promise<void> { await this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/schedules/\${encodeURIComponent(scheduleId)}/cancel\`, { method: "POST", body }); }
   async listWorkflows(query = ""): Promise<Array<Record<string, unknown>>> { return this.json(\`/api/diagnostics/workflows?query=\${encodeURIComponent(query)}\`) as Promise<Array<Record<string, unknown>>>; }
   async workflowStatus(workflowId: string): Promise<Record<string, unknown>> { return this.json(\`/api/diagnostics/workflows/\${encodeURIComponent(workflowId)}/status\`) as Promise<Record<string, unknown>>; }
   async workflowHistory(workflowId: string): Promise<Record<string, unknown>> { return this.json(\`/api/diagnostics/workflows/\${encodeURIComponent(workflowId)}/history\`) as Promise<Record<string, unknown>>; }

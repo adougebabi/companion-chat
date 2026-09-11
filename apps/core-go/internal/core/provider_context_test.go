@@ -131,6 +131,74 @@ func TestCompactCognitionContextKeepsOnlyCanonicalLayersAndNonEmptyEvidence(t *t
 	}
 }
 
+func TestLifeContextProviderProjectionKeepsOpaqueAuthorityAndDropsRawRows(t *testing.T) {
+	lifeRef := "life_context:ctx_0123456789abcdef0123456789abcdef"
+	eventRef := "scene:ctx_0123456789abcdef0123456789abcdef"
+	presenceRef := "presence:ctx_0123456789abcdef0123456789abcdef"
+	scheduleRef := "schedule:ctx_0123456789abcdef0123456789abcdef"
+	itemRef := "schedule_item:ctx_0123456789abcdef0123456789abcdef"
+	life := map[string]any{
+		"ref": lifeRef, "source": "event", "authority_status": "confirmed",
+		"context_revision": "life_ctx_0123456789abcdef0123456789abcdef", "event_ref": eventRef,
+		"schedule_ref": scheduleRef, "schedule_item_ref": itemRef, "presence_ref": presenceRef,
+		"scene": "书房", "activity": "阅读", "location": "家", "timezone": "Asia/Shanghai",
+		"effective_at": "2026-09-11T08:00:00Z", "expires_at": "2026-09-11T10:00:00Z",
+		"event_id": "raw-event-id", "event_revision": 4, "schedule_id": "raw-schedule-id", "schedule_item_id": "raw-item-id",
+		"presence": map[string]any{
+			"ref": presenceRef, "id": "raw-presence-id", "actor_id": "raw-owner-id", "revision": 6,
+			"current_task": "一起阅读", "user_presence": "online",
+			"effective_at": "2026-09-11T08:10:00Z", "expires_at": "2026-09-11T09:10:00Z",
+		},
+	}
+	compact := compactCognitionContext(ContextProjection{
+		CorePersona: map[string]any{"authority": "hard_constraint", "data": map[string]any{}},
+		CurrentState: map[string]any{"authority": "transient_state", "data": map[string]any{
+			"inner_state": map[string]any{"mood": map[string]any{"label": "平静"}}, "life_context": life,
+		}},
+	})
+	encoded := string(jsonBytes(compact))
+	for _, allowed := range []string{lifeRef, eventRef, presenceRef, scheduleRef, itemRef, "life_ctx_0123456789abcdef0123456789abcdef", "2026-09-11T08:00:00Z", "2026-09-11T10:00:00Z", "2026-09-11T08:10:00Z", "2026-09-11T09:10:00Z", "一起阅读", "online", `"expected_revision":6`} {
+		if !strings.Contains(encoded, allowed) {
+			t.Fatalf("Life Context Provider projection lost %q: %s", allowed, encoded)
+		}
+	}
+	for _, forbidden := range []string{"raw-event-id", "raw-schedule-id", "raw-item-id", "raw-presence-id", "raw-owner-id", "event_revision", "actor_id"} {
+		if strings.Contains(encoded, forbidden) {
+			t.Fatalf("Life Context Provider projection leaked %q: %s", forbidden, encoded)
+		}
+	}
+}
+
+func TestDriveProviderProjectionUsesSemanticAllowlist(t *testing.T) {
+	driveRef := "drive:ctx_0123456789abcdef0123456789abcdef"
+	projection := ContextProjection{
+		CorePersona: map[string]any{"authority": "hard_constraint", "data": map[string]any{}},
+		CurrentState: map[string]any{"authority": "transient_state", "data": map[string]any{"inner_state": map[string]any{
+			"drives": []any{map[string]any{
+				"ref": driveRef, "key": "social", "label": "联结", "description": "需要互动",
+				"pressure": 0.7, "salience": 0.8, "direction": "increase", "confidence": 0.9,
+				"source": "typed_slot", "slot_id": "drive_internal", "slot_revision": 4,
+			}},
+		}}},
+		DriveSlots: []map[string]any{{
+			"ref": driveRef, "id": "drive_internal", "key": "social", "label": "联结", "description": "需要互动",
+			"value_schema": "pressure", "value": map[string]any{"pressure": 0.7, "salience": 0.8, "direction": "increase"},
+			"confidence": 0.9, "revision": 4, "provenance": map[string]any{"source_window": "private"},
+			"decay_policy": map[string]any{"half_life_seconds": 100}, "update_policy": map[string]any{"max_delta": 0.2},
+		}},
+	}
+	compact := compactCognitionContext(projection)
+	encoded := string(jsonBytes(compact))
+	for _, forbidden := range []string{"drive_internal", "slot_revision", "decay_policy", "update_policy", "source_window", "max_delta", "half_life_seconds"} {
+		if strings.Contains(encoded, forbidden) {
+			t.Fatalf("drive Provider projection leaked %q: %s", forbidden, encoded)
+		}
+	}
+	if !strings.Contains(encoded, driveRef) || !strings.Contains(encoded, `"pressure":0.7`) || !strings.Contains(encoded, `"authority":"typed_slot"`) {
+		t.Fatalf("drive semantic projection lost bounded state: %s", encoded)
+	}
+}
+
 func TestCompactScheduleForProviderAnnotatesCurrentAndUpcomingItems(t *testing.T) {
 	schedule := compactScheduleForProvider(map[string]any{
 		"local_date":       "2026-09-08",
@@ -214,8 +282,13 @@ func TestCompactCognitionContextRemovesDatabaseMetadataFromEvidence(t *testing.T
 			t.Fatalf("memory semantic field missing: %q: %#v", key, memory)
 		}
 	}
-	if memory["created_at"] != "2026-09-03T00:00:00Z" || len(arrayValue(memory["evidence_refs"])) != 1 {
-		t.Fatalf("memory grounding fields were removed: %#v", memory)
+	if memory["created_at"] != "2026-09-03T00:00:00Z" {
+		t.Fatalf("memory semantic time was removed: %#v", memory)
+	}
+	for _, key := range []string{"evidence_refs", "expected_revision"} {
+		if _, ok := memory[key]; ok {
+			t.Fatalf("Memory runtime authority field %q leaked: %#v", key, memory)
+		}
 	}
 	claim := mapValue(arrayValue(compact["developing_self"])[0])
 	for _, key := range []string{"id", "revision", "updated_at", "fluctlight_id"} {
@@ -348,10 +421,10 @@ func TestCompactResponsePlanForProviderRemovesProtocolFields(t *testing.T) {
 	}
 }
 
-func TestCompactToolResultsForProviderKeepsOnlyOutcome(t *testing.T) {
-	compact := compactToolResultsForProvider([]ToolResultV1{{
-		ToolCallID: "call-1", Name: "scene_event", Status: "completed", Output: map[string]any{"event_id": "event-1", "summary": "在书房"},
-		ErrorCode: "", Retryable: false, ProviderRequestID: "provider-1", CorrelationID: "corr-1", SchemaVersion: ToolResultSchemaVersion,
+func TestCompactCapabilityResultsForProviderKeepsOnlyOutcome(t *testing.T) {
+	compact := compactCapabilityResultsForProvider([]CapabilityResult{{
+		CallID: "call-1", CapabilityName: "scene_event", Status: "completed", Output: map[string]any{"event_id": "event-1", "summary": "在书房"},
+		ErrorCode: "", Retryable: false, ProviderRequestID: "provider-1", CorrelationID: "corr-1",
 	}})
 	if len(compact) != 1 {
 		t.Fatalf("compact tool results = %#v", compact)
@@ -364,50 +437,6 @@ func TestCompactToolResultsForProviderKeepsOnlyOutcome(t *testing.T) {
 		if _, ok := item[key]; ok {
 			t.Fatalf("tool protocol field %q leaked: %#v", key, item)
 		}
-	}
-}
-
-func TestCompactReflectionEvidenceUsesShortSequenceReferences(t *testing.T) {
-	compact := compactReflectionEvidence([]map[string]any{{
-		"id": "fact-long-id", "sequence": 7, "event_type": "conversation.turn",
-		"payload":   map[string]any{"turn_id": "turn-long-id", "text": "你好", "status": "processed", "summary": "有效事实"},
-		"appraisal": map[string]any{"relationship_significance": 0.8},
-	}})
-	if len(compact) != 1 || compact[0]["event_type"] != "conversation.turn" || compact[0]["evidence_ref"] != "sequence:7" || len(mapValue(compact[0]["appraisal"])) != 1 {
-		t.Fatalf("compact reflection evidence = %#v", compact)
-	}
-	payload := mapValue(compact[0]["payload"])
-	if payload["summary"] != "有效事实" {
-		t.Fatalf("compact reflection payload = %#v", payload)
-	}
-	for _, key := range []string{"id", "turn_id", "status"} {
-		if _, ok := payload[key]; ok {
-			t.Fatalf("reflection payload field %q leaked: %#v", key, payload)
-		}
-	}
-}
-
-func TestCompactReflectionEvidenceDecodesJSONBPayloadAndAppraisal(t *testing.T) {
-	compact := compactReflectionEvidence([]map[string]any{{
-		"id": "fact-long-id", "sequence": 8, "event_type": "conversation.turn",
-		"payload":   json.RawMessage(`{"sender":"actor_user","content":"你好","status":"processed"}`),
-		"appraisal": json.RawMessage(`{"relationship_significance":0.9,"event_kind":"check_in"}`),
-	}})
-	if len(compact) != 1 {
-		t.Fatalf("compact reflection evidence = %#v", compact)
-	}
-	item := compact[0]
-	if stringValue(item["evidence_ref"]) != "sequence:8" {
-		t.Fatalf("evidence ref = %#v", item["evidence_ref"])
-	}
-	if stringValue(mapValue(item["payload"])["content"]) != "你好" {
-		t.Fatalf("JSONB payload was dropped: %#v", item)
-	}
-	if numberOrZero(mapValue(item["appraisal"])["relationship_significance"]) != 0.9 {
-		t.Fatalf("JSONB appraisal was dropped: %#v", item)
-	}
-	if _, ok := mapValue(item["payload"])["status"]; ok {
-		t.Fatal("provider metadata leaked from JSONB payload")
 	}
 }
 
@@ -549,7 +578,7 @@ func TestEvaluateOutputPreferenceActionRequiresCapabilityBinding(t *testing.T) {
 	if stringValue(withoutCall["status"]) != "matched_without_capability_request" {
 		t.Fatalf("unbound image preference = %#v", withoutCall)
 	}
-	withCall := evaluateOutputPreferenceAction(base, "reply", []ToolCallV1{{Name: "media.image.generate"}})
+	withCall := evaluateOutputPreferenceAction(base, "reply", []CapabilityInvocation{{CapabilityName: "media.image.generate"}}, mustCapabilityRegistry(imageGenerateCapability{}))
 	if stringValue(withCall["status"]) != "authorized" {
 		t.Fatalf("bound image preference = %#v", withCall)
 	}

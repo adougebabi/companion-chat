@@ -13,8 +13,8 @@ const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字�
 5. 认知与生成准则：
    - 认知字段仅写简短摘要，禁止输出推理长文。
    - claims 仅保留有证据的事实或假设，禁止幻觉捏造。
-   - 依赖外部能力时直接触发标准 Tool Call。
-   - 不得绕过标准 Tool Call，直接声称外部能力已经完成。
+   - 依赖外部能力时直接触发标准 Tool Call；如果文字声称状态已改变、正在改变或将立即改变，且存在对应能力，必须真实调用该能力。
+   - 不得绕过标准 Tool Call，直接声称外部能力已经完成；必需能力失败时不得伪造成功。
    - 不得把模型生成的内容伪装成已经发生的事实。
    - 不得把 developing_self 或 current_state 升级为 Core Persona。
 6. 多重人格：personality_system 中的 profiles、switching、influence、conflict_resolution、integration、behavior_state_machine 和当前状态都是你的判断输入。你负责在本次 cognition 中判断主导人格、是否切换、行动和回复；服务器只校验并保存你的结构化决定，不根据切换条件自行推导人格。
@@ -28,6 +28,16 @@ const providerInitializationRuntimeProtocol = `1. 语言：自然语言字段使
 6. 时间与状态：不要把当前场景、疲劳、心情、Presence 或一次性反应写入 Core Persona；Current State 由服务器初始化。
 7. 输出边界：只返回初始化 response schema 要求的 JSON 对象；不要输出解释、Markdown、对话、行动建议或隐藏推理。
 `
+
+func withContextAuthorityInstruction(messages []map[string]any) []map[string]any {
+	if len(messages) == 0 {
+		return messages
+	}
+	return prependSystemMessage(messages, map[string]any{
+		"role":    "system",
+		"content": providerContextAuthorityRule,
+	})
+}
 
 // composeProviderMessages centralizes the ordinary (non-media) system and
 // dynamic document shape. Existing callers may still provide multiple system
@@ -359,6 +369,7 @@ func renderProviderDynamicDocument(value map[string]any) string {
 		{"memories", "记忆", true},
 		{"goals", "当前目标", true},
 		{"intentions", "当前意图", true},
+		{"recent_outcomes", "近期行动结果", true},
 		{"recent_messages", "最近对话", true},
 		{"relationships", "关系", false},
 		{"hypotheses", "假设", true},
@@ -377,7 +388,7 @@ func renderProviderDynamicDocument(value map[string]any) string {
 			renderProviderDynamicSection(&builder, section.title, raw, section.toon)
 		}
 	}
-	for _, key := range []string{"current_message", "text", "current_user_text", "event_type", "fact", "evidence", "response_plan", "tool_results", "local_date"} {
+	for _, key := range []string{"current_message", "text", "current_user_text", "event_type", "fact", "evidence", "response_plan", "capability_results", "local_date"} {
 		if raw, exists := value[key]; exists && !isEmptyProviderValue(raw) {
 			title := "操作输入"
 			if key == "current_message" {

@@ -5,35 +5,43 @@
 ### 1. Scope / Trigger
 
 - Trigger: a chat completion must carry durable memory, affect/drives signals, or capability intent without asking application code to infer meaning from user-visible prose.
-- The browser turn transport is the existing `POST` + `application/x-ndjson` `token`/`completed`/`error` contract; this spec governs the provider-to-application boundary and commit behavior. A future SSE subscription, if needed for server push, is a separate projection and is not a second turn/control stream.
+- The browser turn transport is `POST` + `application/x-ndjson` with checked
+  `token | message | media | completed | error | heartbeat` frames. Core
+  `action_result.message` carries committed authoritative rows and BFF maps it
+  to `message`/`media`; this spec governs the provider-to-application boundary
+  and commit behavior.
 
 ### 2. Signatures
 
 - Provider normalized completion: `{text, tokens, toolCalls, structuredTurn?, control?, parseErrors?, doneSeen}`.
 - A cognitive response with an accepted `visible_text` is already the reply
-  realization and may be emitted directly; only missing/omitted visible text
-  requires the separate `action_realization` call. Compatibility action names
-  such as `respond` normalize to the canonical `reply` action before this
+  realization and may be emitted directly. Missing/omitted visible text fails
+  closed unless a declared visible-output CapabilityInvocation supplies it;
+  the turn never opens a second Main LLM realization call. Compatibility action
+  names such as `respond` normalize to the canonical `reply` action before this
   decision.
-- A chat cognition may intentionally return only an immediate native tool call
-  (for example `scene_event`) with no visible text. Core executes and settles
-  that tool as a completed `no_op`, emits the persisted user message and one
-  `completed` frame without an assistant token, and must not turn the absence
-  of a reply into `conversation_turn_failed`. Deferred output tools still
-  require a concrete assistant/Moment target and are not eligible for this
-  no-op path.
+- Direct conversation has no successful “silent reply” state. The same Main
+  cognition must return concrete visible assistant text (directly or through a
+  declared conversation-output Capability); otherwise Core returns
+  `cognition_visible_text_missing`, preserves the already committed user row
+  and retry identity, and commits no completed frozen action/native effect. A
+  deferred output invocation without a concrete assistant/Moment target
+  remains a bounded `deferred` result; background surfaces may still settle an
+  explicit tool-only `no_op`.
 - When a newer turn is accepted for the same conversation, older pending or
-  claimed conversation cognition facts are marked superseded. Their Provider
-  queue/request receives a bounded cancellation marker; the stale stream settles
-  as an empty `completed` turn and cannot persist a later assistant result over
-  the newer message.
+  claimed conversation cognition facts are marked superseded. Completion locks
+  the inbox and requires the current claim/status; an old settlement can never
+  restore `processed` or persist a late assistant after supersession.
 - Canonical turn schema: `schemaVersion: 'companion.turn.v1'` with `control.affectEvents[]`, `control.driveSignals[]`, `control.memoryWrites[]`, `control.appraisals[]`, `control.memoryConsolidations[]`, `control.selfModelClaims[]`, `control.agencyIntentions[]`, and `control.capabilityCalls[]`.
 - Appraisal candidate: `companion.appraisal.v1` with model rationale, confidence, evidence references, optional `interactionFactId`, and only allowlisted reducer candidates. The application must validate an optional fact link against the current persona and source message before persistence.
 - Memory consolidation candidate: `companion.memory-consolidation.v1` with exactly one bounded `key`/`value` claim or free-form `claim`, evidence/source-fact references, revision/status, and optional `interactionFactId`. It is an auditable candidate ledger entry, not an automatic write to `companion_memories`.
 - Self-model claim: `companion.self-model.v1` with LLM-owned category/claim/summary, uncertainty, evidence refs, revision/status and optional decay policy. Active claims are a separate projection and never mutate foundation.
 - Agency intention: `companion.agency-intention.v1` with LLM-owned intent/topic/explanation, evidence refs and lifecycle status. Candidate persistence does not deliver a message; qualification, freeze, lease and delivery remain owned by proactive flows.
 - Supported first-release drives: `social`, `exploration`, `rest`; pressure is `0..1`, where higher means more unmet need.
-- Memory capability: `memory_event({memory: {operation, key, value, confidence, sourceMessageId?, idempotencyKey}})`.
+- Memory capability: `memory_event({type, content, confidence, importance,
+  emotional_significance?})`. Owner/profile/Conversation/evidence/visibility/
+  time/idempotency/revision and embedding data are Runtime-owned and frozen in
+  the separate `memory_plan` PreparedPayload.
 - Appearance capability: `appearance_event({operation: 'set'|'clear', outfit?, reason?})`; it is persona-scoped, source-message-bound, idempotent, and persists the current outfit in the normalized state projection while retaining an auditable `appearance_change` life event.
 - State tools: `affect_event({event: {type, confidence, idempotencyKey}})` and `drive_signal({signal: {drive, direction, confidence, idempotencyKey}})`; the server owns numeric deltas.
 - Native capability tools are defined once by the Go Runtime capability registry. The registry exposes only installed/preflighted slots in stable order; capability-specific filtering and additional slots are additive.
@@ -47,9 +55,13 @@
   `content`/`text` value; `action_type`, arguments, and the wrapper object must
   never be persisted or emitted as conversation text. This applies to bare
   JSON, fenced Markdown JSON, and equivalent transport wrappers.
-- Native tool calls, parsed provider sidecars, and legacy media/pending markers are normalized at one application boundary. New affect/memory behavior must not add text markers.
+- Native tool calls and parsed provider sidecars are normalized at one application boundary. New affect/memory behavior must not add text markers.
 - Machine-readable argument shape belongs to the canonical capability catalog and provider `tools` payload. The model-facing system prompt contains only short behavioral guidance; it must not duplicate JSON schema bounds, dispatcher internals, or legacy marker syntax. Flow validators remain authoritative for ownership, time windows, policy, idempotency, and transactions.
-- Native-capable providers receive the catalog directly. Legacy marker adapters remain compatibility fallbacks and must not be advertised in the normal prompt. A future provider-specific capability profile may filter tools, but the current base implementation sends the universal catalog unchanged.
+- Native-capable providers receive the catalog directly. Provider-native calls
+  and the single root JSON sidecar normalize into the same
+  `CapabilityInvocation`; no active marker adapter or second execution path is
+  advertised. A future provider-specific capability profile may filter tools,
+  but the current base implementation selects definitions by surface metadata.
 - Scene and appearance are separate facts. When a scene transition also changes clothing, the model may issue one `scene_event` and one `appearance_event` in the same turn; an explicit clothing change in an unchanged scene may issue only `appearance_event`. Ordinary prose or transient gestures never update clothing state.
 - `memory_event` is the only ordinary-chat path to long-term memory. It is persona-private, source-message-bound, idempotent, and committed with the assistant facts when the turn succeeds.
 - Appraisal and memory-consolidation sidecars are LLM-owned semantic candidates. The server may reject invalid schema, missing evidence, source ownership, idempotency, or CAS state, but must not infer a replacement from visible text or a rejected candidate. A candidate's `interactionFactId`, when present, must resolve to an existing fact owned by the same persona and bound to the same source message.
@@ -70,7 +82,7 @@
 | Duplicate `(persona_id, idempotency_key)` | Replay existing result; do not duplicate rows or effects |
 | Snapshot revision/CAS conflict | Refuse stale update; do not overwrite newer state |
 | Provider text-only completion | Normalize with empty control channels and preserve existing chat behavior |
-| Legacy marker plus supported native/structured call | Native/structured path owns the capability; matching marker cannot execute a second effect |
+| Duplicate native and root-sidecar call for one provider response | Native call owns the capability; the matching sidecar cannot execute a second effect |
 | Assistant/message or memory/effect transaction failure | Roll back the complete caller-owned transaction |
 
 ### 5. Good/Base/Bad Cases
@@ -104,30 +116,34 @@ const plan = affectFlow.plan(turn.control);
 // Commit the validated plan with the assistant facts in the caller transaction.
 ```
 
-## Scenario: Go Runtime Capability Slots And Tool Calls
+## Historical Scenario: Go Runtime Capability Slots And Tool Calls (pre-cutover)
+
+This section records the released pre-cutover envelope for audit and migration
+reference only. It is not an active contract. The active Go contract is the
+unified Capability Runtime scenario below; production replay and workflow code
+does not consume the released pre-cutover shapes.
 
 ### 1. Scope / Trigger
 
 - Trigger: the Go Core receives a provider completion that requests an
   external capability, or a visible turn crosses the Core/BFF stream boundary.
-- This scenario defines the active Go implementation. The retired Node
-  capability catalog and browser SSE wording are historical only.
+- The signatures and examples below are historical migration inputs only.
 
 ### 2. Signatures
 
 ```text
-ToolCallV1 {
+Released invocation envelope {
   id, name, arguments,
   source_fact_id, action_id,
   provider_request_id, schema_version, sequence
 }
 
-ToolResultV1 {
+Released result envelope {
   tool_call_id, name, status, output?, error_code?, retryable,
   provider_request_id?, correlation_id?, schema_version
 }
 
-CompositeActionV1 {
+Released composite envelope {
   schema_version, kind, action_type, response_intent,
   tool_calls[], output_bindings[]
 }
@@ -136,18 +152,13 @@ OutputBindingV1 {
   tool_call_id, target_kind, target_ref
 }
 
-CapabilityExecutor.Manifest() -> CapabilityManifest
-CapabilityExecutor.Execute(ctx, fluctlightID, conversationID,
-                           sourceFactID, ToolCallV1) -> ToolResultV1
-DeferredCapabilityExecutor.ExecuteDeferredTx(ctx, tx, fluctlightID,
-  sourceFactID, identityScope, ToolCallV1, OutputBindingV1) -> ToolResultV1
-ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
+ProviderClient.StructuredWithTools(ctx, role, messages, released definitions)
   -> ProviderCompletion{text, structured?, tool_calls, done_seen}
 ```
 
 ### 3. Contracts
 
-- `CapabilityRegistry` is a generic slot registry. Runtime owns lookup,
+- `CapabilityRegistry` was a generic slot registry. Runtime owned lookup,
   authorization/resource scope, revision/idempotency checks, persistence,
   timeout/retry/cancel and result settlement; an executor owns only its
   external provider operation.
@@ -155,18 +166,15 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
   Tool. The same target-neutral capability slot may be bound to either output
   through `OutputBindingV1`; target-specific names such as `message_media` or
   `moment_media` are not part of the protocol.
-- A manifest with `side_effect_class=external_async` and non-empty
+- A released definition with `side_effect_class=external_async` and non-empty
   `target_kinds` is a deferred output slot. Runtime records a bounded
   `deferred` ToolResult while the action is being realized, persists the
   message/Moment, then invokes the executor's `ExecuteDeferredTx` in the same
   caller-owned transaction. The executor creates the durable external intent
   with the concrete target ID. This ordering prevents a conversation-level
   compatibility message from being created for a message-targeted result.
-- `CapabilityManifest` is the typed slot contract: input `parameters`, output
-  `output_schema`, supported `target_kinds`, side-effect and concurrency
-  classes, retry/cancel support, and preflight requirements. Adding a plugin
-  registers a manifest plus executor; cognition and Composite Action code do
-  not grow a new Tool-name branch.
+- The released definition was the typed slot contract. New code uses the
+  direct `CapabilityDefinition` contract documented in the active scenario.
 - Structured Provider calls always send a strict `response_format` using a
   named `json_schema`. The `cognitive_assessment` role additionally sends
   `enable_thinking: true`; other structured roles keep thinking disabled. Some
@@ -188,9 +196,9 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
 - Tool names use `[A-Za-z0-9][A-Za-z0-9._-]{0,127}`. Arguments are bounded JSON
   objects (64 KiB maximum) and are validated once at the provider-to-runtime
   boundary. Native provider entries and JSON sidecars normalize to the same
-  `ToolCallV1`.
-- The first registered external slot is `media.image.generate` with an object
-  `concept` argument. Future external video/audio/search slots and native
+  the released call envelope.
+- The released external slot used a thick media argument. Future external
+  video/audio/search slots and native
   Fluctlight slots such as `scene_event`, `presence_event`,
   `memory_event`, or `relationship_signal` are additive executors; a slot is
   advertised only when its implementation is installed and preflighted, and
@@ -206,7 +214,8 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
   adapter detail. A future authenticated SSE subscription for committed
   server-push projections is separate from the turn command and cannot be a
   second state source.
-- Tool results are persisted with the frozen action before realization and may
+- Released tool results were persisted with the frozen action before
+  realization and may
   be included in the next provider prompt. Raw tool arguments and provider
   internals never cross the browser boundary.
 
@@ -231,7 +240,7 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
 - Base: a provider returns the canonical JSON sidecar for a reply; the existing
   turn behavior remains unchanged and no external effect is created.
 - Bad: parse “请画一张图” with a keyword branch, write a media row directly,
-  or execute a second effect when a legacy marker accompanies a native call.
+  or execute a second effect when duplicate provider shapes accompany a native call.
 
 ### 6. Tests Required
 
@@ -244,7 +253,7 @@ ProviderClient.StructuredWithTools(ctx, role, messages, manifests)
 - Provider tests for `tools` request payloads, native tool-call responses,
   JSON sidecar responses, malformed calls, and stable request headers.
 - Core/BFF stream tests for provider chunk → Core NDJSON → browser frames,
-  early token delivery, abort, one terminal frame, and hidden payload
+  post-settlement token delivery, abort, one terminal frame, and hidden payload
   redaction. No test should require an SSE turn endpoint.
 
 ### 7. Wrong vs Correct
@@ -262,16 +271,12 @@ if strings.Contains(userText, "画") {
 #### Correct
 
 ```go
-completion, err := provider.StructuredWithTools(ctx, "cognitive_assessment", messages, registry.Manifests())
-calls := completion.ToolCalls // native and sidecar forms are already normalized
-proposal := validateAndFreeze(calls, sourceFactID, stateRevision)
-// Visible output is persisted first; async slots bind to its concrete ID.
+completion, err := provider.StructuredWithTools(ctx, "cognitive_assessment", messages, registry.Catalog(surface))
+invocations := completion.ToolCalls // native and sidecar forms are already normalized
+frozen := validateAndFreeze(invocations, sourceFactID, stateRevision)
 output := persistAssistantOrMoment(...)
-executor, _ := registry.Lookup(proposal.Name)
-result, _ := executor.(DeferredCapabilityExecutor).ExecuteDeferredTx(
-    ctx, tx, fluctlightID, sourceFactID, actionID, proposal,
-    OutputBindingV1{TargetKind: output.Kind, TargetRef: output.ID})
-persistToolResult(result)
+result, _ := runtime.ExecuteDeferred(ctx, tx, frozen, OutputBindingV1{TargetKind: output.Kind, TargetRef: output.ID})
+persistCapabilityResult(result)
 ```
 
 ## Scenario: P1 Context Projection And Self-Evaluated Expression
@@ -382,4 +387,167 @@ plan := normalizeResponsePlan(assessment, factID, projection)
 gate := selfEvaluateAndValidate(plan, projection)
 frozen := freeze(gate)
 return renderFrozenPlan(frozen, projection)
+```
+
+## Scenario: Unified Capability Runtime And Thin Provider Catalog
+
+### 1. Scope / Trigger
+
+- Trigger: a Go Core provider call advertises local capabilities, a native or
+  structured-sidecar invocation is frozen, or a frozen/action payload is
+  replayed after the Capability Runtime cutover.
+- The Registry/Definition/Invocation/Result/ContextResolver chain is the only
+  active execution model. Provider-native/root-sidecar envelopes are decoded
+  once at ingress and are not accepted by Runtime/replay as a second API.
+
+### 2. Signatures
+
+```go
+type Capability interface {
+    Definition() CapabilityDefinition
+    RequiredContext() []ContextSlot
+    Execute(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
+}
+
+type CapabilityPreparer interface {
+    Prepare(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityInvocation, error)
+}
+
+type TransactionalCapability interface {
+    ExecuteTx(context.Context, pgx.Tx, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
+}
+
+type ContextResolver interface {
+    Resolve(context.Context, ContextRequest, []ContextSlot) (CapabilityContext, error)
+}
+
+CapabilityRegistry.Catalog(surface) []CapabilityDefinition
+RenderCapabilityTools(definitions) []map[string]any
+CapabilityRuntime.Execute(ctx, invocation) (CapabilityResult, error)
+```
+
+### 3. Contracts
+
+- `CapabilityDefinition.InputSchema` is the only Provider-facing schema. Thin
+  inputs contain model-owned decisions; renderer/workflow/database/evidence,
+  revision, and idempotency fields stay Core-owned. Planner schemas are never
+  sent in `tools`.
+- Provider `Arguments` are immutable and validated with the complete bounded
+  Definition schema, including additional-properties, conditional alternatives,
+  nested types, enum, pattern, length and numeric bounds. Capability-local plans
+  and Runtime provenance live only in the separately versioned
+  `PreparedPayload`; a Provider cannot supply or override that payload through
+  Arguments.
+- `CapabilitySurface` selects conversation, WakeUp, autonomy, or native
+  cognition catalogs. Callers do not maintain concrete-name exclusion lists.
+- A Capability declares `ContextSlot` dependencies. The resolver loads only
+  those slots and exposes typed value objects plus a bounded replay snapshot;
+  live authorization, revision, and idempotency guards remain in execution.
+- Runtime order is invocation validation → Registry lookup → context resolve →
+  optional preflight/Prepare → persist frozen PreparedPayload → sequential
+  execute or caller-owned transactional apply → provider-safe result. Native
+  and sidecar calls normalize once and native calls remain authoritative.
+- Runtime Prepare is mandatory for every invocation, even when a Capability has
+  no capability-local planner. It freezes Runtime-owned provenance, an explicit
+  PreparedPayload envelope, and the declared ContextSnapshot before apply;
+  replay validates that envelope and never regenerates it.
+- Interactive Memory/Affect mutations execute in per-Capability savepoints
+  inside the assistant transaction. Optional failure rolls back the savepoint
+  and persists a failed result; required failure rolls back the complete visible
+  settlement. Provider/Redis/object/workflow I/O is forbidden in this phase.
+- `memory_event` uses `required_for_visible_claim`: a failed explicit Memory
+  write rolls back the visible settlement instead of allowing “I remembered”
+  prose to commit without the Memory. Its non-transactional executor returns
+  `caller_transaction_required`.
+- Reflection Memory output is the closed operation-aware candidate shape
+  (`create|confirm|revise|merge|supersede|deprecate`, opaque target/merge refs,
+  semantic fields/evidence/reason). Core compiles it to the same Memory
+  lifecycle authority used by chat and Owner governance; malformed candidates
+  invalidate the proposal before watermark advancement.
+- `required_for_visible_claim` failures roll back a visible assistant/Moment
+  settlement; `optional_internal` failures remain structured and auditable.
+  Conversation never sends a same-turn `role=tool` continuation.
+- A tool-only result without a structured appraisal may settle as a
+  capability-only `no_op` only on explicitly non-visible/background surfaces.
+  Direct conversation always requires visible assistant text from the same
+  Main cognition; tool-only/no-visible output fails with
+  `cognition_visible_text_missing` before Capability settlement. Core never
+  creates a synthetic neutral/default appraisal, and Provider output cannot set
+  `cognitive_state_transition=not_proposed`.
+- Appraisal is closed and ref-bound. Optional Drive signals contain only an
+  opaque Drive ref, increase/decrease direction, bounded strength/confidence,
+  and frozen context evidence refs. Core owns pressure/conflict numbers and
+  records the post-transition state ref in the frozen action and ActionOutcome.
+- Active frozen/action payloads use `capability_runtime_version`,
+  `capability_invocations`, `capability_results`, and bounded per-invocation
+  context snapshots. Migration head `0026_capability_runtime` converts only
+  active released rows, moves legacy prepared/provenance fields out of
+  Arguments, converts legacy results, and validates workflow authority.
+  Completed audit rows are not rewritten; completed per-call results are not
+  re-executed. Missing active provenance fails closed and IDs are never fabricated.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Nil, duplicate, invalid, or unknown capability | Deterministic registry error or `capability_not_found`; no executor call |
+| Invalid invocation JSON/identity/source/provider ID | `invalid_arguments`; no side effect |
+| Declared slot missing, loader failure, or cancelled context | `context_resolve_failed`; no side effect |
+| Capability returns invalid status/output or execution error | `execution_failed`; required policies fail closed |
+| Provider Arguments contain an undeclared prepared/runtime field | `invalid_arguments`; Prepare and executor are not called |
+| Frozen PreparedPayload is malformed or conflicts with thin intent/context | fail closed; do not re-plan or repair it |
+| Invocation has no Capability-local preparer | Runtime still freezes provenance, declared ContextSnapshot, and an explicit empty PreparedPayload envelope before apply |
+| Direct conversation omits visible assistant text | `cognition_visible_text_missing`; preserve committed user row and same retry identity; commit no completed action/effect |
+| Background tool-only result omits appraisal | Settle the Capability-only `no_op`; write no appraisal or state revision |
+| Appraisal contains unknown/raw numeric fields or foreign context evidence | Reject before freeze; do not infer or append a replacement appraisal |
+| Frozen State or AffectProfile revision changed before apply | Terminal conflict/re-assessment boundary; no mutation and no blind retry |
+| Thin schedule intent without a configured internal planner | `schedule_replan_planner_failed`; never fall back to thick schema |
+| Active replay payload lacks stable provenance | Migration/replay fails closed; completed audit data remains readable |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a dummy Capability is registered once, appears in a surface catalog,
+  renders through `RenderCapabilityTools`, resolves its declared slot, and
+  executes without a MainAgent/schema switch.
+- Base: a native and root sidecar call normalize to one Invocation; a deferred
+  output binds after its durable target exists and retries the same IDs.
+- Bad: add a `switch call.Name` to MainAgent, expose the old image concept or
+  schedule revision fields, infer a missing semantic field, or call Main LLM a
+  second time with ToolResults.
+- Bad: manufacture a “neutral” appraisal for a Tool-only result, or execute a
+  transactional autonomy sibling before the message/Moment/action transaction.
+
+### 6. Tests Required
+
+- Registry tests cover registration, nil/invalid/duplicate behavior, stable
+  ordering, lookup, and surface catalogs.
+- Context tests cover slot declarations, cancellation, missing loaders,
+  snapshot round-trip, deduplicated requests, and no unrelated reads.
+- Schema tests cover thin forbidden fields, one root sidecar, and byte/char
+  reports; Runtime tests cover taxonomy, preflight, sequential ordering,
+  deferred binding, and required/optional failure policies.
+- Replay tests cover canonical payload enrichment, stable IDs, malformed active
+  fail-closed behavior, and untouched completed audit rows.
+- Affect/Drive tests cover foreign appraisal refs, raw numeric rejection,
+  non-finite values, profile/state CAS, same-source coalescing, elapsed-time
+  partition invariance, typed-slot deactivation, and later state-ref citation.
+- Transaction tests make one sibling mutate and a required sibling fail, then
+  assert state/action/output/outcome/outbox authorities all roll back together.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+if call.Name == "media.image.generate" {
+    createMediaIntent(ctx, call.Arguments)
+}
+```
+
+#### Correct
+
+```go
+definition := registry.Definition(invocation.CapabilityName)
+context := resolver.Resolve(ctx, request, definition.RequiredContext)
+result := runtime.Execute(ctx, invocation)
 ```

@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -87,11 +86,7 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
-	detail["schedule"], err = a.readSchedule(ctx, fluctlightID)
-	if err != nil {
-		return nil, err
-	}
-	detail["context"], err = a.resolveContext(ctx, fluctlightID, detail["schedule"])
+	detail["schedule"], detail["context"], err = a.readLifeContextSnapshotAt(ctx, fluctlightID, time.Now().UTC())
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +260,7 @@ func (a *App) readAgency(ctx context.Context, fluctlightID string) ([]map[string
 }
 
 func (a *App) readRelationships(ctx context.Context, fluctlightID, currentHumanActorID string) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT r.profile_id,r.target_actor_id,COALESCE(a.actor_type,'unknown'),(r.target_actor_id=$2),r.role,r.metrics,r.trend,r.summary,r.emotional_association,r.provenance,r.revision FROM public.relationships r LEFT JOIN public.actors a ON a.id=r.target_actor_id WHERE r.owner_fluctlight_id=$1 ORDER BY r.updated_at DESC`, fluctlightID, currentHumanActorID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT r.id,r.profile_id,r.target_actor_id,COALESCE(a.actor_type,'unknown'),(r.target_actor_id=$2),r.role,r.metrics,r.trend,r.summary,r.emotional_association,r.provenance,r.revision FROM public.relationships r LEFT JOIN public.actors a ON a.id=r.target_actor_id WHERE r.owner_fluctlight_id=$1 ORDER BY r.updated_at DESC`, fluctlightID, currentHumanActorID)
 	if err != nil {
 		return nil, err
 	}
@@ -273,15 +268,15 @@ func (a *App) readRelationships(ctx context.Context, fluctlightID, currentHumanA
 	out := make([]map[string]any, 0)
 	for rows.Next() {
 		var profileID *string
-		var target, actorType, trend string
+		var id, target, actorType, trend string
 		var isCurrentUser bool
 		var role, metrics, emotional, provenance []byte
 		var summary *string
 		var rev int
-		if err := rows.Scan(&profileID, &target, &actorType, &isCurrentUser, &role, &metrics, &trend, &summary, &emotional, &provenance, &rev); err != nil {
+		if err := rows.Scan(&id, &profileID, &target, &actorType, &isCurrentUser, &role, &metrics, &trend, &summary, &emotional, &provenance, &rev); err != nil {
 			return nil, err
 		}
-		item := map[string]any{"target_actor_id": target, "target_actor_type": actorType, "is_current_user": isCurrentUser, "role": decodeObject(role), "metrics": decodeObject(metrics), "trend": trend, "summary": summary, "emotional_association": decodeObject(emotional), "provenance": decodeObject(provenance), "revision": rev}
+		item := map[string]any{"id": id, "target_actor_id": target, "target_actor_type": actorType, "is_current_user": isCurrentUser, "role": decodeObject(role), "metrics": decodeObject(metrics), "trend": trend, "summary": summary, "emotional_association": decodeObject(emotional), "provenance": decodeObject(provenance), "revision": rev}
 		if profileID != nil && strings.TrimSpace(*profileID) != "" {
 			item["profile_id"] = *profileID
 		}
@@ -317,50 +312,8 @@ func (a *App) readMemories(ctx context.Context, fluctlightID string) ([]map[stri
 }
 
 func (a *App) readSchedule(ctx context.Context, fluctlightID string) (map[string]any, error) {
-	var id string
-	var localDate time.Time
-	var timezone, status string
-	var reschedulePolicy []byte
-	var rev int
-	var identity []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT identity FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&identity); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
-		}
-		return nil, err
-	}
-	zone := stringValue(decodeObject(identity)["timezone"])
-	if zone == "" {
-		zone = "Asia/Shanghai"
-	}
-	zone = canonicalTimezone(zone)
-	location, err := time.LoadLocation(zone)
-	if err != nil {
-		return nil, fmt.Errorf("schedule_timezone_invalid: %w", err)
-	}
-	localToday := time.Now().In(location).Format("2006-01-02")
-	err = a.DB.Pool().QueryRow(ctx, `SELECT id,local_date,timezone,status,revision,reschedule_policy FROM public.life_schedules WHERE fluctlight_id=$1 AND status='accepted' AND local_date=$2 ORDER BY revision DESC LIMIT 1`, fluctlightID, localToday).Scan(&id, &localDate, &timezone, &status, &rev, &reschedulePolicy)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,start_at,end_at,activity,scene,item_type,status,priority,flexibility,interruption_cost FROM public.life_schedule_items WHERE schedule_id=$1 ORDER BY start_at`, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := make([]map[string]any, 0)
-	for rows.Next() {
-		var itemID, activity, scene, itemType, itemStatus, priority, flexibility, interruptionCost string
-		var start, end time.Time
-		if err := rows.Scan(&itemID, &start, &end, &activity, &scene, &itemType, &itemStatus, &priority, &flexibility, &interruptionCost); err != nil {
-			return nil, err
-		}
-		items = append(items, map[string]any{"id": itemID, "start_at": start.Format(time.RFC3339Nano), "end_at": end.Format(time.RFC3339Nano), "activity": activity, "scene": scene, "item_type": itemType, "status": itemStatus, "priority": scheduleContextNumber(priority), "flexibility": scheduleContextNumber(flexibility), "interruption_cost": scheduleContextNumber(interruptionCost)})
-	}
-	return map[string]any{"id": id, "local_date": localDate.Format("2006-01-02"), "timezone": timezone, "revision": rev, "status": status, "completed_before": time.Now().UTC().Format(time.RFC3339Nano), "reschedule_policy": decodeJSONValue(reschedulePolicy), "items": items}, nil
+	schedule, _, err := a.readLifeContextSnapshotAt(ctx, fluctlightID, time.Now().UTC())
+	return schedule, err
 }
 
 func scheduleContextNumber(value string) any {
@@ -379,55 +332,23 @@ func decodeJSONValue(value []byte) any {
 }
 
 func (a *App) resolveContext(ctx context.Context, fluctlightID string, schedule any) (map[string]any, error) {
-	now := time.Now().UTC()
-	result := map[string]any{"source": "pending", "scene": nil, "activity": nil, "location": nil, "instant": now.Format(time.RFC3339Nano)}
-	var scene, activity, location *string
-	var eventKind, eventStatus string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT kind,status,scene,activity,location FROM public.life_events WHERE fluctlight_id=$1 AND status IN ('confirmed','inferred') AND start_at <= $2 AND end_at > $2 AND (expires_at IS NULL OR expires_at > $2) ORDER BY CASE WHEN status='confirmed' THEN 0 ELSE 1 END,start_at DESC,id DESC LIMIT 1`, fluctlightID, now).Scan(&eventKind, &eventStatus, &scene, &activity, &location); err == nil {
-		result["source"] = "event"
-		if eventStatus == "inferred" {
-			result["source"] = "hypothesis"
-		}
-		result["event_kind"] = eventKind
-		result["scene"], result["activity"], result["location"] = scene, activity, location
-	} else if !errors.Is(err, pgx.ErrNoRows) {
-		return nil, err
-	} else {
-		result = contextFromSchedule(result, schedule, now)
-	}
-	var userPresence, currentTask *string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT current_task,user_presence FROM public.life_presence_overlays WHERE fluctlight_id=$1 AND (expires_at IS NULL OR expires_at > $2) ORDER BY created_at DESC,id DESC LIMIT 1`, fluctlightID, now).Scan(&currentTask, &userPresence); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	at := time.Now().UTC()
+	timezone, err := readLifeContextTimezoneWith(ctx, a.DB.Pool(), fluctlightID)
+	if err != nil {
 		return nil, err
 	}
-	if currentTask != nil || userPresence != nil {
-		result["presence"] = map[string]any{"current_task": currentTask, "user_presence": userPresence}
-		result["presence_overlay"] = true
-	}
-	return result, nil
+	value, _ := schedule.(map[string]any)
+	return resolveLifeContextAtWith(ctx, a.DB.Pool(), fluctlightID, value, timezone, at)
 }
 
 func contextFromSchedule(result map[string]any, value any, now time.Time) map[string]any {
-	schedule, ok := value.(map[string]any)
-	if !ok || schedule == nil {
-		return result
-	}
-	for _, raw := range arrayValue(schedule["items"]) {
-		item := mapValue(raw)
-		start, e1 := time.Parse(time.RFC3339Nano, stringValue(item["start_at"]))
-		end, e2 := time.Parse(time.RFC3339Nano, stringValue(item["end_at"]))
-		if e1 == nil && e2 == nil && !now.Before(start) && now.Before(end) {
-			result["source"] = "schedule"
-			result["scene"] = item["scene"]
-			result["activity"] = item["activity"]
-			result["location"] = item["location"]
-			break
-		}
-	}
+	schedule, _ := value.(map[string]any)
+	contextFromScheduleAt(result, schedule, now)
 	return result
 }
 
 func (a *App) readEvents(ctx context.Context, fluctlightID string) ([]map[string]any, error) {
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,kind,start_at,end_at,scene,activity,location,status,evidence_refs FROM public.life_events WHERE fluctlight_id=$1 ORDER BY start_at DESC LIMIT 100`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,kind,start_at,end_at,scene,activity,location,status,revision,evidence_refs FROM public.life_events WHERE fluctlight_id=$1 ORDER BY start_at DESC LIMIT 100`, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
@@ -438,10 +359,11 @@ func (a *App) readEvents(ctx context.Context, fluctlightID string) ([]map[string
 		var start, end time.Time
 		var scene, activity, location *string
 		var refs []byte
-		if err := rows.Scan(&id, &kind, &start, &end, &scene, &activity, &location, &status, &refs); err != nil {
+		var revision int
+		if err := rows.Scan(&id, &kind, &start, &end, &scene, &activity, &location, &status, &revision, &refs); err != nil {
 			return nil, err
 		}
-		out = append(out, map[string]any{"id": id, "kind": kind, "start_at": start.Format(time.RFC3339Nano), "end_at": end.Format(time.RFC3339Nano), "scene": scene, "activity": activity, "location": location, "status": status, "evidence_refs": decodeArray(refs)})
+		out = append(out, map[string]any{"id": id, "kind": kind, "start_at": start.Format(time.RFC3339Nano), "end_at": end.Format(time.RFC3339Nano), "scene": scene, "activity": activity, "location": location, "status": status, "revision": revision, "evidence_refs": decodeArray(refs)})
 	}
 	return out, nil
 }

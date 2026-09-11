@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -10,185 +9,203 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func sceneCapabilityManifest() CapabilityManifest {
-	return CapabilityManifest{
-		Name: "scene_event", Version: "v1",
-		Description: "Start, switch, or end the Fluctlight's current evidence-backed scene/activity/location. Use operation=switch when the current scene has materially changed; do not infer a switch from prose alone. This tool records the scene only; if the change invalidates the current or future schedule, independently call schedule.replan.",
-		Parameters: map[string]any{
+func sceneCapabilityDefinition() CapabilityDefinition {
+	return CapabilityDefinition{
+		Name: "scene_event", Version: "v1", Type: CapabilityTypeAction,
+		Description:     "Start, switch, or end the Fluctlight's current scene, activity, or location.",
+		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
+		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
+		RequiredContext: []ContextSlot{SlotCurrentLife},
+		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
-			"required": []any{"operation", "evidence_refs", "confidence"},
+			"required": []any{"operation", "confidence"},
+			"oneOf": []any{
+				map[string]any{"required": []any{"operation", "scene", "activity"}, "properties": map[string]any{"operation": map[string]any{"type": "string", "enum": []any{"start", "switch"}}}},
+				map[string]any{"required": []any{"operation"}, "properties": map[string]any{"operation": map[string]any{"type": "string", "enum": []any{"end"}}}},
+			},
 			"properties": map[string]any{
-				"operation": map[string]any{"type": "string", "enum": []any{"start", "switch", "end"}},
-				"scene":     map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
-				"activity":  map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
-				"location":  map[string]any{"type": "string", "maxLength": 512},
-				"kind":      map[string]any{"type": "string", "enum": []any{"confirmed", "observed", "inferred", "hypothesis"}},
-				"start_at":  map[string]any{"type": "string"}, "end_at": map[string]any{"type": "string"},
-				"source_fact_id":  map[string]any{"type": "string", "minLength": 1},
-				"evidence_refs":   map[string]any{"type": "array", "minItems": 1},
-				"confidence":      map[string]any{"type": "number", "minimum": 0, "maximum": 1},
-				"idempotency_key": map[string]any{"type": "string", "minLength": 1, "maxLength": 256},
+				"operation":  map[string]any{"type": "string", "enum": []any{"start", "switch", "end"}},
+				"scene":      map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
+				"activity":   map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
+				"location":   map[string]any{"type": "string", "maxLength": 512},
+				"confidence": map[string]any{"type": "number", "minimum": 0, "maximum": 1},
 			},
 		},
-		SideEffectClass: "native_projection", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
+		OutputSchema: map[string]any{
+			"type": "object", "additionalProperties": false,
+			"required": []any{"operation", "status", "event_id", "inbox_id", "event_revision", "expected_context_revision", "resulting_context_revision", "replayed"},
+			"properties": map[string]any{
+				"operation":                  map[string]any{"type": "string", "enum": []any{"start", "switch", "end"}},
+				"status":                     map[string]any{"type": "string", "enum": []any{"confirmed", "inferred", "ended"}},
+				"event_id":                   map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+				"inbox_id":                   map[string]any{"type": "string", "maxLength": 128},
+				"event_revision":             map[string]any{"type": "integer", "minimum": 1},
+				"expected_context_revision":  map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
+				"resulting_context_revision": map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
+				"replayed":                   map[string]any{"type": "boolean"},
+			},
+		},
+		SideEffectClass: "native_projection", SuccessBoundary: "life_context_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
+		ProvenanceFields: []string{"evidence_refs", "idempotency_key"},
 	}
 }
 
-func presenceCapabilityManifest() CapabilityManifest {
-	return CapabilityManifest{
-		Name: "presence_event", Version: "v1",
-		Description: "Record a bounded temporary interaction presence overlay.",
-		Parameters: map[string]any{
+func presenceCapabilityDefinition() CapabilityDefinition {
+	return CapabilityDefinition{
+		Name: "presence_event", Version: "v1", Type: CapabilityTypeAction,
+		Description:     "Record a bounded temporary interaction presence overlay.",
+		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
+		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
+		RequiredContext: []ContextSlot{SlotCurrentLife},
+		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
-			"required": []any{"evidence_refs", "confidence"},
+			"required": []any{"confidence"},
+			"anyOf": []any{
+				map[string]any{"required": []any{"user_presence"}},
+				map[string]any{"required": []any{"current_task"}},
+				map[string]any{"required": []any{"operation"}, "properties": map[string]any{"operation": map[string]any{"type": "string", "enum": []any{"clear"}}}},
+			},
 			"properties": map[string]any{
-				"user_presence":   map[string]any{"type": "string", "maxLength": 128},
-				"current_task":    map[string]any{"type": "string", "maxLength": 512},
-				"expires_at":      map[string]any{"type": "string"},
-				"source_fact_id":  map[string]any{"type": "string", "minLength": 1},
-				"evidence_refs":   map[string]any{"type": "array", "minItems": 1},
-				"confidence":      map[string]any{"type": "number", "minimum": 0, "maximum": 1},
-				"idempotency_key": map[string]any{"type": "string", "minLength": 1, "maxLength": 256},
+				"operation":     map[string]any{"type": "string", "enum": []any{"set", "clear"}},
+				"user_presence": map[string]any{"type": "string", "maxLength": 128},
+				"current_task":  map[string]any{"type": "string", "maxLength": 512},
+				"expires_at":    map[string]any{"type": "string"},
+				"confidence":    map[string]any{"type": "number", "minimum": 0, "maximum": 1},
 			},
 		},
-		SideEffectClass: "native_projection", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
+		OutputSchema: map[string]any{
+			"type": "object", "additionalProperties": false,
+			"required": []any{"operation", "status", "overlay_id", "inbox_id", "overlay_revision", "expected_context_revision", "resulting_context_revision", "replayed"},
+			"properties": map[string]any{
+				"operation":                  map[string]any{"type": "string", "enum": []any{"set", "clear"}},
+				"status":                     map[string]any{"type": "string", "enum": []any{"active", "cleared"}},
+				"overlay_id":                 map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+				"inbox_id":                   map[string]any{"type": "string", "maxLength": 128},
+				"overlay_revision":           map[string]any{"type": "integer", "minimum": 1},
+				"expected_context_revision":  map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
+				"resulting_context_revision": map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
+				"replayed":                   map[string]any{"type": "boolean"},
+			},
+		},
+		SideEffectClass: "native_projection", SuccessBoundary: "presence_overlay_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
+		ProvenanceFields: []string{"evidence_refs", "idempotency_key"},
 	}
 }
 
-func (a *App) applySceneCapability(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	var args map[string]any
-	if err := json.Unmarshal(call.Arguments, &args); err != nil {
-		return failedToolResult(call, "scene_arguments_invalid", false, err.Error()), err
+func (a *App) applySceneCapability(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	return failedCapabilityResult(invocation, "caller_transaction_required", false), newCapabilityError("caller_transaction_required", false, ErrConflict)
+}
+
+func (a *App) applySceneCapabilityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	return a.applySceneCapabilityWithTx(ctx, tx, invocation, resolved)
+}
+
+func (a *App) applySceneCapabilityWithTx(ctx context.Context, callerTx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	if callerTx == nil {
+		return failedCapabilityResult(invocation, "caller_transaction_required", false), newCapabilityError("caller_transaction_required", false, ErrConflict)
 	}
-	if source := stringValue(args["source_fact_id"]); source != "" && source != sourceFactID {
-		return failedToolResult(call, "scene_source_invalid", false, "source fact does not match current cognition fact"), errors.New("scene source fact invalid")
-	}
-	operation, operationErr := normalizeSceneOperation(args)
-	if operationErr != nil {
-		errorCode := "scene_operation_invalid"
-		if strings.TrimSpace(stringValue(args["operation"])) == "" {
-			errorCode = "scene_operation_required"
-		}
-		return failedToolResult(call, errorCode, false, operationErr.Error()), operationErr
-	}
-	scene, activity := strings.TrimSpace(stringValue(args["scene"])), strings.TrimSpace(stringValue(args["activity"]))
-	if operation != "end" && (scene == "" || activity == "") {
-		return failedToolResult(call, "scene_fields_required", false, "scene and activity are required for start or switch"), errors.New("scene and activity are required")
-	}
-	confidence, err := boundedNumberOrError(args["confidence"], -1)
-	if err != nil || confidence < 0 {
-		return failedToolResult(call, "scene_confidence_invalid", false, "confidence must be between 0 and 1"), errors.New("scene confidence invalid")
-	}
-	refs := arrayValue(args["evidence_refs"])
-	if !containsStringValue(refs, sourceFactID) {
-		refs = append(refs, sourceFactID)
-	}
-	idempotency := stringValue(args["idempotency_key"])
-	if idempotency == "" {
-		idempotency = "tool:" + call.ID
-	}
-	start, end, err := capabilityTimeBounds(args["start_at"], args["end_at"])
+	plan, err := scenePlanFromInvocation(invocation)
 	if err != nil {
-		return failedToolResult(call, "scene_time_invalid", false, err.Error()), err
+		return failedCapabilityResultDetail(invocation, "scene_plan_invalid", false, err.Error()), err
 	}
-	kind := firstString(args["kind"], "inferred")
+	frozenLife := resolved.Life
+	if frozenLife == nil || stringValue(frozenLife.Data["context_revision"]) != plan.ExpectedLifeContextRevision || stringValue(frozenLife.Data["source"]) != plan.ExpectedSource || stringValue(frozenLife.Data["event_id"]) != plan.ExpectedEventID || intValue(frozenLife.Data["event_revision"]) != plan.ExpectedEventRevision {
+		return failedCapabilityResult(invocation, "scene_prepared_context_mismatch", false), newCapabilityError("scene_prepared_context_mismatch", false, ErrConflict)
+	}
+	fluctlightID, conversationID, sourceFactID := invocation.Metadata.FluctlightID, invocation.Metadata.ConversationID, invocation.SourceFactID
+	eventID := "event_" + stableDigest(fluctlightID+":"+plan.IdempotencyKey)
+	if err := lockLifeContextTx(ctx, callerTx, fluctlightID); err != nil {
+		return failedCapabilityResult(invocation, "scene_persist_failed", true), err
+	}
+	var existingDigest string
+	var existingResult []byte
+	if replayErr := callerTx.QueryRow(ctx, `SELECT COALESCE(request_digest,''),result FROM public.life_events WHERE fluctlight_id=$1 AND idempotency_key=$2 FOR UPDATE`, fluctlightID, plan.IdempotencyKey).Scan(&existingDigest, &existingResult); replayErr == nil {
+		if existingDigest != plan.RequestDigest {
+			return failedCapabilityResult(invocation, "scene_idempotency_conflict", false), newCapabilityError("scene_idempotency_conflict", false, ErrConflict)
+		}
+		output := decodeObject(existingResult)
+		if len(output) == 0 {
+			return failedCapabilityResult(invocation, "scene_replay_result_invalid", false), errors.New("scene replay result invalid")
+		}
+		output["replayed"] = true
+		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "scene:" + eventID}, nil
+	} else if !errors.Is(replayErr, pgx.ErrNoRows) {
+		return failedCapabilityResult(invocation, "scene_persist_failed", true), replayErr
+	}
+	applyAt := time.Now().UTC()
+	if !plan.EndsAt.After(applyAt) {
+		return failedCapabilityResult(invocation, "scene_plan_expired", false), newCapabilityError("scene_plan_expired", false, ErrConflict)
+	}
+	liveContext, err := a.requireLifeContextRevisionTx(ctx, callerTx, fluctlightID, plan.ExpectedLifeContextRevision, applyAt)
+	if err != nil {
+		if errors.Is(err, ErrLifeContextStale) {
+			return failedCapabilityResult(invocation, "scene_context_stale", false), newCapabilityError("scene_context_stale", false, err)
+		}
+		return failedCapabilityResult(invocation, "scene_persist_failed", true), err
+	}
+	previousScene := map[string]any{"source": liveContext["source"], "scene": liveContext["scene"], "activity": liveContext["activity"], "location": liveContext["location"], "context_revision": liveContext["context_revision"]}
+	if plan.Operation == "switch" || plan.Operation == "end" {
+		if plan.ExpectedSource == "event" {
+			updated, err := callerTx.Exec(ctx, `UPDATE public.life_events SET end_at=LEAST(end_at,$4),expires_at=$4,status='cancelled',revision=revision+1,updated_at=$4 WHERE id=$1 AND fluctlight_id=$2 AND revision=$3 AND status IN ('confirmed','inferred') AND start_at<=$4 AND end_at>$4 AND (expires_at IS NULL OR expires_at>$4)`, plan.ExpectedEventID, fluctlightID, plan.ExpectedEventRevision, applyAt)
+			if err != nil {
+				return failedCapabilityResult(invocation, "scene_persist_failed", true), err
+			}
+			if updated.RowsAffected() != 1 {
+				return failedCapabilityResult(invocation, "scene_context_stale", false), newCapabilityError("scene_context_stale", false, ErrLifeContextStale)
+			}
+		} else if plan.Operation == "end" {
+			return failedCapabilityResult(invocation, "scene_context_stale", false), newCapabilityError("scene_context_stale", false, ErrLifeContextStale)
+		}
+	}
 	status := "inferred"
-	if kind == "confirmed" || kind == "observed" {
-		status = "confirmed"
+	startAt := applyAt
+	endAt := plan.EndsAt
+	expiresAt := any(plan.EndsAt)
+	kind := "scene_inferred"
+	var sceneValue, activityValue, locationValue any = nullableString(plan.Scene), nullableString(plan.Activity), nullableString(plan.Location)
+	if plan.Operation == "end" {
+		status, kind, endAt, expiresAt = "confirmed", "scene_end", applyAt.Add(time.Second), applyAt
+		sceneValue, activityValue, locationValue = nil, nil, nil
 	}
-	eventID := "event_" + stableDigest(fluctlightID+":"+idempotency)
-	inboxID := ""
-	previousScene := map[string]any{}
-	existingEvent := false
-	existingStatus := status
-	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		// Idempotency must be checked before closing the active scene. Otherwise a
-		// retry of a successful switch would truncate the newly-created scene and
-		// only then discover the unique-key conflict on INSERT.
-		var existingID, existingKind string
-		if err := tx.QueryRow(ctx, `
-			SELECT id,kind,status
-			FROM public.life_events
-			WHERE fluctlight_id=$1 AND idempotency_key=$2
-			LIMIT 1
-			FOR UPDATE`, fluctlightID, idempotency).Scan(&existingID, &existingKind, &existingStatus); err == nil {
-			eventID = existingID
-			existingEvent = true
-			if existingKind == "scene_end" {
-				existingStatus = "ended"
-			}
-			return nil
-		} else if !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
-		// A switch is a replacement of the currently active scene, not a second
-		// overlapping scene. Close active scene facts before inserting the new
-		// projection. The same close step makes an explicit end operation durable
-		// without relying on a text parser or schedule heuristics.
-		var previousSceneValue, previousActivity, previousLocation *string
-		var previousStart time.Time
-		if err := tx.QueryRow(ctx, `
-			SELECT scene,activity,location,start_at
-			FROM public.life_events
-			WHERE fluctlight_id=$1 AND status IN ('confirmed','inferred')
-			  AND start_at <= $2 AND end_at > $2
-			  AND (expires_at IS NULL OR expires_at > $2)
-			ORDER BY CASE WHEN status='confirmed' THEN 0 ELSE 1 END,start_at DESC,id DESC
-			LIMIT 1
-			FOR UPDATE`, fluctlightID, start).Scan(&previousSceneValue, &previousActivity, &previousLocation, &previousStart); err == nil {
-			previousScene = map[string]any{
-				"scene":    previousSceneValue,
-				"activity": previousActivity,
-				"location": previousLocation,
-				"start_at": previousStart.Format(time.RFC3339Nano),
-			}
-		} else if !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
-		if operation == "switch" || operation == "end" {
-			if _, err := tx.Exec(ctx, `
-				UPDATE public.life_events
-				SET end_at=LEAST(end_at,$2), expires_at=COALESCE(expires_at,$2)
-				WHERE fluctlight_id=$1 AND status IN ('confirmed','inferred')
-				  AND start_at <= $2 AND end_at > $2
-				  AND (expires_at IS NULL OR expires_at > $2)`, fluctlightID, start); err != nil {
-				return err
-			}
-		}
-		if operation == "end" {
-			// Keep an auditable end marker without making it the active context.
-			endMarkerExpiry := start
-			markerEnd := start.Add(time.Second)
-			if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs,idempotency_key,expires_at) VALUES($1,$2,$3,$4,$5,NULL,NULL,NULL,'confirmed',$6,$7,$8) ON CONFLICT(fluctlight_id,idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING`, eventID, fluctlightID, "scene_end", start, markerEnd, jsonBytes(refs), idempotency, endMarkerExpiry); err != nil {
-				return err
-			}
-		} else {
-			// life_events uses a partial unique index because legacy rows may not
-			// have an idempotency key. PostgreSQL can only infer that index when the
-			// conflict target repeats its predicate; omitting it raises SQLSTATE
-			// 42P10 and turns an otherwise valid native scene tool call into a
-			// retryable failure.
-			if _, err := tx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,evidence_refs,idempotency_key,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT(fluctlight_id,idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING`, eventID, fluctlightID, "scene_"+kind, start, end, scene, nullableString(activity), nullableString(stringValue(args["location"])), status, jsonBytes(refs), idempotency, sceneExpiry(status, end)); err != nil {
-				return err
-			}
-		}
-		inboxID, err = a.enqueueNativeFactTx(ctx, tx, fluctlightID, conversationID, sourceFactID, "life.scene.updated", "scene:"+idempotency, map[string]any{"event_id": eventID, "operation": operation, "scene": scene, "activity": activity, "location": stringValue(args["location"]), "previous_scene": previousScene, "status": status})
-		if err != nil {
-			return err
-		}
-		return appendOutboxTx(ctx, tx, "life.scene.updated", "fluctlight", fluctlightID, fluctlightID, sourceFactID, "scene:"+eventID, "scene:"+idempotency, map[string]any{"event_id": eventID, "operation": operation, "previous_scene": previousScene, "status": status, "aggregate_sequence": 1})
-	})
+	inserted, err := callerTx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,revision,evidence_refs,idempotency_key,request_digest,result,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,1,$10,$11,$12,'{}',$13)`, eventID, fluctlightID, kind, startAt, endAt, sceneValue, activityValue, locationValue, status, jsonBytes(plan.EvidenceRefs), plan.IdempotencyKey, plan.RequestDigest, expiresAt)
 	if err != nil {
-		return failedToolResult(call, "scene_persist_failed", true, err.Error()), err
+		return failedCapabilityResult(invocation, "scene_persist_failed", true), err
 	}
-	if existingEvent {
-		return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: map[string]any{"event_id": eventID, "inbox_id": inboxID, "operation": operation, "previous_scene": previousScene, "status": existingStatus}, ProviderRequestID: call.ProviderRequestID, CorrelationID: "scene:" + eventID, SchemaVersion: ToolResultSchemaVersion}, nil
+	if inserted.RowsAffected() != 1 {
+		return failedCapabilityResult(invocation, "scene_persist_failed", true), ErrConflict
+	}
+	_, resultingContext, err := resolveLifeContextSnapshotWith(ctx, callerTx, fluctlightID, applyAt)
+	if err != nil {
+		return failedCapabilityResult(invocation, "scene_persist_failed", true), err
+	}
+	if plan.Operation != "end" && stringValue(resultingContext["event_id"]) != eventID {
+		return failedCapabilityResult(invocation, "scene_resulting_context_invalid", false), newCapabilityError("scene_resulting_context_invalid", false, ErrConflict)
 	}
 	resultStatus := status
-	if operation == "end" {
+	if plan.Operation == "end" {
 		resultStatus = "ended"
 	}
-	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: map[string]any{"event_id": eventID, "inbox_id": inboxID, "operation": operation, "previous_scene": previousScene, "status": resultStatus}, ProviderRequestID: call.ProviderRequestID, CorrelationID: "scene:" + eventID, SchemaVersion: ToolResultSchemaVersion}, nil
+	nativeFactKey := "scene:" + stableDigest(plan.IdempotencyKey)
+	inboxID, err := a.enqueueNativeFactTx(ctx, callerTx, fluctlightID, conversationID, sourceFactID, "life.scene.updated", nativeFactKey, map[string]any{
+		"event_id": eventID, "operation": plan.Operation, "scene": plan.Scene, "activity": plan.Activity, "location": plan.Location,
+		"previous_scene": previousScene, "status": resultStatus, "expected_context_revision": plan.ExpectedLifeContextRevision,
+		"resulting_context_revision": resultingContext["context_revision"],
+	})
+	if err != nil {
+		return failedCapabilityResult(invocation, "scene_persist_failed", true), err
+	}
+	output := map[string]any{
+		"event_id": eventID, "inbox_id": inboxID, "operation": plan.Operation, "status": resultStatus,
+		"event_revision": 1, "expected_context_revision": plan.ExpectedLifeContextRevision,
+		"resulting_context_revision": resultingContext["context_revision"], "replayed": false,
+	}
+	if _, err := callerTx.Exec(ctx, `UPDATE public.life_events SET result=$2 WHERE id=$1 AND revision=1`, eventID, jsonBytes(output)); err != nil {
+		return failedCapabilityResult(invocation, "scene_persist_failed", true), err
+	}
+	if err := appendOutboxTx(ctx, callerTx, "life.scene.updated", "fluctlight", fluctlightID, fluctlightID, sourceFactID, "scene:"+eventID, "scene:"+fluctlightID+":"+stableDigest(plan.IdempotencyKey), map[string]any{"event_id": eventID, "operation": plan.Operation, "status": resultStatus, "aggregate_sequence": 1}); err != nil {
+		return failedCapabilityResult(invocation, "scene_persist_failed", true), err
+	}
+	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "scene:" + eventID}, nil
 }
 
 func normalizeSceneOperation(args map[string]any) (string, error) {
@@ -202,88 +219,100 @@ func normalizeSceneOperation(args map[string]any) (string, error) {
 	return operation, nil
 }
 
-func (a *App) applyPresenceCapability(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	var args map[string]any
-	if err := json.Unmarshal(call.Arguments, &args); err != nil {
-		return failedToolResult(call, "presence_arguments_invalid", false, err.Error()), err
-	}
-	if source := stringValue(args["source_fact_id"]); source != "" && source != sourceFactID {
-		return failedToolResult(call, "presence_source_invalid", false, "source fact does not match current cognition fact"), errors.New("presence source fact invalid")
-	}
-	userPresence := strings.TrimSpace(stringValue(args["user_presence"]))
-	currentTask := strings.TrimSpace(stringValue(args["current_task"]))
-	if userPresence == "" && currentTask == "" {
-		return failedToolResult(call, "presence_fields_required", false, "user_presence or current_task is required"), errors.New("presence fields are required")
-	}
-	confidence, err := boundedNumberOrError(args["confidence"], -1)
-	if err != nil || confidence < 0 {
-		return failedToolResult(call, "presence_confidence_invalid", false, "confidence must be between 0 and 1"), errors.New("presence confidence invalid")
-	}
-	refs := arrayValue(args["evidence_refs"])
-	if !containsStringValue(refs, sourceFactID) {
-		refs = append(refs, sourceFactID)
-	}
-	idempotency := stringValue(args["idempotency_key"])
-	if idempotency == "" {
-		idempotency = "tool:" + call.ID
-	}
-	var expires any
-	if raw := stringValue(args["expires_at"]); raw != "" {
-		parsed, parseErr := time.Parse(time.RFC3339, raw)
-		if parseErr != nil || !parsed.After(time.Now().UTC()) {
-			return failedToolResult(call, "presence_expiration_invalid", false, "expires_at must be a future RFC3339 timestamp"), errors.New("presence expiration invalid")
-		}
-		expires = parsed
-	} else {
-		expires = time.Now().UTC().Add(2 * time.Hour)
-	}
-	overlayID := "presence_overlay_" + stableDigest(fluctlightID+":"+idempotency)
-	inboxID := ""
-	if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.life_presence_overlays(id,fluctlight_id,actor_id,scene,activity,location,current_task,user_presence,expires_at) VALUES($1,$2,$2,NULL,NULL,NULL,$3,$4,$5) ON CONFLICT(id) DO NOTHING`, overlayID, fluctlightID, nullableString(currentTask), nullableString(userPresence), expires); err != nil {
-			return err
-		}
-		var err error
-		inboxID, err = a.enqueueNativeFactTx(ctx, tx, fluctlightID, conversationID, sourceFactID, "life.presence.updated", "presence:"+idempotency, map[string]any{"overlay_id": overlayID, "current_task": currentTask, "user_presence": userPresence})
-		if err != nil {
-			return err
-		}
-		return appendOutboxTx(ctx, tx, "life.presence.updated", "fluctlight", fluctlightID, fluctlightID, sourceFactID, "presence:"+overlayID, "presence:"+idempotency, map[string]any{"overlay_id": overlayID, "aggregate_sequence": 1})
-	}); err != nil {
-		return failedToolResult(call, "presence_persist_failed", true, err.Error()), err
-	}
-	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: map[string]any{"overlay_id": overlayID, "inbox_id": inboxID, "status": "active"}, ProviderRequestID: call.ProviderRequestID, CorrelationID: "presence:" + overlayID, SchemaVersion: ToolResultSchemaVersion}, nil
+func (a *App) applyPresenceCapability(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	return failedCapabilityResult(invocation, "caller_transaction_required", false), newCapabilityError("caller_transaction_required", false, ErrConflict)
 }
 
-func capabilityTimeBounds(startValue, endValue any) (time.Time, time.Time, error) {
-	now := time.Now().UTC()
-	start := now
-	if raw := stringValue(startValue); raw != "" {
-		parsed, err := time.Parse(time.RFC3339, raw)
-		if err != nil {
-			return time.Time{}, time.Time{}, errors.New("start_at must be RFC3339")
-		}
-		start = parsed
-	}
-	end := start.Add(30 * time.Minute)
-	if raw := stringValue(endValue); raw != "" {
-		parsed, err := time.Parse(time.RFC3339, raw)
-		if err != nil {
-			return time.Time{}, time.Time{}, errors.New("end_at must be RFC3339")
-		}
-		end = parsed
-	}
-	if !end.After(start) {
-		return time.Time{}, time.Time{}, errors.New("end_at must be after start_at")
-	}
-	return start, end, nil
+func (a *App) applyPresenceCapabilityTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	return a.applyPresenceCapabilityWithTx(ctx, tx, invocation, resolved)
 }
 
-func sceneExpiry(status string, end time.Time) any {
-	if status == "confirmed" {
-		return nil
+func (a *App) applyPresenceCapabilityWithTx(ctx context.Context, callerTx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	if callerTx == nil {
+		return failedCapabilityResult(invocation, "caller_transaction_required", false), newCapabilityError("caller_transaction_required", false, ErrConflict)
 	}
-	return end.Add(24 * time.Hour)
+	plan, err := presencePlanFromInvocation(invocation)
+	if err != nil {
+		return failedCapabilityResultDetail(invocation, "presence_plan_invalid", false, err.Error()), err
+	}
+	if resolved.Life == nil || stringValue(resolved.Life.Data["context_revision"]) != plan.ExpectedLifeContextRevision {
+		return failedCapabilityResult(invocation, "presence_prepared_context_mismatch", false), newCapabilityError("presence_prepared_context_mismatch", false, ErrConflict)
+	}
+	fluctlightID, conversationID, sourceFactID := invocation.Metadata.FluctlightID, invocation.Metadata.ConversationID, invocation.SourceFactID
+	overlayID := "presence_overlay_" + stableDigest(fluctlightID+":"+plan.IdempotencyKey)
+	if err := lockLifeContextTx(ctx, callerTx, fluctlightID); err != nil {
+		return failedCapabilityResult(invocation, "presence_persist_failed", true), err
+	}
+	var existingDigest string
+	var existingResult []byte
+	if replayErr := callerTx.QueryRow(ctx, `SELECT COALESCE(request_digest,''),result FROM public.life_presence_overlays WHERE fluctlight_id=$1 AND idempotency_key=$2 FOR UPDATE`, fluctlightID, plan.IdempotencyKey).Scan(&existingDigest, &existingResult); replayErr == nil {
+		if existingDigest != plan.RequestDigest {
+			return failedCapabilityResult(invocation, "presence_idempotency_conflict", false), newCapabilityError("presence_idempotency_conflict", false, ErrConflict)
+		}
+		output := decodeObject(existingResult)
+		if len(output) == 0 {
+			return failedCapabilityResult(invocation, "presence_replay_result_invalid", false), errors.New("presence replay result invalid")
+		}
+		output["replayed"] = true
+		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "presence:" + overlayID}, nil
+	} else if !errors.Is(replayErr, pgx.ErrNoRows) {
+		return failedCapabilityResult(invocation, "presence_persist_failed", true), replayErr
+	}
+	applyAt := time.Now().UTC()
+	if plan.Operation == "set" && (plan.ExpiresAt == nil || !plan.ExpiresAt.After(applyAt)) {
+		return failedCapabilityResult(invocation, "presence_plan_expired", false), newCapabilityError("presence_plan_expired", false, ErrConflict)
+	}
+	if plan.Operation == "clear" && !plan.OccurredAt.Add(presenceDefaultDuration).After(applyAt) {
+		return failedCapabilityResult(invocation, "presence_plan_expired", false), newCapabilityError("presence_plan_expired", false, ErrConflict)
+	}
+	if _, err := a.requireLifeContextRevisionTx(ctx, callerTx, fluctlightID, plan.ExpectedLifeContextRevision, applyAt); err != nil {
+		if errors.Is(err, ErrLifeContextStale) {
+			return failedCapabilityResult(invocation, "presence_context_stale", false), newCapabilityError("presence_context_stale", false, err)
+		}
+		return failedCapabilityResult(invocation, "presence_persist_failed", true), err
+	}
+	if _, err := callerTx.Exec(ctx, `UPDATE public.life_presence_overlays SET status='superseded',revision=revision+1,superseded_by_overlay_id=$2,updated_at=$3 WHERE fluctlight_id=$1 AND status='active'`, fluctlightID, overlayID, applyAt); err != nil {
+		return failedCapabilityResult(invocation, "presence_persist_failed", true), err
+	}
+	status := "active"
+	if plan.Operation == "clear" {
+		status = "cleared"
+	}
+	inserted, err := callerTx.Exec(ctx, `INSERT INTO public.life_presence_overlays(id,fluctlight_id,actor_id,scene,activity,location,current_task,user_presence,status,revision,idempotency_key,request_digest,result,expires_at,created_at,updated_at) VALUES($1,$2,$3,NULL,NULL,NULL,$4,$5,$6,1,$7,$8,'{}',$9,$10,$10)`, overlayID, fluctlightID, plan.ActorID, nullableString(plan.CurrentTask), nullableString(plan.UserPresence), status, plan.IdempotencyKey, plan.RequestDigest, plan.ExpiresAt, applyAt)
+	if err != nil {
+		return failedCapabilityResult(invocation, "presence_persist_failed", true), err
+	}
+	if inserted.RowsAffected() != 1 {
+		return failedCapabilityResult(invocation, "presence_persist_failed", true), ErrConflict
+	}
+	_, resultingContext, err := resolveLifeContextSnapshotWith(ctx, callerTx, fluctlightID, applyAt)
+	if err != nil {
+		return failedCapabilityResult(invocation, "presence_persist_failed", true), err
+	}
+	resultingPresence := mapValue(resultingContext["presence"])
+	if (plan.Operation == "set" && stringValue(resultingPresence["id"]) != overlayID) || (plan.Operation == "clear" && len(resultingPresence) != 0) {
+		return failedCapabilityResult(invocation, "presence_resulting_context_invalid", false), newCapabilityError("presence_resulting_context_invalid", false, ErrConflict)
+	}
+	nativeFactKey := "presence:" + stableDigest(plan.IdempotencyKey)
+	inboxID, err := a.enqueueNativeFactTx(ctx, callerTx, fluctlightID, conversationID, sourceFactID, "life.presence.updated", nativeFactKey, map[string]any{
+		"overlay_id": overlayID, "operation": plan.Operation, "current_task": plan.CurrentTask, "user_presence": plan.UserPresence,
+		"expected_context_revision": plan.ExpectedLifeContextRevision, "resulting_context_revision": resultingContext["context_revision"],
+	})
+	if err != nil {
+		return failedCapabilityResult(invocation, "presence_persist_failed", true), err
+	}
+	output := map[string]any{
+		"overlay_id": overlayID, "inbox_id": inboxID, "operation": plan.Operation, "status": status,
+		"overlay_revision": 1, "expected_context_revision": plan.ExpectedLifeContextRevision,
+		"resulting_context_revision": resultingContext["context_revision"], "replayed": false,
+	}
+	if _, err := callerTx.Exec(ctx, `UPDATE public.life_presence_overlays SET result=$2 WHERE id=$1 AND revision=1`, overlayID, jsonBytes(output)); err != nil {
+		return failedCapabilityResult(invocation, "presence_persist_failed", true), err
+	}
+	if err := appendOutboxTx(ctx, callerTx, "life.presence.updated", "fluctlight", fluctlightID, fluctlightID, sourceFactID, "presence:"+overlayID, "presence:"+fluctlightID+":"+stableDigest(plan.IdempotencyKey), map[string]any{"overlay_id": overlayID, "operation": plan.Operation, "status": status, "aggregate_sequence": 1}); err != nil {
+		return failedCapabilityResult(invocation, "presence_persist_failed", true), err
+	}
+	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "presence:" + overlayID}, nil
 }
 
 func (a *App) enqueueNativeFactTx(ctx context.Context, tx pgx.Tx, fluctlightID, conversationID, sourceFactID, eventType, idempotency string, candidate map[string]any) (string, error) {
@@ -304,7 +333,14 @@ func (a *App) enqueueNativeFactTx(ctx context.Context, tx pgx.Tx, fluctlightID, 
 	if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads SET next_sequence=$2 WHERE fluctlight_id=$1`, fluctlightID, sequence+1); err != nil {
 		return "", err
 	}
-	payload := map[string]any{"event_type": eventType, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "source_fact_id": sourceFactID, "candidate": candidate, "idempotency_key": idempotency}
+	depth := 0
+	var parentPayload []byte
+	if err := tx.QueryRow(ctx, `SELECT payload FROM public.cognition_inbox WHERE id=$1 AND fluctlight_id=$2`, sourceFactID, fluctlightID).Scan(&parentPayload); err == nil {
+		depth = intValue(decodeObject(parentPayload)["native_cognition_depth"]) + 1
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return "", err
+	}
+	payload := map[string]any{"event_type": eventType, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "source_fact_id": sourceFactID, "candidate": candidate, "idempotency_key": idempotency, "native_cognition_depth": depth}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,now(),'pending')`, inboxID, fluctlightID, sequence, eventType, jsonBytes(payload), sourceFactID, eventType+":"+idempotency, idempotency); err != nil {
 		return "", err
 	}
@@ -312,23 +348,4 @@ func (a *App) enqueueNativeFactTx(ctx context.Context, tx pgx.Tx, fluctlightID, 
 		return "", err
 	}
 	return inboxID, nil
-}
-
-func (a *App) markNativeFactProcessed(ctx context.Context, inboxID string) error {
-	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var fluctlightID string
-		var sequence int
-		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,sequence FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&fluctlightID, &sequence); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',processed_at=now() WHERE id=$1 AND status <> 'processed'`, inboxID); err != nil {
-			return err
-		}
-		_, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads SET last_processed_sequence=GREATEST(last_processed_sequence,$2) WHERE fluctlight_id=$1`, fluctlightID, sequence)
-		if err != nil {
-			return err
-		}
-		_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:native:"+inboxID, "reflection:native:"+inboxID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": inboxID}))
-		return err
-	})
 }

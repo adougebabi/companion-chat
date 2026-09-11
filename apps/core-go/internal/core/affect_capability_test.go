@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func TestNormalizeAffectEventCallRequiresEvidenceAndKnownType(t *testing.T) {
-	call := ToolCallV1{ID: "affect-1", Arguments: json.RawMessage(`{"event":{"type":"embarrassed","confidence":0.8,"evidence_refs":["current_message.content"],"idempotency_key":"affect-1"}}`)}
-	event, err := normalizeAffectEventCall(call, "fact-1")
+func TestNormalizeAffectEventInvocationRequiresEvidenceAndKnownType(t *testing.T) {
+	invocation := CapabilityInvocation{CallID: "affect-1", Arguments: json.RawMessage(`{"event":{"type":"embarrassed","confidence":0.8,"evidence_refs":["current_message.content"],"idempotency_key":"affect-1"}}`), SourceFactID: "fact-1"}
+	event, err := normalizeAffectEventInvocation(invocation)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -15,8 +15,8 @@ func TestNormalizeAffectEventCallRequiresEvidenceAndKnownType(t *testing.T) {
 		t.Fatalf("normalized affect event = %#v", event)
 	}
 
-	call.Arguments = json.RawMessage(`{"event":{"type":"unknown","confidence":0.8,"evidence_refs":["fact"],"idempotency_key":"affect-2"}}`)
-	if _, err := normalizeAffectEventCall(call, "fact-1"); err == nil {
+	invocation.Arguments = json.RawMessage(`{"event":{"type":"unknown","confidence":0.8,"evidence_refs":["fact"],"idempotency_key":"affect-2"}}`)
+	if _, err := normalizeAffectEventInvocation(invocation); err == nil {
 		t.Fatal("unknown affect type should be rejected")
 	}
 }

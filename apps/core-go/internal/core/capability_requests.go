@@ -10,100 +10,114 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func capabilityRequestManifest() CapabilityManifest {
-	return CapabilityManifest{
-		Name:        "capability.request",
-		Version:     "v1",
-		Description: "Record a request for a missing capability for Owner review; this does not execute an external side effect.",
-		Parameters: map[string]any{
+func capabilityRequestDefinition() CapabilityDefinition {
+	return CapabilityDefinition{
+		Name:          "capability.request",
+		Version:       "v1",
+		Type:          CapabilityTypeInternal,
+		Description:   "Record a request for a missing capability for Owner review; this does not execute an external side effect.",
+		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
+		FailurePolicy: FailurePolicyOptionalInternal,
+		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
-			"required": []any{"capability_key", "title", "description", "rationale", "desired_contract", "evidence_refs"},
+			"required": []any{"capability_key", "title", "description", "rationale"},
 			"properties": map[string]any{
-				"capability_key":    map[string]any{"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
-				"title":             map[string]any{"type": "string", "minLength": 1, "maxLength": 256},
-				"description":       map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
-				"rationale":         map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
-				"desired_contract":  map[string]any{"type": "object", "additionalProperties": true},
-				"side_effect_class": map[string]any{"type": "string", "maxLength": 64},
-				"priority":          map[string]any{"type": "string", "enum": []any{"low", "normal", "high", "urgent"}},
-				"evidence_refs":     map[string]any{"type": "array", "minItems": 1, "maxItems": 20},
-				"idempotency_key":   map[string]any{"type": "string", "maxLength": 256},
+				"capability_key":   map[string]any{"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+				"title":            map[string]any{"type": "string", "minLength": 1, "maxLength": 256},
+				"description":      map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
+				"rationale":        map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
+				"desired_contract": map[string]any{"type": "object", "additionalProperties": true},
+				"priority":         map[string]any{"type": "string", "enum": []any{"low", "normal", "high", "urgent"}},
 			},
 		},
-		SideEffectClass: "native_projection", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
+		SideEffectClass: "native_projection", SuccessBoundary: "capability_request_recorded", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
+		ProvenanceFields: []string{"evidence_refs", "idempotency_key"},
 	}
 }
 
-type capabilityRequestExecutor struct{ app *App }
+type capabilityRequestService struct{ app *App }
 
-func (executor *capabilityRequestExecutor) Manifest() CapabilityManifest {
-	return capabilityRequestManifest()
+func (service *capabilityRequestService) execute(ctx context.Context, invocation CapabilityInvocation) (CapabilityResult, error) {
+	return service.executeWith(ctx, nil, invocation)
 }
 
-func (executor *capabilityRequestExecutor) Execute(ctx context.Context, fluctlightID, _ string, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	var args map[string]any
-	if err := jsonUnmarshalObject(call.Arguments, &args); err != nil {
-		return failedToolResult(call, "capability_request_arguments_invalid", false, err.Error()), err
+func (service *capabilityRequestService) executeWith(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation) (CapabilityResult, error) {
+	fluctlightID, sourceFactID := invocation.Metadata.FluctlightID, invocation.SourceFactID
+	args, err := capabilityExecutionArguments(invocation, capabilityRequestDefinition())
+	if err != nil {
+		return failedCapabilityResultDetail(invocation, "capability_request_arguments_invalid", false, err.Error()), err
 	}
 	key := strings.TrimSpace(stringValue(args["capability_key"]))
 	if !validateSlotKey(key) {
-		return failedToolResult(call, "capability_request_key_invalid", false, "capability_key is invalid"), errors.New("capability request key invalid")
+		return failedCapabilityResultDetail(invocation, "capability_request_key_invalid", false, "capability_key is invalid"), errors.New("capability request key invalid")
 	}
 	title, err := boundedRequiredText(args["title"], 256)
 	if err != nil {
-		return failedToolResult(call, "capability_request_title_invalid", false, err.Error()), err
+		return failedCapabilityResultDetail(invocation, "capability_request_title_invalid", false, err.Error()), err
 	}
 	description, err := boundedRequiredText(args["description"], 4000)
 	if err != nil {
-		return failedToolResult(call, "capability_request_description_invalid", false, err.Error()), err
+		return failedCapabilityResultDetail(invocation, "capability_request_description_invalid", false, err.Error()), err
 	}
 	rationale, err := boundedRequiredText(args["rationale"], 4000)
 	if err != nil {
-		return failedToolResult(call, "capability_request_rationale_invalid", false, err.Error()), err
+		return failedCapabilityResultDetail(invocation, "capability_request_rationale_invalid", false, err.Error()), err
 	}
 	desiredContract := mapValue(args["desired_contract"])
-	if len(desiredContract) == 0 || len(jsonBytes(desiredContract)) > 16000 || containsSensitiveKey(desiredContract) {
-		return failedToolResult(call, "capability_request_contract_invalid", false, "desired_contract must be a bounded object"), errors.New("capability request contract invalid")
+	if desiredContract == nil {
+		desiredContract = map[string]any{}
+	}
+	if len(jsonBytes(desiredContract)) > 16000 || containsSensitiveKey(desiredContract) {
+		return failedCapabilityResultDetail(invocation, "capability_request_contract_invalid", false, "desired_contract must be a bounded object"), errors.New("capability request contract invalid")
 	}
 	priority := stringValue(args["priority"])
 	if priority == "" {
 		priority = "normal"
 	}
 	if priority != "low" && priority != "normal" && priority != "high" && priority != "urgent" {
-		return failedToolResult(call, "capability_request_priority_invalid", false, "priority is invalid"), errors.New("capability request priority invalid")
+		return failedCapabilityResultDetail(invocation, "capability_request_priority_invalid", false, "priority is invalid"), errors.New("capability request priority invalid")
 	}
 	sideEffectClass := stringValue(args["side_effect_class"])
 	if sideEffectClass == "" {
 		sideEffectClass = "unknown"
 	}
 	if len([]rune(sideEffectClass)) > 64 {
-		return failedToolResult(call, "capability_request_side_effect_invalid", false, "side_effect_class is too long"), errors.New("capability request side effect invalid")
+		return failedCapabilityResultDetail(invocation, "capability_request_side_effect_invalid", false, "side_effect_class is too long"), errors.New("capability request side effect invalid")
 	}
 	refs := arrayValue(args["evidence_refs"])
 	if len(refs) == 0 || len(refs) > 20 {
-		return failedToolResult(call, "capability_request_evidence_invalid", false, "evidence_refs must contain at least one source"), errors.New("capability request evidence invalid")
+		// The source fact is runtime-owned and is sufficient evidence when the
+		// provider omitted optional evidence references.
+		refs = []any{sourceFactID}
 	}
 	if !containsStringValue(refs, sourceFactID) {
 		refs = append(refs, sourceFactID)
 	}
 	for _, ref := range refs {
 		if text := stringValue(ref); text == "" || len([]rune(text)) > 256 {
-			return failedToolResult(call, "capability_request_evidence_invalid", false, "evidence reference is invalid"), errors.New("capability request evidence invalid")
+			return failedCapabilityResultDetail(invocation, "capability_request_evidence_invalid", false, "evidence reference is invalid"), errors.New("capability request evidence invalid")
 		}
 	}
 	idempotency := stringValue(args["idempotency_key"])
 	if idempotency == "" {
-		idempotency = "tool:" + call.ID
+		idempotency = "tool:" + invocation.CallID
 	}
 	if len([]rune(idempotency)) > 256 {
-		return failedToolResult(call, "capability_request_idempotency_invalid", false, "idempotency_key is too long"), errors.New("capability request idempotency invalid")
+		return failedCapabilityResultDetail(invocation, "capability_request_idempotency_invalid", false, "idempotency_key is too long"), errors.New("capability request idempotency invalid")
 	}
 	requestID := "capability_request_" + stableDigest(fluctlightID+":"+idempotency)
-	err = executor.app.persistCapabilityRequest(ctx, requestID, fluctlightID, sourceFactID, key, title, description, rationale, desiredContract, sideEffectClass, priority, refs, idempotency)
-	if err != nil {
-		return failedToolResult(call, "capability_request_persist_failed", true, err.Error()), err
+	if service == nil || service.app == nil {
+		return failedCapabilityResultDetail(invocation, "capability_request_unavailable", true, "capability request service is unavailable"), errors.New("capability request service unavailable")
 	}
-	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: map[string]any{"request_id": requestID, "capability_key": key, "status": "proposed"}, Retryable: false, ProviderRequestID: call.ProviderRequestID, CorrelationID: "capability-request:" + requestID, SchemaVersion: ToolResultSchemaVersion}, nil
+	if tx != nil {
+		err = service.app.persistCapabilityRequestTx(ctx, tx, requestID, fluctlightID, sourceFactID, key, title, description, rationale, desiredContract, sideEffectClass, priority, refs, idempotency)
+	} else {
+		err = service.app.persistCapabilityRequest(ctx, requestID, fluctlightID, sourceFactID, key, title, description, rationale, desiredContract, sideEffectClass, priority, refs, idempotency)
+	}
+	if err != nil {
+		return failedCapabilityResultDetail(invocation, "capability_request_persist_failed", true, err.Error()), err
+	}
+	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"request_id": requestID, "capability_key": key, "status": "proposed"}, Retryable: false, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "capability-request:" + requestID}, nil
 }
 
 func containsSensitiveKey(value any) bool {
@@ -148,11 +162,15 @@ func boundedRequiredText(value any, max int) (string, error) {
 
 func (a *App) persistCapabilityRequest(ctx context.Context, requestID, fluctlightID, sourceFactID, key, title, description, rationale string, desiredContract map[string]any, sideEffectClass, priority string, refs []any, idempotency string) error {
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.capability_requests(id,capability_key,title,description,rationale,desired_contract,side_effect_class,priority,fluctlight_id,source_fact_id,evidence_refs,status,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'proposed',$12) ON CONFLICT(fluctlight_id,idempotency_key) DO NOTHING`, requestID, key, title, description, rationale, jsonBytes(desiredContract), sideEffectClass, priority, fluctlightID, sourceFactID, jsonBytes(refs), idempotency); err != nil {
-			return err
-		}
-		return appendOutboxTx(ctx, tx, "capability.requested", "capability_request", requestID, fluctlightID, sourceFactID, "capability-request:"+requestID, "capability-request:"+requestID, map[string]any{"request_id": requestID, "capability_key": key, "status": "proposed"})
+		return a.persistCapabilityRequestTx(ctx, tx, requestID, fluctlightID, sourceFactID, key, title, description, rationale, desiredContract, sideEffectClass, priority, refs, idempotency)
 	})
+}
+
+func (a *App) persistCapabilityRequestTx(ctx context.Context, tx pgx.Tx, requestID, fluctlightID, sourceFactID, key, title, description, rationale string, desiredContract map[string]any, sideEffectClass, priority string, refs []any, idempotency string) error {
+	if _, err := tx.Exec(ctx, `INSERT INTO public.capability_requests(id,capability_key,title,description,rationale,desired_contract,side_effect_class,priority,fluctlight_id,source_fact_id,evidence_refs,status,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'proposed',$12) ON CONFLICT(fluctlight_id,idempotency_key) DO NOTHING`, requestID, key, title, description, rationale, jsonBytes(desiredContract), sideEffectClass, priority, fluctlightID, sourceFactID, jsonBytes(refs), idempotency); err != nil {
+		return err
+	}
+	return appendOutboxTx(ctx, tx, "capability.requested", "capability_request", requestID, fluctlightID, sourceFactID, "capability-request:"+requestID, "capability-request:"+requestID, map[string]any{"request_id": requestID, "capability_key": key, "status": "proposed"})
 }
 
 func (a *App) ListCapabilityRequests(ctx context.Context, actorID string) ([]map[string]any, error) {
@@ -202,11 +220,11 @@ func (a *App) ReviewCapabilityRequest(ctx context.Context, actorID, requestID, s
 			return err
 		}
 		if status == "fulfilled" {
-			executor, registered := a.capabilityRegistry().Lookup(capabilityKey)
+			capability, registered := a.capabilityRegistry().Lookup(capabilityKey)
 			if !registered {
 				return errors.New("capability_request_capability_unavailable")
 			}
-			if manifestVersion := executor.Manifest().Version; capabilityVersion != "" && manifestVersion != capabilityVersion {
+			if capabilityVersionValue := capability.Definition().Version; capabilityVersion != "" && capabilityVersionValue != capabilityVersion {
 				return errors.New("capability_request_capability_version_mismatch")
 			}
 		}

@@ -24,12 +24,17 @@ type App struct {
 	DB           *PostgresRepository
 	Provider     *ProviderClient
 	Capabilities *CapabilityRegistry
-	Workflows    WorkflowRuntime
-	SettingsKey  []byte
-	ServiceKey   string
-	Storage      *minio.Client
-	S3Bucket     string
-	Redis        redis.UniversalClient
+	// ContextResolver and Runtime are the canonical capability execution
+	// boundaries for all active calls and replay.
+	ContextResolver ContextResolver
+	Runtime         *CapabilityRuntime
+	SchedulePlanner SchedulePlanner
+	Workflows       WorkflowRuntime
+	SettingsKey     []byte
+	ServiceKey      string
+	Storage         *minio.Client
+	S3Bucket        string
+	Redis           redis.UniversalClient
 }
 
 // SetRedisClient wires the optional Redis acceleration layers (provider queue
@@ -69,19 +74,17 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 	}
 	app.Provider.generated = newProviderQueue(providerQueueDefaultConcurrency)
 	app.Provider.embedding = newProviderQueue(providerQueueDefaultEmbedding)
-	app.Capabilities = NewCapabilityRegistry(
-		&conversationReplyCapabilityExecutor{},
-		&momentPublishCapabilityExecutor{},
-		&imageCapabilityExecutor{app: app},
-		&visualIdentityCapabilityExecutor{app: app},
-		&sceneCapabilityExecutor{app: app},
-		&scheduleReplanCapabilityExecutor{app: app},
-		&presenceCapabilityExecutor{app: app},
-		&memoryCapabilityExecutor{app: app},
-		&affectEventCapabilityExecutor{app: app},
-		&relationshipLookupCapabilityExecutor{app: app},
-		&capabilityRequestExecutor{app: app},
-	)
+	app.SchedulePlanner = providerSchedulePlanner{provider: app.Provider}
+	registry, registryErr := NewCapabilityRegistry(builtinCapabilities(app)...)
+	if registryErr != nil {
+		return nil, registryErr
+	}
+	app.Capabilities = registry
+	app.ContextResolver = NewAppContextResolver(app)
+	app.Runtime, err = NewCapabilityRuntime(app.Capabilities, app.ContextResolver)
+	if err != nil {
+		return nil, err
+	}
 	return app, nil
 }
 
@@ -782,6 +785,9 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_inner_states (fluctlight_id,revision,pad,mood,momentum,regulation,drives,conflicts,last_updated_at) VALUES ($1,0,$2,$3,$4,$5,$6,$7,$8)`, id, jsonBytes(pad), jsonBytes(mood), jsonBytes(momentum), jsonBytes(regulation), jsonBytes(drives), jsonBytes(conflicts), now); err != nil {
 			return err
 		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_affect_profiles(fluctlight_id,updated_at,created_at) VALUES($1,$2,$2)`, id, now); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,revision,updated_at) VALUES($1,$2,0,$3) ON CONFLICT DO NOTHING`, id, initialPersonalityProfileID(corePersona), now); err != nil {
 			return err
 		}
@@ -877,6 +883,7 @@ func (a *App) EnsureDirectConversation(ctx context.Context, ownerID, fluctlightI
 
 func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID string, goals, intentions []any, defaultProfileID string, profileIDs map[string]struct{}) error {
 	goalIDs := make([]string, len(goals))
+	goalAuthorities := make([]GoalAuthority, len(goals))
 	for index, raw := range goals {
 		item := mapValue(raw)
 		goalIDs[index] = fmt.Sprintf("goal_initial_%s_%d", fluctlightID, index)
@@ -902,9 +909,29 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 				return ErrNotFound
 			}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_goals (id,fluctlight_id,profile_id,source,scope,target_actor_id,description,importance,urgency,progress,status,evidence_refs,revision) VALUES ($1,$2,$3,'self',$4,$5,$6,$7,$8,$9,'active',$10,0) ON CONFLICT DO NOTHING`, goalIDs[index], fluctlightID, profileID, scope, targetActorID, stringValue(item["description"]), jsonBytes(item["importance"]), jsonBytes(item["urgency"]), jsonBytes(0.0), jsonBytes([]string{"foundation:" + fluctlightID})); err != nil {
+		description := strings.TrimSpace(stringValue(item["description"]))
+		if description == "" {
+			return errors.New("initial_goal_description_invalid")
+		}
+		criteria := decisionServiceRefValues(item["success_criteria"])
+		importance := boundedNumber(item["importance"], 0.5)
+		urgency := boundedNumber(item["urgency"], 0.5)
+		evidence := []string{"foundation:" + fluctlightID}
+		goal := GoalAuthority{
+			EntityID: goalIDs[index], SchemaVersion: goalAuthoritySchemaVersion, Ref: "goal:ctx_" + stableDigest(goalIDs[index]),
+			FluctlightID: fluctlightID, ProfileID: profileID, DesiredOutcome: description, SuccessCriteria: criteria,
+			Motivation: firstString(item["motivation"], description), Scope: scope, TargetActorID: targetActorIDValue,
+			Importance: importance, Urgency: urgency, Progress: 0, NeedsReflection: len(criteria) == 0,
+			Status: GoalActive, Revision: 1, EvidenceRefs: evidence,
+		}
+		created, record, err := CreateGoalAuthority(goal, evidence, time.Now().UTC())
+		if err != nil {
 			return err
 		}
+		if _, err := persistGoalAuthorityTx(ctx, tx, nil, created, record, "goal:initial:"+goalIDs[index]); err != nil {
+			return err
+		}
+		goalAuthorities[index] = created
 	}
 	for index, raw := range intentions {
 		item := mapValue(raw)
@@ -923,7 +950,25 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 		if goalProfileID != profileID {
 			return errors.New("initial_intention_profile_goal_mismatch")
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_intentions (id,fluctlight_id,profile_id,goal_id,action,trigger,confidence,expiration,evidence_refs,permission_snapshot,budget_snapshot,status,revision) VALUES ($1,$2,$3,$4,$5,$6,$7,now()+interval '24 hours',$8,'{}','{}','pending',0) ON CONFLICT DO NOTHING`, fmt.Sprintf("intention_initial_%s_%d", fluctlightID, index), fluctlightID, profileID, goalIDs[goalIndex], stringValue(item["action"]), jsonBytes(map[string]any{"type": "semantic", "schema_version": "semantic.trigger.v1", "evidence_refs": []string{"foundation:" + fluctlightID}}), jsonBytes(item["confidence"]), jsonBytes([]string{"foundation:" + fluctlightID})); err != nil {
+		action := strings.TrimSpace(stringValue(item["action"]))
+		if action == "" {
+			return errors.New("initial_intention_action_invalid")
+		}
+		intentionID := fmt.Sprintf("intention_initial_%s_%d", fluctlightID, index)
+		evidence := []string{"foundation:" + fluctlightID}
+		intention := IntentionAuthority{
+			EntityID: intentionID, GoalEntityID: goalIDs[goalIndex], SchemaVersion: intentionAuthoritySchemaVersion,
+			Ref: "intention:ctx_" + stableDigest(intentionID), FluctlightID: fluctlightID, ProfileID: profileID,
+			GoalRef: goalAuthorities[goalIndex].Ref, ActionIntent: action, ExpectedOutcome: firstString(item["expected_outcome"], action),
+			CapabilityConstraints: decisionServiceRefValues(item["capability_constraints"]), Trigger: TypedIntentionTrigger{Type: IntentionTriggerSemantic},
+			Expiration: time.Now().UTC().Add(24 * time.Hour), Confidence: boundedNumber(item["confidence"], 0.5),
+			Status: IntentionCandidate, Revision: 1, EvidenceRefs: evidence,
+		}
+		created, record, err := CreateIntentionAuthority(intention, evidence, time.Now().UTC())
+		if err != nil {
+			return err
+		}
+		if _, err := persistIntentionAuthorityTx(ctx, tx, nil, created, record, "intention:initial:"+intentionID); err != nil {
 			return err
 		}
 	}

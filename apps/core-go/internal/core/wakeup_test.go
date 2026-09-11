@@ -46,12 +46,13 @@ func TestNormalizeWakeUpAssessmentAcceptsActionOnlyDecision(t *testing.T) {
 	}
 }
 
-func TestTextFromOutputCapabilityCallReadsFinalText(t *testing.T) {
-	call := ToolCallV1{Name: "moment.publish", Arguments: json.RawMessage(`{"text":"  今天有点风。  "}`)}
-	if got := textFromOutputCapabilityCall([]ToolCallV1{call}, "moment.publish"); got != "今天有点风。" {
+func TestTextFromOutputBindingReadsFinalText(t *testing.T) {
+	call := CapabilityInvocation{CapabilityName: "moment.publish", Arguments: json.RawMessage(`{"text":"  今天有点风。  "}`)}
+	registry := mustCapabilityRegistry(momentPublishCapability{})
+	if got := textFromOutputBinding([]CapabilityInvocation{call}, "moment", registry); got != "今天有点风。" {
 		t.Fatalf("output capability text = %q", got)
 	}
-	if got := textFromOutputCapabilityCall([]ToolCallV1{call}, "conversation.reply"); got != "" {
+	if got := textFromOutputBinding([]CapabilityInvocation{call}, "conversation_message", registry); got != "" {
 		t.Fatalf("wrong output capability should be empty: %q", got)
 	}
 }
@@ -96,20 +97,20 @@ func TestWakeUpChatOnlyActionFallsBackToNoOp(t *testing.T) {
 }
 
 func TestWakeUpToolOnlyReplyBecomesProactiveMessage(t *testing.T) {
-	assessment := wakeUpAssessmentFromToolCalls([]ToolCallV1{
-		{Name: "affect_event", Arguments: json.RawMessage(`{"event":{"type":"happy"}}`)},
-		{Name: "conversation.reply", Arguments: json.RawMessage(`{"text":"在呢。"}`)},
-	})
+	assessment := wakeUpAssessmentFromToolCalls(testInvocations([]ToolCallV1{
+		{ID: "affect", Name: "affect_event", Arguments: json.RawMessage(`{"event":{"type":"happy","confidence":0.8}}`), SourceFactID: "fact", ProviderRequestID: "provider", SchemaVersion: ToolCallSchemaVersion},
+		{ID: "reply", Name: "conversation.reply", Arguments: json.RawMessage(`{"text":"在呢。"}`), SourceFactID: "fact", ProviderRequestID: "provider", SchemaVersion: ToolCallSchemaVersion},
+	}), mustCapabilityRegistry(affectEventCapability{}, conversationReplyCapability{}))
 	if assessment == nil || assessment["action_type"] != "proactive_message" {
 		t.Fatalf("tool-only wake-up assessment = %#v", assessment)
 	}
 }
 
 func TestWakeUpToolOnlyNativeCapabilityRemainsNoOpAction(t *testing.T) {
-	assessment := wakeUpAssessmentFromToolCalls([]ToolCallV1{
-		{Name: "affect_event", Arguments: json.RawMessage(`{"event":{"type":"excited"}}`)},
-		{Name: "media.image.generate", Arguments: json.RawMessage(`{"concept":{"subject":"a character"}}`)},
-	})
+	assessment := wakeUpAssessmentFromToolCalls(testInvocations([]ToolCallV1{
+		{ID: "affect", Name: "affect_event", Arguments: json.RawMessage(`{"event":{"type":"excited","confidence":0.8}}`), SourceFactID: "fact", ProviderRequestID: "provider", SchemaVersion: ToolCallSchemaVersion},
+		{ID: "media", Name: "media.image.generate", Arguments: json.RawMessage(`{"intent":"a character"}`), SourceFactID: "fact", ProviderRequestID: "provider", SchemaVersion: ToolCallSchemaVersion},
+	}), mustCapabilityRegistry(affectEventCapability{}, imageGenerateCapability{}))
 	if assessment == nil || assessment["action_type"] != "no_op" {
 		t.Fatalf("tool-only capability assessment = %#v", assessment)
 	}

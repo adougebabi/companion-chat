@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -62,7 +63,23 @@ func (a *App) readPersonalityRuntime(ctx context.Context, fluctlightID, fallback
 	return result, nil
 }
 
-func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string, decision map[string]any) (map[string]any, error) {
+const personalityDecisionPlanVersion = "fluctlight.personality-decision-plan.v1"
+
+type personalityDecisionPlan struct {
+	SchemaVersion     string     `json:"schema_version"`
+	FluctlightID      string     `json:"fluctlight_id"`
+	Choice            string     `json:"choice"`
+	CurrentProfile    string     `json:"current_profile"`
+	TargetProfile     string     `json:"target_profile"`
+	PreviousProfile   string     `json:"previous_profile,omitempty"`
+	ExpectedRevision  int        `json:"expected_revision"`
+	ResultingRevision int        `json:"resulting_revision"`
+	RuntimeExists     bool       `json:"runtime_exists"`
+	Reason            string     `json:"reason,omitempty"`
+	CooldownUntil     *time.Time `json:"cooldown_until,omitempty"`
+}
+
+func (a *App) preparePersonalityDecision(ctx context.Context, fluctlightID string, decision map[string]any) (*personalityDecisionPlan, error) {
 	if len(decision) == 0 {
 		return nil, nil
 	}
@@ -173,21 +190,82 @@ func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string,
 			value := time.Now().UTC().Add(time.Duration(seconds * float64(time.Second)))
 			switchCooldownUntil = &value
 		}
-		if runtimeExists {
-			commandTag, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_personality_runtime SET active_profile_id=$2,previous_profile_id=$3,revision=$4,switch_reason=$5,switched_at=now(),cooldown_until=$6,updated_at=now() WHERE fluctlight_id=$1 AND revision=$7`, fluctlightID, target, nullableString(previous), newRevision, reason, switchCooldownUntil, revision)
+	}
+	return &personalityDecisionPlan{
+		SchemaVersion: personalityDecisionPlanVersion, FluctlightID: fluctlightID, Choice: choice,
+		CurrentProfile: current, TargetProfile: target, PreviousProfile: previous,
+		ExpectedRevision: revision, ResultingRevision: newRevision, RuntimeExists: runtimeExists,
+		Reason: reason, CooldownUntil: switchCooldownUntil,
+	}, nil
+}
+
+func personalityDecisionPlanFromValue(value any) (*personalityDecisionPlan, error) {
+	if value == nil {
+		return nil, nil
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		return nil, errors.New("personality_decision_plan_invalid")
+	}
+	var plan personalityDecisionPlan
+	if err := json.Unmarshal(data, &plan); err != nil {
+		return nil, errors.New("personality_decision_plan_invalid")
+	}
+	if plan.SchemaVersion != personalityDecisionPlanVersion || strings.TrimSpace(plan.FluctlightID) == "" || strings.TrimSpace(plan.CurrentProfile) == "" || strings.TrimSpace(plan.TargetProfile) == "" || plan.ExpectedRevision < 0 || plan.ResultingRevision < plan.ExpectedRevision || plan.ResultingRevision > plan.ExpectedRevision+1 {
+		return nil, errors.New("personality_decision_plan_invalid")
+	}
+	if plan.TargetProfile == plan.CurrentProfile && plan.ResultingRevision != plan.ExpectedRevision {
+		return nil, errors.New("personality_decision_plan_invalid")
+	}
+	if plan.TargetProfile != plan.CurrentProfile && plan.ResultingRevision != plan.ExpectedRevision+1 {
+		return nil, errors.New("personality_decision_plan_invalid")
+	}
+	return &plan, nil
+}
+
+func (a *App) applyPersonalityDecisionPlanTx(ctx context.Context, tx pgx.Tx, fluctlightID string, plan *personalityDecisionPlan) (map[string]any, error) {
+	if plan == nil {
+		return nil, nil
+	}
+	if plan.FluctlightID != fluctlightID {
+		return nil, errors.New("personality_decision_scope_invalid")
+	}
+	if plan.TargetProfile != plan.CurrentProfile {
+		if plan.RuntimeExists {
+			commandTag, err := tx.Exec(ctx, `UPDATE public.fluctlight_personality_runtime SET active_profile_id=$2,previous_profile_id=$3,revision=$4,switch_reason=$5,switched_at=now(),cooldown_until=$6,updated_at=now() WHERE fluctlight_id=$1 AND revision=$7 AND active_profile_id=$8`, fluctlightID, plan.TargetProfile, nullableString(plan.PreviousProfile), plan.ResultingRevision, plan.Reason, plan.CooldownUntil, plan.ExpectedRevision, plan.CurrentProfile)
 			if err != nil {
 				return nil, err
 			}
 			if commandTag.RowsAffected() != 1 {
 				return nil, errors.New("personality_runtime_revision_conflict")
 			}
-		} else if _, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,previous_profile_id,revision,switch_reason,switched_at,cooldown_until,updated_at) VALUES($1,$2,$3,$4,$5,now(),$6,now()) ON CONFLICT DO NOTHING`, fluctlightID, target, nullableString(previous), newRevision, reason, switchCooldownUntil); err != nil {
-			return nil, err
+		} else {
+			commandTag, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,previous_profile_id,revision,switch_reason,switched_at,cooldown_until,updated_at) VALUES($1,$2,$3,$4,$5,now(),$6,now()) ON CONFLICT DO NOTHING`, fluctlightID, plan.TargetProfile, nullableString(plan.PreviousProfile), plan.ResultingRevision, plan.Reason, plan.CooldownUntil)
+			if err != nil {
+				return nil, err
+			}
+			if commandTag.RowsAffected() != 1 {
+				return nil, errors.New("personality_runtime_revision_conflict")
+			}
 		}
 	}
-	result := map[string]any{"active_profile_id": target, "previous_profile_id": previous, "revision": newRevision, "switch_reason": reason}
-	if switchCooldownUntil != nil {
-		result["cooldown_until"] = switchCooldownUntil.Format(time.RFC3339Nano)
+	result := map[string]any{"active_profile_id": plan.TargetProfile, "previous_profile_id": plan.PreviousProfile, "revision": plan.ResultingRevision, "switch_reason": plan.Reason}
+	if plan.CooldownUntil != nil {
+		result["cooldown_until"] = plan.CooldownUntil.Format(time.RFC3339Nano)
 	}
 	return result, nil
+}
+
+func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string, decision map[string]any) (map[string]any, error) {
+	plan, err := a.preparePersonalityDecision(ctx, fluctlightID, decision)
+	if err != nil || plan == nil {
+		return nil, err
+	}
+	var result map[string]any
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var applyErr error
+		result, applyErr = a.applyPersonalityDecisionPlanTx(ctx, tx, fluctlightID, plan)
+		return applyErr
+	})
+	return result, err
 }

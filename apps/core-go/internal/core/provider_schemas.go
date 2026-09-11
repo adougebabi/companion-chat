@@ -38,6 +38,40 @@ func arraySchema(items map[string]any) map[string]any {
 	return map[string]any{"type": "array", "items": items}
 }
 
+func decisionInfluenceSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"ref": map[string]any{
+			"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes,
+			"pattern": `^[a-z][a-z0-9_]{1,31}:ctx_[a-f0-9]{32}$`,
+		},
+		"role":       enumStringSchema("grounds", "motivates", "constrains", "conflicts", "satisfies"),
+		"confidence": unitNumberSchema(),
+		"note":       map[string]any{"type": "string", "minLength": 1, "maxLength": maxDecisionInfluenceNoteRunes},
+	}, []string{"ref", "role", "confidence", "note"}, false)
+}
+
+func decisionInfluencesSchema() map[string]any {
+	result := arraySchema(decisionInfluenceSchema())
+	result["maxItems"] = maxDecisionInfluences
+	return result
+}
+
+func driveSignalsSchema() map[string]any {
+	item := objectSchema(map[string]any{
+		"ref": map[string]any{
+			"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes,
+			"pattern": `^drive:ctx_[a-f0-9]{32}$`,
+		},
+		"direction":     enumStringSchema("increase", "decrease"),
+		"strength":      unitNumberSchema(),
+		"confidence":    unitNumberSchema(),
+		"evidence_refs": arraySchema(map[string]any{"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes}),
+	}, []string{"ref", "direction", "strength", "confidence", "evidence_refs"}, false)
+	result := arraySchema(item)
+	result["maxItems"] = 16
+	return result
+}
+
 func openObjectSchema() map[string]any {
 	return map[string]any{"type": "object", "additionalProperties": true}
 }
@@ -65,9 +99,13 @@ func appraisalResponseSchema() map[string]any {
 	for _, field := range []string{"relevance", "goal_congruence", "reward", "loss", "social_threat", "controllability", "responsibility", "relationship_significance", "expected_effect"} {
 		properties[field] = numberSchema()
 	}
-	properties["evidence_refs"] = arraySchema(stringSchema())
+	properties["evidence_refs"] = arraySchema(map[string]any{
+		"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes,
+		"pattern": `^[a-z][a-z0-9_]{1,31}:ctx_[a-f0-9]{32}$`,
+	})
 	properties["event_kind"] = stringSchema()
 	properties["direction"] = stringSchema()
+	properties["drive_signals"] = driveSignalsSchema()
 	return objectSchema(properties, []string{"relevance", "goal_congruence", "reward", "loss", "social_threat", "controllability", "responsibility", "relationship_significance", "expected_effect", "evidence_refs", "event_kind", "direction"}, false)
 }
 
@@ -118,7 +156,7 @@ func responsePlanSchema() map[string]any {
 	return objectSchema(map[string]any{
 		"profile_id":       stringSchema(),
 		"visible_text":     stringSchema(),
-		"action_type":      enumStringSchema("reply", "media_request", "no_op"),
+		"action_type":      enumStringSchema("reply"),
 		"answer_mode":      stringSchema(),
 		"response_outline": arraySchema(stringSchema()),
 		"tone":             stringSchema(),
@@ -127,7 +165,6 @@ func responsePlanSchema() map[string]any {
 		"self_evaluation":  selfEvaluationSchema(),
 		"core_alignment":   openObjectSchema(),
 		"state_expression": openObjectSchema(),
-		"tool_calls":       arraySchema(toolCallSchema()),
 		"claims":           arraySchema(claimSchema()),
 		"extensions":       openObjectSchema(),
 	}, nil, false)
@@ -160,7 +197,7 @@ func cognitiveTurnResponseSchema() map[string]any {
 		"evidence_refs":     arraySchema(stringSchema()),
 	}, []string{"decision", "from_profile_id", "target_profile_id", "trigger_id", "reason", "confidence", "evidence_refs"}, false)
 	properties := map[string]any{
-		"action_type":                enumStringSchema("reply", "media_request", "no_op"),
+		"action_type":                enumStringSchema("reply"),
 		"response_intent":            stringSchema(),
 		"visible_text":               stringSchema(),
 		"response_plan":              responsePlanSchema(),
@@ -177,11 +214,13 @@ func cognitiveTurnResponseSchema() map[string]any {
 		"self_evaluation":            selfEvaluationSchema(),
 		"tool_calls":                 arraySchema(toolCallSchema()),
 		"evidence_refs":              arraySchema(stringSchema()),
+		"influences":                 decisionInfluencesSchema(),
 	}
-	// Conversation replies are represented by the conversation.reply tool call;
-	// the former visible_text and cognition sidecars remain optional compatibility
-	// fields. Core supplies a neutral appraisal only when persistence needs one.
-	return objectSchema(properties, nil, false)
+	// The direct-conversation product boundary has no successful no-op. Visible
+	// text may arrive in this object or through conversation.reply, but the same
+	// Main cognition must select reply and the application validates concrete
+	// output before any effect is committed.
+	return objectSchema(properties, []string{"action_type", "response_intent", "tool_calls", "influences"}, false)
 }
 
 func dailyReviewResponseSchema() map[string]any {
@@ -190,7 +229,8 @@ func dailyReviewResponseSchema() map[string]any {
 		"response_intent":            stringSchema(),
 		"tool_calls":                 arraySchema(toolCallSchema()),
 		"output_preference_decision": outputPreferenceDecisionSchema(),
-	}, []string{"action_type", "response_intent", "tool_calls"}, false)
+		"influences":                 decisionInfluencesSchema(),
+	}, []string{"action_type", "response_intent", "tool_calls", "influences"}, false)
 }
 
 func wakeUpResponseSchema() map[string]any {
@@ -200,7 +240,8 @@ func wakeUpResponseSchema() map[string]any {
 		"evidence_refs":              arraySchema(stringSchema()),
 		"tool_calls":                 arraySchema(toolCallSchema()),
 		"output_preference_decision": outputPreferenceDecisionSchema(),
-	}, []string{"action_type", "response_intent", "evidence_refs", "tool_calls"}, false)
+		"influences":                 decisionInfluencesSchema(),
+	}, []string{"action_type", "response_intent", "evidence_refs", "tool_calls", "influences"}, false)
 }
 
 func mediaQualityAcceptanceResponseSchema() map[string]any {
@@ -227,12 +268,13 @@ func mediaQualityAcceptanceResponseSchema() map[string]any {
 
 func nativeCognitionResponseSchema() map[string]any {
 	return objectSchema(map[string]any{
-		"appraisal": appraisalResponseSchema(),
-		"attention": cognitiveStageSchema(),
-		"thought":   cognitiveStageSchema(),
-		"desire":    cognitiveStageSchema(),
-		"agency":    cognitiveStageSchema(),
-	}, []string{"appraisal", "attention", "thought", "desire", "agency"}, false)
+		"appraisal":  appraisalResponseSchema(),
+		"attention":  cognitiveStageSchema(),
+		"thought":    cognitiveStageSchema(),
+		"desire":     cognitiveStageSchema(),
+		"agency":     cognitiveStageSchema(),
+		"influences": decisionInfluencesSchema(),
+	}, []string{"appraisal", "attention", "thought", "desire", "agency", "influences"}, false)
 }
 
 func scheduleResponseSchema() map[string]any {
@@ -241,6 +283,7 @@ func scheduleResponseSchema() map[string]any {
 		"end_at":            stringSchema(),
 		"activity":          stringSchema(),
 		"scene":             stringSchema(),
+		"location":          stringSchema(),
 		"item_type":         stringSchema(),
 		"status":            stringSchema(),
 		"priority":          unitNumberSchema(),
@@ -253,96 +296,60 @@ func scheduleResponseSchema() map[string]any {
 	}, []string{"items", "reschedule_policy"}, false)
 }
 
-func reflectionResponseSchema() map[string]any {
+func reflectionProposalV2ProviderSchema() map[string]any {
+	evidenceRefs := map[string]any{"type": "array", "minItems": 1, "maxItems": 64, "items": map[string]any{"type": "string", "minLength": 1, "maxLength": 256}}
+	contextRef := map[string]any{"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes}
 	memoryCandidate := objectSchema(map[string]any{
-		"type":                     enumStringSchema("episodic", "semantic", "relationship", "autobiographical"),
-		"content":                  stringSchema(),
-		"confidence":               unitNumberSchema(),
-		"importance":               unitNumberSchema(),
-		"emotional_significance":   unitNumberSchema(),
-		"visibility":               enumStringSchema("private", "owner", "participants", "public"),
-		"evidence_refs":            arraySchema(stringSchema()),
-		"personality_perspectives": arraySchema(openObjectSchema()),
-		"actor_refs":               arraySchema(stringSchema()),
-		"event_refs":               arraySchema(stringSchema()),
-		"conversation_id":          stringSchema(),
-		"idempotency_key":          stringSchema(),
-		"provenance":               openObjectSchema(),
-	}, []string{"type", "content", "confidence", "importance", "emotional_significance", "visibility", "evidence_refs"}, true)
-	relationshipCandidate := objectSchema(map[string]any{
-		"target_actor_id":       stringSchema(),
-		"profile_id":            stringSchema(),
-		"role":                  openObjectSchema(),
-		"metrics":               openObjectSchema(),
-		"trend":                 enumStringSchema("improving", "stable", "declining"),
-		"summary":               stringSchema(),
-		"emotional_association": openObjectSchema(),
-		"provenance":            openObjectSchema(),
-		"expected_revision":     integerSchema(),
-		"evidence_refs":         arraySchema(stringSchema()),
-		// Keep semantic completeness fail-closed in validateReflectionProposal. The
-		// provider normalizer fills JSON-Schema required fields with zero values;
-		// omitting role/metrics/expected_revision here lets the runtime distinguish
-		// an omitted snapshot from an explicit revision 0 and reject it safely.
-	}, []string{"target_actor_id", "trend", "evidence_refs"}, true)
+		"operation": enumStringSchema("create", "confirm", "revise", "merge", "supersede", "deprecate"), "target_ref": contextRef,
+		"merge_refs": arraySchema(contextRef), "type": enumStringSchema("episodic", "semantic", "relationship", "autobiographical"),
+		"content": stringSchema(), "confidence": unitNumberSchema(), "importance": unitNumberSchema(), "emotional_significance": unitNumberSchema(),
+		"evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
+	}, []string{"operation", "confidence", "importance", "emotional_significance", "evidence_refs", "semantic_reason"}, false)
+	relationshipObservation := objectSchema(map[string]any{
+		"target_ref": contextRef, "observation": stringSchema(), "direction": stringSchema(), "strength": unitNumberSchema(),
+		"confidence": unitNumberSchema(), "evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
+	}, []string{"target_ref", "observation", "direction", "strength", "confidence", "evidence_refs", "semantic_reason"}, false)
 	goalCandidate := objectSchema(map[string]any{
-		"operation":       enumStringSchema("create", "update", "complete", "pause"),
-		"goal_id":         stringSchema(),
-		"profile_id":      stringSchema(),
-		"description":     stringSchema(),
-		"scope":           enumStringSchema("general", "relationship"),
-		"target_actor_id": stringSchema(),
-		"importance":      unitNumberSchema(),
-		"urgency":         unitNumberSchema(),
-		"progress":        unitNumberSchema(),
-		"reason":          stringSchema(),
-		"evidence_refs":   arraySchema(stringSchema()),
-	}, []string{"operation", "evidence_refs"}, true)
+		"operation": enumStringSchema("create", "update", "pause", "resume", "complete", "abandon", "cancel"), "target_ref": contextRef,
+		"desired_outcome": stringSchema(), "success_criteria": arraySchema(stringSchema()), "motivation": stringSchema(), "direction": stringSchema(),
+		"strength": unitNumberSchema(), "confidence": unitNumberSchema(), "outcome_refs": arraySchema(contextRef),
+		"criterion_indexes": map[string]any{"type": "array", "maxItems": 16, "items": map[string]any{"type": "integer", "minimum": 0}}, "complete": map[string]any{"type": "boolean"},
+		"evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
+	}, []string{"operation", "strength", "confidence", "evidence_refs", "semantic_reason"}, false)
+	typedTrigger := objectSchema(map[string]any{"type": enumStringSchema("time", "event", "semantic"), "due_at": stringSchema(), "event_type": stringSchema(), "event_ref": contextRef}, []string{"type"}, false)
 	intentionCandidate := objectSchema(map[string]any{
-		"operation":       enumStringSchema("create", "update", "complete", "pause"),
-		"intention_id":    stringSchema(),
-		"profile_id":      stringSchema(),
-		"goal_id":         stringSchema(),
-		"action":          stringSchema(),
-		"target_actor_id": stringSchema(),
-		"confidence":      unitNumberSchema(),
-		"reason":          stringSchema(),
-		"evidence_refs":   arraySchema(stringSchema()),
-	}, []string{"operation", "evidence_refs"}, true)
+		"operation": enumStringSchema("create", "update", "qualify", "pause", "resume", "complete", "expire", "cancel"), "target_ref": contextRef, "goal_ref": contextRef,
+		"action_intent": stringSchema(), "expected_outcome": stringSchema(), "capability_constraints": arraySchema(stringSchema()), "typed_trigger": typedTrigger,
+		"preferred_time": stringSchema(), "expiration": stringSchema(),
+		"confidence": unitNumberSchema(), "evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
+	}, []string{"operation", "goal_ref", "confidence", "evidence_refs", "semantic_reason"}, false)
+	emotionalSummary := objectSchema(map[string]any{
+		"dominant_patterns": arraySchema(stringSchema()), "triggers": arraySchema(stringSchema()), "recovery_patterns": arraySchema(stringSchema()),
+		"conflicts": arraySchema(stringSchema()), "evidence_refs": arraySchema(stringSchema()),
+	}, []string{"dominant_patterns", "triggers", "recovery_patterns", "conflicts", "evidence_refs"}, false)
+	affectCandidate := objectSchema(map[string]any{
+		"target": enumStringSchema("baseline.pleasure", "baseline.arousal", "baseline.dominance", "decay.pad_half_life_seconds", "decay.momentum_half_life_seconds", "decay.mood_half_life_seconds", "decay.drive_half_life_seconds", "regulation.strength"), "direction": enumStringSchema("increase", "decrease", "strengthen", "weaken", "toward", "away", "maintain"), "strength": unitNumberSchema(),
+		"confidence": unitNumberSchema(), "evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
+	}, []string{"target", "direction", "strength", "confidence", "evidence_refs", "semantic_reason"}, false)
 	slotCandidate := objectSchema(map[string]any{
-		"operation":     enumStringSchema("create", "update", "complete", "pause"),
-		"key":           stringSchema(),
-		"label":         stringSchema(),
-		"description":   stringSchema(),
-		"value_schema":  stringSchema(),
-		"value":         jsonValueSchema(),
-		"confidence":    unitNumberSchema(),
-		"evidence_refs": arraySchema(stringSchema()),
-	}, []string{"key", "value", "confidence", "evidence_refs"}, true)
-	triggerCandidate := objectSchema(map[string]any{
-		"key":           stringSchema(),
-		"value":         jsonValueSchema(),
-		"confidence":    unitNumberSchema(),
-		"evidence_refs": arraySchema(stringSchema()),
-	}, []string{"key", "value", "confidence", "evidence_refs"}, true)
-	developingSelfCandidate := objectSchema(map[string]any{
-		"category":      enumStringSchema("preference", "habit", "sensitivity", "emotion_pattern", "self_perception", "capability", "interest"),
-		"claim":         stringSchema(),
-		"value":         anyJSONSchema(),
-		"confidence":    unitNumberSchema(),
-		"evidence_refs": arraySchema(stringSchema()),
-		"provenance":    openObjectSchema(),
-	}, []string{"category", "claim", "value", "confidence", "evidence_refs", "provenance"}, false)
+		"operation": stringSchema(), "target_ref": contextRef, "key": stringSchema(), "semantic_value": stringSchema(), "direction": stringSchema(),
+		"strength": unitNumberSchema(), "confidence": unitNumberSchema(), "evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
+	}, []string{"operation", "key", "semantic_value", "direction", "strength", "confidence", "evidence_refs", "semantic_reason"}, false)
+	selfCandidate := objectSchema(map[string]any{
+		"operation": stringSchema(), "target_ref": contextRef, "category": stringSchema(), "claim": stringSchema(), "confidence": unitNumberSchema(),
+		"evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
+	}, []string{"operation", "category", "claim", "confidence", "evidence_refs", "semantic_reason"}, false)
+	overlayCandidate := objectSchema(map[string]any{
+		"field_path": stringSchema(), "direction": stringSchema(), "semantic_value": stringSchema(), "strength": unitNumberSchema(),
+		"confidence": unitNumberSchema(), "evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
+	}, []string{"field_path", "direction", "strength", "confidence", "evidence_refs", "semantic_reason"}, false)
 	return objectSchema(map[string]any{
-		"memory_candidates":          arraySchema(memoryCandidate),
-		"relationship_candidates":    arraySchema(relationshipCandidate),
-		"goal_candidates":            arraySchema(goalCandidate),
-		"intention_candidates":       arraySchema(intentionCandidate),
-		"developing_self_candidates": arraySchema(developingSelfCandidate),
-		"drive_candidates":           arraySchema(slotCandidate),
-		"preference_candidates":      arraySchema(slotCandidate),
-		"trigger_candidates":         arraySchema(triggerCandidate),
-	}, []string{"memory_candidates", "relationship_candidates", "goal_candidates", "intention_candidates", "developing_self_candidates", "drive_candidates", "preference_candidates", "trigger_candidates"}, false)
+		"schema_version": stringSchema(), "summary": stringSchema(), "memory_candidates": arraySchema(memoryCandidate),
+		"relationship_observations": arraySchema(relationshipObservation), "goal_candidates": arraySchema(goalCandidate), "intention_candidates": arraySchema(intentionCandidate),
+		"emotional_summary": emotionalSummary, "affect_recalibration_candidates": arraySchema(affectCandidate), "drive_candidates": arraySchema(slotCandidate),
+		"preference_candidates": arraySchema(slotCandidate), "trigger_candidates": arraySchema(slotCandidate), "developing_self_candidates": arraySchema(selfCandidate),
+		"personality_evolution_candidates": arraySchema(overlayCandidate), "behavior_policy_evolution_candidates": arraySchema(overlayCandidate),
+	}, []string{"schema_version", "summary", "memory_candidates", "relationship_observations", "goal_candidates", "intention_candidates", "emotional_summary", "affect_recalibration_candidates", "drive_candidates", "preference_candidates", "trigger_candidates", "developing_self_candidates", "personality_evolution_candidates", "behavior_policy_evolution_candidates"}, false)
 }
 
 func initializationResponseSchema() map[string]any {

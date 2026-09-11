@@ -47,7 +47,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 		if err := a.publishMediaAsset(ctx, intent, assetID); err != nil {
 			return nil, err
 		}
-		if err := a.markMediaIntentCompleted(ctx, intent.ID); err != nil {
+		if err := a.markMediaIntentCompleted(ctx, intent.ID, assetID); err != nil {
 			return nil, err
 		}
 		return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": intent.QualityVerdict}, nil
@@ -257,12 +257,17 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 		return nil
 	})
 	if err != nil {
+		// Object storage succeeded but the authoritative asset transaction did
+		// not. Preserve the ambiguity on the existing call outcome; the workflow
+		// retries with the same intent/provider IDs and reconciles before final
+		// completion instead of treating the asset as certainly absent.
+		_ = a.markActionOutcomeUnknown(ctx, intent.ID, "media_asset_persistence_ambiguous")
 		return nil, err
 	}
 	if err := a.publishMediaAsset(ctx, intent, assetID); err != nil {
 		return nil, err
 	}
-	if err := a.markMediaIntentCompleted(ctx, intent.ID); err != nil {
+	if err := a.markMediaIntentCompleted(ctx, intent.ID, assetID); err != nil {
 		return nil, err
 	}
 	return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": quality.Verdict}, nil
@@ -307,22 +312,24 @@ func mediaComfyPromptSubmissionDiagnostic(intent mediaIntent, concept map[string
 	}
 }
 
-func (a *App) markMediaIntentCompleted(ctx context.Context, intentID string) error {
-	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='completed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, intentID)
-	if err != nil {
+func (a *App) markMediaIntentCompleted(ctx context.Context, intentID, assetID string) error {
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		command, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='completed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, intentID)
+		if err != nil {
+			return err
+		}
+		if command.RowsAffected() != 1 {
+			var status string
+			if err := tx.QueryRow(ctx, `SELECT status FROM public.media_intents WHERE id=$1`, intentID).Scan(&status); err != nil {
+				return err
+			}
+			if status != "completed" {
+				return fmt.Errorf("media intent cannot complete from status %s", status)
+			}
+		}
+		_, err = a.settleActionOutcomeByExternalRefTx(ctx, tx, intentID, ActionOutcomeCompleted, map[string]any{"media_intent_id": intentID, "asset_id": assetID, "delivery_status": "asset_ready"}, "")
 		return err
-	}
-	if command.RowsAffected() == 1 {
-		return nil
-	}
-	var status string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT status FROM public.media_intents WHERE id=$1`, intentID).Scan(&status); err != nil {
-		return err
-	}
-	if status == "completed" {
-		return nil
-	}
-	return fmt.Errorf("media intent cannot complete from status %s", status)
+	})
 }
 
 // startMediaHeartbeat keeps the activity lease alive while the provider prompt

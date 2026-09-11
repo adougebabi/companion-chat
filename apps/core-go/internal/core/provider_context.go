@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -16,7 +15,7 @@ var providerHashPattern = regexp.MustCompile(`\b(?:message|memory|inbox|wake_fac
 // visual identity facts, and non-empty evidence collections needed by the
 // current operation.
 //
-// In particular, capability manifests are intentionally absent here. Calls
+// In particular, capability definitions are intentionally absent here. Calls
 // that can execute capabilities already send the authoritative native `tools`
 // catalog separately in the Provider request. Sending the same schemas inside
 // user content needlessly doubles prompt size and gives the model two copies
@@ -35,6 +34,9 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	}
 	if system := compactPersonalitySystem(projection.PersonalitySystem, projection.PersonalityRuntime); len(system) > 0 {
 		result["personality_system"] = system
+	}
+	if effective := compactEffectivePersonaForProvider(projection.EffectivePersona); len(effective) > 0 {
+		result["effective_persona"] = effective
 	}
 	if speaker := compactActorRef(projection.CurrentSpeaker); len(speaker) > 0 {
 		result["current_speaker"] = speaker
@@ -60,7 +62,9 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 		result["hypotheses"] = projection.Hypotheses
 	}
 	if len(projection.DriveSlots) > 0 {
-		result["drive_slots"] = projection.DriveSlots
+		if drives := compactDriveSlotsForProvider(projection.DriveSlots); len(drives) > 0 {
+			result["drive_slots"] = drives
+		}
 	}
 	if len(projection.PreferenceSlots) > 0 {
 		result["preference_slots"] = projection.PreferenceSlots
@@ -77,7 +81,9 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 		result["schedule"] = schedule
 	}
 	if len(projection.Presence) > 0 {
-		result["presence"] = projection.Presence
+		if presence := compactPresenceForProvider(projection.Presence); len(presence) > 0 {
+			result["presence"] = presence
+		}
 	}
 	if goals := compactProviderGoalsForActors(profileGoals, projection.Actors); len(goals) > 0 {
 		result["goals"] = goals
@@ -85,7 +91,22 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	if intentions := compactProviderIntentions(profileIntentions); len(intentions) > 0 {
 		result["intentions"] = intentions
 	}
+	// Full Outcome authority remains Core-only. This is a physically separate,
+	// field-level allowlist projection: no text, raw expected/observed payload,
+	// entity ID, reference index, evidence body, provenance, or runtime identity
+	// can cross the Provider boundary.
+	if outcomes := compactRecentActionOutcomes(projection.RecentOutcomes); len(outcomes) > 0 {
+		result["recent_outcomes"] = outcomes
+	}
 	cleaned := stripProviderContextMetadata(result).(map[string]any)
+	// Current State is already explicitly allowlisted by its compactors. Restore
+	// that safe shape after the generic metadata filter so authoritative life
+	// source, opaque refs and expected revisions are not mistaken for storage
+	// metadata and removed from the Provider decision context.
+	cleaned["current_state"] = compactCurrentState(projection)
+	if outcomes := compactRecentActionOutcomes(projection.RecentOutcomes); len(outcomes) > 0 {
+		cleaned["recent_outcomes"] = outcomes
+	}
 	// `status` is storage metadata for most projections, but it is semantic
 	// input for schedule.replan: the model must be able to carry the current
 	// item's planned/completed state into a replacement schedule. Restore only
@@ -94,6 +115,16 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 		cleaned["schedule"] = schedule
 	}
 	return cleaned
+}
+
+func compactEffectivePersonaForProvider(value map[string]any) map[string]any {
+	result := map[string]any{}
+	for _, key := range []string{"profile_ref", "authority_revision", "personality", "behavioral_policy"} {
+		if child, ok := value[key]; ok && child != nil {
+			result[key] = child
+		}
+	}
+	return result
 }
 
 func compactPersonalitySystem(system, runtime map[string]any) map[string]any {
@@ -156,7 +187,7 @@ func compactActorRelationshipContext(projection ContextProjection) map[string]an
 		if goals := compactProviderGoalsForActors(relationshipGoalsForTarget(profileGoals, targetID), projection.Actors); len(goals) > 0 {
 			result["goals"] = goals
 		}
-		if intentions := relationshipIntentionsForTarget(profileIntentions, targetID); len(intentions) > 0 {
+		if intentions := compactProviderIntentions(relationshipIntentionsForTarget(profileIntentions, targetID)); len(intentions) > 0 {
 			result["intentions"] = intentions
 		}
 	}
@@ -165,7 +196,7 @@ func compactActorRelationshipContext(projection ContextProjection) map[string]an
 
 func compactRelationship(value map[string]any) map[string]any {
 	result := map[string]any{}
-	for _, key := range []string{"role", "metrics", "trend", "summary", "emotional_association", "provenance", "revision"} {
+	for _, key := range []string{"ref", "role", "metrics", "trend", "summary", "emotional_association"} {
 		if raw, ok := value[key]; ok && raw != nil {
 			result[key] = raw
 		}
@@ -227,13 +258,16 @@ func compactProviderGoalsForActors(goals []map[string]any, actors []map[string]a
 	result := make([]map[string]any, 0, len(goals))
 	for _, goal := range goals {
 		item := map[string]any{}
-		for _, key := range []string{"description", "importance", "urgency", "progress", "scope", "target_actor_id"} {
+		for _, key := range []string{"ref", "description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "importance", "urgency", "progress", "scope", "target_actor_id", "deadline"} {
 			if value, ok := goal[key]; ok && value != nil {
 				item[key] = value
 			}
 		}
 		if status := stringValue(goal["status"]); status != "" {
 			item["state"] = status
+		}
+		if revision := intValue(goal["revision"]); revision >= 0 {
+			item["expected_revision"] = revision
 		}
 		if target := stringValue(goal["target_actor_id"]); target != "" {
 			delete(item, "target_actor_id")
@@ -254,7 +288,7 @@ func compactProviderIntentions(intentions []map[string]any) []map[string]any {
 	result := make([]map[string]any, 0, len(intentions))
 	for _, intention := range intentions {
 		item := map[string]any{}
-		for _, key := range []string{"goal", "action", "confidence", "preferred_time", "expiration"} {
+		for _, key := range []string{"ref", "goal_ref", "goal", "action", "action_intent", "expected_outcome", "capability_constraints", "confidence", "preferred_time", "expiration", "trigger"} {
 			if value, ok := intention[key]; ok && value != nil && value != "" {
 				if key == "expiration" {
 					item["deadline"] = value
@@ -265,6 +299,9 @@ func compactProviderIntentions(intentions []map[string]any) []map[string]any {
 		}
 		if status := stringValue(intention["status"]); status != "" {
 			item["state"] = status
+		}
+		if revision := intValue(intention["revision"]); revision >= 0 {
+			item["expected_revision"] = revision
 		}
 		if len(item) > 0 {
 			result = append(result, item)
@@ -331,6 +368,9 @@ func compactCurrentState(projection ContextProjection) map[string]any {
 	}
 	if inner := mapValue(data["inner_state"]); len(inner) > 0 {
 		data["inner_state"] = compactInnerState(inner)
+	}
+	if profile := mapValue(data["affect_profile"]); len(profile) > 0 {
+		data["affect_profile"] = compactAffectProfile(profile)
 	}
 	if lifeContext := mapValue(data["life_context"]); len(lifeContext) > 0 {
 		data["life_context"] = compactLifeContext(lifeContext)
@@ -441,7 +481,7 @@ func compactDevelopingSelf(claims []map[string]any) []map[string]any {
 	result := make([]map[string]any, 0, len(claims))
 	for _, claim := range claims {
 		compact := make(map[string]any, 6)
-		for _, key := range []string{"category", "claim", "value", "confidence", "evidence_refs"} {
+		for _, key := range []string{"ref", "category", "claim", "value", "confidence", "evidence_refs"} {
 			if value, ok := claim[key]; ok && value != nil && value != "" {
 				if key == "evidence_refs" && len(arrayValue(value)) == 0 {
 					continue
@@ -467,11 +507,8 @@ func compactMemoriesForProfile(memories []map[string]any, activeProfileID string
 	result := make([]map[string]any, 0, len(memories))
 	for _, memory := range memories {
 		compact := make(map[string]any, 7)
-		for _, key := range []string{"type", "content", "confidence", "importance", "emotional_significance", "created_at", "evidence_refs"} {
+		for _, key := range []string{"ref", "type", "content", "confidence", "importance", "emotional_significance", "created_at"} {
 			if value, ok := memory[key]; ok && value != nil && value != "" {
-				if key == "evidence_refs" && len(arrayValue(value)) == 0 {
-					continue
-				}
 				compact[key] = value
 			}
 		}
@@ -496,8 +533,12 @@ func memoryPerspectiveForProfile(values []any, activeProfileID string) map[strin
 	for _, raw := range values {
 		perspective := mapValue(raw)
 		if stringValue(perspective["profile_id"]) == activeProfileID {
-			result := cloneMap(perspective)
-			delete(result, "profile_id")
+			result := make(map[string]any, 2)
+			for _, key := range []string{"interpretation", "emotion"} {
+				if value, ok := perspective[key]; ok && value != nil && value != "" {
+					result[key] = value
+				}
+			}
 			return result
 		}
 	}
@@ -506,6 +547,12 @@ func memoryPerspectiveForProfile(values []any, activeProfileID string) map[strin
 
 func compactInnerState(inner map[string]any) map[string]any {
 	result := make(map[string]any, 6)
+	if ref := stringValue(inner["ref"]); ref != "" {
+		result["ref"] = ref
+	}
+	if revision := intValue(inner["revision"]); revision >= 0 {
+		result["expected_revision"] = revision
+	}
 	if pad := compactStateMap(inner["pad"], []string{"arousal", "pleasure", "dominance"}); len(pad) > 0 {
 		result["pad"] = pad
 	}
@@ -515,10 +562,11 @@ func compactInnerState(inner map[string]any) map[string]any {
 	if momentum := compactStateMap(inner["momentum"], []string{"value", "trend", "arousal_momentum", "dominance_momentum", "pleasure_momentum"}); len(momentum) > 0 {
 		result["momentum"] = momentum
 	}
-	for _, key := range []string{"drives", "conflicts"} {
-		if value, ok := inner[key]; ok && value != nil {
-			result[key] = value
-		}
+	if drives := compactCurrentDrives(inner["drives"]); len(drives) > 0 {
+		result["drives"] = drives
+	}
+	if conflicts := compactDriveConflicts(inner["conflicts"]); len(conflicts) > 0 {
+		result["conflicts"] = conflicts
 	}
 	if regulation := mapValue(inner["regulation"]); len(regulation) > 0 {
 		compactRegulation := make(map[string]any, 2)
@@ -529,6 +577,57 @@ func compactInnerState(inner map[string]any) map[string]any {
 		}
 		if len(compactRegulation) > 0 {
 			result["regulation"] = compactRegulation
+		}
+	}
+	return result
+}
+
+func compactDriveSlotsForProvider(rows []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		item := map[string]any{}
+		for _, key := range []string{"ref", "key", "label", "description", "value_schema", "confidence"} {
+			if value, present := row[key]; present && value != nil && value != "" {
+				item[key] = value
+			}
+		}
+		if value := mapValue(row["value"]); stringValue(row["value_schema"]) == "pressure" && len(value) > 0 {
+			item["value"] = compactStateMap(value, []string{"pressure", "salience", "direction"})
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactCurrentDrives(value any) []map[string]any {
+	result := make([]map[string]any, 0)
+	for _, raw := range arrayValue(value) {
+		drive := mapValue(raw)
+		item := map[string]any{}
+		for _, key := range []string{"ref", "key", "label", "description", "pressure", "salience", "direction", "confidence"} {
+			if field, present := drive[key]; present && field != nil && field != "" {
+				item[key] = field
+			}
+		}
+		if source := stringValue(drive["source"]); source == "built_in" || source == "typed_slot" {
+			item["authority"] = source
+		}
+		if stringValue(item["ref"]) != "" && stringValue(item["key"]) != "" {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactDriveConflicts(value any) []map[string]any {
+	result := make([]map[string]any, 0)
+	for _, raw := range arrayValue(value) {
+		conflict := mapValue(raw)
+		item := compactStateMap(conflict, []string{"key", "pressure", "source"})
+		if stringValue(item["key"]) != "" {
+			result = append(result, item)
 		}
 	}
 	return result
@@ -547,13 +646,29 @@ func compactStateMap(value any, keys []string) map[string]any {
 
 func compactLifeContext(context map[string]any) map[string]any {
 	result := make(map[string]any, 7)
-	for _, key := range []string{"source", "scene", "activity", "location", "current_time", "timezone"} {
+	for _, key := range []string{"ref", "source", "authority_status", "context_revision", "event_ref", "schedule_ref", "schedule_item_ref", "presence_ref", "scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at"} {
 		if value, ok := context[key]; ok && value != nil && value != "" {
 			result[key] = value
 		}
 	}
+	if presence := compactPresenceForProvider(mapValue(context["presence"])); len(presence) > 0 {
+		result["presence"] = presence
+	}
 	if schedule := compactScheduleForProvider(mapValue(context["schedule"])); len(schedule) > 0 {
 		result["schedule"] = schedule
+	}
+	return result
+}
+
+func compactPresenceForProvider(presence map[string]any) map[string]any {
+	result := make(map[string]any, 6)
+	for _, key := range []string{"ref", "current_task", "user_presence", "effective_at", "expires_at"} {
+		if value, ok := presence[key]; ok && value != nil && value != "" {
+			result[key] = value
+		}
+	}
+	if revision := intValue(presence["revision"]); revision > 0 {
+		result["expected_revision"] = revision
 	}
 	return result
 }
@@ -567,7 +682,7 @@ func compactScheduleForProvider(value map[string]any) map[string]any {
 		return nil
 	}
 	result := map[string]any{}
-	for _, key := range []string{"local_date", "timezone", "completed_before", "reschedule_policy"} {
+	for _, key := range []string{"ref", "local_date", "timezone", "completed_before", "reschedule_policy"} {
 		if raw, ok := value[key]; ok && raw != nil && raw != "" {
 			result[key] = raw
 		}
@@ -586,7 +701,7 @@ func compactScheduleForProvider(value map[string]any) map[string]any {
 			continue
 		}
 		compact := map[string]any{}
-		for _, key := range []string{"start_at", "end_at", "activity", "scene", "item_type", "status", "priority", "flexibility", "interruption_cost"} {
+		for _, key := range []string{"ref", "start_at", "end_at", "activity", "scene", "location", "item_type", "status", "priority", "flexibility", "interruption_cost"} {
 			if child, ok := item[key]; ok && child != nil && child != "" {
 				compact[key] = child
 			}
@@ -770,18 +885,18 @@ func compactResponseEvaluation(value map[string]any) map[string]any {
 	return result
 }
 
-func compactToolResultsForProvider(results []ToolResultV1) []map[string]any {
+func compactCapabilityResultsForProvider(results []CapabilityResult) []map[string]any {
 	result := make([]map[string]any, 0, len(results))
-	for _, tool := range results {
+	for _, capability := range results {
 		item := make(map[string]any, 4)
 		for _, key := range []string{"name", "status", "error_code"} {
-			value := map[string]any{"name": tool.Name, "status": tool.Status, "error_code": tool.ErrorCode}[key]
+			value := map[string]any{"name": capability.CapabilityName, "status": capability.Status, "error_code": capability.ErrorCode}[key]
 			if value != nil && value != "" {
 				item[key] = value
 			}
 		}
-		if tool.Output != nil {
-			item["output"] = stripProviderMetadata(tool.Output)
+		if capability.Output != nil {
+			item["output"] = stripProviderMetadata(capability.Output)
 		}
 		if len(item) > 0 {
 			result = append(result, item)
@@ -790,26 +905,50 @@ func compactToolResultsForProvider(results []ToolResultV1) []map[string]any {
 	return result
 }
 
-func compactReflectionEvidence(evidence []map[string]any) []map[string]any {
-	result := make([]map[string]any, 0, len(evidence))
-	for _, item := range evidence {
-		compact := make(map[string]any, 2)
-		if eventType := stringValue(item["event_type"]); eventType != "" {
-			compact["event_type"] = eventType
+// compactReflectionEvidencePayload keeps the original observation payloads
+// available to Reflection while projecting action-result facts exclusively
+// through the typed ActionOutcome allowlist. A visible assistant realization
+// remains durable for replay, but it is never a learning fact sent back to the
+// model.
+func compactReflectionEvidencePayload(eventType string, value any) any {
+	decoded := decodeProviderJSONValue(value)
+	if eventType != "autonomy.result" {
+		return stripProviderMetadata(decoded)
+	}
+	payload := mapValue(decoded)
+	result := make(map[string]any, 2)
+	outcomeValues := payload["outcomes"]
+	if outcomeValues == nil && payload["outcome"] != nil {
+		outcomeValues = []any{payload["outcome"]}
+	}
+	var outcomes []map[string]any
+	if encoded := jsonBytes(outcomeValues); len(encoded) > 0 {
+		_ = json.Unmarshal(encoded, &outcomes)
+	}
+	if compact := compactRecentActionOutcomes(outcomes); len(compact) > 0 {
+		result["outcomes"] = compact
+	}
+	if influences := compactReflectionInfluences(payload["influences"]); len(influences) > 0 {
+		result["influences"] = influences
+	}
+	return result
+}
+
+func compactReflectionInfluences(value any) []map[string]any {
+	var values []map[string]any
+	if encoded := jsonBytes(value); len(encoded) > 0 {
+		_ = json.Unmarshal(encoded, &values)
+	}
+	result := make([]map[string]any, 0, len(values))
+	for _, influence := range values {
+		item := make(map[string]any, 4)
+		for _, key := range []string{"ref", "role", "confidence", "note"} {
+			if child, ok := influence[key]; ok && child != nil && child != "" {
+				item[key] = child
+			}
 		}
-		if sequence, ok := item["sequence"]; ok && sequence != nil {
-			// Keep a short stable reference so reflection candidates can cite the
-			// evidence without exposing the database fact ID or hash.
-			compact["evidence_ref"] = "sequence:" + fmt.Sprint(sequence)
-		}
-		if payload := stripProviderMetadata(decodeProviderJSONValue(item["payload"])); !isEmptyReflectionProviderValue(payload) {
-			compact["payload"] = payload
-		}
-		if appraisal := stripProviderMetadata(decodeProviderJSONValue(item["appraisal"])); !isEmptyReflectionProviderValue(appraisal) {
-			compact["appraisal"] = appraisal
-		}
-		if len(compact) > 0 {
-			result = append(result, compact)
+		if len(item) > 0 {
+			result = append(result, item)
 		}
 	}
 	return result
@@ -868,8 +1007,12 @@ func compactMediaConceptForProvider(raw string) string {
 	result := cloneMap(value)
 	if binding := mapValue(result["context_binding"]); len(binding) > 0 {
 		compactBinding := make(map[string]any, 4)
-		if lifeContext := compactLifeContext(mapValue(binding["life_context"])); len(lifeContext) > 0 {
-			compactBinding["life_context"] = lifeContext
+		life := mapValue(binding["current_life"])
+		if len(life) == 0 {
+			life = mapValue(binding["life_context"])
+		}
+		if lifeContext := compactLifeContext(life); len(lifeContext) > 0 {
+			compactBinding["current_life"] = lifeContext
 		}
 		if visualIdentity := compactVisualIdentity(mapValue(binding["visual_identity"])); len(visualIdentity) > 0 {
 			compactBinding["visual_identity"] = visualIdentity
@@ -877,8 +1020,12 @@ func compactMediaConceptForProvider(raw string) string {
 		if appearance := mapValue(binding["appearance"]); len(appearance) > 0 {
 			compactBinding["appearance"] = appearance
 		}
-		if innerState := compactInnerState(mapValue(binding["inner_state"])); len(innerState) > 0 {
-			compactBinding["inner_state"] = innerState
+		state := mapValue(binding["current_state"])
+		if len(state) == 0 {
+			state = mapValue(binding["inner_state"])
+		}
+		if innerState := compactInnerState(state); len(innerState) > 0 {
+			compactBinding["current_state"] = innerState
 		}
 		result["context_binding"] = compactBinding
 	}
@@ -896,7 +1043,7 @@ func compactMediaConceptForProvider(raw string) string {
 }
 
 var mediaProviderConceptKeys = map[string]struct{}{
-	"purpose": {}, "stage": {}, "render_intent": {},
+	"purpose": {}, "stage": {}, "intent": {}, "render_intent": {},
 	"scene": {}, "activity": {}, "location": {}, "mood": {},
 	"action": {}, "pose": {}, "expression": {}, "appearance": {}, "wardrobe": {},
 	"lighting": {}, "style": {}, "color": {}, "palette": {},
@@ -906,7 +1053,7 @@ var mediaProviderConceptKeys = map[string]struct{}{
 	"human_subjects": {}, "humanSubjects": {}, "non_human_objects": {}, "nonHumanObjects": {},
 	"subjects": {}, "people": {}, "objects": {}, "props": {},
 	"exclusions": {}, "negative_prompt": {}, "constraints": {},
-	"visual_concept": {}, "prompt": {}, "subject_count": {}, "views": {},
+	"prompt": {}, "subject_count": {}, "views": {},
 	"context_binding": {}, "renderer_constraints": {}, "visual_identity": {},
 	"context_override": {},
 }
@@ -918,12 +1065,7 @@ func filterMediaProviderConcept(value map[string]any) map[string]any {
 			continue
 		}
 		if key == "context_binding" {
-			binding := cloneMap(mapValue(child))
-			// Inner state is useful to cognition but is not an image-rendering
-			// instruction. Keep the media user payload focused on scene, identity,
-			// appearance, and renderer constraints.
-			delete(binding, "inner_state")
-			result[key] = binding
+			result[key] = cloneMap(mapValue(child))
 			continue
 		}
 		if key == "context_override" {
@@ -992,7 +1134,7 @@ func providerMetadataKey(key string) bool {
 		return true
 	}
 	switch normalized {
-	case "provenance", "status", "schema", "schemaversion", "evidencerefs", "source", "sequence", "revision", "createdat", "updatedat", "lastupdatedat", "occurredat", "expiresat", "checkedat", "generatedat", "instant", "conversation", "conversationref", "fluctlight", "fluctlightid", "sourcefact":
+	case "provenance", "status", "schema", "schemaversion", "evidencerefs", "source", "sequence", "revision", "createdat", "updatedat", "lastupdatedat", "occurredat", "expiresat", "checkedat", "generatedat", "instant", "conversation", "conversationref", "fluctlight", "fluctlightid", "sourcefact", "idempotencykey", "nativecognitiondepth", "cycleguard":
 		return true
 	default:
 		return false
@@ -1048,7 +1190,7 @@ func providerContextMetadataKey(key string) bool {
 		return true
 	}
 	switch normalized {
-	case "schema", "schemaversion", "revision", "updatedat", "lastupdatedat", "occurredat", "expiresat", "checkedat", "generatedat", "instant", "conversation", "conversationref", "fluctlight", "fluctlightid", "sourcefact", "visibility", "foreignkey", "persistence", "transport", "status", "source", "provenance":
+	case "schema", "schemaversion", "revision", "updatedat", "lastupdatedat", "occurredat", "expiresat", "checkedat", "generatedat", "instant", "conversation", "conversationref", "fluctlight", "fluctlightid", "sourcefact", "visibility", "foreignkey", "persistence", "transport", "status", "source", "provenance", "idempotencykey", "nativecognitiondepth", "cycleguard":
 		return true
 	default:
 		return false

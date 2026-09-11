@@ -43,7 +43,7 @@ func (a *App) evaluateAutonomyPolicyWithBudget(ctx context.Context, fluctlightID
 	err := a.DB.Pool().QueryRow(ctx, `SELECT mode,allowed_actions,budget_remaining,quiet_hours,cooldown_until,concurrency_limit,revision FROM public.autonomy_policies WHERE fluctlight_id=$1`, fluctlightID).Scan(&mode, &allowedRaw, &budgetText, &quietRaw, &cooldown, &concurrency, &revision)
 	if errors.Is(err, pgx.ErrNoRows) {
 		mode, budgetText, concurrency = "active", "100", 1
-		allowedRaw, quietRaw = jsonBytes([]string{"proactive_message", "moment", "media.image.generate", "capability"}), jsonBytes(map[string]any{})
+		allowedRaw, quietRaw = jsonBytes([]string{"proactive_message", "moment", "capability"}), jsonBytes(map[string]any{})
 		var settingRaw string
 		if settingErr := a.DB.Pool().QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='product.autonomy'`).Scan(&settingRaw); settingErr == nil {
 			var setting map[string]any
@@ -69,11 +69,7 @@ func (a *App) evaluateAutonomyPolicyWithBudget(ctx context.Context, fluctlightID
 		allowedSet[strings.TrimSpace(stringValue(raw))] = struct{}{}
 	}
 	if _, ok := allowedSet[actionType]; !ok {
-		if actionType == "media_request" {
-			if _, ok = allowedSet["media.image.generate"]; !ok {
-				return autonomyDenied(mode, "action_not_allowed", mode, allowed, budgetText, quietRaw, cooldown, concurrency, revision), nil
-			}
-		} else if actionType == "capability" {
+		if actionType == "capability" {
 			if _, ok = allowedSet["capability"]; !ok {
 				return autonomyDenied(mode, "action_not_allowed", mode, allowed, budgetText, quietRaw, cooldown, concurrency, revision), nil
 			}
@@ -128,7 +124,7 @@ func reserveAutonomyBudgetTx(ctx context.Context, tx pgx.Tx, fluctlightID string
 				budgetText = numberString(setting["budget_remaining"], 100)
 			}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_policies(fluctlight_id,mode,allowed_actions,budget_remaining,quiet_hours,concurrency_limit,revision) VALUES($1,'active',$2,$3,'{}',1,0) ON CONFLICT DO NOTHING`, fluctlightID, jsonBytes([]string{"proactive_message", "moment", "media.image.generate", "capability"}), budgetText); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_policies(fluctlight_id,mode,allowed_actions,budget_remaining,quiet_hours,concurrency_limit,revision) VALUES($1,'active',$2,$3,'{}',1,0) ON CONFLICT DO NOTHING`, fluctlightID, jsonBytes([]string{"proactive_message", "moment", "capability"}), budgetText); err != nil {
 			return err
 		}
 		if err := tx.QueryRow(ctx, `SELECT budget_remaining,revision FROM public.autonomy_policies WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&budgetText, &revision); err != nil {

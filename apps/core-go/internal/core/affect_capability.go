@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"sort"
 	"strings"
@@ -31,27 +30,28 @@ var affectEventSpecs = map[string]affectEventSpec{
 	"touched":     {Label: "感动", Deltas: map[string]float64{"pad.pleasure": 0.10, "pad.arousal": 0.04, "pad.dominance": 0.02, "mood.intensity": 0.10}},
 }
 
-func affectEventCapabilityManifest() CapabilityManifest {
+func affectEventCapabilityDefinition() CapabilityDefinition {
 	eventType := make([]any, 0, len(affectEventSpecs))
 	for key := range affectEventSpecs {
 		eventType = append(eventType, key)
 	}
 	sort.Slice(eventType, func(i, j int) bool { return stringValue(eventType[i]) < stringValue(eventType[j]) })
-	return CapabilityManifest{
-		Name: "affect_event", Version: "v1",
-		Description: "Record an evidence-backed semantic emotion event; Core owns the numeric affect reducer.",
-		Parameters: map[string]any{
+	return CapabilityDefinition{
+		Name: "affect_event", Version: "v1", Type: CapabilityTypeAction,
+		Description:     "Record a semantic affect event; Core owns the numeric reducer.",
+		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy},
+		FailurePolicy:   FailurePolicyOptionalInternal,
+		RequiredContext: []ContextSlot{SlotCurrentState},
+		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"required": []any{"event"},
 			"properties": map[string]any{
 				"event": map[string]any{
 					"type": "object", "additionalProperties": false,
-					"required": []any{"type", "confidence", "evidence_refs", "idempotency_key"},
+					"required": []any{"type", "confidence"},
 					"properties": map[string]any{
-						"type":            map[string]any{"type": "string", "enum": eventType},
-						"confidence":      map[string]any{"type": "number", "minimum": 0, "maximum": 1},
-						"evidence_refs":   map[string]any{"type": "array", "minItems": 1, "maxItems": 32, "items": map[string]any{"type": "string", "maxLength": 256}},
-						"idempotency_key": map[string]any{"type": "string", "minLength": 1, "maxLength": 256},
+						"type":       map[string]any{"type": "string", "enum": eventType},
+						"confidence": map[string]any{"type": "number", "minimum": 0, "maximum": 1},
 					},
 				},
 			},
@@ -67,29 +67,44 @@ func affectEventCapabilityManifest() CapabilityManifest {
 				"revision":  map[string]any{"type": "integer", "minimum": 0},
 			},
 		},
-		SideEffectClass: "native_projection", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
+		SideEffectClass: "native_projection", SuccessBoundary: "state_revision_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
+		ProvenanceFields: []string{"evidence_refs", "idempotency_key"}, NestedProvenanceObject: "event",
 	}
 }
 
-type affectEventCapabilityExecutor struct{ app *App }
+type affectEventService struct{ service affectCapabilityService }
 
-func (executor *affectEventCapabilityExecutor) Manifest() CapabilityManifest {
-	return affectEventCapabilityManifest()
+func (service *affectEventService) execute(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	return service.executeWith(ctx, nil, invocation, resolved)
 }
 
-func (executor *affectEventCapabilityExecutor) Execute(ctx context.Context, fluctlightID, conversationID, sourceFactID string, call ToolCallV1) (ToolResultV1, error) {
-	if executor == nil || executor.app == nil {
-		return failedToolResult(call, "affect_executor_unavailable", true, "affect executor is unavailable"), errors.New("affect executor unavailable")
+func (service *affectEventService) executeTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	return service.executeWith(ctx, tx, invocation, resolved)
+}
+
+func (service *affectEventService) executeWith(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	if service == nil || service.service == nil {
+		return failedCapabilityResultDetail(invocation, "affect_capability_unavailable", true, "affect capability is unavailable"), errors.New("affect capability unavailable")
 	}
-	event, err := normalizeAffectEventCall(call, sourceFactID)
+	event, err := normalizeAffectEventInvocation(invocation)
 	if err != nil {
-		return failedToolResult(call, affectErrorCode(err), false, err.Error()), err
+		return failedCapabilityResultDetail(invocation, affectErrorCode(err), false, err.Error()), err
 	}
-	result, err := executor.app.applyAffectEvent(ctx, fluctlightID, sourceFactID, event)
+	state := map[string]any(nil)
+	if resolved.State != nil {
+		state = resolved.State.Data
+	}
+	var result map[string]any
+	if tx != nil {
+		result, err = service.service.applyAffectEventTx(ctx, tx, invocation.Metadata.FluctlightID, invocation.SourceFactID, event, state)
+	} else {
+		result, err = service.service.applyAffectEvent(ctx, invocation.Metadata.FluctlightID, invocation.SourceFactID, event, state)
+	}
 	if err != nil {
-		return failedToolResult(call, "affect_persist_failed", true, err.Error()), err
+		code, retryable := capabilityErrorInfo(err, "affect_persist_failed", true)
+		return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), err
 	}
-	return ToolResultV1{ToolCallID: call.ID, Name: call.Name, Status: "completed", Output: result, Retryable: false, ProviderRequestID: call.ProviderRequestID, CorrelationID: "affect:" + stringValue(result["event_id"]), SchemaVersion: ToolResultSchemaVersion}, nil
+	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: result, Retryable: false, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "affect:" + stringValue(result["event_id"])}, nil
 }
 
 type normalizedAffectEvent struct {
@@ -99,9 +114,9 @@ type normalizedAffectEvent struct {
 	IdempotencyKey string
 }
 
-func normalizeAffectEventCall(call ToolCallV1, sourceFactID string) (normalizedAffectEvent, error) {
-	var args map[string]any
-	if err := json.Unmarshal(call.Arguments, &args); err != nil {
+func normalizeAffectEventInvocation(invocation CapabilityInvocation) (normalizedAffectEvent, error) {
+	args, err := capabilityExecutionArguments(invocation, affectEventCapabilityDefinition())
+	if err != nil {
 		return normalizedAffectEvent{}, errors.New("affect_arguments_invalid")
 	}
 	event := mapValue(args["event"])
@@ -129,8 +144,8 @@ func normalizeAffectEventCall(call ToolCallV1, sourceFactID string) (normalizedA
 	if idempotency == "" || len([]rune(idempotency)) > 256 {
 		return normalizedAffectEvent{}, errors.New("affect_idempotency_key_invalid")
 	}
-	if sourceFactID != "" && !containsStringValue(refs, sourceFactID) {
-		refs = append(refs, sourceFactID)
+	if invocation.SourceFactID != "" && !containsStringValue(refs, invocation.SourceFactID) {
+		refs = append(refs, invocation.SourceFactID)
 	}
 	return normalizedAffectEvent{Type: typeName, Confidence: confidence, EvidenceRefs: refs, IdempotencyKey: idempotency}, nil
 }
@@ -143,93 +158,171 @@ func affectErrorCode(err error) string {
 }
 
 func applyAffectDeltas(current map[string]any, event normalizedAffectEvent) (map[string]any, map[string]any, map[string]any, string, error) {
+	return applyAffectDeltasWithProfile(current, event, defaultAffectProfile(), time.Now().UTC())
+}
+
+func applyAffectDeltasWithProfile(current map[string]any, event normalizedAffectEvent, profile AffectProfile, at time.Time) (map[string]any, map[string]any, map[string]any, string, error) {
 	spec, ok := affectEventSpecs[event.Type]
 	if !ok {
 		return nil, nil, nil, "", errors.New("affect_type_invalid")
 	}
-	result := cloneMap(current)
-	pad := cloneMap(mapValue(current["pad"]))
-	mood := cloneMap(mapValue(current["mood"]))
-	intensity := numberOrZero(mood["intensity"])
-	requested := make(map[string]any, len(spec.Deltas))
-	applied := make(map[string]any, len(spec.Deltas))
+	requested := make(map[string]float64, len(spec.Deltas))
 	for key, delta := range spec.Deltas {
 		scaled := delta * event.Confidence
 		requested[key] = scaled
-		parts := strings.SplitN(key, ".", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		target := pad
-		if parts[0] == "mood" {
-			target = mood
-		}
-		before := numberOrZero(target[parts[1]])
-		bounded := clampGrowth(scaled)
-		target[parts[1]] = clampUnit(before + bounded)
-		applied[key] = bounded
-		if key == "mood.intensity" {
-			intensity = clampUnit(before + bounded)
-		}
 	}
-	mood["label"] = spec.Label
-	mood["source"] = "affect_event"
-	mood["intensity"] = clampUnit(intensity)
+	result, requestedAudit, applied := reduceAffectState(current, profile, affectReductionInput{Requested: requested, Label: spec.Label, Source: "affect_event"}, at)
+	mood := mapValue(result["mood"])
 	mood["last_event_type"] = event.Type
-	result["pad"] = pad
 	result["mood"] = mood
-	result["revision"] = int(numberOrZero(current["revision"])) + 1
-	result["last_updated_at"] = time.Now().UTC().Format(time.RFC3339Nano)
-	return result, requested, applied, spec.Label, nil
+	return result, requestedAudit, applied, spec.Label, nil
 }
 
-func (a *App) applyAffectEvent(ctx context.Context, fluctlightID, sourceFactID string, event normalizedAffectEvent) (map[string]any, error) {
-	eventID := "affect_event_" + stableDigest(fluctlightID+":"+event.IdempotencyKey)
+func (a *App) applyAffectEvent(ctx context.Context, fluctlightID, sourceFactID string, event normalizedAffectEvent, resolvedState map[string]any) (map[string]any, error) {
 	var output map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var existing []byte
-		if err := tx.QueryRow(ctx, `SELECT payload FROM public.fluctlight_inner_state_events WHERE id=$1`, eventID).Scan(&existing); err == nil {
-			payload := decodeObject(existing)
-			output = map[string]any{"event_id": eventID, "type": stringValue(payload["event_type"]), "label": stringValue(payload["label"]), "intensity": mapValue(payload["resulting_state"])["mood"], "revision": payload["revision"]}
-			if mood := mapValue(payload["resulting_state"])["mood"]; mood != nil {
-				output["intensity"] = mapValue(mood)["intensity"]
-			}
-			return nil
-		} else if err != pgx.ErrNoRows {
-			return err
-		}
-		var revision int
-		var pad, mood, momentum, regulation, drives, conflicts []byte
-		var updated time.Time
-		if err := tx.QueryRow(ctx, `SELECT revision,pad,mood,momentum,regulation,drives,conflicts,last_updated_at FROM public.fluctlight_inner_states WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&revision, &pad, &mood, &momentum, &regulation, &drives, &conflicts, &updated); err != nil {
-			return err
-		}
-		current := map[string]any{"pad": decodeObject(pad), "mood": decodeObject(mood), "momentum": decodeObject(momentum), "regulation": decodeObject(regulation), "drives": decodeArray(drives), "conflicts": decodeArray(conflicts), "revision": revision, "last_updated_at": updated.Format(time.RFC3339Nano)}
-		resulting, requested, applied, label, err := applyAffectDeltas(current, event)
-		if err != nil {
-			return err
-		}
-		newRevision := revision + 1
-		command, err := tx.Exec(ctx, `UPDATE public.fluctlight_inner_states SET revision=$2,pad=$3,mood=$4,last_updated_at=now() WHERE fluctlight_id=$1 AND revision=$5`, fluctlightID, newRevision, jsonBytes(resulting["pad"]), jsonBytes(resulting["mood"]), revision)
-		if err != nil {
-			return err
-		}
-		if command.RowsAffected() != 1 {
-			return ErrConflict
-		}
-		payload := map[string]any{"event_id": eventID, "event_type": event.Type, "label": label, "confidence": event.Confidence, "source_fact_id": sourceFactID, "evidence_refs": event.EvidenceRefs, "idempotency_key": event.IdempotencyKey, "requested_delta": requested, "applied_delta": applied, "resulting_state": resulting, "revision": newRevision}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_inner_state_events(id,fluctlight_id,event_type,payload,revision) VALUES($1,$2,'affect.event',$3,$4) ON CONFLICT(id) DO NOTHING`, eventID, fluctlightID, jsonBytes(payload), newRevision); err != nil {
-			return err
-		}
-		stateRevisionID := "state_revision_" + stableDigest(eventID)
-		if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_state_revisions(id,fluctlight_id,source_event_id,expected_revision,resulting_revision,previous_state,resulting_state,requested_delta,applied_delta,result,reason_code,policy_version,model_version,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'applied','affect_event','affect.reducer.v1','configured',$10,$11) ON CONFLICT DO NOTHING`, stateRevisionID, fluctlightID, sourceFactID, revision, newRevision, jsonBytes(current), jsonBytes(resulting), jsonBytes(requested), jsonBytes(applied), jsonBytes(event.EvidenceRefs), event.IdempotencyKey); err != nil {
-			return err
-		}
-		if err := appendOutboxTx(ctx, tx, "affect.updated", "fluctlight", fluctlightID, fluctlightID, sourceFactID, "affect:"+eventID, "affect:"+eventID, map[string]any{"event_id": eventID, "type": event.Type, "label": label, "revision": newRevision}); err != nil {
-			return err
-		}
-		output = map[string]any{"event_id": eventID, "type": event.Type, "label": label, "intensity": mapValue(resulting["mood"])["intensity"], "revision": newRevision}
-		return nil
+		var applyErr error
+		output, applyErr = a.applyAffectEventTx(ctx, tx, fluctlightID, sourceFactID, event, resolvedState)
+		return applyErr
 	})
 	return output, err
+}
+
+func affectEventRequestDigest(fluctlightID, sourceFactID string, event normalizedAffectEvent) string {
+	refs := make([]string, 0, len(event.EvidenceRefs))
+	for _, raw := range event.EvidenceRefs {
+		if ref := strings.TrimSpace(stringValue(raw)); ref != "" {
+			refs = append(refs, ref)
+		}
+	}
+	sort.Strings(refs)
+	return stableDigest(string(jsonBytes(map[string]any{
+		"fluctlight_id": fluctlightID, "source_fact_id": sourceFactID, "type": event.Type,
+		"confidence": event.Confidence, "evidence_refs": refs, "idempotency_key": event.IdempotencyKey,
+	})))
+}
+
+func replayAffectEvent(payload map[string]any, eventID, fluctlightID, sourceFactID string, event normalizedAffectEvent) (map[string]any, error) {
+	requestDigest := affectEventRequestDigest(fluctlightID, sourceFactID, event)
+	storedDigest := strings.TrimSpace(stringValue(payload["request_digest"]))
+	if storedDigest == "" {
+		storedDigest = affectEventRequestDigest(fluctlightID, stringValue(payload["source_fact_id"]), normalizedAffectEvent{
+			Type: stringValue(payload["event_type"]), Confidence: numberOrZero(payload["confidence"]),
+			EvidenceRefs: arrayValue(payload["evidence_refs"]), IdempotencyKey: stringValue(payload["idempotency_key"]),
+		})
+	}
+	if requestDigest != storedDigest {
+		return nil, newCapabilityError("affect_idempotency_conflict", false, ErrConflict)
+	}
+	resultingState := mapValue(payload["resulting_state"])
+	return map[string]any{
+		"event_id": eventID, "type": stringValue(payload["event_type"]), "label": stringValue(payload["label"]),
+		"intensity": mapValue(resultingState["mood"])["intensity"], "revision": payload["revision"],
+	}, nil
+}
+
+func (a *App) applyAffectEventTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID string, event normalizedAffectEvent, resolvedState map[string]any) (map[string]any, error) {
+	eventID := "affect_event_" + stableDigest(fluctlightID+":"+event.IdempotencyKey)
+	var revision int
+	var pad, mood, momentum, regulation, drives, conflicts []byte
+	var updated time.Time
+	if err := tx.QueryRow(ctx, `SELECT revision,pad,mood,momentum,regulation,drives,conflicts,last_updated_at FROM public.fluctlight_inner_states WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&revision, &pad, &mood, &momentum, &regulation, &drives, &conflicts, &updated); err != nil {
+		return nil, err
+	}
+	// The state-row lock serializes idempotency lookup with mutation. A second
+	// transaction for the same event must observe the first event before it can
+	// calculate or apply another delta.
+	var existing []byte
+	if err := tx.QueryRow(ctx, `SELECT payload FROM public.fluctlight_inner_state_events WHERE id=$1`, eventID).Scan(&existing); err == nil {
+		return replayAffectEvent(decodeObject(existing), eventID, fluctlightID, sourceFactID, event)
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	current := map[string]any{"pad": decodeObject(pad), "mood": decodeObject(mood), "momentum": decodeObject(momentum), "regulation": decodeObject(regulation), "drives": decodeArray(drives), "conflicts": decodeArray(conflicts), "revision": revision, "last_updated_at": updated.Format(time.RFC3339Nano)}
+	var liveProfileRevision int
+	if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_affect_profiles WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&liveProfileRevision); err != nil {
+		return nil, err
+	}
+	profile, profileProjection, err := a.readAffectProfileTx(ctx, tx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	if frozenProfile := mapValue(resolvedState["affect_profile"]); len(frozenProfile) > 0 {
+		if _, present := frozenProfile["revision"]; !present || intValue(frozenProfile["revision"]) != liveProfileRevision {
+			return nil, newCapabilityError("affect_profile_revision_conflict", false, ErrConflict)
+		}
+		profile, err = affectProfileFromProjection(frozenProfile)
+		if err != nil {
+			return nil, err
+		}
+		profileProjection = cloneMap(frozenProfile)
+	}
+	current["affect_profile"] = profileProjection
+	var existingStateRevisionID string
+	var baseRevision int
+	var existingRequestedRaw, existingAppliedRaw []byte
+	combined := false
+	var existingResultingRevision int
+	if err := tx.QueryRow(ctx, `SELECT id,expected_revision,resulting_revision,requested_delta,applied_delta FROM public.fluctlight_state_revisions WHERE fluctlight_id=$1 AND source_event_id=$2 ORDER BY resulting_revision DESC LIMIT 1 FOR UPDATE`, fluctlightID, sourceFactID).Scan(&existingStateRevisionID, &baseRevision, &existingResultingRevision, &existingRequestedRaw, &existingAppliedRaw); err == nil {
+		if existingResultingRevision != revision {
+			return nil, newCapabilityError("affect_source_revision_conflict", false, ErrConflict)
+		}
+		combined = true
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	if expectedRaw, present := resolvedState["revision"]; present {
+		expected := intValue(expectedRaw)
+		if combined && expected != baseRevision {
+			return nil, newCapabilityError("affect_state_revision_conflict", false, ErrConflict)
+		}
+		if !combined && expected != revision {
+			return nil, newCapabilityError("affect_state_revision_conflict", false, ErrConflict)
+		}
+	}
+	transitionAt := time.Now().UTC()
+	resulting, requested, applied, label, err := applyAffectDeltasWithProfile(current, event, profile, transitionAt)
+	if err != nil {
+		return nil, err
+	}
+	newRevision := revision + 1
+	if combined {
+		newRevision = revision
+		resulting["revision"] = revision
+		requested = mergeAffectDeltaMaps(decodeObject(existingRequestedRaw), requested)
+		applied = mergeAffectDeltaMaps(decodeObject(existingAppliedRaw), applied)
+	}
+	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_inner_states SET revision=$2,pad=$3,mood=$4,momentum=$5,regulation=$6,drives=$7,conflicts=$8,last_updated_at=$9 WHERE fluctlight_id=$1 AND revision=$10`, fluctlightID, newRevision, jsonBytes(resulting["pad"]), jsonBytes(resulting["mood"]), jsonBytes(resulting["momentum"]), jsonBytes(resulting["regulation"]), jsonBytes(resulting["drives"]), jsonBytes(resulting["conflicts"]), transitionAt, revision)
+	if err != nil {
+		return nil, err
+	}
+	if command.RowsAffected() != 1 {
+		return nil, newCapabilityError("affect_state_revision_conflict", false, ErrConflict)
+	}
+	payload := map[string]any{"event_id": eventID, "event_type": event.Type, "label": label, "confidence": event.Confidence, "source_fact_id": sourceFactID, "evidence_refs": event.EvidenceRefs, "idempotency_key": event.IdempotencyKey, "request_digest": affectEventRequestDigest(fluctlightID, sourceFactID, event), "requested_delta": requested, "applied_delta": applied, "resulting_state": resulting, "revision": newRevision}
+	insertedEvent, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_inner_state_events(id,fluctlight_id,event_type,payload,revision) VALUES($1,$2,'affect.event',$3,$4) ON CONFLICT(id) DO NOTHING`, eventID, fluctlightID, jsonBytes(payload), newRevision)
+	if err != nil {
+		return nil, err
+	}
+	if insertedEvent.RowsAffected() != 1 {
+		return nil, newCapabilityError("affect_idempotency_conflict", false, ErrConflict)
+	}
+	if combined {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_state_revisions SET resulting_state=$2,requested_delta=$3,applied_delta=$4,reason_code='cognitive_growth+affect_event',policy_version=$5,evidence_refs=(SELECT jsonb_agg(DISTINCT value) FROM jsonb_array_elements(evidence_refs || $6::jsonb)) WHERE id=$1`, existingStateRevisionID, jsonBytes(resulting), jsonBytes(requested), jsonBytes(applied), profile.PolicyVersion, jsonBytes(event.EvidenceRefs)); err != nil {
+			return nil, err
+		}
+	} else {
+		stateRevisionID := "state_revision_" + stableDigest(eventID)
+		insertedRevision, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_state_revisions(id,fluctlight_id,source_event_id,expected_revision,resulting_revision,previous_state,resulting_state,requested_delta,applied_delta,result,reason_code,policy_version,model_version,evidence_refs,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'applied','affect_event',$10,'configured',$11,$12) ON CONFLICT DO NOTHING`, stateRevisionID, fluctlightID, sourceFactID, revision, newRevision, jsonBytes(current), jsonBytes(resulting), jsonBytes(requested), jsonBytes(applied), profile.PolicyVersion, jsonBytes(event.EvidenceRefs), event.IdempotencyKey)
+		if err != nil {
+			return nil, err
+		}
+		if insertedRevision.RowsAffected() != 1 {
+			return nil, newCapabilityError("affect_source_revision_conflict", false, ErrConflict)
+		}
+	}
+	if err := appendOutboxTx(ctx, tx, "affect.updated", "fluctlight", fluctlightID, fluctlightID, sourceFactID, "affect:"+eventID, "affect:"+eventID, map[string]any{"event_id": eventID, "type": event.Type, "label": label, "revision": newRevision}); err != nil {
+		return nil, err
+	}
+	return map[string]any{"event_id": eventID, "type": event.Type, "label": label, "intensity": mapValue(resulting["mood"])["intensity"], "revision": newRevision}, nil
 }

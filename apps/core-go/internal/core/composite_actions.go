@@ -14,12 +14,16 @@ const compositeActionSchemaVersion = "fluctlight.composite-action.v1"
 // the target is represented by OutputBindings rather than by inventing
 // target-specific Tool names.
 type CompositeActionV1 struct {
-	SchemaVersion  string            `json:"schema_version"`
-	Kind           string            `json:"kind"`
-	ActionType     string            `json:"action_type"`
-	ResponseIntent string            `json:"response_intent,omitempty"`
-	ToolCalls      []ToolCallV1      `json:"tool_calls"`
-	OutputBindings []OutputBindingV1 `json:"output_bindings"`
+	SchemaVersion  string `json:"schema_version"`
+	Kind           string `json:"kind"`
+	ActionType     string `json:"action_type"`
+	ResponseIntent string `json:"response_intent,omitempty"`
+	// ToolCalls is an in-memory projection only. The durable authority is the
+	// sibling payload.capability_invocations array; persisting the full calls
+	// here would create a second replay source.
+	ToolCalls         []CapabilityInvocation `json:"-"`
+	CapabilityCallIDs []string               `json:"capability_call_ids,omitempty"`
+	OutputBindings    []OutputBindingV1      `json:"output_bindings"`
 }
 
 // OutputBindingV1 connects a Tool result to the Composite Action output. The
@@ -31,22 +35,18 @@ type OutputBindingV1 struct {
 	TargetRef  string `json:"target_ref"`
 }
 
-func normalizeCompositeAction(decision map[string]any, providerCalls []ToolCallV1, sourceFactID, defaultActionType string) (CompositeActionV1, error) {
+func normalizeCompositeAction(decision map[string]any, providerCalls []CapabilityInvocation, sourceFactID, defaultActionType string) (CompositeActionV1, error) {
 	if decision == nil {
 		return CompositeActionV1{}, errors.New("composite_action_missing")
 	}
-	action := mapValue(decision["action"])
-	actionType := firstString(decision["action_type"], firstString(action["action_type"], defaultActionType))
-	if actionType == "" {
-		actionType = firstString(action["kind"], "")
-	}
+	actionType := firstString(decision["action_type"], defaultActionType)
 	actionType = normalizeConversationActionType(actionType)
-	responseIntent := firstString(decision["response_intent"], stringValue(action["response_intent"]))
+	responseIntent := stringValue(decision["response_intent"])
 	kind := ""
 	switch actionType {
 	case "moment":
 		kind = "moment"
-	case "proactive_message", "reply", "media_request":
+	case "proactive_message", "reply":
 		kind = "conversation_turn"
 	case "no_op":
 		kind = "none"
@@ -57,56 +57,36 @@ func normalizeCompositeAction(decision map[string]any, providerCalls []ToolCallV
 		kind = "none"
 	}
 
-	calls := make([]ToolCallV1, 0, len(providerCalls)+len(arrayValue(decision["tool_calls"]))+1)
+	calls := make([]CapabilityInvocation, 0, len(providerCalls)+len(arrayValue(decision["capability_invocations"])))
 	seen := make(map[string]struct{})
-	appendCall := func(call ToolCallV1) {
-		if call.ID == "" {
+	appendCall := func(invocation CapabilityInvocation) {
+		if invocation.CallID == "" {
 			return
 		}
-		if _, exists := seen[call.ID]; exists {
+		if _, exists := seen[invocation.CallID]; exists {
 			return
 		}
-		if call.SourceFactID == "" {
-			call.SourceFactID = sourceFactID
+		if invocation.SourceFactID == "" {
+			invocation.SourceFactID = sourceFactID
 		}
-		if call.ProviderRequestID == "" {
-			call.ProviderRequestID = "provider:" + stableDigest(sourceFactID+":"+call.ID)
+		if invocation.ProviderRequestID == "" {
+			invocation.ProviderRequestID = "provider:" + stableDigest(sourceFactID+":"+invocation.CallID)
 		}
-		if call.SchemaVersion == "" {
-			call.SchemaVersion = ToolCallSchemaVersion
+		if invocation.CapabilityName == "" {
+			return
 		}
-		seen[call.ID] = struct{}{}
-		calls = append(calls, call)
+		seen[invocation.CallID] = struct{}{}
+		calls = append(calls, invocation)
 	}
-	for _, call := range providerCalls {
-		appendCall(call)
+	for _, invocation := range providerCalls {
+		appendCall(invocation)
 	}
-	for _, call := range toolCallsFromValue(decision["tool_calls"]) {
-		appendCall(call)
+	decisionInvocations, err := capabilityInvocationsFromValue(decision["capability_invocations"])
+	if err != nil {
+		return CompositeActionV1{}, err
 	}
-
-	// Older DailyReview providers put the visual concept in a structured
-	// `moment_media_request` field. Accept it only at this compatibility
-	// boundary and immediately normalize it into the same media Tool Call used
-	// by ordinary conversation cognition.
-	legacyConcept := mediaConceptValue(decision["moment_media_request"])
-	hasMediaCall := false
-	for _, call := range calls {
-		if call.Name == "media.image.generate" {
-			hasMediaCall = true
-			break
-		}
-	}
-	if len(legacyConcept) > 0 && !hasMediaCall {
-		arguments, _ := json.Marshal(map[string]any{"concept": legacyConcept})
-		appendCall(ToolCallV1{
-			ID:                "legacy-media-" + stableDigest(sourceFactID+":"+jsonString(legacyConcept)),
-			Name:              "media.image.generate",
-			Arguments:         arguments,
-			SourceFactID:      sourceFactID,
-			ProviderRequestID: "provider:" + stableDigest(sourceFactID+":legacy-media"),
-			SchemaVersion:     ToolCallSchemaVersion,
-		})
+	for _, invocation := range decisionInvocations {
+		appendCall(invocation)
 	}
 
 	bindings := make([]OutputBindingV1, 0, len(calls))
@@ -118,16 +98,27 @@ func normalizeCompositeAction(decision map[string]any, providerCalls []ToolCallV
 		if kind == "none" {
 			continue
 		}
-		bindings = append(bindings, OutputBindingV1{ToolCallID: call.ID, TargetKind: targetKind, TargetRef: "primary_output"})
+		bindings = append(bindings, OutputBindingV1{ToolCallID: call.CallID, TargetKind: targetKind, TargetRef: "primary_output"})
 	}
 	return CompositeActionV1{
-		SchemaVersion:  compositeActionSchemaVersion,
-		Kind:           kind,
-		ActionType:     actionType,
-		ResponseIntent: responseIntent,
-		ToolCalls:      calls,
-		OutputBindings: bindings,
+		SchemaVersion:     compositeActionSchemaVersion,
+		Kind:              kind,
+		ActionType:        actionType,
+		ResponseIntent:    responseIntent,
+		ToolCalls:         calls,
+		CapabilityCallIDs: capabilityCallIDs(calls),
+		OutputBindings:    bindings,
 	}, nil
+}
+
+func capabilityCallIDs(invocations []CapabilityInvocation) []string {
+	result := make([]string, 0, len(invocations))
+	for _, invocation := range invocations {
+		if invocation.CallID != "" {
+			result = append(result, invocation.CallID)
+		}
+	}
+	return result
 }
 
 func normalizeConversationActionType(value string) string {
@@ -139,77 +130,59 @@ func normalizeConversationActionType(value string) string {
 	}
 }
 
-func mediaConceptFromToolCall(call ToolCallV1) (map[string]any, error) {
-	if call.Name != "media.image.generate" {
-		return nil, fmt.Errorf("composite_media_tool_invalid: %s", call.Name)
-	}
-	var arguments map[string]any
-	if err := json.Unmarshal(call.Arguments, &arguments); err != nil {
-		return nil, errors.New("composite_media_arguments_invalid")
-	}
-	concept := mediaConceptValue(arguments["concept"])
-	if len(concept) == 0 {
-		return nil, errors.New("composite_media_concept_invalid")
-	}
-	return concept, nil
-}
-
-func mediaToolCallIdentity(scope string, call ToolCallV1) (string, string, string) {
-	base := scope + ":" + call.ID
-	return "media_intent_" + stableDigest(base), "media_workflow_" + stableDigest(base), "media_request_" + stableDigest(base)
-}
-
-// validateCompositeOutputCalls keeps output-producing Tool slots generic. A
+// validateCompositeOutputCapabilities keeps output-producing capability slots generic. A
 // caller may accept any installed asynchronous capability as long as that
 // slot explicitly supports the requested target kind and implements the
 // deferred binding phase.
-func validateCompositeOutputCalls(calls []ToolCallV1, targetKind string, registry *CapabilityRegistry) error {
+func validateCompositeOutputCapabilities(calls []CapabilityInvocation, targetKind string, registry *CapabilityRegistry) error {
 	if len(calls) == 0 {
 		return nil
 	}
 	if registry == nil {
 		return errors.New("capability_registry_required")
 	}
-	manifests := toolManifestMap(registry.Manifests())
-	for _, call := range calls {
-		if err := call.Validate(manifests); err != nil {
+	for _, invocation := range calls {
+		definition, ok := registry.Definition(invocation.CapabilityName)
+		if !ok {
+			return fmt.Errorf("capability %q is unavailable", invocation.CapabilityName)
+		}
+		if err := invocation.Validate(definition); err != nil {
 			return err
 		}
-		manifest := manifests[call.Name]
-		if !manifest.IsDeferredOutput() {
+		if !definition.IsDeferredOutput() {
 			// Native state/memory/affect capabilities are independent optional
 			// calls that may accompany a visible output. They are executed by the
 			// action runtime and must not invalidate the reply or media binding.
 			continue
 		}
-		if !containsStringValue(stringSliceAny(manifest.TargetKinds), targetKind) {
-			return fmt.Errorf("capability %q does not support target %q", call.Name, targetKind)
+		if !containsCapabilityTarget(definition.TargetKinds, targetKind) {
+			return fmt.Errorf("capability %q does not support target %q", invocation.CapabilityName, targetKind)
 		}
 	}
 	return nil
 }
 
-func hasDeferredOutputToolCalls(calls []ToolCallV1, registry *CapabilityRegistry) bool {
+func hasDeferredOutputCapabilities(calls []CapabilityInvocation, registry *CapabilityRegistry) bool {
 	if registry == nil {
 		return false
 	}
-	for _, call := range calls {
-		if executor, ok := registry.Lookup(call.Name); ok && executor.Manifest().IsDeferredOutput() {
+	for _, invocation := range calls {
+		if capability, ok := registry.Lookup(invocation.CapabilityName); ok && capability.Definition().IsDeferredOutput() {
 			return true
 		}
 	}
 	return false
 }
 
-func splitDeferredOutputToolCalls(calls []ToolCallV1, registry *CapabilityRegistry) (deferred, immediate []ToolCallV1) {
-	for _, call := range calls {
+func splitDeferredOutputCapabilities(calls []CapabilityInvocation, registry *CapabilityRegistry) (deferred, immediate []CapabilityInvocation) {
+	for _, invocation := range calls {
 		if registry != nil {
-			if executor, ok := registry.Lookup(call.Name); ok && executor.Manifest().IsDeferredOutput() {
-				deferred = append(deferred, call)
+			if definition, ok := registry.Definition(invocation.CapabilityName); ok && definition.IsDeferredOutput() {
+				deferred = append(deferred, invocation)
 				continue
 			}
 		}
-		immediate = append(immediate, call)
+		immediate = append(immediate, invocation)
 	}
 	return deferred, immediate
 }
@@ -218,7 +191,7 @@ func bindCompositeActionOutput(action CompositeActionV1, targetKind, targetRef s
 	bound := action
 	bound.OutputBindings = make([]OutputBindingV1, 0, len(action.ToolCalls))
 	for _, call := range action.ToolCalls {
-		bound.OutputBindings = append(bound.OutputBindings, OutputBindingV1{ToolCallID: call.ID, TargetKind: targetKind, TargetRef: targetRef})
+		bound.OutputBindings = append(bound.OutputBindings, OutputBindingV1{ToolCallID: call.CallID, TargetKind: targetKind, TargetRef: targetRef})
 	}
 	return bound
 }

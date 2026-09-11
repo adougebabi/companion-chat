@@ -2,14 +2,15 @@ package core
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 )
 
 // This fixture mirrors a real cognition response that returned affect_event,
-// memory_event, and media.image.generate without conversation.reply. The
-// response must settle as an optional no-visible-reply action instead of
-// entering cognition_visible_text_missing/conversation_turn_failed.
-func TestConversationToolResponseFixtureWithoutReplySettlesAsNoOp(t *testing.T) {
+// memory_event, and media.image.generate without conversation.reply. Generic
+// capability resolution may describe it as a no-op output, but the direct-chat
+// boundary must still require one visible reply from the same Main cognition.
+func TestConversationToolResponseFixtureWithoutReplyRequiresDirectVisibleOutput(t *testing.T) {
 	fixture := map[string]any{
 		"structured": map[string]any{},
 		"text":       "",
@@ -48,22 +49,30 @@ func TestConversationToolResponseFixtureWithoutReplySettlesAsNoOp(t *testing.T) 
 			t.Fatalf("source fact was not normalized: %#v", call)
 		}
 	}
-	manifests := toolManifestMap([]CapabilityManifest{
-		conversationReplyCapabilityManifest(), imageCapabilityManifest(), affectEventCapabilityManifest(), memoryCapabilityManifest(),
+	manifests := capabilityDefinitionMap([]CapabilityDefinition{
+		conversationReplyCapabilityDefinition(), imageCapabilityDefinition(), affectEventCapabilityDefinition(), memoryCapabilityDefinition(),
 	})
-	if action, _, err := resolveToolCallAction(calls, manifests); err != nil || action != "no_op" {
+	if action, err := resolveCapabilityAction(calls, manifests); err != nil || action != "no_op" {
 		t.Fatalf("resolve tool action = %q err=%v", action, err)
 	}
-	action, _, err := resolveToolCallAction(calls, manifests)
+	action, err := resolveCapabilityAction(calls, manifests)
 	if err != nil || action != "no_op" {
 		t.Fatalf("missing reply action = %q err=%v", action, err)
 	}
-	decision := map[string]any{"action_type": action, "tool_calls": calls}
+	decision := map[string]any{"action_type": action, "capability_invocations": calls}
 	composite, err := normalizeCompositeAction(decision, calls, "inbox_fixture", action)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if composite.Kind != "none" || composite.ActionType != "no_op" || len(composite.ToolCalls) != 3 {
 		t.Fatalf("composite optional-tool action = %#v", composite)
+	}
+	if visible := replyTextFromCapabilityInvocations(calls, mustCapabilityRegistry(affectEventCapability{}, memoryEventCapability{}, imageGenerateCapability{})); visible != "" {
+		t.Fatalf("non-reply capability fixture manufactured visible text %q", visible)
+	}
+	schema := cognitiveTurnResponseSchema()
+	actionSchema := mapValue(mapValue(schema["properties"])["action_type"])
+	if fmt.Sprint(actionSchema["enum"]) != "[reply]" {
+		t.Fatalf("direct conversation schema still permits a successful no-op: %#v", actionSchema)
 	}
 }

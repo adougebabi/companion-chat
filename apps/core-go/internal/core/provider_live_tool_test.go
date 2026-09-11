@@ -31,9 +31,9 @@ func TestLiveProviderRecognizesImageGenerationIntent(t *testing.T) {
 	if baseURL == "" || model == "" {
 		t.Fatal("FLUCTLIGHT_LIVE_PROVIDER_URL and FLUCTLIGHT_LIVE_PROVIDER_MODEL are required")
 	}
-	manifests := []CapabilityManifest{conversationReplyCapabilityManifest(), imageCapabilityManifest(), affectEventCapabilityManifest()}
+	manifests := []CapabilityDefinition{conversationReplyCapabilityDefinition(), imageCapabilityDefinition(), affectEventCapabilityDefinition()}
 	messages := composeProviderMessages("cognitive_assessment", []map[string]any{
-		{"role": "system", "content": conversationAssessmentInstruction},
+		{"role": "system", "content": capabilityConversationPolicyInstruction},
 		{"role": "user", "content": "请同时完成两件事：第一，实际把刚才这个雨后窗边、整理好衣服和小道具的场景制作成一份视觉作品；第二，用一句话告诉我你准备采用的构图重点。"},
 	})
 	payload := providerChatPayloadWithSchema(model, messages, 1800, false, manifests, "cognitive_assessment", "conversation_turn_response", cognitiveTurnResponseSchema(), true)

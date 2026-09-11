@@ -105,3 +105,32 @@ test("BrowserClient exposes media prompt retry", async () => {
   assert.equal(requestedUrl, "http://fluctlight.local/api/diagnostics/media-prompts/media-1/retry");
   assert.equal(requestedMethod, "POST");
 });
+
+test("BrowserClient serializes the schema-derived Life Context command contracts", async () => {
+	const requests: Array<{ url: string; method: string; body: unknown }> = [];
+	const client = new BrowserClient("http://fluctlight.local", async (input, init) => {
+		const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+		requests.push({ url: String(input), method: init?.method ?? "GET", body });
+		return String(input).includes("/cancel") ? new Response(null, { status: 204 }) : Response.json({});
+	});
+	const lifeRevision = "life_ctx_0123456789abcdef0123456789abcdef";
+	await client.createLifeEvent("fl-1", {
+		kind: "meeting", startAt: "2026-09-11T08:00:00Z", endAt: "2026-09-11T09:00:00Z",
+		evidenceRefs: ["fact-1"], expectedLifeContextRevision: lifeRevision, idempotencyKey: "event-create-1",
+	});
+	await client.cancelLifeEvent("fl-1", "event-1", { expectedEventRevision: 2, expectedLifeContextRevision: lifeRevision, idempotencyKey: "event-cancel-1" });
+	await client.setLifePresence("fl-1", { currentTask: "review", expectedLifeContextRevision: lifeRevision, idempotencyKey: "presence-1" });
+	await client.acceptLifeSchedule("fl-1", {
+		localDate: "2026-09-11", timezone: "UTC", expectedRevision: 0, expectedLifeContextRevision: lifeRevision,
+		idempotencyKey: "schedule-1", evidenceRefs: ["fact-1"],
+		items: [{ startAt: "2026-09-11T00:00:00Z", endAt: "2026-09-12T00:00:00Z", activity: "review", scene: "office", location: "Shanghai" }],
+	});
+	await client.cancelLifeSchedule("fl-1", "schedule-1", { expectedRevision: 1, expectedLifeContextRevision: lifeRevision, idempotencyKey: "schedule-cancel-1" });
+	assert.deepEqual(requests, [
+		{ url: "http://fluctlight.local/api/fluctlights/fl-1/events", method: "POST", body: { kind: "meeting", startAt: "2026-09-11T08:00:00Z", endAt: "2026-09-11T09:00:00Z", evidenceRefs: ["fact-1"], expectedLifeContextRevision: lifeRevision, idempotencyKey: "event-create-1" } },
+		{ url: "http://fluctlight.local/api/fluctlights/fl-1/events/event-1/cancel", method: "POST", body: { expectedEventRevision: 2, expectedLifeContextRevision: lifeRevision, idempotencyKey: "event-cancel-1" } },
+		{ url: "http://fluctlight.local/api/fluctlights/fl-1/presence", method: "PUT", body: { currentTask: "review", expectedLifeContextRevision: lifeRevision, idempotencyKey: "presence-1" } },
+		{ url: "http://fluctlight.local/api/fluctlights/fl-1/schedules", method: "POST", body: { localDate: "2026-09-11", timezone: "UTC", expectedRevision: 0, expectedLifeContextRevision: lifeRevision, idempotencyKey: "schedule-1", evidenceRefs: ["fact-1"], items: [{ startAt: "2026-09-11T00:00:00Z", endAt: "2026-09-12T00:00:00Z", activity: "review", scene: "office", location: "Shanghai" }] } },
+		{ url: "http://fluctlight.local/api/fluctlights/fl-1/schedules/schedule-1/cancel", method: "POST", body: { expectedRevision: 1, expectedLifeContextRevision: lifeRevision, idempotencyKey: "schedule-cancel-1" } },
+	]);
+});

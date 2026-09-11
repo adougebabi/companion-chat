@@ -1,8 +1,85 @@
 import { writeFile } from "node:fs/promises";
 
+const requestBody = (schema) => ({
+  requestBody: { required: true, content: { "application/json": { schema: { $ref: `#/components/schemas/${schema}` } } } },
+});
+
+const lifeCommandProperties = {
+  expectedLifeContextRevision: { type: "string", minLength: 1, maxLength: 64 },
+  idempotencyKey: { type: "string", minLength: 1, maxLength: 256 },
+};
+
 const schema = {
   openapi: "3.1.0",
   info: { title: "Fluctlight Browser Platform API", version: "0.1.0" },
+  components: {
+    schemas: {
+      BrowserLifeEventRequest: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          kind: { type: "string", minLength: 1, maxLength: 128 },
+          startAt: { type: "string", format: "date-time" },
+          endAt: { type: "string", format: "date-time" },
+          scene: { type: "string", maxLength: 512 },
+          activity: { type: "string", maxLength: 512 },
+          location: { type: "string", maxLength: 512 },
+          evidenceRefs: { type: "array", minItems: 1, maxItems: 32, items: { type: "string" } },
+          ...lifeCommandProperties,
+        },
+        required: ["kind", "startAt", "endAt", "evidenceRefs", "expectedLifeContextRevision", "idempotencyKey"],
+      },
+      BrowserLifeEventCancelRequest: {
+        type: "object",
+        additionalProperties: false,
+        properties: { expectedEventRevision: { type: "integer", minimum: 1 }, ...lifeCommandProperties },
+        required: ["expectedEventRevision", "expectedLifeContextRevision", "idempotencyKey"],
+      },
+      BrowserPresenceRequest: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          currentTask: { type: "string", minLength: 1, maxLength: 512 },
+          userPresence: { type: "string", minLength: 1, maxLength: 128 },
+          expiresAt: { type: "string", format: "date-time" },
+          ...lifeCommandProperties,
+        },
+        required: ["expectedLifeContextRevision", "idempotencyKey"],
+        anyOf: [{ required: ["currentTask"] }, { required: ["userPresence"] }],
+      },
+      BrowserScheduleItemRequest: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          startAt: { type: "string", format: "date-time" }, endAt: { type: "string", format: "date-time" },
+	          activity: { type: "string", minLength: 1, maxLength: 128 }, scene: { type: "string", minLength: 1, maxLength: 128 },
+	          location: { type: "string", maxLength: 512 },
+          itemType: { type: "string", minLength: 1, maxLength: 128 }, status: { type: "string", minLength: 1, maxLength: 128 },
+          priority: { type: "number", minimum: 0, maximum: 1 }, flexibility: { type: "number", minimum: 0, maximum: 1 },
+          interruptionCost: { type: "number", minimum: 0, maximum: 1 },
+        },
+        required: ["startAt", "endAt", "activity", "scene"],
+      },
+      BrowserScheduleRequest: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          localDate: { type: "string", format: "date" }, timezone: { type: "string", minLength: 1, maxLength: 128 },
+          items: { type: "array", minItems: 1, maxItems: 128, items: { $ref: "#/components/schemas/BrowserScheduleItemRequest" } },
+          evidenceRefs: { type: "array", minItems: 1, maxItems: 32, items: { type: "string" } },
+          expectedRevision: { type: "integer", minimum: 0 }, completedBefore: { type: "string", format: "date-time" },
+          ...lifeCommandProperties,
+        },
+        required: ["localDate", "timezone", "items", "evidenceRefs", "expectedRevision", "expectedLifeContextRevision", "idempotencyKey"],
+      },
+      BrowserScheduleCancelRequest: {
+        type: "object",
+        additionalProperties: false,
+        properties: { expectedRevision: { type: "integer", minimum: 1 }, ...lifeCommandProperties },
+        required: ["expectedRevision", "expectedLifeContextRevision", "idempotencyKey"],
+      },
+    },
+  },
   paths: {
     "/health/live": { get: { operationId: "browserLive" } },
     "/health/ready": { get: { operationId: "browserReady" } },
@@ -37,11 +114,11 @@ const schema = {
     "/api/fluctlights/{fluctlightId}/relationships/{targetActorId}": { put: { operationId: "editRelationship" } },
     "/api/fluctlights/{fluctlightId}/autonomy-actions": { get: { operationId: "listAutonomyActions" } },
     "/api/autonomy-actions/{actionId}/govern": { post: { operationId: "governAutonomyAction" } },
-    "/api/fluctlights/{fluctlightId}/events": { post: { operationId: "createLifeEvent" } },
-    "/api/fluctlights/{fluctlightId}/events/{eventId}/cancel": { post: { operationId: "cancelLifeEvent" } },
-    "/api/fluctlights/{fluctlightId}/presence": { put: { operationId: "setLifePresence" } },
-    "/api/fluctlights/{fluctlightId}/schedules": { post: { operationId: "acceptLifeSchedule" } },
-    "/api/fluctlights/{fluctlightId}/schedules/{scheduleId}/cancel": { post: { operationId: "cancelLifeSchedule" } },
+    "/api/fluctlights/{fluctlightId}/events": { post: { operationId: "createLifeEvent", ...requestBody("BrowserLifeEventRequest") } },
+    "/api/fluctlights/{fluctlightId}/events/{eventId}/cancel": { post: { operationId: "cancelLifeEvent", ...requestBody("BrowserLifeEventCancelRequest") } },
+    "/api/fluctlights/{fluctlightId}/presence": { put: { operationId: "setLifePresence", ...requestBody("BrowserPresenceRequest") } },
+    "/api/fluctlights/{fluctlightId}/schedules": { post: { operationId: "acceptLifeSchedule", ...requestBody("BrowserScheduleRequest") } },
+    "/api/fluctlights/{fluctlightId}/schedules/{scheduleId}/cancel": { post: { operationId: "cancelLifeSchedule", ...requestBody("BrowserScheduleCancelRequest") } },
     "/api/diagnostics/workflows": { get: { operationId: "listWorkflows" } },
     "/api/diagnostics/workflows/{workflowId}/status": { get: { operationId: "workflowStatus" } },
     "/api/diagnostics/workflows/{workflowId}/history": { get: { operationId: "workflowHistory" } },

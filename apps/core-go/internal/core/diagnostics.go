@@ -285,8 +285,22 @@ func (a *App) recordModelRunLifecycle(ctx context.Context, role, endpointID, mod
 		completedAt = time.Now().UTC()
 	}
 	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,queued_at,started_at,completed_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,now(),$13,$14) ON CONFLICT(id) DO UPDATE SET role=excluded.role,binding_role=excluded.binding_role,scenario=excluded.scenario,priority=excluded.priority,response=COALESCE(excluded.response,public.diagnostic_model_runs.response),status=excluded.status,error_code=excluded.error_code,started_at=COALESCE(public.diagnostic_model_runs.started_at,excluded.started_at),completed_at=COALESCE(excluded.completed_at,public.diagnostic_model_runs.completed_at)`, id, role, bindingRole, scenario, priority, nullableString(endpointID), modelID, promptJSON, responseJSON, status, nullableString(errorCode), correlationID, startedAt, completedAt)
-	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.provider_provenance(id,role,endpoint_id,model_id,prompt_version,schema_version,correlation_id,token_budget) SELECT $1,$2,$3,$4,$5,$6,$7,COALESCE((SELECT token_budget FROM public.model_roles WHERE role=$2),0) ON CONFLICT(id) DO NOTHING`, "provider_provenance_"+hex.EncodeToString(digest[:])[:32], bindingRole, endpointID, modelID, "go-provider-v1", "fluctlight."+scenario+".v1", correlationID)
+	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.provider_provenance(id,role,endpoint_id,model_id,prompt_version,schema_version,correlation_id,token_budget) SELECT $1,$2,$3,$4,$5,$6,$7,COALESCE((SELECT token_budget FROM public.model_roles WHERE role=$2),0) ON CONFLICT(id) DO NOTHING`, "provider_provenance_"+hex.EncodeToString(digest[:])[:32], bindingRole, endpointID, modelID, providerPromptVersion(scenario), providerSchemaVersion(scenario), correlationID)
 	return id
+}
+
+func providerPromptVersion(scenario string) string {
+	if scenario == "reflection" {
+		return "reflection.v2"
+	}
+	return "go-provider-v1"
+}
+
+func providerSchemaVersion(scenario string) string {
+	if scenario == "reflection" {
+		return reflectionProposalV2SchemaVersion
+	}
+	return "fluctlight." + scenario + ".v1"
 }
 
 func (a *App) recordDiagnosticEvent(ctx context.Context, eventType, severity, fluctlightID, causationID, correlationID string, payload any) {

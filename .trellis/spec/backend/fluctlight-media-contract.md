@@ -37,8 +37,9 @@ created_at / ready_at / tombstoned_at / deleted_at
 ### Moment Image Contract
 
 - A text Moment is published first. Its optional image starts only from an
-  already-frozen `moment_media_request` decided by cognition, never from an
-  existing asset list, a keyword branch, or a renderer inference.
+  already-frozen `media.image.generate` CapabilityInvocation whose thin input
+  is the model-owned `intent`; it never comes from an existing asset list, a
+  keyword branch, or renderer inference.
 - A wake-up may request a standalone `media.image.generate` call without a
   conversation or Moment output. Its `wake_up` target is represented by the
   stable action provenance; the media intent remains durable and un-attached

@@ -112,10 +112,10 @@ func TestNormalizeResponsePlanAcceptsLegacyClaimAliasAndSemanticEvidence(t *test
 
 func TestNormalizeResponsePlanAllowsToolOnlyNoOpWithoutVisibleText(t *testing.T) {
 	plan, err := normalizeResponsePlan(map[string]any{
-		"action_type":     "no_op",
-		"response_intent": "",
-		"appraisal":       toolOnlyCognitionAppraisal("fact-tool-only"),
-		"claims":          []any{},
+		"action_type":                "no_op",
+		"response_intent":            "",
+		"cognitive_state_transition": "not_proposed",
+		"claims":                     []any{},
 	}, "fact-tool-only", ContextProjection{
 		ContextRevision:    1,
 		PersonalityRuntime: map[string]any{"active_profile_id": "default"},
@@ -131,21 +131,19 @@ func TestNormalizeResponsePlanAllowsToolOnlyNoOpWithoutVisibleText(t *testing.T)
 	}
 }
 
-func TestReplyTextFromToolCallsUsesConversationReplyPayload(t *testing.T) {
-	text := replyTextFromToolCalls([]ToolCallV1{
-		{Name: "conversation.reply", Arguments: []byte(`{"text":"收到～"}`)},
-	})
+func TestReplyTextFromCapabilityInvocationsUsesOutputDefinition(t *testing.T) {
+	text := replyTextFromCapabilityInvocations([]CapabilityInvocation{
+		{CapabilityName: "conversation.reply", Arguments: []byte(`{"text":"收到～"}`)},
+	}, mustCapabilityRegistry(conversationReplyCapability{}))
 	if text != "收到～" {
 		t.Fatalf("reply text = %q, want 收到～", text)
 	}
 }
 
-func TestNormalizeConversationReplyCallsAcceptsCapabilityRequestTransition(t *testing.T) {
-	calls := normalizeConversationReplyCalls([]ToolCallV1{{
-		ID: "call-1", Name: "capability.request", Arguments: []byte(`{"capability_key":"conversation.reply","desired_contract":{"text":"在呢。"}}`),
-	}})
-	if len(calls) != 1 || calls[0].Name != "conversation.reply" || replyTextFromToolCalls(calls) != "在呢。" {
-		t.Fatalf("normalized reply calls = %#v", calls)
+func TestCapabilityRequestDoesNotRewriteIntoConversationReply(t *testing.T) {
+	invocation := CapabilityInvocation{CallID: "call-1", CapabilityName: "capability.request", Arguments: []byte(`{"capability_key":"conversation.reply","title":"reply","description":"request","rationale":"request"}`)}
+	if hasConversationReplyCapability([]CapabilityInvocation{invocation}, mustCapabilityRegistry(capabilityRequestCapability{}, conversationReplyCapability{})) {
+		t.Fatal("capability.request must not be rewritten into conversation.reply")
 	}
 }
 

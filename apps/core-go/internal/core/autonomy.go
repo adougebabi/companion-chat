@@ -41,6 +41,14 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if localDate == "" {
 		localDate = time.Now().In(location).Format("2006-01-02")
 	}
+	releaseReviewLock, acquired, lockErr := a.tryDailyReviewExecutionLock(ctx, fluctlightID, localDate)
+	if lockErr != nil {
+		return nil, lockErr
+	}
+	if !acquired {
+		return map[string]any{"fluctlight_id": fluctlightID, "local_date": localDate, "timezone": location.String(), "status": "in_progress"}, nil
+	}
+	defer releaseReviewLock()
 	var scheduleReady bool
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_schedules WHERE fluctlight_id=$1 AND local_date=$2 AND status='accepted')`, fluctlightID, localDate).Scan(&scheduleReady); err != nil {
 		return nil, err
@@ -52,7 +60,11 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if err != nil {
 		return nil, err
 	}
-	projection, err := a.BuildContextProjection(ctx, ownerID, fluctlightID, conversationID, "daily-review:"+fluctlightID+":"+localDate, "")
+	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
+		AuthorizationActorID: ownerID, SpeakerActorID: ownerID, FluctlightID: fluctlightID,
+		ConversationID: conversationID, SourceFactID: "daily-review:" + fluctlightID + ":" + localDate,
+		MemoryOperation: MemoryForDailyReview, MemoryConversationMode: MemoryConversationExact,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -66,22 +78,16 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		return nil, err
 	}
 	messages := withContextAuthorityInstruction([]map[string]any{
-		{"role": "system", "content": dailyReviewInstruction},
+		{"role": "system", "content": capabilityDailyReviewPolicyInstruction},
 		{"role": "user", "content": jsonString(map[string]any{"local_date": localDate, "context": compactCognitionContext(projection)})},
 	})
 	messages = withActorRelationshipSystemContext(messages, projection)
-	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "daily_review"), "cognitive_assessment", messages, a.capabilityRegistry().Manifests(), "daily_review_response", dailyReviewResponseSchema(), true)
+	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "daily_review"), "cognitive_assessment", messages, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceAutonomy), "daily_review_response", dailyReviewResponseSchema(), true)
 	if err != nil {
-		// Some mlx-serve responses contain a malformed bookkeeping tool call
-		// (for example a scene_event without an id) before they emit any daily
-		// review decision. Retry the same request through the no-tools contract;
-		// this keeps the retry semantic-free and lets the model produce the
-		// required action_type instead of failing the whole lifecycle workflow.
-		if retry, retryErr := a.Provider.StructuredWithSchema(ctx, "cognitive_assessment", messages, "daily_review_response", dailyReviewResponseSchema(), false); retryErr == nil {
-			completion = ProviderCompletion{Structured: retry}
-		} else {
-			return nil, err
-		}
+		// A daily review is one semantic cognition. Invalid Provider output is
+		// retried by its owning workflow with the same durable identity; this call
+		// never opens a second Main LLM request with a different tool contract.
+		return nil, err
 	}
 	// A structured fallback with native calls is still a valid tool-only
 	// assessment. Do not issue a second no-tools model request here: that would
@@ -92,17 +98,33 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if decision == nil {
 		decision = map[string]any{}
 	}
+	influences, err := freezeDecisionInfluences(decision, projection, false)
+	if err != nil {
+		return nil, err
+	}
+	if stringValue(decision["action_type"]) != "no_op" || len(completion.ToolCalls) > 0 {
+		if err := requireDecisionInfluences(influences, "daily_review_influences_required"); err != nil {
+			return nil, err
+		}
+	}
 	if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
 		if normalized, normalizeErr := normalizeOutputPreferenceDecision(preference, stringValue(projection.PersonalityRuntime["active_profile_id"])); normalizeErr == nil {
 			decision["output_preference_decision"] = normalized
 		}
 	}
-	toolCalls := completion.ToolCalls
+	toolCalls := append([]CapabilityInvocation(nil), completion.ToolCalls...)
+	toolCalls, err = a.bindCapabilityInvocationsToProjection(toolCalls, projection, actionID, "daily-review:"+fluctlightID+":"+localDate, CapabilitySurfaceAutonomy)
+	if err != nil {
+		return nil, err
+	}
+	toolCalls, err = a.prepareCapabilityInvocations(ctx, fluctlightID, conversationID, "daily-review:"+fluctlightID+":"+localDate, toolCalls)
+	if err != nil {
+		return nil, err
+	}
 	// A thinking-enabled Provider may express a schedule/scene/native update
 	// entirely through optional capability calls and omit the JSON sidecar. Keep
-	// those calls: `no_op + tool_calls` is a valid capability-only review and
+	// those calls: `no_op + capability_invocations` is a valid capability-only review and
 	// must not be converted into a silent no-op or a no-tools retry.
-	toolCalls = bindMediaContextToToolCalls(toolCalls, projection)
 	composite, err := normalizeCompositeAction(decision, toolCalls, workflowID, "no_op")
 	if err != nil {
 		return nil, err
@@ -115,7 +137,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		return nil, errors.New("daily_review_decision_invalid")
 	}
 	if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
-		decision["output_preference_decision"] = evaluateOutputPreferenceAction(preference, actionType, composite.ToolCalls)
+		decision["output_preference_decision"] = evaluateOutputPreferenceAction(preference, actionType, composite.ToolCalls, a.capabilityRegistry())
 	}
 	policySnapshot := map[string]any{}
 	if actionType != "no_op" {
@@ -133,11 +155,11 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		if conversationID == "" {
 			return nil, errors.New("proactive_target_invalid")
 		}
-		if err := validateCompositeOutputCalls(composite.ToolCalls, "conversation_message", a.capabilityRegistry()); err != nil {
+		if err := validateCompositeOutputCapabilities(composite.ToolCalls, "conversation_message", a.capabilityRegistry()); err != nil {
 			return nil, fmt.Errorf("daily_review_output_binding_invalid: %w", err)
 		}
 	} else if actionType == "moment" {
-		if err := validateCompositeOutputCalls(composite.ToolCalls, "moment", a.capabilityRegistry()); err != nil {
+		if err := validateCompositeOutputCapabilities(composite.ToolCalls, "moment", a.capabilityRegistry()); err != nil {
 			return nil, fmt.Errorf("daily_review_output_binding_invalid: %w", err)
 		}
 	} else if actionType == "capability" {
@@ -148,15 +170,23 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 			return nil, errors.New("daily_review_capability_calls_empty")
 		}
 	}
-	payload := map[string]any{"conversation_id": conversationID, "response_intent": composite.ResponseIntent, "decision": composite, "source_fact_id": "daily-review:" + fluctlightID + ":" + localDate}
+	payload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "conversation_id": conversationID, "response_intent": composite.ResponseIntent, "decision": composite, "source_fact_id": "daily-review:" + fluctlightID + ":" + localDate, "capability_results": []CapabilityResult{}}
+	payload["context_reference_version"] = contextReferenceIndexVersion
+	payload["context_reference_index"] = projection.ReferenceIndex
+	payload["influences"] = decisionInfluenceMaps(influences)
+	payload["goal_refs"] = decision["goal_refs"]
+	payload["intention_refs"] = decision["intention_refs"]
 	if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
 		payload["output_preference_decision"] = preference
 	}
 	if len(composite.ToolCalls) > 0 {
-		payload["tool_calls"] = composite.ToolCalls
+		payload["capability_invocations"] = composite.ToolCalls
 		payload["output_bindings"] = composite.OutputBindings
 	}
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, projection.ContextRevision, projection.CurrentStateRevision, projection.LifeContextRevision, time.Now().UTC()); err != nil {
+			return err
+		}
 		if actionType != "no_op" {
 			if err := reserveAutonomyBudgetTx(ctx, tx, fluctlightID); err != nil {
 				return err
@@ -166,7 +196,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		if actionType == "no_op" {
 			status = "completed"
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions (id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id,created_at,settled_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),CASE WHEN $7='completed' THEN now() ELSE NULL END)`, actionID, fluctlightID, actionType, jsonBytes(payload), jsonBytes(policySnapshot), jsonBytes(map[string]any{"context_revision": projection.ContextRevision}), status, workflowID, providerID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions (id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id,created_at,settled_at) VALUES ($1,$2,$3,$4,$5,$6,$7::varchar,$8,$9,now(),CASE WHEN $7::varchar='completed' THEN now() ELSE NULL END)`, actionID, fluctlightID, actionType, jsonBytes(payload), jsonBytes(policySnapshot), jsonBytes(map[string]any{"foundation_revision": projection.ContextRevision, "current_state_revision": projection.CurrentStateRevision, "life_context_revision": projection.LifeContextRevision}), status, workflowID, providerID); err != nil {
 			return err
 		}
 		if status == "frozen" {
@@ -190,14 +220,14 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	deliveryStatus := ""
 	deliveredMessageID := ""
 	if actionType != "no_op" && actionType != "capability" {
-		callName := "moment.publish"
+		targetKind := "moment"
 		if actionType == "proactive_message" {
-			callName = "conversation.reply"
+			targetKind = "conversation_message"
 		}
-		visible := textFromOutputCapabilityCall(composite.ToolCalls, callName)
+		visible := textFromOutputBinding(composite.ToolCalls, targetKind, a.capabilityRegistry())
 		if visible == "" {
 			_, _ = a.failAutonomyAction(ctx, actionID, "output_capability_text_missing")
-			return nil, fmt.Errorf("daily_review_%s_required", strings.ReplaceAll(callName, ".", "_"))
+			return nil, fmt.Errorf("daily_review_%s_required", targetKind)
 		}
 		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(payload,'{text}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(visible)); err != nil {
 			return nil, err
@@ -212,6 +242,13 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if actionType == "no_op" {
 		if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 			payload := map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed", "local_date": localDate, "delivery_status": deliveryStatus, "message_id": deliveredMessageID}
+			causality, causalityErr := frozenDecisionCausality(decision)
+			if causalityErr != nil {
+				return causalityErr
+			}
+			for key, value := range causality {
+				payload[key] = value
+			}
 			factID, factErr := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", payload, "daily-review-result:"+actionID)
 			if factErr != nil {
 				return factErr
@@ -239,22 +276,52 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	return result, nil
 }
 
+func (a *App) tryDailyReviewExecutionLock(ctx context.Context, fluctlightID, localDate string) (func(), bool, error) {
+	connection, err := a.DB.Pool().Acquire(ctx)
+	if err != nil {
+		return func() {}, false, err
+	}
+	key := "daily-review:" + strings.TrimSpace(fluctlightID) + ":" + strings.TrimSpace(localDate)
+	var acquired bool
+	if err := connection.QueryRow(ctx, `SELECT pg_try_advisory_lock(hashtextextended($1,0))`, key).Scan(&acquired); err != nil {
+		connection.Release()
+		return func() {}, false, err
+	}
+	if !acquired {
+		connection.Release()
+		return func() {}, false, nil
+	}
+	release := func() {
+		var unlocked bool
+		_ = connection.QueryRow(context.Background(), `SELECT pg_advisory_unlock(hashtextextended($1,0))`, key).Scan(&unlocked)
+		connection.Release()
+	}
+	return release, true, nil
+}
+
 func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[string]any, []map[string]any, error) {
 	goals := make([]map[string]any, 0)
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,status,importance,urgency,progress FROM public.fluctlight_goals WHERE fluctlight_id=$1 AND status <> 'forgotten' ORDER BY created_at`, fluctlightID)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,profile_id,scope,target_actor_id,description,desired_outcome,success_criteria,motivation,needs_reflection,status,importance,urgency,progress,deadline,evidence_refs,revision FROM public.fluctlight_goals WHERE fluctlight_id=$1 ORDER BY created_at`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
 	for rows.Next() {
-		var id, scope, description, status string
+		var id, scope, description, desiredOutcome, motivation, status string
 		var profileID *string
 		var targetActorID *string
-		var importance, urgency, progress []byte
-		if err := rows.Scan(&id, &profileID, &scope, &targetActorID, &description, &status, &importance, &urgency, &progress); err != nil {
+		var successCriteria, importance, urgency, progress []byte
+		var needsReflection bool
+		var deadline *time.Time
+		var evidenceRefs []byte
+		var revision int
+		if err := rows.Scan(&id, &profileID, &scope, &targetActorID, &description, &desiredOutcome, &successCriteria, &motivation, &needsReflection, &status, &importance, &urgency, &progress, &deadline, &evidenceRefs, &revision); err != nil {
 			rows.Close()
 			return nil, nil, err
 		}
-		item := map[string]any{"id": id, "scope": scope, "description": description, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress)}
+		item := map[string]any{"id": id, "scope": scope, "description": description, "desired_outcome": desiredOutcome, "success_criteria": decodeArray(successCriteria), "motivation": motivation, "needs_reflection": needsReflection, "status": status, "importance": jsonNumber(importance), "urgency": jsonNumber(urgency), "progress": jsonNumber(progress), "evidence_refs": decodeArray(evidenceRefs), "revision": revision}
+		if deadline != nil {
+			item["deadline"] = deadline.Format(time.RFC3339Nano)
+		}
 		if profileID != nil && strings.TrimSpace(*profileID) != "" {
 			item["profile_id"] = *profileID
 		}
@@ -269,21 +336,25 @@ func (a *App) agencyProfile(ctx context.Context, fluctlightID string) ([]map[str
 	}
 	rows.Close()
 	intentions := make([]map[string]any, 0)
-	intentRows, err := a.DB.Pool().Query(ctx, `SELECT i.id,i.profile_id,i.goal_id,COALESCE(g.description,''),i.action,i.status,i.confidence,i.preferred_time,i.expiration,i.trigger FROM public.fluctlight_intentions i LEFT JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND i.status NOT IN ('cancelled','completed','expired') AND i.expiration > now() ORDER BY i.created_at`, fluctlightID)
+	intentRows, err := a.DB.Pool().Query(ctx, `SELECT i.id,i.profile_id,i.goal_id,COALESCE(g.desired_outcome,''),i.action_intent,i.expected_outcome,i.capability_constraints,i.status,i.confidence,i.preferred_time,i.expiration,i.trigger,i.evidence_refs,i.revision,COALESCE(i.current_attempt_id,'') FROM public.fluctlight_intentions i LEFT JOIN public.fluctlight_goals g ON g.id=i.goal_id AND g.fluctlight_id=i.fluctlight_id WHERE i.fluctlight_id=$1 AND i.status NOT IN ('cancelled','completed','expired') AND i.expiration > now() ORDER BY i.created_at`, fluctlightID)
 	if err != nil {
 		return nil, nil, err
 	}
 	for intentRows.Next() {
-		var id, goalDescription, action, status string
+		var id, goalDescription, action, expectedOutcome, status, currentAttemptID string
 		var profileID, goalID *string
-		var trigger []byte
+		var capabilityConstraints, trigger, evidenceRefs []byte
 		var confidence float64
+		var revision int
 		var preferredTime, expiration *time.Time
-		if err := intentRows.Scan(&id, &profileID, &goalID, &goalDescription, &action, &status, &confidence, &preferredTime, &expiration, &trigger); err != nil {
+		if err := intentRows.Scan(&id, &profileID, &goalID, &goalDescription, &action, &expectedOutcome, &capabilityConstraints, &status, &confidence, &preferredTime, &expiration, &trigger, &evidenceRefs, &revision, &currentAttemptID); err != nil {
 			intentRows.Close()
 			return nil, nil, err
 		}
-		item := map[string]any{"id": id, "goal": goalDescription, "action": action, "status": status, "confidence": confidence}
+		item := map[string]any{"id": id, "goal": goalDescription, "action": action, "action_intent": action, "expected_outcome": expectedOutcome, "capability_constraints": decodeArray(capabilityConstraints), "status": status, "confidence": confidence, "trigger": decodeObject(trigger), "evidence_refs": decodeArray(evidenceRefs), "revision": revision}
+		if currentAttemptID != "" {
+			item["current_attempt_id"] = currentAttemptID
+		}
 		if profileID != nil && strings.TrimSpace(*profileID) != "" {
 			item["profile_id"] = *profileID
 		}

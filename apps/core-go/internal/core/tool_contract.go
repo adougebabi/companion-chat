@@ -2,101 +2,22 @@ package core
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
 )
 
 const (
-	ToolCallSchemaVersion   = "fluctlight.tool-call.v1"
-	ToolResultSchemaVersion = "fluctlight.tool-result.v1"
-	maxToolNameLength       = 128
-	maxToolArgumentsBytes   = 64 << 10
+	CapabilityInvocationSchemaVersion = "fluctlight.capability-invocation.v2"
+	maxToolNameLength                 = 128
+	maxToolArgumentsBytes             = 64 << 10
 )
 
 var toolNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
-
-// CapabilityManifest is the Runtime-facing declaration for an external
-// capability.  The manifest describes the slot and its safety properties; it
-// does not grant the provider direct access to domain tables.
-type CapabilityManifest struct {
-	Name              string
-	Version           string
-	Description       string
-	Parameters        map[string]any
-	OutputSchema      map[string]any
-	TargetKinds       []string
-	SideEffectClass   string
-	ConcurrencyClass  string
-	SupportsCancel    bool
-	SupportsRetry     bool
-	RequiresPreflight bool
-}
-
-// IsDeferredOutput marks a capability whose result must be attached to a
-// concrete Composite Action output after that output receives its durable ID.
-// This keeps external asynchronous work target-neutral: the same slot can be
-// reused by a conversation message, Moment, or a future output kind.
-func (manifest CapabilityManifest) IsDeferredOutput() bool {
-	return manifest.SideEffectClass == "external_async" && len(manifest.TargetKinds) > 0
-}
-
-// ValidateOutput enforces the small, transport-safe part of a slot's output
-// schema at the Runtime boundary. Capability executors remain responsible for
-// semantic validation, while required object fields and size limits are shared
-// consistently across built-in and plugin slots.
-func (manifest CapabilityManifest) ValidateOutput(output any) error {
-	if manifest.OutputSchema == nil {
-		return nil
-	}
-	if stringValue(manifest.OutputSchema["type"]) == "object" {
-		object := mapValue(output)
-		if object == nil {
-			return errors.New("tool result output must be an object")
-		}
-		for _, raw := range arrayValue(manifest.OutputSchema["required"]) {
-			key := stringValue(raw)
-			if key != "" && object[key] == nil {
-				return fmt.Errorf("tool result output field %q is required", key)
-			}
-		}
-	}
-	return nil
-}
-
-// ToolCallV1 is the canonical representation shared by native provider tool
-// calls and structured JSON sidecars.  Arguments remain raw JSON so the
-// capability owner can validate them against its own schema without a lossy
-// map conversion.
-type ToolCallV1 struct {
-	ID                string          `json:"id"`
-	Name              string          `json:"name"`
-	Arguments         json.RawMessage `json:"arguments"`
-	SourceFactID      string          `json:"source_fact_id"`
-	ActionID          string          `json:"action_id,omitempty"`
-	ProviderRequestID string          `json:"provider_request_id"`
-	SchemaVersion     string          `json:"schema_version"`
-	Sequence          int             `json:"sequence"`
-}
-
-// ToolResultV1 is persisted and optionally fed back into a subsequent model
-// step.  Output is intentionally untyped at this common boundary; each
-// capability validates its own result before constructing it.
-type ToolResultV1 struct {
-	ToolCallID        string `json:"tool_call_id"`
-	Name              string `json:"name"`
-	Status            string `json:"status"`
-	Output            any    `json:"output,omitempty"`
-	ErrorCode         string `json:"error_code,omitempty"`
-	Retryable         bool   `json:"retryable"`
-	ProviderRequestID string `json:"provider_request_id,omitempty"`
-	CorrelationID     string `json:"correlation_id,omitempty"`
-	SchemaVersion     string `json:"schema_version"`
-}
 
 // ProviderCompletion is the normalized provider result used by the
 // application boundary. Visible text, structured sidecar data, and native
@@ -104,87 +25,151 @@ type ToolResultV1 struct {
 type ProviderCompletion struct {
 	Text               string
 	Structured         map[string]any
-	ToolCalls          []ToolCallV1
+	ToolCalls          []CapabilityInvocation
 	DoneSeen           bool
 	StructuredFallback bool
 }
 
-// CapabilityExecutor is the narrow plugin seam.  The Runtime owns the
-// invocation context and persistence; an executor only implements one
-// replaceable external capability.
-type CapabilityExecutor interface {
-	Manifest() CapabilityManifest
-	Execute(context.Context, string, string, string, ToolCallV1) (ToolResultV1, error)
-}
-
 type CapabilityRegistry struct {
-	executors map[string]CapabilityExecutor
+	capabilities map[string]Capability
+	definitions  map[string]CapabilityDefinition
 }
 
-func NewCapabilityRegistry(executors ...CapabilityExecutor) *CapabilityRegistry {
-	registry := &CapabilityRegistry{executors: make(map[string]CapabilityExecutor, len(executors))}
-	for _, executor := range executors {
-		_ = registry.Register(executor)
+func NewCapabilityRegistry(entries ...Capability) (*CapabilityRegistry, error) {
+	registry := &CapabilityRegistry{capabilities: make(map[string]Capability, len(entries)), definitions: make(map[string]CapabilityDefinition, len(entries))}
+	for _, entry := range entries {
+		if err := registry.Register(entry); err != nil {
+			return nil, err
+		}
 	}
-	return registry
+	return registry, nil
 }
 
-func (registry *CapabilityRegistry) Register(executor CapabilityExecutor) error {
-	if registry == nil || executor == nil {
-		return errors.New("capability_executor_required")
+func NewCapabilityRegistryChecked(entries ...Capability) (*CapabilityRegistry, error) {
+	return NewCapabilityRegistry(entries...)
+}
+
+// Register adds one canonical Capability. Duplicate names are rejected before
+// the definition is made visible to a Provider catalog.
+func (registry *CapabilityRegistry) Register(entry Capability) error {
+	if registry == nil || entry == nil {
+		return errors.New("capability_required")
 	}
-	if registry.executors == nil {
-		registry.executors = make(map[string]CapabilityExecutor)
+	value := reflect.ValueOf(entry)
+	if (value.Kind() == reflect.Ptr || value.Kind() == reflect.Interface || value.Kind() == reflect.Map || value.Kind() == reflect.Func || value.Kind() == reflect.Slice) && value.IsNil() {
+		return errors.New("capability_required")
 	}
-	manifest := executor.Manifest()
-	if manifest.Name == "" || !toolNamePattern.MatchString(manifest.Name) {
-		return errors.New("capability_manifest_invalid")
+	if registry.capabilities == nil {
+		registry.capabilities = make(map[string]Capability)
 	}
-	if _, exists := registry.executors[manifest.Name]; exists {
-		return fmt.Errorf("capability %q already registered", manifest.Name)
+	if registry.definitions == nil {
+		registry.definitions = make(map[string]CapabilityDefinition)
 	}
-	registry.executors[manifest.Name] = executor
+	definition := entry.Definition()
+	if err := definition.Validate(); err != nil {
+		return fmt.Errorf("capability_definition_invalid: %w", err)
+	}
+	declared := entry.RequiredContext()
+	if !sameContextSlots(declared, definition.RequiredContext) {
+		return fmt.Errorf("capability_definition_context_mismatch: %s", definition.Name)
+	}
+	if _, exists := registry.capabilities[definition.Name]; exists {
+		return fmt.Errorf("capability %q already registered", definition.Name)
+	}
+	registry.capabilities[definition.Name] = entry
+	registry.definitions[definition.Name] = definition
 	return nil
 }
 
-func (registry *CapabilityRegistry) Manifests() []CapabilityManifest {
+func sameContextSlots(left, right []ContextSlot) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	seen := make(map[ContextSlot]int, len(left))
+	for _, slot := range left {
+		seen[slot]++
+	}
+	for _, slot := range right {
+		if seen[slot] == 0 {
+			return false
+		}
+		seen[slot]--
+	}
+	for _, count := range seen {
+		if count != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func (registry *CapabilityRegistry) Definitions() []CapabilityDefinition {
 	if registry == nil {
 		return nil
 	}
-	result := make([]CapabilityManifest, 0, len(registry.executors))
-	for _, executor := range registry.executors {
-		result = append(result, executor.Manifest())
+	result := make([]CapabilityDefinition, 0, len(registry.definitions))
+	for _, definition := range registry.definitions {
+		result = append(result, definition)
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
 	return result
 }
 
-func (registry *CapabilityRegistry) Lookup(name string) (CapabilityExecutor, bool) {
+func (registry *CapabilityRegistry) Lookup(name string) (Capability, bool) {
 	if registry == nil {
 		return nil, false
 	}
-	executor, ok := registry.executors[name]
-	return executor, ok
+	capability, ok := registry.capabilities[name]
+	return capability, ok
 }
 
-// ToolCallPayload converts a manifest into the OpenAI-compatible tools shape.
-// The function is kept at the provider boundary so the browser never receives
-// provider-specific schemas or hidden capability metadata.
-func ToolCallPayload(manifests []CapabilityManifest) []map[string]any {
-	result := make([]map[string]any, 0, len(manifests))
-	for _, manifest := range manifests {
-		if strings.TrimSpace(manifest.Name) == "" {
+func (registry *CapabilityRegistry) LookupCapability(name string) (Capability, bool) {
+	return registry.Lookup(name)
+}
+
+func (registry *CapabilityRegistry) RequiredContext(name string) []ContextSlot {
+	definition, ok := registry.Definition(name)
+	if !ok {
+		return nil
+	}
+	return append([]ContextSlot(nil), definition.RequiredContext...)
+}
+
+func (registry *CapabilityRegistry) Definition(name string) (CapabilityDefinition, bool) {
+	if registry == nil {
+		return CapabilityDefinition{}, false
+	}
+	definition, ok := registry.definitions[name]
+	return definition, ok
+}
+
+func (registry *CapabilityRegistry) Catalog(surface CapabilitySurface) []CapabilityDefinition {
+	definitions := make([]CapabilityDefinition, 0)
+	for _, definition := range registry.Definitions() {
+		if definition.SupportsSurface(surface) {
+			definitions = append(definitions, definition)
+		}
+	}
+	return definitions
+}
+
+// RenderCapabilityTools is the single provider renderer. It intentionally
+// receives definitions, never executors or domain services.
+func RenderCapabilityTools(definitions []CapabilityDefinition) []map[string]any {
+	result := make([]map[string]any, 0, len(definitions))
+	for _, definition := range definitions {
+		if strings.TrimSpace(definition.Name) == "" {
 			continue
 		}
-		parameters := manifest.Parameters
+		parameters := definition.InputSchema
 		if parameters == nil {
 			parameters = map[string]any{"type": "object", "additionalProperties": false}
 		}
 		result = append(result, map[string]any{
 			"type": "function",
 			"function": map[string]any{
-				"name":        manifest.Name,
-				"description": manifest.Description,
+				"name":        definition.Name,
+				"description": definition.Description,
 				"parameters":  parameters,
 			},
 		})
@@ -192,41 +177,48 @@ func ToolCallPayload(manifests []CapabilityManifest) []map[string]any {
 	return result
 }
 
-// ExternalCapabilityManifests is the first deliberately small catalog.  New
-// providers can implement the same slot without changing cognition semantics.
-// Video/audio/search slots are added only when their executable adapters exist;
-// advertising an unavailable capability would make the model contract lie.
-func ExternalCapabilityManifests() []CapabilityManifest {
-	return []CapabilityManifest{conversationReplyCapabilityManifest(), imageCapabilityManifest(), momentPublishCapabilityManifest(), affectEventCapabilityManifest()}
+// CapabilityToolSchemaStats reports the provider-visible serialized size. The
+// current Provider envelope does not expose tokenizer usage, so callers should
+// report bytes/chars rather than inventing token counts.
+func CapabilityToolSchemaStats(definitions []CapabilityDefinition) (bytes int, chars int) {
+	data, err := json.Marshal(RenderCapabilityTools(definitions))
+	if err != nil {
+		return 0, 0
+	}
+	return len(data), len([]rune(string(data)))
 }
 
-func conversationReplyCapabilityManifest() CapabilityManifest {
-	return CapabilityManifest{
-		Name: "conversation.reply", Version: "v1",
-		Description: "Deliver the final user-visible text for the current conversation turn.",
-		Parameters: map[string]any{
+func conversationReplyCapabilityDefinition() CapabilityDefinition {
+	return CapabilityDefinition{
+		Name: "conversation.reply", Version: "v1", Type: CapabilityTypeAction,
+		Description:     "Deliver the final user-visible text for the current conversation turn.",
+		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy},
+		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
+		RequiredContext: []ContextSlot{SlotCurrentLife},
+		InputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"required":   []any{"text"},
 			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}},
 		},
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
-			"required":   []any{"text"},
-			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}},
+			"required": []any{"text", "target_kind", "target_ref"},
+			"properties": map[string]any{
+				"text":        map[string]any{"type": "string", "minLength": 1, "maxLength": 32000},
+				"target_kind": map[string]any{"type": "string", "enum": []any{"conversation_message"}},
+				"target_ref":  map[string]any{"type": "string", "minLength": 1, "maxLength": 128},
+			},
 		},
-		TargetKinds: []string{"conversation_message"}, SideEffectClass: "external_async", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
+		TargetKinds: []string{"conversation_message"}, OutputRole: "conversation_message", SideEffectClass: "external_async", SuccessBoundary: "visible_output_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
 	}
 }
 
-func momentPublishCapabilityManifest() CapabilityManifest {
-	return CapabilityManifest{
-		Name: "moment.publish", Version: "v1",
-		Description: "Publish the final text of one Fluctlight Moment to the shared feed.",
-		Parameters: map[string]any{
-			"type": "object", "additionalProperties": false,
-			"required":   []any{"text"},
-			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}},
-		},
+func momentPublishCapabilityDefinition() CapabilityDefinition {
+	return CapabilityDefinition{
+		Name: "moment.publish", Version: "v1", Type: CapabilityTypeAction,
+		Description:   "Publish the final text of one Fluctlight Moment to the shared feed.",
+		Surfaces:      []CapabilitySurface{CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy},
+		FailurePolicy: FailurePolicyRequiredForVisibleClaim,
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"required": []any{"text", "target_kind", "target_ref"},
@@ -236,16 +228,28 @@ func momentPublishCapabilityManifest() CapabilityManifest {
 				"target_ref":  map[string]any{"type": "string"},
 			},
 		},
-		TargetKinds: []string{"moment"}, SideEffectClass: "external_async", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
+		InputSchema: map[string]any{
+			"type": "object", "additionalProperties": false,
+			"required":   []any{"text"},
+			"properties": map[string]any{"text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}},
+		},
+		TargetKinds: []string{"moment"}, OutputRole: "moment", SideEffectClass: "external_async", SuccessBoundary: "visible_output_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true,
 	}
 }
 
-func imageCapabilityManifest() CapabilityManifest {
-	return CapabilityManifest{
-		Name:        "media.image.generate",
-		Version:     "v1",
-		Description: "Request one image generation from the configured media capability.",
-		Parameters:  imageCapabilityParameters(),
+func imageCapabilityDefinition() CapabilityDefinition {
+	return CapabilityDefinition{
+		Name:          "media.image.generate",
+		Version:       "v1",
+		Type:          CapabilityTypeAction,
+		Description:   "Request one image generation from the configured media capability.",
+		Surfaces:      []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition},
+		FailurePolicy: FailurePolicyRequiredForVisibleClaim,
+		InputSchema: map[string]any{
+			"type": "object", "additionalProperties": false,
+			"required":   []any{"intent"},
+			"properties": map[string]any{"intent": map[string]any{"type": "string", "minLength": 1, "maxLength": 4000}},
+		},
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"required": []any{"media_intent_id", "target_kind", "target_ref"},
@@ -255,27 +259,30 @@ func imageCapabilityManifest() CapabilityManifest {
 				"target_ref":      map[string]any{"type": "string"},
 			},
 		},
-		TargetKinds:       []string{"conversation_message", "moment", "wake_up"},
-		SideEffectClass:   "external_async",
-		ConcurrencyClass:  "exclusive",
-		SupportsCancel:    true,
-		SupportsRetry:     true,
-		RequiresPreflight: true,
+		TargetKinds:           []string{"conversation_message", "moment", "wake_up"},
+		OutputRole:            "media",
+		SideEffectClass:       "external_async",
+		SuccessBoundary:       "durable_media_intent_created",
+		CompletionBoundary:    "final_media_asset_ready",
+		OutcomeReferenceField: "media_intent_id",
+		ConcurrencyClass:      "exclusive",
+		SupportsCancel:        true,
+		SupportsRetry:         true,
+		RequiresPreflight:     true,
+		RequiredContext:       []ContextSlot{SlotVisualIdentity, SlotCurrentLife, SlotAppearance, SlotCurrentState},
 	}
 }
 
-func visualIdentityInitializeCapabilityManifest() CapabilityManifest {
-	return CapabilityManifest{
-		Name:        "visual_identity.initialize",
-		Version:     "v1",
-		Description: "Initialize the Fluctlight's durable Visual Identity workflow during a WakeUp cycle.",
-		Parameters: map[string]any{
-			"type":                 "object",
-			"additionalProperties": false,
-			"properties": map[string]any{
-				"reason": map[string]any{"type": "string", "maxLength": 512},
-			},
-		},
+func visualIdentityInitializeCapabilityDefinition() CapabilityDefinition {
+	return CapabilityDefinition{
+		Name:            "visual_identity.initialize",
+		Version:         "v1",
+		Type:            CapabilityTypeInternal,
+		Description:     "Initialize the Fluctlight's durable Visual Identity workflow during a WakeUp cycle.",
+		Surfaces:        []CapabilitySurface{CapabilitySurfaceWakeUp, CapabilitySurfaceNativeCognition},
+		FailurePolicy:   FailurePolicyOptionalInternal,
+		RequiredContext: []ContextSlot{SlotCorePersona, SlotVisualIdentity},
+		InputSchema:     map[string]any{"type": "object", "additionalProperties": false, "properties": map[string]any{}},
 		OutputSchema: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"required": []any{"session_id", "status"},
@@ -284,34 +291,19 @@ func visualIdentityInitializeCapabilityManifest() CapabilityManifest {
 				"status":     map[string]any{"type": "string"},
 			},
 		},
-		SideEffectClass: "native_projection", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
-	}
-}
-
-func imageCapabilityParameters() map[string]any {
-	return map[string]any{
-		"type":                 "object",
-		"additionalProperties": false,
-		"required":             []any{"concept"},
-		"properties": map[string]any{
-			"concept": map[string]any{
-				"type":                 "object",
-				"additionalProperties": true,
-				"description":          "The already-frozen visual concept owned by the Fluctlight decision.",
-			},
-		},
+		SideEffectClass: "native_projection", SuccessBoundary: "durable_workflow_intent_created", CompletionBoundary: "visual_identity_ready", OutcomeReferenceField: "session_id", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
 	}
 }
 
 // NormalizeProviderToolCalls accepts both OpenAI-compatible native entries and
 // the canonical JSON sidecar shape.  It intentionally rejects prose, missing
 // identifiers, non-object arguments, and oversized values at one boundary.
-func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID string) ([]ToolCallV1, error) {
+func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID string) ([]CapabilityInvocation, error) {
 	rawCalls := toolCallArrayValue(value)
 	if len(rawCalls) == 0 {
-		return []ToolCallV1{}, nil
+		return []CapabilityInvocation{}, nil
 	}
-	result := make([]ToolCallV1, 0, len(rawCalls))
+	result := make([]CapabilityInvocation, 0, len(rawCalls))
 	seen := make(map[string]struct{}, len(rawCalls))
 	for index, raw := range rawCalls {
 		object := mapValue(raw)
@@ -346,13 +338,11 @@ func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID strin
 		if err != nil {
 			return nil, fmt.Errorf("tool call %q arguments invalid: %w", id, err)
 		}
-		result = append(result, ToolCallV1{
-			ID:                id,
-			Name:              name,
+		result = append(result, CapabilityInvocation{
+			CallID: id, CapabilityName: name, SchemaVersion: CapabilityInvocationSchemaVersion,
 			Arguments:         rawArguments,
 			SourceFactID:      strings.TrimSpace(sourceFactID),
 			ProviderRequestID: strings.TrimSpace(providerRequestID),
-			SchemaVersion:     ToolCallSchemaVersion,
 			Sequence:          index,
 		})
 	}
@@ -390,54 +380,10 @@ func normalizeToolArguments(value any) (json.RawMessage, error) {
 	return json.RawMessage(append([]byte(nil), trimmed...)), nil
 }
 
-func (call ToolCallV1) Validate(manifests map[string]CapabilityManifest) error {
-	if call.SchemaVersion != ToolCallSchemaVersion {
-		return errors.New("tool call schema version invalid")
-	}
-	if call.ID == "" || call.Name == "" || !toolNamePattern.MatchString(call.Name) {
-		return errors.New("tool call identity invalid")
-	}
-	if strings.TrimSpace(call.SourceFactID) == "" {
-		return errors.New("tool call source fact is required")
-	}
-	if strings.TrimSpace(call.ProviderRequestID) == "" {
-		return errors.New("tool call provider request is required")
-	}
-	if call.Sequence < 0 {
-		return errors.New("tool call sequence invalid")
-	}
-	if _, err := normalizeToolArguments(string(call.Arguments)); err != nil {
-		return err
-	}
-	manifest, ok := manifests[call.Name]
-	if !ok || manifest.Name == "" {
-		return fmt.Errorf("capability %q is unavailable", call.Name)
-	}
-	return nil
-}
-
-func (result ToolResultV1) Validate(call ToolCallV1) error {
-	if result.SchemaVersion != ToolResultSchemaVersion {
-		return errors.New("tool result schema version invalid")
-	}
-	if result.ToolCallID == "" || result.ToolCallID != call.ID || result.Name != call.Name {
-		return errors.New("tool result identity invalid")
-	}
-	switch result.Status {
-	case "completed", "failed", "rejected", "deferred":
-	default:
-		return errors.New("tool result status invalid")
-	}
-	if data, err := json.Marshal(result.Output); err != nil || len(data) > maxToolArgumentsBytes*4 {
-		return errors.New("tool result output is too large")
-	}
-	return nil
-}
-
-func toolManifestMap(manifests []CapabilityManifest) map[string]CapabilityManifest {
-	result := make(map[string]CapabilityManifest, len(manifests))
-	for _, manifest := range manifests {
-		result[manifest.Name] = manifest
+func capabilityDefinitionMap(definitions []CapabilityDefinition) map[string]CapabilityDefinition {
+	result := make(map[string]CapabilityDefinition, len(definitions))
+	for _, definition := range definitions {
+		result[definition.Name] = definition
 	}
 	return result
 }
