@@ -474,6 +474,12 @@ CapabilityRuntime.Execute(ctx, invocation) (CapabilityResult, error)
   `cognition_visible_text_missing` before Capability settlement. Core never
   creates a synthetic neutral/default appraisal, and Provider output cannot set
   `cognitive_state_transition=not_proposed`.
+- Appraisal is optional independently of the visible-output channel. A valid
+  direct reply supplied through `visible_text` or `conversation.reply` with no
+  appraisal commits both authoritative messages and records Core-owned
+  `cognitive_state_transition=not_proposed`; it writes no appraisal/state
+  revision. A present malformed appraisal is not equivalent to absence and
+  still fails closed.
 - Appraisal is closed and ref-bound. Optional Drive signals contain only an
   opaque Drive ref, increase/decrease direction, bounded strength/confidence,
   and frozen context evidence refs. Core owns pressure/conflict numbers and
@@ -498,6 +504,7 @@ CapabilityRuntime.Execute(ctx, invocation) (CapabilityResult, error)
 | Frozen PreparedPayload is malformed or conflicts with thin intent/context | fail closed; do not re-plan or repair it |
 | Invocation has no Capability-local preparer | Runtime still freezes provenance, declared ContextSnapshot, and an explicit empty PreparedPayload envelope before apply |
 | Direct conversation omits visible assistant text | `cognition_visible_text_missing`; preserve committed user row and same retry identity; commit no completed action/effect |
+| Direct conversation has valid visible text/`conversation.reply` but omits appraisal | Commit user + assistant and Capability settlement; write no appraisal/state revision and do not synthesize neutral state |
 | Background tool-only result omits appraisal | Settle the Capability-only `no_op`; write no appraisal or state revision |
 | Appraisal contains unknown/raw numeric fields or foreign context evidence | Reject before freeze; do not infer or append a replacement appraisal |
 | Frozen State or AffectProfile revision changed before apply | Terminal conflict/re-assessment boundary; no mutation and no blind retry |
@@ -533,6 +540,12 @@ CapabilityRuntime.Execute(ctx, invocation) (CapabilityResult, error)
   partition invariance, typed-slot deactivation, and later state-ref citation.
 - Transaction tests make one sibling mutate and a required sibling fail, then
   assert state/action/output/outcome/outbox authorities all roll back together.
+- Conversation delivery tests cover the Provider-native shape with empty
+  content/reasoning, one `conversation.reply` Tool call and no appraisal. They
+  assert committed user before Provider completion, committed assistant after
+  settlement, zero state revisions, and ordered user/token/assistant frames.
+  Browser tests assert a terminal error never erases that committed user row or
+  its retry identity.
 
 ### 7. Wrong vs Correct
 

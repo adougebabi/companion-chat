@@ -477,3 +477,64 @@ FLUCTLIGHT_LIVE_PROVIDER_TEST=unset
 | AC12 | PARTIAL | Core/Gateway/Web/race/vet/build/gofmt/diff/PG PASS；真实Redis、真实Temporal saved-history和live Provider未配置。 |
 | AC13 | PASS | 专用worktree/branch检查；master仅有既存未跟踪task目录，本任务无写入。 |
 | AC14 | PARTIAL（主逻辑PASS） | 真实历史window计数、allowlist/confidence/max-delta/cooldown/profile/effective projection及rollback primitive已验证；Owner-authorized rollback API/e2e待补。 |
+
+## Bug Analysis：conversation.reply 无 appraisal 导致消息不展示（2026-09-11）
+
+### 1. Root Cause Category
+
+- **Category**：B（Cross-Layer Contract）+ D（Test Coverage Gap）。
+- **Specific Cause**：`cognitiveTurnResponseSchema`允许appraisal缺省；Provider合法返回空content、
+  一条`conversation.reply` Tool call和无appraisal时，`handleTurn`只对“无reply的tool-only”设置
+  `cognitive_state_transition=not_proposed`。可见reply路径随后进入`persistCognitiveStagesTx`并以
+  `appraisal_required`回滚assistant/effects。现场turn
+  `turn_47d7fc03-d804-4183-9b0e-591cf2e625c0`的数据库证据为：user row已提交，assistant row=0，
+  inbox/frozen action=`failed/capability_settlement_failed`；Core日志保留原始根因`appraisal_required`。
+
+### 2. Why Earlier Fixes Failed
+
+1. S06修复了user-before-provider、assistant-after-commit与no-visible-reply，但成功fixture始终携带
+   完整appraisal，未覆盖“可见reply Tool存在、appraisal完全缺省”的Provider-native shape。
+2. tool-only no-appraisal测试只覆盖没有conversation.reply的background/no-op分支，错误地把
+   “是否有可见reply”和“是否提出appraisal”耦合成一个布尔条件。
+3. Web queued/history回归能保护已经收到的message frame，却无法让Core替一个被
+   `appraisal_required`回滚的assistant生成权威frame。
+
+### 3. Prevention Mechanisms
+
+| Priority | Mechanism | Specific Action | Status |
+| --- | --- | --- | --- |
+| P0 | Architecture | appraisal缺省独立映射为Core-owned `not_proposed`；present-but-invalid仍fail closed | DONE |
+| P0 | Integration test | `TestDirectConversationReplyToolWithoutAppraisalCommitsBothMessages`复现真实Provider envelope | DONE |
+| P0 | Browser regression | terminal error后authoritative user message/retry identity仍可见 | DONE |
+| P1 | Contract | structured-turn spec明确visible output与appraisal是正交可选边界 | DONE |
+| P1 | Runtime verification | clean rebuild本地Compose到0031并确认BFF/Core/Worker/Web healthy | DONE |
+
+### 4. Systematic Expansion
+
+- **Similar Issues**：任何optional semantic candidate都不能因为“完全未提出”阻断独立、有效的
+  visible output；但候选一旦存在且malformed/foreign，仍必须按其安全契约fail closed。
+- **Design Improvement**：Provider response normalization应显式区分`absent`、`present-valid`、
+  `present-invalid`，避免以空map和错误混合表达不同状态。
+- **Process Improvement**：每个optional cognition section都必须至少有三种fixture：缺省、合法、
+  非法；可见交付测试必须覆盖text字段与output Capability两种通道。
+
+### 5. Knowledge Capture / Verification
+
+- `.trellis/spec/backend/structured-turn-contract.md`已增加正交边界、error matrix和required test。
+- 红灯命令在修复前稳定得到：`appraisal_required user=1 assistant=0 events=[user]`；同一命令修复后PASS。
+- Chat focused Core 4/4 PASS；Web conversation-delivery 4/4 PASS；Web全量36项PASS；Core全仓
+  `go test ./... -count=1`在迁移后的独立PostgreSQL上PASS。
+- 没有`src/templates/markdown/spec/`目录可同步；遵照用户策略未commit。
+
+## Chat follow-up：clean-start 后孤立 retry 阻塞新消息（2026-09-11）
+
+- 根因是跨层状态生命周期不一致：clean-start 删除了旧 PostgreSQL conversation，但浏览器
+  `localStorage`仍保留旧`retryTurn`；`send()`只看到“存在另一个 retry 且不属于当前 conversation”，
+  就阻止新发送。它不是 Core inbox 锁或 BFF 丢帧。
+- Web 现在在 bootstrap 时清理不再存在于 Fluctlight 列表的 retry/queued identity；加载同一
+  Fluctlight 返回新 direct conversation 时，再清理 conversation-id 不匹配的本地 identity。
+  发送前如果 retry 属于另一个仍存在的会话，会读取该会话的权威历史：已经有对应 assistant
+  的 retry 会被清掉，仍未完成的 retry 继续保留，不会误删。
+- 回归：`a retry from a discarded conversation is pruned when the server returns a new conversation`
+  、`a completed retry from another conversation no longer blocks the selected conversation` 与原有
+  conversation-delivery tests 全部 PASS；Web bundle 已重建部署到当前 disposable Compose。

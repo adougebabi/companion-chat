@@ -744,12 +744,12 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if decision == nil {
 			decision = map[string]any{}
 		}
-		// A thinking-enabled Provider may return only an immediate native tool
-		// call (for example scene_event) and no JSON sidecar. This is a valid
-		// capability-only outcome, but it is not evidence for a synthetic affect
-		// appraisal.
+		// Appraisal is optional in the closed conversation schema. A Provider may
+		// produce the visible reply through conversation.reply without proposing
+		// any state transition. Absence means "not proposed"; a present but
+		// malformed appraisal still fails closed and is never repaired.
 		toolOnlyNoReply = completion.StructuredFallback && len(capabilityInvocations) > 0 && !hasConversationReplyCapability(capabilityInvocations, a.capabilityRegistry()) && !hasDeferredOutputCapabilities(capabilityInvocations, a.capabilityRegistry())
-		skipCognitiveStateTransition := toolOnlyNoReply && len(mapValue(decision["appraisal"])) == 0
+		skipCognitiveStateTransition := len(mapValue(decision["appraisal"])) == 0
 		if toolOnlyNoReply {
 			decision["action_type"] = "no_op"
 			decision["response_intent"] = ""

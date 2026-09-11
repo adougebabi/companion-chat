@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import {
   BrowserClient,
+  BrowserApiError,
   type BrowserConversation,
   type BrowserParticipant,
   type BrowserMessage,
@@ -282,6 +283,8 @@ export const useConversationStore = defineStore("conversations", {
       this.error = "";
       try {
         this.fluctlights = await client.listFluctlights();
+        this.pruneOrphanedLocalTurns();
+        await this.reconcilePersistedRetry();
         const restoredId = persistedSelection();
         const selectedId = this.fluctlights.some((item) => item.id === restoredId)
           ? restoredId
@@ -308,6 +311,14 @@ export const useConversationStore = defineStore("conversations", {
       this.error = "";
       try {
         const page = await client.directConversation(fluctlightId);
+        if (this.retryTurn && this.retryTurn.fluctlightId === fluctlightId && this.retryTurn.conversationId !== page.conversation.id) {
+          this.retryTurn = null;
+          persistRetry(null);
+        }
+        if (this.queuedTurn && this.queuedTurn.fluctlightId === fluctlightId && this.queuedTurn.conversationId !== page.conversation.id) {
+          this.queuedTurn = null;
+          persistQueuedTurn(null);
+        }
         this.conversation = page.conversation;
         this.conversationParticipants = page.participants;
 		this.messages = page.messages;
@@ -340,10 +351,15 @@ export const useConversationStore = defineStore("conversations", {
     },
 	async send(text: string, retry = false, queuedRequest: QueuedTurn | null = null) {
 		const normalized = text.trim();
+		if (!normalized || this.sending) return;
+		const initialConversationId = this.conversation?.id;
+		const initialFluctlightId = this.fluctlightId;
+		const retryBelongsToCurrent = this.retryTurn?.conversationId === initialConversationId && this.retryTurn?.fluctlightId === initialFluctlightId;
+		if (!retry && this.retryTurn && !retryBelongsToCurrent) await this.reconcilePersistedRetry();
 		const conversationId = this.conversation?.id;
 		const fluctlightId = this.fluctlightId;
 		const pendingRetry = this.retryTurn?.conversationId === conversationId && this.retryTurn?.fluctlightId === fluctlightId ? this.retryTurn : null;
-		if (!normalized || !conversationId || !fluctlightId || this.sending) return;
+		if (!conversationId || !fluctlightId) return;
 		if (retry && !pendingRetry) return;
 		if (!retry && this.retryTurn && !pendingRetry) {
 			this.error = "另一个会话仍有未完成消息；请返回该会话处理后再发送。";
@@ -543,6 +559,54 @@ export const useConversationStore = defineStore("conversations", {
       this.abortController = null;
       this.sending = false;
       this.retrying = false;
+    },
+    pruneOrphanedLocalTurns() {
+      const available = new Set(this.fluctlights.map((item) => item.id));
+      if (this.retryTurn && !available.has(this.retryTurn.fluctlightId)) {
+        this.retryTurn = null;
+        persistRetry(null);
+      }
+      if (this.queuedTurn && !available.has(this.queuedTurn.fluctlightId)) {
+        this.queuedTurn = null;
+        persistQueuedTurn(null);
+      }
+    },
+    async reconcilePersistedRetry() {
+      const retry = this.retryTurn;
+      if (!retry || !this.fluctlights.some((item) => item.id === retry.fluctlightId)) return;
+      try {
+        const page = await client.directConversation(retry.fluctlightId);
+        if (page.conversation.id !== retry.conversationId) {
+          this.retryTurn = null;
+          persistRetry(null);
+          return;
+        }
+        let historyPage = page;
+        const allMessages = [...page.messages];
+        let userMessage: BrowserMessage | undefined;
+        while (true) {
+          userMessage = retry.messageId
+            ? historyPage.messages.find((message) => message.id === retry.messageId && message.kind === "user")
+            : [...historyPage.messages].reverse().find((message) => message.kind === "user" && message.text === retry.text);
+          if (userMessage || !historyPage.nextBeforeSequence) break;
+          historyPage = await client.messages(retry.conversationId, historyPage.nextBeforeSequence, 200);
+          allMessages.push(...historyPage.messages);
+        }
+        if (!userMessage) return;
+        const completed = allMessages.some((message) => message.kind === "assistant" && message.sequence > userMessage.sequence);
+        if (completed) {
+          this.retryTurn = null;
+          persistRetry(null);
+        }
+      } catch (error) {
+        if (error instanceof BrowserApiError && error.status === 404) {
+          this.retryTurn = null;
+          persistRetry(null);
+          return;
+        }
+        // Preserve the retry on transient read failures; blocking is safer than
+        // dropping a turn whose authoritative state could not be checked.
+      }
     },
     cancel() {
       this.abortController?.abort();

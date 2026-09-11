@@ -47,6 +47,14 @@ BrowserTurnEventV1
   history response cannot erase stream-confirmed/queued messages or overwrite a
   later selected conversation; refresh/crash recovery keeps queued text bound
   to its original conversation until durable submission.
+- Browser retry/queued state is provisional client state. During clean-start,
+  server reset, persona deletion or conversation recreation, an identity that
+  no longer belongs to an available Fluctlight/current direct conversation is
+  pruned before send. Before a retry from another available conversation can
+  block a new send, the browser reconciles that conversation's authoritative
+  history; a retry whose user message already has a later assistant message is
+  cleared, while an unresolved retry remains recoverable and is never mistaken
+  for the current turn.
 - Browser disconnect/abort cancels BFF upstream read and Core request. BFF suppresses later browser writes while Core settles committed work independently.
 - BFF media route obtains a Go Core authorization grant and proxies only the granted object/version/range with bounded headers.
 - Go package boundaries organize transport/config lifecycle; the BFF is not a
@@ -74,6 +82,8 @@ BrowserTurnEventV1
 | Core returns a successful media status without a body | Return bounded `media_unavailable`; do not panic or emit a false successful response. |
 | Older retry assistant arrives while a newer user message is queued | Reconcile by local turn identity; preserve the queued user bubble and send it under its original conversation binding. |
 | Post-stream history or previous-conversation request returns late | Epoch check and monotonic merge ignore stale regression; newer selection/messages remain authoritative. |
+| Persisted retry references a deleted Fluctlight or recreated conversation | Prune the orphaned retry/queued identity and allow a new current-conversation send; do not block with “another conversation pending”. |
+| Persisted retry's authoritative assistant already exists | Clear the provisional retry after history reconciliation and allow the current-conversation send; do not ask the user to retry a completed turn. |
 | BFF code imports storage/workflow/domain internals | Architecture-test failure. |
 
 ### 5. Good / Base / Bad Cases

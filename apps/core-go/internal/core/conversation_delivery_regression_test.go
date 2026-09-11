@@ -217,6 +217,71 @@ func TestDirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCo
 	}
 }
 
+func TestDirectConversationReplyToolWithoutAppraisalCommitsBothMessages(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "reply-tool-owner", "reply-tool-fluctlight", "reply-tool-conversation"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.conversations(id,created_by_actor_id,title) VALUES($1,$2,'reply tool regression')`, conversationID, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.conversation_heads(conversation_id,next_sequence) VALUES($1,1)`, conversationID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.conversation_participants(conversation_id,actor_id,role,status) VALUES($1,$2,'owner','active'),($1,$3,'member','active')`, conversationID, ownerID, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	endpointID := "reply-tool-endpoint"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status,checked_at) VALUES($1,'openai_compatible','http://reply-tool.invalid','reply-tool-secret','ready',now())`, endpointID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('cognitive_assessment',$1,'reply-tool-model','structured_output,tool_calling',4096,10,'{}')`, endpointID); err != nil {
+		t.Fatal(err)
+	}
+	app := &App{DB: repository}
+	app.Provider = &ProviderClient{DB: repository, HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		_, _ = io.ReadAll(request.Body)
+		message := map[string]any{
+			"content": "", "reasoning_content": "internal reasoning must not become visible",
+			"tool_calls": []any{map[string]any{
+				"id": "reply-tool-call", "type": "function",
+				"function": map[string]any{"name": "conversation.reply", "arguments": jsonString(map[string]any{"text": "我收到你的消息了。"})},
+			}},
+		}
+		response := map[string]any{"choices": []any{map[string]any{"message": message}}}
+		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
+	})}}
+	app.ContextResolver = NewAppContextResolver(app)
+	app.Capabilities = app.capabilityRegistry()
+	runtime, err := NewCapabilityRuntime(app.Capabilities, app.ContextResolver)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Runtime = runtime
+	events := make([]string, 0, 3)
+	_, err = app.handleTurn(ctx, ownerID, conversationID, map[string]any{
+		"fluctlight_id": fluctlightID, "text": "在吗？", "idempotency_key": "reply-tool-turn", "turn_id": "reply-tool-turn-1", "attachment_refs": []any{},
+	}, turnCallbacks{
+		onActionResult: func(payload map[string]any) error {
+			events = append(events, stringValue(mapValue(payload["message"])["kind"]))
+			return nil
+		},
+		onChunk: func(text string) error {
+			events = append(events, "token:"+text)
+			return nil
+		},
+	}, true)
+	var userCount, assistantCount, stateRevisionCount int
+	if queryErr := repository.Pool().QueryRow(ctx, `SELECT count(*) FILTER (WHERE kind='user'),count(*) FILTER (WHERE kind='assistant') FROM public.conversation_messages WHERE conversation_id=$1`, conversationID).Scan(&userCount, &assistantCount); queryErr != nil {
+		t.Fatal(queryErr)
+	}
+	if queryErr := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.fluctlight_state_revisions WHERE fluctlight_id=$1 AND source_event_id=(SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key='reply-tool-turn')`, fluctlightID).Scan(&stateRevisionCount); queryErr != nil {
+		t.Fatal(queryErr)
+	}
+	if err != nil || userCount != 1 || assistantCount != 1 || stateRevisionCount != 0 || fmt.Sprint(events) != "[user token:我收到你的消息了。 assistant]" {
+		t.Fatalf("reply-tool turn err=%v user=%d assistant=%d state_revisions=%d events=%v", err, userCount, assistantCount, stateRevisionCount, events)
+	}
+}
+
 func TestSupersededConversationTurnCannotCommitLateAssistantOrReviveInbox(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "supersede-owner", "supersede-fluctlight", "supersede-conversation"
