@@ -146,6 +146,34 @@ func TestPrepareInitializationResponseNormalizesCommonLLMAliases(t *testing.T) {
 	}
 }
 
+func TestPrepareInitializationResponseDropsOrRepairsInvalidOptionalCandidates(t *testing.T) {
+	value := map[string]any{
+		"core_persona": defaultCorePersona("", "岚音"),
+		"developing_self": map[string]any{"claims": []any{
+			map[string]any{"category": "relationship_state", "claim": "未分类候选"},
+			map[string]any{"category": "interest", "claim": "喜欢天文", "confidence": 2.0},
+		}},
+		"initial_goals":         []any{map[string]any{"description": "完成档案", "importance": 4.0, "urgency": "high"}},
+		"initial_intentions":    []any{map[string]any{"action": "推进档案", "goal_index": 99, "confidence": -1.0}},
+		"initial_relationships": []any{map[string]any{"target_actor_id": "actor_user", "role": map[string]any{"label": "搭档"}, "metrics": map[string]any{"trust": "high"}, "trend": "warming"}},
+	}
+	prepared, err := prepareInitializationResponse(value)
+	if err != nil {
+		t.Fatalf("invalid optional candidates rejected the whole initialization: %v", err)
+	}
+	claims := arrayValue(mapValue(prepared["developing_self"])["claims"])
+	goal := mapValue(arrayValue(prepared["initial_goals"])[0])
+	intention := mapValue(arrayValue(prepared["initial_intentions"])[0])
+	relationship := mapValue(arrayValue(prepared["initial_relationships"])[0])
+	claimConfidence, _ := numberFloat(mapValue(claims[0])["confidence"])
+	goalImportance, _ := numberFloat(goal["importance"])
+	goalUrgency, _ := numberFloat(goal["urgency"])
+	intentionConfidence, _ := numberFloat(intention["confidence"])
+	if len(claims) != 1 || stringValue(mapValue(claims[0])["category"]) != "interest" || claimConfidence != 0.5 || goalImportance != 1 || goalUrgency != 0.5 || intention["goal_index"] != nil || intentionConfidence != 0.5 || len(mapValue(relationship["metrics"])) != 0 || stringValue(relationship["trend"]) != "stable" {
+		t.Fatalf("optional candidates were not normalized: claims=%#v goal=%#v intention=%#v relationship=%#v", claims, goal, intention, relationship)
+	}
+}
+
 func TestValidInitializationAcceptsOpenRelationshipLabelAndActorUser(t *testing.T) {
 	value := map[string]any{
 		"core_persona": map[string]any{

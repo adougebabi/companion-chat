@@ -734,12 +734,8 @@ func normalizeInitializationAliases(result map[string]any) {
 		if id := stringValue(goal["id"]); id != "" {
 			goalIndexes[id] = index
 		}
-		if _, exists := goal["importance"]; !exists {
-			goal["importance"] = 0.5
-		}
-		if _, exists := goal["urgency"]; !exists {
-			goal["urgency"] = 0.5
-		}
+		goal["importance"] = initializationUnitValue(goal["importance"], 0.5, true)
+		goal["urgency"] = initializationUnitValue(goal["urgency"], 0.5, true)
 	}
 	for _, raw := range arrayValue(result["initial_intentions"]) {
 		intention := mapValue(raw)
@@ -750,10 +746,10 @@ func normalizeInitializationAliases(result map[string]any) {
 			if index, found := goalIndexes[stringValue(intention["linked_goal_id"])]; found {
 				intention["goal_index"] = index
 			}
+		} else if goalIndex := intValue(intention["goal_index"]); goalIndex < 0 || goalIndex >= len(goals) {
+			delete(intention, "goal_index")
 		}
-		if _, exists := intention["confidence"]; !exists {
-			intention["confidence"] = 0.5
-		}
+		intention["confidence"] = initializationUnitValue(intention["confidence"], 0.5, false)
 	}
 	for _, raw := range arrayValue(result["initial_relationships"]) {
 		relationship := mapValue(raw)
@@ -767,7 +763,34 @@ func normalizeInitializationAliases(result map[string]any) {
 			}
 			relationship["role"] = map[string]any{"label": label, "addressing": map[string]any{}}
 		}
+		if _, err := normalizeRelationshipRole(relationship["role"]); err != nil {
+			relationship["role"] = map[string]any{"label": "unknown", "addressing": map[string]any{}}
+		}
+		if _, err := validateRelationshipMetrics(relationship["metrics"]); err != nil {
+			relationship["metrics"] = map[string]any{}
+		}
+		trend := stringValue(relationship["trend"])
+		if trend != "improving" && trend != "stable" && trend != "declining" {
+			relationship["trend"] = "stable"
+		}
 	}
+}
+
+func initializationUnitValue(raw any, fallback float64, clamp bool) float64 {
+	value, ok := numberFloat(raw)
+	if !ok {
+		return fallback
+	}
+	if value < 0 || value > 1 {
+		if !clamp {
+			return fallback
+		}
+		if value < 0 {
+			return 0
+		}
+		return 1
+	}
+	return value
 }
 
 func firstInitializationString(values ...any) string {
@@ -781,24 +804,25 @@ func firstInitializationString(values ...any) string {
 
 func normalizeInitializationClaims(developingSelf map[string]any) {
 	claims := arrayValue(developingSelf["claims"])
+	normalized := make([]any, 0, len(claims))
 	for _, raw := range claims {
 		claim := mapValue(raw)
-		if len(claim) == 0 {
+		if len(claim) == 0 || !validateDevelopingSelfCategory(stringValue(claim["category"])) || stringValue(claim["claim"]) == "" {
 			continue
 		}
 		if _, exists := claim["value"]; !exists {
 			claim["value"] = map[string]any{}
 		}
-		if _, exists := claim["confidence"]; !exists {
-			claim["confidence"] = 0.5
-		}
+		claim["confidence"] = initializationUnitValue(claim["confidence"], 0.5, false)
 		if _, exists := claim["evidence_refs"]; !exists {
 			claim["evidence_refs"] = []any{}
 		}
 		if provenance, exists := claim["provenance"].(map[string]any); !exists || stringValue(provenance["source"]) == "" {
 			claim["provenance"] = map[string]any{"source": "owner_defined"}
 		}
+		normalized = append(normalized, claim)
 	}
+	developingSelf["claims"] = normalized
 }
 
 func normalizeInitializationPersonaStructure(persona map[string]any) {
