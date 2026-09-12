@@ -114,8 +114,8 @@ func TestPrepareInitializationResponseNormalizesCommonLLMAliases(t *testing.T) {
 			map[string]any{"id": "goal_archive", "description": "完成档案"},
 			map[string]any{"id": "goal_meteor", "description": "观测流星雨"},
 		},
-		"initial_intentions":    []any{map[string]any{"description": "推进档案", "linked_goal_id": "goal_archive"}},
-		"initial_relationships": []any{map[string]any{"actor": "actor_user", "type": "长期搭档", "intimacy": "亲密朋友"}},
+		"initial_intentions": []any{map[string]any{"description": "推进档案", "linked_goal_id": "goal_archive"}},
+		"relationships":      []any{map[string]any{"actor": "actor_user", "type": "长期搭档", "intimacy": "亲密朋友"}},
 	}
 	prepared, err := prepareInitializationResponse(value)
 	if err != nil {

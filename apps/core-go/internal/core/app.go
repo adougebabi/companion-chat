@@ -547,6 +547,10 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 	if result["initial_intentions"] == nil {
 		result["initial_intentions"] = []any{}
 	}
+	// Root compatibility aliases such as relationships are promoted above.
+	// Re-run the mechanical item mapping so newly promoted rows receive the
+	// canonical target/action/goal fields before semantic validation.
+	normalizeInitializationAliases(result)
 	if raw, ok := result["other"]; ok {
 		extensions["other"] = raw
 		delete(result, "other")
