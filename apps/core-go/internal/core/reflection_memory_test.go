@@ -17,10 +17,92 @@ func reflectionMemorySemanticCandidate(operation string) map[string]any {
 func reflectionProposalV2Fixture(memoryCandidates []any) map[string]any {
 	return map[string]any{
 		"schema_version": reflectionProposalV2SchemaVersion, "summary": "测试窗口的结构化反思",
-		"memory_candidates": memoryCandidates, "relationship_observations": []any{}, "goal_candidates": []any{}, "intention_candidates": []any{},
+		"active_memory_candidates": []any{}, "memory_candidates": memoryCandidates, "relationship_observations": []any{}, "goal_candidates": []any{}, "intention_candidates": []any{},
 		"emotional_summary":               map[string]any{"dominant_patterns": []any{}, "triggers": []any{}, "recovery_patterns": []any{}, "conflicts": []any{}, "evidence_refs": []any{}},
 		"affect_recalibration_candidates": []any{}, "drive_candidates": []any{}, "preference_candidates": []any{}, "trigger_candidates": []any{},
 		"developing_self_candidates": []any{}, "personality_evolution_candidates": []any{}, "behavior_policy_evolution_candidates": []any{},
+	}
+}
+
+func TestCompileReflectionActiveMemoryCommandsKeepsSeparateDomainAndFrozenIndex(t *testing.T) {
+	index := ContextReferenceIndex{
+		SchemaVersion: contextReferenceIndexVersion, FluctlightID: "fl-reflection", OwnerActorID: "owner-reflection",
+		SpeakerActorID: "owner-reflection", ConversationID: "conversation-7", ActiveProfileID: "default", ByRef: map[string]ContextReference{},
+	}
+	snapshot := map[string]any{
+		"id": "active-memory-a", "owner_fluctlight_id": "fl-reflection", "conversation_id": "conversation-7",
+		"kind": "commitment", "content": "今晚早点睡", "status": "active", "confidence": 0.9, "importance": 0.8,
+		"source_fact_id": "fact-1", "evidence_refs": []any{"sequence:1"}, "time_precision": "unknown", "timezone": "UTC", "revision": 2,
+	}
+	ref, err := index.add(ContextReferenceActiveMemory, "active-memory-a", 2, snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	occurredAt := time.Date(2026, 9, 11, 12, 0, 0, 0, time.UTC)
+	validUntil := occurredAt.Add(19 * time.Hour)
+	candidates := []reflectionAcceptedActiveMemoryCandidate{
+		{Index: 3, Candidate: ReflectionActiveMemoryCandidateV1{
+			Operation: "create", Kind: "future_event", Content: "明早七点赶飞机", Confidence: 0.95, Importance: 1,
+			OriginalTimeExpression: "明早七点", ValidUntil: &validUntil, TimePrecision: "exact",
+			EvidenceRefs: []string{"sequence:7"}, SemanticReason: "窗口内有明确的未来事件",
+		}},
+		{Index: 5, Candidate: ReflectionActiveMemoryCandidateV1{
+			Operation: "complete", TargetRef: ref, EvidenceRefs: []string{"sequence:8"}, SemanticReason: "承诺已经完成",
+		}},
+	}
+	request := reflectionActiveMemoryCompileRequest{
+		FluctlightID: "fl-reflection", OwnerActorID: "owner-reflection", ProposalID: "reflection-proposal", SourceWindow: "sequence:7-8",
+		Timezone: "UTC", OccurredAt: occurredAt, ReferenceIndex: index,
+		AllowedEvidence: map[string]struct{}{"sequence:7": {}, "sequence:8": {}},
+		EvidenceScopes: map[string]reflectionMemoryEvidenceScope{
+			"sequence:7": {FactID: "fact-7", ConversationID: "conversation-7", Known: true},
+			"sequence:8": {FactID: "fact-8", ConversationID: "conversation-7", Known: true},
+		},
+	}
+	commands, err := compileReflectionActiveMemoryCommands(candidates, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commands) != 2 || commands[0].Operation != ActiveMemoryCreate || commands[0].Semantic == nil || commands[0].SourceFactID != "fact-7" || !strings.HasSuffix(commands[0].IdempotencyKey, ":3") {
+		t.Fatalf("create command = %#v", commands)
+	}
+	if commands[1].Operation != ActiveMemoryComplete || commands[1].Target == nil || commands[1].Target.ActiveMemoryID != "active-memory-a" || commands[1].Target.ExpectedRevision != 2 || commands[1].Semantic != nil || !strings.HasSuffix(commands[1].IdempotencyKey, ":5") {
+		t.Fatalf("complete command = %#v", commands[1])
+	}
+	for _, command := range commands {
+		if err := validatePreparedActiveMemoryMutation(command); err != nil {
+			t.Fatalf("compiled command rejected: %v", err)
+		}
+	}
+}
+
+func TestCompileReflectionPlanTreatsActiveMemoryAsIndependentDomain(t *testing.T) {
+	now := time.Date(2026, 9, 11, 12, 0, 0, 0, time.UTC)
+	index := ContextReferenceIndex{SchemaVersion: contextReferenceIndexVersion, FluctlightID: "fl-reflection", OwnerActorID: "owner-reflection", SpeakerActorID: "owner-reflection", ByRef: map[string]ContextReference{}}
+	evolution, err := BuildEvolutionContext(EvolutionContext{
+		ProviderRole: "reflection", FluctlightID: "fl-reflection", SourceWindow: "sequence:7-7", FromSequence: 7, ToSequence: 7, Watermark: 6,
+		Evidence:       []EvolutionEvidence{{Ref: "sequence:7", Kind: "conversation.turn", Summary: "明早七点赶飞机", Sequence: 7, OccurredAt: now}},
+		ReferenceIndex: index, BaseRevisions: map[string]int{string(EvolutionActiveMemory): 0},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	proposal := ReflectionProposalV2{
+		SchemaVersion: reflectionProposalV2SchemaVersion, Summary: "识别临时未来事件",
+		ActiveMemoryCandidates: []ReflectionActiveMemoryCandidateV1{{
+			Operation: "create", Kind: "future_event", Content: "明早七点赶飞机", Confidence: 0.95, Importance: 1,
+			TimePrecision: "unknown", EvidenceRefs: []string{"sequence:7"}, SemanticReason: "当前仍有行为意义",
+		}},
+	}
+	plan, err := CompileReflectionPlan(proposal, evolution, ReflectionPolicyV2{SupportedDomains: map[EvolutionDomain]bool{EvolutionActiveMemory: true}}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Candidates) != 1 || plan.Candidates[0].Domain != EvolutionActiveMemory || plan.Candidates[0].Disposition != EvolutionAccepted {
+		t.Fatalf("plan = %#v", plan)
+	}
+	if plan.Candidates[0].Domain == EvolutionMemory {
+		t.Fatal("Active Memory was folded into durable Memory")
 	}
 }
 

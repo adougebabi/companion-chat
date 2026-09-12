@@ -3,10 +3,89 @@ package core
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestAutomaticMemoryCuesAreBoundedAndNeverEnableEmbedding(t *testing.T) {
+	recent := make([]map[string]any, 0, 20)
+	active := make([]map[string]any, 0, 20)
+	for index := 0; index < 20; index++ {
+		recent = append(recent, map[string]any{"kind": "user", "text": strings.Repeat(fmt.Sprintf("recent-%d ", index), 200)})
+		active = append(active, map[string]any{"content": strings.Repeat(fmt.Sprintf("active-%d ", index), 200)})
+	}
+	cues := buildProjectionMemoryCues(MemoryForConversation, nil, "current", map[string]any{"scene": "书房"}, map[string]any{"mood": "平静"}, recent, active, nil, nil, nil, nil)
+	plan, err := buildMemoryQueryPlan(MemoryForConversation, []string{"owner"}, MemoryConversationExact, "conversation", nil, "default", cues, 12, 2400)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if EstimatePromptTokens(plan.Query) > maxMemoryQueryTokens || plan.EmbeddingQuery != "" || plan.Mode != "lexical_salience" {
+		t.Fatalf("automatic query escaped bounds/egress: tokens=%d plan=%#v", EstimatePromptTokens(plan.Query), plan)
+	}
+}
+
+func TestMemoryRetrievalSQLRanksAuthorizedRelevanceBeforeCandidateLimit(t *testing.T) {
+	content, err := os.ReadFile("memory_retrieval.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(content)
+	start := strings.Index(text, "FROM public.memories")
+	if start < 0 {
+		t.Fatal("memory authority query missing")
+	}
+	query := text[start:]
+	rank := strings.Index(query, "ORDER BY CASE WHEN query_terms.query")
+	limit := strings.Index(query, "LIMIT $9")
+	if rank < 0 || limit < 0 || rank > limit || !strings.Contains(query[:limit], "status='active'") || !strings.Contains(query[:limit], "visibility") || !strings.Contains(query[:limit], "conversation_id") {
+		t.Fatalf("authorization/relevance must precede candidate limit: %s", query[:minIntForTest(len(query), 2400)])
+	}
+}
+
+// PostgreSQL integration gate: intentionally deferred to S12 by implement.md.
+func TestPostgresMemoryRetrievalFindsOldRelevantBeyondRecentCandidateLimit(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, viewerID := "old-relevant-owner", "old-relevant-fluctlight", "old-relevant-viewer"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES($1,'human','active'),($2,'fluctlight','active'),($3,'human','active')`, ownerID, fluctlightID, viewerID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES($1,$2,'blank_slate','active','{}','{}','{}','{}','{}','{}')`, fluctlightID, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `
+		INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision,canonical_key,request_digest,created_at)
+		SELECT 'authorized-distractor-'||value,$1,'semantic','unrelated recent distractor '||value,jsonb_build_array($2::text),NULL,'[]','["fact"]','[]',0.8,0.8,0.2,'participants','active',0,lpad(to_hex(value),32,'0'),lpad(to_hex(value+10000),32,'0'),now()+value*interval '1 second'
+		FROM generate_series(1,250) value`, fluctlightID, viewerID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision,canonical_key,request_digest,created_at) VALUES('authorized-old-relevant',$1,'semantic','archive telescope calibration',jsonb_build_array($2::text),NULL,'[]','["fact"]','[]',0.9,0.9,0.3,'participants','active',0,'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',now()-interval '2 years')`, fluctlightID, viewerID); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := buildMemoryQueryPlan(MemoryForNativeCognition, []string{viewerID}, MemoryConversationGlobalOnly, "", nil, "default", []MemoryQueryCue{{Kind: "current", Text: "telescope calibration"}}, 12, 2400)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := (&App{DB: repository}).retrieveMemoryWithPlan(ctx, ownerID, fluctlightID, plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, item := range result.Items {
+		found = found || stringValue(item["id"]) == "authorized-old-relevant"
+	}
+	if !found || result.Trace.AuthorizedCandidateCount != memoryCandidateLimit || len(result.Trace.Ranking) != memoryCandidateLimit {
+		t.Fatalf("old relevant memory was crowded out: found=%t items=%#v trace=%#v", found, result.Items, result.Trace)
+	}
+}
+
+func minIntForTest(left, right int) int {
+	if left < right {
+		return left
+	}
+	return right
+}
 
 func TestBuildMemoryQueryPlanSeparatesLocalCuesFromEmbeddingEgress(t *testing.T) {
 	plan, err := buildMemoryQueryPlan(MemoryForWakeUp, []string{"owner"}, MemoryConversationGlobalOnly, "", nil, "default", nil, 12, 2400)
@@ -16,12 +95,17 @@ func TestBuildMemoryQueryPlanSeparatesLocalCuesFromEmbeddingEgress(t *testing.T)
 	if plan.Mode != "salience_recent" || plan.Query != "" || plan.EmbeddingQuery != "" {
 		t.Fatalf("empty plan=%#v", plan)
 	}
-	local := buildProjectionMemoryCues(MemoryForWakeUp, []MemoryQueryCue{{Kind: "fact", Text: "private fact", AllowEmbedding: true}}, "", map[string]any{"scene": "书房"}, []map[string]any{{"status": "active", "description": "完成报告"}}, nil, nil, nil)
+	local := buildProjectionMemoryCues(
+		MemoryForWakeUp, []MemoryQueryCue{{Kind: "fact", Text: "private fact", AllowEmbedding: true}}, "",
+		map[string]any{"scene": "书房"}, map[string]any{"mood": map[string]any{"label": "平静"}},
+		[]map[string]any{{"kind": "user", "text": "最近在讨论航班"}}, []map[string]any{{"content": "明早七点赶飞机"}},
+		[]map[string]any{{"status": "active", "description": "完成报告"}}, nil, nil, nil,
+	)
 	plan, err = buildMemoryQueryPlan(MemoryForWakeUp, []string{"owner"}, MemoryConversationGlobalOnly, "", nil, "default", local, 12, 2400)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if plan.Mode != "lexical_salience" || !strings.Contains(plan.Query, "书房") || !strings.Contains(plan.Query, "完成报告") || plan.EmbeddingQuery != "" {
+	if plan.Mode != "lexical_salience" || !strings.Contains(plan.Query, "书房") || !strings.Contains(plan.Query, "完成报告") || !strings.Contains(plan.Query, "明早七点赶飞机") || !strings.Contains(plan.Query, "最近在讨论航班") || !strings.Contains(plan.Query, "平静") || plan.EmbeddingQuery != "" {
 		t.Fatalf("private local cues crossed embedding boundary: %#v", plan)
 	}
 	synthetic, err := buildMemoryQueryPlan(MemoryForConversation, []string{"owner"}, MemoryConversationExact, "conv", nil, "default", []MemoryQueryCue{{Kind: "synthetic", Text: "non-sensitive-test", AllowEmbedding: true}}, 12, 2400)

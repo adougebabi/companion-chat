@@ -12,8 +12,10 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; the bounded capability-runtime reconciliation below is the one
 // explicitly allowed active-payload migration and preserves audit history.
-const Head = "0031_evolution_authority"
-const PreviousHead = "0030_life_context_revision"
+const Head = "0032_prompt_context_memory"
+const PreviousHead = "0031_evolution_authority"
+const PromptContextMemoryHead = "0032_prompt_context_memory"
+const EvolutionAuthorityHead = "0031_evolution_authority"
 const LifeContextRevisionHead = "0030_life_context_revision"
 const MemoryLifecycleHead = "0029_memory_lifecycle"
 const AffectCanonicalHead = "0028_affect_canonical"
@@ -77,9 +79,10 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyMemoryLifecycle := applyAffectCanonical || current == AffectCanonicalHead
 	applyLifeContextRevision := applyMemoryLifecycle || current == MemoryLifecycleHead
 	applyEvolutionAuthority := applyLifeContextRevision || current == LifeContextRevisionHead
+	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	if len(revisions) == 1 && current != Head {
-		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead {
-			return fmt.Errorf("unsupported migration head %q; expected %s, %s, %s, %s, %s, %s, %s, or %s", revisions[0], ReleasedHead, CapabilityRuntimePreviousHead, CapabilityRuntimeHead, ProjectHealthHead, AffectCanonicalHead, MemoryLifecycleHead, LifeContextRevisionHead, Head)
+		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead {
+			return fmt.Errorf("unsupported migration head %q; expected %s, %s, %s, %s, %s, %s, %s, %s, or %s", revisions[0], ReleasedHead, CapabilityRuntimePreviousHead, CapabilityRuntimeHead, ProjectHealthHead, AffectCanonicalHead, MemoryLifecycleHead, LifeContextRevisionHead, EvolutionAuthorityHead, Head)
 		}
 	}
 	if applyCapabilityRuntime {
@@ -112,6 +115,17 @@ func (r *Runner) Apply(ctx context.Context) error {
 			return fmt.Errorf("apply evolution authority migration: %w", err)
 		}
 	}
+	if applyPromptContextMemory {
+		if _, err := tx.Exec(ctx, promptContextMemoryMigrationSQL); err != nil {
+			return fmt.Errorf("apply Prompt Context and Memory migration: %w", err)
+		}
+	} else if current == Head {
+		// The current head stays self-repairing for additive schema drift without
+		// replaying historical migrations or rewriting facts.
+		if _, err := tx.Exec(ctx, promptContextMemorySchemaSQL); err != nil {
+			return fmt.Errorf("verify Prompt Context and Memory schema: %w", err)
+		}
+	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.alembic_version`); err != nil {
 			return err
@@ -135,7 +149,7 @@ CREATE TABLE IF NOT EXISTS public.auth_sessions (id varchar(128) PRIMARY KEY, to
 CREATE TABLE IF NOT EXISTS public.owner_setup_tokens (id varchar(128) PRIMARY KEY, token_hash varchar(64) NOT NULL UNIQUE, expires_at timestamptz NOT NULL, consumed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.auth_audit_log (id varchar(128) PRIMARY KEY, action varchar(64) NOT NULL, actor_id varchar(128), result varchar(16) NOT NULL, details text NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.provider_endpoints (id varchar(128) PRIMARY KEY, kind varchar(64) NOT NULL, base_url text NOT NULL, secret_purpose varchar(128) NOT NULL, capability_status varchar(32) NOT NULL DEFAULT 'unknown', checked_at timestamptz);
-CREATE TABLE IF NOT EXISTS public.model_roles (role varchar(64) PRIMARY KEY, provider_endpoint_id varchar(128) NOT NULL, model_id varchar(256) NOT NULL, required_capabilities text NOT NULL DEFAULT '', token_budget integer NOT NULL DEFAULT 4096, timeout_seconds integer NOT NULL DEFAULT 120, retry_policy text NOT NULL DEFAULT '{}');
+CREATE TABLE IF NOT EXISTS public.model_roles (role varchar(64) PRIMARY KEY, provider_endpoint_id varchar(128) NOT NULL, model_id varchar(256) NOT NULL, required_capabilities text NOT NULL DEFAULT '', token_budget integer NOT NULL DEFAULT 4096, timeout_seconds integer NOT NULL DEFAULT 120, retry_policy text NOT NULL DEFAULT '{}', context_window_tokens integer NOT NULL DEFAULT 65536, max_input_tokens integer NOT NULL DEFAULT 49152, prompt_budget_policy_version varchar(64) NOT NULL DEFAULT 'prompt-budget.v1', CONSTRAINT ck_model_roles_prompt_budget CHECK (context_window_tokens > 0 AND max_input_tokens > 0 AND token_budget > 0 AND prompt_budget_policy_version='prompt-budget.v1' AND max_input_tokens + token_budget + 4096 <= context_window_tokens));
 CREATE TABLE IF NOT EXISTS public.provider_preflights (id varchar(128) PRIMARY KEY, role varchar(64) NOT NULL, result varchar(32) NOT NULL, capability_version varchar(128), checked_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.provider_provenance (id varchar(128) PRIMARY KEY, role varchar(64) NOT NULL, endpoint_id varchar(128) NOT NULL, model_id varchar(256) NOT NULL, prompt_version varchar(128) NOT NULL, schema_version varchar(128) NOT NULL, correlation_id varchar(128) NOT NULL, token_budget integer NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.runtime_settings (key varchar(128) PRIMARY KEY, value_json text NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());
@@ -219,7 +233,7 @@ CREATE TABLE IF NOT EXISTS public.platform_workflow_intents (intent_id varchar(1
 CREATE TABLE IF NOT EXISTS public.platform_outbox_events (id varchar(128) PRIMARY KEY, kind varchar(128) NOT NULL, aggregate_type varchar(96) NOT NULL, aggregate_id varchar(128) NOT NULL, fluctlight_id varchar(128), causation_id varchar(128) NOT NULL, correlation_id varchar(128) NOT NULL, idempotency_key varchar(256) NOT NULL UNIQUE, payload jsonb NOT NULL, occurred_at timestamptz NOT NULL DEFAULT now(), available_at timestamptz NOT NULL DEFAULT now(), attempt_policy jsonb NOT NULL, published_at timestamptz, completed_at timestamptz, failed_at timestamptz, claim_owner varchar(128), claim_until timestamptz, attempt_count integer NOT NULL DEFAULT 0, last_error text);
 CREATE TABLE IF NOT EXISTS public.platform_consumer_inbox (id bigserial PRIMARY KEY, consumer_group varchar(96) NOT NULL, event_id varchar(128) NOT NULL, result jsonb NOT NULL, applied_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.diagnostic_events (id varchar(128) PRIMARY KEY, event_type varchar(128) NOT NULL, severity varchar(32) NOT NULL, fluctlight_id varchar(128), causation_id varchar(128), correlation_id varchar(128) NOT NULL, payload jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
-CREATE TABLE IF NOT EXISTS public.diagnostic_model_runs (id varchar(128) PRIMARY KEY, role varchar(64) NOT NULL, binding_role varchar(64) NOT NULL DEFAULT 'generic_llm', scenario varchar(128) NOT NULL DEFAULT '', priority integer NOT NULL DEFAULT 0, endpoint_id varchar(128), model_id varchar(256) NOT NULL, prompt jsonb NOT NULL, response jsonb, status varchar(32) NOT NULL, error_code varchar(128), correlation_id varchar(128) NOT NULL, queued_at timestamptz NOT NULL DEFAULT now(), started_at timestamptz, completed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS public.diagnostic_model_runs (id varchar(128) PRIMARY KEY, role varchar(64) NOT NULL, binding_role varchar(64) NOT NULL DEFAULT 'generic_llm', scenario varchar(128) NOT NULL DEFAULT '', priority integer NOT NULL DEFAULT 0, endpoint_id varchar(128), model_id varchar(256) NOT NULL, prompt jsonb NOT NULL, response jsonb, status varchar(32) NOT NULL, error_code varchar(128), correlation_id varchar(128) NOT NULL, fluctlight_id varchar(128), metrics jsonb NOT NULL DEFAULT '{}', estimated_input_tokens integer, actual_prompt_tokens integer, actual_completion_tokens integer, latency_ms bigint, queued_at timestamptz NOT NULL DEFAULT now(), started_at timestamptz, completed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.diagnostic_turns (id varchar(128) PRIMARY KEY, fluctlight_id varchar(128) NOT NULL, conversation_id varchar(128), source_event_id varchar(128), correlation_id varchar(128) NOT NULL, status varchar(32) NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.diagnostic_workflow_links (id varchar(128) PRIMARY KEY, correlation_id varchar(128) NOT NULL, workflow_id varchar(128) NOT NULL, intent_id varchar(128), event_id varchar(128), created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.diagnostic_retention (id bigserial PRIMARY KEY, resource varchar(64) NOT NULL UNIQUE, retention_days integer NOT NULL, max_rows integer NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());
@@ -1937,3 +1951,272 @@ BEGIN
   END IF;
 END $$;
 `
+
+// promptContextMemorySchemaSQL is the additive, idempotent storage surface for
+// Raw History source linkage and the independent Active Memory authority. Later
+// stages in the same unreleased 0032 revision extend it for summaries and
+// prompt-budget metadata. It intentionally does not copy domain facts into a
+// second event ledger or overload durable memories with short-lived state.
+const promptContextMemorySchemaSQL = `
+ALTER TABLE public.conversation_messages ADD COLUMN IF NOT EXISTS turn_id varchar(128);
+ALTER TABLE public.conversation_messages ADD COLUMN IF NOT EXISTS source_fact_id varchar(128);
+ALTER TABLE public.conversation_messages ADD COLUMN IF NOT EXISTS correlation_id varchar(128);
+ALTER TABLE public.conversation_messages ADD COLUMN IF NOT EXISTS search_document tsvector
+  GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, text)) STORED;
+ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS context_window_tokens integer NOT NULL DEFAULT 65536;
+ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS max_input_tokens integer NOT NULL DEFAULT 49152;
+ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS prompt_budget_policy_version varchar(64) NOT NULL DEFAULT 'prompt-budget.v1';
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS fluctlight_id varchar(128);
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS metrics jsonb NOT NULL DEFAULT '{}';
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS estimated_input_tokens integer;
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS actual_prompt_tokens integer;
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS actual_completion_tokens integer;
+ALTER TABLE public.diagnostic_model_runs ADD COLUMN IF NOT EXISTS latency_ms bigint;
+CREATE INDEX IF NOT EXISTS ix_diagnostic_model_runs_fluctlight_created
+ON public.diagnostic_model_runs(fluctlight_id,created_at DESC)
+WHERE fluctlight_id IS NOT NULL;
+
+DO $$
+DECLARE malformed bigint;
+BEGIN
+  SELECT count(*) INTO malformed
+  FROM public.model_roles
+  WHERE context_window_tokens <= 0
+     OR max_input_tokens <= 0
+     OR token_budget <= 0
+     OR prompt_budget_policy_version <> 'prompt-budget.v1'
+     OR max_input_tokens + token_budget + 4096 > context_window_tokens;
+  IF malformed > 0 THEN
+    RAISE EXCEPTION 'Prompt Context migration found % invalid model role budget(s)', malformed;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname='ck_model_roles_prompt_budget'
+      AND conrelid='public.model_roles'::regclass
+  ) THEN
+    ALTER TABLE public.model_roles ADD CONSTRAINT ck_model_roles_prompt_budget CHECK (
+      context_window_tokens > 0 AND max_input_tokens > 0 AND token_budget > 0
+      AND prompt_budget_policy_version='prompt-budget.v1'
+      AND max_input_tokens + token_budget + 4096 <= context_window_tokens
+    );
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname='ck_diagnostic_model_runs_prompt_metrics'
+      AND conrelid='public.diagnostic_model_runs'::regclass
+  ) THEN
+    ALTER TABLE public.diagnostic_model_runs ADD CONSTRAINT ck_diagnostic_model_runs_prompt_metrics CHECK (
+      jsonb_typeof(metrics)='object'
+      AND (estimated_input_tokens IS NULL OR estimated_input_tokens >= 0)
+      AND (actual_prompt_tokens IS NULL OR actual_prompt_tokens >= 0)
+      AND (actual_completion_tokens IS NULL OR actual_completion_tokens >= 0)
+      AND (latency_ms IS NULL OR latency_ms >= 0)
+    );
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.active_memories (
+  id varchar(128) PRIMARY KEY,
+  owner_fluctlight_id varchar(128) NOT NULL,
+  conversation_id varchar(128),
+  kind varchar(32) NOT NULL,
+  content text NOT NULL,
+  status varchar(32) NOT NULL DEFAULT 'active',
+  confidence double precision NOT NULL,
+  importance double precision NOT NULL,
+  actor_refs jsonb NOT NULL DEFAULT '[]'::jsonb,
+  source_fact_id varchar(128) NOT NULL,
+  evidence_refs jsonb NOT NULL,
+  original_time_expression varchar(512),
+  valid_from timestamptz,
+  valid_until timestamptz,
+  time_precision varchar(32) NOT NULL,
+  timezone varchar(128) NOT NULL,
+  last_relevant_at timestamptz NOT NULL,
+  revision integer NOT NULL DEFAULT 1,
+  canonical_key varchar(128) NOT NULL,
+  request_digest varchar(128) NOT NULL,
+  superseded_by_active_memory_id varchar(128),
+  supersedes_active_memory_id varchar(128),
+  created_at timestamptz NOT NULL,
+  updated_at timestamptz NOT NULL,
+  closed_at timestamptz,
+  CONSTRAINT ck_active_memories_kind CHECK (kind IN ('future_event','commitment','temporary_context')),
+  CONSTRAINT ck_active_memories_status CHECK (status IN ('active','completed','expired','superseded')),
+  CONSTRAINT ck_active_memories_confidence CHECK (confidence >= 0 AND confidence <= 1),
+  CONSTRAINT ck_active_memories_importance CHECK (importance >= 0 AND importance <= 1),
+  CONSTRAINT ck_active_memories_actor_refs CHECK (jsonb_typeof(actor_refs) = 'array'),
+  CONSTRAINT ck_active_memories_evidence_refs CHECK (jsonb_typeof(evidence_refs) = 'array' AND jsonb_array_length(evidence_refs) > 0),
+  CONSTRAINT ck_active_memories_time_precision CHECK (time_precision IN ('exact','part_of_day','date','range','unknown')),
+  CONSTRAINT ck_active_memories_time_range CHECK (valid_from IS NULL OR valid_until IS NULL OR valid_until > valid_from),
+  CONSTRAINT ck_active_memories_unknown_time CHECK (time_precision <> 'unknown' OR (valid_from IS NULL AND valid_until IS NULL)),
+  CONSTRAINT ck_active_memories_closed_state CHECK ((status = 'active' AND closed_at IS NULL) OR (status <> 'active' AND closed_at IS NOT NULL)),
+  CONSTRAINT fk_active_memories_owner FOREIGN KEY(owner_fluctlight_id) REFERENCES public.fluctlights(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_active_memories_conversation FOREIGN KEY(conversation_id) REFERENCES public.conversations(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_active_memories_source_fact FOREIGN KEY(source_fact_id) REFERENCES public.cognition_inbox(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_active_memories_superseded_by FOREIGN KEY(superseded_by_active_memory_id) REFERENCES public.active_memories(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_active_memories_supersedes FOREIGN KEY(supersedes_active_memory_id) REFERENCES public.active_memories(id) DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE TABLE IF NOT EXISTS public.active_memory_revisions (
+  id varchar(128) PRIMARY KEY,
+  active_memory_id varchar(128) NOT NULL,
+  revision integer NOT NULL,
+  base_revision integer NOT NULL,
+  operation varchar(32) NOT NULL,
+  snapshot jsonb NOT NULL,
+  status varchar(32) NOT NULL,
+  actor_id varchar(128) NOT NULL,
+  evidence_refs jsonb NOT NULL,
+  semantic_reason text NOT NULL,
+  request_digest varchar(128) NOT NULL,
+  schema_version varchar(64) NOT NULL,
+  policy_version varchar(64) NOT NULL,
+  idempotency_key varchar(256) NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL,
+  CONSTRAINT uq_active_memory_revisions_revision UNIQUE(active_memory_id,revision),
+  CONSTRAINT ck_active_memory_revisions_revision CHECK (revision >= 1 AND base_revision >= 0 AND base_revision < revision),
+  CONSTRAINT ck_active_memory_revisions_operation CHECK (operation IN ('create','confirm','revise','complete','expire','supersede')),
+  CONSTRAINT ck_active_memory_revisions_status CHECK (status IN ('active','completed','expired','superseded')),
+  CONSTRAINT ck_active_memory_revisions_snapshot CHECK (jsonb_typeof(snapshot) = 'object'),
+  CONSTRAINT ck_active_memory_revisions_evidence_refs CHECK (jsonb_typeof(evidence_refs) = 'array' AND jsonb_array_length(evidence_refs) > 0),
+  CONSTRAINT fk_active_memory_revisions_memory FOREIGN KEY(active_memory_id) REFERENCES public.active_memories(id) DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE TABLE IF NOT EXISTS public.active_memory_commands (
+  id varchar(128) PRIMARY KEY,
+  owner_fluctlight_id varchar(128) NOT NULL,
+  conversation_id varchar(128),
+  source_fact_id varchar(128) NOT NULL,
+  operation varchar(32) NOT NULL,
+  target_active_memory_id varchar(128),
+  actor_id varchar(128) NOT NULL,
+  evidence_refs jsonb NOT NULL,
+  semantic_reason text NOT NULL,
+  request_digest varchar(128) NOT NULL,
+  command jsonb NOT NULL,
+  result jsonb NOT NULL,
+  schema_version varchar(64) NOT NULL,
+  policy_version varchar(64) NOT NULL,
+  idempotency_key varchar(256) NOT NULL,
+  created_at timestamptz NOT NULL,
+  CONSTRAINT uq_active_memory_commands_owner_idempotency UNIQUE(owner_fluctlight_id,idempotency_key),
+  CONSTRAINT ck_active_memory_commands_operation CHECK (operation IN ('create','confirm','revise','complete','expire','supersede')),
+  CONSTRAINT ck_active_memory_commands_evidence_refs CHECK (jsonb_typeof(evidence_refs) = 'array' AND jsonb_array_length(evidence_refs) > 0),
+  CONSTRAINT ck_active_memory_commands_command CHECK (jsonb_typeof(command) = 'object'),
+  CONSTRAINT ck_active_memory_commands_result CHECK (jsonb_typeof(result) = 'object'),
+  CONSTRAINT fk_active_memory_commands_owner FOREIGN KEY(owner_fluctlight_id) REFERENCES public.fluctlights(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_active_memory_commands_conversation FOREIGN KEY(conversation_id) REFERENCES public.conversations(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_active_memory_commands_source_fact FOREIGN KEY(source_fact_id) REFERENCES public.cognition_inbox(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_active_memory_commands_target FOREIGN KEY(target_active_memory_id) REFERENCES public.active_memories(id) DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE TABLE IF NOT EXISTS public.conversation_summaries (
+  id varchar(128) PRIMARY KEY,
+  owner_fluctlight_id varchar(128) NOT NULL,
+  conversation_id varchar(128) NOT NULL,
+  from_sequence integer NOT NULL,
+  to_sequence integer NOT NULL,
+  source_message_refs jsonb NOT NULL,
+  source_digest varchar(128) NOT NULL,
+  summary text NOT NULL,
+  status varchar(32) NOT NULL DEFAULT 'active',
+  revision integer NOT NULL DEFAULT 1,
+  supersedes_summary_id varchar(128),
+  provider_endpoint_id varchar(128) NOT NULL,
+  model_id varchar(256) NOT NULL,
+  provider_request_id varchar(128) NOT NULL,
+  prompt_version varchar(64) NOT NULL,
+  schema_version varchar(64) NOT NULL,
+  policy_version varchar(64) NOT NULL,
+  request_digest varchar(128) NOT NULL,
+  idempotency_key varchar(256) NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ck_conversation_summaries_window CHECK (from_sequence >= 1 AND to_sequence >= from_sequence),
+  CONSTRAINT ck_conversation_summaries_source_refs CHECK (jsonb_typeof(source_message_refs) = 'array' AND jsonb_array_length(source_message_refs) > 0),
+  CONSTRAINT ck_conversation_summaries_status CHECK (status IN ('active','superseded')),
+  CONSTRAINT ck_conversation_summaries_revision CHECK (revision >= 1),
+  CONSTRAINT ck_conversation_summaries_content CHECK (btrim(summary) <> ''),
+  CONSTRAINT fk_conversation_summaries_owner FOREIGN KEY(owner_fluctlight_id) REFERENCES public.fluctlights(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_conversation_summaries_conversation FOREIGN KEY(conversation_id) REFERENCES public.conversations(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_conversation_summaries_supersedes FOREIGN KEY(supersedes_summary_id) REFERENCES public.conversation_summaries(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_conversation_summaries_provider FOREIGN KEY(provider_endpoint_id) REFERENCES public.provider_endpoints(id) DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_conversation_messages_sequence
+ON public.conversation_messages(conversation_id,sequence);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_cognition_inbox_sequence
+ON public.cognition_inbox(fluctlight_id,sequence);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_conversation_messages_turn_kind
+ON public.conversation_messages(conversation_id,turn_id,kind)
+WHERE turn_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_conversation_messages_source_fact
+ON public.conversation_messages(source_fact_id)
+WHERE source_fact_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_conversation_messages_search_document
+ON public.conversation_messages USING gin(search_document);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_active_memories_active_canonical
+ON public.active_memories(owner_fluctlight_id,canonical_key)
+WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS ix_active_memories_owner_current
+ON public.active_memories(owner_fluctlight_id,status,valid_until,valid_from,last_relevant_at DESC);
+CREATE INDEX IF NOT EXISTS ix_active_memories_conversation_current
+ON public.active_memories(conversation_id,status,last_relevant_at DESC)
+WHERE conversation_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_active_memories_source_fact
+ON public.active_memories(source_fact_id);
+CREATE INDEX IF NOT EXISTS ix_active_memory_revisions_memory
+ON public.active_memory_revisions(active_memory_id,revision DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_conversation_summaries_active_window
+ON public.conversation_summaries(owner_fluctlight_id,conversation_id,from_sequence,to_sequence)
+WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS ix_conversation_summaries_current
+ON public.conversation_summaries(owner_fluctlight_id,conversation_id,status,to_sequence DESC,revision DESC);
+CREATE INDEX IF NOT EXISTS ix_conversation_summaries_source_digest
+ON public.conversation_summaries(conversation_id,source_digest);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname='fk_conversation_messages_source_fact'
+      AND conrelid='public.conversation_messages'::regclass
+  ) THEN
+    ALTER TABLE public.conversation_messages
+      ADD CONSTRAINT fk_conversation_messages_source_fact
+      FOREIGN KEY(source_fact_id) REFERENCES public.cognition_inbox(id)
+      DEFERRABLE INITIALLY DEFERRED;
+  END IF;
+END $$;
+`
+
+const promptContextMemoryMigrationSQL = `
+DO $$
+DECLARE malformed bigint;
+BEGIN
+  SELECT count(*) INTO malformed FROM (
+    SELECT conversation_id,sequence
+    FROM public.conversation_messages
+    GROUP BY conversation_id,sequence
+    HAVING count(*) > 1
+  ) duplicate_message_sequence;
+  IF malformed > 0 THEN
+    RAISE EXCEPTION 'Prompt Context migration found % duplicate Conversation message sequence(s)', malformed;
+  END IF;
+
+  SELECT count(*) INTO malformed FROM (
+    SELECT fluctlight_id,sequence
+    FROM public.cognition_inbox
+    GROUP BY fluctlight_id,sequence
+    HAVING count(*) > 1
+  ) duplicate_cognition_sequence;
+  IF malformed > 0 THEN
+    RAISE EXCEPTION 'Prompt Context migration found % duplicate Cognition fact sequence(s)', malformed;
+  END IF;
+END $$;
+` + promptContextMemorySchemaSQL

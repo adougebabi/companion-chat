@@ -15,6 +15,7 @@ const (
 	memoryCandidateLimit       = 200
 	maxMemoryQueryCues         = 32
 	maxMemoryQueryCueRunes     = 1000
+	maxMemoryQueryTokens       = 1024
 	maxMemoryRetrievalBudget   = 16000
 )
 
@@ -63,23 +64,32 @@ type MemoryQueryPlan struct {
 }
 
 type MemoryRetrievalTrace struct {
-	PlanVersion              string   `json:"plan_version"`
-	PlanID                   string   `json:"plan_id"`
-	Operation                string   `json:"operation"`
-	Mode                     string   `json:"mode"`
-	QueryDigest              string   `json:"query_digest,omitempty"`
-	CueKinds                 []string `json:"cue_kinds"`
-	ConversationMode         string   `json:"conversation_mode"`
-	AuthorizedViewerCount    int      `json:"authorized_viewer_count"`
-	AuthorizedCandidateCount int      `json:"authorized_candidate_count"`
-	VectorCandidateCount     int      `json:"vector_candidate_count"`
-	EmbeddingDisposition     string   `json:"embedding_disposition"`
-	FallbackReason           string   `json:"fallback_reason,omitempty"`
-	ResultLimit              int      `json:"result_limit"`
-	ResultCount              int      `json:"result_count"`
-	Budget                   int      `json:"budget"`
-	BudgetUsed               int      `json:"budget_used"`
-	TruncatedReason          string   `json:"truncated_reason,omitempty"`
+	PlanVersion              string            `json:"plan_version"`
+	PlanID                   string            `json:"plan_id"`
+	Operation                string            `json:"operation"`
+	Mode                     string            `json:"mode"`
+	QueryDigest              string            `json:"query_digest,omitempty"`
+	CueKinds                 []string          `json:"cue_kinds"`
+	ConversationMode         string            `json:"conversation_mode"`
+	AuthorizedViewerCount    int               `json:"authorized_viewer_count"`
+	AuthorizedCandidateCount int               `json:"authorized_candidate_count"`
+	VectorCandidateCount     int               `json:"vector_candidate_count"`
+	EmbeddingDisposition     string            `json:"embedding_disposition"`
+	FallbackReason           string            `json:"fallback_reason,omitempty"`
+	ResultLimit              int               `json:"result_limit"`
+	ResultCount              int               `json:"result_count"`
+	Budget                   int               `json:"budget"`
+	BudgetUsed               int               `json:"budget_used"`
+	TruncatedReason          string            `json:"truncated_reason,omitempty"`
+	Ranking                  []MemoryRankTrace `json:"ranking"`
+}
+
+type MemoryRankTrace struct {
+	MemoryID    string             `json:"memory_id"`
+	Components  map[string]float64 `json:"components"`
+	Score       float64            `json:"score"`
+	Disposition string             `json:"disposition"`
+	Reason      string             `json:"reason"`
 }
 
 type MemoryRetrievalResult struct {
@@ -103,7 +113,7 @@ type ContextProjectionRequest struct {
 // buildProjectionMemoryCues only constructs local FTS/lexical cues. These
 // private state values never set AllowEmbedding and therefore cannot enter the
 // external embedding request boundary.
-func buildProjectionMemoryCues(operation MemoryRetrievalOperation, base []MemoryQueryCue, currentText string, life map[string]any, goals, intentions, outcomes, hypotheses []map[string]any) []MemoryQueryCue {
+func buildProjectionMemoryCues(operation MemoryRetrievalOperation, base []MemoryQueryCue, currentText string, life, state map[string]any, recent, active, goals, intentions, outcomes, hypotheses []map[string]any) []MemoryQueryCue {
 	result := append([]MemoryQueryCue(nil), base...)
 	for index := range result {
 		result[index].AllowEmbedding = false
@@ -119,6 +129,21 @@ func buildProjectionMemoryCues(operation MemoryRetrievalOperation, base []Memory
 	}
 	for _, field := range []string{"scene", "activity", "location"} {
 		addLocal("life_"+field, life[field])
+	}
+	for _, field := range []string{"mood", "pad", "drives", "conflicts"} {
+		if value := state[field]; value != nil {
+			addLocal("current_state_"+field, jsonString(value))
+		}
+	}
+	start := 0
+	if len(recent) > 6 {
+		start = len(recent) - 6
+	}
+	for _, message := range recent[start:] {
+		addLocal("recent_"+firstString(message["kind"], "message"), message["text"])
+	}
+	for _, item := range active {
+		addLocal("active_memory", item["content"])
 	}
 	for _, goal := range goals {
 		if status := stringValue(goal["status"]); status == "active" || status == "candidate" || status == "paused" {
@@ -226,6 +251,10 @@ func buildMemoryQueryPlan(operation MemoryRetrievalOperation, viewers []string, 
 			continue
 		}
 		cueSeen[identity] = struct{}{}
+		candidateQuery := strings.Join(append(append([]string(nil), queryParts...), cue.Text), "\n")
+		if EstimatePromptTokens(candidateQuery) > maxMemoryQueryTokens {
+			continue
+		}
 		cleanCues = append(cleanCues, cue)
 		queryParts = append(queryParts, cue.Text)
 		if cue.AllowEmbedding {
@@ -269,7 +298,7 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 		PlanVersion: plan.SchemaVersion, PlanID: "memory-plan:" + stableDigest(string(jsonBytes(plan))),
 		Operation: string(plan.Operation), Mode: plan.Mode, ConversationMode: string(plan.ConversationMode),
 		AuthorizedViewerCount: len(plan.ViewerActorIDs), EmbeddingDisposition: "not_requested",
-		ResultLimit: plan.ResultLimit, Budget: plan.Budget,
+		ResultLimit: plan.ResultLimit, Budget: plan.Budget, Ranking: []MemoryRankTrace{},
 	}
 	if plan.Query != "" {
 		trace.QueryDigest = stableDigest(plan.Query)
@@ -280,8 +309,12 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 	rows, err := a.DB.Pool().Query(ctx, `
 		SELECT id,type,content,actor_refs,conversation_id,event_refs,evidence_refs,personality_perspectives,
 		       confidence,importance,emotional_significance,visibility,status,revision,created_at,
-		       COALESCE(ts_rank_cd(search_document,plainto_tsquery('simple',$2)),0)
+		       CASE WHEN query_terms.query IS NULL THEN 0 ELSE COALESCE(ts_rank_cd(search_document,query_terms.query),0) END
 		FROM public.memories
+		CROSS JOIN LATERAL (
+		  SELECT CASE WHEN cardinality(tsvector_to_array(to_tsvector('simple',$2::text)))=0 THEN NULL::tsquery
+		              ELSE to_tsquery('simple',array_to_string(tsvector_to_array(to_tsvector('simple',$2::text)),' | ')) END AS query
+		) query_terms
 		WHERE owner_fluctlight_id=$1
 		  AND status='active'
 		  AND type=ANY($3::text[])
@@ -294,7 +327,9 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 		    OR ($6='exact' AND (conversation_id IS NULL OR conversation_id=$7))
 		    OR ($6='allowed_set' AND (conversation_id IS NULL OR conversation_id=ANY($8::text[])))
 		  )
-		ORDER BY created_at DESC,id DESC
+		ORDER BY CASE WHEN query_terms.query IS NOT NULL AND search_document @@ query_terms.query THEN 1 ELSE 0 END DESC,
+		         CASE WHEN query_terms.query IS NULL THEN 0 ELSE COALESCE(ts_rank_cd(search_document,query_terms.query),0) END DESC,
+		         importance DESC,created_at DESC,id DESC
 		LIMIT $9`, fluctlight.ID, plan.Query, plan.AllowedTypes, ownerVisible, plan.ViewerActorIDs, string(plan.ConversationMode), nullableString(plan.ConversationID), plan.AllowedConversationIDs, plan.CandidateLimit)
 	if err != nil {
 		return MemoryRetrievalResult{}, err
@@ -302,9 +337,10 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 	defer rows.Close()
 	queryTokens := tokenize(plan.Query)
 	type scoredMemory struct {
-		value   map[string]any
-		score   float64
-		created time.Time
+		value      map[string]any
+		score      float64
+		components map[string]float64
+		created    time.Time
 	}
 	scored := make([]scoredMemory, 0)
 	for rows.Next() {
@@ -318,15 +354,18 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 		if err := rows.Scan(&id, &typ, &content, &actorRefs, &conversationRef, &eventRefs, &evidenceRefs, &perspectives, &confidence, &importance, &emotional, &visibility, &status, &revision, &created, &searchRank); err != nil {
 			return MemoryRetrievalResult{}, err
 		}
+		components := map[string]float64{"importance": importance, "emotional_significance": emotional * 0.5, "confidence": confidence * 0.25, "fts_rank": searchRank}
 		score := importance + emotional*0.5 + confidence*0.25 + searchRank
 		ageHours := math.Max(0, time.Since(created).Hours())
-		score += 0.25 / (1 + ageHours/(7*24))
+		components["recency"] = 0.25 / (1 + ageHours/(7*24))
+		score += components["recency"]
 		lowerContent := strings.ToLower(content)
 		for _, token := range queryTokens {
 			if strings.Contains(lowerContent, token) {
-				score += 1
+				components["lexical_overlap"]++
 			}
 		}
+		score += components["lexical_overlap"]
 		value := map[string]any{
 			"id": id, "type": typ, "content": content, "confidence": confidence,
 			"importance": importance, "emotional_significance": emotional,
@@ -338,7 +377,7 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 		if values := decodeArray(perspectives); len(values) > 0 {
 			value["personality_perspectives"] = values
 		}
-		scored = append(scored, scoredMemory{value: value, score: score, created: created})
+		scored = append(scored, scoredMemory{value: value, score: score, components: components, created: created})
 	}
 	if err := rows.Err(); err != nil {
 		return MemoryRetrievalResult{}, err
@@ -385,7 +424,8 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 					trace.EmbeddingDisposition = "applied"
 					for index := range scored {
 						if vector := vectors[stringValue(scored[index].value["id"])]; len(vector) > 0 {
-							scored[index].score += cosineSimilarity(queryVector, vector)
+							scored[index].components["vector_similarity"] = cosineSimilarity(queryVector, vector)
+							scored[index].score += scored[index].components["vector_similarity"]
 						}
 					}
 				} else if trace.FallbackReason == "" {
@@ -406,9 +446,12 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 	items := make([]map[string]any, 0, plan.ResultLimit)
 	used := 0
 	for _, item := range scored {
+		disposition, reason := "selected", "ranked"
 		if len(items) >= plan.ResultLimit {
 			trace.TruncatedReason = "result_limit"
-			break
+			disposition, reason = "dropped", "result_limit"
+			trace.Ranking = append(trace.Ranking, MemoryRankTrace{MemoryID: stringValue(item.value["id"]), Components: item.components, Score: item.score, Disposition: disposition, Reason: reason})
+			continue
 		}
 		cost := len([]rune(string(jsonBytes(map[string]any{
 			"type": item.value["type"], "content": item.value["content"], "confidence": item.value["confidence"],
@@ -417,10 +460,13 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 		}))))
 		if used+cost > plan.Budget {
 			trace.TruncatedReason = "budget"
+			disposition, reason = "dropped", "budget"
+			trace.Ranking = append(trace.Ranking, MemoryRankTrace{MemoryID: stringValue(item.value["id"]), Components: item.components, Score: item.score, Disposition: disposition, Reason: reason})
 			continue
 		}
 		used += cost
 		items = append(items, item.value)
+		trace.Ranking = append(trace.Ranking, MemoryRankTrace{MemoryID: stringValue(item.value["id"]), Components: item.components, Score: item.score, Disposition: disposition, Reason: reason})
 	}
 	trace.ResultCount = len(items)
 	trace.BudgetUsed = used

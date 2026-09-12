@@ -59,8 +59,155 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != "0031_evolution_authority" || PreviousHead != "0030_life_context_revision" {
+	if Head != PromptContextMemoryHead || PreviousHead != EvolutionAuthorityHead {
 		t.Fatalf("Head = %q", Head)
+	}
+}
+
+func TestPromptContextMemoryMigrationAddsRawHistorySourceContract(t *testing.T) {
+	if PromptContextMemoryHead != "0032_prompt_context_memory" || EvolutionAuthorityHead != "0031_evolution_authority" {
+		t.Fatalf("prompt context migration chain is invalid: previous=%q head=%q", EvolutionAuthorityHead, PromptContextMemoryHead)
+	}
+	for _, fragment := range []string{
+		"conversation_messages ADD COLUMN IF NOT EXISTS turn_id",
+		"conversation_messages ADD COLUMN IF NOT EXISTS source_fact_id",
+		"conversation_messages ADD COLUMN IF NOT EXISTS correlation_id",
+		"GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, text)) STORED",
+		"uq_conversation_messages_sequence",
+		"uq_cognition_inbox_sequence",
+		"uq_conversation_messages_turn_kind",
+		"ix_conversation_messages_source_fact",
+		"ix_conversation_messages_search_document",
+		"fk_conversation_messages_source_fact",
+		"DEFERRABLE INITIALLY DEFERRED",
+		"duplicate Conversation message sequence",
+		"duplicate Cognition fact sequence",
+	} {
+		if !strings.Contains(promptContextMemoryMigrationSQL, fragment) {
+			t.Fatalf("0032 Prompt Context migration missing %q", fragment)
+		}
+	}
+	for _, forbidden := range []string{"DELETE FROM public.conversation_messages", "UPDATE public.conversation_messages SET text", "CREATE TABLE IF NOT EXISTS public.raw_history"} {
+		if strings.Contains(promptContextMemoryMigrationSQL, forbidden) {
+			t.Fatalf("0032 Prompt Context migration contains forbidden Raw History rewrite %q", forbidden)
+		}
+	}
+}
+
+func TestPromptContextMemoryMigrationAddsIndependentActiveMemoryAuthority(t *testing.T) {
+	for _, fragment := range []string{
+		"CREATE TABLE IF NOT EXISTS public.active_memories",
+		"CREATE TABLE IF NOT EXISTS public.active_memory_revisions",
+		"CREATE TABLE IF NOT EXISTS public.active_memory_commands",
+		"ck_active_memories_kind",
+		"'future_event','commitment','temporary_context'",
+		"ck_active_memories_status",
+		"'active','completed','expired','superseded'",
+		"ck_active_memories_time_precision",
+		"'exact','part_of_day','date','range','unknown'",
+		"ck_active_memories_unknown_time",
+		"ck_active_memories_closed_state",
+		"uq_active_memories_active_canonical",
+		"uq_active_memory_revisions_revision",
+		"uq_active_memory_commands_owner_idempotency",
+		"fk_active_memories_source_fact",
+		"fk_active_memory_commands_source_fact",
+		"fk_active_memories_superseded_by",
+		"DEFERRABLE INITIALLY DEFERRED",
+		"ix_active_memories_owner_current",
+		"ix_active_memories_conversation_current",
+		"ix_active_memory_revisions_memory",
+		"policy_version varchar(64) NOT NULL",
+		"command jsonb NOT NULL",
+	} {
+		if !strings.Contains(promptContextMemorySchemaSQL, fragment) {
+			t.Fatalf("0032 Prompt Context migration missing Active Memory contract %q", fragment)
+		}
+	}
+	for _, forbidden := range []string{
+		"ALTER TABLE public.memories ADD COLUMN active_memory",
+		"CREATE TYPE active_memory",
+		"DELETE FROM public.memories",
+	} {
+		if strings.Contains(promptContextMemorySchemaSQL, forbidden) {
+			t.Fatalf("0032 Prompt Context migration conflates durable and Active Memory via %q", forbidden)
+		}
+	}
+}
+
+func TestPromptContextMemoryMigrationAddsSourceBoundedConversationSummaryProjection(t *testing.T) {
+	for _, fragment := range []string{
+		"CREATE TABLE IF NOT EXISTS public.conversation_summaries",
+		"owner_fluctlight_id varchar(128) NOT NULL",
+		"conversation_id varchar(128) NOT NULL",
+		"from_sequence integer NOT NULL",
+		"to_sequence integer NOT NULL",
+		"source_message_refs jsonb NOT NULL",
+		"source_digest varchar(128) NOT NULL",
+		"status IN ('active','superseded')",
+		"supersedes_summary_id varchar(128)",
+		"provider_endpoint_id varchar(128) NOT NULL",
+		"provider_request_id varchar(128) NOT NULL",
+		"prompt_version varchar(64) NOT NULL",
+		"schema_version varchar(64) NOT NULL",
+		"policy_version varchar(64) NOT NULL",
+		"request_digest varchar(128) NOT NULL",
+		"ck_conversation_summaries_window",
+		"fk_conversation_summaries_conversation",
+		"fk_conversation_summaries_supersedes",
+		"DEFERRABLE INITIALLY DEFERRED",
+		"uq_conversation_summaries_active_window",
+		"ix_conversation_summaries_current",
+		"ix_conversation_summaries_source_digest",
+	} {
+		if !strings.Contains(promptContextMemorySchemaSQL, fragment) {
+			t.Fatalf("0032 Prompt Context migration missing Conversation Summary contract %q", fragment)
+		}
+	}
+	for _, forbidden := range []string{
+		"UPDATE public.conversation_messages SET text",
+		"DELETE FROM public.conversation_messages",
+		"CREATE TABLE IF NOT EXISTS public.summary_raw_history",
+	} {
+		if strings.Contains(promptContextMemorySchemaSQL, forbidden) {
+			t.Fatalf("0032 Conversation Summary migration rewrites Raw History via %q", forbidden)
+		}
+	}
+}
+
+func TestPromptContextMemoryMigrationAddsValidatedModelPromptBudgets(t *testing.T) {
+	for _, fragment := range []string{
+		"context_window_tokens integer NOT NULL DEFAULT 65536",
+		"max_input_tokens integer NOT NULL DEFAULT 49152",
+		"prompt_budget_policy_version varchar(64) NOT NULL DEFAULT 'prompt-budget.v1'",
+		"ck_model_roles_prompt_budget",
+		"max_input_tokens + token_budget + 4096 <= context_window_tokens",
+		"invalid model role budget(s)",
+	} {
+		if !strings.Contains(schemaSQL, fragment) && !strings.Contains(promptContextMemorySchemaSQL, fragment) {
+			t.Fatalf("model prompt budget migration missing %q", fragment)
+		}
+	}
+	if !strings.Contains(promptContextMemorySchemaSQL, "ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS context_window_tokens") || !strings.Contains(promptContextMemorySchemaSQL, "ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS max_input_tokens") || !strings.Contains(promptContextMemorySchemaSQL, "ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS prompt_budget_policy_version") {
+		t.Fatalf("0032 model prompt budget ALTER contract is incomplete: %s", promptContextMemorySchemaSQL)
+	}
+}
+
+func TestPromptContextMemoryMigrationAddsPromptDiagnosticsMetrics(t *testing.T) {
+	for _, fragment := range []string{
+		"diagnostic_model_runs ADD COLUMN IF NOT EXISTS fluctlight_id",
+		"diagnostic_model_runs ADD COLUMN IF NOT EXISTS metrics jsonb NOT NULL DEFAULT '{}'",
+		"diagnostic_model_runs ADD COLUMN IF NOT EXISTS estimated_input_tokens",
+		"diagnostic_model_runs ADD COLUMN IF NOT EXISTS actual_prompt_tokens",
+		"diagnostic_model_runs ADD COLUMN IF NOT EXISTS actual_completion_tokens",
+		"diagnostic_model_runs ADD COLUMN IF NOT EXISTS latency_ms",
+		"ix_diagnostic_model_runs_fluctlight_created",
+		"ck_diagnostic_model_runs_prompt_metrics",
+		"jsonb_typeof(metrics)='object'",
+	} {
+		if !strings.Contains(promptContextMemorySchemaSQL, fragment) {
+			t.Fatalf("0032 prompt diagnostics migration missing %q", fragment)
+		}
 	}
 }
 
@@ -283,8 +430,8 @@ func TestMigrationBridgeAcceptsOnlyReleasedHead(t *testing.T) {
 	if Head == ReleasedHead {
 		t.Fatal("bridge head must differ from current Go head")
 	}
-	if PreviousHead != LifeContextRevisionHead || PreviousHead == Head || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
-		t.Fatalf("Evolution/Life/Memory/Affect/Project Health migration chain is invalid: previous=%q life=%q memory=%q affect=%q project_health=%q head=%q", PreviousHead, LifeContextRevisionHead, MemoryLifecycleHead, AffectCanonicalHead, ProjectHealthHead, Head)
+	if PreviousHead != EvolutionAuthorityHead || PreviousHead == Head || EvolutionAuthorityHead == LifeContextRevisionHead || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
+		t.Fatalf("Prompt/Evolution/Life/Memory/Affect/Project Health migration chain is invalid: previous=%q evolution=%q life=%q memory=%q affect=%q project_health=%q head=%q", PreviousHead, EvolutionAuthorityHead, LifeContextRevisionHead, MemoryLifecycleHead, AffectCanonicalHead, ProjectHealthHead, Head)
 	}
 	if CapabilityRuntimePreviousHead != "0025_llm_queue" || CapabilityRuntimeHead != "0026_capability_runtime" {
 		t.Fatalf("capability migration chain is invalid: previous=%q head=%q", CapabilityRuntimePreviousHead, CapabilityRuntimeHead)

@@ -5,6 +5,17 @@ package core
 // also generates a daily schedule), so role-only schemas are too permissive
 // and allow the model to echo unrelated context.
 
+func conversationSummaryProviderSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"schema_version": enumStringSchema(conversationSummarySchemaVersion),
+		"summary":        map[string]any{"type": "string", "minLength": 1, "maxLength": conversationSummaryMaxRunes},
+	}, []string{"schema_version", "summary"}, false)
+}
+
+func queryContinuationResponseSchema() map[string]any {
+	return objectSchema(map[string]any{"visible_text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}}, []string{"visible_text"}, false)
+}
+
 func objectSchema(properties map[string]any, required []string, additionalProperties bool) map[string]any {
 	result := map[string]any{"type": "object", "properties": properties, "additionalProperties": additionalProperties}
 	if len(required) > 0 {
@@ -197,6 +208,7 @@ func cognitiveTurnResponseSchema() map[string]any {
 		"evidence_refs":     arraySchema(stringSchema()),
 	}, []string{"decision", "from_profile_id", "target_profile_id", "trigger_id", "reason", "confidence", "evidence_refs"}, false)
 	properties := map[string]any{
+		"response_mode":              enumStringSchema("final", "query_continuation"),
 		"action_type":                enumStringSchema("reply"),
 		"response_intent":            stringSchema(),
 		"visible_text":               stringSchema(),
@@ -220,7 +232,7 @@ func cognitiveTurnResponseSchema() map[string]any {
 	// text may arrive in this object or through conversation.reply, but the same
 	// Main cognition must select reply and the application validates concrete
 	// output before any effect is committed.
-	return objectSchema(properties, []string{"action_type", "response_intent", "tool_calls", "influences"}, false)
+	return objectSchema(properties, []string{"response_mode", "action_type", "response_intent", "tool_calls", "influences"}, false)
 }
 
 func dailyReviewResponseSchema() map[string]any {
@@ -299,6 +311,13 @@ func scheduleResponseSchema() map[string]any {
 func reflectionProposalV2ProviderSchema() map[string]any {
 	evidenceRefs := map[string]any{"type": "array", "minItems": 1, "maxItems": 64, "items": map[string]any{"type": "string", "minLength": 1, "maxLength": 256}}
 	contextRef := map[string]any{"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes}
+	activeMemoryCandidate := objectSchema(map[string]any{
+		"operation": enumStringSchema("create", "confirm", "revise", "complete", "expire", "supersede"), "target_ref": contextRef,
+		"kind": enumStringSchema("future_event", "commitment", "temporary_context"), "content": stringSchema(),
+		"confidence": unitNumberSchema(), "importance": unitNumberSchema(), "original_time_expression": stringSchema(),
+		"valid_from": stringSchema(), "valid_until": stringSchema(), "time_precision": enumStringSchema("exact", "part_of_day", "date", "range", "unknown"),
+		"evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
+	}, []string{"operation", "confidence", "importance", "evidence_refs", "semantic_reason"}, false)
 	memoryCandidate := objectSchema(map[string]any{
 		"operation": enumStringSchema("create", "confirm", "revise", "merge", "supersede", "deprecate"), "target_ref": contextRef,
 		"merge_refs": arraySchema(contextRef), "type": enumStringSchema("episodic", "semantic", "relationship", "autobiographical"),
@@ -344,12 +363,12 @@ func reflectionProposalV2ProviderSchema() map[string]any {
 		"confidence": unitNumberSchema(), "evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
 	}, []string{"field_path", "direction", "strength", "confidence", "evidence_refs", "semantic_reason"}, false)
 	return objectSchema(map[string]any{
-		"schema_version": stringSchema(), "summary": stringSchema(), "memory_candidates": arraySchema(memoryCandidate),
+		"schema_version": stringSchema(), "summary": stringSchema(), "active_memory_candidates": arraySchema(activeMemoryCandidate), "memory_candidates": arraySchema(memoryCandidate),
 		"relationship_observations": arraySchema(relationshipObservation), "goal_candidates": arraySchema(goalCandidate), "intention_candidates": arraySchema(intentionCandidate),
 		"emotional_summary": emotionalSummary, "affect_recalibration_candidates": arraySchema(affectCandidate), "drive_candidates": arraySchema(slotCandidate),
 		"preference_candidates": arraySchema(slotCandidate), "trigger_candidates": arraySchema(slotCandidate), "developing_self_candidates": arraySchema(selfCandidate),
 		"personality_evolution_candidates": arraySchema(overlayCandidate), "behavior_policy_evolution_candidates": arraySchema(overlayCandidate),
-	}, []string{"schema_version", "summary", "memory_candidates", "relationship_observations", "goal_candidates", "intention_candidates", "emotional_summary", "affect_recalibration_candidates", "drive_candidates", "preference_candidates", "trigger_candidates", "developing_self_candidates", "personality_evolution_candidates", "behavior_policy_evolution_candidates"}, false)
+	}, []string{"schema_version", "summary", "active_memory_candidates", "memory_candidates", "relationship_observations", "goal_candidates", "intention_candidates", "emotional_summary", "affect_recalibration_candidates", "drive_candidates", "preference_candidates", "trigger_candidates", "developing_self_candidates", "personality_evolution_candidates", "behavior_policy_evolution_candidates"}, false)
 }
 
 func initializationResponseSchema() map[string]any {

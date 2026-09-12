@@ -41,14 +41,16 @@ func TestCapabilityArchitectureGuardHasNoLegacyRuntimeSymbols(t *testing.T) {
 func TestAllBuiltinDefinitionsExposeExpectedThinRequiredInputs(t *testing.T) {
 	registry := mustCapabilityRegistry(
 		conversationReplyCapability{}, momentPublishCapability{}, imageGenerateCapability{}, visualIdentityInitializeCapability{},
-		sceneEventCapability{}, presenceEventCapability{}, scheduleReplanCapability{}, memoryEventCapability{}, affectEventCapability{},
+		sceneEventCapability{}, presenceEventCapability{}, scheduleReplanCapability{}, memoryEventCapability{}, activeMemoryEventCapability{}, memoryRecallCapability{}, affectEventCapability{},
 		relationshipLookupCapability{}, capabilityRequestCapability{},
 	)
 	want := map[string][]string{
 		"conversation.reply": {"text"}, "moment.publish": {"text"}, "media.image.generate": {"intent"},
 		"visual_identity.initialize": {}, "scene_event": {"operation", "confidence"}, "presence_event": {"confidence"},
 		"schedule.replan": {"intent"}, "memory_event": {"content", "type", "confidence", "importance"},
-		"affect_event": {"event"}, "relationship.lookup": {"target_actor_id"},
+		"active_memory_event": {"operation"},
+		"memory.recall":       {"intent"},
+		"affect_event":        {"event"}, "relationship.lookup": {"target_actor_id"},
 		"capability.request": {"capability_key", "title", "description", "rationale"},
 	}
 	for name, required := range want {
@@ -73,7 +75,7 @@ func TestAllBuiltinDefinitionsExposeExpectedThinRequiredInputs(t *testing.T) {
 func TestAllBuiltinDefinitionsAcceptMinimalProviderInput(t *testing.T) {
 	registry := mustCapabilityRegistry(
 		conversationReplyCapability{}, momentPublishCapability{}, imageGenerateCapability{}, visualIdentityInitializeCapability{},
-		sceneEventCapability{}, presenceEventCapability{}, scheduleReplanCapability{}, memoryEventCapability{}, affectEventCapability{},
+		sceneEventCapability{}, presenceEventCapability{}, scheduleReplanCapability{}, memoryEventCapability{}, activeMemoryEventCapability{}, memoryRecallCapability{}, affectEventCapability{},
 		relationshipLookupCapability{}, capabilityRequestCapability{},
 	)
 	minimal := map[string]map[string]any{
@@ -85,6 +87,8 @@ func TestAllBuiltinDefinitionsAcceptMinimalProviderInput(t *testing.T) {
 		"presence_event":             {"user_presence": "available", "confidence": 0.8},
 		"schedule.replan":            {"intent": "move the afternoon plan"},
 		"memory_event":               {"content": "a durable fact", "type": "episodic", "confidence": 0.8, "importance": 0.5},
+		"active_memory_event":        {"operation": "create", "kind": "temporary_context", "content": "waiting this week", "confidence": 0.8, "original_time_expression": "waiting this week", "time_precision": "unknown"},
+		"memory.recall":              {"intent": "find an older fact"},
 		"affect_event":               {"event": map[string]any{"type": "calm", "confidence": 0.8}},
 		"relationship.lookup":        {"target_actor_id": "actor_user"},
 		"capability.request":         {"capability_key": "calendar.read", "title": "Calendar", "description": "Read calendar", "rationale": "Need schedule context"},
@@ -104,7 +108,7 @@ func TestAllBuiltinDefinitionsAcceptMinimalProviderInput(t *testing.T) {
 func TestBuiltinDefinitionRequiredFieldsAreDeclared(t *testing.T) {
 	registry := mustCapabilityRegistry(
 		conversationReplyCapability{}, momentPublishCapability{}, imageGenerateCapability{}, visualIdentityInitializeCapability{},
-		sceneEventCapability{}, presenceEventCapability{}, scheduleReplanCapability{}, memoryEventCapability{}, affectEventCapability{},
+		sceneEventCapability{}, presenceEventCapability{}, scheduleReplanCapability{}, memoryEventCapability{}, activeMemoryEventCapability{}, memoryRecallCapability{}, affectEventCapability{},
 		relationshipLookupCapability{}, capabilityRequestCapability{},
 	)
 	for _, definition := range registry.Definitions() {
@@ -244,6 +248,8 @@ func TestBuiltInCapabilityExecutionClassesUseGenericMetadataAndInterfaces(t *tes
 		"presence_event":             CapabilityExecutionTransactionalMutation,
 		"schedule.replan":            CapabilityExecutionTransactionalMutation,
 		"memory_event":               CapabilityExecutionTransactionalMutation,
+		"active_memory_event":        CapabilityExecutionTransactionalMutation,
+		"memory.recall":              CapabilityExecutionPureQuery,
 		"affect_event":               CapabilityExecutionTransactionalMutation,
 		"capability.request":         CapabilityExecutionTransactionalMutation,
 	}
@@ -577,13 +583,13 @@ func TestImagePreparePersistsPreparedPayloadWithContextSnapshot(t *testing.T) {
 	}
 }
 
-func TestBuiltinRegistryContainsExactlyElevenDirectCapabilities(t *testing.T) {
+func TestBuiltinRegistryContainsExactlyThirteenDirectCapabilities(t *testing.T) {
 	registry := mustCapabilityRegistry(
 		conversationReplyCapability{}, momentPublishCapability{}, imageGenerateCapability{}, visualIdentityInitializeCapability{},
-		sceneEventCapability{}, presenceEventCapability{}, scheduleReplanCapability{}, memoryEventCapability{}, affectEventCapability{},
+		sceneEventCapability{}, presenceEventCapability{}, scheduleReplanCapability{}, memoryEventCapability{}, activeMemoryEventCapability{}, memoryRecallCapability{}, affectEventCapability{},
 		relationshipLookupCapability{}, capabilityRequestCapability{},
 	)
-	if got := len(registry.Definitions()); got != 11 {
+	if got := len(registry.Definitions()); got != 13 {
 		t.Fatalf("builtin definition count = %d", got)
 	}
 	for _, definition := range registry.Definitions() {
@@ -843,7 +849,7 @@ func TestProductionCapabilityCatalogKeepsImplementationFieldsOutOfProviderSchema
 	registry := mustCapabilityRegistry(
 		conversationReplyCapability{}, momentPublishCapability{}, imageGenerateCapability{},
 		visualIdentityInitializeCapability{}, sceneEventCapability{}, scheduleReplanCapability{},
-		presenceEventCapability{}, memoryEventCapability{}, affectEventCapability{},
+		presenceEventCapability{}, memoryEventCapability{}, activeMemoryEventCapability{}, memoryRecallCapability{}, affectEventCapability{},
 		relationshipLookupCapability{}, capabilityRequestCapability{},
 	)
 	for _, definition := range registry.Catalog(CapabilitySurfaceConversation) {
@@ -1017,14 +1023,14 @@ func TestImageCapabilityUsesStableDurableIdentitiesOnReplay(t *testing.T) {
 	}
 }
 
-func TestCapabilityRuntimeStaticGuardsPreserveSingleCognitionAndGenericDispatch(t *testing.T) {
+func TestCapabilityRuntimeStaticGuardsPreserveActionSingleCognitionAndGenericQueryContinuation(t *testing.T) {
 	data, err := os.ReadFile("mutations.go")
 	if err != nil {
 		t.Fatal(err)
 	}
 	source := string(data)
-	if strings.Count(source, "StructuredWithToolsSchema(") != 1 || strings.Contains(source, `{"role": "tool"}`) {
-		t.Fatal("conversation flow must use one cognition call and no same-turn role=tool continuation")
+	if strings.Count(source, "StructuredAssembledWithToolsSchema(") != 1 || strings.Count(source, "StructuredQueryContinuation(") != 2 || strings.Contains(source, `invocation.CapabilityName ==`) {
+		t.Fatal("conversation flow must keep one Main call and only the generic query-continuation call sites")
 	}
 	if strings.Contains(source, "toolOnlyCognitionAppraisal") || !strings.Contains(source, `decision["cognitive_state_transition"] = "not_proposed"`) {
 		t.Fatal("capability-only turns must skip state transition without fabricating an appraisal")

@@ -650,6 +650,37 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 	if timeout <= 0 {
 		timeout = 120
 	}
+	contextWindowTokens := 0
+	maxInputTokens := 0
+	promptBudgetPolicyVersion := ""
+	_ = a.DB.Pool().QueryRow(ctx, `SELECT context_window_tokens,max_input_tokens,prompt_budget_policy_version FROM public.model_roles WHERE role=$1`, bindingRole).Scan(&contextWindowTokens, &maxInputTokens, &promptBudgetPolicyVersion)
+	if raw, present := payload["context_window_tokens"]; present {
+		contextWindowTokens = intValue(raw)
+		if contextWindowTokens <= 0 {
+			return errors.New("provider_prompt_budget_invalid")
+		}
+	} else if contextWindowTokens <= 0 {
+		contextWindowTokens = defaultContextWindowTokens
+	}
+	if raw, present := payload["max_input_tokens"]; present {
+		maxInputTokens = intValue(raw)
+		if maxInputTokens <= 0 {
+			return errors.New("provider_prompt_budget_invalid")
+		}
+	} else if maxInputTokens <= 0 {
+		maxInputTokens = defaultMaxInputTokens
+	}
+	if raw, present := payload["prompt_budget_policy_version"]; present {
+		promptBudgetPolicyVersion = strings.TrimSpace(stringValue(raw))
+		if promptBudgetPolicyVersion == "" {
+			return errors.New("prompt_budget_policy_unknown")
+		}
+	} else if strings.TrimSpace(promptBudgetPolicyVersion) == "" {
+		promptBudgetPolicyVersion = promptBudgetPolicyVersionV1
+	}
+	if err := validatePromptBudgetConfiguration(contextWindowTokens, maxInputTokens, budget, promptBudgetPolicyVersion); err != nil {
+		return err
+	}
 	var endpointExists bool
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.provider_endpoints WHERE id=$1)`, endpoint).Scan(&endpointExists); err != nil {
 		return err
@@ -672,7 +703,7 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 		return errors.New("provider_model_not_available")
 	}
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(role) DO UPDATE SET provider_endpoint_id=excluded.provider_endpoint_id,model_id=excluded.model_id,token_budget=excluded.token_budget,timeout_seconds=excluded.timeout_seconds,required_capabilities=excluded.required_capabilities,retry_policy=excluded.retry_policy`, bindingRole, endpoint, model, budget, timeout, stringValue(payload["required_capabilities"]), jsonString(mapValue(payload["retry_policy"]))); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy,context_window_tokens,max_input_tokens,prompt_budget_policy_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(role) DO UPDATE SET provider_endpoint_id=excluded.provider_endpoint_id,model_id=excluded.model_id,token_budget=excluded.token_budget,timeout_seconds=excluded.timeout_seconds,required_capabilities=excluded.required_capabilities,retry_policy=excluded.retry_policy,context_window_tokens=excluded.context_window_tokens,max_input_tokens=excluded.max_input_tokens,prompt_budget_policy_version=excluded.prompt_budget_policy_version`, bindingRole, endpoint, model, budget, timeout, stringValue(payload["required_capabilities"]), jsonString(mapValue(payload["retry_policy"])), contextWindowTokens, maxInputTokens, promptBudgetPolicyVersion); err != nil {
 			return err
 		}
 		preflightID := "provider_preflight_" + stableDigest(bindingRole+":"+endpoint+":"+model)

@@ -288,6 +288,8 @@ func workflowFunction(intentType string) (any, error) {
 		return IntentionTriggerWorkflow, nil
 	case "memory.embedding":
 		return MemoryEmbeddingWorkflow, nil
+	case "conversation.summary":
+		return ConversationSummaryWorkflow, nil
 	case "cognition.processing":
 		return CognitionProcessingWorkflow, nil
 	case "platform.control":

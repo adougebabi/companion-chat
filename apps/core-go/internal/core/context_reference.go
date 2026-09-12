@@ -27,6 +27,7 @@ type ContextReferenceKind string
 
 const (
 	ContextReferenceMemory           ContextReferenceKind = "memory"
+	ContextReferenceActiveMemory     ContextReferenceKind = "active_memory"
 	ContextReferenceRelationship     ContextReferenceKind = "relationship"
 	ContextReferenceGoal             ContextReferenceKind = "goal"
 	ContextReferenceIntention        ContextReferenceKind = "intention"
@@ -47,7 +48,7 @@ const (
 
 var (
 	validContextReferenceKinds = map[ContextReferenceKind]struct{}{
-		ContextReferenceMemory: {}, ContextReferenceRelationship: {}, ContextReferenceGoal: {},
+		ContextReferenceMemory: {}, ContextReferenceActiveMemory: {}, ContextReferenceRelationship: {}, ContextReferenceGoal: {},
 		ContextReferenceIntention: {}, ContextReferenceScene: {}, ContextReferenceLifeContext: {}, ContextReferenceSchedule: {},
 		ContextReferenceScheduleItem: {}, ContextReferencePresence: {}, ContextReferenceState: {},
 		ContextReferenceAffectProfile: {}, ContextReferenceDevelopingSelf: {}, ContextReferenceDrive: {},
@@ -205,6 +206,35 @@ func addReferenceToRow(index *ContextReferenceIndex, kind ContextReferenceKind, 
 	}
 	row["ref"] = ref
 	return ref, nil
+}
+
+// addActiveMemoryReferences extends an already frozen decision index without
+// adding Active Memory to ContextProjection prematurely. S07 owns the actual
+// projection field and prompt injection; this S03 helper only defines the
+// opaque reference contract shared by retrieval and mutation targets.
+func addActiveMemoryReferences(index *ContextReferenceIndex, rows []map[string]any) error {
+	if index == nil {
+		return errors.New("active_memory_reference_index_missing")
+	}
+	if err := index.Validate(); err != nil {
+		return err
+	}
+	for _, row := range rows {
+		if strings.TrimSpace(stringValue(row["owner_fluctlight_id"])) != index.FluctlightID {
+			return errors.New("active_memory_reference_owner_invalid")
+		}
+		conversationID := strings.TrimSpace(stringValue(row["conversation_id"]))
+		if conversationID != "" && conversationID != index.ConversationID {
+			return errors.New("active_memory_reference_conversation_invalid")
+		}
+		if stringValue(row["status"]) != "active" {
+			return errors.New("active_memory_reference_status_invalid")
+		}
+		if _, err := addReferenceToRow(index, ContextReferenceActiveMemory, row, stringValue(row["id"]), intValue(row["revision"])); err != nil {
+			return err
+		}
+	}
+	return index.Validate()
 }
 
 func buildContextReferenceIndex(projection *ContextProjection) error {

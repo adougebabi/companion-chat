@@ -18,10 +18,13 @@ func TestProjectHealthArchitectureGuardHasNoReflectionV1ProductionSurface(t *tes
 	})
 }
 
-func TestProjectHealthArchitectureGuardHasNoToolRoleOrLegacyDecisionFallback(t *testing.T) {
+func TestProjectHealthArchitectureGuardAllowsToolRoleOnlyInQueryContinuation(t *testing.T) {
 	toolRole := regexp.MustCompile(`(?i)(?:\\?"role\\?"\s*:|\bRole\s*:|\brole\s*(?::=|=))\s*\\?"tool\\?"`)
 	walkProductionGo(t, []string{".", "../workflow", "../../../gateway-go"}, func(path string, source []byte) {
 		if match := toolRole.Find(source); match != nil {
+			if filepath.Base(path) == "query_continuation.go" {
+				return
+			}
 			t.Fatalf("role=tool continuation %q in %s", match, path)
 		}
 	})

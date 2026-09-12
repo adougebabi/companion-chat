@@ -1,9 +1,45 @@
 package core
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestProductionMainCallersUseOnlyPromptContextAssembler(t *testing.T) {
+	for _, name := range []string{"mutations.go", "cognition_growth.go", "autonomy.go", "wakeup.go", "reflection_runtime_v2.go"} {
+		content, err := os.ReadFile(filepath.Clean(name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(content)
+		if !strings.Contains(text, "assembleProjectionPrompt") || !strings.Contains(text, "StructuredAssembledWithToolsSchema") {
+			t.Fatalf("%s does not use the canonical assembler path", name)
+		}
+		for _, forbidden := range []string{"withActorRelationshipSystemContext", `"current_message"`, "compactCognitionContext(projection)", "StructuredWithToolsSchema("} {
+			if strings.Contains(text, forbidden) {
+				t.Fatalf("%s retains legacy Main assembly fragment %q", name, forbidden)
+			}
+		}
+	}
+}
+
+func TestAssembledProviderMessagesRequireOneSystemRealRolesAndFinalUser(t *testing.T) {
+	valid := []map[string]any{{"role": "system", "content": "stable"}, {"role": "user", "content": "runtime"}, {"role": "assistant", "content": "recent"}, {"role": "user", "content": "current"}}
+	if !validAssembledProviderMessages(valid) {
+		t.Fatalf("valid B-layout rejected: %#v", valid)
+	}
+	for name, messages := range map[string][]map[string]any{
+		"tool role":       {{"role": "system", "content": "stable"}, {"role": "tool", "content": "forbidden"}, {"role": "user", "content": "current"}},
+		"second system":   {{"role": "system", "content": "stable"}, {"role": "system", "content": "dynamic"}, {"role": "user", "content": "current"}},
+		"assistant final": {{"role": "system", "content": "stable"}, {"role": "assistant", "content": "not current"}},
+	} {
+		if validAssembledProviderMessages(messages) {
+			t.Fatalf("%s shape was accepted: %#v", name, messages)
+		}
+	}
+}
 
 func TestComposeProviderMessagesSeparatesFixedPersonaAndDynamicContext(t *testing.T) {
 	messages := []map[string]any{

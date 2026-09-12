@@ -96,6 +96,30 @@ func composeProviderMessages(role string, messages []map[string]any) []map[strin
 	return result
 }
 
+func validAssembledProviderMessages(messages []map[string]any) bool {
+	if len(messages) < 2 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[len(messages)-1]["role"]) != "user" {
+		return false
+	}
+	systemCount := 0
+	for index, message := range messages {
+		role := stringValue(message["role"])
+		if strings.TrimSpace(stringValue(message["content"])) == "" {
+			return false
+		}
+		switch role {
+		case "system":
+			systemCount++
+			if index != 0 {
+				return false
+			}
+		case "user", "assistant":
+		default:
+			return false
+		}
+	}
+	return systemCount == 1
+}
+
 // extractEmbeddedActorRelationshipContext handles the merged-system-message
 // shape produced by prependSystemMessage. The relationship JSON may sit
 // between the context authority rule and the operation rule, so it is not a

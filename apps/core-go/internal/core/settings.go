@@ -195,7 +195,7 @@ func (a *App) ProviderBindings(ctx context.Context, actorID string) ([]map[strin
 	if _, err := a.ReadSettings(ctx, actorID); err != nil {
 		return nil, err
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT r.role,r.provider_endpoint_id,r.model_id,r.token_budget,r.timeout_seconds,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role IN ('generic_llm','embedding') ORDER BY r.role`)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT r.role,r.provider_endpoint_id,r.model_id,r.token_budget,r.timeout_seconds,r.context_window_tokens,r.max_input_tokens,r.prompt_budget_policy_version,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role IN ('generic_llm','embedding') ORDER BY r.role`)
 	if err != nil {
 		return nil, err
 	}
@@ -203,12 +203,19 @@ func (a *App) ProviderBindings(ctx context.Context, actorID string) ([]map[strin
 	out := make([]map[string]any, 0)
 	for rows.Next() {
 		var role, endpoint, model string
-		var budget, timeout int
+		var budget, timeout, contextWindowTokens, maxInputTokens int
+		var promptBudgetPolicyVersion string
 		var endpointStatus string
-		if err := rows.Scan(&role, &endpoint, &model, &budget, &timeout, &endpointStatus); err != nil {
+		if err := rows.Scan(&role, &endpoint, &model, &budget, &timeout, &contextWindowTokens, &maxInputTokens, &promptBudgetPolicyVersion, &endpointStatus); err != nil {
 			return nil, err
 		}
-		out = append(out, map[string]any{"role": role, "endpoint_id": endpoint, "model_id": model, "token_budget": budget, "timeout_seconds": timeout, "endpoint_status": endpointStatus})
+		out = append(out, map[string]any{
+			"role": role, "endpoint_id": endpoint, "model_id": model,
+			"token_budget": budget, "output_reserve_tokens": budget, "timeout_seconds": timeout,
+			"context_window_tokens": contextWindowTokens, "max_input_tokens": maxInputTokens,
+			"prompt_budget_policy_version": promptBudgetPolicyVersion, "safety_margin_tokens": defaultPromptSafetyMarginTokens,
+			"endpoint_status": endpointStatus,
+		})
 	}
 	return out, nil
 }
