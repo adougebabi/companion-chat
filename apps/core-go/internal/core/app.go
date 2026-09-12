@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strings"
@@ -35,6 +36,26 @@ type App struct {
 	Storage         *minio.Client
 	S3Bucket        string
 	Redis           redis.UniversalClient
+}
+
+type initializationAnalysisError struct {
+	Code           string
+	CorrelationID  string
+	ValidationType string
+	Path           string
+}
+
+func (e *initializationAnalysisError) Error() string { return e.Code }
+
+func (e *initializationAnalysisError) PublicDetails() map[string]any {
+	details := map[string]any{}
+	if e.CorrelationID != "" {
+		details["correlation_id"] = e.CorrelationID
+	}
+	if e.ValidationType != "" || e.Path != "" {
+		details["validation_error"] = map[string]any{"type": e.ValidationType, "path": e.Path}
+	}
+	return details
 }
 
 // SetRedisClient wires the optional Redis acceleration layers (provider queue
@@ -271,12 +292,44 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 		{"role": "system", "content": "Canonical visual appearance contract: if the description specifies a chest cup, put only the normalized label A/B/C/D in exactly core_persona.life_profile.appearance.chest_cup (example: {\"life_profile\":{\"appearance\":{\"chest_cup\":\"A\"}}}). Do not put cup labels in identity.body_type, identity.build, identity.chest, life_profile.physical_traits, or free-form visible_text. For male or non-applicable bodies, omit chest_cup; the renderer will mark it not_applicable. Keep other appearance fields under life_profile.appearance."},
 		{"role": "user", "content": description},
 	}
-	providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "initialization"), initializationAnalysisCorrelation())
+	correlationID := initializationAnalysisCorrelation()
+	providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "initialization"), correlationID)
 	result, err := a.Provider.Structured(providerCtx, "initialization", messages)
 	if err != nil {
-		return nil, err
+		failure := &initializationAnalysisError{Code: initializationProviderErrorCode(err), CorrelationID: correlationID, ValidationType: "provider", Path: "provider_response"}
+		slog.Default().Warn("Go Core initialization analysis failed", "code", failure.Code, "correlation_id", correlationID, "validation_type", failure.ValidationType, "path", failure.Path)
+		return nil, failure
 	}
-	return prepareInitializationResponse(result)
+	prepared, err := prepareInitializationResponse(result)
+	if err != nil {
+		failure := initializationErrorWithCorrelation(err, correlationID)
+		details := failure.PublicDetails()
+		validation := mapValue(details["validation_error"])
+		slog.Default().Warn("Go Core initialization analysis rejected", "code", failure.Code, "correlation_id", correlationID, "validation_type", validation["type"], "path", validation["path"])
+		return nil, failure
+	}
+	return prepared, nil
+}
+
+func initializationProviderErrorCode(err error) string {
+	code := strings.TrimSpace(err.Error())
+	if code != "" && strings.Contains(code, "_") && !strings.Contains(code, " ") {
+		return code
+	}
+	if strings.Contains(strings.ToLower(code), "role") {
+		return "initialization_role_unconfigured"
+	}
+	return "initialization_provider_unavailable"
+}
+
+func initializationErrorWithCorrelation(err error, correlationID string) *initializationAnalysisError {
+	var failure *initializationAnalysisError
+	if errors.As(err, &failure) {
+		copy := *failure
+		copy.CorrelationID = correlationID
+		return &copy
+	}
+	return &initializationAnalysisError{Code: "initialization_persona_invalid", CorrelationID: correlationID, ValidationType: "semantic_invalid", Path: "initialization"}
 }
 
 func initializationAnalysisCorrelation() string {
@@ -288,9 +341,89 @@ func prepareInitializationResponse(value map[string]any) (map[string]any, error)
 	normalizeFoundationCollections(result)
 	normalizeVisualIdentityFoundation(mapValue(result["core_persona"]))
 	if !hasInitializationEnvelope(result) || !validInitialization(result) {
-		return nil, errors.New("initialization_persona_invalid")
+		validationType, path := initializationValidationDiagnostic(result)
+		return nil, &initializationAnalysisError{Code: "initialization_persona_invalid", ValidationType: validationType, Path: path}
 	}
 	return result, nil
+}
+
+func initializationValidationDiagnostic(value map[string]any) (string, string) {
+	if !isObjectValue(value["core_persona"]) {
+		return "type_invalid", "core_persona"
+	}
+	persona := mapValue(value["core_persona"])
+	for _, key := range []string{"identity", "personality", "behavioral_policy", "life_profile", "personality_system"} {
+		if !isObjectValue(persona[key]) {
+			return "type_invalid", "core_persona." + key
+		}
+	}
+	if timezone := stringValue(mapValue(persona["identity"])["timezone"]); timezone != "" {
+		if _, err := time.LoadLocation(canonicalTimezone(timezone)); err != nil {
+			return "value_invalid", "core_persona.identity.timezone"
+		}
+	}
+	system := mapValue(persona["personality_system"])
+	if mode := stringValue(system["mode"]); mode != "single" && mode != "multiple" {
+		return "value_invalid", "core_persona.personality_system.mode"
+	}
+	profiles, ok := system["profiles"].([]any)
+	if !ok {
+		return "type_invalid", "core_persona.personality_system.profiles"
+	}
+	seen := map[string]struct{}{}
+	for index, raw := range profiles {
+		profile := mapValue(raw)
+		id := stringValue(profile["id"])
+		path := fmt.Sprintf("core_persona.personality_system.profiles[%d].id", index)
+		if id == "" {
+			return "required_value_missing", path
+		}
+		if _, exists := seen[id]; exists {
+			return "duplicate_identity", path
+		}
+		seen[id] = struct{}{}
+	}
+	if active := stringValue(system["active_profile_id"]); active != "" && active != "default" {
+		if _, exists := seen[active]; !exists {
+			return "reference_invalid", "core_persona.personality_system.active_profile_id"
+		}
+	}
+	for _, key := range []string{"initial_goals", "initial_intentions", "initial_relationships"} {
+		if _, ok := value[key].([]any); !ok {
+			return "type_invalid", key
+		}
+	}
+	for index, raw := range arrayValue(value["initial_goals"]) {
+		goal := mapValue(raw)
+		if stringValue(goal["description"]) == "" {
+			return "required_value_missing", fmt.Sprintf("initial_goals[%d].description", index)
+		}
+	}
+	for index, raw := range arrayValue(value["initial_intentions"]) {
+		intention := mapValue(raw)
+		if stringValue(intention["action"]) == "" {
+			return "required_value_missing", fmt.Sprintf("initial_intentions[%d].action", index)
+		}
+		if rawGoal, exists := intention["goal_index"]; exists {
+			goalIndex := intValue(rawGoal)
+			if goalIndex < 0 || goalIndex >= len(arrayValue(value["initial_goals"])) {
+				return "reference_invalid", fmt.Sprintf("initial_intentions[%d].goal_index", index)
+			}
+		}
+	}
+	for index, raw := range arrayValue(value["initial_relationships"]) {
+		relationship := mapValue(raw)
+		if stringValue(relationship["target_actor_id"]) == "" {
+			return "required_value_missing", fmt.Sprintf("initial_relationships[%d].target_actor_id", index)
+		}
+		if _, err := normalizeRelationshipRole(relationship["role"]); err != nil {
+			return "value_invalid", fmt.Sprintf("initial_relationships[%d].role", index)
+		}
+		if _, err := validateRelationshipMetrics(relationship["metrics"]); err != nil {
+			return "value_invalid", fmt.Sprintf("initial_relationships[%d].metrics", index)
+		}
+	}
+	return "semantic_invalid", "initialization"
 }
 
 func hasInitializationEnvelope(value map[string]any) bool {

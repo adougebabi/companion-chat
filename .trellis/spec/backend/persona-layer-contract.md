@@ -99,6 +99,7 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 | Initialization returns a structured fallback with no usable fields | Produce the safe default Foundation and keep it editable before activation; do not fail solely because fields are absent. |
 | Local Provider receives complex multi-personality initialization | Use `json_object` plus the canonical prompt skeleton; do not use the full initialization JSON Schema constrained decoder. |
 | Model returns known mechanical aliases | Map them to canonical fields before defaults and reference validation. |
+| Normalized initialization still contains an explicit invalid value/reference/type | Return `initialization_persona_invalid` with safe `details.correlation_id` and `details.validation_error.{type,path}`; log only those fields, never the Persona payload. |
 | Initialization explicitly returns an invalid timezone, duplicate/blank profile identity, bad goal/relationship reference, or out-of-range governed value | Reject with `initialization_persona_invalid`; do not overwrite the explicit invalid value with a default. |
 | Owner submits the same description as a new analysis attempt | Use a fresh correlation and Provider idempotency identity; do not reuse a prior invalid completion. |
 | Blank-slate request supplies non-empty layered foundation | Reject with `blank_slate_foundation_forbidden` |
@@ -143,7 +144,8 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   validation, preservation of relationship seeds, flat/grouped collection
   normalization, missing personality/profile default completion, explicit
   invalid-value rejection, structured fallback completion, unique per-attempt
-  correlation, mechanical alias mapping, and atomic claim creation.
+  correlation, mechanical alias mapping, safe validation path/details, and
+  atomic claim creation.
 - Live initialization regression calls the configured LLM with a complex
   two-profile description and asserts distinct non-empty raw profiles before
   Core default completion. A local mock is not acceptance evidence.

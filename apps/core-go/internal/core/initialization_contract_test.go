@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -38,8 +39,24 @@ func TestPrepareInitializationResponseFillsMissingPersonaFieldsWithDefaults(t *t
 func TestPrepareInitializationResponseStillRejectsExplicitInvalidValues(t *testing.T) {
 	value := map[string]any{"core_persona": defaultCorePersona("", "影者")}
 	mapValue(mapValue(value["core_persona"])["identity"])["timezone"] = "Mars/Olympus"
-	if _, err := prepareInitializationResponse(value); err == nil || err.Error() != "initialization_persona_invalid" {
+	_, err := prepareInitializationResponse(value)
+	var failure *initializationAnalysisError
+	if err == nil || err.Error() != "initialization_persona_invalid" || !errors.As(err, &failure) {
 		t.Fatalf("explicit invalid timezone err=%v", err)
+	}
+	details := failure.PublicDetails()
+	validation := mapValue(details["validation_error"])
+	if stringValue(validation["type"]) != "value_invalid" || stringValue(validation["path"]) != "core_persona.identity.timezone" {
+		t.Fatalf("invalid timezone details=%#v", details)
+	}
+}
+
+func TestInitializationErrorAddsCorrelationWithoutExposingPayload(t *testing.T) {
+	failure := initializationErrorWithCorrelation(&initializationAnalysisError{Code: "initialization_persona_invalid", ValidationType: "reference_invalid", Path: "initial_intentions[0].goal_index"}, "initialization-analysis:test")
+	details := failure.PublicDetails()
+	validation := mapValue(details["validation_error"])
+	if stringValue(details["correlation_id"]) != "initialization-analysis:test" || stringValue(validation["path"]) != "initial_intentions[0].goal_index" || strings.Contains(jsonString(details), "core_persona") {
+		t.Fatalf("public initialization details=%#v", details)
 	}
 }
 

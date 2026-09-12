@@ -444,7 +444,11 @@ func (s *Server) analyzeCreation(response http.ResponseWriter, request *http.Req
 		if !strings.Contains(code, "_") || strings.Contains(code, " ") {
 			code = "initialization_persona_invalid"
 		}
-		writeError(response, http.StatusUnprocessableEntity, code)
+		if detailed, ok := err.(interface{ PublicDetails() map[string]any }); ok {
+			writeErrorDetails(response, http.StatusUnprocessableEntity, code, detailed.PublicDetails())
+		} else {
+			writeError(response, http.StatusUnprocessableEntity, code)
+		}
 		return
 	}
 	writeJSON(response, http.StatusOK, value)
