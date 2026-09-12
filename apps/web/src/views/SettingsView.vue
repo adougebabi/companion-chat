@@ -23,7 +23,7 @@ const providerRoles = [
   { value: "generic_llm", label: "通用 LLM" }, { value: "embedding", label: "Embedding" },
 ] as const;
 const selectedProviderRole = ref<(typeof providerRoles)[number]["value"]>("generic_llm");
-const roleEndpointId = ref(""); const roleModelId = ref(""); const roleTokenBudget = ref(2048); const roleTimeoutSeconds = ref(60);
+const roleEndpointId = ref(""); const roleModelId = ref(""); const roleTokenBudget = ref(4096); const roleTimeoutSeconds = ref(60);
 const endpointPickerId = ref(""); const endpointId = ref("primary"); const endpointUrl = ref(""); const endpointSecret = ref(""); const providerKind = ref("openai-compatible");
 const comfyUiUrl = ref(""); const comfyUiWorkflow = ref(""); const changedOwnerPassword = ref(""); const llmQueueSettingsJson = ref("");
 const visualIdentityWorkflow = ref("");
@@ -51,7 +51,7 @@ function parseWorkflowTemplate(raw: string): Record<string, unknown> {
 }
 
 function selectEndpoint(id: string) { endpointPickerId.value = id; const endpoint = controlCenter.providerEndpoints.find((item) => item.id === id); if (!endpoint) return; endpointId.value = endpoint.id; endpointUrl.value = endpoint.base_url; providerKind.value = endpoint.kind; endpointSecret.value = ""; }
-async function selectRole(role: (typeof providerRoles)[number]["value"]) { selectedProviderRole.value = role; const binding = controlCenter.providerBindings.find((item) => item.role === role); roleEndpointId.value = binding?.endpoint_id ?? controlCenter.providerEndpoints.find((item) => item.id === "primary")?.id ?? controlCenter.providerEndpoints[0]?.id ?? ""; roleModelId.value = binding?.model_id ?? ""; roleTokenBudget.value = binding?.token_budget ?? 2048; roleTimeoutSeconds.value = binding?.timeout_seconds ?? 60; await controlCenter.loadProviderModels(roleEndpointId.value); }
+async function selectRole(role: (typeof providerRoles)[number]["value"]) { selectedProviderRole.value = role; const binding = controlCenter.providerBindings.find((item) => item.role === role); roleEndpointId.value = binding?.endpoint_id ?? controlCenter.providerEndpoints.find((item) => item.id === "primary")?.id ?? controlCenter.providerEndpoints[0]?.id ?? ""; roleModelId.value = binding?.model_id ?? ""; roleTokenBudget.value = binding?.token_budget ?? 4096; roleTimeoutSeconds.value = binding?.timeout_seconds ?? 60; await controlCenter.loadProviderModels(roleEndpointId.value); }
 function handleRoleChange(value: string | number) { if (typeof value !== "string") return; const role = providerRoles.find((item) => item.value === value)?.value; if (role) void selectRole(role); }
 function handleRoleEndpointChange(value: unknown) { if (typeof value !== "string") return; roleEndpointId.value = value; void controlCenter.loadProviderModels(value); }
 function handleEndpointPickerChange(value: unknown) { if (typeof value !== "string") return; if (value === manualEndpointValue) { endpointPickerId.value = ""; return; } selectEndpoint(value); }

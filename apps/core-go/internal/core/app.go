@@ -269,16 +269,23 @@ func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[s
 		{"role": "system", "content": "Canonical visual appearance contract: if the description specifies a chest cup, put only the normalized label A/B/C/D in exactly core_persona.life_profile.appearance.chest_cup (example: {\"life_profile\":{\"appearance\":{\"chest_cup\":\"A\"}}}). Do not put cup labels in identity.body_type, identity.build, identity.chest, life_profile.physical_traits, or free-form visible_text. For male or non-applicable bodies, omit chest_cup; the renderer will mark it not_applicable. Keep other appearance fields under life_profile.appearance."},
 		{"role": "user", "content": description},
 	}
-	result, err := a.Provider.Structured(WithProviderScenario(ctx, "initialization"), "initialization", messages)
+	providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "initialization"), initializationAnalysisCorrelation())
+	result, err := a.Provider.Structured(providerCtx, "initialization", messages)
 	if err != nil {
 		return nil, err
 	}
-	if !hasInitializationEnvelope(result) {
-		return nil, errors.New("initialization_persona_invalid")
-	}
-	result = normalizeInitializationResponse(result)
+	return prepareInitializationResponse(result)
+}
+
+func initializationAnalysisCorrelation() string {
+	return randomID("initialization-analysis:")
+}
+
+func prepareInitializationResponse(value map[string]any) (map[string]any, error) {
+	result := normalizeInitializationResponse(value)
+	normalizeFoundationCollections(result)
 	normalizeVisualIdentityFoundation(mapValue(result["core_persona"]))
-	if !validInitialization(result) {
+	if !hasInitializationEnvelope(result) || !validInitialization(result) {
 		return nil, errors.New("initialization_persona_invalid")
 	}
 	return result, nil
@@ -505,6 +512,12 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 	if _, ok := result["schema_version"]; !ok {
 		result["schema_version"] = 2
 	}
+	normalizeInitializationPersonaStructure(mapValue(result["core_persona"]))
+	if raw, exists := result["developing_self"]; !exists || raw == nil {
+		result["developing_self"] = map[string]any{"claims": []any{}}
+	} else if developingSelf, ok := raw.(map[string]any); ok && developingSelf["claims"] == nil {
+		developingSelf["claims"] = []any{}
+	}
 	if _, ok := result["initial_relationships"]; !ok {
 		if raw, exists := result["relationships"]; exists {
 			result["initial_relationships"] = raw
@@ -515,7 +528,6 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 		} else {
 			lifeProfile := mapValue(mapValue(result["core_persona"])["life_profile"])
 			result["initial_relationships"] = lifeProfile["relationship_seeds"]
-			delete(lifeProfile, "relationship_seeds")
 		}
 	}
 	if result["initial_relationships"] == nil {
@@ -558,6 +570,62 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 	normalizePersonalityProfiles(mapValue(persona["personality_system"]))
 	result["extensions"] = extensions
 	return result
+}
+
+func normalizeInitializationPersonaStructure(persona map[string]any) {
+	if len(persona) == 0 {
+		return
+	}
+	if _, ok := persona["schema_version"]; !ok {
+		persona["schema_version"] = 1
+	}
+	if identity, ok := persona["identity"].(map[string]any); ok && len(identity) > 0 {
+		defaults := defaultIdentity("", stringValue(identity["name"]))
+		for _, key := range []string{"age", "gender", "occupation", "residence", "timezone", "birthday", "background", "biography", "core_values", "worldview", "notes"} {
+			if _, exists := identity[key]; !exists {
+				if key == "timezone" {
+					identity[key] = nil
+				} else {
+					identity[key] = defaults[key]
+				}
+			}
+		}
+	}
+	if lifeProfile, ok := persona["life_profile"].(map[string]any); ok {
+		for key, value := range defaultLifeProfile() {
+			if _, exists := lifeProfile[key]; !exists {
+				lifeProfile[key] = value
+			}
+		}
+	}
+	rawSystem, systemExists := persona["personality_system"]
+	if !systemExists || rawSystem == nil {
+		persona["personality_system"] = defaultPersonalitySystem()
+		return
+	}
+	system, systemIsObject := rawSystem.(map[string]any)
+	if !systemIsObject {
+		return
+	}
+	if len(system) == 0 {
+		persona["personality_system"] = defaultPersonalitySystem()
+		return
+	}
+	profiles := arrayValue(system["profiles"])
+	defaults := defaultPersonalitySystem()
+	for _, key := range []string{"profiles", "switching", "influence", "conflict_resolution", "integration", "behavior_state_machine", "extensions"} {
+		if _, exists := system[key]; !exists {
+			system[key] = defaults[key]
+		}
+	}
+	if len(profiles) == 0 {
+		if _, exists := system["mode"]; !exists {
+			system["mode"] = "single"
+		}
+		if strings.TrimSpace(stringValue(system["active_profile_id"])) == "" {
+			system["active_profile_id"] = "default"
+		}
+	}
 }
 
 func normalizePersonalityProfiles(system map[string]any) {
@@ -701,17 +769,15 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 	if mode != "blank_slate" && mode != "llm_defined" {
 		return Fluctlight{}, errors.New("initialization_mode_invalid")
 	}
-	if mode == "llm_defined" && !hasInitializationEnvelope(foundation) {
-		return Fluctlight{}, errors.New("initialization_persona_invalid")
-	}
-	if foundation != nil {
-		foundation = normalizeInitializationResponse(foundation)
-	}
-	if mode == "llm_defined" && (foundation == nil || !validInitialization(foundation)) {
-		return Fluctlight{}, errors.New("initialization_persona_invalid")
-	}
 	if mode == "blank_slate" && foundation != nil {
 		return Fluctlight{}, errors.New("blank_slate_foundation_forbidden")
+	}
+	if mode == "llm_defined" {
+		var err error
+		foundation, err = prepareInitializationResponse(foundation)
+		if err != nil {
+			return Fluctlight{}, err
+		}
 	}
 	id := requestedID
 	if id == "" {

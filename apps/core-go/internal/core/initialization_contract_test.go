@@ -1,6 +1,76 @@
 package core
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
+
+func TestPrepareInitializationResponseNormalizesSafeContainersBeforeValidation(t *testing.T) {
+	value := map[string]any{
+		"core_persona": defaultCorePersona("", "影者"),
+	}
+	prepared, err := prepareInitializationResponse(value)
+	if err != nil {
+		t.Fatalf("safe structural omissions rejected as initialization_persona_invalid: %v", err)
+	}
+	if !hasInitializationEnvelope(prepared) || !validInitialization(prepared) {
+		t.Fatalf("prepared initialization remains invalid: %#v", prepared)
+	}
+	if len(arrayValue(prepared["initial_relationships"])) != 0 || len(arrayValue(prepared["initial_goals"])) != 0 || len(arrayValue(prepared["initial_intentions"])) != 0 || len(arrayValue(mapValue(prepared["developing_self"])["claims"])) != 0 || !isObjectValue(prepared["extensions"]) {
+		t.Fatalf("safe containers were not normalized: %#v", prepared)
+	}
+}
+
+func TestPrepareInitializationResponseStillRejectsMissingPersonaSemantics(t *testing.T) {
+	value := map[string]any{"core_persona": defaultCorePersona("", "影者")}
+	delete(mapValue(mapValue(value["core_persona"])["personality"]), "openness")
+	if _, err := prepareInitializationResponse(value); err == nil || err.Error() != "initialization_persona_invalid" {
+		t.Fatalf("missing personality semantics err=%v", err)
+	}
+}
+
+func TestPrepareInitializationResponseFillsOnlyNonSemanticPersonaStructure(t *testing.T) {
+	value := map[string]any{
+		"core_persona": map[string]any{
+			"identity":          map[string]any{"name": "影者"},
+			"personality":       defaultPersonality(),
+			"behavioral_policy": defaultPolicy(),
+			"life_profile":      map[string]any{},
+		},
+	}
+	prepared, err := prepareInitializationResponse(value)
+	if err != nil {
+		t.Fatalf("non-semantic persona scaffolding rejected: %v", err)
+	}
+	persona := mapValue(prepared["core_persona"])
+	identity := mapValue(persona["identity"])
+	if _, ok := identity["notes"]; !ok || identity["name"] != "影者" || identity["timezone"] != nil {
+		t.Fatalf("identity placeholders were not safely completed: %#v", identity)
+	}
+	if len(mapValue(persona["personality_system"])) == 0 || !hasInitializationKeys(mapValue(persona["life_profile"]), []string{"appearance", "social_background", "preferences", "life_habits", "recurring_commitments", "relationship_seeds", "character_constraints"}) {
+		t.Fatalf("persona scaffolding was not completed: %#v", persona)
+	}
+	if !validInitialization(prepared) {
+		t.Fatalf("safely completed persona remains invalid: %#v", prepared)
+	}
+}
+
+func TestInitializationStructuredFallbackIsInvalidJSON(t *testing.T) {
+	if _, err := structuredResultForRole("initialization", ProviderCompletion{Structured: map[string]any{}, StructuredFallback: true}); err == nil || err.Error() != "initialization_response_invalid_json" {
+		t.Fatalf("initialization fallback err=%v", err)
+	}
+	value, err := structuredResultForRole("reflection", ProviderCompletion{Structured: map[string]any{}, StructuredFallback: true})
+	if err != nil || value == nil {
+		t.Fatalf("non-initialization fallback changed: value=%#v err=%v", value, err)
+	}
+}
+
+func TestInitializationAnalysisCorrelationIsUniquePerUserAttempt(t *testing.T) {
+	first, second := initializationAnalysisCorrelation(), initializationAnalysisCorrelation()
+	if first == second || !strings.HasPrefix(first, "initialization-analysis:") || !strings.HasPrefix(second, "initialization-analysis:") {
+		t.Fatalf("analysis correlations are not unique: %q %q", first, second)
+	}
+}
 
 func TestValidInitializationAcceptsOpenRelationshipLabelAndActorUser(t *testing.T) {
 	value := map[string]any{
