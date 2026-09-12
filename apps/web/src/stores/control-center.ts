@@ -771,6 +771,8 @@ export const useControlCenterStore = defineStore("control-center", {
       modelId: string;
       tokenBudget: number;
       timeoutSeconds: number;
+      contextWindowTokens?: number;
+      maxInputTokens?: number;
     }) {
       this.saving = true;
       this.error = "";
@@ -781,6 +783,8 @@ export const useControlCenterStore = defineStore("control-center", {
           modelId: input.modelId,
           tokenBudget: input.tokenBudget,
           timeoutSeconds: input.timeoutSeconds,
+          ...(input.contextWindowTokens ? { contextWindowTokens: input.contextWindowTokens } : {}),
+          ...(input.maxInputTokens ? { maxInputTokens: input.maxInputTokens } : {}),
         });
         this.providerBindings = await client.providerBindings();
         this.providerEndpoints = await client.providerEndpoints();
@@ -808,6 +812,10 @@ function providerRoleFailureMessage(error: unknown): string {
       return "无法读取 endpoint 的模型列表，请检查地址、访问密钥，以及 Core 容器是否能访问该 endpoint。";
     case "provider_role_invalid":
       return "模型角色配置无效，请重新选择角色、endpoint 和模型。";
+    case "provider_prompt_budget_invalid":
+      return "Token 预算超出当前上下文窗口限制，请调小 Token 预算或调整上下文窗口。";
+    case "prompt_budget_policy_unknown":
+      return "未知的 Prompt 预算策略版本。";
     default:
       return "模型预检失败，请检查 endpoint、访问密钥和模型配置。";
   }

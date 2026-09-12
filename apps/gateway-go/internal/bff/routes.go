@@ -369,7 +369,20 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		value, err := s.core.doJSON(request.Context(), http.MethodPut, "/internal/providers/roles", session, map[string]any{"role": body["role"], "endpoint_id": body["endpointId"], "model_id": body["modelId"], "token_budget": body["tokenBudget"], "timeout_seconds": body["timeoutSeconds"]})
+		corePayload := map[string]any{
+			"role":            body["role"],
+			"endpoint_id":     body["endpointId"],
+			"model_id":        body["modelId"],
+			"token_budget":    body["tokenBudget"],
+			"timeout_seconds": body["timeoutSeconds"],
+		}
+		if cw, ok := body["contextWindowTokens"]; ok {
+			corePayload["context_window_tokens"] = cw
+		}
+		if mi, ok := body["maxInputTokens"]; ok {
+			corePayload["max_input_tokens"] = mi
+		}
+		value, err := s.core.doJSON(request.Context(), http.MethodPut, "/internal/providers/roles", session, corePayload)
 		if err != nil {
 			providerRoleError(response, err)
 			return
@@ -922,12 +935,14 @@ func providerRoleError(response http.ResponseWriter, err error) {
 		status = http.StatusBadGateway
 	}
 	messages := map[string]string{
-		"provider_endpoint_invalid":    "Provider endpoint configuration is invalid",
-		"provider_endpoint_not_found":  "Provider endpoint is not configured",
-		"provider_model_not_available": "Selected model is not available on the provider endpoint",
-		"provider_models_unavailable":  "Provider model list is unavailable",
-		"provider_role_invalid":        "Provider role configuration is invalid",
-		"provider_preflight_failed":    "Provider preflight failed",
+		"provider_endpoint_invalid":      "Provider endpoint configuration is invalid",
+		"provider_endpoint_not_found":    "Provider endpoint is not configured",
+		"provider_model_not_available":   "Selected model is not available on the provider endpoint",
+		"provider_models_unavailable":    "Provider model list is unavailable",
+		"provider_role_invalid":          "Provider role configuration is invalid",
+		"provider_prompt_budget_invalid": "Provider prompt budget configuration is invalid",
+		"prompt_budget_policy_unknown":   "Prompt budget policy version is unknown",
+		"provider_preflight_failed":      "Provider preflight failed",
 	}
 	code := coreErr.Code
 	message, knownCode := messages[code]
@@ -1286,7 +1301,17 @@ func validateModelRole(value map[string]any) bool {
 	role := stringValue(value["role"])
 	legacy := map[string]struct{}{"initialization": {}, "cognitive_assessment": {}, "action_realization": {}, "interaction": {}, "reflection": {}, "media_prompt": {}}
 	_, legacyRole := legacy[role]
-	return (role == "generic_llm" || role == "embedding" || legacyRole) && validateString(value["endpointId"], 1, 128) && validateString(value["modelId"], 1, 256) && validateInteger(value["tokenBudget"], 1) && validateInteger(value["timeoutSeconds"], 1)
+	valid := (role == "generic_llm" || role == "embedding" || legacyRole) && validateString(value["endpointId"], 1, 128) && validateString(value["modelId"], 1, 256) && validateInteger(value["tokenBudget"], 1) && validateInteger(value["timeoutSeconds"], 1)
+	if !valid {
+		return false
+	}
+	if cw, ok := value["contextWindowTokens"]; ok && !validateInteger(cw, 1) {
+		return false
+	}
+	if mi, ok := value["maxInputTokens"]; ok && !validateInteger(mi, 1) {
+		return false
+	}
+	return true
 }
 func validateSettings(value map[string]any) bool {
 	if values, ok := value["values"]; ok && !isObject(values) {

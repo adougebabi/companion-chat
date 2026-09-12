@@ -654,20 +654,24 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 	maxInputTokens := 0
 	promptBudgetPolicyVersion := ""
 	_ = a.DB.Pool().QueryRow(ctx, `SELECT context_window_tokens,max_input_tokens,prompt_budget_policy_version FROM public.model_roles WHERE role=$1`, bindingRole).Scan(&contextWindowTokens, &maxInputTokens, &promptBudgetPolicyVersion)
+	contextWindowExplicit := false
 	if raw, present := payload["context_window_tokens"]; present {
 		contextWindowTokens = intValue(raw)
+		contextWindowExplicit = true
 		if contextWindowTokens <= 0 {
 			return errors.New("provider_prompt_budget_invalid")
 		}
-	} else if contextWindowTokens <= 0 {
+	} else if contextWindowTokens < defaultContextWindowTokens {
 		contextWindowTokens = defaultContextWindowTokens
 	}
+	maxInputExplicit := false
 	if raw, present := payload["max_input_tokens"]; present {
 		maxInputTokens = intValue(raw)
+		maxInputExplicit = true
 		if maxInputTokens <= 0 {
 			return errors.New("provider_prompt_budget_invalid")
 		}
-	} else if maxInputTokens <= 0 {
+	} else if maxInputTokens < defaultMaxInputTokens {
 		maxInputTokens = defaultMaxInputTokens
 	}
 	if raw, present := payload["prompt_budget_policy_version"]; present {
@@ -677,6 +681,27 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 		}
 	} else if strings.TrimSpace(promptBudgetPolicyVersion) == "" {
 		promptBudgetPolicyVersion = promptBudgetPolicyVersionV1
+	}
+	margin, err := promptSafetyMargin(promptBudgetPolicyVersion)
+	if err != nil {
+		return err
+	}
+	if !contextWindowExplicit && !maxInputExplicit {
+		if maxInputTokens+budget+margin > contextWindowTokens {
+			if contextWindowTokens-budget-margin >= 32768 {
+				maxInputTokens = contextWindowTokens - budget - margin
+			} else {
+				contextWindowTokens = maxInputTokens + budget + margin
+			}
+		}
+	} else if !contextWindowExplicit {
+		if maxInputTokens+budget+margin > contextWindowTokens {
+			contextWindowTokens = maxInputTokens + budget + margin
+		}
+	} else if !maxInputExplicit {
+		if maxInputTokens+budget+margin > contextWindowTokens && contextWindowTokens-budget-margin > 0 {
+			maxInputTokens = contextWindowTokens - budget - margin
+		}
 	}
 	if err := validatePromptBudgetConfiguration(contextWindowTokens, maxInputTokens, budget, promptBudgetPolicyVersion); err != nil {
 		return err

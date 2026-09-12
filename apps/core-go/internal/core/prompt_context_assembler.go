@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	defaultContextWindowTokens      = 65536
-	defaultMaxInputTokens           = 49152
+	defaultContextWindowTokens      = 131072
+	defaultMaxInputTokens           = 98304
 	defaultOutputReserveTokens      = 4096
 	defaultPromptSafetyMarginTokens = 4096
 	promptBudgetPolicyVersionV1     = "prompt-budget.v1"

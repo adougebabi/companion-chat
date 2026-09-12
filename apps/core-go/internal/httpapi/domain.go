@@ -135,6 +135,8 @@ func providerRoleErrorCode(err error) string {
 		"provider_endpoint_not_found",
 		"provider_endpoint_invalid",
 		"provider_role_invalid",
+		"provider_prompt_budget_invalid",
+		"prompt_budget_policy_unknown",
 		"provider_preflight_failed",
 	} {
 		if strings.Contains(message, code) {

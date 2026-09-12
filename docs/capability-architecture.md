@@ -122,7 +122,7 @@ user:   current input exactly once and last
 Long-term results, and source-bounded summaries. `PromptContextAssembler` only
 formats already-prepared fragments and enforces the final wire budget; it does
 not retrieve Memory, interpret time, mutate Persona, or execute capabilities.
-Default persisted role limits are `65536` context, `49152` input, `4096` output
+Default persisted role limits are `131072` context, `98304` input, `4096` output
 reserve, `4096` safety margin, policy `prompt-budget.v1`; required overflow is
 `prompt_required_budget_exceeded` before Provider I/O.
 

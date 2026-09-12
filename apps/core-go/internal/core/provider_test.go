@@ -72,4 +72,19 @@ func TestPostgresProviderRolePromptBudgetRoundTripAndValidation(t *testing.T) {
 	if err := app.ConfigureProviderRole(ctx, ownerID, invalid); err == nil || err.Error() != "provider_prompt_budget_invalid" {
 		t.Fatalf("invalid budget error = %v", err)
 	}
+
+	largeBudgetPayload := map[string]any{
+		"role": "generic_llm", "endpoint_id": "prompt-budget-provider", "model_id": "prompt-budget-model",
+		"token_budget": 32768, "timeout_seconds": 120,
+	}
+	if err := app.ConfigureProviderRole(ctx, ownerID, largeBudgetPayload); err != nil {
+		t.Fatalf("configure large budget failed: %v", err)
+	}
+	largeAssignment, err := app.Provider.assignment(context.Background(), "generic_llm")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if largeAssignment.TokenBudget != 32768 || largeAssignment.ContextWindowTokens != 131072 || largeAssignment.MaxInputTokens != 94208 {
+		t.Fatalf("largeAssignment = %#v", largeAssignment)
+	}
 }
