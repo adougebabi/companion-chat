@@ -487,10 +487,32 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 	stable := core.StableFluctlightID(actorID, requestID)
 	item, err := s.app.CreateFluctlight(request.Context(), actorID, stable, name, mode, initialization, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]))
 	if err != nil {
-		writeError(response, http.StatusUnprocessableEntity, "activation_persona_invalid")
+		correlationID := "activation:" + stable
+		code, details := activationFailureDetails(err, correlationID)
+		slog.Default().Warn("Go Core activation failed", "code", code, "correlation_id", correlationID, "error_type", fmt.Sprintf("%T", err))
+		writeErrorDetails(response, http.StatusUnprocessableEntity, code, details)
 		return
 	}
 	writeJSON(response, http.StatusOK, map[string]any{"id": item.ID, "core_persona": item.CorePersona, "identity": item.Identity, "personality": item.Personality, "behavioral_policy": item.BehavioralPolicy, "life_profile": item.LifeProfile, "provenance": item.Provenance, "status": item.Status, "current_revision": item.CurrentRevision})
+}
+
+func activationFailureDetails(err error, correlationID string) (string, map[string]any) {
+	details := map[string]any{"correlation_id": correlationID}
+	if detailed, ok := err.(interface{ PublicDetails() map[string]any }); ok {
+		for key, value := range detailed.PublicDetails() {
+			if key != "correlation_id" {
+				details[key] = value
+			}
+		}
+		return "activation_persona_invalid", details
+	}
+	if errors.Is(err, core.ErrConflict) {
+		return "activation_request_conflict", details
+	}
+	if err != nil && err.Error() == "initialization_persona_invalid" {
+		return "activation_persona_invalid", details
+	}
+	return "activation_persistence_failed", details
 }
 
 func (s *Server) directConversation(response http.ResponseWriter, request *http.Request) {

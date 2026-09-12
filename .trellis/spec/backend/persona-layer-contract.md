@@ -101,6 +101,7 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 | Model returns known mechanical aliases | Map them to canonical fields before defaults and reference validation. |
 | Normalized initialization still contains an explicit invalid value/reference/type | Return `initialization_persona_invalid` with safe `details.correlation_id` and `details.validation_error.{type,path}`; log only those fields, never the Persona payload. |
 | Optional Developing Self/Goal/Intention/Relationship candidate is incomplete or malformed | Drop an unusable claim, default/clamp optional unit scores, clear an invalid goal index, and reset invalid relationship metrics/trend; never reject the complete Persona for one optional candidate. |
+| Activation fails after preview validation | Preserve typed Persona details as `activation_persona_invalid`; map conflicts to `activation_request_conflict` and all other transaction/persistence failures to `activation_persistence_failed`, always with an activation correlation ID. |
 | Initialization explicitly returns an invalid timezone, duplicate/blank profile identity, bad goal/relationship reference, or out-of-range governed value | Reject with `initialization_persona_invalid`; do not overwrite the explicit invalid value with a default. |
 | Owner submits the same description as a new analysis attempt | Use a fresh correlation and Provider idempotency identity; do not reuse a prior invalid completion. |
 | Blank-slate request supplies non-empty layered foundation | Reject with `blank_slate_foundation_forbidden` |
@@ -156,6 +157,8 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   append-only compensating rollback.
 - Context tests for authority/priority fields, complete Current State readback, separate layer revisions, and frozen projection reuse during realization retry.
 - API/BFF tests for detail/layer routes, owner authorization, stable errors, CAS conflicts, rollback/forget, and redaction.
+- Activation error tests distinguish Persona validation, idempotency conflict,
+  and persistence failure and preserve only safe correlation/validation details.
 - Web tests for existing field rendering, bounded JSON display, new layer sections, read-only Current State, and Developing Self governance controls on narrow and desktop layouts.
 
 ### 7. Wrong vs Correct

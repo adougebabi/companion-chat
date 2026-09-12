@@ -13,6 +13,14 @@ import (
 
 type fakeRepository struct{}
 
+type testPublicDetailsError struct {
+	code    string
+	details map[string]any
+}
+
+func (e testPublicDetailsError) Error() string                 { return e.code }
+func (e testPublicDetailsError) PublicDetails() map[string]any { return e.details }
+
 func (fakeRepository) Ping(_ context.Context) error { return nil }
 func (fakeRepository) ResolveSession(_ context.Context, token string) (string, error) {
 	if token == "session" {
@@ -50,6 +58,21 @@ func TestProviderRoleErrorCodePreservesPreflightReason(t *testing.T) {
 		if got := providerRoleErrorCode(errors.New(message)); got != want {
 			t.Fatalf("providerRoleErrorCode(%q) = %q, want %q", message, got, want)
 		}
+	}
+}
+
+func TestActivationFailureDetailsSeparatePersonaConflictAndPersistence(t *testing.T) {
+	personaCode, personaDetails := activationFailureDetails(testPublicDetailsError{
+		code:    "initialization_persona_invalid",
+		details: map[string]any{"validation_error": map[string]any{"type": "reference_invalid", "path": "initial_intentions[0].goal_index"}},
+	}, "activation:fl-1")
+	if personaCode != "activation_persona_invalid" || stringValue(personaDetails["correlation_id"]) != "activation:fl-1" || stringValue(mapValue(personaDetails["validation_error"])["path"]) != "initial_intentions[0].goal_index" {
+		t.Fatalf("persona activation failure=%q %#v", personaCode, personaDetails)
+	}
+	conflictCode, _ := activationFailureDetails(core.ErrConflict, "activation:fl-1")
+	persistenceCode, persistenceDetails := activationFailureDetails(errors.New("database unavailable"), "activation:fl-1")
+	if conflictCode != "activation_request_conflict" || persistenceCode != "activation_persistence_failed" || stringValue(persistenceDetails["correlation_id"]) != "activation:fl-1" {
+		t.Fatalf("activation failure codes conflict=%q persistence=%q details=%#v", conflictCode, persistenceCode, persistenceDetails)
 	}
 }
 
