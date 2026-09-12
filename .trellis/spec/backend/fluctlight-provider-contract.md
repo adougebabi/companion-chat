@@ -20,7 +20,8 @@ ModelRole
         reflection | embedding | media_prompt
   provider_endpoint_id / model_id
   required_capabilities
-  token_budget / timeout / retry_policy
+  token_budget (output reserve) / context_window_tokens / max_input_tokens
+  prompt_budget_policy_version / timeout / retry_policy
 ```
 
 ```python
@@ -259,25 +260,28 @@ metadata-free fact. Frozen Core records retain the complete protocol objects.
 - Assert every Provider system payload still has one leading system message;
   this context compaction must not alter native tools or persisted decisions.
 
-## Scenario: Fixed system and sectioned dynamic prompt composition
+## Scenario: B-Layout Prompt Assembly and Final Wire Budget
 
 ### 1. Scope / Trigger
 
-- Trigger: a non-`media_prompt` Provider call serializes a cognition,
-  initialization, realization, daily-review, wake-up, native-cognition,
-  reflection, or schedule payload.
-- The composer changes only Provider-facing text organization and metadata
-  filtering; business schemas, Tool Calls, workflow state, and frozen replay
-  values remain unchanged.
+- Trigger: a Main cognition, Reflection, Summary, or query continuation sends
+  non-media messages to an OpenAI-compatible Provider.
+- The assembler changes only Provider-facing selection, roles, formatting, and
+  budget enforcement. Retrieval, semantic ranking, Tool execution, workflow
+  state, and frozen replay remain outside it.
 
 ### 2. Signatures
 
-```text
-composeProviderMessages(role, messages) -> []ProviderMessage
-renderCorePersonaForProvider(core_persona) -> map
-formatProviderDynamicPromptContent(jsonText) -> string
-stripProviderContextMetadata(value) -> value
+```go
+ResolveWorkingMemory(input, policy) (WorkingMemory, error)
+AssemblePromptContext(PromptAssemblyInput) (PromptAssemblyResult, error)
+App.assembleProjectionPrompt(ctx, role, rules, projection, input, tools, schema)
+ProviderClient.StructuredAssembledWithToolsSchema(ctx, role, messages, tools, schema)
 ```
+
+`model_roles` persists `token_budget` as output reserve plus
+`context_window_tokens`, `max_input_tokens`, and
+`prompt_budget_policy_version`.
 
 ### 3. Contracts
 
@@ -289,18 +293,38 @@ stripProviderContextMetadata(value) -> value
   `schema_version`, any internal ID/revision, persistence timestamps,
   foreign keys, transport metadata, and automatic-evolution control fields do
   not enter the prompt.
-- Dynamic user content uses simple `#` headings. `# 当前上下文` contains
-  scene/activity/location/mood/appearance plus semantic
-  `life_context.current_time` and `timezone`; raw Core `instant` is omitted.
-- Developing Self, memories, goals, intentions, and recent messages use a
-  deterministic TOON table when rows are homogeneous and cells are safely
-  escaped. Nested objects, multimodal content, heterogeneous rows, and unsafe
-  cells use YAML-like output.
+- The production B-layout is one leading system message, an optional delimited
+  `[RUNTIME CONTEXT]` user message containing dynamic facts, selected real-role
+  recent user/assistant messages in chronological order, and the current input
+  exactly once as the final user message. Dynamic relationship, state, scene,
+  Active/Long-term Memory, and Summary content never becomes system policy.
+- Runtime Context has distinct `facts`, `active_memory`, `retrieved_memory`,
+  and `conversation_summaries` keys. Recent selection uses complete messages/
+  turns; it is not rendered as one synthetic user-history table.
 - Memory `created_at` and evidence references are semantic grounding fields and
   remain; storage IDs, revision/status/FK/audit fields do not. Evidence refs
   are not removed merely because they look like IDs.
 - Recent messages retain role/kind, semantic time, content, and order. The
   current operation input is not duplicated in recent history.
+- The conservative estimator is
+  `ceil(max(ceil(utf8_bytes/3), unicode_runes) * 1.25)` plus message/final-wire
+  overhead. Tools and response schema count toward input.
+- Defaults are context `65536`, max input `49152`, output reserve `4096`, safety
+  margin `4096`, and policy `prompt-budget.v1`, leaving `8192` headroom. System
+  and current input each cap at `8192`/`16384`; Tools plus response schema cap at
+  `16384`. Required overflow returns `prompt_required_budget_exceeded` before
+  network I/O; optional items are dropped whole by priority.
+- Every non-media structured and streaming request executes a final wire
+  estimate. `max_tokens` receives output reserve only; it is not input budget.
+- A continuation reuses frozen B-layout messages, appends exactly one assistant
+  tool-call envelope and 1–2 matching `role=tool` results, sends no Tools, and
+  accepts only closed `{visible_text}` output. Normal historical assistant
+  messages remain valid before that terminal envelope. A native-tool response
+  that omits the structured sidecar may normalize its missing response mode only
+  when the adapter marked `StructuredFallback`, visible text is empty, and all
+  1–2 calls pass the generic pure-query registry gate. Non-fallback schema
+  omission, ACTION, mixed, visible, empty, and over-limit results remain final/
+  invalid; reasoning content is never treated as visible text.
 - `media_prompt`, `media_quality_acceptance`, and Visual Identity media calls
   retain their existing English/YAML/multimodal path and do not enter this
   ordinary composer.
@@ -313,20 +337,29 @@ stripProviderContextMetadata(value) -> value
 | No Core Persona exists (initialization/legacy payload) | Keep protocol and explicit empty initialization/persona state; never invent fixed traits. |
 | Metadata field is an internal ID/revision/FK/status | Omit from Provider content. |
 | Memory/developing-self evidence reference or memory semantic creation time | Preserve in the relevant section. |
-| TOON row contains delimiter/nested object or is heterogeneous | Fall back to YAML-like output; never emit ambiguous TOON. |
 | Current time is missing/malformed | Core supplies the canonical local-time fallback; raw `instant` remains internal. |
+| Required system/current/tools/schema cost exceeds section or total input cap | Return `prompt_required_budget_exceeded`; send no Provider request and never tail-truncate. |
+| Optional whole item exceeds section/total/final-wire budget | Drop it with `section_cap`, `total_cap`, or `total_cap_final_wire` trace reason. |
+| Role budget violates `max_input + output_reserve + 4096 <= context_window` or uses an unknown policy | Reject configuration as `provider_prompt_budget_invalid` or `prompt_budget_policy_unknown`. |
+| Preassembled messages have multiple/late system roles, empty content, or non-user final input | Reject as `provider_assembled_messages_invalid`. |
+| Continuation contains ACTION/mixed calls, multiple assistant tool envelopes, unmatched results, Tools, or a second tool request | Reject the continuation; perform no assistant settlement. |
+| Native tool response omits structured sidecar | Infer continuation only for `StructuredFallback` + empty visible text + 1–2 generic pure queries; otherwise preserve final/fail-closed behavior. |
 | Media role reaches composer | Preserve media-specific formatter/instructions; ordinary protocol is not injected. |
 
 ### 5. Good / Base / Bad Cases
 
-- Good: one system message contains protocol/operation rules and a filtered
-  Core Persona; the user message contains current local time, context, TOON
-  memories/goals and recent messages without database IDs.
+- Good: one system contains protocol plus filtered Core Persona; a separate
+  Runtime Context user message contains current dynamic facts; recent messages
+  keep real roles; current input appears once and last; the complete wire
+  remains at or below the persisted max input.
+- Good: a pure-query continuation with ordinary assistant history appends one
+  canonical tool-call assistant message and matching bounded results, without a
+  Tools catalog or another mutation schema.
 - Base: a legacy projection has parallel identity fields; the composer rebuilds
   one Core Persona envelope and keeps the dynamic context readable.
 - Bad: put `schema_version` or persona IDs in the system, delete all
-  `evidence_refs`, duplicate Core Persona in system and user, or turn a nested
-  relationship object into an unsafe TOON table.
+  `evidence_refs`, duplicate current input, exclude Tools/schema from budget,
+  truncate half a turn, or treat every assistant history message as tool use.
 
 ### 6. Tests Required
 
@@ -335,10 +368,15 @@ stripProviderContextMetadata(value) -> value
 - Assert Core Persona filtering removes internal metadata and retains all four
   initialized semantic groups; initialization without a persona does not get
   synthetic traits.
-- Assert dynamic headings/current time/timezone, current-user deduplication,
-  memory creation time/evidence refs, and Developing Self evidence refs.
-- Assert TOON output for homogeneous memory/goal/intention/message rows and
-  YAML fallback for nested/heterogeneous/delimiter-heavy values.
+- Assert Runtime Context delimiters/fact keys, current time/timezone,
+  current-user deduplication, real recent roles/order, Memory opaque refs, and
+  Developing Self evidence refs.
+- Assert whole-fragment/whole-turn selection, cross-source dedupe, exact default
+  role budgets, estimator formula, section/final-wire drops, required overflow,
+  and output reserve mapped to `max_tokens`.
+- Assert continuation accepts ordinary historical assistant messages but only
+  one terminal assistant tool-call envelope, 1–2 matching results, no Tools, and
+  visible-text-only output.
 - Assert media prompt/quality/Visual Identity payloads remain outside the
   ordinary composer and preserve their language/format behavior.
 - Assert frozen realization still uses its captured projection and provider
@@ -349,39 +387,20 @@ stripProviderContextMetadata(value) -> value
 #### Wrong
 
 ```go
-// Global denylist removes every field named evidence_refs and rewrites all
-// ID-looking natural language, losing grounding information.
-prompt = stripProviderMetadata(fullProjection)
+messages := []ProviderMessage{{Role: "system", Content: rules + dynamicState},
+	{Role: "user", Content: allHistory + currentInput}}
+provider.Send(messages, tools) // no whole-wire budget; current input duplicated
 ```
 
 #### Correct
 
 ```go
-system, dynamic := composeProviderMessages(role, messages)
-// Scoped filtering removes storage metadata while preserving semantic time
-// and evidence references, then renders list sections as safe TOON/YAML.
-```
-
-### 7. Wrong vs Correct
-
-#### Wrong
-
-```json
-{
-  "context": {"core_persona": {}, "identity": {}, "capabilities": []},
-  "persona_profile": {"core_persona": {}, "current_state": {}},
-  "recent_messages": [{"id": "message_<random>", "author_actor_id": "human_<random>"}]
-}
-```
-
-#### Correct
-
-```json
-{
-  "context": {
-    "core_persona": {"authority": "hard_constraint", "data": {}},
-    "developing_self": [],
-    "current_state": {"authority": "transient_state", "data": {}}
-  }
-}
+working, err := ResolveWorkingMemory(input, policy)
+assembled, err := AssemblePromptContext(PromptAssemblyInput{
+	OperationRules: rules, CorePersona: filteredPersona,
+	WorkingMemory: working, CurrentInput: currentInput,
+	Tools: tools, ResponseSchema: schema, Budget: roleBudget,
+})
+completion, err := provider.StructuredAssembledWithToolsSchema(
+	ctx, role, assembled.Messages, tools, schema)
 ```

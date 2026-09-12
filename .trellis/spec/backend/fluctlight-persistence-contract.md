@@ -162,7 +162,7 @@ tables: `fluctlights`, `fluctlight_foundation_revisions`,
   bounded in code and PostgreSQL constraints. Domain contracts do not expose
   SQLAlchemy rows.
 - The current local migration chain is
-  `0026_capability_runtime -> 0027_project_health_evolution -> 0028_affect_canonical -> 0029_memory_lifecycle -> 0030_life_context_revision -> 0031_evolution_authority`.
+  `0026_capability_runtime -> 0027_project_health_evolution -> 0028_affect_canonical -> 0029_memory_lifecycle -> 0030_life_context_revision -> 0031_evolution_authority -> 0032_prompt_context_memory`.
   `0027` and `0028` are digest-frozen; `0028` owns AffectProfile backfill/reconciliation,
   complete PAD/momentum/Drive/Profile constraints, and the unique
   `(fluctlight_id,source_event_id)` state-transition boundary. `0029` adds
@@ -171,8 +171,10 @@ tables: `fluctlights`, `fluctlight_foundation_revisions`,
   it never rewrites Memory history. `0030` and `0031` are clean-start cutovers:
   any existing business authority blocks the upgrade and requires explicit
   database rebuild; neither revision backfills or reinterprets active/completed
-  business rows. A failure in a later revision rolls back its schema effects
-  and ledger together.
+  business rows. `0032` is additive: it links Raw sources, adds prompt-budget/
+  diagnostic fields and creates Active/Summary authorities without converting
+  old chat into Memory. A failure in a later revision rolls back its schema
+  effects and ledger together.
 
 ### 4. Validation & Error Matrix
 
@@ -189,6 +191,7 @@ tables: `fluctlights`, `fluctlight_foundation_revisions`,
 | `0029` sees pre-lifecycle/unverifiably repaired Memory, duplicate identity, malformed embedding/active intent | Roll back all `0029` schema effects and keep the ledger at `0028`. |
 | `0030` or `0031` sees any pre-cutover business authority | Reject clean-start cutover; preserve the previous ledger/schema and require explicit rebuild. |
 | `0031` Goal/Intention/Reflection/evolution row violates closed replay/CAS authority | Abort the owning transaction; never store `null` where an authority JSON array is required. |
+| `0032` sees duplicate conversation/Fluctlight sequence values or an invalid persisted prompt budget | Abort the migration and ledger advance; never repair history heuristically. |
 | Ledger head contains surrounding whitespace | Reject the noncanonical ledger; never insert a second head. |
 
 ### 5. Good / Base / Bad Cases
@@ -219,6 +222,10 @@ tables: `fluctlights`, `fluctlight_foundation_revisions`,
   `0030→0031`, nonempty-business rejection, deferred replay-ready constraints,
   head rerun, transaction rollback, Goal/Intention CAS, Reflection watermark,
   overlay persistence and process-restart replay.
+- Run isolated PostgreSQL routes for empty and `0031→0032`, head rerun,
+  duplicate message/fact sequence rollback, invalid role budget rollback,
+  Raw source links/FTS, Active lifecycle constraints, Summary provenance, and
+  diagnostic metric constraints.
 - Assert assessment revision increments once even when elapsed wall-time decay
   is applied, and requested/applied audit includes mood and drive fields.
 
@@ -240,4 +247,118 @@ async with unit_of_work.begin(command_id=command_id) as tx:
     await fluctlights.create(command, tx=tx)
     await inner_state.initialize(command.id, tx=tx)
     await tx.commit()
+```
+
+## Scenario: Prompt Context and Memory Projection Migration
+
+### 1. Scope / Trigger
+
+- Trigger: an empty database, `0031_evolution_authority`, or an already-current
+  database applies migration `0032_prompt_context_memory`.
+- The migration is additive. It links owning Raw History records, creates
+  Active/Summary authorities, persists model input budgets and prompt metrics,
+  and never converts conversation history into durable Memory.
+
+### 2. Signatures
+
+```text
+Head = 0032_prompt_context_memory
+PreviousHead = 0031_evolution_authority
+
+conversation_messages += turn_id, source_fact_id, correlation_id,
+                         generated search_document
+model_roles += context_window_tokens, max_input_tokens,
+               prompt_budget_policy_version
+diagnostic_model_runs += fluctlight_id, metrics,
+                         estimated_input_tokens, actual_prompt_tokens,
+                         actual_completion_tokens, latency_ms
+
+active_memories / active_memory_revisions / active_memory_commands
+conversation_summaries
+```
+
+`Runner.Apply(ctx, pool)` is the sole production migration entry. At head it
+reapplies the same additive `promptContextMemorySchemaSQL`; an upgrade first
+runs duplicate-sequence preflight, then applies that schema and advances the
+single ledger row in the same transaction.
+
+### 3. Contracts
+
+- `conversation_messages(conversation_id,sequence)` and
+  `cognition_inbox(fluctlight_id,sequence)` become unique. Existing duplicates
+  fail closed; the migration never renumbers, merges, or deletes history.
+- New message linkage is nullable for unverifiable historical rows. New turns
+  atomically insert the user message, claimed cognition fact, workflow intent,
+  and outbox; assistant settlement binds the same turn/source/correlation.
+- `conversation_messages.search_document` is a stored `simple` FTS projection.
+  Raw History remains a logical reader over owning tables; no `raw_history`
+  table or second writer is created.
+- Active Memory current/revision/command rows enforce closed kind/status/time
+  enums, nonempty evidence, score/time constraints, FKs, active canonical-key
+  uniqueness, revision identity, and command idempotency. Runtime DML belongs
+  only to `applyActiveMemoryCommandTx`.
+- Summary rows require owner/conversation, inclusive source range, ordered
+  nonempty source refs/digest, nonblank summary, active/superseded lineage,
+  Provider/prompt/schema/policy/request provenance, and one active exact range.
+  Runtime DML belongs only to `conversation_summary.go` settlement.
+- Model role defaults are context `65536`, max input `49152`, output reserve
+  `token_budget=4096`, safety margin `4096`, policy `prompt-budget.v1`. The DB
+  requires `max_input + token_budget + 4096 <= context_window`.
+- Diagnostic metrics are a JSON object; estimated/actual token and latency
+  columns are nullable nonnegative values. These rows are operational data, not
+  Memory/Raw History authority.
+- No `memory.recall` table, status, intent, or audit row exists; it is a bounded
+  read-only Capability over existing authorities.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Ledger contains zero or multiple heads, whitespace, or an unknown head | Abort; do not guess or create a parallel migration path. |
+| Existing conversation or cognition sequence duplicates exist | Raise during `0031 -> 0032`; roll back DDL and ledger together. |
+| Existing model role violates positive values, policy version, or capacity equation | Abort migration; preserve `0031`. |
+| Active/Summary row violates enum, evidence, time/range, JSON, FK, or uniqueness constraints | Reject the write; owning transaction rolls back. |
+| Diagnostic metric is not an object or a numeric metric is negative | Reject the diagnostic row/update without weakening domain authority. |
+| `Runner.Apply` executes again at `0032` | Idempotently reapply additive schema; keep one canonical head. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: `0031` with valid unique history and role settings upgrades atomically;
+  nullable old links remain null, new turns are linked, and no Memory content is
+  fabricated.
+- Base: an empty database reaches `0032`; a rerun changes neither ledger
+  identity nor domain rows.
+- Bad: repair duplicate sequences by renumbering, backfill every old message as
+  Memory, run Provider I/O in the migration transaction, or add a recall table.
+
+### 6. Tests Required
+
+- Embedded-SQL tests assert all columns, closed constraints, indexes/FKs, one
+  schema literal, one head, no Raw History table, and no history rewrite/delete.
+- Real PostgreSQL tests run empty→head, `0031`→head, head rerun, duplicate
+  message/fact sequences, malformed role budgets, Active/Summary constraints,
+  and transaction/ledger rollback in isolated disposable databases.
+- Turn-atomicity tests fail each user/fact/intent/outbox insert boundary and
+  assert all-or-none visibility; Provider remains outside the transaction.
+- Lifecycle tests assert Active/Summary DML comes only from their owning Core
+  authorities; durable `memories` remains under `memory_lifecycle.go`.
+- PostgreSQL tests may be authored earlier but are acceptance evidence only
+  when executed at the final full-verification gate.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```sql
+INSERT INTO memories (content, type)
+SELECT text, 'semantic' FROM conversation_messages;
+```
+
+#### Correct
+
+```text
+ALTER owning message rows with nullable source links and FTS
++ create independent Active/Summary projection tables
++ validate sequence and prompt-budget invariants
++ advance the ledger in the same transaction
 ```

@@ -48,6 +48,8 @@ Thin input contains only decisions the model must make. Current boundaries are:
 | `media.image.generate` | `intent` | visual concept, renderer/workflow settings, context binding, provider IDs |
 | `schedule.replan` | `intent` | local date, timezone, revision/CAS, completed boundary, full replacement |
 | `memory_event` | `content`, `type`, `confidence`, `importance` | owner, visibility, evidence, actor/event refs, idempotency, embedding |
+| `active_memory_event` | operation and bounded semantic/time fields | owner, conversation, source fact/evidence, timezone validation, revision/CAS, lifecycle audit |
+| `memory.recall` | `intent` | frozen authorization scope, bounded Active/Long-term/message/Summary fan-out, opaque result mapping |
 | `scene_event` | `operation`, `confidence`; start/switch require `scene` and `activity`; optional `location` | source/evidence/time/idempotency and transaction rules |
 | `presence_event` | at least one bounded presence/task field plus `confidence`; optional expiry | actor scope, source, evidence, persistence and expiry validation |
 | `affect_event` | semantic event type and `confidence` | reducer, numeric state, evidence and revision/CAS |
@@ -83,9 +85,54 @@ result; required failure rolls back the complete visible settlement.
 Definitions declare either `required_for_visible_claim` or `optional_internal`.
 The former fails closed: a failed state-changing capability rolls back a visible
 assistant settlement that could claim the change happened. Optional failures
-remain structured and auditable without fabricating success. Ordinary
-conversation has exactly one Main LLM cognition call; results are persisted for
-replay/later cognition and are not sent as a same-turn `role=tool` continuation.
+remain structured and auditable without fabricating success. Direct conversation
+defaults to one Main LLM cognition with final visible text. The only same-turn
+continuation is a generic exception for one or two result-dependent capabilities
+classified from Definition metadata and implementation interfaces as
+`pure_query`. The first response has no visible text; Core persists bounded
+results and performs at most one no-tools continuation that accepts visible text
+only. ACTION and QUERY+ACTION mixed batches remain single-Main and must provide
+their visible response in that first result. If a native-tool Provider omits
+the structured sidecar, only an actual `StructuredFallback` with no visible text
+and the same generic 1–2 pure-query classification may normalize the missing
+mode to `query_continuation`; an ordinary schema omission never does.
+
+## Prompt context, memory recall, and budget
+
+All production Main surfaces use the same `assembleProjectionPrompt ->
+StructuredAssembledWithToolsSchema` path. The selected B-layout is:
+
+```text
+system: stable runtime rules + filtered Core Persona
+user:   [RUNTIME CONTEXT] dynamic facts [/RUNTIME CONTEXT]
+user/assistant: selected recent messages in real transport roles
+user:   current input exactly once and last
+```
+
+`WorkingMemoryResolver` selects whole facts, Active Memory items, recent turns,
+Long-term results, and source-bounded summaries. `PromptContextAssembler` only
+formats already-prepared fragments and enforces the final wire budget; it does
+not retrieve Memory, interpret time, mutate Persona, or execute capabilities.
+Default persisted role limits are `65536` context, `49152` input, `4096` output
+reserve, `4096` safety margin, policy `prompt-budget.v1`; required overflow is
+`prompt_required_budget_exceeded` before Provider I/O.
+
+`memory.recall` is conversation-only, intent-only, and classified as a
+read-only pure query. It requires frozen `memory_scope`, returns at most 12
+opaque semantic items under a 3072-token estimate, and has no table, workflow,
+or generic-runtime name branch. Automatic Retrieval remains a separate bounded
+read path.
+
+The B-layout decision is backed by two local-model runs and 36 calls. A produced
+invalid tool names and invented a deadline; B and C each selected valid tools in
+6/6 tool fixtures, while B keeps dynamic facts out of system authority. The
+current provider catalog is 13 definitions: all `8005` bytes/chars,
+conversation `7467` across 11 definitions, and native cognition `6495` across
+9 definitions. Migration `0032_prompt_context_memory` adds the supporting
+source linkage, prompt budgets, Active Memory, Summary, and diagnostic fields.
+The cutover removed the Main `{current_message,text,context}` envelope, current
+input duplication, Recent-as-one-table rendering, and dynamic relationship/state
+facts in system; old role A/C layouts are not production feature flags.
 
 ## Adding a capability
 
@@ -112,8 +159,9 @@ replay/later cognition and are not sent as a same-turn `role=tool` continuation.
 4. Do not infer semantic effects from keywords, regexes, prose, or visible
    reply text.
 5. Do not claim an external effect in prose without a real Capability call.
-6. Do not open a second Main LLM continuation for ToolResults or an internal
-   planner.
+6. Do not open a second Main continuation for ACTION results, mixed batches, or
+   an internal planner. Only the dedicated generic 1–2 pure-query coordinator
+   may perform the bounded no-tools continuation described above.
 7. Do not run Provider, Redis, object storage, HTTP callbacks, or workflow APIs
    inside a PostgreSQL business transaction.
 8. Do not bypass ContextResolver with ambient global state or an untyped slot
@@ -158,6 +206,9 @@ aborts on malformed active payloads, and leaves completed/failed rows untouched.
 Replay skips already-completed calls; workflow settlement and recovery read
 only canonical fields, with no runtime v1 fallback. The current migration chain
 continues through `0027_project_health_evolution`, `0028_affect_canonical`,
-`0029_memory_lifecycle`, `0030_life_context_revision`, and
-`0031_evolution_authority`; `0030`/`0031` are clean-start-only and reject any
-existing business authority instead of repairing or reinterpreting it.
+`0029_memory_lifecycle`, `0030_life_context_revision`,
+`0031_evolution_authority`, and `0032_prompt_context_memory`;
+`0030`/`0031` are clean-start-only and reject any existing business authority
+instead of repairing or reinterpreting it. `0032` is additive and fails closed
+on duplicate conversation/persona sequence spaces or invalid persisted role
+budgets.

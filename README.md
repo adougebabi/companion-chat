@@ -38,11 +38,15 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
 核心边界只有一个原则：浏览器不直接访问 Core、数据库、Redis、Temporal 或
 对象存储；BFF 不承载领域规则；所有领域事实和写入都由 Go Core 统一完成。
 
-一次交互大致经过以下路径：用户消息先以幂等方式写入 PostgreSQL，Core 生成
-认知上下文并调用一次 Main `cognitive_assessment`；同一结构化结果同时携带可见
-回复与能力调用，Core 冻结后执行并原子写回，不再调用同轮
-`action_realization` 或发送 `role=tool` continuation。需要跨进程、重试或长
-时间运行的工作会先记录为 durable intent，再由 Worker 投递给 Temporal 执行。
+一次交互大致经过以下路径：用户消息、已 claim 的 cognition fact、
+workflow intent 与 outbox 在一个短 PostgreSQL 事务内持久化；Core 通过统一
+Prompt Context Assembler 生成受预算约束的 B-layout，再调用 Main
+`cognitive_assessment`。Direct conversation 默认由这次 Main 同时返回最终可见文本
+与能力调用。唯一同轮例外是：首轮没有可见文本、且回答必须依赖 1–2 个
+pure QUERY 结果时，Core 持久化 bounded 结果后最多进行一次不带 Tools、
+仅返回可见文本的 continuation。ACTION 或 QUERY+ACTION mixed batch 仍在第一次
+Main 完成可见回复，不进入 continuation。需要跨进程、重试或长时间运行的
+工作会先记录为 durable intent，再由 Worker 投递给 Temporal 执行。
 
 ## 当前能力
 
@@ -79,14 +83,23 @@ Go Worker（Temporal poller、intent dispatcher、outbox publisher）
   明确阶段；模型负责语义判断，服务器负责权限、数值边界、幂等和最终提交。Affect
   使用`affect.reducer.v2`按真实elapsed time衰减；Drive由模型提交带opaque ref的语义方向/
   强度/置信度，Core计算pressure与conflict。tool-only结果不会合成默认appraisal。
-- **记忆与检索**：工作记忆保持为当前对话/认知的 bounded read model；长期 Memory
-  只包含 episodic、semantic、relationship 和 autobiographical。`memory_event`、Reflection
-  与 Owner 治理共用 `memory.lifecycle.v2` authority，支持 create/confirm/revise/merge/
-  supersede/deprecate/forget/完整 lineage rollback，revision、governance、embedding intent
-  和 outbox 同事务提交。检索先在 PostgreSQL 按 owner/visibility/viewer/conversation/status
-  授权，再执行 bounded FTS/词法/salience 排名；内部 Scene/Goal/Outcome/Reflection cue
-  默认不会发送给 Embedding Provider。Provider 只看到 opaque Memory ref 和裁剪后的语义，
-  assistant 可见文案不会作为 Reflection Memory 事实回灌。
+- **记忆与检索**：Raw History 是对 Conversation message、Cognition fact 和
+  Capability outcome 的只读逻辑视图，不复制成第二张事件表。Active Memory 用独立
+  authority 表达仍然有近期行为意义的 future event、commitment 和 temporary context，
+  读时立即排除已过期项；Conversation Summary 只是直接绑定 Raw message 区间与
+  digest 的可重建 projection。长期 Memory 仍只有 episodic、semantic、relationship 和
+  autobiographical；`memory_event`、Reflection 与 Owner 治理共用
+  `memory.lifecycle.v2` 唯一写入 authority。Automatic Retrieval 先做授权与 bounded 排名；
+  `memory.recall` 是 conversation-only、intent-only 的 pure QUERY，最多返回 12 项/
+  约 3072 estimated tokens。Provider 只看到 opaque ref 与裁剪后的语义，assistant
+  可见文案不会作为 Reflection Memory 事实回灌。
+- **Prompt Context 与固定预算**：System 只包含稳定运行规则和过滤后的 Core
+  Persona；独立 `[RUNTIME CONTEXT]` user message 承载动态事实，之后是保留
+  transport role 的近期 user/assistant 消息，最后是恰好一次 current input。
+  当前默认为 65,536 context window、49,152 max input、4,096 output reserve 和
+  4,096 safety margin；剩余 8,192 不分配 headroom。所有 optional context 都按完整
+  fragment/turn 选择，required 部分超限时在 Provider 调用前返回
+  `prompt_required_budget_exceeded`。
 - **自治与生活世界**：围绕 Goal、Intention、Schedule、Event、Presence 和每日
   Review 组织自主行为；qualified Intention 由稳定 `intention.trigger` Temporal
   workflow 处理 typed time/event/semantic trigger，到期只产生

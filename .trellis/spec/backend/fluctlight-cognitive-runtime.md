@@ -70,12 +70,21 @@ ReflectionProposalV2
 
 The Go Core policy result records `accepted`, `rejected`, or `deferred`, policy reason codes, current revision, requested/applied numeric changes, idempotency key, and the frozen action when one exists.
 
-Direct conversation uses exactly one Main cognition. That response owns both
-the visible assistant text and the structured/native Capability calls; Core
-validates, freezes and settles it without a same-turn `role=tool` continuation
-or a second realization call. Background surfaces may complete as explicit
-`no_op`; direct conversation without visible text fails with
-`cognition_visible_text_missing` and retains the same durable retry identity.
+Direct conversation defaults to exactly one Main cognition. A
+`response_mode=final` response owns both visible assistant text and
+structured/native Capability calls; Core validates, freezes, executes and
+settles it without a second realization call. The only same-turn continuation
+is generic and result-dependent: `response_mode=query_continuation`, no visible
+text, one or two metadata-classified pure QUERY invocations, persisted bounded
+results, then at most one no-tools Provider call whose closed response contains
+only `visible_text`. ACTION and QUERY+ACTION mixed batches remain final in the
+first Main cognition. Background surfaces may complete as explicit `no_op`;
+an invalid/missing final visible response fails with
+`cognition_visible_text_missing`, while an invalid continuation contract fails
+closed under the same durable retry identity. For Providers that emit a native
+tool call without the structured sidecar, missing mode is normalized to
+continuation only when the adapter reports `StructuredFallback`, visible text
+is empty, and all 1–2 invocations pass the same generic pure-query gate.
 
 #### Foundation Expression Context
 
@@ -197,6 +206,10 @@ Deterministic code may parse and validate protocol facts: JSON/schema, IDs, acto
 | Model supplies raw PAD/trait/relationship delta | Reject the raw delta; Go Core policy remains the only numeric owner. |
 | Policy rejects an unsafe or unauthorized action | Record policy rejection and execute no effect; do not choose a heuristic alternative. |
 | Duplicate idempotency key | Replay the persisted assessment/decision outcome without another model call or side effect. |
+| `query_continuation` has visible text, zero or more than two calls, an ACTION/mixed call, or an unknown capability | `query_continuation_contract_invalid`; execute no dependent query or assistant settlement. |
+| Native call omits structured mode without `StructuredFallback`, or contains visible/ACTION/mixed calls | Keep `final`; the existing visible-output/contract guard fails closed. |
+| Pure query succeeds but continuation Provider fails | Preserve frozen invocation/result and retry with the same request identity; do not synthesize visible text. |
+| Turn is superseded before/after the continuation Provider call | Fence continuation/final settlement with `cognition_turn_superseded`; never persist a late assistant. |
 | Stale state revision | Reject or re-assess through an explicit workflow transition; never overwrite newer state. |
 | Deterministic timestamp/schema/ownership validation fails | Return the typed validation failure without calling the model. |
 | Assessment succeeds but policy chooses `ignore` / `delay` | Freeze the action and skip realization; execute only the owning workflow transition. |
@@ -212,8 +225,13 @@ Deterministic code may parse and validate protocol facts: JSON/schema, IDs, acto
 - Good: multiple drives are high; the model proposes `delay_reply` with semantic reasons, Go Core checks current schedule and policy, freezes the decision, and the Worker executes it once.
 - Base: the model returns a valid neutral assessment and no state-changing candidate; Go Core records `no_op` without manufacturing change.
 - Base: an explicit timestamp expires an intention; Go Core closes it deterministically without an LLM call because no semantic interpretation is required.
+- Base: Main needs one read-only recall result, returns no text plus one pure
+  QUERY, and the bounded continuation produces only the final answer; no state
+  or Capability mutation schema is available in the second call.
 - Bad: `/sorry|对不起|抱歉/` increases trust, an emoji table changes affect, message length chooses response style, or a fixed inactivity threshold marks a relationship as declining.
 - Bad: a provider failure creates a default friendly reply, default appraisal, default personality, or keyword-derived memory.
+- Bad: use `memory.recall` name matching instead of execution metadata, permit
+  ACTION ToolResults to continue, or call a third model turn.
 
 ### 6. Tests Required
 
@@ -223,10 +241,15 @@ Deterministic code may parse and validate protocol facts: JSON/schema, IDs, acto
 - Negative architecture tests scan Go Core and Go BFF production paths for newly introduced semantic regex/keyword dictionaries and require explicit review for any natural-language matching.
 - State-transition tests assert numeric policy owns requested/applied deltas, clamps canonical ranges, records policy/model versions, and is independent of Worker tick frequency.
 - Decision tests assert policy rejection produces no effect and no code-selected semantic alternative.
-- Single-Main tests assert one `conversation_turn_response`, zero `role=tool`
-  messages, zero `action_realization` calls, and frozen retry without another
-  Main request. Capability-local HOW planners are counted by their own schema,
-  not as a second Main cognition.
+- Final/ACTION/mixed tests assert one `conversation_turn_response`, zero
+  `role=tool` messages, zero `action_realization` calls, and frozen retry
+  without another Main request. Capability-local HOW planners are counted by
+  their own schema, not as a second Main cognition.
+- Query-continuation tests assert only 1–2 generic pure queries qualify; the
+  second request reuses frozen B-layout history (including ordinary assistant
+  messages), appends one canonical assistant tool-call envelope plus matching
+  tool results, sends no Tools, accepts visible text only, and replays
+  requested/query-completed/provider-completed phases without repeating work.
 - Delivery failure/retry tests assert the same frozen decision and message
   identities are reused without another implicit assessment.
 - Concurrency tests assert per-Fluctlight ordering, cross-Fluctlight parallelism, stable action delivery, stale-reflection rejection, and media-result inbox re-entry.

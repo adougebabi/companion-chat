@@ -28,7 +28,19 @@ When a provider can take longer than an intermediary idle timeout, the SSE
 adapter may send comment heartbeats such as `: keep-alive`; clients must ignore
 comments and continue waiting for the normal `token`/`done`/`error` event.
 
-Native capability calls use the same boundary: accumulate streamed fragments by provider index/id, collect malformed upstream payloads in bounded diagnostics, and validate only after the complete call. A supported native attempt blocks the matching marker fallback even when invalid, duplicated, incomplete, or replayed; unknown native tools fail closed for marker side effects. Tool JSON, reasoning content, call ids, and dedupe keys never enter visible `token` or browser capability summaries. One tool-result continuation is allowed; continuation failure keeps committed effects and returns normal `done` data with a bounded fallback.
+Native capability calls use the same boundary: accumulate streamed fragments by
+provider index/id, collect malformed upstream payloads in bounded diagnostics,
+and validate only after the complete call. A supported native attempt blocks
+the matching marker fallback even when invalid, duplicated, incomplete, or
+replayed; unknown native tools fail closed for marker side effects. Tool JSON,
+reasoning content, call IDs, and dedupe keys never enter visible `token` or
+browser capability summaries. Direct conversation normally returns visible text
+and ACTION/mixed capability calls in one Main cognition. Only one or two
+metadata-classified pure QUERY calls whose results are required for the answer
+may use the dedicated continuation: persist bounded results, send one no-tools
+request, and accept visible text only. Query or continuation failure produces a
+bounded turn error under the same durable retry identity; it does not commit an
+ACTION first or manufacture a fallback assistant reply.
 
 The HTTP/SSE transport adapter consumes normalized application presentation only. It may emit `token`, one terminal `done`, or one bounded `error`; it must not parse provider chunks, dispatch capabilities, open SQLite, or expose aggregate facts/effects. Request/response close and abort signals suppress later writes and are forwarded to the flow where supported.
 

@@ -590,3 +590,103 @@ time.AfterFunc(delay, func() { app.ProcessIntentionTrigger(ctx, id) })
 workflow.Sleep(ctx, delay)
 workflow.ExecuteActivity(ctx, ProcessIntentionTriggerActivity, input)
 ```
+
+## Scenario: Source-Bounded Conversation Summary Workflow
+
+### 1. Scope / Trigger
+
+- Trigger: a Fluctlight-authored assistant message settles and leaves an older,
+  stable conversation range beyond the 24-message Recent reserve.
+- Summary is a rebuildable projection over Raw conversation messages. Temporal
+  owns retry/timing history; PostgreSQL owns intent and projection state.
+
+### 2. Signatures
+
+```text
+intent_type: conversation.summary
+task_queue: lifecycle
+workflow_id: conversation_summary:<source-identity-digest>
+
+ConversationSummaryWorkflow(input)
+  -> ProcessConversationSummaryActivity(input)
+  -> App.ProcessConversationSummaryIntent(...)
+```
+
+The committed payload contains `intent_id`, `fluctlight_id`, `conversation_id`,
+`source_message_id`, `source_sequence`, `from_sequence`, `to_sequence`,
+`source_digest`, and ordered `source_message_refs`.
+
+### 3. Contracts
+
+- Enqueue runs in the assistant settlement transaction and accepts only an
+  assistant message authored by the target Fluctlight. It retains the latest
+  24 messages and reads at most 40 older messages after current active coverage.
+- A chunk is ready at 20 assistant-completed turns, about 6000 estimated tokens,
+  or 40 messages, and ends only at an assistant message. The stable identity
+  binds owner, conversation, inclusive range, and source digest.
+- The same identity always maps to the same intent/workflow ID and payload.
+  An identical duplicate is replay; changed payload under that identity is
+  `conversation_summary_intent_identity_conflict`.
+- `ConversationSummaryWorkflow` and its Activity register only on the canonical
+  `lifecycle` worker. Activity timeout is 10 minutes with at most 3 attempts;
+  standard pause/resume control surrounds the Activity.
+- Provider work reads the exact Raw message range and never an old summary.
+  Before settlement Core re-reads contiguous sequences and verifies ending
+  author, ordered `message:<id>` refs, and digest. Provider I/O remains outside
+  the projection transaction.
+- Settlement serializes on the conversation, supersedes only a prior projection
+  for the same exact range, and inserts one active projection with Provider/
+  prompt/schema/policy/request provenance. Raw messages are unchanged.
+- The workflow does not introduce a scheduler, second queue runtime, or another
+  Summary writer. Failure leaves Raw/Recent usable and the intent retryable.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Recent reserve leaves no eligible sequence or threshold is not reached | Enqueue no work; ordinary settlement succeeds. |
+| Source range has a gap, wrong author boundary, changed refs, or changed digest | Reject Activity settlement; write no projection. |
+| Duplicate stable start/payload | Reuse existing intent/workflow; create no duplicate summary. |
+| Same stable identity carries different payload | `conversation_summary_intent_identity_conflict`; do not dispatch. |
+| Summary Provider fails or Worker restarts | Retry through Temporal with stable request/workflow identity; keep Raw rows. |
+| Projection CAS/source revalidation fails after Provider I/O | Discard stale result or retry from authoritative source; never overwrite history. |
+| Second workflow runtime/queue handles Summary | Architecture failure; register only the canonical lifecycle path. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: 40 old messages produce one assistant-bounded range; a crash after
+  Provider success retries the same request identity and commits one active
+  source-bound projection.
+- Base: 19 completed assistant turns and a small range create no Summary intent;
+  Working Memory continues with Recent/Raw recall.
+- Bad: recursively summarize `old summary + new messages`, schedule one model
+  call per chat message, run a Go ticker, or overwrite/delete source messages.
+
+### 6. Tests Required
+
+- Threshold/reserve/assistant-boundary and deterministic identity tests.
+- Registry tests assert workflow/activity exist only on lifecycle and all three
+  canonical worker registries remain complete.
+- Replay tests cover identical duplicate, payload conflict, Provider failure,
+  result-commit crash, restart, pause/resume, and duplicate dispatch.
+- Source tests cover gaps, changed refs/digest, wrong owner/author, no recursive
+  Summary input, rebuild/supersede, and Raw rows unchanged.
+- Real Temporal and PostgreSQL cases execute only in the final acceptance gate;
+  deterministic unit registration tests do not substitute for restart/replay.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+summary := provider.Summarize(previousSummary + newestMessages)
+UPDATE conversation_summaries SET summary = summary
+```
+
+#### Correct
+
+```go
+intent := enqueueConversationSummaryIntentTx(tx, settledAssistant)
+// After commit, Temporal reads the exact Raw range with stable identity.
+workflow.ExecuteActivity(ctx, ProcessConversationSummaryActivity, intent)
+```
