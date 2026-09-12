@@ -40,6 +40,11 @@ type memoryCapabilityService interface {
 	applyMemoryCapability(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
 	applyMemoryCapabilityTx(context.Context, pgx.Tx, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
 }
+type activeMemoryCapabilityService interface {
+	prepareActiveMemoryCapability(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityInvocation, error)
+	applyActiveMemoryCapability(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
+	applyActiveMemoryCapabilityTx(context.Context, pgx.Tx, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
+}
 type affectCapabilityService interface {
 	applyAffectEvent(context.Context, string, string, normalizedAffectEvent, map[string]any) (map[string]any, error)
 	applyAffectEventTx(context.Context, pgx.Tx, string, string, normalizedAffectEvent, map[string]any) (map[string]any, error)
@@ -59,6 +64,8 @@ type scheduleReplanCapability struct {
 	applyTx func(context.Context, pgx.Tx, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
 }
 type memoryEventCapability struct{ service memoryCapabilityService }
+type activeMemoryEventCapability struct{ service activeMemoryCapabilityService }
+type memoryRecallCapability struct{ service MemoryRecallService }
 type affectEventCapability struct{ service affectCapabilityService }
 type relationshipLookupCapability struct{ service *relationshipLookupService }
 type capabilityRequestCapability struct{ service *capabilityRequestService }
@@ -73,7 +80,8 @@ func builtinCapabilities(app *App) []Capability {
 	return []Capability{
 		conversationReplyCapability{}, momentPublishCapability{}, imageGenerateCapability{service: app},
 		visualIdentityInitializeCapability{service: app}, sceneEventCapability{service: app}, schedule,
-		presenceEventCapability{service: app}, memoryEventCapability{service: app}, affectEventCapability{service: app},
+		presenceEventCapability{service: app}, memoryEventCapability{service: app}, activeMemoryEventCapability{service: app}, affectEventCapability{service: app},
+		memoryRecallCapability{service: newMemoryRecallService(app)},
 		relationshipLookupCapability{service: &relationshipLookupService{app: app}},
 		capabilityRequestCapability{service: &capabilityRequestService{app: app}},
 	}
@@ -88,10 +96,13 @@ var (
 	_ Capability              = presenceEventCapability{}
 	_ Capability              = scheduleReplanCapability{}
 	_ Capability              = memoryEventCapability{}
+	_ Capability              = activeMemoryEventCapability{}
+	_ Capability              = memoryRecallCapability{}
 	_ Capability              = affectEventCapability{}
 	_ Capability              = relationshipLookupCapability{}
 	_ Capability              = capabilityRequestCapability{}
 	_ TransactionalCapability = memoryEventCapability{}
+	_ TransactionalCapability = activeMemoryEventCapability{}
 	_ TransactionalCapability = affectEventCapability{}
 	_ TransactionalCapability = capabilityRequestCapability{}
 	_ TransactionalCapability = sceneEventCapability{}
@@ -542,6 +553,69 @@ func (c memoryEventCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invocat
 		return failedCapabilityResult(invocation, "context_resolve_failed", true), err
 	}
 	return c.service.applyMemoryCapabilityTx(ctx, tx, invocation, resolved)
+}
+
+func (c activeMemoryEventCapability) Definition() CapabilityDefinition {
+	return activeMemoryEventCapabilityDefinition()
+}
+func (c activeMemoryEventCapability) RequiredContext() []ContextSlot {
+	return []ContextSlot{SlotMemoryScope, SlotCurrentLife}
+}
+func (c activeMemoryEventCapability) Prepare(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityInvocation, error) {
+	if c.service == nil {
+		return invocation, errors.New("active memory capability unavailable")
+	}
+	return c.service.prepareActiveMemoryCapability(ctx, invocation, resolved)
+}
+func (c activeMemoryEventCapability) Execute(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	if c.service == nil {
+		return failedCapabilityResultDetail(invocation, "active_memory_capability_unavailable", true, "active memory capability is unavailable"), errors.New("active memory capability unavailable")
+	}
+	if err := requireCapabilityContext(resolved, SlotMemoryScope, SlotCurrentLife); err != nil {
+		return failedCapabilityResult(invocation, "context_resolve_failed", true), err
+	}
+	return c.service.applyActiveMemoryCapability(ctx, invocation, resolved)
+}
+func (c activeMemoryEventCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	if c.service == nil {
+		return failedCapabilityResultDetail(invocation, "active_memory_capability_unavailable", true, "active memory capability is unavailable"), errors.New("active memory capability unavailable")
+	}
+	if err := requireCapabilityContext(resolved, SlotMemoryScope, SlotCurrentLife); err != nil {
+		return failedCapabilityResult(invocation, "context_resolve_failed", true), err
+	}
+	return c.service.applyActiveMemoryCapabilityTx(ctx, tx, invocation, resolved)
+}
+
+func (c memoryRecallCapability) Definition() CapabilityDefinition {
+	return memoryRecallCapabilityDefinition()
+}
+func (c memoryRecallCapability) RequiredContext() []ContextSlot {
+	return []ContextSlot{SlotMemoryScope}
+}
+func (c memoryRecallCapability) Execute(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
+	if c.service == nil {
+		return failedCapabilityResultDetail(invocation, "memory_recall_unavailable", true, "memory recall is unavailable"), errors.New("memory recall unavailable")
+	}
+	if err := requireCapabilityContext(resolved, SlotMemoryScope); err != nil {
+		return failedCapabilityResult(invocation, "context_resolve_failed", true), err
+	}
+	args, err := capabilityExecutionArguments(invocation, memoryRecallCapabilityDefinition())
+	if err != nil {
+		return failedCapabilityResult(invocation, "invalid_arguments", false), err
+	}
+	viewers := decisionServiceRefValues(resolved.Memory.Data["viewer_actor_ids"])
+	request := MemoryRecallRequest{
+		AuthorizationActorID: stringValue(resolved.Memory.Data["owner_actor_id"]), FluctlightID: invocation.Metadata.FluctlightID,
+		ConversationID: invocation.Metadata.ConversationID, ViewerActorIDs: viewers,
+		ConversationMode: MemoryConversationScopeMode(stringValue(resolved.Memory.Data["conversation_mode"])),
+		ActiveProfileID:  stringValue(resolved.Memory.Data["active_profile_id"]), Intent: stringValue(args["intent"]),
+	}
+	items, truncated, err := c.service.Recall(ctx, request)
+	if err != nil {
+		return failedCapabilityResultDetail(invocation, "memory_recall_failed", true, err.Error()), err
+	}
+	output := map[string]any{"items": items, "count": len(items), "truncated": truncated}
+	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: output, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "memory-recall:" + stableDigest(invocation.CallID)}, nil
 }
 
 func (c affectEventCapability) Definition() CapabilityDefinition {

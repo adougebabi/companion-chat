@@ -204,3 +204,160 @@ plan := buildMemoryQueryPlan(operation, viewers, conversationMode,
 result := retrieveMemoryWithPlan(ctx, authorizationActorID, fluctlightID, plan)
 // SQL authorization precedes candidate limit/ranking; result.Trace is Core-only.
 ```
+
+## Scenario: Raw, Active, Summary, and Working Memory Separation
+
+### 1. Scope / Trigger
+
+- Trigger: a conversation turn, cognition, wake-up, daily review, Reflection,
+  Automatic Retrieval, or `memory.recall` needs historical context without
+  making Provider input grow with storage.
+- Raw History and durable/Active authorities may grow. Working Memory and the
+  final prompt are bounded read models; Summary is a rebuildable projection.
+
+### 2. Signatures
+
+```go
+type RawHistoryReader interface {
+	Recent(context.Context, RawHistoryQuery) ([]RawHistoryEvent, error)
+	Search(context.Context, RawHistorySearchQuery) ([]RawHistoryEvent, error)
+	ReadSources(context.Context, string, []string) ([]RawHistoryEvent, error)
+}
+
+applyActiveMemoryCommandTx(ctx, tx, PreparedActiveMemoryMutation) (ActiveMemoryApplyResult, error)
+ResolveWorkingMemory(WorkingMemoryInput, WorkingMemoryPolicy) (WorkingMemory, error)
+MemoryRecallService.Recall(ctx, MemoryRecallRequest) ([]map[string]any, bool, error)
+```
+
+Persistence roles:
+
+```text
+conversation_messages / cognition_inbox / cognition_action_outcomes
+  owning Raw History rows; no copied raw_history table
+
+active_memories / active_memory_revisions / active_memory_commands
+  current short-lived authority + immutable lifecycle/command audit
+
+conversation_summaries
+  source-range projection with source refs/digest and superseding revision
+```
+
+Active operations are `create|confirm|revise|complete|expire|supersede`;
+kinds are `future_event|commitment|temporary_context`; statuses are
+`active|completed|expired|superseded`. `memory.recall/v1` is conversation-only,
+requires `memory_scope`, and accepts only `{intent: string[1..1000]}`.
+
+### 3. Contracts
+
+- `RawHistoryEvent` is a read-only envelope over owning tables. Source refs use
+  `message:<id>`, `fact:<id>`, or `outcome:<id>`; the reader never writes a
+  second event ledger. Recent defaults to 50, caps at 200, source re-read caps
+  at 64, and conversation search is currently message FTS only.
+- Active Memory is not `memories.status='active'`. Reads require owner,
+  conversation scope, `status='active'`, reached `valid_from`, and future
+  `valid_until`; expiry therefore removes an item before cleanup writes the
+  terminal revision. `applyActiveMemoryCommandTx` is its only lifecycle SQL
+  authority.
+- Active time keeps both the original expression and validated absolute bounds.
+  `unknown` precision has no invented bounds; named timezone and supplied
+  offset must agree. Every create supplies `original_time_expression` and
+  `time_precision`; a `future_event` additionally requires nonempty original
+  expression, non-unknown precision, and `valid_until`. Its optional
+  `valid_from` is when the fact becomes relevant, not automatically the event
+  start; omit it or use current/source time when it must be visible beforehand.
+  Provider input never supplies owner, database ID,
+  revision, canonical key, evidence storage, or idempotency.
+- Summary work retains the latest 24 messages. An older chunk becomes eligible
+  at 20 completed assistant turns, about 6000 estimated tokens, or 40 messages,
+  and is cut on an assistant boundary. Settlement re-reads the contiguous Raw
+  range and requires the same ordered refs and digest; old summaries are never
+  summary input.
+- Working Memory receives already-authorized fragments and performs no SQL,
+  embedding, extraction, or LLM call. Default section caps are runtime `6144`,
+  Active `2048`, Recent `8192`, retrieved Long-term `3072`, Summary `2048`.
+  It selects whole fragments and whole recent turns, restores chronological
+  order, and deduplicates shared source refs without deleting source rows.
+- Automatic Retrieval uses bounded cues from current input, recent topic,
+  current state, Active Memory, goals/intentions/outcomes/hypotheses. At most 32
+  cues, 1000 runes each, and 1024 estimated query tokens are allowed; projection
+  cues set `AllowEmbedding=false` unless a separate field-level policy exists.
+- `memory.recall` uses frozen authorization/viewer/conversation/profile scope
+  but executes a fresh bounded query over Active, Long-term, authorized older
+  conversation messages, and Summary. Final output is deduplicated, at most 12
+  whole items and 3072 estimated tokens, and contains only opaque refs plus
+  bounded semantic fields. It has no database write or workflow intent.
+- Durable Memory remains the four-type `memory.lifecycle.v2` authority. Active
+  completion/expiry does not automatically promote an item; Reflection may
+  create a durable candidate from the same Raw evidence and close Active in its
+  caller-owned transaction.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Raw query lacks owner or authorized conversation scope | Reject before reading sources. |
+| Existing message/fact sequence duplicates block `0032` | Roll back schema and ledger; never renumber history. |
+| Active create omits original expression/precision, future event omits expiry, time is unknown but bounds are supplied, timezone offset disagrees, or range is reversed | Reject the command; append no current row/revision/command result. |
+| Active target revision is stale or idempotency payload differs | Conflict; replay only an identical prior command. |
+| Active row is expired at read time but cleanup has not run | Exclude immediately; cleanup may later append `expire`. |
+| Summary source has a gap, changed ref/digest, wrong author boundary, or foreign owner | Reject settlement; keep Raw rows and retryable intent. |
+| Required Working Memory fragment exceeds its section | `working_memory_required_budget_exceeded`; do not truncate it. |
+| Recall result exceeds item/token bounds | Drop whole lower-ranked items and return `truncated=true`. |
+| Recall source is unauthorized or has no provider-safe content | Exclude before combined ranking; expose no raw identifier. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: “明早 7 点赶飞机” leaves Recent, remains selected Active Memory with
+  original expression/timezone, and disappears immediately after `valid_until`;
+  the source message remains readable and Reflection decides separately whether
+  the experience deserves durable episodic Memory.
+- Good: 1000 Raw events, 100 durable Memories, and 30 Active items still produce
+  bounded whole-item Working Memory; the trace explains selected, section-cap,
+  total-cap, deduplicated, expired, and unauthorized outcomes.
+- Base: no summary or recall match exists; current facts and recent complete
+  turns still assemble without manufacturing Memory.
+- Bad: copy every message into `memories`, call a summary the source of truth,
+  keep an expired flight because cleanup has not run, or return raw retrieval
+  rows from `memory.recall`.
+
+### 6. Tests Required
+
+- Raw pagination/source/scope tests, 1000+ row growth, atomic user/fact/intent/
+  outbox rollback, sequence-duplicate migration failure, and unchanged Raw
+  rows after Summary/Working Memory selection.
+- Active create/confirm/revise/complete/expire/supersede, timezone/unknown-time,
+  read-time expiry, CAS, idempotency/replay, provenance, and one-SQL-authority
+  guards.
+- Summary threshold/range/digest/source-drift/rebuild/supersede tests and
+  Provider/restart replay with no recursive summary input.
+- Working Memory whole-fragment/whole-turn, source-dedupe, required overflow,
+  fixed-cap stress, real-role order, and dropped-reason trace assertions.
+- Automatic Retrieval tests for authorization-before-limit, old relevant rows,
+  irrelevant bulk, lexical fallback honesty, cue cap, and ABA current lineage.
+- `memory.recall` definition/scope/deep-query/opaque-output/item-token-bound tests;
+  continuation behavior is tested by the Structured Turn contract.
+- Real PostgreSQL migration and lifecycle cases remain mandatory at the final
+  acceptance gate; unit/compile evidence is not a substitute.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+prompt.Memories = loadAllMemories(fluctlightID)
+prompt.History = loadAllMessages(conversationID)
+```
+
+#### Correct
+
+```go
+raw := rawHistory.Recent(ctx, boundedQuery)
+active := retrieveActiveMemories(ctx, scopedQuery)
+retrieved := retrieveMemoryWithPlan(ctx, actorID, fluctlightID, plan)
+working, err := ResolveWorkingMemory(WorkingMemoryInput{
+	RecentMessages: recentFragments(raw),
+	ActiveCandidates: activeFragments(active),
+	RetrievedMemories: durableFragments(retrieved),
+	Summaries: sourceBoundSummaries,
+}, DefaultWorkingMemoryPolicy())
+```

@@ -1077,3 +1077,37 @@ Implemented the complete cognition growth vertical: structured appraisal/focus/i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 33: Prompt Context and Memory architecture
+
+**Date**: 2026-09-12
+**Task**: Prompt Context and Memory architecture
+**Branch**: `codex/prompt-context-memory`
+
+### Summary
+
+Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memory separation, source-bound summaries, memory.recall, pure-query continuation, diagnostics, migration 0032, and full PostgreSQL/live-provider/Compose validation.
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8d58c90` | (see git log) |
+| `68597ad` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

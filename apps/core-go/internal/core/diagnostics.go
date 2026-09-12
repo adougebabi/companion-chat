@@ -22,6 +22,7 @@ const (
 type providerScenarioContextKey struct{}
 type providerCorrelationContextKey struct{}
 type providerExecutionGuardContextKey struct{}
+type providerPromptDiagnosticsContextKey struct{}
 
 var (
 	errProviderPaused   = errors.New("provider_suppressed_fluctlight_paused")
@@ -47,6 +48,61 @@ func providerCorrelation(ctx context.Context) string {
 	}
 	value, _ := ctx.Value(providerCorrelationContextKey{}).(string)
 	return strings.TrimSpace(value)
+}
+
+func WithPromptDiagnostics(ctx context.Context, trace map[string]any) context.Context {
+	return context.WithValue(ctx, providerPromptDiagnosticsContextKey{}, boundedPromptDiagnostics(trace))
+}
+
+func providerPromptDiagnostics(ctx context.Context) map[string]any {
+	if ctx == nil {
+		return map[string]any{}
+	}
+	value, _ := ctx.Value(providerPromptDiagnosticsContextKey{}).(map[string]any)
+	result := cloneMap(value)
+	if result == nil {
+		return map[string]any{}
+	}
+	return result
+}
+
+func boundedPromptDiagnostics(trace map[string]any) map[string]any {
+	encoded, err := json.Marshal(trace)
+	if err != nil {
+		return map[string]any{}
+	}
+	var normalized map[string]any
+	if json.Unmarshal(encoded, &normalized) != nil {
+		return map[string]any{}
+	}
+	redacted, _ := redactDiagnostic(normalized).(map[string]any)
+	if redacted == nil {
+		return map[string]any{}
+	}
+	var bound func(any) any
+	bound = func(value any) any {
+		switch typed := value.(type) {
+		case map[string]any:
+			result := make(map[string]any, len(typed))
+			for key, child := range typed {
+				result[key] = bound(child)
+			}
+			return result
+		case []any:
+			if len(typed) > 64 {
+				typed = typed[:64]
+			}
+			result := make([]any, len(typed))
+			for index, child := range typed {
+				result[index] = bound(child)
+			}
+			return result
+		default:
+			return value
+		}
+	}
+	bounded, _ := bound(redacted).(map[string]any)
+	return bounded
 }
 
 // WithProviderExecutionGuard attaches a last-moment domain-state check to a
@@ -273,6 +329,12 @@ func (a *App) recordModelRunLifecycle(ctx context.Context, role, endpointID, mod
 	if priority <= 0 {
 		priority = providerPriority(scenario)
 	}
+	metrics := providerPromptDiagnostics(ctx)
+	fluctlightID := strings.TrimSpace(stringValue(metrics["fluctlight_id"]))
+	if fluctlightID == "" {
+		fluctlightID = a.inferDiagnosticFluctlightID(ctx, correlationID)
+	}
+	estimatedInputTokens := intValue(mapValue(metrics["prompt_budget"])["estimated_input_tokens"])
 	seed := bindingRole + ":" + endpointID + ":" + modelID + ":" + scenario + ":" + correlationID + ":" + string(promptJSON)
 	digest := sha256.Sum256([]byte(seed))
 	id := "model_run_" + hex.EncodeToString(digest[:])[:32]
@@ -284,9 +346,54 @@ func (a *App) recordModelRunLifecycle(ctx context.Context, role, endpointID, mod
 	if status == providerRunCompleted || status == providerRunFailed || status == providerRunCancelled || status == providerRunTimeout {
 		completedAt = time.Now().UTC()
 	}
-	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,queued_at,started_at,completed_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,now(),$13,$14) ON CONFLICT(id) DO UPDATE SET role=excluded.role,binding_role=excluded.binding_role,scenario=excluded.scenario,priority=excluded.priority,response=COALESCE(excluded.response,public.diagnostic_model_runs.response),status=excluded.status,error_code=excluded.error_code,started_at=COALESCE(public.diagnostic_model_runs.started_at,excluded.started_at),completed_at=COALESCE(excluded.completed_at,public.diagnostic_model_runs.completed_at)`, id, role, bindingRole, scenario, priority, nullableString(endpointID), modelID, promptJSON, responseJSON, status, nullableString(errorCode), correlationID, startedAt, completedAt)
+	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,fluctlight_id,metrics,estimated_input_tokens,queued_at,started_at,completed_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,now(),$16,$17) ON CONFLICT(id) DO UPDATE SET role=excluded.role,binding_role=excluded.binding_role,scenario=excluded.scenario,priority=excluded.priority,response=COALESCE(excluded.response,public.diagnostic_model_runs.response),status=excluded.status,error_code=excluded.error_code,fluctlight_id=COALESCE(public.diagnostic_model_runs.fluctlight_id,excluded.fluctlight_id),metrics=CASE WHEN excluded.metrics='{}'::jsonb THEN public.diagnostic_model_runs.metrics ELSE excluded.metrics END,estimated_input_tokens=COALESCE(public.diagnostic_model_runs.estimated_input_tokens,excluded.estimated_input_tokens),started_at=COALESCE(public.diagnostic_model_runs.started_at,excluded.started_at),completed_at=COALESCE(excluded.completed_at,public.diagnostic_model_runs.completed_at)`, id, role, bindingRole, scenario, priority, nullableString(endpointID), modelID, promptJSON, responseJSON, status, nullableString(errorCode), correlationID, nullableString(fluctlightID), jsonBytes(metrics), nullableInt(estimatedInputTokens, estimatedInputTokens > 0), startedAt, completedAt)
 	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.provider_provenance(id,role,endpoint_id,model_id,prompt_version,schema_version,correlation_id,token_budget) SELECT $1,$2,$3,$4,$5,$6,$7,COALESCE((SELECT token_budget FROM public.model_roles WHERE role=$2),0) ON CONFLICT(id) DO NOTHING`, "provider_provenance_"+hex.EncodeToString(digest[:])[:32], bindingRole, endpointID, modelID, providerPromptVersion(scenario), providerSchemaVersion(scenario), correlationID)
 	return id
+}
+
+func (a *App) inferDiagnosticFluctlightID(ctx context.Context, correlationID string) string {
+	if a == nil || a.DB == nil {
+		return ""
+	}
+	var fluctlightID string
+	if intentID := strings.TrimPrefix(correlationID, "conversation-summary:"); intentID != correlationID {
+		_ = a.DB.Pool().QueryRow(ctx, `SELECT COALESCE(payload->>'fluctlight_id','') FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.summary'`, intentID).Scan(&fluctlightID)
+		return strings.TrimSpace(fluctlightID)
+	}
+	if frozenID := strings.TrimPrefix(correlationID, "query-continuation:"); frozenID != correlationID {
+		_ = a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id FROM public.cognition_frozen_actions WHERE id=$1`, frozenID).Scan(&fluctlightID)
+	}
+	return strings.TrimSpace(fluctlightID)
+}
+
+func normalizeProviderUsage(envelope map[string]any) map[string]any {
+	usage := mapValue(envelope["usage"])
+	result := map[string]any{}
+	for _, key := range []string{"prompt_tokens", "completion_tokens", "total_tokens"} {
+		if value := intValue(usage[key]); value >= 0 && usage[key] != nil {
+			result[key] = value
+		}
+	}
+	return result
+}
+
+func (a *App) updateModelRunPromptMetrics(ctx context.Context, id string, usage map[string]any, latency time.Duration) {
+	if a == nil || a.DB == nil || strings.TrimSpace(id) == "" {
+		return
+	}
+	promptTokens, promptPresent := usage["prompt_tokens"]
+	completionTokens, completionPresent := usage["completion_tokens"]
+	metrics := map[string]any{"provider_usage": usage, "latency_ms": latency.Milliseconds()}
+	diagnosticCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	_, _ = a.DB.Pool().Exec(diagnosticCtx, `UPDATE public.diagnostic_model_runs SET actual_prompt_tokens=$2,actual_completion_tokens=$3,latency_ms=$4,metrics=metrics || $5::jsonb || CASE WHEN $2::integer IS NULL OR estimated_input_tokens IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('estimator_delta_tokens',$2-estimated_input_tokens) END WHERE id=$1`, id, nullableInt(intValue(promptTokens), promptPresent), nullableInt(intValue(completionTokens), completionPresent), maxInt64(0, latency.Milliseconds()), jsonBytes(metrics))
+}
+
+func maxInt64(left, right int64) int64 {
+	if left > right {
+		return left
+	}
+	return right
 }
 
 func providerPromptVersion(scenario string) string {

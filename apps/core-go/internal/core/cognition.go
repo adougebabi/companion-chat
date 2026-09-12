@@ -206,107 +206,123 @@ func (a *App) enqueueTurnFactClaimed(ctx context.Context, actorID, fluctlightID,
 }
 
 func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any, claimOwner string) (string, error) {
-	inboxID := "inbox_" + stableDigest("turn:"+idempotency)
-	supersededIDs := make([]string, 0)
+	var inboxID string
+	var supersededIDs []string
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var existing, existingText, existingStatus, existingClaimedBy string
-		var existingPayload []byte
-		var existingClaimedAt *time.Time
-		if err := tx.QueryRow(ctx, `SELECT id,payload,status,COALESCE(claimed_by,''),claimed_at FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key=$2 FOR UPDATE`, fluctlightID, idempotency).Scan(&existing, &existingPayload, &existingStatus, &existingClaimedBy, &existingClaimedAt); err == nil {
-			existingText = stringValue(decodeObject(existingPayload)["text"])
-			if existingText != text || stringValue(decodeObject(existingPayload)["conversation_id"]) != conversationID || stringValue(decodeObject(existingPayload)["actor_id"]) != actorID {
-				return ErrConflict
-			}
-			if claimOwner != "" && existingStatus != "processed" && existingStatus != "failed" {
-				if existingStatus == "claimed" && existingClaimedBy != "" && existingClaimedAt != nil && time.Since(*existingClaimedAt) < 10*time.Minute {
-					existingData := decodeObject(existingPayload)
-					var assistantExists bool
-					var frozenStatus, frozenActionType string
-					if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2),COALESCE((SELECT status FROM public.cognition_frozen_actions WHERE inbox_id=$3 ORDER BY frozen_at DESC LIMIT 1),''),COALESCE((SELECT action_type FROM public.cognition_frozen_actions WHERE inbox_id=$3 ORDER BY frozen_at DESC LIMIT 1),'')`, stringValue(existingData["conversation_id"]), "assistant:"+stringValue(existingData["turn_id"]), existing).Scan(&assistantExists, &frozenStatus, &frozenActionType); err != nil {
-						return err
-					}
-					if (assistantExists && (frozenStatus == "" || frozenStatus == "completed")) || (!assistantExists && frozenActionType == "no_op" && frozenStatus == "completed") {
-						if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',claimed_by=NULL,claimed_at=NULL,processed_at=COALESCE(processed_at,now()),error_code=NULL WHERE id=$1 AND status='claimed'`, existing); err != nil {
-							return err
-						}
-					} else if assistantExists && frozenStatus == "frozen" {
-						// The assistant transaction committed before cognition completion.
-						// Transfer the lease so the normal recovery path can settle the same
-						// frozen invocations/results and complete the inbox idempotently.
-						if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET claimed_by=$2,claimed_at=now() WHERE id=$1 AND status='claimed'`, existing, claimOwner); err != nil {
-							return err
-						}
-					} else {
-						return ErrConflict
-					}
-				} else if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now() WHERE id=$1`, existing, claimOwner); err != nil {
-					return err
-				}
-			}
-			inboxID = existing
-			return nil
-		} else if !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
-		rows, err := tx.Query(ctx, `
-			UPDATE public.cognition_inbox
-			SET status='failed',error_code='superseded_by_newer_turn',processed_at=now(),claimed_by=NULL,claimed_at=NULL
-			WHERE fluctlight_id=$1 AND event_type='conversation.turn'
-			  AND payload->>'conversation_id'=$2 AND status IN ('pending','claimed')
-			RETURNING id`, fluctlightID, conversationID)
-		if err != nil {
-			return err
-		}
-		for rows.Next() {
-			var oldID string
-			if err := rows.Scan(&oldID); err != nil {
-				rows.Close()
-				return err
-			}
-			supersededIDs = append(supersededIDs, oldID)
-		}
-		if err := rows.Err(); err != nil {
-			rows.Close()
-			return err
-		}
-		rows.Close()
-		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox_heads(fluctlight_id,next_sequence,last_processed_sequence) VALUES($1,1,0) ON CONFLICT DO NOTHING`, fluctlightID); err != nil {
-			return err
-		}
-		var sequence int
-		if err := tx.QueryRow(ctx, `SELECT next_sequence FROM public.cognition_inbox_heads WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&sequence); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads SET next_sequence=$2 WHERE fluctlight_id=$1`, fluctlightID, sequence+1); err != nil {
-			return err
-		}
-		if attachmentRefs == nil {
-			attachmentRefs = []any{}
-		}
-		payload := map[string]any{"actor_id": actorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text, "attachment_refs": attachmentRefs, "idempotency_key": idempotency}
-		status := "pending"
-		claimedBy := nullableString("")
-		var claimedAt any
-		if claimOwner != "" {
-			status = "claimed"
-			claimedBy = claimOwner
-			claimedAt = time.Now().UTC()
-		}
-		_, err = tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,claimed_by,claimed_at) VALUES($1,$2,$3,'conversation.turn',$4,$5,$6,$7,now(),$8,$9,$10)`, inboxID, fluctlightID, sequence, jsonBytes(payload), turnID, "turn:"+turnID, idempotency, status, claimedBy, claimedAt)
-		if err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','cognition.processing',$3) ON CONFLICT DO NOTHING`, "cognition_intent:"+inboxID, "cognition:"+inboxID, jsonBytes(map[string]any{"inbox_id": inboxID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "idempotency_key": idempotency})); err != nil {
-			return err
-		}
-		return appendOutboxTx(ctx, tx, "cognition.fact.created", "fluctlight", fluctlightID, fluctlightID, turnID, "turn:"+turnID, "cognition:"+idempotency, payload)
+		var enqueueErr error
+		inboxID, supersededIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, fluctlightID, conversationID, turnID, idempotency, text, attachmentRefs, claimOwner)
+		return enqueueErr
 	})
 	if err == nil {
-		for _, oldID := range supersededIDs {
-			a.cancelCognitionFact(ctx, oldID)
-		}
+		a.cancelSupersededCognitionFacts(ctx, supersededIDs)
 	}
 	return inboxID, err
+}
+
+// enqueueTurnFactTx is the transaction-injected authority for a conversation
+// observation. Interactive callers compose the source message and this fact in
+// one short transaction; background/public wrappers still own a transaction.
+func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, fluctlightID, conversationID, turnID, idempotency, text string, attachmentRefs any, claimOwner string) (string, []string, error) {
+	inboxID := "inbox_" + stableDigest("turn:"+idempotency)
+	supersededIDs := make([]string, 0)
+	var existing, existingText, existingStatus, existingClaimedBy string
+	var existingPayload []byte
+	var existingClaimedAt *time.Time
+	if err := tx.QueryRow(ctx, `SELECT id,payload,status,COALESCE(claimed_by,''),claimed_at FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key=$2 FOR UPDATE`, fluctlightID, idempotency).Scan(&existing, &existingPayload, &existingStatus, &existingClaimedBy, &existingClaimedAt); err == nil {
+		existingData := decodeObject(existingPayload)
+		existingText = stringValue(existingData["text"])
+		if existingText != text || stringValue(existingData["conversation_id"]) != conversationID || stringValue(existingData["actor_id"]) != actorID {
+			return "", nil, ErrConflict
+		}
+		if claimOwner != "" && existingStatus != "processed" && existingStatus != "failed" {
+			if existingStatus == "claimed" && existingClaimedBy != "" && existingClaimedAt != nil && time.Since(*existingClaimedAt) < 10*time.Minute {
+				var assistantExists bool
+				var frozenStatus, frozenActionType string
+				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2),COALESCE((SELECT status FROM public.cognition_frozen_actions WHERE inbox_id=$3 ORDER BY frozen_at DESC LIMIT 1),''),COALESCE((SELECT action_type FROM public.cognition_frozen_actions WHERE inbox_id=$3 ORDER BY frozen_at DESC LIMIT 1),'')`, stringValue(existingData["conversation_id"]), "assistant:"+stringValue(existingData["turn_id"]), existing).Scan(&assistantExists, &frozenStatus, &frozenActionType); err != nil {
+					return "", nil, err
+				}
+				if (assistantExists && (frozenStatus == "" || frozenStatus == "completed")) || (!assistantExists && frozenActionType == "no_op" && frozenStatus == "completed") {
+					if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='processed',claimed_by=NULL,claimed_at=NULL,processed_at=COALESCE(processed_at,now()),error_code=NULL WHERE id=$1 AND status='claimed'`, existing); err != nil {
+						return "", nil, err
+					}
+				} else if assistantExists && frozenStatus == "frozen" {
+					// The assistant transaction committed before cognition completion.
+					// Transfer the lease so the normal recovery path can settle the same
+					// frozen invocations/results and complete the inbox idempotently.
+					if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET claimed_by=$2,claimed_at=now() WHERE id=$1 AND status='claimed'`, existing, claimOwner); err != nil {
+						return "", nil, err
+					}
+				} else {
+					return "", nil, ErrConflict
+				}
+			} else if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='claimed',claimed_by=$2,claimed_at=now() WHERE id=$1`, existing, claimOwner); err != nil {
+				return "", nil, err
+			}
+		}
+		return existing, supersededIDs, nil
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return "", nil, err
+	}
+	rows, err := tx.Query(ctx, `
+		UPDATE public.cognition_inbox
+		SET status='failed',error_code='superseded_by_newer_turn',processed_at=now(),claimed_by=NULL,claimed_at=NULL
+		WHERE fluctlight_id=$1 AND event_type='conversation.turn'
+		  AND payload->>'conversation_id'=$2 AND status IN ('pending','claimed')
+		RETURNING id`, fluctlightID, conversationID)
+	if err != nil {
+		return "", nil, err
+	}
+	for rows.Next() {
+		var oldID string
+		if err := rows.Scan(&oldID); err != nil {
+			rows.Close()
+			return "", nil, err
+		}
+		supersededIDs = append(supersededIDs, oldID)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return "", nil, err
+	}
+	rows.Close()
+	if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox_heads(fluctlight_id,next_sequence,last_processed_sequence) VALUES($1,1,0) ON CONFLICT DO NOTHING`, fluctlightID); err != nil {
+		return "", nil, err
+	}
+	var sequence int
+	if err := tx.QueryRow(ctx, `SELECT next_sequence FROM public.cognition_inbox_heads WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&sequence); err != nil {
+		return "", nil, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads SET next_sequence=$2 WHERE fluctlight_id=$1`, fluctlightID, sequence+1); err != nil {
+		return "", nil, err
+	}
+	if attachmentRefs == nil {
+		attachmentRefs = []any{}
+	}
+	payload := map[string]any{"actor_id": actorID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "text": text, "attachment_refs": attachmentRefs, "idempotency_key": idempotency}
+	status := "pending"
+	claimedBy := nullableString("")
+	var claimedAt any
+	if claimOwner != "" {
+		status = "claimed"
+		claimedBy = claimOwner
+		claimedAt = time.Now().UTC()
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,claimed_by,claimed_at) VALUES($1,$2,$3,'conversation.turn',$4,$5,$6,$7,now(),$8,$9,$10)`, inboxID, fluctlightID, sequence, jsonBytes(payload), turnID, "turn:"+turnID, idempotency, status, claimedBy, claimedAt); err != nil {
+		return "", nil, err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','cognition.processing',$3) ON CONFLICT DO NOTHING`, "cognition_intent:"+inboxID, "cognition:"+inboxID, jsonBytes(map[string]any{"inbox_id": inboxID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": turnID, "idempotency_key": idempotency})); err != nil {
+		return "", nil, err
+	}
+	if err := appendOutboxTx(ctx, tx, "cognition.fact.created", "fluctlight", fluctlightID, fluctlightID, turnID, "turn:"+turnID, "cognition:"+idempotency, payload); err != nil {
+		return "", nil, err
+	}
+	return inboxID, supersededIDs, nil
+}
+
+func (a *App) cancelSupersededCognitionFacts(ctx context.Context, inboxIDs []string) {
+	for _, inboxID := range inboxIDs {
+		a.cancelCognitionFact(ctx, inboxID)
+	}
 }
 
 func (a *App) cancelCognitionFact(ctx context.Context, inboxID string) {
@@ -674,6 +690,13 @@ func (a *App) completeTurnCognitionTx(ctx context.Context, tx pgx.Tx, inboxID, f
 	}
 	if _, err := appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", resultFact, "action-result:"+frozenID); err != nil {
 		return "", err
+	}
+	if actionType == "reply" {
+		if messageID := strings.TrimSpace(stringValue(settledRealization["message_id"])); messageID != "" {
+			if err := a.enqueueConversationSummaryIntentTx(ctx, tx, fluctlightID, "", messageID); err != nil {
+				return "", err
+			}
+		}
 	}
 	return fluctlightID, nil
 }

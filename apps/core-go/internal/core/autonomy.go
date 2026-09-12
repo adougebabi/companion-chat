@@ -77,12 +77,15 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
-	messages := withContextAuthorityInstruction([]map[string]any{
-		{"role": "system", "content": capabilityDailyReviewPolicyInstruction},
-		{"role": "user", "content": jsonString(map[string]any{"local_date": localDate, "context": compactCognitionContext(projection)})},
-	})
-	messages = withActorRelationshipSystemContext(messages, projection)
-	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "daily_review"), "cognitive_assessment", messages, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceAutonomy), "daily_review_response", dailyReviewResponseSchema(), true)
+	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceAutonomy)
+	schema := dailyReviewResponseSchema()
+	assembly, assembledProjection, err := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityDailyReviewPolicyInstruction}, jsonString(map[string]any{"local_date": localDate}), definitions, "daily_review_response", schema)
+	if err != nil {
+		return nil, err
+	}
+	projection = assembledProjection
+	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "daily_review"), assembly.Diagnostics)
+	completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "daily_review_response", schema, true)
 	if err != nil {
 		// A daily review is one semantic cognition. Invalid Provider output is
 		// retried by its owning workflow with the same durable identity; this call

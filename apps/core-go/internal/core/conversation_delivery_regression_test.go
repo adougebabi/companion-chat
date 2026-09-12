@@ -79,14 +79,22 @@ func TestDirectConversationMessageIsDurableDuringCognitionAndNoReplyCannotComple
 		close(releaseProvider)
 		t.Fatal("Provider did not receive cognition request")
 	}
-	var durableUserCount int
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2 AND kind='user'`, conversationID, "delivery-turn").Scan(&durableUserCount); err != nil {
+	var durableUserCount, workflowIntentCount, outboxCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages m JOIN public.cognition_inbox i ON i.id=m.source_fact_id WHERE m.conversation_id=$1 AND m.idempotency_key=$2 AND m.kind='user' AND m.turn_id='delivery-turn-1' AND m.correlation_id='turn:delivery-turn-1' AND i.payload->>'turn_id'=m.turn_id`, conversationID, "delivery-turn").Scan(&durableUserCount); err != nil {
 		close(releaseProvider)
 		t.Fatal(err)
 	}
-	if durableUserCount != 1 {
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.platform_workflow_intents WHERE intent_id IN (SELECT 'cognition_intent:' || source_fact_id FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2)`, conversationID, "delivery-turn").Scan(&workflowIntentCount); err != nil {
 		close(releaseProvider)
-		t.Fatalf("Provider received cognition while durable user message count=%d, want 1", durableUserCount)
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.platform_outbox_events WHERE idempotency_key='cognition:delivery-turn'`).Scan(&outboxCount); err != nil {
+		close(releaseProvider)
+		t.Fatal(err)
+	}
+	if durableUserCount != 1 || workflowIntentCount != 1 || outboxCount != 1 {
+		close(releaseProvider)
+		t.Fatalf("Provider received cognition before atomic source commit: user=%d workflow=%d outbox=%d", durableUserCount, workflowIntentCount, outboxCount)
 	}
 	close(releaseProvider)
 	var outcome turnOutcome
@@ -215,6 +223,13 @@ func TestDirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCo
 	if fmt.Sprint(finalEvents) != "[user token:我收到了。 assistant]" {
 		t.Fatalf("stream frame order=%v", finalEvents)
 	}
+	var linkedMessages, sourceFacts int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*),count(DISTINCT source_fact_id) FROM public.conversation_messages WHERE conversation_id=$1 AND turn_id='stream-delivery-turn-1' AND source_fact_id IS NOT NULL AND correlation_id='turn:stream-delivery-turn-1'`, conversationID).Scan(&linkedMessages, &sourceFacts); err != nil {
+		t.Fatal(err)
+	}
+	if linkedMessages != 2 || sourceFacts != 1 {
+		t.Fatalf("turn source links messages=%d facts=%d", linkedMessages, sourceFacts)
+	}
 }
 
 func TestDirectConversationReplyToolWithoutAppraisalCommitsBothMessages(t *testing.T) {
@@ -335,5 +350,43 @@ func TestSupersededConversationTurnCannotCommitLateAssistantOrReviveInbox(t *tes
 	}
 	if assistantCount != 0 || inboxStatus != "failed" || inboxError != "superseded_by_newer_turn" || frozenStatus != "frozen" {
 		t.Fatalf("superseded turn revived: assistant=%d inbox=%s/%s frozen=%s", assistantCount, inboxStatus, inboxError, frozenStatus)
+	}
+}
+
+// Authored in S02 and executed only by the S12 isolated-PostgreSQL gate.
+func TestDirectConversationSourceFactConflictRollsBackNewUserMessage(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "atomic-owner", "atomic-fluctlight", "atomic-conversation"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	for _, seed := range []struct {
+		query string
+		args  []any
+	}{
+		{`INSERT INTO public.conversations(id,created_by_actor_id,title) VALUES($1,$2,'atomic source')`, []any{conversationID, ownerID}},
+		{`INSERT INTO public.conversation_heads(conversation_id,next_sequence) VALUES($1,1)`, []any{conversationID}},
+		{`INSERT INTO public.conversation_participants(conversation_id,actor_id,role,status) VALUES($1,$2,'owner','active'),($1,$3,'member','active')`, []any{conversationID, ownerID, fluctlightID}},
+		{`INSERT INTO public.cognition_inbox_heads(fluctlight_id,next_sequence,last_processed_sequence) VALUES($1,2,1)`, []any{fluctlightID}},
+		{`INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,processed_at) VALUES($1,$2,1,'conversation.turn',$3,'atomic-turn','turn:atomic-turn','atomic-idempotency',now(),'processed',now())`, []any{"inbox_" + stableDigest("turn:atomic-idempotency"), fluctlightID, jsonBytes(map[string]any{"actor_id": ownerID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "turn_id": "atomic-turn", "text": "different text", "idempotency_key": "atomic-idempotency"})}},
+	} {
+		if _, err := repository.Pool().Exec(ctx, seed.query, seed.args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	app := &App{DB: repository}
+	_, err := app.HandleTurn(ctx, ownerID, conversationID, map[string]any{
+		"fluctlight_id": fluctlightID, "text": "new text", "idempotency_key": "atomic-idempotency", "turn_id": "atomic-turn", "attachment_refs": []any{},
+	})
+	if !errors.Is(err, ErrConflict) {
+		t.Fatalf("source conflict err=%v", err)
+	}
+	var messageCount, factCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1`, conversationID).Scan(&messageCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key='atomic-idempotency'`, fluctlightID).Scan(&factCount); err != nil {
+		t.Fatal(err)
+	}
+	if messageCount != 0 || factCount != 1 {
+		t.Fatalf("source conflict left message=%d fact=%d", messageCount, factCount)
 	}
 }

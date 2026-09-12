@@ -195,6 +195,9 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 			if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, map[string]any{"status": "completed", "action_status": "completed", "message_id": messageID, "capability_results": capabilityResults}); err != nil {
 				return err
 			}
+			if err := a.enqueueConversationSummaryIntentTx(ctx, tx, fluctlightID, conversationID, messageID); err != nil {
+				return err
+			}
 			return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed", "aggregate_sequence": 1})
 		})
 		if err != nil {

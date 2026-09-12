@@ -20,6 +20,7 @@ const (
 type EvolutionDomain string
 
 const (
+	EvolutionActiveMemory   EvolutionDomain = "active_memory"
 	EvolutionMemory         EvolutionDomain = "memory"
 	EvolutionRelationship   EvolutionDomain = "relationship"
 	EvolutionGoal           EvolutionDomain = "goal"
@@ -32,6 +33,21 @@ const (
 	EvolutionPersonality    EvolutionDomain = "personality_overlay"
 	EvolutionBehaviorPolicy EvolutionDomain = "behavior_policy_overlay"
 )
+
+type ReflectionActiveMemoryCandidateV1 struct {
+	Operation              string     `json:"operation"`
+	TargetRef              string     `json:"target_ref,omitempty"`
+	Kind                   string     `json:"kind,omitempty"`
+	Content                string     `json:"content,omitempty"`
+	Confidence             float64    `json:"confidence"`
+	Importance             float64    `json:"importance,omitempty"`
+	OriginalTimeExpression string     `json:"original_time_expression,omitempty"`
+	ValidFrom              *time.Time `json:"valid_from,omitempty"`
+	ValidUntil             *time.Time `json:"valid_until,omitempty"`
+	TimePrecision          string     `json:"time_precision,omitempty"`
+	EvidenceRefs           []string   `json:"evidence_refs"`
+	SemanticReason         string     `json:"semantic_reason"`
+}
 
 type ReflectionMemoryCandidateV2 struct {
 	Operation             string   `json:"operation"`
@@ -139,6 +155,7 @@ type ReflectionOverlayCandidateV2 struct {
 type ReflectionProposalV2 struct {
 	SchemaVersion                     string                                `json:"schema_version"`
 	Summary                           string                                `json:"summary"`
+	ActiveMemoryCandidates            []ReflectionActiveMemoryCandidateV1   `json:"active_memory_candidates"`
 	MemoryCandidates                  []ReflectionMemoryCandidateV2         `json:"memory_candidates"`
 	RelationshipObservations          []ReflectionRelationshipObservationV2 `json:"relationship_observations"`
 	GoalCandidates                    []ReflectionGoalCandidateV2           `json:"goal_candidates"`
@@ -400,6 +417,14 @@ func validateReflectionProposalReferences(proposal ReflectionProposalV2, context
 
 func collectReflectionCandidates(proposal ReflectionProposalV2) []reflectionCandidateInput {
 	result := make([]reflectionCandidateInput, 0)
+	for index, item := range proposal.ActiveMemoryCandidates {
+		confidence, strength := item.Confidence, item.Importance
+		switch ActiveMemoryOperation(item.Operation) {
+		case ActiveMemoryConfirm, ActiveMemoryComplete, ActiveMemoryExpire:
+			confidence, strength = 1, 1
+		}
+		result = append(result, reflectionCandidateInput{domain: EvolutionActiveMemory, index: index, operation: item.Operation, targetRef: item.TargetRef, confidence: confidence, strength: strength, evidenceRefs: item.EvidenceRefs, requiredKind: ContextReferenceActiveMemory})
+	}
 	for index, item := range proposal.MemoryCandidates {
 		confidence, strength := item.Confidence, item.Importance
 		if MemoryOperation(item.Operation) == MemoryConfirm || MemoryOperation(item.Operation) == MemoryDeprecate {

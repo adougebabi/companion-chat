@@ -40,13 +40,16 @@ func (p *ProviderClient) SetRedisClient(client redis.UniversalClient, processID 
 }
 
 type providerAssignment struct {
-	Role        string
-	EndpointID  string
-	BaseURL     string
-	ModelID     string
-	Secret      string
-	Timeout     time.Duration
-	TokenBudget int
+	Role                      string
+	EndpointID                string
+	BaseURL                   string
+	ModelID                   string
+	Secret                    string
+	Timeout                   time.Duration
+	TokenBudget               int
+	ContextWindowTokens       int
+	MaxInputTokens            int
+	PromptBudgetPolicyVersion string
 }
 
 func (p *ProviderClient) assignment(ctx context.Context, role string) (providerAssignment, error) {
@@ -54,16 +57,18 @@ func (p *ProviderClient) assignment(ctx context.Context, role string) (providerA
 		return providerAssignment{}, fmt.Errorf("provider role %s invalid", role)
 	}
 	var endpointID, baseURL, modelID, purpose, capabilityStatus string
-	var timeoutSeconds, tokenBudget int
+	var timeoutSeconds, tokenBudget, contextWindowTokens, maxInputTokens int
+	var promptBudgetPolicyVersion string
 	bindingRole := providerBindingRole(role)
 	err := p.DB.Pool().QueryRow(ctx, `
-		SELECT e.id,e.base_url, r.model_id, e.secret_purpose, r.timeout_seconds,r.token_budget,e.capability_status
+		SELECT e.id,e.base_url,r.model_id,e.secret_purpose,r.timeout_seconds,r.token_budget,e.capability_status,
+		       r.context_window_tokens,r.max_input_tokens,r.prompt_budget_policy_version
 		FROM public.model_roles r
 		JOIN public.provider_endpoints e ON e.id = r.provider_endpoint_id
 		WHERE r.role = $1 OR ($1 = 'generic_llm' AND r.role IN ('action_realization','cognitive_assessment','interaction','reflection','initialization','media_prompt'))
 		ORDER BY CASE WHEN r.role = $1 THEN 0 WHEN r.role = 'action_realization' THEN 1 WHEN r.role = 'cognitive_assessment' THEN 2 WHEN r.role = 'interaction' THEN 3 WHEN r.role = 'reflection' THEN 4 WHEN r.role = 'initialization' THEN 5 ELSE 6 END
 		LIMIT 1
-	`, bindingRole).Scan(&endpointID, &baseURL, &modelID, &purpose, &timeoutSeconds, &tokenBudget, &capabilityStatus)
+	`, bindingRole).Scan(&endpointID, &baseURL, &modelID, &purpose, &timeoutSeconds, &tokenBudget, &capabilityStatus, &contextWindowTokens, &maxInputTokens, &promptBudgetPolicyVersion)
 	if err != nil {
 		return providerAssignment{}, fmt.Errorf("provider role %s unavailable: %w", bindingRole, err)
 	}
@@ -77,7 +82,14 @@ func (p *ProviderClient) assignment(ctx context.Context, role string) (providerA
 	if timeoutSeconds <= 0 {
 		timeoutSeconds = 120
 	}
-	return providerAssignment{Role: bindingRole, EndpointID: endpointID, BaseURL: strings.TrimRight(baseURL, "/"), ModelID: modelID, Secret: secret, Timeout: time.Duration(timeoutSeconds) * time.Second, TokenBudget: tokenBudget}, nil
+	if err := validatePromptBudgetConfiguration(contextWindowTokens, maxInputTokens, tokenBudget, promptBudgetPolicyVersion); err != nil {
+		return providerAssignment{}, err
+	}
+	return providerAssignment{
+		Role: bindingRole, EndpointID: endpointID, BaseURL: strings.TrimRight(baseURL, "/"), ModelID: modelID,
+		Secret: secret, Timeout: time.Duration(timeoutSeconds) * time.Second, TokenBudget: tokenBudget,
+		ContextWindowTokens: contextWindowTokens, MaxInputTokens: maxInputTokens, PromptBudgetPolicyVersion: promptBudgetPolicyVersion,
+	}, nil
 }
 
 func validProviderRole(role string) bool {
@@ -144,17 +156,39 @@ func (p *ProviderClient) StructuredWithToolsSchema(ctx context.Context, role str
 	return p.completeWithToolsSchema(ctx, role, messages, true, definitions, schemaName, schema, enableThinking)
 }
 
+func (p *ProviderClient) StructuredAssembledWithToolsSchema(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool) (ProviderCompletion, error) {
+	return p.completeWithToolsSchemaMode(ctx, role, messages, true, definitions, schemaName, schema, enableThinking, true, false)
+}
+
+func (p *ProviderClient) StructuredQueryContinuation(ctx context.Context, role string, messages []map[string]any, schemaName string, schema map[string]any) (ProviderCompletion, error) {
+	return p.completeWithToolsSchemaMode(ctx, role, messages, true, nil, schemaName, schema, false, true, true)
+}
+
 func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role string, messages []map[string]any, jsonMode bool, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool) (ProviderCompletion, error) {
+	return p.completeWithToolsSchemaMode(ctx, role, messages, jsonMode, definitions, schemaName, schema, enableThinking, false, false)
+}
+
+func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role string, messages []map[string]any, jsonMode bool, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool, assembled, continuation bool) (ProviderCompletion, error) {
 	assignment, err := p.assignment(ctx, role)
 	if err != nil {
 		return ProviderCompletion{}, err
 	}
-	messages = addVisualIdentityMediaPromptInstruction(role, messages)
-	if role == "media_prompt" {
-		messages = withChineseOutputInstruction(role, messages)
-		messages = formatProviderMessagesForRole(messages, role)
+	if assembled {
+		validMessages := validAssembledProviderMessages(messages)
+		if continuation {
+			validMessages = validQueryContinuationMessages(messages)
+		}
+		if role == "media_prompt" || !validMessages || (continuation && len(definitions) > 0) {
+			return ProviderCompletion{}, errors.New("provider_assembled_messages_invalid")
+		}
 	} else {
-		messages = composeProviderMessages(role, messages)
+		messages = addVisualIdentityMediaPromptInstruction(role, messages)
+		if role == "media_prompt" {
+			messages = withChineseOutputInstruction(role, messages)
+			messages = formatProviderMessagesForRole(messages, role)
+		} else {
+			messages = composeProviderMessages(role, messages)
+		}
 	}
 	correlationID := providerCorrelation(ctx)
 	if correlationID == "" {
@@ -162,6 +196,23 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	}
 	providerRequestID := "provider:" + stableDigest(role+":"+correlationID)
 	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, definitions, role, schemaName, schema, enableThinking)
+	responseFormat := map[string]any{}
+	if jsonMode {
+		responseFormat = providerResponseFormatForSchema(role, schemaName, schema)
+	}
+	renderedTools := RenderCapabilityTools(definitions)
+	wireEstimate := estimatePromptWireInput(messages, renderedTools, responseFormat)
+	if role != "media_prompt" {
+		if wireEstimate > assignment.MaxInputTokens {
+			return ProviderCompletion{}, ErrPromptRequiredBudgetExceeded
+		}
+	}
+	diagnostics := providerPromptDiagnostics(ctx)
+	diagnostics["prompt_budget"] = mergeProviderPromptBudgetDiagnostics(mapValue(diagnostics["prompt_budget"]), messages, renderedTools, responseFormat, assignment, wireEstimate)
+	if continuation {
+		diagnostics["continuation_phase"] = "queries_completed"
+	}
+	ctx = WithPromptDiagnostics(ctx, diagnostics)
 	structuredSchema := schema
 	if structuredSchema == nil {
 		structuredSchema = providerSchemaForRole(role)
@@ -179,6 +230,11 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 	ctx = WithProviderScenario(ctx, scenario)
 	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
 	return runProviderQueued(p, ctx, assignment.Role, scenario, priority, diagnosticID, func(runCtx context.Context) (ProviderCompletion, error) {
+		requestStarted := time.Now()
+		usage := map[string]any{}
+		defer func() {
+			(&App{DB: p.DB}).updateModelRunPromptMetrics(ctx, diagnosticID, usage, time.Since(requestStarted))
+		}()
 		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
 		defer cancel()
 		request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/chat/completions", bytes.NewReader(body))
@@ -215,6 +271,7 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_not_json")
 			return ProviderCompletion{}, fmt.Errorf("provider response is not JSON: %w", err)
 		}
+		usage = normalizeProviderUsage(envelope)
 		choices, ok := envelope["choices"].([]any)
 		if !ok || len(choices) == 0 {
 			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_no_choices")
@@ -521,6 +578,90 @@ func providerChatPayload(model string, messages []map[string]any, tokenBudget in
 	return providerChatPayloadForRole(model, messages, tokenBudget, jsonMode, definitions, "")
 }
 
+func providerStreamingPayload(model string, messages []map[string]any, outputReserve int) map[string]any {
+	payload := map[string]any{"model": model, "messages": messages, "temperature": 0.7, "stream": true}
+	if outputReserve > 0 {
+		payload["max_tokens"] = outputReserve
+	}
+	return payload
+}
+
+func validQueryContinuationMessages(messages []map[string]any) bool {
+	if len(messages) < 4 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[len(messages)-1]["role"]) != "tool" {
+		return false
+	}
+	systemCount, assistantCallMessages, assistantCalls, toolResults := 0, 0, 0, 0
+	toolResultsStarted := false
+	for index, message := range messages {
+		switch stringValue(message["role"]) {
+		case "system":
+			systemCount++
+			if index != 0 || strings.TrimSpace(stringValue(message["content"])) == "" {
+				return false
+			}
+		case "user":
+			if assistantCallMessages > 0 || strings.TrimSpace(stringValue(message["content"])) == "" {
+				return false
+			}
+		case "assistant":
+			calls := arrayValue(message["tool_calls"])
+			if len(calls) == 0 {
+				if assistantCallMessages > 0 || strings.TrimSpace(stringValue(message["content"])) == "" {
+					return false
+				}
+				continue
+			}
+			if assistantCallMessages > 0 || toolResultsStarted || len(calls) > 2 || strings.TrimSpace(stringValue(message["content"])) != "" {
+				return false
+			}
+			assistantCallMessages++
+			assistantCalls += len(calls)
+		case "tool":
+			if assistantCallMessages != 1 || stringValue(message["tool_call_id"]) == "" || strings.TrimSpace(stringValue(message["content"])) == "" {
+				return false
+			}
+			toolResultsStarted = true
+			toolResults++
+		default:
+			return false
+		}
+	}
+	return systemCount == 1 && assistantCallMessages == 1 && assistantCalls >= 1 && assistantCalls <= 2 && toolResults == assistantCalls
+}
+
+func mergeProviderPromptBudgetDiagnostics(existing map[string]any, messages, tools []map[string]any, responseFormat map[string]any, assignment providerAssignment, wireEstimate int) map[string]any {
+	result := cloneMap(existing)
+	if result == nil {
+		result = map[string]any{}
+	}
+	result["policy_version"] = assignment.PromptBudgetPolicyVersion
+	result["context_window_tokens"] = assignment.ContextWindowTokens
+	result["max_input_tokens"] = assignment.MaxInputTokens
+	result["output_reserve_tokens"] = assignment.TokenBudget
+	result["safety_margin_tokens"] = defaultPromptSafetyMarginTokens
+	result["estimated_input_tokens"] = wireEstimate
+	sectionTokens := map[string]any{"system": 0, "runtime": 0, "recent": 0, "current_input": 0, "tools": EstimatePromptTokens(tools), "response_schema": EstimatePromptTokens(responseFormat)}
+	sectionCounts := map[string]any{"system": 0, "runtime": 0, "recent": 0, "current_input": 0, "tools": len(tools), "response_schema": 0}
+	if len(responseFormat) > 0 {
+		sectionCounts["response_schema"] = 1
+	}
+	for index, message := range messages {
+		section, tokens := "recent", estimateProviderMessageTokens(message)
+		if index == 0 && stringValue(message["role"]) == "system" {
+			section = "system"
+		} else if index == len(messages)-1 && stringValue(message["role"]) == "user" {
+			section = "current_input"
+		} else if strings.Contains(stringValue(message["content"]), "[RUNTIME CONTEXT]") {
+			section = "runtime"
+		}
+		sectionTokens[section] = intValue(sectionTokens[section]) + tokens
+		sectionCounts[section] = intValue(sectionCounts[section]) + 1
+	}
+	result["section_tokens"] = sectionTokens
+	result["section_counts"] = sectionCounts
+	return result
+}
+
 func providerChatPayloadForRole(model string, messages []map[string]any, tokenBudget int, jsonMode bool, definitions []CapabilityDefinition, role string) map[string]any {
 	return providerChatPayloadWithSchema(model, messages, tokenBudget, jsonMode, definitions, role, "", nil, role == "cognitive_assessment")
 }
@@ -636,7 +777,13 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 	}
 	messages = composeProviderMessages(role, messages)
 	correlationID := diagnosticCorrelation(messages, "")
-	body, err := json.Marshal(map[string]any{"model": assignment.ModelID, "messages": messages, "temperature": 0.7, "stream": true})
+	payload := providerStreamingPayload(assignment.ModelID, messages, assignment.TokenBudget)
+	wireEstimate := estimatePromptWireInput(messages, nil, nil)
+	if wireEstimate > assignment.MaxInputTokens {
+		return "", ErrPromptRequiredBudgetExceeded
+	}
+	ctx = WithPromptDiagnostics(ctx, map[string]any{"prompt_budget": mergeProviderPromptBudgetDiagnostics(nil, messages, nil, nil, assignment, wireEstimate)})
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return "", err
 	}
@@ -645,6 +792,10 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 	ctx = WithProviderScenario(ctx, scenario)
 	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
 	return runProviderQueued(p, ctx, assignment.Role, scenario, priority, diagnosticID, func(runCtx context.Context) (string, error) {
+		requestStarted := time.Now()
+		defer func() {
+			(&App{DB: p.DB}).updateModelRunPromptMetrics(ctx, diagnosticID, map[string]any{}, time.Since(requestStarted))
+		}()
 		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
 		defer cancel()
 		request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/chat/completions", bytes.NewReader(body))

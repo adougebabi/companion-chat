@@ -1,0 +1,31 @@
+{
+  "id": "prompt-context-memory-architecture",
+  "name": "prompt-context-memory-architecture",
+  "title": "Prompt Context 与 Memory 架构重构",
+  "description": "重构 Go Core 的 Raw/Recent/Active/Long-term/Working Memory 与统一 Prompt Context Assembly，加入固定总预算、B-layout real roles、Automatic Retrieval、memory.recall 和受限 pure-QUERY continuation。",
+  "status": "completed",
+  "dev_type": "backend",
+  "scope": "apps/core-go prompt context, memory, persistence, provider and workflow runtime",
+  "package": "single-repo",
+  "priority": "P2",
+  "creator": "adoumibaba",
+  "assignee": "adoumibaba",
+  "createdAt": "2026-09-11",
+  "completedAt": "2026-09-12",
+  "branch": "codex/prompt-context-memory",
+  "base_branch": "codex/llm-capability-runtime",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "apps/core-go/internal/core",
+    "apps/core-go/internal/migrations",
+    "apps/core-go/internal/workflow",
+    ".trellis/spec/backend"
+  ],
+  "notes": "Role experiment selected B on the live local 65,536-token mlx model. User approved one generic pure-QUERY-only continuation exception and strict S01-S11 stage isolation with all full verification deferred to S12 on 2026-09-11.",
+  "meta": {}
+}

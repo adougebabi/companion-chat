@@ -330,10 +330,16 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 			return err
 		}
 		providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "native_cognition"), "native-cognition:"+inboxID)
-		completion, err := a.Provider.StructuredWithToolsSchema(providerCtx, "cognitive_assessment", []map[string]any{
-			{"role": "system", "content": nativeCognitionInstruction},
-			{"role": "user", "content": jsonString(map[string]any{"event_type": eventType, "fact": compactProviderFact(payload), "context": compactCognitionContext(projection)})},
-		}, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceNativeCognition), "native_cognition_response", nativeCognitionResponseSchema(), true)
+		definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceNativeCognition)
+		schema := nativeCognitionResponseSchema()
+		operationInput := jsonString(map[string]any{"event_type": eventType, "fact": compactProviderFact(payload)})
+		assembly, assembledProjection, assemblyErr := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, nativeCognitionInstruction}, operationInput, definitions, "native_cognition_response", schema)
+		if assemblyErr != nil {
+			return assemblyErr
+		}
+		projection = assembledProjection
+		providerCtx = WithPromptDiagnostics(providerCtx, assembly.Diagnostics)
+		completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "native_cognition_response", schema, true)
 		if err != nil {
 			return err
 		}

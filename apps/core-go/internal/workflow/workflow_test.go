@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -219,10 +220,48 @@ func TestDispatcherPrioritizesMediaBeforeVisualIdentityRetries(t *testing.T) {
 }
 
 func TestWorkflowFunctionRegistryIncludesPlatformBoundaries(t *testing.T) {
-	for _, intentType := range []string{"cognition.processing", "platform.control", "wake_up.current", "capability.action", "visual_identity.initialize"} {
+	for _, intentType := range []string{"cognition.processing", "platform.control", "wake_up.current", "capability.action", "visual_identity.initialize", "conversation.summary"} {
 		if fn, err := workflowFunction(intentType); err != nil || fn == nil {
 			t.Fatalf("workflowFunction(%q) = %#v, %v", intentType, fn, err)
 		}
+	}
+}
+
+func TestConversationSummaryWorkflowExecutesOneSourceBoundedActivity(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	activityCalls := 0
+	input := Input{
+		IntentID: "summary-intent", FluctlightID: "fluctlight-1", ConversationID: "conversation-1",
+		SourceMessageID: "message-64", SourceSequence: 64, FromSequence: 1, ToSequence: 40,
+		SourceDigest: "source-digest", SourceMessageRefs: []string{"message:message-1", "message:message-40"},
+	}
+	env.OnActivity(ProcessConversationSummaryActivity, mock.Anything, input).Return(func(context.Context, Input) (map[string]any, error) {
+		activityCalls++
+		return map[string]any{"status": "active", "from_sequence": 1, "to_sequence": 40}, nil
+	})
+	env.ExecuteWorkflow(ConversationSummaryWorkflow, input)
+	if err := env.GetWorkflowError(); err != nil {
+		t.Fatal(err)
+	}
+	if activityCalls != 1 {
+		t.Fatalf("activity calls = %d, want 1", activityCalls)
+	}
+	var result map[string]any
+	if err := env.GetWorkflowResult(&result); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(result["from_sequence"]) != "1" || fmt.Sprint(result["to_sequence"]) != "40" {
+		t.Fatalf("workflow result = %#v", result)
+	}
+}
+
+func TestConversationSummaryWorkflowRejectsInvalidWindowBeforeActivity(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	env.ExecuteWorkflow(ConversationSummaryWorkflow, Input{IntentID: "summary-invalid", FluctlightID: "fluctlight-1", ConversationID: "conversation-1", SourceMessageID: "message-1", SourceSequence: 1, FromSequence: 2, ToSequence: 1, SourceDigest: "digest", SourceMessageRefs: []string{"message:message-1"}})
+	if err := env.GetWorkflowError(); err == nil || !strings.Contains(err.Error(), "conversation summary input is invalid") {
+		t.Fatalf("workflow error = %v", err)
 	}
 }
 

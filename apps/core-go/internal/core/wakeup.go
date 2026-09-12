@@ -296,12 +296,15 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		}
 		projection.VisualIdentity["missing"] = true
 	}
-	messages := withContextAuthorityInstruction([]map[string]any{
-		{"role": "system", "content": capabilityWakeUpPolicyInstruction},
-		{"role": "user", "content": jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle, "context": compactCognitionContext(projection)})},
-	})
-	messages = withActorRelationshipSystemContext(messages, projection)
-	completion, err := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "wake_up"), "cognitive_assessment", messages, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceWakeUp), "wake_up_response", wakeUpResponseSchema(), true)
+	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceWakeUp)
+	schema := wakeUpResponseSchema()
+	assembly, assembledProjection, err := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction}, jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle}), definitions, "wake_up_response", schema)
+	if err != nil {
+		return nil, err
+	}
+	projection = assembledProjection
+	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "wake_up"), assembly.Diagnostics)
+	completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "wake_up_response", schema, true)
 	if err != nil {
 		if status, suppressed := providerSuppressionStatus(err); suppressed {
 			reason := "fluctlight_not_active"

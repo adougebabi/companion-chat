@@ -1,13 +1,172 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
 
-var providerHashPattern = regexp.MustCompile(`\b(?:message|memory|inbox|wake_fact|fluctlight|conversation|claim|event|fact|turn|provider|assessment|decision)_[A-Za-z0-9]{16,64}\b`)
+func (a *App) assembleProjectionPrompt(ctx context.Context, projection ContextProjection, role string, operationRules []string, currentInput string, definitions []CapabilityDefinition, schemaName string, schema map[string]any) (PromptAssemblyResult, ContextProjection, error) {
+	if a == nil || a.DB == nil || a.Provider == nil {
+		return PromptAssemblyResult{}, projection, errors.New("prompt_assembler_dependencies_missing")
+	}
+	assignment, err := a.Provider.assignment(ctx, role)
+	if err != nil {
+		return PromptAssemblyResult{}, projection, err
+	}
+	activeResult := ActiveMemoryRetrievalResult{Items: projection.ActiveMemories, Trace: projection.ActiveMemoryTrace}
+	if activeResult.Items == nil {
+		activeResult, err = a.retrieveActiveMemories(ctx, ActiveMemoryQuery{
+			AuthorizationActorID: projection.OwnerActorID, OwnerFluctlightID: projection.FluctlightID,
+			ConversationID: projection.ConversationID, Cue: currentInput, At: time.Now().UTC(), Limit: activeMemoryResultLimit,
+		})
+		if err != nil {
+			return PromptAssemblyResult{}, projection, err
+		}
+	}
+	referenceCapacity := maxContextReferences - len(projection.ReferenceIndex.ByRef)
+	if referenceCapacity < 0 {
+		referenceCapacity = 0
+	}
+	if len(activeResult.Items) > referenceCapacity {
+		activeResult.Items = activeResult.Items[:referenceCapacity]
+	}
+	if err := addActiveMemoryReferences(&projection.ReferenceIndex, activeResult.Items); err != nil {
+		return PromptAssemblyResult{}, projection, err
+	}
+	var summaries []map[string]any
+	var summaryTrace ConversationSummaryRetrievalTrace
+	if strings.TrimSpace(projection.ConversationID) != "" {
+		summaryResult, summaryErr := a.retrieveConversationSummaries(ctx, ConversationSummaryQuery{
+			AuthorizationActorID: projection.OwnerActorID, FluctlightID: projection.FluctlightID,
+			ConversationID: projection.ConversationID, Limit: conversationSummaryMaxResults, MaxRunes: 2048,
+		})
+		if summaryErr != nil {
+			return PromptAssemblyResult{}, projection, summaryErr
+		}
+		summaries = summaryResult.Items
+		summaryTrace = summaryResult.Trace
+	}
+	workingInput := workingMemoryInputFromProjection(projection, activeResult.Items, summaries)
+	workingMemory, err := ResolveWorkingMemory(workingInput, DefaultWorkingMemoryPolicy())
+	if err != nil {
+		return PromptAssemblyResult{}, projection, err
+	}
+	policy := DefaultPromptBudgetPolicy(assignment.TokenBudget)
+	policy.ContextWindowTokens = assignment.ContextWindowTokens
+	policy.MaxInputTokens = assignment.MaxInputTokens
+	policy.Version = assignment.PromptBudgetPolicyVersion
+	result, err := AssemblePromptContext(PromptAssemblyInput{
+		Role: role, OperationRules: operationRules, CorePersona: projection.CorePersona,
+		WorkingMemory: workingMemory, CurrentInput: currentInput, Tools: RenderCapabilityTools(definitions),
+		ResponseFormat: providerResponseFormatForSchema(role, schemaName, schema), Policy: policy,
+	})
+	if err == nil {
+		result.Diagnostics = map[string]any{
+			"fluctlight_id": projection.FluctlightID, "conversation_id": projection.ConversationID,
+			"prompt_budget": result.Trace, "working_memory": workingMemory.Trace,
+			"active_memory": activeResult.Trace, "long_term_memory": projection.MemoryRetrievalTrace,
+			"conversation_summary": summaryTrace,
+		}
+	}
+	return result, projection, err
+}
+
+func workingMemoryInputFromProjection(projection ContextProjection, active, summaries []map[string]any) WorkingMemoryInput {
+	compact := compactCognitionContext(projection)
+	delete(compact, "core_persona")
+	delete(compact, "memories")
+	delete(compact, "recent_messages")
+	input := WorkingMemoryInput{}
+	keys := make([]string, 0, len(compact))
+	for key := range compact {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		value := compact[key]
+		priority := 50
+		if key == "current_state" || key == "schedule" || key == "presence" || key == "current_speaker" || key == "relationships" {
+			priority = 100
+		}
+		input.RuntimeFacts = append(input.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Priority: priority, Content: map[string]any{"kind": key, "value": value}, SourceRefs: []string{"runtime:" + key}})
+	}
+	for _, item := range compactActiveMemories(active) {
+		input.ActiveCandidates = append(input.ActiveCandidates, PromptFragment{Kind: PromptFragmentActiveMemory, Priority: int(numberOrZero(item["importance"]) * 100), Content: item, SourceRefs: promptItemSourceRefs(item, "active")})
+	}
+	for _, item := range compactMemoriesForProfile(projection.Memories, stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"])) {
+		input.RetrievedMemories = append(input.RetrievedMemories, PromptFragment{Kind: PromptFragmentRetrievedMemory, Priority: int(numberOrZero(item["importance"]) * 100), Content: item, SourceRefs: promptItemSourceRefs(item, "memory")})
+	}
+	for _, item := range summaries {
+		input.Summaries = append(input.Summaries, PromptFragment{Kind: PromptFragmentSummary, Priority: intValue(item["to_sequence"]), Content: item, SourceRefs: promptItemSourceRefs(item, "summary")})
+	}
+	input.RecentMessages = recentPromptFragments(projection)
+	return input
+}
+
+func promptItemSourceRefs(item map[string]any, fallback string) []string {
+	if ref := strings.TrimSpace(stringValue(item["ref"])); ref != "" {
+		return []string{ref}
+	}
+	return []string{fallback + ":" + stableDigest(jsonString(item))}
+}
+
+func recentPromptFragments(projection ContextProjection) []PromptFragment {
+	skipIndex := -1
+	current := strings.TrimSpace(projection.CurrentUserText)
+	for index := len(projection.RecentMessages) - 1; index >= 0 && current != ""; index-- {
+		if stringValue(projection.RecentMessages[index]["kind"]) == "user" && strings.TrimSpace(stringValue(projection.RecentMessages[index]["text"])) == current {
+			skipIndex = index
+			break
+		}
+	}
+	result := make([]PromptFragment, 0, len(projection.RecentMessages))
+	for index, message := range projection.RecentMessages {
+		if index == skipIndex {
+			continue
+		}
+		role := strings.TrimSpace(stringValue(message["kind"]))
+		if role != "user" && role != "assistant" {
+			continue
+		}
+		content := strings.TrimSpace(stringValue(message["text"]))
+		if content == "" {
+			continue
+		}
+		stamp := compactMessageTime(stringValue(message["created_at"]))
+		sender := "actor_self"
+		if role == "user" {
+			sender = "actor_user"
+		}
+		if actor := actorRefForID(projection.Actors, stringValue(message["author_actor_id"])); len(actor) > 0 {
+			if stringValue(actor["type"]) == "human" {
+				sender = "actor_user"
+			} else {
+				sender = firstString(actor["display_name"], stringValue(actor["ref"]))
+			}
+		}
+		if stamp != "" || sender != "" {
+			content = fmt.Sprintf("[sender=%s time=%s]\n%s", sender, stamp, content)
+		}
+		ref := "message:" + stringValue(message["id"])
+		if ref == "message:" {
+			ref += stableDigest(jsonString(message))
+		}
+		groupKey := strings.TrimSpace(stringValue(message["turn_id"]))
+		if groupKey == "" {
+			groupKey = "sequence-pair:" + fmt.Sprint((intValue(message["sequence"])+1)/2)
+		}
+		result = append(result, PromptFragment{Kind: PromptFragmentRecentMessage, Priority: index, Content: map[string]any{"role": role, "content": content}, SourceRefs: []string{ref}, GroupKey: groupKey})
+	}
+	return result
+}
+
+var providerHashPattern = regexp.MustCompile(`\b(?:active_memory|message|memory|inbox|wake_fact|fluctlight|conversation|claim|event|fact|turn|provider|assessment|decision)_[A-Za-z0-9]{16,64}\b`)
 
 // compactCognitionContext is the Provider-facing projection of a full
 // ContextProjection. The full projection remains the durable/replayable

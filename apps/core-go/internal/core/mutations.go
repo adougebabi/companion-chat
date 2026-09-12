@@ -516,31 +516,68 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, err
 		}
 	}
+	claimOwner := ""
+	if claimStream {
+		claimOwner = "go-stream:" + randomID("claim_")
+	}
+	claimSettled := !claimStream
 	var user map[string]any
+	var inboxID string
+	var supersededInboxIDs []string
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var existingID string
 		var existingText string
 		var existingSequence int
 		var existingAuthor string
+		var existingTurnID string
+		var existingSourceFactID string
+		var existingCorrelationID string
 		var existingAttachments []byte
 		var existingCreatedAt time.Time
-		err := tx.QueryRow(ctx, `SELECT id,sequence,text,author_actor_id,attachment_refs,created_at FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, idempotency).Scan(&existingID, &existingSequence, &existingText, &existingAuthor, &existingAttachments, &existingCreatedAt)
+		err := tx.QueryRow(ctx, `SELECT id,sequence,text,author_actor_id,attachment_refs,created_at,COALESCE(turn_id,''),COALESCE(source_fact_id,''),COALESCE(correlation_id,'') FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversationID, idempotency).Scan(&existingID, &existingSequence, &existingText, &existingAuthor, &existingAttachments, &existingCreatedAt, &existingTurnID, &existingSourceFactID, &existingCorrelationID)
+		messageExists := err == nil
 		if err == nil {
 			if existingAuthor != actorID || existingText != text || !jsonEqual(existingAttachments, payload["attachment_refs"]) {
 				return ErrConflict
 			}
+			if existingTurnID != "" && existingTurnID != turnID {
+				return ErrConflict
+			}
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if !messageExists {
+			var participantCount int
+			if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM public.conversation_participants WHERE conversation_id=$1 AND actor_id IN ($2,$3) AND status='active'`, conversationID, actorID, fluctlightID).Scan(&participantCount); err != nil {
+				return err
+			}
+			if participantCount != 2 {
+				return errors.New("conversation_not_found")
+			}
+		}
+		var enqueueErr error
+		inboxID, supersededInboxIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"], claimOwner)
+		if enqueueErr != nil {
+			return enqueueErr
+		}
+		correlationID := "turn:" + turnID
+		if messageExists {
+			if existingSourceFactID != "" && existingSourceFactID != inboxID {
+				return ErrConflict
+			}
+			if existingCorrelationID != "" && existingCorrelationID != correlationID {
+				return ErrConflict
+			}
+			// A retry can close the old message-before-fact crash window only when
+			// the full actor/conversation/text/idempotency tuple has been verified.
+			if existingSourceFactID == "" || existingTurnID == "" || existingCorrelationID == "" {
+				if _, err := tx.Exec(ctx, `UPDATE public.conversation_messages SET turn_id=COALESCE(turn_id,$2),source_fact_id=COALESCE(source_fact_id,$3),correlation_id=COALESCE(correlation_id,$4) WHERE id=$1`, existingID, turnID, inboxID, correlationID); err != nil {
+					return err
+				}
+				existingTurnID, existingSourceFactID, existingCorrelationID = turnID, inboxID, correlationID
+			}
 			user = map[string]any{"id": existingID, "conversation_id": conversationID, "sequence": existingSequence, "author_actor_id": existingAuthor, "kind": "user", "text": existingText, "attachment_refs": decodeArray(existingAttachments), "created_at": existingCreatedAt.UTC().Format(time.RFC3339Nano)}
 			return nil
-		}
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
-		var participantCount int
-		if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM public.conversation_participants WHERE conversation_id=$1 AND actor_id IN ($2,$3) AND status='active'`, conversationID, actorID, fluctlightID).Scan(&participantCount); err != nil {
-			return err
-		}
-		if participantCount != 2 {
-			return errors.New("conversation_not_found")
 		}
 		var seq int
 		if err := tx.QueryRow(ctx, `SELECT next_sequence FROM public.conversation_heads WHERE conversation_id=$1 FOR UPDATE`, conversationID).Scan(&seq); err != nil {
@@ -558,7 +595,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			attachments = []any{}
 		}
 		var createdAt time.Time
-		if err := tx.QueryRow(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES ($1,$2,$3,$4,'user',$5,$6,$7) RETURNING created_at`, messageID, conversationID, seq, actorID, text, jsonBytes(attachments), idempotency).Scan(&createdAt); err != nil {
+		if err := tx.QueryRow(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id) VALUES ($1,$2,$3,$4,'user',$5,$6,$7,$8,$9,$10) RETURNING created_at`, messageID, conversationID, seq, actorID, text, jsonBytes(attachments), idempotency, turnID, inboxID, correlationID).Scan(&createdAt); err != nil {
 			return err
 		}
 		user = map[string]any{"id": messageID, "conversation_id": conversationID, "sequence": seq, "author_actor_id": actorID, "kind": "user", "text": text, "attachment_refs": attachments, "created_at": createdAt.UTC().Format(time.RFC3339Nano)}
@@ -567,17 +604,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if err != nil {
 		return TurnResult{}, err
 	}
-	var inboxID string
-	claimOwner := ""
-	claimSettled := !claimStream
-	if claimStream {
-		inboxID, claimOwner, err = a.enqueueTurnFactClaimed(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"])
-	} else {
-		inboxID, err = a.EnqueueTurnFact(ctx, actorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"])
-	}
-	if err != nil {
-		return TurnResult{}, err
-	}
+	a.cancelSupersededCognitionFacts(ctx, supersededInboxIDs)
 	ctx = WithProviderCancellationKey(ctx, inboxID)
 	if claimStream {
 		defer func() {
@@ -606,9 +633,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 		return callbacks.onActionResult(map[string]any{"message": message, "correlation_id": "turn:" + turnID})
 	}
-	// The user message transaction is committed before cognition starts. Emit
-	// that authoritative row immediately so the browser does not depend solely
-	// on an in-memory optimistic bubble while the Provider is thinking.
+	// The user message, claimed cognition fact, workflow intent, and outbox are
+	// committed together before cognition starts. Emit the authoritative message
+	// immediately so the browser does not depend on an in-memory optimistic bubble
+	// while the Provider is thinking.
 	if err := emitUserFrame(); err != nil {
 		return TurnResult{}, err
 	}
@@ -657,7 +685,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	var responsePlan map[string]any
 	var composite CompositeActionV1
 	var personalityPlan *personalityDecisionPlan
+	responseMode := "final"
+	var continuationBaseMessages []map[string]any
 	toolOnlyNoReply := false
+	structuredFallback := false
 	frozen, frozenFound, err := a.LoadFrozenTurn(ctx, inboxID)
 	if err != nil {
 		return TurnResult{}, err
@@ -718,15 +749,25 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if len(responsePlan) == 0 {
 			return TurnResult{}, errors.New("frozen_response_plan_missing")
 		}
+		responseMode = firstString(responsePlan["response_mode"], firstString(decision["response_mode"], "final"))
+		continuationBaseMessages, _ = decision["continuation_base_messages"].([]map[string]any)
+		if continuationBaseMessages == nil {
+			continuationBaseMessages = cloneMapSliceFromAny(decision["continuation_base_messages"])
+		}
 	} else {
-		messages := []map[string]any{{"role": "system", "content": capabilityConversationPolicyInstruction}, {"role": "user", "content": jsonString(map[string]any{"current_message": map[string]any{"sender": compactActorRef(projection.CurrentSpeaker), "content": text}, "text": text, "context": compactCognitionContext(projection)})}}
-		messages = withActorRelationshipSystemContext(messages, projection)
-		messages = withContextAuthorityInstruction(messages)
 		// Moment publication is a Wake-up/autonomy output, not an ordinary
 		// interactive reply capability. Keep it registered globally for the
 		// Runtime while withholding it from the conversation tool catalog.
 		definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceConversation)
-		completion, completionErr := a.Provider.StructuredWithToolsSchema(WithProviderScenario(ctx, "cognitive_assessment"), "cognitive_assessment", messages, definitions, "conversation_turn_response", cognitiveTurnResponseSchema(), true)
+		schema := cognitiveTurnResponseSchema()
+		assembly, assembledProjection, assemblyErr := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction}, text, definitions, "conversation_turn_response", schema)
+		if assemblyErr != nil {
+			return TurnResult{}, assemblyErr
+		}
+		projection = assembledProjection
+		continuationBaseMessages = cloneMapSlice(assembly.Messages)
+		providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
+		completion, completionErr := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "conversation_turn_response", schema, true)
 		if completionErr != nil {
 			if a.cognitionFactSuperseded(ctx, inboxID) {
 				return TurnResult{}, errCognitionTurnSuperseded
@@ -737,6 +778,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, errCognitionTurnSuperseded
 		}
 		decision = completion.Structured
+		structuredFallback = completion.StructuredFallback
 		capabilityInvocations = append([]CapabilityInvocation(nil), completion.ToolCalls...)
 		for index := range capabilityInvocations {
 			capabilityInvocations[index] = normalizeCapabilityInvocationMetadata(capabilityInvocations[index], fluctlightID, conversationID, inboxID, inboxID, index)
@@ -785,6 +827,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		// frozen decision; response_plan is a visible-plan projection only.
 		decision["response_plan"] = responsePlan
 		decision["context_projection"] = projection
+		visibleCandidate := normalizeVisibleReply(firstString(responsePlan["visible_text"], stringValue(decision["visible_text"])))
+		responseMode = normalizeConversationResponseMode(stringValue(decision["response_mode"]), structuredFallback, visibleCandidate, capabilityInvocations, a.capabilityRegistry())
+		responsePlan["response_mode"] = responseMode
 		if len(capabilityInvocations) > 0 {
 			definitionMap := make(map[string]CapabilityDefinition, len(definitions))
 			for _, definition := range definitions {
@@ -804,17 +849,28 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		// same Main cognition supplies visible text, or the turn fails explicitly
 		// and remains retryable. A successful no-op makes the user's double-check
 		// message look delivered while producing no assistant row.
-		visibleCandidate := normalizeVisibleReply(firstString(responsePlan["visible_text"], stringValue(decision["visible_text"])))
-		if visibleCandidate == "" {
-			visibleCandidate = replyTextFromCapabilityInvocations(capabilityInvocations, a.capabilityRegistry())
-		}
-		if visibleCandidate == "" {
-			return TurnResult{}, errors.New("cognition_visible_text_missing")
+		if responseMode == "query_continuation" {
+			if visibleCandidate != "" || validatePureQueryContinuation(capabilityInvocations, a.capabilityRegistry()) != nil {
+				return TurnResult{}, errors.New("query_continuation_contract_invalid")
+			}
+			decision["continuation_base_messages"] = continuationBaseMessages
+			delete(responsePlan, "visible_text")
+			delete(decision, "visible_text")
+		} else {
+			if responseMode != "final" {
+				return TurnResult{}, errors.New("response_mode_invalid")
+			}
+			if visibleCandidate == "" {
+				visibleCandidate = replyTextFromCapabilityInvocations(capabilityInvocations, a.capabilityRegistry())
+			}
+			if visibleCandidate == "" {
+				return TurnResult{}, errors.New("cognition_visible_text_missing")
+			}
+			responsePlan["visible_text"] = visibleCandidate
+			decision["visible_text"] = visibleCandidate
 		}
 		action = "reply"
 		decision["action_type"] = "reply"
-		responsePlan["visible_text"] = visibleCandidate
-		decision["visible_text"] = visibleCandidate
 		if preferenceDecision := mapValue(responsePlan["output_preference_decision"]); len(preferenceDecision) > 0 {
 			responsePlan["output_preference_decision"] = evaluateOutputPreferenceAction(preferenceDecision, action, capabilityInvocations, a.capabilityRegistry())
 		}
@@ -832,6 +888,23 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, conversationID, turnID, action, decision)
 		if err != nil {
 			return TurnResult{}, err
+		}
+	}
+	var continuationState QueryContinuationState
+	if responseMode == "query_continuation" {
+		if raw := frozen.Payload["query_continuation"]; raw != nil {
+			continuationState, err = queryContinuationStateFromValue(raw)
+			if err != nil {
+				return TurnResult{}, err
+			}
+		} else {
+			continuationState = newQueryContinuationState(continuationBaseMessages, capabilityInvocations)
+			if err := a.persistQueryContinuationState(ctx, frozen.ID, continuationState); err != nil {
+				return TurnResult{}, err
+			}
+		}
+		if expected := newQueryContinuationState(continuationState.BaseMessages, capabilityInvocations); expected.RequestDigest != continuationState.RequestDigest {
+			return TurnResult{}, errors.New("query_continuation_digest_invalid")
 		}
 	}
 	if action != "reply" && action != "no_op" {
@@ -968,9 +1041,74 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	// visible_text is selected together with the active personality, action and
 	// response plan, so it must be sent directly instead of being replaced by a
 	// second action_realization request.
-	visible = normalizeVisibleReply(firstString(responsePlan["visible_text"], stringValue(decision["visible_text"])))
-	if strings.TrimSpace(visible) == "" {
-		visible = replyTextFromCapabilityInvocations(capabilityInvocations, a.capabilityRegistry())
+	if responseMode == "query_continuation" {
+		if err := validatePureQueryContinuation(capabilityInvocations, a.capabilityRegistry()); err != nil {
+			return TurnResult{}, err
+		}
+		if continuationState.Phase == "requested" {
+			messages, messageErr := queryContinuationMessages(continuationState, capabilityInvocations, capabilityResults)
+			if messageErr != nil {
+				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "query_continuation_query_failed")
+				return TurnResult{}, messageErr
+			}
+			continuationState.Phase = "queries_completed"
+			continuationState.Results = append([]CapabilityResult(nil), capabilityResults...)
+			if err := a.persistQueryContinuationState(ctx, frozen.ID, continuationState); err != nil {
+				return TurnResult{}, err
+			}
+			if a.cognitionFactSuperseded(ctx, inboxID) {
+				return TurnResult{}, errCognitionTurnSuperseded
+			}
+			completion, continuationErr := a.Provider.StructuredQueryContinuation(WithProviderCorrelation(WithProviderScenario(ctx, "query_continuation"), "query-continuation:"+frozen.ID), "cognitive_assessment", messages, "query_continuation_response", queryContinuationResponseSchema())
+			if continuationErr != nil || len(completion.ToolCalls) > 0 {
+				if continuationErr == nil {
+					continuationErr = errors.New("query_continuation_tool_call_forbidden")
+				}
+				return TurnResult{}, continuationErr
+			}
+			visible, err = continuationVisibleText(completion.Structured)
+			if err != nil {
+				return TurnResult{}, err
+			}
+			if a.cognitionFactSuperseded(ctx, inboxID) {
+				return TurnResult{}, errCognitionTurnSuperseded
+			}
+			continuationState.Phase = "provider_completed"
+			continuationState.VisibleText = visible
+			if err := a.persistQueryContinuationState(ctx, frozen.ID, continuationState); err != nil {
+				return TurnResult{}, err
+			}
+		} else if continuationState.Phase == "queries_completed" {
+			messages, messageErr := queryContinuationMessages(continuationState, capabilityInvocations, continuationState.Results)
+			if messageErr != nil {
+				return TurnResult{}, messageErr
+			}
+			if a.cognitionFactSuperseded(ctx, inboxID) {
+				return TurnResult{}, errCognitionTurnSuperseded
+			}
+			completion, continuationErr := a.Provider.StructuredQueryContinuation(WithProviderCorrelation(WithProviderScenario(ctx, "query_continuation"), "query-continuation:"+frozen.ID), "cognitive_assessment", messages, "query_continuation_response", queryContinuationResponseSchema())
+			if continuationErr != nil || len(completion.ToolCalls) > 0 {
+				return TurnResult{}, firstError(continuationErr, errors.New("query_continuation_tool_call_forbidden"))
+			}
+			visible, err = continuationVisibleText(completion.Structured)
+			if err != nil {
+				return TurnResult{}, err
+			}
+			if a.cognitionFactSuperseded(ctx, inboxID) {
+				return TurnResult{}, errCognitionTurnSuperseded
+			}
+			continuationState.Phase, continuationState.VisibleText = "provider_completed", visible
+			if err := a.persistQueryContinuationState(ctx, frozen.ID, continuationState); err != nil {
+				return TurnResult{}, err
+			}
+		} else {
+			visible = continuationState.VisibleText
+		}
+	} else {
+		visible = normalizeVisibleReply(firstString(responsePlan["visible_text"], stringValue(decision["visible_text"])))
+		if strings.TrimSpace(visible) == "" {
+			visible = replyTextFromCapabilityInvocations(capabilityInvocations, a.capabilityRegistry())
+		}
 	}
 	if strings.TrimSpace(visible) == "" {
 		if frozenFound || frozen.ID != "" {
@@ -1009,7 +1147,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				return err
 			}
 			var createdAt time.Time
-			if err := tx.QueryRow(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES ($1,$2,$3,$4,'assistant',$5,'[]',$6) RETURNING created_at`, assistantID, conversationID, seq, fluctlightID, visible, "assistant:"+turnID).Scan(&createdAt); err != nil {
+			if err := tx.QueryRow(ctx, `INSERT INTO public.conversation_messages (id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key,turn_id,source_fact_id,correlation_id) VALUES ($1,$2,$3,$4,'assistant',$5,'[]',$6,$7,$8,$9) RETURNING created_at`, assistantID, conversationID, seq, fluctlightID, visible, "assistant:"+turnID, turnID, inboxID, "turn:"+turnID).Scan(&createdAt); err != nil {
 				return err
 			}
 			assistant = map[string]any{"id": assistantID, "conversation_id": conversationID, "sequence": seq, "author_actor_id": fluctlightID, "kind": "assistant", "text": visible, "attachment_refs": []any{}, "created_at": createdAt.UTC().Format(time.RFC3339Nano)}
@@ -1042,7 +1180,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if err := persistClaimsTx(ctx, tx, fluctlightID, inboxID, responsePlan); err != nil {
 			return err
 		}
-		_, err := a.completeTurnCognitionTx(ctx, tx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent, "capability_results": capabilityResults}, nextReflectionAt)
+		_, err := a.completeTurnCognitionTx(ctx, tx, inboxID, frozen.ID, map[string]any{"message_id": assistantID, "text": visible, "media_intent_id": mediaIntent, "capability_results": capabilityResults}, nextReflectionAt)
 		return err
 	})
 	if err != nil {
@@ -1189,7 +1327,7 @@ func (a *App) recoverFrozenTurnAfterAssistant(ctx context.Context, inboxID, fluc
 		if err := persistClaimsTx(ctx, tx, fluctlightID, inboxID, mapValue(decision["response_plan"])); err != nil {
 			return err
 		}
-		_, err := a.completeTurnCognitionTx(ctx, tx, inboxID, frozen.ID, map[string]any{"text": visible, "media_intent_id": mediaIntent, "capability_results": results}, nextReflectionAt)
+		_, err := a.completeTurnCognitionTx(ctx, tx, inboxID, frozen.ID, map[string]any{"message_id": assistantID, "text": visible, "media_intent_id": mediaIntent, "capability_results": results}, nextReflectionAt)
 		return err
 	})
 	if err != nil {

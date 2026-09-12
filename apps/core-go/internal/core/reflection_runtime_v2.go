@@ -16,6 +16,9 @@ func compactReflectionEvidenceV2(evidence []map[string]any) []map[string]any {
 	for _, item := range evidence {
 		eventType := boundedReflectionScalarText(item["event_type"], 128)
 		entry := map[string]any{"event_type": eventType, "evidence_ref": "sequence:" + fmt.Sprint(item["sequence"])}
+		if occurredAt, ok := item["occurred_at"].(time.Time); ok && !occurredAt.IsZero() {
+			entry["occurred_at"] = occurredAt.UTC().Format(time.RFC3339Nano)
+		}
 		payload := mapValue(item["payload"])
 		switch eventType {
 		case "conversation.turn":
@@ -137,14 +140,44 @@ func (a *App) processReflectionV2(
 	memoryAllowedEvidence map[string]struct{},
 	memoryEvidenceScopes map[string]reflectionMemoryEvidenceScope,
 ) (map[string]any, error) {
+	reflectionAt := time.Now().UTC()
+	activeMemoryResult, err := a.retrieveActiveMemories(ctx, ActiveMemoryQuery{
+		AuthorizationActorID: ownerActorID, OwnerFluctlightID: fluctlightID,
+		ConversationID: projection.ConversationID, Cue: projection.CurrentUserText, At: reflectionAt, Limit: activeMemoryResultLimit,
+	})
+	if err != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, err
+	}
+	referenceCapacity := maxContextReferences - len(projection.ReferenceIndex.ByRef)
+	if referenceCapacity < 0 {
+		referenceCapacity = 0
+	}
+	if len(activeMemoryResult.Items) > referenceCapacity {
+		activeMemoryResult.Items = activeMemoryResult.Items[:referenceCapacity]
+		activeMemoryResult.Trace.SelectedCount = len(activeMemoryResult.Items)
+		activeMemoryResult.Trace.TruncatedReason = "context_reference_limit"
+	}
+	if err := addActiveMemoryReferences(&projection.ReferenceIndex, activeMemoryResult.Items); err != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, err
+	}
 	providerEvidence := compactReflectionEvidenceV2(evidence)
-	completion, err := a.Provider.StructuredWithToolsSchema(
-		WithProviderScenario(ctx, "reflection"),
+	schema := reflectionProposalV2ProviderSchema()
+	assembly, assembledProjection, err := a.assembleProjectionPrompt(ctx, projection, "reflection", []string{providerContextAuthorityRule, reflectionV2Instruction}, jsonString(map[string]any{"evidence": providerEvidence}), nil, "reflection_proposal_v2", schema)
+	if err != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, err
+	}
+	projection = assembledProjection
+	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "reflection"), assembly.Diagnostics)
+	completion, err := a.Provider.StructuredAssembledWithToolsSchema(
+		providerCtx,
 		"reflection",
-		[]map[string]any{{"role": "system", "content": reflectionV2Instruction}, {"role": "user", "content": jsonString(map[string]any{"evidence": providerEvidence, "context": compactCognitionContext(projection)})}},
+		assembly.Messages,
 		nil,
 		"reflection_proposal_v2",
-		reflectionProposalV2ProviderSchema(),
+		schema,
 		false,
 	)
 	if err != nil {
@@ -207,10 +240,10 @@ func (a *App) processReflectionV2(
 		return nil, err
 	}
 	plan, err := CompileReflectionPlan(proposal, evolution, ReflectionPolicyV2{SupportedDomains: map[EvolutionDomain]bool{
-		EvolutionMemory: true, EvolutionGoal: true, EvolutionIntention: true, EvolutionAffectProfile: true,
+		EvolutionActiveMemory: true, EvolutionMemory: true, EvolutionGoal: true, EvolutionIntention: true, EvolutionAffectProfile: true,
 		EvolutionRelationship: true, EvolutionDrive: true, EvolutionPreference: true, EvolutionTrigger: true, EvolutionDevelopingSelf: true,
 		EvolutionPersonality: true, EvolutionBehaviorPolicy: true,
-	}}, time.Now().UTC())
+	}}, reflectionAt)
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
@@ -273,10 +306,19 @@ func (a *App) processReflectionV2(
 		workingOverlayState = nextState
 	}
 	hydrateReflectionChangedRefs(&plan, proposal, evolution, overlayDecisions)
+	activeMemoryCommands, err := compileReflectionActiveMemoryCommands(reflectionV2AcceptedActiveMemoryCandidates(proposal, plan), reflectionActiveMemoryCompileRequest{
+		FluctlightID: fluctlightID, OwnerActorID: ownerActorID,
+		ProposalID: plan.ProposalID, SourceWindow: sourceWindow, Timezone: stringValue(projection.LifeContext["timezone"]), OccurredAt: reflectionAt,
+		ReferenceIndex: projection.ReferenceIndex, AllowedEvidence: memoryAllowedEvidence, EvidenceScopes: memoryEvidenceScopes,
+	})
+	if err != nil {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, err
+	}
 	memoryCommands, err := compileReflectionMemoryCommands(reflectionV2AcceptedMemoryProposal(proposal, plan), reflectionMemoryCompileRequest{
 		FluctlightID: fluctlightID, OwnerActorID: ownerActorID,
 		ActiveProfileID: projection.ReferenceIndex.ActiveProfileID,
-		ProposalID:      plan.ProposalID, SourceWindow: sourceWindow, OccurredAt: time.Now().UTC(),
+		ProposalID:      plan.ProposalID, SourceWindow: sourceWindow, OccurredAt: reflectionAt,
 		ReferenceIndex: projection.ReferenceIndex, AllowedEvidence: memoryAllowedEvidence,
 		EvidenceScopes: memoryEvidenceScopes,
 	})
@@ -293,6 +335,7 @@ func (a *App) processReflectionV2(
 	}
 	profileRef := "personality:ctx_" + stableDigest(fluctlightID+"\x1f"+profileID)
 	var memoryResults []MemoryApplyResult
+	var activeMemoryResults []ActiveMemoryApplyResult
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var latestStateRevision int
 		if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$1 FOR SHARE`, fluctlightID).Scan(&latestStateRevision); err != nil {
@@ -301,6 +344,11 @@ func (a *App) processReflectionV2(
 		if latestStateRevision != stateRevision {
 			return ErrConflict
 		}
+		activeMemoryResults, err = a.applyReflectionActiveMemoryCommandsTx(ctx, tx, activeMemoryCommands)
+		if err != nil {
+			return err
+		}
+		reconcileReflectionActiveMemoryDispositions(&plan, activeMemoryResults)
 		memoryResults, err = a.applyReflectionMemoryCommandsTx(ctx, tx, memoryCommands)
 		if err != nil {
 			return err
@@ -358,9 +406,38 @@ func (a *App) processReflectionV2(
 	}
 	return map[string]any{
 		"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": applyResult.Status,
-		"watermark": toSequence, "proposal_id": plan.ProposalID, "memory": reflectionMemoryResultSummary(memoryResults),
+		"watermark": toSequence, "proposal_id": plan.ProposalID, "active_memory": reflectionActiveMemoryResultSummary(activeMemoryResults), "memory": reflectionMemoryResultSummary(memoryResults),
 		"counts": applyResult.Counts, "changed_refs": applyResult.ChangedRefs, "revisions": applyResult.Revisions, "reason_codes": applyResult.ReasonCodes,
 	}, nil
+}
+
+func reconcileReflectionActiveMemoryDispositions(plan *ReflectionEvolutionPlan, results []ActiveMemoryApplyResult) {
+	if plan == nil {
+		return
+	}
+	resultIndex := 0
+	for index := range plan.Candidates {
+		candidate := &plan.Candidates[index]
+		if candidate.Domain != EvolutionActiveMemory || candidate.Disposition != EvolutionAccepted {
+			continue
+		}
+		if resultIndex >= len(results) {
+			return
+		}
+		result := results[resultIndex]
+		resultIndex++
+		switch result.Disposition {
+		case "no_change":
+			candidate.Disposition = EvolutionNoChange
+		case "rejected":
+			candidate.Disposition = EvolutionRejected
+		case "deferred":
+			candidate.Disposition = EvolutionDeferred
+		}
+		if result.ReasonCode != "" {
+			candidate.ReasonCode = result.ReasonCode
+		}
+	}
 }
 
 func reconcileReflectionMemoryDispositions(plan *ReflectionEvolutionPlan, results []MemoryApplyResult) {
@@ -442,6 +519,8 @@ func hydrateReflectionChangedRefs(plan *ReflectionEvolutionPlan, proposal Reflec
 		switch candidate.Domain {
 		case EvolutionMemory:
 			candidate.TargetRef = "memory:ctx_" + stableDigest(plan.ProposalID+"\x1f"+candidate.CandidateID)
+		case EvolutionActiveMemory:
+			candidate.TargetRef = "active_memory:ctx_" + stableDigest(plan.ProposalID+"\x1f"+candidate.CandidateID)
 		case EvolutionGoal:
 			entityID := "goal_reflection_" + stableDigest(fmt.Sprintf("reflection:%s:goal:%d", plan.ProposalID, candidate.Index))
 			candidate.TargetRef = "goal:ctx_" + stableDigest(entityID)
@@ -491,12 +570,28 @@ func (a *App) reflectionEvolutionRevisions(ctx context.Context, fluctlightID str
 	for key, value := range decodeObject(raw) {
 		result[key] = intValue(value)
 	}
-	for _, domain := range []EvolutionDomain{EvolutionMemory, EvolutionRelationship, EvolutionGoal, EvolutionIntention, EvolutionAffectProfile, EvolutionDrive, EvolutionPreference, EvolutionTrigger, EvolutionDevelopingSelf, EvolutionPersonality, EvolutionBehaviorPolicy} {
+	for _, domain := range []EvolutionDomain{EvolutionActiveMemory, EvolutionMemory, EvolutionRelationship, EvolutionGoal, EvolutionIntention, EvolutionAffectProfile, EvolutionDrive, EvolutionPreference, EvolutionTrigger, EvolutionDevelopingSelf, EvolutionPersonality, EvolutionBehaviorPolicy} {
 		if _, exists := result[string(domain)]; !exists {
 			result[string(domain)] = 0
 		}
 	}
 	return result, nil
+}
+
+func reflectionV2AcceptedActiveMemoryCandidates(proposal ReflectionProposalV2, plan ReflectionEvolutionPlan) []reflectionAcceptedActiveMemoryCandidate {
+	accepted := make(map[int]struct{})
+	for _, candidate := range plan.Candidates {
+		if candidate.Domain == EvolutionActiveMemory && candidate.Disposition == EvolutionAccepted {
+			accepted[candidate.Index] = struct{}{}
+		}
+	}
+	items := make([]reflectionAcceptedActiveMemoryCandidate, 0, len(accepted))
+	for index, candidate := range proposal.ActiveMemoryCandidates {
+		if _, ok := accepted[index]; ok {
+			items = append(items, reflectionAcceptedActiveMemoryCandidate{Index: index, Candidate: candidate})
+		}
+	}
+	return items
 }
 
 func reflectionV2AcceptedMemoryProposal(proposal ReflectionProposalV2, plan ReflectionEvolutionPlan) map[string]any {

@@ -14,20 +14,23 @@
 ### 2. Signatures
 
 - Provider normalized completion: `{text, tokens, toolCalls, structuredTurn?, control?, parseErrors?, doneSeen}`.
-- A cognitive response with an accepted `visible_text` is already the reply
-  realization and may be emitted directly. Missing/omitted visible text fails
-  closed unless a declared visible-output CapabilityInvocation supplies it;
-  the turn never opens a second Main LLM realization call. Compatibility action
-  names such as `respond` normalize to the canonical `reply` action before this
-  decision.
-- Direct conversation has no successful “silent reply” state. The same Main
-  cognition must return concrete visible assistant text (directly or through a
-  declared conversation-output Capability); otherwise Core returns
-  `cognition_visible_text_missing`, preserves the already committed user row
-  and retry identity, and commits no completed frozen action/native effect. A
-  deferred output invocation without a concrete assistant/Moment target
-  remains a bounded `deferred` result; background surfaces may still settle an
-  explicit tool-only `no_op`.
+- Main cognition requires `response_mode=final|query_continuation`. `final`
+  visible text is already the reply realization and may be emitted directly;
+  missing/omitted text fails closed unless a declared visible-output
+  CapabilityInvocation supplies it. Compatibility action names such as
+  `respond` normalize to canonical `reply` before this decision.
+- Direct conversation has no successful silent final state. The same Main
+  cognition normally returns concrete visible text; otherwise Core returns
+  `cognition_visible_text_missing`, preserves the committed user row/retry
+  identity, and commits no completed effect. The only exception is an explicit
+  `query_continuation` with no visible text and one or two pure QUERY calls. Core
+  persists their bounded results and performs one no-tools, visible-text-only
+  continuation before the assistant settlement. A deferred output without a
+  concrete assistant/Moment target remains `deferred`; background surfaces may
+  still settle an explicit tool-only `no_op`. A native tool-only transport may
+  encode the exception without a structured sidecar: only an adapter-marked
+  `StructuredFallback` with empty visible text and 1–2 generic pure queries may
+  normalize the missing mode to `query_continuation`.
 - When a newer turn is accepted for the same conversation, older pending or
   claimed conversation cognition facts are marked superseded. Completion locks
   the inbox and requires the current claim/status; an old settlement can never
@@ -84,12 +87,19 @@
 | Provider text-only completion | Normalize with empty control channels and preserve existing chat behavior |
 | Duplicate native and root-sidecar call for one provider response | Native call owns the capability; the matching sidecar cannot execute a second effect |
 | Assistant/message or memory/effect transaction failure | Roll back the complete caller-owned transaction |
+| `query_continuation` includes visible text, non-pure call, zero/three calls, or a mixed batch | Reject as `query_continuation_contract_invalid`; commit no assistant/effect. |
+| Native tool-only response omits mode but is not a pure-query `StructuredFallback` | Treat as final and fail the normal visible-output/contract guard; never infer from reasoning prose. |
+| Continuation query/result identity fails or Provider requests another tool | Fail the dependent turn; replay only stable prior results/request identity. |
 
 ### 5. Good/Base/Bad Cases
 
 - Good: a native `memory_event` call and a visible assistant sentence produce one assistant message and one persona-scoped memory row in one commit.
 - Base: a plain text completion produces the same NDJSON events and no control rows.
+- Base: one result-dependent `memory.recall` pure query is persisted, then one
+  visible-text-only continuation settles the ordinary assistant message.
 - Bad: parsing “我有点生气” with a regex and writing PAD, trusting a model-supplied numeric delta, or exposing raw structured arguments in `token`/`done`.
+- Bad: continue after `scene_event`, `memory_event`, or a QUERY+ACTION batch,
+  expose Tools again, or accept appraisal/claims/effects from the second call.
 
 ### 6. Tests Required
 
@@ -98,6 +108,9 @@
 - Affect repository tests for lazy decay, bounded reducer deltas, event/snapshot atomicity, CAS, replay, future drive preservation, and persona isolation.
 - Memory flow tests for explicit invocation, source ownership, upsert/replay, rollback, deletion compatibility, and no implicit extraction.
 - Chat integration test asserting assistant message + memory + affect/drives commit and existing `token`/`completed` output.
+- Continuation tests for 1–2 metadata-classified pure queries, final/ACTION/mixed
+  rejection, ordinary assistant history, canonical tool-call/result roles,
+  no-tools second request, visible-text-only schema, replay, and supersession.
 
 ### 7. Wrong vs Correct
 
@@ -466,9 +479,16 @@ CapabilityRuntime.Execute(ctx, invocation) (CapabilityResult, error)
   invalidate the proposal before watermark advancement.
 - `required_for_visible_claim` failures roll back a visible assistant/Moment
   settlement; `optional_internal` failures remain structured and auditable.
-  Conversation never sends a same-turn `role=tool` continuation.
+  Direct conversation defaults to a final visible result in the Main call.
+  Only one or two result-dependent invocations classified generically as
+  `pure_query` may create the dedicated same-turn `role=tool` continuation;
+  concrete capability names never select that path.
 - A tool-only result without a structured appraisal may settle as a
   capability-only `no_op` only on explicitly non-visible/background surfaces.
+  Direct conversation without a valid final reply or a valid pure-query
+  continuation fails before settlement. ACTION and mixed batches cannot use
+  continuation. Core never creates a synthetic neutral/default appraisal, and
+  Provider output cannot set `cognitive_state_transition=not_proposed`.
   Direct conversation always requires visible assistant text from the same
   Main cognition; tool-only/no-visible output fails with
   `cognition_visible_text_missing` before Capability settlement. Core never
@@ -504,7 +524,6 @@ CapabilityRuntime.Execute(ctx, invocation) (CapabilityResult, error)
 | Frozen PreparedPayload is malformed or conflicts with thin intent/context | fail closed; do not re-plan or repair it |
 | Invocation has no Capability-local preparer | Runtime still freezes provenance, declared ContextSnapshot, and an explicit empty PreparedPayload envelope before apply |
 | Direct conversation omits visible assistant text | `cognition_visible_text_missing`; preserve committed user row and same retry identity; commit no completed action/effect |
-| Direct conversation has valid visible text/`conversation.reply` but omits appraisal | Commit user + assistant and Capability settlement; write no appraisal/state revision and do not synthesize neutral state |
 | Background tool-only result omits appraisal | Settle the Capability-only `no_op`; write no appraisal or state revision |
 | Appraisal contains unknown/raw numeric fields or foreign context evidence | Reject before freeze; do not infer or append a replacement appraisal |
 | Frozen State or AffectProfile revision changed before apply | Terminal conflict/re-assessment boundary; no mutation and no blind retry |
@@ -519,8 +538,8 @@ CapabilityRuntime.Execute(ctx, invocation) (CapabilityResult, error)
 - Base: a native and root sidecar call normalize to one Invocation; a deferred
   output binds after its durable target exists and retries the same IDs.
 - Bad: add a `switch call.Name` to MainAgent, expose the old image concept or
-  schedule revision fields, infer a missing semantic field, or call Main LLM a
-  second time with ToolResults.
+  schedule revision fields, infer a missing semantic field, or continue with
+  ACTION/mixed ToolResults.
 - Bad: manufacture a “neutral” appraisal for a Tool-only result, or execute a
   transactional autonomy sibling before the message/Moment/action transaction.
 
@@ -540,12 +559,6 @@ CapabilityRuntime.Execute(ctx, invocation) (CapabilityResult, error)
   partition invariance, typed-slot deactivation, and later state-ref citation.
 - Transaction tests make one sibling mutate and a required sibling fail, then
   assert state/action/output/outcome/outbox authorities all roll back together.
-- Conversation delivery tests cover the Provider-native shape with empty
-  content/reasoning, one `conversation.reply` Tool call and no appraisal. They
-  assert committed user before Provider completion, committed assistant after
-  settlement, zero state revisions, and ordered user/token/assistant frames.
-  Browser tests assert a terminal error never erases that committed user row or
-  its retry identity.
 
 ### 7. Wrong vs Correct
 

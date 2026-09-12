@@ -34,6 +34,166 @@ type reflectionMemoryCompileRequest struct {
 	EvidenceScopes  map[string]reflectionMemoryEvidenceScope
 }
 
+type reflectionActiveMemoryCompileRequest struct {
+	FluctlightID    string
+	OwnerActorID    string
+	ProposalID      string
+	SourceWindow    string
+	Timezone        string
+	OccurredAt      time.Time
+	ReferenceIndex  ContextReferenceIndex
+	AllowedEvidence map[string]struct{}
+	EvidenceScopes  map[string]reflectionMemoryEvidenceScope
+}
+
+type reflectionAcceptedActiveMemoryCandidate struct {
+	Index     int
+	Candidate ReflectionActiveMemoryCandidateV1
+}
+
+func compileReflectionActiveMemoryCommands(candidates []reflectionAcceptedActiveMemoryCandidate, request reflectionActiveMemoryCompileRequest) ([]PreparedActiveMemoryMutation, error) {
+	if strings.TrimSpace(request.FluctlightID) == "" || strings.TrimSpace(request.OwnerActorID) == "" || strings.TrimSpace(request.ProposalID) == "" || strings.TrimSpace(request.SourceWindow) == "" || strings.TrimSpace(request.Timezone) == "" || request.OccurredAt.IsZero() {
+		return nil, errors.New("reflection_active_memory_compile_identity_invalid")
+	}
+	if err := request.ReferenceIndex.Validate(); err != nil {
+		return nil, err
+	}
+	if request.ReferenceIndex.FluctlightID != request.FluctlightID || request.ReferenceIndex.OwnerActorID != request.OwnerActorID {
+		return nil, errors.New("reflection_active_memory_reference_scope_invalid")
+	}
+	commands := make([]PreparedActiveMemoryMutation, 0, len(candidates))
+	touchedTargets := make(map[string]struct{})
+	createdKeys := make(map[string]struct{})
+	for _, accepted := range candidates {
+		index := accepted.Index
+		candidate := accepted.Candidate
+		operation := ActiveMemoryOperation(strings.TrimSpace(candidate.Operation))
+		switch operation {
+		case ActiveMemoryCreate, ActiveMemoryConfirm, ActiveMemoryRevise, ActiveMemoryComplete, ActiveMemoryExpire, ActiveMemorySupersede:
+		default:
+			return nil, fmt.Errorf("reflection_active_memory_candidate_%d_operation_invalid", index)
+		}
+		reason := strings.TrimSpace(candidate.SemanticReason)
+		if reason == "" || len([]rune(reason)) > 1000 {
+			return nil, fmt.Errorf("reflection_active_memory_candidate_%d_reason_invalid", index)
+		}
+		evidenceRefs := sortedUniqueStrings(candidate.EvidenceRefs)
+		if len(evidenceRefs) == 0 || len(evidenceRefs) > 64 || !validateEvidenceRefs(stringSliceAny(evidenceRefs), request.AllowedEvidence) {
+			return nil, fmt.Errorf("reflection_active_memory_candidate_%d_evidence_invalid", index)
+		}
+		for _, ref := range evidenceRefs {
+			if len([]rune(ref)) > 256 {
+				return nil, fmt.Errorf("reflection_active_memory_candidate_%d_evidence_invalid", index)
+			}
+		}
+		command := PreparedActiveMemoryMutation{
+			SchemaVersion: activeMemoryLifecycleSchemaVersion, Operation: operation,
+			OwnerFluctlightID: request.FluctlightID, OwnerActorID: request.OwnerActorID, ActorID: request.FluctlightID,
+			ActorRefs:    []string{},
+			EvidenceRefs: evidenceRefs, OccurredAt: request.OccurredAt.UTC(), SourceFactID: reflectionActiveMemorySourceFactID(evidenceRefs, request.EvidenceScopes),
+			SemanticReason: reason, IdempotencyKey: "active-memory:reflection:" + request.ProposalID + ":" + fmt.Sprint(index),
+		}
+		if command.SourceFactID == "" {
+			return nil, fmt.Errorf("reflection_active_memory_candidate_%d_source_fact_invalid", index)
+		}
+		if operation == ActiveMemoryCreate {
+			conversationID, err := reflectionMemoryConversationID(evidenceRefs, request.EvidenceScopes)
+			if err != nil {
+				return nil, fmt.Errorf("reflection_active_memory_candidate_%d_scope_invalid: %w", index, err)
+			}
+			command.ConversationID = conversationID
+			if strings.TrimSpace(candidate.TargetRef) != "" {
+				return nil, fmt.Errorf("reflection_active_memory_candidate_%d_target_forbidden", index)
+			}
+		} else {
+			target, snapshot, err := activeMemoryTargetFromRef(candidate.TargetRef, request.ReferenceIndex)
+			if err != nil {
+				return nil, fmt.Errorf("reflection_active_memory_candidate_%d_target_invalid: %w", index, err)
+			}
+			if _, duplicate := touchedTargets[target.ActiveMemoryID]; duplicate {
+				return nil, errors.New("reflection_active_memory_target_overlap")
+			}
+			touchedTargets[target.ActiveMemoryID] = struct{}{}
+			command.Target = &target
+			command.ProviderTargetRef = target.Ref
+			command.ConversationID = strings.TrimSpace(stringValue(snapshot["conversation_id"]))
+			if err := validateReflectionMemoryEvidenceScope(evidenceRefs, request.EvidenceScopes, command.ConversationID); err != nil {
+				return nil, fmt.Errorf("reflection_active_memory_candidate_%d_scope_invalid: %w", index, err)
+			}
+		}
+		needsSemantic := operation == ActiveMemoryCreate || operation == ActiveMemoryRevise || operation == ActiveMemorySupersede
+		if needsSemantic {
+			timePrecision := strings.TrimSpace(candidate.TimePrecision)
+			if timePrecision == "" {
+				timePrecision = "unknown"
+			}
+			semantic := ActiveMemorySemanticInput{
+				Kind: strings.TrimSpace(candidate.Kind), Content: strings.TrimSpace(candidate.Content),
+				Confidence: candidate.Confidence, Importance: candidate.Importance,
+				OriginalTimeExpression: strings.TrimSpace(candidate.OriginalTimeExpression),
+				ValidFrom:              candidate.ValidFrom, ValidUntil: candidate.ValidUntil,
+				TimePrecision: timePrecision, Timezone: request.Timezone,
+			}
+			if err := validateActiveMemorySemantic(semantic, request.OccurredAt); err != nil {
+				return nil, fmt.Errorf("reflection_active_memory_candidate_%d_semantic_invalid: %w", index, err)
+			}
+			command.Semantic = &semantic
+			canonicalKey := activeMemoryCanonicalKey(command.OwnerFluctlightID, command.ConversationID, semantic)
+			if _, duplicate := createdKeys[canonicalKey]; duplicate {
+				return nil, errors.New("reflection_active_memory_semantic_overlap")
+			}
+			createdKeys[canonicalKey] = struct{}{}
+		} else if strings.TrimSpace(candidate.Kind) != "" || strings.TrimSpace(candidate.Content) != "" || candidate.ValidFrom != nil || candidate.ValidUntil != nil || strings.TrimSpace(candidate.OriginalTimeExpression) != "" || strings.TrimSpace(candidate.TimePrecision) != "" {
+			return nil, fmt.Errorf("reflection_active_memory_candidate_%d_semantic_forbidden", index)
+		}
+		if operation == ActiveMemoryComplete || operation == ActiveMemoryExpire {
+			command.CloseReason = "reflection_" + string(operation)
+		}
+		command.RequestDigest = activeMemoryCommandDigest(command)
+		if err := validatePreparedActiveMemoryMutation(command); err != nil {
+			return nil, fmt.Errorf("reflection_active_memory_candidate_%d_compile_invalid: %w", index, err)
+		}
+		commands = append(commands, command)
+	}
+	return commands, nil
+}
+
+func reflectionActiveMemorySourceFactID(refs []string, scopes map[string]reflectionMemoryEvidenceScope) string {
+	for _, ref := range refs {
+		if factID := strings.TrimSpace(scopes[ref].FactID); factID != "" {
+			return factID
+		}
+	}
+	return ""
+}
+
+func (a *App) applyReflectionActiveMemoryCommandsTx(ctx context.Context, tx pgx.Tx, commands []PreparedActiveMemoryMutation) ([]ActiveMemoryApplyResult, error) {
+	results := make([]ActiveMemoryApplyResult, 0, len(commands))
+	for _, command := range commands {
+		result, err := a.applyActiveMemoryCommandTx(ctx, tx, command)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+func reflectionActiveMemoryResultSummary(results []ActiveMemoryApplyResult) map[string]any {
+	counts := map[string]any{"applied": 0, "no_change": 0, "rejected": 0, "deferred": 0}
+	items := make([]any, 0, len(results))
+	for _, result := range results {
+		if _, ok := counts[result.Disposition]; ok {
+			counts[result.Disposition] = intValue(counts[result.Disposition]) + 1
+		}
+		items = append(items, map[string]any{
+			"operation": string(result.Operation), "status": result.Status, "revision": result.Revision,
+			"disposition": result.Disposition, "reason_code": result.ReasonCode, "replayed": result.Replayed,
+		})
+	}
+	return map[string]any{"counts": counts, "results": items}
+}
+
 func normalizeReflectionMemoryCandidate(item map[string]any) map[string]any {
 	result := make(map[string]any, len(reflectionMemoryCandidateFields)+1)
 	for key, value := range item {

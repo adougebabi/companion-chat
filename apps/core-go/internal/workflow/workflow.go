@@ -113,19 +113,26 @@ func ensureWorkerDeploymentCurrentVersion(ctx context.Context, handle WorkerDepl
 }
 
 type Input struct {
-	IntentID           string `json:"intent_id"`
-	FluctlightID       string `json:"fluctlight_id"`
-	SessionID          string `json:"session_id"`
-	LocalDate          string `json:"local_date"`
-	Cycle              int    `json:"cycle"`
-	ActionID           string `json:"action_id"`
-	MemoryID           string `json:"memory_id"`
-	Revision           int    `json:"revision"`
-	ProviderEndpointID string `json:"provider_endpoint_id"`
-	ModelID            string `json:"model_id"`
-	InboxID            string `json:"inbox_id"`
-	IntentionID        string `json:"intention_id"`
-	DueAt              string `json:"due_at"`
+	IntentID           string   `json:"intent_id"`
+	FluctlightID       string   `json:"fluctlight_id"`
+	SessionID          string   `json:"session_id"`
+	LocalDate          string   `json:"local_date"`
+	Cycle              int      `json:"cycle"`
+	ActionID           string   `json:"action_id"`
+	MemoryID           string   `json:"memory_id"`
+	Revision           int      `json:"revision"`
+	ProviderEndpointID string   `json:"provider_endpoint_id"`
+	ModelID            string   `json:"model_id"`
+	InboxID            string   `json:"inbox_id"`
+	IntentionID        string   `json:"intention_id"`
+	DueAt              string   `json:"due_at"`
+	ConversationID     string   `json:"conversation_id"`
+	SourceMessageID    string   `json:"source_message_id"`
+	SourceSequence     int      `json:"source_sequence"`
+	FromSequence       int      `json:"from_sequence"`
+	ToSequence         int      `json:"to_sequence"`
+	SourceDigest       string   `json:"source_digest"`
+	SourceMessageRefs  []string `json:"source_message_refs"`
 }
 
 // VisualIdentityWorkflow coordinates the image/vision/patch loop while the
@@ -526,6 +533,28 @@ func MemoryEmbeddingWorkflow(ctx workflow.Context, input Input) (map[string]any,
 	return result, nil
 }
 
+func ConversationSummaryWorkflow(ctx workflow.Context, input Input) (map[string]any, error) {
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 10 * time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 3}})
+	control, err := registerWorkflowControl(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	if input.IntentID == "" || input.FluctlightID == "" || input.ConversationID == "" || input.SourceMessageID == "" || input.SourceSequence < 1 || input.FromSequence < 1 || input.ToSequence < input.FromSequence || input.ToSequence > input.SourceSequence || input.SourceDigest == "" || len(input.SourceMessageRefs) == 0 {
+		return nil, fmt.Errorf("conversation summary input is invalid")
+	}
+	var result map[string]any
+	if err := workflow.ExecuteActivity(ctx, ProcessConversationSummaryActivity, input).Get(ctx, &result); err != nil {
+		return nil, err
+	}
+	if err := control.waitUntilResumed(ctx); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func ProcessDailyReviewActivity(ctx context.Context, input Input) (map[string]any, error) {
 	application := app()
 	if application == nil {
@@ -651,6 +680,14 @@ func ProcessMemoryEmbeddingActivity(ctx context.Context, input Input) (map[strin
 	return application.ProcessMemoryEmbeddingIntentAt(ctx, input.IntentID, input.MemoryID, input.Revision, input.ProviderEndpointID, input.ModelID)
 }
 
+func ProcessConversationSummaryActivity(ctx context.Context, input Input) (map[string]any, error) {
+	application := app()
+	if application == nil {
+		return nil, fmt.Errorf("Go Core Worker is not configured")
+	}
+	return application.ProcessConversationSummaryIntent(ctx, input.IntentID, input.FluctlightID, input.ConversationID, input.SourceMessageID, input.SourceSequence, input.FromSequence, input.ToSequence, input.SourceDigest, input.SourceMessageRefs)
+}
+
 func EnsureCurrentDayScheduleActivity(ctx context.Context, input Input) (map[string]any, error) {
 	application := app()
 	if application == nil {
@@ -715,6 +752,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterWorkflow(ReflectionWorkflow)
 			w.RegisterWorkflow(IntentionTriggerWorkflow)
 			w.RegisterWorkflow(MemoryEmbeddingWorkflow)
+			w.RegisterWorkflow(ConversationSummaryWorkflow)
 			w.RegisterWorkflow(PlatformControlWorkflow)
 			w.RegisterWorkflow(VisualIdentityWorkflow)
 			w.RegisterActivity(ProcessDailyReviewActivity)
@@ -723,6 +761,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterActivity(ProcessReflectionActivity)
 			w.RegisterActivity(ProcessIntentionTriggerActivity)
 			w.RegisterActivity(ProcessMemoryEmbeddingActivity)
+			w.RegisterActivity(ProcessConversationSummaryActivity)
 			w.RegisterActivity(PlatformControlActivity)
 			w.RegisterActivity(ProcessVisualIdentityActivity)
 		case MediaQueue:
@@ -1070,6 +1109,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = LifecycleQueue
 		case "memory.embedding":
 			workflowFn = MemoryEmbeddingWorkflow
+			taskQueue = LifecycleQueue
+		case "conversation.summary":
+			workflowFn = ConversationSummaryWorkflow
 			taskQueue = LifecycleQueue
 		case "cognition.processing":
 			workflowFn = CognitionProcessingWorkflow

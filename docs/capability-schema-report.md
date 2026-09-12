@@ -15,14 +15,19 @@ manifest-to-definition conversion in the active runtime. Use
 bytes, chars := core.CapabilityToolSchemaStats(registry.Catalog(surface))
 ```
 
-The deterministic catalog measurement is 4,864 bytes/chars for all 11
-definitions, 4,326 for the 9-definition conversation surface, and 3,734 for
-the 8-definition native-cognition surface. The JSON is ASCII-only for the
-current definitions, so bytes and rune count are equal.
+After the Prompt Context/Memory additions and the S12 future-event time-contract
+hardening, the deterministic catalog measurement is 8,005 bytes/chars for all
+13 definitions, 7,467 for the 11-definition conversation surface, and 6,495 for the 9-definition
+native-cognition surface. The two added definitions are the transactional
+`active_memory_event` and conversation-only pure QUERY `memory.recall`. The
+Active definition requires original time expression/precision for creates and
+an expiry for `future_event`, and explains the relevance-start boundary. The
+JSON is ASCII-only for the current definitions, so bytes and rune count are equal.
 
-Provider token usage is intentionally reported as unavailable unless the
-current Provider response envelope exposes `usage`; this change does not add a
-tokenizer or estimate tokens from characters.
+Actual Provider token usage remains unavailable unless the response envelope
+exposes `usage`. Prompt Context Assembly separately uses its documented
+conservative pre-call estimator for capacity enforcement; that estimate is not
+reported as actual Provider token usage.
 
 The post-change catalog boundaries are metadata-driven:
 

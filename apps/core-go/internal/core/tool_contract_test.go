@@ -368,11 +368,11 @@ func TestToolOnlyActionDoesNotRequireConversationReply(t *testing.T) {
 }
 
 func TestOptionalToolFailuresDoNotAbortConversation(t *testing.T) {
-	registry, err := NewCapabilityRegistry(affectEventCapability{}, memoryEventCapability{}, relationshipLookupCapability{}, capabilityRequestCapability{})
+	registry, err := NewCapabilityRegistry(affectEventCapability{}, memoryEventCapability{}, activeMemoryEventCapability{}, memoryRecallCapability{}, relationshipLookupCapability{}, capabilityRequestCapability{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"affect_event", "relationship.lookup", "capability.request"} {
+	for _, name := range []string{"affect_event", "active_memory_event", "memory.recall", "relationship.lookup", "capability.request"} {
 		if definition, ok := registry.Definition(name); !ok || definition.FailurePolicy != FailurePolicyOptionalInternal {
 			t.Fatalf("tool %s should be optional", name)
 		}
@@ -645,7 +645,7 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 		}
 	}
 	reflection := reflectionProposalV2ProviderSchema()
-	for _, key := range []string{"memory_candidates", "relationship_observations", "emotional_summary", "developing_self_candidates", "drive_candidates", "trigger_candidates", "personality_evolution_candidates", "behavior_policy_evolution_candidates"} {
+	for _, key := range []string{"active_memory_candidates", "memory_candidates", "relationship_observations", "emotional_summary", "developing_self_candidates", "drive_candidates", "trigger_candidates", "personality_evolution_candidates", "behavior_policy_evolution_candidates"} {
 		if !containsSchemaRequired(reflection, key) {
 			t.Fatalf("reflection schema missing required field %q: %#v", key, reflection)
 		}
@@ -663,6 +663,21 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 	for _, runtimeOwned := range []string{"memory_id", "expected_revision", "profile_id", "visibility", "personality_perspectives", "actor_refs", "event_refs", "conversation_id", "idempotency_key", "provenance"} {
 		if _, ok := memoryCandidateProperties[runtimeOwned]; ok {
 			t.Fatalf("reflection Memory candidate exposes runtime field %q: %#v", runtimeOwned, memoryCandidate)
+		}
+	}
+	activeMemoryCandidate := mapValue(mapValue(mapValue(reflection["properties"])["active_memory_candidates"])["items"])
+	if activeMemoryCandidate["additionalProperties"] != false {
+		t.Fatalf("reflection Active Memory candidate must be closed: %#v", activeMemoryCandidate)
+	}
+	activeMemoryProperties := mapValue(activeMemoryCandidate["properties"])
+	for _, required := range []string{"operation", "target_ref", "kind", "content", "confidence", "importance", "original_time_expression", "valid_from", "valid_until", "time_precision", "evidence_refs", "semantic_reason"} {
+		if _, ok := activeMemoryProperties[required]; !ok {
+			t.Fatalf("reflection Active Memory candidate missing %q: %#v", required, activeMemoryCandidate)
+		}
+	}
+	for _, runtimeOwned := range []string{"active_memory_id", "expected_revision", "owner_fluctlight_id", "owner_actor_id", "actor_id", "conversation_id", "source_fact_id", "timezone", "canonical_key", "request_digest", "idempotency_key", "policy_version"} {
+		if _, ok := activeMemoryProperties[runtimeOwned]; ok {
+			t.Fatalf("reflection Active Memory candidate exposes runtime field %q: %#v", runtimeOwned, activeMemoryCandidate)
 		}
 	}
 	cognitive := cognitiveTurnResponseSchema()
