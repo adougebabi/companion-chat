@@ -135,15 +135,19 @@ func TestInitializationSchemaDeclaresCanonicalChestCupPath(t *testing.T) {
 	}
 }
 
-func TestInitializationSchemaRequiresCompletePersonalityProfile(t *testing.T) {
+func TestInitializationSchemaAllowsSparsePersonalityProfile(t *testing.T) {
 	schema := initializationResponseSchema()
+	rootRequired := arrayValue(schema["required"])
+	if len(rootRequired) != 1 || stringValue(rootRequired[0]) != "core_persona" {
+		t.Fatalf("initialization root should require only core_persona: %#v", rootRequired)
+	}
 	corePersona := mapValue(mapValue(schema["properties"])["core_persona"])
 	system := mapValue(mapValue(corePersona["properties"])["personality_system"])
 	profiles := mapValue(mapValue(system["properties"])["profiles"])
 	profile := mapValue(profiles["items"])
 	required := arrayValue(profile["required"])
-	if len(required) != len(personalityProfileFieldNames()) {
-		t.Fatalf("personality profile required fields = %#v", required)
+	if len(required) != 1 || stringValue(required[0]) != "id" {
+		t.Fatalf("personality profile should require only stable id: %#v", required)
 	}
 	if profile["additionalProperties"] != false {
 		t.Fatalf("personality profile must reserve unknown fields under extensions: %#v", profile)

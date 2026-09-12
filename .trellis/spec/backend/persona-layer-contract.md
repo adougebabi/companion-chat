@@ -61,6 +61,17 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   fresh `initialization-analysis:*` correlation/Provider idempotency identity;
   network retries within one attempt may reuse an identity, but separate clicks
   must not replay one cached invalid result.
+- Initialization uses `response_format.type=json_object`, not the large
+  `json_schema` constrained-decoding path. The prompt carries a compact
+  canonical skeleton for `core_persona`, `personality_system.profiles`,
+  Developing Self, relationships, goals, and intentions; Core remains the
+  normalization/validation authority. Other strict cognition/reflection
+  operations keep their JSON Schema response formats.
+- Common model aliases are mapped mechanically before defaults:
+  `profession/location/values` to `occupation/residence/core_values`, intention
+  `description` to `action`, `linked_goal_id` to the returned goal index,
+  relationship `actor` to `target_actor_id`, and relationship `type/intimacy`
+  to an open role label. This mapping never classifies prose by keyword.
 - The Web default output reserve for a newly configured generic LLM role is
   4096 tokens, matching Core's default. An explicitly persisted role budget is
   still authoritative and is not silently overwritten by the browser.
@@ -86,6 +97,8 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 | Initialization omits only safe structural containers/placeholders | Normalize them first, then validate; do not reject solely because an empty root collection was omitted. |
 | Initialization omits a Core group, base personality/policy field, declared profile payload field, or Developing Self container | Fill only the missing value with the server default or typed empty representation, then validate. |
 | Initialization returns a structured fallback with no usable fields | Produce the safe default Foundation and keep it editable before activation; do not fail solely because fields are absent. |
+| Local Provider receives complex multi-personality initialization | Use `json_object` plus the canonical prompt skeleton; do not use the full initialization JSON Schema constrained decoder. |
+| Model returns known mechanical aliases | Map them to canonical fields before defaults and reference validation. |
 | Initialization explicitly returns an invalid timezone, duplicate/blank profile identity, bad goal/relationship reference, or out-of-range governed value | Reject with `initialization_persona_invalid`; do not overwrite the explicit invalid value with a default. |
 | Owner submits the same description as a new analysis attempt | Use a fresh correlation and Provider idempotency identity; do not reuse a prior invalid completion. |
 | Blank-slate request supplies non-empty layered foundation | Reject with `blank_slate_foundation_forbidden` |
@@ -112,6 +125,9 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   Policy, Life Profile, or profile payload fields; the preview uses existing
   defaults/typed empty values for those missing fields and preserves everything
   the model did return.
+- Good: a real local model returns two distinct profiles with non-empty
+  personality, policy, voice, body language, fears, and desires within the
+  configured timeout; Core preserves them before filling omitted fields.
 - Bad: reject a recoverable missing `initial_goals: []` before the normalizer,
   reject a structured fallback only because keys are absent, overwrite an
   explicit invalid timezone with a default, or reuse one Provider idempotency
@@ -126,8 +142,11 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   provenance, blank-slate defaults, safe-container normalization before
   validation, preservation of relationship seeds, flat/grouped collection
   normalization, missing personality/profile default completion, explicit
-  invalid-value rejection, structured fallback completion, unique per-attempt correlation, and atomic claim
-  creation.
+  invalid-value rejection, structured fallback completion, unique per-attempt
+  correlation, mechanical alias mapping, and atomic claim creation.
+- Live initialization regression calls the configured LLM with a complex
+  two-profile description and asserts distinct non-empty raw profiles before
+  Core default completion. A local mock is not acceptance evidence.
 - Reflection tests for candidate schema, category allowlist, evidence ownership/deduplication, repeated-claim no-op, Core conflict rejection, stale watermark/CAS, and transaction rollback.
 - Overlay tests for field allowlist, anchor rejection, cross-evidence threshold,
   max delta, cooldown, profile isolation, next-projection effective persona and

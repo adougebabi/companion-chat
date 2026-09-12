@@ -232,6 +232,43 @@ func TestLiveProviderRecallContinuation(t *testing.T) {
 	}
 }
 
+func TestLiveProviderComplexMultiPersonalityInitialization(t *testing.T) {
+	baseURL, model := liveProviderConfig(t)
+	description := `创建一个名为“岚音”的复杂双重人格 AI。她的稳定身份是 27 岁的天文摄影师，住在上海，时区 Asia/Shanghai，重视诚实、独立和长期承诺。她与 actor_user 是长期搭档和亲密朋友。
+
+人格一名为“静海”：沉静、理性、耐心、低音量、语速偏慢，擅长在夜晚整理观测记录。她表达克制，极少使用 emoji，遇到冲突先澄清事实。动作姿态稳定，目光专注，保持适度距离。她害怕因错误数据误导他人，渴望完成一套可靠的深空摄影档案。
+
+人格二名为“流火”：外向、好奇、行动迅速、音调明亮、语速较快，喜欢在旅行和突发天象时主动提出新计划。她可以适量使用 emoji，幽默但不讽刺，遇到冲突直接表达。动作轻快，手势丰富，目光主动。她害怕错过罕见天象，渴望与 actor_user 一起追逐下一次流星雨。
+
+两个人格都知道彼此存在。默认不要判断当前谁占主导；切换条件是场景和任务需要，不按关键词机械切换。建立两个目标：完成年度深空摄影档案；与 actor_user 规划下一次流星雨观测。建立对应意图。返回完整结构化初始化对象，不要写解释或 Markdown。`
+	schema := initializationResponseSchema()
+	messages := composeProviderMessages("initialization", []map[string]any{
+		{"role": "system", "content": "Extract the Owner description into the canonical initialization response. Preserve the two distinct personality profiles and all explicitly stated semantic differences. Use empty strings, objects, arrays, nulls, or neutral numeric defaults only for information the Owner did not provide. Return JSON only. " + initializationResponseShapeInstruction},
+		{"role": "user", "content": description},
+	})
+	payload := providerChatPayloadWithSchema(model, messages, 4096, true, nil, "initialization", "initialization_response", schema, false)
+	message := liveProviderMessage(t, baseURL, payload)
+	raw, ok := parseStructuredCandidates(providerStructuredCandidates(message))
+	if !ok {
+		t.Fatalf("live initialization response format was not parseable: content=%s reasoning=%s", boundedLiveProviderValue(message["content"]), boundedLiveProviderValue(message["reasoning_content"]))
+	}
+	persona := mapValue(raw["core_persona"])
+	system := mapValue(persona["personality_system"])
+	profiles := arrayValue(system["profiles"])
+	if stringValue(mapValue(persona["identity"])["name"]) == "" || stringValue(system["mode"]) != "multiple" || len(profiles) < 2 {
+		t.Fatalf("live initialization lost complex persona semantics before normalization: %s", boundedLiveProviderValue(raw))
+	}
+	first, second := mapValue(profiles[0]), mapValue(profiles[1])
+	if stringValue(first["id"]) == "" || stringValue(second["id"]) == "" || stringValue(first["id"]) == stringValue(second["id"]) || stringValue(first["name"]) == "" || stringValue(second["name"]) == "" || len(mapValue(first["voice"])) == 0 || len(mapValue(second["voice"])) == 0 {
+		t.Fatalf("live initialization profiles are empty or indistinguishable: %s", boundedLiveProviderValue(profiles))
+	}
+	prepared, err := prepareInitializationResponse(raw)
+	if err != nil || !validInitialization(prepared) {
+		t.Fatalf("live initialization failed production normalization: err=%v raw=%s prepared=%s", err, boundedLiveProviderValue(raw), boundedLiveProviderValue(prepared))
+	}
+	t.Logf("live initialization parsed content=%t reasoning=%t profiles=%q/%q", message["content"] != nil, message["reasoning_content"] != nil, stringValue(first["id"]), stringValue(second["id"]))
+}
+
 func liveProviderConfig(t *testing.T) (string, string) {
 	t.Helper()
 	if strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_TEST")) != "1" {
@@ -329,4 +366,8 @@ func boundedLiveProviderBody(value []byte) string {
 		return string(value)
 	}
 	return string(value[:limit]) + "…"
+}
+
+func boundedLiveProviderValue(value any) string {
+	return boundedLiveProviderBody(jsonBytes(value))
 }

@@ -701,6 +701,9 @@ func providerResponseFormat(role string) map[string]any {
 }
 
 func providerResponseFormatForSchema(role, schemaName string, schema map[string]any) map[string]any {
+	if role == "initialization" {
+		return map[string]any{"type": "json_object"}
+	}
 	if schema == nil {
 		schema = providerSchemaForRole(role)
 	}

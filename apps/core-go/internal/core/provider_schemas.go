@@ -385,7 +385,7 @@ func initializationResponseSchema() map[string]any {
 		"core_values": arraySchema(jsonValueSchema()),
 		"worldview":   nullableStringSchema(),
 		"notes":       nullableStringSchema(),
-	}, []string{"name", "age", "gender", "occupation", "residence", "timezone", "birthday", "background", "biography", "core_values", "worldview", "notes"}, false)
+	}, nil, false)
 	personality := objectSchema(map[string]any{
 		"openness":          unitNumberSchema(),
 		"conscientiousness": unitNumberSchema(),
@@ -401,7 +401,7 @@ func initializationResponseSchema() map[string]any {
 		"sociability":       unitNumberSchema(),
 		"risk_tolerance":    unitNumberSchema(),
 		"update_policy":     openObjectSchema(),
-	}, []string{"openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism", "curiosity", "independence", "patience", "empathy", "assertiveness", "humor", "sociability", "risk_tolerance", "update_policy"}, false)
+	}, nil, false)
 	behavioralPolicy := objectSchema(map[string]any{
 		"response_style":       stringSchema(),
 		"message_length":       stringSchema(),
@@ -418,7 +418,7 @@ func initializationResponseSchema() map[string]any {
 		"conflict_style":       stringSchema(),
 		"refusal_style":        stringSchema(),
 		"intimacy_expression":  stringSchema(),
-	}, []string{"response_style", "message_length", "emoji_frequency", "punctuation_style", "humor_style", "sarcasm_tendency", "directness", "initiative", "topic_initiation", "silence_tolerance", "response_delay", "emotional_expression", "conflict_style", "refusal_style", "intimacy_expression"}, false)
+	}, nil, false)
 	appearance := objectSchema(map[string]any{
 		"chest_cup": enumStringSchema("A", "B", "C", "D"),
 	}, nil, true)
@@ -430,7 +430,7 @@ func initializationResponseSchema() map[string]any {
 		"recurring_commitments": arraySchema(jsonValueSchema()),
 		"relationship_seeds":    arraySchema(openObjectSchema()),
 		"character_constraints": arraySchema(jsonValueSchema()),
-	}, []string{"appearance", "social_background", "preferences", "life_habits", "recurring_commitments", "relationship_seeds", "character_constraints"}, false)
+	}, nil, false)
 	goal := objectSchema(map[string]any{
 		"description":     stringSchema(),
 		"profile_id":      stringSchema(),
@@ -438,13 +438,13 @@ func initializationResponseSchema() map[string]any {
 		"urgency":         unitNumberSchema(),
 		"scope":           enumStringSchema("general", "relationship"),
 		"target_actor_id": stringSchema(),
-	}, []string{"description", "importance", "urgency"}, false)
+	}, []string{"description"}, false)
 	intention := objectSchema(map[string]any{
 		"action":     stringSchema(),
 		"profile_id": stringSchema(),
 		"goal_index": integerSchema(),
 		"confidence": unitNumberSchema(),
-	}, []string{"action", "goal_index", "confidence"}, false)
+	}, []string{"action"}, false)
 	relationship := objectSchema(map[string]any{
 		"target_actor_id":       stringSchema(),
 		"profile_id":            stringSchema(),
@@ -454,7 +454,7 @@ func initializationResponseSchema() map[string]any {
 		"summary":               stringSchema(),
 		"emotional_association": openObjectSchema(),
 		"evidence_refs":         arraySchema(stringSchema()),
-	}, []string{"target_actor_id", "role"}, false)
+	}, []string{"target_actor_id"}, false)
 	personalityProfile := objectSchema(map[string]any{
 		"id":                     stringSchema(),
 		"name":                   stringSchema(),
@@ -473,7 +473,7 @@ func initializationResponseSchema() map[string]any {
 		"fears":                  arraySchema(jsonValueSchema()),
 		"desires":                arraySchema(jsonValueSchema()),
 		"extensions":             openObjectSchema(),
-	}, personalityProfileFieldNames(), false)
+	}, []string{"id"}, false)
 	personalitySystem := objectSchema(map[string]any{
 		"mode":                   enumStringSchema("single", "multiple"),
 		"profiles":               arraySchema(personalityProfile),
@@ -484,7 +484,7 @@ func initializationResponseSchema() map[string]any {
 		"integration":            personalityIntegrationSchema(),
 		"behavior_state_machine": personalityStateMachineSchema(),
 		"extensions":             openObjectSchema(),
-	}, []string{"mode", "profiles", "active_profile_id", "switching", "influence", "conflict_resolution", "integration", "behavior_state_machine", "extensions"}, false)
+	}, nil, false)
 	claim := objectSchema(map[string]any{
 		"category":      enumStringSchema("preference", "habit", "sensitivity", "emotion_pattern", "self_perception", "capability", "interest"),
 		"claim":         stringSchema(),
@@ -493,7 +493,7 @@ func initializationResponseSchema() map[string]any {
 		"evidence_refs": arraySchema(stringSchema()),
 		"provenance":    openObjectSchema(),
 		"status":        enumStringSchema("active", "uncertain"),
-	}, []string{"category", "claim", "value", "confidence", "evidence_refs", "provenance"}, false)
+	}, []string{"category", "claim"}, false)
 	corePersona := objectSchema(map[string]any{
 		"schema_version":     integerSchema(),
 		"identity":           identity,
@@ -501,8 +501,8 @@ func initializationResponseSchema() map[string]any {
 		"behavioral_policy":  behavioralPolicy,
 		"life_profile":       lifeProfile,
 		"personality_system": personalitySystem,
-	}, []string{"schema_version", "identity", "personality", "behavioral_policy", "life_profile", "personality_system"}, false)
-	developingSelf := objectSchema(map[string]any{"claims": arraySchema(claim)}, []string{"claims"}, false)
+	}, nil, false)
+	developingSelf := objectSchema(map[string]any{"claims": arraySchema(claim)}, nil, false)
 	return objectSchema(map[string]any{
 		"schema_version":        integerSchema(),
 		"core_persona":          corePersona,
@@ -511,7 +511,7 @@ func initializationResponseSchema() map[string]any {
 		"initial_intentions":    arraySchema(intention),
 		"initial_relationships": arraySchema(relationship),
 		"extensions":            openObjectSchema(),
-	}, []string{"schema_version", "core_persona", "developing_self", "initial_relationships", "initial_goals", "initial_intentions", "extensions"}, false)
+	}, []string{"core_persona"}, false)
 }
 
 // personalityProfileFieldNames is the complete known personality contract.

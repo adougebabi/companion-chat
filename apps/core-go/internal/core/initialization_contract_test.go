@@ -87,6 +87,48 @@ func TestInitializationAnalysisCorrelationIsUniquePerUserAttempt(t *testing.T) {
 	}
 }
 
+func TestInitializationUsesJSONObjResponseFormatAndCanonicalSkeleton(t *testing.T) {
+	format := providerResponseFormatForSchema("initialization", "initialization_response", initializationResponseSchema())
+	if stringValue(format["type"]) != "json_object" || format["json_schema"] != nil {
+		t.Fatalf("initialization response format=%#v", format)
+	}
+	if !strings.Contains(initializationResponseShapeInstruction, `"core_persona"`) || !strings.Contains(initializationResponseShapeInstruction, `"personality_system"`) || !strings.Contains(initializationResponseShapeInstruction, `"profiles"`) || !strings.Contains(initializationResponseShapeInstruction, "never replace them with actor_self") {
+		t.Fatalf("canonical initialization skeleton is incomplete: %s", initializationResponseShapeInstruction)
+	}
+	cognitive := providerResponseFormatForSchema("cognitive_assessment", "conversation_turn_response", cognitiveTurnResponseSchema())
+	if stringValue(cognitive["type"]) != "json_schema" || mapValue(cognitive["json_schema"])["strict"] != true {
+		t.Fatalf("non-initialization strict schema changed: %#v", cognitive)
+	}
+}
+
+func TestPrepareInitializationResponseNormalizesCommonLLMAliases(t *testing.T) {
+	value := map[string]any{
+		"core_persona": map[string]any{
+			"identity": map[string]any{"name": "岚音", "profession": "天文摄影师", "location": "上海", "values": []any{"诚实", "独立"}},
+			"personality_system": map[string]any{"mode": "multiple", "profiles": []any{
+				map[string]any{"id": "profile_jinghai", "name": "静海", "voice": map[string]any{"speed": "slow"}},
+				map[string]any{"id": "profile_liuhuo", "name": "流火", "voice": map[string]any{"speed": "fast"}},
+			}},
+		},
+		"initial_goals": []any{
+			map[string]any{"id": "goal_archive", "description": "完成档案"},
+			map[string]any{"id": "goal_meteor", "description": "观测流星雨"},
+		},
+		"initial_intentions":    []any{map[string]any{"description": "推进档案", "linked_goal_id": "goal_archive"}},
+		"initial_relationships": []any{map[string]any{"actor": "actor_user", "type": "长期搭档", "intimacy": "亲密朋友"}},
+	}
+	prepared, err := prepareInitializationResponse(value)
+	if err != nil {
+		t.Fatalf("common LLM aliases were rejected: %v", err)
+	}
+	identity := mapValue(mapValue(prepared["core_persona"])["identity"])
+	intention := mapValue(arrayValue(prepared["initial_intentions"])[0])
+	relationship := mapValue(arrayValue(prepared["initial_relationships"])[0])
+	if stringValue(identity["occupation"]) != "天文摄影师" || stringValue(identity["residence"]) != "上海" || len(arrayValue(identity["core_values"])) != 2 || stringValue(intention["action"]) != "推进档案" || intValue(intention["goal_index"]) != 0 || stringValue(relationship["target_actor_id"]) != "actor_user" || stringValue(mapValue(relationship["role"])["label"]) == "" {
+		t.Fatalf("LLM aliases were not normalized: identity=%#v intention=%#v relationship=%#v", identity, intention, relationship)
+	}
+}
+
 func TestValidInitializationAcceptsOpenRelationshipLabelAndActorUser(t *testing.T) {
 	value := map[string]any{
 		"core_persona": map[string]any{

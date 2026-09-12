@@ -260,12 +260,14 @@ func (a *App) authAudit(ctx context.Context, action, actorID, result, details st
 	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.auth_audit_log(id,action,actor_id,result,details) VALUES($1,$2,$3,$4,$5) ON CONFLICT(id) DO NOTHING`, randomID("auth_audit_"), action, nullableString(actorID), result, details)
 }
 
+const initializationResponseShapeInstruction = `Canonical JSON shape: {"schema_version":2,"core_persona":{"schema_version":1,"identity":{},"personality":{},"behavioral_policy":{},"life_profile":{},"personality_system":{"mode":"single|multiple","profiles":[{"id":"stable_id","name":"","personality":{},"behavioral_policy":{},"voice":{},"body_language":{},"fears":[],"desires":[],"extensions":{}}],"active_profile_id":"default"}},"developing_self":{"claims":[]},"initial_relationships":[],"initial_goals":[],"initial_intentions":[],"extensions":{}}. Use these canonical keys; never replace them with actor_self, personas, goals, or another custom root.`
+
 func (a *App) AnalyzeDescription(ctx context.Context, description string) (map[string]any, error) {
 	if strings.TrimSpace(description) == "" || len(description) > 60000 {
 		return nil, errors.New("description_invalid")
 	}
 	messages := []map[string]any{
-		{"role": "system", "content": "Analyze the Owner's description as a structured persona analyst. Do not roleplay as actor_self, do not simulate a conversation, and do not decide the current dominant personality, current action, or current reply. Extract and classify durable identity, personality, behavioral policy, life profile, multi-personality profiles, relationships, goals, intentions, and evidence-backed Developing Self information for later cognition. The fixed Actor ref actor_user always means the current authenticated Human user; use actor_user as target_actor_id when a relationship or goal refers to that user, never a database ID. Return exactly one JSON object with exactly these top-level fields: schema_version, core_persona, developing_self, initial_relationships, initial_goals, initial_intentions, extensions. Always return all defined fields and arrays, using [] or {} only where the schema declares an empty value. All known fields must stay in their canonical groups; put any not-yet-classified field only under extensions, never invent another top-level field. Known identity fields are name, age, gender, occupation, residence, timezone, birthday, background, biography, core_values, worldview, and notes. Known personality fields are openness, conscientiousness, extraversion, agreeableness, neuroticism, curiosity, independence, patience, empathy, assertiveness, humor, sociability, risk_tolerance, and update_policy. Known behavioral_policy fields are response_style, message_length, emoji_frequency, punctuation_style, humor_style, sarcasm_tendency, directness, initiative, topic_initiation, silence_tolerance, response_delay, emotional_expression, conflict_style, refusal_style, and intimacy_expression. Known life_profile fields are appearance, social_background, preferences, life_habits, recurring_commitments, relationship_seeds, and character_constraints. core_persona must contain identity, personality, behavioral_policy, life_profile, and personality_system. personality_system must contain mode, profiles, active_profile_id, switching, influence, conflict_resolution, integration, behavior_state_machine, and extensions. Every personality_system.profiles item must independently define id, name, identity, personality, behavioral_policy, emotional_state, voice, body_language, behavior_state_machine, behavior_loops, scenario_behavior, secrets, intimacy_progression, output_preferences, fears, desires, and extensions. voice should explicitly describe known sound fields such as tone, pitch, speed, volume, timbre, and speech_patterns; body_language should describe posture, gestures, movement_style, gaze, and proximity; switching.rules should identify each condition and target profile; influence.edges should identify source, target, strength, direction, and condition; integration should describe fusion_progress and stage; conflict_resolution should describe strategy, priority, dominant_profile_id, and tie_breaker. These are structured inputs for a later cognition call; initialization must not choose a current dominant profile, execute a switch, or produce an action/reply. When a relationship, goal, or intention belongs to one personality, include its profile_id. Put stable identity, values, temperament, expression principles, and boundaries in core_persona. Put only uncertain preferences, habits, sensitivities, emotion patterns, self-perceptions, capabilities, or interests in developing_self.claims. Every developing_self claim must include category, claim, value, confidence (0..1), evidence_refs, and provenance; use provenance.source=owner_defined for facts explicitly stated by the owner. Never put current mood, fatigue, scene, presence, or a one-off reaction in core_persona. Current State is initialized by the server and must not be returned. initial_relationships may describe actor_self's relationship to actor_user; role is an open semantic object with a label and optional role.addressing.preferred/self_reference. Do not infer a relationship only because actor_user is the current user; return an unknown role when the description does not establish one. initial_goals must be an array of objects with description, importance (0..1), urgency (0..1), and optional scope (general or relationship) plus target_actor_id for relationship goals; include profile_id when the goal belongs to a personality. initial_intentions must be an array of objects with action, goal_index (zero-based index into initial_goals), confidence (0..1), and profile_id when the intention belongs to a personality. Do not return markdown or legacy foundation/personality candidate fields."},
+		{"role": "system", "content": "Analyze the Owner's description as a structured persona analyst. Do not roleplay as actor_self, simulate a conversation, choose a current dominant personality, action, or reply. Extract durable identity, personality, behavioral policy, life profile, distinct personality profiles, relationships, goals, intentions, and evidence-backed Developing Self information. actor_user means the authenticated Human user. Return one JSON object. Return only fields supported by the description; omitted fields are valid and Core fills their default, null, empty-object, or empty-array representation. Never invent facts merely to fill the schema. Keep known fields in canonical groups and unknown material under extensions. For each declared personality profile, id is required; include every known non-empty field that differentiates the profile, especially name, personality, behavioral_policy, voice, body_language, behavior loops, fears, and desires. Do not choose an active profile; use active_profile_id=default or omit it. Developing Self claims need category and claim; include value/confidence/evidence/provenance when known. Current State is server-initialized and must not be returned. Relationships to the user use target_actor_id=actor_user. Goals need description; intentions need action and may reference a zero-based goal_index. Do not return markdown or legacy candidate fields. " + initializationResponseShapeInstruction},
 		{"role": "system", "content": "Canonical visual appearance contract: if the description specifies a chest cup, put only the normalized label A/B/C/D in exactly core_persona.life_profile.appearance.chest_cup (example: {\"life_profile\":{\"appearance\":{\"chest_cup\":\"A\"}}}). Do not put cup labels in identity.body_type, identity.build, identity.chest, life_profile.physical_traits, or free-form visible_text. For male or non-applicable bodies, omit chest_cup; the renderer will mark it not_applicable. Keep other appearance fields under life_profile.appearance."},
 		{"role": "user", "content": description},
 	}
@@ -512,6 +514,7 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 	if _, ok := result["schema_version"]; !ok {
 		result["schema_version"] = 2
 	}
+	normalizeInitializationAliases(result)
 	if rawPersona, exists := result["core_persona"]; !exists || rawPersona == nil {
 		result["core_persona"] = defaultCorePersona("", "")
 	} else if persona, ok := rawPersona.(map[string]any); ok {
@@ -522,6 +525,7 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 	} else if developingSelf, ok := raw.(map[string]any); ok && developingSelf["claims"] == nil {
 		developingSelf["claims"] = []any{}
 	}
+	normalizeInitializationClaims(mapValue(result["developing_self"]))
 	if _, ok := result["initial_relationships"]; !ok {
 		if raw, exists := result["relationships"]; exists {
 			result["initial_relationships"] = raw
@@ -574,6 +578,90 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 	normalizePersonalityProfiles(mapValue(persona["personality_system"]))
 	result["extensions"] = extensions
 	return result
+}
+
+func normalizeInitializationAliases(result map[string]any) {
+	identity := mapValue(mapValue(result["core_persona"])["identity"])
+	for alias, canonical := range map[string]string{"profession": "occupation", "location": "residence", "values": "core_values"} {
+		if raw, exists := identity[alias]; exists {
+			if current, present := identity[canonical]; !present || current == nil || stringValue(current) == "" {
+				identity[canonical] = raw
+			}
+			delete(identity, alias)
+		}
+	}
+	goals := arrayValue(result["initial_goals"])
+	goalIndexes := make(map[string]int, len(goals))
+	for index, raw := range goals {
+		goal := mapValue(raw)
+		if id := stringValue(goal["id"]); id != "" {
+			goalIndexes[id] = index
+		}
+		if _, exists := goal["importance"]; !exists {
+			goal["importance"] = 0.5
+		}
+		if _, exists := goal["urgency"]; !exists {
+			goal["urgency"] = 0.5
+		}
+	}
+	for _, raw := range arrayValue(result["initial_intentions"]) {
+		intention := mapValue(raw)
+		if stringValue(intention["action"]) == "" {
+			intention["action"] = firstInitializationString(intention["description"], intention["intent"])
+		}
+		if _, exists := intention["goal_index"]; !exists {
+			if index, found := goalIndexes[stringValue(intention["linked_goal_id"])]; found {
+				intention["goal_index"] = index
+			}
+		}
+		if _, exists := intention["confidence"]; !exists {
+			intention["confidence"] = 0.5
+		}
+	}
+	for _, raw := range arrayValue(result["initial_relationships"]) {
+		relationship := mapValue(raw)
+		if stringValue(relationship["target_actor_id"]) == "" {
+			relationship["target_actor_id"] = firstInitializationString(relationship["actor"], relationship["actor_id"])
+		}
+		if len(mapValue(relationship["role"])) == 0 {
+			label := firstInitializationString(relationship["type"], relationship["relationship_type"], relationship["intimacy"])
+			if label == "" {
+				label = "unknown"
+			}
+			relationship["role"] = map[string]any{"label": label, "addressing": map[string]any{}}
+		}
+	}
+}
+
+func firstInitializationString(values ...any) string {
+	for _, value := range values {
+		if text := stringValue(value); text != "" {
+			return text
+		}
+	}
+	return ""
+}
+
+func normalizeInitializationClaims(developingSelf map[string]any) {
+	claims := arrayValue(developingSelf["claims"])
+	for _, raw := range claims {
+		claim := mapValue(raw)
+		if len(claim) == 0 {
+			continue
+		}
+		if _, exists := claim["value"]; !exists {
+			claim["value"] = map[string]any{}
+		}
+		if _, exists := claim["confidence"]; !exists {
+			claim["confidence"] = 0.5
+		}
+		if _, exists := claim["evidence_refs"]; !exists {
+			claim["evidence_refs"] = []any{}
+		}
+		if provenance, exists := claim["provenance"].(map[string]any); !exists || stringValue(provenance["source"]) == "" {
+			claim["provenance"] = map[string]any{"source": "owner_defined"}
+		}
+	}
 }
 
 func normalizeInitializationPersonaStructure(persona map[string]any) {

@@ -34,7 +34,11 @@ embed(role, inputs) -> VersionedEmbeddings
 ### 3. Contracts
 
 - Generative roles may share one endpoint/model, but remain independent settings with independent budgets and provenance.
-- `initialization`, `cognitive_assessment`, and `reflection` require strict structured-output/schema preflight.
+- `cognitive_assessment` and `reflection` require strict JSON Schema output.
+  `initialization` uses JSON-object mode plus a compact canonical skeleton and
+  Core-owned default completion/semantic validation; the full initialization
+  schema remains a code contract but is not sent to mlx-style constrained
+  decoding.
 - `action_realization` requires streaming, abort propagation, bounded diagnostics, and correct UTF-8/chunk handling.
 - `embedding` requires an embedding endpoint and fixed dimensions recorded with each vector/index version.
 - `media_prompt` requires its declared structured/text output contract and cannot execute media generation itself.
@@ -56,6 +60,8 @@ embed(role, inputs) -> VersionedEmbeddings
 | --- | --- |
 | Role has no endpoint/model assignment | Role unavailable with explicit configuration error; no fallback. |
 | Structured role returns an empty/mismatched transport shape | Normalize only the affected fields (missing → typed empty, object ↔ array container repair), preserve native tool calls independently, and let the owning domain validator decide whether the resulting semantic payload is usable; never parse arbitrary prose. |
+| Initialization Provider omits fields or uses a known alias | Preserve returned values, fill missing defaults/typed empties, mechanically map the alias, then validate explicit values. |
+| Initialization is sent through the full JSON Schema constrained decoder | Contract failure; use `response_format.type=json_object` and the canonical prompt skeleton to avoid local-provider timeout/empty fallback. |
 | Realization role lacks streaming/abort | Preflight fails; role cannot activate. |
 | Embedding dimensions change unexpectedly | Reject vectors, mark role/index mismatch, require new embedding version. |
 | Timeout/token budget exceeded | Cancel/bound result and follow owning retry/terminal policy. |
@@ -73,7 +79,12 @@ embed(role, inputs) -> VersionedEmbeddings
 ### 6. Tests Required
 
 - Endpoint/settings tests for encrypted keys, safe summaries, role assignment, shared model mapping, and atomic invalid-patch rollback.
-- Role-specific preflight tests for structured schema, stream/abort/chunking, embedding dimensions, media-prompt output, timeout, and token budgets.
+- Role-specific preflight tests for initialization JSON-object parsing,
+  cognition/reflection structured schema, stream/abort/chunking, embedding
+  dimensions, media-prompt output, timeout, and token budgets.
+- Real initialization regression calls the configured LLM with a complex
+  multi-personality description and asserts non-empty distinct raw profiles
+  before Core defaults; mocks are not sufficient for this gate.
 - Provenance tests assert every result stores role/endpoint/model/prompt/schema/correlation metadata without credentials or hidden reasoning.
 - Failure tests prove one degraded role does not silently use another and follows owning interaction/workflow policy.
 - Provider adapter contract suite runs against fake normalized adapters and configured OpenAI-compatible test endpoints.
