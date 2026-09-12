@@ -538,3 +538,27 @@ FLUCTLIGHT_LIVE_PROVIDER_TEST=unset
 - 回归：`a retry from a discarded conversation is pruned when the server returns a new conversation`
   、`a completed retry from another conversation no longer blocks the selected conversation` 与原有
   conversation-delivery tests 全部 PASS；Web bundle 已重建部署到当前 disposable Compose。
+
+## WakeUp：合法 Tool Call 在主认知之后被丢弃（2026-09-12）
+
+- 现场 Provider envelope 的根 `tool_calls` 已包含 `conversation.reply`，但结构化 sidecar 为
+  `action_type=no_op`、`influences=[]`。WakeUp 原先对所有 Tool Call 强制要求非空 influences，
+  因而在写入 `cognition_wakeups` / `autonomy_actions` 之前返回 `wake_up_influences_required`；
+  同一批次中的 `media.image.generate` 也随之没有机会进入后续 action workflow。
+- WakeUp 现在只对状态改变/内部 Capability 要求 evidence influence；纯输出型
+  deferred Capability 可以通过自身的 durable target/result 作为 action boundary。Tool Call assessment
+  采用合并而非覆盖，保留 Provider 已返回的其他安全字段。
+- WakeUp 不再在 action 持久化前执行可能访问 Provider、Renderer 或外部配置的
+  preflight/planner I/O；先完成 deterministic invocation validation，真正的 Prepare/settlement
+  在 action worker 的 durable retry 边界执行。这样短暂的 ComfyUI/Provider 配置失败不会静默丢掉
+  已完成的模型决策。
+- Dispatcher 现在会检查失败的 `autonomy.action` / `capability.action`：如果对应 action 仍为
+  `frozen`/`running`，则按 5 秒 bounded backoff 重新入队；已完成、已失败或已取消的 action 不会
+  被重复执行。
+- 同类入口检查结果：普通 Conversation 已有独立的 reply/no-appraisal 处理；Native Cognition
+  仍要求 influences（它只处理状态/事实投影，不是纯输出）；Reflection 使用无 Tool catalog 的
+  proposal schema，并在 Provider 意外返回 Tool Call 时显式失败为
+  `reflection_tool_call_forbidden`，不再静默忽略。本轮按用户范围不修改 DailyReview、
+  Initialization 或 Media Prompt。
+- 验证：Core 全仓 `go test ./... -count=1`、`go vet ./...`、`go build ./...` 通过；WakeUp /
+  Dispatcher focused tests 与 `go test -race ./internal/core ./internal/workflow` 通过。

@@ -213,6 +213,19 @@ func TestWakeUpRetryBackoffIsNotRequeuedBeforeDueTime(t *testing.T) {
 	}
 }
 
+func TestActionIntentRetryOnlyWhenActionRemainsExecutable(t *testing.T) {
+	for _, status := range []string{"frozen", "running"} {
+		if !actionIntentShouldRetry(status) {
+			t.Fatalf("action status %q should be retryable", status)
+		}
+	}
+	for _, status := range []string{"completed", "failed", "cancelled", "paused", "deferred", "cancel_requested", ""} {
+		if actionIntentShouldRetry(status) {
+			t.Fatalf("terminal action status %q should not be requeued", status)
+		}
+	}
+}
+
 func TestDispatcherPrioritizesMediaBeforeVisualIdentityRetries(t *testing.T) {
 	if !strings.Contains(dispatcherIntentOrder, "WHEN intent_type LIKE 'media.%' THEN 0") || !strings.Contains(dispatcherIntentOrder, "WHEN intent_type LIKE 'visual_identity.%' THEN 2") {
 		t.Fatalf("dispatcher intent order = %s", dispatcherIntentOrder)

@@ -32,7 +32,7 @@ const (
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
 	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'media.%' THEN 0 WHEN intent_type LIKE 'schedule.%' THEN 1 WHEN intent_type LIKE 'visual_identity.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 ELSE 8 END"
-	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type FROM public.platform_workflow_intents WHERE status IN ('pending','started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type='cognition.processing') ORDER BY started_at NULLS LAST,created_at LIMIT $1`
+	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type FROM public.platform_workflow_intents WHERE status IN ('pending','started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('cognition.processing','autonomy.action','capability.action')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
 var runtime struct {
@@ -887,6 +887,19 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				continue
 			}
 		}
+		if (intentType == "autonomy.action" || intentType == "capability.action") && intentStatus == "failed" {
+			var actionStatus string
+			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.autonomy_actions WHERE id=(SELECT payload->>'action_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&actionStatus); err == nil && actionIntentShouldRetry(actionStatus) {
+				if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '5 seconds',started_at=NULL,completed_at=NULL,last_error=COALESCE(last_error,'action_workflow_terminal') WHERE intent_id=$1 AND status='failed'`, intentID); err != nil {
+					return count, err
+				}
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+				continue
+			}
+		}
 		if intentType == "visual_identity.initialize" && intentStatus == "failed" {
 			var sessionStatus string
 			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlight_visual_identity_sessions WHERE id=(SELECT payload->>'session_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&sessionStatus); err == nil && (sessionStatus == "queued" || sessionStatus == "running") {
@@ -980,6 +993,18 @@ func wakeUpIntentShouldRetry(fluctlightStatus, workflowStatus string) bool {
 		return false
 	}
 	return workflowStatus == "failed"
+}
+
+func actionIntentShouldRetry(actionStatus string) bool {
+	switch strings.TrimSpace(actionStatus) {
+	case "frozen", "running":
+		// A terminal Temporal failure before the action's own settlement boundary
+		// leaves the action executable. Requeue the intent so a worker restart or
+		// transient provider/database error cannot strand the capability forever.
+		return true
+	default:
+		return false
+	}
 }
 
 // workflowIDReusePolicy gives wake-up recovery the reuse semantics required by

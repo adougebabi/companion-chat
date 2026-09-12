@@ -90,7 +90,13 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 	if !duplicatePreflight {
 		calls, err = a.prepareCapabilityInvocations(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls, storedResults)
 		if err != nil {
-			code, _ := capabilityErrorInfo(err, "capability_prepare_failed", true)
+			code, retryable := capabilityErrorInfo(err, "capability_prepare_failed", true)
+			if retryable {
+				// Keep the action executable. The Temporal activity will retry a few
+				// times and Dispatcher reconciliation requeues this intent when a
+				// terminal workflow failure leaves the action frozen.
+				return nil, err
+			}
 			return a.failAutonomyAction(ctx, actionID, code)
 		}
 		if err := a.persistAutonomyCapabilityResults(ctx, actionID, calls, storedResults); err != nil {
@@ -366,7 +372,12 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 	}
 	preparedCalls, prepareErr := a.prepareCapabilityInvocations(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls, results)
 	if prepareErr != nil {
-		code, _ := capabilityErrorInfo(prepareErr, "capability_prepare_failed", true)
+		code, retryable := capabilityErrorInfo(prepareErr, "capability_prepare_failed", true)
+		if retryable {
+			// Leave the frozen action executable so Temporal/Dispatcher can retry a
+			// transient provider, renderer, or configuration failure.
+			return nil, prepareErr
+		}
 		return a.failAutonomyAction(ctx, actionID, code)
 	}
 	calls = preparedCalls

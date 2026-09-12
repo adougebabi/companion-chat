@@ -146,3 +146,18 @@ func TestReflectionV2StageS08(t *testing.T) {
 		}
 	})
 }
+
+func TestReflectionProviderCompletionRejectsToolCalls(t *testing.T) {
+	valid := ProviderCompletion{Structured: map[string]any{"schema_version": reflectionProposalV2SchemaVersion}}
+	if err := validateReflectionProviderCompletion(valid); err != nil {
+		t.Fatalf("valid Reflection completion rejected: %v", err)
+	}
+	withTool := valid
+	withTool.ToolCalls = []CapabilityInvocation{{CallID: "unexpected", CapabilityName: "conversation.reply"}}
+	if err := validateReflectionProviderCompletion(withTool); err == nil || err.Error() != "reflection_tool_call_forbidden" {
+		t.Fatalf("unexpected Reflection Tool Call was not rejected: %v", err)
+	}
+	if err := validateReflectionProviderCompletion(ProviderCompletion{StructuredFallback: true}); err == nil || err.Error() != "reflection_structured_response_invalid" {
+		t.Fatalf("invalid Reflection fallback was not rejected: %v", err)
+	}
+}

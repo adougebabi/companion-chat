@@ -458,6 +458,10 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
   `capability.action` on `interaction`; the CapabilityActionWorkflow reuses the
   same stable action/lease/result/reflection boundary as legacy autonomy
   actions, so the wake-up activity never executes an external effect directly.
+- If an `autonomy.action` or `capability.action` workflow terminates while its
+  action row is still `frozen`/`running`, reconciliation moves the intent back
+  to bounded retry. Terminal action rows (`completed`, `failed`, `cancelled`,
+  `paused`, or `deferred`) are not requeued.
 - Disabled or inactive results still use the durable timer; inactive results
   terminate, while disabled results sleep and re-read settings on the next
   cycle.

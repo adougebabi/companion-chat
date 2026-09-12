@@ -205,16 +205,18 @@ func wakeUpAssessmentFromToolCalls(calls []CapabilityInvocation, registries ...*
 	if len(registries) > 0 && registries[0] != nil {
 		for _, invocation := range calls {
 			definition, ok := registries[0].Definition(invocation.CapabilityName)
-			if !ok || (!containsCapabilityTarget(definition.TargetKinds, "conversation_message") && !containsCapabilityTarget(definition.TargetKinds, "moment")) {
+			if !ok || (definition.OutputRole != "conversation_message" && definition.OutputRole != "moment") {
 				continue
 			}
 			if text := capabilityInvocationText(invocation); text == "" {
 				continue
 			}
-			if containsCapabilityTarget(definition.TargetKinds, "conversation_message") {
+			if definition.OutputRole == "conversation_message" && containsCapabilityTarget(definition.TargetKinds, "conversation_message") {
 				return map[string]any{"action_type": "proactive_message", "response_intent": "通过已注册输出能力向 actor_user 发送主动私聊", "evidence_refs": []any{}}
 			}
-			return map[string]any{"action_type": "moment", "response_intent": "通过已注册输出能力发布主动动态", "evidence_refs": []any{}}
+			if definition.OutputRole == "moment" && containsCapabilityTarget(definition.TargetKinds, "moment") {
+				return map[string]any{"action_type": "moment", "response_intent": "通过已注册输出能力发布主动动态", "evidence_refs": []any{}}
+			}
 		}
 	}
 	return map[string]any{
@@ -222,6 +224,54 @@ func wakeUpAssessmentFromToolCalls(calls []CapabilityInvocation, registries ...*
 		"response_intent": "执行本次 wake-up 返回的已注册能力",
 		"evidence_refs":   []any{},
 	}
+}
+
+func mergeWakeUpToolCallAssessment(assessment map[string]any, calls []CapabilityInvocation, registry *CapabilityRegistry) map[string]any {
+	if assessment == nil {
+		assessment = map[string]any{}
+	}
+	derived := wakeUpAssessmentFromToolCalls(calls, registry)
+	if len(derived) == 0 {
+		return assessment
+	}
+	derivedAction := stringValue(derived["action_type"])
+	currentAction := stringValue(assessment["action_type"])
+	if currentAction == "" || currentAction == "no_op" || derivedAction != "no_op" {
+		if derivedAction != "no_op" || currentAction == "" {
+			assessment["action_type"] = derivedAction
+		}
+		if stringValue(assessment["response_intent"]) == "" {
+			assessment["response_intent"] = derived["response_intent"]
+		}
+		if _, exists := assessment["evidence_refs"]; !exists {
+			assessment["evidence_refs"] = derived["evidence_refs"]
+		}
+	}
+	return assessment
+}
+
+// wakeUpDecisionRequiresInfluences keeps output-only decisions usable when a
+// thinking Provider omits the optional influence sidecar. State-changing and
+// internal capabilities still require at least one Core-owned evidence
+// influence; only deferred output capabilities can stand on their own because
+// their durable target/result is the action boundary itself.
+func wakeUpDecisionRequiresInfluences(actionType string, calls []CapabilityInvocation, registry *CapabilityRegistry) bool {
+	if actionType == "no_op" && len(calls) == 0 {
+		return false
+	}
+	if actionType != "no_op" && actionType != "proactive_message" && actionType != "moment" {
+		return true
+	}
+	if registry == nil {
+		return true
+	}
+	for _, invocation := range calls {
+		definition, ok := registry.Definition(invocation.CapabilityName)
+		if !ok || !definition.IsDeferredOutput() {
+			return true
+		}
+	}
+	return false
 }
 
 // ProcessWakeUp performs one bounded proactive-action assessment. Wake-up is
@@ -270,7 +320,10 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	conversationID := ""
-	_ = a.DB.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE fluctlight_actor_id=$1 ORDER BY created_at LIMIT 1`, fluctlightID).Scan(&conversationID)
+	conversationErr := a.DB.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2 ORDER BY created_at LIMIT 1`, ownerID, fluctlightID).Scan(&conversationID)
+	if conversationErr != nil && !errors.Is(conversationErr, pgx.ErrNoRows) {
+		return nil, conversationErr
+	}
 	memoryMode := MemoryConversationGlobalOnly
 	if conversationID != "" {
 		memoryMode = MemoryConversationExact
@@ -322,9 +375,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	// not be used as a gate that discards an otherwise executable reply/media or
 	// native capability call.
 	if completion.StructuredFallback || len(assessment) == 0 || (len(toolCalls) > 0 && (stringValue(assessment["action_type"]) == "" || stringValue(assessment["action_type"]) == "no_op")) {
-		if derived := wakeUpAssessmentFromToolCalls(toolCalls, a.capabilityRegistry()); derived != nil {
-			assessment = derived
-		}
+		assessment = mergeWakeUpToolCallAssessment(assessment, toolCalls, a.capabilityRegistry())
 	}
 	if assessment == nil {
 		return nil, errors.New("wake_up_assessment_invalid")
@@ -337,19 +388,20 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
-	if stringValue(assessment["action_type"]) != "no_op" || len(toolCalls) > 0 {
+	if wakeUpDecisionRequiresInfluences(stringValue(assessment["action_type"]), toolCalls, a.capabilityRegistry()) {
 		if err := requireDecisionInfluences(influences, "wake_up_influences_required"); err != nil {
 			return nil, err
 		}
 	}
-	// Capability-local planning is HOW work and may perform Provider I/O. It
-	// starts only after the semantic decision and all cited refs are validated.
+	// Freeze the invocation metadata and context snapshot before persistence.
+	// Capability-local planning/preflight may perform I/O, so it runs from the
+	// durable action worker rather than making a transient failure erase this
+	// wake-up decision.
 	toolCalls, err = a.bindCapabilityInvocationsToProjection(toolCalls, projection, frozenActionID, wakeID, CapabilitySurfaceWakeUp)
 	if err != nil {
 		return nil, err
 	}
-	toolCalls, err = a.prepareCapabilityInvocations(ctx, fluctlightID, conversationID, wakeID, toolCalls)
-	if err != nil {
+	if err := a.validateCapabilityInvocationsForPersistence(toolCalls); err != nil {
 		return nil, err
 	}
 	if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {

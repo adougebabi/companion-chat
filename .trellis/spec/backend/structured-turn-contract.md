@@ -345,6 +345,10 @@ ProcessReflection(ctx, fluctlightID, correlationID) -> ReflectionOutcome
   refs against that window, and applies Memory/Relationship/Self-model/
   Personality revisions through authority ports. Slow fields require multiple
   evidence-bearing facts and every revision is auditable/rollbackable.
+- Reflection V2 exposes no Capability catalog. A Provider response containing
+  native/root Tool Calls is rejected as `reflection_tool_call_forbidden`; the
+  calls are never executed or silently ignored, and the evidence window returns
+  to an idle/retryable state.
 
 ### 4. Validation & Error Matrix
 
@@ -355,6 +359,7 @@ ProcessReflection(ctx, fluctlightID, correlationID) -> ReflectionOutcome
 | Scene/presence candidate has invalid temporal bounds or source fact | Reject candidate; no Event/Presence mutation |
 | Memory visibility/owner filter fails | Exclude before ranking; do not leak to provider |
 | Reflection candidate references an outside-window fact | Reject candidate and keep the window retryable |
+| Reflection Provider returns any Tool Call | Reject with `reflection_tool_call_forbidden`; execute no capability and keep the window retryable |
 | Personality/Self-model evidence is below its threshold | Defer candidate; do not mutate slow state |
 | Realization adds a claim/effect not in frozen plan | One bounded rewrite; then omit/uncertain/deferred |
 

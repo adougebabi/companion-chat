@@ -191,9 +191,9 @@ func (a *App) processReflectionV2(
 		}
 		return nil, err
 	}
-	if completion.StructuredFallback || completion.Structured == nil {
+	if err := validateReflectionProviderCompletion(completion); err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
-		return nil, errors.New("reflection_structured_response_invalid")
+		return nil, err
 	}
 	proposal, err := DecodeReflectionProposalV2(jsonBytes(completion.Structured))
 	if err != nil {
@@ -409,6 +409,16 @@ func (a *App) processReflectionV2(
 		"watermark": toSequence, "proposal_id": plan.ProposalID, "active_memory": reflectionActiveMemoryResultSummary(activeMemoryResults), "memory": reflectionMemoryResultSummary(memoryResults),
 		"counts": applyResult.Counts, "changed_refs": applyResult.ChangedRefs, "revisions": applyResult.Revisions, "reason_codes": applyResult.ReasonCodes,
 	}, nil
+}
+
+func validateReflectionProviderCompletion(completion ProviderCompletion) error {
+	if len(completion.ToolCalls) > 0 {
+		return errors.New("reflection_tool_call_forbidden")
+	}
+	if completion.StructuredFallback || completion.Structured == nil {
+		return errors.New("reflection_structured_response_invalid")
+	}
+	return nil
 }
 
 func reconcileReflectionActiveMemoryDispositions(plan *ReflectionEvolutionPlan, results []ActiveMemoryApplyResult) {

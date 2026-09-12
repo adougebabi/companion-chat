@@ -172,6 +172,10 @@ the `reflection.run` intent are committed.
   tool call. A thinking-enabled Provider may return only Tool calls and omit
   the optional JSON sidecar; Core derives the minimal action assessment from
   the returned output/native calls instead of rejecting the wake-up.
+- Output-only Capability calls (`conversation.reply`, `moment.publish`, or an
+  output-bound media call) do not require a separate `influences` sidecar. A
+  state-changing or internal Capability call still requires a non-empty
+  Core-owned evidence influence before it can be frozen.
   Core stores the frozen action decision and never asks Wake-up to synthesize
   attention/thought/desire/agency/appraisal state.
 - `moment` output uses the registered `moment.publish` deferred Capability slot;
@@ -184,10 +188,12 @@ the `reflection.run` intent are committed.
   action as its durable provenance target and creates a media intent without
   requiring a chat message or Moment.
 - A proposed external action is frozen only after its CapabilityDefinition,
-  arguments, source fact, Owner authorization, hard safety, resource and
-  idempotency checks pass. There is no product-type allowlist; visible text is
-  supplied by the output CapabilityInvocation and delivery remains
-  workflow-owned.
+  arguments, source fact, Owner authorization, and deterministic idempotency
+  checks pass. Capability preflight/planner I/O runs in the action worker before
+  any side effect; a transient failure leaves the action executable for bounded
+  retry, while a non-retryable failure is recorded as failed. There is no
+  product-type allowlist; visible text is supplied by the output
+  CapabilityInvocation and delivery remains workflow-owned.
 - Every wake-up commits a processed `internal.wake_up` fact and one stable
   `reflection.run` intent. Reflection consumes it through the normal evidence
   window and watermark/CAS boundary; a wake-up does not write self-model or

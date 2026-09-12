@@ -10,7 +10,9 @@ native/sidecar provider shape
   -> CapabilityInvocation
   -> CapabilityRegistry.Catalog/Lookup
   -> ContextResolver (declared ContextSlot values)
-  -> Capability preflight/Prepare
+  -> deterministic invocation validation
+  -> frozen action envelope
+  -> Capability preflight/Prepare at the durable action boundary
   -> frozen PreparedPayload
   -> Execute / caller-owned transactional apply
   -> CapabilityResult
@@ -65,6 +67,13 @@ Image and schedule may use capability-local structured planners. Planner
 schemas are internal and are never placed in the Main LLM `tools` catalog or
 used to start a second MainAgent reply turn. Planner failure is an execution
 failure; there is no heuristic or thick-schema fallback.
+
+Direct conversation and native cognition commit the frozen decision/context
+snapshot before Prepare, then persist the PreparedPayload before execution.
+WakeUp likewise first persists a deterministic action envelope so a transient
+Provider/renderer/configuration failure cannot erase a valid model Tool Call;
+its action worker performs Prepare/preflight before the external side effect
+and retries only while the action remains executable.
 
 The current cutover exposes `schedule.replan` as `{intent}`. A capability-local
 planner uses the structured `cognitive_assessment` provider role outside the

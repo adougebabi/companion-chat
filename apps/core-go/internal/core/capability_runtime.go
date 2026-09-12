@@ -197,6 +197,28 @@ func (a *App) prepareCapabilityInvocations(ctx context.Context, fluctlightID, co
 	return prepared, nil
 }
 
+// validateCapabilityInvocationsForPersistence performs the cheap, deterministic
+// checks that are safe before an action is durable. Capability preflight and
+// planner I/O intentionally stay on the action worker: a transient provider or
+// renderer failure must not discard the WakeUp decision before its retryable
+// action/failure record exists.
+func (a *App) validateCapabilityInvocationsForPersistence(invocations []CapabilityInvocation) error {
+	registry := a.capabilityRegistry()
+	if registry == nil {
+		return ErrCapabilityNotFound
+	}
+	for _, invocation := range invocations {
+		definition, ok := registry.Definition(invocation.CapabilityName)
+		if !ok {
+			return fmt.Errorf("%w: %s", ErrCapabilityNotFound, invocation.CapabilityName)
+		}
+		if err := invocation.Validate(definition); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (a *App) bindCapabilityInvocationsToProjection(invocations []CapabilityInvocation, projection ContextProjection, actionID, sourceFactID string, surface CapabilitySurface) ([]CapabilityInvocation, error) {
 	bound := append([]CapabilityInvocation(nil), invocations...)
 	registry := a.capabilityRegistry()

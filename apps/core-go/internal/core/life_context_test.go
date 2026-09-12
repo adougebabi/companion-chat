@@ -303,16 +303,22 @@ func TestCognitionSurfacesBindFrozenProjectionBeforeCapabilityPrepare(t *testing
 	if err != nil || len(boundReply) != 1 || stringValue(mapValue(boundReply[0].ContextSnapshot["current_life"])["context_revision"]) != projection.LifeContextRevision {
 		t.Fatalf("conversation reply did not freeze current Life Context: bound=%#v err=%v", boundReply, err)
 	}
-	for _, path := range []string{"wakeup.go", "autonomy.go"} {
-		content, err := os.ReadFile(path)
+	for _, target := range []struct {
+		path     string
+		boundary string
+	}{
+		{path: "wakeup.go", boundary: "validateCapabilityInvocationsForPersistence"},
+		{path: "autonomy.go", boundary: "prepareCapabilityInvocations"},
+	} {
+		content, err := os.ReadFile(target.path)
 		if err != nil {
 			t.Fatal(err)
 		}
 		text := string(content)
 		bindAt := strings.Index(text, "bindCapabilityInvocationsToProjection")
-		prepareAt := strings.Index(text, "prepareCapabilityInvocations")
+		prepareAt := strings.Index(text, target.boundary)
 		if bindAt < 0 || prepareAt < 0 || bindAt > prepareAt {
-			t.Fatalf("%s does not bind the model-visible projection before Prepare", path)
+			t.Fatalf("%s does not bind the model-visible projection before %s", target.path, target.boundary)
 		}
 	}
 	conversationSource, err := os.ReadFile("mutations.go")
