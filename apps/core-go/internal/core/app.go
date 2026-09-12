@@ -339,6 +339,11 @@ func initializationAnalysisCorrelation() string {
 func prepareInitializationResponse(value map[string]any) (map[string]any, error) {
 	result := normalizeInitializationResponse(value)
 	normalizeFoundationCollections(result)
+	// Grouped Provider collections are converted after the first alias pass.
+	// Re-run candidate normalization so every persisted Intention has one real
+	// Goal reference, and discard optional orphan candidates instead of letting
+	// activation fail inside the transaction.
+	normalizeInitializationAliases(result)
 	normalizeVisualIdentityFoundation(mapValue(result["core_persona"]))
 	if !hasInitializationEnvelope(result) || !validInitialization(result) {
 		validationType, path := initializationValidationDiagnostic(result)
@@ -727,7 +732,7 @@ func normalizeInitializationAliases(result map[string]any) {
 			delete(identity, alias)
 		}
 	}
-	goals := arrayValue(result["initial_goals"])
+	goals, goalsReady := result["initial_goals"].([]any)
 	goalIndexes := make(map[string]int, len(goals))
 	for index, raw := range goals {
 		goal := mapValue(raw)
@@ -737,19 +742,37 @@ func normalizeInitializationAliases(result map[string]any) {
 		goal["importance"] = initializationUnitValue(goal["importance"], 0.5, true)
 		goal["urgency"] = initializationUnitValue(goal["urgency"], 0.5, true)
 	}
-	for _, raw := range arrayValue(result["initial_intentions"]) {
-		intention := mapValue(raw)
-		if stringValue(intention["action"]) == "" {
-			intention["action"] = firstInitializationString(intention["description"], intention["intent"])
-		}
-		if _, exists := intention["goal_index"]; !exists {
-			if index, found := goalIndexes[stringValue(intention["linked_goal_id"])]; found {
-				intention["goal_index"] = index
+	if intentions, ok := result["initial_intentions"].([]any); ok && goalsReady {
+		normalized := make([]any, 0, len(intentions))
+		for index, raw := range intentions {
+			intention := mapValue(raw)
+			if len(intention) == 0 {
+				continue
 			}
-		} else if goalIndex := intValue(intention["goal_index"]); goalIndex < 0 || goalIndex >= len(goals) {
-			delete(intention, "goal_index")
+			if stringValue(intention["action"]) == "" {
+				intention["action"] = firstInitializationString(intention["description"], intention["intent"])
+			}
+			if stringValue(intention["action"]) == "" {
+				continue
+			}
+			goalIndex := -1
+			if rawGoal, exists := intention["goal_index"]; exists {
+				if parsed, valid := initializationArrayIndex(rawGoal); valid {
+					goalIndex = parsed
+				}
+			} else if linked, found := goalIndexes[stringValue(intention["linked_goal_id"])]; found {
+				goalIndex = linked
+			} else if index < len(goals) {
+				goalIndex = index
+			}
+			if goalIndex < 0 || goalIndex >= len(goals) {
+				continue
+			}
+			intention["goal_index"] = goalIndex
+			intention["confidence"] = initializationUnitValue(intention["confidence"], 0.5, false)
+			normalized = append(normalized, intention)
 		}
-		intention["confidence"] = initializationUnitValue(intention["confidence"], 0.5, false)
+		result["initial_intentions"] = normalized
 	}
 	for _, raw := range arrayValue(result["initial_relationships"]) {
 		relationship := mapValue(raw)
@@ -773,6 +796,21 @@ func normalizeInitializationAliases(result map[string]any) {
 		if trend != "improving" && trend != "stable" && trend != "declining" {
 			relationship["trend"] = "stable"
 		}
+	}
+}
+
+func initializationArrayIndex(raw any) (int, bool) {
+	switch value := raw.(type) {
+	case int:
+		return value, true
+	case float64:
+		index := int(value)
+		return index, value == float64(index)
+	case json.Number:
+		index, err := value.Int64()
+		return int(index), err == nil
+	default:
+		return 0, false
 	}
 }
 

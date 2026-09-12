@@ -10,14 +10,15 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// personalityProfileIDs returns the profile identifiers declared by the
-// persisted Core Persona. A single-profile persona still has the implicit
-// "default" profile so legacy rows can safely remain shared (NULL scope).
+// personalityProfileIDs returns the profile identifiers available to runtime
+// state and profile-scoped initialization seeds. "default" is a virtual,
+// shared profile while initialization has not selected a dominant declared
+// profile, including when the Persona declares multiple profiles.
 func personalityProfileIDs(corePersona map[string]any) map[string]struct{} {
 	result := map[string]struct{}{}
 	system := mapValue(corePersona["personality_system"])
 	profiles := arrayValue(system["profiles"])
-	if len(profiles) == 0 && stringValue(system["active_profile_id"]) == "default" {
+	if strings.TrimSpace(stringValue(system["active_profile_id"])) == "default" {
 		result["default"] = struct{}{}
 	}
 	for _, raw := range profiles {

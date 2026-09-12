@@ -30,3 +30,22 @@ func TestInitialPersonalityProfileIDFallsBackToFirstProfile(t *testing.T) {
 		t.Fatalf("initial profile = %q, want warm", got)
 	}
 }
+
+func TestInitializationDefaultProfileRemainsValidForMultiProfileSeeds(t *testing.T) {
+	persona := map[string]any{
+		"personality_system": map[string]any{
+			"mode":              "multiple",
+			"active_profile_id": "default",
+			"profiles": []any{
+				map[string]any{"id": "profile_jinghai"},
+				map[string]any{"id": "profile_liuhuo"},
+			},
+		},
+	}
+
+	profileIDs := personalityProfileIDs(persona)
+	seedProfileID, _ := normalizeProfileID("", initialPersonalityProfileID(persona))
+	if _, ok := profileIDs[seedProfileID]; !ok {
+		t.Fatalf("normalized seed profile %q is not valid for multi-profile initialization: %#v", seedProfileID, profileIDs)
+	}
+}

@@ -163,14 +163,36 @@ func TestPrepareInitializationResponseDropsOrRepairsInvalidOptionalCandidates(t 
 	}
 	claims := arrayValue(mapValue(prepared["developing_self"])["claims"])
 	goal := mapValue(arrayValue(prepared["initial_goals"])[0])
-	intention := mapValue(arrayValue(prepared["initial_intentions"])[0])
 	relationship := mapValue(arrayValue(prepared["initial_relationships"])[0])
 	claimConfidence, _ := numberFloat(mapValue(claims[0])["confidence"])
 	goalImportance, _ := numberFloat(goal["importance"])
 	goalUrgency, _ := numberFloat(goal["urgency"])
-	intentionConfidence, _ := numberFloat(intention["confidence"])
-	if len(claims) != 1 || stringValue(mapValue(claims[0])["category"]) != "interest" || claimConfidence != 0.5 || goalImportance != 1 || goalUrgency != 0.5 || intention["goal_index"] != nil || intentionConfidence != 0.5 || len(mapValue(relationship["metrics"])) != 0 || stringValue(relationship["trend"]) != "stable" {
-		t.Fatalf("optional candidates were not normalized: claims=%#v goal=%#v intention=%#v relationship=%#v", claims, goal, intention, relationship)
+	if len(claims) != 1 || stringValue(mapValue(claims[0])["category"]) != "interest" || claimConfidence != 0.5 || goalImportance != 1 || goalUrgency != 0.5 || len(arrayValue(prepared["initial_intentions"])) != 0 || len(mapValue(relationship["metrics"])) != 0 || stringValue(relationship["trend"]) != "stable" {
+		t.Fatalf("optional candidates were not normalized: claims=%#v goal=%#v intentions=%#v relationship=%#v", claims, goal, prepared["initial_intentions"], relationship)
+	}
+}
+
+func TestPrepareInitializationResponseAssignsImplicitIntentionGoalByPosition(t *testing.T) {
+	value := map[string]any{
+		"core_persona": defaultCorePersona("", "岚音"),
+		"initial_goals": []any{
+			map[string]any{"description": "整理档案"},
+			map[string]any{"description": "观测流星雨"},
+		},
+		"initial_intentions": []any{
+			map[string]any{"action": "整理第一批照片"},
+			map[string]any{"action": "检查观测设备"},
+			map[string]any{"action": "没有对应目标的额外候选"},
+		},
+	}
+
+	prepared, err := prepareInitializationResponse(value)
+	if err != nil {
+		t.Fatalf("implicit intention goal normalization failed: %v", err)
+	}
+	intentions := arrayValue(prepared["initial_intentions"])
+	if len(intentions) != 2 || intValue(mapValue(intentions[0])["goal_index"]) != 0 || intValue(mapValue(intentions[1])["goal_index"]) != 1 {
+		t.Fatalf("implicit intention goals were not normalized by position: %#v", intentions)
 	}
 }
 

@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -73,6 +74,23 @@ func TestActivationFailureDetailsSeparatePersonaConflictAndPersistence(t *testin
 	persistenceCode, persistenceDetails := activationFailureDetails(errors.New("database unavailable"), "activation:fl-1")
 	if conflictCode != "activation_request_conflict" || persistenceCode != "activation_persistence_failed" || stringValue(persistenceDetails["correlation_id"]) != "activation:fl-1" {
 		t.Fatalf("activation failure codes conflict=%q persistence=%q details=%#v", conflictCode, persistenceCode, persistenceDetails)
+	}
+}
+
+func TestActivationFailureDetailsPreserveWrappedPersonaAndBoundLogCode(t *testing.T) {
+	wrapped := fmt.Errorf("activation validation: %w", testPublicDetailsError{
+		code:    "initialization_persona_invalid",
+		details: map[string]any{"validation_error": map[string]any{"type": "reference_invalid", "path": "initial_intentions[0].goal_index"}},
+	})
+	code, details := activationFailureDetails(wrapped, "activation:fl-1")
+	if code != "activation_persona_invalid" || stringValue(mapValue(details["validation_error"])["path"]) != "initial_intentions[0].goal_index" {
+		t.Fatalf("wrapped persona activation failure=%q %#v", code, details)
+	}
+	if got := activationFailureLogCode(fmt.Errorf("agency: %w", errors.New("initial_goal_profile_invalid"))); got != "initial_goal_profile_invalid" {
+		t.Fatalf("wrapped activation log code=%q", got)
+	}
+	if got := activationFailureLogCode(errors.New("database rejected password=secret")); got != "unclassified" {
+		t.Fatalf("unsafe activation log code=%q", got)
 	}
 }
 

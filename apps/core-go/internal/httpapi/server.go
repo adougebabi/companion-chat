@@ -489,7 +489,7 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 	if err != nil {
 		correlationID := "activation:" + stable
 		code, details := activationFailureDetails(err, correlationID)
-		slog.Default().Warn("Go Core activation failed", "code", code, "correlation_id", correlationID, "error_type", fmt.Sprintf("%T", err))
+		slog.Default().Warn("Go Core activation failed", "code", code, "correlation_id", correlationID, "error_type", fmt.Sprintf("%T", err), "error_code", activationFailureLogCode(err))
 		writeErrorDetails(response, http.StatusUnprocessableEntity, code, details)
 		return
 	}
@@ -498,7 +498,8 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 
 func activationFailureDetails(err error, correlationID string) (string, map[string]any) {
 	details := map[string]any{"correlation_id": correlationID}
-	if detailed, ok := err.(interface{ PublicDetails() map[string]any }); ok {
+	var detailed interface{ PublicDetails() map[string]any }
+	if errors.As(err, &detailed) {
 		for key, value := range detailed.PublicDetails() {
 			if key != "correlation_id" {
 				details[key] = value
@@ -513,6 +514,26 @@ func activationFailureDetails(err error, correlationID string) (string, map[stri
 		return "activation_persona_invalid", details
 	}
 	return "activation_persistence_failed", details
+}
+
+func activationFailureLogCode(err error) string {
+	for current := err; current != nil; current = errors.Unwrap(current) {
+		code := strings.TrimSpace(current.Error())
+		if len(code) == 0 || len(code) > 128 {
+			continue
+		}
+		safe := true
+		for _, character := range code {
+			if (character < 'a' || character > 'z') && (character < '0' || character > '9') && character != '_' {
+				safe = false
+				break
+			}
+		}
+		if safe {
+			return code
+		}
+	}
+	return "unclassified"
 }
 
 func (s *Server) directConversation(response http.ResponseWriter, request *http.Request) {
