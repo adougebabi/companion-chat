@@ -21,11 +21,25 @@ func TestPrepareInitializationResponseNormalizesSafeContainersBeforeValidation(t
 	}
 }
 
-func TestPrepareInitializationResponseStillRejectsMissingPersonaSemantics(t *testing.T) {
+func TestPrepareInitializationResponseFillsMissingPersonaFieldsWithDefaults(t *testing.T) {
 	value := map[string]any{"core_persona": defaultCorePersona("", "影者")}
 	delete(mapValue(mapValue(value["core_persona"])["personality"]), "openness")
+	delete(mapValue(mapValue(value["core_persona"])["behavioral_policy"]), "response_style")
+	prepared, err := prepareInitializationResponse(value)
+	if err != nil {
+		t.Fatalf("missing persona fields were not defaulted: %v", err)
+	}
+	persona := mapValue(prepared["core_persona"])
+	if mapValue(persona["personality"])["openness"] != defaultPersonality()["openness"] || mapValue(persona["behavioral_policy"])["response_style"] != defaultPolicy()["response_style"] {
+		t.Fatalf("persona defaults were not applied: %#v", persona)
+	}
+}
+
+func TestPrepareInitializationResponseStillRejectsExplicitInvalidValues(t *testing.T) {
+	value := map[string]any{"core_persona": defaultCorePersona("", "影者")}
+	mapValue(mapValue(value["core_persona"])["identity"])["timezone"] = "Mars/Olympus"
 	if _, err := prepareInitializationResponse(value); err == nil || err.Error() != "initialization_persona_invalid" {
-		t.Fatalf("missing personality semantics err=%v", err)
+		t.Fatalf("explicit invalid timezone err=%v", err)
 	}
 }
 
@@ -55,13 +69,14 @@ func TestPrepareInitializationResponseFillsOnlyNonSemanticPersonaStructure(t *te
 	}
 }
 
-func TestInitializationStructuredFallbackIsInvalidJSON(t *testing.T) {
-	if _, err := structuredResultForRole("initialization", ProviderCompletion{Structured: map[string]any{}, StructuredFallback: true}); err == nil || err.Error() != "initialization_response_invalid_json" {
-		t.Fatalf("initialization fallback err=%v", err)
+func TestInitializationStructuredFallbackUsesSafeDefaults(t *testing.T) {
+	value, err := structuredResultForRole("initialization", ProviderCompletion{Structured: map[string]any{}, StructuredFallback: true})
+	if err != nil {
+		t.Fatalf("normal initialization response with missing fields was rejected: %v", err)
 	}
-	value, err := structuredResultForRole("reflection", ProviderCompletion{Structured: map[string]any{}, StructuredFallback: true})
-	if err != nil || value == nil {
-		t.Fatalf("non-initialization fallback changed: value=%#v err=%v", value, err)
+	prepared, err := prepareInitializationResponse(value)
+	if err != nil || !validInitialization(prepared) {
+		t.Fatalf("initialization fallback was not safely completed: value=%#v prepared=%#v err=%v", value, prepared, err)
 	}
 }
 
@@ -94,7 +109,7 @@ func TestValidInitializationAcceptsOpenRelationshipLabelAndActorUser(t *testing.
 	}
 }
 
-func TestValidInitializationRequiresCompleteDeclaredPersonalityProfile(t *testing.T) {
+func TestInitializationCompletesMissingProfileFieldsButPreservesProfileIdentity(t *testing.T) {
 	persona := defaultCorePersona("", "影者")
 	system := defaultPersonalitySystem()
 	system["mode"] = "multiple"
@@ -112,8 +127,9 @@ func TestValidInitializationRequiresCompleteDeclaredPersonalityProfile(t *testin
 	profile := completeInitializationProfile("warm")
 	delete(profile, "voice")
 	system["profiles"] = []any{profile}
-	if validInitialization(value) {
-		t.Fatal("missing personality voice contract should be rejected")
+	prepared, err := prepareInitializationResponse(value)
+	if err != nil || !isObjectValue(mapValue(arrayValue(mapValue(mapValue(prepared["core_persona"])["personality_system"])["profiles"])[0])["voice"]) {
+		t.Fatalf("missing personality voice should normalize to an empty object: prepared=%#v err=%v", prepared, err)
 	}
 }
 

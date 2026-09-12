@@ -16,7 +16,7 @@ create_fluctlight({core_persona, developing_self, initial_goals, initial_intenti
 prepareInitializationResponse(provider_result)
   -> normalized Foundation | initialization_persona_invalid
 structuredResultForRole("initialization", completion)
-  -> Foundation | initialization_response_invalid_json
+  -> parsed/fallback Foundation for normalization
 reflect({developing_self_candidates, memory_candidates, relationship_observations,
          drive_candidates, preference_candidates, trigger_candidates,
          personality_evolution_candidates, behavior_policy_evolution_candidates})
@@ -42,21 +42,25 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   relationship/goal/intention arrays, `developing_self.claims`, extensions,
   nullable unknown identity placeholders, empty Life Profile containers, and a
   default single-profile-system scaffold when no profiles were proposed. It
-  must not synthesize missing personality traits, Behavioral Policy semantics,
-  a declared profile's 18-field contract, relationship meaning, goals, or
-  intentions.
+  fills missing base personality and Behavioral Policy fields from the existing
+  server defaults and missing declared-profile payload fields with typed empty
+  values. Provider-supplied values are never overwritten. Profile IDs,
+  relationship meaning, goal/intention semantics, and explicitly invalid values
+  are not invented or repaired.
 - `life_profile.relationship_seeds` remains in the canonical Life Profile even
   when it is also used as the compatibility source for
   `initial_relationships`; normalization never deletes a required Core field.
 - Flat/grouped goal and intention collections are normalized into typed arrays
   before validation while preserving every source sentence. This compatibility
   path is part of production initialization, not a test-only helper.
-- An empty, truncated, or unparseable initialization structured response is
-  `initialization_response_invalid_json`, not Persona semantic invalidity.
-  Every user-triggered analysis gets a fresh `initialization-analysis:*`
-  correlation/Provider idempotency identity; network retries within one attempt
-  may reuse an identity, but separate clicks must not replay one cached invalid
-  result.
+- A Provider `StructuredFallback` is allowed to enter the same initialization
+  normalizer. Missing response values become the documented default/null/empty
+  object/empty array representation instead of causing
+  `initialization_response_invalid_json`. Explicitly present invalid values are
+  still rejected by semantic validation. Every user-triggered analysis gets a
+  fresh `initialization-analysis:*` correlation/Provider idempotency identity;
+  network retries within one attempt may reuse an identity, but separate clicks
+  must not replay one cached invalid result.
 - The Web default output reserve for a newly configured generic LLM role is
   4096 tokens, matching Core's default. An explicitly persisted role budget is
   still authoritative and is not silently overwritten by the browser.
@@ -80,8 +84,9 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 | Condition | Result |
 | --- | --- |
 | Initialization omits only safe structural containers/placeholders | Normalize them first, then validate; do not reject solely because an empty root collection was omitted. |
-| Initialization omits a required Core group, personality/policy semantic field, declared profile field, or Developing Self claim metadata | Reject with `initialization_persona_invalid`; create no Fluctlight. |
-| Initialization response is empty, truncated, or not parseable as structured JSON | Reject with `initialization_response_invalid_json`; do not record it as Persona semantic invalidity. |
+| Initialization omits a Core group, base personality/policy field, declared profile payload field, or Developing Self container | Fill only the missing value with the server default or typed empty representation, then validate. |
+| Initialization returns a structured fallback with no usable fields | Produce the safe default Foundation and keep it editable before activation; do not fail solely because fields are absent. |
+| Initialization explicitly returns an invalid timezone, duplicate/blank profile identity, bad goal/relationship reference, or out-of-range governed value | Reject with `initialization_persona_invalid`; do not overwrite the explicit invalid value with a default. |
 | Owner submits the same description as a new analysis attempt | Use a fresh correlation and Provider idempotency identity; do not reuse a prior invalid completion. |
 | Blank-slate request supplies non-empty layered foundation | Reject with `blank_slate_foundation_forbidden` |
 | Reflection candidate targets Core Persona or an unknown Developing Self category | Reject/record bounded diagnostic; never mutate Core |
@@ -103,9 +108,14 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   semantics but omits empty root arrays, nullable identity placeholders and the
   no-profile personality-system scaffold; Core adds only that non-semantic
   structure and accepts the result.
+- Base: an otherwise normal Provider response omits individual Personality,
+  Policy, Life Profile, or profile payload fields; the preview uses existing
+  defaults/typed empty values for those missing fields and preserves everything
+  the model did return.
 - Bad: reject a recoverable missing `initial_goals: []` before the normalizer,
-  classify truncated JSON as `initialization_persona_invalid`, or reuse one
-  Provider idempotency key for every manual re-analysis.
+  reject a structured fallback only because keys are absent, overwrite an
+  explicit invalid timezone with a default, or reuse one Provider idempotency
+  key for every manual re-analysis.
 - Bad: three aliases of one inbox fact satisfy an evidence count, or a single positive user reaction changes `personality.agreeableness`.
 - Bad: realization re-reads a newer Persona after a frozen decision and combines an old response plan with a new voice.
 
@@ -115,8 +125,8 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 - Initialization tests for layered provider schema, owner-defined seed
   provenance, blank-slate defaults, safe-container normalization before
   validation, preservation of relationship seeds, flat/grouped collection
-  normalization, strict missing personality/profile rejection, structured
-  fallback classification, unique per-attempt correlation, and atomic claim
+  normalization, missing personality/profile default completion, explicit
+  invalid-value rejection, structured fallback completion, unique per-attempt correlation, and atomic claim
   creation.
 - Reflection tests for candidate schema, category allowlist, evidence ownership/deduplication, repeated-claim no-op, Core conflict rejection, stale watermark/CAS, and transaction rollback.
 - Overlay tests for field allowlist, anchor rejection, cross-evidence threshold,
@@ -156,5 +166,6 @@ if !hasInitializationEnvelope(rawProviderResult) {
 
 ```go
 foundation, err := prepareInitializationResponse(rawProviderResult)
-// Adds only non-semantic structure, then enforces complete Persona semantics.
+// Preserves returned values, fills missing fields with canonical defaults or
+// typed empties, then rejects only explicit invalid identities/references/values.
 ```

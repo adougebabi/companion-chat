@@ -512,7 +512,11 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 	if _, ok := result["schema_version"]; !ok {
 		result["schema_version"] = 2
 	}
-	normalizeInitializationPersonaStructure(mapValue(result["core_persona"]))
+	if rawPersona, exists := result["core_persona"]; !exists || rawPersona == nil {
+		result["core_persona"] = defaultCorePersona("", "")
+	} else if persona, ok := rawPersona.(map[string]any); ok {
+		normalizeInitializationPersonaStructure(persona)
+	}
 	if raw, exists := result["developing_self"]; !exists || raw == nil {
 		result["developing_self"] = map[string]any{"claims": []any{}}
 	} else if developingSelf, ok := raw.(map[string]any); ok && developingSelf["claims"] == nil {
@@ -574,14 +578,19 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 
 func normalizeInitializationPersonaStructure(persona map[string]any) {
 	if len(persona) == 0 {
+		for key, value := range defaultCorePersona("", "") {
+			persona[key] = value
+		}
 		return
 	}
 	if _, ok := persona["schema_version"]; !ok {
 		persona["schema_version"] = 1
 	}
-	if identity, ok := persona["identity"].(map[string]any); ok && len(identity) > 0 {
+	if rawIdentity, exists := persona["identity"]; !exists || rawIdentity == nil {
+		persona["identity"] = defaultIdentity("", "")
+	} else if identity, ok := rawIdentity.(map[string]any); ok {
 		defaults := defaultIdentity("", stringValue(identity["name"]))
-		for _, key := range []string{"age", "gender", "occupation", "residence", "timezone", "birthday", "background", "biography", "core_values", "worldview", "notes"} {
+		for _, key := range []string{"name", "age", "gender", "occupation", "residence", "timezone", "birthday", "background", "biography", "core_values", "worldview", "notes"} {
 			if _, exists := identity[key]; !exists {
 				if key == "timezone" {
 					identity[key] = nil
@@ -591,7 +600,26 @@ func normalizeInitializationPersonaStructure(persona map[string]any) {
 			}
 		}
 	}
-	if lifeProfile, ok := persona["life_profile"].(map[string]any); ok {
+	for key, defaults := range map[string]map[string]any{
+		"personality":       defaultPersonality(),
+		"behavioral_policy": defaultPolicy(),
+	} {
+		raw, exists := persona[key]
+		if !exists || raw == nil {
+			persona[key] = defaults
+			continue
+		}
+		if values, ok := raw.(map[string]any); ok {
+			for field, value := range defaults {
+				if _, exists := values[field]; !exists {
+					values[field] = value
+				}
+			}
+		}
+	}
+	if rawLifeProfile, exists := persona["life_profile"]; !exists || rawLifeProfile == nil {
+		persona["life_profile"] = defaultLifeProfile()
+	} else if lifeProfile, ok := rawLifeProfile.(map[string]any); ok {
 		for key, value := range defaultLifeProfile() {
 			if _, exists := lifeProfile[key]; !exists {
 				lifeProfile[key] = value
@@ -618,13 +646,15 @@ func normalizeInitializationPersonaStructure(persona map[string]any) {
 			system[key] = defaults[key]
 		}
 	}
-	if len(profiles) == 0 {
-		if _, exists := system["mode"]; !exists {
+	if strings.TrimSpace(stringValue(system["mode"])) == "" {
+		if len(profiles) > 1 {
+			system["mode"] = "multiple"
+		} else {
 			system["mode"] = "single"
 		}
-		if strings.TrimSpace(stringValue(system["active_profile_id"])) == "" {
-			system["active_profile_id"] = "default"
-		}
+	}
+	if strings.TrimSpace(stringValue(system["active_profile_id"])) == "" {
+		system["active_profile_id"] = "default"
 	}
 }
 
@@ -652,6 +682,16 @@ func normalizePersonalityProfiles(system map[string]any) {
 			if _, ok := known[key]; !ok {
 				extensions[key] = value
 				delete(profile, key)
+			}
+		}
+		for key, value := range map[string]any{
+			"name": "", "identity": map[string]any{}, "personality": map[string]any{}, "behavioral_policy": map[string]any{},
+			"emotional_state": map[string]any{}, "voice": map[string]any{}, "body_language": map[string]any{}, "behavior_state_machine": map[string]any{},
+			"behavior_loops": map[string]any{}, "scenario_behavior": map[string]any{}, "secrets": map[string]any{}, "intimacy_progression": map[string]any{},
+			"output_preferences": []any{}, "fears": []any{}, "desires": []any{},
+		} {
+			if _, exists := profile[key]; !exists {
+				profile[key] = value
 			}
 		}
 		profile["extensions"] = extensions
