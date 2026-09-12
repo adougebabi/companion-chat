@@ -126,9 +126,6 @@ func (p *ProviderClient) complete(ctx context.Context, role string, messages []m
 }
 
 func structuredResultForRole(role string, completion ProviderCompletion) (map[string]any, error) {
-	if role == "initialization" && completion.StructuredFallback {
-		return nil, errors.New("initialization_response_invalid_json")
-	}
 	if completion.Structured == nil {
 		return nil, errors.New("provider structured response is empty")
 	}
