@@ -28,10 +28,12 @@ const (
 	WorkerDeploymentName         = "fluctlight"
 	DefaultWorkerBuildID         = "platform-v1"
 	mediaActivityMaximumAttempts = 3
+	visualIdentityRetryDelay     = 5 * time.Second
+	visualIdentityHeartbeatEvery = 10 * time.Second
 	defaultWakeUpIntervalSeconds = 30 * 60
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
-	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'media.%' THEN 0 WHEN intent_type LIKE 'schedule.%' THEN 1 WHEN intent_type LIKE 'visual_identity.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 ELSE 8 END"
+	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'media.%' THEN 0 WHEN intent_type LIKE 'schedule.%' THEN 1 WHEN intent_type LIKE 'wake_up.%' THEN 2 WHEN intent_type LIKE 'daily_review.%' THEN 3 WHEN intent_type LIKE 'autonomy.%' THEN 4 WHEN intent_type LIKE 'capability.%' THEN 5 WHEN intent_type LIKE 'reflection.%' THEN 6 WHEN intent_type LIKE 'visual_identity.%' THEN 7 ELSE 8 END"
 	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type FROM public.platform_workflow_intents WHERE status IN ('pending','started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('cognition.processing','autonomy.action','capability.action')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
@@ -697,11 +699,39 @@ func EnsureCurrentDayScheduleActivity(ctx context.Context, input Input) (map[str
 }
 
 func ProcessVisualIdentityActivity(ctx context.Context, input Input) (map[string]any, error) {
+	stopHeartbeat := startVisualIdentityHeartbeat(ctx, input.SessionID)
+	defer stopHeartbeat()
+	activity.RecordHeartbeat(ctx, map[string]any{"session_id": input.SessionID, "phase": "loading"})
 	application := app()
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
 	return application.ProcessVisualIdentity(ctx, input.SessionID)
+}
+
+func startVisualIdentityHeartbeat(ctx context.Context, sessionID string) func() {
+	if !activity.IsActivity(ctx) {
+		return func() {}
+	}
+	heartbeatCtx, cancel := context.WithCancel(ctx)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(visualIdentityHeartbeatEvery)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-heartbeatCtx.Done():
+				return
+			case <-ticker.C:
+				activity.RecordHeartbeat(heartbeatCtx, map[string]any{"session_id": sessionID, "phase": "in_flight"})
+			}
+		}
+	}()
+	return func() {
+		cancel()
+		<-done
+	}
 }
 
 // StartWorkers starts exactly one worker per canonical task queue and returns a
@@ -903,9 +933,14 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		if intentType == "visual_identity.initialize" && intentStatus == "failed" {
 			var sessionStatus string
 			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlight_visual_identity_sessions WHERE id=(SELECT payload->>'session_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&sessionStatus); err == nil && (sessionStatus == "queued" || sessionStatus == "running") {
-				if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1`, intentID); err != nil {
+				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+($2 * interval '1 second'),started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($3,''),'visual_identity_workflow_terminal') WHERE intent_id=$1 AND status IN ('pending','retry','started')`, intentID, int64(visualIdentityRetryDelay/time.Second), terminalFailure)
+				if err != nil {
 					return count, err
 				}
+				if command.RowsAffected() != 1 {
+					continue
+				}
+				slog.Default().Warn("Go Worker visual identity workflow requeued after terminal failure", "intent_id", intentID, "workflow_id", workflowID, "temporal_status", intentStatus, "session_status", sessionStatus, "next_attempt", visualIdentityRetryDelay, "failure", terminalFailure)
 				if d.Started != nil {
 					delete(d.Started, intentID)
 				}
@@ -1018,7 +1053,22 @@ func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
 		// cycle idempotent even when a terminal execution is replayed.
 		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
 	}
+	if intentType == "visual_identity.initialize" {
+		// Reconciliation retries only a terminal failed Visual Identity workflow.
+		// The stable workflow ID must therefore admit a new run after failure but
+		// must not reopen a successfully completed identity workflow.
+		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+	}
 	return enumspb.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE
+}
+
+func workflowStartOptions(workflowID, taskQueue, intentType string) client.StartWorkflowOptions {
+	return client.StartWorkflowOptions{
+		ID:                                       workflowID,
+		TaskQueue:                                taskQueue,
+		WorkflowIDReusePolicy:                    workflowIDReusePolicy(intentType),
+		WorkflowExecutionErrorWhenAlreadyStarted: true,
+	}
 }
 
 func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
@@ -1148,22 +1198,29 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			slog.Default().Warn("Go Worker intent type unsupported; leaving pending", "intent_id", intentID, "intent_type", intentType)
 			continue
 		}
-		_, err := d.Client.ExecuteWorkflow(ctx, client.StartWorkflowOptions{ID: goWorkflowID, TaskQueue: taskQueue, WorkflowIDReusePolicy: workflowIDReusePolicy(intentType)}, workflowFn, input)
+		_, err := d.Client.ExecuteWorkflow(ctx, workflowStartOptions(goWorkflowID, taskQueue, intentType), workflowFn, input)
 		if err != nil && !temporal.IsWorkflowExecutionAlreadyStartedError(err) {
 			slog.Default().Warn("Go Worker workflow start failed", "intent_id", intentID, "error", err)
 			_, _ = d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,attempt_count=attempt_count+1,next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1`, intentID, err.Error())
 			continue
 		}
-		slog.Default().Info("Go Worker workflow dispatched", "intent_id", intentID, "workflow_id", goWorkflowID, "workflow_type", intentType)
-		command, statusErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1`, intentID)
+		alreadyStarted := temporal.IsWorkflowExecutionAlreadyStartedError(err)
+		command, statusErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID)
 		if statusErr != nil || command.RowsAffected() != 1 {
 			// Temporal already accepted the start. Leave the durable row visible
 			// to the next reconciliation pass rather than hiding a DB failure in
 			// the in-memory Started set.
 			if statusErr != nil {
 				slog.Default().Warn("Go Worker intent status update failed after Temporal start", "intent_id", intentID, "error", statusErr)
+			} else {
+				slog.Default().Warn("Go Worker intent status changed before Temporal start settlement", "intent_id", intentID, "workflow_id", goWorkflowID)
 			}
 			continue
+		}
+		if alreadyStarted {
+			slog.Default().Info("Go Worker workflow already running; intent ledger reconciled", "intent_id", intentID, "workflow_id", goWorkflowID, "workflow_type", intentType)
+		} else {
+			slog.Default().Info("Go Worker workflow dispatched", "intent_id", intentID, "workflow_id", goWorkflowID, "workflow_type", intentType)
 		}
 		d.Started[intentID] = struct{}{}
 		count++

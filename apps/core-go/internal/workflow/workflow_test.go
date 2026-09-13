@@ -11,6 +11,8 @@ import (
 	enumspb "go.temporal.io/api/enums/v1"
 	failurepb "go.temporal.io/api/failure/v1"
 	historypb "go.temporal.io/api/history/v1"
+	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -203,6 +205,50 @@ func TestWorkflowIDReusePolicyAllowsWakeUpRecovery(t *testing.T) {
 	}
 }
 
+func TestVisualIdentityStartOptionsAllowFailedRecoveryAndExposeDuplicateStart(t *testing.T) {
+	options := workflowStartOptions("go:visual-identity-1", LifecycleQueue, "visual_identity.initialize")
+	if options.WorkflowIDReusePolicy != enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY {
+		t.Fatalf("visual identity reuse policy = %v, want allow duplicate failed only", options.WorkflowIDReusePolicy)
+	}
+	if !options.WorkflowExecutionErrorWhenAlreadyStarted {
+		t.Fatal("visual identity duplicate start must return an explicit AlreadyStarted error")
+	}
+}
+
+func TestProcessVisualIdentityActivityRecordsHeartbeatBeforeWork(t *testing.T) {
+	Configure(nil)
+	t.Cleanup(func() { Configure(nil) })
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestActivityEnvironment()
+	env.RegisterActivity(ProcessVisualIdentityActivity)
+	heartbeats := 0
+	env.SetOnActivityHeartbeatListener(func(_ *activity.Info, details converter.EncodedValues) {
+		var value map[string]any
+		if err := details.Get(&value); err != nil {
+			t.Fatalf("decode heartbeat details: %v", err)
+		}
+		if value["session_id"] == "visual-session-1" {
+			heartbeats++
+		}
+	})
+	_, err := env.ExecuteActivity(ProcessVisualIdentityActivity, Input{SessionID: "visual-session-1"})
+	if err == nil {
+		t.Fatal("unconfigured activity unexpectedly succeeded")
+	}
+	if heartbeats == 0 {
+		t.Fatal("visual identity activity did not heartbeat before entering work")
+	}
+}
+
+func TestVisualIdentityRecoveryTimingIsBounded(t *testing.T) {
+	if visualIdentityRetryDelay < 5*time.Second || visualIdentityRetryDelay > time.Minute {
+		t.Fatalf("visual identity retry delay = %s, want bounded backoff", visualIdentityRetryDelay)
+	}
+	if visualIdentityHeartbeatEvery <= 0 || visualIdentityHeartbeatEvery >= 30*time.Second {
+		t.Fatalf("visual identity heartbeat interval = %s, want below 30s timeout", visualIdentityHeartbeatEvery)
+	}
+}
+
 func TestWakeUpRetryBackoffIsNotRequeuedBeforeDueTime(t *testing.T) {
 	// The SQL candidate predicate intentionally excludes retry rows while their
 	// next_attempt_at is in the future. Without this boundary ReconcileOnce
@@ -226,9 +272,16 @@ func TestActionIntentRetryOnlyWhenActionRemainsExecutable(t *testing.T) {
 	}
 }
 
-func TestDispatcherPrioritizesMediaBeforeVisualIdentityRetries(t *testing.T) {
-	if !strings.Contains(dispatcherIntentOrder, "WHEN intent_type LIKE 'media.%' THEN 0") || !strings.Contains(dispatcherIntentOrder, "WHEN intent_type LIKE 'visual_identity.%' THEN 2") {
-		t.Fatalf("dispatcher intent order = %s", dispatcherIntentOrder)
+func TestDispatcherPrioritizesLifecycleRecoveryBeforeVisualIdentityRetries(t *testing.T) {
+	visualIndex := strings.Index(dispatcherIntentOrder, "WHEN intent_type LIKE 'visual_identity.%'")
+	if visualIndex < 0 {
+		t.Fatalf("visual identity missing from dispatcher order: %s", dispatcherIntentOrder)
+	}
+	for _, intentPrefix := range []string{"media.%", "wake_up.%", "daily_review.%", "reflection.%"} {
+		index := strings.Index(dispatcherIntentOrder, "WHEN intent_type LIKE '"+intentPrefix+"'")
+		if index < 0 || index > visualIndex {
+			t.Fatalf("%s must be dispatched before visual identity retries: %s", intentPrefix, dispatcherIntentOrder)
+		}
 	}
 }
 

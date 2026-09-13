@@ -25,6 +25,13 @@
 - Renderer constraints preserve `chest_cup`, resolved `chest_lora_weight`, and `adapter_version`. Mapping is explicit code (`A=-5`, `B=-3`, `C=-1`, `D=1` in adapter v1) and must be bumped when tuning changes.
 - `media.comfyui.visual_identity_workflow` is an optional structured workflow map. Its `seed`/`character_sheet` variants are selected only from explicit concept fields; the legacy `workflow` remains the Scene Image fallback. `{{prompt}}` injects text, while `{{chest_lora_weight}}` (or `{{renderer_constraints.chest_lora_weight}}`) injects a validated numeric weight when it occupies a whole JSON value; missing weight is an error. For an image-to-image LoadImage node, use the canonical `{{visual_identity_reference_image}}` placeholder in its `inputs.image` value. Core resolves the active character-sheet asset (falling back to canonical reference), uploads it to ComfyUI `/upload/image`, and replaces the placeholder with the returned input filename before `/prompt`; missing/unauthorized assets fail without submitting a job. Provider/job persistence uses the existing MediaWorkflow.
 - Browser detail may include stage summaries, attempt/session IDs, safe asset IDs and proxied image URLs. It must not include provider payloads, credentials, raw prompts, binary data, or private storage locators.
+- The long Visual Identity Activity records an immediate heartbeat and keeps a
+  heartbeat interval below its Temporal heartbeat timeout while queued on a
+  Provider, media checkpoint or database boundary.
+- A terminal failed workflow for a still-queued/running session is recoverable
+  through the same stable workflow ID with failed-only reuse and bounded
+  backoff. Reconciliation preserves the bounded terminal reason instead of
+  clearing it or hot-looping the old failed Run every Worker tick.
 
 ### 4. Validation & Error Matrix
 
@@ -38,6 +45,8 @@
 | Patch decision `regenerate` at attempt 3 | Set session `awaiting_review`; stop automatic generation. |
 | Accepted attempt | CAS increment canonical revision, preserve candidate asset, queue character-sheet media intent, then mark profile/session active/completed when ready. |
 | Worker restart/provider retry | Re-read Core state, reuse persisted provider job IDs, and continue from the latest stable stage. |
+| Visual Identity Activity exceeds 30 seconds in Provider/media work | Periodic heartbeat keeps the Activity lease alive; cancellation remains cooperative. |
+| Reconciliation sees a failed Run while the session remains recoverable | Back off and create a new failed-only Run; never reinterpret the old Run handle as a successful dispatch. |
 | Scene Image without active canonical | Return explicit `identity_pending`; never infer appearance from role/scene text. |
 
 ### 5. Good / Base / Bad Cases
@@ -52,6 +61,9 @@
 - Migration tests assert all five tables, indexes, compatibility column and idempotent startup.
 - Unit tests cover cup normalization/adapter boundaries, seed/review schemas, explicit workflow selection, visual identity context binding and timeline stage labels.
 - Integration tests cover initialization/WakeUp transaction idempotency, missing-identity notice, media job reuse, multimodal vision input, accepted/regenerate loop, three-attempt stop, canonical/character-sheet CAS and restart recovery.
+- Workflow tests cover heartbeat-before-work, stable-ID failed recovery,
+  explicit duplicate-start disposition, preserved failure/backoff and
+  protection of wake-up/reflection dispatch from visual retry starvation.
 - API/BFF tests assert detail projection authorization and absence of provider secrets/locators; browser tests assert timeline refresh, media event merge, stable image boxes and safe missing/pending states.
 
 ### 7. Wrong vs Correct

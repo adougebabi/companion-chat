@@ -29,6 +29,14 @@ Application task queues are `interaction`, `lifecycle`, and `media`. Every start
 - Task queues have independent concurrency/rate policies; Provider-specific limits are explicit.
 - External Provider/object actions use stable request IDs and idempotent lookup/result recovery. Runtime replay alone does not make arbitrary external effects exactly once.
 - Long activities configure heartbeat, timeout, cooperative cancellation and bounded shutdown. Stale/cancelled executions cannot commit domain results.
+- A workflow that reconciliation deliberately restarts under the same stable
+  workflow ID must use a compatible reuse policy. Visual Identity retries use
+  failed-only reuse, an explicit AlreadyStarted result, preserved terminal
+  failure diagnostics, and bounded backoff; returning an old Run handle must
+  never be logged as a newly dispatched execution.
+- Lifecycle recovery work (`wake_up`, daily review and reflection) is selected
+  ahead of retrying Visual Identity initialization so a visual retry backlog
+  cannot starve cognition lifecycle progress.
 - Durable timers express pending events, delayed replies and lifecycle schedules without Redis delayed queues.
 - Runtime must support list/get, durable pause/resume semantics, cancel, retry/restart/reset or fork-from-checkpoint, and authorized/audited repair through application commands.
 - Reconciliation must preserve a bounded terminal failure reason from the
@@ -51,6 +59,8 @@ Application task queues are `interaction`, `lifecycle`, and `media`. Every start
 | Start lacks committed stable intent/ID | Reject; create domain intent first. |
 | Duplicate start uses same business/workflow ID | Return/reuse existing execution; no duplicate external effect. |
 | Long Activity misses heartbeat/timeout | Retry/cancel by policy; stale execution cannot commit result. |
+| Failed Visual Identity workflow is still recoverable | Preserve the bounded terminal reason, wait for retry backoff, and start one new failed-only Run under the stable ID. |
+| A start call resolves to an already-running Run | Reconcile the intent ledger and log it as existing; do not claim that a new workflow was dispatched. |
 | Cancellation requested | Audit, propagate cooperatively, and settle domain state explicitly. |
 | Worker/runtime/DB restarts during timer/activity | Resume from durable history and stable IDs. |
 | Provider succeeds before local result commit | Recover by stable Provider request ID and persist existing result. |
@@ -71,6 +81,9 @@ Application task queues are `interaction`, `lifecycle`, and `media`. Every start
 
 - Runtime gate report covering topology, three queues, timers, long activity, heartbeat, timeout, cancel, restarts, stable IDs, management operations, history replay/versioning, backup/restore, resource/disk growth and correlation.
 - Contract tests for committed intent, stable IDs, duplicate start, frozen decision, idempotent Activity replay and domain-status separation.
+- Tests for Visual Identity heartbeat-before-work, failed-only workflow-ID
+  reuse, explicit AlreadyStarted handling, bounded retry timing and lifecycle
+  dispatch priority ahead of visual retry backlog.
 - Queue tests for independent concurrency/rate limits and default one-Worker application topology.
 - Failure injection at every external/checkpoint/result boundary plus runtime/PostgreSQL/Worker restarts.
 - Authorization/audit tests for query, pause/resume, cancel, restart/reset/repair.
