@@ -39,6 +39,14 @@ embed(role, inputs) -> VersionedEmbeddings
   Core-owned default completion/semantic validation; the full initialization
   schema remains a code contract but is not sent to mlx-style constrained
   decoding.
+- A shared `generic_llm` binding retains its configured ordinary-call budget,
+  but the `initialization` scenario applies an operation-owned minimum of 6,144
+  output tokens and ten minutes. The floor is accepted only when
+  `max_input_tokens + 6144 + 4096 <= context_window_tokens`; otherwise the
+  request fails before Provider I/O as
+  `initialization_output_reserve_unavailable`. This keeps dense-card fidelity
+  independent from an Owner guessing numeric runtime settings without changing
+  chat, WakeUp, or Reflection limits.
 - `action_realization` requires streaming, abort propagation, bounded diagnostics, and correct UTF-8/chunk handling.
 - `embedding` requires an embedding endpoint and fixed dimensions recorded with each vector/index version.
 - `media_prompt` requires its declared structured/text output contract and cannot execute media generation itself.
@@ -65,6 +73,8 @@ embed(role, inputs) -> VersionedEmbeddings
 | Realization role lacks streaming/abort | Preflight fails; role cannot activate. |
 | Embedding dimensions change unexpectedly | Reject vectors, mark role/index mismatch, require new embedding version. |
 | Timeout/token budget exceeded | Cancel/bound result and follow owning retry/terminal policy. |
+| Initialization generic binding is 4,096 tokens / 300 seconds | Apply the 6,144-token / ten-minute initialization floor when context headroom permits; diagnostics report the effective values. |
+| Initialization reaches its effective deadline | Persist one `timeout/request_timeout` model run and return `initialization_provider_timeout`; do not store a raw URL/error string as `error_code`. |
 | Provider/model is temporarily unavailable | Report degraded role health; request/workflow handles explicit failure. |
 | API key decryption fails | Configuration error; do not use env/old-key fallback. |
 | Provider returns hidden reasoning/raw diagnostics | Bound/redact and keep out of ordinary result/trace/browser contract. |
@@ -72,6 +82,9 @@ embed(role, inputs) -> VersionedEmbeddings
 ### 5. Good / Base / Bad Cases
 
 - Good: one local chat model passes five role preflights with separate budgets; every artifact records its actual role/model/prompt version.
+- Good: the shared generative binding remains 4,096/300 for ordinary calls,
+  while a dense initialization receives 6,144/600 and completes without losing
+  explicit card fields.
 - Good: an embedding model upgrade creates a new dimension/model index and background rebuild without mixing distances.
 - Base: reflection role is degraded while realization remains healthy; interactions continue, reflection workflows retry explicitly.
 - Bad: one global model string with unknown capabilities, silently substitute realization for assessment, parse malformed structured output as prose, or hide fallback under Provider adapter logic.
@@ -87,6 +100,9 @@ embed(role, inputs) -> VersionedEmbeddings
   before Core defaults; mocks are not sufficient for this gate.
 - Provenance tests assert every result stores role/endpoint/model/prompt/schema/correlation metadata without credentials or hidden reasoning.
 - Failure tests prove one degraded role does not silently use another and follows owning interaction/workflow policy.
+- Initialization scenario tests assert the operation floor, insufficient
+  context rejection, typed timeout/cancellation codes, outer HTTP budget, and a
+  configured-LLM dense multi-card completion using the same effective values.
 - Provider adapter contract suite runs against fake normalized adapters and configured OpenAI-compatible test endpoints.
 - Assert every real payload has exactly one leading system message and that
   merging preserves every operation/context/language instruction; media-prompt

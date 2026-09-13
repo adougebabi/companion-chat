@@ -137,4 +137,6 @@ test("creation preview has one typed authority, stale-analysis epochs, and a UTF
 	assert.match(controlCenter, /creationAnalysisRequestId: 0/);
 	assert.match(controlCenter, /const requestId = this\.creationAnalysisRequestId \+ 1/);
 	assert.match(controlCenter, /if \(requestId !== this\.creationAnalysisRequestId\) return null/);
+	assert.match(controlCenter, /initialization_provider_timeout/);
+	assert.match(controlCenter, /初始化专用时限/);
 });

@@ -1,11 +1,43 @@
 package core
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
 )
+
+func TestInitializationProviderErrorsDistinguishTimeoutAndCancellation(t *testing.T) {
+	if got := initializationProviderErrorCode(fmt.Errorf("provider request failed: %w", context.DeadlineExceeded)); got != "initialization_provider_timeout" {
+		t.Fatalf("deadline error code = %q", got)
+	}
+	if got := initializationProviderErrorCode(fmt.Errorf("provider request failed: %w", context.Canceled)); got != "initialization_provider_cancelled" {
+		t.Fatalf("cancellation error code = %q", got)
+	}
+	if got := initializationProviderErrorCode(errors.New("connection refused")); got != "initialization_provider_unavailable" {
+		t.Fatalf("generic Provider error code = %q", got)
+	}
+}
+
+func TestInitializationProviderFailureLogKeepsBoundedCause(t *testing.T) {
+	source, err := os.ReadFile("app.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := sourceBetween(t, string(source), "func (a *App) AnalyzeDescription", "func validInitializationDescription")
+	for _, required := range []string{
+		`"provider_error_code", providerRunErrorCode(err)`,
+		`"retryable", failure.Retryable`,
+		`"error_type", fmt.Sprintf("%T", err)`,
+		`"safe_cause", boundedLifecycleCause(err.Error())`,
+	} {
+		if !strings.Contains(body, required) {
+			t.Fatalf("initialization Provider failure log missing %q", required)
+		}
+	}
+}
 
 func TestInitializationCanonicalOwnersIncludeDenseCharacterFields(t *testing.T) {
 	persona := defaultCorePersona("fl-1", "岚音")

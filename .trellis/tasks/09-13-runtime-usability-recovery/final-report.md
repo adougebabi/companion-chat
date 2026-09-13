@@ -191,3 +191,22 @@ Evidence:
 - `trellis-break-loop` normally requests global template synchronization and an
   immediate commit. Both were withheld because the strict boundary excludes
   template paths and the user did not authorize committing.
+
+## Post-acceptance correction: production initialization deadline
+
+A later production report showed that the S12 Live harness and deployed path
+did not use the same initialization output budget. The real model run started
+without queue delay, consumed the full 300-second configured timeout, and was
+cancelled before a response. A prior successful run consumed all 4,096 output
+tokens in 212.473 seconds, while the S12 fidelity gate used 6,144 tokens.
+
+The accepted runtime now derives 6,144 output tokens and a ten-minute timeout
+only for initialization, subject to the existing context-window safety guard.
+Provider timeouts are returned as `initialization_provider_timeout`, persisted
+as one `timeout/request_timeout` model run, and logged with a bounded safe cause.
+A late differing terminal callback preserves the first terminal row and no
+longer produces a false `diagnostic_model_run_state_not_written` warning.
+
+The corrected production-equivalent Live test passed against the configured
+27B Provider in 119.14 seconds. Core full/race/vet/build, PostgreSQL regression,
+Web exact test/typecheck, gofmt, and diff checks also passed.

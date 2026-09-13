@@ -318,7 +318,16 @@ func (a *App) AnalyzeDescription(ctx context.Context, actorID, description strin
 	result, err := a.Provider.Structured(providerCtx, "initialization", messages)
 	if err != nil {
 		failure := &initializationAnalysisError{Code: initializationProviderErrorCode(err), CorrelationID: correlationID, ValidationType: "provider", Path: "provider_response", Retryable: true}
-		slog.Default().Warn("Go Core initialization analysis failed", "code", failure.Code, "correlation_id", correlationID, "validation_type", failure.ValidationType, "path", failure.Path)
+		slog.Default().Warn("Go Core initialization analysis failed",
+			"code", failure.Code,
+			"correlation_id", correlationID,
+			"validation_type", failure.ValidationType,
+			"path", failure.Path,
+			"provider_error_code", providerRunErrorCode(err),
+			"retryable", failure.Retryable,
+			"error_type", fmt.Sprintf("%T", err),
+			"safe_cause", boundedLifecycleCause(err.Error()),
+		)
 		return nil, failure
 	}
 	prepared, err := prepareInitializationResponse(result)
@@ -394,6 +403,12 @@ func (a *App) persistInitializationAnalysisSource(ctx context.Context, ownerActo
 }
 
 func initializationProviderErrorCode(err error) string {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "initialization_provider_timeout"
+	}
+	if errors.Is(err, context.Canceled) {
+		return "initialization_provider_cancelled"
+	}
 	code := strings.TrimSpace(err.Error())
 	if safeInitializationErrorCode(code) {
 		return code

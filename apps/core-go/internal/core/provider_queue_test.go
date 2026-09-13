@@ -170,6 +170,7 @@ func TestProviderRunStatusForError(t *testing.T) {
 		{err: nil, want: providerRunCompleted},
 		{err: context.Canceled, want: providerRunCancelled},
 		{err: context.DeadlineExceeded, want: providerRunTimeout},
+		{err: errors.Join(errors.New("provider request failed"), context.DeadlineExceeded), want: providerRunTimeout},
 		{err: errProviderPaused, want: providerRunCancelled},
 		{err: errProviderInactive, want: providerRunCancelled},
 		{err: errors.New("boom"), want: providerRunFailed},

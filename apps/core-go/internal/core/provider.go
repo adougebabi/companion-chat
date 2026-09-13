@@ -52,6 +52,37 @@ type providerAssignment struct {
 	PromptBudgetPolicyVersion string
 }
 
+const (
+	initializationMinimumOutputReserveTokens = 6144
+	initializationMinimumRequestTimeout      = 10 * time.Minute
+)
+
+// providerAssignmentForScenario applies operation-owned floors without
+// changing the persisted generic binding. Initialization emits a substantially
+// larger structured document than ordinary cognition and must not depend on an
+// Owner guessing the output reserve/timeout needed by the configured local
+// model. The existing context-window guard remains authoritative.
+func providerAssignmentForScenario(assignment providerAssignment, scenario string) (providerAssignment, error) {
+	if strings.TrimSpace(scenario) != "initialization" {
+		return assignment, nil
+	}
+	if assignment.TokenBudget < initializationMinimumOutputReserveTokens {
+		if err := validatePromptBudgetConfiguration(
+			assignment.ContextWindowTokens,
+			assignment.MaxInputTokens,
+			initializationMinimumOutputReserveTokens,
+			assignment.PromptBudgetPolicyVersion,
+		); err != nil {
+			return assignment, errors.New("initialization_output_reserve_unavailable")
+		}
+		assignment.TokenBudget = initializationMinimumOutputReserveTokens
+	}
+	if assignment.Timeout < initializationMinimumRequestTimeout {
+		assignment.Timeout = initializationMinimumRequestTimeout
+	}
+	return assignment, nil
+}
+
 func (p *ProviderClient) assignment(ctx context.Context, role string) (providerAssignment, error) {
 	if !validProviderRole(role) {
 		return providerAssignment{}, fmt.Errorf("provider role %s invalid", role)
@@ -177,10 +208,17 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 	if correlationID == "" {
 		correlationID = diagnosticCorrelation(messages, "")
 	}
+	scenario := providerScenario(ctx, role, schemaName)
+	ctx = WithProviderScenario(ctx, scenario)
 	ctx = ensureProviderAttemptIdentity(ctx)
 	assignment, err := p.assignment(ctx, role)
 	if err != nil {
 		p.recordProviderPreflightFailure(ctx, providerAssignment{}, role, correlationID, "assignment", messages, err)
+		return ProviderCompletion{}, err
+	}
+	assignment, err = providerAssignmentForScenario(assignment, scenario)
+	if err != nil {
+		p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "scenario_budget", messages, err)
 		return ProviderCompletion{}, err
 	}
 	if assembled {
@@ -235,9 +273,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "payload_encode", messages, err)
 		return ProviderCompletion{}, err
 	}
-	scenario := providerScenario(ctx, role, schemaName)
 	priority := providerPriority(scenario)
-	ctx = WithProviderScenario(ctx, scenario)
 	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, providerDiagnosticMessages(role, messages))
 	return runProviderQueued(p, ctx, assignment.Role, scenario, priority, diagnosticID, func(runCtx context.Context) (ProviderCompletion, error) {
 		requestStarted := time.Now()
@@ -263,13 +299,13 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		}
 		response, err := client.Do(request)
 		if err != nil {
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, err.Error())
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, providerRunErrorCode(err))
 			return ProviderCompletion{}, fmt.Errorf("provider request failed: %w", err)
 		}
 		defer response.Body.Close()
 		data, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
 		if err != nil {
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, err.Error())
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, providerRunErrorCode(err))
 			return ProviderCompletion{}, err
 		}
 		if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -761,7 +797,13 @@ func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment p
 	if len(diagnostic) > 0 {
 		response = diagnostic[0]
 	}
-	app.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), "failed", code)
+	status := providerRunFailed
+	if code == "request_timeout" {
+		status = providerRunTimeout
+	} else if code == "request_cancelled" {
+		status = providerRunCancelled
+	}
+	app.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), status, code)
 }
 
 func providerDiagnosticMessages(role string, messages []map[string]any) []map[string]any {
@@ -1028,7 +1070,7 @@ func (p *ProviderClient) embedWithAssignment(ctx context.Context, text string, a
 		}
 		response, err := client.Do(request)
 		if err != nil {
-			p.recordProviderFailure(runCtx, assignment, "embedding", correlationID, prompt, err.Error())
+			p.recordProviderFailure(runCtx, assignment, "embedding", correlationID, prompt, providerRunErrorCode(err))
 			return struct {
 				model  string
 				vector []float64

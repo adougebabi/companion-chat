@@ -189,6 +189,15 @@ return result
   column and subquery predicate have an explicit cast (for example
   `$2::varchar(64)` for binding role), so type inference cannot roll back the
   complete diagnostic transaction.
+- Provider transport failures persist bounded tokens such as
+  `request_timeout`, `request_cancelled`, or `provider_request_failed`; a URL,
+  network-library sentence, response body, or arbitrary `err.Error()` never
+  occupies the `error_code` column.
+- The first terminal model-run state is authoritative. A late callback with a
+  different terminal classification is an idempotent no-op that preserves the
+  first status/error and counts as a successful state observation. A missing
+  row or a terminal-to-running regression remains `state_not_written` and emits
+  a bounded warning.
 
 ### 4. Validation & Error Matrix
 
@@ -198,6 +207,8 @@ return result
 | malformed correlation/filter or negative limit | bounded default/validation error |
 | diagnostic sink unavailable | business result remains successful; bounded operational warning/health signal changes |
 | provider provenance SQL cannot infer a reused parameter type | use one explicit PostgreSQL cast; do not accept an empty Model Runs timeline |
+| Provider failure writes `failed`, then queue classifies the same error as `timeout` | preserve the first terminal row and treat the late terminal callback as an idempotent no-op; do not emit `diagnostic_model_run_state_not_written` |
+| model-run ID is genuinely absent during a state update | emit the bounded `state_not_written` warning with ID and safe cause |
 | retention cleanup fails | bounded Worker warning and retry |
 | prompt selection trace contains more than 64 array entries | persist only the first 64 after recursive redaction |
 | Provider returns usage fields outside the allowlist | discard unknown usage fields |
@@ -218,6 +229,10 @@ return result
   bounded operational-warning assertions, including redacted `safe_cause`.
 - PostgreSQL/Compose test asserts a live WakeUp or Reflection attempt persists
   model run and provenance with the same correlation and attempt identity.
+- PostgreSQL regression writes one terminal row, delivers a different late
+  terminal callback, and asserts one unchanged row plus no persistence warning;
+  a separate test asserts Provider timeout creates exactly one
+  `timeout/request_timeout` row.
 - Provider wire-budget tests assert Tools/schema are counted separately,
   `max_tokens` remains output reserve, usage/latency/delta are normalized, and
   ordinary product APIs cannot read prompt metrics.

@@ -922,7 +922,9 @@ function creationAnalysisFailureMessage(error: unknown): string {
     }
     return "Core 请求校验失败，请查看诊断日志。";
   }
-  if (error.code === "initialization_provider_unavailable") return "初始化模型 Provider 不可用或请求超时。";
+  if (error.code === "initialization_provider_timeout") return "复杂角色卡分析超过了初始化专用时限，请从本次诊断继续排查 Provider 性能后重试。";
+  if (error.code === "initialization_provider_cancelled") return "初始化模型请求已取消，请重新分析。";
+  if (error.code === "initialization_provider_unavailable") return "初始化模型 Provider 当前不可用，请检查连接和模型状态。";
   return error.userMessage || "Fluctlight 分析失败。";
 }
 

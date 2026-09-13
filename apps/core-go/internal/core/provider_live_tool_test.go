@@ -79,7 +79,7 @@ func liveProviderInitializationCase(t *testing.T, cardPath, manifestPath string,
 	}
 	schema := initializationResponseSchema()
 	started := time.Now()
-	message := privateLiveProviderMessage(t, baseURL, providerChatPayloadWithSchema(model, initializationAnalysisMessages(string(card)), 6144, true, nil, "initialization", "initialization_response", schema, false))
+	message := privateLiveProviderMessage(t, baseURL, providerChatPayloadWithSchema(model, initializationAnalysisMessages(string(card)), initializationMinimumOutputReserveTokens, true, nil, "initialization", "initialization_response", schema, false))
 	structured := privateLiveProviderStructured(t, message, "initialization_response", schema)
 	prepared, err := prepareInitializationResponse(structured)
 	if err != nil {
@@ -126,14 +126,14 @@ func privateLiveProviderMessage(t *testing.T, baseURL string, payload map[string
 	if err != nil {
 		t.Fatal("encode private initialization request")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), initializationMinimumRequestTimeout)
 	defer cancel()
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
 		t.Fatal("create private initialization request")
 	}
 	request.Header.Set("Content-Type", "application/json")
-	response, err := (&http.Client{Timeout: 3 * time.Minute}).Do(request)
+	response, err := (&http.Client{Timeout: initializationMinimumRequestTimeout}).Do(request)
 	if err != nil {
 		t.Fatal("private initialization Provider request failed")
 	}
@@ -414,8 +414,8 @@ func TestLiveProviderComplexMultiPersonalityInitialization(t *testing.T) {
 		{"role": "system", "content": "Extract the Owner description into the canonical initialization response. Preserve the two distinct personality profiles and all explicitly stated semantic differences. Use empty strings, objects, arrays, nulls, or neutral numeric defaults only for information the Owner did not provide. Return JSON only. " + initializationResponseShapeInstruction},
 		{"role": "user", "content": description},
 	})
-	payload := providerChatPayloadWithSchema(model, messages, 4096, true, nil, "initialization", "initialization_response", schema, false)
-	message := liveProviderMessage(t, baseURL, payload)
+	payload := providerChatPayloadWithSchema(model, messages, initializationMinimumOutputReserveTokens, true, nil, "initialization", "initialization_response", schema, false)
+	message := privateLiveProviderMessage(t, baseURL, payload)
 	raw, ok := parseStructuredCandidates(providerStructuredCandidates(message))
 	if !ok {
 		t.Fatalf("live initialization response format was not parseable: content=%s reasoning=%s", boundedLiveProviderValue(message["content"]), boundedLiveProviderValue(message["reasoning_content"]))

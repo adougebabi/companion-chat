@@ -1,8 +1,10 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"os"
 	"strings"
 	"testing"
@@ -52,6 +54,31 @@ func TestProviderUsageAndWireBudgetDiagnosticsNormalizeActuals(t *testing.T) {
 	metrics := mergeProviderPromptBudgetDiagnostics(nil, messages, tools, schema, assignment, 321)
 	if intValue(metrics["estimated_input_tokens"]) != 321 || intValue(metrics["output_reserve_tokens"]) != 4096 || intValue(mapValue(metrics["section_counts"])["runtime"]) != 1 || intValue(mapValue(metrics["section_counts"])["recent"]) != 1 || intValue(mapValue(metrics["section_counts"])["tools"]) != 1 || intValue(mapValue(metrics["section_counts"])["response_schema"]) != 1 {
 		t.Fatalf("wire metrics = %#v", metrics)
+	}
+}
+
+func TestInitializationScenarioUsesFidelityBudgetAndTimeout(t *testing.T) {
+	configured := providerAssignment{
+		Timeout: 300 * time.Second, TokenBudget: 4096,
+		ContextWindowTokens: 65536, MaxInputTokens: 49152,
+		PromptBudgetPolicyVersion: promptBudgetPolicyVersionV1,
+	}
+	effective, err := providerAssignmentForScenario(configured, "initialization")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if effective.TokenBudget != initializationMinimumOutputReserveTokens || effective.Timeout != initializationMinimumRequestTimeout {
+		t.Fatalf("initialization assignment = %#v", effective)
+	}
+	ordinary, err := providerAssignmentForScenario(configured, "wake_up")
+	if err != nil || ordinary.TokenBudget != configured.TokenBudget || ordinary.Timeout != configured.Timeout {
+		t.Fatalf("ordinary assignment changed: %#v, %v", ordinary, err)
+	}
+	insufficient := configured
+	insufficient.ContextWindowTokens = 55000
+	preserved, err := providerAssignmentForScenario(insufficient, "initialization")
+	if err == nil || err.Error() != "initialization_output_reserve_unavailable" || preserved.TokenBudget != insufficient.TokenBudget || preserved.Timeout != insufficient.Timeout {
+		t.Fatalf("insufficient initialization context = %#v, %v", preserved, err)
 	}
 }
 
@@ -193,6 +220,89 @@ func TestProviderModelRunLifecycleCannotRegressFromTerminalToQueued(t *testing.T
 		if !strings.Contains(text, required) {
 			t.Fatalf("model-run lifecycle monotonicity guard missing %q", required)
 		}
+	}
+}
+
+func TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop(t *testing.T) {
+	databaseURL := os.Getenv("GO_CORE_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("GO_CORE_TEST_DATABASE_URL is not set")
+	}
+	ctx := context.Background()
+	repository, err := NewPostgresRepository(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer repository.Close()
+
+	modelRunID := "model_run_" + stableDigest(t.Name()+time.Now().UTC().Format(time.RFC3339Nano))
+	if _, err := repository.Pool().Exec(ctx, `
+		INSERT INTO public.diagnostic_model_runs(
+			id,role,binding_role,scenario,priority,model_id,prompt,status,
+			error_code,correlation_id,metrics,completed_at
+		) VALUES($1,'initialization','generic_llm','initialization',80,
+			'model-test','{}','failed','provider_http_error',$2,'{}',now())`,
+		modelRunID, "initialization-analysis:test-late-terminal"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = repository.Pool().Exec(context.Background(), `DELETE FROM public.diagnostic_model_runs WHERE id=$1`, modelRunID)
+	})
+
+	lifecycleDiagnosticWarningState.Lock()
+	delete(lifecycleDiagnosticWarningState.last, "model_run:state:*errors.errorString")
+	lifecycleDiagnosticWarningState.Unlock()
+	previousLogger := slog.Default()
+	var logs bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previousLogger) })
+
+	(&App{DB: repository}).updateModelRunState(ctx, modelRunID, providerRunTimeout, context.DeadlineExceeded)
+	if strings.Contains(logs.String(), "diagnostic_model_run_state_not_written") {
+		t.Fatalf("late terminal callback was misreported as missing persistence: %s", logs.String())
+	}
+	var status, errorCode string
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.diagnostic_model_runs WHERE id=$1`, modelRunID).Scan(&status, &errorCode); err != nil {
+		t.Fatal(err)
+	}
+	if status != providerRunFailed || errorCode != "provider_http_error" {
+		t.Fatalf("first terminal state changed to status=%q error_code=%q", status, errorCode)
+	}
+}
+
+func TestPostgresProviderTimeoutPersistsOneTypedTerminalState(t *testing.T) {
+	databaseURL := os.Getenv("GO_CORE_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("GO_CORE_TEST_DATABASE_URL is not set")
+	}
+	ctx := WithProviderAttemptIdentity(WithProviderScenario(context.Background(), "initialization"), "provider-attempt-timeout-test")
+	repository, err := NewPostgresRepository(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer repository.Close()
+	correlationID := "initialization-analysis:" + stableDigest(t.Name()+time.Now().UTC().Format(time.RFC3339Nano))
+	t.Cleanup(func() {
+		_, _ = repository.Pool().Exec(context.Background(), `DELETE FROM public.provider_provenance WHERE correlation_id=$1`, correlationID)
+		_, _ = repository.Pool().Exec(context.Background(), `DELETE FROM public.diagnostic_model_runs WHERE correlation_id=$1`, correlationID)
+	})
+
+	provider := &ProviderClient{DB: repository}
+	provider.recordProviderFailure(ctx, providerAssignment{EndpointID: "endpoint-test", ModelID: "model-test"}, "initialization", correlationID, []map[string]any{{"role": "user", "content": "private-card"}}, "request_timeout")
+	var status, errorCode string
+	var count int
+	if err := repository.Pool().QueryRow(ctx, `SELECT min(status),min(COALESCE(error_code,'')),count(*) FROM public.diagnostic_model_runs WHERE correlation_id=$1`, correlationID).Scan(&status, &errorCode, &count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 || status != providerRunTimeout || errorCode != "request_timeout" {
+		t.Fatalf("timeout model run = count=%d status=%q error_code=%q", count, status, errorCode)
+	}
+	source, err := os.ReadFile("provider.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(source), "recordProviderFailure(ctx, assignment, role, correlationID, messages, err.Error())") {
+		t.Fatal("Provider transport failure still persists a raw URL/error as error_code")
 	}
 }
 

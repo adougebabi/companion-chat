@@ -77,6 +77,12 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   evidence rules, finite derivation policy, and no-invention constraints. Core
   remains the normalization/validation authority. Other strict cognition/
   reflection operations keep their JSON Schema response formats.
+- Initialization derives a scenario-specific 6,144-token output reserve and
+  ten-minute Provider timeout when the configured context window has sufficient
+  headroom. Ordinary calls retain the persisted generic binding values. A
+  Provider deadline returns `initialization_provider_timeout`, cancellation
+  returns `initialization_provider_cancelled`, and logs retain bounded
+  `provider_error_code`, retryability, error type, and secret-redacted cause.
 - A successful analysis is persisted as an immutable Owner-scoped source with
   original text/digest, Provider/model and prompt/schema versions,
   classification/evidence, derivations, semantic coverage, and structured
@@ -146,6 +152,8 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 | Initialization omits a Core group, base personality/policy field, declared profile payload field, or Developing Self container | Fill only the missing value with the server default or typed empty representation, then validate. |
 | Initialization returns a structured fallback with no source-supported semantics | Return typed retryable `initialization_response_semantic_empty`; do not create a preview or neutral Persona. |
 | Local Provider receives complex multi-personality initialization | Use `json_object` plus the canonical prompt skeleton; do not use the full initialization JSON Schema constrained decoder. |
+| Dense initialization would use a 4,096-token / 300-second generic binding | Derive the initialization floor before building payload, diagnostics, and request context; do not make the Owner tune runtime numbers to preserve card semantics. |
+| Initialization Provider reaches the derived deadline | Return `initialization_provider_timeout` with correlation; persist `timeout/request_timeout` and keep the card out of logs. |
 | Model returns known mechanical aliases | Map them to canonical fields before defaults and reference validation. |
 | Normalized initialization still contains an explicit invalid value/reference/type | Return `initialization_persona_invalid` with safe `details.correlation_id` and `details.validation_error.{type,path}`; log only those fields, never the Persona payload. |
 | Optional Developing Self/Goal/Intention/Relationship candidate is incomplete or malformed | Drop an unusable claim or an Intention without a valid Goal reference, bind omitted Intention references by stable ID or source position when possible, default/clamp optional unit scores, and reset invalid relationship metrics/trend; never reject the complete Persona for one optional candidate. |
@@ -210,6 +218,8 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 - Live initialization regression calls the configured LLM with a complex
   two-profile description and asserts distinct non-empty raw profiles before
   Core default completion. A local mock is not acceptance evidence.
+- The Live harness uses the same initialization reserve/timeout constants as
+  production so a green canary cannot hide a smaller production budget.
 - Reflection tests for candidate schema, category allowlist, evidence ownership/deduplication, repeated-claim no-op, Core conflict rejection, stale watermark/CAS, and transaction rollback.
 - Reflection boundary test covers missing and aliased Provider headers while
   preserving strict unknown-field/evidence rejection; Live acceptance must

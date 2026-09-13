@@ -1023,3 +1023,110 @@ Post-acceptance cleanup completed after evidence capture:
   including the constructed private card/manifest, cookie jar and env files;
 - a final exact-name/project-label check found no matching task containers,
   volumes or temporary files.
+
+### S12 post-acceptance initialization timeout regression
+
+User-provided production logs at `2026-09-13T15:24:38Z` reported both
+`diagnostic_model_run_state_not_written` and
+`initialization_provider_unavailable` for correlation
+`initialization-analysis:40fed4b7fe84e999094ea76b4687d3d8`.
+
+Read-only production metadata inspection, using the Owner's previously
+authorized deployment database and reading no Prompt, response, card, secret,
+or credential value, established:
+
+- model run `model_run_e624f5718cbaba6bf24c4e53b5219478` entered running 8ms
+  after queued, so Provider queue starvation was not the cause;
+- it ended at exactly 300.012 seconds with `context deadline exceeded`;
+- the shared `generic_llm` binding was 4,096 output tokens and 300 seconds;
+- a prior successful initialization with the same 22,330 estimated input used
+  exactly all 4,096 completion tokens and took 212.473 seconds;
+- the endpoint `/models` check returned HTTP 200 in 4.9ms and the prior
+  successful call proved deployment connectivity. The failure was therefore an
+  inference deadline, not response-format validation or an unreachable model.
+
+The S12 Live harness had used 6,144 tokens while production still used the
+4,096 generic binding. Production now applies the same 6,144-token fidelity
+floor and a ten-minute initialization-only timeout when the configured context
+window can safely contain it. Other scenarios keep their persisted values.
+
+A PostgreSQL red-capable regression first reproduced the exact false warning:
+
+    GO_CORE_TEST_DATABASE_URL=<isolated-postgres> \
+      go -C apps/core-go test ./internal/core \
+      -run '^TestPostgresModelRunLateTerminalCallbackIsAnIdempotentNoop$' \
+      -count=1 -v
+
+Before the fix it failed with the same
+`diagnostic_model_run_state_not_written`. After the fix it passes and proves
+the first terminal status/error remain unchanged. Additional exact tests prove
+one typed `timeout/request_timeout` row, initialization timeout/cancellation
+public codes, safe failure-log fields, scenario budget/timeout isolation, and
+wrapped deadline classification.
+
+Final validation after this regression fix:
+
+- exact PostgreSQL diagnostics/timeout tests: PASS;
+- Core `go test ./...`: PASS;
+- Core race: PASS;
+- Core vet/build: PASS;
+- Web creation-message exact test and Vue typecheck: PASS;
+- real configured Provider dense multi initialization with the production
+  6,144-token/ten-minute constants: PASS in 119.14 seconds;
+- repository gofmt and `git diff --check`: PASS after documentation updates.
+
+No production data was mutated by diagnosis. The temporary isolated PostgreSQL
+container/database contained only regression rows and was removed after the
+final checks.
+
+## Bug Analysis: Initialization timeout hidden by a false model-run warning
+
+### 1. Root Cause Category
+
+- **Category**: B / D / E — cross-boundary contract, test coverage gap, and
+  implicit assumption.
+- **Specific cause**: the Live fidelity harness used 6,144 output tokens while
+  production inherited 4,096/300 from the generic binding; transport failure
+  wrote `failed` before the queue emitted `timeout`; the monotonic state guard
+  correctly rejected overwriting the first terminal row but incorrectly called
+  that idempotent observation `state_not_written`.
+
+### 2. Why Earlier Fixes Failed
+
+1. Increasing diagnostic detail exposed SQL persistence causes but did not test
+   two different terminal callbacks for one attempt.
+2. The S12 Live test proved a 6,144-token request, but production did not derive
+   the same assignment, so the test and deployed path had different budgets.
+3. `initialization_provider_unavailable` grouped timeout, cancellation, network,
+   and HTTP failures, hiding the discriminating deadline evidence.
+
+### 3. Prevention Mechanisms
+
+| Priority | Mechanism | Specific action | Status |
+| --- | --- | --- | --- |
+| P0 | Architecture | Derive initialization reserve/timeout before payload, diagnostics, and request context | DONE |
+| P0 | Runtime | Persist typed timeout/cancel codes; first terminal model-run state wins idempotently | DONE |
+| P0 | Test | Real PostgreSQL late-terminal and typed-timeout regressions | DONE |
+| P0 | Live gate | Share production initialization constants with the configured-LLM harness | DONE |
+| P1 | Diagnostics | Public timeout/cancel codes plus bounded safe cause | DONE |
+| P1 | Documentation | Provider, Diagnostics, and Persona executable contracts updated | DONE |
+
+### 4. Systematic Expansion
+
+- **Similar issues**: every scenario sharing `generic_llm` can accidentally
+  diverge from a hard-coded Live harness; every asynchronous diagnostic writer
+  can receive multiple terminal classifications.
+- **Design improvement**: scenario policy is one explicit normalization seam;
+  diagnostics preserve the first terminal state and treat later terminals as
+  observations rather than failed writes.
+- **Process improvement**: acceptance must compare effective production request
+  parameters, not only prompt/schema content.
+
+### 5. Knowledge Capture
+
+- [x] Updated Provider contract.
+- [x] Updated Diagnostics contract.
+- [x] Updated Persona/initialization contract.
+- [x] Added task-local PostgreSQL and Live evidence.
+- [ ] Global template sync and commit intentionally withheld because they are
+      outside the approved stage allowlist and no commit authorization exists.
