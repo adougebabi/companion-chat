@@ -2,9 +2,181 @@ package core
 
 import (
 	"errors"
+	"os"
 	"strings"
 	"testing"
 )
+
+func TestInitializationCanonicalOwnersIncludeDenseCharacterFields(t *testing.T) {
+	persona := defaultCorePersona("fl-1", "岚音")
+	identity := mapValue(persona["identity"])
+	for _, key := range []string{"nickname", "height", "height_cm", "blood_type", "birthplace", "background_story"} {
+		if _, ok := identity[key]; !ok {
+			t.Fatalf("default identity missing %q", key)
+		}
+	}
+	life := mapValue(persona["life_profile"])
+	appearance := mapValue(life["appearance"])
+	for _, key := range []string{"description", "physical_features", "daily_outfit_preferences", "style_preferences"} {
+		if _, ok := appearance[key]; !ok {
+			t.Fatalf("default appearance missing %q", key)
+		}
+	}
+	if _, ok := life["media_preferences"]; !ok {
+		t.Fatal("default life profile missing media_preferences")
+	}
+	system := mapValue(persona["personality_system"])
+	for _, key := range []string{"core_relationship", "core_conflict", "forced_activation"} {
+		if _, ok := system[key]; !ok {
+			t.Fatalf("default personality system missing %q", key)
+		}
+	}
+	if _, ok := persona["extensions"]; !ok {
+		t.Fatal("Core Persona missing runtime semantic extensions")
+	}
+	schema := initializationResponseSchema()
+	coreProperties := mapValue(mapValue(schema["properties"])["core_persona"])
+	coreProperties = mapValue(coreProperties["properties"])
+	identityProperties := mapValue(mapValue(coreProperties["identity"])["properties"])
+	lifeProperties := mapValue(mapValue(coreProperties["life_profile"])["properties"])
+	systemProperties := mapValue(mapValue(coreProperties["personality_system"])["properties"])
+	for _, key := range []string{"nickname", "height", "height_cm", "blood_type", "birthplace", "background_story"} {
+		if identityProperties[key] == nil {
+			t.Fatalf("initialization schema identity missing %q", key)
+		}
+	}
+	if lifeProperties["media_preferences"] == nil || systemProperties["core_relationship"] == nil || systemProperties["core_conflict"] == nil || systemProperties["forced_activation"] == nil || coreProperties["extensions"] == nil {
+		t.Fatalf("initialization schema missing dense semantic owners: %#v", coreProperties)
+	}
+}
+
+func TestInitializationSourceIsDedicatedAndExcludedFromOrdinaryPrompt(t *testing.T) {
+	appSource, err := os.ReadFile("app.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	appText := string(appSource)
+	for _, required := range []string{"persistInitializationAnalysisSource", "linkInitializationSourceTx", "fluctlight_initialization_sources", "fluctlight_initialization_source_links"} {
+		if !strings.Contains(appText, required) {
+			t.Fatalf("initialization source flow missing %q", required)
+		}
+	}
+	digestIndex := strings.Index(appText, "initializationActivationDigest = stableDigest(jsonString")
+	idMutationIndex := strings.Index(appText, `identity["id"] = id`)
+	if digestIndex < 0 || idMutationIndex < 0 || digestIndex > idMutationIndex {
+		t.Fatal("initialization projection digest is captured after activation mutates the accepted Persona")
+	}
+	promptSource, err := os.ReadFile("provider_prompt_composer.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(promptSource), "source_text") || strings.Contains(string(promptSource), "fluctlight_initialization_sources") {
+		t.Fatal("immutable initialization source entered ordinary Prompt composition")
+	}
+	contextSource, err := os.ReadFile("app_capability_context.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(contextSource), "fluctlight_initialization_sources") || strings.Contains(string(contextSource), "source_text") {
+		t.Fatal("immutable initialization source entered ordinary ContextProjection")
+	}
+	detailSource, err := os.ReadFile("detail.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(detailSource), "s.owner_actor_id=$2") || !strings.Contains(string(detailSource), "f.created_by_actor_id=$2") {
+		t.Fatal("initialization source detail is not Owner scoped")
+	}
+}
+
+func TestRuntimePersonaKeepsSemanticExtensionsWithoutSourceBookkeeping(t *testing.T) {
+	filtered := filterCorePersona(map[string]any{
+		"identity":   map[string]any{"name": "岚音"},
+		"extensions": map[string]any{"special_ritual": "睡前整理画稿", "source_text": "PRIVATE_CARD", "source_digest": "secret-digest"},
+	})
+	extensions := mapValue(filtered["extensions"])
+	if stringValue(extensions["special_ritual"]) == "" {
+		t.Fatalf("semantic extension was dropped: %#v", filtered)
+	}
+	if extensions["source_text"] != nil || extensions["source_digest"] != nil {
+		t.Fatalf("source bookkeeping entered runtime Persona: %#v", filtered)
+	}
+}
+
+func TestInitializationRelationshipsAcceptOnlyActorUser(t *testing.T) {
+	source, err := os.ReadFile("app.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(source)
+	start := strings.Index(body, "func (a *App) insertRelationshipSeeds")
+	if start < 0 || !strings.Contains(body[start:], "target != humanActorID") || !strings.Contains(body[start:], "initial_relationship_target_not_actor_user") {
+		t.Fatal("initial Relationship persistence accepts a target other than actor_user")
+	}
+}
+
+func TestInitializationRejectsSemanticEmptyProviderFallback(t *testing.T) {
+	_, err := prepareInitializationResponse(map[string]any{})
+	var failure *initializationAnalysisError
+	if !errors.As(err, &failure) || failure.Code != "initialization_response_semantic_empty" || failure.ValidationType != "semantic_empty" || failure.Path != "provider_response" || !failure.Retryable || failure.PublicDetails()["retryable"] != true {
+		t.Fatalf("semantic-empty fallback error = %#v, %v", failure, err)
+	}
+}
+
+func TestInitializationPromptRestoresCompleteSemanticVocabulary(t *testing.T) {
+	for _, required := range []string{
+		"nickname", "height_cm", "blood_type", "birthplace", "background_story",
+		"daily_outfit_preferences", "media_preferences", "actor_user only",
+		`target_actor_id:"actor_user"`, "return an empty array instead of inventing one",
+		"core_relationship", "core_conflict", "forced_activation", "integration/fusion",
+		"behavior_loops.loops", "do not leave behavior_loops empty",
+		"situational contrast", "one complex single personality", "Never invent unsupported",
+	} {
+		if !strings.Contains(initializationSemanticCoverageInstruction, required) {
+			t.Fatalf("initialization semantic coverage prompt missing %q", required)
+		}
+	}
+	for instruction, required := range map[string][]string{
+		initializationMediaOwnershipInstruction:             {"life_profile.media_preferences", "profile's output_preferences", "global media_preferences object empty"},
+		initializationPersonalitySystemOwnershipInstruction: {"core_relationship", "share memory", "core_conflict", "Do not place a conflict summary", "integration.stage", "integration.shared_memory_policy", "do not leave integration empty"},
+		initializationProfileVoiceOwnershipInstruction:      {"voice.speech_patterns", "derived numeric speed", "behavior_loops.loops"},
+		initializationConstraintOwnershipInstruction:        {"professional-impersonation prohibition", "fact-invention prohibition", "life_profile.character_constraints", "separate entry"},
+	} {
+		for _, fragment := range required {
+			if !strings.Contains(instruction, fragment) {
+				t.Fatalf("initialization owner instruction missing %q", fragment)
+			}
+		}
+	}
+	for _, required := range []string{"core_persona.life_profile.media_preferences", "profile's output_preferences", "do not justify leaving the global media_preferences object empty"} {
+		if !strings.Contains(initializationMediaOwnershipInstruction, required) {
+			t.Fatalf("initialization media ownership prompt missing %q", required)
+		}
+	}
+	format := providerResponseFormatForSchema("initialization", "initialization_response", initializationResponseSchema())
+	if stringValue(format["type"]) != "json_object" {
+		t.Fatalf("initialization response format = %#v, want json_object", format)
+	}
+}
+
+func TestInitializationModelRunDiagnosticsAreMetadataOnly(t *testing.T) {
+	const canary = "PRIVATE_INITIALIZATION_CARD_CANARY"
+	messages := providerDiagnosticMessages("initialization", []map[string]any{{"role": "user", "content": canary}})
+	response := providerDiagnosticResponse("initialization", map[string]any{"core_persona": map[string]any{"notes": canary}})
+	encoded := jsonString(map[string]any{"messages": messages, "response": response})
+	if strings.Contains(encoded, canary) || !strings.Contains(encoded, "metadata_only") || !strings.Contains(encoded, "prompt_digest") || !strings.Contains(encoded, "response_digest") {
+		t.Fatalf("initialization diagnostics leaked source/response: %s", encoded)
+	}
+}
+
+func TestInitializationDescriptionLimitIsByteBased(t *testing.T) {
+	if !validInitializationDescription(strings.Repeat("a", InitializationDescriptionMaxBytes)) {
+		t.Fatal("exact initialization byte limit was rejected")
+	}
+	if validInitializationDescription(strings.Repeat("界", InitializationDescriptionMaxBytes/3+1)) {
+		t.Fatal("multibyte initialization source exceeded the byte limit without rejection")
+	}
+}
 
 func TestPrepareInitializationResponseNormalizesSafeContainersBeforeValidation(t *testing.T) {
 	value := map[string]any{
@@ -86,14 +258,13 @@ func TestPrepareInitializationResponseFillsOnlyNonSemanticPersonaStructure(t *te
 	}
 }
 
-func TestInitializationStructuredFallbackUsesSafeDefaults(t *testing.T) {
-	value, err := structuredResultForRole("initialization", ProviderCompletion{Structured: map[string]any{}, StructuredFallback: true})
-	if err != nil {
-		t.Fatalf("normal initialization response with missing fields was rejected: %v", err)
+func TestInitializationStructuredFallbackCannotReplaceNonEmptyCharacterCard(t *testing.T) {
+	structured, err := structuredResultForRole("initialization", ProviderCompletion{Structured: map[string]any{}, StructuredFallback: true})
+	if err == nil {
+		_, err = prepareInitializationResponse(structured)
 	}
-	prepared, err := prepareInitializationResponse(value)
-	if err != nil || !validInitialization(prepared) {
-		t.Fatalf("initialization fallback was not safely completed: value=%#v prepared=%#v err=%v", value, prepared, err)
+	if err == nil {
+		t.Fatal("semantic-empty initialization fallback was accepted as a default Persona")
 	}
 }
 
@@ -223,7 +394,7 @@ func TestInitializationCompletesMissingProfileFieldsButPreservesProfileIdentity(
 	system := defaultPersonalitySystem()
 	system["mode"] = "multiple"
 	system["active_profile_id"] = "warm"
-	system["profiles"] = []any{completeInitializationProfile("warm")}
+	system["profiles"] = []any{completeInitializationProfile("warm"), completeInitializationProfile("cool")}
 	persona["personality_system"] = system
 	value := map[string]any{
 		"core_persona": persona, "schema_version": 1,
@@ -235,10 +406,88 @@ func TestInitializationCompletesMissingProfileFieldsButPreservesProfileIdentity(
 	}
 	profile := completeInitializationProfile("warm")
 	delete(profile, "voice")
-	system["profiles"] = []any{profile}
+	system["profiles"] = []any{profile, completeInitializationProfile("cool")}
 	prepared, err := prepareInitializationResponse(value)
 	if err != nil || !isObjectValue(mapValue(arrayValue(mapValue(mapValue(prepared["core_persona"])["personality_system"])["profiles"])[0])["voice"]) {
 		t.Fatalf("missing personality voice should normalize to an empty object: prepared=%#v err=%v", prepared, err)
+	}
+}
+
+func TestInitializationModeMatchesDeclaredProfileCardinality(t *testing.T) {
+	multipleWithOne := defaultCorePersona("", "单人格")
+	multipleSystem := defaultPersonalitySystem()
+	multipleSystem["mode"] = "multiple"
+	multipleSystem["profiles"] = []any{completeInitializationProfile("only")}
+	multipleSystem["active_profile_id"] = "default"
+	multipleWithOne["personality_system"] = multipleSystem
+	if validInitialization(map[string]any{
+		"schema_version": 2, "core_persona": multipleWithOne,
+		"developing_self":       map[string]any{"claims": []any{}},
+		"initial_relationships": []any{}, "initial_goals": []any{},
+		"initial_intentions": []any{}, "extensions": map[string]any{},
+	}) {
+		t.Fatal("multiple mode accepted fewer than two declared profiles")
+	}
+
+	singleWithTwo := defaultCorePersona("", "复杂单人格")
+	singleSystem := defaultPersonalitySystem()
+	singleSystem["mode"] = "single"
+	singleSystem["profiles"] = []any{completeInitializationProfile("situational"), completeInitializationProfile("private")}
+	singleSystem["active_profile_id"] = "default"
+	singleWithTwo["personality_system"] = singleSystem
+	if validInitialization(map[string]any{
+		"schema_version": 2, "core_persona": singleWithTwo,
+		"developing_self":       map[string]any{"claims": []any{}},
+		"initial_relationships": []any{}, "initial_goals": []any{},
+		"initial_intentions": []any{}, "extensions": map[string]any{},
+	}) {
+		t.Fatal("single mode accepted multiple declared profiles")
+	}
+}
+
+func TestInitializationPreservesDenseCharacterCardSemanticOwners(t *testing.T) {
+	value := normalizeInitializationResponse(map[string]any{
+		"core_persona": map[string]any{
+			"identity": map[string]any{
+				"name": "岚音", "nickname": "小岚", "height": "168cm",
+				"blood_type": "A", "birthplace": "杭州",
+			},
+			"personality":       map[string]any{},
+			"behavioral_policy": map[string]any{},
+			"life_profile": map[string]any{
+				"appearance": map[string]any{
+					"description":              "深色长发，日常偏爱宽松针织衫",
+					"daily_outfit_preferences": []any{"宽松针织衫", "长裙"},
+				},
+				"media_preferences": map[string]any{
+					"channels":  []any{"moment", "selfie", "artwork"},
+					"frequency": "frequent",
+				},
+			},
+			"personality_system": map[string]any{
+				"mode": "multiple",
+				"profiles": []any{
+					map[string]any{"id": "quiet", "name": "静海"},
+					map[string]any{"id": "bright", "name": "流火"},
+				},
+				"active_profile_id": "default",
+				"core_relationship": "两个人格共享记忆并相互保护",
+				"core_conflict":     "安全感与主动表达之间长期冲突",
+			},
+		},
+	})
+	persona := mapValue(value["core_persona"])
+	identity := mapValue(persona["identity"])
+	lifeProfile := mapValue(persona["life_profile"])
+	system := mapValue(persona["personality_system"])
+	if stringValue(identity["nickname"]) != "小岚" ||
+		stringValue(identity["height"]) != "168cm" ||
+		stringValue(identity["blood_type"]) != "A" ||
+		stringValue(identity["birthplace"]) != "杭州" ||
+		len(mapValue(lifeProfile["media_preferences"])) == 0 ||
+		stringValue(system["core_relationship"]) == "" ||
+		stringValue(system["core_conflict"]) == "" {
+		t.Fatalf("dense character-card semantics left canonical runtime owners: %#v", value)
 	}
 }
 

@@ -256,7 +256,11 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 			if factErr != nil {
 				return factErr
 			}
-			if _, factErr := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:daily:"+actionID, "reflection:daily:"+actionID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID})); factErr != nil {
+			if factErr := insertReflectionIntentTx(ctx, tx,
+				"reflection_intent:daily:"+actionID,
+				"reflection:daily:"+actionID,
+				map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID},
+			); factErr != nil {
 				return factErr
 			}
 			return appendOutboxTx(ctx, tx, "autonomy.result.recorded", "fluctlight", fluctlightID, fluctlightID, actionID, "daily-review-result:"+actionID, "daily-review-result:"+actionID, payload)

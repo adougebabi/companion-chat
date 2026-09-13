@@ -91,8 +91,7 @@ func (a *App) settleNativeCognitionCycleGuard(ctx context.Context, inboxID strin
 		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads SET last_processed_sequence=GREATEST(last_processed_sequence,$2) WHERE fluctlight_id=$1`, fluctlightID, sequence); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) VALUES($1,$2,'lifecycle','reflection.run',$3,$4) ON CONFLICT DO NOTHING`, "reflection_intent:"+inboxID, "reflection:"+inboxID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": inboxID, "reason_code": "native_cognition_cycle_guarded"}), nextReflectionAt)
-		return err
+		return enqueueQuietPeriodReflectionIntentTx(ctx, tx, fluctlightID, inboxID, nextReflectionAt, "native_cognition_cycle_guarded")
 	})
 	if err == nil {
 		a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
@@ -530,15 +529,12 @@ func capabilitySnapshotForProjection(projection ContextProjection, slots []Conte
 func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID string, realization map[string]any) error {
 	reflectionDelay := a.reflectionDelay(ctx)
 	nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
-	fluctlightID := ""
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var err error
-		fluctlightID, err = a.completeTurnCognitionTx(ctx, tx, inboxID, frozenID, realization, nextReflectionAt)
+		_, err := a.completeTurnCognitionTx(ctx, tx, inboxID, frozenID, realization, nextReflectionAt)
 		return err
 	})
 	if err == nil {
 		a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
-		a.scheduleWakeUpTrigger(ctx, fluctlightID, int(reflectionDelay/time.Second))
 	}
 	return err
 }
@@ -670,7 +666,7 @@ func (a *App) completeTurnCognitionTx(ctx context.Context, tx pgx.Tx, inboxID, f
 			return "", err
 		}
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) VALUES($1,$2,'lifecycle','reflection.run',$3,$4) ON CONFLICT DO NOTHING`, "reflection_intent:"+inboxID, "reflection:"+inboxID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": inboxID}), nextReflectionAt); err != nil {
+	if err := enqueueQuietPeriodReflectionIntentTx(ctx, tx, fluctlightID, inboxID, nextReflectionAt, "conversation_quiet_period"); err != nil {
 		return "", err
 	}
 	capabilityResults, err := capabilityResultsFromValue(settledRealization["capability_results"])
@@ -699,6 +695,55 @@ func (a *App) completeTurnCognitionTx(ctx context.Context, tx pgx.Tx, inboxID, f
 		}
 	}
 	return fluctlightID, nil
+}
+
+func enqueueQuietPeriodReflectionIntentTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID string, nextReflectionAt time.Time, reasonCode string) error {
+	if _, err := tx.Exec(ctx, `
+		UPDATE public.platform_workflow_intents
+		SET status='superseded',completed_at=now(),last_error='superseded_by_newer_user_activity'
+		WHERE intent_type='reflection.run'
+		  AND payload->>'fluctlight_id'=$1
+		  AND payload->>'trigger'='user_quiet_period'
+		  AND status IN ('pending','retry')`, fluctlightID); err != nil {
+		return err
+	}
+	payload := map[string]any{
+		"fluctlight_id":  fluctlightID,
+		"source_fact_id": sourceFactID,
+		"reason_code":    reasonCode,
+		"trigger":        "user_quiet_period",
+	}
+	command, err := tx.Exec(ctx, `
+		INSERT INTO public.platform_workflow_intents(
+			intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at
+		) VALUES($1,$2,'lifecycle','reflection.run',$3,$4)
+		ON CONFLICT(intent_id) DO UPDATE SET
+			payload=excluded.payload,
+			status=CASE
+				WHEN public.platform_workflow_intents.status IN ('pending','retry','completed','failed','dead_letter','superseded')
+				THEN 'pending'
+				ELSE public.platform_workflow_intents.status
+			END,
+			next_attempt_at=excluded.next_attempt_at,
+			started_at=CASE
+				WHEN public.platform_workflow_intents.status IN ('pending','retry','completed','failed','dead_letter','superseded')
+				THEN NULL
+				ELSE public.platform_workflow_intents.started_at
+			END,
+			completed_at=NULL,
+			last_error=NULL`,
+		"reflection_intent:"+sourceFactID,
+		"reflection:"+sourceFactID,
+		jsonBytes(payload),
+		nextReflectionAt.UTC(),
+	)
+	if err != nil {
+		return err
+	}
+	if command.RowsAffected() != 1 {
+		return errors.New("reflection_quiet_period_intent_not_written")
+	}
+	return nil
 }
 
 func (a *App) FailTurnCognition(ctx context.Context, inboxID, frozenID, code string) error {
@@ -750,7 +795,11 @@ func (a *App) FailTurnCognition(ctx context.Context, inboxID, frozenID, code str
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:result:"+frozenID, "reflection:result:"+frozenID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": frozenID})); err != nil {
+		if err := insertReflectionIntentTx(ctx, tx,
+			"reflection_intent:result:"+frozenID,
+			"reflection:result:"+frozenID,
+			map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": frozenID},
+		); err != nil {
 			return err
 		}
 		return appendOutboxTx(ctx, tx, "autonomy.result.recorded", "fluctlight", fluctlightID, fluctlightID, frozenID, "action-result:"+frozenID, "action-result:"+frozenID, factPayload)

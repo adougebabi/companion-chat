@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -57,6 +58,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 		return nil, err
 	}
 	data := decodeObject(payload)
+	rootCorrelationID := firstString(data["correlation_id"], "autonomy:"+actionID)
 	if err := validateExecutableCapabilityPayload(data); err != nil {
 		return a.failAutonomyAction(ctx, actionID, "capability_runtime_envelope_invalid")
 	}
@@ -208,7 +210,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 		})
 		if err != nil {
 			failed := capabilityResultsAfterSettlementFailure(capabilityResults, calls, a.capabilityRegistry(), "capability_settlement_failed")
-			_ = a.persistAutonomyCapabilityResults(ctx, actionID, calls, failed)
+			a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, failed)
 			code, retryable := capabilityFailureInfo(err, failed, calls, a.capabilityRegistry(), "capability_settlement_failed")
 			if !retryable {
 				return a.failAutonomyAction(ctx, actionID, code)
@@ -289,7 +291,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 		})
 		if settlementErr != nil {
 			failed := capabilityResultsAfterSettlementFailure(capabilityResults, calls, a.capabilityRegistry(), "capability_settlement_failed")
-			_ = a.persistAutonomyCapabilityResults(ctx, actionID, calls, failed)
+			a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, failed)
 			code, retryable := capabilityFailureInfo(settlementErr, failed, calls, a.capabilityRegistry(), "capability_settlement_failed")
 			if !retryable {
 				return a.failAutonomyAction(ctx, actionID, code)
@@ -342,6 +344,7 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 		return nil, err
 	}
 	data := decodeObject(payload)
+	rootCorrelationID := firstString(data["correlation_id"], "capability:"+actionID)
 	if err := validateExecutableCapabilityPayload(data); err != nil {
 		return a.failAutonomyAction(ctx, actionID, "capability_runtime_envelope_invalid")
 	}
@@ -398,7 +401,7 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 	var planErr error
 	results, planErr = a.planCapabilitiesForTransaction(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls, results)
 	if planErr != nil {
-		_ = a.persistAutonomyCapabilityResults(ctx, actionID, calls, results)
+		a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, results)
 		code, retryable := capabilityFailureInfo(planErr, results, calls, a.capabilityRegistry(), "capability_plan_failed")
 		if !retryable {
 			return a.failAutonomyAction(ctx, actionID, code)
@@ -406,7 +409,7 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 		return nil, planErr
 	}
 	if requiredErr := requiredCapabilityFailureCanonical(results, calls, a.capabilityRegistry(), false); requiredErr != nil {
-		_ = a.persistAutonomyCapabilityResults(ctx, actionID, calls, results)
+		a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, results)
 		return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
 	}
 	result := map[string]any{}
@@ -437,7 +440,7 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 	})
 	if settlementErr != nil {
 		failed := capabilityResultsAfterSettlementFailure(results, calls, a.capabilityRegistry(), "capability_settlement_failed")
-		_ = a.persistAutonomyCapabilityResults(ctx, actionID, calls, failed)
+		a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, failed)
 		code, retryable := capabilityFailureInfo(settlementErr, failed, calls, a.capabilityRegistry(), "capability_settlement_failed")
 		if !retryable {
 			return a.failAutonomyAction(ctx, actionID, code)
@@ -463,6 +466,25 @@ func (a *App) persistAutonomyCapabilityResults(ctx context.Context, actionID str
 	})
 }
 
+func (a *App) persistAutonomyCapabilityResultsBestEffort(ctx context.Context, actionID, fluctlightID, correlationID string, invocations []CapabilityInvocation, results []CapabilityResult) {
+	if err := a.persistAutonomyCapabilityResults(ctx, actionID, invocations, results); err != nil {
+		slog.Warn("Go Core capability-result diagnostic settlement failed",
+			"action_id", actionID,
+			"fluctlight_id", fluctlightID,
+			"correlation_id", correlationID,
+			"error_type", fmt.Sprintf("%T", err),
+		)
+		a.RecordLifecycleDiagnosticBestEffort(ctx, LifecycleDiagnostic{
+			Surface: "capability", Transition: LifecycleTransitionFailed, Severity: "warn",
+			FluctlightID: fluctlightID, CorrelationID: correlationID, CausationID: actionID,
+			Stage: "capability_result_settlement", Status: "retry",
+			ReasonCode:    "capability_results_persistence_failed",
+			ErrorCategory: "persistence", ErrorCode: "capability_results_persistence_failed",
+			Retryable: true, SafeCause: err.Error(), Metadata: map[string]any{"action_id": actionID},
+		})
+	}
+}
+
 func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (map[string]any, error) {
 	result := map[string]any{"action_id": actionID, "status": "failed", "action_status": "failed", "error_code": code}
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
@@ -475,6 +497,7 @@ func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (ma
 			return ErrConflict
 		}
 		payload := decodeObject(rawPayload)
+		rootCorrelationID := firstString(payload["correlation_id"], "action-result:"+actionID)
 		causality, err := frozenDecisionCausality(payload)
 		if err != nil {
 			return err
@@ -510,6 +533,7 @@ func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (ma
 			return err
 		}
 		factPayload := map[string]any{"action_id": actionID, "result": settlement, "outcomes": outcomes}
+		factPayload["correlation_id"] = rootCorrelationID
 		for key, value := range causality {
 			factPayload[key] = value
 		}
@@ -517,10 +541,14 @@ func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (ma
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:result:"+actionID, "reflection:result:"+actionID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID})); err != nil {
+		if err := insertReflectionIntentTx(ctx, tx,
+			"reflection_intent:result:"+actionID,
+			"reflection:result:"+actionID,
+			map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID, "correlation_id": rootCorrelationID, "causation_id": factID},
+		); err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "autonomy.result.recorded", "fluctlight", fluctlightID, fluctlightID, actionID, "action-result:"+actionID, "action-result:"+actionID, factPayload)
+		return appendOutboxTx(ctx, tx, "autonomy.result.recorded", "fluctlight", fluctlightID, fluctlightID, actionID, rootCorrelationID, "action-result:"+actionID, factPayload)
 	})
 	if err != nil {
 		return nil, err
@@ -534,7 +562,8 @@ func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, flu
 	if err := tx.QueryRow(ctx, `SELECT action_type,payload FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&actionType, &actionPayload); err != nil {
 		return err
 	}
-	causality, err := frozenDecisionCausality(decodeObject(actionPayload))
+	payload := decodeObject(actionPayload)
+	causality, err := frozenDecisionCausality(payload)
 	if err != nil {
 		return err
 	}
@@ -549,7 +578,8 @@ func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, flu
 	if err != nil {
 		return err
 	}
-	sourceFactID := firstString(decodeObject(actionPayload)["source_fact_id"], actionID)
+	sourceFactID := firstString(payload["source_fact_id"], actionID)
+	rootCorrelationID := firstString(payload["correlation_id"], "action-result:"+actionID)
 	outcomes, err := buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType, results, settledResult, a.capabilityRegistry())
 	if err != nil {
 		return err
@@ -558,6 +588,7 @@ func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, flu
 		return err
 	}
 	factPayload := map[string]any{"action_id": actionID, "result": settledResult, "outcomes": outcomes}
+	factPayload["correlation_id"] = rootCorrelationID
 	for key, value := range causality {
 		factPayload[key] = value
 	}
@@ -565,8 +596,11 @@ func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, flu
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:result:"+actionID, "reflection:result:"+actionID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID}))
-	return err
+	return insertReflectionIntentTx(ctx, tx,
+		"reflection_intent:result:"+actionID,
+		"reflection:result:"+actionID,
+		map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID, "correlation_id": rootCorrelationID, "causation_id": factID},
+	)
 }
 
 func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID string) (map[string]any, error) {
@@ -592,13 +626,18 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return nil, err
 		}
-		_ = a.DB.Pool().QueryRow(ctx, `SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&stateRevision)
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&stateRevision); err != nil {
+			return nil, err
+		}
 	}
 	var currentStateRevision int
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&currentStateRevision); err == nil && currentStateRevision > stateRevision {
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&currentStateRevision); err != nil {
+		return nil, err
+	} else if currentStateRevision > stateRevision {
 		stateRevision = currentStateRevision
 	}
-	if err := a.claimReflectionWindow(ctx, fluctlightID, watermark, stateRevision); err != nil {
+	ctx, err = a.claimReflectionWindow(ctx, fluctlightID, watermark, stateRevision, correlationID)
+	if err != nil {
 		return nil, err
 	}
 	rows, err := a.DB.Pool().Query(ctx, `SELECT id,sequence,event_type,payload,occurred_at FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND status='processed' ORDER BY sequence LIMIT 20`, fluctlightID, watermark)
@@ -632,6 +671,11 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 			toSequence = sequence
 		}
 	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return nil, err
+	}
 	rows.Close()
 	// Appraisal is an authoritative semantic interpretation of each processed
 	// fact. Merge it into the corresponding source event rather than appending a
@@ -655,6 +699,11 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 			}
 			appraisalsByFact[sourceFactID] = map[string]any{"payload": decodeJSONValue(payload), "evidence_refs": decodeArray(refs)}
 		}
+		if err := appraisalRows.Err(); err != nil {
+			appraisalRows.Close()
+			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+			return nil, err
+		}
 		appraisalRows.Close()
 	}
 	for _, item := range evidence {
@@ -665,7 +714,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	}
 	if len(evidence) == 0 {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
-		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "no_op", "watermark": watermark}, nil
+		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "no_op", "reason": "no_evidence", "watermark": watermark}, nil
 	}
 	var ownerActorID string
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerActorID); err != nil {
@@ -734,6 +783,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 			memoryEvidenceScopes[ref] = scope
 		}
 	}
+	ctx = WithProviderCorrelation(ctx, correlationID)
 	return a.processReflectionV2(ctx, fluctlightID, ownerActorID, correlationID, watermark, toSequence, stateRevision, evidence, projection, memoryAllowedEvidence, memoryEvidenceScopes)
 }
 

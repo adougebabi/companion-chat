@@ -201,6 +201,28 @@ func (a *App) setFluctlightLifecycle(ctx context.Context, actorID, id, status, r
 		}
 		return nil
 	})
+	if err == nil && status == "active" {
+		_, ensureErr := a.EnsureWakeUpIntents(ctx)
+		if ensureErr == nil {
+			_, ensureErr = a.releaseWakeUpIntent(ctx, id, "fluctlight_activated")
+		}
+		if ensureErr != nil {
+			correlationID := fmt.Sprintf("lifecycle:%s:revision:%d", id, intValue(result["revision"]))
+			slog.Warn("Go Core Fluctlight activation could not rearm WakeUp",
+				"fluctlight_id", id,
+				"correlation_id", correlationID,
+				"error_type", fmt.Sprintf("%T", ensureErr),
+			)
+			a.RecordLifecycleDiagnosticBestEffort(ctx, LifecycleDiagnostic{
+				Surface: "wake_up", Transition: LifecycleTransitionFailed, Severity: "error",
+				FluctlightID: id, CorrelationID: correlationID,
+				IntentID: "wake_up_intent:" + id, WorkflowID: "wake_up:" + id,
+				Stage: "lifecycle_rearm", Status: "failed",
+				ReasonCode: "wake_up_rearm_failed", ErrorCategory: "persistence",
+				ErrorCode: "wake_up_rearm_failed", Retryable: true,
+			})
+		}
+	}
 	return result, err
 }
 
@@ -603,7 +625,11 @@ func (a *App) GovernAutonomy(ctx context.Context, actorID, actionID, toStatus, r
 			if err != nil {
 				return err
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:result:"+actionID, "reflection:result:"+actionID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID})); err != nil {
+			if err := insertReflectionIntentTx(ctx, tx,
+				"reflection_intent:result:"+actionID,
+				"reflection:result:"+actionID,
+				map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID},
+			); err != nil {
 				return err
 			}
 		}
@@ -1382,6 +1408,226 @@ func (a *App) DiagnosticsFiltered(ctx context.Context, actorID string, limit int
 	}
 	return out, rows.Err()
 }
+
+var ErrDiagnosticsFilterInvalid = errors.New("diagnostics_filter_invalid")
+
+type LifecycleDiagnosticsFilter struct {
+	Limit         int
+	FluctlightID  string
+	CorrelationID string
+	IntentID      string
+	WorkflowID    string
+	RunID         string
+	Surface       string
+	Status        string
+}
+
+func (value LifecycleDiagnosticsFilter) Normalized() (LifecycleDiagnosticsFilter, error) {
+	if value.Limit < 1 {
+		value.Limit = 100
+	}
+	if value.Limit > 500 {
+		value.Limit = 500
+	}
+	identities := []*string{&value.FluctlightID, &value.CorrelationID, &value.IntentID, &value.WorkflowID, &value.RunID}
+	for _, identity := range identities {
+		*identity = strings.TrimSpace(*identity)
+		if !validLifecycleIdentity(*identity, 128, false) {
+			return LifecycleDiagnosticsFilter{}, ErrDiagnosticsFilterInvalid
+		}
+	}
+	value.Surface = strings.TrimSpace(value.Surface)
+	value.Status = strings.TrimSpace(value.Status)
+	if !validLifecycleToken(value.Surface, 64, false) || !validLifecycleToken(value.Status, 64, false) {
+		return LifecycleDiagnosticsFilter{}, ErrDiagnosticsFilterInvalid
+	}
+	return value, nil
+}
+
+func (value LifecycleDiagnosticsFilter) Map() map[string]any {
+	return map[string]any{
+		"limit": value.Limit, "fluctlight_id": value.FluctlightID,
+		"correlation_id": value.CorrelationID, "intent_id": value.IntentID,
+		"workflow_id": value.WorkflowID, "run_id": value.RunID,
+		"surface": value.Surface, "status": value.Status,
+	}
+}
+
+func (a *App) LifecycleDiagnostics(ctx context.Context, actorID string, filter LifecycleDiagnosticsFilter) (map[string]any, error) {
+	if err := a.requireOwner(ctx, actorID); err != nil {
+		return nil, err
+	}
+	normalized, err := filter.Normalized()
+	if err != nil {
+		return nil, err
+	}
+	events, err := a.lifecycleDiagnosticEvents(ctx, normalized)
+	if err != nil {
+		return nil, err
+	}
+	intents, err := a.workflowIntentSnapshots(ctx, normalized)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"events": events, "workflow_intents": intents, "filters": normalized.Map()}, nil
+}
+
+func buildLifecycleDiagnosticQuery(filter LifecycleDiagnosticsFilter) (string, []any) {
+	query := `SELECT id,event_type,severity,fluctlight_id,causation_id,correlation_id,payload,created_at FROM public.diagnostic_events WHERE event_type LIKE 'lifecycle.%'`
+	args := make([]any, 0, 8)
+	add := func(clause string, value string) {
+		if value == "" {
+			return
+		}
+		args = append(args, value)
+		query += fmt.Sprintf(clause, len(args))
+	}
+	add(" AND fluctlight_id=$%d", filter.FluctlightID)
+	add(" AND correlation_id=$%d", filter.CorrelationID)
+	add(" AND payload->>'intent_id'=$%d", filter.IntentID)
+	if filter.WorkflowID != "" {
+		args = append(args, filter.WorkflowID)
+		query += fmt.Sprintf(" AND (payload->>'workflow_id'=$%d OR ('go:' || (payload->>'workflow_id'))=$%d)", len(args), len(args))
+	}
+	add(" AND payload->>'run_id'=$%d", filter.RunID)
+	add(" AND payload->>'surface'=$%d", filter.Surface)
+	add(" AND payload->>'status'=$%d", filter.Status)
+	args = append(args, filter.Limit)
+	query += fmt.Sprintf(" ORDER BY created_at DESC,id DESC LIMIT $%d", len(args))
+	query = "SELECT id,event_type,severity,fluctlight_id,causation_id,correlation_id,payload,created_at FROM (" + query + ") AS recent_lifecycle ORDER BY created_at ASC,id ASC"
+	return query, args
+}
+
+func (a *App) lifecycleDiagnosticEvents(ctx context.Context, filter LifecycleDiagnosticsFilter) ([]map[string]any, error) {
+	query, args := buildLifecycleDiagnosticQuery(filter)
+	rows, err := a.DB.Pool().Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]map[string]any, 0)
+	for rows.Next() {
+		var id, eventType, severity, correlationID string
+		var fluctlightID, causationID *string
+		var rawPayload []byte
+		var createdAt time.Time
+		if err := rows.Scan(&id, &eventType, &severity, &fluctlightID, &causationID, &correlationID, &rawPayload, &createdAt); err != nil {
+			return nil, err
+		}
+		var decoded any
+		if json.Unmarshal(rawPayload, &decoded) != nil {
+			decoded = map[string]any{}
+		}
+		payload := mapValue(redactDiagnostic(decoded))
+		row := map[string]any{
+			"id": id, "event_type": eventType, "severity": severity,
+			"fluctlight_id": fluctlightID, "causation_id": causationID,
+			"correlation_id": correlationID, "created_at": createdAt.UTC().Format(time.RFC3339Nano),
+		}
+		for _, key := range []string{
+			"surface", "transition", "intent_id", "workflow_id", "run_id",
+			"activity_type", "activity_id", "provider_attempt_id", "provider_request_id", "model_run_id",
+			"stage", "status", "reason_code", "error_category", "error_code", "safe_cause",
+			"retryable", "attempt", "max_attempts", "next_due_at", "occurred_at",
+			"first_seen_at", "last_seen_at", "occurrence_count", "metadata",
+		} {
+			if value, ok := payload[key]; ok {
+				row[key] = value
+			}
+		}
+		result = append(result, row)
+	}
+	return result, rows.Err()
+}
+
+const workflowIntentCorrelationSQL = `CASE WHEN i.intent_type='wake_up.current' THEN 'wake_up:' || COALESCE(i.payload->>'fluctlight_id','unknown') || ':cycle:' || COALESCE(i.payload->>'cycle','0') ELSE COALESCE(NULLIF(i.payload->>'correlation_id',''),i.intent_id) END`
+
+func buildWorkflowIntentSnapshotQuery(filter LifecycleDiagnosticsFilter) (string, []any) {
+	query := `SELECT i.intent_id,i.workflow_id,i.task_queue,i.intent_type,COALESCE(i.status,'pending'),COALESCE(i.attempt_count,0),i.next_attempt_at,i.started_at,i.completed_at,i.last_error,i.created_at,COALESCE(i.payload->>'fluctlight_id',''),` + workflowIntentCorrelationSQL + `,COALESCE(NULLIF(i.payload->>'causation_id',''),NULLIF(i.payload->>'source_fact_id',''),NULLIF(i.payload->>'action_id',''),NULLIF(i.payload->>'inbox_id',''),'') FROM public.platform_workflow_intents AS i WHERE 1=1`
+	args := make([]any, 0, 8)
+	add := func(clause string, value string) {
+		if value == "" {
+			return
+		}
+		args = append(args, value)
+		query += fmt.Sprintf(clause, len(args))
+	}
+	add(" AND i.payload->>'fluctlight_id'=$%d", filter.FluctlightID)
+	if filter.CorrelationID != "" {
+		args = append(args, filter.CorrelationID)
+		query += fmt.Sprintf(" AND "+workflowIntentCorrelationSQL+"=$%d", len(args))
+	}
+	add(" AND i.intent_id=$%d", filter.IntentID)
+	if filter.WorkflowID != "" {
+		args = append(args, filter.WorkflowID)
+		query += fmt.Sprintf(" AND (i.workflow_id=$%d OR ('go:' || i.workflow_id)=$%d)", len(args), len(args))
+	}
+	if filter.RunID != "" {
+		args = append(args, filter.RunID)
+		query += fmt.Sprintf(" AND EXISTS(SELECT 1 FROM public.diagnostic_events AS e WHERE e.event_type LIKE 'lifecycle.%%' AND e.payload->>'intent_id'=i.intent_id AND e.payload->>'run_id'=$%d)", len(args))
+	}
+	if filter.Surface != "" {
+		intentPrefix := filter.Surface
+		if intentPrefix == "conversation_summary" {
+			intentPrefix = "conversation"
+		}
+		args = append(args, intentPrefix)
+		query += fmt.Sprintf(" AND (i.intent_type=$%d OR i.intent_type LIKE ($%d || '.%%'))", len(args), len(args))
+	}
+	add(" AND COALESCE(i.status,'pending')=$%d", filter.Status)
+	args = append(args, filter.Limit)
+	query += fmt.Sprintf(" ORDER BY i.created_at DESC,i.intent_id DESC LIMIT $%d", len(args))
+	return query, args
+}
+
+func (a *App) workflowIntentSnapshots(ctx context.Context, filter LifecycleDiagnosticsFilter) ([]map[string]any, error) {
+	query, args := buildWorkflowIntentSnapshotQuery(filter)
+	rows, err := a.DB.Pool().Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make([]map[string]any, 0)
+	for rows.Next() {
+		var intentID, workflowID, taskQueue, intentType, status, fluctlightID, correlationID, causationID string
+		var attemptCount int
+		var nextAttemptAt, startedAt, completedAt *time.Time
+		var lastError *string
+		var createdAt time.Time
+		if err := rows.Scan(&intentID, &workflowID, &taskQueue, &intentType, &status, &attemptCount, &nextAttemptAt, &startedAt, &completedAt, &lastError, &createdAt, &fluctlightID, &correlationID, &causationID); err != nil {
+			return nil, err
+		}
+		row := map[string]any{
+			"intent_id": intentID, "workflow_id": workflowID, "runtime_workflow_id": normalizedDiagnosticWorkflowID(workflowID),
+			"task_queue": taskQueue, "intent_type": intentType, "status": status,
+			"attempt_count": attemptCount, "fluctlight_id": nullableString(fluctlightID),
+			"correlation_id": correlationID, "causation_id": nullableString(causationID),
+			"created_at": createdAt.UTC().Format(time.RFC3339Nano),
+		}
+		if lastError != nil {
+			row["last_error"] = nullableString(boundedLifecycleCause(*lastError))
+		}
+		if nextAttemptAt != nil {
+			row["next_attempt_at"] = nextAttemptAt.UTC().Format(time.RFC3339Nano)
+		}
+		if startedAt != nil {
+			row["started_at"] = startedAt.UTC().Format(time.RFC3339Nano)
+		}
+		if completedAt != nil {
+			row["completed_at"] = completedAt.UTC().Format(time.RFC3339Nano)
+		}
+		result = append(result, row)
+	}
+	return result, rows.Err()
+}
+
+func normalizedDiagnosticWorkflowID(workflowID string) string {
+	if strings.HasPrefix(workflowID, "go:") {
+		return workflowID
+	}
+	return "go:" + workflowID
+}
+
 func (a *App) ClearDiagnostics(ctx context.Context, actorID string) error {
 	_, err := a.ClearDiagnosticsCount(ctx, actorID)
 	return err
@@ -1700,14 +1946,22 @@ func mediaRetryRestartIsPermanent(err error) bool {
 }
 
 func (a *App) DiagnosticsExport(ctx context.Context, actorID string) (map[string]any, error) {
+	return a.DiagnosticsExportFiltered(ctx, actorID, LifecycleDiagnosticsFilter{Limit: 200})
+}
+
+func (a *App) DiagnosticsExportFiltered(ctx context.Context, actorID string, filter LifecycleDiagnosticsFilter) (map[string]any, error) {
 	if err := a.requireOwner(ctx, actorID); err != nil {
 		return nil, err
 	}
-	events, err := a.Diagnostics(ctx, actorID, 200)
+	normalized, err := filter.Normalized()
 	if err != nil {
 		return nil, err
 	}
-	runs, err := a.ModelRuns(ctx, actorID, 200)
+	events, err := a.DiagnosticsFiltered(ctx, actorID, normalized.Limit, normalized.CorrelationID, normalized.FluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	runs, err := a.ModelRunsFiltered(ctx, actorID, normalized.Limit, normalized.CorrelationID)
 	if err != nil {
 		return nil, err
 	}
@@ -1715,7 +1969,15 @@ func (a *App) DiagnosticsExport(ctx context.Context, actorID string) (map[string
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"events": events, "model_runs": runs, "media_prompts": mediaPrompts}, nil
+	lifecycle, err := a.LifecycleDiagnostics(ctx, actorID, normalized)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"events": events, "model_runs": runs, "media_prompts": mediaPrompts,
+		"lifecycle": lifecycle["events"], "workflow_intents": lifecycle["workflow_intents"],
+		"filters": normalized.Map(),
+	}, nil
 }
 
 // RecoverStaleModelRuns closes lifecycle records left behind by a crashed API
@@ -1934,8 +2196,14 @@ func (a *App) workflowIntent(ctx context.Context, workflowID string) (string, st
 }
 
 func (a *App) updateWorkflowIntentStatus(ctx context.Context, workflowID, status string) error {
-	_, err := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2,last_error=NULL WHERE workflow_id=$1 OR ('go:' || workflow_id)=$1`, workflowID, status)
-	return err
+	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2,last_error=NULL WHERE workflow_id=$1 OR ('go:' || workflow_id)=$1`, workflowID, status)
+	if err != nil {
+		return err
+	}
+	if command.RowsAffected() != 1 {
+		return errors.New("workflow_intent_status_not_written")
+	}
+	return nil
 }
 
 func (a *App) auditWorkflow(ctx context.Context, actorID, action, workflowID string, authorized bool, details map[string]any) error {

@@ -32,6 +32,13 @@
   through the same stable workflow ID with failed-only reuse and bounded
   backoff. Reconciliation preserves the bounded terminal reason instead of
   clearing it or hot-looping the old failed Run every Worker tick.
+- Activity success is reported only after the authoritative session/attempt/
+  timeline/domain settlement is durably written. A failed terminal settlement,
+  zero-row CAS, or failed status update returns an Activity error and lifecycle
+  diagnostic; it must never be converted into a successful Workflow result.
+- Dispatcher, Temporal Activity, and Provider queue capacity reserve bounded
+  progress for WakeUp/Reflection. Visual Identity retry/backlog may wait or age,
+  but it cannot occupy every lifecycle/provider slot indefinitely.
 
 ### 4. Validation & Error Matrix
 
@@ -47,6 +54,8 @@
 | Worker restart/provider retry | Re-read Core state, reuse persisted provider job IDs, and continue from the latest stable stage. |
 | Visual Identity Activity exceeds 30 seconds in Provider/media work | Periodic heartbeat keeps the Activity lease alive; cancellation remains cooperative. |
 | Reconciliation sees a failed Run while the session remains recoverable | Back off and create a new failed-only Run; never reinterpret the old Run handle as a successful dispatch. |
+| Provider/media result exists but authoritative Visual Identity settlement fails | Return Activity failure, keep bounded retry/reconcile state, and record the exact persistence stage. |
+| Visual Identity backlog coexists with due WakeUp/Reflection | Reserved/aged lifecycle capacity admits the due cognition within the configured bound. |
 | Scene Image without active canonical | Return explicit `identity_pending`; never infer appearance from role/scene text. |
 
 ### 5. Good / Base / Bad Cases
@@ -55,6 +64,8 @@
 - Good: a WakeUp with missing identity emits a concise model-realized notice and queues/reuses the same session in the wake-up transaction.
 - Base: no ComfyUI visual workflow is configured; the timeline remains at pending/configuration while the user can add JSON in Media settings.
 - Bad: parsing “自拍/两人/胸部” in a prompt, changing canonical state from a rejected attempt, generating a new Provider ID after retry, or returning MinIO/ComfyUI URLs to the browser.
+- Bad: log a persistence failure and still return Activity success, or allow
+  Visual Identity retries to starve every cognition Provider slot.
 
 ### 6. Tests Required
 
@@ -64,6 +75,8 @@
 - Workflow tests cover heartbeat-before-work, stable-ID failed recovery,
   explicit duplicate-start disposition, preserved failure/backoff and
   protection of wake-up/reflection dispatch from visual retry starvation.
+- Failure-injection tests assert attempt/session/timeline settlement errors and
+  zero-row CAS cannot produce a successful Activity/Workflow result.
 - API/BFF tests assert detail projection authorization and absence of provider secrets/locators; browser tests assert timeline refresh, media event merge, stable image boxes and safe missing/pending states.
 
 ### 7. Wrong vs Correct

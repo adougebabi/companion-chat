@@ -45,7 +45,8 @@ function jsonDisplay(value: unknown): string {
   }
 }
 
-const detail = computed(() => asRecord(controlCenter.fluctlightDetail));
+const hasCurrentFluctlightDetail = computed(() => Boolean(controlCenter.fluctlightDetail) && controlCenter.fluctlightDetailFluctlightId === store.selectedFluctlight?.id);
+const detail = computed(() => hasCurrentFluctlightDetail.value ? asRecord(controlCenter.fluctlightDetail) : {});
 const corePersona = computed(() => asRecord(detail.value.core_persona));
 const developingSelf = computed(() => asRecord(detail.value.developing_self));
 const currentState = computed(() => asRecord(detail.value.current_state));
@@ -125,6 +126,9 @@ const atmosphere = computed(() => {
 });
 
 const contextPresence = computed(() => asRecord(context.value.presence));
+const initializationSource = computed(() => asRecord(detail.value.initialization_source));
+const hasInitializationSource = computed(() => Object.keys(initializationSource.value).length > 0);
+const initializationFoundationRevision = computed(() => asRecords(detail.value.foundation_revisions).find((revision) => revision.source === "initialization" && revision.status === "accepted") ?? {});
 const visualIdentity = computed(() => asRecord(detail.value.visual_identity));
 const visualIdentityStageRanks: Record<string, number> = {
   session_created: 10, seed_requested: 20, seed_ready: 30, image_requested: 40, image_ready: 50,
@@ -188,7 +192,7 @@ onMounted(() => {
   clockTimer = window.setInterval(() => { now.value = Date.now(); }, 30_000);
   visualIdentityTimer = window.setInterval(() => {
     const fluctlightId = store.selectedFluctlight?.id;
-    const visualStatus = String(asRecord(controlCenter.fluctlightDetail?.visual_identity).status ?? "");
+	const visualStatus = String(asRecord(detail.value.visual_identity).status ?? "");
     if (props.open && fluctlightId && visualStatus !== "active") {
       void controlCenter.loadFluctlightDetail(fluctlightId);
     }
@@ -217,10 +221,10 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
       <div class="detail-dialog-body">
         <div class="detail-status-strip">
           <Badge class="status-pill" variant="secondary" :class="{ paused: store.selectedFluctlight.status === 'paused', muted: store.selectedFluctlight.status === 'retired' }"><i class="legend-dot" :class="store.selectedFluctlight.status === 'paused' ? 'paused' : 'online'" />{{ fluctlightStatusLabel(store.selectedFluctlight.status) }}</Badge>
-          <span>{{ controlCenter.fluctlightDetail ? "状态已同步" : "正在读取状态" }}</span>
+		  <span>{{ hasCurrentFluctlightDetail ? "状态已同步" : "正在读取状态" }}</span>
         </div>
 
-        <div v-if="controlCenter.loading && !controlCenter.fluctlightDetail" class="detail-loading">正在加载摇光详情...</div>
+		<div v-if="controlCenter.loading && !hasCurrentFluctlightDetail" class="detail-loading">正在加载摇光详情...</div>
         <template v-else>
           <section class="detail-block">
             <div class="detail-block-heading"><p class="eyebrow">身份与人格</p><h3>身份核心</h3></div>
@@ -274,6 +278,52 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
               <div class="persona-json-card"><div class="detail-state-heading"><h4>Current State</h4><span>当前快照</span></div><pre>{{ jsonDisplay(currentState) }}</pre></div>
             </div>
           </section>
+
+		  <section v-if="hasInitializationSource" class="detail-block initialization-source-block">
+			<div class="detail-block-heading"><p class="eyebrow">FOUNDATION SOURCE</p><h3>初始化来源</h3></div>
+			<details class="detail-state-drawer initialization-source-drawer">
+			  <summary>
+				<span><strong>初始化来源（仅所有者）</strong><small>查看原始角色卡、人格分类、提取覆盖与 Foundation 关联</small></span>
+				<span class="disclosure-icon" aria-hidden="true">⌄</span>
+			  </summary>
+			  <div class="detail-state-drawer-body">
+				<section class="detail-state-section">
+				  <div class="detail-state-heading"><h4>分析与模型</h4><span>{{ formatDisplayValue(initializationSource.classification) }}</span></div>
+				  <dl class="detail-context-facts">
+					<div><dt>分析 ID</dt><dd>{{ formatDisplayValue(initializationSource.id) }}</dd></div>
+					<div><dt>诊断关联</dt><dd>{{ formatDisplayValue(initializationSource.correlation_id) }}</dd></div>
+					<div><dt>Provider</dt><dd>{{ formatDisplayValue(initializationSource.provider_endpoint_id) }}</dd></div>
+					<div><dt>模型</dt><dd>{{ formatDisplayValue(initializationSource.model_id) }}</dd></div>
+					<div><dt>Prompt 版本</dt><dd>{{ formatDisplayValue(initializationSource.prompt_version) }}</dd></div>
+					<div><dt>Schema 版本</dt><dd>{{ formatDisplayValue(initializationSource.schema_version) }}</dd></div>
+					<div><dt>分析时间</dt><dd>{{ formatDisplayValue(initializationSource.created_at) }}</dd></div>
+					<div><dt>Foundation 关联时间</dt><dd>{{ formatDisplayValue(initializationSource.linked_at) }}</dd></div>
+					<div><dt>Foundation 修订</dt><dd>{{ formatDisplayValue(initializationFoundationRevision.id) }}</dd></div>
+					<div><dt>Foundation revision</dt><dd>{{ formatDisplayValue(initializationFoundationRevision.revision) }}</dd></div>
+					<div class="detail-context-wide"><dt>来源摘要</dt><dd>{{ formatDisplayValue(initializationSource.source_digest) }}</dd></div>
+					<div class="detail-context-wide"><dt>投影摘要</dt><dd>{{ formatDisplayValue(initializationSource.projection_digest) }}</dd></div>
+				  </dl>
+				</section>
+				<section class="detail-state-section">
+				  <div class="detail-state-heading"><h4>人格分类与提取覆盖</h4><span>语义审计</span></div>
+				  <div class="persona-json-grid">
+					<div class="persona-json-card"><div class="detail-state-heading"><h4>分类证据</h4><span>{{ formatDisplayValue(initializationSource.classification) }}</span></div><pre>{{ jsonDisplay(initializationSource.classification_evidence) }}</pre></div>
+					<div class="persona-json-card"><div class="detail-state-heading"><h4>提取覆盖</h4><span>Coverage</span></div><pre>{{ jsonDisplay(initializationSource.coverage) }}</pre></div>
+					<div class="persona-json-card"><div class="detail-state-heading"><h4>字段推导依据</h4><span>Derivations</span></div><pre>{{ jsonDisplay(initializationSource.field_derivations) }}</pre></div>
+				  </div>
+				</section>
+				<section class="detail-state-section">
+				  <div class="detail-state-heading"><h4>结构化投影与 Foundation</h4><span>激活前分析快照</span></div>
+				  <p class="field-note">该只读投影保留模型分析结果；关联时间标记它已绑定到创建时接受的 Foundation 初始修订，后续治理修订不会改写这份来源。</p>
+				  <pre>{{ jsonDisplay(initializationSource.structured_projection) }}</pre>
+				</section>
+				<section class="detail-state-section">
+				  <div class="detail-state-heading"><h4>原始角色卡</h4><span>Owner-only</span></div>
+				  <pre>{{ String(initializationSource.source_text ?? "") }}</pre>
+				</section>
+			  </div>
+			</details>
+		  </section>
 
           <section class="detail-block">
             <div class="detail-block-heading"><p class="eyebrow">此刻</p><h3>当前状态</h3></div>

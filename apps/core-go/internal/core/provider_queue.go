@@ -14,6 +14,7 @@ const (
 	providerQueueDefaultEmbedding   = 1
 	providerQueueMinConcurrency     = 1
 	providerQueueMaxConcurrency     = 8
+	providerQueueMaximumWait        = 2 * time.Minute
 )
 
 type providerQueueClass string
@@ -24,14 +25,15 @@ const (
 )
 
 type providerQueueTask struct {
-	priority int
-	sequence uint64
-	ctx      context.Context
-	run      func(context.Context) error
-	onState  func(string, error)
-	done     chan error
-	canceled bool
-	index    int
+	priority   int
+	sequence   uint64
+	enqueuedAt time.Time
+	ctx        context.Context
+	run        func(context.Context) error
+	onState    func(string, error)
+	done       chan error
+	canceled   bool
+	index      int
 }
 
 type providerTaskHeap []*providerQueueTask
@@ -61,6 +63,27 @@ func (h *providerTaskHeap) Pop() any {
 	task.index = -1
 	*h = old[:n-1]
 	return task
+}
+
+func popProviderQueueTask(pending *providerTaskHeap, now time.Time) *providerQueueTask {
+	if pending == nil || pending.Len() == 0 {
+		return nil
+	}
+	agedIndex := -1
+	var agedSequence uint64
+	for index, task := range *pending {
+		if task == nil || task.enqueuedAt.IsZero() || now.Sub(task.enqueuedAt) < providerQueueMaximumWait {
+			continue
+		}
+		if agedIndex < 0 || task.sequence < agedSequence {
+			agedIndex = index
+			agedSequence = task.sequence
+		}
+	}
+	if agedIndex >= 0 {
+		return heap.Remove(pending, agedIndex).(*providerQueueTask)
+	}
+	return heap.Pop(pending).(*providerQueueTask)
 }
 
 // providerQueue is an in-process priority/FIFO executor. Persistence and
@@ -119,7 +142,7 @@ func (q *providerQueue) submit(ctx context.Context, priority int, run func(conte
 		}
 		return err
 	}
-	task := &providerQueueTask{priority: priority, ctx: ctx, run: run, onState: onState, done: make(chan error, 1)}
+	task := &providerQueueTask{priority: priority, enqueuedAt: time.Now().UTC(), ctx: ctx, run: run, onState: onState, done: make(chan error, 1)}
 	q.mu.Lock()
 	if q.closed {
 		q.mu.Unlock()
@@ -170,7 +193,7 @@ func (q *providerQueue) worker() {
 			q.mu.Unlock()
 			return
 		}
-		task := heap.Pop(&q.pending).(*providerQueueTask)
+		task := popProviderQueueTask(&q.pending, time.Now().UTC())
 		if task.canceled {
 			q.mu.Unlock()
 			continue

@@ -457,7 +457,7 @@ func (a *App) ensureVisualIdentityInitializationTx(ctx context.Context, tx pgx.T
 	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status=$2,active_session_id=$3,updated_at=now() WHERE id=$1`, profileID, profileStatus, sessionID); err != nil {
 		return "", err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','visual_identity.initialize',$3) ON CONFLICT DO NOTHING`, "visual_identity_intent:"+sessionID, workflowID, jsonBytes(map[string]any{"intent_id": "visual_identity_intent:" + sessionID, "fluctlight_id": fluctlightID, "session_id": sessionID})); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','visual_identity.initialize',$3) ON CONFLICT DO NOTHING`, "visual_identity_intent:"+sessionID, workflowID, jsonBytes(map[string]any{"intent_id": "visual_identity_intent:" + sessionID, "fluctlight_id": fluctlightID, "session_id": sessionID, "correlation_id": "visual_identity:" + sessionID, "causation_id": sourceFactID})); err != nil {
 		return "", err
 	}
 	if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, attemptID, fluctlightID, visualIdentityStageSessionCreated, "queued", "Visual Identity 初始化已排队", nil, map[string]any{"trigger": triggerType}, workflowID); err != nil {
@@ -787,15 +787,25 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		return nil, err
 	}
 	if rendererError := stringValue(decodeObject(constraints)["error"]); rendererError != "" {
-		_, _ = a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='awaiting_review',last_error=$2,updated_at=now() WHERE id=$1`, sessionID, rendererError)
-		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageFailed, visualIdentityStatusRendererPending, "等待有效的胸部渲染配置", nil)
+		command, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='awaiting_review',last_error=$2,updated_at=now() WHERE id=$1`, sessionID, rendererError)
+		if err != nil {
+			return nil, err
+		}
+		if command.RowsAffected() != 1 {
+			return nil, errors.New("visual_identity_renderer_pending_not_written")
+		}
+		if err := a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageFailed, visualIdentityStatusRendererPending, "等待有效的胸部渲染配置", nil); err != nil {
+			return nil, err
+		}
 		return map[string]any{"session_id": sessionID, "attempt": attempt, "status": visualIdentityStatusRendererPending, "stage": "renderer_config_pending", "error_code": rendererError}, nil
 	}
 	if seedPrompt == "" {
 		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='running',updated_at=now() WHERE id=$1 AND status IN ('queued','running')`, sessionID); err != nil {
 			return nil, err
 		}
-		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageSeedRequested, "running", "正在生成“自己”的角色设计图文本提示", nil)
+		if err := a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageSeedRequested, "running", "正在生成“自己”的角色设计图文本提示", nil); err != nil {
+			return nil, err
+		}
 		identity, err := a.readVisualIdentity(ctx, fluctlightID)
 		if err != nil {
 			return nil, err
@@ -840,13 +850,23 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 			return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "image_" + mediaStatus, "media_intent_id": mediaIntentID}, nil
 		}
 		candidateAssetID = "asset_" + mediaIntentID
-		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET candidate_asset_id=$2,status='vision_queued',updated_at=now() WHERE id=$1 AND candidate_asset_id IS NULL`, attemptID, candidateAssetID); err != nil {
+		if err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			command, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET candidate_asset_id=$2,status='vision_queued',updated_at=now() WHERE id=$1 AND candidate_asset_id IS NULL`, attemptID, candidateAssetID)
+			if err != nil {
+				return err
+			}
+			if command.RowsAffected() != 1 {
+				return errors.New("visual_identity_candidate_asset_not_written")
+			}
+			return appendVisualIdentityTimelineTx(ctx, tx, sessionID, attemptID, fluctlightID, visualIdentityStageImageReady, "completed", "候选角色设计图已生成", []string{candidateAssetID}, nil, "visual_identity:"+sessionID)
+		}); err != nil {
 			return nil, err
 		}
-		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageImageReady, "completed", "候选角色设计图已生成", []string{candidateAssetID})
 	}
 	if visualIdentityJSONEmpty(visionResult) {
-		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageVisionRequested, "running", "正在进行视觉理解", []string{candidateAssetID})
+		if err := a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageVisionRequested, "running", "正在进行视觉理解", []string{candidateAssetID}); err != nil {
+			return nil, err
+		}
 		imageContent, imageErr := a.visualIdentityImageContent(ctx, candidateAssetID)
 		if imageErr != nil {
 			return nil, imageErr
@@ -858,7 +878,9 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_vision", []map[string]any{{"role": "system", "content": "Inspect the supplied candidate image for visual identity continuity. The required target is one character design sheet with exactly three separate panels on a white background: left front close-up portrait, center front full-body standing straight, right back full-body from behind. There is explicitly no side-view panel. If the image is an art photo, abstract silhouette, landscape, object-only image, missing a person, missing any required panel, or shows a side view instead of the center front full body, report a low identity_match and make that mismatch explicit in observations. Return bounded structured observations only."}, {"role": "user", "content": visionUserContent}}, "visual_identity_vision_response", visualIdentityVisionResponseSchema(), false)
 		if err != nil {
 			if visualIdentityProviderPending(err) {
-				_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageVisionRequested, "pending", "等待 visual_identity_vision 模型角色配置", []string{candidateAssetID})
+				if stageErr := a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageVisionRequested, "pending", "等待 visual_identity_vision 模型角色配置", []string{candidateAssetID}); stageErr != nil {
+					return nil, stageErr
+				}
 				return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "provider_config_pending", "error_code": "visual_identity_vision_role_missing"}, nil
 			}
 			return nil, err
@@ -874,11 +896,15 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "patch_queued", "asset_id": candidateAssetID}, nil
 	}
 	if decision == "" {
-		_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStagePatchRequested, "running", "正在评审并生成身份补丁", []string{candidateAssetID})
+		if err := a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStagePatchRequested, "running", "正在评审并生成身份补丁", []string{candidateAssetID}); err != nil {
+			return nil, err
+		}
 		completion, err := a.Provider.StructuredWithSchema(ctx, "visual_identity_patch", []map[string]any{{"role": "system", "content": "Review the candidate against the visual identity and return accepted or regenerate. Acceptance is allowed only for one character design sheet with exactly three separate panels on a white background: left front close-up portrait, center front full body standing straight, right back full body from behind. There is explicitly no side-view panel. An art photo, abstract silhouette, landscape, object-only image, missing person, missing panel, or side-view substitution must be decision=regenerate. Preserve the explicit decision and a structured patch."}, {"role": "user", "content": jsonString(map[string]any{"stage": "review", "render_intent": "character_design_sheet", "expected_subject": "one_human_character", "expected_views": visualIdentityExpectedViews(), "panel_layout": map[string]string{"left": "front_closeup_portrait", "center": "front_full_body_standing", "right": "back_full_body"}, "visual_identity": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints), "vision": decodeObject(visionResult), "candidate_asset_id": candidateAssetID})}}, "visual_identity_patch_response", visualIdentityPatchResponseSchema(), false)
 		if err != nil {
 			if visualIdentityProviderPending(err) {
-				_ = a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStagePatchRequested, "pending", "等待 visual_identity_patch 模型角色配置", []string{candidateAssetID})
+				if stageErr := a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStagePatchRequested, "pending", "等待 visual_identity_patch 模型角色配置", []string{candidateAssetID}); stageErr != nil {
+					return nil, stageErr
+				}
 				return map[string]any{"session_id": sessionID, "attempt": attempt, "status": "waiting", "stage": "provider_config_pending", "error_code": "visual_identity_patch_role_missing"}, nil
 			}
 			return nil, err
@@ -906,7 +932,13 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		}
 		if decision == "regenerate" {
 			if attempt >= maxAttempts {
-				_, _ = a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='awaiting_review',last_error='max_attempts',updated_at=now() WHERE id=$1`, sessionID)
+				command, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='awaiting_review',last_error='max_attempts',updated_at=now() WHERE id=$1`, sessionID)
+				if err != nil {
+					return nil, err
+				}
+				if command.RowsAffected() != 1 {
+					return nil, errors.New("visual_identity_max_attempts_not_written")
+				}
 				return map[string]any{"session_id": sessionID, "attempt": attempt, "status": visualIdentityStatusAwaitingReview, "stage": "max_attempts"}, nil
 			}
 			nextAttempt := attempt + 1

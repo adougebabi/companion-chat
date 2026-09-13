@@ -53,11 +53,11 @@ VALUES('prompt-history-fact','prompt-history-fluctlight',1,'conversation.turn','
 		t.Fatal(err)
 	}
 	if err := New(pool).Apply(ctx); err != nil {
-		t.Fatalf("0032 rerun: %v", err)
+		t.Fatalf("current-head rerun: %v", err)
 	}
 
 	var head string
-	if err := pool.QueryRow(ctx, `SELECT version_num FROM public.alembic_version`).Scan(&head); err != nil || head != PromptContextMemoryHead {
+	if err := pool.QueryRow(ctx, `SELECT version_num FROM public.alembic_version`).Scan(&head); err != nil || head != Head {
 		t.Fatalf("head=%q err=%v", head, err)
 	}
 	var columns, indexes, constraints int

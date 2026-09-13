@@ -5,6 +5,12 @@ const root = new URL("../", import.meta.url);
 const schema = JSON.parse(await readFile(new URL("openapi.json", root), "utf8"));
 const paths = Object.keys(schema.paths).sort();
 const requestTypeNames = [
+  "BrowserFluctlightCreateRequest",
+  "BrowserFluctlightCreationAnalysisRequest",
+  "BrowserFluctlightCreationAnalysis",
+  "BrowserFluctlightActivationRequest",
+  "BrowserInitializationSource",
+  "BrowserFluctlightDetail",
   "BrowserLifeEventRequest",
   "BrowserLifeEventCancelRequest",
   "BrowserPresenceRequest",
@@ -15,6 +21,8 @@ const requestTypeNames = [
 const typeForSchema = (value) => {
   if (value?.$ref) return value.$ref.split("/").pop();
   if (Array.isArray(value?.anyOf)) return value.anyOf.map(typeForSchema).join(" | ");
+  if (value?.type === "null") return "null";
+  if (value?.type === "string" && Array.isArray(value.enum)) return value.enum.map((item) => JSON.stringify(item)).join(" | ");
   if (value?.type === "string") return "string";
   if (value?.type === "integer" || value?.type === "number") return "number";
   if (value?.type === "boolean") return "boolean";
@@ -22,7 +30,9 @@ const typeForSchema = (value) => {
   if (value?.type === "object" || value?.properties) {
     const required = new Set(value.required ?? []);
     const fields = Object.entries(value.properties ?? {}).map(([name, child]) => `${name}${required.has(name) ? "" : "?"}: ${typeForSchema(child)}`);
-    return `{ ${fields.join("; ")} }`;
+    const objectType = `{ ${fields.join("; ")} }`;
+	if (value.additionalProperties === true && fields.length === 0) return "Record<string, unknown>";
+    return value.additionalProperties === true ? `(${objectType} & Record<string, unknown>)` : objectType;
   }
   return "unknown";
 };
@@ -39,6 +49,10 @@ export type BrowserSession = { authenticated: boolean; actorId?: string };
 export type BrowserSetupStatus = { setupAvailable: boolean };
 export type BrowserSafeSettings = { values: Record<string, unknown>; configuredSecrets: string[] };
 export type BrowserDiagnosticEvent = { id: string; eventType: string; severity: string; fluctlightId?: string | null; causationId?: string | null; correlationId: string; payload: Record<string, unknown>; createdAt?: string | null };
+export type BrowserLifecycleDiagnosticsFilter = { limit?: number; fluctlightId?: string; correlationId?: string; intentId?: string; workflowId?: string; runId?: string; surface?: string; status?: string };
+export type BrowserLifecycleDiagnosticEvent = { id: string; eventType: string; surface: string; transition: string; severity: string; fluctlightId?: string | null; correlationId: string; causationId?: string | null; intentId?: string; workflowId?: string; runId?: string; activityType?: string; activityId?: string; providerAttemptId?: string; providerRequestId?: string; modelRunId?: string; stage: string; status: string; reasonCode: string; errorCategory?: string; errorCode?: string; safeCause?: string; retryable: boolean; attempt?: number; maxAttempts?: number; nextDueAt?: string; occurredAt?: string; occurrenceCount?: number; metadata?: Record<string, unknown>; createdAt: string };
+export type BrowserWorkflowIntentSnapshot = { intentId: string; workflowId: string; runtimeWorkflowId: string; taskQueue: string; intentType: string; status: string; attemptCount: number; fluctlightId?: string | null; correlationId: string; causationId?: string | null; lastError?: string | null; nextAttemptAt?: string; startedAt?: string; completedAt?: string; createdAt: string };
+export type BrowserLifecycleDiagnosticsPage = { events: BrowserLifecycleDiagnosticEvent[]; workflowIntents: BrowserWorkflowIntentSnapshot[]; filters: Required<BrowserLifecycleDiagnosticsFilter> };
 export type BrowserDiagnosticModelRun = { id: string; role: string; bindingRole?: string; scenario?: string; priority?: number; queuePendingCount?: number; queuePosition?: number; endpointId?: string | null; modelId: string; prompt: unknown; response?: unknown; status: string; errorCode?: string | null; correlationId: string; createdAt: string; queuedAt?: string; startedAt?: string | null; completedAt?: string | null };
 export type BrowserDiagnosticMediaPrompt = { id: string; mediaIntentId: string; fluctlightId: string; kind: string; mimeType: string; prompt: unknown; providerPrompt: string; submittedPrompt?: string; requestPayload?: unknown; providerRequestId: string; providerJobId?: string; workflowId: string; status: string; qualityVerdict?: string; correlationId: string; createdAt: string; submittedEventId?: string; submittedAt?: string; errorMessage?: string; failureStage?: string; workflowStatus?: string; attemptCount?: number; modelRun?: BrowserDiagnosticModelRun };
 export type BrowserConversation = { id: string; createdByActorId: string; title?: string | null; revision: number; createdAt: string; updatedAt: string };
@@ -48,6 +62,18 @@ export type BrowserVisualIdentityTimelineEvent = { session_id: string; attempt_i
 export type BrowserVisualIdentity = { schema_version: string; id: string; fluctlight_id: string; status: string; current_revision: number; identity_snapshot: Record<string, unknown>; renderer_constraints: Record<string, unknown>; canonical_asset_id?: string; character_sheet_asset_id?: string; adapter_version: string; active_session_id?: string; timeline: BrowserVisualIdentityTimelineEvent[] };
 export type BrowserConversationPage = { conversation: BrowserConversation; participants: BrowserParticipant[]; messages: BrowserMessage[]; nextBeforeSequence?: number | null };
 export type BrowserTurnEvent = { type: "token" | "message" | "media" | "completed" | "error" | "heartbeat"; turnId: string; sequence: number; payload: Record<string, unknown> };
+
+const lifecycleDiagnosticsQuery = (options: BrowserLifecycleDiagnosticsFilter, defaultLimit: number): string => {
+  const query = new URLSearchParams({ limit: String(options.limit ?? defaultLimit) });
+  if (options.fluctlightId) query.set("fluctlightId", options.fluctlightId);
+  if (options.correlationId) query.set("correlationId", options.correlationId);
+  if (options.intentId) query.set("intentId", options.intentId);
+  if (options.workflowId) query.set("workflowId", options.workflowId);
+  if (options.runId) query.set("runId", options.runId);
+  if (options.surface) query.set("surface", options.surface);
+  if (options.status) query.set("status", options.status);
+  return query.toString();
+};
 
 export class BrowserApiError extends Error {
   readonly status: number;
@@ -102,16 +128,16 @@ export class BrowserClient {
   async providerBindings(): Promise<Array<{ role: string; endpoint_id: string; model_id: string; token_budget: number; timeout_seconds: number; endpoint_status: string }>> { return this.json("/api/providers") as Promise<Array<{ role: string; endpoint_id: string; model_id: string; token_budget: number; timeout_seconds: number; endpoint_status: string }>>; }
   async configureModelRole(body: { role: string; endpointId: string; modelId: string; tokenBudget: number; timeoutSeconds: number; contextWindowTokens?: number; maxInputTokens?: number }): Promise<Record<string, unknown>> { return this.json("/api/providers/roles", { method: "PUT", body }) as Promise<Record<string, unknown>>; }
   async createConversation(body: { title?: string; participantActorIds: string[] }): Promise<BrowserConversationPage> { return this.json("/api/conversations", { method: "POST", body }) as Promise<BrowserConversationPage>; }
-  async createFluctlight(body: { id?: string; name?: string }): Promise<{ id: string; identity: Record<string, unknown>; status: string }> { return this.json("/api/fluctlights", { method: "POST", body }) as Promise<{ id: string; identity: Record<string, unknown>; status: string }>; }
-  async analyzeFluctlightCreation(description: string): Promise<Record<string, unknown>> { return this.json("/api/fluctlight-creations/analysis", { method: "POST", body: { description } }) as Promise<Record<string, unknown>>; }
-  async activateFluctlightCreation(body: { requestId: string; initializationMode: "blank_slate" | "llm_defined"; schemaVersion?: number; name?: string; corePersona?: Record<string, unknown>; developingSelf?: Record<string, unknown>; extensions?: Record<string, unknown>; initialGoals?: Array<Record<string, unknown>>; initialIntentions?: Array<Record<string, unknown>>; initialRelationships?: Array<Record<string, unknown>> }): Promise<{ id: string; core_persona?: Record<string, unknown>; identity: Record<string, unknown>; status: string }> { return this.json("/api/fluctlight-creations/activate", { method: "POST", body }) as Promise<{ id: string; core_persona?: Record<string, unknown>; identity: Record<string, unknown>; status: string }>; }
+  async createFluctlight(body: BrowserFluctlightCreateRequest): Promise<{ id: string; identity: Record<string, unknown>; status: string }> { return this.json("/api/fluctlights", { method: "POST", body }) as Promise<{ id: string; identity: Record<string, unknown>; status: string }>; }
+  async analyzeFluctlightCreation(description: string): Promise<BrowserFluctlightCreationAnalysis> { const body: BrowserFluctlightCreationAnalysisRequest = { description }; return this.json("/api/fluctlight-creations/analysis", { method: "POST", body }) as Promise<BrowserFluctlightCreationAnalysis>; }
+  async activateFluctlightCreation(body: BrowserFluctlightActivationRequest): Promise<{ id: string; core_persona?: Record<string, unknown>; identity: Record<string, unknown>; status: string }> { return this.json("/api/fluctlight-creations/activate", { method: "POST", body }) as Promise<{ id: string; core_persona?: Record<string, unknown>; identity: Record<string, unknown>; status: string }>; }
   async listFluctlights(): Promise<Array<{ id: string; identity: Record<string, unknown>; status: string; unread_count?: number; last_conversation_at?: string | null }>> { return this.json("/api/fluctlights") as Promise<Array<{ id: string; identity: Record<string, unknown>; status: string; unread_count?: number; last_conversation_at?: string | null }>>; }
   async listActorGroups(): Promise<Array<{ id: string; name: string; actor_ids?: string[]; members?: string[] }>> { return this.json("/api/actor-groups") as Promise<Array<{ id: string; name: string; actor_ids?: string[]; members?: string[] }>>; }
   async createActorGroup(name: string): Promise<{ id: string; name: string; actor_ids?: string[]; members?: string[] }> { return this.json("/api/actor-groups", { method: "POST", body: { name } }) as Promise<{ id: string; name: string; actor_ids?: string[]; members?: string[] }>; }
   async assignActorGroupMember(groupId: string, actorId: string): Promise<void> { await this.json(\`/api/actor-groups/\${encodeURIComponent(groupId)}/members\`, { method: "POST", body: { actorId } }); }
   async removeActorGroupMember(groupId: string, actorId: string): Promise<void> { await this.json(\`/api/actor-groups/\${encodeURIComponent(groupId)}/members/\${encodeURIComponent(actorId)}\`, { method: "DELETE", body: {} }); }
   async getFluctlight(fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}\`) as Promise<Record<string, unknown>>; }
-  async detail(fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/detail\`) as Promise<Record<string, unknown>>; }
+  async detail(fluctlightId: string): Promise<BrowserFluctlightDetail> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/detail\`) as Promise<BrowserFluctlightDetail>; }
   async developingSelf(fluctlightId: string): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/developing-self\`) as Promise<Record<string, unknown>>; }
   async rollbackDevelopingSelf(fluctlightId: string, claimId: string, body: { expectedRevision: number; reason: string }): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/developing-self/\${encodeURIComponent(claimId)}/rollback\`, { method: "POST", body }) as Promise<Record<string, unknown>>; }
   async forgetDevelopingSelf(fluctlightId: string, claimId: string, body: { expectedRevision: number; reason: string }): Promise<Record<string, unknown>> { return this.json(\`/api/fluctlights/\${encodeURIComponent(fluctlightId)}/developing-self/\${encodeURIComponent(claimId)}/forget\`, { method: "POST", body }) as Promise<Record<string, unknown>>; }
@@ -166,6 +192,9 @@ export class BrowserClient {
     if (options.fluctlightId) query.set("fluctlightId", options.fluctlightId);
     return this.json(\`/api/diagnostics?\${query}\`) as Promise<BrowserDiagnosticEvent[]>;
   }
+  async lifecycleDiagnostics(options: BrowserLifecycleDiagnosticsFilter = {}): Promise<BrowserLifecycleDiagnosticsPage> {
+    return this.json(\`/api/diagnostics/lifecycle?\${lifecycleDiagnosticsQuery(options, 100)}\`) as Promise<BrowserLifecycleDiagnosticsPage>;
+  }
   async diagnosticModelRuns(options: { limit?: number; correlationId?: string } = {}): Promise<BrowserDiagnosticModelRun[]> {
     const query = new URLSearchParams({ limit: String(options.limit ?? 100) });
     if (options.correlationId) query.set("correlationId", options.correlationId);
@@ -176,10 +205,8 @@ export class BrowserClient {
     return this.json(\`/api/diagnostics/media-prompts?limit=\${limit}\`) as Promise<BrowserDiagnosticMediaPrompt[]>;
   }
   async retryDiagnosticMediaPrompt(mediaIntentId: string): Promise<Record<string, unknown>> { return this.json(\`/api/diagnostics/media-prompts/\${encodeURIComponent(mediaIntentId)}/retry\`, { method: "POST", body: {} }) as Promise<Record<string, unknown>>; }
-  async exportDiagnostics(options: { limit?: number; correlationId?: string } = {}): Promise<Record<string, unknown>> {
-    const query = new URLSearchParams({ limit: String(options.limit ?? 500) });
-    if (options.correlationId) query.set("correlationId", options.correlationId);
-    return this.json(\`/api/diagnostics/export?\${query}\`) as Promise<Record<string, unknown>>;
+  async exportDiagnostics(options: BrowserLifecycleDiagnosticsFilter = {}): Promise<Record<string, unknown>> {
+    return this.json(\`/api/diagnostics/export?\${lifecycleDiagnosticsQuery(options, 500)}\`) as Promise<Record<string, unknown>>;
   }
   async clearDiagnostics(): Promise<number> {
     const result = await this.json("/api/diagnostics", { method: "DELETE" }) as { cleared?: number };

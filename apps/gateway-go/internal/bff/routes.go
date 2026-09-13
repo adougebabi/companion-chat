@@ -15,6 +15,8 @@ import (
 	"github.com/fluctlight/local-ai-companion/apps/gateway-go/internal/platform"
 )
 
+const initializationDescriptionMaxBytes = 60000
+
 // Options is the transport-only composition for the public BFF.  The BFF
 // never receives a database, cache, object-store or workflow dependency.
 type Options struct {
@@ -303,6 +305,10 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.diagnostics(response, request)
 		return
 	}
+	if path == "/api/diagnostics/lifecycle" && methodName == http.MethodGet {
+		s.diagnosticLifecycle(response, request)
+		return
+	}
 	if path == "/api/diagnostics/model-runs" && methodName == http.MethodGet {
 		s.diagnosticModelRuns(response, request)
 		return
@@ -420,8 +426,12 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if path == "/api/fluctlight-creations/analysis" && methodName == http.MethodPost {
-		body, ok := s.mutationBody(response, request, func(value map[string]any) bool { return validateString(value["description"], 1, 12000) })
+		body, ok := s.mutationBody(response, request, func(value map[string]any) bool { return validateInitializationDescriptionShape(value["description"]) })
 		if !ok {
+			return
+		}
+		if !validateInitializationDescription(body["description"]) {
+			writeError(response, http.StatusRequestEntityTooLarge, "initialization_description_too_large", "Description exceeds the 60000-byte UTF-8 limit")
 			return
 		}
 		session, valid := s.requireSession(response, request)
@@ -446,6 +456,9 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		mapped := map[string]any{"request_id": body["requestId"], "initialization_mode": body["initializationMode"], "schema_version": body["schemaVersion"], "name": body["name"], "core_persona": body["corePersona"], "developing_self": body["developingSelf"], "extensions": body["extensions"]}
+		if analysisID, exists := body["analysisId"]; exists {
+			mapped["analysis_id"] = analysisID
+		}
 		for from, to := range map[string]string{"initialGoals": "initial_goals", "initialIntentions": "initial_intentions", "initialRelationships": "initial_relationships"} {
 			if value, exists := body[from]; exists {
 				mapped[to] = value
@@ -513,6 +526,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/detail"); ok && methodName == http.MethodGet {
+		response.Header().Set("Cache-Control", "no-store, private")
 		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/detail", http.MethodGet, nil, s.readOnlyError(http.StatusNotFound, "fluctlight_not_found", "Fluctlight detail is unavailable"), nil)
 		return
 	}
@@ -977,6 +991,95 @@ func (s *Server) diagnostics(response http.ResponseWriter, request *http.Request
 	writeJSON(response, http.StatusOK, result)
 }
 
+func lifecycleDiagnosticsQuery(request *http.Request, defaultLimit int) url.Values {
+	query := url.Values{"limit": []string{strconv.Itoa(queryInt(request.URL.Query().Get("limit"), defaultLimit))}}
+	for _, field := range []struct{ browser, core string }{
+		{"fluctlightId", "fluctlight_id"}, {"correlationId", "correlation_id"},
+		{"intentId", "intent_id"}, {"workflowId", "workflow_id"}, {"runId", "run_id"},
+		{"surface", "surface"}, {"status", "status"},
+	} {
+		if value := strings.TrimSpace(request.URL.Query().Get(field.browser)); value != "" {
+			query.Set(field.core, value)
+		}
+	}
+	return query
+}
+
+func (s *Server) diagnosticLifecycle(response http.ResponseWriter, request *http.Request) {
+	session, ok := s.requireSession(response, request)
+	if !ok {
+		return
+	}
+	var value map[string]any
+	query := lifecycleDiagnosticsQuery(request, 100)
+	if err := s.core.doValue(request.Context(), http.MethodGet, "/internal/diagnostics/lifecycle?"+query.Encode(), session, nil, &value); err != nil {
+		diagnosticsError(response, err)
+		return
+	}
+	events := make([]any, 0)
+	for _, raw := range array(value["events"]) {
+		events = append(events, browserLifecycleDiagnostic(objectValue(raw)))
+	}
+	intents := make([]any, 0)
+	for _, raw := range array(value["workflow_intents"]) {
+		intents = append(intents, browserWorkflowIntentSnapshot(objectValue(raw)))
+	}
+	writeJSON(response, http.StatusOK, map[string]any{
+		"events": events, "workflowIntents": intents, "filters": browserLifecycleFilter(objectValue(value["filters"])),
+	})
+}
+
+func browserLifecycleDiagnostic(row map[string]any) map[string]any {
+	result := map[string]any{
+		"id": stringValue(row["id"]), "eventType": stringValue(row["event_type"]),
+		"surface": stringValue(row["surface"]), "transition": stringValue(row["transition"]),
+		"severity": stringValue(row["severity"]), "correlationId": stringValue(row["correlation_id"]),
+		"status": stringValue(row["status"]), "stage": stringValue(row["stage"]),
+		"reasonCode": stringValue(row["reason_code"]), "retryable": row["retryable"] == true,
+		"createdAt": stringValue(row["created_at"]),
+	}
+	for _, field := range []struct{ core, browser string }{
+		{"fluctlight_id", "fluctlightId"}, {"causation_id", "causationId"},
+		{"intent_id", "intentId"}, {"workflow_id", "workflowId"}, {"run_id", "runId"},
+		{"activity_type", "activityType"}, {"activity_id", "activityId"},
+		{"provider_attempt_id", "providerAttemptId"}, {"provider_request_id", "providerRequestId"}, {"model_run_id", "modelRunId"},
+		{"error_category", "errorCategory"}, {"error_code", "errorCode"}, {"safe_cause", "safeCause"},
+		{"attempt", "attempt"}, {"max_attempts", "maxAttempts"}, {"next_due_at", "nextDueAt"},
+		{"occurred_at", "occurredAt"}, {"occurrence_count", "occurrenceCount"}, {"metadata", "metadata"},
+	} {
+		if value, exists := row[field.core]; exists {
+			result[field.browser] = value
+		}
+	}
+	return result
+}
+
+func browserWorkflowIntentSnapshot(row map[string]any) map[string]any {
+	result := map[string]any{}
+	for _, field := range []struct{ core, browser string }{
+		{"intent_id", "intentId"}, {"workflow_id", "workflowId"}, {"runtime_workflow_id", "runtimeWorkflowId"},
+		{"task_queue", "taskQueue"}, {"intent_type", "intentType"}, {"status", "status"},
+		{"attempt_count", "attemptCount"}, {"fluctlight_id", "fluctlightId"},
+		{"correlation_id", "correlationId"}, {"causation_id", "causationId"},
+		{"last_error", "lastError"}, {"next_attempt_at", "nextAttemptAt"},
+		{"started_at", "startedAt"}, {"completed_at", "completedAt"}, {"created_at", "createdAt"},
+	} {
+		if value, exists := row[field.core]; exists {
+			result[field.browser] = value
+		}
+	}
+	return result
+}
+
+func browserLifecycleFilter(row map[string]any) map[string]any {
+	return map[string]any{
+		"limit": numberValue(row["limit"]), "fluctlightId": stringValue(row["fluctlight_id"]),
+		"correlationId": stringValue(row["correlation_id"]), "intentId": stringValue(row["intent_id"]),
+		"workflowId": stringValue(row["workflow_id"]), "runId": stringValue(row["run_id"]),
+		"surface": stringValue(row["surface"]), "status": stringValue(row["status"]),
+	}
+}
+
 func (s *Server) diagnosticModelRuns(response http.ResponseWriter, request *http.Request) {
 	session, ok := s.requireSession(response, request)
 	if !ok {
@@ -1021,10 +1124,7 @@ func (s *Server) diagnosticsExport(response http.ResponseWriter, request *http.R
 	if !ok {
 		return
 	}
-	query := url.Values{"limit": []string{strconv.Itoa(queryInt(request.URL.Query().Get("limit"), 500))}}
-	if value := request.URL.Query().Get("correlationId"); value != "" {
-		query.Set("correlation_id", value)
-	}
+	query := lifecycleDiagnosticsQuery(request, 500)
 	var value map[string]any
 	if err := s.core.doValue(request.Context(), http.MethodGet, "/internal/diagnostics/export?"+query.Encode(), session, nil, &value); err != nil {
 		diagnosticsError(response, err)
@@ -1058,7 +1158,7 @@ func diagnosticsError(response http.ResponseWriter, err error) {
 		case coreErr.Status == http.StatusForbidden:
 			writeError(response, 403, "diagnostics_forbidden", "Diagnostics are available to the owner only")
 		case coreErr.Status >= 500:
-			writeError(response, 503, "diagnostics_runtime_unavailable", "Diagnostics runtime is unavailable")
+			writeErrorWithDetails(response, 503, coreErr.Code, "Diagnostics runtime is unavailable", coreErr.Details)
 		case coreErr.Status == http.StatusUnprocessableEntity:
 			writeErrorWithDetails(response, 422, coreErr.Code, "Diagnostics request failed", coreErr.Details)
 		default:
@@ -1084,12 +1184,18 @@ func (s *Server) creationError(response http.ResponseWriter, err error, operatio
 			writeErrorWithDetails(response, 422, coreErr.Code, message, coreErr.Details)
 			return
 		}
+		if coreErr.Status == http.StatusConflict {
+			message := "Fluctlight analysis conflicted with newer state"
+			if operation == "activation" {
+				message = "Fluctlight activation conflicted with newer state"
+			}
+			writeErrorWithDetails(response, http.StatusConflict, coreErr.Code, message, coreErr.Details)
+			return
+		}
 		if coreErr.Status >= 500 {
 			message := "Fluctlight analysis service is unavailable"
 			if operation == "activation" {
 				message = "Fluctlight activation service is unavailable"
-				writeError(response, http.StatusServiceUnavailable, coreErr.Code, message)
-				return
 			}
 			writeErrorWithDetails(response, 503, coreErr.Code, message, coreErr.Details)
 			return
@@ -1274,6 +1380,14 @@ func workflowRoute(path string) (string, string, bool) {
 }
 
 func validatePassword(value any) bool { return validateString(value, 6, 1<<20) }
+func validateInitializationDescriptionShape(value any) bool {
+	text, ok := value.(string)
+	return ok && strings.TrimSpace(text) != ""
+}
+func validateInitializationDescription(value any) bool {
+	text, ok := value.(string)
+	return ok && validateInitializationDescriptionShape(text) && len(text) <= initializationDescriptionMaxBytes
+}
 func validateString(value any, min, max int) bool {
 	text, ok := value.(string)
 	return ok && utf16Length(text) >= min && utf16Length(text) <= max
@@ -1363,6 +1477,9 @@ func validateFluctlightCreate(value map[string]any) bool {
 func validateActivation(value map[string]any) bool {
 	mode := stringValue(value["initializationMode"])
 	if !validateString(value["requestId"], 1, 256) || (mode != "blank_slate" && mode != "llm_defined") {
+		return false
+	}
+	if analysisID, exists := value["analysisId"]; exists && !validateString(analysisID, 1, 128) {
 		return false
 	}
 	if mode == "llm_defined" && (!isObject(value["corePersona"]) || !isObject(value["developingSelf"]) || !validateInteger(value["schemaVersion"], 1)) {

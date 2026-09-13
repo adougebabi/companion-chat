@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { Plus, X } from "@lucide/vue";
+import type { BrowserFluctlightCreationAnalysis } from "@fluctlight/browser-client";
 
 import Badge from "@/components/ui/badge/Badge.vue";
 import Button from "@/components/ui/button/Button.vue";
@@ -36,10 +37,13 @@ const creationMode = ref<"blank_slate" | "llm_defined">("blank_slate");
 const newFluctlightName = ref("");
 const creationDescription = ref("");
 const creationPreviewJson = ref("");
-const creationInitialGoals = ref<Array<Record<string, unknown>>>([]);
-const creationInitialIntentions = ref<Array<Record<string, unknown>>>([]);
+const creationFoundation = ref<BrowserFluctlightCreationAnalysis | null>(null);
 const creationRequestId = ref<string | null>(null);
-const creationDiagnosticsCorrelationId = ref("");
+const creationDiagnosticsCorrelationId = computed(() => creationFoundation.value?.correlation_id ?? "");
+const creationInitialGoals = computed(() => creationFoundation.value?.initial_goals ?? []);
+const creationInitialIntentions = computed(() => creationFoundation.value?.initial_intentions ?? []);
+const creationDescriptionBytes = computed(() => new TextEncoder().encode(creationDescription.value.trim()).byteLength);
+const creationDescriptionTooLong = computed(() => creationDescriptionBytes.value > 60_000);
 const defaultGroupId = computed(() => controlCenter.actorGroups.find((group) => group.name === "默认")?.id ?? controlCenter.actorGroups[0]?.id ?? "");
 const orderedActorGroups = computed(() => [...controlCenter.actorGroups].sort((left, right) => { if (left.name === "默认") return -1; if (right.name === "默认") return 1; return left.name.localeCompare(right.name, "zh-CN"); }));
 
@@ -97,6 +101,7 @@ async function openGovernanceFor(id: string) {
 
 async function activateCreatedFluctlight(body: {
   initializationMode: "blank_slate" | "llm_defined";
+  analysisId?: string;
   schemaVersion?: number;
   name?: string;
   corePersona?: Record<string, unknown>;
@@ -115,11 +120,7 @@ async function activateCreatedFluctlight(body: {
   await store.selectFluctlight(created.id);
   newFluctlightName.value = "";
   creationDescription.value = "";
-  creationPreviewJson.value = "";
-  creationInitialGoals.value = [];
-  creationInitialIntentions.value = [];
-  creationRequestId.value = null;
-  creationDiagnosticsCorrelationId.value = "";
+  invalidateCreationPreview();
   showCreateForm.value = false;
   emit("openChat");
 }
@@ -131,40 +132,84 @@ async function createBlank() {
 
 async function analyzeDescription() {
   const description = creationDescription.value.trim();
+  invalidateCreationPreview();
   if (!description) return;
+  const descriptionBytes = new TextEncoder().encode(description).byteLength;
+  if (descriptionBytes > 60_000) {
+    controlCenter.error = `描述不能超过 60000 个 UTF-8 字节（当前 ${descriptionBytes} 字节）。`;
+    return;
+  }
   const result = await controlCenter.analyzeFluctlight(description);
-  const corePersona = result?.core_persona;
-  const developingSelf = result?.developing_self;
-  if (!corePersona || typeof corePersona !== "object" || Array.isArray(corePersona) || !developingSelf || typeof developingSelf !== "object" || Array.isArray(developingSelf)) {
+  const foundation = parseCreationFoundation(result);
+  if (!foundation) {
     if (result) controlCenter.error = "初始化模型返回了不包含分层 Persona 的无效结果。";
     return;
   }
-  const data = result as Record<string, unknown>;
-  creationPreviewJson.value = JSON.stringify(data, null, 2);
-  creationInitialGoals.value = Array.isArray(data.initial_goals) ? data.initial_goals.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
-  creationInitialIntentions.value = Array.isArray(data.initial_intentions) ? data.initial_intentions.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
-  creationDiagnosticsCorrelationId.value = "";
-  creationRequestId.value = randomId();
+  creationFoundation.value = foundation;
+  creationPreviewJson.value = JSON.stringify(foundation, null, 2);
 }
 
 async function activatePreview() {
   try {
-    const foundation = JSON.parse(creationPreviewJson.value) as Record<string, unknown>;
-    if (!foundation.core_persona || typeof foundation.core_persona !== "object" || Array.isArray(foundation.core_persona) || !foundation.developing_self || typeof foundation.developing_self !== "object" || Array.isArray(foundation.developing_self)) throw new Error("invalid_preview");
+    const foundation = creationFoundation.value;
+    if (!foundation) throw new Error("invalid_preview");
     await activateCreatedFluctlight({
       initializationMode: "llm_defined",
-      schemaVersion: typeof foundation.schema_version === "number" ? foundation.schema_version : undefined,
-      corePersona: foundation.core_persona as Record<string, unknown>,
-      developingSelf: foundation.developing_self as Record<string, unknown>,
-      extensions: foundation.extensions && typeof foundation.extensions === "object" && !Array.isArray(foundation.extensions) ? foundation.extensions as Record<string, unknown> : undefined,
-      initialGoals: creationInitialGoals.value,
-      initialIntentions: creationInitialIntentions.value,
-      initialRelationships: Array.isArray(foundation.initial_relationships) ? foundation.initial_relationships.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [],
+      analysisId: foundation.analysis_id,
+      schemaVersion: foundation.schema_version,
+      corePersona: foundation.core_persona,
+      developingSelf: foundation.developing_self,
+      extensions: foundation.extensions,
+      initialGoals: foundation.initial_goals,
+      initialIntentions: foundation.initial_intentions,
+      initialRelationships: foundation.initial_relationships,
     });
   } catch {
     controlCenter.error = "预览必须包含 core_persona 和 developing_self 对象。";
   }
 }
+
+function asCreationRecords(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
+}
+
+function parseCreationFoundation(value: unknown): BrowserFluctlightCreationAnalysis | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Record<string, unknown>;
+  const corePersona = candidate.core_persona;
+  const developingSelf = candidate.developing_self;
+  const extensions = candidate.extensions;
+  if (typeof candidate.analysis_id !== "string" || !candidate.analysis_id.trim() || typeof candidate.correlation_id !== "string" || !candidate.correlation_id.trim()) return null;
+  if (typeof candidate.schema_version !== "number" || !Number.isInteger(candidate.schema_version) || candidate.schema_version < 1) return null;
+  if (!corePersona || typeof corePersona !== "object" || Array.isArray(corePersona) || !developingSelf || typeof developingSelf !== "object" || Array.isArray(developingSelf)) return null;
+  if (!extensions || typeof extensions !== "object" || Array.isArray(extensions)) return null;
+  return {
+    analysis_id: candidate.analysis_id,
+    correlation_id: candidate.correlation_id,
+    schema_version: candidate.schema_version,
+    core_persona: corePersona as Record<string, unknown>,
+    developing_self: developingSelf as Record<string, unknown>,
+    extensions: extensions as Record<string, unknown>,
+    initial_goals: asCreationRecords(candidate.initial_goals),
+    initial_intentions: asCreationRecords(candidate.initial_intentions),
+    initial_relationships: asCreationRecords(candidate.initial_relationships),
+  };
+}
+
+function invalidateCreationPreview() {
+  creationFoundation.value = null;
+  creationPreviewJson.value = "";
+  creationRequestId.value = null;
+}
+
+watch(creationPreviewJson, (value) => {
+  try {
+    creationFoundation.value = value ? parseCreationFoundation(JSON.parse(value)) : null;
+  } catch {
+    creationFoundation.value = null;
+  }
+  creationRequestId.value = null;
+}, { flush: "sync" });
 
 async function openCreationDiagnostics() {
   if (!creationDiagnosticsCorrelationId.value) return;
@@ -240,7 +285,7 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
           </form>
 
           <form v-else id="analyze-description-form" class="stack-form" @submit.prevent="analyzeDescription">
-            <label for="fluctlight-description">描述你希望创建的 Fluctlight<Textarea id="fluctlight-description" v-model="creationDescription" rows="5" maxlength="12000" placeholder="描述身份、经历、价值观、表达方式或你希望它如何生活..." /></label>
+			<label for="fluctlight-description">描述你希望创建的 Fluctlight<Textarea id="fluctlight-description" v-model="creationDescription" rows="5" placeholder="描述身份、经历、价值观、表达方式或你希望它如何生活..." /><small class="field-note" :class="{ 'error-banner': creationDescriptionTooLong }">{{ creationDescriptionBytes }} / 60000 UTF-8 字节</small></label>
           </form>
 
           <form v-if="creationMode === 'llm_defined' && creationPreviewJson" id="activate-preview-form" class="stack-form preview-form" @submit.prevent="activatePreview">
@@ -260,10 +305,10 @@ function assignActorGroup(value: unknown, fluctlightId: string) {
           <Button v-if="creationMode === 'blank_slate'" class="primary-button" variant="default" type="submit" form="blank-create-form" :disabled="controlCenter.saving || controlCenter.loading || !newFluctlightName.trim()">创建并开始对话</Button>
           <template v-else-if="creationPreviewJson">
             <Button v-if="creationDiagnosticsCorrelationId" class="secondary-button" variant="outline" type="button" @click="openCreationDiagnostics">查看本次分析诊断</Button>
-            <Button class="secondary-button" variant="outline" type="submit" form="analyze-description-form" :disabled="controlCenter.saving || !creationDescription.trim()">重新分析</Button>
-            <Button class="primary-button" variant="default" type="submit" form="activate-preview-form" :disabled="controlCenter.saving">确认激活并开始对话</Button>
+			<Button class="secondary-button" variant="outline" type="submit" form="analyze-description-form" :disabled="controlCenter.saving || !creationDescription.trim() || creationDescriptionTooLong">重新分析</Button>
+			<Button class="primary-button" variant="default" type="submit" form="activate-preview-form" :disabled="controlCenter.saving || !creationFoundation">确认激活并开始对话</Button>
           </template>
-          <Button v-else class="primary-button" variant="default" type="submit" form="analyze-description-form" :disabled="controlCenter.saving || !creationDescription.trim()">分析并生成预览</Button>
+		  <Button v-else class="primary-button" variant="default" type="submit" form="analyze-description-form" :disabled="controlCenter.saving || !creationDescription.trim() || creationDescriptionTooLong">分析并生成预览</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

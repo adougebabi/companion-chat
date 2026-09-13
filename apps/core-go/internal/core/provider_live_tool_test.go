@@ -8,10 +8,178 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestLiveProviderDenseSingleInitialization(t *testing.T) {
+	liveProviderInitializationCase(t, "testdata/initialization/dense_single_card.txt", "testdata/initialization/dense_single_expectations.json", false)
+}
+
+func TestLiveProviderDenseMultiInitialization(t *testing.T) {
+	liveProviderInitializationCase(t, "testdata/initialization/dense_multi_card.txt", "testdata/initialization/dense_multi_expectations.json", false)
+}
+
+func TestLiveProviderDenseExternalInitialization(t *testing.T) {
+	cardPath := strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_INITIALIZATION_CARD_PATH"))
+	manifestPath := strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_INITIALIZATION_EXPECTATIONS_PATH"))
+	if cardPath == "" || manifestPath == "" {
+		t.Skip("external initialization card and expectations paths are required")
+	}
+	liveProviderInitializationCase(t, cardPath, manifestPath, true)
+}
+
+func TestConversationCapabilityCatalogFitsDefaultPromptBudget(t *testing.T) {
+	definitions := mustCapabilityRegistry(builtinCapabilities(nil)...).Catalog(CapabilitySurfaceConversation)
+	tools := RenderCapabilityTools(definitions)
+	responseFormat := providerResponseFormatForSchema("cognitive_assessment", "conversation_turn_response", cognitiveTurnResponseSchema())
+	policy := DefaultPromptBudgetPolicy(defaultOutputReserveTokens)
+	system := map[string]any{"role": "system", "content": renderProviderSystem([]string{providerContextAuthorityRule, capabilityConversationPolicyInstruction}, defaultCorePersona("", "预算检查"), nil, "cognitive_assessment")}
+	systemTokens := estimateProviderMessageTokens(system)
+	toolsTokens := EstimatePromptTokens(tools)
+	schemaTokens := EstimatePromptTokens(responseFormat)
+	requiredTokens := systemTokens + toolsTokens + schemaTokens + 16
+	t.Logf("conversation prompt required tokens: system=%d tools=%d schema=%d required=%d tools_cap=%d max_input=%d capabilities=%d", systemTokens, toolsTokens, schemaTokens, requiredTokens, policy.ToolsSchemaTokensCap, policy.MaxInputTokens, len(definitions))
+	if toolsTokens+schemaTokens > policy.ToolsSchemaTokensCap || requiredTokens > policy.MaxInputTokens {
+		t.Fatalf("conversation capability catalog exceeds default prompt budget")
+	}
+}
+
+func liveProviderInitializationCase(t *testing.T, cardPath, manifestPath string, external bool) {
+	t.Helper()
+	baseURL, model := liveProviderConfig(t)
+	if external {
+		workingDirectory, err := os.Getwd()
+		if err != nil {
+			t.Fatal("resolve external-card boundary")
+		}
+		repositoryRoot, err := filepath.Abs(filepath.Join(workingDirectory, "..", "..", "..", ".."))
+		if err != nil {
+			t.Fatal("resolve repository boundary")
+		}
+		absoluteCard, cardErr := filepath.Abs(cardPath)
+		absoluteManifest, manifestErr := filepath.Abs(manifestPath)
+		if cardErr != nil || manifestErr != nil || strings.HasPrefix(absoluteCard, repositoryRoot+string(os.PathSeparator)) || strings.HasPrefix(absoluteManifest, repositoryRoot+string(os.PathSeparator)) {
+			t.Fatal("external initialization fixtures must be outside the repository")
+		}
+	}
+	card, err := os.ReadFile(cardPath)
+	if err != nil {
+		t.Fatal("read initialization card")
+	}
+	manifestRaw, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal("read initialization expectations")
+	}
+	var manifest InitializationExpectationManifest
+	if json.Unmarshal(manifestRaw, &manifest) != nil {
+		t.Fatal("decode initialization expectations")
+	}
+	schema := initializationResponseSchema()
+	started := time.Now()
+	message := privateLiveProviderMessage(t, baseURL, providerChatPayloadWithSchema(model, initializationAnalysisMessages(string(card)), 6144, true, nil, "initialization", "initialization_response", schema, false))
+	structured := privateLiveProviderStructured(t, message, "initialization_response", schema)
+	prepared, err := prepareInitializationResponse(structured)
+	if err != nil {
+		t.Fatalf("live initialization rejected; summary=%s", jsonString(privateInitializationFailureSummary(err, model, time.Since(started).Milliseconds())))
+	}
+	report := EvaluateInitializationCoverage(prepared, manifest)
+	if report.Counts["missing"] > 0 || report.Counts["default_only"] > 0 || report.Counts["contradicted"] > 0 || report.Counts["invented"] > 0 || report.Classification != manifest.Classification {
+		summary := SafeInitializationCoverageSummary(report, model, time.Since(started).Milliseconds())
+		if !external {
+			summary["public_fixture_failures"] = publicInitializationFixtureFailures(prepared, manifest, report)
+		}
+		t.Fatalf("live initialization semantic coverage failed; summary=%s", jsonString(summary))
+	}
+}
+
+func publicInitializationFixtureFailures(prepared map[string]any, manifest InitializationExpectationManifest, report InitializationCoverageReport) []any {
+	failures := make([]any, 0, min(len(manifest.Assertions), 16))
+	for index, assertion := range manifest.Assertions {
+		if index >= len(report.Items) {
+			break
+		}
+		category := report.Items[index].Category
+		if category != "missing" && category != "default_only" && category != "contradicted" && category != "invented" {
+			continue
+		}
+		actual, _ := initializationValueAtPath(prepared, assertion.Path)
+		failures = append(failures, map[string]any{
+			"id":                boundedLifecycleString(assertion.ID),
+			"path":              boundedLifecycleString(assertion.Path),
+			"category":          category,
+			"expected_contains": boundedLifecycleString(assertion.Contains),
+			"actual":            boundedLifecycleString(jsonString(actual)),
+		})
+		if len(failures) >= 16 {
+			break
+		}
+	}
+	return failures
+}
+
+func privateLiveProviderMessage(t *testing.T, baseURL string, payload map[string]any) map[string]any {
+	t.Helper()
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatal("encode private initialization request")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal("create private initialization request")
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := (&http.Client{Timeout: 3 * time.Minute}).Do(request)
+	if err != nil {
+		t.Fatal("private initialization Provider request failed")
+	}
+	defer response.Body.Close()
+	responseBody, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
+	if err != nil {
+		t.Fatal("read private initialization Provider response")
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		t.Fatalf("private initialization Provider status=%d", response.StatusCode)
+	}
+	var envelope map[string]any
+	if json.Unmarshal(responseBody, &envelope) != nil {
+		t.Fatal("private initialization Provider response is not JSON")
+	}
+	choices := arrayValue(envelope["choices"])
+	if len(choices) == 0 {
+		t.Fatal("private initialization Provider returned no choices")
+	}
+	message := mapValue(mapValue(choices[0])["message"])
+	if len(message) == 0 {
+		t.Fatal("private initialization Provider returned invalid message")
+	}
+	return message
+}
+
+func privateLiveProviderStructured(t *testing.T, message map[string]any, schemaName string, schema map[string]any) map[string]any {
+	t.Helper()
+	raw, ok := parseStructuredCandidates(providerStructuredCandidates(message))
+	if !ok {
+		t.Fatal("private initialization Provider returned no structured response")
+	}
+	normalized, _ := normalizeProviderStructured(raw, schemaName, schema)
+	return normalized
+}
+
+func privateInitializationFailureSummary(err error, providerModel string, latencyMS int64) map[string]any {
+	summary := SafeInitializationCoverageSummary(InitializationCoverageReport{Counts: map[string]int{"invalid": 1}}, providerModel, latencyMS)
+	if failure, ok := err.(*initializationAnalysisError); ok {
+		summary["validation_error"] = map[string]any{
+			"type": boundedLifecycleString(failure.ValidationType),
+			"path": boundedLifecycleString(failure.Path),
+		}
+	}
+	return summary
+}
 
 // TestLiveProviderRecognizesImageGenerationIntent is an opt-in regression
 // against a real OpenAI-compatible local Provider. It deliberately does not

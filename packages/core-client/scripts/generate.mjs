@@ -23,6 +23,24 @@ export type CoreConversationTurn = { text: string; fluctlight_id: string; attach
 export type CoreFluctlight = { id: string; identity: Record<string, unknown>; status: string };
 export type CoreDiagnosticEvent = { id: string; event_type: string; severity: string; fluctlight_id?: string | null; causation_id?: string | null; correlation_id: string; payload: Record<string, unknown>; created_at?: string | null };
 export type CoreDiagnosticModelRun = { id: string; role: string; endpoint_id?: string | null; model_id: string; prompt: unknown; response?: unknown; status: string; error_code?: string | null; correlation_id: string; created_at: string };
+export type CoreFluctlightCreationAnalysis = { analysis_id: string; correlation_id: string; schema_version: number; core_persona: Record<string, unknown>; developing_self: Record<string, unknown>; extensions: Record<string, unknown>; initial_goals: Array<Record<string, unknown>>; initial_intentions: Array<Record<string, unknown>>; initial_relationships: Array<Record<string, unknown>> };
+export type CoreFluctlightActivationRequest = { request_id: string; initialization_mode: "blank_slate" | "llm_defined"; analysis_id?: string; schema_version?: number; name?: string | null; core_persona?: Record<string, unknown>; developing_self?: Record<string, unknown>; extensions?: Record<string, unknown>; initial_goals?: Array<Record<string, unknown>>; initial_intentions?: Array<Record<string, unknown>>; initial_relationships?: Array<Record<string, unknown>> };
+export type CoreLifecycleDiagnosticsFilter = { limit?: number; fluctlight_id?: string; correlation_id?: string; intent_id?: string; workflow_id?: string; run_id?: string; surface?: string; status?: string };
+export type CoreLifecycleDiagnosticEvent = { id: string; event_type: string; surface: string; transition: string; severity: string; fluctlight_id?: string | null; correlation_id: string; causation_id?: string | null; intent_id?: string; workflow_id?: string; run_id?: string; stage: string; status: string; reason_code: string; retryable: boolean; metadata?: Record<string, unknown>; created_at: string };
+export type CoreWorkflowIntentSnapshot = { intent_id: string; workflow_id: string; runtime_workflow_id: string; task_queue: string; intent_type: string; status: string; attempt_count: number; fluctlight_id?: string | null; correlation_id: string; causation_id?: string | null; last_error?: string | null; next_attempt_at?: string | null; started_at?: string | null; completed_at?: string | null; created_at: string };
+export type CoreLifecycleDiagnosticsPage = { events: CoreLifecycleDiagnosticEvent[]; workflow_intents: CoreWorkflowIntentSnapshot[]; filters: Required<CoreLifecycleDiagnosticsFilter> };
+
+const lifecycleDiagnosticsQuery = (options: CoreLifecycleDiagnosticsFilter, defaultLimit: number): string => {
+  const query = new URLSearchParams({ limit: String(options.limit ?? defaultLimit) });
+  if (options.fluctlight_id) query.set("fluctlight_id", options.fluctlight_id);
+  if (options.correlation_id) query.set("correlation_id", options.correlation_id);
+  if (options.intent_id) query.set("intent_id", options.intent_id);
+  if (options.workflow_id) query.set("workflow_id", options.workflow_id);
+  if (options.run_id) query.set("run_id", options.run_id);
+  if (options.surface) query.set("surface", options.surface);
+  if (options.status) query.set("status", options.status);
+  return query.toString();
+};
 
 export class CoreApiError extends Error {
   readonly status: number;
@@ -93,8 +111,8 @@ export class CoreClient {
   async configureModelRole(humanSession: string, role: object): Promise<CoreProviderPreflight> { return this.provider("/internal/providers/roles", humanSession, role) as Promise<CoreProviderPreflight>; }
   async createConversation(humanSession: string, body: CoreConversationCreate): Promise<CoreConversationPage> { return this.json("/internal/conversations", humanSession, "POST", body) as Promise<CoreConversationPage>; }
   async createFluctlight(humanSession: string, body: { id?: string; name?: string }): Promise<CoreFluctlight> { return this.json("/internal/fluctlights", humanSession, "POST", body) as Promise<CoreFluctlight>; }
-  async analyzeFluctlightCreation(humanSession: string, description: string): Promise<Record<string, unknown>> { return this.json("/internal/fluctlight-creations/analysis", humanSession, "POST", { description }) as Promise<Record<string, unknown>>; }
-  async activateFluctlightCreation(humanSession: string, body: object): Promise<Record<string, unknown>> { return this.json("/internal/fluctlight-creations/activate", humanSession, "POST", body) as Promise<Record<string, unknown>>; }
+  async analyzeFluctlightCreation(humanSession: string, description: string): Promise<CoreFluctlightCreationAnalysis> { return this.json("/internal/fluctlight-creations/analysis", humanSession, "POST", { description }) as Promise<CoreFluctlightCreationAnalysis>; }
+  async activateFluctlightCreation(humanSession: string, body: CoreFluctlightActivationRequest): Promise<Record<string, unknown>> { return this.json("/internal/fluctlight-creations/activate", humanSession, "POST", body) as Promise<Record<string, unknown>>; }
   async listFluctlights(humanSession: string): Promise<CoreFluctlight[]> { return this.json("/internal/fluctlights", humanSession, "GET") as Promise<CoreFluctlight[]>; }
   async listActorGroups(humanSession: string): Promise<Array<{ id: string; name: string; actor_ids: string[] }>> { return this.json("/internal/actor-groups", humanSession, "GET") as Promise<Array<{ id: string; name: string; actor_ids: string[] }>>; }
   async createActorGroup(humanSession: string, name: string): Promise<{ id: string; name: string; actor_ids: string[] }> { return this.json("/internal/actor-groups", humanSession, "POST", { name }) as Promise<{ id: string; name: string; actor_ids: string[] }>; }
@@ -141,6 +159,9 @@ export class CoreClient {
     const response = await this.fetcher(new URL(\`/internal/conversations/\${encodeURIComponent(conversationId)}/turn\`, this.baseUrl), { method: "POST", headers: { "content-type": "application/json", accept: "application/x-ndjson", "x-fluctlight-service-key": this.serviceKey, "x-fluctlight-human-session": humanSession }, body: JSON.stringify(body), signal });
     if (!response.ok) throw new Error(\`Core conversation turn failed: \${response.status}\`);
     return response;
+  }
+  async readLifecycleDiagnostics(humanSession: string, options: CoreLifecycleDiagnosticsFilter = {}): Promise<CoreLifecycleDiagnosticsPage> {
+    return this.json(\`/internal/diagnostics/lifecycle?\${lifecycleDiagnosticsQuery(options, 100)}\`, humanSession, "GET") as Promise<CoreLifecycleDiagnosticsPage>;
   }
   async readDiagnostics(humanSession: string, options: { limit?: number; correlation_id?: string; fluctlight_id?: string } = {}): Promise<CoreDiagnosticEvent[]> {
     const query = new URLSearchParams({ limit: String(options.limit ?? 100) });

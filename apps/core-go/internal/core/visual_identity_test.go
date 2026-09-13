@@ -1,6 +1,7 @@
 package core
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -210,5 +211,34 @@ func TestDefaultCapabilityRegistryIncludesVisualIdentityInitializer(t *testing.T
 	registry := (&App{}).capabilityRegistry()
 	if _, ok := registry.Lookup("visual_identity.initialize"); !ok {
 		t.Fatal("default capability registry does not expose visual_identity.initialize")
+	}
+}
+
+func TestVisualIdentityWaitingOutcomesRequireAuthoritativeSettlement(t *testing.T) {
+	source, err := os.ReadFile("visual_identity.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := sourceBetween(t, string(source), "func (a *App) ProcessVisualIdentity", "func (a *App) recordVisualIdentityStage")
+	if strings.Contains(body, "_, _ = a.DB.Pool().Exec") {
+		t.Fatal("Visual Identity still ignores an authoritative session settlement")
+	}
+	for _, required := range []string{
+		"visual_identity_renderer_pending_not_written",
+		"visual_identity_max_attempts_not_written",
+		"visual_identity_candidate_asset_not_written",
+		"command.RowsAffected() != 1",
+		"if err := a.recordVisualIdentityStage",
+	} {
+		if !strings.Contains(body, required) {
+			t.Fatalf("Visual Identity settlement guard missing %q", required)
+		}
+	}
+	if strings.Contains(body, "_ = a.recordVisualIdentityStage") {
+		t.Fatal("Visual Identity still ignores a domain timeline write")
+	}
+	creation := sourceBetween(t, string(source), "func (a *App) ensureVisualIdentityInitializationTx", "func appendVisualIdentityTimelineTx")
+	if !strings.Contains(creation, `"correlation_id": "visual_identity:" + sessionID`) {
+		t.Fatal("Visual Identity intent does not carry its stable lifecycle correlation")
 	}
 }

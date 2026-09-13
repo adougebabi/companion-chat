@@ -54,25 +54,40 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 - Hidden reasoning fields are discarded or reduced to an explicitly safe bounded summary; they are never stored as full reasoning.
 - Typed redaction removes settings/API keys, cookies, sessions, service credentials, auth headers, object grants, `.env` values, and other secret types before persistence/stdout/export.
 - Diagnostic writes are best-effort and never participate in the business Unit
-  of Work. Lifecycle/metric updates use an independent bounded context; any
-  insert/update failure is ignored by the owning Provider/domain operation.
-- Diagnostic sink errors cannot recursively emit into the same sink.
+  of Work. Lifecycle/metric updates use an independent bounded context. A sink
+  failure cannot replace the business result, but it must increment the
+  bounded health signal and emit a rate-limited structured operational warning;
+  it is never silently discarded.
+- Diagnostic sink errors cannot recursively emit into the same sink. The
+  operational fallback retains stage, category, safe code, retryability, and
+  correlation without copying raw payloads.
 - BFF submits bounded batched diagnostics through service-auth internal ingestion; it never writes PostgreSQL directly.
 - Current Go retention applies 30 days and 10,000 rows independently to
   diagnostic events, model runs, turns, and workflow links. The
   `diagnostic_retention` table is not a runtime override until a producer and
   consumer are implemented.
 - Lifecycle cleanup enforces age and row limits. Domain audit/revision/evidence tables are excluded.
-- Owner-only UI/API supports filter, live tail, correlation chain, prompt/response comparison, turn state transitions, workflow links, clear, and redacted export.
+- Owner-only UI/API supports filter, live tail, correlation chain,
+  prompt/response comparison, turn state transitions, workflow links, clear,
+  and redacted export. The Lifecycle timeline reads transition-only events plus
+  PostgreSQL workflow-intent snapshots and filters by Fluctlight, correlation,
+  intent, workflow, Run, surface, and status even when Temporal is unavailable.
 - Opening the Diagnostics UI must invoke its data loader. An empty local store is
   never evidence that PostgreSQL has no diagnostics.
 - Events, model runs, and optional workflow-runtime status are independent read
   operations. A Temporal runtime failure may render a bounded workflow warning,
   but must not hide successfully loaded model prompts, responses, or events or
   misreport the error as an Owner authorization failure.
-- Description analysis response provenance includes the diagnostic correlation
-  ID. The creation review surface retains it and can open a pre-filtered
-  diagnostic view for that exact initialization run.
+- Description analysis response provenance includes both the diagnostic
+  correlation ID and a separate initialization `analysis_id`. The creation
+  review retains them and can open a pre-filtered diagnostic view for that
+  exact analysis, while activation uses `analysis_id` only as source authority.
+- Initialization model-run rows are metadata-only by default: message count,
+  estimated input tokens, prompt/response byte counts and digests, model,
+  timing, status, safe error, and coverage counts. Original character-card
+  text, complete structured response, field derivations, and accepted source
+  projection are excluded from ordinary Diagnostics and exist only behind the
+  Owner-authorized initialization-source detail boundary.
 - Foundation validation failures expose a bounded structured detail object at
   the Core/BFF boundary, including `details.validation_error` and a safe error
   type. Clients must preserve this detail; a stable top-level code alone is not
@@ -84,19 +99,22 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 | --- | --- |
 | Record contains typed secret/credential | Redact before persistence/stdout/export. |
 | Model response contains hidden reasoning field | Drop/full-reasoning deny; retain only allowed structured output/bounded diagnostic. |
-| Diagnostics PostgreSQL write fails | Do not affect business result; emit bounded structured stdout if possible. |
-| Best-effort diagnostic insert/update fails | Ignore it for business behavior; retain the deterministic run/correlation identity where available. |
+| Diagnostics PostgreSQL write fails | Preserve the business result; increment the bounded failure signal and emit one rate-limited structured operational warning. |
+| Best-effort diagnostic insert/update fails repeatedly | Retain first/latest safe cause and occurrence count without recursively writing or flooding logs. |
 | Metric JSON is not an object or token/latency value is negative | PostgreSQL rejects the diagnostic mutation; domain result remains unaffected. |
 | BFF ingestion lacks service identity or exceeds batch/schema bounds | Reject ingestion without domain effect. |
 | Retention cleanup fails | Record bounded stdout/error and retry lifecycle workflow; do not delete domain audit. |
 | Non-Owner queries/exports/clears | Reject before returning diagnostic content. |
 | Workflow runtime is unavailable while reading diagnostics | Keep loaded events/model runs visible; show a workflow-only unavailable state. |
+| Expected active WakeUp passes due plus grace with no durable progress | Emit one transition-deduped `overdue` event with the stable cycle correlation. |
+| Initialization diagnostics are queried/exported | Return metadata only; never include source text or the complete Provider response. |
 | Owner opens diagnostics from Settings | Invoke the same loader as a filter submission; do not only mutate the active view. |
 
 ### 5. Good / Base / Bad Cases
 
 - Good: Owner opens one turn correlation view and sees redacted prompt layers, structured assessment, policy deltas, frozen action, realization, workflow attempts, and final message.
-- Base: diagnostics database insert fails during a successful chat; chat succeeds and a bounded JSON record appears on stdout.
+- Base: diagnostics database insert fails during a successful chat; chat
+  succeeds and one rate-bounded structured warning appears on stdout/health.
 - Bad: require Grafana to inspect a local prompt, log API keys, put diagnostic rows in the business transaction, or delete relationship revisions during retention cleanup.
 
 ### 6. Tests Required
@@ -105,12 +123,16 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 - Model-run tests for prompt sections, bounded/redacted selection traces,
   parse errors, provenance, hidden-reasoning drop, estimated/actual token
   normalization, estimator delta, latency, and collection cap.
-- Sink tests for database failure, independent diagnostic context, non-recursion,
-  and no business rollback.
+- Sink tests for database failure, independent diagnostic context,
+  rate-bounded operational warning, non-recursion, and no business rollback.
 - BFF ingestion tests for service auth, schema/batch limits, correlation fields, and no direct database access.
 - Retention tests for age/row dual limits and explicit proof that domain audit/revision/evidence remains.
 - Owner authorization tests for query/tail/export/clear and no diagnostic access through ordinary product DTOs.
-- UI/e2e test filters by IDs/role/status/time and traverses a complete correlation chain.
+- Lifecycle API/UI tests filter by Fluctlight/correlation/intent/workflow/Run/
+  surface/status, retain PostgreSQL snapshots during Temporal failure, render
+  no-op/retry/failure/overdue distinctly, and traverse a complete correlation.
+- Initialization tests assert ordinary rows/export contain metadata/digests but
+  not source text, full response, structured projection, or derivation evidence.
 
 ### 7. Wrong vs Correct
 
@@ -145,7 +167,10 @@ return result
 
 ### 3. Contracts
 
-- Diagnostic writes are best-effort and never fail the domain operation.
+- Diagnostic writes are best-effort and never fail the domain operation, but a
+  failed write produces a rate-bounded operational warning/health signal with
+  component, stage, correlation ID, error type, and a 512-rune secret-redacted
+  `safe_cause`. Logging only the Go error type is not sufficient.
 - Recursive redaction removes credentials, cookies, API keys and hidden
   reasoning before persistence or export.
 - Owner authorization and correlation/fluctlight filters apply to reads.
@@ -159,6 +184,11 @@ return result
 - The ordinary ModelRuns API keeps its existing small projection and does not
   expose the new prompt metrics or Fluctlight scope. Clear/prune still includes
   `diagnostic_model_runs` as operational data.
+- A Provider attempt writes one coherent queued→running→terminal model-run row
+  plus `provider_provenance`. PostgreSQL parameters reused by both a target
+  column and subquery predicate have an explicit cast (for example
+  `$2::varchar(64)` for binding role), so type inference cannot roll back the
+  complete diagnostic transaction.
 
 ### 4. Validation & Error Matrix
 
@@ -166,7 +196,8 @@ return result
 | --- | --- |
 | non-Owner diagnostic read/clear | forbidden before content is returned |
 | malformed correlation/filter or negative limit | bounded default/validation error |
-| diagnostic sink unavailable | business result remains successful |
+| diagnostic sink unavailable | business result remains successful; bounded operational warning/health signal changes |
+| provider provenance SQL cannot infer a reused parameter type | use one explicit PostgreSQL cast; do not accept an empty Model Runs timeline |
 | retention cleanup fails | bounded Worker warning and retry |
 | prompt selection trace contains more than 64 array entries | persist only the first 64 after recursive redaction |
 | Provider returns usage fields outside the allowlist | discard unknown usage fields |
@@ -183,7 +214,10 @@ return result
 
 - Recursive redaction, Owner isolation, filters, clear counts and age/row
   retention tests against PostgreSQL.
-- Provider success/failure producer tests with sink failure injection.
+- Provider success/failure producer tests with sink failure injection and
+  bounded operational-warning assertions, including redacted `safe_cause`.
+- PostgreSQL/Compose test asserts a live WakeUp or Reflection attempt persists
+  model run and provenance with the same correlation and attempt identity.
 - Provider wire-budget tests assert Tools/schema are counted separately,
   `max_tokens` remains output reserve, usage/latency/delta are normalized, and
   ordinary product APIs cannot read prompt metrics.
@@ -200,4 +234,9 @@ INSERT INTO diagnostic_model_runs(prompt) VALUES ($1) // raw request
 
 ```go
 recordModelRun(redactDiagnostic(prompt), boundedResponse, correlationID)
+```
+
+```go
+// Reused role parameter has one explicit PostgreSQL type in every context.
+WHERE role=$2::varchar(64)
 ```

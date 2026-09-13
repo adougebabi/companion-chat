@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { BrowserApiError, BrowserClient } from "../src/index.ts";
@@ -81,6 +82,49 @@ test("BrowserClient preserves structured diagnostics details", async () => {
   );
 });
 
+test("BrowserClient transports initialization analysis authority and typed detail source", async () => {
+	const requests: Array<{ url: string; body: unknown }> = [];
+	const analysis = {
+		analysis_id: "initialization_source_abc",
+		correlation_id: "initialization-analysis:corr",
+		schema_version: 2,
+		core_persona: { identity: { name: "测试" } },
+		developing_self: { claims: [] },
+		extensions: {},
+		initial_goals: [{ description: "编辑后的目标" }],
+		initial_intentions: [{ action: "编辑后的意图" }],
+		initial_relationships: [],
+	};
+	const client = new BrowserClient("http://fluctlight.local", async (input, init) => {
+		const url = String(input);
+		requests.push({ url, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+		if (url.endsWith("/analysis")) return Response.json(analysis);
+		if (url.endsWith("/detail")) return Response.json({ id: "fl-1", initialization_source: null });
+		return Response.json({ id: "fl-1", identity: {}, status: "active" });
+	});
+	const analyzed = await client.analyzeFluctlightCreation("复杂人格描述");
+	assert.equal(analyzed.analysis_id, analysis.analysis_id);
+	await client.activateFluctlightCreation({
+		requestId: "activate-1",
+		initializationMode: "llm_defined",
+		analysisId: analyzed.analysis_id,
+		schemaVersion: analyzed.schema_version,
+		corePersona: analyzed.core_persona,
+		developingSelf: analyzed.developing_self,
+		extensions: analyzed.extensions,
+		initialGoals: analyzed.initial_goals,
+		initialIntentions: analyzed.initial_intentions,
+		initialRelationships: analyzed.initial_relationships,
+	});
+	assert.deepEqual(requests[0].body, { description: "复杂人格描述" });
+	assert.equal((requests[1].body as Record<string, unknown>).analysisId, analysis.analysis_id);
+	assert.equal((await client.detail("fl-1")).initialization_source, null);
+
+	const openapi = await readFile(new URL("../openapi.json", import.meta.url), "utf8");
+	assert.match(openapi, /"BrowserFluctlightCreationAnalysisRequest"[\s\S]*?"maxLength": 60000,[\s\S]*?"x-maxBytes": 60000/);
+	assert.match(openapi, /"\/api\/fluctlight-creations\/analysis"[\s\S]*?"requestBody"[\s\S]*?"required": true/);
+});
+
 test("BrowserClient requests the bounded media prompt diagnostics module", async () => {
   let requestedUrl = "";
   const client = new BrowserClient("http://fluctlight.local", async (input) => {
@@ -104,6 +148,37 @@ test("BrowserClient exposes media prompt retry", async () => {
   await client.retryDiagnosticMediaPrompt("media-1");
   assert.equal(requestedUrl, "http://fluctlight.local/api/diagnostics/media-prompts/media-1/retry");
   assert.equal(requestedMethod, "POST");
+});
+
+test("BrowserClient serializes every lifecycle diagnostics filter for query and export", async () => {
+  const requested: string[] = [];
+  const client = new BrowserClient("http://fluctlight.local", async (input) => {
+    requested.push(String(input));
+    return Response.json({ events: [], workflowIntents: [], filters: {} });
+  });
+  const filters = {
+    limit: 25,
+    fluctlightId: "fl-1",
+    correlationId: "corr-1",
+    intentId: "intent-1",
+    workflowId: "go:wake-1",
+    runId: "run-1",
+    surface: "wake_up",
+    status: "retry",
+  };
+  await client.lifecycleDiagnostics(filters);
+  await client.exportDiagnostics(filters);
+  for (const url of requested) {
+    const parsed = new URL(url);
+    assert.equal(parsed.searchParams.get("limit"), "25");
+    assert.equal(parsed.searchParams.get("fluctlightId"), "fl-1");
+    assert.equal(parsed.searchParams.get("correlationId"), "corr-1");
+    assert.equal(parsed.searchParams.get("intentId"), "intent-1");
+    assert.equal(parsed.searchParams.get("workflowId"), "go:wake-1");
+    assert.equal(parsed.searchParams.get("runId"), "run-1");
+    assert.equal(parsed.searchParams.get("surface"), "wake_up");
+    assert.equal(parsed.searchParams.get("status"), "retry");
+  }
 });
 
 test("BrowserClient serializes the schema-derived Life Context command contracts", async () => {

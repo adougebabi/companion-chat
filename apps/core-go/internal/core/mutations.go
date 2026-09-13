@@ -1001,7 +1001,6 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, errCognitionTurnSuperseded
 		}
 		a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
-		a.scheduleWakeUpTrigger(ctx, fluctlightID, int(reflectionDelay/time.Second))
 		if err := emitUserFrame(); err != nil {
 			return TurnResult{}, err
 		}
@@ -1202,7 +1201,6 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		return TurnResult{}, err
 	}
 	a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
-	a.scheduleWakeUpTrigger(ctx, fluctlightID, int(reflectionDelay/time.Second))
 	if err := emitUserFrame(); err != nil {
 		return TurnResult{}, err
 	}
@@ -1340,7 +1338,6 @@ func (a *App) recoverFrozenTurnAfterAssistant(ctx context.Context, inboxID, fluc
 		return "", true, err
 	}
 	a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
-	a.scheduleWakeUpTrigger(ctx, fluctlightID, int(reflectionDelay/time.Second))
 	return mediaIntent, true, nil
 }
 

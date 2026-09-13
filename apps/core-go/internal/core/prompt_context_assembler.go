@@ -15,7 +15,7 @@ const (
 	defaultPromptSafetyMarginTokens = 4096
 	promptBudgetPolicyVersionV1     = "prompt-budget.v1"
 	defaultSystemTokensCap          = 8192
-	defaultToolsSchemaTokensCap     = 16384
+	defaultToolsSchemaTokensCap     = 24576
 	defaultCurrentInputTokensCap    = 16384
 )
 

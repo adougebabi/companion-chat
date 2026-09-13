@@ -145,6 +145,68 @@ func TestBFFMapsNestedBrowserPayloadsToCore(t *testing.T) {
 	}
 }
 
+func TestBFFLifecycleDiagnosticsMapsFiltersAndPreservesPostgresSnapshot(t *testing.T) {
+	requestedURI := ""
+	handler := testBFF(t, func(request *http.Request) (*http.Response, error) {
+		requestedURI = request.URL.RequestURI()
+		return jsonResponse(http.StatusOK, `{
+			"events":[{"id":"event-1","event_type":"lifecycle.wake_up.retry_scheduled","surface":"wake_up","transition":"retry_scheduled","severity":"warn","fluctlight_id":"fl-1","correlation_id":"corr-1","intent_id":"intent-1","workflow_id":"wake-1","run_id":"run-1","stage":"workflow_reconcile","status":"retry","reason_code":"wake_up_workflow_terminal","retryable":true,"attempt":2,"next_due_at":"2026-09-13T10:00:00Z","created_at":"2026x"}],
+			"workflow_intents":[{"intent_id":"intent-1","workflow_id":"wake-1","runtime_workflow_id":"go:wake-1","task_queue":"lifecycle","intent_type":"wake_up.current","status":"retry","attempt_count":2,"fluctlight_id":"fl-1","correlation_id":"corr-1","next_attempt_at":"2026-09-13T10:00:00Z","created_at":"2026-09-13T09:00:00Z"}],
+			"filters":{"limit":20,"fluctlight_id":"fl-1","correlation_id":"corr-1","intent_id":"intent-1","workflow_id":"go:wake-1","run_id":"run-1","surface":"wake_up","status":"retry"}
+		}`), nil
+	})
+	response := invoke(handler, http.MethodGet, "http://gateway.test/api/diagnostics/lifecycle?limit=20&fluctlightId=fl-1&correlationId=corr-1&intentId=intent-1&workflowId=go%3Awake-1&runId=run-1&surface=wake_up&status=retry", "", nil, map[string]string{sessionCookieName: "opaque"})
+	if response.Code != http.StatusOK {
+		t.Fatalf("lifecycle response = %d %s", response.Code, response.Body.String())
+	}
+	parsed, err := url.Parse(requestedURI)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]string{"fluctlight_id": "fl-1", "correlation_id": "corr-1", "intent_id": "intent-1", "workflow_id": "go:wake-1", "run_id": "run-1", "surface": "wake_up", "status": "retry"} {
+		if got := parsed.Query().Get(key); got != want {
+			t.Fatalf("Core query %s = %q, want %q", key, got, want)
+		}
+	}
+	body := response.Body.String()
+	for _, required := range []string{`"workflowIntents"`, `"reasonCode":"wake_up_workflow_terminal"`, `"runtimeWorkflowId":"go:wake-1"`, `"nextAttemptAt":"2026-09-13T10:00:00Z"`} {
+		if !strings.Contains(body, required) {
+			t.Fatalf("lifecycle browser mapping missing %s: %s", required, body)
+		}
+	}
+}
+
+func TestBFFDiagnosticsPreservesSafeCoreServerError(t *testing.T) {
+	handler := testBFF(t, func(request *http.Request) (*http.Response, error) {
+		return jsonResponse(http.StatusServiceUnavailable, `{"detail":{"code":"diagnostics_store_unavailable","message":"store unavailable","details":{"correlation_id":"corr-1","stage":"query"}}}`), nil
+	})
+	response := invoke(handler, http.MethodGet, "http://gateway.test/api/diagnostics/lifecycle?correlationId=corr-1", "", nil, map[string]string{sessionCookieName: "opaque"})
+	if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body.String(), `"diagnostics_store_unavailable"`) || !strings.Contains(response.Body.String(), `"correlation_id":"corr-1"`) {
+		t.Fatalf("safe Core diagnostic error was collapsed: %d %s", response.Code, response.Body.String())
+	}
+}
+
+func TestBFFDiagnosticsExportForwardsLifecycleFilters(t *testing.T) {
+	requestedURI := ""
+	handler := testBFF(t, func(request *http.Request) (*http.Response, error) {
+		requestedURI = request.URL.RequestURI()
+		return jsonResponse(http.StatusOK, `{"events":[],"lifecycle":[],"workflow_intents":[],"filters":{}}`), nil
+	})
+	response := invoke(handler, http.MethodGet, "http://gateway.test/api/diagnostics/export?limit=50&fluctlightId=fl-1&correlationId=corr-1&intentId=intent-1&workflowId=go%3Awake-1&runId=run-1&surface=wake_up&status=failed", "", nil, map[string]string{sessionCookieName: "opaque"})
+	if response.Code != http.StatusOK {
+		t.Fatalf("export response = %d %s", response.Code, response.Body.String())
+	}
+	parsed, err := url.Parse(requestedURI)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]string{"limit": "50", "fluctlight_id": "fl-1", "correlation_id": "corr-1", "intent_id": "intent-1", "workflow_id": "go:wake-1", "run_id": "run-1", "surface": "wake_up", "status": "failed"} {
+		if got := parsed.Query().Get(key); got != want {
+			t.Fatalf("export Core query %s = %q, want %q", key, got, want)
+		}
+	}
+}
+
 func TestBFFErrorMappingsPreserveRouteSpecificPolicy(t *testing.T) {
 	mutationHeaders := map[string]string{"Origin": "https://fluctlight.local", "X-CSRF-Token": "csrf"}
 	mutationCookies := map[string]string{sessionCookieName: "opaque", csrfCookieName: "csrf"}

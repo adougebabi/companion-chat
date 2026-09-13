@@ -52,6 +52,11 @@ func main() {
 	} else if ensured > 0 {
 		slog.Default().Info("Go Worker ensured wake-up intents", "count", ensured)
 	}
+	if released, err := application.ReleaseDueWakeUpIntents(ctx, 50); err != nil {
+		log.Printf("release due WakeUp intents: %v", err)
+	} else if released > 0 {
+		slog.Default().Info("Go Worker released due WakeUp intents", "count", released)
+	}
 	temporalClient, err := client.Dial(client.Options{HostPort: settings.TemporalAddr, Namespace: settings.TemporalNS})
 	if err != nil {
 		log.Fatal(err)
@@ -141,7 +146,18 @@ func main() {
 			if _, err := application.PruneDiagnostics(ctx, 30*24*time.Hour, 10000); err != nil {
 				logger.Warn("Go Worker diagnostics retention retry", "error", err)
 			}
+			if audited, err := application.AuditWakeUpClocks(ctx, 50); err != nil {
+				logger.Warn("Go Worker WakeUp clock audit retry", "error", err)
+			} else if audited > 0 {
+				logger.Warn("Go Worker found unhealthy WakeUp clocks", "count", audited)
+			}
 		case <-dispatchTicker.C:
+			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
+				_, err := application.ReleaseDueWakeUpIntents(operationCtx, 50)
+				return err
+			}); err != nil {
+				logger.Warn("Go Worker due WakeUp release retry", "error", err)
+			}
 			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {
 				_, err := application.Provider.ReconcileRedisQueue(operationCtx, "generic_llm")
 				return err

@@ -102,6 +102,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /internal/conversations/{conversationID}/turn", s.turn)
 	mux.HandleFunc("GET /internal/media/{assetID}", s.media)
 	mux.HandleFunc("GET /internal/diagnostics", s.diagnostics)
+	mux.HandleFunc("GET /internal/diagnostics/lifecycle", s.lifecycleDiagnostics)
 	mux.HandleFunc("DELETE /internal/diagnostics", s.clearDiagnostics)
 	mux.HandleFunc("GET /internal/diagnostics/model-runs", s.modelRuns)
 	mux.HandleFunc("GET /internal/diagnostics/media-prompts", s.mediaPrompts)
@@ -420,7 +421,7 @@ func (s *Server) createFluctlight(response http.ResponseWriter, request *http.Re
 		writeError(response, http.StatusBadRequest, "core_request_validation_failed")
 		return
 	}
-	item, err := s.app.CreateFluctlight(request.Context(), actorID, stringValue(body["id"]), stringValue(body["name"]), "blank_slate", nil, nil, nil)
+	item, err := s.app.CreateFluctlight(request.Context(), actorID, stringValue(body["id"]), stringValue(body["name"]), "blank_slate", "", nil, nil, nil)
 	if err != nil {
 		writeError(response, http.StatusConflict, "fluctlight_create_failed")
 		return
@@ -429,7 +430,7 @@ func (s *Server) createFluctlight(response http.ResponseWriter, request *http.Re
 }
 
 func (s *Server) analyzeCreation(response http.ResponseWriter, request *http.Request) {
-	_, ok := s.authorizeHuman(response, request)
+	actorID, ok := s.authorizeHuman(response, request)
 	if !ok || s.app == nil {
 		return
 	}
@@ -438,20 +439,41 @@ func (s *Server) analyzeCreation(response http.ResponseWriter, request *http.Req
 		writeError(response, http.StatusBadRequest, "core_request_validation_failed")
 		return
 	}
-	value, err := s.app.AnalyzeDescription(request.Context(), stringValue(body["description"]))
+	description := stringValue(body["description"])
+	if !validInitializationDescriptionRequest(description) {
+		writeError(response, http.StatusUnprocessableEntity, "description_invalid")
+		return
+	}
+	value, err := s.app.AnalyzeDescription(request.Context(), actorID, description)
 	if err != nil {
 		code := err.Error()
 		if !strings.Contains(code, "_") || strings.Contains(code, " ") {
 			code = "initialization_persona_invalid"
 		}
 		if detailed, ok := err.(interface{ PublicDetails() map[string]any }); ok {
-			writeErrorDetails(response, http.StatusUnprocessableEntity, code, detailed.PublicDetails())
+			writeErrorDetails(response, initializationAnalysisFailureStatus(err), code, detailed.PublicDetails())
 		} else {
 			writeError(response, http.StatusUnprocessableEntity, code)
 		}
 		return
 	}
 	writeJSON(response, http.StatusOK, value)
+}
+
+func initializationAnalysisFailureStatus(err error) int {
+	var detailed interface{ PublicDetails() map[string]any }
+	if !errors.As(err, &detailed) {
+		return http.StatusUnprocessableEntity
+	}
+	validationType := stringValue(mapValue(detailed.PublicDetails()["validation_error"])["type"])
+	switch validationType {
+	case "provider":
+		return http.StatusServiceUnavailable
+	case "persistence":
+		return http.StatusInternalServerError
+	default:
+		return http.StatusUnprocessableEntity
+	}
 }
 
 func (s *Server) activateCreation(response http.ResponseWriter, request *http.Request) {
@@ -474,6 +496,11 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 		writeError(response, http.StatusUnprocessableEntity, "activation_request_id_required")
 		return
 	}
+	analysisID := stringValue(body["analysis_id"])
+	if mode == "llm_defined" && analysisID == "" {
+		writeErrorDetails(response, http.StatusUnprocessableEntity, "activation_analysis_required", map[string]any{"correlation_id": "activation:" + core.StableFluctlightID(actorID, requestID)})
+		return
+	}
 	corePersona := mapValue(body["core_persona"])
 	identity := mapValue(corePersona["identity"])
 	name := stringValue(body["name"])
@@ -485,12 +512,12 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 		initialization = nil
 	}
 	stable := core.StableFluctlightID(actorID, requestID)
-	item, err := s.app.CreateFluctlight(request.Context(), actorID, stable, name, mode, initialization, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]))
+	item, err := s.app.CreateFluctlight(request.Context(), actorID, stable, name, mode, analysisID, initialization, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]))
 	if err != nil {
 		correlationID := "activation:" + stable
 		code, details := activationFailureDetails(err, correlationID)
 		slog.Default().Warn("Go Core activation failed", "code", code, "correlation_id", correlationID, "error_type", fmt.Sprintf("%T", err), "error_code", activationFailureLogCode(err))
-		writeErrorDetails(response, http.StatusUnprocessableEntity, code, details)
+		writeErrorDetails(response, activationFailureStatus(err), code, details)
 		return
 	}
 	writeJSON(response, http.StatusOK, map[string]any{"id": item.ID, "core_persona": item.CorePersona, "identity": item.Identity, "personality": item.Personality, "behavioral_policy": item.BehavioralPolicy, "life_profile": item.LifeProfile, "provenance": item.Provenance, "status": item.Status, "current_revision": item.CurrentRevision})
@@ -498,6 +525,18 @@ func (s *Server) activateCreation(response http.ResponseWriter, request *http.Re
 
 func activationFailureDetails(err error, correlationID string) (string, map[string]any) {
 	details := map[string]any{"correlation_id": correlationID}
+	switch {
+	case errors.Is(err, core.ErrActivationAnalysisRequired):
+		return "activation_analysis_required", details
+	case errors.Is(err, core.ErrActivationAnalysisInvalid):
+		return "activation_analysis_invalid", details
+	case errors.Is(err, core.ErrActivationAnalysisStale):
+		return "activation_analysis_stale", details
+	case errors.Is(err, core.ErrActivationAnalysisConflict):
+		return "activation_analysis_conflict", details
+	case errors.Is(err, core.ErrConflict):
+		return "activation_request_conflict", details
+	}
 	var detailed interface{ PublicDetails() map[string]any }
 	if errors.As(err, &detailed) {
 		for key, value := range detailed.PublicDetails() {
@@ -507,13 +546,28 @@ func activationFailureDetails(err error, correlationID string) (string, map[stri
 		}
 		return "activation_persona_invalid", details
 	}
-	if errors.Is(err, core.ErrConflict) {
-		return "activation_request_conflict", details
-	}
 	if err != nil && err.Error() == "initialization_persona_invalid" {
 		return "activation_persona_invalid", details
 	}
 	return "activation_persistence_failed", details
+}
+
+func activationFailureStatus(err error) int {
+	if errors.Is(err, core.ErrActivationAnalysisStale) || errors.Is(err, core.ErrActivationAnalysisConflict) || errors.Is(err, core.ErrConflict) {
+		return http.StatusConflict
+	}
+	if errors.Is(err, core.ErrActivationAnalysisRequired) || errors.Is(err, core.ErrActivationAnalysisInvalid) {
+		return http.StatusUnprocessableEntity
+	}
+	var detailed interface{ PublicDetails() map[string]any }
+	if errors.As(err, &detailed) || (err != nil && err.Error() == "initialization_persona_invalid") {
+		return http.StatusUnprocessableEntity
+	}
+	return http.StatusInternalServerError
+}
+
+func validInitializationDescriptionRequest(description string) bool {
+	return strings.TrimSpace(description) != "" && len([]byte(description)) <= core.InitializationDescriptionMaxBytes
 }
 
 func activationFailureLogCode(err error) string {

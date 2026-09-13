@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -29,6 +30,68 @@ type WakeUpSettings struct {
 
 func defaultWakeUpSettings() WakeUpSettings {
 	return WakeUpSettings{Enabled: true, IntervalSeconds: defaultWakeUpIntervalSeconds}
+}
+
+func nextWakeUpDue(previousDue, now time.Time, intervalSeconds int) time.Time {
+	if intervalSeconds <= 0 {
+		intervalSeconds = defaultWakeUpIntervalSeconds
+	}
+	now = now.UTC()
+	interval := time.Duration(intervalSeconds) * time.Second
+	if previousDue.IsZero() {
+		return now.Add(interval)
+	}
+	previousDue = previousDue.UTC()
+	if previousDue.After(now) {
+		return previousDue
+	}
+	steps := now.Sub(previousDue)/interval + 1
+	return previousDue.Add(steps * interval)
+}
+
+func (a *App) ensureWakeUpNextDue(ctx context.Context, fluctlightID string, cycle, intervalSeconds int, reason string) (time.Time, error) {
+	var nextDue time.Time
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var err error
+		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, intervalSeconds, time.Now().UTC())
+		return err
+	})
+	if err != nil {
+		return time.Time{}, err
+	}
+	correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)
+	a.RecordLifecycleDiagnosticBestEffort(ctx, LifecycleDiagnostic{
+		Surface: "wake_up", Transition: LifecycleTransitionNextCycleScheduled,
+		FluctlightID: fluctlightID, CorrelationID: correlationID,
+		IntentID: "wake_up_intent:" + fluctlightID, WorkflowID: "wake_up:" + fluctlightID,
+		Stage: "clock", Status: "scheduled", ReasonCode: reason,
+		Attempt: cycle, NextDueAt: nextDue,
+	})
+	return nextDue.UTC(), nil
+}
+
+func (a *App) scheduleWakeUpHint(ctx context.Context, fluctlightID string, cycle int, nextDue time.Time) {
+	delay := time.Until(nextDue)
+	seconds := int((delay + time.Second - 1) / time.Second)
+	if seconds < 1 {
+		seconds = 1
+	}
+	if err := a.scheduleWakeUpTrigger(ctx, fluctlightID, seconds); err != nil {
+		correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)
+		slog.Warn("Go Core WakeUp Redis hint failed",
+			"fluctlight_id", fluctlightID,
+			"correlation_id", correlationID,
+			"error_type", fmt.Sprintf("%T", err),
+		)
+		a.RecordLifecycleDiagnosticBestEffort(ctx, LifecycleDiagnostic{
+			Surface: "wake_up", Transition: LifecycleTransitionFailed, Severity: "warn",
+			FluctlightID: fluctlightID, CorrelationID: correlationID,
+			IntentID: "wake_up_intent:" + fluctlightID, WorkflowID: "wake_up:" + fluctlightID,
+			Stage: "redis_hint", Status: "degraded", ReasonCode: "redis_hint_failed",
+			ErrorCategory: "transport", ErrorCode: "redis_hint_failed", Retryable: true,
+			Attempt: cycle, NextDueAt: nextDue,
+		})
+	}
 }
 
 func normalizeWakeUpSettings(value map[string]any) WakeUpSettings {
@@ -65,13 +128,15 @@ func (a *App) readWakeUpSettings(ctx context.Context) (WakeUpSettings, error) {
 	return normalizeWakeUpSettings(value), nil
 }
 
-// EnsureWakeUpIntents repairs the durable entry point for Fluctlights that
-// were created before the wake-up debounce feature existed. Failed intents for
-// still-live Fluctlights are made retryable; completed intents wait for their
-// Redis quiet-period hint instead of being launched immediately at startup.
+// EnsureWakeUpIntents repairs the stable clock independently of Schedule.
+// Schedule enriches WakeUp context but never owns autonomous-lifecycle liveness.
 func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
+	settings, err := a.readWakeUpSettings(ctx)
+	if err != nil {
+		return 0, err
+	}
 	var ensured int64
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		inserted, err := tx.Exec(ctx, `
 		INSERT INTO public.platform_workflow_intents(
 				intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at
@@ -83,17 +148,10 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 				'wake_up.current',
 				jsonb_build_object('fluctlight_id', f.id, 'cycle', 0),
 				'pending',
-				now()
+				now()+($1 * interval '1 second')
 			FROM public.fluctlights AS f
 			WHERE f.status IN ('active', 'paused')
-			  AND EXISTS (
-				SELECT 1
-				FROM public.life_schedules AS s
-				WHERE s.fluctlight_id = f.id
-				  AND s.status = 'accepted'
-				  AND s.local_date = (now() AT TIME ZONE COALESCE(NULLIF(f.identity->>'timezone',''),'Asia/Shanghai'))::date
-			  )
-			ON CONFLICT (intent_id) DO NOTHING`)
+			ON CONFLICT (intent_id) DO NOTHING`, settings.IntervalSeconds)
 		if err != nil {
 			return err
 		}
@@ -105,18 +163,23 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 			WHERE i.intent_type='wake_up.current'
 			  AND i.payload->>'fluctlight_id' = f.id
 			  AND f.status IN ('active', 'paused')
-			  AND EXISTS (
-				SELECT 1
-				FROM public.life_schedules AS s
-				WHERE s.fluctlight_id = f.id
-				  AND s.status = 'accepted'
-				  AND s.local_date = (now() AT TIME ZONE COALESCE(NULLIF(f.identity->>'timezone',''),'Asia/Shanghai'))::date
-			  )
 			  AND i.status = 'failed'`)
 		if err != nil {
 			return err
 		}
 		ensured += requeued.RowsAffected()
+		initialized, err := tx.Exec(ctx, `
+			UPDATE public.platform_workflow_intents AS i
+			SET next_attempt_at=now()+($1 * interval '1 second')
+			FROM public.fluctlights AS f
+			WHERE i.intent_type='wake_up.current'
+			  AND i.payload->>'fluctlight_id'=f.id
+			  AND f.status IN ('active','paused')
+			  AND i.next_attempt_at IS NULL`, settings.IntervalSeconds)
+		if err != nil {
+			return err
+		}
+		ensured += initialized.RowsAffected()
 		return nil
 	})
 	return ensured, err
@@ -191,6 +254,20 @@ func normalizeWakeUpAssessment(value map[string]any) (map[string]any, error) {
 
 func fallbackWakeUpActionWithoutCapability(proposedActionType string) (string, map[string]any) {
 	return "no_op", map[string]any{"status": "no_op", "reason": "action_requires_capability_call", "proposed_action_type": proposedActionType}
+}
+
+// normalizeWakeUpActionWithoutCapability converts a model-proposed external
+// action into a durable no-op before influence and output-binding validation.
+// WakeUp may perform internal cognition without selecting a capability, but it
+// must never fail the recurring cycle merely because the optional tool call is
+// absent.
+func normalizeWakeUpActionWithoutCapability(assessment map[string]any, calls []CapabilityInvocation) string {
+	proposedActionType := stringValue(assessment["action_type"])
+	if proposedActionType == "" || proposedActionType == "no_op" || len(calls) > 0 {
+		return ""
+	}
+	assessment["action_type"] = "no_op"
+	return proposedActionType
 }
 
 // wakeUpAssessmentFromToolCalls keeps a tool-only wake-up valid. Thinking
@@ -274,6 +351,13 @@ func wakeUpDecisionRequiresInfluences(actionType string, calls []CapabilityInvoc
 	return false
 }
 
+func wakeUpScheduleStatus(schedule map[string]any) string {
+	if len(schedule) == 0 {
+		return "missing"
+	}
+	return firstString(schedule["status"], "ready")
+}
+
 // ProcessWakeUp performs one bounded proactive-action assessment. Wake-up is
 // not a second cognition/reflection pass: it decides whether a Moment, direct
 // message, or installed capability should be proposed, records that decision,
@@ -288,22 +372,37 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if cycle < 0 {
 		return nil, errors.New("wake_up_cycle_invalid")
 	}
+	correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)
 	settings, err := a.readWakeUpSettings(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if !settings.Enabled {
-		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": "disabled", "interval_seconds": settings.IntervalSeconds}, nil
+		nextDue, err := a.ensureWakeUpNextDue(ctx, fluctlightID, cycle, settings.IntervalSeconds, "wake_up_disabled")
+		if err != nil {
+			return nil, err
+		}
+		a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "disabled", "reason": "wake_up_disabled", "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
 	}
 	fluctlight, err := a.readFluctlightByID(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
 	}
 	if fluctlight.Status == "paused" {
-		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": "paused", "reason": "fluctlight_paused", "interval_seconds": settings.IntervalSeconds}, nil
+		nextDue, err := a.ensureWakeUpNextDue(ctx, fluctlightID, cycle, settings.IntervalSeconds, "fluctlight_paused")
+		if err != nil {
+			return nil, err
+		}
+		a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "paused", "reason": "fluctlight_paused", "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
 	}
 	if fluctlight.Status != "active" {
-		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": "inactive", "interval_seconds": settings.IntervalSeconds}, nil
+		nextDue, err := a.ensureWakeUpNextDue(ctx, fluctlightID, cycle, settings.IntervalSeconds, "fluctlight_inactive")
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "inactive", "reason": "fluctlight_not_active", "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
 	}
 	ctx = WithProviderExecutionGuard(ctx, a.providerGuardForFluctlight(fluctlightID))
 	wakeID := "wake_up_" + stableDigest(fluctlightID+":"+fmt.Sprint(cycle))
@@ -311,7 +410,12 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	var existingStatus, existingActionType string
 	var existingActionID, existingReflectionIntentID *string
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,action_type,action_id,reflection_intent_id FROM public.cognition_wakeups WHERE id=$1`, wakeID).Scan(&existingStatus, &existingActionType, &existingActionID, &existingReflectionIntentID); err == nil {
-		return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "status": existingStatus, "action_type": existingActionType, "action_id": existingActionID, "reflection_intent_id": existingReflectionIntentID, "interval_seconds": settings.IntervalSeconds}, nil
+		nextDue, dueErr := a.ensureWakeUpNextDue(ctx, fluctlightID, cycle, settings.IntervalSeconds, "wake_up_replay_repaired")
+		if dueErr != nil {
+			return nil, dueErr
+		}
+		a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
+		return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": existingStatus, "reason": "wake_up_replayed", "action_type": existingActionType, "action_id": existingActionID, "reflection_intent_id": existingReflectionIntentID, "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
@@ -351,12 +455,20 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceWakeUp)
 	schema := wakeUpResponseSchema()
-	assembly, assembledProjection, err := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction}, jsonString(map[string]any{"wake_up_id": wakeID, "cycle": cycle}), definitions, "wake_up_response", schema)
+	wakeUpContext := map[string]any{
+		"wake_up_id":      wakeID,
+		"cycle":           cycle,
+		"schedule_status": wakeUpScheduleStatus(projection.Schedule),
+	}
+	assembly, assembledProjection, err := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction}, jsonString(wakeUpContext), definitions, "wake_up_response", schema)
 	if err != nil {
 		return nil, err
 	}
 	projection = assembledProjection
-	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "wake_up"), assembly.Diagnostics)
+	providerCtx := WithPromptDiagnostics(
+		WithProviderCorrelation(WithProviderScenario(ctx, "wake_up"), correlationID),
+		assembly.Diagnostics,
+	)
 	completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "wake_up_response", schema, true)
 	if err != nil {
 		if status, suppressed := providerSuppressionStatus(err); suppressed {
@@ -364,7 +476,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			if status == "paused" {
 				reason = "fluctlight_paused"
 			}
-			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "status": status, "reason": reason, "interval_seconds": settings.IntervalSeconds}, nil
+			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": status, "reason": reason, "interval_seconds": settings.IntervalSeconds}, nil
 		}
 		return nil, err
 	}
@@ -388,11 +500,25 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
-	if wakeUpDecisionRequiresInfluences(stringValue(assessment["action_type"]), toolCalls, a.capabilityRegistry()) {
-		if err := requireDecisionInfluences(influences, "wake_up_influences_required"); err != nil {
-			return nil, err
+	proposedActionWithoutInfluences := ""
+	if len(influences) == 0 && wakeUpDecisionRequiresInfluences(stringValue(assessment["action_type"]), toolCalls, a.capabilityRegistry()) {
+		// Missing influence metadata must not kill the recurring cycle. Preserve
+		// only deferred output calls, whose durable target/result is sufficient
+		// evidence, and discard state-changing/internal calls that cannot be
+		// traced back to a Core-owned context reference.
+		deferredCalls, _ := splitDeferredOutputCapabilities(toolCalls, a.capabilityRegistry())
+		toolCalls = deferredCalls
+		if len(toolCalls) == 0 {
+			proposedActionWithoutInfluences = stringValue(assessment["action_type"])
+			if proposedActionWithoutInfluences == "" || proposedActionWithoutInfluences == "no_op" {
+				proposedActionWithoutInfluences = "capability"
+			}
+			assessment["action_type"] = "no_op"
+		} else {
+			assessment = mergeWakeUpToolCallAssessment(assessment, toolCalls, a.capabilityRegistry())
 		}
 	}
+	proposedActionWithoutCapability := normalizeWakeUpActionWithoutCapability(assessment, toolCalls)
 	// Freeze the invocation metadata and context snapshot before persistence.
 	// Capability-local planning/preflight may perform I/O, so it runs from the
 	// durable action worker rather than making a transient failure erase this
@@ -437,6 +563,11 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	mediaComposite := deferredOutput && (proposedActionType == "moment" || proposedActionType == "proactive_message")
 	result := map[string]any{"status": "no_op"}
+	if proposedActionWithoutInfluences != "" {
+		result = map[string]any{"status": "no_op", "reason": "capability_influences_missing", "proposed_action_type": proposedActionWithoutInfluences}
+	} else if proposedActionWithoutCapability != "" {
+		_, result = fallbackWakeUpActionWithoutCapability(proposedActionWithoutCapability)
+	}
 	if len(visualIdentityToolResults) > 0 {
 		result["visual_identity_capability_results"] = visualIdentityToolResults
 	}
@@ -517,13 +648,20 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		policySnapshot["budget_reserved"] = true
 	}
 	reflectionIntentID := "reflection_intent:wake:" + wakeID
-	factID, err := a.persistWakeUp(ctx, wakeID, fluctlightID, cycle, projection.ContextRevision, projection.CurrentStateRevision, projection.InnerState, projection.LifeContextRevision, assessment, actualActionType, actionID, result, reflectionIntentID, policySnapshot, conversationID, toolCalls)
+	factID, nextDue, err := a.persistWakeUp(ctx, wakeID, fluctlightID, cycle, settings.IntervalSeconds, projection.ContextRevision, projection.CurrentStateRevision, projection.InnerState, projection.LifeContextRevision, assessment, actualActionType, actionID, result, reflectionIntentID, policySnapshot, conversationID, toolCalls)
 	if err != nil {
 		return nil, err
 	}
-	// Redis expiration is a low-latency hint only; the long-lived Temporal
-	// workflow remains the durable wake-up timer and recovery authority.
-	a.scheduleWakeUpTrigger(ctx, fluctlightID, settings.IntervalSeconds)
+	a.RecordLifecycleDiagnosticBestEffort(ctx, LifecycleDiagnostic{
+		Surface: "wake_up", Transition: LifecycleTransitionNextCycleScheduled,
+		FluctlightID: fluctlightID, CorrelationID: wakeUpCycleCorrelation(fluctlightID, cycle),
+		IntentID: "wake_up_intent:" + fluctlightID, WorkflowID: "wake_up:" + fluctlightID,
+		Stage: "clock", Status: "scheduled", ReasonCode: "wake_up_cycle_completed",
+		Attempt: cycle, NextDueAt: nextDue,
+	})
+	// Redis expiration is a low-latency hint only. PostgreSQL next_attempt_at and
+	// the Worker's due sweep remain the recurrence authority.
+	a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
 	capabilityResults := make([]CapabilityResult, 0)
 	_ = factID
 	safeResult := make(map[string]any, len(result))
@@ -533,7 +671,11 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		}
 	}
 	safeResult["capability_results"] = capabilityResults
-	return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "status": "completed", "action_type": actualActionType, "action_id": nullableString(actionID), "reflection_intent_id": reflectionIntentID, "result": safeResult, "interval_seconds": settings.IntervalSeconds}, nil
+	outcomeReason := firstString(result["reason"], "action_queued")
+	if actualActionType == "no_op" {
+		outcomeReason = firstString(result["reason"], "no_action_selected")
+	}
+	return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": firstString(result["status"], "no_op"), "reason": outcomeReason, "action_type": actualActionType, "action_id": nullableString(actionID), "reflection_intent_id": reflectionIntentID, "result": safeResult, "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
 }
 
 func capabilityInvocationText(invocation CapabilityInvocation) string {
@@ -563,17 +705,19 @@ func textFromOutputBinding(calls []CapabilityInvocation, targetKind string, regi
 	return ""
 }
 
-func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cycle, foundationRevision, currentStateRevision int, internalDynamics map[string]any, lifeContextRevision string, assessment map[string]any, actionType, actionID string, result map[string]any, reflectionIntentID string, policySnapshot map[string]any, conversationID string, toolCalls []CapabilityInvocation) (string, error) {
+func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cycle, intervalSeconds, foundationRevision, currentStateRevision int, internalDynamics map[string]any, lifeContextRevision string, assessment map[string]any, actionType, actionID string, result map[string]any, reflectionIntentID string, policySnapshot map[string]any, conversationID string, toolCalls []CapabilityInvocation) (string, time.Time, error) {
 	factID := "wake_fact_" + stableDigest(wakeID)
+	correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)
+	var nextDue time.Time
 	workflowID := "autonomy_wake:" + wakeID
 	payload := map[string]any{
 		"event_type": "internal.wake_up", "wake_up_id": wakeID, "fluctlight_id": fluctlightID,
-		"cycle": cycle, "action_type": actionType,
+		"cycle": cycle, "action_type": actionType, "correlation_id": correlationID,
 		"response_intent": assessment["response_intent"], "evidence_refs": assessment["evidence_refs"],
 	}
 	causality, err := frozenDecisionCausality(assessment)
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
 	for key, value := range causality {
 		payload[key] = value
@@ -590,7 +734,8 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 		}
 		var existing string
 		if err := tx.QueryRow(ctx, `SELECT id FROM public.cognition_wakeups WHERE id=$1 FOR UPDATE`, wakeID).Scan(&existing); err == nil {
-			return nil
+			nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, intervalSeconds, time.Now().UTC())
+			return err
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
 		}
@@ -604,13 +749,13 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads SET next_sequence=$2,last_processed_sequence=GREATEST(last_processed_sequence,$3) WHERE fluctlight_id=$1`, fluctlightID, sequence+1, sequence); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,processed_at) VALUES($1,$2,$3,'internal.wake_up',$4,$5,$6,$7,now(),'processed',now()) ON CONFLICT DO NOTHING`, factID, fluctlightID, sequence, jsonBytes(payload), wakeID, wakeID, wakeID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,processed_at) VALUES($1,$2,$3,'internal.wake_up',$4,$5,$6,$7,now(),'processed',now()) ON CONFLICT DO NOTHING`, factID, fluctlightID, sequence, jsonBytes(payload), wakeID, correlationID, wakeID); err != nil {
 			return err
 		}
 		// Wake-up is an action check, not a cognition/state-growth pass. Keep the
 		// current snapshot for audit compatibility and leave Current State alone.
 		stagePlaceholder := map[string]any{}
-		wakeResult := map[string]any{"status": result["status"], "action_id": nullableString(actionID), "conversation_id": nullableString(conversationID)}
+		wakeResult := map[string]any{"status": result["status"], "correlation_id": correlationID, "action_id": nullableString(actionID), "conversation_id": nullableString(conversationID)}
 		for key, value := range causality {
 			wakeResult[key] = value
 		}
@@ -622,14 +767,18 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_wakeups(id,fluctlight_id,cycle,internal_dynamics,attention,thought,desire,agency,action_type,action_id,result,reflection_intent_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT DO NOTHING`, wakeID, fluctlightID, cycle, jsonBytes(internalDynamics), jsonBytes(stagePlaceholder), jsonBytes(stagePlaceholder), jsonBytes(stagePlaceholder), jsonBytes(stagePlaceholder), actionType, nullableString(actionID), jsonBytes(wakeResult), reflectionIntentID); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, reflectionIntentID, "reflection:wake:"+wakeID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "wake_up_id": wakeID})); err != nil {
+		if err := insertReflectionIntentTx(ctx, tx,
+			reflectionIntentID,
+			"reflection:wake:"+wakeID,
+			map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "wake_up_id": wakeID, "correlation_id": correlationID, "causation_id": factID},
+		); err != nil {
 			return err
 		}
 		if actionID != "" && actionType == "capability" {
 			if err := reserveAutonomyBudgetTx(ctx, tx, fluctlightID); err != nil {
 				return err
 			}
-			actionPayload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "wake_up_id": wakeID, "source_fact_id": factID, "conversation_id": conversationID, "capability_invocations": toolCalls, "capability_results": []CapabilityResult{}}
+			actionPayload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "wake_up_id": wakeID, "source_fact_id": factID, "correlation_id": correlationID, "causation_id": factID, "conversation_id": conversationID, "capability_invocations": toolCalls, "capability_results": []CapabilityResult{}}
 			actionPayload["context_reference_version"] = contextReferenceIndexVersion
 			actionPayload["context_reference_index"] = assessment["context_reference_index"]
 			actionPayload["influences"] = assessment["influences"]
@@ -641,7 +790,7 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(actionPayload), jsonBytes(policySnapshot), jsonBytes(map[string]any{"foundation_revision": foundationRevision, "life_context_revision": lifeContextRevision, "current_state_revision": currentStateRevision}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
 				return err
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','capability.action',$3) ON CONFLICT DO NOTHING`, "capability_wake_intent:"+wakeID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "wake_up_id": wakeID, "source_fact_id": factID})); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','capability.action',$3) ON CONFLICT DO NOTHING`, "capability_wake_intent:"+wakeID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "wake_up_id": wakeID, "source_fact_id": factID, "correlation_id": correlationID, "causation_id": factID})); err != nil {
 				return err
 			}
 		} else if actionID != "" {
@@ -654,7 +803,7 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			if visible == "" {
 				return errors.New("wake_up_action_payload_empty")
 			}
-			actionPayload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "wake_up_id": wakeID, "source_fact_id": factID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"], "capability_invocations": toolCalls, "capability_results": []CapabilityResult{}, "output_bindings": assessment["output_bindings"]}
+			actionPayload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "wake_up_id": wakeID, "source_fact_id": factID, "correlation_id": correlationID, "causation_id": factID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"], "capability_invocations": toolCalls, "capability_results": []CapabilityResult{}, "output_bindings": assessment["output_bindings"]}
 			actionPayload["context_reference_version"] = contextReferenceIndexVersion
 			actionPayload["context_reference_index"] = assessment["context_reference_index"]
 			actionPayload["influences"] = assessment["influences"]
@@ -666,16 +815,85 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,$3,$4,$5,$6,'frozen',$7,$8) ON CONFLICT DO NOTHING`, actionID, fluctlightID, actionType, jsonBytes(actionPayload), jsonBytes(policySnapshot), jsonBytes(map[string]any{"foundation_revision": foundationRevision, "life_context_revision": lifeContextRevision, "current_state_revision": currentStateRevision}), workflowID, "provider_wakeup_"+stableDigest(wakeID)); err != nil {
 				return err
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','autonomy.action',$3) ON CONFLICT DO NOTHING`, "autonomy_wake_intent:"+wakeID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "wake_up_id": wakeID})); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'interaction','autonomy.action',$3) ON CONFLICT DO NOTHING`, "autonomy_wake_intent:"+wakeID, workflowID, jsonBytes(map[string]any{"action_id": actionID, "fluctlight_id": fluctlightID, "wake_up_id": wakeID, "source_fact_id": factID, "correlation_id": correlationID, "causation_id": factID})); err != nil {
 				return err
 			}
 		}
-		if err := appendOutboxTx(ctx, tx, "cognition.fact.created", "fluctlight", fluctlightID, fluctlightID, wakeID, wakeID, "wake-fact:"+wakeID, payload); err != nil {
+		if err := appendOutboxTx(ctx, tx, "cognition.fact.created", "fluctlight", fluctlightID, fluctlightID, wakeID, correlationID, "wake-fact:"+wakeID, payload); err != nil {
 			return err
 		}
-		return appendOutboxTx(ctx, tx, "wake_up.completed", "fluctlight", fluctlightID, fluctlightID, wakeID, wakeID, "wake-up:"+wakeID, map[string]any{"wake_up_id": wakeID, "cycle": cycle, "action_type": actionType, "reflection_intent_id": reflectionIntentID})
+		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, intervalSeconds, time.Now().UTC())
+		if err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "wake_up.completed", "fluctlight", fluctlightID, fluctlightID, wakeID, correlationID, "wake-up:"+wakeID, map[string]any{"wake_up_id": wakeID, "cycle": cycle, "action_type": actionType, "reflection_intent_id": reflectionIntentID, "correlation_id": correlationID, "next_due_at": nextDue.Format(time.RFC3339Nano)})
 	})
-	return factID, err
+	return factID, nextDue, err
+}
+
+func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, intervalSeconds int, now time.Time) (time.Time, error) {
+	var previousDue *time.Time
+	if err := tx.QueryRow(ctx, `
+		SELECT next_attempt_at
+		FROM public.platform_workflow_intents
+		WHERE intent_type='wake_up.current'
+		  AND payload->>'fluctlight_id'=$1
+		FOR UPDATE`, fluctlightID).Scan(&previousDue); errors.Is(err, pgx.ErrNoRows) {
+		return time.Time{}, ErrNotFound
+	} else if err != nil {
+		return time.Time{}, err
+	}
+	base := time.Time{}
+	if previousDue != nil {
+		base = previousDue.UTC()
+	}
+	nextDue := nextWakeUpDue(base, now, intervalSeconds)
+	command, err := tx.Exec(ctx, `
+		UPDATE public.platform_workflow_intents
+		SET next_attempt_at=$2
+		WHERE intent_type='wake_up.current'
+		  AND payload->>'fluctlight_id'=$1`, fluctlightID, nextDue)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if command.RowsAffected() != 1 {
+		return time.Time{}, errors.New("wake_up_clock_not_written")
+	}
+	return nextDue, nil
+}
+
+func insertReflectionIntentTx(ctx context.Context, tx pgx.Tx, intentID, workflowID string, payload map[string]any) error {
+	settings := defaultWakeUpSettings()
+	var raw string
+	err := tx.QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='product.wakeup'`).Scan(&raw)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	if err == nil {
+		var value map[string]any
+		if json.Unmarshal([]byte(raw), &value) != nil {
+			return errors.New("product_wakeup_setting_invalid")
+		}
+		settings = normalizeWakeUpSettings(value)
+	}
+	nextReflectionAt := time.Now().UTC().Add(time.Duration(settings.IntervalSeconds) * time.Second)
+	command, err := tx.Exec(ctx, `
+		INSERT INTO public.platform_workflow_intents(
+			intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at
+		) VALUES($1,$2,'lifecycle','reflection.run',$3,$4)
+		ON CONFLICT(intent_id) DO UPDATE SET
+			next_attempt_at=CASE
+				WHEN public.platform_workflow_intents.status IN ('pending','retry')
+				THEN GREATEST(public.platform_workflow_intents.next_attempt_at,excluded.next_attempt_at)
+				ELSE public.platform_workflow_intents.next_attempt_at
+			END`, intentID, workflowID, jsonBytes(payload), nextReflectionAt)
+	if err != nil {
+		return err
+	}
+	if command.RowsAffected() != 1 {
+		return errors.New("reflection_intent_not_written")
+	}
+	return nil
 }
 
 func (a *App) persistWakeCapabilityResults(ctx context.Context, wakeID string, results []CapabilityResult) error {
@@ -691,7 +909,10 @@ func (a *App) persistWakeCapabilityResults(ctx context.Context, wakeID string, r
 		if err != nil {
 			return err
 		}
-		_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:capability:"+wakeID, "reflection:capability:"+wakeID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "wake_up_id": wakeID}))
-		return err
+		return insertReflectionIntentTx(ctx, tx,
+			"reflection_intent:capability:"+wakeID,
+			"reflection:capability:"+wakeID,
+			map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "wake_up_id": wakeID},
+		)
 	})
 }

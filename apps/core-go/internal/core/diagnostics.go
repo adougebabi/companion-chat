@@ -6,8 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 const (
@@ -21,6 +24,7 @@ const (
 
 type providerScenarioContextKey struct{}
 type providerCorrelationContextKey struct{}
+type providerAttemptIdentityContextKey struct{}
 type providerExecutionGuardContextKey struct{}
 type providerPromptDiagnosticsContextKey struct{}
 
@@ -48,6 +52,29 @@ func providerCorrelation(ctx context.Context) string {
 	}
 	value, _ := ctx.Value(providerCorrelationContextKey{}).(string)
 	return strings.TrimSpace(value)
+}
+
+// WithProviderAttemptIdentity binds every diagnostic write made by one
+// Provider invocation to the same attempt. Callers with a durable execution
+// attempt (for example a Temporal Activity) may provide it explicitly; the
+// Provider boundary creates one otherwise.
+func WithProviderAttemptIdentity(ctx context.Context, attemptID string) context.Context {
+	return context.WithValue(ctx, providerAttemptIdentityContextKey{}, strings.TrimSpace(attemptID))
+}
+
+func providerAttemptIdentity(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	value, _ := ctx.Value(providerAttemptIdentityContextKey{}).(string)
+	return strings.TrimSpace(value)
+}
+
+func ensureProviderAttemptIdentity(ctx context.Context) context.Context {
+	if providerAttemptIdentity(ctx) != "" {
+		return ctx
+	}
+	return WithProviderAttemptIdentity(ctx, randomID("provider_attempt_"))
 }
 
 func WithPromptDiagnostics(ctx context.Context, trace map[string]any) context.Context {
@@ -255,11 +282,27 @@ func redactDiagnostic(value any) any {
 
 func (a *App) recordModelRun(ctx context.Context, role, endpointID, modelID, correlationID string, prompt any, response any, status, errorCode string) {
 	scenario := providerScenario(ctx, role, "")
-	a.recordModelRunLifecycle(ctx, role, endpointID, modelID, correlationID, scenario, providerPriority(scenario), prompt, response, status, errorCode)
+	if _, err := a.persistModelRunLifecycle(ctx, role, endpointID, modelID, correlationID, scenario, providerPriority(scenario), prompt, response, status, errorCode); err != nil {
+		recordDiagnosticPersistenceFailure("model_run", "create", correlationID, err)
+	}
 }
 
 func (a *App) recordQueuedModelRun(ctx context.Context, role, endpointID, modelID, correlationID, scenario string, priority int, prompt any) string {
-	return a.recordModelRunLifecycle(ctx, role, endpointID, modelID, correlationID, scenario, priority, prompt, nil, providerRunQueued, "")
+	id, err := a.persistModelRunLifecycle(ctx, role, endpointID, modelID, correlationID, scenario, priority, prompt, nil, providerRunQueued, "")
+	if err != nil {
+		recordDiagnosticPersistenceFailure("model_run", "queue", correlationID, err)
+		return ""
+	}
+	if scenario == "wake_up" || scenario == "reflection" {
+		a.RecordLifecycleDiagnosticBestEffort(ctx, LifecycleDiagnostic{
+			Surface: scenario, Transition: LifecycleTransitionProviderQueued,
+			FluctlightID:  strings.TrimSpace(stringValue(providerPromptDiagnostics(ctx)["fluctlight_id"])),
+			CorrelationID: correlationID, ProviderRequestID: providerDiagnosticRequestID(role, correlationID),
+			ProviderAttemptID: providerAttemptIdentity(ctx), ModelRunID: id,
+			Stage: "provider_queue", Status: providerRunQueued, ReasonCode: "provider_request_queued",
+		})
+	}
+	return id
 }
 
 func (a *App) updateModelRunState(ctx context.Context, id, status string, runErr error) {
@@ -272,7 +315,13 @@ func (a *App) updateModelRunState(ctx context.Context, id, status string, runErr
 	}
 	diagnosticCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, _ = a.DB.Pool().Exec(diagnosticCtx, `UPDATE public.diagnostic_model_runs SET status=$2,error_code=CASE WHEN $3='' OR COALESCE(error_code,'')<>'' THEN error_code ELSE $3 END,started_at=CASE WHEN $2='running' THEN COALESCE(started_at,now()) ELSE started_at END,completed_at=CASE WHEN $2 IN ('completed','failed','cancelled','timeout') THEN COALESCE(completed_at,now()) ELSE completed_at END WHERE id=$1`, id, status, nullableString(errorCode))
+	command, err := a.DB.Pool().Exec(diagnosticCtx, `UPDATE public.diagnostic_model_runs SET status=$2,error_code=CASE WHEN $3='' OR COALESCE(error_code,'')<>'' THEN error_code ELSE $3 END,started_at=CASE WHEN $2='running' THEN COALESCE(started_at,now()) ELSE started_at END,completed_at=CASE WHEN $2 IN ('completed','failed','cancelled','timeout') THEN COALESCE(completed_at,now()) ELSE completed_at END WHERE id=$1 AND ((status='queued' AND $2 IN ('running','completed','failed','cancelled','timeout')) OR (status='running' AND $2 IN ('completed','failed','cancelled','timeout')) OR status=$2)`, id, status, nullableString(errorCode))
+	if err != nil || command.RowsAffected() != 1 {
+		if err == nil {
+			err = errors.New("diagnostic_model_run_state_not_written")
+		}
+		recordDiagnosticPersistenceFailure("model_run", "state", id, err)
+	}
 }
 
 func providerRunErrorCode(err error) string {
@@ -304,22 +353,22 @@ func providerSuppressionStatus(err error) (string, bool) {
 	return "", false
 }
 
-func (a *App) recordModelRunLifecycle(ctx context.Context, role, endpointID, modelID, correlationID, scenario string, priority int, prompt any, response any, status, errorCode string) string {
-	if a == nil || a.DB == nil {
-		return ""
+func (a *App) persistModelRunLifecycle(ctx context.Context, role, endpointID, modelID, correlationID, scenario string, priority int, prompt any, response any, status, errorCode string) (string, error) {
+	if a == nil || a.DB == nil || a.DB.Pool() == nil {
+		return "", ErrDiagnosticsUnavailable
 	}
 	if strings.TrimSpace(correlationID) == "" {
 		correlationID = "provider:" + stableDigest(role+":"+modelID+":"+time.Now().UTC().Format(time.RFC3339Nano))
 	}
 	promptJSON, err := json.Marshal(redactDiagnostic(prompt))
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("marshal diagnostic model-run prompt: %w", err)
 	}
 	var responseJSON []byte
 	if response != nil {
 		responseJSON, err = json.Marshal(redactDiagnostic(response))
 		if err != nil {
-			return ""
+			return "", fmt.Errorf("marshal diagnostic model-run response: %w", err)
 		}
 	}
 	bindingRole := providerBindingRole(role)
@@ -330,14 +379,20 @@ func (a *App) recordModelRunLifecycle(ctx context.Context, role, endpointID, mod
 		priority = providerPriority(scenario)
 	}
 	metrics := providerPromptDiagnostics(ctx)
+	attemptID := providerAttemptIdentity(ctx)
+	if attemptID == "" {
+		// Legacy/internal diagnostic callers that do not pass through Provider
+		// retain deterministic identity. Real Provider invocations always set an
+		// explicit attempt before their queued write.
+		attemptID = "legacy"
+	}
+	metrics["provider_attempt_id"] = attemptID
 	fluctlightID := strings.TrimSpace(stringValue(metrics["fluctlight_id"]))
 	if fluctlightID == "" {
 		fluctlightID = a.inferDiagnosticFluctlightID(ctx, correlationID)
 	}
 	estimatedInputTokens := intValue(mapValue(metrics["prompt_budget"])["estimated_input_tokens"])
-	seed := bindingRole + ":" + endpointID + ":" + modelID + ":" + scenario + ":" + correlationID + ":" + string(promptJSON)
-	digest := sha256.Sum256([]byte(seed))
-	id := "model_run_" + hex.EncodeToString(digest[:])[:32]
+	id, digest := providerModelRunIdentity(bindingRole, endpointID, modelID, scenario, correlationID, attemptID, promptJSON)
 	startedAt := any(nil)
 	completedAt := any(nil)
 	if status == providerRunRunning {
@@ -346,9 +401,37 @@ func (a *App) recordModelRunLifecycle(ctx context.Context, role, endpointID, mod
 	if status == providerRunCompleted || status == providerRunFailed || status == providerRunCancelled || status == providerRunTimeout {
 		completedAt = time.Now().UTC()
 	}
-	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,fluctlight_id,metrics,estimated_input_tokens,queued_at,started_at,completed_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,now(),$16,$17) ON CONFLICT(id) DO UPDATE SET role=excluded.role,binding_role=excluded.binding_role,scenario=excluded.scenario,priority=excluded.priority,response=COALESCE(excluded.response,public.diagnostic_model_runs.response),status=excluded.status,error_code=excluded.error_code,fluctlight_id=COALESCE(public.diagnostic_model_runs.fluctlight_id,excluded.fluctlight_id),metrics=CASE WHEN excluded.metrics='{}'::jsonb THEN public.diagnostic_model_runs.metrics ELSE excluded.metrics END,estimated_input_tokens=COALESCE(public.diagnostic_model_runs.estimated_input_tokens,excluded.estimated_input_tokens),started_at=COALESCE(public.diagnostic_model_runs.started_at,excluded.started_at),completed_at=COALESCE(excluded.completed_at,public.diagnostic_model_runs.completed_at)`, id, role, bindingRole, scenario, priority, nullableString(endpointID), modelID, promptJSON, responseJSON, status, nullableString(errorCode), correlationID, nullableString(fluctlightID), jsonBytes(metrics), nullableInt(estimatedInputTokens, estimatedInputTokens > 0), startedAt, completedAt)
-	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.provider_provenance(id,role,endpoint_id,model_id,prompt_version,schema_version,correlation_id,token_budget) SELECT $1,$2,$3,$4,$5,$6,$7,COALESCE((SELECT token_budget FROM public.model_roles WHERE role=$2),0) ON CONFLICT(id) DO NOTHING`, "provider_provenance_"+hex.EncodeToString(digest[:])[:32], bindingRole, endpointID, modelID, providerPromptVersion(scenario), providerSchemaVersion(scenario), correlationID)
-	return id
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		command, err := tx.Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,fluctlight_id,metrics,estimated_input_tokens,queued_at,started_at,completed_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,now(),$16,$17) ON CONFLICT(id) DO UPDATE SET role=excluded.role,binding_role=excluded.binding_role,scenario=excluded.scenario,priority=excluded.priority,response=COALESCE(excluded.response,public.diagnostic_model_runs.response),status=CASE WHEN public.diagnostic_model_runs.status IN ('completed','failed','cancelled','timeout') THEN public.diagnostic_model_runs.status WHEN public.diagnostic_model_runs.status='running' AND excluded.status='queued' THEN public.diagnostic_model_runs.status ELSE excluded.status END,error_code=CASE WHEN public.diagnostic_model_runs.status IN ('completed','failed','cancelled','timeout') THEN public.diagnostic_model_runs.error_code ELSE excluded.error_code END,fluctlight_id=COALESCE(public.diagnostic_model_runs.fluctlight_id,excluded.fluctlight_id),metrics=CASE WHEN public.diagnostic_model_runs.status IN ('completed','failed','cancelled','timeout') OR excluded.metrics='{}'::jsonb THEN public.diagnostic_model_runs.metrics ELSE excluded.metrics END,estimated_input_tokens=COALESCE(public.diagnostic_model_runs.estimated_input_tokens,excluded.estimated_input_tokens),started_at=COALESCE(public.diagnostic_model_runs.started_at,excluded.started_at),completed_at=COALESCE(public.diagnostic_model_runs.completed_at,excluded.completed_at)`, id, role, bindingRole, scenario, priority, nullableString(endpointID), modelID, promptJSON, responseJSON, status, nullableString(errorCode), correlationID, nullableString(fluctlightID), jsonBytes(metrics), nullableInt(estimatedInputTokens, estimatedInputTokens > 0), startedAt, completedAt)
+		if err != nil {
+			return fmt.Errorf("persist diagnostic model run: %w", err)
+		}
+		if command.RowsAffected() != 1 {
+			return errors.New("diagnostic_model_run_not_written")
+		}
+		command, err = tx.Exec(ctx, `INSERT INTO public.provider_provenance(id,role,endpoint_id,model_id,prompt_version,schema_version,correlation_id,token_budget) SELECT $1,$2::varchar(64),$3,$4,$5,$6,$7,COALESCE((SELECT token_budget FROM public.model_roles WHERE role=$2::varchar(64)),0) ON CONFLICT(id) DO UPDATE SET correlation_id=excluded.correlation_id`, "provider_provenance_"+hex.EncodeToString(digest[:])[:32], bindingRole, endpointID, modelID, providerPromptVersion(scenario), providerSchemaVersion(scenario), correlationID)
+		if err != nil {
+			return fmt.Errorf("persist diagnostic provider provenance: %w", err)
+		}
+		if command.RowsAffected() != 1 {
+			return errors.New("diagnostic_provider_provenance_not_written")
+		}
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+func providerModelRunIdentity(bindingRole, endpointID, modelID, scenario, correlationID, attemptID string, promptJSON []byte) (string, [sha256.Size]byte) {
+	seed, _ := json.Marshal([]string{bindingRole, endpointID, modelID, scenario, correlationID, attemptID, string(promptJSON)})
+	digest := sha256.Sum256(seed)
+	return "model_run_" + hex.EncodeToString(digest[:])[:32], digest
+}
+
+func providerDiagnosticRequestID(role, correlationID string) string {
+	return "provider:" + stableDigest(strings.TrimSpace(role)+":"+strings.TrimSpace(correlationID))
 }
 
 func (a *App) inferDiagnosticFluctlightID(ctx context.Context, correlationID string) string {
@@ -386,7 +469,13 @@ func (a *App) updateModelRunPromptMetrics(ctx context.Context, id string, usage 
 	metrics := map[string]any{"provider_usage": usage, "latency_ms": latency.Milliseconds()}
 	diagnosticCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	_, _ = a.DB.Pool().Exec(diagnosticCtx, `UPDATE public.diagnostic_model_runs SET actual_prompt_tokens=$2,actual_completion_tokens=$3,latency_ms=$4,metrics=metrics || $5::jsonb || CASE WHEN $2::integer IS NULL OR estimated_input_tokens IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('estimator_delta_tokens',$2-estimated_input_tokens) END WHERE id=$1`, id, nullableInt(intValue(promptTokens), promptPresent), nullableInt(intValue(completionTokens), completionPresent), maxInt64(0, latency.Milliseconds()), jsonBytes(metrics))
+	command, err := a.DB.Pool().Exec(diagnosticCtx, `UPDATE public.diagnostic_model_runs SET actual_prompt_tokens=$2,actual_completion_tokens=$3,latency_ms=$4,metrics=metrics || $5::jsonb || CASE WHEN $2::integer IS NULL OR estimated_input_tokens IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('estimator_delta_tokens',$2-estimated_input_tokens) END WHERE id=$1`, id, nullableInt(intValue(promptTokens), promptPresent), nullableInt(intValue(completionTokens), completionPresent), maxInt64(0, latency.Milliseconds()), jsonBytes(metrics))
+	if err != nil || command.RowsAffected() != 1 {
+		if err == nil {
+			err = errors.New("diagnostic_model_run_metrics_not_written")
+		}
+		recordDiagnosticPersistenceFailure("model_run", "metrics", id, err)
+	}
 }
 
 func maxInt64(left, right int64) int64 {
@@ -411,16 +500,29 @@ func providerSchemaVersion(scenario string) string {
 }
 
 func (a *App) recordDiagnosticEvent(ctx context.Context, eventType, severity, fluctlightID, causationID, correlationID string, payload any) {
-	if a == nil || a.DB == nil {
-		return
+	if _, err := a.persistDiagnosticEvent(ctx, eventType, severity, fluctlightID, causationID, correlationID, payload); err != nil {
+		recordDiagnosticPersistenceFailure("event", "create", correlationID, err, "event_type", eventType)
+	}
+}
+
+func (a *App) persistDiagnosticEvent(ctx context.Context, eventType, severity, fluctlightID, causationID, correlationID string, payload any) (string, error) {
+	if a == nil || a.DB == nil || a.DB.Pool() == nil {
+		return "", ErrDiagnosticsUnavailable
 	}
 	if correlationID == "" {
 		correlationID = eventType + ":" + stableDigest(time.Now().UTC().Format(time.RFC3339Nano))
 	}
 	encoded, err := json.Marshal(redactDiagnostic(payload))
 	if err != nil {
-		return
+		return "", fmt.Errorf("marshal diagnostic event: %w", err)
 	}
 	id := "diagnostic_" + stableDigest(eventType+":"+correlationID+":"+string(encoded))
-	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.diagnostic_events(id,event_type,severity,fluctlight_id,causation_id,correlation_id,payload) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO NOTHING`, id, eventType, severity, nullableString(fluctlightID), nullableString(causationID), correlationID, encoded)
+	var storedID string
+	if err := a.DB.Pool().QueryRow(ctx, `INSERT INTO public.diagnostic_events(id,event_type,severity,fluctlight_id,causation_id,correlation_id,payload) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO UPDATE SET id=excluded.id RETURNING id`, id, eventType, severity, nullableString(fluctlightID), nullableString(causationID), correlationID, encoded).Scan(&storedID); err != nil {
+		return "", fmt.Errorf("persist diagnostic event: %w", err)
+	}
+	if storedID != id {
+		return "", errors.New("diagnostic_event_identity_mismatch")
+	}
+	return id, nil
 }

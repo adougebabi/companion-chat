@@ -5,7 +5,12 @@ import {
   type BrowserDiagnosticEvent,
   type BrowserDiagnosticMediaPrompt,
   type BrowserDiagnosticModelRun,
+  type BrowserFluctlightActivationRequest,
+  type BrowserFluctlightDetail,
+  type BrowserLifecycleDiagnosticEvent,
+  type BrowserLifecycleDiagnosticsFilter,
   type BrowserSafeSettings,
+  type BrowserWorkflowIntentSnapshot,
 } from "@fluctlight/browser-client";
 import { bffOrigin } from "../runtime-config";
 import { planDefaultGroupMembership } from "../lib/group-membership";
@@ -19,17 +24,27 @@ export const useControlCenterStore = defineStore("control-center", {
     diagnostics: [] as BrowserDiagnosticEvent[],
     diagnosticModelRuns: [] as BrowserDiagnosticModelRun[],
     diagnosticMediaPrompts: [] as BrowserDiagnosticMediaPrompt[],
+    lifecycleDiagnostics: [] as BrowserLifecycleDiagnosticEvent[],
+    workflowIntentSnapshots: [] as BrowserWorkflowIntentSnapshot[],
     workflows: [] as Array<Record<string, unknown>>,
     workflowId: "",
     workflowStatus: null as Record<string, unknown> | null,
     workflowHistory: null as Record<string, unknown> | null,
     workflowHistoryPoint: "",
     diagnosticsCorrelationFilter: "",
+    diagnosticsFluctlightFilter: "",
+    diagnosticsIntentFilter: "",
+    diagnosticsWorkflowFilter: "",
+    diagnosticsRunFilter: "",
+    diagnosticsSurfaceFilter: "",
+    diagnosticsStatusFilter: "",
+    diagnosticsSourceEpochs: { lifecycle: "", events: "", modelRuns: "", mediaPrompts: "", workflows: "" } as Record<string, string>,
     diagnosticsWarning: "",
     diagnosticsNotice: "",
     diagnosticsLoaded: false,
     diagnosticsLastLoadedAt: "",
     diagnosticsRequestId: 0,
+    creationAnalysisRequestId: 0,
     analysisFailureCorrelationId: "",
     moments: [] as Array<{ id: string; owner_fluctlight_id?: string; text: string; author_actor_id: string; created_at: string; media_asset_ids: string[]; media: Array<{ id: string; kind: string; mime_type: string }>; status: string; comments: Array<{ id: string; author_actor_id: string; text: string; created_at: string }>; reaction_count: number; viewer_reaction?: string | null; unread_count?: number }>,
     momentsScope: "global" as "global" | "fluctlight",
@@ -41,7 +56,9 @@ export const useControlCenterStore = defineStore("control-center", {
     providerModels: [] as string[],
     providerModelsEndpointId: "",
     providerModelsError: "",
-    fluctlightDetail: null as Record<string, unknown> | null,
+    fluctlightDetail: null as BrowserFluctlightDetail | null,
+	fluctlightDetailRequestId: 0,
+	fluctlightDetailFluctlightId: "",
     governanceReason: "",
     revisionChangesJson: "",
     revisionReason: "",
@@ -77,11 +94,16 @@ export const useControlCenterStore = defineStore("control-center", {
 		delete this.lifeCommandKeys[identity];
 	},
     async analyzeFluctlight(description: string) {
+	  const requestId = this.creationAnalysisRequestId + 1;
+	  this.creationAnalysisRequestId = requestId;
       this.error = "";
       this.analysisFailureCorrelationId = "";
       try {
-        return await client.analyzeFluctlightCreation(description);
+		const result = await client.analyzeFluctlightCreation(description);
+		if (requestId !== this.creationAnalysisRequestId) return null;
+		return result;
       } catch (error) {
+		if (requestId !== this.creationAnalysisRequestId) return null;
         if (error instanceof BrowserApiError && typeof error.details.correlation_id === "string") this.analysisFailureCorrelationId = error.details.correlation_id;
         this.error = creationAnalysisFailureMessage(error);
         return null;
@@ -135,18 +157,7 @@ export const useControlCenterStore = defineStore("control-center", {
       catch { this.error = "无法移出实例分组。"; }
       finally { this.saving = false; }
     },
-    async activateFluctlight(body: {
-      requestId: string;
-      initializationMode: "blank_slate" | "llm_defined";
-      schemaVersion?: number;
-      name?: string;
-      corePersona?: Record<string, unknown>;
-      developingSelf?: Record<string, unknown>;
-      extensions?: Record<string, unknown>;
-      initialGoals?: Array<Record<string, unknown>>;
-      initialIntentions?: Array<Record<string, unknown>>;
-      initialRelationships?: Array<Record<string, unknown>>;
-    }) {
+    async activateFluctlight(body: BrowserFluctlightActivationRequest) {
       this.saving = true;
       this.error = "";
       try { return await client.activateFluctlightCreation(body); }
@@ -163,18 +174,62 @@ export const useControlCenterStore = defineStore("control-center", {
       this.diagnosticsNotice = "";
       try {
         const correlationId = this.diagnosticsCorrelationFilter.trim() || undefined;
-        const [events, modelRuns, mediaPrompts, workflows] = await Promise.allSettled([
-          client.diagnostics({ limit: 20, correlationId }),
+        const fluctlightId = this.diagnosticsFluctlightFilter.trim() || undefined;
+        const lifecycleFilters: BrowserLifecycleDiagnosticsFilter = {
+          limit: 100,
+          correlationId,
+          fluctlightId,
+          intentId: this.diagnosticsIntentFilter.trim() || undefined,
+          workflowId: this.diagnosticsWorkflowFilter.trim() || undefined,
+          runId: this.diagnosticsRunFilter.trim() || undefined,
+          surface: this.diagnosticsSurfaceFilter.trim() || undefined,
+          status: this.diagnosticsStatusFilter.trim() || undefined,
+        };
+        const epochs = {
+          lifecycle: JSON.stringify(lifecycleFilters),
+          events: JSON.stringify({ correlationId, fluctlightId }),
+          modelRuns: JSON.stringify({ correlationId }),
+          mediaPrompts: "unfiltered",
+          workflows: "unfiltered",
+        };
+        if (this.diagnosticsSourceEpochs.lifecycle !== epochs.lifecycle) {
+          this.lifecycleDiagnostics = [];
+          this.workflowIntentSnapshots = [];
+          this.diagnosticsSourceEpochs.lifecycle = epochs.lifecycle;
+        }
+        if (this.diagnosticsSourceEpochs.events !== epochs.events) {
+          this.diagnostics = [];
+          this.diagnosticsSourceEpochs.events = epochs.events;
+        }
+        if (this.diagnosticsSourceEpochs.modelRuns !== epochs.modelRuns) {
+          this.diagnosticModelRuns = [];
+          this.diagnosticsSourceEpochs.modelRuns = epochs.modelRuns;
+        }
+        if (this.diagnosticsSourceEpochs.mediaPrompts !== epochs.mediaPrompts) {
+          this.diagnosticMediaPrompts = [];
+          this.diagnosticsSourceEpochs.mediaPrompts = epochs.mediaPrompts;
+        }
+        if (this.diagnosticsSourceEpochs.workflows !== epochs.workflows) {
+          this.workflows = [];
+          this.diagnosticsSourceEpochs.workflows = epochs.workflows;
+        }
+        const [lifecycle, events, modelRuns, mediaPrompts, workflows] = await Promise.allSettled([
+          client.lifecycleDiagnostics(lifecycleFilters),
+          client.diagnostics({ limit: 20, correlationId, fluctlightId }),
           client.diagnosticModelRuns({ limit: 20, correlationId }),
           client.diagnosticMediaPrompts({ limit: 20 }),
           client.listWorkflows(),
         ]);
         if (requestId !== this.diagnosticsRequestId) return;
-        if (events.status === "fulfilled") this.diagnostics = events.value;
-        if (modelRuns.status === "fulfilled") this.diagnosticModelRuns = modelRuns.value;
-        if (mediaPrompts.status === "fulfilled") this.diagnosticMediaPrompts = mediaPrompts.value;
-        if (workflows.status === "fulfilled") this.workflows = workflows.value;
-        const readFailure = [events, modelRuns, mediaPrompts].find((result) => result.status === "rejected");
+        if (lifecycle.status === "fulfilled" && this.diagnosticsSourceEpochs.lifecycle === epochs.lifecycle) {
+          this.lifecycleDiagnostics = lifecycle.value.events;
+          this.workflowIntentSnapshots = lifecycle.value.workflowIntents;
+        }
+        if (events.status === "fulfilled" && this.diagnosticsSourceEpochs.events === epochs.events) this.diagnostics = events.value;
+        if (modelRuns.status === "fulfilled" && this.diagnosticsSourceEpochs.modelRuns === epochs.modelRuns) this.diagnosticModelRuns = modelRuns.value;
+        if (mediaPrompts.status === "fulfilled" && this.diagnosticsSourceEpochs.mediaPrompts === epochs.mediaPrompts) this.diagnosticMediaPrompts = mediaPrompts.value;
+        if (workflows.status === "fulfilled" && this.diagnosticsSourceEpochs.workflows === epochs.workflows) this.workflows = workflows.value;
+        const readFailure = [lifecycle, events, modelRuns, mediaPrompts].find((result) => result.status === "rejected");
         if (readFailure?.status === "rejected") this.error = diagnosticsFailureMessage(readFailure.reason);
         if (workflows.status === "rejected") {
           this.diagnosticsWarning = "工作流运行时暂不可用；模型运行和系统事件仍可查看。";
@@ -193,6 +248,12 @@ export const useControlCenterStore = defineStore("control-center", {
         const payload = await client.exportDiagnostics({
           limit: 500,
           correlationId: this.diagnosticsCorrelationFilter.trim() || undefined,
+          fluctlightId: this.diagnosticsFluctlightFilter.trim() || undefined,
+          intentId: this.diagnosticsIntentFilter.trim() || undefined,
+          workflowId: this.diagnosticsWorkflowFilter.trim() || undefined,
+          runId: this.diagnosticsRunFilter.trim() || undefined,
+          surface: this.diagnosticsSurfaceFilter.trim() || undefined,
+          status: this.diagnosticsStatusFilter.trim() || undefined,
         });
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         const link = document.createElement("a");
@@ -258,12 +319,18 @@ export const useControlCenterStore = defineStore("control-center", {
       finally { this.loading = false; }
     },
     async loadFluctlightDetail(fluctlightId: string | null) {
-      if (!fluctlightId) { this.fluctlightDetail = null; return; }
+	  const requestId = this.fluctlightDetailRequestId + 1;
+	  this.fluctlightDetailRequestId = requestId;
+	  this.fluctlightDetailFluctlightId = fluctlightId ?? "";
+	  this.fluctlightDetail = null;
+	  if (!fluctlightId) { this.loading = false; return; }
       this.loading = true;
       this.error = "";
       try {
-        this.fluctlightDetail = await client.detail(fluctlightId);
-        const relationships = Array.isArray(this.fluctlightDetail.relationships) ? this.fluctlightDetail.relationships as Array<Record<string, unknown>> : [];
+		const detail = await client.detail(fluctlightId);
+		if (requestId !== this.fluctlightDetailRequestId || fluctlightId !== this.fluctlightDetailFluctlightId) return;
+		this.fluctlightDetail = detail;
+		const relationships = Array.isArray(detail.relationships) ? detail.relationships as Array<Record<string, unknown>> : [];
         this.relationshipEditDrafts = Object.fromEntries(relationships.map((relationship) => {
           const key = relationshipKey(relationship);
           return [key, {
@@ -275,8 +342,14 @@ export const useControlCenterStore = defineStore("control-center", {
           }];
         }));
       }
-      catch { this.error = "无法加载 Fluctlight 的当前状态。"; }
-      finally { this.loading = false; }
+	  catch {
+		if (requestId !== this.fluctlightDetailRequestId || fluctlightId !== this.fluctlightDetailFluctlightId) return;
+		this.fluctlightDetail = null;
+		this.error = "无法加载 Fluctlight 的当前状态。";
+	  }
+	  finally {
+		if (requestId === this.fluctlightDetailRequestId && fluctlightId === this.fluctlightDetailFluctlightId) this.loading = false;
+	  }
     },
     async setFluctlightStatus(fluctlightId: string | null, status: "active" | "paused") {
       const detail = this.fluctlightDetail;
@@ -680,7 +753,10 @@ export const useControlCenterStore = defineStore("control-center", {
         this.diagnostics = [];
         this.diagnosticModelRuns = [];
         this.diagnosticMediaPrompts = [];
+        this.lifecycleDiagnostics = [];
+        this.workflowIntentSnapshots = [];
         this.workflows = [];
+        this.diagnosticsSourceEpochs = { lifecycle: "", events: "", modelRuns: "", mediaPrompts: "", workflows: "" };
         this.diagnosticsWarning = "";
         this.diagnosticsNotice = "诊断记录已清空。";
       } catch {
@@ -827,11 +903,12 @@ function creationAnalysisFailureMessage(error: unknown): string {
   if (error.code === "initialization_role_unconfigured") return "初始化模型角色未配置或预检未通过。";
   if (error.code === "initialization_response_invalid_json") return "初始化模型没有返回合法 JSON。";
   if (error.code === "initialization_response_invalid") return "初始化模型返回的 JSON 结构无效。";
+  if (error.code === "initialization_response_semantic_empty") return "初始化模型没有提取出角色卡中的有效语义，请查看本次失败诊断后重试。";
   if (error.code === "initialization_persona_invalid" || error.code === "initialization_foundation_invalid") {
     const detail = error.details.validation_error;
     return typeof detail === "string"
       ? `初始化模型返回的 Persona 分层不符合要求：${detail}`
-      : "初始化模型返回的 Persona 分层结构不符合要求，请查看诊断中的 Prompt 和 Response。";
+	  : "初始化模型返回的 Persona 分层结构不符合要求，请查看本次失败诊断中的校验类型与路径。";
   }
   if (error.code === "core_request_validation_failed") {
     const errors = error.details.validation_errors;
@@ -853,6 +930,10 @@ function creationActivationFailureMessage(error: unknown): string {
   if (!(error instanceof BrowserApiError)) return "Fluctlight 激活服务暂时不可用。";
   if (error.code === "unauthenticated") return "登录会话已失效，请重新登录后再激活。";
   if (error.code === "activation_persona_invalid" || error.code === "activation_foundation_invalid") return "预览中的 Persona 分层结构无效。";
+  if (error.code === "activation_analysis_required") return "当前预览缺少分析身份，请重新分析后再激活。";
+  if (error.code === "activation_analysis_invalid") return "当前预览的分析身份无效，请重新分析后再激活。";
+  if (error.code === "activation_analysis_stale") return "当前预览已被更新的分析取代，请使用最新预览激活。";
+  if (error.code === "activation_analysis_conflict") return "该分析结果已经绑定到另一个激活请求，请重新分析。";
   if (error.code === "activation_request_conflict") return "该激活请求已被不同的预览内容占用。";
   if (error.code === "activation_persistence_failed") return "Fluctlight 数据无法保存，请查看诊断信息。";
   return error.userMessage || "Fluctlight 激活失败。";
@@ -862,8 +943,10 @@ function diagnosticsFailureMessage(error: unknown): string {
   if (error instanceof BrowserApiError) {
     if (error.status === 401) return "登录状态已失效，请重新登录后查看诊断。";
     if (error.status === 403) return "诊断信息仅对所有者可用。";
-    if (error.status >= 500) return "诊断运行时暂时不可用，请确认 Core、数据库和 Worker 正在运行。";
-    return `无法读取诊断信息：${error.message}`;
+    const correlationId = typeof error.details.correlation_id === "string" ? error.details.correlation_id : "";
+    const diagnosticIdentity = [error.code, correlationId].filter(Boolean).join(" · ");
+    if (error.status >= 500) return `诊断运行时暂时不可用，请确认 Core、数据库和 Worker 正在运行。${diagnosticIdentity ? `（${diagnosticIdentity}）` : ""}`;
+    return `无法读取诊断信息：${error.userMessage}${diagnosticIdentity ? `（${diagnosticIdentity}）` : ""}`;
   }
   return "无法读取诊断信息，请确认 BFF 与 Core 均在运行。";
 }

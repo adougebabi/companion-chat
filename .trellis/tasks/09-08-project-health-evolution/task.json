@@ -1,0 +1,33 @@
+{
+  "id": "project-health-evolution",
+  "name": "project-health-evolution",
+  "title": "项目体检与摇光基础能力修复规划",
+  "description": "规划输入正确性、页面直观诊断（不做导出）、唤醒恢复、记忆有效性和目标/意图最小推进闭环；保持单次认知回复，基础优先。本轮仅规划。",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "adoumibaba",
+  "assignee": "adoumibaba",
+  "createdAt": "2026-09-08",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "Scope reviewed by user on 2026-09-08; user intends to start implementation in a new session. No business implementation or runtime verification performed here. Project-local task directory currently empty; authoritative external package verified. Refresh HEAD before restoring/activating task.",
+  "meta": {
+    "planning_review": {
+      "status": "reviewed",
+      "date": "2026-09-08",
+      "user_statement": "基本是没什么问题，还有其他补充的吗？如果没有我会去新的session启动。",
+      "implementation_started": false
+    }
+  }
+}

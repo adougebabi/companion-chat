@@ -173,8 +173,14 @@ func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role strin
 }
 
 func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role string, messages []map[string]any, jsonMode bool, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool, assembled, continuation bool) (ProviderCompletion, error) {
+	correlationID := providerCorrelation(ctx)
+	if correlationID == "" {
+		correlationID = diagnosticCorrelation(messages, "")
+	}
+	ctx = ensureProviderAttemptIdentity(ctx)
 	assignment, err := p.assignment(ctx, role)
 	if err != nil {
+		p.recordProviderPreflightFailure(ctx, providerAssignment{}, role, correlationID, "assignment", messages, err)
 		return ProviderCompletion{}, err
 	}
 	if assembled {
@@ -183,7 +189,9 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			validMessages = validQueryContinuationMessages(messages)
 		}
 		if role == "media_prompt" || !validMessages || (continuation && len(definitions) > 0) {
-			return ProviderCompletion{}, errors.New("provider_assembled_messages_invalid")
+			err := errors.New("provider_assembled_messages_invalid")
+			p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "message_validation", messages, err)
+			return ProviderCompletion{}, err
 		}
 	} else {
 		messages = addVisualIdentityMediaPromptInstruction(role, messages)
@@ -194,11 +202,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			messages = composeProviderMessages(role, messages)
 		}
 	}
-	correlationID := providerCorrelation(ctx)
-	if correlationID == "" {
-		correlationID = diagnosticCorrelation(messages, "")
-	}
-	providerRequestID := "provider:" + stableDigest(role+":"+correlationID)
+	providerRequestID := providerDiagnosticRequestID(role, correlationID)
 	payload := providerChatPayloadWithSchema(assignment.ModelID, messages, assignment.TokenBudget, jsonMode, definitions, role, schemaName, schema, enableThinking)
 	responseFormat := map[string]any{}
 	if jsonMode {
@@ -208,6 +212,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 	wireEstimate := estimatePromptWireInput(messages, renderedTools, responseFormat)
 	if role != "media_prompt" {
 		if wireEstimate > assignment.MaxInputTokens {
+			p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "wire_budget", messages, ErrPromptRequiredBudgetExceeded)
 			return ProviderCompletion{}, ErrPromptRequiredBudgetExceeded
 		}
 	}
@@ -227,12 +232,13 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
+		p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "payload_encode", messages, err)
 		return ProviderCompletion{}, err
 	}
 	scenario := providerScenario(ctx, role, schemaName)
 	priority := providerPriority(scenario)
 	ctx = WithProviderScenario(ctx, scenario)
-	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
+	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, providerDiagnosticMessages(role, messages))
 	return runProviderQueued(p, ctx, assignment.Role, scenario, priority, diagnosticID, func(runCtx context.Context) (ProviderCompletion, error) {
 		requestStarted := time.Now()
 		usage := map[string]any{}
@@ -746,7 +752,7 @@ func providerSchemaForRole(role string) map[string]any {
 
 func (p *ProviderClient) recordProviderSuccess(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, response any) {
 	app := &App{DB: p.DB}
-	app.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, messages, response, "completed", "")
+	app.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), "completed", "")
 }
 
 func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
@@ -755,7 +761,93 @@ func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment p
 	if len(diagnostic) > 0 {
 		response = diagnostic[0]
 	}
-	app.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, messages, response, "failed", code)
+	app.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), "failed", code)
+}
+
+func providerDiagnosticMessages(role string, messages []map[string]any) []map[string]any {
+	if role != "initialization" {
+		return messages
+	}
+	return []map[string]any{{"role": "diagnostic", "content": providerPreflightDiagnosticPrompt(messages)}}
+}
+
+func providerDiagnosticResponse(role string, response any) any {
+	if role != "initialization" {
+		return response
+	}
+	encoded, _ := json.Marshal(response)
+	return map[string]any{"diagnostic_scope": "metadata_only", "response_bytes": len(encoded), "response_digest": stableDigest(string(encoded))}
+}
+
+func (p *ProviderClient) recordProviderPreflightFailure(ctx context.Context, assignment providerAssignment, role, correlationID, stage string, messages []map[string]any, preflightErr error) {
+	if p == nil || p.DB == nil || preflightErr == nil {
+		return
+	}
+	stage = strings.TrimSpace(stage)
+	category, code, retryable := classifyProviderPreflightError(stage, preflightErr)
+	application := &App{DB: p.DB}
+	scenario := providerScenario(ctx, role, "")
+	application.recordDiagnosticEvent(ctx, "provider.preflight.failed", "error", strings.TrimSpace(stringValue(providerPromptDiagnostics(ctx)["fluctlight_id"])), "", correlationID, map[string]any{
+		"role": role, "scenario": scenario, "stage": stage,
+		"error_category": category, "error_code": code, "error_type": fmt.Sprintf("%T", preflightErr), "retryable": retryable,
+		"provider_attempt_id": providerAttemptIdentity(ctx),
+	})
+	if strings.TrimSpace(assignment.EndpointID) != "" && strings.TrimSpace(assignment.ModelID) != "" {
+		application.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerPreflightDiagnosticPrompt(messages), map[string]any{
+			"stage": stage, "error_type": fmt.Sprintf("%T", preflightErr), "retryable": retryable,
+		}, providerRunFailed, code)
+	}
+	if scenario == "wake_up" || scenario == "reflection" {
+		application.RecordLifecycleDiagnosticBestEffort(ctx, LifecycleDiagnostic{
+			Surface: scenario, Transition: LifecycleTransitionFailed, Severity: "error",
+			FluctlightID:  strings.TrimSpace(stringValue(providerPromptDiagnostics(ctx)["fluctlight_id"])),
+			CorrelationID: correlationID, ProviderRequestID: providerDiagnosticRequestID(role, correlationID),
+			ProviderAttemptID: providerAttemptIdentity(ctx),
+			Stage:             "provider_preflight", Status: "failed", ReasonCode: code,
+			ErrorCategory: category, ErrorCode: code, Retryable: retryable,
+			SafeCause: preflightErr.Error(),
+		})
+	}
+}
+
+func classifyProviderPreflightError(stage string, preflightErr error) (category, code string, retryable bool) {
+	message := strings.ToLower(strings.TrimSpace(preflightErr.Error()))
+	switch {
+	case errors.Is(preflightErr, context.Canceled):
+		return "request", "provider_request_cancelled", false
+	case errors.Is(preflightErr, context.DeadlineExceeded):
+		return "infrastructure", "provider_store_timeout", true
+	case errors.Is(preflightErr, ErrPromptRequiredBudgetExceeded):
+		return "budget", "prompt_required_budget_exceeded", false
+	case errors.Is(preflightErr, pgx.ErrNoRows):
+		return "configuration", "provider_role_unassigned", false
+	case strings.Contains(message, "provider role") && strings.Contains(message, " invalid"):
+		return "configuration", "provider_role_invalid", false
+	case strings.Contains(message, "preflight failed"):
+		return "configuration", "provider_role_preflight_failed", false
+	case strings.Contains(message, "prompt_budget") || strings.Contains(message, "prompt budget"):
+		return "configuration", "provider_prompt_budget_invalid", false
+	case strings.Contains(message, "secret") || strings.Contains(message, "decrypt"):
+		return "configuration", "provider_secret_unavailable", false
+	case stage == "message_validation":
+		return "validation", "provider_assembled_messages_invalid", false
+	case stage == "payload_encode":
+		return "encoding", "provider_payload_encode_failed", false
+	case stage == "assignment":
+		return "infrastructure", "provider_store_unavailable", true
+	default:
+		return "provider", "provider_preflight_failed", false
+	}
+}
+
+func providerPreflightDiagnosticPrompt(messages []map[string]any) map[string]any {
+	encoded, _ := json.Marshal(messages)
+	return map[string]any{
+		"diagnostic_scope":       "metadata_only",
+		"message_count":          len(messages),
+		"estimated_input_tokens": EstimatePromptTokens(messages),
+		"prompt_digest":          stableDigest(string(encoded)),
+	}
 }
 
 func (p *ProviderClient) Structured(ctx context.Context, role string, messages []map[string]any) (map[string]any, error) {
@@ -778,20 +870,28 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 	if role != "action_realization" {
 		return "", errors.New("provider streaming is only available for action_realization")
 	}
+	correlationID := providerCorrelation(ctx)
+	if correlationID == "" {
+		correlationID = diagnosticCorrelation(messages, "")
+	}
+	ctx = ensureProviderAttemptIdentity(ctx)
 	assignment, err := p.assignment(ctx, role)
 	if err != nil {
+		p.recordProviderPreflightFailure(ctx, providerAssignment{}, role, correlationID, "assignment", messages, err)
 		return "", err
 	}
 	messages = composeProviderMessages(role, messages)
-	correlationID := diagnosticCorrelation(messages, "")
+	providerRequestID := providerDiagnosticRequestID(role, correlationID)
 	payload := providerStreamingPayload(assignment.ModelID, messages, assignment.TokenBudget)
 	wireEstimate := estimatePromptWireInput(messages, nil, nil)
 	if wireEstimate > assignment.MaxInputTokens {
+		p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "wire_budget", messages, ErrPromptRequiredBudgetExceeded)
 		return "", ErrPromptRequiredBudgetExceeded
 	}
 	ctx = WithPromptDiagnostics(ctx, map[string]any{"prompt_budget": mergeProviderPromptBudgetDiagnostics(nil, messages, nil, nil, assignment, wireEstimate)})
 	body, err := json.Marshal(payload)
 	if err != nil {
+		p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "payload_encode", messages, err)
 		return "", err
 	}
 	scenario := providerScenario(ctx, role, "")
@@ -811,8 +911,8 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 		}
 		request.Header.Set("Content-Type", "application/json")
 		request.Header.Set("Accept", "text/event-stream")
-		request.Header.Set("Idempotency-Key", "provider:"+stableDigest(role+":"+correlationID))
-		request.Header.Set("X-Fluctlight-Provider-Request-Id", "provider:"+stableDigest(role+":"+correlationID))
+		request.Header.Set("Idempotency-Key", providerRequestID)
+		request.Header.Set("X-Fluctlight-Provider-Request-Id", providerRequestID)
 		if assignment.Secret != "" {
 			request.Header.Set("Authorization", "Bearer "+assignment.Secret)
 		}
@@ -879,8 +979,11 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 }
 
 func (p *ProviderClient) Embed(ctx context.Context, text string) (string, []float64, error) {
+	correlationID := "embedding:" + stableDigest(text)
+	ctx = ensureProviderAttemptIdentity(ctx)
 	assignment, err := p.assignment(ctx, "embedding")
 	if err != nil {
+		p.recordProviderPreflightFailure(ctx, providerAssignment{}, "embedding", correlationID, "assignment", nil, err)
 		return "", nil, err
 	}
 	return p.embedWithAssignment(ctx, text, assignment)
@@ -891,6 +994,8 @@ func (p *ProviderClient) embedWithAssignment(ctx context.Context, text string, a
 		return "", nil, errors.New("embedding_assignment_invalid")
 	}
 	correlationID := "embedding:" + stableDigest(assignment.ModelID+":"+text)
+	ctx = ensureProviderAttemptIdentity(ctx)
+	providerRequestID := providerDiagnosticRequestID("embedding", correlationID)
 	body, err := json.Marshal(map[string]any{"model": assignment.ModelID, "input": []string{text}, "encoding_format": "float"})
 	if err != nil {
 		return "", nil, err
@@ -912,8 +1017,8 @@ func (p *ProviderClient) embedWithAssignment(ctx context.Context, text string, a
 			}{}, err
 		}
 		request.Header.Set("Content-Type", "application/json")
-		request.Header.Set("Idempotency-Key", "provider:"+stableDigest(correlationID))
-		request.Header.Set("X-Fluctlight-Provider-Request-Id", "provider:"+stableDigest(correlationID))
+		request.Header.Set("Idempotency-Key", providerRequestID)
+		request.Header.Set("X-Fluctlight-Provider-Request-Id", providerRequestID)
 		if assignment.Secret != "" {
 			request.Header.Set("Authorization", "Bearer "+assignment.Secret)
 		}

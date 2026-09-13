@@ -4,6 +4,14 @@ const requestBody = (schema) => ({
   requestBody: { required: true, content: { "application/json": { schema: { $ref: `#/components/schemas/${schema}` } } } },
 });
 
+const jsonResponse = (schema) => ({
+  responses: { "200": { description: "Successful response", content: { "application/json": { schema: { $ref: `#/components/schemas/${schema}` } } } } },
+});
+
+const jsonObject = { type: "object", additionalProperties: true };
+const jsonObjectArray = { type: "array", items: jsonObject };
+const nullableString = { anyOf: [{ type: "string" }, { type: "null" }] };
+
 const lifeCommandProperties = {
   expectedLifeContextRevision: { type: "string", minLength: 1, maxLength: 64 },
   idempotencyKey: { type: "string", minLength: 1, maxLength: 256 },
@@ -14,6 +22,86 @@ const schema = {
   info: { title: "Fluctlight Browser Platform API", version: "0.1.0" },
   components: {
     schemas: {
+      BrowserFluctlightCreateRequest: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: { type: "string", minLength: 1, maxLength: 128 },
+          name: { type: "string", maxLength: 256 },
+        },
+      },
+      BrowserFluctlightCreationAnalysisRequest: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          description: { type: "string", minLength: 1, maxLength: 60000, description: "UTF-8 encoded value must not exceed 60000 bytes.", "x-maxBytes": 60000 },
+        },
+        required: ["description"],
+      },
+      BrowserFluctlightCreationAnalysis: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          analysis_id: { type: "string", minLength: 1, maxLength: 128 },
+          correlation_id: { type: "string", minLength: 1, maxLength: 256 },
+          schema_version: { type: "integer", minimum: 1 },
+          core_persona: jsonObject,
+          developing_self: jsonObject,
+          extensions: jsonObject,
+          initial_goals: jsonObjectArray,
+          initial_intentions: jsonObjectArray,
+          initial_relationships: jsonObjectArray,
+        },
+        required: ["analysis_id", "correlation_id", "schema_version", "core_persona", "developing_self", "extensions", "initial_goals", "initial_intentions", "initial_relationships"],
+      },
+      BrowserFluctlightActivationRequest: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          requestId: { type: "string", minLength: 1, maxLength: 256 },
+          initializationMode: { type: "string", enum: ["blank_slate", "llm_defined"] },
+          analysisId: { type: "string", minLength: 1, maxLength: 128 },
+          schemaVersion: { type: "integer", minimum: 1 },
+          name: { type: "string", maxLength: 256 },
+          corePersona: jsonObject,
+          developingSelf: jsonObject,
+          extensions: jsonObject,
+          initialGoals: jsonObjectArray,
+          initialIntentions: jsonObjectArray,
+          initialRelationships: jsonObjectArray,
+        },
+        required: ["requestId", "initializationMode"],
+      },
+      BrowserInitializationSource: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: { type: "string" },
+          correlation_id: { type: "string" },
+          source_text: { type: "string" },
+          source_digest: { type: "string" },
+          provider_endpoint_id: nullableString,
+          model_id: nullableString,
+          prompt_version: { type: "string" },
+          schema_version: { type: "string" },
+          classification: { type: "string", enum: ["single", "multiple", "unknown"] },
+          classification_evidence: jsonObject,
+          field_derivations: jsonObject,
+          coverage: jsonObject,
+          structured_projection: jsonObject,
+          projection_digest: { type: "string" },
+          created_at: { type: "string", format: "date-time" },
+          linked_at: { type: "string", format: "date-time" },
+        },
+        required: ["id", "correlation_id", "source_text", "source_digest", "prompt_version", "schema_version", "classification", "classification_evidence", "field_derivations", "coverage", "structured_projection", "projection_digest", "created_at", "linked_at"],
+      },
+      BrowserFluctlightDetail: {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          initialization_source: { anyOf: [{ $ref: "#/components/schemas/BrowserInitializationSource" }, { type: "null" }] },
+        },
+      },
       BrowserLifeEventRequest: {
         type: "object",
         additionalProperties: false,
@@ -99,7 +187,7 @@ const schema = {
     "/api/providers": { get: { operationId: "providerBindings" } },
     "/api/providers/roles": { put: { operationId: "configureModelRole" } },
     "/api/conversations": { post: { operationId: "createConversation" } },
-    "/api/fluctlights": { get: { operationId: "listFluctlights" }, post: { operationId: "createFluctlight" } },
+    "/api/fluctlights": { get: { operationId: "listFluctlights" }, post: { operationId: "createFluctlight", ...requestBody("BrowserFluctlightCreateRequest") } },
     "/api/actor-groups": { get: { operationId: "listActorGroups" }, post: { operationId: "createActorGroup" } },
     "/api/actor-groups/{groupId}/members": { post: { operationId: "assignActorGroupMember" } },
     "/api/actor-groups/{groupId}/members/{actorId}": { delete: { operationId: "removeActorGroupMember" } },
@@ -127,7 +215,7 @@ const schema = {
     "/api/diagnostics/workflows/{workflowId}/cancel": { post: { operationId: "cancelWorkflow" } },
     "/api/diagnostics/workflows/{workflowId}/reset": { post: { operationId: "resetWorkflow" } },
     "/api/diagnostics/workflows/{workflowId}/restart": { post: { operationId: "restartWorkflow" } },
-    "/api/fluctlights/{fluctlightId}/detail": { get: { operationId: "fluctlightDetail" } },
+    "/api/fluctlights/{fluctlightId}/detail": { get: { operationId: "fluctlightDetail", ...jsonResponse("BrowserFluctlightDetail") } },
     "/api/fluctlights/{fluctlightId}/developing-self": { get: { operationId: "developingSelf" } },
     "/api/fluctlights/{fluctlightId}/developing-self/{claimId}/rollback": { post: { operationId: "rollbackDevelopingSelf" } },
     "/api/fluctlights/{fluctlightId}/developing-self/{claimId}/forget": { post: { operationId: "forgetDevelopingSelf" } },
@@ -141,12 +229,13 @@ const schema = {
     "/api/moments/{momentId}/reactions": { post: { operationId: "reactToMoment" } },
     "/api/moments/{momentId}/hide": { post: { operationId: "hideMoment" } },
     "/api/moments/{momentId}/restore": { post: { operationId: "restoreMoment" } },
-    "/api/fluctlight-creations/analysis": { post: { operationId: "analyzeFluctlightCreation" } },
-    "/api/fluctlight-creations/activate": { post: { operationId: "activateFluctlightCreation" } },
+    "/api/fluctlight-creations/analysis": { post: { operationId: "analyzeFluctlightCreation", ...requestBody("BrowserFluctlightCreationAnalysisRequest"), ...jsonResponse("BrowserFluctlightCreationAnalysis") } },
+    "/api/fluctlight-creations/activate": { post: { operationId: "activateFluctlightCreation", ...requestBody("BrowserFluctlightActivationRequest") } },
     "/api/conversations/{conversationId}/messages": { get: { operationId: "conversationMessages" } },
     "/api/conversations/{conversationId}/read": { post: { operationId: "markConversationRead" } },
     "/api/conversations/{conversationId}/turn": { post: { operationId: "conversationTurn" } },
     "/api/diagnostics": { get: { operationId: "readDiagnostics" }, delete: { operationId: "clearDiagnostics" } },
+    "/api/diagnostics/lifecycle": { get: { operationId: "readLifecycleDiagnostics" } },
     "/api/diagnostics/model-runs": { get: { operationId: "readDiagnosticModelRuns" } },
     "/api/diagnostics/media-prompts": { get: { operationId: "readDiagnosticMediaPrompts" } },
     "/api/diagnostics/media-prompts/{mediaIntentId}/retry": { post: { operationId: "retryDiagnosticMediaPrompt" } },

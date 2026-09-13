@@ -553,6 +553,56 @@ func (s *Server) diagnostics(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, value)
 }
+
+func lifecycleDiagnosticsFilter(r *http.Request, defaultLimit int) core.LifecycleDiagnosticsFilter {
+	query := r.URL.Query()
+	limit, _ := strconv.Atoi(query.Get("limit"))
+	if limit < 1 {
+		limit = defaultLimit
+	}
+	if limit > 500 {
+		limit = 500
+	}
+	return core.LifecycleDiagnosticsFilter{
+		Limit: limit, FluctlightID: query.Get("fluctlight_id"),
+		CorrelationID: query.Get("correlation_id"), IntentID: query.Get("intent_id"),
+		WorkflowID: query.Get("workflow_id"), RunID: query.Get("run_id"),
+		Surface: query.Get("surface"), Status: query.Get("status"),
+	}
+}
+
+func diagnosticsFilterDetails() map[string]any {
+	return map[string]any{"validation_error": map[string]any{"type": "filter_invalid", "path": "query"}}
+}
+
+func diagnosticsQueryFailureDetails(r *http.Request, stage string) map[string]any {
+	details := map[string]any{"stage": stage}
+	if correlationID := strings.TrimSpace(r.URL.Query().Get("correlation_id")); correlationID != "" && len([]rune(correlationID)) <= 128 {
+		details["correlation_id"] = correlationID
+	}
+	return details
+}
+
+func (s *Server) lifecycleDiagnostics(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.authorizeHuman(w, r)
+	if !ok || s.app == nil {
+		return
+	}
+	value, err := s.app.LifecycleDiagnostics(r.Context(), actor, lifecycleDiagnosticsFilter(r, 100))
+	if err != nil {
+		if errors.Is(err, core.ErrDiagnosticsFilterInvalid) {
+			s.opErrorWithDetails(w, err, "diagnostics_filter_invalid", diagnosticsFilterDetails())
+			return
+		}
+		if errors.Is(err, core.ErrUnauthorized) {
+			s.opError(w, err, "diagnostics_lifecycle_failed")
+			return
+		}
+		writeErrorDetails(w, http.StatusBadGateway, "diagnostics_lifecycle_failed", diagnosticsQueryFailureDetails(r, "lifecycle_query"))
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
 func (s *Server) clearDiagnostics(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.authorizeHuman(w, r)
 	if !ok || s.app == nil {
@@ -608,9 +658,17 @@ func (s *Server) exportDiagnostics(w http.ResponseWriter, r *http.Request) {
 	if !ok || s.app == nil {
 		return
 	}
-	value, err := s.app.DiagnosticsExport(r.Context(), actor)
+	value, err := s.app.DiagnosticsExportFiltered(r.Context(), actor, lifecycleDiagnosticsFilter(r, 500))
 	if err != nil {
-		s.opError(w, err, "diagnostics_export_failed")
+		if errors.Is(err, core.ErrDiagnosticsFilterInvalid) {
+			s.opErrorWithDetails(w, err, "diagnostics_filter_invalid", diagnosticsFilterDetails())
+			return
+		}
+		if errors.Is(err, core.ErrUnauthorized) {
+			s.opError(w, err, "diagnostics_export_failed")
+			return
+		}
+		writeErrorDetails(w, http.StatusBadGateway, "diagnostics_export_failed", diagnosticsQueryFailureDetails(r, "diagnostics_export"))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

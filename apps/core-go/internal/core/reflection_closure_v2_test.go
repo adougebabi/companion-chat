@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"regexp"
@@ -10,6 +11,39 @@ import (
 
 	"github.com/jackc/pgx/v5"
 )
+
+func TestReflectionWindowLeasePreventsOldAttemptCleanup(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "reflection-lease-owner", "reflection-lease-fluctlight"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES($1,'human','active'),($2,'fluctlight','active')`, ownerID, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES($1,$2,'blank_slate','active','{}','{}','{}','{}','{}','{}')`, fluctlightID, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	app := &App{DB: repository}
+	firstCtx, err := app.claimReflectionWindow(ctx, fluctlightID, 0, 0, "reflection:first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.cognition_reflection_windows SET updated_at=now()-interval '16 minutes' WHERE fluctlight_id=$1`, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	secondCtx, err := app.claimReflectionWindow(ctx, fluctlightID, 0, 0, "reflection:second")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := app.setReflectionWindowIdle(firstCtx, fluctlightID); !errors.Is(err, ErrConflict) && (err == nil || err.Error() != "reflection_window_lease_conflict") {
+		t.Fatalf("old Reflection lease cleanup error=%v, want lease conflict", err)
+	}
+	var status string
+	if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.cognition_reflection_windows WHERE fluctlight_id=$1`, fluctlightID).Scan(&status); err != nil || status != "running" {
+		t.Fatalf("new Reflection claim was cleared: status=%q err=%v", status, err)
+	}
+	if err := app.setReflectionWindowIdle(secondCtx, fluctlightID); err != nil {
+		t.Fatalf("current Reflection lease could not release: %v", err)
+	}
+}
 
 func TestReflectionV2AppliesMemoryGoalIntentionAndAffectThenReprojects(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)

@@ -4,6 +4,7 @@ import test from "node:test";
 
 const displaySource = await readFile(new URL("../src/lib/fluctlight-display.ts", import.meta.url), "utf8");
 const detailSource = await readFile(new URL("../src/components/instances/InstanceDetailsDialog.vue", import.meta.url), "utf8");
+const controlCenterSource = await readFile(new URL("../src/stores/control-center.ts", import.meta.url), "utf8");
 const governanceSource = await readFile(new URL("../src/views/GovernanceView.vue", import.meta.url), "utf8");
 const settingsSource = await readFile(new URL("../src/views/SettingsView.vue", import.meta.url), "utf8");
 const stylesSource = await readFile(new URL("../src/styles/app.css", import.meta.url), "utf8");
@@ -62,6 +63,23 @@ test("detail exposes a Chinese progressive state drawer", () => {
   assert.match(detailSource, /暂无独立氛围描述/);
   assert.match(stylesSource, /\.detail-state-drawer/);
   assert.match(stylesSource, /\.state-metric-grid/);
+});
+
+test("detail exposes the owner-only initialization source as a collapsed safe panel", () => {
+	assert.match(detailSource, /asRecord\(detail\.value\.initialization_source\)/);
+	assert.match(detailSource, /hasInitializationSource/);
+	assert.match(detailSource, /<details class="detail-state-drawer initialization-source-drawer">/);
+	assert.doesNotMatch(detailSource, /<details[^>]*initialization-source-drawer[^>]*\sopen(?:\s|=|>)/);
+	assert.match(detailSource, /初始化来源（仅所有者）/);
+	assert.match(detailSource, /人格分类与提取覆盖/);
+	assert.match(detailSource, /字段推导依据/);
+	assert.match(detailSource, /结构化投影与 Foundation/);
+	assert.match(detailSource, /String\(initializationSource\.source_text \?\? ""\)/);
+	assert.doesNotMatch(detailSource, /v-html\s*=\s*["'][^"']*initializationSource/);
+	assert.match(controlCenterSource, /fluctlightDetailRequestId: 0/);
+	assert.match(controlCenterSource, /fluctlightDetailFluctlightId: ""/);
+	assert.match(controlCenterSource, /requestId !== this\.fluctlightDetailRequestId \|\| fluctlightId !== this\.fluctlightDetailFluctlightId/);
+	assert.match(detailSource, /controlCenter\.fluctlightDetailFluctlightId === store\.selectedFluctlight\?\.id/);
 });
 
 test("settings accordion remounts when the selected section changes", () => {

@@ -72,10 +72,16 @@ test("web controls are backed by the local shadcn-vue component layer", () => {
   assert.match(settingsSource, /<Textarea/);
 });
 
-test("diagnostics is a quiet, recent-only disclosure surface", () => {
-  assert.doesNotMatch(diagnosticsSource, /返回设置|刷新|导出|清空|Correlation ID|按 Correlation ID 过滤|筛选|诊断记录已刷新/);
+test("diagnostics keeps existing modules and adds a filtered lifecycle disclosure", () => {
+  assert.doesNotMatch(diagnosticsSource, /返回设置|清空/);
   assert.match(diagnosticsSource, /<Accordion/);
+  assert.match(diagnosticsSource, /value="lifecycle"/);
   assert.match(diagnosticsSource, /value="model-runs"/);
+  assert.match(diagnosticsSource, /lifecycle-filter-grid/);
+  assert.match(diagnosticsSource, /导出当前过滤/);
+  assert.match(controlCenterSource, /client\.lifecycleDiagnostics\(lifecycleFilters\)/);
+  assert.match(controlCenterSource, /diagnosticsSourceEpochs/);
+  assert.match(controlCenterSource, /workflowIntentSnapshots/);
   assert.match(controlCenterSource, /client\.diagnostics\(\{ limit: 20/);
   assert.match(controlCenterSource, /client\.diagnosticModelRuns\(\{ limit: 20/);
   assert.match(controlCenterSource, /client\.diagnosticMediaPrompts\(\{ limit: 20/);
@@ -92,6 +98,7 @@ test("diagnostics is a quiet, recent-only disclosure surface", () => {
   assert.match(controlCenterSource, /mediaRetryFailureMessage/);
   assert.match(controlCenterSource, /details\.reason/);
   assert.match(navigationSource, /id: "media-prompts"/);
+  assert.match(navigationSource, /id: "lifecycle"/);
 });
 
 test("desktop secondary navigation is page-addressable and chat groups stay flat", () => {

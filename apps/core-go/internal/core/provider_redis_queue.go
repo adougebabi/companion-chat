@@ -18,6 +18,7 @@ const (
 	providerRedisPendingTTL       = providerRedisLease
 	providerRedisJobTTL           = 24 * time.Hour
 	providerRedisPoll             = 40 * time.Millisecond
+	providerRedisMaximumWait      = 2 * time.Minute
 	providerRedisScoreUnit        = int64(1_000_000_000_000)
 )
 
@@ -41,6 +42,8 @@ local limit = tonumber(ARGV[2])
 local lease = tonumber(ARGV[3])
 local owner = ARGV[4]
 local job = ARGV[5]
+local max_wait = tonumber(ARGV[6])
+local aged_score_unit = tonumber(ARGV[7])
 
 local expired = redis.call('ZRANGE', KEYS[2], '-inf', now, 'BYSCORE')
 for _, member in ipairs(expired) do
@@ -62,6 +65,17 @@ if not redis.call('ZSCORE', KEYS[1], job) then
 end
 if redis.call('ZCARD', KEYS[2]) >= limit then
   return 0
+end
+local pending = redis.call('ZRANGE', KEYS[1], 0, 127)
+for _, member in ipairs(pending) do
+  local jobKey = 'fluctlight:llm:job:' .. member
+  local queuedAt = redis.call('HGET', jobKey, 'queued_at')
+  local sequence = redis.call('HGET', jobKey, 'sequence')
+  if queuedAt and sequence and now - tonumber(queuedAt) >= max_wait then
+    local aged_score = -aged_score_unit + tonumber(sequence)
+    redis.call('ZADD', KEYS[1], aged_score, member)
+    redis.call('HSET', jobKey, 'aged_score', aged_score)
+  end
 end
 local first = redis.call('ZRANGE', KEYS[1], 0, 0)[1]
 if first then
@@ -180,6 +194,10 @@ func providerRedisScore(priority int, sequence int64) int64 {
 	return int64(100-priority)*providerRedisScoreUnit + sequence
 }
 
+func providerRedisAgedScore(sequence int64) int64 {
+	return -providerRedisScoreUnit + sequence
+}
+
 // acquireProviderRedisSlot coordinates the existing synchronous provider call
 // across API/Worker processes. Redis stores only a short-lived job reference;
 // the closure and provider result remain local to the caller. A false enabled
@@ -214,7 +232,7 @@ func (p *ProviderClient) acquireProviderRedisSlot(ctx context.Context, role stri
 	jobKey := providerRedisQueuePrefix + ":job:" + jobID
 	owner := p.redisOwner()
 	pendingUntil := time.Now().Add(providerRedisPendingTTL).UnixMilli()
-	if err := p.redis.HSet(ctx, jobKey, map[string]any{"model_run_id": diagnosticID, "role": role, "priority": priority, "score": score, "status": "queued", "pending_owner": owner, "pending_until": pendingUntil}).Err(); err != nil {
+	if err := p.redis.HSet(ctx, jobKey, map[string]any{"model_run_id": diagnosticID, "role": role, "priority": priority, "score": score, "sequence": sequence, "queued_at": time.Now().UnixMilli(), "status": "queued", "pending_owner": owner, "pending_until": pendingUntil}).Err(); err != nil {
 		return func() {}, false, nil
 	}
 	if err := p.redis.Expire(ctx, jobKey, providerRedisPendingTTL).Err(); err != nil {
@@ -226,7 +244,15 @@ func (p *ProviderClient) acquireProviderRedisSlot(ctx context.Context, role stri
 		return func() {}, false, nil
 	}
 	claim := func() (int64, error) {
-		return providerRedisClaimScript.Run(ctx, p.redis, []string{pendingKey, processingKey}, strconv.FormatInt(time.Now().UnixMilli(), 10), strconv.Itoa(limit), strconv.FormatInt(providerRedisLease.Milliseconds(), 10), owner, jobID).Int64()
+		return providerRedisClaimScript.Run(ctx, p.redis, []string{pendingKey, processingKey},
+			strconv.FormatInt(time.Now().UnixMilli(), 10),
+			strconv.Itoa(limit),
+			strconv.FormatInt(providerRedisLease.Milliseconds(), 10),
+			owner,
+			jobID,
+			strconv.FormatInt(providerRedisMaximumWait.Milliseconds(), 10),
+			strconv.FormatInt(providerRedisScoreUnit, 10),
+		).Int64()
 	}
 	nextPendingHeartbeat := time.Now().Add(providerRedisPendingTTL / 3)
 	for {

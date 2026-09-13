@@ -253,18 +253,24 @@ func TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale(t *test
 			if providerCalls.Load() != 1 {
 				t.Fatalf("%s Provider calls=%d", surface, providerCalls.Load())
 			}
-			prepared, ok := spy.lastPrepared()
-			if !ok {
-				t.Fatalf("%s did not prepare the frozen scene invocation", surface)
-			}
-			plan, err := scenePlanFromInvocation(prepared)
-			if err != nil {
-				t.Fatal(err)
-			}
-			frozenLife := mapValue(prepared.ContextSnapshot["current_life"])
-			liveLife := currentLifeForTest(t, ctx, app, fluctlightID, time.Now().UTC())
-			if plan.ExpectedLifeContextRevision != decisionRevision || stringValue(frozenLife["context_revision"]) != decisionRevision || stringValue(liveLife["context_revision"]) == decisionRevision || prepared.ActionID == "" {
-				t.Fatalf("%s mixed model/frozen/live context: plan=%#v snapshot=%#v live=%#v", surface, plan, frozenLife, liveLife)
+			if surface == "wake_up" {
+				if _, prepared := spy.lastPrepared(); prepared {
+					t.Fatal("stale WakeUp prepared a capability before its authoritative transaction succeeded")
+				}
+			} else {
+				prepared, ok := spy.lastPrepared()
+				if !ok {
+					t.Fatalf("%s did not prepare the frozen scene invocation", surface)
+				}
+				plan, err := scenePlanFromInvocation(prepared)
+				if err != nil {
+					t.Fatal(err)
+				}
+				frozenLife := mapValue(prepared.ContextSnapshot["current_life"])
+				liveLife := currentLifeForTest(t, ctx, app, fluctlightID, time.Now().UTC())
+				if plan.ExpectedLifeContextRevision != decisionRevision || stringValue(frozenLife["context_revision"]) != decisionRevision || stringValue(liveLife["context_revision"]) == decisionRevision || prepared.ActionID == "" {
+					t.Fatalf("%s mixed model/frozen/live context: plan=%#v snapshot=%#v live=%#v", surface, plan, frozenLife, liveLife)
+				}
 			}
 			var wakeCount, actionCount int
 			if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_wakeups WHERE fluctlight_id=$1`, fluctlightID).Scan(&wakeCount); err != nil {

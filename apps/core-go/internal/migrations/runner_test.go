@@ -59,8 +59,68 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != PromptContextMemoryHead || PreviousHead != EvolutionAuthorityHead {
+	if Head != InitializationSourceHead || PreviousHead != PromptContextMemoryHead {
 		t.Fatalf("Head = %q", Head)
+	}
+}
+
+func TestInitializationSourceMigrationIsAppendOnlyAndOwnerScoped(t *testing.T) {
+	if InitializationSourceHead != "0033_initialization_source" || PreviousHead != PromptContextMemoryHead {
+		t.Fatalf("initialization source migration chain previous=%q head=%q", PreviousHead, InitializationSourceHead)
+	}
+	for _, fragment := range []string{
+		"fluctlight_initialization_sources", "fluctlight_initialization_source_links",
+		"owner_actor_id", "source_text", "source_digest", "correlation_id",
+		"provider_endpoint_id", "model_id", "prompt_version", "schema_version",
+		"classification_evidence", "field_derivations", "coverage", "structured_projection",
+		"foundation_revision_id", "projection_digest", "linked_at",
+		"trg_initialization_source_immutable", "trg_initialization_source_link_immutable", "BEFORE UPDATE OR DELETE",
+	} {
+		if !strings.Contains(initializationSourceSchemaSQL, fragment) {
+			t.Fatalf("initialization source schema missing %q", fragment)
+		}
+	}
+	for _, forbidden := range []string{"UPDATE public.fluctlight_initialization_sources", "DELETE FROM public.fluctlight_initialization_sources"} {
+		if strings.Contains(initializationSourceSchemaSQL, forbidden) {
+			t.Fatalf("immutable initialization source schema contains %q", forbidden)
+		}
+	}
+}
+
+func TestPostgresInitializationSourceMigrationFromPreviousHead(t *testing.T) {
+	ctx, pool := isolatedMigrationPool(t)
+	applyEvolutionHeadPromptContextFixture(t, ctx, pool)
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, promptContextMemoryMigrationSQL); err != nil {
+		t.Fatal(err)
+	}
+	if command, err := tx.Exec(ctx, `UPDATE public.alembic_version SET version_num=$1 WHERE version_num=$2`, PromptContextMemoryHead, EvolutionAuthorityHead); err != nil || command.RowsAffected() != 1 {
+		t.Fatalf("prepare previous migration head rows=%d err=%v", command.RowsAffected(), err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var beforeSources *string
+	if err := pool.QueryRow(ctx, `SELECT to_regclass('public.fluctlight_initialization_sources')::text`).Scan(&beforeSources); err != nil || beforeSources != nil {
+		t.Fatalf("previous head unexpectedly contains initialization source table: table=%v err=%v", beforeSources, err)
+	}
+	if err := New(pool).Apply(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var head string
+	var sources, links *string
+	if err := pool.QueryRow(ctx, `SELECT version_num FROM public.alembic_version`).Scan(&head); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT to_regclass('public.fluctlight_initialization_sources')::text,to_regclass('public.fluctlight_initialization_source_links')::text`).Scan(&sources, &links); err != nil {
+		t.Fatal(err)
+	}
+	if head != InitializationSourceHead || sources == nil || links == nil {
+		t.Fatalf("initialization source migration head=%q sources=%v links=%v", head, sources, links)
 	}
 }
 
@@ -190,6 +250,22 @@ func TestPromptContextMemoryMigrationAddsValidatedModelPromptBudgets(t *testing.
 	}
 	if !strings.Contains(promptContextMemorySchemaSQL, "ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS context_window_tokens") || !strings.Contains(promptContextMemorySchemaSQL, "ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS max_input_tokens") || !strings.Contains(promptContextMemorySchemaSQL, "ALTER TABLE public.model_roles ADD COLUMN IF NOT EXISTS prompt_budget_policy_version") {
 		t.Fatalf("0032 model prompt budget ALTER contract is incomplete: %s", promptContextMemorySchemaSQL)
+	}
+}
+
+func TestLifecycleDiagnosticSchemaAddsCorrelationLookupIndexes(t *testing.T) {
+	for _, fragment := range []string{
+		"ix_diagnostic_events_fluctlight_created",
+		"ix_diagnostic_events_correlation_created",
+		"ix_diagnostic_events_lifecycle_intent",
+		"ix_diagnostic_events_lifecycle_workflow",
+		"ix_diagnostic_events_lifecycle_run",
+		"ix_diagnostic_workflow_links_intent",
+		"ix_diagnostic_workflow_links_workflow",
+	} {
+		if !strings.Contains(schemaSQL, fragment) {
+			t.Fatalf("diagnostic schema missing lookup index %q", fragment)
+		}
 	}
 }
 
@@ -430,8 +506,8 @@ func TestMigrationBridgeAcceptsOnlyReleasedHead(t *testing.T) {
 	if Head == ReleasedHead {
 		t.Fatal("bridge head must differ from current Go head")
 	}
-	if PreviousHead != EvolutionAuthorityHead || PreviousHead == Head || EvolutionAuthorityHead == LifeContextRevisionHead || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
-		t.Fatalf("Prompt/Evolution/Life/Memory/Affect/Project Health migration chain is invalid: previous=%q evolution=%q life=%q memory=%q affect=%q project_health=%q head=%q", PreviousHead, EvolutionAuthorityHead, LifeContextRevisionHead, MemoryLifecycleHead, AffectCanonicalHead, ProjectHealthHead, Head)
+	if PreviousHead != PromptContextMemoryHead || PreviousHead == Head || PromptContextMemoryHead == EvolutionAuthorityHead || EvolutionAuthorityHead == LifeContextRevisionHead || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
+		t.Fatalf("Initialization/Prompt/Evolution/Life/Memory/Affect/Project Health migration chain is invalid: previous=%q prompt=%q evolution=%q life=%q memory=%q affect=%q project_health=%q head=%q", PreviousHead, PromptContextMemoryHead, EvolutionAuthorityHead, LifeContextRevisionHead, MemoryLifecycleHead, AffectCanonicalHead, ProjectHealthHead, Head)
 	}
 	if CapabilityRuntimePreviousHead != "0025_llm_queue" || CapabilityRuntimeHead != "0026_capability_runtime" {
 		t.Fatalf("capability migration chain is invalid: previous=%q head=%q", CapabilityRuntimePreviousHead, CapabilityRuntimeHead)

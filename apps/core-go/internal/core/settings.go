@@ -55,13 +55,27 @@ func (a *App) ReadSettings(ctx context.Context, actorID string) (map[string]any,
 }
 
 func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[string]any) (map[string]any, error) {
-	if _, err := a.ReadSettings(ctx, actorID); err != nil {
+	current, err := a.ReadSettings(ctx, actorID)
+	if err != nil {
 		return nil, err
 	}
 	values := mapValue(payload["values"])
+	previousWakeUp := normalizeWakeUpSettings(mapValue(mapValue(current["values"])["product.wakeup"]))
+	var nextWakeUp *WakeUpSettings
+	if raw, exists := values["product.wakeup"]; exists {
+		normalized, mergeErr := mergeWakeUpSettings(previousWakeUp, raw)
+		if mergeErr != nil {
+			return nil, mergeErr
+		}
+		nextWakeUp = &normalized
+		values["product.wakeup"] = map[string]any{
+			"enabled":          normalized.Enabled,
+			"interval_seconds": normalized.IntervalSeconds,
+		}
+	}
 	secrets := mapValue(payload["secrets"])
 	clear := arrayValue(payload["clear_secrets"])
-	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		for key, value := range values {
 			if key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" {
 				return fmt.Errorf("unknown setting %s", key)
@@ -103,7 +117,50 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 	if err != nil {
 		return nil, err
 	}
+	if nextWakeUp != nil && wakeUpSettingsNeedsRearm(previousWakeUp, *nextWakeUp) {
+		if _, err := a.EnsureWakeUpIntents(ctx); err != nil {
+			return nil, fmt.Errorf("product_wakeup_rearm_failed: %w", err)
+		}
+		if _, err := a.ReleaseDueWakeUpIntents(ctx, wakeUpDueSweepLimit); err != nil {
+			return nil, fmt.Errorf("product_wakeup_rearm_failed: %w", err)
+		}
+	}
 	return a.ReadSettings(ctx, actorID)
+}
+
+func wakeUpSettingsNeedsRearm(previous, next WakeUpSettings) bool {
+	return !previous.Enabled && next.Enabled
+}
+
+func mergeWakeUpSettings(previous WakeUpSettings, raw any) (WakeUpSettings, error) {
+	input, ok := raw.(map[string]any)
+	if !ok {
+		return WakeUpSettings{}, errors.New("product_wakeup_invalid")
+	}
+	merged := map[string]any{
+		"enabled":          previous.Enabled,
+		"interval_seconds": previous.IntervalSeconds,
+	}
+	for key, value := range input {
+		switch key {
+		case "enabled":
+			if _, ok := value.(bool); !ok {
+				return WakeUpSettings{}, errors.New("product_wakeup_invalid")
+			}
+		case "interval_seconds":
+			if _, isString := value.(string); isString {
+				return WakeUpSettings{}, errors.New("product_wakeup_invalid")
+			}
+			parsed, ok := numberFloat(value)
+			if !ok || parsed != float64(int(parsed)) {
+				return WakeUpSettings{}, errors.New("product_wakeup_invalid")
+			}
+		default:
+			return WakeUpSettings{}, errors.New("product_wakeup_invalid")
+		}
+		merged[key] = value
+	}
+	return normalizeWakeUpSettings(merged), nil
 }
 
 func normalizeProviderQueueSettings(value any) map[string]any {

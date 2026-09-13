@@ -2,6 +2,9 @@ package core
 
 import (
 	"context"
+	"os"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -26,6 +29,68 @@ func TestProviderRedisScoreKeepsPriorityBeforeFIFO(t *testing.T) {
 	}
 	if providerRedisScore(90, 1) >= providerRedisScore(90, 2) {
 		t.Fatal("equal priority did not preserve FIFO sequence")
+	}
+}
+
+func TestProviderRedisQueueScriptAgesBoundedWaitJobs(t *testing.T) {
+	source, err := os.ReadFile("provider_redis_queue.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(source)
+	for _, required := range []string{"queued_at", "max_wait", "aged_score", "sequence"} {
+		if !strings.Contains(text, required) {
+			t.Fatalf("Provider Redis queue aging missing %q", required)
+		}
+	}
+	if providerRedisAgedScore(10) >= providerRedisScore(100, 1) {
+		t.Fatal("aged Provider job does not sort ahead of fresh priority jobs")
+	}
+}
+
+func TestProviderRedisAgingSelectsOldLifecycleBeforeFreshPriority(t *testing.T) {
+	server, err := miniredis.Run()
+	if err != nil {
+		t.Skipf("Redis integration test requires a local listener: %v", err)
+	}
+	defer server.Close()
+	client := redis.NewClient(&redis.Options{Addr: server.Addr()})
+	defer client.Close()
+	pendingKey, processingKey, _ := providerRedisKeys("generic_llm")
+	now := time.Now().UnixMilli()
+	owner := "provider-aging-test"
+	lowID, highID := "aged-reflection", "fresh-reply"
+	for _, item := range []struct {
+		id       string
+		priority int
+		sequence int64
+		queuedAt int64
+	}{
+		{id: lowID, priority: 70, sequence: 1, queuedAt: now - providerRedisMaximumWait.Milliseconds() - 1},
+		{id: highID, priority: 100, sequence: 2, queuedAt: now},
+	} {
+		score := providerRedisScore(item.priority, item.sequence)
+		jobKey := providerRedisQueuePrefix + ":job:" + item.id
+		if err := client.HSet(context.Background(), jobKey, map[string]any{
+			"score": score, "sequence": item.sequence, "queued_at": item.queuedAt,
+			"status": "queued", "pending_owner": owner, "pending_until": now + providerRedisPendingTTL.Milliseconds(),
+		}).Err(); err != nil {
+			t.Fatal(err)
+		}
+		if err := client.ZAdd(context.Background(), pendingKey, redis.Z{Score: float64(score), Member: item.id}).Err(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	state, err := providerRedisClaimScript.Run(context.Background(), client, []string{pendingKey, processingKey},
+		strconv.FormatInt(now, 10), "1", strconv.FormatInt(providerRedisLease.Milliseconds(), 10),
+		owner, lowID, strconv.FormatInt(providerRedisMaximumWait.Milliseconds(), 10),
+		strconv.FormatInt(providerRedisScoreUnit, 10),
+	).Int64()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state != 1 {
+		t.Fatalf("aged lifecycle claim state=%d, want selected before fresh priority", state)
 	}
 }
 

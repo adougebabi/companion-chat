@@ -118,3 +118,23 @@ test("diagnostics entry loads records and creation keeps a direct correlation li
   assert.match(source, /查看本次分析诊断/);
   assert.match(source, /behavioral_policy/);
 });
+
+test("creation preview has one typed authority, stale-analysis epochs, and a UTF-8 byte limit", async () => {
+	const view = await readFile(new URL("../src/views/InstancesView.vue", import.meta.url), "utf8");
+	const controlCenter = await readFile(new URL("../src/stores/control-center.ts", import.meta.url), "utf8");
+	assert.match(view, /BrowserFluctlightCreationAnalysis/);
+	assert.match(view, /creationFoundation = ref<BrowserFluctlightCreationAnalysis \| null>/);
+	assert.doesNotMatch(view, /creationInitialGoals = ref<Array/);
+	assert.doesNotMatch(view, /creationInitialIntentions = ref<Array/);
+	assert.match(view, /analysisId: foundation\.analysis_id/);
+	assert.match(view, /initialGoals: foundation\.initial_goals/);
+	assert.match(view, /initialIntentions: foundation\.initial_intentions/);
+	assert.match(view, /initialRelationships: foundation\.initial_relationships/);
+	assert.match(view, /new TextEncoder\(\)\.encode\(description\)\.byteLength/);
+	assert.match(view, /descriptionBytes > 60_000/);
+	assert.doesNotMatch(view, /maxlength="12000"/);
+	assert.match(view, /invalidateCreationPreview\(\);[\s\S]*controlCenter\.analyzeFluctlight/);
+	assert.match(controlCenter, /creationAnalysisRequestId: 0/);
+	assert.match(controlCenter, /const requestId = this\.creationAnalysisRequestId \+ 1/);
+	assert.match(controlCenter, /if \(requestId !== this\.creationAnalysisRequestId\) return null/);
+});

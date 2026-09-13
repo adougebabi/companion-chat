@@ -12,8 +12,9 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; the bounded capability-runtime reconciliation below is the one
 // explicitly allowed active-payload migration and preserves audit history.
-const Head = "0032_prompt_context_memory"
-const PreviousHead = "0031_evolution_authority"
+const Head = "0033_initialization_source"
+const PreviousHead = "0032_prompt_context_memory"
+const InitializationSourceHead = "0033_initialization_source"
 const PromptContextMemoryHead = "0032_prompt_context_memory"
 const EvolutionAuthorityHead = "0031_evolution_authority"
 const LifeContextRevisionHead = "0030_life_context_revision"
@@ -80,9 +81,10 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyLifeContextRevision := applyMemoryLifecycle || current == MemoryLifecycleHead
 	applyEvolutionAuthority := applyLifeContextRevision || current == LifeContextRevisionHead
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
+	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
 	if len(revisions) == 1 && current != Head {
-		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead {
-			return fmt.Errorf("unsupported migration head %q; expected %s, %s, %s, %s, %s, %s, %s, %s, or %s", revisions[0], ReleasedHead, CapabilityRuntimePreviousHead, CapabilityRuntimeHead, ProjectHealthHead, AffectCanonicalHead, MemoryLifecycleHead, LifeContextRevisionHead, EvolutionAuthorityHead, Head)
+		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead {
+			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
 	}
 	if applyCapabilityRuntime {
@@ -119,10 +121,15 @@ func (r *Runner) Apply(ctx context.Context) error {
 		if _, err := tx.Exec(ctx, promptContextMemoryMigrationSQL); err != nil {
 			return fmt.Errorf("apply Prompt Context and Memory migration: %w", err)
 		}
+	}
+	if applyInitializationSource {
+		if _, err := tx.Exec(ctx, initializationSourceSchemaSQL); err != nil {
+			return fmt.Errorf("apply initialization source migration: %w", err)
+		}
 	} else if current == Head {
 		// The current head stays self-repairing for additive schema drift without
 		// replaying historical migrations or rewriting facts.
-		if _, err := tx.Exec(ctx, promptContextMemorySchemaSQL); err != nil {
+		if _, err := tx.Exec(ctx, promptContextMemorySchemaSQL+initializationSourceSchemaSQL); err != nil {
 			return fmt.Errorf("verify Prompt Context and Memory schema: %w", err)
 		}
 	}
@@ -233,9 +240,16 @@ CREATE TABLE IF NOT EXISTS public.platform_workflow_intents (intent_id varchar(1
 CREATE TABLE IF NOT EXISTS public.platform_outbox_events (id varchar(128) PRIMARY KEY, kind varchar(128) NOT NULL, aggregate_type varchar(96) NOT NULL, aggregate_id varchar(128) NOT NULL, fluctlight_id varchar(128), causation_id varchar(128) NOT NULL, correlation_id varchar(128) NOT NULL, idempotency_key varchar(256) NOT NULL UNIQUE, payload jsonb NOT NULL, occurred_at timestamptz NOT NULL DEFAULT now(), available_at timestamptz NOT NULL DEFAULT now(), attempt_policy jsonb NOT NULL, published_at timestamptz, completed_at timestamptz, failed_at timestamptz, claim_owner varchar(128), claim_until timestamptz, attempt_count integer NOT NULL DEFAULT 0, last_error text);
 CREATE TABLE IF NOT EXISTS public.platform_consumer_inbox (id bigserial PRIMARY KEY, consumer_group varchar(96) NOT NULL, event_id varchar(128) NOT NULL, result jsonb NOT NULL, applied_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.diagnostic_events (id varchar(128) PRIMARY KEY, event_type varchar(128) NOT NULL, severity varchar(32) NOT NULL, fluctlight_id varchar(128), causation_id varchar(128), correlation_id varchar(128) NOT NULL, payload jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_diagnostic_events_fluctlight_created ON public.diagnostic_events(fluctlight_id,created_at DESC,id DESC);
+CREATE INDEX IF NOT EXISTS ix_diagnostic_events_correlation_created ON public.diagnostic_events(correlation_id,created_at DESC,id DESC);
+CREATE INDEX IF NOT EXISTS ix_diagnostic_events_lifecycle_intent ON public.diagnostic_events((payload->>'intent_id'),created_at DESC,id DESC) WHERE event_type LIKE 'lifecycle.%';
+CREATE INDEX IF NOT EXISTS ix_diagnostic_events_lifecycle_workflow ON public.diagnostic_events((payload->>'workflow_id'),created_at DESC,id DESC) WHERE event_type LIKE 'lifecycle.%';
+CREATE INDEX IF NOT EXISTS ix_diagnostic_events_lifecycle_run ON public.diagnostic_events((payload->>'run_id'),created_at DESC,id DESC) WHERE event_type LIKE 'lifecycle.%';
 CREATE TABLE IF NOT EXISTS public.diagnostic_model_runs (id varchar(128) PRIMARY KEY, role varchar(64) NOT NULL, binding_role varchar(64) NOT NULL DEFAULT 'generic_llm', scenario varchar(128) NOT NULL DEFAULT '', priority integer NOT NULL DEFAULT 0, endpoint_id varchar(128), model_id varchar(256) NOT NULL, prompt jsonb NOT NULL, response jsonb, status varchar(32) NOT NULL, error_code varchar(128), correlation_id varchar(128) NOT NULL, fluctlight_id varchar(128), metrics jsonb NOT NULL DEFAULT '{}', estimated_input_tokens integer, actual_prompt_tokens integer, actual_completion_tokens integer, latency_ms bigint, queued_at timestamptz NOT NULL DEFAULT now(), started_at timestamptz, completed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.diagnostic_turns (id varchar(128) PRIMARY KEY, fluctlight_id varchar(128) NOT NULL, conversation_id varchar(128), source_event_id varchar(128), correlation_id varchar(128) NOT NULL, status varchar(32) NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.diagnostic_workflow_links (id varchar(128) PRIMARY KEY, correlation_id varchar(128) NOT NULL, workflow_id varchar(128) NOT NULL, intent_id varchar(128), event_id varchar(128), created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_diagnostic_workflow_links_intent ON public.diagnostic_workflow_links(intent_id,created_at DESC) WHERE intent_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_diagnostic_workflow_links_workflow ON public.diagnostic_workflow_links(workflow_id,created_at DESC);
 CREATE TABLE IF NOT EXISTS public.diagnostic_retention (id bigserial PRIMARY KEY, resource varchar(64) NOT NULL UNIQUE, retention_days integer NOT NULL, max_rows integer NOT NULL, updated_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.platform_workflow_management_audit (id varchar(128) PRIMARY KEY, action varchar(32) NOT NULL, workflow_id varchar(128) NOT NULL, actor_id varchar(128) NOT NULL, authorized varchar(8) NOT NULL, details jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS public.fluctlight_foundation_governance (id varchar(128) PRIMARY KEY, fluctlight_id varchar(128) NOT NULL, revision_id varchar(128) NOT NULL, action varchar(32) NOT NULL, actor_id varchar(128) NOT NULL, reason text, created_at timestamptz NOT NULL DEFAULT now());
@@ -2220,3 +2234,54 @@ BEGIN
   END IF;
 END $$;
 ` + promptContextMemorySchemaSQL
+
+const initializationSourceSchemaSQL = `
+CREATE TABLE IF NOT EXISTS public.fluctlight_initialization_sources (
+  id varchar(128) PRIMARY KEY,
+  owner_actor_id varchar(128) NOT NULL,
+  correlation_id varchar(128) NOT NULL UNIQUE,
+  source_text text NOT NULL,
+  source_digest varchar(128) NOT NULL,
+  provider_endpoint_id varchar(128),
+  model_id varchar(256),
+  prompt_version varchar(64) NOT NULL,
+  schema_version varchar(64) NOT NULL,
+  classification varchar(16) NOT NULL DEFAULT 'unknown',
+  classification_evidence jsonb NOT NULL DEFAULT '{}',
+  field_derivations jsonb NOT NULL DEFAULT '{}',
+  coverage jsonb NOT NULL DEFAULT '{}',
+  structured_projection jsonb NOT NULL,
+  projection_digest varchar(128) NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT ck_initialization_source_text CHECK (btrim(source_text) <> ''),
+  CONSTRAINT ck_initialization_source_classification CHECK (classification IN ('unknown','single','multiple')),
+  CONSTRAINT ck_initialization_source_analysis_objects CHECK (jsonb_typeof(classification_evidence)='object' AND jsonb_typeof(field_derivations)='object' AND jsonb_typeof(coverage)='object' AND jsonb_typeof(structured_projection)='object'),
+  CONSTRAINT fk_initialization_source_owner FOREIGN KEY(owner_actor_id) REFERENCES public.actors(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_initialization_source_provider FOREIGN KEY(provider_endpoint_id) REFERENCES public.provider_endpoints(id) DEFERRABLE INITIALLY DEFERRED
+);
+CREATE TABLE IF NOT EXISTS public.fluctlight_initialization_source_links (
+  source_id varchar(128) PRIMARY KEY,
+  fluctlight_id varchar(128) NOT NULL,
+  foundation_revision_id varchar(128) NOT NULL UNIQUE,
+  linked_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT fk_initialization_source_link_source FOREIGN KEY(source_id) REFERENCES public.fluctlight_initialization_sources(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_initialization_source_link_fluctlight FOREIGN KEY(fluctlight_id) REFERENCES public.fluctlights(id) DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_initialization_source_link_foundation FOREIGN KEY(foundation_revision_id) REFERENCES public.fluctlight_foundation_revisions(id) DEFERRABLE INITIALLY DEFERRED
+);
+CREATE INDEX IF NOT EXISTS ix_initialization_sources_owner_created ON public.fluctlight_initialization_sources(owner_actor_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_initialization_sources_projection_digest ON public.fluctlight_initialization_sources(owner_actor_id,projection_digest,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_initialization_source_links_fluctlight ON public.fluctlight_initialization_source_links(fluctlight_id,linked_at DESC);
+CREATE OR REPLACE FUNCTION public.reject_initialization_source_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'initialization source rows are immutable';
+END $$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='trg_initialization_source_immutable' AND tgrelid='public.fluctlight_initialization_sources'::regclass) THEN
+    CREATE TRIGGER trg_initialization_source_immutable BEFORE UPDATE OR DELETE ON public.fluctlight_initialization_sources FOR EACH ROW EXECUTE FUNCTION public.reject_initialization_source_mutation();
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='trg_initialization_source_link_immutable' AND tgrelid='public.fluctlight_initialization_source_links'::regclass) THEN
+    CREATE TRIGGER trg_initialization_source_link_immutable BEFORE UPDATE OR DELETE ON public.fluctlight_initialization_source_links FOR EACH ROW EXECUTE FUNCTION public.reject_initialization_source_mutation();
+  END IF;
+END $$;
+`

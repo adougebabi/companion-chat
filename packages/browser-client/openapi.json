@@ -6,6 +6,280 @@
   },
   "components": {
     "schemas": {
+      "BrowserFluctlightCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256
+          }
+        }
+      },
+      "BrowserFluctlightCreationAnalysisRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60000,
+            "description": "UTF-8 encoded value must not exceed 60000 bytes.",
+            "x-maxBytes": 60000
+          }
+        },
+        "required": [
+          "description"
+        ]
+      },
+      "BrowserFluctlightCreationAnalysis": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "analysis_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "correlation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "schema_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "core_persona": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "developing_self": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "extensions": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "initial_goals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "initial_intentions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "initial_relationships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": [
+          "analysis_id",
+          "correlation_id",
+          "schema_version",
+          "core_persona",
+          "developing_self",
+          "extensions",
+          "initial_goals",
+          "initial_intentions",
+          "initial_relationships"
+        ]
+      },
+      "BrowserFluctlightActivationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "initializationMode": {
+            "type": "string",
+            "enum": [
+              "blank_slate",
+              "llm_defined"
+            ]
+          },
+          "analysisId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "corePersona": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "developingSelf": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "extensions": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "initialGoals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "initialIntentions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "initialRelationships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": [
+          "requestId",
+          "initializationMode"
+        ]
+      },
+      "BrowserInitializationSource": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "source_text": {
+            "type": "string"
+          },
+          "source_digest": {
+            "type": "string"
+          },
+          "provider_endpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "prompt_version": {
+            "type": "string"
+          },
+          "schema_version": {
+            "type": "string"
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "single",
+              "multiple",
+              "unknown"
+            ]
+          },
+          "classification_evidence": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "field_derivations": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "coverage": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "structured_projection": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "projection_digest": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "linked_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "correlation_id",
+          "source_text",
+          "source_digest",
+          "prompt_version",
+          "schema_version",
+          "classification",
+          "classification_evidence",
+          "field_derivations",
+          "coverage",
+          "structured_projection",
+          "projection_digest",
+          "created_at",
+          "linked_at"
+        ]
+      },
+      "BrowserFluctlightDetail": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "initialization_source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrowserInitializationSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
       "BrowserLifeEventRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -380,7 +654,17 @@
         "operationId": "listFluctlights"
       },
       "post": {
-        "operationId": "createFluctlight"
+        "operationId": "createFluctlight",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserFluctlightCreateRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/actor-groups": {
@@ -573,7 +857,19 @@
     },
     "/api/fluctlights/{fluctlightId}/detail": {
       "get": {
-        "operationId": "fluctlightDetail"
+        "operationId": "fluctlightDetail",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserFluctlightDetail"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/fluctlights/{fluctlightId}/developing-self": {
@@ -643,12 +939,44 @@
     },
     "/api/fluctlight-creations/analysis": {
       "post": {
-        "operationId": "analyzeFluctlightCreation"
+        "operationId": "analyzeFluctlightCreation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserFluctlightCreationAnalysisRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserFluctlightCreationAnalysis"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/fluctlight-creations/activate": {
       "post": {
-        "operationId": "activateFluctlightCreation"
+        "operationId": "activateFluctlightCreation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserFluctlightActivationRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/conversations/{conversationId}/messages": {
@@ -672,6 +1000,11 @@
       },
       "delete": {
         "operationId": "clearDiagnostics"
+      }
+    },
+    "/api/diagnostics/lifecycle": {
+      "get": {
+        "operationId": "readLifecycleDiagnostics"
       }
     },
     "/api/diagnostics/model-runs": {

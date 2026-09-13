@@ -361,7 +361,11 @@ func (a *App) persistStandaloneCapabilityOutcomes(ctx context.Context, fluctligh
 			if err != nil {
 				return err
 			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:action:"+actionID, "reflection:action:"+actionID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID})); err != nil {
+			if err := insertReflectionIntentTx(ctx, tx,
+				"reflection_intent:action:"+actionID,
+				"reflection:action:"+actionID,
+				map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "action_id": actionID},
+			); err != nil {
 				return err
 			}
 			if err := appendOutboxTx(ctx, tx, "autonomy.result.recorded", "fluctlight", fluctlightID, fluctlightID, actionID, "action-result:"+actionID, "action-result:"+actionID, factPayload); err != nil {
@@ -459,7 +463,11 @@ func (a *App) settleActionOutcomeByExternalRefTx(ctx context.Context, tx pgx.Tx,
 	if err != nil {
 		return false, err
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','reflection.run',$3) ON CONFLICT DO NOTHING`, "reflection_intent:outcome:"+revisionKey, "reflection:outcome:"+revisionKey, jsonBytes(map[string]any{"fluctlight_id": outcome.FluctlightID, "source_fact_id": factID, "action_id": outcome.ActionID, "outcome_id": outcome.ID, "outcome_revision": outcome.Revision})); err != nil {
+	if err := insertReflectionIntentTx(ctx, tx,
+		"reflection_intent:outcome:"+revisionKey,
+		"reflection:outcome:"+revisionKey,
+		map[string]any{"fluctlight_id": outcome.FluctlightID, "source_fact_id": factID, "action_id": outcome.ActionID, "outcome_id": outcome.ID, "outcome_revision": outcome.Revision},
+	); err != nil {
 		return false, err
 	}
 	if err := appendOutboxTx(ctx, tx, "action.outcome.updated", "action_outcome", outcome.ID, outcome.FluctlightID, outcome.ActionID, "action-outcome:"+outcome.ID, "action-outcome:"+revisionKey, map[string]any{"outcome_id": outcome.ID, "action_id": outcome.ActionID, "call_id": outcome.CallID, "status": outcome.Status, "revision": outcome.Revision, "aggregate_sequence": outcome.Revision}); err != nil {

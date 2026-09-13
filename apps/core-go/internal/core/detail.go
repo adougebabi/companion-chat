@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -72,6 +73,10 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 	if err != nil {
 		return nil, err
 	}
+	detail["initialization_source"], err = a.readInitializationSource(ctx, actorID, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
 	goals, intentions, err := a.readAgency(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
@@ -116,6 +121,29 @@ func (a *App) FluctlightDetail(ctx context.Context, actorID, fluctlightID string
 		return nil, err
 	}
 	return detail, nil
+}
+
+func (a *App) readInitializationSource(ctx context.Context, actorID, fluctlightID string) (map[string]any, error) {
+	var id, correlationID, sourceText, sourceDigest, promptVersion, schemaVersion, classification, projectionDigest string
+	var providerEndpointID, modelID *string
+	var classificationEvidence, fieldDerivations, coverage, structuredProjection []byte
+	var createdAt, linkedAt time.Time
+	err := a.DB.Pool().QueryRow(ctx, `SELECT s.id,s.correlation_id,s.source_text,s.source_digest,s.provider_endpoint_id,s.model_id,s.prompt_version,s.schema_version,s.classification,s.classification_evidence,s.field_derivations,s.coverage,s.structured_projection,s.projection_digest,s.created_at,l.linked_at FROM public.fluctlight_initialization_sources AS s JOIN public.fluctlight_initialization_source_links AS l ON l.source_id=s.id JOIN public.fluctlights AS f ON f.id=l.fluctlight_id WHERE l.fluctlight_id=$1 AND s.owner_actor_id=$2 AND f.created_by_actor_id=$2 ORDER BY l.linked_at DESC LIMIT 1`, fluctlightID, actorID).Scan(&id, &correlationID, &sourceText, &sourceDigest, &providerEndpointID, &modelID, &promptVersion, &schemaVersion, &classification, &classificationEvidence, &fieldDerivations, &coverage, &structuredProjection, &projectionDigest, &createdAt, &linkedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"id": id, "correlation_id": correlationID, "source_text": sourceText,
+		"source_digest": sourceDigest, "provider_endpoint_id": providerEndpointID,
+		"model_id": modelID, "prompt_version": promptVersion, "schema_version": schemaVersion,
+		"classification": classification, "classification_evidence": decodeObject(classificationEvidence),
+		"field_derivations": decodeObject(fieldDerivations), "coverage": decodeObject(coverage),
+		"structured_projection": decodeObject(structuredProjection), "projection_digest": projectionDigest,
+		"created_at": createdAt.UTC().Format(time.RFC3339Nano), "linked_at": linkedAt.UTC().Format(time.RFC3339Nano),
+	}, nil
 }
 
 func (a *App) readWakeUpHistory(ctx context.Context, fluctlightID string) ([]map[string]any, error) {

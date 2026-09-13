@@ -3,10 +3,84 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"os"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestReflectionIntentWritersUseExplicitQuietPeriod(t *testing.T) {
+	helperCalls := 0
+	for _, file := range []string{"cognition.go", "wakeup.go", "workflow_ops.go", "action_outcome.go", "operations.go", "autonomy.go"} {
+		source, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, line := range strings.Split(string(source), "\n") {
+			if strings.Contains(line, "INSERT INTO public.platform_workflow_intents") &&
+				strings.Contains(line, "'reflection.run'") &&
+				!strings.Contains(line, "next_attempt_at") {
+				t.Fatalf("%s creates Reflection without explicit quiet-period due: %s", file, strings.TrimSpace(line))
+			}
+		}
+		helperCalls += strings.Count(string(source), "insertReflectionIntentTx(")
+	}
+	if helperCalls < 8 {
+		t.Fatalf("only %d Reflection producers use the quiet-period writer", helperCalls)
+	}
+	source, err := os.ReadFile("wakeup.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	helper := sourceBetween(t, string(source), "func insertReflectionIntentTx", "func (a *App) persistWakeCapabilityResults")
+	if !strings.Contains(helper, "'reflection.run'") || !strings.Contains(helper, "next_attempt_at") {
+		t.Fatal("shared Reflection writer does not persist an explicit quiet-period due")
+	}
+}
+
+func TestReflectionWindowCleanupUsesLeaseTokenAndCAS(t *testing.T) {
+	source, err := os.ReadFile("reflection_window_v2.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(source)
+	if !strings.Contains(text, "reflectionWindowLease") ||
+		!strings.Contains(text, "updated_at=$") ||
+		!strings.Contains(text, "RowsAffected") ||
+		!strings.Contains(text, "reflection_window_lease") {
+		t.Fatal("Reflection window cleanup can still clear a newer attempt's claim")
+	}
+}
+
+func TestReflectionEvidenceReadersCheckRowsErrors(t *testing.T) {
+	source, err := os.ReadFile("workflow_ops.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := sourceBetween(t, string(source), "func (a *App) ProcessReflection", "func boundedNumber")
+	if !strings.Contains(body, "rows.Err()") || !strings.Contains(body, "appraisalRows.Err()") {
+		t.Fatal("Reflection may accept partial evidence without checking iterator errors")
+	}
+}
+
+func TestUserActivitySupersedesEarlierPendingReflectionQuietPeriod(t *testing.T) {
+	source, err := os.ReadFile("cognition.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := sourceBetween(t, string(source), "func enqueueQuietPeriodReflectionIntentTx", "func (a *App) FailTurnCognition")
+	for _, required := range []string{
+		"status='superseded'",
+		"superseded_by_newer_user_activity",
+		"payload->>'trigger'='user_quiet_period'",
+		"next_attempt_at",
+		"status IN ('pending','retry')",
+	} {
+		if !strings.Contains(body, required) {
+			t.Fatalf("Reflection quiet-period debounce missing %q", required)
+		}
+	}
+}
 
 func TestReflectionV2StageS08(t *testing.T) {
 	now := time.Date(2026, 9, 11, 14, 0, 0, 0, time.UTC)
@@ -159,5 +233,26 @@ func TestReflectionProviderCompletionRejectsToolCalls(t *testing.T) {
 	}
 	if err := validateReflectionProviderCompletion(ProviderCompletion{StructuredFallback: true}); err == nil || err.Error() != "reflection_structured_response_invalid" {
 		t.Fatalf("invalid Reflection fallback was not rejected: %v", err)
+	}
+}
+
+func TestReflectionProviderHeaderDefaultsAllowNoChangeResponse(t *testing.T) {
+	normalized := normalizeReflectionProposalV2Header(map[string]any{
+		"memory_candidates": []any{},
+	})
+	proposal, err := DecodeReflectionProposalV2(jsonBytes(normalized))
+	if err != nil {
+		t.Fatalf("neutral Reflection defaults were rejected: %v", err)
+	}
+	if proposal.SchemaVersion != reflectionProposalV2SchemaVersion || proposal.Summary != "no_change" || proposal.MemoryCandidates == nil {
+		t.Fatalf("normalized Reflection proposal = %#v", proposal)
+	}
+
+	providerVersionAlias := normalizeReflectionProposalV2Header(map[string]any{
+		"schema_version": "reflection.v999",
+		"summary":        "no change",
+	})
+	if proposal, err := DecodeReflectionProposalV2(jsonBytes(providerVersionAlias)); err != nil || proposal.SchemaVersion != reflectionProposalV2SchemaVersion {
+		t.Fatalf("Core did not own the Reflection protocol version: %#v, %v", proposal, err)
 	}
 }

@@ -238,8 +238,8 @@ func filterCorePersona(value map[string]any) map[string]any {
 	if data := mapValue(value["data"]); len(data) > 0 {
 		value = data
 	}
-	result := make(map[string]any, 4)
-	for _, group := range []string{"identity", "personality", "behavioral_policy", "life_profile", "personality_system"} {
+	result := make(map[string]any, 6)
+	for _, group := range []string{"identity", "personality", "behavioral_policy", "life_profile", "personality_system", "extensions"} {
 		if source := mapValue(value[group]); len(source) > 0 {
 			if group == "personality_system" {
 				result[group] = filterPersonalitySystem(source)
@@ -321,7 +321,7 @@ func filterCorePersonaValue(value map[string]any) map[string]any {
 	result := make(map[string]any, len(value))
 	for key, child := range value {
 		normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "-", ""), "_", ""))
-		if normalized == "id" || strings.HasSuffix(normalized, "id") || normalized == "schemaversion" || normalized == "revision" || normalized == "createdat" || normalized == "updatedat" || normalized == "status" || normalized == "provenance" || normalized == "source" || normalized == "instant" {
+		if normalized == "id" || strings.HasSuffix(normalized, "id") || normalized == "schemaversion" || normalized == "revision" || normalized == "createdat" || normalized == "updatedat" || normalized == "status" || normalized == "provenance" || normalized == "source" || normalized == "sourcetext" || normalized == "sourcedigest" || normalized == "projectiondigest" || normalized == "providerendpoint" || normalized == "providerrequest" || normalized == "correlation" || normalized == "instant" {
 			continue
 		}
 		if key == "update_policy" {

@@ -3,6 +3,7 @@ package workflow
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -14,6 +15,7 @@ import (
 	enumspb "go.temporal.io/api/enums/v1"
 	failurepb "go.temporal.io/api/failure/v1"
 	historypb "go.temporal.io/api/history/v1"
+	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
@@ -23,24 +25,33 @@ import (
 
 const (
 	LifecycleQueue               = "lifecycle"
+	CriticalLifecycleQueue       = "lifecycle-critical"
 	MediaQueue                   = "media"
 	InteractionQueue             = "interaction"
+	VisualIdentityQueue          = "visual-identity"
 	WorkerDeploymentName         = "fluctlight"
 	DefaultWorkerBuildID         = "platform-v1"
 	mediaActivityMaximumAttempts = 3
 	visualIdentityRetryDelay     = 5 * time.Second
 	visualIdentityHeartbeatEvery = 10 * time.Second
+	reflectionRetryDelay         = 5 * time.Minute
+	reflectionMaximumAttempts    = 5
 	defaultWakeUpIntervalSeconds = 30 * 60
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
 	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'media.%' THEN 0 WHEN intent_type LIKE 'schedule.%' THEN 1 WHEN intent_type LIKE 'wake_up.%' THEN 2 WHEN intent_type LIKE 'daily_review.%' THEN 3 WHEN intent_type LIKE 'autonomy.%' THEN 4 WHEN intent_type LIKE 'capability.%' THEN 5 WHEN intent_type LIKE 'reflection.%' THEN 6 WHEN intent_type LIKE 'visual_identity.%' THEN 7 ELSE 8 END"
-	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type FROM public.platform_workflow_intents WHERE status IN ('pending','started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('cognition.processing','autonomy.action','capability.action')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
+	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','autonomy.action','capability.action','reflection.run')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
 var runtime struct {
 	sync.RWMutex
 	app *core.App
 }
+
+var workflowDiagnosticSampleState = struct {
+	sync.Mutex
+	last map[string]time.Time
+}{last: map[string]time.Time{}}
 
 func Configure(app *core.App) {
 	runtime.Lock()
@@ -116,6 +127,8 @@ func ensureWorkerDeploymentCurrentVersion(ctx context.Context, handle WorkerDepl
 
 type Input struct {
 	IntentID           string   `json:"intent_id"`
+	CorrelationID      string   `json:"correlation_id"`
+	CausationID        string   `json:"causation_id"`
 	FluctlightID       string   `json:"fluctlight_id"`
 	SessionID          string   `json:"session_id"`
 	LocalDate          string   `json:"local_date"`
@@ -570,12 +583,17 @@ func ProcessWakeUpActivity(ctx context.Context, input Input) (map[string]any, er
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
-	slog.Default().Info("Go Worker wake-up activity started", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle)
+	ctx, input = prepareActivityLifecycleContext(ctx, input, "wake_up")
+	recordActivityLifecycle(application, ctx, input, "wake_up", core.LifecycleTransitionActivityStarted, "running", "activity_started", nil)
+	slog.Default().Info("Go Worker wake-up activity started", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle, "correlation_id", input.CorrelationID)
 	result, err := application.ProcessWakeUp(ctx, input.FluctlightID, input.Cycle)
 	if err != nil {
-		slog.Default().Error("Go Worker wake-up activity failed", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle, "error", err)
+		recordActivityLifecycle(application, ctx, input, "wake_up", core.LifecycleTransitionFailed, "failed", "wake_up_activity_failed", err)
+		slog.Default().Error("Go Worker wake-up activity failed", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle, "correlation_id", input.CorrelationID, "error_type", fmt.Sprintf("%T", err))
 	} else {
-		slog.Default().Info("Go Worker wake-up activity completed", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle, "status", stringValue(result["status"]))
+		transition, status, reason := wakeUpLifecycleOutcome(result)
+		recordActivityLifecycle(application, ctx, input, "wake_up", transition, status, reason, nil)
+		slog.Default().Info("Go Worker wake-up activity completed", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle, "correlation_id", input.CorrelationID, "status", stringValue(result["status"]))
 	}
 	return result, err
 }
@@ -655,7 +673,7 @@ func ProcessAutonomyActionActivity(ctx context.Context, input Input) (map[string
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
-	return application.ProcessAutonomyAction(ctx, input.ActionID)
+	return processActionActivity(application, ctx, input, "autonomy", application.ProcessAutonomyAction)
 }
 
 func ProcessCapabilityActionActivity(ctx context.Context, input Input) (map[string]any, error) {
@@ -663,7 +681,29 @@ func ProcessCapabilityActionActivity(ctx context.Context, input Input) (map[stri
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
-	return application.ProcessCapabilityAction(ctx, input.ActionID)
+	return processActionActivity(application, ctx, input, "capability", application.ProcessCapabilityAction)
+}
+
+func processActionActivity(application *core.App, ctx context.Context, input Input, surface string, execute func(context.Context, string) (map[string]any, error)) (map[string]any, error) {
+	ctx, input = prepareActivityLifecycleContext(ctx, input, surface)
+	recordActivityLifecycle(application, ctx, input, surface, core.LifecycleTransitionActivityStarted, "running", "activity_started", nil)
+	result, err := execute(ctx, input.ActionID)
+	if err != nil {
+		recordActivityLifecycle(application, ctx, input, surface, core.LifecycleTransitionFailed, "failed", "action_activity_failed", err)
+		return nil, err
+	}
+	transition, status, reason := actionLifecycleOutcome(result)
+	recordActivityLifecycle(application, ctx, input, surface, transition, status, reason, nil)
+	return result, nil
+}
+
+func actionLifecycleOutcome(result map[string]any) (core.LifecycleTransition, string, string) {
+	status := firstString(result["status"], firstString(result["action_status"], "completed"))
+	transition := core.LifecycleTransitionCompletedNoop
+	if status == "completed" {
+		transition = core.LifecycleTransitionCompletedActionable
+	}
+	return transition, status, firstString(result["reason"], firstString(result["error_code"], "action_settled"))
 }
 
 func ProcessReflectionActivity(ctx context.Context, input Input) (map[string]any, error) {
@@ -671,7 +711,85 @@ func ProcessReflectionActivity(ctx context.Context, input Input) (map[string]any
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
-	return application.ProcessReflection(ctx, input.FluctlightID, input.IntentID)
+	ctx, input = prepareActivityLifecycleContext(ctx, input, "reflection")
+	recordActivityLifecycle(application, ctx, input, "reflection", core.LifecycleTransitionActivityStarted, "running", "activity_started", nil)
+	result, err := application.ProcessReflection(ctx, input.FluctlightID, input.CorrelationID)
+	if err != nil {
+		recordActivityLifecycle(application, ctx, input, "reflection", core.LifecycleTransitionFailed, "failed", "reflection_activity_failed", err)
+		return nil, err
+	}
+	transition, status, reason := reflectionLifecycleOutcome(result)
+	recordActivityLifecycle(application, ctx, input, "reflection", transition, status, reason, nil)
+	return result, nil
+}
+
+func wakeUpLifecycleOutcome(result map[string]any) (core.LifecycleTransition, string, string) {
+	transition := core.LifecycleTransitionCompletedNoop
+	status := stringValue(result["status"])
+	if status == "queued" {
+		transition = core.LifecycleTransitionQueued
+	} else if actionType := stringValue(result["action_type"]); status == "completed" && actionType != "" && actionType != "no_op" {
+		transition = core.LifecycleTransitionCompletedActionable
+	}
+	return transition, status, firstString(result["reason"], "wake_up_completed")
+}
+
+func reflectionLifecycleOutcome(result map[string]any) (core.LifecycleTransition, string, string) {
+	transition := core.LifecycleTransitionCompletedNoop
+	status := stringValue(result["status"])
+	if status == "applied" {
+		transition = core.LifecycleTransitionCompletedActionable
+	}
+	return transition, status, firstString(result["reason"], firstString(status, "reflection_completed"))
+}
+
+func prepareActivityLifecycleContext(ctx context.Context, input Input, surface string) (context.Context, Input) {
+	input.CorrelationID = lifecycleCorrelationForIntent(input.IntentID, surface, input)
+	ctx = core.WithProviderCorrelation(ctx, input.CorrelationID)
+	if activity.IsActivity(ctx) {
+		info := activity.GetInfo(ctx)
+		attemptIdentity := strings.Join([]string{
+			info.WorkflowExecution.RunID,
+			info.ActivityID,
+			fmt.Sprint(info.Attempt),
+		}, ":")
+		ctx = core.WithProviderAttemptIdentity(ctx, attemptIdentity)
+	}
+	return ctx, input
+}
+
+func recordActivityLifecycle(application *core.App, ctx context.Context, input Input, surface string, transition core.LifecycleTransition, status, reason string, activityErr error) {
+	if application == nil {
+		return
+	}
+	info := activity.Info{}
+	if activity.IsActivity(ctx) {
+		info = activity.GetInfo(ctx)
+	}
+	application.RecordLifecycleDiagnosticBestEffort(ctx, activityLifecycleDiagnostic(input, surface, transition, status, reason, activityErr, info))
+}
+
+func activityLifecycleDiagnostic(input Input, surface string, transition core.LifecycleTransition, status, reason string, activityErr error, info activity.Info) core.LifecycleDiagnostic {
+	diagnostic := core.LifecycleDiagnostic{
+		Surface: surface, Transition: transition,
+		FluctlightID: input.FluctlightID, CorrelationID: input.CorrelationID,
+		CausationID: input.CausationID, IntentID: input.IntentID,
+		WorkflowID: info.WorkflowExecution.ID, RunID: info.WorkflowExecution.RunID,
+		ActivityType: info.ActivityType.Name, ActivityID: info.ActivityID,
+		Stage: "activity", Status: status, ReasonCode: reason,
+		Attempt: int(info.Attempt),
+	}
+	if diagnostic.CorrelationID == "" {
+		diagnostic.CorrelationID = lifecycleCorrelationForIntent(input.IntentID, surface, input)
+	}
+	if activityErr != nil {
+		diagnostic.Severity = "error"
+		diagnostic.ErrorCategory = "activity"
+		diagnostic.ErrorCode = reason
+		diagnostic.Retryable = true
+		diagnostic.SafeCause = boundedTemporalFailureMessage(&failurepb.Failure{Message: activityErr.Error()})
+	}
+	return diagnostic
 }
 
 func ProcessMemoryEmbeddingActivity(ctx context.Context, input Input) (map[string]any, error) {
@@ -706,7 +824,22 @@ func ProcessVisualIdentityActivity(ctx context.Context, input Input) (map[string
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
-	return application.ProcessVisualIdentity(ctx, input.SessionID)
+	ctx, input = prepareActivityLifecycleContext(ctx, input, "visual_identity")
+	recordActivityLifecycle(application, ctx, input, "visual_identity", core.LifecycleTransitionActivityStarted, "running", "activity_started", nil)
+	result, err := application.ProcessVisualIdentity(ctx, input.SessionID)
+	if err != nil {
+		recordActivityLifecycle(application, ctx, input, "visual_identity", core.LifecycleTransitionFailed, "failed", "visual_identity_activity_failed", err)
+		return nil, err
+	}
+	transition := core.LifecycleTransitionCompletedNoop
+	status := firstString(result["status"], "waiting")
+	if status == "completed" {
+		transition = core.LifecycleTransitionCompletedActionable
+	} else if status == "waiting" || status == "queued" || status == "running" {
+		transition = core.LifecycleTransitionQueued
+	}
+	recordActivityLifecycle(application, ctx, input, "visual_identity", transition, status, firstString(result["error_code"], firstString(result["stage"], "visual_identity_checkpoint")), nil)
+	return result, nil
 }
 
 func startVisualIdentityHeartbeat(ctx context.Context, sessionID string) func() {
@@ -735,23 +868,32 @@ func startVisualIdentityHeartbeat(ctx context.Context, sessionID string) func() 
 }
 
 // StartWorkers starts exactly one worker per canonical task queue and returns a
-// fatal-error channel. The caller must terminate the process when that channel
-// receives an error; otherwise a live-but-not-polling Worker would silently
-// leave durable intents stuck in PostgreSQL.
+// fatal-error channel. WakeUp and Reflection use an isolated critical lane;
+// their registrations remain on the general lifecycle lane so histories that
+// were scheduled there before the isolation can still complete. The caller
+// must terminate the process when the fatal-error channel receives an error;
+// otherwise a live-but-not-polling Worker would silently leave durable intents
+// stuck in PostgreSQL.
 func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slog.Logger) ([]worker.Worker, <-chan error, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	queues := []string{LifecycleQueue, MediaQueue, InteractionQueue}
+	queues := []string{LifecycleQueue, CriticalLifecycleQueue, MediaQueue, InteractionQueue, VisualIdentityQueue}
 	workers := make([]worker.Worker, 0, len(queues))
 	fatalErrors := make(chan error, len(queues))
 	buildID := WorkerDeploymentBuildID()
 	for _, queue := range queues {
-		// Keep two lifecycle slots so a provider-backed daily review cannot
-		// starve the independent schedule/bootstrap activity. Provider-heavy
-		// work remains bounded and interactive chat is handled in its own path.
+		// General lifecycle work keeps two slots. WakeUp and Reflection receive
+		// two additional slots on CriticalLifecycleQueue, so Provider-backed
+		// Daily Review/Schedule/Summary work cannot consume their capacity.
 		concurrency := 2
+		if queue == CriticalLifecycleQueue {
+			concurrency = 2
+		}
 		if queue == MediaQueue {
+			concurrency = 1
+		}
+		if queue == VisualIdentityQueue {
 			concurrency = 1
 		}
 		if queue == InteractionQueue {
@@ -776,6 +918,8 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 		})
 		switch queue {
 		case LifecycleQueue:
+			// Keep WakeUp and Reflection registered here until every history that
+			// predates CriticalLifecycleQueue has completed or been drained.
 			w.RegisterWorkflow(WakeUpWorkflow)
 			w.RegisterWorkflow(DailyReviewWorkflow)
 			w.RegisterWorkflow(CurrentDayScheduleWorkflow)
@@ -793,6 +937,17 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterActivity(ProcessMemoryEmbeddingActivity)
 			w.RegisterActivity(ProcessConversationSummaryActivity)
 			w.RegisterActivity(PlatformControlActivity)
+			w.RegisterActivity(ProcessVisualIdentityActivity)
+		case CriticalLifecycleQueue:
+			w.RegisterWorkflow(WakeUpWorkflow)
+			w.RegisterWorkflow(ReflectionWorkflow)
+			w.RegisterActivity(ProcessWakeUpActivity)
+			w.RegisterActivity(ProcessReflectionActivity)
+		case VisualIdentityQueue:
+			// New Visual Identity executions use an isolated capacity lane. Keep
+			// the lifecycle registrations above until pre-isolation histories have
+			// completed or continued-as-new on their original task queue.
+			w.RegisterWorkflow(VisualIdentityWorkflow)
 			w.RegisterActivity(ProcessVisualIdentityActivity)
 		case MediaQueue:
 			w.RegisterWorkflow(MediaWorkflow)
@@ -849,17 +1004,35 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 	defer rows.Close()
 	count := 0
 	for rows.Next() {
-		var intentID, workflowID, intentType string
-		if err := rows.Scan(&intentID, &workflowID, &intentType); err != nil {
+		var intentID, workflowID, intentType, currentIntentStatus string
+		var payload []byte
+		var attemptCount int
+		if err := rows.Scan(&intentID, &workflowID, &intentType, &payload, &currentIntentStatus, &attemptCount); err != nil {
 			return count, err
+		}
+		var input Input
+		if err := json.Unmarshal(payload, &input); err != nil {
+			input = Input{IntentID: intentID}
+		} else {
+			input = hydrateLifecycleInput(intentID, intentType, payload, input)
 		}
 		if intentType == "cognition.processing" {
 			var intentStatus, inboxStatus string
 			var claimedAt *time.Time
-			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT i.status,COALESCE(c.status,''),c.claimed_at FROM public.platform_workflow_intents i LEFT JOIN public.cognition_inbox c ON c.id=i.payload->>'inbox_id' WHERE i.intent_id=$1`, intentID).Scan(&intentStatus, &inboxStatus, &claimedAt); err == nil && intentStatus == "failed" && (inboxStatus == "pending" || (inboxStatus == "claimed" && (claimedAt == nil || time.Since(*claimedAt) >= 10*time.Minute))) {
-				if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1 AND status='failed'`, intentID); err != nil {
+			lookupErr := d.App.DB.Pool().QueryRow(ctx, `SELECT i.status,COALESCE(c.status,''),c.claimed_at FROM public.platform_workflow_intents i LEFT JOIN public.cognition_inbox c ON c.id=i.payload->>'inbox_id' WHERE i.intent_id=$1`, intentID).Scan(&intentStatus, &inboxStatus, &claimedAt)
+			if lookupErr != nil {
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, "", core.LifecycleTransitionFailed, "reconcile_dependency_lookup", "retry", "cognition_dependency_lookup_failed", attemptCount, lookupErr)
+				continue
+			}
+			if intentStatus == "failed" && (inboxStatus == "pending" || (inboxStatus == "claimed" && (claimedAt == nil || time.Since(*claimedAt) >= 10*time.Minute))) {
+				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1 AND status='failed'`, intentID)
+				if err != nil {
 					return count, err
 				}
+				if command.RowsAffected() != 1 {
+					continue
+				}
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, "", core.LifecycleTransitionRetryScheduled, "workflow_reconcile", "retry", "cognition_retry_scheduled", attemptCount, nil)
 				if d.Started != nil {
 					delete(d.Started, intentID)
 				}
@@ -871,13 +1044,32 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		if describeErr != nil {
 			// A just-started execution may not be visible immediately. Leave the
 			// intent untouched and let the next pass retry the lookup.
+			d.recordIntentLifecycle(ctx, input, intentType, workflowID, "", core.LifecycleTransitionFailed, "workflow_describe", "retry", "workflow_describe_failed", attemptCount, describeErr)
 			continue
 		}
 		if execution == nil || execution.WorkflowExecutionInfo == nil {
+			d.recordIntentLifecycle(ctx, input, intentType, workflowID, "", core.LifecycleTransitionFailed, "workflow_describe", "retry", "workflow_describe_empty", attemptCount, errors.New("workflow_describe_empty"))
 			continue
+		}
+		runID := ""
+		if execution.WorkflowExecutionInfo.GetExecution() != nil {
+			runID = execution.WorkflowExecutionInfo.GetExecution().GetRunId()
 		}
 		status := execution.WorkflowExecutionInfo.GetStatus()
 		if status == enumspb.WORKFLOW_EXECUTION_STATUS_RUNNING {
+			if currentIntentStatus != "started" {
+				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID)
+				if err != nil {
+					return count, err
+				}
+				if command.RowsAffected() == 1 {
+					d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionAlreadyRunning, "workflow_reconcile", "started", "workflow_running_ledger_repaired", attemptCount+1, nil)
+					if d.Started != nil {
+						d.Started[intentID] = struct{}{}
+					}
+					count++
+				}
+			}
 			continue
 		}
 		intentStatus := strings.ToLower(status.String())
@@ -890,25 +1082,32 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		}
 		terminalFailure := ""
 		if intentStatus == "failed" {
-			runID := ""
-			if execution.WorkflowExecutionInfo.GetExecution() != nil {
-				runID = execution.WorkflowExecutionInfo.GetExecution().GetRunId()
-			}
 			var historyErr error
 			terminalFailure, historyErr = d.terminalFailureReason(ctx, normalizedWorkflowID(workflowID), runID)
 			if historyErr != nil {
 				// Keep the intent eligible for reconciliation. A transient history
 				// read failure must not make us commit the generic fallback forever.
-				slog.Default().Warn("Go Worker could not read terminal workflow failure", "intent_id", intentID, "workflow_id", workflowID, "error", historyErr)
+				slog.Default().Warn("Go Worker could not read terminal workflow failure", "intent_id", intentID, "workflow_id", workflowID, "correlation_id", input.CorrelationID, "error_type", fmt.Sprintf("%T", historyErr))
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "workflow_history", "retry", "workflow_history_read_failed", attemptCount, historyErr)
 				continue
 			}
 		}
 		if intentType == "wake_up.current" {
 			var fluctlightStatus string
-			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlights WHERE id=(SELECT payload->>'fluctlight_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&fluctlightStatus); err == nil && wakeUpIntentShouldRetry(fluctlightStatus, intentStatus) {
-				if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '5 minutes',started_at=NULL,completed_at=NULL,last_error=COALESCE(last_error,'wake_up_workflow_terminal') WHERE intent_id=$1`, intentID); err != nil {
+			lookupErr := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlights WHERE id=(SELECT payload->>'fluctlight_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&fluctlightStatus)
+			if lookupErr != nil {
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "reconcile_dependency_lookup", "retry", "wakeup_dependency_lookup_failed", attemptCount, lookupErr)
+				continue
+			}
+			if wakeUpIntentShouldRetry(fluctlightStatus, intentStatus) {
+				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '5 minutes',started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($2,''),last_error,'wake_up_workflow_terminal') WHERE intent_id=$1 AND status IN ('pending','started','failed')`, intentID, terminalFailure)
+				if err != nil {
 					return count, err
 				}
+				if command.RowsAffected() != 1 {
+					continue
+				}
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionRetryScheduled, "workflow_reconcile", "retry", "wake_up_workflow_terminal", attemptCount, errors.New(firstString(terminalFailure, "wake_up_workflow_terminal")))
 				slog.Default().Warn("Go Worker wake-up workflow requeued after terminal execution", "intent_id", intentID, "workflow_id", workflowID, "temporal_status", intentStatus, "fluctlight_status", fluctlightStatus, "next_attempt", "5m")
 				if d.Started != nil {
 					delete(d.Started, intentID)
@@ -919,10 +1118,20 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		}
 		if (intentType == "autonomy.action" || intentType == "capability.action") && intentStatus == "failed" {
 			var actionStatus string
-			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.autonomy_actions WHERE id=(SELECT payload->>'action_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&actionStatus); err == nil && actionIntentShouldRetry(actionStatus) {
-				if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '5 seconds',started_at=NULL,completed_at=NULL,last_error=COALESCE(last_error,'action_workflow_terminal') WHERE intent_id=$1 AND status='failed'`, intentID); err != nil {
+			lookupErr := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.autonomy_actions WHERE id=(SELECT payload->>'action_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&actionStatus)
+			if lookupErr != nil {
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "reconcile_dependency_lookup", "retry", "action_dependency_lookup_failed", attemptCount, lookupErr)
+				continue
+			}
+			if actionIntentShouldRetry(actionStatus) {
+				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '5 seconds',started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($2,''),last_error,'action_workflow_terminal') WHERE intent_id=$1 AND status='failed'`, intentID, terminalFailure)
+				if err != nil {
 					return count, err
 				}
+				if command.RowsAffected() != 1 {
+					continue
+				}
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionRetryScheduled, "workflow_reconcile", "retry", "action_workflow_terminal", attemptCount, errors.New(firstString(terminalFailure, "action_workflow_terminal")))
 				if d.Started != nil {
 					delete(d.Started, intentID)
 				}
@@ -930,9 +1139,101 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				continue
 			}
 		}
+		if intentType == "reflection.run" && intentStatus == "failed" {
+			var fluctlightID, fluctlightStatus string
+			var attemptCount int
+			var hasEvidence bool
+			err := d.App.DB.Pool().QueryRow(ctx, `
+				SELECT f.id,f.status,i.attempt_count,
+					EXISTS(
+						SELECT 1
+						FROM public.cognition_inbox AS c
+						WHERE c.fluctlight_id=f.id
+						  AND c.status='processed'
+						  AND c.sequence>COALESCE((
+							SELECT watermark
+							FROM public.cognition_reflection_windows
+							WHERE fluctlight_id=f.id
+						  ),0)
+					)
+				FROM public.platform_workflow_intents AS i
+				JOIN public.fluctlights AS f ON f.id=i.payload->>'fluctlight_id'
+				WHERE i.intent_id=$1`, intentID).Scan(&fluctlightID, &fluctlightStatus, &attemptCount, &hasEvidence)
+			if err != nil {
+				slog.Default().Warn("Go Worker Reflection retry eligibility lookup failed",
+					"intent_id", intentID,
+					"workflow_id", workflowID,
+					"error_type", fmt.Sprintf("%T", err),
+				)
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "reconcile_dependency_lookup", "retry", "reflection_dependency_lookup_failed", attemptCount, err)
+				continue
+			}
+			if reflectionIntentShouldRetry(fluctlightStatus, hasEvidence, attemptCount) {
+				command, err := d.App.DB.Pool().Exec(ctx, `
+					UPDATE public.platform_workflow_intents
+					SET status='retry',
+						next_attempt_at=now()+($2 * interval '1 second'),
+						started_at=NULL,
+						completed_at=NULL,
+						last_error=COALESCE(NULLIF($3,''),'reflection_workflow_terminal')
+					WHERE intent_id=$1 AND status IN ('started','failed')`,
+					intentID, int64(reflectionRetryDelay/time.Second), terminalFailure,
+				)
+				if err != nil {
+					return count, err
+				}
+				if command.RowsAffected() != 1 {
+					continue
+				}
+				d.App.RecordLifecycleDiagnosticBestEffort(ctx, core.LifecycleDiagnostic{
+					Surface: "reflection", Transition: core.LifecycleTransitionRetryScheduled, Severity: "warn",
+					FluctlightID: fluctlightID, CorrelationID: input.CorrelationID, CausationID: input.CausationID,
+					IntentID: intentID, WorkflowID: normalizedWorkflowID(workflowID), RunID: runID,
+					Stage: "workflow_reconcile", Status: "retry",
+					ReasonCode: "reflection_workflow_terminal", ErrorCode: "reflection_workflow_terminal",
+					Retryable: true, Attempt: attemptCount, MaxAttempts: reflectionMaximumAttempts,
+					NextDueAt: time.Now().UTC().Add(reflectionRetryDelay), SafeCause: terminalFailure,
+				})
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+				continue
+			}
+			command, err := d.App.DB.Pool().Exec(ctx, `
+				UPDATE public.platform_workflow_intents
+				SET status='dead_letter',
+					completed_at=COALESCE(completed_at,now()),
+					last_error=COALESCE(NULLIF($2,''),'reflection_retry_exhausted')
+				WHERE intent_id=$1 AND status IN ('started','failed')`, intentID, terminalFailure)
+			if err != nil {
+				return count, err
+			}
+			if command.RowsAffected() == 1 {
+				d.App.RecordLifecycleDiagnosticBestEffort(ctx, core.LifecycleDiagnostic{
+					Surface: "reflection", Transition: core.LifecycleTransitionFailed, Severity: "error",
+					FluctlightID: fluctlightID, CorrelationID: input.CorrelationID, CausationID: input.CausationID,
+					IntentID: intentID, WorkflowID: normalizedWorkflowID(workflowID), RunID: runID,
+					Stage: "workflow_reconcile", Status: "dead_letter",
+					ReasonCode: "reflection_retry_exhausted", ErrorCode: "reflection_retry_exhausted",
+					Retryable: false, Attempt: min(attemptCount, reflectionMaximumAttempts), MaxAttempts: reflectionMaximumAttempts,
+					SafeCause: terminalFailure,
+				})
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+			}
+			continue
+		}
 		if intentType == "visual_identity.initialize" && intentStatus == "failed" {
 			var sessionStatus string
-			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlight_visual_identity_sessions WHERE id=(SELECT payload->>'session_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&sessionStatus); err == nil && (sessionStatus == "queued" || sessionStatus == "running") {
+			lookupErr := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlight_visual_identity_sessions WHERE id=(SELECT payload->>'session_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&sessionStatus)
+			if lookupErr != nil {
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "reconcile_dependency_lookup", "retry", "visual_identity_dependency_lookup_failed", attemptCount, lookupErr)
+				continue
+			}
+			if sessionStatus == "queued" || sessionStatus == "running" {
 				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+($2 * interval '1 second'),started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($3,''),'visual_identity_workflow_terminal') WHERE intent_id=$1 AND status IN ('pending','retry','started')`, intentID, int64(visualIdentityRetryDelay/time.Second), terminalFailure)
 				if err != nil {
 					return count, err
@@ -952,12 +1253,31 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			// Activity code may not run on a timeout, cancellation, or worker
 			// crash. Close the product-facing media target here as the final
 			// reconciliation fallback so the retry action remains available.
-			if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=(SELECT payload->>'intent_id' FROM public.platform_workflow_intents WHERE intent_id=$1) AND status IN ('pending','running')`, intentID); err != nil {
+			command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=(SELECT payload->>'intent_id' FROM public.platform_workflow_intents WHERE intent_id=$1) AND status IN ('pending','running')`, intentID)
+			if err != nil {
 				return count, err
 			}
+			if command.RowsAffected() == 0 {
+				var mediaStatus string
+				if err := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.media_intents WHERE id=(SELECT payload->>'intent_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&mediaStatus); err != nil {
+					return count, fmt.Errorf("verify terminal media settlement %s: %w", intentID, err)
+				}
+				if mediaStatus == "pending" || mediaStatus == "running" {
+					return count, fmt.Errorf("verify terminal media settlement %s: media_terminal_status_not_written", intentID)
+				}
+			}
 		}
-		if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(NULLIF(last_error,''),NULLIF($3,''),'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1`, intentID, intentStatus, terminalFailure); err != nil {
+		command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(NULLIF(last_error,''),NULLIF($3,''),'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','started','cancel_requested','retry','failed'))`, intentID, intentStatus, terminalFailure)
+		if err != nil {
 			return count, err
+		}
+		if command.RowsAffected() != 1 {
+			continue
+		}
+		if intentStatus == "failed" {
+			d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "workflow_reconcile", intentStatus, "workflow_terminal_failed", attemptCount, errors.New(firstString(terminalFailure, "workflow_terminal_failure")))
+		} else if intentStatus == "cancelled" {
+			d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionCancelled, "workflow_reconcile", intentStatus, "workflow_cancelled", attemptCount, nil)
 		}
 		if d.Started != nil {
 			delete(d.Started, intentID)
@@ -1042,6 +1362,10 @@ func actionIntentShouldRetry(actionStatus string) bool {
 	}
 }
 
+func reflectionIntentShouldRetry(fluctlightStatus string, hasEvidence bool, attemptCount int) bool {
+	return fluctlightStatus == "active" && hasEvidence && attemptCount < reflectionMaximumAttempts
+}
+
 // workflowIDReusePolicy gives wake-up recovery the reuse semantics required by
 // its stable workflow ID while keeping one-shot intents protected from
 // accidental duplicate starts.
@@ -1057,6 +1381,9 @@ func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
 		// Reconciliation retries only a terminal failed Visual Identity workflow.
 		// The stable workflow ID must therefore admit a new run after failure but
 		// must not reopen a successfully completed identity workflow.
+		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+	}
+	if intentType == "reflection.run" {
 		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	return enumspb.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE
@@ -1082,15 +1409,26 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 	// in-memory Started map: a prior dispatch can have been reset to pending by
 	// reconciliation/retry while this process still retains the old map entry.
 	// Such an intent must be eligible for dispatch again.
-	query := `SELECT intent_id,workflow_id,task_queue,intent_type,payload FROM public.platform_workflow_intents WHERE (status IS NULL OR status IN ('pending','retry')) AND (next_attempt_at IS NULL OR next_attempt_at <= now())`
-	args := make([]any, 0, 1)
-	args = append(args, limit)
-	// Keep schedule repair first, but dispatch media before visual-identity
-	// retries. VisualIdentity activities can legitimately run for 20 minutes;
-	// placing them ahead of media with a small LIMIT can starve every ordinary
-	// image intent while the lifecycle queue repeatedly retries those workflows.
-	query += fmt.Sprintf(" ORDER BY %s, created_at, intent_id LIMIT $%d", dispatcherIntentOrder, len(args))
-	rows, err := d.App.DB.Pool().Query(ctx, query, args...)
+	// Rank one candidate per intent class before admitting a second item from
+	// any class. Priority still orders each fairness round, but one large media
+	// or visual backlog cannot consume the entire dispatcher LIMIT.
+	query := fmt.Sprintf(`
+		WITH eligible AS (
+			SELECT intent_id,workflow_id,task_queue,intent_type,payload,COALESCE(attempt_count,0) AS attempt_count,created_at,
+				%s AS intent_priority,
+				ROW_NUMBER() OVER (
+					PARTITION BY intent_type
+					ORDER BY created_at,intent_id
+				) AS class_rank
+			FROM public.platform_workflow_intents
+			WHERE (status IS NULL OR status IN ('pending','retry'))
+			  AND (next_attempt_at IS NULL OR next_attempt_at <= now())
+		)
+		SELECT intent_id,workflow_id,task_queue,intent_type,payload,attempt_count
+		FROM eligible
+		ORDER BY class_rank,intent_priority,created_at,intent_id
+		LIMIT $1`, dispatcherIntentOrder)
+	rows, err := d.App.DB.Pool().Query(ctx, query, limit)
 	if err != nil {
 		return 0, err
 	}
@@ -1102,31 +1440,29 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		}
 		var intentID, workflowID, queue, intentType string
 		var payload []byte
-		if err := rows.Scan(&intentID, &workflowID, &queue, &intentType, &payload); err != nil {
+		var attemptCount int
+		if err := rows.Scan(&intentID, &workflowID, &queue, &intentType, &payload, &attemptCount); err != nil {
 			return count, err
 		}
 		var input Input
 		if err := json.Unmarshal(payload, &input); err != nil {
 			reason := boundedTemporalFailureMessage(&failurepb.Failure{Message: "workflow payload invalid: " + err.Error()})
-			_, _ = d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error=$2,attempt_count=attempt_count+1,completed_at=now() WHERE intent_id=$1 AND status IN ('pending','retry')`, intentID, reason)
+			command, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error=$2,attempt_count=attempt_count+1,completed_at=now() WHERE intent_id=$1 AND status IN ('pending','retry')`, intentID, reason)
+			if writeErr != nil {
+				return count, fmt.Errorf("settle invalid workflow payload %s: %w", intentID, writeErr)
+			}
 			if intentType == "media.generation" {
-				_, _ = d.App.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=(SELECT payload->>'intent_id' FROM public.platform_workflow_intents WHERE intent_id=$1) AND status IN ('pending','running')`, intentID)
+				if _, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=(SELECT payload->>'intent_id' FROM public.platform_workflow_intents WHERE intent_id=$1) AND status IN ('pending','running')`, intentID); writeErr != nil {
+					return count, fmt.Errorf("settle invalid media workflow payload %s: %w", intentID, writeErr)
+				}
+			}
+			if command.RowsAffected() == 1 {
+				d.recordIntentLifecycle(ctx, Input{IntentID: intentID}, intentType, workflowID, "", core.LifecycleTransitionFailed, "payload_decode", "failed", "workflow_payload_invalid", attemptCount+1, err)
 			}
 			slog.Default().Warn("Go Worker intent payload invalid; marked failed", "intent_id", intentID, "error", err)
 			continue
 		}
-		if input.IntentID == "" {
-			input.IntentID = intentID
-		}
-		if input.ActionID == "" {
-			input.ActionID = stringValue(inputMap(payload)["action_id"])
-		}
-		if input.MemoryID == "" {
-			input.MemoryID = stringValue(inputMap(payload)["memory_id"])
-		}
-		if input.FluctlightID == "" {
-			input.FluctlightID = stringValue(inputMap(payload)["fluctlight_id"])
-		}
+		input = hydrateLifecycleInput(intentID, intentType, payload, input)
 		if intentType == "cognition.processing" {
 			var claimed bool
 			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_inbox WHERE id=$1 AND status='claimed' AND claimed_at > now()-interval '10 minutes')`, input.InboxID).Scan(&claimed); err != nil {
@@ -1149,10 +1485,10 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		switch intentType {
 		case "visual_identity.initialize":
 			workflowFn = VisualIdentityWorkflow
-			taskQueue = LifecycleQueue
+			taskQueue = VisualIdentityQueue
 		case "wake_up.current":
 			workflowFn = WakeUpWorkflow
-			taskQueue = LifecycleQueue
+			taskQueue = CriticalLifecycleQueue
 		case "daily_review.current_day":
 			workflowFn = DailyReviewWorkflow
 			taskQueue = LifecycleQueue
@@ -1162,7 +1498,13 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 				return count, err
 			}
 			if !exists {
-				_, _ = d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error='media_intent_not_found',attempt_count=attempt_count+1,completed_at=now() WHERE intent_id=$1`, intentID)
+				command, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error='media_intent_not_found',attempt_count=attempt_count+1,completed_at=now() WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID)
+				if writeErr != nil {
+					return count, fmt.Errorf("settle missing media intent %s: %w", intentID, writeErr)
+				}
+				if command.RowsAffected() == 1 {
+					d.recordIntentLifecycle(ctx, input, intentType, goWorkflowID, "", core.LifecycleTransitionFailed, "dependency_lookup", "failed", "media_intent_not_found", attemptCount+1, errors.New("media_intent_not_found"))
+				}
 				continue
 			}
 			workflowFn = MediaWorkflow
@@ -1178,7 +1520,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = InteractionQueue
 		case "reflection.run":
 			workflowFn = ReflectionWorkflow
-			taskQueue = LifecycleQueue
+			taskQueue = CriticalLifecycleQueue
 		case "intention.trigger":
 			workflowFn = IntentionTriggerWorkflow
 			taskQueue = LifecycleQueue
@@ -1198,13 +1540,29 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			slog.Default().Warn("Go Worker intent type unsupported; leaving pending", "intent_id", intentID, "intent_type", intentType)
 			continue
 		}
-		_, err := d.Client.ExecuteWorkflow(ctx, workflowStartOptions(goWorkflowID, taskQueue, intentType), workflowFn, input)
+		d.recordIntentLifecycle(ctx, input, intentType, goWorkflowID, "", core.LifecycleTransitionQueued, "dispatcher", "queued", "dispatcher_selected", attemptCount+1, nil)
+		execution, err := d.Client.ExecuteWorkflow(ctx, workflowStartOptions(goWorkflowID, taskQueue, intentType), workflowFn, input)
 		if err != nil && !temporal.IsWorkflowExecutionAlreadyStartedError(err) {
 			slog.Default().Warn("Go Worker workflow start failed", "intent_id", intentID, "error", err)
-			_, _ = d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,attempt_count=attempt_count+1,next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1`, intentID, err.Error())
+			command, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,attempt_count=attempt_count+1,next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID, boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()}))
+			if writeErr != nil {
+				return count, fmt.Errorf("settle workflow start failure %s: %w", intentID, writeErr)
+			}
+			if command.RowsAffected() != 1 {
+				currentStatus, statusErr := d.readWorkflowIntentStatus(ctx, intentID)
+				if statusErr != nil {
+					return count, fmt.Errorf("read workflow start failure settlement %s: %w", intentID, statusErr)
+				}
+				if dispatchIntentRaceSettled(currentStatus) {
+					continue
+				}
+				return count, fmt.Errorf("settle workflow start failure %s: workflow_start_retry_not_written", intentID)
+			}
+			d.recordIntentLifecycle(ctx, input, intentType, goWorkflowID, "", core.LifecycleTransitionRetryScheduled, "workflow_start", "retry", "workflow_start_failed", attemptCount+1, err)
 			continue
 		}
 		alreadyStarted := temporal.IsWorkflowExecutionAlreadyStartedError(err)
+		runID := workflowRunIdentity(execution, err)
 		command, statusErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID)
 		if statusErr != nil || command.RowsAffected() != 1 {
 			// Temporal already accepted the start. Leave the durable row visible
@@ -1215,12 +1573,32 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			} else {
 				slog.Default().Warn("Go Worker intent status changed before Temporal start settlement", "intent_id", intentID, "workflow_id", goWorkflowID)
 			}
-			continue
+			if statusErr != nil {
+				d.recordIntentLifecycle(ctx, input, intentType, goWorkflowID, runID, core.LifecycleTransitionFailed, "workflow_start_settlement", "retry", "workflow_start_settlement_failed", attemptCount+1, statusErr)
+				return count, fmt.Errorf("settle workflow start %s: %w", intentID, statusErr)
+			}
+			currentStatus, readErr := d.readWorkflowIntentStatus(ctx, intentID)
+			if readErr != nil {
+				return count, fmt.Errorf("read workflow start settlement %s: %w", intentID, readErr)
+			}
+			if dispatchIntentRaceSettled(currentStatus) {
+				if currentStatus == "started" {
+					d.recordIntentLifecycle(ctx, input, intentType, goWorkflowID, runID, core.LifecycleTransitionAlreadyRunning, "workflow_start_settlement", "started", "workflow_start_race_reconciled", attemptCount+1, nil)
+					d.Started[intentID] = struct{}{}
+					count++
+				}
+				continue
+			}
+			settlementErr := errors.New("workflow_start_status_not_written")
+			d.recordIntentLifecycle(ctx, input, intentType, goWorkflowID, runID, core.LifecycleTransitionFailed, "workflow_start_settlement", "retry", "workflow_start_settlement_failed", attemptCount+1, settlementErr)
+			return count, fmt.Errorf("settle workflow start %s: %w", intentID, settlementErr)
 		}
 		if alreadyStarted {
 			slog.Default().Info("Go Worker workflow already running; intent ledger reconciled", "intent_id", intentID, "workflow_id", goWorkflowID, "workflow_type", intentType)
+			d.recordIntentLifecycle(ctx, input, intentType, goWorkflowID, runID, core.LifecycleTransitionAlreadyRunning, "workflow_start", "started", "workflow_already_running", attemptCount+1, nil)
 		} else {
 			slog.Default().Info("Go Worker workflow dispatched", "intent_id", intentID, "workflow_id", goWorkflowID, "workflow_type", intentType)
+			d.recordIntentLifecycle(ctx, input, intentType, goWorkflowID, runID, core.LifecycleTransitionDispatched, "workflow_start", "started", "workflow_dispatched", attemptCount+1, nil)
 		}
 		d.Started[intentID] = struct{}{}
 		count++
@@ -1235,9 +1613,35 @@ func normalizedWorkflowID(workflowID string) string {
 	return "go:" + workflowID
 }
 
+func workflowRunIdentity(execution client.WorkflowRun, startErr error) string {
+	if execution != nil && strings.TrimSpace(execution.GetRunID()) != "" {
+		return strings.TrimSpace(execution.GetRunID())
+	}
+	var alreadyStartedErr *serviceerror.WorkflowExecutionAlreadyStarted
+	if errors.As(startErr, &alreadyStartedErr) {
+		return strings.TrimSpace(alreadyStartedErr.RunId)
+	}
+	return ""
+}
+
+func (d *Dispatcher) readWorkflowIntentStatus(ctx context.Context, intentID string) (string, error) {
+	var status string
+	if err := d.App.DB.Pool().QueryRow(ctx, `SELECT COALESCE(status,'pending') FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID).Scan(&status); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(status), nil
+}
+
+func dispatchIntentRaceSettled(status string) bool {
+	status = strings.TrimSpace(status)
+	return status != "" && status != "pending" && status != "retry"
+}
+
 func inputMap(payload []byte) map[string]any {
 	var result map[string]any
-	_ = json.Unmarshal(payload, &result)
+	if err := json.Unmarshal(payload, &result); err != nil {
+		return map[string]any{}
+	}
 	return result
 }
 func stringValue(value any) string {
@@ -1245,4 +1649,132 @@ func stringValue(value any) string {
 		return result
 	}
 	return ""
+}
+
+func firstString(value any, fallback string) string {
+	if result := strings.TrimSpace(stringValue(value)); result != "" {
+		return result
+	}
+	return strings.TrimSpace(fallback)
+}
+
+func lifecycleCorrelationForIntent(intentID, surface string, input Input) string {
+	if correlationID := strings.TrimSpace(input.CorrelationID); correlationID != "" {
+		return correlationID
+	}
+	if surface == "wake_up" && strings.TrimSpace(input.FluctlightID) != "" && input.Cycle >= 0 {
+		return fmt.Sprintf("wake_up:%s:cycle:%d", strings.TrimSpace(input.FluctlightID), input.Cycle)
+	}
+	if intentID = strings.TrimSpace(intentID); intentID != "" {
+		return intentID
+	}
+	if input.IntentID = strings.TrimSpace(input.IntentID); input.IntentID != "" {
+		return input.IntentID
+	}
+	if fluctlightID := strings.TrimSpace(input.FluctlightID); fluctlightID != "" {
+		return strings.TrimSpace(surface) + ":" + fluctlightID
+	}
+	return strings.TrimSpace(surface) + ":unknown"
+}
+
+func lifecycleSurfaceForIntent(intentType string) string {
+	switch intentType {
+	case "wake_up.current":
+		return "wake_up"
+	case "reflection.run":
+		return "reflection"
+	case "visual_identity.initialize":
+		return "visual_identity"
+	case "media.generation":
+		return "media"
+	case "daily_review.current_day":
+		return "daily_review"
+	case "schedule.current_day":
+		return "schedule"
+	case "autonomy.action":
+		return "autonomy"
+	case "capability.action":
+		return "capability"
+	case "cognition.processing":
+		return "cognition"
+	case "memory.embedding":
+		return "memory"
+	case "conversation.summary":
+		return "conversation_summary"
+	case "intention.trigger":
+		return "intention"
+	case "platform.control":
+		return "platform"
+	default:
+		return "workflow"
+	}
+}
+
+func hydrateLifecycleInput(intentID, intentType string, payload []byte, input Input) Input {
+	values := inputMap(payload)
+	if input.IntentID == "" {
+		input.IntentID = intentID
+	}
+	if input.ActionID == "" {
+		input.ActionID = stringValue(values["action_id"])
+	}
+	if input.MemoryID == "" {
+		input.MemoryID = stringValue(values["memory_id"])
+	}
+	if input.FluctlightID == "" {
+		input.FluctlightID = stringValue(values["fluctlight_id"])
+	}
+	if input.CorrelationID == "" {
+		input.CorrelationID = stringValue(values["correlation_id"])
+	}
+	if input.CausationID == "" {
+		input.CausationID = stringValue(values["causation_id"])
+	}
+	if input.CausationID == "" {
+		for _, key := range []string{"source_fact_id", "action_id", "inbox_id", "wake_up_id"} {
+			if value := strings.TrimSpace(stringValue(values[key])); value != "" {
+				input.CausationID = value
+				break
+			}
+		}
+	}
+	input.CorrelationID = lifecycleCorrelationForIntent(intentID, lifecycleSurfaceForIntent(intentType), input)
+	return input
+}
+
+func (d *Dispatcher) recordIntentLifecycle(ctx context.Context, input Input, intentType, workflowID, runID string, transition core.LifecycleTransition, stage, status, reason string, attempt int, lifecycleErr error) {
+	if d == nil || d.App == nil {
+		return
+	}
+	surface := lifecycleSurfaceForIntent(intentType)
+	input.CorrelationID = lifecycleCorrelationForIntent(input.IntentID, surface, input)
+	if (stage == "workflow_describe" || stage == "reconcile_dependency_lookup") && !shouldRecordWorkflowDiagnostic(input.CorrelationID+":"+stage+":"+reason+":"+fmt.Sprint(attempt), time.Now().UTC()) {
+		return
+	}
+	diagnostic := core.LifecycleDiagnostic{
+		Surface: surface, Transition: transition,
+		FluctlightID: input.FluctlightID, CorrelationID: input.CorrelationID,
+		CausationID: input.CausationID, IntentID: input.IntentID,
+		WorkflowID: normalizedWorkflowID(workflowID), RunID: runID,
+		Stage: stage, Status: status, ReasonCode: reason, Attempt: max(attempt, 0),
+	}
+	if lifecycleErr != nil {
+		diagnostic.Severity = "error"
+		diagnostic.ErrorCategory = "workflow"
+		diagnostic.ErrorCode = reason
+		diagnostic.Retryable = status == "retry" || status == "queued" || status == "started"
+		diagnostic.SafeCause = boundedTemporalFailureMessage(&failurepb.Failure{Message: lifecycleErr.Error()})
+	}
+	d.App.RecordLifecycleDiagnosticBestEffort(ctx, diagnostic)
+}
+
+func shouldRecordWorkflowDiagnostic(key string, now time.Time) bool {
+	workflowDiagnosticSampleState.Lock()
+	defer workflowDiagnosticSampleState.Unlock()
+	last := workflowDiagnosticSampleState.last[key]
+	if !last.IsZero() && now.Sub(last) < time.Minute {
+		return false
+	}
+	workflowDiagnosticSampleState.last[key] = now
+	return true
 }

@@ -5,7 +5,9 @@
 ### 1. Scope / Trigger
 
 - Trigger: the clean-start system delays, schedules, retries, cancels, resumes, compensates, upgrades, or administratively repairs background work.
-- This contract is runtime-neutral. T01 rejected DBOS; Temporal is the current candidate and must pass `fluctlight-temporal-gate-contract.md` before T02.
+- This contract is runtime-neutral at its domain boundary. T01 rejected DBOS;
+  Temporal is the selected runtime and remains governed by
+  `fluctlight-temporal-gate-contract.md` and the final acceptance gate.
 - Workflow history executes application processes; it never replaces PostgreSQL domain facts, outbox/inbox, Redis event transport, or media metadata.
 
 ### 2. Signatures
@@ -19,7 +21,10 @@ cancel_workflow(command: CancelWorkflow) -> CancelResult
 restart_or_reset(command: RepairWorkflow) -> WorkflowHandle
 ```
 
-Application task queues are `interaction`, `lifecycle`, and `media`. Every start uses a stable workflow ID derived from a committed domain intent/idempotency key. Node never accesses the workflow runtime directly.
+Application task queues are `interaction`, `lifecycle`, `lifecycle-critical`,
+`media`, and `visual-identity`. Every start uses a stable workflow ID derived
+from a committed domain intent/idempotency key. Node never accesses the
+workflow runtime directly.
 
 ### 3. Contracts
 
@@ -79,7 +84,10 @@ Application task queues are `interaction`, `lifecycle`, and `media`. Every start
 
 ### 6. Tests Required
 
-- Runtime gate report covering topology, three queues, timers, long activity, heartbeat, timeout, cancel, restarts, stable IDs, management operations, history replay/versioning, backup/restore, resource/disk growth and correlation.
+- Runtime gate report covering topology, five queues, timers, long activity,
+  heartbeat, timeout, cancel, restarts, stable IDs, management operations,
+  history replay/versioning, backup/restore, resource/disk growth and
+  correlation.
 - Contract tests for committed intent, stable IDs, duplicate start, frozen decision, idempotent Activity replay and domain-status separation.
 - Tests for Visual Identity heartbeat-before-work, failed-only workflow-ID
   reuse, explicit AlreadyStarted handling, bounded retry timing and lifecycle
@@ -128,8 +136,10 @@ handle = await workflow_runtime.start_workflow(committed_intent)
 
 ### 3. Contracts
 
-- Exactly one Worker poller owns each of `interaction`, `lifecycle`, and
-  `media`; workflow/activity registration is queue-specific.
+- Exactly one Worker poller owns each canonical application queue. Workflow/
+  Activity registration is queue-specific; duplicate registration is allowed
+  only on a legacy lane plus its replacement lane while recorded histories are
+  draining.
 - Conversation fact commit writes a stable cognition workflow intent before
   external processing. API may still return its existing product response;
   Worker replay must not duplicate the side effect.
@@ -285,7 +295,8 @@ return a.HandleTurn(ctx, actorID, conversationID, data)
 ### 3. Contracts
 
 - Worker starts all canonical queue pollers (`interaction`, `lifecycle`,
-  `media`) before attempting the Deployment update.
+  `lifecycle-critical`, `media`, `visual-identity`) before attempting the
+  Deployment update.
 - Startup retries the idempotent `SetCurrentVersion(BuildID)` operation while
   Temporal discovers the pollers; it does not bypass the no-poller or missing
   task-queue protections.
@@ -323,7 +334,7 @@ return a.HandleTurn(ctx, actorID, conversationID, data)
 - Unit-test retry, idempotency, empty Build ID, cancellation and no-poller
   errors through the narrow Temporal control seam.
 - Fresh-namespace integration test asserts Deployment current version,
-  versioned pollers on all three queues, and a schedule workflow that reaches
+  versioned pollers on all five queues, and a schedule workflow that reaches
   `EnsureCurrentDayScheduleActivity`.
 - Restart test asserts bootstrap is safe when the Deployment is already
   current and does not duplicate workflow intents.
@@ -417,57 +428,77 @@ if self._started:
 rows = await session.execute(priority_order(statement).limit(limit))
 ```
 
-## Scenario: Long-Lived Wake-Up Workflow
+## Scenario: PostgreSQL-Authoritative Recurring Wake-Up
 
 ### 1. Scope / Trigger
 
-- Trigger: an active Fluctlight is activated or a Worker resumes its stable
-  `wake_up:<fluctlight_id>` execution.
-- Purpose: periodically create one internal cognition fact without adding a
-  second scheduler, delayed queue, or process-local timer.
+- Trigger: an active Fluctlight is activated, its PostgreSQL WakeUp clock
+  becomes due, or a Worker repairs/releases a stable cycle after Redis or
+  Worker failure.
+- WakeUp is a fixed recurring cognition cycle. Reflection is a separate
+  user-activity quiet-period one-shot and never owns or resets the WakeUp clock.
 
 ### 2. Signatures
 
 ```text
 intent_type: wake_up.current
-task_queue: lifecycle
-payload: {fluctlight_id: string, cycle: integer}
+task_queue: lifecycle-critical (new Runs); lifecycle (pre-isolation histories)
+payload: {fluctlight_id: string, cycle: integer, correlation_id: string}
+correlation_id: wake_up:<fluctlight_id>:cycle:<cycle>
+next_attempt_at: authoritative next_due_at
 workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
 ```
 
 ### 3. Contracts
 
-- Activation commits only the stable `schedule.current_day` intent alongside
-  the Fluctlight aggregate. Once that current-day Schedule is accepted, the
-  acceptance transaction creates the stable `wake_up.current` and
-  `daily_review.current_day` intents. This makes the first cognition causally
-  downstream of an accepted Schedule rather than relying on Temporal's queue
-  ordering.
-- Worker startup idempotently backfills `wake_up.current` for existing
-  `active`/`paused` Fluctlights only when the current local-day Schedule is
-  already accepted. Existing `pending`, `retry`, `started`, and
-  `cancel_requested` intents are preserved; failed intents for still-live
-  Fluctlights become retryable without creating a second workflow ID. Completed
-  intents wait for the Redis quiet-period hint.
-- `WakeUpWorkflow` executes one cycle and returns. Core sets a Redis
-  `fluctlight:wakeup:due:<fluctlight_id>` quiet-period hint after a completed
-  user turn and after a successful wake-up; expiry advances the durable intent
-  cycle and dispatches the stable workflow ID again. PostgreSQL/Temporal remain
-  authoritative and Redis is only a low-latency nudge.
-- The Worker registers the workflow and activity only on `lifecycle`, and the
-  dispatcher treats `wake_up.current` as a lifecycle intent with the same
-  retry/reconcile semantics as other Go workflows.
-- A terminal failed wake-up workflow for an `active`/`paused` Fluctlight is
-  requeued after reconciliation with a bounded delay. A completed workflow
-  waits for its Redis quiet-period hint. A deliberate cancellation or a
-  `retired` Fluctlight is not automatically restarted.
-- Reconciliation does not inspect a `retry` intent before its
-  `next_attempt_at`; otherwise each polling pass can push the bounded retry
+- Activation atomically establishes the stable `schedule.current_day` and
+  `wake_up.current` lifecycles. Schedule is optional high-value context; a
+  pending, failed, or missing Schedule cannot prevent due WakeUp cognition.
+- `platform_workflow_intents.next_attempt_at`, status, and payload cycle are the
+  durable clock. Every WakeUp outcome writes its next due time in the same Core
+  transaction as the cognition fact and optional child intents.
+- `WakeUpWorkflow` executes one cycle and returns. Redis
+  `fluctlight:wakeup:due:<fluctlight_id>` is only a low-latency hint: expiry and
+  the periodic Worker sweep call the same conditional PostgreSQL release.
+  Redis SET/subscription loss, listener restart, and process crashes cannot
+  strand a completed due cycle.
+- User messages never update WakeUp due time or its Redis hint. They rearm only
+  the separate Reflection quiet-period intent.
+- Due release uses expected status/due/cycle CAS. Duplicate Redis expiry,
+  multiple Workers, startup repair, and periodic sweep converge on one cycle
+  and one stable correlation identity.
+- Worker startup idempotently repairs missing clocks for active/paused
+  Fluctlights without requiring an accepted Schedule. Existing pending/retry/
+  started/cancel-requested work is preserved.
+- New WakeUp and Reflection Runs start on `lifecycle-critical`, which owns two
+  Activity slots independent from Provider-backed Daily Review, Schedule,
+  Summary and legacy Visual Identity work. The Worker keeps both Workflow and
+  Activity types registered on `lifecycle` only for pre-isolation histories;
+  changing the start queue for new Runs must not alter Workflow command
+  sequences or recorded Activity task queues.
+- A terminal failed wake-up workflow for an active Fluctlight is requeued after
+  bounded backoff. A completed workflow waits for its PostgreSQL due time. A
+  deliberate cancellation or retired Fluctlight is not automatically restarted.
+- Reconciliation does not inspect a `pending` or `retry` intent before its
+  `next_attempt_at`; otherwise a scheduled Reflection can be falsely reported
+  as `workflow_describe_failed`, or each polling pass can push a bounded retry
   window forward forever. Wake-up recovery uses Temporal's
   `ALLOW_DUPLICATE` policy for the stable workflow ID because both failed and
   completed terminal executions may be requeued; the per-Fluctlight cycle key
   remains the idempotency boundary.
-- A wake-up that proposes a Capability tool call freezes a generic
+- Every due, non-suppressed WakeUp performs internal cognition. No selected
+  capability is a valid `completed_noop` with a stable reason, not a missing
+  trigger. Internal assessment, narrative text, hidden reasoning, and raw
+  Provider text never become chat.
+- `influences` may be empty. If the model proposes an external action without
+  a capability call, Core persists `completed_noop/action_requires_capability_call`.
+  If a state-changing/internal capability lacks a Core-owned influence, Core
+  discards that unsafe call and persists
+  `completed_noop/capability_influences_missing`; deferred output calls may be
+  retained because their durable target/result is their evidence boundary.
+- A direct private message exists only when the accepted decision invokes the
+  canonical communication capability. A wake-up that proposes a Capability
+  tool call freezes a generic
   `capability.action` on `interaction`; the CapabilityActionWorkflow reuses the
   same stable action/lease/result/reflection boundary as legacy autonomy
   actions, so the wake-up activity never executes an external effect directly.
@@ -475,9 +506,12 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
   action row is still `frozen`/`running`, reconciliation moves the intent back
   to bounded retry. Terminal action rows (`completed`, `failed`, `cancelled`,
   `paused`, or `deferred`) are not requeued.
-- Disabled or inactive results still use the durable timer; inactive results
-  terminate, while disabled results sleep and re-read settings on the next
-  cycle.
+- Paused/disabled results suppress Provider work while preserving an explicit
+  due policy. Resume/re-enable releases an overdue cycle after bounded jitter
+  or preserves a future due time. Retired is terminal suppression.
+- Lifecycle transitions propagate correlation through release, intent,
+  Temporal Run/Activity, Provider attempt, domain outcome, and next cycle. The
+  health audit emits `overdue` when expected durable progress is absent.
 
 ### 4. Validation & Error Matrix
 
@@ -488,36 +522,53 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
 | Temporal start failure | Keep the intent retryable; do not mark it complete |
 | Worker restart after a start but before status update | Reuse the stable workflow ID and let reconciliation repair the ledger |
 | Existing live Fluctlight has no wake-up intent | Worker startup inserts the stable `wake_up.current` intent idempotently |
+| Schedule is pending, failed, or absent | Run cognition with explicit schedule status and no invented activity/place |
+| Redis SET/expiry/subscription is lost | PostgreSQL due sweep releases the same cycle and records bounded diagnostics |
+| Frequent user conversation | WakeUp due remains fixed; only Reflection due moves |
 | Wake-up activity/provider failure | Reconcile requeues the live Fluctlight's intent after a bounded delay; preserve the failure in diagnostics |
-| Assessment returns a chat-only action without a capability call | Preserve the internal stages and persist the external choice as a bounded `no_op`; the next cycle waits for the quiet-period hint |
+| Assessment selects no capability | Persist `completed_noop` with a stable reason and schedule the next PostgreSQL due cycle |
+| Assessment omits `influences` | Treat the field as empty; retain only deferred output calls and no-op rather than execute an ungrounded state change or fail the recurring cycle |
+| Assessment returns narrative without a communication capability | Keep it internal and create no visible chat message |
+| Daily Review/Schedule/Summary saturates general lifecycle Activities | New WakeUp/Reflection Run starts on `lifecycle-critical`; legacy histories remain executable on `lifecycle` |
 | Wake-up is cancelled or Fluctlight is retired | Do not auto-restart the workflow |
-| History grows across cycles | Continue-As-New preserves the Fluctlight/cycle identity and bounds history |
+| Cycles recur indefinitely | Each released cycle starts a bounded Run under the stable workflow/business identity; PostgreSQL cycle remains authoritative |
 
 ### 5. Good/Base/Bad Cases
 
-- Good: a Worker restart resumes one stable wake-up timer and the next cycle
-  allocates one cognition sequence.
-- Base: settings disable internal life; the workflow remains inspectable and
-  wakes again only after the bounded interval.
+- Good: two cycles complete across a lost Redis expiry with stable per-cycle
+  correlations, one internal cognition each, and no duplicate visible effect.
+- Base: Schedule is missing and the model selects no capability; the cycle is
+  `completed_noop`, then PostgreSQL owns the next due time.
+- Base: settings disable internal life; the durable clock remains inspectable
+  and resume follows its explicit overdue/future policy.
 - Bad: use a Go `time.Ticker`, Redis delayed stream, or a new Temporal Schedule
   client that can outlive the domain intent ledger.
+- Bad: postpone WakeUp after every user message, require Schedule acceptance,
+  or turn Provider narrative into chat without a communication capability.
 
 ### 6. Tests Required
 
 - Assert registry/dispatcher queue mapping, stable IDs, retry behavior, and
-  lifecycle-only registration.
-- Assert activation creates only the schedule intent, Schedule acceptance
-  creates wake-up/daily-review intents atomically, and the first wake-up
-  timestamp follows Schedule acceptance.
+  critical-lane registration plus legacy lifecycle compatibility.
+- Assert activation independently creates Schedule and WakeUp lifecycles and a
+  missing/failed Schedule does not block cognition.
 - Assert Worker startup backfills an existing live Fluctlight and requeues a
   terminal wake-up intent without duplicating the stable workflow ID.
+- Assert lost Redis SET/expiry/listener and Worker restart are repaired by the
+  PostgreSQL due sweep with one CAS release per cycle.
+- Assert frequent user turns preserve WakeUp due/cycle while resetting only the
+  Reflection quiet period.
 - Assert a retry with a future `next_attempt_at` is not requeued on every
-  reconciliation poll, and a due retry starts a new Temporal run with the
-  stable wake-up ID.
-- Assert a shared cognitive-assessment response such as `reply` cannot kill a
-  Wake-up cycle when no capability tool call is present.
-- Assert the interval clamp and Continue-As-New cycle increment with Temporal's
-  workflow test environment.
+  reconciliation poll; assert the same for future pending Reflection, and that
+  a due retry starts a new Temporal run with the stable wake-up ID.
+- Assert no-capability cognition records `completed_noop`; hidden assessment
+  and raw Provider text do not create conversation messages.
+- Assert missing influences preserve only deferred output capabilities and
+  never fail or execute an ungrounded state-changing call.
+- Assert lifecycle diagnostics reconstruct release→intent→Run/Activity→Provider
+  →outcome→next due and emit `overdue` for expected absence.
+- Assert interval clamping, PostgreSQL cycle increment, and bounded per-cycle
+  Workflow history with Temporal's test environment.
 - Assert inactive termination and disabled sleep behavior without provider
   calls.
 
@@ -537,7 +588,22 @@ go func() {
 
 ```go
 workflow.ExecuteActivity(ctx, ProcessWakeUpActivity, input).Get(ctx, &result)
-return result, nil // Core schedules the Redis quiet-period hint after commit
+return result, nil // Core already committed the next PostgreSQL due time.
+```
+
+#### Wrong: shared Activity capacity
+
+```go
+// More general lifecycle slots are expansion, not reserved capacity.
+worker.New(client, LifecycleQueue, worker.Options{MaxConcurrentActivityExecutionSize: 4})
+```
+
+#### Correct: history-compatible reserved lane
+
+```go
+// New starts use the critical lane. Legacy registrations stay on lifecycle
+// until pre-isolation histories have completed or been drained.
+taskQueue = CriticalLifecycleQueue
 ```
 
 ## Scenario: Intention Trigger Workflow

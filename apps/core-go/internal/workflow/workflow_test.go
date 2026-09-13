@@ -3,14 +3,17 @@ package workflow
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
 	"github.com/stretchr/testify/mock"
 	enumspb "go.temporal.io/api/enums/v1"
 	failurepb "go.temporal.io/api/failure/v1"
 	historypb "go.temporal.io/api/history/v1"
+	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/testsuite"
@@ -259,6 +262,207 @@ func TestWakeUpRetryBackoffIsNotRequeuedBeforeDueTime(t *testing.T) {
 	}
 }
 
+func TestWakeUpTerminalFailureRemainsContinuouslyRecoverable(t *testing.T) {
+	if !strings.Contains(reconcileIntentQuery, "intent_type='wake_up.current'") &&
+		!strings.Contains(reconcileIntentQuery, "intent_type IN ('wake_up.current'") {
+		t.Fatal("failed WakeUp intents are not part of continuous reconciliation")
+	}
+}
+
+func TestLifecycleCorrelationForIntentUsesStableWakeUpCycleIdentity(t *testing.T) {
+	wake := Input{IntentID: "wake-intent", FluctlightID: "fluctlight-1", Cycle: 7}
+	if got, want := lifecycleCorrelationForIntent(wake.IntentID, "wake_up", wake), "wake_up:fluctlight-1:cycle:7"; got != want {
+		t.Fatalf("wake-up correlation = %q, want %q", got, want)
+	}
+	wake.CorrelationID = "explicit-correlation"
+	if got := lifecycleCorrelationForIntent(wake.IntentID, "wake_up", wake); got != wake.CorrelationID {
+		t.Fatalf("explicit correlation was replaced: %q", got)
+	}
+	reflection := Input{IntentID: "reflection-intent", FluctlightID: "fluctlight-1"}
+	if got := lifecycleCorrelationForIntent(reflection.IntentID, "reflection", reflection); got != reflection.IntentID {
+		t.Fatalf("legacy Reflection correlation = %q, want intent identity", got)
+	}
+}
+
+func TestDispatcherHydratesCorrelationAndCausationBeforeWorkflowStart(t *testing.T) {
+	payload := []byte(`{"fluctlight_id":"fluctlight-1","cycle":3,"source_fact_id":"fact-1"}`)
+	input := hydrateLifecycleInput("wake-intent", "wake_up.current", payload, Input{Cycle: 3})
+	if input.IntentID != "wake-intent" || input.FluctlightID != "fluctlight-1" {
+		t.Fatalf("durable identity was not hydrated: %#v", input)
+	}
+	if input.CorrelationID != "wake_up:fluctlight-1:cycle:3" || input.CausationID != "fact-1" {
+		t.Fatalf("lifecycle identity was not hydrated: %#v", input)
+	}
+	explicit := hydrateLifecycleInput("reflection-intent", "reflection.run", []byte(`{"correlation_id":"reflection-root","causation_id":"turn-1"}`), Input{})
+	if explicit.CorrelationID != "reflection-root" || explicit.CausationID != "turn-1" {
+		t.Fatalf("explicit lifecycle identity was replaced: %#v", explicit)
+	}
+}
+
+func TestActivityLifecycleDiagnosticIncludesTemporalIdentityAndAttempt(t *testing.T) {
+	input := Input{IntentID: "reflection-intent", FluctlightID: "fluctlight-1", CorrelationID: "reflection-root", CausationID: "turn-1"}
+	info := activity.Info{
+		WorkflowExecution: workflow.Execution{ID: "go:reflection", RunID: "run-1"},
+		ActivityType:      activity.Type{Name: "ProcessReflectionActivity"},
+		ActivityID:        "activity-1",
+		Attempt:           2,
+	}
+	diagnostic := activityLifecycleDiagnostic(input, "reflection", core.LifecycleTransitionActivityStarted, "running", "activity_started", nil, info)
+	if diagnostic.CorrelationID != input.CorrelationID || diagnostic.CausationID != input.CausationID || diagnostic.IntentID != input.IntentID {
+		t.Fatalf("domain identity missing from Activity diagnostic: %#v", diagnostic)
+	}
+	if diagnostic.WorkflowID != "go:reflection" || diagnostic.RunID != "run-1" || diagnostic.ActivityType != "ProcessReflectionActivity" || diagnostic.ActivityID != "activity-1" || diagnostic.Attempt != 2 {
+		t.Fatalf("Temporal identity missing from Activity diagnostic: %#v", diagnostic)
+	}
+}
+
+func TestActivityLifecycleDistinguishesNoopAndActionableOutcomes(t *testing.T) {
+	wakeNoop, status, reason := wakeUpLifecycleOutcome(map[string]any{"status": "completed", "action_type": "no_op", "reason": "no_action_selected"})
+	if wakeNoop != core.LifecycleTransitionCompletedNoop || status != "completed" || reason != "no_action_selected" {
+		t.Fatalf("WakeUp no-op lifecycle = %q %q %q", wakeNoop, status, reason)
+	}
+	wakeQueued, queuedStatus, _ := wakeUpLifecycleOutcome(map[string]any{"status": "queued", "action_type": "capability"})
+	if wakeQueued != core.LifecycleTransitionQueued || queuedStatus != "queued" {
+		t.Fatalf("WakeUp queued lifecycle = %q %q", wakeQueued, queuedStatus)
+	}
+	reflectionNoop, _, reflectionReason := reflectionLifecycleOutcome(map[string]any{"status": "no_op", "reason": "no_evidence"})
+	if reflectionNoop != core.LifecycleTransitionCompletedNoop || reflectionReason != "no_evidence" {
+		t.Fatalf("Reflection no-op lifecycle = %q %q", reflectionNoop, reflectionReason)
+	}
+	reflectionAction, _, _ := reflectionLifecycleOutcome(map[string]any{"status": "applied"})
+	if reflectionAction != core.LifecycleTransitionCompletedActionable {
+		t.Fatalf("Reflection actionable lifecycle = %q", reflectionAction)
+	}
+	action, actionStatus, _ := actionLifecycleOutcome(map[string]any{"status": "completed"})
+	if action != core.LifecycleTransitionCompletedActionable || actionStatus != "completed" {
+		t.Fatalf("settled action lifecycle = %q %q", action, actionStatus)
+	}
+}
+
+func TestDispatcherCASCompetitionDoesNotFailSettledIntent(t *testing.T) {
+	for _, status := range []string{"started", "completed", "failed", "cancelled", "cancel_requested", "dead_letter"} {
+		if !dispatchIntentRaceSettled(status) {
+			t.Fatalf("concurrent status %q was not recognized as settled", status)
+		}
+	}
+	for _, status := range []string{"", "pending", "retry"} {
+		if dispatchIntentRaceSettled(status) {
+			t.Fatalf("unsettled status %q was treated as a benign CAS race", status)
+		}
+	}
+}
+
+func TestAlreadyRunningTransitionRetainsTemporalRunIdentity(t *testing.T) {
+	err := serviceerror.NewWorkflowExecutionAlreadyStarted("already started", "request-1", "run-1")
+	if got := workflowRunIdentity(nil, err); got != "run-1" {
+		t.Fatalf("already-running run identity = %q, want run-1", got)
+	}
+}
+
+func TestWorkflowCriticalPersistenceWritesAreNeverIgnored(t *testing.T) {
+	source, err := os.ReadFile("workflow.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(source)
+	start := strings.Index(text, "func (d *Dispatcher) ReconcileOnce")
+	end := strings.Index(text, "func normalizedWorkflowID")
+	if start < 0 || end <= start {
+		t.Fatal("Dispatcher lifecycle ownership boundaries not found")
+	}
+	body := text[start:end]
+	if strings.Contains(body, "_, _ = d.App.DB.Pool().Exec") {
+		t.Fatal("Dispatcher/Reconcile still ignores an authoritative database write")
+	}
+	for _, reason := range []string{
+		"cognition_dependency_lookup_failed",
+		"wakeup_dependency_lookup_failed",
+		"action_dependency_lookup_failed",
+		"reflection_dependency_lookup_failed",
+		"visual_identity_dependency_lookup_failed",
+		"workflow_start_settlement_failed",
+		"media_terminal_status_not_written",
+	} {
+		if !strings.Contains(body, reason) {
+			t.Fatalf("Reconcile dependency failure %q is not fail-closed and observable", reason)
+		}
+	}
+}
+
+func TestReconcileDoesNotGuessCompletedWorkflowOutcome(t *testing.T) {
+	source, err := os.ReadFile("workflow.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := sourceBetweenWorkflow(t, string(source), "func (d *Dispatcher) ReconcileOnce", "func (d *Dispatcher) terminalFailureReason")
+	if strings.Contains(body, "transition := core.LifecycleTransitionCompletedNoop") {
+		t.Fatal("Reconcile still guesses every completed Workflow was a domain no-op")
+	}
+	if !strings.Contains(body, "LifecycleTransitionCancelled") || !strings.Contains(body, "workflow_cancelled") {
+		t.Fatal("Temporal cancellation is not represented distinctly")
+	}
+	for _, fragment := range []string{
+		"WorkflowID: normalizedWorkflowID(workflowID), RunID: runID",
+		"workflowID, runID, core.LifecycleTransitionRetryScheduled",
+		"workflowID, runID, core.LifecycleTransitionFailed",
+	} {
+		if !strings.Contains(body, fragment) {
+			t.Fatalf("terminal/retry diagnostic lost Run ID at %q", fragment)
+		}
+	}
+}
+
+func sourceBetweenWorkflow(t *testing.T, source, start, end string) string {
+	t.Helper()
+	startIndex := strings.Index(source, start)
+	if startIndex < 0 {
+		t.Fatalf("source start %q not found", start)
+	}
+	endOffset := strings.Index(source[startIndex:], end)
+	if endOffset < 0 {
+		t.Fatalf("source end %q not found", end)
+	}
+	return source[startIndex : startIndex+endOffset]
+}
+
+func TestReflectionTerminalFailureRemainsContinuouslyRecoverable(t *testing.T) {
+	options := workflowStartOptions("go:reflection:fact-1", LifecycleQueue, "reflection.run")
+	if options.WorkflowIDReusePolicy != enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY {
+		t.Fatalf("Reflection reuse policy = %v, want failed-only recovery", options.WorkflowIDReusePolicy)
+	}
+	if !strings.Contains(reconcileIntentQuery, "'reflection.run'") {
+		t.Fatal("failed Reflection intents are absent from continuous reconciliation")
+	}
+}
+
+func TestReconcileSkipsPendingIntentsUntilTheirDueTime(t *testing.T) {
+	if !strings.Contains(reconcileIntentQuery, "(status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now()))") {
+		t.Fatalf("reconciliation can misdiagnose future pending intents: %s", reconcileIntentQuery)
+	}
+}
+
+func TestReflectionRetryRequiresLiveFluctlightEvidenceAndBudget(t *testing.T) {
+	if reflectionRetryDelay*time.Duration(reflectionMaximumAttempts) < 15*time.Minute {
+		t.Fatalf("Reflection retry budget %s cannot outlive the 15m window lease", reflectionRetryDelay*time.Duration(reflectionMaximumAttempts))
+	}
+	if !reflectionIntentShouldRetry("active", true, reflectionMaximumAttempts-1) {
+		t.Fatal("recoverable Reflection was not retried")
+	}
+	for _, test := range []struct {
+		status      string
+		hasEvidence bool
+		attempts    int
+	}{
+		{status: "paused", hasEvidence: true, attempts: 1},
+		{status: "active", hasEvidence: false, attempts: 1},
+		{status: "active", hasEvidence: true, attempts: reflectionMaximumAttempts},
+	} {
+		if reflectionIntentShouldRetry(test.status, test.hasEvidence, test.attempts) {
+			t.Fatalf("unexpected Reflection retry for %#v", test)
+		}
+	}
+}
+
 func TestActionIntentRetryOnlyWhenActionRemainsExecutable(t *testing.T) {
 	for _, status := range []string{"frozen", "running"} {
 		if !actionIntentShouldRetry(status) {
@@ -282,6 +486,82 @@ func TestDispatcherPrioritizesLifecycleRecoveryBeforeVisualIdentityRetries(t *te
 		if index < 0 || index > visualIndex {
 			t.Fatalf("%s must be dispatched before visual identity retries: %s", intentPrefix, dispatcherIntentOrder)
 		}
+	}
+}
+
+func TestDispatcherFairSelectionRanksEachIntentClassBeforeBacklog(t *testing.T) {
+	source, err := os.ReadFile("workflow.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(source)
+	for _, required := range []string{
+		"ROW_NUMBER() OVER",
+		"PARTITION BY intent_type",
+		"class_rank",
+		"ORDER BY class_rank",
+	} {
+		if !strings.Contains(body, required) {
+			t.Fatalf("dispatcher fair selection missing %q", required)
+		}
+	}
+}
+
+func TestVisualIdentityUsesDedicatedQueueWithLifecycleCompatibility(t *testing.T) {
+	source, err := os.ReadFile("workflow.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(source)
+	if !strings.Contains(text, "VisualIdentityQueue") ||
+		!strings.Contains(text, `"visual-identity"`) ||
+		!strings.Contains(text, "case VisualIdentityQueue:") ||
+		strings.Count(text, "RegisterWorkflow(VisualIdentityWorkflow)") < 2 ||
+		!strings.Contains(text, "taskQueue = VisualIdentityQueue") {
+		t.Fatal("Visual Identity does not have an isolated queue plus lifecycle history compatibility")
+	}
+}
+
+func TestWakeUpAndReflectionUseCriticalQueueWithLifecycleCompatibility(t *testing.T) {
+	source, err := os.ReadFile("workflow.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(source)
+	legacyLane := sourceBetweenWorkflow(t, text, "case LifecycleQueue:", "case CriticalLifecycleQueue:")
+	criticalLane := sourceBetweenWorkflow(t, text, "case CriticalLifecycleQueue:", "case VisualIdentityQueue:")
+	dispatcher := sourceBetweenWorkflow(t, text, "func (d *Dispatcher) DispatchOnce", "func normalizedWorkflowID")
+	wakeUpRoute := sourceBetweenWorkflow(t, dispatcher, `case "wake_up.current":`, `case "daily_review.current_day":`)
+	reflectionRoute := sourceBetweenWorkflow(t, dispatcher, `case "reflection.run":`, `case "intention.trigger":`)
+
+	if !strings.Contains(text, `CriticalLifecycleQueue       = "lifecycle-critical"`) ||
+		!strings.Contains(text, "queues := []string{LifecycleQueue, CriticalLifecycleQueue,") ||
+		!strings.Contains(text, "if queue == CriticalLifecycleQueue") {
+		t.Fatal("critical lifecycle lane is missing its dedicated Worker capacity")
+	}
+	for _, registration := range []string{
+		"RegisterWorkflow(WakeUpWorkflow)",
+		"RegisterWorkflow(ReflectionWorkflow)",
+		"RegisterActivity(ProcessWakeUpActivity)",
+		"RegisterActivity(ProcessReflectionActivity)",
+	} {
+		if !strings.Contains(legacyLane, registration) {
+			t.Fatalf("legacy lifecycle lane lost history-compatible registration %q", registration)
+		}
+		if !strings.Contains(criticalLane, registration) {
+			t.Fatalf("critical lifecycle lane missing registration %q", registration)
+		}
+	}
+	for _, forbidden := range []string{"DailyReviewWorkflow", "ProcessDailyReviewActivity"} {
+		if strings.Contains(criticalLane, forbidden) {
+			t.Fatalf("critical lifecycle lane must not register Provider-heavy %q", forbidden)
+		}
+	}
+	if !strings.Contains(wakeUpRoute, "taskQueue = CriticalLifecycleQueue") {
+		t.Fatal("new WakeUp runs are not routed to the critical lifecycle lane")
+	}
+	if !strings.Contains(reflectionRoute, "taskQueue = CriticalLifecycleQueue") {
+		t.Fatal("new Reflection runs are not routed to the critical lifecycle lane")
 	}
 }
 

@@ -1,6 +1,6 @@
 export type WorkspaceView = "chat" | "moments" | "instances" | "diagnostics" | "settings";
 export type SettingsSection = "model-role" | "endpoint" | "binding" | "media" | "operations" | "owner";
-export type DiagnosticsSection = "model-runs" | "media-prompts" | "events" | "workflows";
+export type DiagnosticsSection = "lifecycle" | "model-runs" | "media-prompts" | "events" | "workflows";
 export type WorkspaceSection = SettingsSection | DiagnosticsSection;
 
 export const settingsSections = [
@@ -13,6 +13,7 @@ export const settingsSections = [
 ] as const satisfies ReadonlyArray<{ id: SettingsSection; label: string; description: string }>;
 
 export const diagnosticsSections = [
+  { id: "lifecycle", label: "生命周期", description: "按关联标识追踪触发、工作流、模型调用与下个周期" },
   { id: "model-runs", label: "模型运行", description: "最近 20 条模型调用记录" },
   { id: "media-prompts", label: "媒体提示词", description: "最近 20 条媒体生成提示词" },
   { id: "events", label: "系统事件", description: "最近 20 条脱敏系统事件" },

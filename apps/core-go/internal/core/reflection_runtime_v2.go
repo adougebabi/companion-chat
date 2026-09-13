@@ -195,7 +195,7 @@ func (a *App) processReflectionV2(
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
 	}
-	proposal, err := DecodeReflectionProposalV2(jsonBytes(completion.Structured))
+	proposal, err := DecodeReflectionProposalV2(jsonBytes(normalizeReflectionProposalV2Header(completion.Structured)))
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err
@@ -409,6 +409,24 @@ func (a *App) processReflectionV2(
 		"watermark": toSequence, "proposal_id": plan.ProposalID, "active_memory": reflectionActiveMemoryResultSummary(activeMemoryResults), "memory": reflectionMemoryResultSummary(memoryResults),
 		"counts": applyResult.Counts, "changed_refs": applyResult.ChangedRefs, "revisions": applyResult.Revisions, "reason_codes": applyResult.ReasonCodes,
 	}, nil
+}
+
+// normalizeReflectionProposalV2Header fills only Core-owned/neutral header
+// values. Local Providers may omit or paraphrase schema_version, but protocol
+// versions are application authority rather than model-owned semantics. An
+// omitted summary with empty candidate arrays is a no-change reflection, not a
+// reason to strand the durable quiet-period workflow. All candidate fields
+// remain subject to strict decoding.
+func normalizeReflectionProposalV2Header(value map[string]any) map[string]any {
+	result := make(map[string]any, len(value)+2)
+	for key, item := range value {
+		result[key] = item
+	}
+	result["schema_version"] = reflectionProposalV2SchemaVersion
+	if strings.TrimSpace(stringValue(result["summary"])) == "" {
+		result["summary"] = "no_change"
+	}
+	return result
 }
 
 func validateReflectionProviderCompletion(completion ProviderCompletion) error {

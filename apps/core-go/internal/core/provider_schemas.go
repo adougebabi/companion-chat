@@ -373,18 +373,24 @@ func reflectionProposalV2ProviderSchema() map[string]any {
 
 func initializationResponseSchema() map[string]any {
 	identity := objectSchema(map[string]any{
-		"name":        stringSchema(),
-		"age":         nullableNumberSchema(),
-		"gender":      nullableStringSchema(),
-		"occupation":  nullableStringSchema(),
-		"residence":   nullableStringSchema(),
-		"timezone":    nullableStringSchema(),
-		"birthday":    nullableStringSchema(),
-		"background":  nullableStringSchema(),
-		"biography":   nullableStringSchema(),
-		"core_values": arraySchema(jsonValueSchema()),
-		"worldview":   nullableStringSchema(),
-		"notes":       nullableStringSchema(),
+		"name":             stringSchema(),
+		"nickname":         nullableStringSchema(),
+		"age":              nullableNumberSchema(),
+		"gender":           nullableStringSchema(),
+		"occupation":       nullableStringSchema(),
+		"height":           nullableStringSchema(),
+		"height_cm":        nullableNumberSchema(),
+		"blood_type":       nullableStringSchema(),
+		"birthplace":       nullableStringSchema(),
+		"residence":        nullableStringSchema(),
+		"timezone":         nullableStringSchema(),
+		"birthday":         nullableStringSchema(),
+		"background":       nullableStringSchema(),
+		"biography":        nullableStringSchema(),
+		"background_story": nullableStringSchema(),
+		"core_values":      arraySchema(jsonValueSchema()),
+		"worldview":        nullableStringSchema(),
+		"notes":            nullableStringSchema(),
 	}, nil, false)
 	personality := objectSchema(map[string]any{
 		"openness":          unitNumberSchema(),
@@ -420,6 +426,8 @@ func initializationResponseSchema() map[string]any {
 		"intimacy_expression":  stringSchema(),
 	}, nil, false)
 	appearance := objectSchema(map[string]any{
+		"description": nullableStringSchema(), "physical_features": openObjectSchema(),
+		"daily_outfit_preferences": arraySchema(jsonValueSchema()), "style_preferences": openObjectSchema(),
 		"chest_cup": enumStringSchema("A", "B", "C", "D"),
 	}, nil, true)
 	lifeProfile := objectSchema(map[string]any{
@@ -430,6 +438,7 @@ func initializationResponseSchema() map[string]any {
 		"recurring_commitments": arraySchema(jsonValueSchema()),
 		"relationship_seeds":    arraySchema(openObjectSchema()),
 		"character_constraints": arraySchema(jsonValueSchema()),
+		"media_preferences":     openObjectSchema(),
 	}, nil, false)
 	goal := objectSchema(map[string]any{
 		"description":     stringSchema(),
@@ -483,6 +492,9 @@ func initializationResponseSchema() map[string]any {
 		"conflict_resolution":    personalityConflictResolutionSchema(),
 		"integration":            personalityIntegrationSchema(),
 		"behavior_state_machine": personalityStateMachineSchema(),
+		"core_relationship":      nullableStringSchema(),
+		"core_conflict":          nullableStringSchema(),
+		"forced_activation":      openObjectSchema(),
 		"extensions":             openObjectSchema(),
 	}, nil, false)
 	claim := objectSchema(map[string]any{
@@ -501,6 +513,7 @@ func initializationResponseSchema() map[string]any {
 		"behavioral_policy":  behavioralPolicy,
 		"life_profile":       lifeProfile,
 		"personality_system": personalitySystem,
+		"extensions":         openObjectSchema(),
 	}, nil, false)
 	developingSelf := objectSchema(map[string]any{"claims": arraySchema(claim)}, nil, false)
 	return objectSchema(map[string]any{

@@ -61,6 +61,21 @@ func TestProviderQueueHonorsPriorityAndFIFO(t *testing.T) {
 	}
 }
 
+func TestProviderQueueAgesBoundedWaitTaskAheadOfFreshPriority(t *testing.T) {
+	now := time.Now().UTC()
+	heap := providerTaskHeap{
+		&providerQueueTask{priority: 100, sequence: 2, enqueuedAt: now},
+		&providerQueueTask{priority: 70, sequence: 1, enqueuedAt: now.Add(-providerQueueMaximumWait - time.Second)},
+	}
+	for index := range heap {
+		heap[index].index = index
+	}
+	selected := popProviderQueueTask(&heap, now)
+	if selected == nil || selected.priority != 70 {
+		t.Fatalf("aged lifecycle task was starved by fresh priority: %#v", selected)
+	}
+}
+
 func TestProviderQueueCancellationReleasesPendingTask(t *testing.T) {
 	queue := newProviderQueue(1)
 	defer queue.close()
