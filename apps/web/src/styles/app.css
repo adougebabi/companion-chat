@@ -1418,6 +1418,7 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
   min-height: 0;
   gap: 3px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 4px 12px 14px;
 }
 
@@ -1434,6 +1435,7 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
   background: transparent;
   color: #303035;
   text-align: left;
+  white-space: normal;
 }
 
 .context-section-link:hover,
@@ -1463,7 +1465,9 @@ input::placeholder, textarea::placeholder { color: #6a8187; opacity: 1; }
 .context-section-link strong,
 .context-section-link small {
   min-width: 0;
+  white-space: normal;
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .context-section-link strong {

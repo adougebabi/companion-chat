@@ -293,7 +293,9 @@ onMounted(() => void load());
 
 .settings-mobile-section-link strong,
 .settings-mobile-section-link small {
+  white-space: normal;
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .settings-mobile-section-link small {

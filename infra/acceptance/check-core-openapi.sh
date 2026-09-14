@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export LC_ALL=C
 
 script_dir=$(cd -- "$(dirname -- "$BASH_SOURCE")" && pwd)
 repo_root=$(cd -- "$script_dir/../.." && pwd)

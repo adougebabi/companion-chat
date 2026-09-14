@@ -58,7 +58,7 @@ function sectionIcon(section: WorkspaceSection) {
     <template v-if="contextView === 'settings'">
       <header class="desktop-context-header settings-context-header"><div><p class="eyebrow">CONTROL CENTER</p><h2>设置</h2><small>选择要管理的配置</small></div></header>
       <nav class="context-section-list" aria-label="设置选项">
-        <Button v-for="section in settingsSections" :key="section.id" class="context-section-link justify-normal" variant="ghost" :class="{ selected: props.activeSection === section.id }" type="button" @click="emit('navigateSection', 'settings', section.id)">
+        <Button v-for="section in settingsSections" :key="section.id" class="context-section-link justify-normal whitespace-normal h-auto" variant="ghost" :class="{ selected: props.activeSection === section.id }" type="button" @click="emit('navigateSection', 'settings', section.id)">
           <component :is="sectionIcon(section.id)" :size="17" :stroke-width="2" aria-hidden="true" />
           <span><strong>{{ section.label }}</strong><small>{{ section.description }}</small></span>
           <ChevronRight :size="16" :stroke-width="2" aria-hidden="true" />
@@ -68,7 +68,7 @@ function sectionIcon(section: WorkspaceSection) {
     <template v-else-if="contextView === 'diagnostics'">
       <header class="desktop-context-header settings-context-header"><div><p class="eyebrow">OBSERVABILITY</p><h2>诊断中心</h2><small>按主题查看运行记录</small></div></header>
       <nav class="context-section-list" aria-label="诊断选项">
-        <Button v-for="section in diagnosticsSections" :key="section.id" class="context-section-link justify-normal" variant="ghost" :class="{ selected: props.activeSection === section.id }" type="button" @click="emit('navigateSection', 'diagnostics', section.id)">
+        <Button v-for="section in diagnosticsSections" :key="section.id" class="context-section-link justify-normal whitespace-normal h-auto" variant="ghost" :class="{ selected: props.activeSection === section.id }" type="button" @click="emit('navigateSection', 'diagnostics', section.id)">
           <component :is="sectionIcon(section.id)" :size="17" :stroke-width="2" aria-hidden="true" />
           <span><strong>{{ section.label }}</strong><small>{{ section.description }}</small></span>
           <ChevronRight :size="16" :stroke-width="2" aria-hidden="true" />

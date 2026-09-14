@@ -321,14 +321,16 @@ export const useControlCenterStore = defineStore("control-center", {
     async loadFluctlightDetail(fluctlightId: string | null) {
 	  const requestId = this.fluctlightDetailRequestId + 1;
 	  this.fluctlightDetailRequestId = requestId;
-	  this.fluctlightDetailFluctlightId = fluctlightId ?? "";
-	  this.fluctlightDetail = null;
-	  if (!fluctlightId) { this.loading = false; return; }
-      this.loading = true;
-      this.error = "";
+	  const targetId = fluctlightId ?? "";
+	  const idChanged = this.fluctlightDetailFluctlightId !== targetId;
+	  this.fluctlightDetailFluctlightId = targetId;
+	  if (idChanged) this.fluctlightDetail = null;
+	  if (!targetId) { this.loading = false; return; }
+	  if (idChanged || !this.fluctlightDetail) this.loading = true;
+	  this.error = "";
       try {
-		const detail = await client.detail(fluctlightId);
-		if (requestId !== this.fluctlightDetailRequestId || fluctlightId !== this.fluctlightDetailFluctlightId) return;
+		const detail = await client.detail(targetId);
+		if (requestId !== this.fluctlightDetailRequestId || targetId !== this.fluctlightDetailFluctlightId) return;
 		this.fluctlightDetail = detail;
 		const relationships = Array.isArray(detail.relationships) ? detail.relationships as Array<Record<string, unknown>> : [];
         this.relationshipEditDrafts = Object.fromEntries(relationships.map((relationship) => {

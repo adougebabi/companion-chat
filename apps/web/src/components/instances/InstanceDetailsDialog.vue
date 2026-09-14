@@ -188,12 +188,17 @@ function rendererConstraintText(value: unknown): string {
   return value === "not_applicable" ? "不适用" : formatDisplayValue(value);
 }
 
+const visualIdentityPollingStatuses = new Set([
+  "queued", "running", "awaiting_review", "regenerating",
+  "image_queued", "image_completed", "character_sheet_queued"
+]);
+
 onMounted(() => {
   clockTimer = window.setInterval(() => { now.value = Date.now(); }, 30_000);
   visualIdentityTimer = window.setInterval(() => {
     const fluctlightId = store.selectedFluctlight?.id;
-	const visualStatus = String(asRecord(detail.value.visual_identity).status ?? "");
-    if (props.open && fluctlightId && visualStatus !== "active") {
+    const visualStatus = String(asRecord(detail.value.visual_identity).status ?? "");
+    if (props.open && fluctlightId && visualIdentityPollingStatuses.has(visualStatus)) {
       void controlCenter.loadFluctlightDetail(fluctlightId);
     }
   }, 5_000);
