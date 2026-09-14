@@ -1061,7 +1061,7 @@ func TestAppraisalAndAffectEventCommitOneRevisionVisibleToNextProjection(t *test
 		t.Fatal(err)
 	}
 	laterDecision["cognitive_state_transition"] = "not_proposed"
-	laterFrozen, err := app.PersistTurnDecision(ctx, laterInboxID, fluctlightID, "", "affect-later-turn", "no_op", laterDecision)
+	laterFrozen, err := app.PersistTurnDecision(ctx, laterInboxID, fluctlightID, "", "affect-later-turn", "no_op", laterDecision, turnDecisionAuthority{})
 	if err != nil {
 		t.Fatal(err)
 	}

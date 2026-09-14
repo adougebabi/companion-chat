@@ -408,3 +408,91 @@ validate_effects(effects)
 primary = await freeze(effects[0])
 await settle_secondary_effects(effects[1:])
 ```
+
+## Scenario: Turn Settlement Authority And Reply-Owner Writes
+
+### 1. Scope / Trigger
+
+Applies to any change in the settlement transaction
+(`completeTurnCognitionTx` / `mutations.go` reply path) or in the frozen
+payload contract that governs what a settled turn is allowed to write:
+rejected-candidate side effects, appraisal/state proposals, relationship
+interaction writes, and audit rows. Authority: `design.md` §4.4/§4.10/§10
+(R11/F14), phase 10 of `implement.md`.
+
+### 2. Signatures
+
+- Frozen payload is the sole source of truth: the settlement transaction
+  reads `decision` / `capability_invocations` / `capability_results` from
+  `cognition_frozen_actions.payload` only. Overwriting the payload IS the
+  rejection of the previous candidate — no per-site patching.
+- Reply owner: `takeover.reply_owner_profile_id` inside the frozen payload,
+  read via `frozenReplyOwner(payload)`.
+- Arbitration failure codes: only `superseded` leaves the frozen row
+  untouched; every other arbitration error calls
+  `FailTurnCognition(code=takeoverFailureCode(err))` — including
+  `errTakeoverReplyBudgetExhausted` (constant, not a string literal).
+
+### 3. Contracts
+
+- A rejected candidate leaves **no fact trail**: no appraisal row, no state
+  revision, no claim, no message. Its text exists only in
+  `takeover.rejected_candidate` (diagnostics, never rendered to the user).
+- `rejected_candidate` is write-only in production: audit/trace rows may
+  record it, but no production code may consume it to change behavior.
+- Settlement writes follow the frozen reply owner: relationship interaction
+  counters, memory perspectives, and any profile-scoped proposal apply to the
+  profile that actually replied, not the persistent dominant profile.
+- `settleDeferredCapabilitiesTx` runs inside the settlement transaction and
+  performs **no network IO** for built-in deferred capabilities; real external
+  execution happens after commit via outbox/workflow (F12).
+- Recent-history attribution: an assistant's own utterances are always
+  attributable as the fluctlight's speech (never re-attributed to the user);
+  the rendering style is design intent pinned by tests.
+
+### 4. Validation & Error Matrix
+
+| Violation | Expected behavior |
+|---|---|
+| Budget-exhausted arbitration returns without a failure code | Frozen row would stay resumable forever — `FailTurnCognition` with `takeover_reply_budget_exhausted` |
+| `superseded` also fails the row | Would steal the turn from the worker that owns it — leave untouched |
+| Rejected candidate's appraisal committed | `cognition_appraisals` count for the inbox fact must be 0 |
+| Rejected candidate's state transition committed | `fluctlight_state_revisions` count for the inbox fact must be 0 |
+| Production consumer of `rejected_candidate` | Static guard `TestAuditRowsHaveNoProductionConsumer` |
+
+### 5. Good / Base / Bad Cases
+
+Good: Judge approves → only B's text is delivered, B's scope is written, and
+the row reaches `status='completed'` exactly once.
+Base: Judge declines → A settles with its own text and its own scope.
+Bad: a takeover where A's appraisal/state revision survives, or an arbitration
+failure that silently leaves an infinitely resumable frozen row.
+
+### 6. Tests Required
+
+- `turn_takeover_recovery_test.go`: `TestRejectedCandidateLeavesNoFactTrail`,
+  `TestAuditRowsHaveNoProductionConsumer`, stale-snapshot and replay rows.
+- `turn_chain_budget_test.go`: bounded cost of a failing Judge and
+  no-replay-per-stage assertions.
+- Reverse verification: failure-code tests must fail when the error branch is
+  reverted to a bare `return`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+// Silent retry loop: budget exhaustion leaves the row stuck in
+// arbitration_decided, resumable forever.
+if errors.Is(takeoverErr, errTakeoverReplyBudgetExhausted) {
+    return TurnResult{}, takeoverErr
+}
+```
+
+#### Correct
+
+```go
+// Every non-superseded arbitration failure quarantines the row with an
+// exact, drift-proof code.
+_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, takeoverFailureCode(takeoverErr))
+```

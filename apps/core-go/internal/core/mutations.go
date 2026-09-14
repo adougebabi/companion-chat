@@ -687,7 +687,6 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	var personalityPlan *personalityDecisionPlan
 	responseMode := "final"
 	var continuationBaseMessages []map[string]any
-	toolOnlyNoReply := false
 	structuredFallback := false
 	frozen, frozenFound, err := a.LoadFrozenTurn(ctx, inboxID)
 	if err != nil {
@@ -700,6 +699,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		return TurnResult{}, errors.New("completed cognition action is missing its assistant output")
 	}
 	var projection ContextProjection
+	var personaScope turnPersonaScope
+	var personaSwitch personaSwitchNormalization
+	personaGrant := persistentSwitchGrant{}
 	if frozenFound && frozen.Status == "frozen" {
 		frozenDecision := mapValue(frozen.Payload["decision"])
 		if savedProjection, ok := contextProjectionFromValue(frozenDecision["context_projection"]); ok {
@@ -707,59 +709,49 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		} else {
 			return TurnResult{}, errors.New("frozen_context_projection_missing")
 		}
+		// The frozen scope is the persona view that generation actually saw.
+		// Recovery never re-derives the owner from the current runtime row.
+		if savedScope, ok := turnPersonaScopeFromPayload(frozen.Payload); ok {
+			personaScope = savedScope
+		}
 	} else {
 		projection, err = a.buildTurnProjection(ctx, authorizationActorID, actorID, fluctlightID, conversationID, inboxID, text)
 		if err != nil {
 			return TurnResult{}, err
 		}
+		personaScope = resolveTurnPersonaScope(projection)
 	}
+	// The normalized persona-switch view and its authorization are derived once
+	// per turn from the same projection the generation consumes.
+	personaSwitch = normalizePersonaSwitchRules(projection.CorePersona, projection.PersonalityRuntime, personaScope.ActiveProfileID)
+	personaGrant = resolvePersistentSwitchGrant(personaScope, persistentSwitchGrantScenarioMain, personaSwitch.Rules)
+	personaAuthority := turnDecisionAuthority{Grant: personaGrant, Scope: personaScope}
 	if frozenFound && frozen.Status == "frozen" {
-		action = frozen.ActionType
-		decision = mapValue(frozen.Payload["decision"])
-		if err := validateFrozenDecisionInfluences(decision); err != nil {
-			return TurnResult{}, err
+		hydrated, hydrateErr := a.hydrateFrozenTurn(frozen, fluctlightID)
+		if hydrateErr != nil {
+			return TurnResult{}, hydrateErr
 		}
-		if raw, exists := decision["personality_transition"]; exists {
-			personalityPlan, err = personalityDecisionPlanFromValue(raw)
-			if err != nil || personalityPlan == nil || personalityPlan.FluctlightID != fluctlightID {
-				return TurnResult{}, errors.New("personality_decision_plan_invalid")
-			}
-		}
-		if savedProjection, ok := contextProjectionFromValue(decision["context_projection"]); ok {
-			projection = savedProjection
-		}
-		capabilityInvocations, err = capabilityInvocationsFromValue(frozen.Payload["capability_invocations"])
-		if err != nil {
-			return TurnResult{}, err
-		}
-		if loaded, ok := compositeActionFromValue(decision["composite_action"]); ok {
-			composite = loaded
-			composite.ToolCalls = capabilityInvocations
-			if len(composite.CapabilityCallIDs) == 0 {
-				composite.CapabilityCallIDs = capabilityCallIDs(capabilityInvocations)
-			}
-		} else {
-			return TurnResult{}, errors.New("frozen_composite_action_missing")
-		}
-		capabilityResults, err = capabilityResultsFromValue(frozen.Payload["capability_results"])
-		if err != nil {
-			return TurnResult{}, err
-		}
-		responsePlan = mapValue(decision["response_plan"])
-		if len(responsePlan) == 0 {
-			return TurnResult{}, errors.New("frozen_response_plan_missing")
-		}
-		responseMode = firstString(responsePlan["response_mode"], firstString(decision["response_mode"], "final"))
-		continuationBaseMessages, _ = decision["continuation_base_messages"].([]map[string]any)
-		if continuationBaseMessages == nil {
-			continuationBaseMessages = cloneMapSliceFromAny(decision["continuation_base_messages"])
+		action = hydrated.Action
+		decision = hydrated.Decision
+		personalityPlan = hydrated.PersonalityPlan
+		capabilityInvocations = hydrated.Invocations
+		composite = hydrated.Composite
+		capabilityResults = hydrated.Results
+		responsePlan = hydrated.ResponsePlan
+		responseMode = hydrated.ResponseMode
+		continuationBaseMessages = hydrated.ContinuationBaseMessages
+		if len(hydrated.Projection.FluctlightID) > 0 {
+			projection = hydrated.Projection
 		}
 	} else {
 		// Moment publication is a Wake-up/autonomy output, not an ordinary
 		// interactive reply capability. Keep it registered globally for the
 		// Runtime while withholding it from the conversation tool catalog.
 		definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceConversation)
-		schema := cognitiveTurnResponseSchema()
+		// The response schema is conditional on the authorization of THIS call:
+		// a scenario that may not propose a persistent switch is not even offered
+		// the field, so the constraint does not depend on post-hoc filtering.
+		schema := cognitiveTurnResponseSchemaForGrant(personaGrant)
 		assembly, assembledProjection, assemblyErr := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction}, text, definitions, "conversation_turn_response", schema)
 		if assemblyErr != nil {
 			return TurnResult{}, assemblyErr
@@ -780,115 +772,116 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		decision = completion.Structured
 		structuredFallback = completion.StructuredFallback
 		capabilityInvocations = append([]CapabilityInvocation(nil), completion.ToolCalls...)
-		for index := range capabilityInvocations {
-			capabilityInvocations[index] = normalizeCapabilityInvocationMetadata(capabilityInvocations[index], fluctlightID, conversationID, inboxID, inboxID, index)
+		// Both the Main generation and the takeover reply run through this one
+		// normalizer so a takeover candidate cannot bypass a single validation
+		// step that the Main candidate passed (design.md 4.8).
+		normalized, normalizeErr := a.normalizeTurnDecision(ctx, turnDecisionNormalizationInput{
+			InboxID: inboxID, FluctlightID: fluctlightID, ConversationID: conversationID, TurnID: turnID,
+			Projection: projection, Grant: personaGrant, Decision: decision, Invocations: capabilityInvocations,
+			Definitions: definitions, StructuredFallback: structuredFallback,
+			ContinuationBaseMessages: continuationBaseMessages,
+		})
+		if normalizeErr != nil {
+			return TurnResult{}, normalizeErr
 		}
-		if decision == nil {
-			decision = map[string]any{}
-		}
-		// Appraisal is optional in the closed conversation schema. A Provider may
-		// produce the visible reply through conversation.reply without proposing
-		// any state transition. Absence means "not proposed"; a present but
-		// malformed appraisal still fails closed and is never repaired.
-		toolOnlyNoReply = completion.StructuredFallback && len(capabilityInvocations) > 0 && !hasConversationReplyCapability(capabilityInvocations, a.capabilityRegistry()) && !hasDeferredOutputCapabilities(capabilityInvocations, a.capabilityRegistry())
-		skipCognitiveStateTransition := len(mapValue(decision["appraisal"])) == 0
-		if toolOnlyNoReply {
-			decision["action_type"] = "no_op"
-			decision["response_intent"] = ""
-		}
-		// Influences are validated against exactly the Core-owned projection that
-		// the Provider saw. The mapping is frozen before a personality switch or
-		// any other state transition can refresh execution context.
-		if _, err := freezeDecisionInfluences(decision, projection, false); err != nil {
-			return TurnResult{}, err
-		}
-		if skipCognitiveStateTransition {
-			decision["cognitive_state_transition"] = "not_proposed"
-		}
-		if personalityDecision := mapValue(decision["personality_decision"]); len(personalityDecision) > 0 {
-			personalityPlan, err = a.preparePersonalityDecision(ctx, fluctlightID, personalityDecision)
-			if err != nil {
-				return TurnResult{}, err
-			}
-			if personalityPlan != nil {
-				decision["personality_transition"] = personalityPlan
-			}
-		}
-		// Normalize the root sidecar once; the response plan never receives a
-		// second nested tool_calls copy.
-		if len(capabilityInvocations) > 0 {
-			decision["capability_invocations"] = capabilityInvocations
-		}
-		responsePlan, err = normalizeResponsePlan(decision, inboxID, projection)
-		if err != nil {
-			return TurnResult{}, err
-		}
-		// Root tool_calls is the sole provider codec sidecar. Keep it on the
-		// frozen decision; response_plan is a visible-plan projection only.
-		decision["response_plan"] = responsePlan
-		decision["context_projection"] = projection
-		visibleCandidate := normalizeVisibleReply(firstString(responsePlan["visible_text"], stringValue(decision["visible_text"])))
-		responseMode = normalizeConversationResponseMode(stringValue(decision["response_mode"]), structuredFallback, visibleCandidate, capabilityInvocations, a.capabilityRegistry())
-		responsePlan["response_mode"] = responseMode
-		if len(capabilityInvocations) > 0 {
-			definitionMap := make(map[string]CapabilityDefinition, len(definitions))
-			for _, definition := range definitions {
-				definitionMap[definition.Name] = definition
-			}
-			action, err = resolveCapabilityAction(capabilityInvocations, definitionMap)
-			if err != nil {
-				return TurnResult{}, err
-			}
-			if toolOnlyNoReply {
-				action = "no_op"
-			}
-		} else {
-			action = normalizeConversationActionType(stringValue(decision["action_type"]))
-		}
-		// A direct user turn has exactly one terminal product contract: either the
-		// same Main cognition supplies visible text, or the turn fails explicitly
-		// and remains retryable. A successful no-op makes the user's double-check
-		// message look delivered while producing no assistant row.
-		if responseMode == "query_continuation" {
-			if visibleCandidate != "" || validatePureQueryContinuation(capabilityInvocations, a.capabilityRegistry()) != nil {
-				return TurnResult{}, errors.New("query_continuation_contract_invalid")
-			}
-			decision["continuation_base_messages"] = continuationBaseMessages
-			delete(responsePlan, "visible_text")
-			delete(decision, "visible_text")
-		} else {
-			if responseMode != "final" {
-				return TurnResult{}, errors.New("response_mode_invalid")
-			}
-			if visibleCandidate == "" {
-				visibleCandidate = replyTextFromCapabilityInvocations(capabilityInvocations, a.capabilityRegistry())
-			}
-			if visibleCandidate == "" {
-				return TurnResult{}, errors.New("cognition_visible_text_missing")
-			}
-			responsePlan["visible_text"] = visibleCandidate
-			decision["visible_text"] = visibleCandidate
-		}
-		action = "reply"
-		decision["action_type"] = "reply"
-		if preferenceDecision := mapValue(responsePlan["output_preference_decision"]); len(preferenceDecision) > 0 {
-			responsePlan["output_preference_decision"] = evaluateOutputPreferenceAction(preferenceDecision, action, capabilityInvocations, a.capabilityRegistry())
-		}
-		composite, err = normalizeCompositeAction(decision, capabilityInvocations, inboxID, action)
-		if err != nil {
-			return TurnResult{}, err
-		}
-		decision["composite_action"] = composite
-		if action != "reply" && action != "no_op" {
-			return TurnResult{}, errors.New("decision_effect_invalid")
-		}
+		decision = normalized.Decision
+		capabilityInvocations = normalized.Invocations
+		responsePlan = normalized.ResponsePlan
+		responseMode = normalized.ResponseMode
+		action = normalized.Action
+		composite = normalized.Composite
+		personalityPlan = normalized.PersonalityPlan
 		if a.cognitionFactSuperseded(ctx, inboxID) {
 			return TurnResult{}, errCognitionTurnSuperseded
 		}
-		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, conversationID, turnID, action, decision)
+		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, conversationID, turnID, action, decision, personaAuthority)
 		if err != nil {
 			return TurnResult{}, err
 		}
+	}
+	// ───────────────────────── arbitration ─────────────────────────
+	// Candidate validation happens BEFORE the Judge (F02/F05). The cheap,
+	// side-effect-free validator runs the same schema check the WakeUp worker
+	// uses plus the deterministic authorization gate F-02 requires (declared
+	// surface, frozen identity ownership, declared target kinds). A candidate
+	// that is structurally valid but unauthorized must fail here so a takeover
+	// by B cannot mask A's illegal invocation.
+	if len(capabilityInvocations) > 0 {
+		if validateErr := a.validateCandidateCapabilityInvocations(capabilityInvocations, candidateValidationContext{
+			FluctlightID: fluctlightID, ConversationID: conversationID, SourceFactID: inboxID, ActionID: frozen.ID,
+			Surface: CapabilitySurfaceConversation, ContextSnapshot: mapValue(frozen.Payload["capability_context_snapshot"]), Context: ctx,
+		}); validateErr != nil {
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "candidate_invalid")
+			return TurnResult{}, validateErr
+		}
+	}
+	// Exactly one insertion point exists between the A generation and the
+	// Prepare/execution window. Only turn_stage == winner_ready may execute
+	// (F03), so a rejected candidate can never reach a side effect.
+	handled, takeoverErr := a.applyTurnTakeover(ctx, turnTakeoverInput{
+		InboxID: inboxID, FluctlightID: fluctlightID, ConversationID: conversationID, TurnID: turnID,
+		Projection: projection, Scope: personaScope, Switch: personaSwitch,
+		ResponseMode: responseMode, Action: action, Decision: decision,
+		Invocations: capabilityInvocations, Frozen: frozen,
+	})
+	if takeoverErr != nil {
+		// A superseded turn belongs to another worker: its frozen row and stage
+		// are left untouched so that worker can finish. Every other arbitration
+		// failure is this turn's, so it is quarantined with an exact code.
+		//
+		// F06: a takeover reply that asks for yet another result-dependent
+		// continuation is a controlled failure. Leaving it resumable would let a
+		// retry spend an unbounded number of generations on a candidate that is
+		// structurally forbidden from succeeding, so it fails closed instead.
+		if errors.Is(takeoverErr, errCognitionTurnSuperseded) {
+			return TurnResult{}, takeoverErr
+		}
+		_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, takeoverFailureCode(takeoverErr))
+		return TurnResult{}, takeoverErr
+	}
+	if handled {
+		// Read the winning candidate and every derived variable back from the
+		// payload; A's local variables are the rejected candidate (F03).
+		reloaded, reloadFound, reloadErr := a.LoadFrozenTurn(ctx, inboxID)
+		if reloadErr != nil {
+			return TurnResult{}, reloadErr
+		}
+		if !reloadFound {
+			return TurnResult{}, errors.New("takeover_frozen_turn_missing")
+		}
+		frozen = reloaded
+		hydrated, hydrateErr := a.hydrateFrozenTurn(frozen, fluctlightID)
+		if hydrateErr != nil {
+			return TurnResult{}, hydrateErr
+		}
+		action = hydrated.Action
+		decision = hydrated.Decision
+		personalityPlan = hydrated.PersonalityPlan
+		composite = hydrated.Composite
+		capabilityResults = hydrated.Results
+		responsePlan = hydrated.ResponsePlan
+		responseMode = hydrated.ResponseMode
+		continuationBaseMessages = hydrated.ContinuationBaseMessages
+		if len(hydrated.Projection.FluctlightID) > 0 {
+			projection = hydrated.Projection
+		}
+	}
+	stage := turnStageOf(frozen.Payload)
+	if !turnStageExecutable(frozen.Payload) {
+		// A concurrent worker moved (or never reached) the eligible stage. Fail
+		// closed instead of executing a candidate that was never authorized.
+		_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "turn_stage_not_executable")
+		return TurnResult{}, errors.New("turn_stage_not_executable")
+	}
+	if stage == turnStageWinnerReady {
+		// The winner is admitted, so the side-effect window begins now. The
+		// marker is written before any Prepare work, making a crash inside the
+		// window distinguishable from "arbitration never finished": a later
+		// recovery reads executing and resumes instead of re-deciding (F03).
+		if err := a.BeginTurnExecution(ctx, frozen.ID); err != nil {
+			return TurnResult{}, err
+		}
+		frozen.Payload[turnStagePayloadKey] = turnStageExecuting
 	}
 	var continuationState QueryContinuationState
 	if responseMode == "query_continuation" {
@@ -945,15 +938,15 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			}
 		}
 		reflectionDelay := a.reflectionDelay(ctx)
-		nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
+		nextReflectionAt := a.now().UTC().Add(reflectionDelay)
 		// Appraisal/Current State, native mutations, claims, action result and
 		// inbox settlement share this one transaction. A failure leaves only the
 		// immutable frozen plan for deterministic retry/quarantine.
 		settleErr := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-			if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, projection.ContextRevision, projection.CurrentStateRevision, projection.LifeContextRevision, time.Now().UTC()); err != nil {
+			if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, projection.ContextRevision, projection.CurrentStateRevision, projection.LifeContextRevision, a.now().UTC()); err != nil {
 				return err
 			}
-			if _, err := a.applyPersonalityDecisionPlanTx(ctx, tx, fluctlightID, personalityPlan); err != nil {
+			if _, err := a.applyPersistentSwitchIfAuthorizedTx(ctx, tx, fluctlightID, frozen.Payload, personalityPlan); err != nil {
 				return err
 			}
 			if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, decision, action, frozen.ID, frozen.StateRev); err != nil {
@@ -1104,9 +1097,14 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			visible = continuationState.VisibleText
 		}
 	} else {
-		visible = normalizeVisibleReply(firstString(responsePlan["visible_text"], stringValue(decision["visible_text"])))
+		// R05/F02: the frozen decision already carries the single visible-text
+		// authority resolved at generation time. Settlement reads it verbatim
+		// instead of re-deriving the precedence (which is how the Judge or a
+		// preview could audit one text while a different text was sent). The
+		// reply-capability argument is deliberately NOT consulted here.
+		visible = normalizeVisibleReply(stringValue(decision["visible_text"]))
 		if strings.TrimSpace(visible) == "" {
-			visible = replyTextFromCapabilityInvocations(capabilityInvocations, a.capabilityRegistry())
+			visible = normalizeVisibleReply(stringValue(responsePlan["visible_text"]))
 		}
 	}
 	if strings.TrimSpace(visible) == "" {
@@ -1118,12 +1116,12 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	assistantID := randomID("message_")
 	var assistant map[string]any
 	reflectionDelay := a.reflectionDelay(ctx)
-	nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
+	nextReflectionAt := a.now().UTC().Add(reflectionDelay)
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, projection.ContextRevision, projection.CurrentStateRevision, projection.LifeContextRevision, time.Now().UTC()); err != nil {
+		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, projection.ContextRevision, projection.CurrentStateRevision, projection.LifeContextRevision, a.now().UTC()); err != nil {
 			return err
 		}
-		if _, err := a.applyPersonalityDecisionPlanTx(ctx, tx, fluctlightID, personalityPlan); err != nil {
+		if _, err := a.applyPersistentSwitchIfAuthorizedTx(ctx, tx, fluctlightID, frozen.Payload, personalityPlan); err != nil {
 			return err
 		}
 		if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, decision, action, frozen.ID, frozen.StateRev); err != nil {
@@ -1298,9 +1296,9 @@ func (a *App) recoverFrozenTurnAfterAssistant(ctx context.Context, inboxID, fluc
 	}
 	mediaIntent := mediaIntentIDFromCapabilityResults(results)
 	reflectionDelay := a.reflectionDelay(ctx)
-	nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
+	nextReflectionAt := a.now().UTC().Add(reflectionDelay)
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if _, err := a.applyPersonalityDecisionPlanTx(ctx, tx, fluctlightID, personalityPlan); err != nil {
+		if _, err := a.applyPersistentSwitchIfAuthorizedTx(ctx, tx, fluctlightID, frozen.Payload, personalityPlan); err != nil {
 			return err
 		}
 		if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, decision, action, frozen.ID, frozen.StateRev); err != nil {

@@ -62,7 +62,7 @@ func (a *App) assembleProjectionPrompt(ctx context.Context, projection ContextPr
 	policy.MaxInputTokens = assignment.MaxInputTokens
 	policy.Version = assignment.PromptBudgetPolicyVersion
 	result, err := AssemblePromptContext(PromptAssemblyInput{
-		Role: role, OperationRules: operationRules, CorePersona: projection.CorePersona,
+		Role: role, OperationRules: operationRules, CorePersona: systemPersonaForProjection(projection, schemaName),
 		WorkingMemory: workingMemory, CurrentInput: currentInput, Tools: RenderCapabilityTools(definitions),
 		ResponseFormat: providerResponseFormatForSchema(role, schemaName, schema), Policy: policy,
 	})
@@ -79,9 +79,12 @@ func (a *App) assembleProjectionPrompt(ctx context.Context, projection ContextPr
 
 func workingMemoryInputFromProjection(projection ContextProjection, active, summaries []map[string]any) WorkingMemoryInput {
 	compact := compactCognitionContext(projection)
-	delete(compact, "core_persona")
-	delete(compact, "memories")
-	delete(compact, "recent_messages")
+	// Persona material belongs to the System Persona (the Working Persona).
+	// Repeating it in the runtime context gave the model two copies of the same
+	// persona to reconcile.
+	for _, key := range []string{"core_persona", "memories", "recent_messages", "effective_persona", "personality_system"} {
+		delete(compact, key)
+	}
 	input := WorkingMemoryInput{}
 	keys := make([]string, 0, len(compact))
 	for key := range compact {
@@ -286,29 +289,26 @@ func compactEffectivePersonaForProvider(value map[string]any) map[string]any {
 	return result
 }
 
+// compactPersonalitySystem carries only the runtime persona identity. The
+// declared profile roster and the Working Persona are rendered once, in the
+// System Persona, so cloning the whole profiles group here (and appending the
+// active profile object) duplicated every persona field (F01/R09).
 func compactPersonalitySystem(system, runtime map[string]any) map[string]any {
-	if len(system) == 0 && len(runtime) == 0 {
+	_ = system
+	active := stringValue(mapValue(runtime)["active_profile_id"])
+	previous := stringValue(mapValue(runtime)["previous_profile_id"])
+	revision := intValue(mapValue(runtime)["revision"])
+	if active == "" && previous == "" && revision == 0 {
 		return nil
 	}
-	result := cloneMap(system)
-	if result == nil {
-		result = map[string]any{}
-	}
-	delete(result, "extensions")
-	if active := stringValue(mapValue(runtime)["active_profile_id"]); active != "" {
+	result := map[string]any{}
+	if active != "" {
 		result["active_profile_id"] = active
-		for _, raw := range arrayValue(system["profiles"]) {
-			profile := mapValue(raw)
-			if stringValue(profile["id"]) == active {
-				result["active_profile"] = profile
-				break
-			}
-		}
 	}
-	if previous := stringValue(mapValue(runtime)["previous_profile_id"]); previous != "" {
+	if previous != "" {
 		result["previous_profile_id"] = previous
 	}
-	if revision := intValue(mapValue(runtime)["revision"]); revision > 0 {
+	if revision > 0 {
 		result["runtime_revision"] = revision
 	}
 	return result
@@ -625,7 +625,13 @@ func actorRefForID(actors []map[string]any, actorID string) map[string]any {
 
 func compactMessageTime(value string) string {
 	if parsed, err := time.Parse(time.RFC3339Nano, value); err == nil {
-		return parsed.UTC().Format("01-02 15:04:05")
+		// Keep the timestamp's own offset and state it. Converting to UTC before
+		// formatting silently relabels a local time as UTC: a message sent at
+		// 13:27+08:00 renders as "05:27" with no zone at all, so neither the
+		// wall-clock time nor the offset survives into the prompt. The RFC3339
+		// zone suffix ("Z" or "+08:00") is the smallest change that keeps the
+		// message's real time readable and comparable (R11/M7).
+		return parsed.Format("01-02 15:04:05Z07:00")
 	}
 	if len(value) >= 8 && value[2] == '-' && value[5] == ' ' {
 		return value[:8]

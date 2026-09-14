@@ -126,7 +126,7 @@ func (p *ProviderClient) assignment(ctx context.Context, role string) (providerA
 
 func validProviderRole(role string) bool {
 	switch role {
-	case "generic_llm", "initialization", "cognitive_assessment", "action_realization", "interaction", "reflection", "embedding", "media_prompt", "visual_identity_vision", "visual_identity_patch":
+	case "generic_llm", "initialization", "cognitive_assessment", "action_realization", "interaction", "reflection", "embedding", "media_prompt", "visual_identity_vision", "visual_identity_patch", takeoverJudgeRole:
 		return true
 	default:
 		return false
@@ -198,6 +198,15 @@ func (p *ProviderClient) StructuredAssembledWithToolsSchema(ctx context.Context,
 
 func (p *ProviderClient) StructuredQueryContinuation(ctx context.Context, role string, messages []map[string]any, schemaName string, schema map[string]any) (ProviderCompletion, error) {
 	return p.completeWithToolsSchemaMode(ctx, role, messages, true, nil, schemaName, schema, false, true, true)
+}
+
+// StructuredAssembledJudgement calls a dedicated judge role on the assembled
+// message path. It sends no tools and never enables thinking: the Provider only
+// implements the `enable_thinking: true` branch, so the parameter is omitted
+// (not disabled) and that fact is what the F09 report must state. Reusing the
+// assembled path keeps the whole runtime protocol out of the judge call.
+func (p *ProviderClient) StructuredAssembledJudgement(ctx context.Context, role string, messages []map[string]any, schemaName string, schema map[string]any) (ProviderCompletion, error) {
+	return p.completeWithToolsSchemaMode(ctx, role, messages, true, nil, schemaName, schema, false, true, false)
 }
 
 func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role string, messages []map[string]any, jsonMode bool, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool) (ProviderCompletion, error) {
@@ -946,6 +955,8 @@ func providerSchemaForRole(role string) map[string]any {
 		return initializationResponseSchema()
 	case "reflection":
 		return reflectionProposalV2ProviderSchema()
+	case takeoverJudgeRole:
+		return takeoverJudgementSchema()
 	case "visual_identity_vision":
 		return visualIdentityVisionResponseSchema()
 	case "visual_identity_patch":

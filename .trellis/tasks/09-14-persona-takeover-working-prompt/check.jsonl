@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "质量门：精确契约断言优先于关键词匹配，禁止用全对象匹配替代字段级验证"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "错误处理与受控失败边界：Judge 降级、B 生成失败、非法候选 quarantine"}
+{"file": ".trellis/spec/backend/debug-observability.md", "reason": "可观测性与诊断规范：Judge 独立计时计费、prompt 预算诊断、bounded 诊断数组"}
+{"file": ".trellis/spec/backend/structured-turn-contract.md", "reason": "单轮契约：核对主生成至多两次、query 与 takeover 互斥、禁 role=tool"}
+{"file": ".trellis/spec/backend/persona-layer-contract.md", "reason": "人格层契约：核对 active_profile_id 未被 takeover 改写、冻结 profile 不可被 Realization 重选"}
+{"file": ".trellis/spec/backend/fluctlight-diagnostics-contract.md", "reason": "诊断契约：诊断不递归写、不业务回滚、有界；Judge 诊断落库须遵守"}
+{"file": ".trellis/tasks/09-14-persona-takeover-working-prompt/research/inventory-tests-specs.md", "reason": "测试基础设施与静态守卫清单：必须同步更新的守卫与可复用的 Fake/Spy 设施"}
+{"file": ".trellis/tasks/09-14-persona-takeover-working-prompt/research/inventory-turn-chain.md", "reason": "副作用落点清单：用于核对 A 的被拒候选确实未产生任何业务副作用"}

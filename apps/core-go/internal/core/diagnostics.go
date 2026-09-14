@@ -191,6 +191,11 @@ func providerScenario(ctx context.Context, role, schemaName string) string {
 		return "reply"
 	case "cognitive_assessment":
 		return "cognitive_assessment"
+	case takeoverJudgeRole:
+		// The Judge sits on the critical path of a user-visible reply, so it
+		// gets its own scenario (and therefore its own metering/priority)
+		// instead of being folded into cognitive_assessment.
+		return "takeover_judge"
 	case "reflection":
 		return "reflection"
 	case "media_prompt":
@@ -206,7 +211,7 @@ func providerScenario(ctx context.Context, role, schemaName string) string {
 
 func providerPriority(scenario string) int {
 	switch scenario {
-	case "reply", "autonomy_reply", "cognitive_assessment":
+	case "reply", "autonomy_reply", "cognitive_assessment", "takeover_judge":
 		return 100
 	case "native_cognition", "daily_review", "schedule_generation":
 		return 90

@@ -257,16 +257,7 @@ func (a *App) applyPersonalityDecisionPlanTx(ctx context.Context, tx pgx.Tx, flu
 	return result, nil
 }
 
-func (a *App) applyPersonalityDecision(ctx context.Context, fluctlightID string, decision map[string]any) (map[string]any, error) {
-	plan, err := a.preparePersonalityDecision(ctx, fluctlightID, decision)
-	if err != nil || plan == nil {
-		return nil, err
-	}
-	var result map[string]any
-	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var applyErr error
-		result, applyErr = a.applyPersonalityDecisionPlanTx(ctx, tx, fluctlightID, plan)
-		return applyErr
-	})
-	return result, err
-}
+// There is deliberately no un-gated "apply a personality decision" helper
+// here. Every write to the persistent active profile must go through
+// applyPersistentSwitchIfAuthorizedTx (design.md 0.4, E3), which consults the
+// frozen authorization payload before calling applyPersonalityDecisionPlanTx.

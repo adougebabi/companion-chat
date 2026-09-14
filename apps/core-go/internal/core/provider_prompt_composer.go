@@ -238,21 +238,97 @@ func removeCorePersona(value any) any {
 	return result
 }
 
+// filterCorePersona is the single System Persona exit. It renders the shared
+// identity, the Working Persona body and, conditionally, the authorized
+// persistent-switch section. It never renders takeover_rules: those are
+// Judge-only input (design.md 4.6, R08/R09).
+//
+// The envelope is produced either from a bundle that already carries the
+// projection-computed sections, or by deriving them from a raw Core Persona.
 func filterCorePersona(value map[string]any) map[string]any {
 	if data := mapValue(value["data"]); len(data) > 0 {
 		value = data
 	}
 	result := make(map[string]any, 6)
-	for _, group := range []string{"identity", "personality", "behavioral_policy", "life_profile", "personality_system", "extensions"} {
-		if source := mapValue(value[group]); len(source) > 0 {
-			if group == "personality_system" {
-				result[group] = filterPersonalitySystem(source)
-			} else {
-				result[group] = filterCorePersonaValue(source)
-			}
+
+	if shared := mapValue(value[workingPersonaSharedIdentityKey]); len(shared) > 0 {
+		result[workingPersonaSharedIdentityKey] = shared
+	} else if derived := deriveSharedIdentity(value); len(derived) > 0 {
+		result[workingPersonaSharedIdentityKey] = derived
+	}
+
+	if body := mapValue(value[workingPersonaBodyKey]); len(body) > 0 {
+		result[workingPersonaBodyKey] = body
+	} else if derived := deriveWorkingPersonaBody(value); len(derived) > 0 {
+		result[workingPersonaBodyKey] = derived
+	}
+
+	if section := mapValue(value[workingPersonaSwitchKey]); len(section) > 0 {
+		result[workingPersonaSwitchKey] = section
+	}
+
+	if extensions := mapValue(value["extensions"]); len(extensions) > 0 {
+		if filtered := filterCorePersonaValue(extensions); len(filtered) > 0 {
+			result["extensions"] = filtered
+		}
+	}
+
+	if system := mapValue(value["personality_system"]); len(system) > 0 {
+		if filtered := filterPersonalitySystem(system); len(filtered) > 0 {
+			result["personality_system"] = filtered
 		}
 	}
 	return result
+}
+
+// deriveSharedIdentity keeps the persona-wide identity and life profile.
+func deriveSharedIdentity(value map[string]any) map[string]any {
+	shared := map[string]any{}
+	for _, group := range []string{"identity", "life_profile"} {
+		if source := mapValue(value[group]); len(source) > 0 {
+			if filtered := filterCorePersonaValue(source); len(filtered) > 0 {
+				shared[group] = filtered
+			}
+		}
+	}
+	if len(shared) == 0 {
+		return nil
+	}
+	return shared
+}
+
+// deriveWorkingPersonaBody keeps the profile-scoped persona semantics. A
+// persona that stores its content under personality_system.profiles owns the
+// semantics there, so the active profile's block is rendered too; otherwise a
+// single-profile card would lose every decision input it declares.
+func deriveWorkingPersonaBody(value map[string]any) map[string]any {
+	system := mapValue(value["personality_system"])
+	body := map[string]any{}
+	for _, group := range []string{"personality", "behavioral_policy"} {
+		if source := mapValue(value[group]); len(source) > 0 {
+			body[group] = source
+		}
+	}
+	active := strings.TrimSpace(stringValue(system["active_profile_id"]))
+	if active != "" {
+		for _, raw := range arrayValue(system["profiles"]) {
+			profile := mapValue(raw)
+			if stringValue(profile["id"]) != active {
+				continue
+			}
+			for _, key := range workingPersonaSortedKeys(profile) {
+				if personaSwitchKeyMatched(key, []string{"id", "profile_id", "name"}) {
+					continue
+				}
+				if _, excluded := workingPersonaExcludedKeys[strings.ToLower(strings.TrimSpace(key))]; excluded {
+					continue
+				}
+				body[key] = profile[key]
+			}
+			break
+		}
+	}
+	return filterWorkingPersonaBody(body)
 }
 
 // Personality profile and switching identifiers are semantic protocol values,
@@ -265,7 +341,21 @@ func filterPersonalitySystem(value map[string]any) map[string]any {
 		switch normalized {
 		case "activeprofileid", "profileid", "fromprofileid", "targetprofileid", "triggerid":
 			result[key] = child
-		case "profiles", "switching", "influence", "conflictresolution", "integration", "behaviorstatemachine":
+		case "takeoverrules":
+			// Takeover rules are Judge-only input. The Main System Persona must
+			// never carry them; the conditional persistent-switch section is the
+			// only switch material Main receives (design.md 4.6, R08).
+			continue
+		case "profiles":
+			// The roster is identifier-only. Rendering a profile's content here
+			// leaked inactive personas into the Main prompt (F01/R09); content
+			// reaches the Provider through the Working Persona instead.
+			if list, ok := child.([]any); ok {
+				result[key] = filterProfileRosterList(list)
+			} else if object := mapValue(child); len(object) > 0 {
+				result[key] = filterProfileRosterValue(object)
+			}
+		case "switching", "influence", "conflictresolution", "integration", "behaviorstatemachine":
 			if list, ok := child.([]any); ok {
 				result[key] = filterSemanticProfileList(list)
 			} else if object := mapValue(child); len(object) > 0 {
@@ -280,6 +370,31 @@ func filterPersonalitySystem(value map[string]any) map[string]any {
 				result[key] = child
 			}
 		}
+	}
+	return result
+}
+
+// filterProfileRosterValue keeps only the profile identifiers the Main persona
+// is allowed to name. Every profile's content, including the active one, is
+// rendered through the Working Persona.
+func filterProfileRosterValue(value map[string]any) map[string]any {
+	result := make(map[string]any, 2)
+	for key, child := range value {
+		if personaSwitchKeyMatched(key, []string{"id", "profile_id", "name"}) {
+			result[key] = child
+		}
+	}
+	return result
+}
+
+func filterProfileRosterList(list []any) []any {
+	result := make([]any, 0, len(list))
+	for _, item := range list {
+		if object := mapValue(item); len(object) > 0 {
+			result = append(result, filterProfileRosterValue(object))
+			continue
+		}
+		result = append(result, item)
 	}
 	return result
 }

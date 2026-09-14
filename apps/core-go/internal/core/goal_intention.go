@@ -108,7 +108,10 @@ type GoalGovernanceRecord struct {
 }
 
 func (goal GoalAuthority) Validate() error {
-	if goal.SchemaVersion != goalAuthoritySchemaVersion || !validAgencyReference(goal.Ref, ContextReferenceGoal) || strings.TrimSpace(goal.FluctlightID) == "" || strings.TrimSpace(goal.ProfileID) == "" {
+	// An empty ProfileID is the shared scope, persisted as SQL NULL and visible
+	// from every profile (filterActiveProfileRows). It is a legitimate scope, not
+	// a missing identity.
+	if goal.SchemaVersion != goalAuthoritySchemaVersion || !validAgencyReference(goal.Ref, ContextReferenceGoal) || strings.TrimSpace(goal.FluctlightID) == "" {
 		return errors.New("goal_identity_invalid")
 	}
 	if text := strings.TrimSpace(goal.DesiredOutcome); text == "" || len([]rune(text)) > 2000 {
@@ -515,7 +518,8 @@ func intentionStatusTerminal(status IntentionLifecycleStatus) bool {
 }
 
 func (intention IntentionAuthority) Validate() error {
-	if intention.SchemaVersion != intentionAuthoritySchemaVersion || !validAgencyReference(intention.Ref, ContextReferenceIntention) || !validAgencyReference(intention.GoalRef, ContextReferenceGoal) || strings.TrimSpace(intention.FluctlightID) == "" || strings.TrimSpace(intention.ProfileID) == "" {
+	// An empty ProfileID is the shared scope (SQL NULL), mirroring GoalAuthority.
+	if intention.SchemaVersion != intentionAuthoritySchemaVersion || !validAgencyReference(intention.Ref, ContextReferenceIntention) || !validAgencyReference(intention.GoalRef, ContextReferenceGoal) || strings.TrimSpace(intention.FluctlightID) == "" {
 		return errors.New("intention_identity_invalid")
 	}
 	if text := strings.TrimSpace(intention.ActionIntent); text == "" || len([]rune(text)) > 2000 {

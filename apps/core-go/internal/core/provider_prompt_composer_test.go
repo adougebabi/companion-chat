@@ -8,7 +8,7 @@ import (
 )
 
 func TestProductionMainCallersUseOnlyPromptContextAssembler(t *testing.T) {
-	for _, name := range []string{"mutations.go", "cognition_growth.go", "autonomy.go", "wakeup.go", "reflection_runtime_v2.go"} {
+	for _, name := range []string{"mutations.go", "turn_takeover.go", "cognition_growth.go", "autonomy.go", "wakeup.go", "reflection_runtime_v2.go"} {
 		content, err := os.ReadFile(filepath.Clean(name))
 		if err != nil {
 			t.Fatal(err)

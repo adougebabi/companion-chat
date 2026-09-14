@@ -449,12 +449,92 @@ func personaEvolutionBaselineFromProjection(projection ContextProjection) Person
 	return personaEvolutionBaseline(projection.FluctlightID, projection.Personality, projection.BehavioralPolicy, projection.PersonalitySystem, projection.PersonalityRuntime)
 }
 
+// evolutionDescriptiveValueKey marks a declared baseline value that could not be
+// interpreted as a structured object and was therefore preserved verbatim
+// instead of being silently replaced by an empty object (F11).
+const (
+	evolutionDescriptiveValueKey = "description"
+	evolutionSourceShapeKey      = "source_shape"
+)
+
+// evolutionTextLeafKeys are the keys a rule-like or list-shaped value may carry
+// descriptive text under.
+var evolutionTextLeafKeys = []string{"description", "text", "condition", "value", "traits", "expression"}
+
+// evolutionDescriptiveValue renders a declared non-object value as prose. It
+// returns false for values that carry no descriptive text at all.
+func evolutionDescriptiveValue(value any) (string, bool) {
+	switch typed := value.(type) {
+	case string:
+		if text := strings.TrimSpace(typed); text != "" {
+			return text, true
+		}
+	case []any:
+		parts := make([]string, 0, len(typed))
+		for _, item := range typed {
+			if text, ok := evolutionDescriptiveValue(item); ok {
+				parts = append(parts, text)
+			}
+		}
+		if len(parts) > 0 {
+			return strings.Join(parts, "；"), true
+		}
+	case map[string]any:
+		parts := make([]string, 0, len(typed))
+		for _, key := range evolutionTextLeafKeys {
+			if text, ok := evolutionDescriptiveValue(typed[key]); ok {
+				parts = append(parts, text)
+			}
+		}
+		if len(parts) > 0 {
+			return strings.Join(parts, "；"), true
+		}
+	}
+	return "", false
+}
+
+func evolutionValueShape(value any) string {
+	switch value.(type) {
+	case nil:
+		return "absent"
+	case string:
+		return "string"
+	case []any:
+		return "list"
+	case map[string]any:
+		return "object"
+	default:
+		return "scalar"
+	}
+}
+
 func normalizeEvolutionPersonalityBaseline(value map[string]any) map[string]any {
 	result := deepCloneEvolutionMap(value)
+	// json decoding a nil/empty baseline returns a nil map. Keep the normalized
+	// shape writable so an overlay read failure is reported as an error instead
+	// of panicking while we add the required traits/expression containers.
+	if result == nil {
+		result = map[string]any{}
+	}
 	for _, root := range []string{"traits", "expression"} {
-		if len(mapValue(result[root])) == 0 {
-			result[root] = map[string]any{}
+		if len(mapValue(result[root])) > 0 {
+			continue
 		}
+		// A declared value that is not a structured object (prose traits, a
+		// list of descriptive phrases) must not be replaced by an empty object:
+		// that silently discards the only description of the persona. Keep the
+		// original text verbatim under a descriptive carrier so the Working
+		// Persona can still render it (F11).
+		if declared, exists := result[root]; exists && declared != nil {
+			if description, ok := evolutionDescriptiveValue(declared); ok {
+				result[root] = map[string]any{
+					evolutionDescriptiveValueKey: description,
+					evolutionSourceShapeKey:      evolutionValueShape(declared),
+				}
+				continue
+			}
+		}
+		result[root] = map[string]any{}
 	}
 	for path := range personalityEvolutionNumericPaths {
 		parts := strings.Split(path, ".")
@@ -471,6 +551,9 @@ func normalizeEvolutionPersonalityBaseline(value map[string]any) map[string]any 
 
 func normalizeEvolutionBehaviorBaseline(value map[string]any) map[string]any {
 	result := deepCloneEvolutionMap(value)
+	if result == nil {
+		result = map[string]any{}
+	}
 	aliases := map[string]string{
 		"communication.tone": "tone", "response.style": "response_style", "initiative.mode": "initiative",
 		"conflict.approach": "conflict_style", "support.style": "support_style",

@@ -88,27 +88,28 @@ func builtinCapabilities(app *App) []Capability {
 }
 
 var (
-	_ Capability              = conversationReplyCapability{}
-	_ Capability              = momentPublishCapability{}
-	_ Capability              = imageGenerateCapability{}
-	_ Capability              = visualIdentityInitializeCapability{}
-	_ Capability              = sceneEventCapability{}
-	_ Capability              = presenceEventCapability{}
-	_ Capability              = scheduleReplanCapability{}
-	_ Capability              = memoryEventCapability{}
-	_ Capability              = activeMemoryEventCapability{}
-	_ Capability              = memoryRecallCapability{}
-	_ Capability              = affectEventCapability{}
-	_ Capability              = relationshipLookupCapability{}
-	_ Capability              = capabilityRequestCapability{}
-	_ TransactionalCapability = memoryEventCapability{}
-	_ TransactionalCapability = activeMemoryEventCapability{}
-	_ TransactionalCapability = affectEventCapability{}
-	_ TransactionalCapability = capabilityRequestCapability{}
-	_ TransactionalCapability = sceneEventCapability{}
-	_ TransactionalCapability = presenceEventCapability{}
-	_ TransactionalCapability = scheduleReplanCapability{}
-	_ TransactionalCapability = visualIdentityInitializeCapability{}
+	_ Capability                   = conversationReplyCapability{}
+	_ Capability                   = momentPublishCapability{}
+	_ Capability                   = imageGenerateCapability{}
+	_ Capability                   = visualIdentityInitializeCapability{}
+	_ Capability                   = sceneEventCapability{}
+	_ Capability                   = presenceEventCapability{}
+	_ Capability                   = scheduleReplanCapability{}
+	_ Capability                   = memoryEventCapability{}
+	_ Capability                   = activeMemoryEventCapability{}
+	_ Capability                   = memoryRecallCapability{}
+	_ Capability                   = affectEventCapability{}
+	_ Capability                   = relationshipLookupCapability{}
+	_ Capability                   = capabilityRequestCapability{}
+	_ TransactionalCapability      = memoryEventCapability{}
+	_ TransactionalCapability      = activeMemoryEventCapability{}
+	_ TransactionalCapability      = affectEventCapability{}
+	_ TransactionalCapability      = capabilityRequestCapability{}
+	_ TransactionalCapability      = sceneEventCapability{}
+	_ TransactionalCapability      = presenceEventCapability{}
+	_ TransactionalCapability      = scheduleReplanCapability{}
+	_ TransactionalCapability      = visualIdentityInitializeCapability{}
+	_ CapabilityCandidateValidator = relationshipLookupCapability{}
 )
 
 func (c conversationReplyCapability) Definition() CapabilityDefinition {
@@ -644,6 +645,38 @@ func (c relationshipLookupCapability) Definition() CapabilityDefinition {
 func (c relationshipLookupCapability) RequiredContext() []ContextSlot {
 	return []ContextSlot{SlotRelationshipScope}
 }
+
+// ValidateCandidate authorizes relationship.lookup against the frozen
+// relationship scope before the Judge. It deliberately has no access to the
+// service or App: resolving actor aliases and checking the allowlist must use
+// only the snapshot that Core already captured for this candidate. The actual
+// relationship row lookup remains winner-only Execute work.
+func (c relationshipLookupCapability) ValidateCandidate(_ context.Context, invocation CapabilityInvocation, resolved CapabilityContext) error {
+	if resolved.Relation == nil {
+		return fmt.Errorf("%w: relationship scope is missing", ErrContextResolve)
+	}
+	var args map[string]any
+	if err := json.Unmarshal(invocation.Arguments, &args); err != nil || args == nil {
+		return fmt.Errorf("%w: relationship lookup arguments must be an object", ErrInvalidArguments)
+	}
+	target := strings.TrimSpace(stringValue(args["target_actor_id"]))
+	if target == "" {
+		return fmt.Errorf("%w: relationship lookup target is required", ErrInvalidArguments)
+	}
+	// Alias resolution is intentionally a lookup in a frozen, explicit map. An
+	// unknown alias is left untouched and will fail the allowlist check; there is
+	// no DB fallback on the Judge path.
+	canonical, _, targetErr := resolveRelationshipTargetFromScope(resolved.Relation, target)
+	if targetErr != nil {
+		return fmt.Errorf("%w: %v", ErrUnauthorized, targetErr)
+	}
+	target = canonical
+	if !resolved.Relation.Allows(target) {
+		return fmt.Errorf("%w: relationship lookup target %q is outside the frozen scope", ErrUnauthorized, target)
+	}
+	return nil
+}
+
 func (c relationshipLookupCapability) Execute(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
 	if c.service == nil {
 		return failedCapabilityResultDetail(invocation, "relationship_capability_unavailable", true, "relationship capability is unavailable"), errors.New("relationship capability unavailable")

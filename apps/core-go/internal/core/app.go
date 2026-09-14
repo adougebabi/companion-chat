@@ -36,6 +36,19 @@ type App struct {
 	Storage         *minio.Client
 	S3Bucket        string
 	Redis           redis.UniversalClient
+	// Clock is an optional injectable time source. Production leaves it nil and
+	// the pipeline uses time.Now, so behaviour is unchanged. Tests inject a
+	// fixed clock to make settlement ordering deterministic.
+	Clock func() time.Time
+}
+
+// now returns the application clock. A nil clock preserves the historical
+// time.Now behaviour, so injecting one never changes production semantics.
+func (a *App) now() time.Time {
+	if a != nil && a.Clock != nil {
+		return a.Clock()
+	}
+	return time.Now()
 }
 
 type initializationAnalysisError struct {
@@ -290,11 +303,11 @@ func (a *App) authAudit(ctx context.Context, action, actorID, result, details st
 	_, _ = a.DB.Pool().Exec(ctx, `INSERT INTO public.auth_audit_log(id,action,actor_id,result,details) VALUES($1,$2,$3,$4,$5) ON CONFLICT(id) DO NOTHING`, randomID("auth_audit_"), action, nullableString(actorID), result, details)
 }
 
-const initializationResponseShapeInstruction = `Canonical JSON shape: {"schema_version":2,"core_persona":{"schema_version":1,"identity":{"name":"","nickname":null,"gender":null,"age":null,"occupation":null,"height":null,"height_cm":null,"blood_type":null,"birthplace":null,"residence":null,"timezone":null,"birthday":null,"background_story":null,"biography":null,"core_values":[],"worldview":null,"notes":null},"personality":{},"behavioral_policy":{},"life_profile":{"appearance":{"description":null,"physical_features":{},"daily_outfit_preferences":[],"style_preferences":{}},"social_background":{},"preferences":{},"life_habits":[],"recurring_commitments":[],"relationship_seeds":[],"character_constraints":[],"media_preferences":{}},"personality_system":{"mode":"single|multiple","profiles":[{"id":"stable_id","name":"","identity":{},"personality":{},"behavioral_policy":{},"emotional_state":{},"voice":{},"body_language":{},"behavior_state_machine":{},"behavior_loops":{},"scenario_behavior":{},"secrets":{},"intimacy_progression":{},"output_preferences":{},"fears":[],"desires":[],"extensions":{}}],"active_profile_id":"default","switching":{},"forced_activation":{},"influence":{},"core_relationship":null,"core_conflict":null,"conflict_resolution":{},"integration":{},"behavior_state_machine":{},"extensions":{}},"extensions":{}},"developing_self":{"claims":[]},"initial_relationships":[],"initial_goals":[],"initial_intentions":[],"extensions":{}}. Use these canonical keys; never replace them with actor_self, personas, goals, or another custom root.`
+const initializationResponseShapeInstruction = `Canonical JSON shape: {"schema_version":2,"core_persona":{"schema_version":1,"identity":{"name":"","nickname":null,"gender":null,"age":null,"occupation":null,"height":null,"height_cm":null,"blood_type":null,"birthplace":null,"residence":null,"timezone":null,"birthday":null,"background_story":null,"biography":null,"core_values":[],"worldview":null,"notes":null},"personality":{},"behavioral_policy":{},"life_profile":{"appearance":{"description":null,"physical_features":{},"daily_outfit_preferences":[],"style_preferences":{}},"social_background":{},"preferences":{},"life_habits":[],"recurring_commitments":[],"relationship_seeds":[],"character_constraints":[],"media_preferences":{}},"personality_system":{"mode":"single|multiple","profiles":[{"id":"stable_id","name":"","identity":{},"personality":{},"behavioral_policy":{},"emotional_state":{},"voice":{},"body_language":{},"behavior_state_machine":{},"behavior_loops":{},"scenario_behavior":{},"secrets":{},"intimacy_progression":{},"output_preferences":{},"fears":[],"desires":[],"extensions":{}}],"active_profile_id":"default","switching":{},"forced_activation":{},"takeover_rules":[{"id":"stable_rule_id","kind":"turn_takeover","version":"turn-takeover.v1","condition":"","target_profile_id":"stable_profile_id","source_profile_id":"stable_profile_id","priority":0,"cooldown_seconds":0,"enabled":true,"evidence_refs":[],"extensions":{}}],"influence":{},"core_relationship":null,"core_conflict":null,"conflict_resolution":{},"integration":{},"behavior_state_machine":{},"extensions":{}},"extensions":{}},"developing_self":{"claims":[]},"initial_relationships":[],"initial_goals":[],"initial_intentions":[],"extensions":{}}. Use these canonical keys; never replace them with actor_self, personas, goals, or another custom root. For every executable takeover declaration, emit an explicit stable id, kind=turn_takeover, version=turn-takeover.v1, non-empty condition, and target_profile_id that exactly matches a declared profile id. source_profile_id is optional but, when present, must also exactly match a declared profile id. Keep the original forced_activation prose verbatim as migration evidence; a profile display name or a profile mention in condition text cannot substitute for target_profile_id.`
 
 const InitializationDescriptionMaxBytes = 60000
 
-const initializationSemanticCoverageInstruction = `Extract every explicit or directly supported semantic unit from the character card; omission is allowed only when the source is silent. Preserve descriptive prose alongside any derived numeric value. Identity vocabulary: name, nickname, gender, age, occupation, height/height_cm, blood_type, birthplace, residence, timezone, birthday, background_story, biography, core_values, worldview, notes. Life profile vocabulary: long appearance description, physical_features, daily_outfit_preferences, style_preferences, social background, likes/dislikes/preferences, habits, fixed routines, recurring commitments, character constraints, and media_preferences for moments/selfies/artwork with frequencies and triggers. Initial social relationships may target actor_user only. When the source explicitly defines that relationship, every initial_relationships item must include target_actor_id:"actor_user" and may include profile_id, role, metrics, trend, summary, emotional_association, and evidence_refs; when the source defines no relationship, return an empty array instead of inventing one. Distinct multi-personality cards must preserve personality_system.core_relationship, core_conflict, profiles, switching and forced_activation mechanisms, trigger conditions, per-profile temperament, speech style, body language, behavior loops/habits, cross-profile influence, conflict resolution, integration/fusion, shared memory policy, special rituals/sensitivities/boundaries, and output preferences. For every profile, repeated actions, rituals, checks, and habits belong in that profile's behavior_loops.loops with the source wording preserved; do not leave behavior_loops empty while moving those habits only to profile or root extensions. Temporary context-specific reactions belong in scenario_behavior instead. Classify multiple only with explicit distinct profiles plus stable differentiation, switching/takeover evidence, or cross-profile relations; situational contrast, mood changes, hidden facets, and work/private behavior remain one complex single personality. Unknown meaningful semantics go to a bounded namespaced extensions key. Never invent unsupported blood type, birthplace, trauma, relationship, life event, or additional profile. Values derived from prose must keep an adjacent descriptive basis in the owning object or extensions.`
+const initializationSemanticCoverageInstruction = `Extract every explicit or directly supported semantic unit from the character card; omission is allowed only when the source is silent. Preserve descriptive prose alongside any derived numeric value. Identity vocabulary: name, nickname, gender, age, occupation, height/height_cm, blood_type, birthplace, residence, timezone, birthday, background_story, biography, core_values, worldview, notes. Life profile vocabulary: long appearance description, physical_features, daily_outfit_preferences, style_preferences, social background, likes/dislikes/preferences, habits, fixed routines, recurring commitments, character constraints, and media_preferences for moments/selfies/artwork with frequencies and triggers. Initial social relationships may target actor_user only. When the source explicitly defines that relationship, every initial_relationships item must include target_actor_id:"actor_user" and may include profile_id, role, metrics, trend, summary, emotional_association, and evidence_refs; when the source defines no relationship, return an empty array instead of inventing one. Distinct multi-personality cards must preserve personality_system.core_relationship, core_conflict, profiles, switching, forced_activation as original migration evidence, and takeover_rules as the typed executable mechanism, including trigger conditions, per-profile temperament, speech style, body language, behavior loops/habits, cross-profile influence, conflict resolution, integration/fusion, shared memory policy, special rituals/sensitivities/boundaries, and output preferences. Every executable takeover_rules item must include id, kind=turn_takeover, version=turn-takeover.v1, condition, and target_profile_id. target_profile_id and optional source_profile_id must be stable ids from profiles; profile names and names mentioned in condition prose are migration evidence only and cannot authorize a target. Preserve forced_activation prose verbatim even when a typed migration rule is also emitted. For every profile, repeated actions, rituals, checks, and habits belong in that profile's behavior_loops.loops with the source wording preserved; do not leave behavior_loops empty while moving those habits only to profile or root extensions. Temporary context-specific reactions belong in scenario_behavior instead. Classify multiple only with explicit distinct profiles plus stable differentiation, switching/takeover evidence, or cross-profile relations; situational contrast, mood changes, hidden facets, and work/private behavior remain one complex single personality. Unknown meaningful semantics go to a bounded namespaced extensions key. Never invent unsupported blood type, birthplace, trauma, relationship, life event, or additional profile. Values derived from prose must keep an adjacent descriptive basis in the owning object or extensions.`
 
 const initializationMediaOwnershipInstruction = `Global or card-level media frequencies and triggers must be preserved in core_persona.life_profile.media_preferences. When the source differentiates media behavior by profile, also preserve those distinctions in each profile's output_preferences; profile-specific values do not justify leaving the global media_preferences object empty.`
 
@@ -554,6 +567,9 @@ func initializationValidationDiagnostic(value map[string]any) (string, string) {
 			return "reference_invalid", "core_persona.personality_system.active_profile_id"
 		}
 	}
+	if validationType, path, ok := initializationTakeoverValidationDiagnostic(system["takeover_rules"], seen); !ok {
+		return validationType, path
+	}
 	for _, key := range []string{"initial_goals", "initial_intentions", "initial_relationships"} {
 		if _, ok := value[key].([]any); !ok {
 			return "type_invalid", key
@@ -590,6 +606,70 @@ func initializationValidationDiagnostic(value map[string]any) (string, string) {
 		}
 	}
 	return "semantic_invalid", "initialization"
+}
+
+// validInitializationTakeoverRules enforces the typed migration contract at
+// the initialization boundary. Runtime normalization has the same fail-closed
+// rule, but rejecting malformed Provider output here gives the owner a precise
+// validation path instead of allowing an unusable declaration into persisted
+// Core Persona data.
+func validInitializationTakeoverRules(raw any, declaredProfiles map[string]struct{}) bool {
+	_, _, ok := initializationTakeoverValidationDiagnostic(raw, declaredProfiles)
+	return ok
+}
+
+func initializationTakeoverValidationDiagnostic(raw any, declaredProfiles map[string]struct{}) (string, string, bool) {
+	rules, ok := raw.([]any)
+	if !ok {
+		return "type_invalid", "core_persona.personality_system.takeover_rules", false
+	}
+	seenRuleIDs := map[string]struct{}{}
+	for index, rawRule := range rules {
+		rule := mapValue(rawRule)
+		path := fmt.Sprintf("core_persona.personality_system.takeover_rules[%d]", index)
+		if len(rule) == 0 {
+			return "type_invalid", path, false
+		}
+		id := strings.TrimSpace(stringValue(rule["id"]))
+		if id == "" {
+			return "required_value_missing", path + ".id", false
+		}
+		if _, exists := seenRuleIDs[id]; exists {
+			return "duplicate_identity", path + ".id", false
+		}
+		seenRuleIDs[id] = struct{}{}
+		if stringValue(rule["kind"]) != "turn_takeover" {
+			return "value_invalid", path + ".kind", false
+		}
+		if stringValue(rule["version"]) != "turn-takeover.v1" {
+			return "value_invalid", path + ".version", false
+		}
+		if strings.TrimSpace(stringValue(rule["condition"])) == "" {
+			return "required_value_missing", path + ".condition", false
+		}
+		target := strings.TrimSpace(stringValue(rule["target_profile_id"]))
+		if target == "" {
+			return "required_value_missing", path + ".target_profile_id", false
+		}
+		if _, exists := declaredProfiles[target]; !exists {
+			return "reference_invalid", path + ".target_profile_id", false
+		}
+		if source, present := rule["source_profile_id"]; present && source != nil {
+			sourceID := strings.TrimSpace(stringValue(source))
+			if sourceID == "" {
+				return "value_invalid", path + ".source_profile_id", false
+			}
+			if _, exists := declaredProfiles[sourceID]; !exists {
+				return "reference_invalid", path + ".source_profile_id", false
+			}
+		}
+		if enabled, present := rule["enabled"]; present {
+			if _, ok := enabled.(bool); !ok {
+				return "value_invalid", path + ".enabled", false
+			}
+		}
+	}
+	return "", "", true
 }
 
 func hasInitializationEnvelope(value map[string]any) bool {
@@ -654,7 +734,7 @@ func validInitialization(value map[string]any) bool {
 	if mode := stringValue(system["mode"]); mode != "single" && mode != "multiple" {
 		return false
 	}
-	if !hasInitializationKeys(system, []string{"mode", "profiles", "active_profile_id", "switching", "influence", "conflict_resolution", "integration", "behavior_state_machine", "core_relationship", "core_conflict", "forced_activation", "extensions"}) {
+	if !hasInitializationKeys(system, []string{"mode", "profiles", "active_profile_id", "switching", "influence", "conflict_resolution", "integration", "behavior_state_machine", "core_relationship", "core_conflict", "forced_activation", "takeover_rules", "extensions"}) {
 		return false
 	}
 	if strings.TrimSpace(stringValue(system["active_profile_id"])) == "" {
@@ -689,6 +769,9 @@ func validInitialization(value map[string]any) bool {
 		if _, exists := seenProfiles[active]; !exists {
 			return false
 		}
+	}
+	if !validInitializationTakeoverRules(system["takeover_rules"], seenProfiles) {
+		return false
 	}
 	developingSelf, ok := value["developing_self"].(map[string]any)
 	if !ok {
@@ -871,7 +954,7 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 		"personality":        {"openness": {}, "conscientiousness": {}, "extraversion": {}, "agreeableness": {}, "neuroticism": {}, "curiosity": {}, "independence": {}, "patience": {}, "empathy": {}, "assertiveness": {}, "humor": {}, "sociability": {}, "risk_tolerance": {}, "update_policy": {}},
 		"behavioral_policy":  {"response_style": {}, "message_length": {}, "emoji_frequency": {}, "punctuation_style": {}, "humor_style": {}, "sarcasm_tendency": {}, "directness": {}, "initiative": {}, "topic_initiation": {}, "silence_tolerance": {}, "response_delay": {}, "emotional_expression": {}, "conflict_style": {}, "refusal_style": {}, "intimacy_expression": {}},
 		"life_profile":       {"appearance": {}, "social_background": {}, "preferences": {}, "life_habits": {}, "recurring_commitments": {}, "relationship_seeds": {}, "character_constraints": {}, "media_preferences": {}},
-		"personality_system": {"mode": {}, "profiles": {}, "active_profile_id": {}, "switching": {}, "influence": {}, "conflict_resolution": {}, "integration": {}, "behavior_state_machine": {}, "core_relationship": {}, "core_conflict": {}, "forced_activation": {}, "extensions": {}},
+		"personality_system": {"mode": {}, "profiles": {}, "active_profile_id": {}, "switching": {}, "influence": {}, "conflict_resolution": {}, "integration": {}, "behavior_state_machine": {}, "core_relationship": {}, "core_conflict": {}, "forced_activation": {}, "takeover_rules": {}, "extensions": {}},
 	}
 	for group, allowed := range knownPersona {
 		fields := mapValue(persona[group])
@@ -945,7 +1028,11 @@ func normalizeInitializationAliases(result map[string]any) {
 			relationship["target_actor_id"] = firstInitializationString(relationship["actor"], relationship["actor_id"])
 		}
 		if len(mapValue(relationship["role"])) == 0 {
-			label := firstInitializationString(relationship["type"], relationship["relationship_type"], relationship["intimacy"])
+			// A declared string role ("朋友") is itself the label. It must be the
+			// first candidate: reading only type/relationship_type/intimacy would
+			// replace an accurate declared label with "unknown" for any card that
+			// states the role as prose (R11).
+			label := firstInitializationString(relationship["role"], relationship["type"], relationship["relationship_type"], relationship["intimacy"])
 			if label == "" {
 				label = "unknown"
 			}
@@ -1106,7 +1193,7 @@ func normalizeInitializationPersonaStructure(persona map[string]any) {
 	}
 	profiles := arrayValue(system["profiles"])
 	defaults := defaultPersonalitySystem()
-	for _, key := range []string{"profiles", "switching", "influence", "conflict_resolution", "integration", "behavior_state_machine", "core_relationship", "core_conflict", "forced_activation", "extensions"} {
+	for _, key := range []string{"profiles", "switching", "influence", "conflict_resolution", "integration", "behavior_state_machine", "core_relationship", "core_conflict", "forced_activation", "takeover_rules", "extensions"} {
 		if _, exists := system[key]; !exists {
 			system[key] = defaults[key]
 		}
@@ -1248,7 +1335,7 @@ func defaultPersonalitySystem() map[string]any {
 		"switching": map[string]any{"rules": []any{}}, "influence": map[string]any{"edges": []any{}},
 		"conflict_resolution": map[string]any{}, "integration": map[string]any{},
 		"behavior_state_machine": map[string]any{}, "core_relationship": nil, "core_conflict": nil,
-		"forced_activation": map[string]any{}, "extensions": map[string]any{},
+		"forced_activation": map[string]any{}, "takeover_rules": []any{}, "extensions": map[string]any{},
 	}
 }
 
@@ -1266,6 +1353,59 @@ func defaultLifeProfile() map[string]any {
 
 func defaultProvenance() map[string]any {
 	return map[string]any{"field_sources": map[string]any{}}
+}
+
+// defaultFieldSource marks a value that no source declared and that was filled
+// from the server default. Keeping the marker lets the runtime tell a real
+// derived 0.5 apart from an unfilled placeholder, so an empty source can never
+// be presented as a hard personality fact (R11).
+const defaultFieldSource = "server_default"
+
+// usesDefaultUnit mirrors the fallback predicate of boundedNumber: a value that
+// is absent, non-numeric, or outside [0,1] is replaced by the fallback.
+func usesDefaultUnit(value any) bool {
+	parsed, ok := numberFloat(value)
+	return !ok || parsed < 0 || parsed > 1
+}
+
+// recordInitializationDefaultFieldSources records every numeric field the source
+// card did not declare, keyed by its durable field path, so a default is
+// distinguishable from a user-provided or model-derived value.
+func recordInitializationDefaultFieldSources(provenance map[string]any, fluctlightID string, personality, policy, declaredPersonality, declaredPolicy map[string]any, goals, intentions []any) {
+	if provenance == nil {
+		return
+	}
+	sources := mapValue(provenance["field_sources"])
+	if sources == nil {
+		sources = map[string]any{}
+		provenance["field_sources"] = sources
+	}
+	markDeclared := func(group string, stored, declared map[string]any) {
+		for key := range stored {
+			if _, ok := declared[key]; ok {
+				continue
+			}
+			sources[group+"."+key] = defaultFieldSource
+		}
+	}
+	markDeclared("core_persona.personality", personality, declaredPersonality)
+	markDeclared("core_persona.behavioral_policy", policy, declaredPolicy)
+	for index, raw := range goals {
+		item := mapValue(raw)
+		id := fmt.Sprintf("goal_initial_%s_%d", fluctlightID, index)
+		if usesDefaultUnit(item["importance"]) {
+			sources["fluctlight_goals."+id+".importance"] = defaultFieldSource
+		}
+		if usesDefaultUnit(item["urgency"]) {
+			sources["fluctlight_goals."+id+".urgency"] = defaultFieldSource
+		}
+	}
+	for index, raw := range intentions {
+		item := mapValue(raw)
+		if usesDefaultUnit(item["confidence"]) {
+			sources[fmt.Sprintf("fluctlight_intentions.intention_initial_%s_%d.confidence", fluctlightID, index)] = defaultFieldSource
+		}
+	}
 }
 
 func defaultInnerState() (map[string]any, map[string]any, map[string]any, map[string]any, []any, []any) {
@@ -1313,6 +1453,10 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 	if initializationActivationDigest != "" {
 		provenance["initialization_activation_digest"] = initializationActivationDigest
 	}
+	// Declared personality/policy keys are the ones the source card actually
+	// stated. Everything else is a server default and must be recorded as such.
+	declaredPersonality := map[string]any{}
+	declaredPolicy := map[string]any{}
 	if foundation != nil {
 		if extensions := mapValue(foundation["extensions"]); len(extensions) > 0 {
 			provenance["initialization_extensions"] = extensions
@@ -1338,9 +1482,11 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		}
 		if value, ok := corePersona["personality"].(map[string]any); ok {
 			personality = value
+			declaredPersonality = value
 		}
 		if value, ok := corePersona["behavioral_policy"].(map[string]any); ok {
 			policy = value
+			declaredPolicy = value
 		}
 		if value, ok := corePersona["life_profile"].(map[string]any); ok {
 			lifeProfile = value
@@ -1356,6 +1502,7 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 		}
 	}
 	normalizeVisualIdentityFoundation(corePersona)
+	recordInitializationDefaultFieldSources(provenance, id, personality, policy, declaredPersonality, declaredPolicy, goals, intentions)
 	developingSelfClaims := []any{}
 	if foundation != nil {
 		developingSelfClaims = arrayValue(mapValue(foundation["developing_self"])["claims"])
@@ -1434,11 +1581,10 @@ func (a *App) CreateFluctlight(ctx context.Context, actorID, requestedID, name s
 			return err
 		}
 		profileIDs := personalityProfileIDs(corePersona)
-		defaultProfileID := initialPersonalityProfileID(corePersona)
-		if err := a.insertAgency(ctx, tx, id, actorID, goals, intentions, defaultProfileID, profileIDs); err != nil {
+		if err := a.insertAgency(ctx, tx, id, actorID, goals, intentions, profileIDs); err != nil {
 			return err
 		}
-		if err := a.insertRelationshipSeeds(ctx, tx, id, actorID, foundation, defaultProfileID, profileIDs); err != nil {
+		if err := a.insertRelationshipSeeds(ctx, tx, id, actorID, foundation, profileIDs); err != nil {
 			return err
 		}
 		return nil
@@ -1545,7 +1691,7 @@ func ensureCreationLifecycleIntentsTx(ctx context.Context, tx pgx.Tx, fluctlight
 }
 
 func initialPersonalityProfileID(corePersona map[string]any) string {
-	system := mapValue(corePersona["personality_system"])
+	system := mapValue(corePersonaData(corePersona)["personality_system"])
 	if active := strings.TrimSpace(stringValue(system["active_profile_id"])); active != "" {
 		return active
 	}
@@ -1605,15 +1751,15 @@ func (a *App) EnsureDirectConversation(ctx context.Context, ownerID, fluctlightI
 	return id, err
 }
 
-func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID string, goals, intentions []any, defaultProfileID string, profileIDs map[string]struct{}) error {
+func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID string, goals, intentions []any, profileIDs map[string]struct{}) error {
 	goalIDs := make([]string, len(goals))
 	goalAuthorities := make([]GoalAuthority, len(goals))
 	for index, raw := range goals {
 		item := mapValue(raw)
 		goalIDs[index] = fmt.Sprintf("goal_initial_%s_%d", fluctlightID, index)
-		profileID, _ := normalizeProfileID(stringValue(item["profile_id"]), defaultProfileID)
-		if _, ok := profileIDs[profileID]; !ok {
-			return errors.New("initial_goal_profile_invalid")
+		profileID, err := initializationScopeProfileID(item, "initial_goal_profile_invalid", profileIDs)
+		if err != nil {
+			return err
 		}
 		scope := firstString(item["scope"], "general")
 		if scope != "general" && scope != "relationship" {
@@ -1659,9 +1805,9 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 	}
 	for index, raw := range intentions {
 		item := mapValue(raw)
-		profileID, _ := normalizeProfileID(stringValue(item["profile_id"]), defaultProfileID)
-		if _, ok := profileIDs[profileID]; !ok {
-			return errors.New("initial_intention_profile_invalid")
+		profileID, err := initializationScopeProfileID(item, "initial_intention_profile_invalid", profileIDs)
+		if err != nil {
+			return err
 		}
 		goalIndex := intValue(item["goal_index"])
 		if goalIndex < 0 || goalIndex >= len(goalIDs) {
@@ -1697,6 +1843,26 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 		}
 	}
 	return nil
+}
+
+// initializationScopeProfileID resolves the declared scope of one initialization
+// item (goal / intention / relationship).
+//
+// An absent profile_id means the SHARED scope, not the initial profile. Binding
+// it to the initial profile would make a shared declaration invisible after the
+// first switch or takeover, even though every reader already treats an empty
+// profile_id as shared (`filterActiveProfileRows`, `selectActiveProfileRelationships`,
+// `relationship_edit.go`). The returned value is "" for the shared scope and the
+// caller persists it as SQL NULL.
+func initializationScopeProfileID(item map[string]any, invalidCode string, profileIDs map[string]struct{}) (string, error) {
+	profileID := strings.TrimSpace(stringValue(item["profile_id"]))
+	if profileID == "" {
+		return "", nil
+	}
+	if _, ok := profileIDs[profileID]; !ok {
+		return "", errors.New(invalidCode)
+	}
+	return profileID, nil
 }
 
 func resolveInitializationActorRef(value, humanActorID, fluctlightID string) string {
@@ -1750,7 +1916,7 @@ func (a *App) resolveConversationActorAlias(ctx context.Context, conversationID,
 	return value
 }
 
-func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlightID, humanActorID string, foundation map[string]any, defaultProfileID string, profileIDs map[string]struct{}) error {
+func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlightID, humanActorID string, foundation map[string]any, profileIDs map[string]struct{}) error {
 	seeds := arrayValue(foundation["initial_relationships"])
 	if len(seeds) == 0 {
 		lifeProfile := mapValue(mapValue(foundation["core_persona"])["life_profile"])
@@ -1758,9 +1924,9 @@ func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlight
 	}
 	for index, raw := range seeds {
 		item := mapValue(raw)
-		profileID, _ := normalizeProfileID(stringValue(item["profile_id"]), defaultProfileID)
-		if _, ok := profileIDs[profileID]; !ok {
-			return errors.New("initial_relationship_profile_invalid")
+		profileID, err := initializationScopeProfileID(item, "initial_relationship_profile_invalid", profileIDs)
+		if err != nil {
+			return err
 		}
 		target := resolveInitializationActorRef(stringValue(item["target_actor_id"]), humanActorID, fluctlightID)
 		if target == "" {
@@ -1794,7 +1960,7 @@ func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlight
 		refs := arrayValue(item["evidence_refs"])
 		provenance := map[string]any{"source": "initialization", "evidence_refs": refs}
 		relationshipID := "relationship_" + stableDigest(fluctlightID+":"+profileID+":"+target)
-		if _, err := tx.Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,profile_id,target_actor_id,role,metrics,trend,summary,emotional_association,provenance,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,0) ON CONFLICT (id) DO NOTHING`, relationshipID, fluctlightID, profileID, target, jsonBytes(role), jsonBytes(metrics), trend, nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(provenance)); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,profile_id,target_actor_id,role,metrics,trend,summary,emotional_association,provenance,revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,0) ON CONFLICT (id) DO NOTHING`, relationshipID, fluctlightID, nullableString(profileID), target, jsonBytes(role), jsonBytes(metrics), trend, nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(provenance)); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO public.relationship_revisions(id,relationship_id,revision,base_revision,role,metrics,trend,summary,emotional_association,evidence_refs,actor_id,idempotency_key) VALUES($1,$2,0,0,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT DO NOTHING`, "relationship_revision_"+stableDigest(fluctlightID+":"+profileID+":"+target+":initial"), relationshipID, jsonBytes(role), jsonBytes(metrics), trend, nullableString(stringValue(item["summary"])), jsonBytes(mapValue(item["emotional_association"])), jsonBytes(refs), fluctlightID, "relationship-initialization:"+fluctlightID+":"+profileID+":"+target+":"+fmt.Sprint(index)); err != nil {

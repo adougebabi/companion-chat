@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -357,6 +359,11 @@ func (a *App) LoadFrozenTurn(ctx context.Context, inboxID string) (frozenTurn, b
 		if err := validateExecutableCapabilityPayload(result.Payload); err != nil {
 			return frozenTurn{}, false, err
 		}
+		// A payload that declares an unknown stage is corrupt; one that declares
+		// none predates the stage machine and stays readable (F03).
+		if err := validateFrozenTurnStage(result.Payload); err != nil {
+			return frozenTurn{}, false, err
+		}
 	}
 	return result, true, nil
 }
@@ -395,23 +402,58 @@ func validateExecutableCapabilityPayload(payload map[string]any) error {
 	return nil
 }
 
-func (a *App) PersistTurnDecision(ctx context.Context, inboxID, fluctlightID, conversationID, turnID, action string, decision map[string]any) (frozenTurn, error) {
+// frozenDecisionSidecars are the provider codec fields that belong to the frozen
+// payload envelope, never to the decision nested inside it. A decision that
+// still carried them would give the payload two capability authorities and
+// LoadFrozenTurn would reject it as `capability_runtime_dual_authority`.
+var frozenDecisionSidecars = []string{"capability_invocations", "tool_calls", "tool_results"}
+
+// stripFrozenDecisionSidecars returns a copy of the decision without the
+// provider codec sidecars. PersistTurnDecision and ReplaceFrozenTurnDecision
+// must both apply it: the withdrawal path builds its payload from a freshly
+// normalized candidate, so skipping the strip makes every takeover unloadable.
+func stripFrozenDecisionSidecars(decision map[string]any) map[string]any {
+	result := cloneMap(decision)
+	if result == nil {
+		result = map[string]any{}
+	}
+	for _, key := range frozenDecisionSidecars {
+		delete(result, key)
+	}
+	return result
+}
+
+func (a *App) PersistTurnDecision(ctx context.Context, inboxID, fluctlightID, conversationID, turnID, action string, decision map[string]any, authority turnDecisionAuthority) (frozenTurn, error) {
 	if action != "reply" && action != "no_op" {
 		return frozenTurn{}, errors.New("decision_effect_invalid")
 	}
 	assessmentID := "assessment_" + stableDigest(inboxID)
 	decisionID := "decision_" + stableDigest(inboxID)
 	frozenID := "frozen_" + stableDigest(inboxID)
-	decisionProjection := cloneMap(decision)
+	decisionProjection := stripFrozenDecisionSidecars(decision)
 	if raw, exists := decisionProjection["personality_transition"]; exists {
 		plan, err := personalityDecisionPlanFromValue(raw)
 		if err != nil || plan == nil || plan.FluctlightID != fluctlightID {
 			return frozenTurn{}, errors.New("personality_decision_plan_invalid")
 		}
 	}
-	delete(decisionProjection, "capability_invocations")
-	delete(decisionProjection, "tool_calls")
-	payload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "turn_id": turnID, "conversation_id": conversationID, "decision": decisionProjection, "capability_invocations": []CapabilityInvocation{}, "capability_results": []CapabilityResult{}}
+	payload := map[string]any{
+		"capability_runtime_version": CapabilityRuntimePayloadVersion, "turn_id": turnID, "conversation_id": conversationID,
+		"decision": decisionProjection, "capability_invocations": []CapabilityInvocation{}, "capability_results": []CapabilityResult{},
+		persistentSwitchPayloadKey: persistentSwitchPayloadForTurn(authority),
+		// A freshly persisted candidate has been frozen but not arbitrated. Only
+		// the arbitration point may advance it to winner_ready (F03).
+		turnStagePayloadKey: turnStageAFrozen,
+	}
+	if authority.Scope.ActiveProfileID != "" {
+		payload[turnPersonaScopePayloadKey] = turnPersonaScopePayload(authority.Scope)
+	}
+	// E2 defence in depth: a persistent switch may only be persisted together
+	// with the authorization that produced it. E1 makes this unreachable in
+	// normal operation.
+	if err := validatePersistentSwitchPersistence(payload, decisionProjection); err != nil {
+		return frozenTurn{}, err
+	}
 	if err := validateFrozenDecisionInfluences(decisionProjection); err != nil {
 		return frozenTurn{}, err
 	}
@@ -462,6 +504,161 @@ func (a *App) PersistTurnDecision(ctx context.Context, inboxID, fluctlightID, co
 		return err
 	})
 	return result, err
+}
+
+// AdvanceTurnStage performs one guarded stage transition on a frozen turn. The
+// COALESCE makes a payload persisted before the stage machine existed read as
+// a_frozen; anything else must match exactly, so two workers cannot both advance
+// the same turn and a losing worker observes ErrConflict instead of a silent
+// no-op (F03).
+func (a *App) AdvanceTurnStage(ctx context.Context, frozenID, from, to string, patch map[string]any) error {
+	if strings.TrimSpace(frozenID) == "" {
+		return errors.New("frozen_action_id_required")
+	}
+	if !validTurnStage(from) || !validTurnStage(to) {
+		return errors.New("turn_stage_invalid")
+	}
+	expression := "jsonb_set(payload, '{" + turnStagePayloadKey + "}', to_jsonb($3::text), true)"
+	arguments := []any{frozenID, from, to}
+	position := 4
+	for _, key := range sortedFrozenPayloadKeys(patch) {
+		expression = "jsonb_set(" + expression + ", '{" + key + "}', $" + strconv.Itoa(position) + "::jsonb, true)"
+		arguments = append(arguments, jsonBytes(patch[key]))
+		position++
+	}
+	query := "UPDATE public.cognition_frozen_actions SET payload=" + expression +
+		" WHERE id=$1 AND status='frozen' AND COALESCE(payload->>'" + turnStagePayloadKey + "',$2::text) = $2::text"
+	commandTag, err := a.DB.Pool().Exec(ctx, query, arguments...)
+	if err != nil {
+		return err
+	}
+	if commandTag.RowsAffected() != 1 {
+		return ErrConflict
+	}
+	return nil
+}
+
+func sortedFrozenPayloadKeys(patch map[string]any) []string {
+	keys := make([]string, 0, len(patch))
+	for key := range patch {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// frozenReplyOwner reads the frozen reply owner of a persisted payload. It is
+// used by settlement so a takeover reply writes into its own profile scope
+// instead of the persistent dominant profile's (design.md 10).
+func frozenReplyOwner(payload map[string]any) string {
+	scope, ok := turnPersonaScopeFromPayload(payload)
+	if !ok {
+		return ""
+	}
+	return scope.replyOwner()
+}
+
+// frozenTurnOverwrite describes a complete candidate replacement. Every field is
+// mandatory on purpose: replacing the winning candidate without replacing the
+// material derived from it is exactly the defect M4 describes.
+type frozenTurnOverwrite struct {
+	ExpectedStage string
+	NextStage     string
+	Decision      map[string]any
+	Invocations   []CapabilityInvocation
+	Winner        map[string]any
+	Expected      map[string]any
+	Scope         turnPersonaScope
+	Takeover      map[string]any
+}
+
+// ReplaceFrozenTurnDecision replaces the frozen candidate with the takeover
+// reply. It is the only overwrite path and it enforces four things at once:
+// the stage guard, the E5 authorization reset, the M4 derived-context rebuild
+// and the per-invocation ContextSnapshot recomputation.
+func (a *App) ReplaceFrozenTurnDecision(ctx context.Context, frozenID string, overwrite frozenTurnOverwrite) error {
+	if strings.TrimSpace(frozenID) == "" {
+		return errors.New("frozen_action_id_required")
+	}
+	if !validTurnStage(overwrite.ExpectedStage) || !validTurnStage(overwrite.NextStage) {
+		return errors.New("turn_stage_invalid")
+	}
+	decision := overwrite.Decision
+	if decision == nil {
+		return errors.New("frozen_decision_required")
+	}
+	projection, ok := contextProjectionFromValue(decision["context_projection"])
+	if !ok {
+		return errors.New("frozen_context_projection_missing")
+	}
+	// E5: an overwrite never inherits the authorization of the candidate it
+	// replaces. The reset also drops any surviving switch field.
+	mirror := map[string]any{"decision": decision}
+	resetPersistentSwitchAuthorization(mirror, persistentSwitchGrantScenarioTakeover, persistentSwitchRejectedReason)
+	decision = mapValue(mirror["decision"])
+	if err := validatePersistentSwitchPersistence(map[string]any{persistentSwitchPayloadKey: map[string]any{"authorized": false}}, decision); err != nil {
+		return err
+	}
+	if err := validateFrozenDecisionInfluences(decision); err != nil {
+		return err
+	}
+	invocations := append([]CapabilityInvocation(nil), overwrite.Invocations...)
+	for index := range invocations {
+		invocations[index] = normalizeCapabilityInvocationMetadata(invocations[index], projection.FluctlightID, projection.ConversationID, projection.SourceFactID, projection.SourceFactID, index)
+		invocations[index].ActionID = frozenID
+		if definition, found := a.capabilityRegistry().Definition(invocations[index].CapabilityName); found {
+			invocations[index].ContextSnapshot = capabilitySnapshotForProjection(projection, definition.RequiredContext, frozenID)
+		}
+	}
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		// SELECT ... FOR UPDATE is the real mutual exclusion: RowsAffected alone
+		// is not a CAS when the status is not changed by the update (M3).
+		var raw []byte
+		var stage string
+		if err := tx.QueryRow(ctx, `SELECT payload, COALESCE(payload->>$2,$3) FROM public.cognition_frozen_actions WHERE id=$1 AND status='frozen' FOR UPDATE`, frozenID, turnStagePayloadKey, turnStageAFrozen).Scan(&raw, &stage); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrConflict
+			}
+			return err
+		}
+		if stage != overwrite.ExpectedStage {
+			return ErrConflict
+		}
+		payload := decodeObject(raw)
+		payload["decision"] = stripFrozenDecisionSidecars(decision)
+		payload["capability_invocations"] = invocations
+		payload[turnStagePayloadKey] = overwrite.NextStage
+		payload[persistentSwitchPayloadKey] = mirror[persistentSwitchPayloadKey]
+		if overwrite.Winner != nil {
+			payload[turnWinnerPayloadKey] = overwrite.Winner
+		}
+		if overwrite.Expected != nil {
+			payload[turnExpectedPayloadKey] = overwrite.Expected
+		}
+		if overwrite.Takeover != nil {
+			payload[turnTakeoverPayloadKey] = overwrite.Takeover
+		}
+		if owner := strings.TrimSpace(overwrite.Scope.ReplyOwnerProfileID); owner != "" {
+			payload[turnPersonaScopePayloadKey] = turnPersonaScopePayload(overwrite.Scope)
+		}
+		// M4: nothing derived from the replaced candidate may survive.
+		payload["capability_context_snapshot"] = ContextSnapshotFromProjection(projection)
+		for _, key := range []string{"context_reference_version", "context_reference_index", "influences", "goal_refs", "intention_refs"} {
+			if value, exists := decision[key]; exists {
+				payload[key] = value
+			} else {
+				delete(payload, key)
+			}
+		}
+		commandTag, err := tx.Exec(ctx, `UPDATE public.cognition_frozen_actions SET payload=$2::jsonb WHERE id=$1 AND status='frozen'`, frozenID, jsonBytes(payload))
+		if err != nil {
+			return err
+		}
+		if commandTag.RowsAffected() != 1 {
+			return ErrConflict
+		}
+		return nil
+	})
 }
 
 // PersistCapabilityResults records the result of a frozen capability call before
@@ -662,7 +859,7 @@ func (a *App) completeTurnCognitionTx(ctx context.Context, tx pgx.Tx, inboxID, f
 		if appraisalErr := tx.QueryRow(ctx, `SELECT payload FROM public.cognition_appraisals WHERE source_fact_id=$1`, inboxID).Scan(&appraisalPayload); appraisalErr == nil {
 			meaningful = numberOrZero(mapValue(decodeObject(appraisalPayload))["relationship_significance"]) > 0
 		}
-		if err := a.recordRelationshipInteractionTx(ctx, tx, fluctlightID, sourceActorID, meaningful); err != nil {
+		if err := a.recordRelationshipInteractionTx(ctx, tx, fluctlightID, sourceActorID, meaningful, frozenReplyOwner(frozenObject)); err != nil {
 			return "", err
 		}
 	}

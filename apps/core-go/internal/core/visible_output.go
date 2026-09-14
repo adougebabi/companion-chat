@@ -4,6 +4,119 @@ import (
 	"strings"
 )
 
+// The visible text that reaches the user has exactly one authority (R05 / F02).
+// Before this type existed the precedence between the root decision, the
+// response plan and the conversation.reply capability argument was re-derived
+// at every consumer (generation, candidate preview, takeover Judge, settlement
+// INSERT). Any disagreement silently let the Judge or the preview read one
+// text while a different text was actually sent. resolveCanonicalVisibleReply
+// computes the winner once, freezes it into the decision and the response plan,
+// and every consumer reads the frozen value.
+type canonicalVisibleReply struct {
+	// Text is the only text that may be written to conversation_messages.
+	Text string
+	// Source is the field that won, in the existing precedence order.
+	Source string
+	// Conflict records that two or more non-empty sources disagreed. The
+	// existing precedence still wins, so behaviour is unchanged; the flag and
+	// the matching diagnostic make the disagreement observable.
+	Conflict bool
+	// Digest is a stable fingerprint of Text, used to bind a preview or a
+	// Judge verdict to the exact text it was derived from.
+	Digest string
+}
+
+const (
+	canonicalVisibleSourceResponsePlan    = "response_plan"
+	canonicalVisibleSourceDecision        = "decision"
+	canonicalVisibleSourceReplyCapability = "reply_capability"
+
+	canonicalVisibleTextConflictCode = "visible_text_source_conflict"
+)
+
+// visibleTextDiagnostic is the structured, bounded record of a visible-text
+// reconciliation. It carries no unbounded model output: only the winning source
+// and a short excerpt of the text that was actually chosen.
+type visibleTextDiagnostic struct {
+	Code   string
+	Winner string
+	Detail string
+	Digest string
+}
+
+func (value visibleTextDiagnostic) asMap() map[string]any {
+	result := map[string]any{"code": value.Code}
+	if value.Winner != "" {
+		result["winner"] = value.Winner
+	}
+	if value.Detail != "" {
+		result["detail"] = value.Detail
+	}
+	if value.Digest != "" {
+		result["digest"] = value.Digest
+	}
+	return result
+}
+
+// resolveCanonicalVisibleReply picks the single authoritative visible text and
+// reports whether the candidate sources disagreed. Under the F-01 path b
+// contract the root visible_text fields (response_plan, then decision) are the
+// preferred proposal protocol; conversation.reply remains a fallback a
+// reply-only candidate may use (Core derives the root field from it), but a
+// reply argument that disagrees with the root visible_text is a conflict the
+// normalizer must fail closed instead of silently choosing the root
+// precedence, so the model can never produce two texts.
+func resolveCanonicalVisibleReply(responsePlan, decision map[string]any, invocations []CapabilityInvocation, registry *CapabilityRegistry) (canonicalVisibleReply, []visibleTextDiagnostic) {
+	planText := normalizeVisibleReply(stringValue(mapValue(responsePlan)["visible_text"]))
+	decisionText := normalizeVisibleReply(stringValue(mapValue(decision)["visible_text"]))
+	replyText := replyTextFromCapabilityInvocations(invocations, registry)
+
+	result := canonicalVisibleReply{}
+	switch {
+	case planText != "":
+		result.Text, result.Source = planText, canonicalVisibleSourceResponsePlan
+	case decisionText != "":
+		result.Text, result.Source = decisionText, canonicalVisibleSourceDecision
+	case replyText != "":
+		result.Text, result.Source = replyText, canonicalVisibleSourceReplyCapability
+	}
+
+	var diagnostics []visibleTextDiagnostic
+	if len(distinctVisibleTexts(planText, decisionText, replyText)) > 1 {
+		result.Conflict = true
+		diagnostics = append(diagnostics, visibleTextDiagnostic{
+			Code:   canonicalVisibleTextConflictCode,
+			Winner: result.Source,
+			Detail: "the candidate sources disagreed; the root visible_text is the sole authority and a conflicting reply argument must fail closed",
+		})
+	}
+	if result.Text != "" {
+		result.Digest = stableDigest(result.Text)
+	}
+	for index := range diagnostics {
+		diagnostics[index].Digest = result.Digest
+	}
+	return result, diagnostics
+}
+
+// distinctVisibleTexts returns the set of unique, non-empty candidate texts,
+// preserving first-seen order so the diagnostic stays deterministic.
+func distinctVisibleTexts(values ...string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
+}
+
 // normalizeVisibleReply removes transport/protocol wrappers that a text-only
 // realization model may return despite the plain-text contract. Structured
 // action objects are control payloads; only their user-facing content belongs

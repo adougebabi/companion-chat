@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -1023,27 +1024,58 @@ func TestImageCapabilityUsesStableDurableIdentitiesOnReplay(t *testing.T) {
 	}
 }
 
+// capabilityNameLiteralComparison matches a capability name compared against a
+// non-empty string literal, which is the only spelling of concrete capability
+// dispatch. The emptiness checks (`CapabilityName == ""`) and the
+// self-consistency check (`result.CapabilityName != invocation.CapabilityName`)
+// are not dispatch and stay legal.
+var capabilityNameLiteralComparison = regexp.MustCompile(`\bCapabilityName\s*[!=]=\s*"[^"]+"`)
+
 func TestCapabilityRuntimeStaticGuardsPreserveActionSingleCognitionAndGenericQueryContinuation(t *testing.T) {
-	data, err := os.ReadFile("mutations.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	source := string(data)
-	if strings.Count(source, "StructuredAssembledWithToolsSchema(") != 1 || strings.Count(source, "StructuredQueryContinuation(") != 2 || strings.Contains(source, `invocation.CapabilityName ==`) {
-		t.Fatal("conversation flow must keep one Main call and only the generic query-continuation call sites")
-	}
-	if strings.Contains(source, "toolOnlyCognitionAppraisal") || !strings.Contains(source, `decision["cognitive_state_transition"] = "not_proposed"`) {
-		t.Fatal("capability-only turns must skip state transition without fabricating an appraisal")
-	}
-	for _, path := range []string{"mutations.go", "wakeup.go", "workflow_ops.go", "capability_runtime.go"} {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
+	sources := productionSourceText(t)
+
+	// --- Main generation A + B (design.md 8) -------------------------------
+	// Exactly one Main generation and exactly one takeover generation, in two
+	// distinct files. The wake_up / reflection / autonomy / native-cognition
+	// chains legitimately call the same Provider entry point; they are not
+	// conversation-turn generations, so the guard pins the two turn files by
+	// name instead of a global total. A global total cannot tell "the Main
+	// generation moved elsewhere" from "a second Main generation appeared".
+	assertProductionCount(t, sources, "mutations.go", "StructuredAssembledWithToolsSchema(", 1)
+	assertProductionCount(t, sources, "turn_takeover.go", "StructuredAssembledWithToolsSchema(", 1)
+
+	// The Judge is a dedicated role with exactly one CALL site, and it lives
+	// with the arbitration point it exists for. The Provider method definition
+	// itself is pinned separately so the call-site guard stays meaningful.
+	assertProductionOnlyIn(t, sources, ".StructuredAssembledJudgement(", "turn_takeover.go", 1)
+	assertProductionCount(t, sources, "provider.go", "func (p *ProviderClient) StructuredAssembledJudgement(", 1)
+
+	// The generic query continuation keeps its two call sites (the synchronous
+	// path and the frozen replay) and gains no third one.
+	assertProductionCount(t, sources, "mutations.go", "StructuredQueryContinuation(", 2)
+
+	// --- No concrete capability dispatch anywhere --------------------------
+	// The earlier guard only checked four files and only the exact spelling
+	// `invocation.CapabilityName ==`, so it would have missed
+	// `result.CapabilityName == "media.image.generate"` entirely. The rule that
+	// matters is "never compare a capability name against a non-empty literal",
+	// and it is asserted across every production source of the package.
+	assertProductionAbsent(t, sources, "switch invocation.CapabilityName")
+	assertProductionAbsent(t, sources, "switch call.Name")
+	assertProductionAbsent(t, sources, "toolOnlyCognitionAppraisal")
+	for name, source := range sources {
+		if match := capabilityNameLiteralComparison.FindString(source); match != "" {
+			t.Fatalf("concrete capability dispatch %q remains in %s", match, name)
 		}
-		if strings.Contains(string(data), "switch invocation.CapabilityName") || strings.Contains(string(data), "switch call.Name") {
-			t.Fatalf("concrete capability dispatch remains in %s", path)
-		}
 	}
+
+	// --- Capability-only turns keep the single shared normalizer ------------
+	// "not proposed" must have exactly one producer: the normalizer shared by A
+	// and B (it used to be inline in mutations.go before the A/B normalization
+	// was extracted, design.md 4.8). Reading the value elsewhere is fine;
+	// producing it twice is not, because B would then be able to fabricate a
+	// state proposal through a second path.
+	assertProductionOnlyIn(t, sources, `decision["cognitive_state_transition"] = "not_proposed"`, "turn_decision.go", 1)
 }
 
 func TestConversationPersistsPreparedInvocationBeforeCapabilityExecution(t *testing.T) {

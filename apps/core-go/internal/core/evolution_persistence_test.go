@@ -25,7 +25,7 @@ func TestEvolutionPersistenceS10(t *testing.T) {
 		return app.insertAgency(ctx, tx, fluctlightID, ownerID,
 			[]any{map[string]any{"description": "初始化目标", "importance": 0.6, "urgency": 0.4}},
 			[]any{map[string]any{"action": "等待新事实后重新评估", "goal_index": 0, "confidence": 0.7}},
-			"default", map[string]struct{}{"default": {}})
+			map[string]struct{}{"default": {}})
 	}); err != nil {
 		t.Fatalf("0031 rejected initial Goal/Intention authority: %v", err)
 	}

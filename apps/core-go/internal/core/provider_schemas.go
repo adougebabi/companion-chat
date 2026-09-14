@@ -197,7 +197,28 @@ func stateExpressionSchema() map[string]any {
 	}, nil, false)
 }
 
+// cognitiveTurnResponseSchema is the authorized variant of the Main turn
+// contract: the scenario may propose a persistent dominant-profile switch, so
+// the field is offered.
 func cognitiveTurnResponseSchema() map[string]any {
+	return cognitiveTurnResponseSchemaForGrant(persistentSwitchGrant{Allowed: true, Scenario: persistentSwitchGrantScenarioMain})
+}
+
+// cognitiveTurnResponseSchemaForGrant makes the response contract conditional on
+// the authorization of THIS call (F01). A scenario that may not write the
+// persistent dominant profile is not offered the field at all, instead of being
+// filtered after the model already produced it.
+func cognitiveTurnResponseSchemaForGrant(grant persistentSwitchGrant) map[string]any {
+	properties := cognitiveTurnResponseProperties()
+	if !grant.Allowed {
+		delete(properties, "personality_decision")
+	}
+	return objectSchema(properties, []string{"response_mode", "action_type", "response_intent", "tool_calls", "influences"}, false)
+}
+
+// cognitiveTurnResponseProperties is the shared property table. It is rebuilt per
+// call so the grant-aware variant can remove a field without affecting others.
+func cognitiveTurnResponseProperties() map[string]any {
 	personalityDecision := objectSchema(map[string]any{
 		"decision":          enumStringSchema("keep", "switch"),
 		"from_profile_id":   stringSchema(),
@@ -207,10 +228,11 @@ func cognitiveTurnResponseSchema() map[string]any {
 		"confidence":        unitNumberSchema(),
 		"evidence_refs":     arraySchema(stringSchema()),
 	}, []string{"decision", "from_profile_id", "target_profile_id", "trigger_id", "reason", "confidence", "evidence_refs"}, false)
-	properties := map[string]any{
+	return map[string]any{
 		"response_mode":              enumStringSchema("final", "query_continuation"),
 		"action_type":                enumStringSchema("reply"),
 		"response_intent":            stringSchema(),
+		"internal_intent":            map[string]any{"type": "string", "maxLength": 120},
 		"visible_text":               stringSchema(),
 		"response_plan":              responsePlanSchema(),
 		"personality_decision":       personalityDecision,
@@ -228,11 +250,6 @@ func cognitiveTurnResponseSchema() map[string]any {
 		"evidence_refs":              arraySchema(stringSchema()),
 		"influences":                 decisionInfluencesSchema(),
 	}
-	// The direct-conversation product boundary has no successful no-op. Visible
-	// text may arrive in this object or through conversation.reply, but the same
-	// Main cognition must select reply and the application validates concrete
-	// output before any effect is committed.
-	return objectSchema(properties, []string{"response_mode", "action_type", "response_intent", "tool_calls", "influences"}, false)
 }
 
 func dailyReviewResponseSchema() map[string]any {
@@ -495,6 +512,7 @@ func initializationResponseSchema() map[string]any {
 		"core_relationship":      nullableStringSchema(),
 		"core_conflict":          nullableStringSchema(),
 		"forced_activation":      openObjectSchema(),
+		"takeover_rules":         arraySchema(personalityTakeoverRuleSchema()),
 		"extensions":             openObjectSchema(),
 	}, nil, false)
 	claim := objectSchema(map[string]any{
@@ -577,6 +595,26 @@ func personalityOutputPreferencesSchema() map[string]any {
 func personalitySwitchingSchema() map[string]any {
 	rule := objectSchema(map[string]any{"id": stringSchema(), "condition": stringSchema(), "priority": numberSchema(), "target_profile_id": stringSchema(), "cooldown_seconds": numberSchema(), "evidence_refs": arraySchema(stringSchema()), "extensions": openObjectSchema()}, []string{"id", "condition", "target_profile_id"}, false)
 	return objectSchema(map[string]any{"rules": arraySchema(rule), "cooldown_seconds": numberSchema(), "default_profile_id": stringSchema(), "extensions": openObjectSchema()}, nil, false)
+}
+
+// personalityTakeoverRuleSchema is the only formal declaration entry for a
+// single-turn takeover: a bounded rule the Runtime can select deterministically
+// and the Judge can accept or reject. forced_activation stays an open legacy
+// object and is migrated by the normalizer instead of being extended here.
+func personalityTakeoverRuleSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"id":                stringSchema(),
+		"kind":              enumStringSchema(string(switchRuleTurnTakeover)),
+		"version":           enumStringSchema(personaTakeoverRuleVersion),
+		"condition":         stringSchema(),
+		"source_profile_id": stringSchema(),
+		"target_profile_id": stringSchema(),
+		"priority":          numberSchema(),
+		"cooldown_seconds":  numberSchema(),
+		"enabled":           booleanSchema(),
+		"evidence_refs":     arraySchema(stringSchema()),
+		"extensions":        openObjectSchema(),
+	}, []string{"id", "kind", "version", "condition", "target_profile_id"}, false)
 }
 
 func personalityInfluenceSchema() map[string]any {

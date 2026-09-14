@@ -139,3 +139,51 @@ func TestReflectionOverlayEvidenceCountsHistoricalWindowsNotFacts(t *testing.T) 
 		t.Fatalf("two historical windows count=%#v err=%v", windows, err)
 	}
 }
+
+func TestEvolutionBaselinePreservesProseTraitsVerbatim(t *testing.T) {
+	prose := "安静、句子短、行事谨慎"
+	normalized := normalizeEvolutionPersonalityBaseline(map[string]any{
+		"traits":     prose,
+		"expression": []any{"轻声", "停顿多"},
+	})
+	traits := mapValue(normalized["traits"])
+	if got := stringValue(traits[evolutionDescriptiveValueKey]); got != prose {
+		t.Fatalf("prose traits were not preserved verbatim: %#v", normalized)
+	}
+	if got := stringValue(traits[evolutionSourceShapeKey]); got != "string" {
+		t.Fatalf("the source shape was not recorded: %#v", traits)
+	}
+	expression := mapValue(normalized["expression"])
+	if !strings.Contains(stringValue(expression[evolutionDescriptiveValueKey]), "轻声") {
+		t.Fatalf("a list-shaped expression was discarded: %#v", normalized)
+	}
+	if got := stringValue(expression[evolutionSourceShapeKey]); got != "list" {
+		t.Fatalf("the list source shape was not recorded: %#v", expression)
+	}
+}
+
+func TestEvolutionBaselineStillNormalizesStructuredTraits(t *testing.T) {
+	normalized := normalizeEvolutionPersonalityBaseline(map[string]any{
+		"traits": map[string]any{"openness": 0.8},
+	})
+	traits := mapValue(normalized["traits"])
+	if got := numberOrZero(traits["openness"]); got != 0.8 {
+		t.Fatalf("a numeric trait was altered: %#v", normalized)
+	}
+	if _, exists := traits[evolutionDescriptiveValueKey]; exists {
+		t.Fatalf("a structured trait was rewritten as prose: %#v", traits)
+	}
+	// An absent key still becomes a structured object so an overlay can target
+	// it, and so the shape stays stable for unchanged personas.
+	empty := normalizeEvolutionPersonalityBaseline(map[string]any{})
+	if len(mapValue(empty["traits"])) != 0 || len(mapValue(empty["expression"])) != 0 {
+		t.Fatalf("absent traits must stay an empty object: %#v", empty)
+	}
+	// A missing profile baseline is a valid input while the takeover control
+	// view is being composed. It must normalize to a writable shape instead of
+	// panicking when the helper creates the required containers.
+	nilBaseline := normalizeEvolutionPersonalityBaseline(nil)
+	if nilBaseline == nil || mapValue(nilBaseline["traits"]) == nil || mapValue(nilBaseline["expression"]) == nil {
+		t.Fatalf("nil baseline must normalize to a writable shape: %#v", nilBaseline)
+	}
+}

@@ -332,13 +332,20 @@ func ContextSnapshotFromProjection(projection ContextProjection) map[string]any 
 			"conversation_id": projection.ConversationID,
 			"source_fact_id":  projection.SourceFactID,
 		},
-		"core_persona":       boundedSnapshotValue(projection.CorePersona),
-		"current_state":      boundedSnapshotValue(currentStateSnapshotFromProjection(projection)),
-		"current_life":       boundedSnapshotValue(projection.LifeContext),
-		"schedule":           boundedSnapshotValue(projection.Schedule),
-		"visual_identity":    boundedSnapshotValue(projection.VisualIdentity),
-		"appearance":         boundedSnapshotValue(mapValue(projection.Identity["appearance"])),
-		"relationship_scope": boundedSnapshotValue(map[string]any{"authorized_actor_ids": relationshipAuthorizedActorIDsFromProjection(projection), "relationships": projection.Relationships}),
+		"core_persona":    boundedSnapshotValue(projection.CorePersona),
+		"current_state":   boundedSnapshotValue(currentStateSnapshotFromProjection(projection)),
+		"current_life":    boundedSnapshotValue(projection.LifeContext),
+		"schedule":        boundedSnapshotValue(projection.Schedule),
+		"visual_identity": boundedSnapshotValue(projection.VisualIdentity),
+		"appearance":      boundedSnapshotValue(mapValue(projection.Identity["appearance"])),
+		"relationship_scope": boundedSnapshotValue(map[string]any{
+			"authorized_actor_ids": relationshipAuthorizedActorIDsFromProjection(projection), "relationships": projection.Relationships,
+			"actor_aliases": relationshipActorAliasesFromProjection(projection),
+			// The profile scope is part of the frozen snapshot so relationship
+			// reads and writes follow the reply owner instead of the runtime row
+			// (design.md 10).
+			"active_profile_id": stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"]),
+		}),
 		"memory_scope": boundedSnapshotValue(map[string]any{
 			"owner_actor_id": projection.OwnerActorID, "viewer_actor_ids": []any{stringValue(projection.CurrentSpeaker["actor_id"])},
 			"conversation_mode": projection.MemoryRetrievalTrace.ConversationMode,
@@ -384,6 +391,33 @@ func relationshipAuthorizedActorIDsFromProjection(projection ContextProjection) 
 		add(stringValue(relationship["target_actor_id"]))
 	}
 	add(stringValue(projection.CurrentSpeaker["actor_id"]))
+	return result
+}
+
+// relationshipActorAliasesFromProjection is the bounded, frozen equivalent of
+// the provider-facing actor reference table. Capability candidate validation
+// may resolve an alias only when Core included the mapping in the snapshot; it
+// must never query the live conversation participants table to interpret a
+// provider argument before the Judge. The map contains explicit refs only and
+// therefore cannot turn display names or arbitrary prose into actor IDs.
+func relationshipActorAliasesFromProjection(projection ContextProjection) map[string]any {
+	result := make(map[string]any)
+	add := func(actor map[string]any) {
+		if len(actor) == 0 {
+			return
+		}
+		ref := strings.TrimSpace(stringValue(actor["ref"]))
+		actorID := strings.TrimSpace(stringValue(actor["actor_id"]))
+		if ref == "" || actorID == "" {
+			return
+		}
+		result[ref] = actorID
+	}
+	add(projection.SelfActor)
+	add(projection.CurrentSpeaker)
+	for _, actor := range projection.Actors {
+		add(actor)
+	}
 	return result
 }
 
@@ -1285,6 +1319,16 @@ type Capability interface {
 	Definition() CapabilityDefinition
 	RequiredContext() []ContextSlot
 	Execute(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
+}
+
+// CapabilityCandidateValidator is the optional pure validation seam used
+// before takeover arbitration. Implementations may inspect only the invocation
+// and the frozen, snapshot-resolved context. They must not call Execute,
+// ExecuteTx, ExecuteDeferredTx, Preflight, Prepare, AppContextResolver, or any
+// live DB/network/planner dependency; winner-only execution keeps those effects
+// behind the Judge and settlement boundaries.
+type CapabilityCandidateValidator interface {
+	ValidateCandidate(context.Context, CapabilityInvocation, CapabilityContext) error
 }
 
 type CapabilityPreflighter interface {

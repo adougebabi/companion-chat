@@ -12,13 +12,22 @@ import (
 // recordRelationshipInteractionTx records the durable interaction fact for an
 // already-established directed Relationship. It intentionally updates only
 // interaction metadata; semantic metrics/trend remain LLM/reflection-owned.
-func (a *App) recordRelationshipInteractionTx(ctx context.Context, tx pgx.Tx, fluctlightID, targetActorID string, meaningful bool) error {
+//
+// profileID is the frozen reply owner of the turn. It is used verbatim so a
+// takeover reply can never write into the persistent dominant profile's private
+// scope (design.md 10). An empty owner falls back to the runtime row.
+func (a *App) recordRelationshipInteractionTx(ctx context.Context, tx pgx.Tx, fluctlightID, targetActorID string, meaningful bool, profileID string) error {
 	targetActorID = strings.TrimSpace(targetActorID)
 	if targetActorID == "" {
 		return nil
 	}
-	var activeProfile string
-	_ = tx.QueryRow(ctx, `SELECT COALESCE(active_profile_id,'default') FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&activeProfile)
+	activeProfile := strings.TrimSpace(profileID)
+	if activeProfile == "" {
+		_ = tx.QueryRow(ctx, `SELECT COALESCE(active_profile_id,'default') FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&activeProfile)
+	}
+	if activeProfile == "" {
+		activeProfile = "default"
+	}
 	var relationshipID string
 	if err := tx.QueryRow(ctx, `SELECT id FROM public.relationships WHERE owner_fluctlight_id=$1 AND target_actor_id=$2 AND (profile_id=$3 OR profile_id IS NULL) ORDER BY CASE WHEN profile_id=$3 THEN 0 ELSE 1 END,updated_at DESC LIMIT 1 FOR UPDATE`, fluctlightID, targetActorID, activeProfile).Scan(&relationshipID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

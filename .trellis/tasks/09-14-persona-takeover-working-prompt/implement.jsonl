@@ -1,0 +1,10 @@
+{"file": ".trellis/spec/backend/persona-layer-contract.md", "reason": "人格层契约：active_profile_id、多 profile、切换决策边界；本次新增 reply owner、takeover、persistent switch 授权模型必须与之对齐（注意 request.md 对『已有切换入口』的描述已按代码证据更正）"}
+{"file": ".trellis/spec/backend/structured-turn-contract.md", "reason": "单轮结构化契约：同轮至多一次续调用、消息布局、原生 tool call 边界；本次 A+Judge+B 预算矩阵必须在此收敛"}
+{"file": ".trellis/spec/backend/fluctlight-cognitive-runtime.md", "reason": "认知运行时契约：冻结投影、禁止第三次模型轮次、negative architecture 测试要求"}
+{"file": ".trellis/spec/backend/fluctlight-provider-contract.md", "reason": "Provider 契约：role/model 绑定、预算、provenance；新增 takeover_judge 角色需在此落位"}
+{"file": ".trellis/spec/backend/fluctlight-persistence-contract.md", "reason": "持久化契约：短事务、幂等、版本控制；覆盖 frozen payload 的 UPDATE 必须遵守"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "数据库规范：迁移与事务写法，用于 forced_activation 归一化和 payload 覆盖"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "目录与文件放置规范，用于新增 turn_takeover.go / working_persona.go / persona_switch_rules.go"}
+{"file": ".trellis/tasks/09-14-persona-takeover-working-prompt/research/inventory-turn-chain.md", "reason": "R01 端到端调用链表与副作用清单：仲裁插入点、冻结窗口、拒绝候选必须拦住的落点"}
+{"file": ".trellis/tasks/09-14-persona-takeover-working-prompt/research/inventory-prompt-schema.md", "reason": "Prompt 组装链、消息布局、response schema 字段消费者、预算设施；Working Persona 投影必须复用唯一出口"}
+{"file": ".trellis/tasks/09-14-persona-takeover-working-prompt/research/inventory-persona.md", "reason": "人格数据模型、切换入口、forced_activation 与 overlay 现状；R07 迁移表的事实依据"}

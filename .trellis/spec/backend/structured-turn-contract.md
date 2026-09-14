@@ -582,3 +582,103 @@ definition := registry.Definition(invocation.CapabilityName)
 context := resolver.Resolve(ctx, request, definition.RequiredContext)
 result := runtime.Execute(ctx, invocation)
 ```
+
+## Scenario: Turn Takeover Arbitration, Stage Machine, And Per-Turn Budget
+
+### 1. Scope / Trigger
+
+Applies to any change in `apps/core-go/internal/core` that touches the interactive
+turn chain between the A candidate freeze and settlement: `applyTurnTakeover`
+(`turn_takeover.go`), `generateTakeoverReply`, `normalizeTurnDecision`
+(`turn_decision.go`), the frozen-payload stage key, or the recovery paths in
+`mutations.go` / `cognition.go`. Source of authority: `design.md` §4.4–§4.8, §8
+(tasks F03/F06/F10/F13).
+
+### 2. Signatures
+
+- Stage key: `payload["turn_stage"]` ∈ `a_frozen` → `arbitration_decided` →
+  `b_frozen` → `winner_ready` → `executing` (`turn_takeover.go:313-318`).
+  `settled` is a terminal marker; the durable row transitions to
+  `status='completed'`/`'failed'` instead of advancing the stage.
+- One arbitration point only: `applyTurnTakeover` is called once from
+  `mutations.go` after `PersistTurnDecision` and before
+  `prepareCapabilityInvocations`.
+- Provider schemas: `conversation_turn_response` (A), `takeover_judge_response`
+  (Judge, boolean), `takeover_reply_response` (B). B must never request
+  `conversation_turn_response`.
+- Execution gate: `turnStageExecutable` accepts `winner_ready|executing` only;
+  `BeginTurnExecution` is the sole `winner_ready → executing` transition.
+
+### 3. Contracts
+
+- **Single normalization**: every turn decision (A and B) is normalized by
+  `normalizeTurnDecision`. The "not proposed" cognitive-state outlet
+  (`decision["cognitive_state_transition"] = "not_proposed"`) exists in exactly
+  one place (`turn_decision.go`).
+- **Single visible-text authority**: `resolveCanonicalVisibleReply`; the
+  rejected candidate's text survives only inside
+  `takeover.rejected_candidate` (diagnostics, never rendered).
+- **Sidecar stripping**: any frozen-decision overwrite must go through
+  `stripFrozenDecisionSidecars()` (`cognition.go`) so `tool_calls` sidecars
+  never survive into a reloaded payload (M4/D2).
+- **QUERY mutual exclusion (F06)**: a `query_continuation` turn never reaches
+  the Judge; a takeover reply is generated with
+  `ForbidQueryContinuation: true` and fails closed on a continuation request.
+- **Budget (F10)**: per interactive turn — at most 2 main generations
+  (A + optional B), at most 1 Judge call, no retries. A failing Judge
+  (timeout/unavailable/invalid output) degrades to `judge_degraded` with an
+  explicit `outcome` and never grows into a second generation. Every physical
+  HTTP attempt must map to a scripted logical stage (no unattributed attempts).
+- **Recovery (F03)**: resume without re-deciding for every stage — `b_frozen`
+  and `winner_ready`/`executing` execute the decided winner; `a_frozen`
+  re-arbitrates exactly once; `settled`/completed turns error on re-entry.
+  Stage transitions are CAS via `SELECT … FOR UPDATE` + stage match.
+
+### 4. Validation & Error Matrix
+
+| Violation | Expected behavior |
+|---|---|
+| Judge consulted twice | Static guard: `StructuredAssembledJudgement(` appears once, in `turn_takeover.go` only |
+| B reuses the Main schema | Guard fails: `takeoverReplySchemaName != workingPersonaMainTurnSchema` |
+| Third main generation | Runtime test: schema sequence is a subsequence of `[conversation_turn_response, takeover_judge_response, takeover_reply_response]` |
+| Unattributed HTTP attempt | `fakeProviderRouter.unattributedRequests() == 0` |
+| Overwrite from a non-matching stage | `ReplaceFrozenTurnDecision`/`AdvanceTurnStage` CAS conflict |
+| Stage with no writer (e.g. `executing`) | Qualification gate accepts `winner_ready|executing`; recovery resumes instead of quarantining |
+
+### 5. Good / Base / Bad Cases
+
+Good: A frozen → Judge declines → A settles with its own text; A frozen → Judge
+approves → B generated in reply-owner scope → B settles; Judge fails →
+`judge_degraded`, A settles.
+Base: pure-query turn skips arbitration entirely.
+Bad: re-judging on recovery, sending the rejected candidate after a failed B
+generation, or a budget-exhausted arbitration leaving the row stuck in
+`arbitration_decided` (must fail with `takeoverFailureCode(err)` unless
+superseded).
+
+### 6. Tests Required
+
+- `turn_takeover_chain_test.go`, `turn_takeover_recovery_test.go`,
+  `turn_chain_budget_test.go` (chain/recovery/budget);
+- `TestTakeoverChainStaticGuards` and
+  `TestCapabilityRuntimeStaticGuardsPreserveActionSingleCognitionAndGenericQueryContinuation`
+  (cross-file precise counts);
+- every recovery row asserts both physical call counts and delivered-once texts.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+// A second Judge consultation "for reliability" on the takeover path.
+if _, _, _, err := a.judgeTurnTakeover(ctx, input, rule); err != nil {
+    return false, err
+}
+```
+
+#### Correct
+
+```go
+// Arbitration happens exactly once; a Judge failure degrades to A.
+handled, err := a.applyTurnTakeover(ctx, input)
+```

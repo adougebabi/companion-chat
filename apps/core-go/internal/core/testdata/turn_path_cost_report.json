@@ -1,0 +1,138 @@
+[
+  {
+    "path": "plain_no_judge",
+    "physical_requests": 1,
+    "schema_sequence": [
+      "conversation_turn_response"
+    ],
+    "calls": [
+      {
+        "schema": "conversation_turn_response",
+        "requests": 1,
+        "estimated_input_tokens": 23439,
+        "chars": 18751,
+        "bytes": 20367
+      }
+    ],
+    "total_estimated_input_tokens": 23439,
+    "scripted_output_estimated_tokens": 163,
+    "total_chars": 18751,
+    "total_bytes": 20367,
+    "notes": [
+      "input side: estimated from the captured wire payload (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
+      "output side: scripted structured replies, not real model output; on judge_takeover_b the discarded A output is included",
+      "chars/bytes: re-serialized captured payload (jsonString); key order may differ from the raw HTTP body but content is identical",
+      "latency and cache hits are not measurable against a fake provider (see 11.6)"
+    ]
+  },
+  {
+    "path": "judge_keeps_a",
+    "physical_requests": 2,
+    "schema_sequence": [
+      "conversation_turn_response",
+      "takeover_judge_response"
+    ],
+    "calls": [
+      {
+        "schema": "conversation_turn_response",
+        "requests": 1,
+        "estimated_input_tokens": 23439,
+        "chars": 18751,
+        "bytes": 20367
+      },
+      {
+        "schema": "takeover_judge_response",
+        "requests": 1,
+        "estimated_input_tokens": 1940,
+        "chars": 1552,
+        "bytes": 2176
+      }
+    ],
+    "total_estimated_input_tokens": 25379,
+    "scripted_output_estimated_tokens": 163,
+    "total_chars": 20303,
+    "total_bytes": 22543,
+    "notes": [
+      "input side: estimated from the captured wire payload (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
+      "output side: scripted structured replies, not real model output; on judge_takeover_b the discarded A output is included",
+      "chars/bytes: re-serialized captured payload (jsonString); key order may differ from the raw HTTP body but content is identical",
+      "latency and cache hits are not measurable against a fake provider (see 11.6)"
+    ]
+  },
+  {
+    "path": "judge_takeover_b",
+    "physical_requests": 3,
+    "schema_sequence": [
+      "conversation_turn_response",
+      "takeover_judge_response",
+      "takeover_reply_response"
+    ],
+    "calls": [
+      {
+        "schema": "conversation_turn_response",
+        "requests": 1,
+        "estimated_input_tokens": 23439,
+        "chars": 18751,
+        "bytes": 20367
+      },
+      {
+        "schema": "takeover_judge_response",
+        "requests": 1,
+        "estimated_input_tokens": 1940,
+        "chars": 1552,
+        "bytes": 2176
+      },
+      {
+        "schema": "takeover_reply_response",
+        "requests": 1,
+        "estimated_input_tokens": 22963,
+        "chars": 18370,
+        "bytes": 20506
+      }
+    ],
+    "total_estimated_input_tokens": 48342,
+    "scripted_output_estimated_tokens": 326,
+    "total_chars": 38673,
+    "total_bytes": 43049,
+    "notes": [
+      "input side: estimated from the captured wire payload (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
+      "output side: scripted structured replies, not real model output; on judge_takeover_b the discarded A output is included",
+      "chars/bytes: re-serialized captured payload (jsonString); key order may differ from the raw HTTP body but content is identical",
+      "latency and cache hits are not measurable against a fake provider (see 11.6)"
+    ]
+  },
+  {
+    "path": "pure_query",
+    "physical_requests": 2,
+    "schema_sequence": [
+      "conversation_turn_response",
+      "query_continuation_response"
+    ],
+    "calls": [
+      {
+        "schema": "conversation_turn_response",
+        "requests": 1,
+        "estimated_input_tokens": 23439,
+        "chars": 18751,
+        "bytes": 20367
+      },
+      {
+        "schema": "query_continuation_response",
+        "requests": 1,
+        "estimated_input_tokens": 6904,
+        "chars": 5523,
+        "bytes": 7157
+      }
+    ],
+    "total_estimated_input_tokens": 30343,
+    "scripted_output_estimated_tokens": 33,
+    "total_chars": 24274,
+    "total_bytes": 27524,
+    "notes": [
+      "input side: estimated from the captured wire payload (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
+      "output side: scripted structured replies, not real model output; on judge_takeover_b the discarded A output is included",
+      "chars/bytes: re-serialized captured payload (jsonString); key order may differ from the raw HTTP body but content is identical",
+      "latency and cache hits are not measurable against a fake provider (see 11.6)"
+    ]
+  }
+]

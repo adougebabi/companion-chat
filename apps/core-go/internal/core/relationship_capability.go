@@ -28,6 +28,31 @@ func relationshipLookupCapabilityDefinition() CapabilityDefinition {
 
 type relationshipLookupService struct{ app *App }
 
+// resolveRelationshipTargetFromScope resolves only aliases explicitly frozen
+// in the relationship scope. The bool reports whether the snapshot contained a
+// mapping; callers may use their legacy live alias resolver only when it did
+// not. This keeps a frozen candidate's target stable across replay while
+// preserving compatibility for older non-snapshot capability payloads.
+func resolveRelationshipTargetFromScope(scope *RelationshipScope, raw string) (string, bool, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", false, errors.New("relationship lookup target required")
+	}
+	if scope == nil {
+		return raw, false, nil
+	}
+	if aliases := mapValue(scope.Data["actor_aliases"]); len(aliases) > 0 {
+		if value, ok := aliases[raw]; ok {
+			canonical := strings.TrimSpace(stringValue(value))
+			if canonical == "" {
+				return "", true, errors.New("relationship lookup alias is invalid")
+			}
+			return canonical, true, nil
+		}
+	}
+	return raw, false, nil
+}
+
 func (service *relationshipLookupService) execute(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
 	fluctlightID, conversationID := invocation.Metadata.FluctlightID, invocation.Metadata.ConversationID
 	var args map[string]any
@@ -38,6 +63,12 @@ func (service *relationshipLookupService) execute(ctx context.Context, invocatio
 	if target == "" {
 		return failedCapabilityResultDetail(invocation, "relationship_lookup_target_required", false, "target actor is required"), errors.New("relationship lookup target required")
 	}
+	var mappedBySnapshot bool
+	var targetErr error
+	target, mappedBySnapshot, targetErr = resolveRelationshipTargetFromScope(resolved.Relation, target)
+	if targetErr != nil {
+		return failedCapabilityResultDetail(invocation, "relationship_lookup_target_invalid", false, targetErr.Error()), targetErr
+	}
 	var humanActorID string
 	if service == nil || service.app == nil || service.app.DB == nil {
 		return failedCapabilityResultDetail(invocation, "relationship_capability_unavailable", true, "relationship capability is unavailable"), errors.New("relationship capability unavailable")
@@ -45,8 +76,10 @@ func (service *relationshipLookupService) execute(ctx context.Context, invocatio
 	if err := service.app.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&humanActorID); err != nil {
 		return failedCapabilityResultDetail(invocation, "relationship_lookup_owner_failed", true, err.Error()), err
 	}
-	target = resolveInitializationActorRef(target, humanActorID, fluctlightID)
-	if conversationID != "" {
+	if !mappedBySnapshot {
+		target = resolveInitializationActorRef(target, humanActorID, fluctlightID)
+	}
+	if conversationID != "" && !mappedBySnapshot {
 		target = service.app.resolveConversationActorAlias(ctx, conversationID, humanActorID, fluctlightID, target)
 	}
 	// Authorization and relationship rows are separate resolver concerns. An
@@ -65,8 +98,16 @@ func (service *relationshipLookupService) execute(ctx context.Context, invocatio
 		}
 	}
 	var actorType, trend string
-	var activeProfileID string
-	_ = service.app.DB.Pool().QueryRow(ctx, `SELECT COALESCE(active_profile_id,'default') FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&activeProfileID)
+	// The frozen scope is authoritative: a takeover reply must read its own
+	// profile's relationship, not the persistent dominant profile's. Only a
+	// snapshot that carries no profile falls back to the runtime row.
+	activeProfileID := strings.TrimSpace(stringValue(resolved.Relation.Data["active_profile_id"]))
+	if activeProfileID == "" {
+		_ = service.app.DB.Pool().QueryRow(ctx, `SELECT COALESCE(active_profile_id,'default') FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&activeProfileID)
+	}
+	if activeProfileID == "" {
+		activeProfileID = "default"
+	}
 	var role, metrics, summary, emotional, provenance []byte
 	var revision int
 	var profileID *string

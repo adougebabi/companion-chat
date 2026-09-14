@@ -241,7 +241,7 @@ func TestCompactCognitionContextRetainsNonEmptySemanticCollections(t *testing.T)
 		}
 	}
 	recent := arrayValue(compact["recent_messages"])
-	if len(recent) != 1 || stringValue(mapValue(recent[0])["role"]) != "user" || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 00:00:00" {
+	if len(recent) != 1 || stringValue(mapValue(recent[0])["role"]) != "user" || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 00:00:00Z" {
 		t.Fatalf("compact recent messages = %#v", compact["recent_messages"])
 	}
 }
@@ -268,7 +268,7 @@ func TestCompactCognitionContextRemovesDatabaseMetadataFromEvidence(t *testing.T
 		}},
 	})
 	recent := arrayValue(compact["recent_messages"])
-	if len(recent) != 1 || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 00:00:00" {
+	if len(recent) != 1 || stringValue(mapValue(recent[0])["content"]) != "hello" || stringValue(mapValue(recent[0])["time"]) != "09-03 00:00:00Z" {
 		t.Fatalf("message semantics changed: %#v", recent)
 	}
 	memory := mapValue(arrayValue(compact["memories"])[0])
@@ -327,8 +327,20 @@ func TestCompactCognitionContextRebuildsMissingCorePersonaEnvelope(t *testing.T)
 }
 
 func TestCompactMessageTimeKeepsDateAndSecondsWithoutSequence(t *testing.T) {
-	if got := compactMessageTime("2026-09-03T05:27:14.105684Z"); got != "09-03 05:27:14" {
+	if got := compactMessageTime("2026-09-03T05:27:14.105684Z"); got != "09-03 05:27:14Z" {
 		t.Fatalf("compact message time = %q", got)
+	}
+}
+
+// TestCompactMessageTimePreservesTheOriginalOffset pins the R11 timezone fix:
+// the stamp must carry the message's own offset instead of being relabelled as
+// UTC. A 13:27+08:00 message must not render as an unmarked "05:27".
+func TestCompactMessageTimePreservesTheOriginalOffset(t *testing.T) {
+	if got := compactMessageTime("2026-09-03T13:27:14.105684+08:00"); got != "09-03 13:27:14+08:00" {
+		t.Fatalf("local message time lost its offset: %q", got)
+	}
+	if got := compactMessageTime("2026-09-03T13:27:14.105684-05:00"); got != "09-03 13:27:14-05:00" {
+		t.Fatalf("negative offset was not preserved: %q", got)
 	}
 }
 
@@ -514,6 +526,63 @@ func TestCompactRecentMessagesUsesActorUserAndFluctlightDisplayName(t *testing.T
 	compact := compactRecentMessagesForActors(messages, "", actors)
 	if len(compact) != 2 || stringValue(compact[0]["sender"]) != "actor_user" || stringValue(compact[1]["sender"]) != "影者" {
 		t.Fatalf("actor sender rendering = %#v", compact)
+	}
+}
+
+// TestRecentHistoryNeverAttributesSelfUtteranceToTheUser is the R11 narrow
+// assertion for assistant self-attestation. A past self message ("我给你画好了")
+// is an utterance, not evidence that the work it names exists; what keeps that
+// distinction observable is that the self utterance is always attributed to the
+// fluctlight actor and never re-labelled as the user's own words. Attribution is
+// intentionally the fluctlight display name (see
+// TestCompactRecentMessagesUsesActorUserAndFluctlightDisplayName), so the
+// assertion is on the actor identity fields, not on the rendering style.
+func TestRecentHistoryNeverAttributesSelfUtteranceToTheUser(t *testing.T) {
+	actors := []map[string]any{
+		{"actor_id": "human-1", "ref": "actor_user", "type": "human", "display_name": "actor_user"},
+		{"actor_id": "fl-1", "ref": "actor_self", "type": "fluctlight", "display_name": "影者"},
+	}
+	messages := []map[string]any{
+		{"author_actor_id": "fl-1", "kind": "assistant", "text": "我给你画好了", "created_at": "2026-09-06T00:00:00Z"},
+		{"author_actor_id": "human-1", "kind": "user", "text": "谢谢你", "created_at": "2026-09-06T00:01:00Z"},
+	}
+
+	compact := compactRecentMessagesForActors(messages, "", actors)
+	if len(compact) != 2 {
+		t.Fatalf("recent message compaction = %#v", compact)
+	}
+	self, user := compact[0], compact[1]
+	if sender := stringValue(self["sender"]); sender == "actor_user" {
+		t.Fatalf("a self utterance was attributed to the user: %#v", self)
+	}
+	if actorType := stringValue(self["actor_type"]); actorType != "fluctlight" {
+		t.Fatalf("a self utterance lost its fluctlight attribution: %#v", self)
+	}
+	if sender := stringValue(user["sender"]); sender != "actor_user" {
+		t.Fatalf("the user turn lost its attribution: %#v", user)
+	}
+
+	// The Main prompt path must preserve the same separation and keep the
+	// timestamp, so a prior claim can never be read as an undated, unowned fact.
+	fragments := recentPromptFragments(ContextProjection{
+		SelfActor:      map[string]any{"ref": "actor_self", "actor_id": "fl-1", "type": "fluctlight"},
+		CurrentSpeaker: map[string]any{"ref": "actor_user", "actor_id": "human-1", "type": "human"},
+		Actors:         actors,
+		RecentMessages: messages,
+	})
+	if len(fragments) != 2 {
+		t.Fatalf("recent prompt fragments = %#v", fragments)
+	}
+	selfContent := stringValue(mapValue(fragments[0].Content)["content"])
+	userContent := stringValue(mapValue(fragments[1].Content)["content"])
+	if strings.Contains(selfContent, "sender=actor_user") {
+		t.Fatalf("the Main prompt attributed a self utterance to the user: %q", selfContent)
+	}
+	if !strings.Contains(selfContent, "time=09-06 00:00:00Z") {
+		t.Fatalf("the self utterance lost its timestamp: %q", selfContent)
+	}
+	if !strings.Contains(userContent, "sender=actor_user") {
+		t.Fatalf("the Main prompt lost the user attribution: %q", userContent)
 	}
 }
 

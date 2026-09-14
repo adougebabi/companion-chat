@@ -363,7 +363,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		}
 		stages["capability_invocations"] = capabilityInvocations
 		stages["context_projection"] = projection
-		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, "", inboxID, "no_op", stages)
+		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, "", inboxID, "no_op", stages, turnDecisionAuthority{})
 		if err != nil {
 			return err
 		}
