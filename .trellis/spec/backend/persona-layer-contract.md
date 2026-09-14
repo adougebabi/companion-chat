@@ -71,13 +71,19 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   analysis gets a fresh `initialization-analysis:*` correlation/Provider
   idempotency identity; retries within one attempt may reuse an identity, but
   separate clicks never replay one cached invalid result.
+- Non-empty Provider content that cannot be parsed never enters empty
+  StructuredFallback normalization. Complete known wrappers may be removed,
+  after which the root object is validated normally; truncation or remaining
+  invalid JSON returns `initialization_response_invalid_json`. Parse diagnostics
+  retain only finish reason, framing, candidate lengths, delimiter balance and
+  syntax offset, never the source/response body.
 - Initialization uses `response_format.type=json_object`, not the large
   `json_schema` constrained-decoding path. The prompt carries the complete
   canonical vocabulary/skeleton, source-to-owner mapping, single/multiple
   evidence rules, finite derivation policy, and no-invention constraints. Core
   remains the normalization/validation authority. Other strict cognition/
   reflection operations keep their JSON Schema response formats.
-- Initialization derives a scenario-specific 6,144-token output reserve and
+- Initialization derives a scenario-specific 8,192-token output reserve and
   ten-minute Provider timeout when the configured context window has sufficient
   headroom. Ordinary calls retain the persisted generic binding values. A
   Provider deadline returns `initialization_provider_timeout`, cancellation
@@ -151,6 +157,8 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 | Initialization omits only safe structural containers/placeholders | Normalize them first, then validate; do not reject solely because an empty root collection was omitted. |
 | Initialization omits a Core group, base personality/policy field, declared profile payload field, or Developing Self container | Fill only the missing value with the server default or typed empty representation, then validate. |
 | Initialization returns a structured fallback with no source-supported semantics | Return typed retryable `initialization_response_semantic_empty`; do not create a preview or neutral Persona. |
+| Initialization returns non-empty unparseable or truncated content | Return `initialization_response_invalid_json`; if `finish_reason=length`, record `structured_response_truncated` and never repair/activate the partial object. |
+| Initialization wraps one complete JSON object in an explicit Markdown fence | Extract only the complete fenced body, then run ordinary normalization and semantic validation. |
 | Local Provider receives complex multi-personality initialization | Use `json_object` plus the canonical prompt skeleton; do not use the full initialization JSON Schema constrained decoder. |
 | Dense initialization would use a 4,096-token / 300-second generic binding | Derive the initialization floor before building payload, diagnostics, and request context; do not make the Owner tune runtime numbers to preserve card semantics. |
 | Initialization Provider reaches the derived deadline | Return `initialization_provider_timeout` with correlation; persist `timeout/request_timeout` and keep the card out of logs. |
@@ -215,6 +223,9 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   invalid-value rejection, semantic-empty/truncated fallback rejection, unique per-attempt
   correlation, mechanical alias mapping, safe validation path/details, and
   optional-candidate isolation/repair, and atomic claim creation.
+- Initialization parser tests distinguish complete embedded fences, malformed
+  JSON, output truncation and semantic-empty output; each failure keeps only
+  metadata-safe diagnostics.
 - Live initialization regression calls the configured LLM with a complex
   two-profile description and asserts distinct non-empty raw profiles before
   Core default completion. A local mock is not acceptance evidence.

@@ -40,9 +40,9 @@ embed(role, inputs) -> VersionedEmbeddings
   schema remains a code contract but is not sent to mlx-style constrained
   decoding.
 - A shared `generic_llm` binding retains its configured ordinary-call budget,
-  but the `initialization` scenario applies an operation-owned minimum of 6,144
+  but the `initialization` scenario applies an operation-owned minimum of 8,192
   output tokens and ten minutes. The floor is accepted only when
-  `max_input_tokens + 6144 + 4096 <= context_window_tokens`; otherwise the
+  `max_input_tokens + 8192 + 4096 <= context_window_tokens`; otherwise the
   request fails before Provider I/O as
   `initialization_output_reserve_unavailable`. This keeps dense-card fidelity
   independent from an Owner guessing numeric runtime settings without changing
@@ -55,6 +55,11 @@ embed(role, inputs) -> VersionedEmbeddings
 - Every result records role, endpoint/model ID, capability/model version when available, prompt/schema version, timing, token usage/budget, and correlation IDs.
 - No implicit role/model fallback. Failure follows explicit interaction/workflow retry/deferred/no-op/terminal rules.
 - Provider adapter returns normalized transport/structured results and bounded parse diagnostics. It does not parse visible prose for semantic effects or choose domain actions.
+- Structured parsing accepts complete known transport wrappers: whole or
+  embedded Markdown `json` fences, `<think>` wrappers, double-encoded JSON, and
+  a short prelude followed by one terminal object. Embedded-fence extraction
+  reads only the complete fenced body; it never scans arbitrary prose for an
+  executable object. An unclosed/truncated fence remains invalid.
 - The Provider boundary emits at most one `system` message, and it must be
   the first message. Operation, context-authority, and language instructions
   are concatenated in caller order; `user`/`assistant` history keeps its order
@@ -73,8 +78,10 @@ embed(role, inputs) -> VersionedEmbeddings
 | Realization role lacks streaming/abort | Preflight fails; role cannot activate. |
 | Embedding dimensions change unexpectedly | Reject vectors, mark role/index mismatch, require new embedding version. |
 | Timeout/token budget exceeded | Cancel/bound result and follow owning retry/terminal policy. |
-| Initialization generic binding is 4,096 tokens / 300 seconds | Apply the 6,144-token / ten-minute initialization floor when context headroom permits; diagnostics report the effective values. |
+| Initialization generic binding is 4,096 tokens / 300 seconds | Apply the 8,192-token / ten-minute initialization floor when context headroom permits; diagnostics report the effective values. |
 | Initialization reaches its effective deadline | Persist one `timeout/request_timeout` model run and return `initialization_provider_timeout`; do not store a raw URL/error string as `error_code`. |
+| Initialization returns non-empty content that cannot be parsed | Return `initialization_response_invalid_json` directly; do not construct an empty StructuredFallback that later appears as semantic-empty. |
+| Provider reports `finish_reason=length` or delimiters are unbalanced | Record `structured_response_truncated` with framing, candidate lengths, balance and syntax offset metadata; never repair or activate the partial object. |
 | Provider/model is temporarily unavailable | Report degraded role health; request/workflow handles explicit failure. |
 | API key decryption fails | Configuration error; do not use env/old-key fallback. |
 | Provider returns hidden reasoning/raw diagnostics | Bound/redact and keep out of ordinary result/trace/browser contract. |
@@ -83,8 +90,13 @@ embed(role, inputs) -> VersionedEmbeddings
 
 - Good: one local chat model passes five role preflights with separate budgets; every artifact records its actual role/model/prompt version.
 - Good: the shared generative binding remains 4,096/300 for ordinary calls,
-  while a dense initialization receives 6,144/600 and completes without losing
+  while a dense initialization receives 8,192/600 and completes without losing
   explicit card fields.
+- Base: the model wraps a complete object in a Markdown JSON fence with short
+  prose around it; Core extracts the designated fence and validates the normal
+  initialization semantics.
+- Bad: append missing braces to a `finish_reason=length` response or turn its
+  half-populated object into a default Persona.
 - Good: an embedding model upgrade creates a new dimension/model index and background rebuild without mixing distances.
 - Base: reflection role is degraded while realization remains healthy; interactions continue, reflection workflows retry explicitly.
 - Bad: one global model string with unknown capabilities, silently substitute realization for assessment, parse malformed structured output as prose, or hide fallback under Provider adapter logic.
@@ -103,6 +115,9 @@ embed(role, inputs) -> VersionedEmbeddings
 - Initialization scenario tests assert the operation floor, insufficient
   context rejection, typed timeout/cancellation codes, outer HTTP budget, and a
   configured-LLM dense multi-card completion using the same effective values.
+- Parser tests cover a greater-than-12,000-character embedded complete fence,
+  double encoding, thinking wrappers, malformed JSON, unbalanced/truncated
+  output, non-object root, typed failure, and metadata-only diagnostics.
 - Provider adapter contract suite runs against fake normalized adapters and configured OpenAI-compatible test endpoints.
 - Assert every real payload has exactly one leading system message and that
   merging preserves every operation/context/language instruction; media-prompt

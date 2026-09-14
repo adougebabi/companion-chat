@@ -28,7 +28,7 @@ func TestInitializationProviderFailureLogKeepsBoundedCause(t *testing.T) {
 	}
 	body := sourceBetween(t, string(source), "func (a *App) AnalyzeDescription", "func validInitializationDescription")
 	for _, required := range []string{
-		`"provider_error_code", providerRunErrorCode(err)`,
+		`"provider_error_code", initializationProviderCauseCode(err)`,
 		`"retryable", failure.Retryable`,
 		`"error_type", fmt.Sprintf("%T", err)`,
 		`"safe_cause", boundedLifecycleCause(err.Error())`,
@@ -36,6 +36,68 @@ func TestInitializationProviderFailureLogKeepsBoundedCause(t *testing.T) {
 		if !strings.Contains(body, required) {
 			t.Fatalf("initialization Provider failure log missing %q", required)
 		}
+	}
+}
+
+func TestInitializationProviderCauseCodePreservesStructuredParseFailure(t *testing.T) {
+	if got := initializationProviderCauseCode(errors.New("initialization_response_invalid_json")); got != "initialization_response_invalid_json" {
+		t.Fatalf("structured parse cause code = %q", got)
+	}
+	if got := initializationProviderCauseCode(fmt.Errorf("provider request failed: %w", context.DeadlineExceeded)); got != "request_timeout" {
+		t.Fatalf("timeout cause code = %q", got)
+	}
+}
+
+func TestInitializationStructuredCandidateAcceptsEmbeddedCompleteJSONFence(t *testing.T) {
+	payload := map[string]any{
+		"core_persona": map[string]any{
+			"identity": map[string]any{"name": "岚音", "notes": strings.Repeat("完整设定", 3100)},
+		},
+		"initial_relationships": []any{},
+		"initial_goals":         []any{},
+		"initial_intentions":    []any{},
+	}
+	content := "以下是完整初始化对象：\n```json\n" + jsonString(payload) + "\n```\n以上内容已经按要求整理。"
+	if len([]rune(content)) <= 12000 {
+		t.Fatalf("fixture is too short: %d", len([]rune(content)))
+	}
+	candidates := providerStructuredCandidates(map[string]any{"content": content})
+	parsed, ok := parseStructuredCandidates(candidates)
+	if !ok || stringValue(mapValue(mapValue(parsed["core_persona"])["identity"])["name"]) != "岚音" {
+		t.Fatalf("complete embedded initialization JSON was rejected: ok=%v field_count=%d", ok, len(parsed))
+	}
+	truncated := "前置说明\n```json\n" + jsonString(payload)[:6000]
+	if _, ok := parseStructuredCandidates(providerStructuredCandidates(map[string]any{"content": truncated})); ok {
+		t.Fatal("truncated initialization JSON was accepted")
+	}
+}
+
+func TestInitializationNonEmptyParseFailureIsTypedAndMetadataOnly(t *testing.T) {
+	const privateCanary = "PRIVATE_INITIALIZATION_CARD_CANARY"
+	truncatedCandidate := `{"core_persona":{"identity":{"name":"` + privateCanary
+	candidates := []string{truncatedCandidate}
+	if _, ok, err := parseStructuredCandidatesForRole("initialization", candidates); ok || err == nil || err.Error() != "initialization_response_invalid_json" {
+		t.Fatalf("non-empty parse failure = ok=%v err=%v", ok, err)
+	}
+	diagnostic := providerResponseDiagnostic(map[string]any{"content": truncatedCandidate}, candidates, 0)
+	addStructuredParseFailureDiagnostic(diagnostic, candidates, "length")
+	if diagnostic["parse_error"] != "structured_response_truncated" || diagnostic["finish_reason"] != "length" || diagnostic["delimiters_balanced"] != false {
+		t.Fatalf("truncated diagnostic = %#v", diagnostic)
+	}
+	metadata := providerDiagnosticResponse("initialization", diagnostic)
+	encoded := jsonString(metadata)
+	if strings.Contains(encoded, privateCanary) || !strings.Contains(encoded, "structured_response_truncated") || !strings.Contains(encoded, "candidate_lengths") {
+		t.Fatalf("initialization parse metadata leaked or lost structure: %s", encoded)
+	}
+
+	invalidCandidate := `{"core_persona":,}`
+	invalidDiagnostic := providerResponseDiagnostic(map[string]any{"content": invalidCandidate}, []string{invalidCandidate}, 0)
+	addStructuredParseFailureDiagnostic(invalidDiagnostic, []string{invalidCandidate}, "stop")
+	if invalidDiagnostic["parse_error"] != "structured_response_invalid_json" || intValue(invalidDiagnostic["syntax_offset"]) <= 0 {
+		t.Fatalf("invalid JSON diagnostic = %#v", invalidDiagnostic)
+	}
+	if _, ok, err := parseStructuredCandidatesForRole("cognitive_assessment", candidates); ok || err != nil {
+		t.Fatalf("non-initialization fallback behavior changed: ok=%v err=%v", ok, err)
 	}
 }
 

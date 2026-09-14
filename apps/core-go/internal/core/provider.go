@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -53,7 +54,7 @@ type providerAssignment struct {
 }
 
 const (
-	initializationMinimumOutputReserveTokens = 6144
+	initializationMinimumOutputReserveTokens = 8192
 	initializationMinimumRequestTimeout      = 10 * time.Minute
 )
 
@@ -328,6 +329,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_choice_invalid")
 			return ProviderCompletion{}, fmt.Errorf("provider response choice is invalid")
 		}
+		finishReason := strings.TrimSpace(stringValue(choice["finish_reason"]))
 		message, ok := choice["message"].(map[string]any)
 		if !ok {
 			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_message_invalid")
@@ -345,19 +347,27 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		// enabled, while leaving message.content empty. Treat that field as a
 		// structured control channel only; it is never exposed as visible text.
 		structuredCandidates := providerStructuredCandidates(message)
+		parsedStructured, parsedStructuredOK, structuredParseErr := parseStructuredCandidatesForRole(role, structuredCandidates)
+		if structuredParseErr != nil {
+			diagnostic := providerResponseDiagnostic(message, structuredCandidates, len(calls))
+			addStructuredParseFailureDiagnostic(diagnostic, structuredCandidates, finishReason)
+			logStructuredParseFailure(role, normalizationSchemaName, diagnostic)
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, structuredParseErr.Error(), diagnostic)
+			return ProviderCompletion{}, structuredParseErr
+		}
 		completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
 		var normalizedFields []string
 		if len(calls) > 0 {
 			for index := range completion.ToolCalls {
 				completion.ToolCalls[index].SourceFactID = ""
 			}
-			if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
-				completion.Structured, normalizedFields = normalizeProviderStructured(structured, normalizationSchemaName, structuredSchema)
-				logStructuredNormalization(role, schemaName, normalizedFields, len(calls), len(structuredCandidates), false, message)
+			if parsedStructuredOK {
+				completion.Structured, normalizedFields = normalizeProviderStructured(parsedStructured, normalizationSchemaName, structuredSchema)
+				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, len(calls), len(structuredCandidates), false, message)
 			} else if jsonMode {
 				completion.Structured, normalizedFields = emptyProviderStructured(normalizationSchemaName, structuredSchema)
 				completion.StructuredFallback = true
-				logStructuredNormalization(role, schemaName, normalizedFields, len(calls), len(structuredCandidates), true, message)
+				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, len(calls), len(structuredCandidates), true, message)
 			}
 			providerResponse := map[string]any{"tool_calls": completion.ToolCalls, "text": content, "structured": completion.Structured}
 			if len(normalizedFields) > 0 {
@@ -370,7 +380,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			if jsonMode {
 				completion.Structured, normalizedFields = emptyProviderStructured(normalizationSchemaName, structuredSchema)
 				completion.StructuredFallback = true
-				logStructuredNormalization(role, schemaName, normalizedFields, 0, 0, true, message)
+				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, 0, 0, true, message)
 				p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured, "normalization": "empty"})
 				return completion, nil
 			}
@@ -378,11 +388,11 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			return ProviderCompletion{}, fmt.Errorf("provider response content is empty")
 		}
 		if jsonMode || len(definitions) > 0 {
-			if structured, ok := parseStructuredCandidates(structuredCandidates); ok {
-				completion.Structured, normalizedFields = normalizeProviderStructured(structured, normalizationSchemaName, structuredSchema)
-				logStructuredNormalization(role, schemaName, normalizedFields, 0, len(structuredCandidates), false, message)
+			if parsedStructuredOK {
+				completion.Structured, normalizedFields = normalizeProviderStructured(parsedStructured, normalizationSchemaName, structuredSchema)
+				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, 0, len(structuredCandidates), false, message)
 				if len(definitions) > 0 {
-					logToolCallShapeNormalization(role, schemaName, "structured", structured["tool_calls"])
+					logToolCallShapeNormalization(role, schemaName, "structured", parsedStructured["tool_calls"])
 					calls, callErr := NormalizeProviderToolCalls(completion.Structured["tool_calls"], "", providerRequestID)
 					if callErr != nil {
 						p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
@@ -393,7 +403,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			} else if jsonMode {
 				completion.Structured, normalizedFields = emptyProviderStructured(normalizationSchemaName, structuredSchema)
 				completion.StructuredFallback = true
-				logStructuredNormalization(role, schemaName, normalizedFields, 0, len(structuredCandidates), true, message)
+				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, 0, len(structuredCandidates), true, message)
 			}
 		}
 		providerResponse := map[string]any{"text": content, "structured": completion.Structured}
@@ -475,6 +485,17 @@ func parseStructuredCandidates(candidates []string) (map[string]any, bool) {
 	return nil, false
 }
 
+func parseStructuredCandidatesForRole(role string, candidates []string) (map[string]any, bool, error) {
+	structured, ok := parseStructuredCandidates(candidates)
+	if ok {
+		return structured, true, nil
+	}
+	if role == "initialization" && len(candidates) > 0 {
+		return nil, false, errors.New("initialization_response_invalid_json")
+	}
+	return nil, false, nil
+}
+
 // parseStructuredCandidate handles protocol framing added by otherwise
 // OpenAI-compatible Providers. In particular, thinking-enabled local models
 // may wrap their JSON in a <think> block, a Markdown JSON fence, or encode the
@@ -537,6 +558,16 @@ func parseStructuredCandidate(candidate string, depth int) (map[string]any, bool
 		}
 	}
 
+	// A Provider may add a short explanation before and after an otherwise
+	// complete Markdown JSON fence. The fence is an explicit transport boundary,
+	// so extracting its complete body is safer than scanning arbitrary prose for
+	// braces. Unclosed fences and invalid/truncated bodies remain rejected.
+	if fenced := embeddedStructuredFence(candidate); fenced != "" {
+		if structured, ok := parseStructuredCandidate(fenced, depth+1); ok {
+			return structured, true
+		}
+	}
+
 	// A few thinking adapters omit the XML/fence marker and leave a short
 	// transport prelude before the final object. Accept only a balanced object
 	// that extends to the end of the designated structured channel; an object
@@ -547,6 +578,44 @@ func parseStructuredCandidate(candidate string, depth int) (map[string]any, bool
 		}
 	}
 	return nil, false
+}
+
+func embeddedStructuredFence(value string) string {
+	searchFrom := 0
+	for searchFrom < len(value) {
+		openOffset := strings.Index(value[searchFrom:], "```")
+		if openOffset < 0 {
+			return ""
+		}
+		open := searchFrom + openOffset
+		lineEndOffset := strings.IndexByte(value[open:], '\n')
+		if lineEndOffset < 0 {
+			return ""
+		}
+		lineEnd := open + lineEndOffset
+		marker := strings.TrimSpace(value[open:lineEnd])
+		if marker != "```" && !strings.EqualFold(marker, "```json") {
+			searchFrom = open + 3
+			continue
+		}
+		bodyStart := lineEnd + 1
+		closeOffset := strings.Index(value[bodyStart:], "\n```")
+		if closeOffset < 0 {
+			return ""
+		}
+		close := bodyStart + closeOffset
+		closeLineStart := close + 1
+		closeLineEnd := len(value)
+		if endOffset := strings.IndexByte(value[closeLineStart:], '\n'); endOffset >= 0 {
+			closeLineEnd = closeLineStart + endOffset
+		}
+		if strings.TrimSpace(value[closeLineStart:closeLineEnd]) != "```" {
+			searchFrom = open + 3
+			continue
+		}
+		return strings.TrimSpace(value[bodyStart:close])
+	}
+	return ""
 }
 
 func trailingJSONObject(value string) string {
@@ -618,6 +687,106 @@ func providerResponseDiagnostic(message map[string]any, candidates []string, too
 		lengths[index] = len([]rune(candidate))
 	}
 	return result
+}
+
+func addStructuredParseFailureDiagnostic(diagnostic map[string]any, candidates []string, finishReason string) {
+	if diagnostic == nil {
+		return
+	}
+	finishReason = strings.TrimSpace(finishReason)
+	if finishReason == "" || !validLifecycleToken(finishReason, 64, false) {
+		finishReason = "unknown"
+	}
+	diagnostic["finish_reason"] = finishReason
+	if len(candidates) == 0 {
+		diagnostic["parse_error"] = "structured_response_empty"
+		return
+	}
+	candidate := strings.TrimSpace(candidates[0])
+	framing := "plain"
+	if strings.Contains(candidate, "```") {
+		framing = "markdown_fence"
+	} else if strings.Contains(candidate, "<think>") || strings.Contains(candidate, "</think>") {
+		framing = "thinking_wrapper"
+	} else if strings.HasPrefix(candidate, `"`) {
+		framing = "encoded_string"
+	}
+	diagnostic["framing"] = framing
+	balanced := structuredDelimitersBalanced(candidate)
+	diagnostic["delimiters_balanced"] = balanced
+	if finishReason == "length" || !balanced || (framing == "markdown_fence" && embeddedStructuredFence(candidate) == "" && strings.Count(candidate, "```")%2 != 0) {
+		diagnostic["parse_error"] = "structured_response_truncated"
+		return
+	}
+	var decoded any
+	err := json.Unmarshal([]byte(candidate), &decoded)
+	if err == nil {
+		diagnostic["parse_error"] = "structured_root_not_object"
+		return
+	}
+	var syntaxError *json.SyntaxError
+	if errors.As(err, &syntaxError) {
+		diagnostic["syntax_offset"] = int(syntaxError.Offset)
+	}
+	diagnostic["parse_error"] = "structured_response_invalid_json"
+}
+
+func structuredDelimitersBalanced(value string) bool {
+	stack := make([]byte, 0, 8)
+	inString := false
+	escaped := false
+	for index := 0; index < len(value); index++ {
+		character := value[index]
+		if inString {
+			if escaped {
+				escaped = false
+			} else if character == '\\' {
+				escaped = true
+			} else if character == '"' {
+				inString = false
+			}
+			continue
+		}
+		if character == '"' {
+			inString = true
+			continue
+		}
+		switch character {
+		case '{', '[':
+			stack = append(stack, character)
+		case '}', ']':
+			if len(stack) == 0 {
+				return false
+			}
+			expected := byte('{')
+			if character == ']' {
+				expected = '['
+			}
+			if stack[len(stack)-1] != expected {
+				return false
+			}
+			stack = stack[:len(stack)-1]
+		}
+	}
+	return !inString && len(stack) == 0
+}
+
+func logStructuredParseFailure(role, schemaName string, diagnostic map[string]any) {
+	slog.Default().Warn("Go Core Provider structured response rejected",
+		"role", role,
+		"schema", schemaName,
+		"parse_error", diagnostic["parse_error"],
+		"finish_reason", diagnostic["finish_reason"],
+		"framing", diagnostic["framing"],
+		"candidate_count", diagnostic["candidate_count"],
+		"candidate_lengths", diagnostic["candidate_lengths"],
+		"delimiters_balanced", diagnostic["delimiters_balanced"],
+		"syntax_offset", diagnostic["syntax_offset"],
+		"content_present", diagnostic["content_present"],
+		"content_length", diagnostic["content_length"],
+		"reasoning_content_present", diagnostic["reasoning_content_present"],
+		"reasoning_content_length", diagnostic["reasoning_content_length"],
+	)
 }
 
 func providerChatPayload(model string, messages []map[string]any, tokenBudget int, jsonMode bool, definitions []CapabilityDefinition) map[string]any {
@@ -818,7 +987,35 @@ func providerDiagnosticResponse(role string, response any) any {
 		return response
 	}
 	encoded, _ := json.Marshal(response)
-	return map[string]any{"diagnostic_scope": "metadata_only", "response_bytes": len(encoded), "response_digest": stableDigest(string(encoded))}
+	result := map[string]any{"diagnostic_scope": "metadata_only", "response_bytes": len(encoded), "response_digest": stableDigest(string(encoded))}
+	diagnostic := mapValue(response)
+	for _, key := range []string{"content_present", "content_length", "reasoning_content_present", "reasoning_content_length", "candidate_count", "tool_call_count", "delimiters_balanced", "syntax_offset"} {
+		switch value := diagnostic[key].(type) {
+		case bool:
+			result[key] = value
+		case int:
+			result[key] = value
+		case int64:
+			result[key] = value
+		case float64:
+			if value >= 0 {
+				result[key] = value
+			}
+		}
+	}
+	for _, key := range []string{"parse_error", "finish_reason", "framing"} {
+		if value := strings.TrimSpace(stringValue(diagnostic[key])); validLifecycleToken(value, 128, false) && value != "" {
+			result[key] = value
+		}
+	}
+	lengths := arrayValue(diagnostic["candidate_lengths"])
+	if len(lengths) > 4 {
+		lengths = lengths[:4]
+	}
+	if len(lengths) > 0 {
+		result["candidate_lengths"] = lengths
+	}
+	return result
 }
 
 func (p *ProviderClient) recordProviderPreflightFailure(ctx context.Context, assignment providerAssignment, role, correlationID, stage string, messages []map[string]any, preflightErr error) {

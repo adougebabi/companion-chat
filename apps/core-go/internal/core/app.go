@@ -323,7 +323,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, actorID, description strin
 			"correlation_id", correlationID,
 			"validation_type", failure.ValidationType,
 			"path", failure.Path,
-			"provider_error_code", providerRunErrorCode(err),
+			"provider_error_code", initializationProviderCauseCode(err),
 			"retryable", failure.Retryable,
 			"error_type", fmt.Sprintf("%T", err),
 			"safe_cause", boundedLifecycleCause(err.Error()),
@@ -417,6 +417,14 @@ func initializationProviderErrorCode(err error) string {
 		return "initialization_role_unconfigured"
 	}
 	return "initialization_provider_unavailable"
+}
+
+func initializationProviderCauseCode(err error) string {
+	code := strings.TrimSpace(err.Error())
+	if safeInitializationErrorCode(code) {
+		return code
+	}
+	return providerRunErrorCode(err)
 }
 
 func safeInitializationErrorCode(code string) bool {

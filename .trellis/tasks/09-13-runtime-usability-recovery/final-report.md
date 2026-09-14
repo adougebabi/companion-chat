@@ -200,13 +200,25 @@ without queue delay, consumed the full 300-second configured timeout, and was
 cancelled before a response. A prior successful run consumed all 4,096 output
 tokens in 212.473 seconds, while the S12 fidelity gate used 6,144 tokens.
 
-The accepted runtime now derives 6,144 output tokens and a ten-minute timeout
+The accepted runtime now derives 8,192 output tokens and a ten-minute timeout
 only for initialization, subject to the existing context-window safety guard.
 Provider timeouts are returned as `initialization_provider_timeout`, persisted
 as one `timeout/request_timeout` model run, and logged with a bounded safe cause.
 A late differing terminal callback preserves the first terminal row and no
 longer produces a false `diagnostic_model_run_state_not_written` warning.
 
-The corrected production-equivalent Live test passed against the configured
-27B Provider in 119.14 seconds. Core full/race/vet/build, PostgreSQL regression,
-Web exact test/typecheck, gofmt, and diff checks also passed.
+The initial production-equivalent 6,144-token Live test passed against the
+configured 27B Provider in 119.14 seconds. A later real card attempt proved that
+6,144 could still truncate: its model run consumed exactly all 6,144 completion
+tokens and Core received 13,680 characters of incomplete JSON.
+
+The final initialization floor is therefore 8,192 tokens. Non-empty parse
+failure now returns `initialization_response_invalid_json`, while
+`finish_reason=length` is recorded as `structured_response_truncated` with only
+metadata-safe framing/length/balance/offset fields. Complete embedded Markdown
+JSON fences are accepted; partial JSON is never repaired or activated.
+
+The final 8,192-token configured-Provider run completed with
+`finish_reason=stop`, 1,590 completion tokens, full semantic coverage and PASS
+in 80.50 seconds. Core full/race/vet/build, PostgreSQL regression, Web exact
+test/typecheck, gofmt, diff, and task checks passed.

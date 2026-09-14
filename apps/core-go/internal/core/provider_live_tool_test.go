@@ -153,7 +153,10 @@ func privateLiveProviderMessage(t *testing.T, baseURL string, payload map[string
 	if len(choices) == 0 {
 		t.Fatal("private initialization Provider returned no choices")
 	}
-	message := mapValue(mapValue(choices[0])["message"])
+	choice := mapValue(choices[0])
+	usage := normalizeProviderUsage(envelope)
+	t.Logf("private initialization Provider finish_reason=%q prompt_tokens=%d completion_tokens=%d", stringValue(choice["finish_reason"]), intValue(usage["prompt_tokens"]), intValue(usage["completion_tokens"]))
+	message := mapValue(choice["message"])
 	if len(message) == 0 {
 		t.Fatal("private initialization Provider returned invalid message")
 	}

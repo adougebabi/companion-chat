@@ -1046,7 +1046,7 @@ or credential value, established:
   inference deadline, not response-format validation or an unreachable model.
 
 The S12 Live harness had used 6,144 tokens while production still used the
-4,096 generic binding. Production now applies the same 6,144-token fidelity
+4,096 generic binding. Production now applies an 8,192-token fidelity
 floor and a ten-minute initialization-only timeout when the configured context
 window can safely contain it. Other scenarios keep their persisted values.
 
@@ -1071,7 +1071,7 @@ Final validation after this regression fix:
 - Core race: PASS;
 - Core vet/build: PASS;
 - Web creation-message exact test and Vue typecheck: PASS;
-- real configured Provider dense multi initialization with the production
+- real configured Provider dense multi initialization with the then-current
   6,144-token/ten-minute constants: PASS in 119.14 seconds;
 - repository gofmt and `git diff --check`: PASS after documentation updates.
 
@@ -1130,3 +1130,107 @@ final checks.
 - [x] Added task-local PostgreSQL and Live evidence.
 - [ ] Global template sync and commit intentionally withheld because they are
       outside the approved stage allowlist and no commit authorization exists.
+
+### S12 post-acceptance non-empty initialization truncation regression
+
+The next latest-image attempt used correlation
+`initialization-analysis:ae0c2b1541313f8df593dc3e9ef94d6d`. Runtime logs
+showed one 13,680-character content candidate, no reasoning candidate, empty
+normalized fields and StructuredFallback. Core then rejected it as semantic
+empty.
+
+Read-only model-run metadata proved the candidate was truncated rather than
+semantically empty:
+
+- model run `model_run_6865909361493302fcbf9ea78051d3dc`;
+- `actual_completion_tokens=6144` exactly equalled
+  `output_reserve_tokens=6144`;
+- actual prompt tokens were 7,468 and estimated input was 22,330;
+- Provider latency was 271.959 seconds;
+- the full response body and character card were not read or persisted.
+
+The initialization floor is now 8,192 tokens. Under the deployed
+65,536-context / 49,152-max-input / 4,096-safety configuration this remains
+inside the 12,288-token safe output headroom. The ten-minute initialization
+timeout remains sufficient for the observed model rate.
+
+Parser/error handling was also corrected:
+
+- complete JSON inside an explicit Markdown fence is accepted even when a
+  short explanation surrounds the fence;
+- non-empty unparseable initialization content returns
+  `initialization_response_invalid_json` directly instead of becoming an empty
+  fallback and then `initialization_response_semantic_empty`;
+- `finish_reason=length` or unbalanced delimiters records
+  `structured_response_truncated`;
+- model-run/log metadata includes finish reason, framing, candidate
+  lengths/count, delimiter balance and syntax offset, but never candidate text;
+- truncated JSON is never repaired by appending delimiters or activated as a
+  partial/default Persona.
+
+The exact embedded-fence regression failed before the parser fix and passed
+after it. Deterministic wrapper/truncation/metadata-only tests pass. A first
+8,192-token Live Provider run parsed successfully but exposed an evaluator
+alias issue: canonical key `selfies` was incorrectly contradicted by a
+Chinese-only `contains:"自拍"` assertion. The manifest now uses the existing
+`contains_any:["自拍","selfies"]` semantic matcher. The rerun passed:
+
+    finish_reason="stop"
+    prompt_tokens=1507
+    completion_tokens=1590
+    TestLiveProviderDenseMultiInitialization: PASS (80.50s)
+
+Final Core full test, race, vet/build, gofmt, diff and Trellis task validation
+all passed after these changes.
+
+## Bug Analysis: Non-empty initialization became semantic-empty
+
+### 1. Root Cause Category
+
+- **Category**: C / D / E — change propagation failure, Live coverage gap, and
+  implicit output-budget assumption.
+- **Specific cause**: the first timeout fix synchronized production with the
+  then-current 6,144-token Live value, but the Owner's denser card consumed
+  exactly all 6,144 tokens. The resulting partial JSON failed parsing and was
+  converted into an empty fallback, which erased the distinction between
+  truncated transport and genuinely empty semantics.
+
+### 2. Why Earlier Fixes Failed
+
+1. Raising timeout solved the 300-second cancellation but could not complete a
+   response capped at 6,144 output tokens.
+2. A constructed fixture passed at 6,144, but it was not as output-dense as the
+   later real card; the gate did not assert `finish_reason` or token saturation.
+3. Parser diagnostics retained only candidate count/length, so truncation and a
+   recoverable known wrapper both appeared as the same empty fallback.
+
+### 3. Prevention Mechanisms
+
+| Priority | Mechanism | Specific action | Status |
+| --- | --- | --- | --- |
+| P0 | Runtime budget | Raise initialization-only reserve to 8,192 within the existing context guard | DONE |
+| P0 | Error boundary | Non-empty parse failure returns `initialization_response_invalid_json` before fallback | DONE |
+| P0 | Safety | Never repair or activate truncated JSON | DONE |
+| P0 | Diagnostics | Persist finish/framing/length/balance/syntax metadata without response text | DONE |
+| P0 | Live test | Log finish/token use and require configured-Provider semantic coverage | DONE |
+| P1 | Parser | Accept only complete explicit embedded Markdown fences | DONE |
+
+### 4. Systematic Expansion
+
+- **Similar issues**: any structured role that turns parse failure into typed
+  empties can erase whether the Provider returned nothing, a wrapper, or a
+  truncated document.
+- **Design improvement**: transport-wrapper removal, parse failure, shape
+  normalization, and semantic validation are distinct ordered stages.
+- **Process improvement**: Live acceptance records finish reason and actual
+  completion tokens; a pass without saturation evidence is insufficient for a
+  large structured-output contract.
+
+### 5. Knowledge Capture
+
+- [x] Updated Provider parsing/budget contract.
+- [x] Updated Persona initialization error contract.
+- [x] Updated Diagnostics metadata-only parse contract.
+- [x] Added red/green parser, truncation and Live evidence.
+- [ ] Template sync and commit remain withheld pending authorization and stage
+      boundary expansion.

@@ -84,7 +84,9 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
   exact analysis, while activation uses `analysis_id` only as source authority.
 - Initialization model-run rows are metadata-only by default: message count,
   estimated input tokens, prompt/response byte counts and digests, model,
-  timing, status, safe error, and coverage counts. Original character-card
+  timing, status, safe error, coverage counts, finish reason, structured
+  framing, candidate lengths/count, delimiter balance and JSON syntax offset.
+  Original character-card
   text, complete structured response, field derivations, and accepted source
   projection are excluded from ordinary Diagnostics and exist only behind the
   Owner-authorized initialization-source detail boundary.
@@ -108,6 +110,7 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 | Workflow runtime is unavailable while reading diagnostics | Keep loaded events/model runs visible; show a workflow-only unavailable state. |
 | Expected active WakeUp passes due plus grace with no durable progress | Emit one transition-deduped `overdue` event with the stable cycle correlation. |
 | Initialization diagnostics are queried/exported | Return metadata only; never include source text or the complete Provider response. |
+| Initialization content is non-empty but parse fails | Persist/log only structural metadata and the typed parse category; never collapse it into semantic-empty or expose the candidate text. |
 | Owner opens diagnostics from Settings | Invoke the same loader as a filter submission; do not only mutate the active view. |
 
 ### 5. Good / Base / Bad Cases
@@ -132,7 +135,8 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
   surface/status, retain PostgreSQL snapshots during Temporal failure, render
   no-op/retry/failure/overdue distinctly, and traverse a complete correlation.
 - Initialization tests assert ordinary rows/export contain metadata/digests but
-  not source text, full response, structured projection, or derivation evidence.
+  not source text, full response, structured projection, or derivation evidence;
+  truncated/invalid candidates retain finish/framing/length/balance/offset.
 
 ### 7. Wrong vs Correct
 
