@@ -15,7 +15,7 @@ const (
 	defaultOutputReserveTokens      = 4096
 	defaultPromptSafetyMarginTokens = 4096
 	promptBudgetPolicyVersionV1     = "prompt-budget.v1"
-	defaultSystemTokensCap          = 8192
+	defaultSystemTokensCap          = 16384
 	defaultToolsSchemaTokensCap     = 24576
 	defaultCurrentInputTokensCap    = 16384
 	defaultPromptImageTokens        = 1536
