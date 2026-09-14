@@ -103,7 +103,11 @@ func validAssembledProviderMessages(messages []map[string]any) bool {
 	systemCount := 0
 	for index, message := range messages {
 		role := stringValue(message["role"])
-		if strings.TrimSpace(stringValue(message["content"])) == "" {
+		if parts, ok := message["content"].([]any); ok {
+			if len(parts) == 0 {
+				return false
+			}
+		} else if strings.TrimSpace(stringValue(message["content"])) == "" {
 			return false
 		}
 		switch role {

@@ -127,3 +127,63 @@ func TestPromptBudgetConfigurationUsesOutputReserveAndSafetyMargin(t *testing.T)
 		t.Fatalf("unknown policy error = %v", err)
 	}
 }
+
+func TestPromptEstimatorHandlesMultimodalImages(t *testing.T) {
+	fakeBase64Image := "data:image/png;base64," + strings.Repeat("a", 2000000)
+
+	// String containing raw Base64 data URL
+	rawStringTokens := EstimatePromptTokens(fakeBase64Image)
+	if rawStringTokens < defaultPromptImageTokens || rawStringTokens > defaultPromptImageTokens+50 {
+		t.Fatalf("EstimatePromptTokens(raw base64 string) = %d, expected ~%d", rawStringTokens, defaultPromptImageTokens)
+	}
+
+	// Multimodal image part map
+	imagePart := map[string]any{
+		"type": "image_url",
+		"image_url": map[string]any{
+			"url": fakeBase64Image,
+		},
+	}
+	partTokens := EstimatePromptTokens(imagePart)
+	if partTokens < defaultPromptImageTokens || partTokens > defaultPromptImageTokens+50 {
+		t.Fatalf("EstimatePromptTokens(imagePart) = %d, expected ~%d", partTokens, defaultPromptImageTokens)
+	}
+
+	// Multimodal image part with low detail
+	lowDetailPart := map[string]any{
+		"type": "image_url",
+		"image_url": map[string]any{
+			"url":    fakeBase64Image,
+			"detail": "low",
+		},
+	}
+	lowTokens := EstimatePromptTokens(lowDetailPart)
+	if lowTokens < defaultPromptLowDetailImage || lowTokens > defaultPromptLowDetailImage+50 {
+		t.Fatalf("EstimatePromptTokens(lowDetailPart) = %d, expected ~%d", lowTokens, defaultPromptLowDetailImage)
+	}
+
+	// Two messages structure matching visual_identity_vision
+	messages := []map[string]any{
+		{
+			"role":    "system",
+			"content": "Inspect the candidate image.",
+		},
+		{
+			"role": "user",
+			"content": []any{
+				map[string]any{"type": "text", "text": "Please analyze this image."},
+				imagePart,
+			},
+		},
+	}
+	messagesTokens := EstimatePromptTokens(messages)
+	// Should be around ~1,600 tokens, far below 98304 and definitely not 800,000+
+	if messagesTokens < 1500 || messagesTokens > 2000 {
+		t.Fatalf("EstimatePromptTokens(multimodal messages) = %d, expected between 1500 and 2000", messagesTokens)
+	}
+
+	wireEstimate := estimatePromptWireInput(messages, nil, nil)
+	if wireEstimate > defaultMaxInputTokens {
+		t.Fatalf("wireEstimate = %d exceeded max input tokens %d", wireEstimate, defaultMaxInputTokens)
+	}
+}

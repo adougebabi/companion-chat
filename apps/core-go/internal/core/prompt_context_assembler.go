@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,6 +18,8 @@ const (
 	defaultSystemTokensCap          = 8192
 	defaultToolsSchemaTokensCap     = 24576
 	defaultCurrentInputTokensCap    = 16384
+	defaultPromptImageTokens        = 1536
+	defaultPromptLowDetailImage     = 85
 )
 
 var ErrPromptRequiredBudgetExceeded = errors.New("prompt_required_budget_exceeded")
@@ -69,23 +72,122 @@ func (policy PromptBudgetPolicy) Validate() error {
 	return validatePromptBudgetConfiguration(policy.ContextWindowTokens, policy.MaxInputTokens, policy.OutputReserveTokens, policy.Version)
 }
 
-func EstimatePromptTokens(value any) int {
-	var text string
-	if raw, ok := value.(string); ok {
-		text = raw
-	} else {
-		encoded, err := json.Marshal(value)
-		if err != nil {
-			return 0
-		}
-		text = string(encoded)
+var dataImageRegex = regexp.MustCompile(`data:image/[a-zA-Z0-9.+_-]+;base64,[A-Za-z0-9+/=\r\n]+`)
+
+func isImageContentPart(m map[string]any) bool {
+	if m == nil {
+		return false
 	}
+	if stringValue(m["type"]) == "image_url" {
+		return true
+	}
+	if _, ok := m["image_url"]; ok {
+		return true
+	}
+	return false
+}
+
+func estimateImagePartTokens(m map[string]any) int {
+	detail := ""
+	if imgObj, ok := m["image_url"].(map[string]any); ok {
+		detail = strings.ToLower(strings.TrimSpace(stringValue(imgObj["detail"])))
+	}
+	if detail == "" {
+		detail = strings.ToLower(strings.TrimSpace(stringValue(m["detail"])))
+	}
+	if detail == "low" {
+		return defaultPromptLowDetailImage
+	}
+	return defaultPromptImageTokens
+}
+
+func sanitizeStringPromptTokens(s string) (string, int) {
+	if !strings.Contains(s, "data:image/") {
+		return s, 0
+	}
+	matches := dataImageRegex.FindAllStringIndex(s, -1)
+	if len(matches) == 0 {
+		return s, 0
+	}
+	imageTokens := len(matches) * defaultPromptImageTokens
+	cleaned := dataImageRegex.ReplaceAllString(s, "[image]")
+	return cleaned, imageTokens
+}
+
+func sanitizeForPromptTokenEstimation(value any) (any, int) {
+	if value == nil {
+		return nil, 0
+	}
+	switch v := value.(type) {
+	case string:
+		return sanitizeStringPromptTokens(v)
+	case map[string]any:
+		if isImageContentPart(v) {
+			tokens := estimateImagePartTokens(v)
+			return map[string]any{"type": "image_url"}, tokens
+		}
+		sanitizedMap := make(map[string]any, len(v))
+		totalImageTokens := 0
+		for k, val := range v {
+			sVal, imgTok := sanitizeForPromptTokenEstimation(val)
+			sanitizedMap[k] = sVal
+			totalImageTokens += imgTok
+		}
+		return sanitizedMap, totalImageTokens
+	case []map[string]any:
+		sanitizedSlice := make([]map[string]any, len(v))
+		totalImageTokens := 0
+		for i, item := range v {
+			sItem, imgTok := sanitizeForPromptTokenEstimation(item)
+			if m, ok := sItem.(map[string]any); ok {
+				sanitizedSlice[i] = m
+			} else {
+				sanitizedSlice[i] = item
+			}
+			totalImageTokens += imgTok
+		}
+		return sanitizedSlice, totalImageTokens
+	case []any:
+		sanitizedSlice := make([]any, len(v))
+		totalImageTokens := 0
+		for i, item := range v {
+			sItem, imgTok := sanitizeForPromptTokenEstimation(item)
+			sanitizedSlice[i] = sItem
+			totalImageTokens += imgTok
+		}
+		return sanitizedSlice, totalImageTokens
+	default:
+		return value, 0
+	}
+}
+
+func estimateRawTextTokens(text string) int {
 	bytesUnits := (len([]byte(text)) + 2) / 3
 	runeUnits := len([]rune(text))
 	if runeUnits > bytesUnits {
 		bytesUnits = runeUnits
 	}
 	return (bytesUnits*5 + 3) / 4
+}
+
+func EstimatePromptTokens(value any) int {
+	sanitized, imageTokens := sanitizeForPromptTokenEstimation(value)
+	var text string
+	if raw, ok := sanitized.(string); ok {
+		text = raw
+	} else {
+		encoded, err := json.Marshal(sanitized)
+		if err != nil {
+			return imageTokens
+		}
+		text = string(encoded)
+		if strings.Contains(text, "data:image/") {
+			cleaned, extraTokens := sanitizeStringPromptTokens(text)
+			text = cleaned
+			imageTokens += extraTokens
+		}
+	}
+	return estimateRawTextTokens(text) + imageTokens
 }
 
 func estimateProviderMessageTokens(message map[string]any) int {
