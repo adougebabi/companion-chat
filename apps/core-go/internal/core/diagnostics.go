@@ -333,6 +333,13 @@ func providerRunErrorCode(err error) string {
 	if err == nil {
 		return ""
 	}
+	// Tool-call normalization is a protocol failure, rather than a generic
+	// transport/provider failure. Keep this classification on the queue callback
+	// path as well as the immediate Provider response path so the terminal model
+	// run cannot be relabelled as `provider_request_failed` by a late state update.
+	if providerToolCallInvalidError(err) {
+		return "tool_call_invalid"
+	}
 	if errors.Is(err, errProviderPaused) {
 		return "fluctlight_paused"
 	}
@@ -346,6 +353,51 @@ func providerRunErrorCode(err error) string {
 		return "request_timeout"
 	}
 	return "provider_request_failed"
+}
+
+// ProviderErrorInfo returns the bounded, operator-safe classification for a
+// Provider failure. The second value is populated only for the closed set of
+// tool-call normalization reasons; it never contains model-controlled IDs,
+// names, argument text, or the original error string.
+func ProviderErrorInfo(err error) (code, reason string) {
+	code = providerRunErrorCode(err)
+	if !providerToolCallInvalidError(err) {
+		return code, ""
+	}
+	var normalizationErr *providerToolCallNormalizationError
+	if !errors.As(err, &normalizationErr) || normalizationErr == nil {
+		return code, ""
+	}
+	return code, providerToolCallNormalizationReason(normalizationErr.Reason)
+}
+
+// ProviderErrorCode is the code-only form used by callers that do not need a
+// detailed normalization reason (for example public workflow logs).
+func ProviderErrorCode(err error) string {
+	code, _ := ProviderErrorInfo(err)
+	return code
+}
+
+func providerToolCallInvalidError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var normalizationErr *providerToolCallNormalizationError
+	if errors.As(err, &normalizationErr) && normalizationErr != nil {
+		return true
+	}
+	return strings.TrimSpace(err.Error()) == "tool_call_invalid"
+}
+
+func providerToolCallNormalizationReason(reason string) string {
+	switch strings.TrimSpace(reason) {
+	case "item_not_object", "unsupported_type", "id_required", "name_invalid", "duplicate_id",
+		"arguments_required", "arguments_empty", "arguments_oversized", "arguments_invalid_json",
+		"arguments_not_object":
+		return strings.TrimSpace(reason)
+	default:
+		return ""
+	}
 }
 
 func providerSuppressionStatus(err error) (string, bool) {

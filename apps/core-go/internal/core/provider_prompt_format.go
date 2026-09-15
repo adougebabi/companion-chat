@@ -163,22 +163,22 @@ func renderProviderYAMLValueWithMode(builder *strings.Builder, value any, indent
 					builder.WriteString(" ")
 					builder.WriteString(formatProviderYAMLKey(keys[0]))
 					builder.WriteString(":")
-					writeProviderYAMLChild(builder, object[keys[0]], indent)
+					writeProviderYAMLChildWithMode(builder, object[keys[0]], indent, useTOON)
 					for _, key := range keys[1:] {
 						writeProviderIndent(builder, indent+2)
 						builder.WriteString(formatProviderYAMLKey(key))
 						builder.WriteString(":")
-						writeProviderYAMLChild(builder, object[key], indent+2)
+						writeProviderYAMLChildWithMode(builder, object[key], indent+2, useTOON)
 					}
 				} else {
 					builder.WriteString("\n")
-					renderProviderYAMLValue(builder, object, indent+2)
+					renderProviderYAMLValueWithMode(builder, object, indent+2, useTOON)
 				}
 				continue
 			}
 			if list, ok := item.([]any); ok && len(list) > 0 {
 				builder.WriteString("\n")
-				renderProviderYAMLValue(builder, list, indent+2)
+				renderProviderYAMLValueWithMode(builder, list, indent+2, useTOON)
 				continue
 			}
 			builder.WriteString(" ")

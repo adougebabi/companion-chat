@@ -55,6 +55,16 @@ embed(role, inputs) -> VersionedEmbeddings
 - Every result records role, endpoint/model ID, capability/model version when available, prompt/schema version, timing, token usage/budget, and correlation IDs.
 - No implicit role/model fallback. Failure follows explicit interaction/workflow retry/deferred/no-op/terminal rules.
 - Provider adapter returns normalized transport/structured results and bounded parse diagnostics. It does not parse visible prose for semantic effects or choose domain actions.
+- A direct conversation that requests an ACTION with a visible result (for
+  example `media.image.generate` or a Memory write) must also return the
+  canonical `conversation.reply` invocation in the same Main cognition. An
+  action invocation is not a visible-text carrier, and an action-only response
+  fails closed as `cognition_visible_text_missing`. When a request advertises
+  more than one capability definition, the OpenAI-compatible wire payload sets
+  `parallel_tool_calls=true` to allow that same response to contain both the
+  action and reply calls; a single-capability payload omits the hint. This
+  transport flag does not change Registry validation, execution ordering, or
+  the one `conversation_messages` delivery path.
 - Structured parsing accepts complete known transport wrappers: whole or
   embedded Markdown `json` fences, `<think>` wrappers, double-encoded JSON, and
   a short prelude followed by one terminal object. Embedded-fence extraction
@@ -82,6 +92,7 @@ embed(role, inputs) -> VersionedEmbeddings
 | Initialization reaches its effective deadline | Persist one `timeout/request_timeout` model run and return `initialization_provider_timeout`; do not store a raw URL/error string as `error_code`. |
 | Initialization returns non-empty content that cannot be parsed | Return `initialization_response_invalid_json` directly; do not construct an empty StructuredFallback that later appears as semantic-empty. |
 | Provider reports `finish_reason=length` or delimiters are unbalanced | Record `structured_response_truncated` with framing, candidate lengths, balance and syntax offset metadata; never repair or activate the partial object. |
+| Direct conversation returns a visible-result ACTION without `conversation.reply` | Keep the ACTION uncommitted and fail the turn as `cognition_visible_text_missing`; do not use ACTION arguments or reasoning as visible text. |
 | Provider/model is temporarily unavailable | Report degraded role health; request/workflow handles explicit failure. |
 | API key decryption fails | Configuration error; do not use env/old-key fallback. |
 | Provider returns hidden reasoning/raw diagnostics | Bound/redact and keep out of ordinary result/trace/browser contract. |
@@ -119,6 +130,10 @@ embed(role, inputs) -> VersionedEmbeddings
   double encoding, thinking wrappers, malformed JSON, unbalanced/truncated
   output, non-object root, typed failure, and metadata-only diagnostics.
 - Provider adapter contract suite runs against fake normalized adapters and configured OpenAI-compatible test endpoints.
+- The opt-in live conversation regression asserts that a media ACTION is
+  returned together with `conversation.reply`, that both native calls normalize
+  to canonical capabilities with non-empty reply text, and that Core freezes
+  the reply fallback as visible output without `cognition_visible_text_missing`.
 - Assert every real payload has exactly one leading system message and that
   merging preserves every operation/context/language instruction; media-prompt
   calls may omit the language instruction but follow the same single-system
@@ -208,6 +223,93 @@ workflow["transformer"] = firstAvailableModel()
 markMediaIntentFailed("provider_model_not_available")
 return err
 ```
+
+## Scenario: Bounded Tool-Call Normalization Diagnostics
+
+### 1. Scope / Trigger
+
+- Trigger: an OpenAI-compatible Provider returns malformed native
+  `message.tool_calls` or a malformed structured JSON `tool_calls` sidecar.
+- The Provider boundary must explain why a call could not become a
+  `CapabilityInvocation` without persisting model arguments, user text, or the
+  raw response.
+
+### 2. Signatures
+
+```go
+NormalizeProviderToolCalls(value, sourceFactID, providerRequestID)
+  ([]CapabilityInvocation, error)
+providerToolCallNormalizationDiagnostic(value, source, err)
+  map[string]any
+```
+
+### 3. Contracts
+
+- Both native and structured-sidecar failures use the bounded
+  `tool_call_invalid` model-run error code and retain the original fail-closed
+  normalization behavior. Core must not synthesize a missing call ID.
+- `diagnostic_model_runs.response` may contain only shape metadata: `source`
+  (`native` or `structured`), `value_shape`, `call_count`,
+  `failed_item_index`, `normalization_reason`, and bounded item fields such as
+  `id_present`, `id_type`, `type_value`, `name_present`, `name_length`,
+  `name_valid`, `arguments_present`, `arguments_shape`, and
+  `arguments_length`.
+- Lengths are byte/serialized-shape measurements, and reasons are stable codes
+  such as `id_required`, `name_invalid`, `duplicate_id`,
+  `arguments_invalid_json`, `arguments_not_object`, and
+  `arguments_oversized`.
+- No call ID/name value, argument value, reasoning, user text, or complete
+  Provider response may enter this diagnostic response. Unknown capability
+  names remain a later registry/semantic validation error and are not reported
+  as normalization failures.
+- Worker/activity logs may expose the stable `tool_call_invalid` code and one
+  allowlisted normalization reason through `core.ProviderErrorInfo`; they must
+  omit the original error string so model-controlled IDs, names, and arguments
+  cannot leak through the log path.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| native call item is missing an ID | return `tool_call_invalid`; persist `source=native`, item index, and `id_required` |
+| structured sidecar call item is missing an ID | return `tool_call_invalid`; persist `source=structured`, item index, and `id_required` |
+| arguments are missing, invalid JSON, non-object, or oversized | return `tool_call_invalid` with the corresponding stable reason |
+| duplicate IDs or invalid names/types | return `tool_call_invalid` with the failing item index; do not execute any call |
+| diagnostic contains model-controlled content | omit it; retain only bounded shape fields |
+
+### 5. Good / Base / Bad Cases
+
+- Good: an Owner can distinguish a missing ID from invalid arguments by
+  correlation ID and item index while the diagnostic contains no tool payload.
+- Base: a valid native or sidecar call continues through the existing
+  normalization path unchanged.
+- Bad: log the full arguments, response body, or model reasoning to explain a
+  `tool_call_invalid`, or generate an ID merely to make the call pass.
+
+### 6. Tests Required
+
+- Unit tests cover each stable reason and assert source, call count, failing
+  index, field shapes, and absence of argument canaries.
+- PostgreSQL Provider integration tests exercise native and structured-sidecar
+  failures and assert one failed model run with `error_code=tool_call_invalid`
+  plus the safe response metadata.
+- Regression tests verify successful native/sidecar normalization and confirm
+  malformed calls never reach Capability execution.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
+```
+
+#### Correct
+
+```go
+diagnostic := providerToolCallNormalizationDiagnostic(rawCalls, "native", err)
+p.recordProviderFailure(ctx, assignment, role, correlationID, messages,
+    "tool_call_invalid", diagnostic)
 ```
 
 ## Scenario: Compact Provider Cognition Context

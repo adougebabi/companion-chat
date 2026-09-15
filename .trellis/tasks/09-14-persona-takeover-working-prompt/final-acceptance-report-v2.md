@@ -1,7 +1,7 @@
 # 多重人格接管、Working Persona 与 Prompt 收敛：最终验收报告（复查版）
 
 > 验收日期：2026-09-15  
-> 验收对象：`master@7b26364` 之上的当前未提交工作区  
+> 验收对象：`master@cae648c` 之上的当前未提交工作区
 > 任务：`09-14-persona-takeover-working-prompt`  
 > 设计：[`design.md`](design.md)  
 > 当前交付摘要：[`docs/persona-takeover-delivery-report.md`](../../../docs/persona-takeover-delivery-report.md)
@@ -43,6 +43,13 @@
 - 将 `takeover_rules[]` 固化为初始化与 Runtime 的 typed contract；`forced_activation` 只作迁移证据。新增真实 dense prose 与固定 typed migration 双路径 fixture 和断言。
 - 收紧 pending takeover 恢复：`rule_id`、声明 target、`rule_version=persona-switch-rules.v1`、`rule_content_digest` 均必须存在且匹配，缺失/错误时 fail closed。
 - 修正 Evolution baseline 在 nil/空 map 下的可写形状，避免 Overlay 失败路径 panic；新增回归测试。
+- 修复本机 mlx-serve 在多工具 Main cognition 中只选择 `media.image.generate`、省略可见回复的问题：普通对话提示要求需要可见结果的 ACTION 同轮调用 `conversation.reply`，多工具 wire payload 设置 `parallel_tool_calls=true`，Core 仍保持 ACTION-only 的 `cognition_visible_text_missing` fail-closed 契约。
+- 复核 Runtime Context 的文本表示：assembled Main 路径仍保持 `[RUNTIME CONTEXT]` 内的 canonical JSON；修正 YAML/TOON renderer 的递归模式传播，并补充嵌套数组与边界标记回归。全量 YAML/TOON 迁移未采用，需先有完整 wire 与 live model 证据。
+- 修复 WakeUp 的 `tool_call_invalid` 诊断：Provider native/structured 归一化失败现在持久化有界 shape metadata，Worker 日志输出稳定 `error_code` 和 allowlist `error_reason`，不输出模型控制的调用 ID、工具名或参数。
+- WakeUp activity lifecycle 的 `safe_cause` 对该类 Provider 错误同样使用稳定码/原因；原始 normalization 文本不再进入生命周期日志。
+- 修复混合媒体回复回合：native 或 structured sidecar 同时返回 `media.image.generate` 与 `conversation.reply` 时，共用同一 assistant message 完成冻结、图片意图、媒体 workflow 和 outbox 结算；Core 结算失败帧统一为 `payload.code`，BFF/Web 兼容旧 `payload.error` 并安全回退未知码。
+- 修复流开始前的 HTTP 错误丢码：按生成脚本同步 `packages/browser-client`，`BrowserClient.turn()` 现在解析 BFF 的嵌套 `detail.code` 为 `BrowserApiError`，Pinia 在 HTTP 非 2xx 和 NDJSON error 两条路径都保留 allowlist code。
+- 新增 `TestConversationTurnWithNativeImageAndReplyCommitsBothOutputs`、`TestConversationTurnWithStructuredImageAndReplyCommitsBothOutputs` 和 `TestStreamTurnWithNativeImageAndReplyEmitsAssistantFrame`，覆盖两种 Provider 形态、持久化记录和界面实际读取的 stream 帧顺序。
 - 同步架构文档、交付报告、执行计划、F-01 测试注释；第一轮报告和旧第二轮复验报告已明确标为历史文件。
 
 ## 4. 质量门禁
@@ -54,6 +61,9 @@ test -z "$(gofmt -l $(rg --files apps/core-go -g '*.go'))"
 git diff --check HEAD
 go -C apps/core-go vet ./...
 go -C apps/core-go build ./...
+go -C apps/gateway-go test ./...
+go -C apps/gateway-go vet ./...
+go -C apps/gateway-go build ./...
 ```
 
 带测试数据库的完整包测试：
@@ -67,12 +77,12 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 
 | 包 | 结果 | 用时 |
 |---|---:|---:|
-| `internal/core` | PASS | 156.624s |
-| `internal/httpapi` | PASS | 3.134s |
-| `internal/migrations` | PASS | 31.467s |
-| `internal/platform` | PASS | 2.168s |
-| `internal/workflow` | PASS | 2.594s |
-| `internal/config` | PASS | 0.409s |
+| `internal/core` | PASS | 157.375s |
+| `internal/httpapi` | PASS | 3.205s |
+| `internal/migrations` | PASS | 27.755s |
+| `internal/platform` | PASS | 2.098s |
+| `internal/workflow` | PASS | 2.310s |
+| `internal/config` | PASS | 0.469s |
 | `cmd/*` | 无测试文件 | — |
 
 Race Detector：
@@ -86,12 +96,12 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 
 | 包 | 结果 | 用时 |
 |---|---:|---:|
-| `internal/core` | PASS | 176.068s |
-| `internal/httpapi` | PASS | 3.340s |
-| `internal/migrations` | PASS | 31.865s |
-| `internal/platform` | PASS | 2.150s |
-| `internal/workflow` | PASS | 3.947s |
-| `internal/config` | PASS | 1.566s |
+| `internal/core` | PASS | 179.359s |
+| `internal/httpapi` | PASS | 4.986s |
+| `internal/migrations` | PASS | 31.636s |
+| `internal/platform` | PASS | 2.919s |
+| `internal/workflow` | PASS | 3.772s |
+| `internal/config` | PASS | 1.412s |
 
 专项复核还通过了：
 
@@ -104,6 +114,12 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 - `TestPersonaSwitchRulesNormalizeTheRealMultiProfileCard`
 - `TestDeclaredRulesReachTheProductionTurn`
 - F-02 candidate validator、foreign actor、snapshot identity 和禁止执行路径测试
+
+Browser boundary verification also passed:
+
+- `packages/browser-client`: `pnpm test` 11/11 and `pnpm typecheck`;
+- `apps/web`: `pnpm test` 46/46, `pnpm typecheck`, `pnpm build`;
+- `apps/gateway-go`: `go test ./...`, `go vet ./...`, and `go build ./...`.
 
 ## 5. 规则迁移验收
 
@@ -129,24 +145,32 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 
 | 路径 | 物理请求 | 估算输入 Token | 字符 | 字节 |
 |---|---:|---:|---:|---:|
-| `plain_no_judge` | 1 | 23,439 | 18,751 | 20,367 |
-| `judge_keeps_a` | 2 | 25,379 | 20,303 | 22,543 |
-| `judge_takeover_b` | 3 | 48,342 | 38,673 | 43,049 |
-| `pure_query` | 2 | 30,343 | 24,274 | 27,524 |
+| `plain_no_judge` | 1 | 23,593 | 18,874 | 20,584 |
+| `judge_keeps_a` | 2 | 25,533 | 20,426 | 22,760 |
+| `judge_takeover_b` | 3 | 48,650 | 38,919 | 43,483 |
+| `pure_query` | 2 | 30,617 | 24,493 | 27,931 |
 
-Judge 请求为 1,940 估算 Token / 2,176 bytes，约为主请求输入的 8.3%；接管路径包含被丢弃 A 的输入/输出成本。估算约按 1.25 tokens/rune，输出侧是脚本值。
+Judge 请求为 1,940 估算 Token / 2,176 bytes，约为主请求输入的 8.3%；接管路径包含被丢弃 A 的输入/输出成本。启用多工具并行提示后，主请求 wire 增加了该控制字段，数字由当前测试重新生成。估算约按 1.25 tokens/rune，输出侧是脚本值。
 
 `life_profile_before_after_report.json` 是 dense-shaped synthetic fixture 的局部 allowlist 对照：8 个 key、753 bytes → 2 个 key、174 bytes；Working Persona 990 → 432 bytes。它证明裁剪方向和当前序列化结果，不能替代同一真实卡的 full-request before/after。
 
+针对 Runtime Context 的离线同一请求替换测量显示：当前 JSON body 为 `1,809` 字符 / `1,911` bytes / `2,262` estimated tokens；纯 YAML 为 `2,392` / `2,494` / `2,990`，混合 TOON（仅同构标量数组）为 `1,938` / `2,040` / `2,423`。这组事实数据的根 `facts` 含异构嵌套对象，格式替换没有稳定收益；放大到完整 Provider payload 后，纯 YAML 约增加 2.1%，混合 TOON 约减少 0.4%。该测量使用项目启发式估算，不替代真实 tokenizer、计费、缓存或模型兼容性验证。
+
 ## 7. 未验证与未实现
+
+**已验证（本地确定性回归）**：
+
+- Fake Provider + PostgreSQL 已验证 native/structured mixed media + reply 的 capability normalization、同一 assistant message 结算、图片 intent/workflow/outbox 持久化和 Core stream 帧顺序；
 
 **环境未验证**：
 
-- `FLUCTLIGHT_LIVE_PROVIDER_TEST=1` 未配置，8 个 `TestLiveProvider*` 用例均按预期 SKIP；
+- `FLUCTLIGHT_LIVE_PROVIDER_TEST=1` 未配置，`TestLiveProvider*` 场景按预期跳过；
+- 真实 Provider（包括本机 mlx-serve）是否稳定同时返回图片与回复工具调用；
 - 真实 Provider 是否从 `dense_multi_card.txt` 生成 typed `takeover_rules[]`；
 - 真实模型 Judge 的误报/漏报、抗注入和多轮风格保持；
 - 真实 Token 计费、缓存命中、首条可见延迟、总耗时；
 - 同一真实卡的 baseline/current full request、Working Persona、Judge 三组前后性能；
+- 真实 ComfyUI/Media Worker 生成最终图片资产；
 - 未配置 `GO_CORE_TEST_DATABASE_URL` 时冻结/结算集成链路不会被声称为真实执行。
 
 **明确未实现**：
@@ -165,4 +189,4 @@ Fake Provider、固定 migration fixture 和 synthetic bytes 报告不会被当�
 - `docs/persona-takeover-delivery-report.md`
 - `apps/core-go/internal/core/turn_takeover_f01_test.go`
 
-`final-acceptance-report.md` 与 `final-acceptance-recheck-report.md` 已标记为历史报告；本文件是唯一当前验收凭证。任务状态在本轮验证完成后更新为 `completed`。
+`final-acceptance-report.md` 与 `final-acceptance-recheck-report.md` 已标记为历史报告；本文件是唯一当前验收凭证。任务状态在本轮验证完成后更新为 `completed`；本轮真实 Provider 与真实 Media Worker 均未运行。

@@ -251,21 +251,89 @@ func TestLiveProviderRecognizesImageGenerationIntent(t *testing.T) {
 		t.Fatalf("live Provider returned no choices: %s", boundedLiveProviderBody(responseBody))
 	}
 	message := mapValue(mapValue(choices[0])["message"])
-	toolCalls := arrayValue(message["tool_calls"])
+	structured, structuredFallback := liveProviderStructuredOrFallback(t, message, "conversation_turn_response", schema)
+	calls := liveProviderInvocations(t, message, structured)
 	foundImage := false
 	foundReply := false
-	for _, raw := range toolCalls {
-		call := mapValue(raw)
-		function := mapValue(call["function"])
-		switch stringValue(function["name"]) {
+	replyText := ""
+	for _, call := range calls {
+		if call.SchemaVersion != CapabilityInvocationSchemaVersion || call.CallID == "" {
+			t.Fatalf("live Provider returned an invocation without canonical identity: %#v", call)
+		}
+		switch call.CapabilityName {
 		case "media.image.generate":
 			foundImage = true
 		case "conversation.reply":
 			foundReply = true
+			arguments := decodeObject(call.Arguments)
+			replyText = strings.TrimSpace(stringValue(arguments["text"]))
 		}
 	}
 	if !foundImage || !foundReply {
-		t.Fatalf("live Provider must call both media.image.generate and conversation.reply; image=%t reply=%t tool_calls=%s response=%s", foundImage, foundReply, fmt.Sprint(toolCalls), boundedLiveProviderBody(responseBody))
+		t.Fatalf("live Provider must call both media.image.generate and conversation.reply; image=%t reply=%t calls=%s response=%s", foundImage, foundReply, fmt.Sprint(calls), boundedLiveProviderBody(responseBody))
+	}
+	if replyText == "" {
+		t.Fatalf("live conversation.reply invocation must carry non-empty text: calls=%s response=%s", fmt.Sprint(calls), boundedLiveProviderBody(responseBody))
+	}
+
+	// Exercise the same visible-output normalization used by HandleTurn. The
+	// Provider may put the structured decision in a sidecar or omit it when it
+	// returns native calls, so this deliberately supplies only the minimal
+	// closed decision fields needed to test the native-call fallback. Root and
+	// response_plan visible_text stay absent: the expected canonical source is
+	// the conversation.reply argument itself.
+	if mode := stringValue(structured["response_mode"]); mode != "" && mode != "final" {
+		t.Fatalf("a final native reply plus image action must not request %q: structured=%s", mode, jsonString(structured))
+	}
+	const (
+		liveFluctlightID   = "live-provider-fluctlight"
+		liveOwnerActorID   = "live-provider-owner"
+		liveConversationID = "live-provider-conversation"
+		liveSourceFactID   = "live-provider-fact"
+		liveActiveProfile  = "live-provider-profile"
+	)
+	projection := ContextProjection{
+		SchemaVersion:      "fluctlight.context.v3",
+		FluctlightID:       liveFluctlightID,
+		OwnerActorID:       liveOwnerActorID,
+		ConversationID:     liveConversationID,
+		SourceFactID:       liveSourceFactID,
+		CurrentSpeaker:     map[string]any{"actor_id": liveOwnerActorID},
+		PersonalityRuntime: map[string]any{"active_profile_id": liveActiveProfile},
+		ReferenceIndex: ContextReferenceIndex{
+			SchemaVersion:   contextReferenceIndexVersion,
+			FluctlightID:    liveFluctlightID,
+			OwnerActorID:    liveOwnerActorID,
+			SpeakerActorID:  liveOwnerActorID,
+			ConversationID:  liveConversationID,
+			ActiveProfileID: liveActiveProfile,
+			ByRef:           map[string]ContextReference{},
+		},
+	}
+	normalized, err := (&App{}).normalizeTurnDecision(context.Background(), turnDecisionNormalizationInput{
+		InboxID:        "live-provider-inbox",
+		FluctlightID:   liveFluctlightID,
+		ConversationID: liveConversationID,
+		TurnID:         "live-provider-turn",
+		Projection:     projection,
+		Decision: map[string]any{
+			"response_mode":   "final",
+			"action_type":     "reply",
+			"response_intent": "同时生成视觉作品并说明构图重点",
+			"influences":      []any{},
+		},
+		Invocations:        calls,
+		Definitions:        manifests,
+		StructuredFallback: structuredFallback,
+	})
+	if err != nil {
+		t.Fatalf("live Provider calls failed Core turn normalization: %v; calls=%s", err, fmt.Sprint(calls))
+	}
+	if normalized.ResponseMode != "final" || normalized.Canonical.Source != canonicalVisibleSourceReplyCapability || normalized.Canonical.Text != replyText || normalized.Canonical.Digest != stableDigest(replyText) {
+		t.Fatalf("live Provider canonical visible reply is wrong: mode=%q canonical=%#v reply_text=%q decision=%s", normalized.ResponseMode, normalized.Canonical, replyText, jsonString(normalized.Decision))
+	}
+	if stringValue(normalized.Decision["visible_text"]) != replyText || stringValue(normalized.ResponsePlan["visible_text"]) != replyText {
+		t.Fatalf("normalized visible text was not frozen into both Core carriers: decision=%s response_plan=%s", jsonString(normalized.Decision), jsonString(normalized.ResponsePlan))
 	}
 }
 

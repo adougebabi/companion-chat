@@ -346,7 +346,8 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		}
 		calls, err := NormalizeProviderToolCalls(message["tool_calls"], "", providerRequestID)
 		if err != nil {
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
+			diagnostic := providerToolCallNormalizationDiagnostic(message["tool_calls"], "native", err)
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
 			return ProviderCompletion{}, err
 		}
 		logToolCallShapeNormalization(role, schemaName, "native", message["tool_calls"])
@@ -404,7 +405,8 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 					logToolCallShapeNormalization(role, schemaName, "structured", parsedStructured["tool_calls"])
 					calls, callErr := NormalizeProviderToolCalls(completion.Structured["tool_calls"], "", providerRequestID)
 					if callErr != nil {
-						p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
+						diagnostic := providerToolCallNormalizationDiagnostic(completion.Structured["tool_calls"], "structured", callErr)
+						p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
 						return ProviderCompletion{}, callErr
 					}
 					completion.ToolCalls = calls
@@ -901,6 +903,16 @@ func providerChatPayloadWithSchema(model string, messages []map[string]any, toke
 	if len(definitionList) > 0 {
 		payload["tools"] = RenderCapabilityTools(definitionList)
 		payload["tool_choice"] = "auto"
+		// A direct conversation may need to emit an output capability (for
+		// example conversation.reply) alongside an action capability such as
+		// media.image.generate in the same Main cognition. OpenAI-compatible
+		// Providers otherwise commonly stop after the first native call, which
+		// leaves the turn without its required visible output. Ask explicitly
+		// for parallel tool calls when there is more than one registered choice;
+		// a single-tool request has no parallelism to enable.
+		if len(definitionList) > 1 {
+			payload["parallel_tool_calls"] = true
+		}
 		if jsonMode {
 			payload["response_format"] = providerResponseFormatForSchema(role, schemaName, schema)
 		}
@@ -1000,7 +1012,12 @@ func providerDiagnosticResponse(role string, response any) any {
 	encoded, _ := json.Marshal(response)
 	result := map[string]any{"diagnostic_scope": "metadata_only", "response_bytes": len(encoded), "response_digest": stableDigest(string(encoded))}
 	diagnostic := mapValue(response)
-	for _, key := range []string{"content_present", "content_length", "reasoning_content_present", "reasoning_content_length", "candidate_count", "tool_call_count", "delimiters_balanced", "syntax_offset"} {
+	for _, key := range []string{
+		"content_present", "content_length", "reasoning_content_present", "reasoning_content_length",
+		"candidate_count", "tool_call_count", "delimiters_balanced", "syntax_offset",
+		"call_count", "failed_item_index", "id_present", "name_present", "name_length", "name_valid",
+		"arguments_present", "arguments_length",
+	} {
 		switch value := diagnostic[key].(type) {
 		case bool:
 			result[key] = value
@@ -1014,7 +1031,7 @@ func providerDiagnosticResponse(role string, response any) any {
 			}
 		}
 	}
-	for _, key := range []string{"parse_error", "finish_reason", "framing"} {
+	for _, key := range []string{"parse_error", "finish_reason", "framing", "source", "value_shape", "item_shape", "function_shape", "id_type", "type_value", "arguments_shape", "normalization_reason"} {
 		if value := strings.TrimSpace(stringValue(diagnostic[key])); validLifecycleToken(value, 128, false) && value != "" {
 			result[key] = value
 		}

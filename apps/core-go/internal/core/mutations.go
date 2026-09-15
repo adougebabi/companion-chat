@@ -1415,8 +1415,8 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 		}
 		// A callback may have emitted a previously committed frame, but a later
 		// required settlement/lifecycle failure is never presented as success.
-		slog.Default().Error("Go Core conversation turn lifecycle settlement failed after visible output", "error", err, "turn_id", turnID)
-		return writeFrame("error", map[string]any{"status": "failed", "error": "conversation_settlement_failed"})
+		slog.Default().Error("Go Core conversation turn lifecycle settlement failed after visible output", "error_type", fmt.Sprintf("%T", err), "error_code", "conversation_settlement_failed", "turn_id", turnID)
+		return writeFrame("error", map[string]any{"status": "failed", "code": "conversation_settlement_failed"})
 	}
 	messageIDs := make([]string, 0, 1)
 	if messageID := stringValue(result.Assistant["id"]); messageID != "" {
