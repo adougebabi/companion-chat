@@ -1,7 +1,7 @@
 # 多重人格接管、Working Persona 与 Prompt 收敛：最终验收报告（复查版）
 
 > 验收日期：2026-09-15  
-> 验收对象：`master@cae648c` 之上的当前未提交工作区
+> 验收对象：`master@3dd1f41` 之上的当前未提交工作区
 > 任务：`09-14-persona-takeover-working-prompt`  
 > 设计：[`design.md`](design.md)  
 > 当前交付摘要：[`docs/persona-takeover-delivery-report.md`](../../../docs/persona-takeover-delivery-report.md)
@@ -47,7 +47,7 @@
 - 复核 Runtime Context 的文本表示：assembled Main 路径仍保持 `[RUNTIME CONTEXT]` 内的 canonical JSON；修正 YAML/TOON renderer 的递归模式传播，并补充嵌套数组与边界标记回归。全量 YAML/TOON 迁移未采用，需先有完整 wire 与 live model 证据。
 - 修复 WakeUp 的 `tool_call_invalid` 诊断：Provider native/structured 归一化失败现在持久化有界 shape metadata，Worker 日志输出稳定 `error_code` 和 allowlist `error_reason`，不输出模型控制的调用 ID、工具名或参数。
 - WakeUp activity lifecycle 的 `safe_cause` 对该类 Provider 错误同样使用稳定码/原因；原始 normalization 文本不再进入生命周期日志。
-- 修复混合媒体回复回合：native 或 structured sidecar 同时返回 `media.image.generate` 与 `conversation.reply` 时，共用同一 assistant message 完成冻结、图片意图、媒体 workflow 和 outbox 结算；Core 结算失败帧统一为 `payload.code`，BFF/Web 兼容旧 `payload.error` 并安全回退未知码。
+- 修复混合媒体回复回合：native 或 structured sidecar 同时返回 `media.image.generate` 与 `conversation.reply` 时，共用同一 assistant message 完成冻结、图片意图、媒体 workflow 和 outbox 结算；Core 结算失败帧统一为 `payload.code`，并保留 `cognition_visible_text_missing`、`tool_call_invalid`、`media_*` 等安全码，BFF/Web 兼容旧 `payload.error` 并安全回退未知码。
 - 修复流开始前的 HTTP 错误丢码：按生成脚本同步 `packages/browser-client`，`BrowserClient.turn()` 现在解析 BFF 的嵌套 `detail.code` 为 `BrowserApiError`，Pinia 在 HTTP 非 2xx 和 NDJSON error 两条路径都保留 allowlist code。
 - 新增 `TestConversationTurnWithNativeImageAndReplyCommitsBothOutputs`、`TestConversationTurnWithStructuredImageAndReplyCommitsBothOutputs` 和 `TestStreamTurnWithNativeImageAndReplyEmitsAssistantFrame`，覆盖两种 Provider 形态、持久化记录和界面实际读取的 stream 帧顺序。
 - 同步架构文档、交付报告、执行计划、F-01 测试注释；第一轮报告和旧第二轮复验报告已明确标为历史文件。
@@ -77,12 +77,12 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 
 | 包 | 结果 | 用时 |
 |---|---:|---:|
-| `internal/core` | PASS | 157.375s |
-| `internal/httpapi` | PASS | 3.205s |
-| `internal/migrations` | PASS | 27.755s |
-| `internal/platform` | PASS | 2.098s |
-| `internal/workflow` | PASS | 2.310s |
-| `internal/config` | PASS | 0.469s |
+| `internal/core` | PASS | 155.602s |
+| `internal/httpapi` | PASS | 5.779s |
+| `internal/migrations` | PASS | 62.021s |
+| `internal/platform` | PASS | 0.590s |
+| `internal/workflow` | PASS | 1.323s |
+| `internal/config` | PASS | 0.521s |
 | `cmd/*` | 无测试文件 | — |
 
 Race Detector：
@@ -96,12 +96,12 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 
 | 包 | 结果 | 用时 |
 |---|---:|---:|
-| `internal/core` | PASS | 179.359s |
-| `internal/httpapi` | PASS | 4.986s |
-| `internal/migrations` | PASS | 31.636s |
-| `internal/platform` | PASS | 2.919s |
-| `internal/workflow` | PASS | 3.772s |
-| `internal/config` | PASS | 1.412s |
+| `internal/core` | PASS | 185.762s |
+| `internal/httpapi` | PASS | 5.365s |
+| `internal/migrations` | PASS | 52.280s |
+| `internal/platform` | PASS | 2.632s |
+| `internal/workflow` | PASS | 3.907s |
+| `internal/config` | PASS | 1.506s |
 
 专项复核还通过了：
 

@@ -117,6 +117,7 @@ func TestWriteNDJSONErrorUsesStableCodesWithoutLeakingErrorText(t *testing.T) {
 		{name: "capability code", err: &core.CapabilityError{Code: "capability_result_missing", Cause: errors.New("provider response password=secret")}, want: "capability_result_missing"},
 		{name: "life context sentinel", err: fmt.Errorf("authority check: %w", core.ErrLifeContextStale), want: "life_context_stale"},
 		{name: "legacy turn code", err: errors.New("conversation_turn_invalid"), want: "conversation_turn_invalid"},
+		{name: "tool call invalid", err: errors.New("tool_call_invalid"), want: "tool_call_invalid"},
 		{name: "cancelled", err: context.Canceled, want: "request_cancelled"},
 		{name: "unknown provider error", err: errors.New("provider response password=secret"), want: "conversation_turn_failed"},
 		{name: "unsafe capability code", err: &core.CapabilityError{Code: "provider_raw_response", Cause: errors.New("provider response password=secret")}, want: "conversation_turn_failed"},

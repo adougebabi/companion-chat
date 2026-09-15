@@ -4,9 +4,31 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http/httptest"
 	"testing"
 )
+
+func TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure(t *testing.T) {
+	toolInvalid := newProviderToolCallNormalizationError(0, "id_required", errors.New(`tool call "model-id" id is required`))
+	cases := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{name: "missing visible reply", err: errors.New("cognition_visible_text_missing"), want: "cognition_visible_text_missing"},
+		{name: "invalid provider tool", err: toolInvalid, want: "tool_call_invalid"},
+		{name: "media capability", err: newCapabilityError("media_intent_failed", true, errors.New("renderer unavailable")), want: "media_intent_failed"},
+		{name: "unknown internal", err: errors.New("database connection detail"), want: "conversation_settlement_failed"},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := streamTurnFailureCode(testCase.err); got != testCase.want {
+				t.Fatalf("streamTurnFailureCode() = %q, want %q", got, testCase.want)
+			}
+		})
+	}
+}
 
 // This is the production shape reported by the UI: the Provider emits native
 // image and conversation.reply calls while the structured sidecar is the

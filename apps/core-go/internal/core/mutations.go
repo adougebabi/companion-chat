@@ -919,7 +919,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if err != nil {
 			code, _ := capabilityErrorInfo(err, "capability_prepare_failed", true)
 			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
-			return TurnResult{}, err
+			return TurnResult{}, newCapabilityError(code, true, err)
 		}
 		// The prepared invocation is the crash/replay boundary. No Capability may
 		// execute until its runtime-owned plan and context snapshot are durable.
@@ -988,7 +988,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				code = "life_context_stale"
 			}
 			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
-			return TurnResult{}, settleErr
+			return TurnResult{}, newCapabilityError(code, true, settleErr)
 		}
 		if a.cognitionFactSuperseded(ctx, inboxID) {
 			return TurnResult{}, errCognitionTurnSuperseded
@@ -1011,7 +1011,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				_ = a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults)
 			}
 			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "tool_call_failed")
-			return TurnResult{}, err
+			return TurnResult{}, newCapabilityError("tool_call_failed", true, err)
 		}
 		if err := a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults); err != nil {
 			return TurnResult{}, err
@@ -1196,7 +1196,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			code = "life_context_stale"
 		}
 		_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
-		return TurnResult{}, err
+		return TurnResult{}, newCapabilityError(code, true, err)
 	}
 	a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
 	if err := emitUserFrame(); err != nil {
@@ -1333,7 +1333,7 @@ func (a *App) recoverFrozenTurnAfterAssistant(ctx context.Context, inboxID, fluc
 		results = capabilityResultsAfterSettlementFailure(results, invocations, a.capabilityRegistry(), "capability_settlement_failed")
 		_ = a.PersistCapabilityResults(ctx, frozen.ID, results)
 		_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "capability_settlement_failed")
-		return "", true, err
+		return "", true, newCapabilityError("capability_settlement_failed", true, err)
 	}
 	a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
 	return mediaIntent, true, nil
@@ -1415,14 +1415,63 @@ func (a *App) StreamTurn(ctx context.Context, writer http.ResponseWriter, actorI
 		}
 		// A callback may have emitted a previously committed frame, but a later
 		// required settlement/lifecycle failure is never presented as success.
-		slog.Default().Error("Go Core conversation turn lifecycle settlement failed after visible output", "error_type", fmt.Sprintf("%T", err), "error_code", "conversation_settlement_failed", "turn_id", turnID)
-		return writeFrame("error", map[string]any{"status": "failed", "code": "conversation_settlement_failed"})
+		errorCode := streamTurnFailureCode(err)
+		slog.Default().Error("Go Core conversation turn lifecycle settlement failed after visible output", "error_type", fmt.Sprintf("%T", err), "error_code", errorCode, "turn_id", turnID)
+		return writeFrame("error", map[string]any{"status": "failed", "code": errorCode})
 	}
 	messageIDs := make([]string, 0, 1)
 	if messageID := stringValue(result.Assistant["id"]); messageID != "" {
 		messageIDs = append(messageIDs, messageID)
 	}
 	return writeFrame("completed", map[string]any{"message_ids": messageIDs})
+}
+
+// streamTurnFailureCode preserves a small, browser-safe subset of the error
+// taxonomy when the user frame has already been emitted. A failure after that
+// point used to be collapsed unconditionally to conversation_settlement_failed,
+// which hid whether the candidate had no visible reply, a malformed tool call,
+// or a required capability settlement failure. Unknown/internal errors retain
+// the generic outer code.
+func streamTurnFailureCode(err error) string {
+	const fallback = "conversation_settlement_failed"
+	if err == nil {
+		return fallback
+	}
+	if code := ProviderErrorCode(err); code == "tool_call_invalid" {
+		return code
+	}
+	var capabilityErr *CapabilityError
+	if errors.As(err, &capabilityErr) && capabilityErr != nil {
+		if code := safeStreamTurnErrorCode(capabilityErr.Code); code != "" {
+			return code
+		}
+	}
+	if code := safeStreamTurnErrorCode(err.Error()); code != "" {
+		return code
+	}
+	return fallback
+}
+
+func safeStreamTurnErrorCode(value string) string {
+	code := strings.TrimSpace(value)
+	switch code {
+	case "capability_prepare_failed", "capability_settlement_failed", "cognition_visible_text_missing",
+		"conversation_not_found", "conversation_settlement_failed", "conversation_turn_conflict",
+		"conversation_turn_failed", "conversation_turn_invalid", "conversation_unauthorized",
+		"decision_effect_invalid", "frozen_context_projection_missing", "life_context_stale",
+		"media_arguments_invalid", "media_capability_unavailable", "media_context_stale",
+		"media_intent_failed", "media_intent_invalid", "media_prepare_required",
+		"personality_decision_plan_invalid", "query_continuation_contract_invalid",
+		"query_continuation_digest_invalid", "query_continuation_query_failed",
+		"query_continuation_tool_call_forbidden", "required_capability_failed",
+		"structured_turn_settlement_failed", "takeover_failed", "takeover_frozen_turn_missing",
+		"takeover_reply_budget_exhausted", "takeover_resume_decision_invalid",
+		"takeover_resume_rule_missing", "takeover_target_profile_missing", "tool_call_failed",
+		"tool_call_invalid", "turn_stage_invalid", "turn_stage_not_executable", "visible_text_source_conflict":
+		return code
+	default:
+		return ""
+	}
 }
 
 func jsonString(value any) string { data, _ := json.Marshal(value); return string(data) }

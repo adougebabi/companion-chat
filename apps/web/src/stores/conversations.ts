@@ -116,6 +116,7 @@ const turnErrorCodes = new Set([
   "takeover_resume_decision_invalid",
   "takeover_resume_rule_missing",
   "takeover_target_profile_missing",
+  "tool_call_invalid",
   "tool_call_failed",
   "turn_stage_invalid",
   "turn_stage_not_executable",
