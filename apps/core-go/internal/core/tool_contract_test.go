@@ -122,6 +122,87 @@ func TestNormalizeProviderToolCallsRejectsMalformedOrDuplicateCalls(t *testing.T
 	}
 }
 
+func TestProviderToolCallNormalizationDiagnosticIsBoundedAndActionable(t *testing.T) {
+	const privateCanary = "PRIVATE_TOOL_ARGUMENT_CANARY"
+	cases := []struct {
+		name          string
+		value         any
+		source        string
+		wantReason    string
+		wantIndex     int
+		wantCallCount int
+	}{
+		{
+			name:       "native missing id",
+			value:      []any{map[string]any{"name": "conversation.reply", "arguments": map[string]any{"text": privateCanary}}},
+			source:     "native",
+			wantReason: "id_required",
+			wantIndex:  0,
+		},
+		{
+			name:       "structured invalid arguments",
+			value:      []any{map[string]any{"id": "call-1", "name": "conversation.reply", "arguments": `{"text":"` + privateCanary}},
+			source:     "structured",
+			wantReason: "arguments_invalid_json",
+			wantIndex:  0,
+		},
+		{
+			name: "duplicate id",
+			value: []any{
+				map[string]any{"id": "call-1", "name": "conversation.reply", "arguments": `{}`},
+				map[string]any{"id": "call-1", "name": "conversation.reply", "arguments": `{}`},
+			},
+			source:        "structured",
+			wantReason:    "duplicate_id",
+			wantIndex:     1,
+			wantCallCount: 2,
+		},
+		{
+			name:       "non object item",
+			value:      []any{"provider supplied text"},
+			source:     "native",
+			wantReason: "item_not_object",
+			wantIndex:  0,
+		},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := NormalizeProviderToolCalls(testCase.value, "fact", "provider")
+			if err == nil {
+				t.Fatal("expected normalization error")
+			}
+			diagnostic := providerToolCallNormalizationDiagnostic(testCase.value, testCase.source, err)
+			if stringValue(diagnostic["source"]) != testCase.source || stringValue(diagnostic["normalization_reason"]) != testCase.wantReason || intValue(diagnostic["failed_item_index"]) != testCase.wantIndex {
+				t.Fatalf("diagnostic identity = %#v", diagnostic)
+			}
+			wantCallCount := testCase.wantCallCount
+			if wantCallCount == 0 {
+				wantCallCount = 1
+			}
+			if intValue(diagnostic["call_count"]) != wantCallCount {
+				t.Fatalf("diagnostic call count = %#v", diagnostic)
+			}
+			encoded := jsonString(diagnostic)
+			if strings.Contains(encoded, privateCanary) || strings.Contains(encoded, "provider supplied text") {
+				t.Fatalf("diagnostic leaked provider content: %s", encoded)
+			}
+		})
+	}
+
+	_, err := NormalizeProviderToolCalls([]any{map[string]any{
+		"id": "call-1", "type": "unsupported type", "name": "conversation.reply", "arguments": `{}`,
+	}}, "fact", "provider")
+	if err == nil {
+		t.Fatal("expected unsupported type normalization error")
+	}
+	diagnostic := providerToolCallNormalizationDiagnostic([]any{map[string]any{
+		"id": "call-1", "type": "unsupported type", "name": "conversation.reply", "arguments": `{}`,
+	}}, "native", err)
+	if stringValue(diagnostic["normalization_reason"]) != "unsupported_type" || stringValue(diagnostic["type_value"]) != "invalid" {
+		t.Fatalf("unsupported type diagnostic = %#v", diagnostic)
+	}
+}
+
 func TestToolCallValidateRequiresRegisteredCapability(t *testing.T) {
 	definitions := capabilityDefinitionMap(testCapabilityDefinitions())
 	calls, err := NormalizeProviderToolCalls([]any{map[string]any{
@@ -403,6 +484,9 @@ func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 	if payload["tool_choice"] != "auto" {
 		t.Fatalf("tool_choice = %#v", payload["tool_choice"])
 	}
+	if payload["parallel_tool_calls"] != true {
+		t.Fatalf("multiple capability requests must allow parallel native calls: %#v", payload)
+	}
 	tools, ok := payload["tools"].([]map[string]any)
 	if !ok || len(tools) != 4 {
 		t.Fatalf("tools = %#v", payload["tools"])
@@ -417,6 +501,10 @@ func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 	}
 	if _, ok := sidecar["response_format"]; !ok {
 		t.Fatal("structured sidecar payload must request JSON mode")
+	}
+	singleTool := providerChatPayload("model", messages, 512, false, []CapabilityDefinition{conversationReplyCapabilityDefinition()})
+	if _, ok := singleTool["parallel_tool_calls"]; ok {
+		t.Fatalf("single capability requests should not carry a parallelism hint: %#v", singleTool)
 	}
 }
 

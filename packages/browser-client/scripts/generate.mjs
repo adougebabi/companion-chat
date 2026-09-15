@@ -183,7 +183,19 @@ export class BrowserClient {
     const response = await this.fetcher(this.url(\`/api/conversations/\${encodeURIComponent(conversationId)}/turn\`), {
       method: "POST", credentials: "include", headers: { "content-type": "application/json", accept: "application/x-ndjson", ...this.csrfHeaders() }, body: JSON.stringify(body), signal,
     });
-    if (!response.ok) throw new Error(\`Browser conversation turn failed: \${response.status}\`);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null) as { code?: unknown; message?: unknown; details?: unknown; detail?: unknown } | null;
+      const detail = payload?.detail && typeof payload.detail === "object" && !Array.isArray(payload.detail)
+        ? payload.detail as { code?: unknown; message?: unknown; details?: unknown }
+        : null;
+      const code = typeof payload?.code === "string" ? payload.code : typeof detail?.code === "string" ? detail.code : "browser_request_failed";
+      const message = typeof payload?.message === "string" ? payload.message : typeof detail?.message === "string" ? detail.message : \`Browser conversation turn failed: \${response.status}\`;
+      const rawDetails = payload?.details ?? detail?.details;
+      const details = rawDetails && typeof rawDetails === "object" && !Array.isArray(rawDetails)
+        ? rawDetails as Record<string, unknown>
+        : {};
+      throw new BrowserApiError(response.status, code, message, details);
+    }
     return response;
   }
   async diagnostics(options: { limit?: number; correlationId?: string; fluctlightId?: string } = {}): Promise<BrowserDiagnosticEvent[]> {

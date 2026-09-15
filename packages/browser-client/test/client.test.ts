@@ -82,6 +82,21 @@ test("BrowserClient preserves structured diagnostics details", async () => {
   );
 });
 
+test("BrowserClient preserves a non-2xx conversation turn error code", async () => {
+  const client = new BrowserClient("http://fluctlight.local", async () =>
+    Response.json({
+      detail: { code: "conversation_turn_conflict", message: "The conversation turn failed", details: { internal: "must not surface" } },
+    }, { status: 502 }),
+  );
+  await assert.rejects(
+    () => client.turn("conversation-1", { text: "hello", fluctlightId: "fl-1", idempotencyKey: "turn-1" }),
+    (error: unknown) =>
+      error instanceof BrowserApiError
+      && error.status === 502
+      && error.code === "conversation_turn_conflict",
+  );
+});
+
 test("BrowserClient transports initialization analysis authority and typed detail source", async () => {
 	const requests: Array<{ url: string; body: unknown }> = [];
 	const analysis = {

@@ -27,6 +27,7 @@
 - 持久切换仍由原有 Main 认知提出，但必须经过 E1–E5：候选授权、冻结标记、结算门、恢复门和覆盖时重置。Judge 与 takeover B 没有持久切换权限。
 - A、B 都经过同一个 `normalizeTurnDecision` 和 Judge 前 candidate validator。被拒 A 的文本只存在于有界诊断 payload，不执行消息、能力、状态、关系、记忆或演化写入。
 - 可见文本由 `resolveCanonicalVisibleReply` 生成期计算并冻结一次。根级 `visible_text` 优先；根字段为空时允许 `conversation.reply.text` fallback；两者冲突直接 `visible_text_source_conflict` fail closed。最终消息仍走既有 `conversation_messages` 管线。
+- 需要可见结果的 ACTION（例如 `media.image.generate` 或 Memory mutation）必须和 `conversation.reply` 在同一 Main cognition 中返回；ACTION 参数不是可见文本来源，只有 reply 文本可进入 canonical visible text。多工具请求在 OpenAI-compatible wire 上携带 `parallel_tool_calls=true`，单工具请求省略该字段。若 Provider 只返回 ACTION，Core 在结算前以 `cognition_visible_text_missing` fail closed。
 - B 的读取、关系/目标/意图写入、记忆视角、引用索引和 Overlay 合成都按冻结 reply owner 重建；下一轮恢复持久 active 视角。
 
 ## Working Persona 与 Judge 投影
@@ -64,6 +65,6 @@ Runtime 只消费这一套 typed takeover 语义：新的初始化输出放在 `
 
 ## 证据与限制
 
-`apps/core-go/internal/core/testdata/turn_path_cost_report.json` 是 Fake Provider wire capture，给出四条路径的估算输入 Token、脚本输出 Token、字符数、字节数和请求序列：plain `23,439`、Judge 保留 A `25,379`、接管 B `48,342`、pure QUERY `30,343` 估算输入 Token。`life_profile_before_after_report.json` 是 dense-shaped synthetic fixture 的局部 allowlist 对照。两者都不能代表真实模型 Token、缓存命中、首条可见延迟或同一真实卡的 full-request before/after。
+`apps/core-go/internal/core/testdata/turn_path_cost_report.json` 是 Fake Provider wire capture，给出四条路径的估算输入 Token、脚本输出 Token、字符数、字节数和请求序列：plain `23,593`、Judge 保留 A `25,533`、接管 B `48,650`、pure QUERY `30,617` 估算输入 Token。多工具请求包含 `parallel_tool_calls` 控制字段，因此报告已在该 wire 语义更新后重新生成。`life_profile_before_after_report.json` 是 dense-shaped synthetic fixture 的局部 allowlist 对照。两者都不能代表真实模型 Token、缓存命中、首条可见延迟或同一真实卡的 full-request before/after。
 
 本版明确未实现 deterministic 时间窗 Runtime evaluator；真实 Provider 的初始化 typed rule 产出、Judge 误报/漏报、抗注入、真实计费、缓存和延迟必须在配置 live 环境后单独验收。

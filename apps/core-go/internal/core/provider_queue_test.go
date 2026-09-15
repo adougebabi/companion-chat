@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -187,6 +188,23 @@ func TestProviderSuppressionErrorCodesAreBounded(t *testing.T) {
 	}
 	if got := providerRunErrorCode(errProviderInactive); got != "fluctlight_inactive" {
 		t.Fatalf("inactive error code = %q", got)
+	}
+}
+
+func TestProviderErrorInfoClassifiesToolCallNormalizationWithoutLeakingModelData(t *testing.T) {
+	err := newProviderToolCallNormalizationError(2, "id_required", errors.New(`tool call "model-controlled-id" id is required`))
+	code, reason := ProviderErrorInfo(err)
+	if code != "tool_call_invalid" || reason != "id_required" {
+		t.Fatalf("provider error info = code=%q reason=%q", code, reason)
+	}
+	if got := providerRunErrorCode(err); got != "tool_call_invalid" {
+		t.Fatalf("provider queue callback code = %q", got)
+	}
+	if strings.Contains(reason, "model-controlled-id") {
+		t.Fatalf("normalization reason leaked model data: %q", reason)
+	}
+	if _, reason := ProviderErrorInfo(newProviderToolCallNormalizationError(0, "future_reason", nil)); reason != "" {
+		t.Fatalf("unknown normalization reason crossed the log allowlist: %q", reason)
 	}
 }
 

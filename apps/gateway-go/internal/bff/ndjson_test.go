@@ -57,6 +57,59 @@ func TestTranslateCoreNDJSONWorksWithHTTPTestServerReader(t *testing.T) {
 	}
 }
 
+func TestTranslateCoreNDJSONNormalizesBusinessErrorPayload(t *testing.T) {
+	cases := []struct {
+		name    string
+		payload map[string]any
+		want    string
+	}{
+		{
+			name: "legacy error field",
+			payload: map[string]any{
+				"status":    "failed",
+				"error":     "conversation_settlement_failed",
+				"message":   "appraisal_required",
+				"details":   map[string]any{"provider_response": "private"},
+				"reasoning": "must not cross the boundary",
+			},
+			want: "conversation_settlement_failed",
+		},
+		{
+			name:    "current code field",
+			payload: map[string]any{"code": "life_context_stale", "status": "failed"},
+			want:    "life_context_stale",
+		},
+		{
+			name:    "unknown code",
+			payload: map[string]any{"code": "provider_response_password_secret"},
+			want:    "conversation_turn_failed",
+		},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			var output bytes.Buffer
+			if err := TranslateCoreNDJSON(context.Background(), responseBody(coreFrame("error", "turn-error", 0, testCase.payload)), &output); err != nil {
+				t.Fatalf("TranslateCoreNDJSON() error = %v", err)
+			}
+			events := decodeFrames(t, output.Bytes())
+			if len(events) != 1 || events[0].Type != "error" {
+				t.Fatalf("events = %#v", events)
+			}
+			if events[0].Payload["code"] != testCase.want {
+				t.Fatalf("error code = %#v, want %q", events[0].Payload["code"], testCase.want)
+			}
+			if events[0].Payload["message"] != browserTurnErrorMessage {
+				t.Fatalf("error message = %#v", events[0].Payload["message"])
+			}
+			for _, key := range []string{"status", "error", "detail", "details", "reasoning"} {
+				if _, exists := events[0].Payload[key]; exists {
+					t.Fatalf("untrusted error field %q crossed boundary: %#v", key, events[0].Payload)
+				}
+			}
+		})
+	}
+}
+
 func TestTranslateCoreNDJSONRejectsInvalidJSONAndUTF8(t *testing.T) {
 	tests := []struct {
 		name string

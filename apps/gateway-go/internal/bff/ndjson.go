@@ -29,6 +29,8 @@ const (
 	maxCoreFrameBytes     = 4 << 20
 )
 
+const browserTurnErrorMessage = "The turn could not be completed"
+
 // CoreStreamEvent is the visible Core-to-BFF stream envelope.  The payload is
 // intentionally untyped at this boundary; the event envelope and the hidden
 // payload policy are the only semantics owned by the BFF.
@@ -87,6 +89,122 @@ var hiddenPayloadKeys = map[string]struct{}{
 	"apikey":          {},
 	"rawprompt":       {},
 	"rawresponse":     {},
+}
+
+// browserTurnErrorCodes is the allowlist for application errors emitted by
+// Core. Error payloads are a separate contract from progress payloads: retain
+// only a stable code and a fixed message, even when an older Core uses
+// payload.error or includes status/details beside it. Unknown values fall back
+// to the generic turn failure so provider/database/model text cannot cross the
+// browser boundary.
+var browserTurnErrorCodes = map[string]struct{}{
+	"active_memory_capability_unavailable":   {},
+	"active_memory_plan_invalid":             {},
+	"active_memory_plan_stale":               {},
+	"affect_capability_unavailable":          {},
+	"affect_idempotency_conflict":            {},
+	"affect_profile_revision_conflict":       {},
+	"affect_source_revision_conflict":        {},
+	"affect_state_revision_conflict":         {},
+	"appraisal_required":                     {},
+	"capability_busy":                        {},
+	"capability_execution_class_invalid":     {},
+	"capability_execution_failed":            {},
+	"capability_not_found":                   {},
+	"capability_output_invalid":              {},
+	"capability_prepare_failed":              {},
+	"capability_prepared_payload_invalid":    {},
+	"capability_request_arguments_invalid":   {},
+	"capability_request_contract_invalid":    {},
+	"capability_result_identity_mismatch":    {},
+	"capability_result_missing":              {},
+	"capability_result_status_invalid":       {},
+	"capability_settlement_failed":           {},
+	"cognition_visible_text_missing":         {},
+	"conversation_not_found":                 {},
+	"conversation_settlement_failed":         {},
+	"conversation_turn_conflict":             {},
+	"conversation_turn_failed":               {},
+	"conversation_turn_invalid":              {},
+	"conversation_unauthorized":              {},
+	"current_state_revision_stale":           {},
+	"decision_effect_invalid":                {},
+	"execution_cancelled":                    {},
+	"execution_failed":                       {},
+	"foundation_revision_stale":              {},
+	"frozen_context_projection_missing":      {},
+	"life_context_stale":                     {},
+	"media_arguments_invalid":                {},
+	"media_capability_unavailable":           {},
+	"media_context_stale":                    {},
+	"media_intent_failed":                    {},
+	"media_intent_invalid":                   {},
+	"media_prepare_required":                 {},
+	"memory_capability_unavailable":          {},
+	"memory_plan_invalid":                    {},
+	"memory_plan_stale":                      {},
+	"memory_recall_failed":                   {},
+	"memory_recall_unavailable":              {},
+	"moment_arguments_invalid":               {},
+	"moment_target_invalid":                  {},
+	"moment_text_invalid":                    {},
+	"native_test_plan_invalid":               {},
+	"native_test_retryable":                  {},
+	"native_test_wrong_execution_path":       {},
+	"personality_decision_plan_invalid":      {},
+	"presence_capability_unavailable":        {},
+	"presence_context_stale":                 {},
+	"presence_idempotency_conflict":          {},
+	"presence_plan_expired":                  {},
+	"presence_plan_invalid":                  {},
+	"presence_prepared_context_mismatch":     {},
+	"presence_replay_result_invalid":         {},
+	"presence_resulting_context_invalid":     {},
+	"query_continuation_contract_invalid":    {},
+	"query_continuation_digest_invalid":      {},
+	"query_continuation_query_failed":        {},
+	"query_continuation_tool_call_forbidden": {},
+	"relationship_lookup_arguments_invalid":  {},
+	"relationship_lookup_failed":             {},
+	"relationship_lookup_not_found":          {},
+	"relationship_lookup_owner_failed":       {},
+	"relationship_lookup_scope_failed":       {},
+	"relationship_lookup_target_forbidden":   {},
+	"relationship_lookup_target_invalid":     {},
+	"relationship_lookup_target_required":    {},
+	"request_cancelled":                      {},
+	"request_timeout":                        {},
+	"required_capability_failed":             {},
+	"scene_capability_unavailable":           {},
+	"scene_context_stale":                    {},
+	"scene_idempotency_conflict":             {},
+	"scene_plan_expired":                     {},
+	"scene_plan_invalid":                     {},
+	"scene_prepared_context_mismatch":        {},
+	"scene_replay_result_invalid":            {},
+	"scene_resulting_context_invalid":        {},
+	"schedule_prepared_context_mismatch":     {},
+	"schedule_replan_arguments_invalid":      {},
+	"schedule_replan_context_stale":          {},
+	"schedule_replan_failed":                 {},
+	"schedule_replan_local_date_invalid":     {},
+	"schedule_replan_owner_missing":          {},
+	"schedule_replan_persist_failed":         {},
+	"schedule_replan_planner_failed":         {},
+	"schedule_replan_revision_invalid":       {},
+	"schedule_replan_schedule_read_failed":   {},
+	"schedule_replan_timezone_invalid":       {},
+	"structured_turn_settlement_failed":      {},
+	"takeover_failed":                        {},
+	"takeover_frozen_turn_missing":           {},
+	"takeover_reply_budget_exhausted":        {},
+	"takeover_resume_decision_invalid":       {},
+	"takeover_resume_rule_missing":           {},
+	"takeover_target_profile_missing":        {},
+	"tool_call_failed":                       {},
+	"turn_stage_invalid":                     {},
+	"turn_stage_not_executable":              {},
+	"visible_text_source_conflict":           {},
 }
 
 // TranslateCoreNDJSON reads response incrementally and writes one browser
@@ -398,6 +516,21 @@ func browserEvent(core CoreStreamEvent) (BrowserStreamEvent, string) {
 	if _, ok := coreStreamTypes[core.Type]; !ok || core.TurnID == "" || core.Sequence < 0 || core.Payload == nil {
 		return BrowserStreamEvent{}, InvalidCoreEvent
 	}
+	if core.Type == "error" {
+		// Core currently has two error payload shapes: the newer `code` field
+		// and the legacy `error` field emitted after visible output. Normalize
+		// both at the public boundary and discard status/details/message so a
+		// model, provider, or persistence failure cannot become browser data.
+		return BrowserStreamEvent{
+			Type:     "error",
+			TurnID:   core.TurnID,
+			Sequence: core.Sequence,
+			Payload: map[string]any{
+				"code":    browserTurnErrorCode(core.Payload),
+				"message": browserTurnErrorMessage,
+			},
+		}, ""
+	}
 	if hasHiddenPayload(core.Payload) {
 		return BrowserStreamEvent{}, HiddenCorePayload
 	}
@@ -428,6 +561,20 @@ func browserEvent(core CoreStreamEvent) (BrowserStreamEvent, string) {
 	}
 
 	return BrowserStreamEvent{Type: eventType, TurnID: core.TurnID, Sequence: core.Sequence, Payload: core.Payload}, ""
+}
+
+func browserTurnErrorCode(payload map[string]any) string {
+	for _, key := range []string{"code", "error"} {
+		value, ok := payload[key].(string)
+		if !ok {
+			continue
+		}
+		code := strings.TrimSpace(value)
+		if _, allowed := browserTurnErrorCodes[code]; allowed {
+			return code
+		}
+	}
+	return "conversation_turn_failed"
 }
 
 func browserStreamMessage(message map[string]any) map[string]any {

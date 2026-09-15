@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -104,6 +105,43 @@ func TestWriteErrorDetailsKeepsBoundedOperationReason(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), `"reason":"workflow restart failed"`) {
 		t.Fatalf("reason missing from error body: %s", response.Body.String())
+	}
+}
+
+func TestWriteNDJSONErrorUsesStableCodesWithoutLeakingErrorText(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{name: "capability code", err: &core.CapabilityError{Code: "capability_result_missing", Cause: errors.New("provider response password=secret")}, want: "capability_result_missing"},
+		{name: "life context sentinel", err: fmt.Errorf("authority check: %w", core.ErrLifeContextStale), want: "life_context_stale"},
+		{name: "legacy turn code", err: errors.New("conversation_turn_invalid"), want: "conversation_turn_invalid"},
+		{name: "cancelled", err: context.Canceled, want: "request_cancelled"},
+		{name: "unknown provider error", err: errors.New("provider response password=secret"), want: "conversation_turn_failed"},
+		{name: "unsafe capability code", err: &core.CapabilityError{Code: "provider_raw_response", Cause: errors.New("provider response password=secret")}, want: "conversation_turn_failed"},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			writeNDJSONError(response, "turn-1", testCase.err)
+
+			var frame struct {
+				Payload map[string]string `json:"payload"`
+			}
+			if err := json.NewDecoder(response.Body).Decode(&frame); err != nil {
+				t.Fatalf("decode NDJSON error: %v; body=%s", err, response.Body.String())
+			}
+			if frame.Payload["code"] != testCase.want {
+				t.Fatalf("error code = %q, want %q; payload=%#v", frame.Payload["code"], testCase.want, frame.Payload)
+			}
+			if frame.Payload["message"] != "The turn could not be completed" {
+				t.Fatalf("error message = %q", frame.Payload["message"])
+			}
+			if strings.Contains(response.Body.String(), "secret") || strings.Contains(response.Body.String(), "provider response") {
+				t.Fatalf("raw error text leaked: %s", response.Body.String())
+			}
+		})
 	}
 }
 

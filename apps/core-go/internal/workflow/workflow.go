@@ -589,7 +589,12 @@ func ProcessWakeUpActivity(ctx context.Context, input Input) (map[string]any, er
 	result, err := application.ProcessWakeUp(ctx, input.FluctlightID, input.Cycle)
 	if err != nil {
 		recordActivityLifecycle(application, ctx, input, "wake_up", core.LifecycleTransitionFailed, "failed", "wake_up_activity_failed", err)
-		slog.Default().Error("Go Worker wake-up activity failed", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle, "correlation_id", input.CorrelationID, "error_type", fmt.Sprintf("%T", err))
+		errorCode, errorReason := core.ProviderErrorInfo(err)
+		logAttrs := []any{"fluctlight_id", input.FluctlightID, "cycle", input.Cycle, "correlation_id", input.CorrelationID, "error_type", fmt.Sprintf("%T", err), "error_code", errorCode}
+		if errorReason != "" {
+			logAttrs = append(logAttrs, "error_reason", errorReason)
+		}
+		slog.Default().Error("Go Worker wake-up activity failed", logAttrs...)
 	} else {
 		transition, status, reason := wakeUpLifecycleOutcome(result)
 		recordActivityLifecycle(application, ctx, input, "wake_up", transition, status, reason, nil)
@@ -787,9 +792,29 @@ func activityLifecycleDiagnostic(input Input, surface string, transition core.Li
 		diagnostic.ErrorCategory = "activity"
 		diagnostic.ErrorCode = reason
 		diagnostic.Retryable = true
-		diagnostic.SafeCause = boundedTemporalFailureMessage(&failurepb.Failure{Message: activityErr.Error()})
+		diagnostic.SafeCause = safeActivityErrorCause(activityErr)
+		if providerCode := core.ProviderErrorCode(activityErr); providerCode == "tool_call_invalid" {
+			diagnostic.ErrorCode = providerCode
+		}
 	}
 	return diagnostic
+}
+
+// safeActivityErrorCause keeps Provider protocol failures diagnosable without
+// copying model-controlled call IDs, names, or arguments into lifecycle rows.
+// Other activity errors retain the existing bounded Temporal leaf message.
+func safeActivityErrorCause(err error) string {
+	if err == nil {
+		return ""
+	}
+	code, reason := core.ProviderErrorInfo(err)
+	if code == "tool_call_invalid" {
+		if reason != "" {
+			return code + ": " + reason
+		}
+		return code
+	}
+	return boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()})
 }
 
 func ProcessMemoryEmbeddingActivity(ctx context.Context, input Input) (map[string]any, error) {

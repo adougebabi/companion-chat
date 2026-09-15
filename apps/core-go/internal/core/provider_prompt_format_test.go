@@ -76,6 +76,42 @@ func TestFormatProviderMessagesUsesTOONOnlyForNonMediaContexts(t *testing.T) {
 	}
 }
 
+func TestProviderYAMLModePropagatesThroughNestedArrays(t *testing.T) {
+	value := map[string]any{
+		"facts": []any{
+			map[string]any{
+				"kind": "current_state",
+				"value": map[string]any{
+					"drives": []any{
+						map[string]any{"key": "rest", "pressure": 0.4},
+						map[string]any{"key": "social", "pressure": 0.6},
+					},
+				},
+			},
+		},
+	}
+
+	yaml := renderProviderYAMLWithMode(value, false)
+	if strings.Contains(yaml, "drives[2]{key,pressure}:") {
+		t.Fatalf("YAML mode leaked a nested TOON table: %s", yaml)
+	}
+	if !strings.Contains(yaml, "- key: rest") || !strings.Contains(yaml, "  - key: social") {
+		t.Fatalf("YAML mode lost nested array entries: %s", yaml)
+	}
+
+	toon := renderProviderYAMLWithMode(value, true)
+	if !strings.Contains(toon, "drives[2]{key,pressure}:") {
+		t.Fatalf("TOON mode did not render the nested homogeneous array: %s", toon)
+	}
+}
+
+func TestProviderFormatterLeavesRuntimeContextEnvelopeUntouched(t *testing.T) {
+	content := "[RUNTIME CONTEXT]\n{\"facts\":[{\"kind\":\"scene\",\"value\":\"雨后窗边\"}]}\n[/RUNTIME CONTEXT]"
+	if got := formatProviderPromptContent(content); got != content {
+		t.Fatalf("runtime context envelope was implicitly reformatted: %q", got)
+	}
+}
+
 func TestMediaPromptUserPayloadIsOnlyFormattedYAML(t *testing.T) {
 	content := `{"context_binding":{"life_context":{"scene":"图书馆"}},"scene":"图书馆","action":"阅读"}`
 	formatted := formatProviderMessagesForRole([]map[string]any{{"role": "user", "content": content}}, "media_prompt")

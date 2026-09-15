@@ -179,7 +179,9 @@ test("a terminal cognition error keeps the authoritative user message visible an
 		const body = JSON.parse(String(init.body));
 		const frames = [
 			{ type: "message", turnId: body.turnId, sequence: 0, payload: { message: user } },
-			{ type: "error", turnId: body.turnId, sequence: 1, payload: { code: "conversation_settlement_failed", detail: "appraisal_required" } },
+			// Core's current shape carries the stable code; the BFF still accepts
+			// the legacy payload.error form during rolling upgrades.
+			{ type: "error", turnId: body.turnId, sequence: 1, payload: { status: "failed", code: "conversation_settlement_failed" } },
 		].map((frame) => JSON.stringify(frame)).join("\n") + "\n";
 		return new Response(frames, { status: 200, headers: { "content-type": "application/x-ndjson" } });
 	};
@@ -196,6 +198,45 @@ test("a terminal cognition error keeps the authoritative user message visible an
 		assert.equal(store.retryTurn?.messageId, user.id);
 		assert.match(store.error, /conversation_settlement_failed/);
 		assert.ok(values.has("fluctlight.retry-turn.v2"), "terminal error did not preserve durable browser retry identity");
+	} finally {
+		await server.close();
+		globalThis.window = originalWindow;
+		globalThis.fetch = originalFetch;
+		globalThis.localStorage = originalLocalStorage;
+	}
+});
+
+test("a non-2xx turn response keeps the BFF error code instead of collapsing to turn_failed", async () => {
+	const originalWindow = globalThis.window;
+	const originalFetch = globalThis.fetch;
+	const originalLocalStorage = globalThis.localStorage;
+	const values = new Map();
+	globalThis.window = { location: { origin: "http://fluctlight.test" } };
+	globalThis.localStorage = {
+		getItem: (key) => values.get(key) ?? null,
+		setItem: (key, value) => values.set(key, String(value)),
+		removeItem: (key) => values.delete(key),
+	};
+	const conversation = { id: "conversation-http-error", createdByActorId: "owner", revision: 0, createdAt: "2026-09-11T00:00:00Z", updatedAt: "2026-09-11T00:00:00Z" };
+	globalThis.fetch = async (input) => {
+		const url = String(input);
+		if (url.includes("/turn")) {
+			return Response.json({ detail: { code: "conversation_turn_conflict", message: "The conversation turn failed", details: { private: "must not surface" } } }, { status: 502 });
+		}
+		throw new Error(`unexpected request ${url}`);
+	};
+	const server = await createServer({ root: fileURLToPath(new URL("../", import.meta.url)), appType: "custom", logLevel: "silent", server: { middlewareMode: true } });
+	try {
+		setActivePinia(createPinia());
+		const { useConversationStore } = await server.ssrLoadModule("/src/stores/conversations.ts");
+		const store = useConversationStore();
+		store.conversation = conversation;
+		store.fluctlightId = "fluctlight-http-error";
+		store.fluctlights = [{ id: "fluctlight-http-error", identity: { name: "摇光" }, status: "active" }];
+		await store.send("在吗？");
+		assert.match(store.error, /conversation_turn_conflict/);
+		assert.doesNotMatch(store.error, /turn_failed/);
+		assert.ok(values.has("fluctlight.retry-turn.v2"), "non-2xx turn error did not preserve retry identity");
 	} finally {
 		await server.close();
 		globalThis.window = originalWindow;

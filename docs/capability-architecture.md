@@ -75,6 +75,18 @@ Provider/renderer/configuration failure cannot erase a valid model Tool Call;
 its action worker performs Prepare/preflight before the external side effect
 and retries only while the action remains executable.
 
+An interactive Main cognition that requests a visible-result ACTION, such as
+`media.image.generate` or a Memory mutation, must request
+`conversation.reply` in the same native response. The ACTION carries the
+business intent; `conversation.reply` carries the user-visible text. If the
+Provider returns the ACTION alone, Core fails closed with
+`cognition_visible_text_missing` before capability settlement. Requests with
+multiple registered capability definitions set
+`parallel_tool_calls=true` on the OpenAI-compatible wire payload so the model
+can emit both calls in one response; single-capability requests omit that
+field. The flag only affects transport selection and does not create a second
+delivery path or change Registry validation and execution order.
+
 The current cutover exposes `schedule.replan` as `{intent}`. A capability-local
 planner uses the structured `cognitive_assessment` provider role outside the
 mutation transaction and must produce the complete validated Core schedule
@@ -125,6 +137,14 @@ not retrieve Memory, interpret time, mutate Persona, or execute capabilities.
 Default persisted role limits are `131072` context, `98304` input, `4096` output
 reserve, `4096` safety margin, policy `prompt-budget.v1`; required overflow is
 `prompt_required_budget_exceeded` before Provider I/O.
+
+The `[RUNTIME CONTEXT]` body is currently canonical JSON on the assembled Main
+path. The separate prompt formatter may render complete non-assembled JSON
+documents as YAML and use TOON only for homogeneous scalar object arrays; this
+does not change the JSON Provider envelope, native `tools`, or
+`response_format`. Heterogeneous runtime facts remain YAML/JSON-shaped, and a
+renderer change requires a full-payload size comparison plus live model
+compatibility evidence before changing the assembled path.
 
 `memory.recall` is conversation-only, intent-only, and classified as a
 read-only pure query. It requires frozen `memory_scope`, returns at most 12

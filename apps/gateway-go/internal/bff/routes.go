@@ -249,7 +249,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		extra.Set("Accept", "application/x-ndjson")
 		upstream, err := s.core.request(request.Context(), http.MethodPost, "/internal/conversations/"+escape(conversationID)+"/turn", session, mapped, extra)
 		if err != nil {
-			writeError(response, http.StatusBadGateway, "conversation_turn_failed", "The conversation turn failed")
+			conversationTurnError(response, err)
 			return
 		}
 		if upstream.Body == nil || upstream.ContentLength == 0 {
@@ -830,6 +830,18 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 }
 
 type routeError func(http.ResponseWriter, error)
+
+func conversationTurnError(response http.ResponseWriter, err error) {
+	code := "conversation_turn_failed"
+	var coreErr *CoreError
+	if errors.As(err, &coreErr) && coreErr != nil {
+		code = browserTurnErrorCode(map[string]any{"code": coreErr.Code})
+	}
+	// Keep the route's historical 502 status and fixed message. CoreError.Code
+	// is accepted only through the same turn allowlist used for NDJSON errors;
+	// its message/details may contain provider or persistence data.
+	writeError(response, http.StatusBadGateway, code, "The conversation turn failed")
+}
 
 func (s *Server) callMap(response http.ResponseWriter, request *http.Request, endpoint, methodName string, body any, onError routeError, mapper func(map[string]any) any) {
 	session, ok := s.requireForMethod(response, request, methodName)

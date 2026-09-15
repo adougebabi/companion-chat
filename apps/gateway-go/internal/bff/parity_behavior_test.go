@@ -292,6 +292,22 @@ func TestBFFTurnMapsMissingCoreBodyToBadGateway(t *testing.T) {
 	}
 }
 
+func TestBFFTurnPreservesAllowlistedCoreErrorCode(t *testing.T) {
+	handler := testBFF(t, func(request *http.Request) (*http.Response, error) {
+		if strings.HasSuffix(request.URL.Path, "/turn") {
+			return jsonResponse(http.StatusConflict, `{"detail":{"code":"conversation_turn_conflict","message":"database revision conflict","details":{"raw_response":"private"}}}`), nil
+		}
+		return jsonResponse(http.StatusOK, `{}`), nil
+	})
+	response := invoke(handler, http.MethodPost, "http://gateway.test/api/conversations/conversation-1/turn", `{"text":"hello","fluctlightId":"fl-1","idempotencyKey":"turn-1"}`, map[string]string{"Origin": "https://fluctlight.local", "X-CSRF-Token": "csrf"}, map[string]string{sessionCookieName: "opaque", csrfCookieName: "csrf"})
+	if response.Code != http.StatusBadGateway || !strings.Contains(response.Body.String(), `"conversation_turn_conflict"`) {
+		t.Fatalf("allowlisted Core turn error = %d %s", response.Code, response.Body.String())
+	}
+	if strings.Contains(response.Body.String(), "database revision conflict") || strings.Contains(response.Body.String(), "private") {
+		t.Fatalf("Core turn error details leaked: %s", response.Body.String())
+	}
+}
+
 func TestBFFMediaUsesDefaultContentType(t *testing.T) {
 	handler := testBFF(t, func(request *http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: http.StatusOK, ContentLength: 5, Body: io.NopCloser(strings.NewReader("bytes")), Header: http.Header{}}, nil

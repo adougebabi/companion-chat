@@ -32,8 +32,12 @@
 4. 只有 winner 进入 Prepare、Execute、事务结算和 outbox 投递。阶段 CAS、版本门和恢复路径不重判已持久化 verdict。
 5. `active_profile_id` 是持久主导人格，`reply_owner_profile_id` 是本轮发言人格。Takeover 只改变后者。
 6. 可见文本由 `resolveCanonicalVisibleReply` 计算一次并冻结：根级 `visible_text` 优先，根字段为空时允许 `conversation.reply.text` fallback；两个来源冲突时 `visible_text_source_conflict` fail closed。最终发送仍走既有 `conversation_messages` 管线。
-7. Judge 前 candidate validator 使用 Core 冻结的 ContextSnapshot；内置 `relationship.lookup` 只从冻结 alias 和授权 actor 集合解析参数，不查询数据库，不调用 Preflight/Prepare/Execute。
-8. B 的 Overlay clone/load/compose 失败返回稳定错误码，跳过 Judge 并走 `judge_degraded` 保留 A；明确无 Overlay 记录才使用声明 baseline。
+7. 需要可见结果的 ACTION（例如 `media.image.generate` 或 Memory mutation）必须和 `conversation.reply` 在同一 Main cognition 中返回；ACTION 参数不能替代可见文本。多工具 Provider 请求携带 `parallel_tool_calls=true`，单工具请求省略该字段；ACTION-only 结果在结算前以 `cognition_visible_text_missing` fail closed。
+8. Judge 前 candidate validator 使用 Core 冻结的 ContextSnapshot；内置 `relationship.lookup` 只从冻结 alias 和授权 actor 集合解析参数，不查询数据库，不调用 Preflight/Prepare/Execute。
+9. B 的 Overlay clone/load/compose 失败返回稳定错误码，跳过 Judge 并走 `judge_degraded` 保留 A；明确无 Overlay 记录才使用声明 baseline。
+10. WakeUp Provider 的 native/structured tool-call 归一化失败持久化 `tool_call_invalid` 与有界 shape 诊断；Worker 及 activity lifecycle `safe_cause` 只输出稳定 `error_code`/allowlist `error_reason`，不输出模型控制的调用内容。
+11. 混合 `media.image.generate` + `conversation.reply` 在同一 Main cognition 中绑定同一个 assistant message；图片 intent、媒体 workflow、outbox 与 Core stream assistant frame 均有回归覆盖。Core 错误帧使用 `payload.code`，BFF/Web 保留旧 `payload.error` 兼容。
+12. 流开始前 BFF HTTP 错误由生成的 `BrowserClient.turn()` 解析为 `BrowserApiError`；Pinia 使用稳定 code，避免状态码错误退化为 `turn_failed`。
 
 ## 3. Prompt 与数据收敛
 
@@ -65,7 +69,7 @@ Runtime 只消费一套 typed takeover 语义。新的初始化输出放在 `per
 | `forced_activation` 历史 prose / 迁移中间态 | 原文保留为迁移证据；没有完整 typed 元数据时输出 `unclassified`/bounded diagnostic；只有显式完整 typed 对象才映射到同一规范语义，不按关键词、正则或 profile name 推断执行语义 | `TestUnclassifiedForcedActivationKeepsRawValueAndIsReported`、`TestForcedActivationRuleIDIsStructuralNotTextual`、dense card 双路径测试 |
 | `takeover_rules[]` | 接管唯一正式执行入口，`takeover:<id>` 贯穿初始化、归一化、Judge 引用、冻结和恢复 | `TestDeclaredRulesReachTheProductionTurn`、初始化校验测试 |
 
-`dense_multi_card.txt` 与 `dense_multi_expectations.json` 继续验证「公开质疑 → 星火接管」原始 prose 被保留。真实 prose 归一化为 0 条 executable takeover，并记录诊断；固定 `dense_multi_typed_migration.json` 代表授权迁移 Provider 输出，同一语义归一化为 1 条显式 typed rule。`FLUCTLIGHT_LIVE_PROVIDER_TEST=1` 未配置，因此真实 Provider 是否在初始化时产出该 typed 字段仍是环境未验证，固定 fixture 不替代 live 结论。
+`dense_multi_card.txt` 与 `dense_multi_expectations.json` 继续验证「公开质疑 → 星火接管」原始 prose 被保留。真实 prose 归一化为 0 条 executable takeover，并记录诊断；固定 `dense_multi_typed_migration.json` 代表授权迁移 Provider 输出，同一语义归一化为 1 条显式 typed rule。真实初始化是否从该卡产出 typed 字段仍需显式启用对应 live 测试；固定 fixture 不替代 live 结论。
 
 ## 5. 测试证据
 
@@ -92,6 +96,7 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 - B accepted Overlay happy path 以及 clone/load/compose 失败降级；
 - Working Persona allowlist、描述性 traits 保真、roster 收敛和 Runtime Context 去重；
 - pure QUERY 与 takeover 互斥、QUERY + ACTION mixed 候选边界；
+- WakeUp `tool_call_invalid` 有界诊断、native/structured mixed media + reply durability 和 Core stream delivery；
 - `go vet`、构建、格式、完整包测试和 Race Detector。
 
 ## 6. 成本与性能证据边界
@@ -100,12 +105,12 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 
 | 路径 | 物理请求 | 估算输入 Token | 字符 | 字节 |
 |---|---:|---:|---:|---:|
-| plain_no_judge | 1 | 23,439 | 18,751 | 20,367 |
-| judge_keeps_a | 2 | 25,379 | 20,303 | 22,543 |
-| judge_takeover_b | 3 | 48,342 | 38,673 | 43,049 |
-| pure_query | 2 | 30,343 | 24,274 | 27,524 |
+| plain_no_judge | 1 | 23,593 | 18,874 | 20,584 |
+| judge_keeps_a | 2 | 25,533 | 20,426 | 22,760 |
+| judge_takeover_b | 3 | 48,650 | 38,919 | 43,483 |
+| pure_query | 2 | 30,617 | 24,493 | 27,931 |
 
-估算约按 1.25 tokens/rune，Judge 请求本身为 1,940 估算 Token / 2,176 bytes；接管路径包含被丢弃 A 输出。`life_profile_before_after_report.json` 只比较 dense-shaped synthetic fixture 的局部 allowlist：life_profile 8 个 key/753 bytes → 2 个 key/174 bytes，Working Persona 990 → 432 bytes。
+估算约按 1.25 tokens/rune，Judge 请求本身为 1,940 估算 Token / 2,176 bytes；接管路径包含被丢弃 A 输出。启用多工具并行提示后，主请求 wire 增加了该控制字段，报告中的数字已由测试重新生成。`life_profile_before_after_report.json` 只比较 dense-shaped synthetic fixture 的局部 allowlist：life_profile 8 个 key/753 bytes → 2 个 key/174 bytes，Working Persona 990 → 432 bytes。
 
 这些数字证明当前 wire 预算、调用序列和裁剪方向；它们不证明真实模型 Token 计费、缓存命中、首条可见延迟、总耗时，也不满足同一真实卡 full request 前后性能对照。真实 Provider 指标需在 live 配置后另行验收。
 
@@ -113,7 +118,9 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 
 **明确未实现**：deterministic 时间窗 Runtime evaluator；本版只分类、生成稳定 ID 和诊断。
 
-**环境未验证**：真实 Provider 初始化是否从 `dense_multi_card.txt` 产出 typed `takeover_rules[]`；真实 Judge 误报/漏报、抗注入表现；真实 Token/缓存/延迟/总耗时；真实卡 full-request before/after；未配置测试数据库时的冻结/结算链路。
+**本地确定性回归已验证**：Fake Provider + PostgreSQL 已覆盖 native/structured mixed media + reply 的 capability normalization、同一 assistant message 结算、图片 intent/workflow/outbox 持久化和 Core stream 帧顺序。
+
+**环境未验证**：`FLUCTLIGHT_LIVE_PROVIDER_TEST=1` 未配置，真实 Provider（包括 mlx-serve）工具调用行为未运行；真实 Provider 初始化是否从 `dense_multi_card.txt` 产出 typed `takeover_rules[]`；真实 Judge 误报/漏报、抗注入表现；真实 Token/缓存/延迟/总耗时；真实卡 full-request before/after；真实 ComfyUI/Media Worker 生成最终图片资产；未配置测试数据库时的冻结/结算链路。
 
 这些项目不会被 Fake Provider、固定 migration fixture 或合成字节报告标记为通过。
 
@@ -132,4 +139,4 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 
 ## 9. 验收状态
 
-本轮格式、静态检查、完整测试、竞态测试和文档同步均已完成，任务状态已更新为 `completed`。live Provider 配置仍缺失，因此验收报告保留上述“环境未验证”标签，不把任务边界外的 live 证据写成已通过。
+本轮格式、静态检查、完整测试、竞态测试和文档同步均已完成，任务状态已更新为 `completed`。真实 Provider、Judge、ComfyUI、计费和延迟验收均保留为后续环境验证项。

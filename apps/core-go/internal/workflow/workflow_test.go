@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -34,6 +35,19 @@ func TestTemporalTerminalFailureMessagePreservesActivityCause(t *testing.T) {
 	}
 	if got, want := temporalTerminalFailureMessage(event), "media prompt generation failed: provider timeout"; got != want {
 		t.Fatalf("temporalTerminalFailureMessage() = %q, want %q", got, want)
+	}
+}
+
+func TestSafeActivityErrorCauseUsesStableProviderCode(t *testing.T) {
+	if got := safeActivityErrorCause(errors.New("tool_call_invalid")); got != "tool_call_invalid" {
+		t.Fatalf("safe activity cause = %q, want stable provider code", got)
+	}
+	diagnostic := activityLifecycleDiagnostic(Input{FluctlightID: "fl-1", CorrelationID: "wake_up:fl-1:cycle:1"}, "wake_up", core.LifecycleTransitionFailed, "failed", "wake_up_activity_failed", errors.New("tool_call_invalid"), activity.Info{})
+	if diagnostic.ErrorCode != "tool_call_invalid" || diagnostic.SafeCause != "tool_call_invalid" {
+		t.Fatalf("activity diagnostic = %#v", diagnostic)
+	}
+	if got := safeActivityErrorCause(errors.New("media prompt generation failed: provider timeout")); got != "media prompt generation failed: provider timeout" {
+		t.Fatalf("non-provider activity cause = %q", got)
 	}
 }
 

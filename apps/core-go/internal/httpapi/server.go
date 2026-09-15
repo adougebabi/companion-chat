@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -858,5 +859,131 @@ func readJSON(request *http.Request) (map[string]any, bool) {
 }
 
 func writeNDJSONError(response http.ResponseWriter, turnID string, err error) {
-	_ = json.NewEncoder(response).Encode(map[string]any{"type": "error", "turn_id": turnID, "sequence": 0, "payload": map[string]string{"code": "conversation_turn_failed", "message": "The turn could not be completed"}})
+	_ = json.NewEncoder(response).Encode(map[string]any{"type": "error", "turn_id": turnID, "sequence": 0, "payload": map[string]string{"code": turnErrorCode(err), "message": "The turn could not be completed"}})
+}
+
+// turnErrorCode maps an application error onto the small, stable vocabulary
+// that the Core stream contract exposes. The error text itself is not a safe
+// protocol field: provider and database errors commonly contain response
+// bodies, SQL details, or other internal data. CapabilityError is the one
+// structured exception, and even its code is accepted only when it has the
+// shape of a known business code. Plain errors are accepted only from the
+// explicit compatibility set below.
+func turnErrorCode(err error) string {
+	const fallback = "conversation_turn_failed"
+	if err == nil {
+		return fallback
+	}
+
+	// Prefer the structured capability code before checking its wrapped cause.
+	// A CapabilityError may unwrap ErrConflict, but its bounded business code is
+	// more useful than collapsing every capability failure to a generic conflict.
+	var capabilityErr *core.CapabilityError
+	if errors.As(err, &capabilityErr) && capabilityErr != nil {
+		if code := validTurnErrorCode(capabilityErr.Code); code != "" {
+			return code
+		}
+	}
+
+	switch {
+	case errors.Is(err, context.Canceled):
+		return "request_cancelled"
+	case errors.Is(err, context.DeadlineExceeded):
+		return "request_timeout"
+	case errors.Is(err, core.ErrLifeContextStale):
+		return "life_context_stale"
+	case errors.Is(err, core.ErrFoundationRevisionStale):
+		return "foundation_revision_stale"
+	case errors.Is(err, core.ErrCurrentStateRevisionStale):
+		return "current_state_revision_stale"
+	case errors.Is(err, core.ErrNotFound):
+		return "conversation_not_found"
+	case errors.Is(err, core.ErrUnauthorized):
+		return "conversation_unauthorized"
+	case errors.Is(err, core.ErrConflict):
+		return "conversation_turn_conflict"
+	}
+
+	// A few turn errors predate typed domain errors. Keep compatibility for
+	// exact, repository-owned codes without treating arbitrary Error() output
+	// as a protocol value.
+	if _, ok := turnErrorCompatibilityCodes[strings.TrimSpace(err.Error())]; ok {
+		return strings.TrimSpace(err.Error())
+	}
+	return fallback
+}
+
+var turnErrorCompatibilityCodes = map[string]struct{}{
+	"capability_prepare_failed":              {},
+	"capability_settlement_failed":           {},
+	"cognition_visible_text_missing":         {},
+	"conversation_not_found":                 {},
+	"conversation_settlement_failed":         {},
+	"conversation_turn_invalid":              {},
+	"decision_effect_invalid":                {},
+	"frozen_context_projection_missing":      {},
+	"life_context_stale":                     {},
+	"personality_decision_plan_invalid":      {},
+	"query_continuation_contract_invalid":    {},
+	"query_continuation_digest_invalid":      {},
+	"query_continuation_query_failed":        {},
+	"query_continuation_tool_call_forbidden": {},
+	"required_capability_failed":             {},
+	"structured_turn_settlement_failed":      {},
+	"takeover_failed":                        {},
+	"takeover_frozen_turn_missing":           {},
+	"takeover_reply_budget_exhausted":        {},
+	"takeover_resume_decision_invalid":       {},
+	"takeover_resume_rule_missing":           {},
+	"takeover_target_profile_missing":        {},
+	"tool_call_failed":                       {},
+	"turn_stage_invalid":                     {},
+	"turn_stage_not_executable":              {},
+	"visible_text_source_conflict":           {},
+}
+
+// validTurnErrorCode is deliberately stricter than a generic identifier
+// check. Only domain-owned namespaces can be returned from a structured
+// capability error; provider_* and free-form causes always use the fallback.
+func validTurnErrorCode(value string) string {
+	code := strings.TrimSpace(value)
+	if len(code) == 0 || len(code) > 128 {
+		return ""
+	}
+	for _, character := range code {
+		if (character < 'a' || character > 'z') && (character < '0' || character > '9') && character != '_' {
+			return ""
+		}
+	}
+	for _, prefix := range []string{
+		"active_memory_",
+		"affect_",
+		"appraisal_",
+		"capability_",
+		"cognition_",
+		"conversation_",
+		"current_state_",
+		"decision_",
+		"foundation_",
+		"frozen_",
+		"life_context_",
+		"media_",
+		"memory_",
+		"native_",
+		"personality_",
+		"presence_",
+		"query_",
+		"relationship_",
+		"required_",
+		"scene_",
+		"structured_",
+		"takeover_",
+		"tool_",
+		"turn_",
+	} {
+		if strings.HasPrefix(code, prefix) {
+			return code
+		}
+	}
+	return ""
 }

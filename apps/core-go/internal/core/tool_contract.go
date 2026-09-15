@@ -308,10 +308,10 @@ func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID strin
 	for index, raw := range rawCalls {
 		object := mapValue(raw)
 		if len(object) == 0 {
-			return nil, fmt.Errorf("tool call %d must be an object", index)
+			return nil, newProviderToolCallNormalizationError(index, "item_not_object", fmt.Errorf("tool call %d must be an object", index))
 		}
 		if kind := stringValue(object["type"]); kind != "" && kind != "function" {
-			return nil, fmt.Errorf("tool call %d type is unsupported", index)
+			return nil, newProviderToolCallNormalizationError(index, "unsupported_type", fmt.Errorf("tool call %d type is unsupported", index))
 		}
 		id := stringValue(object["id"])
 		name := stringValue(object["name"])
@@ -325,18 +325,23 @@ func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID strin
 			}
 		}
 		if id == "" {
-			return nil, fmt.Errorf("tool call %d id is required", index)
+			return nil, newProviderToolCallNormalizationError(index, "id_required", fmt.Errorf("tool call %d id is required", index))
 		}
 		if name == "" || len(name) > maxToolNameLength || !toolNamePattern.MatchString(name) {
-			return nil, fmt.Errorf("tool call %d name is invalid", index)
+			return nil, newProviderToolCallNormalizationError(index, "name_invalid", fmt.Errorf("tool call %d name is invalid", index))
 		}
 		if _, exists := seen[id]; exists {
-			return nil, fmt.Errorf("tool call id %q is duplicated", id)
+			return nil, newProviderToolCallNormalizationError(index, "duplicate_id", fmt.Errorf("tool call id %q is duplicated", id))
 		}
 		seen[id] = struct{}{}
 		rawArguments, err := normalizeToolArguments(arguments)
 		if err != nil {
-			return nil, fmt.Errorf("tool call %q arguments invalid: %w", id, err)
+			reason := "arguments_invalid"
+			var argumentsErr *providerToolArgumentsNormalizationError
+			if errors.As(err, &argumentsErr) {
+				reason = argumentsErr.Reason
+			}
+			return nil, newProviderToolCallNormalizationError(index, reason, fmt.Errorf("tool call %q arguments invalid: %w", id, err))
 		}
 		result = append(result, CapabilityInvocation{
 			CallID: id, CapabilityName: name, SchemaVersion: CapabilityInvocationSchemaVersion,
@@ -349,6 +354,56 @@ func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID strin
 	return result, nil
 }
 
+// providerToolCallNormalizationError preserves the stable reason and item
+// index needed by bounded Provider diagnostics while retaining the existing
+// human-readable error for callers. The diagnostic projection deliberately
+// excludes its model-controlled cause details.
+type providerToolCallNormalizationError struct {
+	Index  int
+	Reason string
+	Cause  error
+}
+
+func newProviderToolCallNormalizationError(index int, reason string, cause error) error {
+	return &providerToolCallNormalizationError{Index: index, Reason: reason, Cause: cause}
+}
+
+func (e *providerToolCallNormalizationError) Error() string {
+	if e == nil || e.Cause == nil {
+		return "provider tool call normalization failed"
+	}
+	return e.Cause.Error()
+}
+
+func (e *providerToolCallNormalizationError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Cause
+}
+
+type providerToolArgumentsNormalizationError struct {
+	Reason string
+}
+
+func (e *providerToolArgumentsNormalizationError) Error() string {
+	if e == nil {
+		return "arguments must be bounded valid JSON"
+	}
+	switch e.Reason {
+	case "arguments_required":
+		return "arguments are required"
+	case "arguments_not_object":
+		return "arguments must be a JSON object"
+	default:
+		return "arguments must be bounded valid JSON"
+	}
+}
+
+func providerToolArgumentsError(reason string) error {
+	return &providerToolArgumentsNormalizationError{Reason: reason}
+}
+
 func toolCallArrayValue(value any) []any {
 	if object, ok := value.(map[string]any); ok {
 		return []any{object}
@@ -358,7 +413,7 @@ func toolCallArrayValue(value any) []any {
 
 func normalizeToolArguments(value any) (json.RawMessage, error) {
 	if value == nil {
-		return nil, errors.New("arguments are required")
+		return nil, providerToolArgumentsError("arguments_required")
 	}
 	var data []byte
 	if text, ok := value.(string); ok {
@@ -366,18 +421,162 @@ func normalizeToolArguments(value any) (json.RawMessage, error) {
 	} else {
 		data = jsonBytes(value)
 	}
-	if len(data) == 0 || len(data) > maxToolArgumentsBytes || !json.Valid(data) {
-		return nil, errors.New("arguments must be bounded valid JSON")
+	if len(data) == 0 {
+		return nil, providerToolArgumentsError("arguments_empty")
+	}
+	if len(data) > maxToolArgumentsBytes {
+		return nil, providerToolArgumentsError("arguments_oversized")
+	}
+	if !json.Valid(data) {
+		return nil, providerToolArgumentsError("arguments_invalid_json")
 	}
 	trimmed := bytes.TrimSpace(data)
 	if len(trimmed) == 0 || trimmed[0] != '{' {
-		return nil, errors.New("arguments must be a JSON object")
+		return nil, providerToolArgumentsError("arguments_not_object")
 	}
 	var object map[string]any
 	if err := json.Unmarshal(trimmed, &object); err != nil || object == nil {
-		return nil, errors.New("arguments must be a JSON object")
+		return nil, providerToolArgumentsError("arguments_not_object")
 	}
 	return json.RawMessage(append([]byte(nil), trimmed...)), nil
+}
+
+// providerToolCallNormalizationDiagnostic exposes only bounded shape metadata
+// for a failed normalization. It is safe to persist in a diagnostic model run:
+// no ID/name values, argument values, user text, or provider response bodies are
+// copied into the result.
+func providerToolCallNormalizationDiagnostic(value any, source string, err error) map[string]any {
+	source = strings.TrimSpace(source)
+	if source != "native" && source != "structured" {
+		source = "unknown"
+	}
+	rawCalls := toolCallArrayValue(value)
+	result := map[string]any{
+		"source":               source,
+		"value_shape":          providerToolCallValueShape(value),
+		"call_count":           len(rawCalls),
+		"failed_item_index":    -1,
+		"normalization_reason": "normalization_failed",
+	}
+	var normalizationErr *providerToolCallNormalizationError
+	if !errors.As(err, &normalizationErr) || normalizationErr == nil {
+		return result
+	}
+	result["failed_item_index"] = normalizationErr.Index
+	if normalizationErr.Reason != "" {
+		result["normalization_reason"] = normalizationErr.Reason
+	}
+	if normalizationErr.Index < 0 || normalizationErr.Index >= len(rawCalls) {
+		return result
+	}
+	return addProviderToolCallItemDiagnostic(result, rawCalls[normalizationErr.Index])
+}
+
+func addProviderToolCallItemDiagnostic(result map[string]any, raw any) map[string]any {
+	if result == nil {
+		result = map[string]any{}
+	}
+	object, objectOK := raw.(map[string]any)
+	if !objectOK {
+		result["item_shape"] = providerToolCallValueShape(raw)
+		result["id_present"] = false
+		result["id_type"] = providerToolCallValueShape(nil)
+		result["type_value"] = ""
+		result["name_present"] = false
+		result["name_length"] = 0
+		result["name_valid"] = false
+		result["arguments_present"] = false
+		result["arguments_shape"] = providerToolCallValueShape(nil)
+		result["arguments_length"] = 0
+		return result
+	}
+	result["item_shape"] = "object"
+	idValue, idPresent := object["id"]
+	result["id_present"] = idPresent && idValue != nil
+	result["id_type"] = providerToolCallValueShape(idValue)
+	if typeValue, present := object["type"]; present {
+		result["type_value"] = boundedProviderToolCallDiagnosticToken(typeValue)
+	} else {
+		result["type_value"] = ""
+	}
+
+	nameValue, namePresent := object["name"]
+	name := stringValue(nameValue)
+	namePresentEffective := namePresent && nameValue != nil
+	functionValue, functionPresent := object["function"]
+	functionObject, functionOK := functionValue.(map[string]any)
+	if functionPresent {
+		result["function_shape"] = providerToolCallValueShape(functionValue)
+	}
+	if name == "" && functionOK {
+		if functionName, present := functionObject["name"]; present {
+			nameValue = functionName
+			name = stringValue(functionName)
+			namePresentEffective = present && functionName != nil
+		}
+	}
+	result["name_present"] = namePresentEffective
+	result["name_length"] = len([]byte(name))
+	result["name_valid"] = name != "" && len([]byte(name)) <= maxToolNameLength && toolNamePattern.MatchString(name)
+
+	argumentsValue, argumentsPresent := object["arguments"]
+	if argumentsValue == nil && functionOK {
+		argumentsValue, argumentsPresent = functionObject["arguments"]
+	}
+	result["arguments_present"] = argumentsPresent && argumentsValue != nil
+	result["arguments_shape"] = providerToolCallValueShape(argumentsValue)
+	result["arguments_length"] = providerToolCallValueLength(argumentsValue)
+	return result
+}
+
+func providerToolCallValueShape(value any) string {
+	switch value.(type) {
+	case nil:
+		return "null"
+	case string:
+		return "string"
+	case bool:
+		return "boolean"
+	case float32, float64, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, json.Number:
+		return "number"
+	case map[string]any:
+		return "object"
+	case []any, []map[string]any, []string:
+		return "array"
+	default:
+		return "unsupported"
+	}
+}
+
+func providerToolCallValueLength(value any) int {
+	switch typed := value.(type) {
+	case string:
+		return len([]byte(strings.TrimSpace(typed)))
+	case nil:
+		return 0
+	default:
+		return len(jsonBytes(value))
+	}
+}
+
+func boundedProviderToolCallDiagnosticToken(value any) string {
+	text, ok := value.(string)
+	if !ok {
+		return ""
+	}
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	if len([]rune(text)) > 64 {
+		return "bounded"
+	}
+	for _, character := range text {
+		if (character < 'A' || character > 'Z') && (character < 'a' || character > 'z') && (character < '0' || character > '9') && character != '_' && character != '.' && character != '-' {
+			return "invalid"
+		}
+	}
+	return text
 }
 
 func capabilityDefinitionMap(definitions []CapabilityDefinition) map[string]CapabilityDefinition {
