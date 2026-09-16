@@ -106,8 +106,8 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 		}
 	} else {
 		// The locked transaction below will re-check the duplicate. Avoid planner
-		// calls and capability preflight work for the common suppression path.
-		calls = nil
+		// calls and capability preflight work for the common suppression path, but
+		// retain the original invocations for an auditable duplicate result.
 	}
 	data["capability_invocations"] = calls
 	if actionType == "proactive_message" {

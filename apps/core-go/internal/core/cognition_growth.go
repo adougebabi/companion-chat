@@ -347,7 +347,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		if err != nil {
 			return err
 		}
-		influences, err := freezeDecisionInfluences(stages, projection, false)
+		_, err = freezeDecisionInfluences(stages, projection, false)
 		if err != nil {
 			return err
 		}
@@ -356,11 +356,10 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 			capabilityInvocations[index] = normalizeCapabilityInvocationMetadata(capabilityInvocations[index], fluctlightID, "", inboxID, inboxID, index)
 			capabilityInvocations[index].Metadata.Surface = CapabilitySurfaceNativeCognition
 		}
-		if len(capabilityInvocations) > 0 {
-			if err := requireDecisionInfluences(influences, "native_cognition_influences_required"); err != nil {
-				return err
-			}
-		}
+		// Native Provider calls are authoritative execution requests. Preserve
+		// every normalized invocation even when the optional influence sidecar is
+		// empty; settlement will record an explicit capability result instead of
+		// silently dropping the call.
 		stages["capability_invocations"] = capabilityInvocations
 		stages["context_projection"] = projection
 		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, "", inboxID, "no_op", stages, turnDecisionAuthority{})

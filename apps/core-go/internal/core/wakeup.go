@@ -496,27 +496,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err != nil {
 		return nil, err
 	}
-	influences, err := freezeDecisionInfluences(assessment, projection, false)
+	_, err = freezeDecisionInfluences(assessment, projection, false)
 	if err != nil {
 		return nil, err
-	}
-	proposedActionWithoutInfluences := ""
-	if len(influences) == 0 && wakeUpDecisionRequiresInfluences(stringValue(assessment["action_type"]), toolCalls, a.capabilityRegistry()) {
-		// Missing influence metadata must not kill the recurring cycle. Preserve
-		// only deferred output calls, whose durable target/result is sufficient
-		// evidence, and discard state-changing/internal calls that cannot be
-		// traced back to a Core-owned context reference.
-		deferredCalls, _ := splitDeferredOutputCapabilities(toolCalls, a.capabilityRegistry())
-		toolCalls = deferredCalls
-		if len(toolCalls) == 0 {
-			proposedActionWithoutInfluences = stringValue(assessment["action_type"])
-			if proposedActionWithoutInfluences == "" || proposedActionWithoutInfluences == "no_op" {
-				proposedActionWithoutInfluences = "capability"
-			}
-			assessment["action_type"] = "no_op"
-		} else {
-			assessment = mergeWakeUpToolCallAssessment(assessment, toolCalls, a.capabilityRegistry())
-		}
 	}
 	proposedActionWithoutCapability := normalizeWakeUpActionWithoutCapability(assessment, toolCalls)
 	// Freeze the invocation metadata and context snapshot before persistence.
@@ -535,9 +517,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			assessment["output_preference_decision"] = normalized
 		}
 	}
-	// All calls, including WakeUp-only internal capabilities, remain on the
-	// same generic capability action. Definition failure policy decides whether
-	// an error is required or optional; no concrete name is split out here.
+	// All Provider calls remain in the frozen invocation envelope. Deferred
+	// output calls use the concrete output action while internal calls use the
+	// generic capability action; no invocation is silently split out or lost.
 	visualIdentityToolResults := make([]CapabilityResult, 0)
 	composite, err := normalizeCompositeAction(assessment, toolCalls, wakeID, stringValue(assessment["action_type"]))
 	if err != nil {
@@ -563,9 +545,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	mediaComposite := deferredOutput && (proposedActionType == "moment" || proposedActionType == "proactive_message")
 	result := map[string]any{"status": "no_op"}
-	if proposedActionWithoutInfluences != "" {
-		result = map[string]any{"status": "no_op", "reason": "capability_influences_missing", "proposed_action_type": proposedActionWithoutInfluences}
-	} else if proposedActionWithoutCapability != "" {
+	if proposedActionWithoutCapability != "" {
 		_, result = fallbackWakeUpActionWithoutCapability(proposedActionWithoutCapability)
 	}
 	if len(visualIdentityToolResults) > 0 {
@@ -592,13 +572,22 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		if !policyDecision.Allowed {
 			policyBlocked = true
 			policyReason = policyDecision.Reason
-			actualActionType = "no_op"
-			toolCalls = nil
-			result = map[string]any{"status": "blocked", "reason": policyReason, "proposed_action_type": proposedActionType}
+			if len(toolCalls) == 0 {
+				actualActionType = "no_op"
+				result = map[string]any{"status": "blocked", "reason": policyReason, "proposed_action_type": proposedActionType}
+			} else {
+				// Keep every Provider invocation visible in the durable action even
+				// when policy rejects execution. The action worker will settle these
+				// calls as explicit failures; never erase a returned tool call.
+				actualActionType = "capability"
+				assessment["capability_results"] = capabilityFailureResultValues(toolCalls, "policy_"+policyReason, false)
+				result = map[string]any{"status": "blocked", "reason": policyReason, "proposed_action_type": proposedActionType}
+			}
 		}
 	}
 	if len(toolCalls) > 0 && fluctlight.Status == "paused" {
-		actualActionType = "no_op"
+		actualActionType = "capability"
+		assessment["capability_results"] = capabilityFailureResultValues(toolCalls, "fluctlight_paused", false)
 		result = map[string]any{"status": "blocked", "reason": "fluctlight_paused", "proposed_action_type": proposedActionType}
 	} else if len(toolCalls) > 0 && proposedActionType == "no_op" {
 		actualActionType = "capability"
@@ -609,14 +598,19 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		if fluctlight.Status == "paused" {
 			policySnapshot = map[string]any{"mode": "paused", "allowed_actions": []string{}}
 			policyReason = "fluctlight_paused"
-			actualActionType = "no_op"
+			actualActionType = "capability"
+			assessment["capability_results"] = capabilityFailureResultValues(toolCalls, "fluctlight_paused", false)
 			result = map[string]any{"status": "blocked", "reason": policyReason, "proposed_action_type": proposedActionType}
 		} else if len(toolCalls) > 0 && !mediaComposite {
 			actualActionType = "capability"
 			policySnapshot = map[string]any{"mode": "active", "authorization": "capability_manifest"}
 			result = map[string]any{"status": "queued", "proposed_action_type": proposedActionType}
 		} else if proposedActionType == "proactive_message" && conversationID == "" {
-			actualActionType = "no_op"
+			// A missing delivery target is an execution failure, not permission
+			// to discard the Provider invocation. Persist a capability action so
+			// the call receives an explicit failed result during settlement.
+			actualActionType = "capability"
+			assessment["capability_results"] = capabilityFailureResultValues(toolCalls, "proactive_target_invalid", false)
 			result = map[string]any{"status": "blocked", "reason": "proactive_target_invalid", "proposed_action_type": proposedActionType}
 		} else if proposedActionType == "proactive_message" || proposedActionType == "moment" {
 			targetKind := "moment"
@@ -688,6 +682,14 @@ func capabilityInvocationText(invocation CapabilityInvocation) string {
 		return ""
 	}
 	return text
+}
+
+func capabilityFailureResultValues(invocations []CapabilityInvocation, code string, retryable bool) []any {
+	result := make([]any, 0, len(invocations))
+	for _, invocation := range invocations {
+		result = append(result, failedCapabilityResult(invocation, code, retryable))
+	}
+	return result
 }
 
 func textFromOutputBinding(calls []CapabilityInvocation, targetKind string, registry *CapabilityRegistry) string {
@@ -778,7 +780,7 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			if err := reserveAutonomyBudgetTx(ctx, tx, fluctlightID); err != nil {
 				return err
 			}
-			actionPayload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "wake_up_id": wakeID, "source_fact_id": factID, "correlation_id": correlationID, "causation_id": factID, "conversation_id": conversationID, "capability_invocations": toolCalls, "capability_results": []CapabilityResult{}}
+			actionPayload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "wake_up_id": wakeID, "source_fact_id": factID, "correlation_id": correlationID, "causation_id": factID, "conversation_id": conversationID, "capability_invocations": toolCalls, "capability_results": arrayValue(assessment["capability_results"])}
 			actionPayload["context_reference_version"] = contextReferenceIndexVersion
 			actionPayload["context_reference_index"] = assessment["context_reference_index"]
 			actionPayload["influences"] = assessment["influences"]
@@ -803,7 +805,7 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 			if visible == "" {
 				return errors.New("wake_up_action_payload_empty")
 			}
-			actionPayload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "wake_up_id": wakeID, "source_fact_id": factID, "correlation_id": correlationID, "causation_id": factID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"], "capability_invocations": toolCalls, "capability_results": []CapabilityResult{}, "output_bindings": assessment["output_bindings"]}
+			actionPayload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "wake_up_id": wakeID, "source_fact_id": factID, "correlation_id": correlationID, "causation_id": factID, "text": visible, "conversation_id": conversationID, "response_intent": assessment["response_intent"], "capability_invocations": toolCalls, "capability_results": arrayValue(assessment["capability_results"]), "output_bindings": assessment["output_bindings"]}
 			actionPayload["context_reference_version"] = contextReferenceIndexVersion
 			actionPayload["context_reference_index"] = assessment["context_reference_index"]
 			actionPayload["influences"] = assessment["influences"]

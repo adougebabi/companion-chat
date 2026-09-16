@@ -105,11 +105,10 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	if err != nil {
 		return nil, err
 	}
-	if stringValue(decision["action_type"]) != "no_op" || len(completion.ToolCalls) > 0 {
-		if err := requireDecisionInfluences(influences, "daily_review_influences_required"); err != nil {
-			return nil, err
-		}
-	}
+	// Native Provider calls are authoritative execution requests. Missing
+	// optional influence metadata must not discard a call or abort the review;
+	// the frozen invocation is still validated and receives an explicit result
+	// during capability settlement.
 	if preference := mapValue(decision["output_preference_decision"]); len(preference) > 0 {
 		if normalized, normalizeErr := normalizeOutputPreferenceDecision(preference, stringValue(projection.PersonalityRuntime["active_profile_id"])); normalizeErr == nil {
 			decision["output_preference_decision"] = normalized
@@ -150,16 +149,30 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		}
 		policySnapshot = policyDecision.Snapshot
 		if !policyDecision.Allowed {
-			return map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": "blocked", "reason": policyDecision.Reason, "policy_snapshot": policySnapshot}, nil
+			if len(composite.ToolCalls) == 0 {
+				return map[string]any{"action_id": actionID, "action_type": actionType, "local_date": localDate, "timezone": location.String(), "status": "blocked", "reason": policyDecision.Reason, "policy_snapshot": policySnapshot}, nil
+			}
+			// Preserve every Provider invocation in the durable action. Policy
+			// rejection becomes an explicit per-call failure rather than an early
+			// return that silently loses the tool calls.
+			decision["capability_results"] = capabilityFailureResultValues(composite.ToolCalls, "policy_"+policyDecision.Reason, false)
+			actionType = "capability"
+			composite.ActionType = actionType
+			policySnapshot["rejected"] = true
+		} else {
+			policySnapshot["budget_reserved"] = true
 		}
-		policySnapshot["budget_reserved"] = true
 	}
 	if actionType == "proactive_message" {
 		if conversationID == "" {
-			return nil, errors.New("proactive_target_invalid")
+			decision["capability_results"] = capabilityFailureResultValues(composite.ToolCalls, "proactive_target_invalid", false)
+			actionType = "capability"
+			composite.ActionType = actionType
 		}
-		if err := validateCompositeOutputCapabilities(composite.ToolCalls, "conversation_message", a.capabilityRegistry()); err != nil {
-			return nil, fmt.Errorf("daily_review_output_binding_invalid: %w", err)
+		if actionType == "proactive_message" {
+			if err := validateCompositeOutputCapabilities(composite.ToolCalls, "conversation_message", a.capabilityRegistry()); err != nil {
+				return nil, fmt.Errorf("daily_review_output_binding_invalid: %w", err)
+			}
 		}
 	} else if actionType == "moment" {
 		if err := validateCompositeOutputCapabilities(composite.ToolCalls, "moment", a.capabilityRegistry()); err != nil {
@@ -173,7 +186,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 			return nil, errors.New("daily_review_capability_calls_empty")
 		}
 	}
-	payload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "conversation_id": conversationID, "response_intent": composite.ResponseIntent, "decision": composite, "source_fact_id": "daily-review:" + fluctlightID + ":" + localDate, "capability_results": []CapabilityResult{}}
+	payload := map[string]any{"capability_runtime_version": CapabilityRuntimePayloadVersion, "conversation_id": conversationID, "response_intent": composite.ResponseIntent, "decision": composite, "source_fact_id": "daily-review:" + fluctlightID + ":" + localDate, "capability_results": arrayValue(decision["capability_results"])}
 	payload["context_reference_version"] = contextReferenceIndexVersion
 	payload["context_reference_index"] = projection.ReferenceIndex
 	payload["influences"] = decisionInfluenceMaps(influences)

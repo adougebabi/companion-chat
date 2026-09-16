@@ -151,6 +151,9 @@ func (p *ProviderClient) complete(ctx context.Context, role string, messages []m
 	if err != nil {
 		return nil, err
 	}
+	if len(completion.ToolCalls) > 0 {
+		return nil, errors.New("provider_tool_call_unhandled: no capability catalog is attached to this call")
+	}
 	if jsonMode {
 		return structuredResultForRole(role, completion)
 	}
@@ -181,6 +184,9 @@ func (p *ProviderClient) StructuredWithSchema(ctx context.Context, role string, 
 	completion, err := p.completeWithToolsSchema(ctx, role, messages, true, nil, schemaName, schema, enableThinking)
 	if err != nil {
 		return nil, err
+	}
+	if len(completion.ToolCalls) > 0 {
+		return nil, errors.New("provider_tool_call_unhandled: no capability catalog is attached to this call")
 	}
 	if completion.Structured == nil {
 		return nil, errors.New("provider structured response is empty")
@@ -350,6 +356,11 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
 			return ProviderCompletion{}, err
 		}
+		if len(calls) > 0 && len(definitions) == 0 {
+			err := errors.New("provider_tool_call_unhandled: no capability catalog is attached to this call")
+			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_unhandled")
+			return ProviderCompletion{}, err
+		}
 		logToolCallShapeNormalization(role, schemaName, "native", message["tool_calls"])
 		content, _ := message["content"].(string)
 		content = strings.TrimSpace(content)
@@ -364,6 +375,18 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			logStructuredParseFailure(role, normalizationSchemaName, diagnostic)
 			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, structuredParseErr.Error(), diagnostic)
 			return ProviderCompletion{}, structuredParseErr
+		}
+		if len(calls) == 0 && parsedStructuredOK && len(definitions) == 0 {
+			structuredCalls, callErr := NormalizeProviderToolCalls(parsedStructured["tool_calls"], "", providerRequestID)
+			if callErr != nil {
+				p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
+				return ProviderCompletion{}, callErr
+			}
+			if len(structuredCalls) > 0 {
+				err := errors.New("provider_tool_call_unhandled: no capability catalog is attached to this call")
+				p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_unhandled")
+				return ProviderCompletion{}, err
+			}
 		}
 		completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
 		var normalizedFields []string

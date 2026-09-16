@@ -201,7 +201,7 @@ func TestWakeUpMissingCapabilityActionFallsBackBeforeInfluenceValidation(t *test
 	}
 }
 
-func TestWakeUpMissingInfluencesRetainsOnlyDeferredOutputCapabilities(t *testing.T) {
+func TestWakeUpMissingInfluencesNeverDropsProviderCalls(t *testing.T) {
 	registry := mustCapabilityRegistry(conversationReplyCapability{}, affectEventCapability{})
 	calls := []CapabilityInvocation{
 		{CapabilityName: "affect_event"},
@@ -219,6 +219,14 @@ func TestWakeUpMissingInfluencesRetainsOnlyDeferredOutputCapabilities(t *testing
 	}
 	if !wakeUpDecisionRequiresInfluences("no_op", immediate, registry) {
 		t.Fatal("state-changing capability unexpectedly became ungrounded")
+	}
+	source, err := os.ReadFile("wakeup.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := sourceBetween(t, string(source), "func (a *App) ProcessWakeUp", "func capabilityInvocationText")
+	if strings.Contains(body, "toolCalls = deferredCalls") || strings.Contains(body, "toolCalls = nil") {
+		t.Fatal("WakeUp must not silently discard a Provider tool call")
 	}
 }
 

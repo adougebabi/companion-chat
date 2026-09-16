@@ -78,11 +78,13 @@ func (a *App) executeCapabilities(ctx context.Context, fluctlightID, conversatio
 	for index := range invocations {
 		invocation := normalizeCapabilityInvocationMetadata(invocations[index], fluctlightID, conversationID, sourceFactID, sourceFactID, index)
 		invocations[index] = invocation
-		if existingResult, found := capabilityResultForCall(results, invocation.CallID); found && existingResult.Status == "completed" {
+		if existingResult, found := capabilityResultForCall(results, invocation.CallID); found {
 			if existingResult.CapabilityName != invocation.CapabilityName {
 				return results, fmt.Errorf("capability result identity mismatch for call %q", invocation.CallID)
 			}
-			continue
+			if existingResult.Status == "completed" || existingResult.Status == "failed" || existingResult.Status == "rejected" {
+				continue
+			}
 		}
 		definition, ok := registry.Definition(invocation.CapabilityName)
 		if !ok {
@@ -584,12 +586,14 @@ func (a *App) settleDeferredCapabilitiesTx(ctx context.Context, tx pgx.Tx, fluct
 		}
 		_, transactional := capability.(TransactionalCapability)
 		if executionClass != CapabilityExecutionTransactionalMutation && executionClass != CapabilityExecutionDeferredOutput && !(executionClass == CapabilityExecutionExternalAsyncIntent && (definition.IsDeferredOutput() || transactional)) {
+			results = replaceCapabilityResult(results, failedCapabilityResultDetail(invocation, "capability_execution_class_invalid", false, "capability is not executable in the settlement phase"))
 			continue
 		}
-		if existingResult, found := capabilityResultForCall(results, invocation.CallID); found && existingResult.Status == "completed" {
+		if existingResult, found := capabilityResultForCall(results, invocation.CallID); found && (existingResult.Status == "completed" || existingResult.Status == "failed" || existingResult.Status == "rejected") {
 			continue
 		}
 		if definition.IsDeferredOutput() && binding.TargetKind == "" {
+			results = replaceCapabilityResult(results, failedCapabilityResultDetail(invocation, "output_binding_required", false, "deferred output capability requires a concrete target binding"))
 			continue
 		}
 		var result CapabilityResult

@@ -1015,6 +1015,21 @@ func TestDeferredOutputCapabilitiesBindOnlyDeclaredTargets(t *testing.T) {
 	}
 }
 
+func TestDeferredOutputCapabilityMissingBindingProducesExplicitFailure(t *testing.T) {
+	registry := mustCapabilityRegistry(conversationReplyCapability{})
+	app := &App{Capabilities: registry, ContextResolver: NewStaticContextResolver(nil)}
+	invocation := CapabilityInvocation{
+		CallID: "reply-missing-binding", CapabilityName: "conversation.reply",
+		SchemaVersion: CapabilityInvocationSchemaVersion,
+		Arguments:     json.RawMessage(`{"text":"hello"}`), SourceFactID: "fact-1",
+		ProviderRequestID: "provider-1",
+	}
+	results, err := app.settleDeferredCapabilitiesTx(context.Background(), nil, "fl-1", "fact-1", "action-1", []CapabilityInvocation{invocation}, nil, OutputBindingV1{})
+	if err != nil || len(results) != 1 || results[0].Status != "failed" || results[0].ErrorCode != "output_binding_required" {
+		t.Fatalf("missing binding result=%#v err=%v", results, err)
+	}
+}
+
 func TestImageCapabilityUsesStableDurableIdentitiesOnReplay(t *testing.T) {
 	invocation := CapabilityInvocation{CallID: "image-1", CapabilityName: "media.image.generate", ActionID: "action-1", SourceFactID: "fact-1"}
 	firstIntent, firstWorkflow, firstProvider := mediaInvocationIdentity(invocation)
