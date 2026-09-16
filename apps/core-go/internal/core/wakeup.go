@@ -635,6 +635,15 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if len(visualIdentityToolResults) > 0 {
 		result["visual_identity_capability_results"] = visualIdentityToolResults
 	}
+	// A returned Provider invocation must always have a durable action owner.
+	// If an earlier guard selected no_op for a non-empty call set, promote the
+	// action to the generic capability lane instead of losing the invocation.
+	if len(toolCalls) > 0 && actualActionType == "no_op" {
+		actualActionType = "capability"
+		if _, exists := result["status"]; !exists || stringValue(result["status"]) == "no_op" {
+			result["status"] = "queued"
+		}
+	}
 	var actionID string
 	if actualActionType != "no_op" {
 		actionID = frozenActionID
