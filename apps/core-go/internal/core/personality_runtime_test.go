@@ -49,3 +49,22 @@ func TestInitializationDefaultProfileRemainsValidForMultiProfileSeeds(t *testing
 		t.Fatalf("normalized seed profile %q is not valid for multi-profile initialization: %#v", seedProfileID, profileIDs)
 	}
 }
+
+func TestPersistentSwitchRuleIDAcceptsRawAndCanonicalForms(t *testing.T) {
+	cases := []struct {
+		trigger  string
+		declared string
+		want     bool
+	}{
+		{trigger: "safety", declared: "safety", want: true},
+		{trigger: "switch:safety", declared: "safety", want: true},
+		{trigger: " switch:safety ", declared: " safety ", want: true},
+		{trigger: "takeover:safety", declared: "safety", want: false},
+		{trigger: "switch:other", declared: "safety", want: false},
+	}
+	for _, testCase := range cases {
+		if got := persistentSwitchRuleIDMatches(testCase.trigger, testCase.declared); got != testCase.want {
+			t.Fatalf("persistentSwitchRuleIDMatches(%q, %q) = %t, want %t", testCase.trigger, testCase.declared, got, testCase.want)
+		}
+	}
+}

@@ -5,7 +5,7 @@
 权威设计：`.trellis/tasks/09-14-persona-takeover-working-prompt/design.md`  
 当前验收凭证：`.trellis/tasks/09-14-persona-takeover-working-prompt/final-acceptance-report-v2.md`
 
-本文只描述当前工作区的实现事实。`final-acceptance-report.md` 是第一轮混合报告，`final-acceptance-recheck-report.md` 是第二轮整改前的复验记录；二者不再作为当前状态凭证。
+本文记录原任务的确定性实现与 Fake/fixture 验收事实。`final-acceptance-report.md` 是第一轮混合报告，`final-acceptance-recheck-report.md` 是第二轮整改前的复验记录；二者不再作为当前状态凭证。真实 LLM 与生产 `HandleTurn` 的后续复验见 [`live-llm-acceptance-report.md`](live-llm-acceptance-report.md)，不能用本文原先的 Fake Provider 结论替代。
 
 ## 1. 实现范围
 
@@ -118,9 +118,9 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 
 **明确未实现**：deterministic 时间窗 Runtime evaluator；本版只分类、生成稳定 ID 和诊断。
 
-**本地确定性回归已验证**：Fake Provider + PostgreSQL 已覆盖 native/structured mixed media + reply 的 capability normalization、同一 assistant message 结算、图片 intent/workflow/outbox 持久化和 Core stream 帧顺序。
+**本地确定性回归已验证**：Fake Provider + PostgreSQL 已覆盖 native/structured mixed media + reply 的 capability normalization、同一 assistant message 结算、图片 intent/workflow/outbox 持久化和 Core stream 帧顺序。真实 Provider、人格初始化和同一轮切换后的再次认知证据见 `docs/live-llm-acceptance-report.md`。
 
-**环境未验证**：`FLUCTLIGHT_LIVE_PROVIDER_TEST=1` 未配置，真实 Provider（包括 mlx-serve）工具调用行为未运行；真实 Provider 初始化是否从 `dense_multi_card.txt` 产出 typed `takeover_rules[]`；真实 Judge 误报/漏报、抗注入表现；真实 Token/缓存/延迟/总耗时；真实卡 full-request before/after；真实 ComfyUI/Media Worker 生成最终图片资产；未配置测试数据库时的冻结/结算链路。
+**仍未验证**：真实模型 Judge 误报/漏报、抗注入表现；真实 Token/缓存/完整延迟基线；真实 ComfyUI/Media Worker 最终图片资产；WakeUp/媒体 Worker 的生产端到端链路；deterministic 时间窗求值器（尚未实现）。已运行的真实 Provider smoke 与 disposable PostgreSQL `HandleTurn` 链路见 `docs/live-llm-acceptance-report.md`。
 
 这些项目不会被 Fake Provider、固定 migration fixture 或合成字节报告标记为通过。
 
@@ -139,4 +139,4 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 
 ## 9. 验收状态
 
-本轮格式、静态检查、完整测试、竞态测试和文档同步均已完成，任务状态已更新为 `completed`。真实 Provider、Judge、ComfyUI、计费和延迟验收均保留为后续环境验证项。
+本轮格式、静态检查、完整测试、竞态测试和文档同步均已完成；原任务的确定性状态保持 `completed`。真实 LLM 复验由 `docs/live-llm-acceptance-report.md` 单独记录，仍未覆盖的项目不能被本报告的 Fake/fixture 结果替代。

@@ -217,8 +217,28 @@ func TestWorkflowIDReusePolicyAllowsWakeUpRecovery(t *testing.T) {
 	if got := workflowIDReusePolicy("wake_up.current"); got != enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE {
 		t.Fatalf("wake-up reuse policy = %v, want allow duplicate", got)
 	}
+	for _, intentType := range []string{"cognition.processing", "autonomy.action", "capability.action"} {
+		if got := workflowIDReusePolicy(intentType); got != enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY {
+			t.Fatalf("%s reuse policy = %v, want allow duplicate failed only", intentType, got)
+		}
+	}
 	if got := workflowIDReusePolicy("schedule.current_day"); got != enumspb.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE {
 		t.Fatalf("schedule reuse policy = %v, want reject duplicate", got)
+	}
+}
+
+func TestWorkflowIntentRetryBudgetsBoundRecoverableFailureLoops(t *testing.T) {
+	cases := map[string]int{
+		"wake_up.current":      wakeUpMaximumAttempts,
+		"cognition.processing": cognitionMaximumAttempts,
+		"autonomy.action":      actionMaximumAttempts,
+		"capability.action":    actionMaximumAttempts,
+		"reflection.run":       reflectionMaximumAttempts,
+	}
+	for intentType, maximum := range cases {
+		if maximum < 1 || !workflowIntentRetryExhausted(intentType, maximum) || workflowIntentRetryExhausted(intentType, maximum-1) {
+			t.Fatalf("retry budget for %s is not bounded at %d", intentType, maximum)
+		}
 	}
 }
 
@@ -276,7 +296,7 @@ func TestWakeUpRetryBackoffIsNotRequeuedBeforeDueTime(t *testing.T) {
 	}
 }
 
-func TestWakeUpTerminalFailureRemainsContinuouslyRecoverable(t *testing.T) {
+func TestWakeUpTerminalFailureRemainsRecoverableWithinRetryBudget(t *testing.T) {
 	if !strings.Contains(reconcileIntentQuery, "intent_type='wake_up.current'") &&
 		!strings.Contains(reconcileIntentQuery, "intent_type IN ('wake_up.current'") {
 		t.Fatal("failed WakeUp intents are not part of continuous reconciliation")

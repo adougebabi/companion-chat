@@ -184,6 +184,12 @@ the `reflection.run` intent are committed.
   Conversation target before execution. Native calls such as affect, memory,
   scene, or relationship updates may accompany a deferred output call; they
   must not invalidate or suppress the output call.
+- WakeUp action metadata is subordinate to output capabilities: whenever a
+  non-empty `conversation.reply` invocation is present, Core canonicalizes the
+  output lane to `proactive_message` (including compatibility names such as
+  `reply`, `respond`, and `send_message`). Core ensures the Owner/Fluctlight
+  direct conversation projection before freezing that action; it must not route
+  the invocation to `capability.action` with a `wake_up` target.
 - A standalone wake-up `media.image.generate` call is bound to the wake-up
   action as its durable provenance target and creates a media intent without
   requiring a chat message or Moment.
@@ -215,7 +221,7 @@ the `reflection.run` intent are committed.
 | Provider failure or invalid JSON | Workflow retries; after exhaustion the source intent remains auditable and no fabricated action decision is written |
 | Autonomy paused or capability is not installed/authorized | Persist the internal cycle as `blocked`/`deferred`; do not create an external Action |
 | Capability arguments or Definition are malformed | Fail closed and persist the internal cycle without an external Action |
-| Proactive action has no direct conversation | Persist the internal cycle with `proactive_target_invalid`; do not create a conversation |
+| Proactive action has no direct conversation projection | Core ensures the Owner/Fluctlight direct conversation before freezing the action; only a creation failure remains a bounded workflow error |
 | Duplicate cycle retry | Return the existing `cognition_wakeups` row and stable action/reflection IDs; do not consume another sequence |
 | Reflection has no valid candidate | Advance only its evidence watermark; do not manufacture self-model or personality changes |
 

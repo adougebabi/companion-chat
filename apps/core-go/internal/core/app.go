@@ -984,6 +984,17 @@ func normalizeInitializationAliases(result map[string]any) {
 	goalIndexes := make(map[string]int, len(goals))
 	for index, raw := range goals {
 		goal := mapValue(raw)
+		if stringValue(goal["description"]) == "" {
+			goal["description"] = firstInitializationString(goal["content"], goal["text"], goal["desired_outcome"], goal["goal"])
+		}
+		delete(goal, "content")
+		delete(goal, "text")
+		delete(goal, "goal")
+		if profileID := firstInitializationString(goal["profile_id"], goal["associated_profile"], goal["profile"]); profileID != "" {
+			goal["profile_id"] = profileID
+			delete(goal, "associated_profile")
+			delete(goal, "profile")
+		}
 		if id := stringValue(goal["id"]); id != "" {
 			goalIndexes[id] = index
 		}
@@ -998,11 +1009,21 @@ func normalizeInitializationAliases(result map[string]any) {
 				continue
 			}
 			if stringValue(intention["action"]) == "" {
-				intention["action"] = firstInitializationString(intention["description"], intention["intent"])
+				intention["action"] = firstInitializationString(intention["description"], intention["intent"], intention["content"], intention["text"], intention["action_intent"])
 			}
 			if stringValue(intention["action"]) == "" {
 				continue
 			}
+			if profileID := firstInitializationString(intention["profile_id"], intention["associated_profile"], intention["profile"]); profileID != "" {
+				intention["profile_id"] = profileID
+				delete(intention, "associated_profile")
+				delete(intention, "profile")
+			}
+			delete(intention, "description")
+			delete(intention, "intent")
+			delete(intention, "content")
+			delete(intention, "text")
+			delete(intention, "action_intent")
 			goalIndex := -1
 			if rawGoal, exists := intention["goal_index"]; exists {
 				if parsed, valid := initializationArrayIndex(rawGoal); valid {
@@ -1025,7 +1046,12 @@ func normalizeInitializationAliases(result map[string]any) {
 	for _, raw := range arrayValue(result["initial_relationships"]) {
 		relationship := mapValue(raw)
 		if stringValue(relationship["target_actor_id"]) == "" {
-			relationship["target_actor_id"] = firstInitializationString(relationship["actor"], relationship["actor_id"])
+			relationship["target_actor_id"] = firstInitializationString(relationship["target"], relationship["actor"], relationship["actor_id"])
+		}
+		if profileID := firstInitializationString(relationship["profile_id"], relationship["associated_profile"], relationship["profile"]); profileID != "" {
+			relationship["profile_id"] = profileID
+			delete(relationship, "associated_profile")
+			delete(relationship, "profile")
 		}
 		if len(mapValue(relationship["role"])) == 0 {
 			// A declared string role ("朋友") is itself the label. It must be the

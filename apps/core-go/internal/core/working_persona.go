@@ -332,7 +332,7 @@ func systemPersonaForProjection(projection ContextProjection, schemaName string)
 	if len(system) > 0 {
 		bundle["personality_system"] = system
 	}
-	if strings.TrimSpace(schemaName) != workingPersonaMainTurnSchema {
+	if strings.TrimSpace(schemaName) != workingPersonaMainTurnSchema && strings.TrimSpace(schemaName) != persistentSwitchAssessmentSchemaName {
 		return bundle
 	}
 	scope := resolveTurnPersonaScope(projection)

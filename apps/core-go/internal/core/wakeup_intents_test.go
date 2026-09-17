@@ -111,6 +111,22 @@ func TestWakeUpOutcomePersistsNextDueInsideOwningTransaction(t *testing.T) {
 	}
 }
 
+func TestWakeUpSuccessResetsConsecutiveRetryBudget(t *testing.T) {
+	source, err := os.ReadFile("wakeup.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(source)
+	start := strings.Index(body, "func updateWakeUpNextDueTx")
+	if start < 0 {
+		t.Fatal("updateWakeUpNextDueTx source not found")
+	}
+	body = body[start:]
+	if !strings.Contains(body, "attempt_count=0") {
+		t.Fatal("successful WakeUp completion must reset the consecutive workflow retry budget")
+	}
+}
+
 func TestCreationOwnsIndependentScheduleAndWakeUpIntents(t *testing.T) {
 	source, err := os.ReadFile("app.go")
 	if err != nil {
@@ -160,6 +176,70 @@ func TestWakeUpAndReflectionProviderCallsUseLifecycleCorrelation(t *testing.T) {
 	reflectionBody := sourceBetween(t, string(reflectionSource), "func (a *App) ProcessReflection", "func boundedNumber")
 	if !strings.Contains(reflectionBody, "WithProviderCorrelation(ctx, correlationID)") {
 		t.Fatal("Reflection Provider call does not inherit its durable intent correlation")
+	}
+}
+
+func TestWakeUpCreatesDirectConversationBeforeBuildingReplyContext(t *testing.T) {
+	source, err := os.ReadFile("wakeup.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := sourceBetween(t, string(source), "func (a *App) ProcessWakeUp", "func capabilityInvocationText")
+	ensureAt := strings.Index(body, "EnsureDirectConversation(ctx, ownerID, fluctlightID)")
+	projectionAt := strings.Index(body, "BuildContextProjectionFor(ctx, ContextProjectionRequest{")
+	if ensureAt < 0 || projectionAt < 0 || ensureAt > projectionAt {
+		t.Fatal("WakeUp must ensure the direct conversation before building the reply context")
+	}
+}
+
+func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "wakeup-reply-owner", "wakeup-reply-fluctlight"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	baseApp := &App{DB: repository}
+	initialLife := currentLifeForTest(t, ctx, baseApp, fluctlightID, time.Now().UTC())
+	if _, err := baseApp.AcceptSchedule(ctx, ownerID, fluctlightID, fullDaySchedulePayloadForTest(time.Now().UTC(), "wakeup-reply-schedule", stringValue(initialLife["context_revision"]))); err != nil {
+		t.Fatal(err)
+	}
+	seedCognitiveProviderRole(t, ctx, repository, "wakeup-reply-endpoint")
+	text := "我刚刚想起你了，等你忙完再聊。"
+	router := newFakeProviderRouter().on("wake_up_response", func(_ map[string]any) fakeProviderResult {
+		return fakeProviderResult{
+			Structured: map[string]any{"action_type": "reply", "response_intent": "主动联系 Owner", "influences": []any{}},
+			ToolCalls: []map[string]any{{
+				"id": "wakeup-reply-call", "type": "function",
+				"function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": text})},
+			}},
+		}
+	})
+	app := newTestApp(t, repository, router)
+	wakeResult, err := app.ProcessWakeUp(ctx, fluctlightID, 1)
+	if err != nil {
+		t.Fatalf("ProcessWakeUp failed: %v", err)
+	}
+	if stringValue(wakeResult["action_type"]) != "proactive_message" {
+		t.Fatalf("WakeUp action type = %#v", wakeResult)
+	}
+	actionID := stringValue(wakeResult["action_id"])
+	if actionID == "" {
+		t.Fatalf("WakeUp did not freeze an action: %#v", wakeResult)
+	}
+	var conversationID string
+	if err := repository.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2`, ownerID, fluctlightID).Scan(&conversationID); err != nil {
+		t.Fatal(err)
+	}
+	if conversationID == "" {
+		t.Fatal("WakeUp did not ensure a direct conversation")
+	}
+	if _, err := app.ProcessAutonomyAction(ctx, actionID); err != nil {
+		t.Fatalf("ProcessAutonomyAction failed: %v", err)
+	}
+	var messageCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text=$2`, conversationID, text).Scan(&messageCount); err != nil {
+		t.Fatal(err)
+	}
+	if messageCount != 1 {
+		t.Fatalf("WakeUp private message count = %d, want 1", messageCount)
 	}
 }
 

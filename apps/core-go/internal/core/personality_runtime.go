@@ -159,14 +159,14 @@ func (a *App) preparePersonalityDecision(ctx context.Context, fluctlightID strin
 	if choice == "switch" && triggerID != "" {
 		matched := false
 		for _, raw := range arrayValue(system["switching"]) {
-			if stringValue(mapValue(raw)["id"]) == triggerID {
+			if persistentSwitchRuleIDMatches(triggerID, stringValue(mapValue(raw)["id"])) {
 				matched = true
 				break
 			}
 		}
 		if !matched {
 			for _, raw := range arrayValue(mapValue(system["switching"])["rules"]) {
-				if stringValue(mapValue(raw)["id"]) == triggerID {
+				if persistentSwitchRuleIDMatches(triggerID, stringValue(mapValue(raw)["id"])) {
 					matched = true
 					break
 				}
@@ -198,6 +198,20 @@ func (a *App) preparePersonalityDecision(ctx context.Context, fluctlightID strin
 		ExpectedRevision: revision, ResultingRevision: newRevision, RuntimeExists: runtimeExists,
 		Reason: reason, CooldownUntil: switchCooldownUntil,
 	}, nil
+}
+
+// persistentSwitchRuleIDMatches accepts both the declaration's raw id and the
+// canonical Runtime id exposed in the Main prompt (switch:<id>). The normalized
+// rule set deliberately uses the prefixed namespace, while legacy validation
+// historically compared only the raw declaration id; real Providers commonly
+// echo the canonical id they see in the prompt.
+func persistentSwitchRuleIDMatches(triggerID, declaredID string) bool {
+	trigger := strings.TrimSpace(triggerID)
+	declared := strings.TrimSpace(declaredID)
+	if trigger == "" || declared == "" {
+		return false
+	}
+	return trigger == declared || trigger == "switch:"+declared
 }
 
 func personalityDecisionPlanFromValue(value any) (*personalityDecisionPlan, error) {

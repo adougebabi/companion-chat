@@ -233,6 +233,46 @@ GOMODCACHE="$PWD/.gomodcache" GOCACHE="$PWD/.gocache" \
 其中 `pnpm generate` 会依次更新 Core Client、Browser OpenAPI 和 Browser Client。
 生成文件头部标记为不可手工修改；接口变更应修改生成源和脚本，再运行生成命令。
 
+### 真实 LLM Provider smoke
+
+默认 Go 测试使用确定性的 Fake Provider，适合验证 Core 的冻结、权限、事务和恢复
+边界，但不能证明模型会产出可解析的结构化结果。需要验证真实模型时，显式提供一个
+OpenAI-compatible `/v1` Endpoint 和模型，并运行：
+
+```bash
+FLUCTLIGHT_LIVE_PROVIDER_URL=http://127.0.0.1:11234/v1 \
+FLUCTLIGHT_LIVE_PROVIDER_MODEL=<model-id> \
+FLUCTLIGHT_LIVE_PROVIDER_API_KEY=<optional> \
+  ./infra/acceptance/run-go-live-provider-smoke.sh
+```
+
+脚本默认给每个真实请求十分钟；单独运行 Go live 测试时也可用
+`FLUCTLIGHT_LIVE_PROVIDER_REQUEST_TIMEOUT_SECONDS` 调整请求上限。
+
+该脚本会先探测 `/models`，然后调用真实模型验证多人格初始化、人格切换决定、工具
+选择和事实边界。它不会把缺少 Provider 配置静默当成通过；缺少环境变量时脚本直接
+失败。需要运行较慢的 Active Memory 与查询续接场景时，可显式覆盖测试选择：
+
+```bash
+FLUCTLIGHT_LIVE_PROVIDER_TEST_REGEX='TestLiveProvider(DenseSingleInitialization|DenseMultiInitialization|ActiveMemory|RecallContinuation)$' \
+  ./infra/acceptance/run-go-live-provider-smoke.sh
+```
+
+这个 smoke 仍是 Provider 层验收，不替代带 disposable PostgreSQL 的 `HandleTurn`、
+冻结/结算、Worker、媒体和消息投递端到端验收。
+
+带 disposable PostgreSQL 的真实 `HandleTurn` 链路另行运行：
+
+```bash
+GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/postgres?sslmode=disable' \
+FLUCTLIGHT_LIVE_PROVIDER_TEST_REGEX='TestLiveHandleTurnUsesRealProviderForPersonalityDecision$' \
+  ./infra/acceptance/run-go-live-provider-smoke.sh
+```
+
+这条链路会真实执行“人格切换判断 → 切换后再次认知 → 冻结/结算”，并检查数据库中的
+`active_profile_id` 和 assistant 消息。没有 `GO_CORE_TEST_DATABASE_URL` 时不会把它
+标成通过。
+
 ### Compose 整栈运行
 
 1. 复制环境示例到未跟踪的私有文件，并填写所有 `REQUIRED` 项：

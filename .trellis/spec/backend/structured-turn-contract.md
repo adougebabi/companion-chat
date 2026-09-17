@@ -192,14 +192,14 @@ ProviderClient.StructuredWithTools(ctx, role, messages, released definitions)
 - The released definition was the typed slot contract. New code uses the
   direct `CapabilityDefinition` contract documented in the active scenario.
 - Structured Provider calls always send a strict `response_format` using a
-  named `json_schema`. The `cognitive_assessment` role additionally sends
-  `enable_thinking: true`; other structured roles keep thinking disabled. Some
-  thinking-capable Providers place the structured JSON in
-  `reasoning_content` while leaving `content` empty; the adapter reads that
-  field as control data only and never exposes it as visible text. The adapter
-  may remove complete, known transport wrappers (`<think>`, a JSON Markdown
-  fence, one JSON-string encoding, or a terminal object after a transport
-  prelude), but it must not infer semantics from arbitrary prose. A rejected
+  named `json_schema`. Production structured cognition omits
+  `enable_thinking` so the control JSON remains in `content`; the adapter may
+  still read a complete `reasoning_content` JSON wrapper as control data, but it
+  never exposes hidden reasoning as visible text or infers semantics from
+  arbitrary prose. The adapter may remove complete, known transport wrappers
+  (`<think>`, a JSON Markdown fence, one JSON-string encoding, or a terminal
+  object after a transport prelude), but it must not infer semantics from
+  arbitrary prose. A rejected
   structured response is normalized field-by-field: missing values use the
   schema's empty value, an object supplied for an array field is wrapped as a
   one-item array, and an array supplied for an object field uses its first
@@ -239,7 +239,7 @@ ProviderClient.StructuredWithTools(ctx, role, messages, released definitions)
 
 | Condition | Result |
 | --- | --- |
-| Missing/duplicate ID or invalid name | Reject the call; no executor invocation |
+| Missing/duplicate ID or invalid name | Derive a stable ID only when the Provider request identity is present; otherwise reject the call. Invalid names are always rejected. No executor invocation occurs before validation. |
 | Arguments missing, non-object, invalid JSON, or over 64 KiB | `tool_arguments_invalid`; no side effect |
 | Unknown schema version or capability slot | `tool_call_rejected` / `tool_capability_unavailable`; no side effect |
 | Source fact differs from current Fluctlight fact | `tool_call_source_invalid`; no side effect |

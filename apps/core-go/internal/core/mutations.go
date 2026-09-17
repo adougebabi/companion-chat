@@ -751,59 +751,100 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			projection = hydrated.Projection
 		}
 	} else {
-		// Moment publication is a Wake-up/autonomy output, not an ordinary
-		// interactive reply capability. Keep it registered globally for the
-		// Runtime while withholding it from the conversation tool catalog.
-		definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceConversation)
-		// The response schema is conditional on the authorization of THIS call:
-		// a scenario that may not propose a persistent switch is not even offered
-		// the field, so the constraint does not depend on post-hoc filtering.
-		schema := cognitiveTurnResponseSchemaForGrant(personaGrant)
-		assembly, assembledProjection, assemblyErr := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction}, text, definitions, "conversation_turn_response", schema)
-		if assemblyErr != nil {
-			return TurnResult{}, assemblyErr
-		}
-		projection = assembledProjection
-		continuationBaseMessages = cloneMapSlice(assembly.Messages)
-		providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
-		completion, completionErr := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "conversation_turn_response", schema, true)
-		if completionErr != nil {
+		if persistentSwitchRedecisionRequired(personaGrant, personaSwitch) {
+			// A real persistent switch is a two-phase cognition: the first call
+			// recognizes the switch using a tool-free structured contract, then the
+			// final call is rebuilt under the selected Working Persona with the
+			// normal capability catalog. The first call never produces an executable
+			// candidate, so its reply/tool side effects cannot leak into settlement.
+			redecision, redecisionErr := a.runPersistentSwitchRedecision(ctx, persistentSwitchRedecisionInput{
+				InboxID: inboxID, FluctlightID: fluctlightID, ConversationID: conversationID, TurnID: turnID,
+				CurrentText: text, Projection: projection, Scope: personaScope, Switch: personaSwitch, Grant: personaGrant,
+			})
+			if redecisionErr != nil {
+				if a.cognitionFactSuperseded(ctx, inboxID) {
+					return TurnResult{}, errCognitionTurnSuperseded
+				}
+				return TurnResult{}, redecisionErr
+			}
+			projection = redecision.Projection
+			personaScope = redecision.Scope
+			// The final candidate is already the post-switch reply. Do not enter
+			// the independent takeover Judge path or allow another persistent
+			// decision in the same turn.
+			personaSwitch.Rules = nil
+			personaAuthority = turnDecisionAuthority{Grant: personaGrant, Scope: personaScope}
+			decision = redecision.Decision
+			capabilityInvocations = redecision.Invocations
+			responsePlan = redecision.ResponsePlan
+			responseMode = redecision.ResponseMode
+			action = redecision.Action
+			composite = redecision.Composite
+			personalityPlan = redecision.PersonalityPlan
+			continuationBaseMessages = redecision.ContinuationBaseMessages
+			frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, conversationID, turnID, action, decision, personaAuthority)
+			if err != nil {
+				return TurnResult{}, err
+			}
+		} else {
+			// Moment publication is a Wake-up/autonomy output, not an ordinary
+			// interactive reply capability. Keep it registered globally for the
+			// Runtime while withholding it from the conversation tool catalog.
+			definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceConversation)
+			// The response schema is conditional on the authorization of THIS call:
+			// a scenario that may not propose a persistent switch is not even offered
+			// the field, so the constraint does not depend on post-hoc filtering.
+			schema := cognitiveTurnResponseSchemaForGrant(personaGrant)
+			assembly, assembledProjection, assemblyErr := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction}, text, definitions, "conversation_turn_response", schema)
+			if assemblyErr != nil {
+				return TurnResult{}, assemblyErr
+			}
+			projection = assembledProjection
+			continuationBaseMessages = cloneMapSlice(assembly.Messages)
+			providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
+			// Structured cognition must keep the control JSON in the normal content
+			// channel. Thinking-enabled local Providers may spend the output reserve on
+			// reasoning_content and leave only partial/empty control JSON, so the
+			// production Main path deliberately omits enable_thinking.
+			completion, completionErr := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "conversation_turn_response", schema, false)
+			if completionErr != nil {
+				if a.cognitionFactSuperseded(ctx, inboxID) {
+					return TurnResult{}, errCognitionTurnSuperseded
+				}
+				return TurnResult{}, completionErr
+			}
 			if a.cognitionFactSuperseded(ctx, inboxID) {
 				return TurnResult{}, errCognitionTurnSuperseded
 			}
-			return TurnResult{}, completionErr
-		}
-		if a.cognitionFactSuperseded(ctx, inboxID) {
-			return TurnResult{}, errCognitionTurnSuperseded
-		}
-		decision = completion.Structured
-		structuredFallback = completion.StructuredFallback
-		capabilityInvocations = append([]CapabilityInvocation(nil), completion.ToolCalls...)
-		// Both the Main generation and the takeover reply run through this one
-		// normalizer so a takeover candidate cannot bypass a single validation
-		// step that the Main candidate passed (design.md 4.8).
-		normalized, normalizeErr := a.normalizeTurnDecision(ctx, turnDecisionNormalizationInput{
-			InboxID: inboxID, FluctlightID: fluctlightID, ConversationID: conversationID, TurnID: turnID,
-			Projection: projection, Grant: personaGrant, Decision: decision, Invocations: capabilityInvocations,
-			Definitions: definitions, StructuredFallback: structuredFallback,
-			ContinuationBaseMessages: continuationBaseMessages,
-		})
-		if normalizeErr != nil {
-			return TurnResult{}, normalizeErr
-		}
-		decision = normalized.Decision
-		capabilityInvocations = normalized.Invocations
-		responsePlan = normalized.ResponsePlan
-		responseMode = normalized.ResponseMode
-		action = normalized.Action
-		composite = normalized.Composite
-		personalityPlan = normalized.PersonalityPlan
-		if a.cognitionFactSuperseded(ctx, inboxID) {
-			return TurnResult{}, errCognitionTurnSuperseded
-		}
-		frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, conversationID, turnID, action, decision, personaAuthority)
-		if err != nil {
-			return TurnResult{}, err
+			decision = completion.Structured
+			structuredFallback = completion.StructuredFallback
+			capabilityInvocations = append([]CapabilityInvocation(nil), completion.ToolCalls...)
+			// Both the Main generation and the takeover reply run through this one
+			// normalizer so a takeover candidate cannot bypass a single validation
+			// step that the Main candidate passed (design.md 4.8).
+			normalized, normalizeErr := a.normalizeTurnDecision(ctx, turnDecisionNormalizationInput{
+				InboxID: inboxID, FluctlightID: fluctlightID, ConversationID: conversationID, TurnID: turnID,
+				Projection: projection, Grant: personaGrant, Decision: decision, Invocations: capabilityInvocations,
+				Definitions: definitions, StructuredFallback: structuredFallback,
+				ContinuationBaseMessages: continuationBaseMessages,
+			})
+			if normalizeErr != nil {
+				return TurnResult{}, normalizeErr
+			}
+			decision = normalized.Decision
+			capabilityInvocations = normalized.Invocations
+			responsePlan = normalized.ResponsePlan
+			responseMode = normalized.ResponseMode
+			action = normalized.Action
+			composite = normalized.Composite
+			personalityPlan = normalized.PersonalityPlan
+			if a.cognitionFactSuperseded(ctx, inboxID) {
+				return TurnResult{}, errCognitionTurnSuperseded
+			}
+			frozen, err = a.PersistTurnDecision(ctx, inboxID, fluctlightID, conversationID, turnID, action, decision, personaAuthority)
+			if err != nil {
+				return TurnResult{}, err
+			}
 		}
 	}
 	// ───────────────────────── arbitration ─────────────────────────

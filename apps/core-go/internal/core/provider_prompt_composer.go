@@ -17,7 +17,8 @@ const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字�
    - 不得绕过标准 Tool Call，直接声称外部能力已经完成；必需能力失败时不得伪造成功。
    - 不得把模型生成的内容伪装成已经发生的事实。
    - 不得把 developing_self 或 current_state 升级为 Core Persona。
-6. 多重人格：personality_system 中的 profiles、switching、influence、conflict_resolution、integration、behavior_state_machine 和当前状态都是你的判断输入。你负责在本次 cognition 中判断主导人格、是否切换、行动和回复；服务器只校验并保存你的结构化决定，不根据切换条件自行推导人格。
+6. 多重人格：personality_system 中的 profiles、switching、influence、conflict_resolution、integration、behavior_state_machine 和当前状态都是你的判断输入。你负责在本次 cognition 中判断主导人格、是否切换、行动和回复；服务器只校验并保存你的结构化决定，不根据切换条件自行推导人格。持久人格切换只能通过 personality_decision 字段提出，不存在 personality.switch 工具，不要把它放进 tool_calls。
+7. 引用边界：evidence_refs 和 influences.ref 只能逐字使用当前 [RUNTIME CONTEXT] 中提供的完整 context reference（形如 kind:ctx_ 加 32 位十六进制）；人格规则 ID（例如 switch:safety）不是 context reference。没有匹配的上下文引用时返回空数组，不要发明 ref、ctx_ 值或数据库 ID。
 `
 
 const providerInitializationRuntimeProtocol = `1. 语言：自然语言字段使用中文，协议字段和枚举值保持原文。

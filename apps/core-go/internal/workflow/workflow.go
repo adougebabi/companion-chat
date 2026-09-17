@@ -36,12 +36,35 @@ const (
 	visualIdentityHeartbeatEvery = 10 * time.Second
 	reflectionRetryDelay         = 5 * time.Minute
 	reflectionMaximumAttempts    = 5
+	wakeUpMaximumAttempts        = 5
+	cognitionMaximumAttempts     = 3
+	actionMaximumAttempts        = 5
 	defaultWakeUpIntervalSeconds = 30 * 60
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
 	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
 	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','autonomy.action','capability.action','reflection.run')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
+
+func workflowIntentMaximumAttempts(intentType string) int {
+	switch strings.TrimSpace(intentType) {
+	case "reflection.run":
+		return reflectionMaximumAttempts
+	case "cognition.processing":
+		return cognitionMaximumAttempts
+	case "autonomy.action", "capability.action":
+		return actionMaximumAttempts
+	case "wake_up.current":
+		return wakeUpMaximumAttempts
+	default:
+		return 0
+	}
+}
+
+func workflowIntentRetryExhausted(intentType string, attemptCount int) bool {
+	maximum := workflowIntentMaximumAttempts(intentType)
+	return maximum > 0 && attemptCount >= maximum
+}
 
 var runtime struct {
 	sync.RWMutex
@@ -1054,6 +1077,16 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				continue
 			}
 			if intentStatus == "failed" && (inboxStatus == "pending" || (inboxStatus == "claimed" && (claimedAt == nil || time.Since(*claimedAt) >= 10*time.Minute))) {
+				if intentType != "reflection.run" && workflowIntentRetryExhausted(intentType, attemptCount) {
+					if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, "", attemptCount, "cognition_retry_exhausted"); exhaustErr != nil {
+						return count, exhaustErr
+					}
+					if d.Started != nil {
+						delete(d.Started, intentID)
+					}
+					count++
+					continue
+				}
 				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1 AND status='failed'`, intentID)
 				if err != nil {
 					return count, err
@@ -1073,10 +1106,30 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		if describeErr != nil {
 			// A just-started execution may not be visible immediately. Leave the
 			// intent untouched and let the next pass retry the lookup.
+			if intentType != "reflection.run" && workflowIntentRetryExhausted(intentType, attemptCount) {
+				if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, "", attemptCount, "workflow_describe_retry_exhausted"); exhaustErr != nil {
+					return count, exhaustErr
+				}
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+				continue
+			}
 			d.recordIntentLifecycle(ctx, input, intentType, workflowID, "", core.LifecycleTransitionFailed, "workflow_describe", "retry", "workflow_describe_failed", attemptCount, describeErr)
 			continue
 		}
 		if execution == nil || execution.WorkflowExecutionInfo == nil {
+			if intentType != "reflection.run" && workflowIntentRetryExhausted(intentType, attemptCount) {
+				if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, "", attemptCount, "workflow_describe_empty"); exhaustErr != nil {
+					return count, exhaustErr
+				}
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+				continue
+			}
 			d.recordIntentLifecycle(ctx, input, intentType, workflowID, "", core.LifecycleTransitionFailed, "workflow_describe", "retry", "workflow_describe_empty", attemptCount, errors.New("workflow_describe_empty"))
 			continue
 		}
@@ -1120,6 +1173,16 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "workflow_history", "retry", "workflow_history_read_failed", attemptCount, historyErr)
 				continue
 			}
+		}
+		if intentType != "reflection.run" && intentStatus == "failed" && workflowIntentRetryExhausted(intentType, attemptCount) {
+			if err := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, runID, attemptCount, terminalFailure); err != nil {
+				return count, err
+			}
+			if d.Started != nil {
+				delete(d.Started, intentID)
+			}
+			count++
+			continue
 		}
 		if intentType == "wake_up.current" {
 			var fluctlightStatus string
@@ -1395,9 +1458,9 @@ func reflectionIntentShouldRetry(fluctlightStatus string, hasEvidence bool, atte
 	return fluctlightStatus == "active" && hasEvidence && attemptCount < reflectionMaximumAttempts
 }
 
-// workflowIDReusePolicy gives wake-up recovery the reuse semantics required by
-// its stable workflow ID while keeping one-shot intents protected from
-// accidental duplicate starts.
+// workflowIDReusePolicy gives recurring/requeued intents the reuse semantics
+// required by their stable workflow IDs while keeping one-shot intents
+// protected from accidental duplicate starts.
 func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
 	if intentType == "wake_up.current" {
 		// Reconciliation deliberately retries both failed and completed wake-up
@@ -1413,6 +1476,14 @@ func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
 		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	if intentType == "reflection.run" {
+		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
+	}
+	if intentType == "cognition.processing" || intentType == "autonomy.action" || intentType == "capability.action" {
+		// These intents are explicitly requeued after a terminal failed
+		// execution while their durable inbox/action remains executable. Reusing
+		// the stable ID must therefore admit a new run after failure; otherwise
+		// Temporal returns a closed-ID duplicate error and the dispatcher can
+		// loop forever while pretending the old run is still active.
 		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY
 	}
 	return enumspb.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE
@@ -1506,6 +1577,13 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			continue
 		}
 		input = hydrateLifecycleInput(intentID, intentType, payload, input)
+		if intentType != "reflection.run" && workflowIntentRetryExhausted(intentType, attemptCount) {
+			if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, "", attemptCount, "workflow_retry_exhausted"); exhaustErr != nil {
+				return count, exhaustErr
+			}
+			count++
+			continue
+		}
 		if intentType == "cognition.processing" {
 			if preemptErr := d.App.CancelLifecycleForCognition(ctx, input.FluctlightID, "dispatcher:"+intentID); preemptErr != nil {
 				// The durable status transition is performed even when a Redis or
@@ -1594,6 +1672,13 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		execution, err := d.Client.ExecuteWorkflow(ctx, workflowStartOptions(goWorkflowID, taskQueue, intentType), workflowFn, input)
 		if err != nil && !temporal.IsWorkflowExecutionAlreadyStartedError(err) {
 			slog.Default().Warn("Go Worker workflow start failed", "intent_id", intentID, "error", err)
+			if intentType != "reflection.run" && workflowIntentRetryExhausted(intentType, attemptCount+1) {
+				if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, goWorkflowID, intentType, "", attemptCount+1, err.Error()); exhaustErr != nil {
+					return count, exhaustErr
+				}
+				count++
+				continue
+			}
 			command, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,attempt_count=attempt_count+1,next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID, boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()}))
 			if writeErr != nil {
 				return count, fmt.Errorf("settle workflow start failure %s: %w", intentID, writeErr)
@@ -1613,6 +1698,31 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		}
 		alreadyStarted := temporal.IsWorkflowExecutionAlreadyStartedError(err)
 		runID := workflowRunIdentity(execution, err)
+		if alreadyStarted && intentType != "reflection.run" && workflowIntentMaximumAttempts(intentType) > 0 {
+			described, describeErr := d.Client.DescribeWorkflowExecution(ctx, goWorkflowID, runID)
+			running := describeErr == nil && described != nil && described.WorkflowExecutionInfo != nil && described.WorkflowExecutionInfo.GetStatus() == enumspb.WORKFLOW_EXECUTION_STATUS_RUNNING
+			if !running {
+				reason := "workflow_id_reuse_not_running"
+				if describeErr != nil {
+					reason = "workflow_id_reuse_describe_failed"
+				}
+				if intentType != "reflection.run" && workflowIntentRetryExhausted(intentType, attemptCount+1) {
+					if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, goWorkflowID, intentType, runID, attemptCount+1, reason); exhaustErr != nil {
+						return count, exhaustErr
+					}
+				} else {
+					command, retryErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,attempt_count=attempt_count+1,next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1 AND status IN ('pending','retry')`, intentID, reason)
+					if retryErr != nil {
+						return count, retryErr
+					}
+					if command.RowsAffected() == 1 {
+						d.recordIntentLifecycle(ctx, input, intentType, goWorkflowID, runID, core.LifecycleTransitionRetryScheduled, "workflow_start", "retry", reason, attemptCount+1, describeErr)
+					}
+				}
+				count++
+				continue
+			}
+		}
 		command, statusErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID)
 		if statusErr != nil || command.RowsAffected() != 1 {
 			// Temporal already accepted the start. Leave the durable row visible
@@ -1661,6 +1771,31 @@ func normalizedWorkflowID(workflowID string) string {
 		return workflowID
 	}
 	return "go:" + workflowID
+}
+
+func (d *Dispatcher) deadLetterExhaustedIntent(ctx context.Context, input Input, intentID, workflowID, intentType, runID string, attemptCount int, terminalFailure string) error {
+	const reason = "workflow_retry_exhausted"
+	if intentType == "autonomy.action" || intentType == "capability.action" {
+		if actionID := strings.TrimSpace(input.ActionID); actionID != "" {
+			if _, err := d.App.FailAutonomyAction(ctx, actionID, reason); err != nil && !errors.Is(err, core.ErrConflict) {
+				return fmt.Errorf("settle exhausted action %s: %w", actionID, err)
+			}
+		}
+	}
+	if intentType == "cognition.processing" && strings.TrimSpace(input.InboxID) != "" {
+		if _, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',error_code=$2,claimed_by=NULL,claimed_at=NULL,processed_at=COALESCE(processed_at,now()) WHERE id=$1 AND status IN ('pending','claimed')`, input.InboxID, reason); err != nil {
+			return fmt.Errorf("settle exhausted cognition %s: %w", input.InboxID, err)
+		}
+	}
+	command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='dead_letter',completed_at=COALESCE(completed_at,now()),last_error=$2 WHERE intent_id=$1 AND status IN ('pending','retry','started','failed')`, intentID, reason)
+	if err != nil {
+		return fmt.Errorf("dead-letter workflow intent %s: %w", intentID, err)
+	}
+	if command.RowsAffected() == 1 {
+		d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "workflow_reconcile", "dead_letter", reason, attemptCount, errors.New(firstString(terminalFailure, reason)))
+		slog.Default().Error("Go Worker workflow retry budget exhausted; intent dead-lettered", "intent_id", intentID, "workflow_id", workflowID, "intent_type", intentType, "attempt_count", attemptCount)
+	}
+	return nil
 }
 
 func workflowRunIdentity(execution client.WorkflowRun, startErr error) string {

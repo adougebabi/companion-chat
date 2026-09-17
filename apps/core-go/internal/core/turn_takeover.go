@@ -912,7 +912,7 @@ func (a *App) generateTakeoverReply(ctx context.Context, input turnTakeoverInput
 	scopedProjection = assembledProjection
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
 	providerCtx = WithProviderCorrelation(providerCtx, "takeover-reply:"+input.Frozen.ID)
-	completion, completionErr := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, takeoverReplySchemaName, schema, true)
+	completion, completionErr := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, takeoverReplySchemaName, schema, false)
 	if completionErr != nil {
 		if a.cognitionFactSuperseded(ctx, input.InboxID) {
 			return false, errCognitionTurnSuperseded

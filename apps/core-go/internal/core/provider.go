@@ -207,10 +207,10 @@ func (p *ProviderClient) StructuredQueryContinuation(ctx context.Context, role s
 }
 
 // StructuredAssembledJudgement calls a dedicated judge role on the assembled
-// message path. It sends no tools and never enables thinking: the Provider only
-// implements the `enable_thinking: true` branch, so the parameter is omitted
-// (not disabled) and that fact is what the F09 report must state. Reusing the
-// assembled path keeps the whole runtime protocol out of the judge call.
+// message path. It sends no tools and omits enable_thinking so the structured
+// verdict stays in the normal content channel. The same omission is used by
+// production structured cognition; local OpenAI-compatible Providers commonly
+// spend the output reserve on reasoning_content when the flag is enabled.
 func (p *ProviderClient) StructuredAssembledJudgement(ctx context.Context, role string, messages []map[string]any, schemaName string, schema map[string]any) (ProviderCompletion, error) {
 	return p.completeWithToolsSchemaMode(ctx, role, messages, true, nil, schemaName, schema, false, true, false)
 }
@@ -350,7 +350,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_message_invalid")
 			return ProviderCompletion{}, fmt.Errorf("provider response message is invalid")
 		}
-		calls, err := NormalizeProviderToolCalls(message["tool_calls"], "", providerRequestID)
+		calls, err := normalizeProviderToolCallsWithDerivedIDs(message["tool_calls"], "", providerRequestID)
 		if err != nil {
 			diagnostic := providerToolCallNormalizationDiagnostic(message["tool_calls"], "native", err)
 			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
@@ -377,7 +377,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			return ProviderCompletion{}, structuredParseErr
 		}
 		if len(calls) == 0 && parsedStructuredOK && len(definitions) == 0 {
-			structuredCalls, callErr := NormalizeProviderToolCalls(parsedStructured["tool_calls"], "", providerRequestID)
+			structuredCalls, callErr := normalizeProviderToolCallsWithDerivedIDs(parsedStructured["tool_calls"], "", providerRequestID)
 			if callErr != nil {
 				p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
 				return ProviderCompletion{}, callErr
@@ -426,7 +426,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, 0, len(structuredCandidates), false, message)
 				if len(definitions) > 0 {
 					logToolCallShapeNormalization(role, schemaName, "structured", parsedStructured["tool_calls"])
-					calls, callErr := NormalizeProviderToolCalls(completion.Structured["tool_calls"], "", providerRequestID)
+					calls, callErr := normalizeProviderToolCallsWithDerivedIDs(completion.Structured["tool_calls"], "", providerRequestID)
 					if callErr != nil {
 						diagnostic := providerToolCallNormalizationDiagnostic(completion.Structured["tool_calls"], "structured", callErr)
 						p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
@@ -912,7 +912,11 @@ func mergeProviderPromptBudgetDiagnostics(existing map[string]any, messages, too
 }
 
 func providerChatPayloadForRole(model string, messages []map[string]any, tokenBudget int, jsonMode bool, definitions []CapabilityDefinition, role string) map[string]any {
-	return providerChatPayloadWithSchema(model, messages, tokenBudget, jsonMode, definitions, role, "", nil, role == "cognitive_assessment")
+	// Structured cognition keeps its control object in message.content. Thinking
+	// adapters may otherwise consume the output reserve in reasoning_content and
+	// leave the structured decision incomplete; callers that explicitly need a
+	// thinking-enabled protocol can still pass true to providerChatPayloadWithSchema.
+	return providerChatPayloadWithSchema(model, messages, tokenBudget, jsonMode, definitions, role, "", nil, false)
 }
 
 func providerChatPayloadWithSchema(model string, messages []map[string]any, tokenBudget int, jsonMode bool, definitions []CapabilityDefinition, role, schemaName string, schema map[string]any, enableThinking bool) map[string]any {

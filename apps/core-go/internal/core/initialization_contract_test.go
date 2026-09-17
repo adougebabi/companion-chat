@@ -411,6 +411,52 @@ func TestPrepareInitializationResponseNormalizesCommonLLMAliases(t *testing.T) {
 	}
 }
 
+// TestPrepareInitializationResponseNormalizesRealProviderAliases covers the
+// shorthand field names emitted by the live mlx-serve model. These aliases are
+// structurally equivalent to the canonical contract and must be normalized
+// before validation/persistence rather than making an otherwise usable
+// multi-profile foundation fail closed.
+func TestPrepareInitializationResponseNormalizesRealProviderAliases(t *testing.T) {
+	persona := defaultCorePersona("", "岚音")
+	system := mapValue(persona["personality_system"])
+	system["mode"] = "multiple"
+	system["profiles"] = []any{
+		completeInitializationProfile("profile_jinghai"),
+		completeInitializationProfile("profile_liuhuo"),
+	}
+	value := map[string]any{
+		"core_persona": persona,
+		"initial_goals": []any{
+			map[string]any{"id": "goal_archive", "content": "完成年度深空摄影档案", "associated_profile": "profile_jinghai"},
+			map[string]any{"id": "goal_meteor", "description": "规划流星雨观测", "associated_profile": "profile_liuhuo"},
+		},
+		"initial_intentions": []any{
+			map[string]any{"content": "协作完成年度深空摄影档案", "associated_profile": "profile_jinghai"},
+			map[string]any{"content": "共同规划下一次流星雨观测", "associated_profile": "profile_liuhuo"},
+		},
+		"initial_relationships": []any{
+			map[string]any{"target": "actor_user", "type": "长期搭档", "closeness": "亲密朋友"},
+		},
+	}
+
+	prepared, err := prepareInitializationResponse(value)
+	if err != nil {
+		t.Fatalf("live-provider aliases were rejected: %v", err)
+	}
+	goals := arrayValue(prepared["initial_goals"])
+	intentions := arrayValue(prepared["initial_intentions"])
+	relationships := arrayValue(prepared["initial_relationships"])
+	if len(goals) != 2 || stringValue(mapValue(goals[0])["description"]) != "完成年度深空摄影档案" || stringValue(mapValue(goals[0])["profile_id"]) != "profile_jinghai" || stringValue(mapValue(goals[1])["profile_id"]) != "profile_liuhuo" {
+		t.Fatalf("goal profile aliases were not normalized: %#v", goals)
+	}
+	if len(intentions) != 2 || stringValue(mapValue(intentions[0])["action"]) != "协作完成年度深空摄影档案" || stringValue(mapValue(intentions[1])["action"]) != "共同规划下一次流星雨观测" || stringValue(mapValue(intentions[0])["profile_id"]) != "profile_jinghai" || stringValue(mapValue(intentions[1])["profile_id"]) != "profile_liuhuo" {
+		t.Fatalf("intention aliases were not normalized: %#v", intentions)
+	}
+	if len(relationships) != 1 || stringValue(mapValue(relationships[0])["target_actor_id"]) != "actor_user" {
+		t.Fatalf("relationship target alias was not normalized: %#v", relationships)
+	}
+}
+
 func TestPrepareInitializationResponseDropsOrRepairsInvalidOptionalCandidates(t *testing.T) {
 	value := map[string]any{
 		"core_persona": defaultCorePersona("", "岚音"),

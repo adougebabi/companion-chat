@@ -70,15 +70,22 @@ ReflectionProposalV2
 
 The Go Core policy result records `accepted`, `rejected`, or `deferred`, policy reason codes, current revision, requested/applied numeric changes, idempotency key, and the frozen action when one exists.
 
-Direct conversation defaults to exactly one Main cognition. A
-`response_mode=final` response owns both visible assistant text and
-structured/native Capability calls; Core validates, freezes, executes and
-settles it without a second realization call. The only same-turn continuation
-is generic and result-dependent: `response_mode=query_continuation`, no visible
-text, one or two metadata-classified pure QUERY invocations, persisted bounded
-results, then at most one no-tools Provider call whose closed response contains
-only `visible_text`. ACTION and QUERY+ACTION mixed batches remain final in the
-first Main cognition. Background surfaces may complete as explicit `no_op`;
+Direct conversation normally uses one Main cognition. When the authorized
+persona system declares persistent switching rules, the turn uses a bounded
+two-phase cognition: a tool-free `persistent_switch_assessment` decides
+`keep|switch`, then `persistent_switch_reply_response` is assembled from the
+selected Working Persona with the ordinary capability catalog. The assessment
+has no executable candidate; only the second response can create visible text,
+capability calls, state proposals, or a frozen action. The second phase cannot
+propose another persistent switch or enter the takeover Judge. If no switching
+entry is declared, the ordinary one-call Main path remains unchanged.
+
+The generic same-turn continuation is still result-dependent:
+`response_mode=query_continuation`, no visible text, one or two
+metadata-classified pure QUERY invocations, persisted bounded results, then at
+most one no-tools Provider call whose closed response contains only
+`visible_text`. ACTION and QUERY+ACTION mixed batches remain final in the
+selected Main cognition. Background surfaces may complete as explicit `no_op`;
 an invalid/missing final visible response fails with
 `cognition_visible_text_missing`, while an invalid continuation contract fails
 closed under the same durable retry identity. For Providers that emit a native
@@ -228,10 +235,16 @@ Deterministic code may parse and validate protocol facts: JSON/schema, IDs, acto
 - Base: Main needs one read-only recall result, returns no text plus one pure
   QUERY, and the bounded continuation produces only the final answer; no state
   or Capability mutation schema is available in the second call.
+- Good: a persistent switch assessment selects a declared target profile; the
+  next same-turn cognition sees that profile's Working Persona, and only its
+  assistant message/capabilities are settled.
 - Bad: `/sorry|对不起|抱歉/` increases trust, an emoji table changes affect, message length chooses response style, or a fixed inactivity threshold marks a relationship as declining.
 - Bad: a provider failure creates a default friendly reply, default appraisal, default personality, or keyword-derived memory.
 - Bad: use `memory.recall` name matching instead of execution metadata, permit
-  ACTION ToolResults to continue, or call a third model turn.
+  ACTION ToolResults to continue, let the persistent-switch assessment execute
+  a reply, or recursively re-arbitrate the post-switch cognition. A bounded
+  pure-QUERY continuation after the selected cognition remains the only allowed
+  additional result-synthesis call.
 
 ### 6. Tests Required
 
@@ -245,6 +258,9 @@ Deterministic code may parse and validate protocol facts: JSON/schema, IDs, acto
   `role=tool` messages, zero `action_realization` calls, and frozen retry
   without another Main request. Capability-local HOW planners are counted by
   their own schema, not as a second Main cognition.
+- Persistent-switch tests assert one tool-free assessment followed by one
+  target-profile final cognition, winner-only settlement, and no second switch
+  decision.
 - Query-continuation tests assert only 1–2 generic pure queries qualify; the
   second request reuses frozen B-layout history (including ordinary assistant
   messages), appends one canonical assistant tool-call envelope plus matching

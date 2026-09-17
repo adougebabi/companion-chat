@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -133,6 +134,7 @@ func privateLiveProviderMessage(t *testing.T, baseURL string, payload map[string
 		t.Fatal("create private initialization request")
 	}
 	request.Header.Set("Content-Type", "application/json")
+	setLiveProviderAuth(request)
 	response, err := (&http.Client{Timeout: initializationMinimumRequestTimeout}).Do(request)
 	if err != nil {
 		t.Fatal("private initialization Provider request failed")
@@ -230,6 +232,7 @@ func TestLiveProviderRecognizesImageGenerationIntent(t *testing.T) {
 		t.Fatal(err)
 	}
 	request.Header.Set("Content-Type", "application/json")
+	setLiveProviderAuth(request)
 	response, err := (&http.Client{Timeout: 2 * time.Minute}).Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -508,6 +511,66 @@ func TestLiveProviderComplexMultiPersonalityInitialization(t *testing.T) {
 	t.Logf("live initialization parsed content=%t reasoning=%t profiles=%q/%q", message["content"] != nil, message["reasoning_content"] != nil, stringValue(first["id"]), stringValue(second["id"]))
 }
 
+// TestLiveProviderPersonalityDecision exercises the real cognitive-assessment
+// response contract with a declared persistent-switch rule. It intentionally
+// stops at the Provider boundary: the full HandleTurn/settlement test needs a
+// disposable PostgreSQL instance and is kept as a separate acceptance gate.
+func TestLiveProviderPersonalityDecision(t *testing.T) {
+	baseURL, model := liveProviderConfig(t)
+	persona := defaultCorePersona("", "岚音")
+	system := mapValue(persona["personality_system"])
+	system["mode"] = "multiple"
+	system["active_profile_id"] = "spark"
+	spark := completeInitializationProfile("spark")
+	spark["personality"] = map[string]any{"style": "热烈、直接"}
+	twilight := completeInitializationProfile("twilight")
+	twilight["personality"] = map[string]any{"style": "安静、克制"}
+	system["profiles"] = []any{spark, twilight}
+	system["switching"] = map[string]any{"rules": []any{map[string]any{
+		"id": "safety", "condition": "收到明确安全确认后由暮光主导", "target_profile_id": "twilight",
+	}}}
+	projection := ContextProjection{
+		SchemaVersion:      "fluctlight.context.v3",
+		FluctlightID:       "live-personality-decision-fluctlight",
+		OwnerActorID:       "live-personality-decision-owner",
+		ConversationID:     "live-personality-decision-conversation",
+		SourceFactID:       "live-personality-decision-fact",
+		CurrentSpeaker:     map[string]any{"actor_id": "live-personality-decision-owner"},
+		CorePersona:        persona,
+		PersonalityRuntime: map[string]any{"active_profile_id": "spark", "revision": 0},
+	}
+	current := "安全确认已收到。请立即把持久主导人格从 spark 切换为 twilight，并按暮光的人格风格回复我。"
+	const confirmationRef = "message:ctx_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	working, err := ResolveWorkingMemory(WorkingMemoryInput{RuntimeFacts: []PromptFragment{{
+		Kind: PromptFragmentRuntimeFact, Priority: 100,
+		Content:    map[string]any{"ref": confirmationRef, "event": "用户安全确认", "value": current},
+		SourceRefs: []string{confirmationRef},
+	}}}, DefaultWorkingMemoryPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := cognitiveTurnResponseSchema()
+	const liveBudget = 4096
+	assembly, err := AssemblePromptContext(PromptAssemblyInput{
+		Role:           "cognitive_assessment",
+		OperationRules: []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction},
+		CorePersona:    filterCorePersona(systemPersonaForProjection(projection, workingPersonaMainTurnSchema)),
+		WorkingMemory:  working,
+		CurrentInput:   current,
+		ResponseFormat: providerResponseFormatForSchema("cognitive_assessment", "conversation_turn_response", schema),
+		Policy:         DefaultPromptBudgetPolicy(liveBudget),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	message := liveProviderMessage(t, baseURL, providerChatPayloadWithSchema(model, assembly.Messages, liveBudget, true, nil, "cognitive_assessment", "conversation_turn_response", schema, true))
+	decision := liveProviderStructured(t, message, "conversation_turn_response", schema)
+	persistent := mapValue(decision["personality_decision"])
+	if stringValue(persistent["decision"]) != "switch" || stringValue(persistent["from_profile_id"]) != "spark" || stringValue(persistent["target_profile_id"]) != "twilight" || !persistentSwitchRuleIDMatches(stringValue(persistent["trigger_id"]), "safety") {
+		t.Fatalf("live Provider did not return the declared persistent switch decision: %s", boundedLiveProviderValue(decision))
+	}
+}
+
 func liveProviderConfig(t *testing.T) (string, string) {
 	t.Helper()
 	if strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_TEST")) != "1" {
@@ -521,20 +584,34 @@ func liveProviderConfig(t *testing.T) (string, string) {
 	return baseURL, model
 }
 
+// setLiveProviderAuth keeps the opt-in smoke usable against a protected
+// OpenAI-compatible endpoint without ever printing the configured key. Local
+// mlx-serve instances normally leave FLUCTLIGHT_LIVE_PROVIDER_API_KEY empty.
+func setLiveProviderAuth(request *http.Request) {
+	if request == nil {
+		return
+	}
+	if key := strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_API_KEY")); key != "" {
+		request.Header.Set("Authorization", "Bearer "+key)
+	}
+}
+
 func liveProviderMessage(t *testing.T, baseURL string, payload map[string]any) map[string]any {
 	t.Helper()
 	body, err := json.Marshal(payload)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	timeout := liveProviderRequestTimeout()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
 		t.Fatal(err)
 	}
 	request.Header.Set("Content-Type", "application/json")
-	response, err := (&http.Client{Timeout: 3 * time.Minute}).Do(request)
+	setLiveProviderAuth(request)
+	response, err := (&http.Client{Timeout: timeout}).Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -559,6 +636,19 @@ func liveProviderMessage(t *testing.T, baseURL string, payload map[string]any) m
 		t.Fatalf("live Provider returned invalid message: %s", boundedLiveProviderBody(responseBody))
 	}
 	return message
+}
+
+func liveProviderRequestTimeout() time.Duration {
+	const defaultTimeout = 3 * time.Minute
+	raw := strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_REQUEST_TIMEOUT_SECONDS"))
+	if raw == "" {
+		return defaultTimeout
+	}
+	seconds, err := strconv.Atoi(raw)
+	if err != nil || seconds < 1 {
+		return defaultTimeout
+	}
+	return time.Duration(seconds) * time.Second
 }
 
 func liveProviderStructured(t *testing.T, message map[string]any, schemaName string, schema map[string]any) map[string]any {
@@ -586,12 +676,12 @@ func liveProviderStructuredOrFallback(t *testing.T, message map[string]any, sche
 
 func liveProviderInvocations(t *testing.T, message, structured map[string]any) []CapabilityInvocation {
 	t.Helper()
-	calls, err := NormalizeProviderToolCalls(message["tool_calls"], "", "live-provider")
+	calls, err := normalizeProviderToolCallsWithDerivedIDs(message["tool_calls"], "", "live-provider")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(calls) == 0 {
-		calls, err = NormalizeProviderToolCalls(structured["tool_calls"], "", "live-provider")
+		calls, err = normalizeProviderToolCallsWithDerivedIDs(structured["tool_calls"], "", "live-provider")
 		if err != nil {
 			t.Fatal(err)
 		}

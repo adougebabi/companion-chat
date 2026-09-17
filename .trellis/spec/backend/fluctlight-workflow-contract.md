@@ -39,6 +39,15 @@ workflow runtime directly.
   failed-only reuse, an explicit AlreadyStarted result, preserved terminal
   failure diagnostics, and bounded backoff; returning an old Run handle must
   never be logged as a newly dispatched execution.
+- Cognition, autonomy-action, capability-action, and WakeUp intents have an
+  explicit outer retry budget in addition to Temporal Activity attempts:
+  `cognition.processing` 3, `autonomy.action`/`capability.action` 5,
+  `wake_up.current` 5, and `reflection.run` 5. Exhaustion settles the
+  executable domain row when applicable and moves the intent to `dead_letter`;
+  it must never remain an unbounded `retry` loop. Requeued terminal failures
+  use `ALLOW_DUPLICATE_FAILED_ONLY` for the stable Workflow ID, and an
+  `AlreadyStarted` result is accepted as running only after Describe confirms
+  the referenced execution is actually RUNNING.
 - Lifecycle recovery work (`wake_up`, daily review and reflection) is selected
   ahead of retrying Visual Identity initialization so a visual retry backlog
   cannot starve cognition lifecycle progress.
@@ -497,8 +506,10 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
   `completed_noop/capability_influences_missing`; deferred output calls may be
   retained because their durable target/result is their evidence boundary.
 - A direct private message exists only when the accepted decision invokes the
-  canonical communication capability. A wake-up that proposes a Capability
-  tool call freezes a generic
+  canonical communication capability. WakeUp ensures the Owner/Fluctlight
+  direct conversation projection before building the action context, so a
+  valid `conversation.reply` call is never downgraded solely because the chat
+  page has not been opened yet. A wake-up that proposes a Capability tool call freezes a generic
   `capability.action` on `interaction`; the CapabilityActionWorkflow reuses the
   same stable action/lease/result/reflection boundary as legacy autonomy
   actions, so the wake-up activity never executes an external effect directly.
@@ -567,6 +578,10 @@ workflow: WakeUpWorkflow -> ProcessWakeUpActivity -> completed
   never fail or execute an ungrounded state-changing call.
 - Assert lifecycle diagnostics reconstruct release→intent→Run/Activity→Provider
   →outcome→next due and emit `overdue` for expected absence.
+- Assert every recoverable intent type stops at its outer retry budget and
+  reaches `dead_letter` (or a failed Action/Inbox) instead of being requeued
+  indefinitely; assert a closed Workflow ID is not misclassified as a live
+  `AlreadyStarted` run.
 - Assert interval clamping, PostgreSQL cycle increment, and bounded per-cycle
   Workflow history with Temporal's test environment.
 - Assert inactive termination and disabled sleep behavior without provider

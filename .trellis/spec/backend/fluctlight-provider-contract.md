@@ -247,7 +247,10 @@ providerToolCallNormalizationDiagnostic(value, source, err)
 
 - Both native and structured-sidecar failures use the bounded
   `tool_call_invalid` model-run error code and retain the original fail-closed
-  normalization behavior. Core must not synthesize a missing call ID.
+  normalization behavior. The strict fixture helper rejects a missing call ID;
+  the production Provider adapter may derive a stable ID when the endpoint
+  supplies a provider request ID, using only request identity, sequence, tool
+  name and canonical arguments. It never trusts model text as the identity.
 - `diagnostic_model_runs.response` may contain only shape metadata: `source`
   (`native` or `structured`), `value_shape`, `call_count`,
   `failed_item_index`, `normalization_reason`, and bounded item fields such as
@@ -271,20 +274,22 @@ providerToolCallNormalizationDiagnostic(value, source, err)
 
 | Condition | Result |
 | --- | --- |
-| native call item is missing an ID | return `tool_call_invalid`; persist `source=native`, item index, and `id_required` |
-| structured sidecar call item is missing an ID | return `tool_call_invalid`; persist `source=structured`, item index, and `id_required` |
+| native/structured call item is missing an ID but has a provider request identity | derive a deterministic `call_derived_<digest>` ID before registry validation; retries of the same request reuse it |
+| call item is missing an ID and no provider request identity is available | return `tool_call_invalid`; persist the bounded `id_required` reason |
 | arguments are missing, invalid JSON, non-object, or oversized | return `tool_call_invalid` with the corresponding stable reason |
 | duplicate IDs or invalid names/types | return `tool_call_invalid` with the failing item index; do not execute any call |
 | diagnostic contains model-controlled content | omit it; retain only bounded shape fields |
 
 ### 5. Good / Base / Bad Cases
 
-- Good: an Owner can distinguish a missing ID from invalid arguments by
-  correlation ID and item index while the diagnostic contains no tool payload.
+- Good: a Provider that omits native IDs still gets deterministic call identity
+  from the request boundary, while malformed arguments remain a bounded
+  `tool_call_invalid` diagnostic with no tool payload.
 - Base: a valid native or sidecar call continues through the existing
   normalization path unchanged.
 - Bad: log the full arguments, response body, or model reasoning to explain a
-  `tool_call_invalid`, or generate an ID merely to make the call pass.
+  `tool_call_invalid`, or derive an ID from an unbounded/model-controlled field
+  without the stable provider request identity.
 
 ### 6. Tests Required
 

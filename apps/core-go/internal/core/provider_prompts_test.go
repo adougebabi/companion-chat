@@ -23,8 +23,8 @@ func TestProviderPromptInstructionsStayCompactAndPreserveContracts(t *testing.T)
 		//{name: "media-prompt", value: mediaPromptInstruction, max: 4000, must: []string{"Determine the intended framing before choosing a camera relationship", "body-part or partial-body close-up", "rear-camera phone self-capture", "face or upper-body close-up", "front-camera phone selfie", "full-length mirror", "photographer and the camera/phone used by that photographer must remain outside the image", "If neither framing nor capture relationship is specified", "quality_feedback", "Do not add a human subject"}},
 		{name: "media-quality", value: mediaQualityAcceptanceInstruction, max: 1800, must: []string{"strict visual consistency reviewer", "hard, observable consistency", "Do not judge beauty", "verdict pass", "Use retry only", "Use reject", "retry_guidance"}},
 	}
-	if !strings.Contains(providerRuntimeProtocol, "actor_user") || strings.Contains(providerRuntimeProtocol, "除用户明确要求") {
-		t.Fatalf("runtime protocol must use actor_user as the canonical human actor: %s", providerRuntimeProtocol)
+	if !strings.Contains(providerRuntimeProtocol, "actor_user") || !strings.Contains(providerRuntimeProtocol, "context reference") || strings.Contains(providerRuntimeProtocol, "除用户明确要求") {
+		t.Fatalf("runtime protocol must use actor_user and a concrete context-reference boundary: %s", providerRuntimeProtocol)
 	}
 	for _, check := range checks {
 		t.Run(check.name, func(t *testing.T) {

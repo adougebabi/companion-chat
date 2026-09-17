@@ -346,7 +346,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		}
 		projection = assembledProjection
 		providerCtx = WithPromptDiagnostics(providerCtx, assembly.Diagnostics)
-		completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "native_cognition_response", schema, true)
+		completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "native_cognition_response", schema, false)
 		if err != nil {
 			return err
 		}

@@ -95,6 +95,27 @@ func TestNormalizeProviderToolCallsWrapsSingleObject(t *testing.T) {
 	}
 }
 
+func TestNormalizeProviderToolCallsDerivesStableIDsForProviderSidecars(t *testing.T) {
+	raw := []any{
+		map[string]any{"name": "conversation.reply", "arguments": map[string]any{"text": "hello"}},
+		map[string]any{"name": "media.image.generate", "arguments": map[string]any{"intent": "a cat"}},
+	}
+	first, err := normalizeProviderToolCallsWithDerivedIDs(raw, "fact-1", "provider:request-1")
+	if err != nil {
+		t.Fatalf("derived-id normalization error = %v", err)
+	}
+	second, err := normalizeProviderToolCallsWithDerivedIDs(raw, "fact-1", "provider:request-1")
+	if err != nil {
+		t.Fatalf("repeated derived-id normalization error = %v", err)
+	}
+	if len(first) != 2 || len(second) != 2 || first[0].CallID == "" || first[0].CallID != second[0].CallID || first[1].CallID != second[1].CallID || first[0].CallID == first[1].CallID {
+		t.Fatalf("derived call ids are not stable and unique: first=%#v second=%#v", first, second)
+	}
+	if _, err := NormalizeProviderToolCalls(raw, "fact-1", "provider:request-1"); err == nil {
+		t.Fatal("strict normalization must still reject a missing provider id")
+	}
+}
+
 func TestNormalizeProviderToolCallsRejectsMalformedOrDuplicateCalls(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -526,7 +547,7 @@ func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 	}
 }
 
-func TestStructuredProviderPayloadUsesJSONFormatAndCognitiveThinking(t *testing.T) {
+func TestStructuredProviderPayloadUsesJSONFormatWithoutHiddenThinking(t *testing.T) {
 	assessment := providerChatPayloadForRole("model", []map[string]any{{"role": "user", "content": "hello"}}, 512, true, testCapabilityDefinitions(), "cognitive_assessment")
 	format, ok := assessment["response_format"].(map[string]any)
 	if !ok || format["type"] != "json_schema" {
@@ -536,8 +557,8 @@ func TestStructuredProviderPayloadUsesJSONFormatAndCognitiveThinking(t *testing.
 	if !ok || schemaEnvelope["strict"] != true || schemaEnvelope["schema"] == nil {
 		t.Fatalf("cognitive assessment schema is not strict: %#v", format)
 	}
-	if assessment["enable_thinking"] != true {
-		t.Fatalf("cognitive assessment must enable thinking: %#v", assessment)
+	if _, exists := assessment["enable_thinking"]; exists {
+		t.Fatalf("cognitive assessment must keep structured control JSON out of hidden reasoning: %#v", assessment)
 	}
 	reflection := providerChatPayloadForRole("model", nil, 512, true, nil, "reflection")
 	reflectionFormat, ok := reflection["response_format"].(map[string]any)

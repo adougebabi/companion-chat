@@ -485,6 +485,13 @@ func (a *App) persistAutonomyCapabilityResultsBestEffort(ctx context.Context, ac
 	}
 }
 
+// FailAutonomyAction is the workflow-owned terminal failure boundary used when
+// an outer durable intent exhausts its retry budget before the action worker
+// can settle the frozen action itself.
+func (a *App) FailAutonomyAction(ctx context.Context, actionID, code string) (map[string]any, error) {
+	return a.failAutonomyAction(ctx, actionID, code)
+}
+
 func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (map[string]any, error) {
 	result := map[string]any{"action_id": actionID, "status": "failed", "action_status": "failed", "error_code": code}
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {

@@ -126,6 +126,19 @@ func TestWakeUpToolCallAssessmentMergePreservesInfluences(t *testing.T) {
 	}
 }
 
+func TestCanonicalWakeUpReplyActionBecomesProactiveMessage(t *testing.T) {
+	registry := mustCapabilityRegistry(conversationReplyCapability{})
+	calls := []CapabilityInvocation{{
+		CallID: "reply-1", CapabilityName: conversationReplyCapabilityName,
+		Arguments: json.RawMessage(`{"text":"主动告诉 Owner 我在。"}`),
+	}}
+	for _, action := range []string{"reply", "respond", "send_message", "scene_change", "no_op"} {
+		if got := canonicalWakeUpActionType(action, calls, registry); got != "proactive_message" {
+			t.Fatalf("WakeUp action %q canonicalized to %q, want proactive_message", action, got)
+		}
+	}
+}
+
 func TestWakeUpToolOnlyNativeCapabilityRemainsNoOpAction(t *testing.T) {
 	assessment := wakeUpAssessmentFromToolCalls(testInvocations([]ToolCallV1{
 		{ID: "affect", Name: "affect_event", Arguments: json.RawMessage(`{"event":{"type":"excited","confidence":0.8}}`), SourceFactID: "fact", ProviderRequestID: "provider", SchemaVersion: ToolCallSchemaVersion},

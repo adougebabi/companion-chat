@@ -16,21 +16,21 @@ func TestProviderToolCallFailuresPersistBoundedDiagnosticsForNativeAndStructured
 		response   map[string]any
 	}{
 		{
-			name:       "native",
+			name:       "native-invalid-arguments",
 			source:     "native",
-			wantReason: "id_required",
+			wantReason: "arguments_not_object",
 			response: map[string]any{
 				"content": "{}",
 				"tool_calls": []any{map[string]any{
 					"name":      "conversation.reply",
-					"arguments": map[string]any{"text": "PRIVATE_NATIVE_ARGUMENT_CANARY"},
+					"arguments": []any{"PRIVATE_NATIVE_ARGUMENT_CANARY"},
 				}},
 			},
 		},
 		{
-			name:       "structured-sidecar",
+			name:       "structured-sidecar-invalid-arguments",
 			source:     "structured",
-			wantReason: "id_required",
+			wantReason: "arguments_not_object",
 			response: map[string]any{
 				"content": jsonString(map[string]any{
 					"response_mode":   "final",
@@ -38,7 +38,7 @@ func TestProviderToolCallFailuresPersistBoundedDiagnosticsForNativeAndStructured
 					"response_intent": "test",
 					"tool_calls": []any{map[string]any{
 						"name":      "conversation.reply",
-						"arguments": map[string]any{"text": "PRIVATE_STRUCTURED_ARGUMENT_CANARY"},
+						"arguments": []any{"PRIVATE_STRUCTURED_ARGUMENT_CANARY"},
 					}},
 					"influences": []any{},
 				}),

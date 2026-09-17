@@ -443,10 +443,17 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if conversationErr != nil && !errors.Is(conversationErr, pgx.ErrNoRows) {
 		return nil, conversationErr
 	}
-	memoryMode := MemoryConversationGlobalOnly
-	if conversationID != "" {
-		memoryMode = MemoryConversationExact
+	if conversationID == "" {
+		// WakeUp is allowed to send a proactive private message before the
+		// Owner has opened the chat page. Ensure the Core-owned direct
+		// conversation exists instead of demoting a valid conversation.reply
+		// invocation into a capability action with no message target.
+		conversationID, err = a.EnsureDirectConversation(ctx, ownerID, fluctlightID)
+		if err != nil {
+			return nil, err
+		}
 	}
+	memoryMode := MemoryConversationExact
 	projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
 		AuthorizationActorID: ownerID, SpeakerActorID: ownerID, FluctlightID: fluctlightID,
 		ConversationID: conversationID, SourceFactID: wakeID,
@@ -487,7 +494,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		),
 		assembly.Diagnostics,
 	)
-	completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "wake_up_response", schema, true)
+	completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "wake_up_response", schema, false)
 	if err != nil {
 		if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
 			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
@@ -536,6 +543,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	if err := a.validateCapabilityInvocationsForPersistence(toolCalls); err != nil {
 		return nil, err
 	}
+	assessment["action_type"] = canonicalWakeUpActionType(stringValue(assessment["action_type"]), toolCalls, a.capabilityRegistry())
 	if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {
 		if normalized, normalizeErr := normalizeOutputPreferenceDecision(preference, stringValue(projection.PersonalityRuntime["active_profile_id"])); normalizeErr == nil {
 			assessment["output_preference_decision"] = normalized
@@ -712,6 +720,19 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		outcomeReason = firstString(result["reason"], "no_action_selected")
 	}
 	return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": firstString(result["status"], "no_op"), "reason": outcomeReason, "action_type": actualActionType, "action_id": nullableString(actionID), "reflection_intent_id": reflectionIntentID, "result": safeResult, "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
+}
+
+// canonicalWakeUpActionType gives the visible output capability ownership of
+// the WakeUp delivery lane. WakeUp's output target is chosen by Core, not by
+// sidecar action metadata: a conversation.reply call with text must settle
+// against a real conversation message rather than falling into capability.action
+// with a wake_up binding.
+func canonicalWakeUpActionType(actionType string, calls []CapabilityInvocation, registry *CapabilityRegistry) string {
+	canonical := normalizeConversationActionType(actionType)
+	if replyTextFromCapabilityInvocations(calls, registry) != "" {
+		return "proactive_message"
+	}
+	return canonical
 }
 
 func capabilityInvocationText(invocation CapabilityInvocation) string {
@@ -909,7 +930,7 @@ func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, 
 	nextDue := now.UTC().Add(time.Duration(intervalSeconds) * time.Second)
 	command, err := tx.Exec(ctx, `
 		UPDATE public.platform_workflow_intents
-		SET next_attempt_at=$2
+		SET next_attempt_at=$2,attempt_count=0
 		WHERE intent_type='wake_up.current'
 		  AND payload->>'fluctlight_id'=$1`, fluctlightID, nextDue)
 	if err != nil {
