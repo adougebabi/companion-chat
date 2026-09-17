@@ -164,7 +164,7 @@ func (a *App) processReflectionV2(
 	}
 	providerEvidence := compactReflectionEvidenceV2(evidence)
 	schema := reflectionProposalV2ProviderSchema()
-	assembly, assembledProjection, err := a.assembleProjectionPrompt(ctx, projection, "reflection", []string{providerContextAuthorityRule, reflectionV2Instruction}, jsonString(map[string]any{"evidence": providerEvidence}), nil, "reflection_proposal_v2", schema)
+	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceReflection, projection, "reflection", []string{providerContextAuthorityRule, reflectionV2Instruction}, jsonString(map[string]any{"evidence": providerEvidence}), nil, "reflection_proposal_v2", schema)
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return nil, err

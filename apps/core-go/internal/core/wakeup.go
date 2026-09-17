@@ -482,7 +482,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		"cycle":           cycle,
 		"schedule_status": wakeUpScheduleStatus(projection.Schedule),
 	}
-	assembly, assembledProjection, err := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction}, jsonString(wakeUpContext), definitions, "wake_up_response", schema)
+	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceWakeUp, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction}, jsonString(wakeUpContext), definitions, "wake_up_response", schema)
 	if err != nil {
 		return nil, err
 	}

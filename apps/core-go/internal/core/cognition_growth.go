@@ -340,7 +340,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceNativeCognition)
 		schema := nativeCognitionResponseSchema()
 		operationInput := jsonString(map[string]any{"event_type": eventType, "fact": compactProviderFact(payload)})
-		assembly, assembledProjection, assemblyErr := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, nativeCognitionInstruction}, operationInput, definitions, "native_cognition_response", schema)
+		assembly, assembledProjection, assemblyErr := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceNativeCognition, projection, "cognitive_assessment", []string{providerContextAuthorityRule, nativeCognitionInstruction}, operationInput, definitions, "native_cognition_response", schema)
 		if assemblyErr != nil {
 			return assemblyErr
 		}

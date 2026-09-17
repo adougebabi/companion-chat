@@ -332,9 +332,9 @@ p.recordProviderFailure(ctx, assignment, role, correlationID, messages,
 compactCognitionContext(ContextProjection) -> ProviderContext
 ```
 
-`ProviderContext` keeps the canonical `core_persona`, `developing_self`, and
-`current_state` layers plus non-empty evidence collections. It does not expose
-database identifiers or state-machine bookkeeping fields.
+`compactCognitionContext` is an internal/replay-safe DTO. The final Provider
+input is produced by `ProviderContextSurface` and is narrower than that DTO;
+it does not expose database identifiers or state-machine bookkeeping fields.
 
 ### 3. Contracts
 
@@ -347,17 +347,18 @@ database identifiers or state-machine bookkeeping fields.
   with the Fluctlight's canonical IANA `timezone`; it is the semantic time fact
   used by wake-up, cognition, reply, daily-review, and reflection decisions.
   The raw RFC3339 `instant` used for Core snapshots is not Provider input.
-- `visual_identity` in cognition context is limited to availability and the
-  small renderer constraint set needed for a decision. Identity snapshots,
+- `visual_identity` in ordinary conversation/wake-up cognition is limited to
+  availability/missing state. Renderer constraints, identity snapshots,
   workflow timeline stages, asset lists, and adapter/revision metadata stay in
-  Core/media workflows. Media prompt input uses the same bounded projection;
+  Core/media workflows. Media prompt input uses its separate bounded projection;
   reference asset IDs remain only in the durable Core concept for renderer
   lookup.
 - `recent_messages` keeps semantic order/kind/text/time, but omits message IDs,
   `author_actor_id`, `source`, and attachment arrays.
 - Memory input keeps type/content/confidence/importance/emotional significance,
-  creation time, and evidence references; storage status, revision, visibility,
-  conversation foreign keys, and duplicate source/event IDs stay in Core.
+  creation time, and an opaque `ContextReference` `ref` only when it resolves
+  in the frozen index. Raw Memory IDs, evidence IDs, storage status, revision,
+  visibility, conversation foreign keys, and source/event IDs stay in Core.
 - Empty optional collections are omitted. Native Provider `tools` remains the
   sole complete capability schema; `context.capabilities` is never duplicated.
 - The current conversation message is carried once by its owning operation;
@@ -403,11 +404,123 @@ metadata-free fact. Frozen Core records retain the complete protocol objects.
 - Assert realization plans/results and reflection/native evidence facts keep
   semantic outcomes while omitting protocol IDs, schemas, revisions, and
   transport metadata.
-- Assert non-empty recent messages, memories, and typed slots retain semantic
-  values and evidence references.
+- Assert non-empty recent messages and memories retain semantic values; typed
+  evolution slots are available only on surfaces that explicitly need them,
+  and no raw evidence/identifier field crosses the ordinary conversation
+  boundary.
 - Assert legacy projection reconstruction does not lose Core Persona data.
 - Assert every Provider system payload still has one leading system message;
   this context compaction must not alter native tools or persisted decisions.
+
+## Scenario: Operation-Owned Provider Context Surfaces
+
+### 1. Scope / Trigger
+
+- Trigger: the same `ContextProjection` is used by Main conversation,
+  takeover reply, wake-up, daily review, native cognition, persistent-switch
+  assessment, and Reflection.
+- A broad internal projection must not be promoted wholesale into every
+  `[RUNTIME CONTEXT]` message. This boundary also prevents invalid database
+  IDs, revisions, authority/persistence metadata, and duplicate actor/drive/
+  presence copies from becoming model input.
+
+### 2. Signatures
+
+```go
+type ProviderContextSurface string
+
+compactCognitionContextForSurface(ContextProjection, ProviderContextSurface) map[string]any
+workingMemoryInputFromProjectionForSurface(ContextProjection, ProviderContextSurface, active, summaries) WorkingMemoryInput
+App.assembleProjectionPromptForSurface(ctx, surface, projection, role, rules, input, tools, schemaName, schema)
+```
+
+### 3. Contracts
+
+- `ContextProjection` remains the complete Core read model. Surface filtering is
+  applied only before Working Memory fragments are built; capability snapshots,
+  frozen actions, and CAS validation keep the full projection.
+- `conversation_main`, `takeover_reply`, and
+  `persistent_switch_assessment` retain semantic current state, local time and
+  timezone, current speaker, relationship, schedule, agency, outcome, memory,
+  and recent conversation facts. They omit actor rosters, top-level presence,
+  duplicate drive slots, preference/trigger slots, raw hypotheses, and visual
+  renderer constraints.
+- `native_cognition` and `reflection` do not receive interactive recent
+  history or conversation summaries unless a future surface explicitly opts
+  in. Wake-up and daily review retain their operation-owned schedule/memory
+  context.
+- Current state is projected as mood/PAD/momentum/drive/regulation and
+  scene/activity/location/current local time/timezone. `ref`, `*_id`, revision,
+  `authority`, `source`, persistence timestamps, and schedule/presence linkage
+  fields are Core-only in the ordinary surface.
+- Actor objects use display/type/role/label. An arbitrary actor/database ID is
+  never a Provider fact; only the explicit `actor_user`/`actor_self` aliases
+  may be used as display aliases.
+- Runtime summaries contain semantic `summary` text only. `source_digest`,
+  source kind, sequence bounds, completion timestamps, and summary row IDs are
+  retrieval metadata and do not enter the wire context.
+- Memory and capability target refs are retained only when they resolve in the
+  frozen `ContextReferenceIndex`; an opaque-looking but unresolved `ref` is
+  dropped. Approximate content similarity is not used as a Core-side merge or
+  prompt dedupe rule.
+- Conversation retrieval uses current input, recent topic, and active-memory
+  cues. Foundation/state/goal cues remain available in the prompt but do not
+  make every old episodic row a conversation search hit. Interactive retrieval
+  is capped at six durable results; duplicate lexical query tokens count once.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Unknown operation surface | Use the compatibility/default projection only at internal test seams; production callers pass an explicit surface. |
+| `id`, `*_id`, revision, persistence, source, authority, or unresolved `ref` appears in ordinary Runtime Context | Drop the field; never stringify it into a semantic fact. |
+| Current speaker lacks a display name and has an arbitrary ref | Keep only type/role/label; do not expose the arbitrary ref. |
+| Summary has no non-empty semantic text | Omit the summary fragment. |
+| Native cognition/Reflection projection has interactive history or summaries | Suppress those fragments unless the surface policy changes explicitly. |
+| Conversation memory query repeats the same lexical token | Score the token once; do not amplify relevance by repetition. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a conversation prompt retains “工作室 / 剪假发 / Asia/Shanghai / 当前
+  关系” and a few relevant memories, while the same prompt has no
+  `actor_id`, `event_ref`, `expected_revision`, renderer adapter data, or
+  repeated drive/presence roster.
+- Base: Core still keeps the full projection and reference index for a tool
+  call; only the Provider-facing Runtime Context is reduced.
+- Bad: loop over every key in `compactCognitionContext` and turn it into a
+  Runtime Fact, or assume a field is valid merely because its name is `ref` or
+  `*_id`.
+
+### 6. Tests Required
+
+- Surface fixture with current state, life context, actors, duplicate drives,
+  top-level/nested presence, visual renderer constraints, invalid IDs, and
+  summary metadata; assert field paths in the final `[RUNTIME CONTEXT]` JSON.
+- Assert valid `ContextReference` refs survive only on surfaces that need them,
+  while unresolved refs and raw entity IDs are absent.
+- Assert native cognition/Reflection omit recent messages/summaries and Main
+  retains current time, scene, relationship and bounded memory facts.
+- Assert conversation retrieval limits durable results and repeated query
+  tokens do not increase lexical overlap scoring.
+- Run a Provider wire smoke with a real `ContextProjection` when a live
+  Provider is configured; do not treat a fake payload as live-token evidence.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+for key, value := range compactCognitionContext(projection) {
+	input.RuntimeFacts = append(input.RuntimeFacts, fact(key, value))
+}
+```
+
+#### Correct
+
+```go
+compact := compactCognitionContextForSurface(projection, surface)
+input := workingMemoryInputFromProjectionForSurface(projection, surface, active, summaries)
+```
 
 ## Scenario: B-Layout Prompt Assembly and Final Wire Budget
 
@@ -450,9 +563,10 @@ ProviderClient.StructuredAssembledWithToolsSchema(ctx, role, messages, tools, sc
 - Runtime Context has distinct `facts`, `active_memory`, `retrieved_memory`,
   and `conversation_summaries` keys. Recent selection uses complete messages/
   turns; it is not rendered as one synthetic user-history table.
-- Memory `created_at` and evidence references are semantic grounding fields and
-  remain; storage IDs, revision/status/FK/audit fields do not. Evidence refs
-  are not removed merely because they look like IDs.
+- Memory `created_at` and a valid opaque `ContextReference` are semantic
+  grounding fields and may remain; raw storage IDs, evidence IDs, revision,
+  status/FK/audit fields do not. An arbitrary `ref` is not provider-safe just
+  because it looks like an identifier.
 - Recent messages retain role/kind, semantic time, content, and order. The
   current operation input is not duplicated in recent history.
 - The conservative estimator is

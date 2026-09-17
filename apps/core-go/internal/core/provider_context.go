@@ -11,7 +11,49 @@ import (
 	"time"
 )
 
+// ProviderContextSurface names the operation-owned Provider egress policy.
+// ContextProjection is deliberately broader because Core needs its complete
+// read model for validation, replay and capability execution. A surface is the
+// final semantic allowlist used to build Working Memory and the wire prompt.
+type ProviderContextSurface string
+
+const (
+	ProviderContextSurfaceDefault          ProviderContextSurface = "default"
+	ProviderContextSurfaceConversationMain ProviderContextSurface = "conversation_main"
+	ProviderContextSurfaceTakeoverReply    ProviderContextSurface = "takeover_reply"
+	ProviderContextSurfacePersistentSwitch ProviderContextSurface = "persistent_switch_assessment"
+	ProviderContextSurfaceWakeUp           ProviderContextSurface = "wake_up"
+	ProviderContextSurfaceDailyReview      ProviderContextSurface = "daily_review"
+	ProviderContextSurfaceNativeCognition  ProviderContextSurface = "native_cognition"
+	ProviderContextSurfaceReflection       ProviderContextSurface = "reflection"
+)
+
+func providerContextSurfaceForSchema(schemaName string) ProviderContextSurface {
+	switch strings.TrimSpace(schemaName) {
+	case "conversation_turn_response":
+		return ProviderContextSurfaceConversationMain
+	case "takeover_reply_response":
+		return ProviderContextSurfaceTakeoverReply
+	case "persistent_switch_assessment":
+		return ProviderContextSurfacePersistentSwitch
+	case "wake_up_response":
+		return ProviderContextSurfaceWakeUp
+	case "daily_review_response":
+		return ProviderContextSurfaceDailyReview
+	case "native_cognition_response":
+		return ProviderContextSurfaceNativeCognition
+	case "reflection_proposal_v2":
+		return ProviderContextSurfaceReflection
+	default:
+		return ProviderContextSurfaceDefault
+	}
+}
+
 func (a *App) assembleProjectionPrompt(ctx context.Context, projection ContextProjection, role string, operationRules []string, currentInput string, definitions []CapabilityDefinition, schemaName string, schema map[string]any) (PromptAssemblyResult, ContextProjection, error) {
+	return a.assembleProjectionPromptForSurface(ctx, providerContextSurfaceForSchema(schemaName), projection, role, operationRules, currentInput, definitions, schemaName, schema)
+}
+
+func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface ProviderContextSurface, projection ContextProjection, role string, operationRules []string, currentInput string, definitions []CapabilityDefinition, schemaName string, schema map[string]any) (PromptAssemblyResult, ContextProjection, error) {
 	if a == nil || a.DB == nil || a.Provider == nil {
 		return PromptAssemblyResult{}, projection, errors.New("prompt_assembler_dependencies_missing")
 	}
@@ -41,7 +83,7 @@ func (a *App) assembleProjectionPrompt(ctx context.Context, projection ContextPr
 	}
 	var summaries []map[string]any
 	var summaryTrace ConversationSummaryRetrievalTrace
-	if strings.TrimSpace(projection.ConversationID) != "" {
+	if strings.TrimSpace(projection.ConversationID) != "" && providerContextSurfaceAllowsSummaries(surface) {
 		summaryResult, summaryErr := a.retrieveConversationSummaries(ctx, ConversationSummaryQuery{
 			AuthorizationActorID: projection.OwnerActorID, FluctlightID: projection.FluctlightID,
 			ConversationID: projection.ConversationID, Limit: conversationSummaryMaxResults, MaxRunes: 2048,
@@ -52,7 +94,7 @@ func (a *App) assembleProjectionPrompt(ctx context.Context, projection ContextPr
 		summaries = summaryResult.Items
 		summaryTrace = summaryResult.Trace
 	}
-	workingInput := workingMemoryInputFromProjection(projection, activeResult.Items, summaries)
+	workingInput := workingMemoryInputFromProjectionForSurface(projection, surface, activeResult.Items, summaries)
 	workingMemory, err := ResolveWorkingMemory(workingInput, DefaultWorkingMemoryPolicy())
 	if err != nil {
 		return PromptAssemblyResult{}, projection, err
@@ -78,7 +120,11 @@ func (a *App) assembleProjectionPrompt(ctx context.Context, projection ContextPr
 }
 
 func workingMemoryInputFromProjection(projection ContextProjection, active, summaries []map[string]any) WorkingMemoryInput {
-	compact := compactCognitionContext(projection)
+	return workingMemoryInputFromProjectionForSurface(projection, ProviderContextSurfaceDefault, active, summaries)
+}
+
+func workingMemoryInputFromProjectionForSurface(projection ContextProjection, surface ProviderContextSurface, active, summaries []map[string]any) WorkingMemoryInput {
+	compact := compactCognitionContextForSurface(projection, surface)
 	// Persona material belongs to the System Persona (the Working Persona).
 	// Repeating it in the runtime context gave the model two copies of the same
 	// persona to reconcile.
@@ -99,17 +145,43 @@ func workingMemoryInputFromProjection(projection ContextProjection, active, summ
 		}
 		input.RuntimeFacts = append(input.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Priority: priority, Content: map[string]any{"kind": key, "value": value}, SourceRefs: []string{"runtime:" + key}})
 	}
-	for _, item := range compactActiveMemories(active) {
+	for _, item := range compactActiveMemoriesForSurface(active, surface, projection.ReferenceIndex) {
 		input.ActiveCandidates = append(input.ActiveCandidates, PromptFragment{Kind: PromptFragmentActiveMemory, Priority: int(numberOrZero(item["importance"]) * 100), Content: item, SourceRefs: promptItemSourceRefs(item, "active")})
 	}
-	for _, item := range compactMemoriesForProfile(projection.Memories, stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"])) {
+	for _, item := range compactMemoriesForProfileForSurface(projection.Memories, stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"]), surface, projection.ReferenceIndex) {
 		input.RetrievedMemories = append(input.RetrievedMemories, PromptFragment{Kind: PromptFragmentRetrievedMemory, Priority: int(numberOrZero(item["importance"]) * 100), Content: item, SourceRefs: promptItemSourceRefs(item, "memory")})
 	}
-	for _, item := range summaries {
-		input.Summaries = append(input.Summaries, PromptFragment{Kind: PromptFragmentSummary, Priority: intValue(item["to_sequence"]), Content: item, SourceRefs: promptItemSourceRefs(item, "summary")})
+	if providerContextSurfaceAllowsSummaries(surface) {
+		for _, item := range summaries {
+			compact := compactSummaryForSurface(item, surface)
+			if len(compact) == 0 {
+				continue
+			}
+			input.Summaries = append(input.Summaries, PromptFragment{Kind: PromptFragmentSummary, Priority: intValue(item["to_sequence"]), Content: compact, SourceRefs: promptItemSourceRefs(compact, "summary")})
+		}
 	}
-	input.RecentMessages = recentPromptFragments(projection)
+	if providerContextSurfaceAllowsRecentHistory(surface) {
+		input.RecentMessages = recentPromptFragments(projection)
+	}
 	return input
+}
+
+func providerContextSurfaceAllowsRecentHistory(surface ProviderContextSurface) bool {
+	switch surface {
+	case ProviderContextSurfaceNativeCognition, ProviderContextSurfaceReflection:
+		return false
+	default:
+		return true
+	}
+}
+
+func providerContextSurfaceAllowsSummaries(surface ProviderContextSurface) bool {
+	switch surface {
+	case ProviderContextSurfaceNativeCognition, ProviderContextSurfaceReflection:
+		return false
+	default:
+		return true
+	}
 }
 
 func promptItemSourceRefs(item map[string]any, fallback string) []string {
@@ -149,8 +221,8 @@ func recentPromptFragments(projection ContextProjection) []PromptFragment {
 		if actor := actorRefForID(projection.Actors, stringValue(message["author_actor_id"])); len(actor) > 0 {
 			if stringValue(actor["type"]) == "human" {
 				sender = "actor_user"
-			} else {
-				sender = firstString(actor["display_name"], stringValue(actor["ref"]))
+			} else if display := stringValue(compactActorForSurface(actor)["display_name"]); display != "" {
+				sender = display
 			}
 		}
 		if stamp != "" || sender != "" {
@@ -277,6 +349,410 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 		cleaned["schedule"] = schedule
 	}
 	return cleaned
+}
+
+// compactCognitionContextForSurface converts the broad, replay-safe
+// compaction into the much smaller object that is allowed to become Runtime
+// Facts. Keeping this as a second step is intentional: capability snapshots
+// and Core-side validation still need the broad ContextProjection, while an
+// ordinary model only needs semantic facts for the current operation.
+func compactCognitionContextForSurface(projection ContextProjection, surface ProviderContextSurface) map[string]any {
+	compact := compactCognitionContext(projection)
+	if surface == ProviderContextSurfaceDefault {
+		return compact
+	}
+	allowed := map[string]struct{}{
+		"current_state": {}, "self_actor": {}, "current_speaker": {}, "developing_self": {},
+		"relationships": {}, "schedule": {}, "visual_identity": {}, "goals": {},
+		"intentions": {}, "recent_outcomes": {},
+	}
+	if surface == ProviderContextSurfaceNativeCognition || surface == ProviderContextSurfaceReflection {
+		delete(allowed, "current_speaker")
+	}
+	for key := range compact {
+		if _, ok := allowed[key]; !ok {
+			delete(compact, key)
+		}
+	}
+
+	if state := compactCurrentStateForSurface(projection); len(state) > 0 {
+		compact["current_state"] = state
+	} else {
+		delete(compact, "current_state")
+	}
+	if actor := compactActorForSurface(projection.SelfActor); len(actor) > 0 {
+		compact["self_actor"] = actor
+	} else {
+		delete(compact, "self_actor")
+	}
+	if actor := compactActorForSurface(projection.CurrentSpeaker); len(actor) > 0 && surface != ProviderContextSurfaceNativeCognition && surface != ProviderContextSurfaceReflection {
+		compact["current_speaker"] = actor
+	} else {
+		delete(compact, "current_speaker")
+	}
+	if values := compactDevelopingSelfForSurface(projection.DevelopingSelf, projection.ReferenceIndex); len(values) > 0 {
+		compact["developing_self"] = values
+	} else {
+		delete(compact, "developing_self")
+	}
+	if values := compactRelationshipsForSurface(projection.Relationships, projection.Actors, projection.ReferenceIndex); len(values) > 0 {
+		compact["relationships"] = values
+	} else {
+		delete(compact, "relationships")
+	}
+	if schedule := compactScheduleForSurface(projection.Schedule, projection.ReferenceIndex); len(schedule) > 0 {
+		compact["schedule"] = schedule
+	} else {
+		delete(compact, "schedule")
+	}
+	if visual := compactVisualIdentityForSurface(projection.VisualIdentity); len(visual) > 0 {
+		compact["visual_identity"] = visual
+	} else {
+		delete(compact, "visual_identity")
+	}
+	activeProfileID := stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"])
+	if goals := compactProviderGoalsForSurface(filterActiveProfileRows(projection.Goals, activeProfileID), projection.Actors, projection.ReferenceIndex); len(goals) > 0 {
+		compact["goals"] = goals
+	} else {
+		delete(compact, "goals")
+	}
+	if intentions := compactProviderIntentionsForSurface(filterActiveProfileRows(projection.Intentions, activeProfileID), projection.ReferenceIndex); len(intentions) > 0 {
+		compact["intentions"] = intentions
+	} else {
+		delete(compact, "intentions")
+	}
+	if outcomes := compactRecentActionOutcomesForSurface(projection.RecentOutcomes); len(outcomes) > 0 {
+		compact["recent_outcomes"] = outcomes
+	} else {
+		delete(compact, "recent_outcomes")
+	}
+	return compact
+}
+
+func providerSafeContextRef(value any, index ContextReferenceIndex) string {
+	ref := strings.TrimSpace(stringValue(value))
+	if ref == "" {
+		return ""
+	}
+	if entry, ok := index.ByRef[ref]; ok && entry.Ref == ref {
+		return ref
+	}
+	return ""
+}
+
+func compactActorForSurface(value map[string]any) map[string]any {
+	if len(value) == 0 {
+		return nil
+	}
+	result := map[string]any{}
+	if display := strings.TrimSpace(stringValue(value["display_name"])); display != "" {
+		ref := strings.TrimSpace(stringValue(value["ref"]))
+		if ref == "" || display != ref || ref == "actor_user" || ref == "actor_self" {
+			result["display_name"] = display
+		}
+	}
+	for _, key := range []string{"type", "role", "label"} {
+		if raw, ok := value[key]; ok && raw != nil && raw != "" {
+			result[key] = raw
+		}
+	}
+	if stringValue(result["display_name"]) == "" {
+		// actor_user/actor_self are semantic aliases used by the capability
+		// scope, whereas arbitrary actor refs are storage identifiers.
+		if alias := stringValue(value["ref"]); alias == "actor_user" || alias == "actor_self" {
+			result["display_name"] = alias
+		}
+	}
+	return result
+}
+
+func compactCurrentStateForSurface(projection ContextProjection) map[string]any {
+	base := compactCurrentState(projection)
+	data := mapValue(base["data"])
+	resultData := map[string]any{}
+	if inner := compactInnerStateForSurface(mapValue(data["inner_state"])); len(inner) > 0 {
+		resultData["inner_state"] = inner
+	}
+	if life := compactLifeContextForSurface(mapValue(data["life_context"])); len(life) > 0 {
+		resultData["life_context"] = life
+	}
+	if len(resultData) == 0 {
+		return nil
+	}
+	return map[string]any{"data": resultData}
+}
+
+func compactInnerStateForSurface(inner map[string]any) map[string]any {
+	result := map[string]any{}
+	if pad := compactStateMap(inner["pad"], []string{"arousal", "pleasure", "dominance"}); len(pad) > 0 {
+		result["pad"] = pad
+	}
+	if mood := compactStateMap(inner["mood"], []string{"label", "source", "intensity"}); len(mood) > 0 {
+		result["mood"] = mood
+	}
+	if momentum := compactStateMap(inner["momentum"], []string{"value", "trend", "arousal_momentum", "dominance_momentum", "pleasure_momentum"}); len(momentum) > 0 {
+		result["momentum"] = momentum
+	}
+	if drives := compactCurrentDrivesForSurface(inner["drives"]); len(drives) > 0 {
+		result["drives"] = drives
+	}
+	if conflicts := compactDriveConflicts(inner["conflicts"]); len(conflicts) > 0 {
+		result["conflicts"] = stripProviderContextMetadata(conflicts)
+	}
+	if regulation := compactStateMap(inner["regulation"], []string{"stress", "stability"}); len(regulation) > 0 {
+		result["regulation"] = regulation
+	}
+	return result
+}
+
+func compactCurrentDrivesForSurface(value any) []map[string]any {
+	result := make([]map[string]any, 0)
+	for _, raw := range arrayValue(value) {
+		drive := mapValue(raw)
+		item := map[string]any{}
+		for _, key := range []string{"key", "label", "description", "pressure", "salience", "direction", "confidence"} {
+			if field, present := drive[key]; present && field != nil && field != "" {
+				item[key] = field
+			}
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactLifeContextForSurface(value map[string]any) map[string]any {
+	result := map[string]any{}
+	for _, key := range []string{"scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at"} {
+		if raw, ok := value[key]; ok && raw != nil && raw != "" {
+			result[key] = raw
+		}
+	}
+	if presence := mapValue(value["presence"]); len(presence) > 0 {
+		compact := map[string]any{}
+		for _, key := range []string{"current_task", "user_presence", "effective_at", "expires_at"} {
+			if raw, ok := presence[key]; ok && raw != nil && raw != "" {
+				compact[key] = raw
+			}
+		}
+		if len(compact) > 0 {
+			result["presence"] = compact
+		}
+	}
+	return result
+}
+
+func compactDevelopingSelfForSurface(values []map[string]any, index ContextReferenceIndex) []map[string]any {
+	result := make([]map[string]any, 0, len(values))
+	for _, value := range values {
+		item := map[string]any{}
+		for _, key := range []string{"category", "claim", "value", "confidence"} {
+			if raw, ok := value[key]; ok && raw != nil && raw != "" {
+				if key == "value" {
+					raw = stripProviderContextMetadata(raw)
+				}
+				item[key] = raw
+			}
+		}
+		if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+			item["ref"] = ref
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactRelationshipsForSurface(values []map[string]any, actors []map[string]any, index ContextReferenceIndex) []map[string]any {
+	result := make([]map[string]any, 0, len(values))
+	for _, value := range values {
+		item := map[string]any{}
+		for _, key := range []string{"role", "metrics", "trend", "summary", "emotional_association"} {
+			if raw, ok := value[key]; ok && raw != nil && raw != "" {
+				item[key] = stripProviderContextMetadata(raw)
+			}
+		}
+		if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+			item["ref"] = ref
+		}
+		if actor := compactActorForSurface(actorRefForID(actors, stringValue(value["target_actor_id"]))); len(actor) > 0 {
+			item["target_actor"] = actor
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactProviderGoalsForSurface(values []map[string]any, actors []map[string]any, index ContextReferenceIndex) []map[string]any {
+	base := compactProviderGoalsForActors(values, actors)
+	result := make([]map[string]any, 0, len(base))
+	for _, value := range base {
+		item := map[string]any{}
+		for _, key := range []string{"description", "desired_outcome", "success_criteria", "motivation", "needs_reflection", "importance", "urgency", "progress", "scope", "deadline", "state"} {
+			if raw, ok := value[key]; ok && raw != nil && raw != "" {
+				item[key] = raw
+			}
+		}
+		if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+			item["ref"] = ref
+		}
+		if actor := compactActorForSurface(mapValue(value["target_actor"])); len(actor) > 0 {
+			item["target_actor"] = actor
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactProviderIntentionsForSurface(values []map[string]any, index ContextReferenceIndex) []map[string]any {
+	base := compactProviderIntentions(values)
+	result := make([]map[string]any, 0, len(base))
+	for _, value := range base {
+		item := map[string]any{}
+		for _, key := range []string{"goal", "action", "action_intent", "expected_outcome", "capability_constraints", "confidence", "preferred_time", "deadline", "state"} {
+			if raw, ok := value[key]; ok && raw != nil && raw != "" {
+				if key == "capability_constraints" {
+					raw = stripProviderContextMetadata(raw)
+				}
+				item[key] = raw
+			}
+		}
+		if trigger := compactTriggerForSurface(value["trigger"]); trigger != nil {
+			item["trigger"] = trigger
+		}
+		if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+			item["ref"] = ref
+		}
+		if goalRef := providerSafeContextRef(value["goal_ref"], index); goalRef != "" {
+			item["goal_ref"] = goalRef
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactTriggerForSurface(value any) any {
+	if value == nil {
+		return nil
+	}
+	if text := strings.TrimSpace(stringValue(value)); text != "" {
+		return text
+	}
+	trigger := mapValue(value)
+	if len(trigger) == 0 {
+		return nil
+	}
+	result := map[string]any{}
+	for _, key := range []string{"kind", "type", "event", "event_type", "condition", "description", "when", "window", "activity", "scene", "location", "user_presence", "time", "timezone"} {
+		if child, ok := trigger[key]; ok && child != nil && child != "" {
+			result[key] = stripProviderContextMetadata(child)
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+func compactRecentActionOutcomesForSurface(values []map[string]any) []map[string]any {
+	base := compactRecentActionOutcomes(values)
+	result := make([]map[string]any, 0, len(base))
+	for _, value := range base {
+		item := map[string]any{}
+		for _, key := range []string{"capability_name", "status", "success_boundary", "error_code", "observed"} {
+			if raw, ok := value[key]; ok && raw != nil && raw != "" {
+				if key == "observed" {
+					if observed := providerSafeOutcomeSignal(mapValue(raw), []string{"status", "type", "label", "intensity", "target_kind", "delivery_status", "reason_code"}); len(observed) > 0 {
+						item[key] = observed
+					}
+					continue
+				}
+				item[key] = raw
+			}
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactScheduleForSurface(value map[string]any, index ContextReferenceIndex) map[string]any {
+	base := compactScheduleForProvider(value)
+	if len(base) == 0 {
+		return nil
+	}
+	result := map[string]any{}
+	for _, key := range []string{"local_date", "timezone", "completed_before", "reschedule_policy", "current_item", "upcoming_items"} {
+		if raw, ok := base[key]; ok && raw != nil && raw != "" {
+			result[key] = compactScheduleValueForSurface(raw, index)
+		}
+	}
+	if items := arrayValue(base["items"]); len(items) > 0 {
+		result["items"] = compactScheduleValueForSurface(items, index)
+	}
+	if ref := providerSafeContextRef(base["ref"], index); ref != "" {
+		result["ref"] = ref
+	}
+	return result
+}
+
+func compactScheduleValueForSurface(value any, index ContextReferenceIndex) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		result := map[string]any{}
+		for _, key := range []string{"start_at", "end_at", "activity", "scene", "location", "item_type", "status", "priority", "flexibility", "interruption_cost", "current_item", "upcoming_items", "items"} {
+			if raw, ok := typed[key]; ok && raw != nil && raw != "" {
+				result[key] = compactScheduleValueForSurface(raw, index)
+			}
+		}
+		if ref := providerSafeContextRef(typed["ref"], index); ref != "" {
+			result["ref"] = ref
+		}
+		return result
+	case []any:
+		result := make([]any, 0, len(typed))
+		for _, raw := range typed {
+			if compact := compactScheduleValueForSurface(raw, index); len(mapValue(compact)) > 0 {
+				result = append(result, compact)
+			}
+		}
+		return result
+	default:
+		return typed
+	}
+}
+
+func compactVisualIdentityForSurface(value map[string]any) map[string]any {
+	base := compactVisualIdentity(value)
+	if len(base) == 0 {
+		return nil
+	}
+	result := map[string]any{}
+	for _, key := range []string{"available", "missing"} {
+		if raw, ok := base[key]; ok && raw != nil {
+			result[key] = raw
+		}
+	}
+	return result
+}
+
+func compactSummaryForSurface(value map[string]any, _ ProviderContextSurface) map[string]any {
+	result := map[string]any{}
+	if summary := strings.TrimSpace(stringValue(value["summary"])); summary != "" {
+		result["summary"] = summary
+	}
+	// Summary refs are projection identifiers, not ContextReference tokens and
+	// cannot be used by any capability. Keep the semantic text only.
+	return result
 }
 
 func compactEffectivePersonaForProvider(value map[string]any) map[string]any {
@@ -596,8 +1072,10 @@ func compactRecentMessagesForActors(messages []map[string]any, currentUserText s
 		if sender := actorRefForID(actors, stringValue(message["author_actor_id"])); len(sender) > 0 {
 			if stringValue(sender["type"]) == "human" {
 				item["sender"] = "actor_user"
+			} else if display := stringValue(compactActorForSurface(sender)["display_name"]); display != "" {
+				item["sender"] = display
 			} else {
-				item["sender"] = firstString(sender["display_name"], stringValue(sender["ref"]))
+				item["sender"] = "actor_self"
 			}
 			item["actor_type"] = sender["type"]
 		} else if kind == "user" {
@@ -686,6 +1164,51 @@ func compactMemoriesForProfile(memories []map[string]any, activeProfileID string
 		}
 		if len(compact) > 0 {
 			result = append(result, compact)
+		}
+	}
+	return result
+}
+
+func compactActiveMemoriesForSurface(memories []map[string]any, surface ProviderContextSurface, index ContextReferenceIndex) []map[string]any {
+	if surface == ProviderContextSurfaceDefault {
+		return compactActiveMemories(memories)
+	}
+	result := make([]map[string]any, 0, len(memories))
+	for _, memory := range compactActiveMemories(memories) {
+		item := map[string]any{}
+		for _, key := range []string{"kind", "content", "confidence", "importance", "original_time_expression", "valid_from", "valid_until", "time_precision", "timezone"} {
+			if value, ok := memory[key]; ok && value != nil && value != "" {
+				item[key] = value
+			}
+		}
+		if ref := providerSafeContextRef(memory["ref"], index); ref != "" {
+			item["ref"] = ref
+		}
+		if len(item) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func compactMemoriesForProfileForSurface(memories []map[string]any, activeProfileID string, surface ProviderContextSurface, index ContextReferenceIndex) []map[string]any {
+	base := compactMemoriesForProfile(memories, activeProfileID)
+	if surface == ProviderContextSurfaceDefault {
+		return base
+	}
+	result := make([]map[string]any, 0, len(base))
+	for _, memory := range base {
+		item := map[string]any{}
+		for _, key := range []string{"type", "content", "confidence", "importance", "emotional_significance", "created_at", "current_profile_perspective"} {
+			if value, ok := memory[key]; ok && value != nil && value != "" {
+				item[key] = value
+			}
+		}
+		if ref := providerSafeContextRef(memory["ref"], index); ref != "" {
+			item["ref"] = ref
+		}
+		if len(item) > 0 {
+			result = append(result, item)
 		}
 	}
 	return result

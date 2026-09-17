@@ -26,6 +26,41 @@ func TestAutomaticMemoryCuesAreBoundedAndNeverEnableEmbedding(t *testing.T) {
 	}
 }
 
+func TestMemoryQueryScoringDoesNotAmplifyDuplicateTokens(t *testing.T) {
+	got := uniqueMemoryQueryTokens([]string{"sleep", "sleep", "睡眠", "sleep", "睡眠"})
+	if len(got) != 2 || got[0] != "sleep" || got[1] != "睡眠" {
+		t.Fatalf("unique memory query tokens = %#v", got)
+	}
+}
+
+func TestConversationMemoryCuesFollowTheTurnInsteadOfFoundationMetadata(t *testing.T) {
+	cues := buildProjectionMemoryCues(
+		MemoryForConversation, nil, "剪假发",
+		map[string]any{"scene": "工作室", "activity": "剪假发"},
+		map[string]any{"mood": map[string]any{"label": "专注"}, "drives": []any{map[string]any{"key": "rest"}}},
+		[]map[string]any{{"kind": "user", "text": "继续刚才的发型"}},
+		[]map[string]any{{"content": "明早七点赶飞机"}}, nil, nil, nil, nil,
+	)
+	encoded := jsonString(cues)
+	if !strings.Contains(encoded, "剪假发") || !strings.Contains(encoded, "继续刚才的发型") {
+		t.Fatalf("conversation cues lost turn context: %s", encoded)
+	}
+	for _, forbidden := range []string{"life_scene", "current_state_mood", "current_state_drives", "工作室", "专注"} {
+		if strings.Contains(encoded, forbidden) {
+			t.Fatalf("conversation cue leaked broad foundation field %q: %s", forbidden, encoded)
+		}
+	}
+}
+
+func TestConversationProjectionUsesSmallMemoryWindow(t *testing.T) {
+	if got := projectionMemoryResultLimit(MemoryForConversation); got >= 12 {
+		t.Fatalf("conversation memory result limit = %d, want a bounded interactive window", got)
+	}
+	if got := projectionMemoryResultLimit(MemoryForReflection); got != 12 {
+		t.Fatalf("reflection memory result limit = %d, want the evidence window", got)
+	}
+}
+
 func TestMemoryRetrievalSQLRanksAuthorizedRelevanceBeforeCandidateLimit(t *testing.T) {
 	content, err := os.ReadFile("memory_retrieval.go")
 	if err != nil {

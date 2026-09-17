@@ -759,7 +759,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		// a scenario that may not propose a persistent switch is not even offered
 		// the field, so the constraint does not depend on post-hoc filtering.
 		schema := cognitiveTurnResponseSchemaForGrant(personaGrant)
-		assembly, assembledProjection, assemblyErr := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction}, text, definitions, "conversation_turn_response", schema)
+		assembly, assembledProjection, assemblyErr := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceConversationMain, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction}, text, definitions, "conversation_turn_response", schema)
 		if assemblyErr != nil {
 			return TurnResult{}, assemblyErr
 		}

@@ -110,6 +110,20 @@ type ContextProjectionRequest struct {
 	MemoryCues             []MemoryQueryCue
 }
 
+func projectionMemoryResultLimit(operation MemoryRetrievalOperation) int {
+	switch operation {
+	case MemoryForConversation:
+		// Interactive conversation should receive a few relevant memories, not
+		// the full retrieval window. Background/reflection surfaces keep their
+		// larger limits because they explicitly ask for broader evidence.
+		return 6
+	case MemoryForWakeUp, MemoryForDailyReview:
+		return 8
+	default:
+		return 12
+	}
+}
+
 // buildProjectionMemoryCues only constructs local FTS/lexical cues. These
 // private state values never set AllowEmbedding and therefore cannot enter the
 // external embedding request boundary.
@@ -126,6 +140,23 @@ func buildProjectionMemoryCues(operation MemoryRetrievalOperation, base []Memory
 	}
 	if operation == MemoryForConversation {
 		addLocal("current_message", currentText)
+		// Interactive retrieval is driven by the turn and its immediate
+		// conversation topic. Foundation/state cues remain visible in the
+		// prompt, but using them as long-term search terms makes an unrelated
+		// high-salience episode (for example, an old sleep record) look relevant
+		// to every turn. Background and reflection surfaces still use the wider
+		// cue set below.
+		start := 0
+		if len(recent) > 6 {
+			start = len(recent) - 6
+		}
+		for _, message := range recent[start:] {
+			addLocal("recent_"+firstString(message["kind"], "message"), message["text"])
+		}
+		for _, item := range active {
+			addLocal("active_memory", item["content"])
+		}
+		return result
 	}
 	for _, field := range []string{"scene", "activity", "location"} {
 		addLocal("life_"+field, life[field])
@@ -335,7 +366,7 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 		return MemoryRetrievalResult{}, err
 	}
 	defer rows.Close()
-	queryTokens := tokenize(plan.Query)
+	queryTokens := uniqueMemoryQueryTokens(tokenize(plan.Query))
 	type scoredMemory struct {
 		value      map[string]any
 		score      float64
@@ -471,4 +502,21 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 	trace.ResultCount = len(items)
 	trace.BudgetUsed = used
 	return MemoryRetrievalResult{Items: items, Trace: trace}, nil
+}
+
+func uniqueMemoryQueryTokens(tokens []string) []string {
+	result := make([]string, 0, len(tokens))
+	seen := make(map[string]struct{}, len(tokens))
+	for _, token := range tokens {
+		token = strings.TrimSpace(strings.ToLower(token))
+		if token == "" {
+			continue
+		}
+		if _, exists := seen[token]; exists {
+			continue
+		}
+		seen[token] = struct{}{}
+		result = append(result, token)
+	}
+	return result
 }

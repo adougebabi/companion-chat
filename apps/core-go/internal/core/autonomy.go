@@ -79,7 +79,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceAutonomy)
 	schema := dailyReviewResponseSchema()
-	assembly, assembledProjection, err := a.assembleProjectionPrompt(ctx, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityDailyReviewPolicyInstruction}, jsonString(map[string]any{"local_date": localDate}), definitions, "daily_review_response", schema)
+	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceDailyReview, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityDailyReviewPolicyInstruction}, jsonString(map[string]any{"local_date": localDate}), definitions, "daily_review_response", schema)
 	if err != nil {
 		return nil, err
 	}

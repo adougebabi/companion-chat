@@ -903,7 +903,7 @@ func (a *App) generateTakeoverReply(ctx context.Context, input turnTakeoverInput
 	grant := resolvePersistentSwitchGrant(ownerScope, persistentSwitchGrantScenarioTakeover, input.Switch.Rules)
 	schema := cognitiveTurnResponseSchemaForGrant(grant)
 	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceConversation)
-	assembly, assembledProjection, assemblyErr := a.assembleProjectionPrompt(ctx, scopedProjection, "cognitive_assessment",
+	assembly, assembledProjection, assemblyErr := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceTakeoverReply, scopedProjection, "cognitive_assessment",
 		[]string{providerContextAuthorityRule, capabilityConversationPolicyInstruction, a.takeoverReplyContextRule(input, rule)},
 		input.Projection.CurrentUserText, definitions, takeoverReplySchemaName, schema)
 	if assemblyErr != nil {

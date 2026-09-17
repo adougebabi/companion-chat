@@ -277,10 +277,14 @@ requires `memory_scope`, and accepts only `{intent: string[1..1000]}`.
   Active `2048`, Recent `8192`, retrieved Long-term `3072`, Summary `2048`.
   It selects whole fragments and whole recent turns, restores chronological
   order, and deduplicates shared source refs without deleting source rows.
-- Automatic Retrieval uses bounded cues from current input, recent topic,
-  current state, Active Memory, goals/intentions/outcomes/hypotheses. At most 32
-  cues, 1000 runes each, and 1024 estimated query tokens are allowed; projection
-  cues set `AllowEmbedding=false` unless a separate field-level policy exists.
+- Automatic Retrieval uses bounded, operation-owned cues. Main conversation
+  retrieval uses current input, recent topic, and Active Memory; wake-up,
+  daily-review, native-cognition, and Reflection may add current state,
+  goals/intentions/outcomes/hypotheses according to their surface policy. At
+  most 32 cues, 1000 runes each, and 1024 estimated query tokens are allowed;
+  projection cues set `AllowEmbedding=false` unless a separate field-level
+  policy exists. Duplicate lexical query tokens count once so repeated state
+  text cannot inflate relevance.
 - `memory.recall` uses frozen authorization/viewer/conversation/profile scope
   but executes a fresh bounded query over Active, Long-term, authorized older
   conversation messages, and Summary. Final output is deduplicated, at most 12

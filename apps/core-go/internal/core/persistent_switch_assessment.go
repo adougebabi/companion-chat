@@ -46,8 +46,9 @@ func (a *App) assessPersistentSwitchAfterCandidate(ctx context.Context, input pe
 		"candidate_reply": input.CandidateReply,
 		"response_intent": input.ResponseIntent,
 	}
-	assembly, _, err := a.assembleProjectionPrompt(
+	assembly, _, err := a.assembleProjectionPromptForSurface(
 		ctx,
+		ProviderContextSurfacePersistentSwitch,
 		input.Projection,
 		"cognitive_assessment",
 		[]string{providerContextAuthorityRule, persistentSwitchAssessmentInstruction},

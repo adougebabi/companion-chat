@@ -243,7 +243,7 @@ func (a *App) BuildContextProjectionFor(ctx context.Context, request ContextProj
 	}
 	memoryCues := buildProjectionMemoryCues(request.MemoryOperation, request.MemoryCues, userText, lifeContext, inner, recentMessages, activeResult.Items, goals, intentions, recentOutcomes, hypotheses)
 	viewers := []string{speakerActorID}
-	memoryPlan, err := buildMemoryQueryPlan(request.MemoryOperation, viewers, request.MemoryConversationMode, conversationID, request.AllowedConversationIDs, stringValue(mapValue(personalityRuntime)["active_profile_id"]), memoryCues, 12, 2400)
+	memoryPlan, err := buildMemoryQueryPlan(request.MemoryOperation, viewers, request.MemoryConversationMode, conversationID, request.AllowedConversationIDs, stringValue(mapValue(personalityRuntime)["active_profile_id"]), memoryCues, projectionMemoryResultLimit(request.MemoryOperation), 2400)
 	if err != nil {
 		return ContextProjection{}, err
 	}
