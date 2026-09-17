@@ -1,10 +1,13 @@
 package core
 
 import (
+	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
@@ -294,6 +297,83 @@ func TestDirectConversationReplyToolWithoutAppraisalCommitsBothMessages(t *testi
 	}
 	if err != nil || userCount != 1 || assistantCount != 1 || stateRevisionCount != 0 || fmt.Sprint(events) != "[user token:我收到你的消息了。 assistant]" {
 		t.Fatalf("reply-tool turn err=%v user=%d assistant=%d state_revisions=%d events=%v", err, userCount, assistantCount, stateRevisionCount, events)
+	}
+}
+
+func TestDirectConversationReplyCanonicalToolCallWithEmptyStructuredFieldsCommitsMessage(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "canonical-reply-owner", "canonical-reply-fluctlight", "canonical-reply-conversation"
+	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	seedCognitiveProviderRole(t, ctx, repository, "canonical-reply-endpoint")
+	text := "哦，那还行。\n到点了记得吃，别又拖到八点多。\n我这边客户又回了条，我去看看。"
+	router := newFakeProviderRouter().on("conversation_turn_response", func(_ map[string]any) fakeProviderResult {
+		return fakeProviderResult{ToolCalls: []map[string]any{{
+			"call_id":             "canonical-reply-call",
+			"capability_name":     "conversation.reply",
+			"schema_version":      CapabilityInvocationSchemaVersion,
+			"arguments":           map[string]any{"text": text},
+			"provider_request_id": "provider:canonical-reply",
+			"sequence":            0,
+		}}}
+	})
+	app := newTestApp(t, repository, router)
+	result, err := app.HandleTurn(ctx, ownerID, conversationID, map[string]any{
+		"fluctlight_id": fluctlightID, "text": "你忙完了吗？", "idempotency_key": "canonical-reply-turn", "turn_id": "canonical-reply-turn-1", "attachment_refs": []any{},
+	})
+	if err != nil {
+		t.Fatalf("canonical conversation.reply turn failed: %v", err)
+	}
+	if stringValue(result.Assistant["text"]) != text {
+		t.Fatalf("assistant text = %#v", result.Assistant)
+	}
+	var assistantCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text=$2`, conversationID, text).Scan(&assistantCount); err != nil {
+		t.Fatal(err)
+	}
+	if assistantCount != 1 {
+		t.Fatalf("canonical conversation.reply assistant count = %d", assistantCount)
+	}
+}
+
+func TestStreamTurnCanonicalConversationReplyWithEmptyStructuredFieldsEmitsAssistantFrame(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "canonical-stream-owner", "canonical-stream-fluctlight", "canonical-stream-conversation"
+	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	seedCognitiveProviderRole(t, ctx, repository, "canonical-stream-endpoint")
+	text := "哦，那还行。\n到点了记得吃，别又拖到八点多。\n我这边客户又回了条，我去看看。"
+	router := newFakeProviderRouter().on("conversation_turn_response", func(_ map[string]any) fakeProviderResult {
+		return fakeProviderResult{ToolCalls: []map[string]any{{
+			"call_id":         "canonical-stream-reply-call",
+			"capability_name": "conversation.reply",
+			"schema_version":  CapabilityInvocationSchemaVersion,
+			"arguments":       map[string]any{"text": text},
+		}}}
+	})
+	app := newTestApp(t, repository, router)
+	response := httptest.NewRecorder()
+	if err := app.StreamTurn(ctx, response, ownerID, conversationID, map[string]any{
+		"fluctlight_id": fluctlightID, "text": "你忙完了吗？", "idempotency_key": "canonical-stream-turn", "turn_id": "canonical-stream-turn-1", "attachment_refs": []any{},
+	}); err != nil {
+		t.Fatalf("canonical conversation.reply stream failed: %v; body=%s", err, response.Body.String())
+	}
+	var frames []map[string]any
+	scanner := bufio.NewScanner(response.Body)
+	for scanner.Scan() {
+		var frame map[string]any
+		if err := json.Unmarshal(scanner.Bytes(), &frame); err != nil {
+			t.Fatalf("decode canonical stream frame: %v; line=%s", err, scanner.Text())
+		}
+		frames = append(frames, frame)
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if len(frames) != 4 || stringValue(frames[0]["type"]) != "action_result" || stringValue(frames[1]["type"]) != "token" || stringValue(frames[2]["type"]) != "action_result" || stringValue(frames[3]["type"]) != "completed" {
+		t.Fatalf("canonical conversation.reply stream frames = %#v", frames)
+	}
+	assistant := mapValue(mapValue(frames[2]["payload"])["message"])
+	if stringValue(assistant["kind"]) != "assistant" || stringValue(assistant["text"]) != text {
+		t.Fatalf("canonical conversation.reply assistant frame = %#v", frames[2])
 	}
 }
 

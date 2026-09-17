@@ -760,11 +760,8 @@ func mediaIntentIDFromCapabilityResults(results []CapabilityResult) string {
 }
 
 func hasConversationReplyCapability(invocations []CapabilityInvocation, registry *CapabilityRegistry) bool {
-	if registry == nil {
-		return false
-	}
 	for _, invocation := range invocations {
-		if definition, ok := registry.Definition(invocation.CapabilityName); ok && definition.OutputRole == "conversation_message" {
+		if isConversationReplyInvocation(invocation, registry) {
 			return true
 		}
 	}
@@ -772,12 +769,8 @@ func hasConversationReplyCapability(invocations []CapabilityInvocation, registry
 }
 
 func replyTextFromCapabilityInvocations(invocations []CapabilityInvocation, registry *CapabilityRegistry) string {
-	if registry == nil {
-		return ""
-	}
 	for _, invocation := range invocations {
-		definition, ok := registry.Definition(invocation.CapabilityName)
-		if !ok || definition.OutputRole != "conversation_message" {
+		if !isConversationReplyInvocation(invocation, registry) {
 			continue
 		}
 		var args map[string]any
@@ -789,6 +782,26 @@ func replyTextFromCapabilityInvocations(invocations []CapabilityInvocation, regi
 		}
 	}
 	return ""
+}
+
+// isConversationReplyInvocation identifies the one built-in visible-output
+// capability by its canonical name. A normal runtime registry still verifies
+// the declared output role; when a partially assembled registry is used (for
+// example while recovering a diagnostic/frozen payload), the canonical name is
+// enough to preserve the reply text instead of letting unrelated structured
+// fields turn a valid private message into an empty response.
+func isConversationReplyInvocation(invocation CapabilityInvocation, registry *CapabilityRegistry) bool {
+	if strings.TrimSpace(invocation.CapabilityName) != conversationReplyCapabilityName {
+		return false
+	}
+	if registry == nil {
+		return true
+	}
+	definition, ok := registry.Definition(invocation.CapabilityName)
+	if !ok {
+		return true
+	}
+	return definition.OutputRole == "conversation_message"
 }
 
 func resolveCapabilityAction(invocations []CapabilityInvocation, definitions map[string]CapabilityDefinition) (string, error) {

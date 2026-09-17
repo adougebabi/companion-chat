@@ -610,6 +610,13 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	if fluctlightID == "" {
 		return nil, fmt.Errorf("reflection_fluctlight_id_required")
 	}
+	// Do not claim or advance a reflection window after cognition has taken the
+	// lifecycle slot. This check deliberately precedes all reads and the window
+	// lease so a cancelled activity is a no-op even when its Temporal cancel is
+	// delivered a few milliseconds late.
+	if a.lifecycleCancellationRequested(ctx, providerCancellationMarker(ctx)) {
+		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+	}
 	fluctlight, err := a.readFluctlightByID(ctx, fluctlightID)
 	if err != nil {
 		return nil, err
@@ -619,6 +626,9 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	}
 	if fluctlight.Status != "active" {
 		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "inactive", "reason": "fluctlight_not_active"}, nil
+	}
+	if a.lifecycleCancellationRequested(ctx, providerCancellationMarker(ctx)) {
+		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
 	}
 	ctx = WithProviderExecutionGuard(ctx, a.providerGuardForFluctlight(fluctlightID))
 	var watermark, stateRevision int

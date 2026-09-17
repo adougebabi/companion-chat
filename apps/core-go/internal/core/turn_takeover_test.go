@@ -65,6 +65,25 @@ func TestResolveCanonicalVisibleReplyFallsBackToReplyCapability(t *testing.T) {
 	}
 }
 
+func TestResolveCanonicalVisibleReplyUsesCanonicalReplyNameWhenRegistryOmitsIt(t *testing.T) {
+	// A provider response already carries the canonical capability name. The
+	// visible reply must not disappear merely because an incomplete runtime
+	// catalog omitted the output-role metadata for this built-in slot.
+	registry := mustCapabilityRegistry(memoryEventCapability{}, imageGenerateCapability{})
+	canonical, diagnostics := resolveCanonicalVisibleReply(
+		map[string]any{},
+		map[string]any{},
+		[]CapabilityInvocation{invocationWithText(t, "conversation.reply", "直接发送这段私聊内容")},
+		registry,
+	)
+	if canonical.Text != "直接发送这段私聊内容" || canonical.Source != canonicalVisibleSourceReplyCapability {
+		t.Fatalf("the canonical reply name was not used: %#v", canonical)
+	}
+	if canonical.Conflict || len(diagnostics) != 0 {
+		t.Fatalf("a single canonical reply source must not be reported as a conflict: %#v %#v", canonical, diagnostics)
+	}
+}
+
 func TestResolveCanonicalVisibleReplyTreatsEqualSourcesAsAgreement(t *testing.T) {
 	registry := capabilityRegistryForTest(t)
 	canonical, diagnostics := resolveCanonicalVisibleReply(

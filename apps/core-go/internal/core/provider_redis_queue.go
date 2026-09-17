@@ -14,6 +14,7 @@ import (
 const (
 	providerRedisQueuePrefix      = "fluctlight:llm"
 	providerCognitionCancelPrefix = "fluctlight:cognition:cancel:"
+	providerCancellationTTL       = 15 * time.Minute
 	providerRedisLease            = 2 * time.Minute
 	providerRedisPendingTTL       = providerRedisLease
 	providerRedisJobTTL           = 24 * time.Hour
@@ -34,6 +35,32 @@ func providerCancellationMarker(ctx context.Context) string {
 	}
 	value, _ := ctx.Value(providerCancellationKey{}).(string)
 	return strings.TrimSpace(value)
+}
+
+func WakeUpProviderCancellationMarker(fluctlightID string, cycle int) string {
+	return fmt.Sprintf("wake_up:%s:cycle:%d", strings.TrimSpace(fluctlightID), cycle)
+}
+
+func ReflectionProviderCancellationMarker(intentID string) string {
+	return "reflection:" + strings.TrimSpace(intentID)
+}
+
+// RequestProviderCancellation asks an in-flight Provider request to stop. The
+// marker is scoped to one durable lifecycle execution so a later cycle cannot
+// consume a stale cancellation request.
+func (a *App) RequestProviderCancellation(ctx context.Context, marker string) error {
+	if a == nil || a.Redis == nil || strings.TrimSpace(marker) == "" {
+		return nil
+	}
+	return a.Redis.Set(ctx, providerCognitionCancelPrefix+strings.TrimSpace(marker), "1", providerCancellationTTL).Err()
+}
+
+func (a *App) ProviderCancellationRequested(ctx context.Context, marker string) bool {
+	if a == nil || a.Redis == nil || strings.TrimSpace(marker) == "" {
+		return false
+	}
+	exists, err := a.Redis.Exists(ctx, providerCognitionCancelPrefix+strings.TrimSpace(marker)).Result()
+	return err == nil && exists > 0
 }
 
 var providerRedisClaimScript = redis.NewScript(`

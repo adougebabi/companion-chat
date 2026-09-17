@@ -53,7 +53,7 @@ func (a *App) ensureWakeUpNextDue(ctx context.Context, fluctlightID string, cycl
 	var nextDue time.Time
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var err error
-		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, intervalSeconds, time.Now().UTC())
+		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, intervalSeconds, a.now().UTC())
 		return err
 	})
 	if err != nil {
@@ -373,6 +373,13 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, errors.New("wake_up_cycle_invalid")
 	}
 	correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)
+	// Check the lifecycle marker before reading or mutating any Wake-up state.
+	// Cognition can supersede a cycle while the activity is still between its
+	// durable boundaries; returning a terminal cancellation here keeps that
+	// cycle from repairing its clock or creating another action.
+	if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+	}
 	settings, err := a.readWakeUpSettings(ctx)
 	if err != nil {
 		return nil, err
@@ -406,6 +413,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	ctx = WithProviderExecutionGuard(ctx, a.providerGuardForFluctlight(fluctlightID))
 	wakeID := "wake_up_" + stableDigest(fluctlightID+":"+fmt.Sprint(cycle))
+	if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": wakeUpCycleCorrelation(fluctlightID, cycle), "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+	}
 	frozenActionID := "autonomy_wake_" + stableDigest(wakeID)
 	var existingStatus, existingActionType string
 	var existingActionID, existingReflectionIntentID *string
@@ -415,6 +425,11 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			return nil, dueErr
 		}
 		a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
+		if existingReflectionIntentID != nil && strings.TrimSpace(*existingReflectionIntentID) != "" {
+			if triggerErr := a.scheduleReflectionTrigger(ctx, fluctlightID, reflectionQuietPeriod); triggerErr != nil {
+				return nil, triggerErr
+			}
+		}
 		return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": existingStatus, "reason": "wake_up_replayed", "action_type": existingActionType, "action_id": existingActionID, "reflection_intent_id": existingReflectionIntentID, "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
@@ -466,11 +481,17 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	projection = assembledProjection
 	providerCtx := WithPromptDiagnostics(
-		WithProviderCorrelation(WithProviderScenario(ctx, "wake_up"), correlationID),
+		WithProviderCancellationKey(
+			WithProviderCorrelation(WithProviderScenario(ctx, "wake_up"), correlationID),
+			WakeUpProviderCancellationMarker(fluctlightID, cycle),
+		),
 		assembly.Diagnostics,
 	)
 	completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "wake_up_response", schema, true)
 	if err != nil {
+		if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
+			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+		}
 		if status, suppressed := providerSuppressionStatus(err); suppressed {
 			reason := "fluctlight_not_active"
 			if status == "paused" {
@@ -479,6 +500,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": status, "reason": reason, "interval_seconds": settings.IntervalSeconds}, nil
 		}
 		return nil, err
+	}
+	if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
 	}
 	assessment := completion.Structured
 	toolCalls := append([]CapabilityInvocation(nil), completion.ToolCalls...)
@@ -644,6 +668,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 			result["status"] = "queued"
 		}
 	}
+	if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
+		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+	}
 	var actionID string
 	if actualActionType != "no_op" {
 		actionID = frozenActionID
@@ -653,6 +680,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	reflectionIntentID := "reflection_intent:wake:" + wakeID
 	factID, nextDue, err := a.persistWakeUp(ctx, wakeID, fluctlightID, cycle, settings.IntervalSeconds, projection.ContextRevision, projection.CurrentStateRevision, projection.InnerState, projection.LifeContextRevision, assessment, actualActionType, actionID, result, reflectionIntentID, policySnapshot, conversationID, toolCalls)
 	if err != nil {
+		if errors.Is(err, errLifecycleSupersededByCognition) || a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
+			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+		}
 		return nil, err
 	}
 	a.RecordLifecycleDiagnosticBestEffort(ctx, LifecycleDiagnostic{
@@ -662,6 +692,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		Stage: "clock", Status: "scheduled", ReasonCode: "wake_up_cycle_completed",
 		Attempt: cycle, NextDueAt: nextDue,
 	})
+	if err := a.scheduleReflectionTrigger(ctx, fluctlightID, reflectionQuietPeriod); err != nil {
+		return nil, err
+	}
 	// Redis expiration is a low-latency hint only. PostgreSQL next_attempt_at and
 	// the Worker's due sweep remain the recurrence authority.
 	a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
@@ -737,7 +770,18 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 		payload["output_preference_decision"] = preference
 	}
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundationRevision, currentStateRevision, lifeContextRevision, time.Now().UTC()); err != nil {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
+			return err
+		}
+		if a.ProviderCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
+			return errLifecycleSupersededByCognition
+		}
+		if superseded, err := lifecycleIntentSupersededTx(ctx, tx); err != nil {
+			return err
+		} else if superseded {
+			return errLifecycleSupersededByCognition
+		}
+		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, foundationRevision, currentStateRevision, lifeContextRevision, a.now().UTC()); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, wakeID); err != nil {
@@ -745,7 +789,7 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 		}
 		var existing string
 		if err := tx.QueryRow(ctx, `SELECT id FROM public.cognition_wakeups WHERE id=$1 FOR UPDATE`, wakeID).Scan(&existing); err == nil {
-			nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, intervalSeconds, time.Now().UTC())
+			nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, intervalSeconds, a.now().UTC())
 			return err
 		} else if !errors.Is(err, pgx.ErrNoRows) {
 			return err
@@ -778,10 +822,11 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_wakeups(id,fluctlight_id,cycle,internal_dynamics,attention,thought,desire,agency,action_type,action_id,result,reflection_intent_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT DO NOTHING`, wakeID, fluctlightID, cycle, jsonBytes(internalDynamics), jsonBytes(stagePlaceholder), jsonBytes(stagePlaceholder), jsonBytes(stagePlaceholder), jsonBytes(stagePlaceholder), actionType, nullableString(actionID), jsonBytes(wakeResult), reflectionIntentID); err != nil {
 			return err
 		}
-		if err := insertReflectionIntentTx(ctx, tx,
+		if err := insertReflectionIntentWithDelayTx(ctx, tx,
 			reflectionIntentID,
 			"reflection:wake:"+wakeID,
 			map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "wake_up_id": wakeID, "correlation_id": correlationID, "causation_id": factID},
+			reflectionQuietPeriod,
 		); err != nil {
 			return err
 		}
@@ -833,7 +878,7 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 		if err := appendOutboxTx(ctx, tx, "cognition.fact.created", "fluctlight", fluctlightID, fluctlightID, wakeID, correlationID, "wake-fact:"+wakeID, payload); err != nil {
 			return err
 		}
-		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, intervalSeconds, time.Now().UTC())
+		nextDue, err = updateWakeUpNextDueTx(ctx, tx, fluctlightID, intervalSeconds, a.now().UTC())
 		if err != nil {
 			return err
 		}
@@ -843,22 +888,25 @@ func (a *App) persistWakeUp(ctx context.Context, wakeID, fluctlightID string, cy
 }
 
 func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, intervalSeconds int, now time.Time) (time.Time, error) {
-	var previousDue *time.Time
+	// Lock the single durable clock row so a completion and a cognition
+	// follow-up cannot overwrite one another silently.  The next Wake-up is
+	// measured from this completion boundary, not from an older nominal slot:
+	// if a provider call ran late, preserving fixed cadence would make the next
+	// Redis key expire almost immediately and defeat the configured quiet time.
 	if err := tx.QueryRow(ctx, `
-		SELECT next_attempt_at
+		SELECT 1
 		FROM public.platform_workflow_intents
 		WHERE intent_type='wake_up.current'
 		  AND payload->>'fluctlight_id'=$1
-		FOR UPDATE`, fluctlightID).Scan(&previousDue); errors.Is(err, pgx.ErrNoRows) {
+		FOR UPDATE`, fluctlightID).Scan(new(int)); errors.Is(err, pgx.ErrNoRows) {
 		return time.Time{}, ErrNotFound
 	} else if err != nil {
 		return time.Time{}, err
 	}
-	base := time.Time{}
-	if previousDue != nil {
-		base = previousDue.UTC()
+	if intervalSeconds <= 0 {
+		intervalSeconds = defaultWakeUpIntervalSeconds
 	}
-	nextDue := nextWakeUpDue(base, now, intervalSeconds)
+	nextDue := now.UTC().Add(time.Duration(intervalSeconds) * time.Second)
 	command, err := tx.Exec(ctx, `
 		UPDATE public.platform_workflow_intents
 		SET next_attempt_at=$2
@@ -874,20 +922,32 @@ func updateWakeUpNextDueTx(ctx context.Context, tx pgx.Tx, fluctlightID string, 
 }
 
 func insertReflectionIntentTx(ctx context.Context, tx pgx.Tx, intentID, workflowID string, payload map[string]any) error {
-	settings := defaultWakeUpSettings()
-	var raw string
-	err := tx.QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='product.wakeup'`).Scan(&raw)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return err
-	}
-	if err == nil {
-		var value map[string]any
-		if json.Unmarshal([]byte(raw), &value) != nil {
-			return errors.New("product_wakeup_setting_invalid")
+	return insertReflectionIntentWithDelayTx(ctx, tx, intentID, workflowID, payload, 0)
+}
+
+// insertReflectionIntentWithDelayTx keeps the historical configured interval
+// for independent action/outcome producers while allowing the cognition and
+// Wake-up chains to opt into their explicit ten-minute debounce contract.
+// A zero delay means "use the product Wake-up setting" for those independent
+// producers; a positive delay is measured from this LLM completion boundary.
+func insertReflectionIntentWithDelayTx(ctx context.Context, tx pgx.Tx, intentID, workflowID string, payload map[string]any, delay time.Duration) error {
+	if delay <= 0 {
+		settings := defaultWakeUpSettings()
+		var raw string
+		err := tx.QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='product.wakeup'`).Scan(&raw)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
 		}
-		settings = normalizeWakeUpSettings(value)
+		if err == nil {
+			var value map[string]any
+			if json.Unmarshal([]byte(raw), &value) != nil {
+				return errors.New("product_wakeup_setting_invalid")
+			}
+			settings = normalizeWakeUpSettings(value)
+		}
+		delay = time.Duration(settings.IntervalSeconds) * time.Second
 	}
-	nextReflectionAt := time.Now().UTC().Add(time.Duration(settings.IntervalSeconds) * time.Second)
+	nextReflectionAt := time.Now().UTC().Add(delay)
 	command, err := tx.Exec(ctx, `
 		INSERT INTO public.platform_workflow_intents(
 			intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at
@@ -920,10 +980,11 @@ func (a *App) persistWakeCapabilityResults(ctx context.Context, wakeID string, r
 		if err != nil {
 			return err
 		}
-		return insertReflectionIntentTx(ctx, tx,
+		return insertReflectionIntentWithDelayTx(ctx, tx,
 			"reflection_intent:capability:"+wakeID,
 			"reflection:capability:"+wakeID,
 			map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "wake_up_id": wakeID},
+			reflectionQuietPeriod,
 		)
 	})
 }

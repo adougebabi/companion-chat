@@ -62,6 +62,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer temporalClient.Close()
+	application.SetWorkflowRuntime(coreworkflow.NewTemporalRuntime(temporalClient, settings.TemporalNS, "fluctlight-core-worker"))
 	redisOptions, err := redis.ParseURL(settings.RedisURL)
 	if err != nil {
 		log.Fatal(err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"strings"
 	"time"
@@ -283,6 +284,12 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	if frozenFound && frozen.Status == "failed" {
 		return errors.New("native_cognition_frozen_failed")
 	}
+	// Native/life-event cognition can be invoked directly by recovery or a
+	// caller that bypasses Dispatcher. Keep its lifecycle arbitration identical
+	// to a conversation cognition before the Provider request begins.
+	if preemptErr := a.CancelLifecycleForCognition(ctx, fluctlightID, "cognition:"+inboxID); preemptErr != nil {
+		slog.Warn("Go Core lifecycle preemption before native cognition failed", "fluctlight_id", fluctlightID, "inbox_id", inboxID, "error_type", fmt.Sprintf("%T", preemptErr))
+	}
 	var existingAppraisal bool
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_appraisals WHERE source_fact_id=$1)`, inboxID).Scan(&existingAppraisal); err != nil {
 		return err
@@ -467,7 +474,9 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		}
 		return err
 	}
-	a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+	if followupErr := a.scheduleCognitionFollowups(ctx, fluctlightID); followupErr != nil {
+		return followupErr
+	}
 	return nil
 }
 

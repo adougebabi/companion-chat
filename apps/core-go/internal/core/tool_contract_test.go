@@ -224,6 +224,24 @@ func TestToolCallValidateRequiresRegisteredCapability(t *testing.T) {
 	}
 }
 
+func TestNormalizeProviderToolCallsAcceptsCanonicalConversationReplyShape(t *testing.T) {
+	text := "哦，那还行。\n到点了记得吃，别又拖到八点多。\n我这边客户又回了条，我去看看。"
+	calls, err := NormalizeProviderToolCalls([]any{map[string]any{
+		"call_id":             "call-canonical-reply",
+		"capability_name":     "conversation.reply",
+		"schema_version":      CapabilityInvocationSchemaVersion,
+		"arguments":           map[string]any{"text": text},
+		"provider_request_id": "provider:canonical-reply",
+		"sequence":            0,
+	}}, "fact-canonical-reply", "provider:canonical-reply")
+	if err != nil {
+		t.Fatalf("canonical conversation.reply call was rejected: %v", err)
+	}
+	if len(calls) != 1 || calls[0].CallID != "call-canonical-reply" || calls[0].CapabilityName != "conversation.reply" || stringValue(decodeObject(calls[0].Arguments)["text"]) != text {
+		t.Fatalf("canonical conversation.reply call = %#v", calls)
+	}
+}
+
 func TestCapabilityRendererKeepsProviderSchemaAtBoundary(t *testing.T) {
 	payload := RenderCapabilityTools(testCapabilityDefinitions())
 	if len(payload) != 4 {

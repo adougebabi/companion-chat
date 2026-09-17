@@ -80,8 +80,8 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 func (a *App) settleNativeCognitionCycleGuard(ctx context.Context, inboxID string, depth int) error {
 	reflectionDelay := a.reflectionDelay(ctx)
 	nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
+	var fluctlightID string
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		var fluctlightID string
 		var sequence int
 		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,sequence FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&fluctlightID, &sequence); err != nil {
 			return err
@@ -96,7 +96,9 @@ func (a *App) settleNativeCognitionCycleGuard(ctx context.Context, inboxID strin
 		return enqueueQuietPeriodReflectionIntentTx(ctx, tx, fluctlightID, inboxID, nextReflectionAt, "native_cognition_cycle_guarded")
 	})
 	if err == nil {
-		a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+		if followupErr := a.scheduleCognitionFollowups(ctx, fluctlightID); followupErr != nil {
+			return followupErr
+		}
 	}
 	return err
 }
@@ -216,6 +218,9 @@ func (a *App) enqueueTurnFact(ctx context.Context, actorID, fluctlightID, conver
 	})
 	if err == nil {
 		a.cancelSupersededCognitionFacts(ctx, supersededIDs)
+		if preemptErr := a.CancelLifecycleForCognition(ctx, fluctlightID, "cognition:"+inboxID); preemptErr != nil {
+			slog.Default().Warn("Go Core lifecycle preemption before cognition failed", "fluctlight_id", fluctlightID, "inbox_id", inboxID, "error", preemptErr)
+		}
 	}
 	return inboxID, err
 }
@@ -726,12 +731,16 @@ func capabilitySnapshotForProjection(projection ContextProjection, slots []Conte
 func (a *App) CompleteTurnCognition(ctx context.Context, inboxID, frozenID string, realization map[string]any) error {
 	reflectionDelay := a.reflectionDelay(ctx)
 	nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
+	var fluctlightID string
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		_, err := a.completeTurnCognitionTx(ctx, tx, inboxID, frozenID, realization, nextReflectionAt)
+		var err error
+		fluctlightID, err = a.completeTurnCognitionTx(ctx, tx, inboxID, frozenID, realization, nextReflectionAt)
 		return err
 	})
 	if err == nil {
-		a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+		if followupErr := a.scheduleCognitionFollowups(ctx, fluctlightID); followupErr != nil {
+			return followupErr
+		}
 	}
 	return err
 }

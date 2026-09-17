@@ -605,6 +605,13 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		return TurnResult{}, err
 	}
 	a.cancelSupersededCognitionFacts(ctx, supersededInboxIDs)
+	// A synchronous turn starts its Provider call in this process instead of
+	// waiting for Dispatcher.DispatchOnce.  Apply the same lifecycle preemption
+	// boundary here so an in-flight/pending Wake-up or Reflection cannot win a
+	// race with the newly accepted cognition fact.
+	if preemptErr := a.CancelLifecycleForCognition(ctx, fluctlightID, "cognition:"+inboxID); preemptErr != nil {
+		slog.Warn("Go Core lifecycle preemption before synchronous cognition failed", "fluctlight_id", fluctlightID, "inbox_id", inboxID, "error_type", fmt.Sprintf("%T", preemptErr))
+	}
 	ctx = WithProviderCancellationKey(ctx, inboxID)
 	if claimStream {
 		defer func() {
@@ -993,7 +1000,13 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if a.cognitionFactSuperseded(ctx, inboxID) {
 			return TurnResult{}, errCognitionTurnSuperseded
 		}
-		a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+		if followupErr := a.scheduleCognitionFollowups(ctx, fluctlightID); followupErr != nil {
+			// Follow-up scheduling is a best-effort lifecycle hint. The user
+			// message and cognition result have already committed; a Redis or
+			// clock maintenance failure must not turn this successful turn into
+			// a browser retry or suppress its authoritative frame.
+			slog.Warn("Go Core cognition follow-up scheduling degraded after no-op turn", "fluctlight_id", fluctlightID, "inbox_id", inboxID, "error_type", fmt.Sprintf("%T", followupErr))
+		}
 		if err := emitUserFrame(); err != nil {
 			return TurnResult{}, err
 		}
@@ -1101,7 +1114,8 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		// authority resolved at generation time. Settlement reads it verbatim
 		// instead of re-deriving the precedence (which is how the Judge or a
 		// preview could audit one text while a different text was sent). The
-		// reply-capability argument is deliberately NOT consulted here.
+		// reply-capability argument is deliberately NOT consulted here; the
+		// shared normalizer must freeze it before this settlement boundary.
 		visible = normalizeVisibleReply(stringValue(decision["visible_text"]))
 		if strings.TrimSpace(visible) == "" {
 			visible = normalizeVisibleReply(stringValue(responsePlan["visible_text"]))
@@ -1198,7 +1212,12 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
 		return TurnResult{}, newCapabilityError(code, true, err)
 	}
-	a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+	if followupErr := a.scheduleCognitionFollowups(ctx, fluctlightID); followupErr != nil {
+		// The assistant row and capability effects are already committed. Keep
+		// delivery authoritative even when optional reflection/WakeUp hints
+		// cannot be updated in this request.
+		slog.Warn("Go Core cognition follow-up scheduling degraded after reply turn", "fluctlight_id", fluctlightID, "inbox_id", inboxID, "error_type", fmt.Sprintf("%T", followupErr))
+	}
 	if err := emitUserFrame(); err != nil {
 		return TurnResult{}, err
 	}
@@ -1335,7 +1354,12 @@ func (a *App) recoverFrozenTurnAfterAssistant(ctx context.Context, inboxID, fluc
 		_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "capability_settlement_failed")
 		return "", true, newCapabilityError("capability_settlement_failed", true, err)
 	}
-	a.scheduleReflectionTrigger(ctx, "reflection_intent:"+inboxID, reflectionDelay)
+	if followupErr := a.scheduleCognitionFollowups(ctx, fluctlightID); followupErr != nil {
+		// Recovery found the assistant row and completed its settlement. A
+		// best-effort follow-up failure must not make an already delivered reply
+		// appear failed to the browser.
+		slog.Warn("Go Core cognition follow-up scheduling degraded during recovery", "fluctlight_id", fluctlightID, "inbox_id", inboxID, "error_type", fmt.Sprintf("%T", followupErr))
+	}
 	return mediaIntent, true, nil
 }
 

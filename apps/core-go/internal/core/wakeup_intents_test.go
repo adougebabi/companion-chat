@@ -21,15 +21,48 @@ func TestEnsureWakeUpIntentsDoesNotRequireAcceptedSchedule(t *testing.T) {
 	}
 }
 
-func TestConversationDoesNotPostponeWakeUp(t *testing.T) {
+func TestConversationRearmsWakeUpThroughCognitionFollowups(t *testing.T) {
 	for _, file := range []string{"cognition.go", "mutations.go"} {
 		source, err := os.ReadFile(file)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if strings.Contains(string(source), "scheduleWakeUpTrigger(") {
-			t.Fatalf("%s still resets the fixed WakeUp cadence after user activity", file)
+			t.Fatalf("%s bypasses the shared cognition WakeUp follow-up boundary", file)
 		}
+		if !strings.Contains(string(source), "scheduleCognitionFollowups(") {
+			t.Fatalf("%s does not rearm WakeUp/Reflection after cognition", file)
+		}
+	}
+}
+
+func TestSynchronousCognitionPreemptsLifecycleBeforeProvider(t *testing.T) {
+	source, err := os.ReadFile("mutations.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := sourceBetween(t, string(source), "func (a *App) handleTurn", "func (a *App) authorizeActorTurn")
+	if !strings.Contains(body, "CancelLifecycleForCognition") {
+		t.Fatal("synchronous cognition path does not preempt WakeUp/Reflection")
+	}
+	preemptIndex := strings.Index(body, "CancelLifecycleForCognition")
+	providerIndex := strings.Index(body, "StructuredAssembledWithToolsSchema")
+	if providerIndex >= 0 && preemptIndex > providerIndex {
+		t.Fatal("synchronous cognition starts the Provider before lifecycle preemption")
+	}
+}
+
+func TestCognitionFollowupsAttemptBothIndependentDebounceClocks(t *testing.T) {
+	source, err := os.ReadFile("redis_triggers.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := sourceBetween(t, string(source), "func (a *App) scheduleCognitionFollowups", "// ScheduleWakeUpTriggers")
+	if !strings.Contains(body, "scheduleReflectionTrigger") || !strings.Contains(body, "scheduleWakeUpAfterCognition") {
+		t.Fatal("cognition follow-ups do not arm both lifecycle clocks")
+	}
+	if !strings.Contains(body, "both maintenance attempts ran") {
+		t.Fatal("one debounce failure can still suppress the other clock")
 	}
 }
 

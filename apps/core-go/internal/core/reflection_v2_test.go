@@ -32,7 +32,7 @@ func TestReflectionIntentWritersUseExplicitQuietPeriod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	helper := sourceBetween(t, string(source), "func insertReflectionIntentTx", "func (a *App) persistWakeCapabilityResults")
+	helper := sourceBetween(t, string(source), "func insertReflectionIntentWithDelayTx", "func (a *App) persistWakeCapabilityResults")
 	if !strings.Contains(helper, "'reflection.run'") || !strings.Contains(helper, "next_attempt_at") {
 		t.Fatal("shared Reflection writer does not persist an explicit quiet-period due")
 	}

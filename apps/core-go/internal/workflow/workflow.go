@@ -39,7 +39,7 @@ const (
 	defaultWakeUpIntervalSeconds = 30 * 60
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
-	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'media.%' THEN 0 WHEN intent_type LIKE 'schedule.%' THEN 1 WHEN intent_type LIKE 'wake_up.%' THEN 2 WHEN intent_type LIKE 'daily_review.%' THEN 3 WHEN intent_type LIKE 'autonomy.%' THEN 4 WHEN intent_type LIKE 'capability.%' THEN 5 WHEN intent_type LIKE 'reflection.%' THEN 6 WHEN intent_type LIKE 'visual_identity.%' THEN 7 ELSE 8 END"
+	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
 	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','autonomy.action','capability.action','reflection.run')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
@@ -584,6 +584,8 @@ func ProcessWakeUpActivity(ctx context.Context, input Input) (map[string]any, er
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
 	ctx, input = prepareActivityLifecycleContext(ctx, input, "wake_up")
+	ctx = core.WithLifecycleIntentID(ctx, input.IntentID)
+	ctx = core.WithProviderCancellationKey(ctx, core.WakeUpProviderCancellationMarker(input.FluctlightID, input.Cycle))
 	recordActivityLifecycle(application, ctx, input, "wake_up", core.LifecycleTransitionActivityStarted, "running", "activity_started", nil)
 	slog.Default().Info("Go Worker wake-up activity started", "fluctlight_id", input.FluctlightID, "cycle", input.Cycle, "correlation_id", input.CorrelationID)
 	result, err := application.ProcessWakeUp(ctx, input.FluctlightID, input.Cycle)
@@ -717,6 +719,8 @@ func ProcessReflectionActivity(ctx context.Context, input Input) (map[string]any
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
 	ctx, input = prepareActivityLifecycleContext(ctx, input, "reflection")
+	ctx = core.WithLifecycleIntentID(ctx, input.IntentID)
+	ctx = core.WithProviderCancellationKey(ctx, core.ReflectionProviderCancellationMarker(input.IntentID))
 	recordActivityLifecycle(application, ctx, input, "reflection", core.LifecycleTransitionActivityStarted, "running", "activity_started", nil)
 	result, err := application.ProcessReflection(ctx, input.FluctlightID, input.CorrelationID)
 	if err != nil {
@@ -1439,15 +1443,29 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 	// or visual backlog cannot consume the entire dispatcher LIMIT.
 	query := fmt.Sprintf(`
 		WITH eligible AS (
-			SELECT intent_id,workflow_id,task_queue,intent_type,payload,COALESCE(attempt_count,0) AS attempt_count,created_at,
+			SELECT candidate.intent_id,candidate.workflow_id,candidate.task_queue,candidate.intent_type,candidate.payload,COALESCE(candidate.attempt_count,0) AS attempt_count,candidate.created_at,
 				%s AS intent_priority,
 				ROW_NUMBER() OVER (
 					PARTITION BY intent_type
 					ORDER BY created_at,intent_id
 				) AS class_rank
-			FROM public.platform_workflow_intents
-			WHERE (status IS NULL OR status IN ('pending','retry'))
-			  AND (next_attempt_at IS NULL OR next_attempt_at <= now())
+			FROM public.platform_workflow_intents AS candidate
+			WHERE (candidate.status IS NULL OR candidate.status IN ('pending','retry'))
+			  AND (candidate.next_attempt_at IS NULL OR candidate.next_attempt_at <= now())
+			  AND (
+					candidate.intent_type LIKE 'cognition.%%'
+					OR candidate.intent_type NOT IN ('wake_up.current','reflection.run')
+					OR NOT EXISTS (
+						SELECT 1
+						FROM public.platform_workflow_intents AS cognition
+						WHERE cognition.intent_type LIKE 'cognition.%%'
+						  AND cognition.payload->>'fluctlight_id'=candidate.payload->>'fluctlight_id'
+						  AND (
+								cognition.status IN ('started','cancel_requested')
+								OR (cognition.status IN ('pending','retry') AND (cognition.next_attempt_at IS NULL OR cognition.next_attempt_at <= now()))
+							  )
+						)
+				  )
 		)
 		SELECT intent_id,workflow_id,task_queue,intent_type,payload,attempt_count
 		FROM eligible
@@ -1489,6 +1507,13 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		}
 		input = hydrateLifecycleInput(intentID, intentType, payload, input)
 		if intentType == "cognition.processing" {
+			if preemptErr := d.App.CancelLifecycleForCognition(ctx, input.FluctlightID, "dispatcher:"+intentID); preemptErr != nil {
+				// The durable status transition is performed even when a Redis or
+				// Temporal cancellation request is unavailable. Keep dispatching the
+				// cognition; its own Provider/transaction guards fail closed if the
+				// superseded lifecycle is still returning.
+				slog.Default().Warn("Go Worker lifecycle preemption degraded before cognition", "intent_id", intentID, "fluctlight_id", input.FluctlightID, "error_type", fmt.Sprintf("%T", preemptErr))
+			}
 			var claimed bool
 			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_inbox WHERE id=$1 AND status='claimed' AND claimed_at > now()-interval '10 minutes')`, input.InboxID).Scan(&claimed); err != nil {
 				return count, err

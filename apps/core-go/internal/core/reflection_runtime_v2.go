@@ -182,6 +182,9 @@ func (a *App) processReflectionV2(
 	)
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		if a.lifecycleCancellationRequested(ctx, providerCancellationMarker(ctx)) {
+			return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+		}
 		if status, suppressed := providerSuppressionStatus(err); suppressed {
 			reason := "fluctlight_not_active"
 			if status == "paused" {
@@ -190,6 +193,10 @@ func (a *App) processReflectionV2(
 			return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": status, "reason": reason}, nil
 		}
 		return nil, err
+	}
+	if a.lifecycleCancellationRequested(ctx, providerCancellationMarker(ctx)) {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
 	}
 	if err := validateReflectionProviderCompletion(completion); err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
@@ -333,10 +340,25 @@ func (a *App) processReflectionV2(
 	if strings.TrimSpace(profileID) == "" {
 		profileID = "default"
 	}
+	if a.lifecycleCancellationRequested(ctx, providerCancellationMarker(ctx)) {
+		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+	}
 	profileRef := "personality:ctx_" + stableDigest(fluctlightID+"\x1f"+profileID)
 	var memoryResults []MemoryApplyResult
 	var activeMemoryResults []ActiveMemoryApplyResult
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, fluctlightID); err != nil {
+			return err
+		}
+		if a.ProviderCancellationRequested(ctx, providerCancellationMarker(ctx)) {
+			return errLifecycleSupersededByCognition
+		}
+		if superseded, err := lifecycleIntentSupersededTx(ctx, tx); err != nil {
+			return err
+		} else if superseded {
+			return errLifecycleSupersededByCognition
+		}
 		var latestStateRevision int
 		if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$1 FOR SHARE`, fluctlightID).Scan(&latestStateRevision); err != nil {
 			return err
@@ -402,6 +424,9 @@ func (a *App) processReflectionV2(
 	})
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
+		if errors.Is(err, errLifecycleSupersededByCognition) {
+			return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+		}
 		return nil, err
 	}
 	return map[string]any{

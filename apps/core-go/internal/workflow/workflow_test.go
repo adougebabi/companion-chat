@@ -643,3 +643,25 @@ func TestPlatformControlWorkflowStopsOnSignal(t *testing.T) {
 		t.Fatalf("status = %#v, want stopped", result["status"])
 	}
 }
+
+func TestCognitionDispatchPreemptsWakeUpAndReflection(t *testing.T) {
+	source, err := os.ReadFile("workflow.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(source)
+	if !strings.Contains(text, "CancelLifecycleForCognition") {
+		t.Fatal("cognition dispatch does not preempt lifecycle work")
+	}
+	if !strings.Contains(text, "intent_type LIKE 'cognition.%' THEN 0") {
+		t.Fatal("cognition intents are not prioritized ahead of lifecycle intents")
+	}
+	if !strings.Contains(text, "NOT EXISTS") || !strings.Contains(text, "cognition.payload->>'fluctlight_id'=candidate.payload->>'fluctlight_id'") {
+		t.Fatal("WakeUp/Reflection can still dispatch while same-Fluctlight cognition is due")
+	}
+	for _, required := range []string{"WakeUpProviderCancellationMarker", "ReflectionProviderCancellationMarker"} {
+		if !strings.Contains(text, required) {
+			t.Fatalf("lifecycle cancellation marker %q is not wired at the activity boundary", required)
+		}
+	}
+}

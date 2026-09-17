@@ -64,7 +64,16 @@ func (a *App) setReflectionWindowIdle(ctx context.Context, fluctlightID string) 
 	if !ok || lease.FluctlightID != fluctlightID || lease.Token.IsZero() {
 		return errors.New("reflection_window_lease_missing")
 	}
-	command, err := a.DB.Pool().Exec(ctx, `
+	releaseCtx := ctx
+	var cancel context.CancelFunc
+	if ctx.Err() != nil {
+		// A Temporal/provider cancellation must not strand the lease in
+		// `running`. Use a short detached cleanup context only for this CAS; all
+		// substantive Reflection work still observes the caller's cancellation.
+		releaseCtx, cancel = context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+	}
+	command, err := a.DB.Pool().Exec(releaseCtx, `
 		UPDATE public.cognition_reflection_windows
 		SET status='idle',updated_at=now()
 		WHERE fluctlight_id=$1

@@ -13,6 +13,7 @@ import (
 
 const (
 	CapabilityInvocationSchemaVersion = "fluctlight.capability-invocation.v2"
+	conversationReplyCapabilityName   = "conversation.reply"
 	maxToolNameLength                 = 128
 	maxToolArgumentsBytes             = 64 << 10
 )
@@ -190,7 +191,7 @@ func CapabilityToolSchemaStats(definitions []CapabilityDefinition) (bytes int, c
 
 func conversationReplyCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
-		Name: "conversation.reply", Version: "v1", Type: CapabilityTypeAction,
+		Name: conversationReplyCapabilityName, Version: "v1", Type: CapabilityTypeAction,
 		Description:     "Deliver the final user-visible text for the current conversation turn.",
 		Surfaces:        []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy},
 		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
@@ -296,8 +297,10 @@ func visualIdentityInitializeCapabilityDefinition() CapabilityDefinition {
 }
 
 // NormalizeProviderToolCalls accepts both OpenAI-compatible native entries and
-// the canonical JSON sidecar shape.  It intentionally rejects prose, missing
-// identifiers, non-object arguments, and oversized values at one boundary.
+// the canonical JSON sidecar shape. Native entries use id/name (or the nested
+// function object); canonical entries use call_id/capability_name. It
+// intentionally rejects prose, missing identifiers, non-object arguments, and
+// oversized values at one boundary.
 func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID string) ([]CapabilityInvocation, error) {
 	rawCalls := toolCallArrayValue(value)
 	if len(rawCalls) == 0 {
@@ -314,7 +317,21 @@ func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID strin
 			return nil, newProviderToolCallNormalizationError(index, "unsupported_type", fmt.Errorf("tool call %d type is unsupported", index))
 		}
 		id := stringValue(object["id"])
+		canonicalID := stringValue(object["call_id"])
+		if id != "" && canonicalID != "" && id != canonicalID {
+			return nil, newProviderToolCallNormalizationError(index, "id_conflict", fmt.Errorf("tool call %d id fields disagree", index))
+		}
+		if id == "" {
+			id = canonicalID
+		}
 		name := stringValue(object["name"])
+		canonicalName := stringValue(object["capability_name"])
+		if name != "" && canonicalName != "" && name != canonicalName {
+			return nil, newProviderToolCallNormalizationError(index, "name_conflict", fmt.Errorf("tool call %d name fields disagree", index))
+		}
+		if name == "" {
+			name = canonicalName
+		}
 		arguments := object["arguments"]
 		if function := mapValue(object["function"]); len(function) > 0 {
 			if name == "" {
@@ -492,6 +509,9 @@ func addProviderToolCallItemDiagnostic(result map[string]any, raw any) map[strin
 	}
 	result["item_shape"] = "object"
 	idValue, idPresent := object["id"]
+	if (!idPresent || idValue == nil) && object["call_id"] != nil {
+		idValue, idPresent = object["call_id"], true
+	}
 	result["id_present"] = idPresent && idValue != nil
 	result["id_type"] = providerToolCallValueShape(idValue)
 	if typeValue, present := object["type"]; present {
@@ -501,6 +521,9 @@ func addProviderToolCallItemDiagnostic(result map[string]any, raw any) map[strin
 	}
 
 	nameValue, namePresent := object["name"]
+	if (!namePresent || nameValue == nil) && object["capability_name"] != nil {
+		nameValue, namePresent = object["capability_name"], true
+	}
 	name := stringValue(nameValue)
 	namePresentEffective := namePresent && nameValue != nil
 	functionValue, functionPresent := object["function"]
