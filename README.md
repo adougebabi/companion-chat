@@ -265,13 +265,13 @@ FLUCTLIGHT_LIVE_PROVIDER_TEST_REGEX='TestLiveProvider(DenseSingleInitialization|
 
 ```bash
 GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/postgres?sslmode=disable' \
-FLUCTLIGHT_LIVE_PROVIDER_TEST_REGEX='TestLiveHandleTurnUsesRealProviderForPersonalityDecision$' \
+FLUCTLIGHT_LIVE_PROVIDER_TEST_REGEX='TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment$' \
   ./infra/acceptance/run-go-live-provider-smoke.sh
 ```
 
-这条链路会真实执行“人格切换判断 → 切换后再次认知 → 冻结/结算”，并检查数据库中的
-`active_profile_id` 和 assistant 消息。没有 `GO_CORE_TEST_DATABASE_URL` 时不会把它
-标成通过。
+这条链路会真实执行“Main 回复 → 回复后的持久人格判断 → 冻结/结算”，并检查数据库
+中的 `active_profile_id` 和 assistant 消息。没有 `GO_CORE_TEST_DATABASE_URL` 时不会把
+它标成通过。
 
 ### Compose 整栈运行
 

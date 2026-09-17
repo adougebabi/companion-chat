@@ -56,21 +56,21 @@ The following real Provider checks passed after those fixes:
 | Full `HandleTurn` with disposable PostgreSQL | pass | real `ProviderClient`, freeze/settlement, assistant message, durable active profile |
 
 The full live `HandleTurn` test is
-`TestLiveHandleTurnUsesRealProviderForPersonalityDecision`. It seeded a
-disposable PostgreSQL database, configured the real endpoint through
-`model_roles`, and verified that one user turn made a recognition call followed
-by a post-switch Main call. The final database state had
-`active_profile_id=twilight` and exactly one assistant message. The live model
-also requested a real `memory.recall` continuation, so the physical Provider
-request count was three; the test accepts the bounded query continuation rather
-than assuming that every switch turn is exactly two HTTP requests.
+`TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment`. It
+seeded a disposable PostgreSQL database, configured the real endpoint through
+`model_roles`, and verified that one user turn produced a normal Main response
+followed by a tool-free post-cognition switch assessment. The final database
+state had `active_profile_id=twilight` and exactly one assistant message. The
+live model also requested a real `memory.recall` continuation, so the physical
+Provider request count was three; the test accepts the bounded query
+continuation rather than assuming that every switch turn is exactly two HTTP
+requests.
 
-The same-turn behavior is also covered without a model in
-`TestPersistentSwitchReDecidesWithinTheSameTurn`: the first response is a
-tool-free switch assessment, the second response is assembled with the target
-Working Persona, and only the second candidate is sent. This Fake Provider test
-locks the state machine; the live PostgreSQL test proves the real Provider path
-reaches the same durable boundary.
+The same ordering is covered without a model in
+`TestPersistentSwitchAssessmentRunsAfterTheCandidateKeepsTheTurn`: the Main
+candidate is created and remains the visible reply, then the switch assessment
+updates the persistent profile for the next turn. The assessment never replaces
+the current assistant message or executes a capability.
 
 The acceptance is still bounded. Active Memory and query-continuation live
 smokes can take several minutes on a local reasoning model and are opt-in through

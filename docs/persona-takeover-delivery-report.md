@@ -118,7 +118,7 @@ GO_CORE_TEST_DATABASE_URL='postgres://fluctlight:fluctlight@127.0.0.1:55432/lac_
 
 **明确未实现**：deterministic 时间窗 Runtime evaluator；本版只分类、生成稳定 ID 和诊断。
 
-**本地确定性回归已验证**：Fake Provider + PostgreSQL 已覆盖 native/structured mixed media + reply 的 capability normalization、同一 assistant message 结算、图片 intent/workflow/outbox 持久化和 Core stream 帧顺序。真实 Provider、人格初始化和同一轮切换后的再次认知证据见 `docs/live-llm-acceptance-report.md`。
+**本地确定性回归已验证**：Fake Provider + PostgreSQL 已覆盖 native/structured mixed media + reply 的 capability normalization、同一 assistant message 结算、图片 intent/workflow/outbox 持久化和 Core stream 帧顺序。真实 Provider、人格初始化和回复后的持久人格判断证据见 `docs/live-llm-acceptance-report.md`。
 
 **仍未验证**：真实模型 Judge 误报/漏报、抗注入表现；真实 Token/缓存/完整延迟基线；真实 ComfyUI/Media Worker 最终图片资产；WakeUp/媒体 Worker 的生产端到端链路；deterministic 时间窗求值器（尚未实现）。已运行的真实 Provider smoke 与 disposable PostgreSQL `HandleTurn` 链路见 `docs/live-llm-acceptance-report.md`。
 

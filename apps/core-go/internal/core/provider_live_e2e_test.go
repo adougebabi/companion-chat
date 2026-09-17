@@ -79,13 +79,14 @@ func (capture *liveResponseCapture) snapshot() []map[string]any {
 	return result
 }
 
-// TestLiveHandleTurnUsesRealProviderForPersonalityDecision is the production
+// TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment is the production
 // chain smoke that the scripted Provider tests cannot provide. It uses a
 // disposable PostgreSQL database, resolves the model through ProviderClient,
 // runs HandleTurn, and verifies the durable active profile plus the assistant
 // message. The test intentionally has no takeover_rules so the result isolates
-// the persistent-switch path instead of asking the live model to also arbitrate.
-func TestLiveHandleTurnUsesRealProviderForPersonalityDecision(t *testing.T) {
+// the post-cognition persistent-switch path instead of asking the live model to
+// also arbitrate.
+func TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment(t *testing.T) {
 	if strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_TEST")) != "1" {
 		t.Skip("set FLUCTLIGHT_LIVE_PROVIDER_TEST=1 to call a real Provider")
 	}
@@ -122,7 +123,7 @@ func TestLiveHandleTurnUsesRealProviderForPersonalityDecision(t *testing.T) {
 		t.Fatalf("live HandleTurn returned no assistant text: %#v", result.Assistant)
 	}
 	if got := capture.count(); got < 2 {
-		t.Fatalf("persistent switch path must use a recognition request and a post-switch Main request, got %d", got)
+		t.Fatalf("persistent switch path must use a Main response and a post-cognition assessment, got %d", got)
 	}
 	var active string
 	if err := repository.Pool().QueryRow(turnCtx, `SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=$1`, fluctlightID).Scan(&active); err != nil {
