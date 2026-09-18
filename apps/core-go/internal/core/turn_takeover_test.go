@@ -84,6 +84,36 @@ func TestResolveCanonicalVisibleReplyUsesCanonicalReplyNameWhenRegistryOmitsIt(t
 	}
 }
 
+func TestNormalizeTurnDecisionKeepsIndependentToolCallsWithoutVisibleReply(t *testing.T) {
+	fluctlightID, ownerID, conversationID, sourceFactID := "tool-only-fluctlight", "tool-only-owner", "tool-only-conversation", "tool-only-fact"
+	projection := ContextProjection{
+		SchemaVersion: "fluctlight.context.v3", FluctlightID: fluctlightID, OwnerActorID: ownerID,
+		ConversationID: conversationID, SourceFactID: sourceFactID,
+		CurrentSpeaker:     map[string]any{"actor_id": ownerID},
+		PersonalityRuntime: map[string]any{"active_profile_id": "default"},
+		ReferenceIndex: ContextReferenceIndex{
+			SchemaVersion: contextReferenceIndexVersion, FluctlightID: fluctlightID, OwnerActorID: ownerID,
+			SpeakerActorID: ownerID, ConversationID: conversationID, ActiveProfileID: "default", ByRef: map[string]ContextReference{},
+		},
+	}
+	normalized, err := (&App{}).normalizeTurnDecision(context.Background(), turnDecisionNormalizationInput{
+		InboxID: sourceFactID, FluctlightID: fluctlightID, ConversationID: conversationID, TurnID: "tool-only-turn",
+		Projection: projection,
+		Decision:   map[string]any{"action_type": "", "response_mode": "", "response_intent": "", "tool_calls": []any{}, "influences": []any{}},
+		Invocations: []CapabilityInvocation{
+			{CallID: "image-call", CapabilityName: "media.image.generate", SchemaVersion: CapabilityInvocationSchemaVersion, Arguments: json.RawMessage(`{"intent":"一张图"}`)},
+			{CallID: "affect-call", CapabilityName: "affect_event", SchemaVersion: CapabilityInvocationSchemaVersion, Arguments: json.RawMessage(`{"event":{"type":"embarrassed","confidence":0.7}}`)},
+		},
+		Definitions: []CapabilityDefinition{imageCapabilityDefinition(), affectEventCapabilityDefinition()}, StructuredFallback: true,
+	})
+	if err != nil {
+		t.Fatalf("tool-only normalization failed: %v", err)
+	}
+	if normalized.Action != "no_op" || normalized.ResponseMode != "final" || normalized.Canonical.Text != "" || normalized.Decision["tool_only"] != true {
+		t.Fatalf("tool-only normalization = action=%q mode=%q canonical=%#v decision=%#v", normalized.Action, normalized.ResponseMode, normalized.Canonical, normalized.Decision)
+	}
+}
+
 func TestResolveCanonicalVisibleReplyTreatsEqualSourcesAsAgreement(t *testing.T) {
 	registry := capabilityRegistryForTest(t)
 	canonical, diagnostics := resolveCanonicalVisibleReply(

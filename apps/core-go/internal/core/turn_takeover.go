@@ -912,7 +912,7 @@ func (a *App) generateTakeoverReply(ctx context.Context, input turnTakeoverInput
 	scopedProjection = assembledProjection
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
 	providerCtx = WithProviderCorrelation(providerCtx, "takeover-reply:"+input.Frozen.ID)
-	completion, completionErr := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, takeoverReplySchemaName, schema, false)
+	completion, completionErr := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, takeoverReplySchemaName, schema, structuredThinkingEnabledForSchema(takeoverReplySchemaName))
 	if completionErr != nil {
 		if a.cognitionFactSuperseded(ctx, input.InboxID) {
 			return false, errCognitionTurnSuperseded
@@ -941,7 +941,12 @@ func (a *App) generateTakeoverReply(ctx context.Context, input turnTakeoverInput
 			FluctlightID: input.FluctlightID, ConversationID: input.ConversationID, SourceFactID: input.InboxID, ActionID: input.Frozen.ID,
 			Surface: CapabilitySurfaceConversation, ContextSnapshot: ContextSnapshotFromProjection(scopedProjection), Context: ctx,
 		}); validateErr != nil {
-			return false, validateErr
+			if len(capabilityBatchFailures(validateErr)) == 0 {
+				return false, validateErr
+			}
+			// A malformed/unauthorized B call is recorded by its own Prepare
+			// boundary after replacement. Do not discard valid sibling calls from
+			// an otherwise eligible takeover candidate.
 		}
 	}
 	record := make(map[string]any, len(pending)+3)

@@ -83,13 +83,25 @@ The generic same-turn continuation is still result-dependent:
 metadata-classified pure QUERY invocations, persisted bounded results, then at
 most one no-tools Provider call whose closed response contains only
 `visible_text`. ACTION and QUERY+ACTION mixed batches remain final in the
-selected Main cognition. Background surfaces may complete as explicit `no_op`;
-an invalid/missing final visible response fails with
-`cognition_visible_text_missing`, while an invalid continuation contract fails
-closed under the same durable retry identity. For Providers that emit a native
-tool call without the structured sidecar, missing mode is normalized to
-continuation only when the adapter reports `StructuredFallback`, visible text
-is empty, and all 1–2 invocations pass the same generic pure-query gate.
+selected Main cognition. A direct ACTION-only or mixed batch may complete as a
+tool-only `no_op`; each invocation still runs its own Prepare/plan/settlement
+and records its own failure. Only a turn with no valid visible output and no
+valid Capability call fails with `cognition_visible_text_missing`, while an
+invalid continuation contract fails closed under the same durable retry
+identity. For Providers that emit a native tool call without the structured
+sidecar, missing mode is normalized to continuation only when the adapter
+reports `StructuredFallback`, visible text is empty, and all 1–2 invocations
+pass the same generic pure-query gate.
+
+Semantic cognition and native event appraisal may enable the Provider thinking
+channel. Query continuation remains a separate `visible_text`-only call and
+does not enable thinking. Native cognition also permits a capability-only
+decision: a valid native tool call with an empty appraisal/stage sidecar is
+settled with `cognitive_state_transition=not_proposed`, without inventing
+semantic state. Empty cognition without a tool call fails closed. Life facts
+propagate `native_cognition_depth`, and both the Worker entry point and direct
+native recovery entry point enforce the terminal depth guard before another
+Provider call.
 
 #### Foundation Expression Context
 

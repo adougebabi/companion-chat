@@ -281,6 +281,8 @@ func (c imageGenerateCapability) ExecuteDeferredTx(ctx context.Context, tx pgx.T
 	}
 	conversationID, messageID, momentID := "", "", ""
 	switch binding.TargetKind {
+	case "conversation":
+		conversationID = binding.TargetRef
 	case "conversation_message":
 		messageID = binding.TargetRef
 	case "moment":

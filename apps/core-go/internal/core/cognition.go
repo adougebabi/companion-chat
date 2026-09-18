@@ -24,6 +24,10 @@ type frozenTurn struct {
 
 const maxNativeCognitionDepth = 1
 
+func nativeCognitionCycleGuarded(depth int) bool {
+	return depth > maxNativeCognitionDepth
+}
+
 // ProcessCognitionInbox is the Worker-owned entry point for a committed
 // conversation fact. HandleTurn is idempotent on the inbox/message keys, so a
 // retry resumes the same fact instead of consuming another turn.
@@ -53,7 +57,7 @@ func (a *App) ProcessCognitionInbox(ctx context.Context, inboxID string) (map[st
 	}()
 	data := decodeObject(payload)
 	if strings.HasPrefix(stringValue(data["event_type"]), "life.") {
-		if depth := intValue(data["native_cognition_depth"]); depth > maxNativeCognitionDepth {
+		if depth := intValue(data["native_cognition_depth"]); nativeCognitionCycleGuarded(depth) {
 			if err := a.settleNativeCognitionCycleGuard(ctx, inboxID, depth); err != nil {
 				return nil, err
 			}

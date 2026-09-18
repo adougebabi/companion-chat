@@ -71,7 +71,7 @@ func (a *App) assessPersistentSwitchAfterCandidate(ctx context.Context, input pe
 		nil,
 		persistentSwitchAssessmentSchemaName,
 		persistentSwitchAssessmentSchema(),
-		false,
+		structuredThinkingEnabledForSchema(persistentSwitchAssessmentSchemaName),
 	)
 	if err != nil {
 		return nil, nil, err

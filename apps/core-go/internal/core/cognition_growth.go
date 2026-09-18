@@ -252,19 +252,33 @@ func cognitiveStagePayload(value map[string]any) map[string]any {
 	return result
 }
 
-func normalizeCognitiveStages(value map[string]any) (map[string]any, error) {
+// normalizeCognitiveStages validates the optional semantic sidecar that
+// accompanies native capability calls. A Provider may legally return a
+// capability-only native decision: in that case the sidecar is empty and Core
+// must preserve the tool invocation without manufacturing appraisal/state.
+func normalizeCognitiveStages(value map[string]any, allowCapabilityOnly bool) (map[string]any, bool, error) {
 	stages := cognitiveStagePayload(value)
+	semanticFieldsPresent := false
+	for _, field := range []string{"attention", "thought", "desire", "agency"} {
+		if text := strings.TrimSpace(stringValue(stages[field])); text != "" || len(mapValue(stages[field])) > 0 {
+			semanticFieldsPresent = true
+			break
+		}
+	}
+	if allowCapabilityOnly && !semanticFieldsPresent && len(mapValue(stages["appraisal"])) == 0 {
+		return stages, false, nil
+	}
 	for _, field := range []string{"attention", "thought", "desire", "agency"} {
 		if _, err := wakeUpValue(stages[field], field); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 	appraisal, err := normalizeAppraisal(stages["appraisal"])
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	stages["appraisal"] = appraisal
-	return stages, nil
+	return stages, true, nil
 }
 
 func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) error {
@@ -274,6 +288,13 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		return err
 	}
 	factPayload := decodeObject(payload)
+	if depth := intValue(factPayload["native_cognition_depth"]); nativeCognitionCycleGuarded(depth) {
+		// ProcessCognitionInbox normally guards this before dispatch, but native
+		// recovery callers can enter here directly. Keep the terminal depth guard
+		// at both boundaries so a capability-produced life fact cannot re-enter
+		// the Provider indefinitely when the dispatcher is bypassed.
+		return a.settleNativeCognitionCycleGuard(ctx, inboxID, depth)
+	}
 	frozen, frozenFound, err := a.LoadFrozenTurn(ctx, inboxID)
 	if err != nil {
 		return err
@@ -346,17 +367,25 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		}
 		projection = assembledProjection
 		providerCtx = WithPromptDiagnostics(providerCtx, assembly.Diagnostics)
-		completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "native_cognition_response", schema, false)
+		completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "native_cognition_response", schema, structuredThinkingEnabledForSchema("native_cognition_response"))
 		if err != nil {
 			return err
 		}
-		stages, err = normalizeCognitiveStages(completion.Structured)
+		semanticStages := false
+		stages, semanticStages, err = normalizeCognitiveStages(completion.Structured, len(completion.ToolCalls) > 0)
 		if err != nil {
 			return err
 		}
 		_, err = freezeDecisionInfluences(stages, projection, false)
 		if err != nil {
 			return err
+		}
+		if !semanticStages {
+			// The native tool call is the complete decision. Mark the semantic
+			// state transition as intentionally absent only after influence
+			// freezing, because Provider output is forbidden from supplying this
+			// Core-owned control field.
+			stages["cognitive_state_transition"] = "not_proposed"
 		}
 		capabilityInvocations = append([]CapabilityInvocation(nil), completion.ToolCalls...)
 		for index := range capabilityInvocations {
@@ -394,28 +423,34 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 	}
 	capabilityInvocations, err = a.prepareCapabilityInvocations(ctx, fluctlightID, "", inboxID, capabilityInvocations, capabilityResults)
 	if err != nil {
-		code, retryable := capabilityErrorInfo(err, "capability_prepare_failed", true)
-		if errors.Is(err, ErrCapabilityNotFound) || errors.Is(err, ErrInvalidArguments) {
-			retryable = false
+		if len(capabilityBatchFailures(err)) == 0 {
+			code, retryable := capabilityErrorInfo(err, "capability_prepare_failed", true)
+			if errors.Is(err, ErrCapabilityNotFound) || errors.Is(err, ErrInvalidArguments) {
+				retryable = false
+			}
+			if !retryable {
+				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
+			}
+			return err
 		}
-		if !retryable {
-			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
-		}
-		return err
+		capabilityResults = mergeCapabilityResults(capabilityResults, capabilityBatchFailures(err))
 	}
 	if err := a.persistFrozenCapabilityInvocations(ctx, frozen.ID, capabilityInvocations); err != nil {
 		return err
 	}
 	capabilityResults, err = a.planCapabilitiesForTransaction(ctx, fluctlightID, "", inboxID, capabilityInvocations, capabilityResults)
 	if err != nil {
-		if len(capabilityResults) > 0 {
-			_ = a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults)
+		if len(capabilityBatchFailures(err)) == 0 {
+			if len(capabilityResults) > 0 {
+				_ = a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults)
+			}
+			code, retryable := capabilityFailureInfo(err, capabilityResults, capabilityInvocations, a.capabilityRegistry(), "capability_plan_failed")
+			if !retryable {
+				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
+			}
+			return err
 		}
-		code, retryable := capabilityFailureInfo(err, capabilityResults, capabilityInvocations, a.capabilityRegistry(), "capability_plan_failed")
-		if !retryable {
-			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
-		}
-		return err
+		capabilityResults = mergeCapabilityResults(capabilityResults, capabilityBatchFailures(err))
 	}
 	reflectionDelay := a.reflectionDelay(ctx)
 	nextReflectionAt := time.Now().UTC().Add(reflectionDelay)
@@ -436,9 +471,6 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 			return settleErr
 		}
 		capabilityResults = settled
-		if requiredErr := requiredCapabilityFailureCanonical(capabilityResults, capabilityInvocations, a.capabilityRegistry(), true); requiredErr != nil {
-			return requiredErr
-		}
 		if err := a.persistFrozenCapabilityInvocationsTx(ctx, tx, frozen.ID, capabilityInvocations); err != nil {
 			return err
 		}

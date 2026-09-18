@@ -15,22 +15,18 @@
 
 - Provider normalized completion: `{text, tokens, toolCalls, structuredTurn?, control?, parseErrors?, doneSeen}`.
 - Main cognition requires `response_mode=final|query_continuation`. `final`
-  visible text is already the reply realization and may be emitted directly;
-  missing/omitted text fails closed unless a declared visible-output
-  CapabilityInvocation supplies it. Compatibility action names such as
+  visible text is emitted when a `conversation.reply` or other visible-output
+  capability supplies it; missing text is not an error when the turn contains
+  valid independent capability calls. Compatibility action names such as
   `respond` normalize to canonical `reply` before this decision.
-- Direct conversation has no successful silent final state. The same Main
-  cognition normally returns concrete visible text; otherwise Core returns
-  `cognition_visible_text_missing`, preserves the committed user row/retry
-  identity, and commits no completed effect. The only exception is an explicit
-  `query_continuation` with no visible text and one or two pure QUERY calls. Core
-  persists their bounded results and performs one no-tools, visible-text-only
-  continuation before the assistant settlement. A deferred output without a
-  concrete assistant/Moment target remains `deferred`; background surfaces may
-  still settle an explicit tool-only `no_op`. A native tool-only transport may
-  encode the exception without a structured sidecar: only an adapter-marked
-  `StructuredFallback` with empty visible text and 1–2 generic pure queries may
-  normalize the missing mode to `query_continuation`.
+- A direct conversation with neither visible text nor capability calls fails
+  with `cognition_visible_text_missing`. A direct conversation with valid tool
+  calls is a successful tool-only turn: Core freezes and settles every call
+  independently, records per-call failures without rolling back successful
+  siblings, and completes the inbox without fabricating assistant prose. The
+  only continuation exception remains `query_continuation` with one or two pure
+  QUERY calls; Core persists their bounded results and performs one no-tools,
+  visible-text-only continuation before the assistant settlement.
 - When a newer turn is accepted for the same conversation, older pending or
   claimed conversation cognition facts are marked superseded. Completion locks
   the inbox and requires the current claim/status; an old settlement can never
@@ -60,6 +56,12 @@
   JSON, fenced Markdown JSON, and equivalent transport wrappers.
 - Native tool calls and parsed provider sidecars are normalized at one application boundary. The codec accepts both the OpenAI-compatible `id`/`name` (including the nested `function` object) and the canonical `call_id`/`capability_name` aliases, then emits one `CapabilityInvocation`. New affect/memory behavior must not add text markers.
 - `conversation.reply` is the direct-conversation visible-output capability. When a normalized invocation with that canonical name carries a non-empty `arguments.text`, Core must freeze and deliver that text even when Provider `text` and the structured sidecar fields are empty; unrelated normalized/structured fields must not suppress the reply path.
+- Capability calls are event-driven and independent: the presence or absence of
+  `conversation.reply`, `text`, `structured`, `action_type`, or another sibling
+  call must not prevent a valid installed call from reaching its own Prepare,
+  plan, and settlement boundary. A call can still fail its own argument,
+  context, authorization, or target validation; that failure must not suppress
+  unrelated sibling calls.
 - After the caller-owned assistant/capability settlement transaction commits, Reflection/WakeUp follow-up hints are best-effort maintenance. A Redis, clock, or follow-up scheduling failure is logged/diagnosed but must not convert the committed private reply into a terminal browser error or suppress its `action_result`/`completed` frames.
 - Every successful cognition (conversation or native/life-event) refreshes one Fluctlight-scoped Reflection debounce key for exactly ten minutes and refreshes the Fluctlight Wake-up key for the configured interval plus ten minutes; repeated cognition writes the same keys and therefore refreshes their TTLs. A completed Wake-up refreshes the Reflection key for ten minutes and its own Wake-up key for only the configured interval. When cognition is accepted, pending or running Wake-up/Reflection intents for that Fluctlight are superseded, their in-flight Provider/workflow execution receives cooperative cancellation, and Dispatcher does not admit a due Wake-up/Reflection while that cognition is pending or running.
 - Machine-readable argument shape belongs to the canonical capability catalog and provider `tools` payload. The model-facing system prompt contains only short behavioral guidance; it must not duplicate JSON schema bounds, dispatcher internals, or legacy marker syntax. Flow validators remain authoritative for ownership, time windows, policy, idempotency, and transactions.
@@ -473,35 +475,33 @@ CapabilityRuntime.Execute(ctx, invocation) (CapabilityResult, error)
   PreparedPayload envelope, and the declared ContextSnapshot before apply;
   replay validates that envelope and never regenerates it.
 - Interactive Memory/Affect mutations execute in per-Capability savepoints
-  inside the assistant transaction. Optional failure rolls back the savepoint
-  and persists a failed result; required failure rolls back the complete visible
-  settlement. Provider/Redis/object/workflow I/O is forbidden in this phase.
-- `memory_event` uses `required_for_visible_claim`: a failed explicit Memory
-  write rolls back the visible settlement instead of allowing “I remembered”
-  prose to commit without the Memory. Its non-transactional executor returns
-  `caller_transaction_required`.
+  inside the caller-owned settlement transaction. A failure rolls back only
+  that Capability savepoint and persists its failed result; successful sibling
+  calls and the primary visible output continue. Provider/Redis/object/workflow
+  I/O is forbidden in this phase.
+- `required_for_visible_claim` is scoped to the Capability that owns the
+  concrete visible output target. A failed `conversation.reply` or
+  `moment.publish` cannot claim delivery, while a failed Memory, Affect, media,
+  or other sibling never rolls back an unrelated visible reply. Its
+  non-transactional executor returns `caller_transaction_required`.
 - Reflection Memory output is the closed operation-aware candidate shape
   (`create|confirm|revise|merge|supersede|deprecate`, opaque target/merge refs,
   semantic fields/evidence/reason). Core compiles it to the same Memory
   lifecycle authority used by chat and Owner governance; malformed candidates
   invalidate the proposal before watermark advancement.
-- `required_for_visible_claim` failures roll back a visible assistant/Moment
-  settlement; `optional_internal` failures remain structured and auditable.
-  Direct conversation defaults to a final visible result in the Main call.
+- A `required_for_visible_claim` failure rolls back only the settlement of the
+  visible output Capability that declared that policy; sibling failures remain
+  structured and auditable. Direct conversation defaults to a final visible
+  result in the Main call.
   Only one or two result-dependent invocations classified generically as
   `pure_query` may create the dedicated same-turn `role=tool` continuation;
   concrete capability names never select that path.
 - A tool-only result without a structured appraisal may settle as a
-  capability-only `no_op` only on explicitly non-visible/background surfaces.
-  Direct conversation without a valid final reply or a valid pure-query
-  continuation fails before settlement. ACTION and mixed batches cannot use
-  continuation. Core never creates a synthetic neutral/default appraisal, and
-  Provider output cannot set `cognitive_state_transition=not_proposed`.
-  Direct conversation always requires visible assistant text from the same
-  Main cognition; tool-only/no-visible output fails with
-  `cognition_visible_text_missing` before Capability settlement. Core never
-  creates a synthetic neutral/default appraisal, and Provider output cannot set
-  `cognitive_state_transition=not_proposed`.
+  capability-only `no_op` on a direct conversation or background surface. A
+  direct conversation with no visible text and no valid Capability calls still
+  fails before settlement. ACTION and mixed batches cannot use continuation.
+  Core never creates a synthetic neutral/default appraisal, and Provider output
+  cannot set `cognitive_state_transition=not_proposed`.
 - Appraisal is optional independently of the visible-output channel. A valid
   direct reply supplied through `visible_text` or `conversation.reply` with no
   appraisal commits both authoritative messages and records Core-owned
@@ -531,7 +531,7 @@ CapabilityRuntime.Execute(ctx, invocation) (CapabilityResult, error)
 | Provider Arguments contain an undeclared prepared/runtime field | `invalid_arguments`; Prepare and executor are not called |
 | Frozen PreparedPayload is malformed or conflicts with thin intent/context | fail closed; do not re-plan or repair it |
 | Invocation has no Capability-local preparer | Runtime still freezes provenance, declared ContextSnapshot, and an explicit empty PreparedPayload envelope before apply |
-| Direct conversation omits visible assistant text | `cognition_visible_text_missing`; preserve committed user row and same retry identity; commit no completed action/effect |
+| Direct conversation omits visible assistant text and has no valid Capability | `cognition_visible_text_missing`; preserve committed user row and same retry identity; commit no completed action/effect |
 | Background tool-only result omits appraisal | Settle the Capability-only `no_op`; write no appraisal or state revision |
 | Appraisal contains unknown/raw numeric fields or foreign context evidence | Reject before freeze; do not infer or append a replacement appraisal |
 | Frozen State or AffectProfile revision changed before apply | Terminal conflict/re-assessment boundary; no mutation and no blind retry |

@@ -261,7 +261,7 @@ func imageCapabilityDefinition() CapabilityDefinition {
 				"target_ref":      map[string]any{"type": "string"},
 			},
 		},
-		TargetKinds:           []string{"conversation_message", "moment", "wake_up"},
+		TargetKinds:           []string{"conversation", "conversation_message", "moment", "wake_up"},
 		OutputRole:            "media",
 		SideEffectClass:       "external_async",
 		SuccessBoundary:       "durable_media_intent_created",
@@ -314,6 +314,66 @@ func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID strin
 // validation tests and any caller that must reject missing identity outright.
 func normalizeProviderToolCallsWithDerivedIDs(value any, sourceFactID, providerRequestID string) ([]CapabilityInvocation, error) {
 	return normalizeProviderToolCalls(value, sourceFactID, providerRequestID, true)
+}
+
+// normalizeProviderToolCallsIndependently keeps valid native calls when one
+// sibling entry is malformed. The strict public normalizer remains fail-closed
+// for callers that validate a single envelope; the Provider adapter uses this
+// event-channel variant so one bad model entry cannot erase unrelated valid
+// calls from the same response.
+func normalizeProviderToolCallsIndependently(value any, sourceFactID, providerRequestID string) ([]CapabilityInvocation, error) {
+	rawCalls := toolCallArrayValue(value)
+	if len(rawCalls) == 0 {
+		return []CapabilityInvocation{}, nil
+	}
+	result := make([]CapabilityInvocation, 0, len(rawCalls))
+	var firstErr error
+	for index, raw := range rawCalls {
+		object := mapValue(raw)
+		if len(object) == 0 {
+			if firstErr == nil {
+				firstErr = newProviderToolCallNormalizationError(index, "item_not_object", fmt.Errorf("tool call %d must be an object", index))
+			}
+			continue
+		}
+		// Derive a stable ID using the original array position before handing the
+		// single item to the strict validator (which otherwise sees position 0).
+		if strings.TrimSpace(stringValue(object["id"])) == "" && strings.TrimSpace(stringValue(object["call_id"])) == "" {
+			name := stringValue(object["name"])
+			if name == "" {
+				name = stringValue(object["capability_name"])
+			}
+			if function := mapValue(object["function"]); name == "" && len(function) > 0 {
+				name = stringValue(function["name"])
+			}
+			arguments := object["arguments"]
+			if arguments == nil {
+				arguments = mapValue(object["function"])["arguments"]
+			}
+			if strings.TrimSpace(providerRequestID) != "" {
+				if normalized, err := normalizeToolArguments(arguments); err == nil {
+					copyObject := make(map[string]any, len(object)+1)
+					for key, value := range object {
+						copyObject[key] = value
+					}
+					copyObject["id"] = derivedProviderToolCallID(providerRequestID, index, name, normalized)
+					object = copyObject
+				}
+			}
+		}
+		calls, err := normalizeProviderToolCalls([]any{object}, sourceFactID, providerRequestID, false)
+		if err != nil {
+			if firstErr == nil {
+				firstErr = newProviderToolCallNormalizationError(index, "item_invalid", err)
+			}
+			continue
+		}
+		for callIndex := range calls {
+			calls[callIndex].Sequence = index
+		}
+		result = append(result, calls...)
+	}
+	return result, firstErr
 }
 
 func normalizeProviderToolCalls(value any, sourceFactID, providerRequestID string, deriveMissingIDs bool) ([]CapabilityInvocation, error) {

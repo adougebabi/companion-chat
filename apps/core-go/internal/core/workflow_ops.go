@@ -92,14 +92,17 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 	if !duplicatePreflight {
 		calls, err = a.prepareCapabilityInvocations(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls, storedResults)
 		if err != nil {
-			code, retryable := capabilityErrorInfo(err, "capability_prepare_failed", true)
-			if retryable {
-				// Keep the action executable. The Temporal activity will retry a few
-				// times and Dispatcher reconciliation requeues this intent when a
-				// terminal workflow failure leaves the action frozen.
-				return nil, err
+			if len(capabilityBatchFailures(err)) == 0 {
+				code, retryable := capabilityErrorInfo(err, "capability_prepare_failed", true)
+				if retryable {
+					// Keep the action executable. The Temporal activity will retry a few
+					// times and Dispatcher reconciliation requeues this intent when a
+					// terminal workflow failure leaves the action frozen.
+					return nil, err
+				}
+				return a.failAutonomyAction(ctx, actionID, code)
 			}
-			return a.failAutonomyAction(ctx, actionID, code)
+			storedResults = mergeCapabilityResults(storedResults, capabilityBatchFailures(err))
 		}
 		if err := a.persistAutonomyCapabilityResults(ctx, actionID, calls, storedResults); err != nil {
 			return nil, err
@@ -123,9 +126,11 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 		if len(calls) > 0 && !duplicatePreflight {
 			capabilityResults, err = a.planCapabilitiesForTransaction(ctx, fluctlightID, conversationID, sourceFactID, calls, capabilityResults)
 			if err != nil {
-				return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
+				if len(capabilityBatchFailures(err)) == 0 {
+					return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
+				}
 			}
-			if err := requiredCapabilityFailureCanonical(capabilityResults, calls, a.capabilityRegistry(), false); err != nil {
+			if err := requiredOutputCapabilityFailure(capabilityResults, calls, a.capabilityRegistry(), false, "conversation_message"); err != nil {
 				return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
 			}
 		}
@@ -177,7 +182,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 					return settleErr
 				}
 				capabilityResults = settled
-				if requiredErr := requiredCapabilityFailureCanonical(capabilityResults, calls, a.capabilityRegistry(), true); requiredErr != nil {
+				if requiredErr := requiredOutputCapabilityFailure(capabilityResults, calls, a.capabilityRegistry(), true, "conversation_message"); requiredErr != nil {
 					return requiredErr
 				}
 			}
@@ -233,9 +238,11 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 		if len(calls) > 0 {
 			capabilityResults, err = a.planCapabilitiesForTransaction(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls, capabilityResults)
 			if err != nil {
-				return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
+				if len(capabilityBatchFailures(err)) == 0 {
+					return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
+				}
 			}
-			if err := requiredCapabilityFailureCanonical(capabilityResults, calls, a.capabilityRegistry(), false); err != nil {
+			if err := requiredOutputCapabilityFailure(capabilityResults, calls, a.capabilityRegistry(), false, "moment"); err != nil {
 				return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
 			}
 		}
@@ -261,7 +268,7 @@ func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[s
 					return settleErr
 				}
 				capabilityResults = settled
-				if requiredErr := requiredCapabilityFailureCanonical(capabilityResults, calls, a.capabilityRegistry(), true); requiredErr != nil {
+				if requiredErr := requiredOutputCapabilityFailure(capabilityResults, calls, a.capabilityRegistry(), true, "moment"); requiredErr != nil {
 					return requiredErr
 				}
 			}
@@ -375,13 +382,16 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 	}
 	preparedCalls, prepareErr := a.prepareCapabilityInvocations(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls, results)
 	if prepareErr != nil {
-		code, retryable := capabilityErrorInfo(prepareErr, "capability_prepare_failed", true)
-		if retryable {
-			// Leave the frozen action executable so Temporal/Dispatcher can retry a
-			// transient provider, renderer, or configuration failure.
-			return nil, prepareErr
+		if len(capabilityBatchFailures(prepareErr)) == 0 {
+			code, retryable := capabilityErrorInfo(prepareErr, "capability_prepare_failed", true)
+			if retryable {
+				// Leave the frozen action executable so Temporal/Dispatcher can retry a
+				// transient provider, renderer, or configuration failure.
+				return nil, prepareErr
+			}
+			return a.failAutonomyAction(ctx, actionID, code)
 		}
-		return a.failAutonomyAction(ctx, actionID, code)
+		results = mergeCapabilityResults(results, capabilityBatchFailures(prepareErr))
 	}
 	calls = preparedCalls
 	data["capability_invocations"] = calls
@@ -391,7 +401,13 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 	for _, invocation := range calls {
 		definition, ok := a.capabilityRegistry().Definition(invocation.CapabilityName)
 		if !ok || invocation.Validate(definition) != nil {
-			return a.failAutonomyAction(ctx, actionID, "capability_unavailable")
+			// The preparer has already recorded this call's own failure. Keep
+			// processing every sibling instead of turning one malformed call into
+			// a batch-level capability_unavailable failure.
+			if _, found := capabilityResultForCall(results, invocation.CallID); found {
+				continue
+			}
+			results = mergeCapabilityResults(results, []CapabilityResult{failedCapabilityResult(invocation, "capability_unavailable", false)})
 		}
 	}
 	for index := range calls {
@@ -401,16 +417,17 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 	var planErr error
 	results, planErr = a.planCapabilitiesForTransaction(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls, results)
 	if planErr != nil {
-		a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, results)
-		code, retryable := capabilityFailureInfo(planErr, results, calls, a.capabilityRegistry(), "capability_plan_failed")
-		if !retryable {
-			return a.failAutonomyAction(ctx, actionID, code)
+		if len(capabilityBatchFailures(planErr)) == 0 {
+			a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, results)
+			code, retryable := capabilityFailureInfo(planErr, results, calls, a.capabilityRegistry(), "capability_plan_failed")
+			if !retryable {
+				return a.failAutonomyAction(ctx, actionID, code)
+			}
+			return nil, planErr
 		}
-		return nil, planErr
 	}
-	if requiredErr := requiredCapabilityFailureCanonical(results, calls, a.capabilityRegistry(), false); requiredErr != nil {
-		a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, results)
-		return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
+	if len(capabilityBatchFailures(planErr)) > 0 {
+		results = mergeCapabilityResults(results, capabilityBatchFailures(planErr))
 	}
 	result := map[string]any{}
 	settlementErr := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
@@ -422,9 +439,6 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 			return settleErr
 		}
 		results = settled
-		if requiredErr := requiredCapabilityFailureCanonical(results, calls, a.capabilityRegistry(), true); requiredErr != nil {
-			return requiredErr
-		}
 		result = map[string]any{"status": "completed", "action_status": "completed", "capability_results": results}
 		if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(jsonb_set(payload,'{capability_invocations}',$2::jsonb,true),'{capability_results}',$3::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(calls), jsonBytes(results)); err != nil {
 			return err

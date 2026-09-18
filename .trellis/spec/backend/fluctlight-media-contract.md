@@ -44,6 +44,10 @@ created_at / ready_at / tombstoned_at / deleted_at
   conversation or Moment output. Its `wake_up` target is represented by the
   stable action provenance; the media intent remains durable and un-attached
   until a later product projection explicitly references the generated asset.
+- A direct conversation may execute `media.image.generate` without a
+  `conversation.reply` sibling. Core binds the media intent to the durable
+  conversation (`conversation_id` with no `message_id`); when the asset becomes
+  ready, the media workflow creates one idempotent `media_reference` message.
 - `MediaIntent.moment_id` is the durable target reference. It is nullable for
   conversation media and mandatory for Moment-image work; it is backed by the
   `media_intents.moment_id -> moments.id` foreign key.

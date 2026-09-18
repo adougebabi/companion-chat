@@ -766,11 +766,11 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		projection = assembledProjection
 		continuationBaseMessages = cloneMapSlice(assembly.Messages)
 		providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
-		// Structured cognition must keep the control JSON in the normal content
-		// channel. Thinking-enabled local Providers may spend the output reserve on
-		// reasoning_content and leave only partial/empty control JSON, so the
-		// production Main path deliberately omits enable_thinking.
-		completion, completionErr := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "conversation_turn_response", schema, false)
+		// Main cognition is the semantic decision boundary for persona, action and
+		// reply. Allow the configured Provider to use its thinking channel; the
+		// adapter still parses reasoning_content as a structured candidate and Core
+		// validates the resulting decision before any side effect.
+		completion, completionErr := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "conversation_turn_response", schema, structuredThinkingEnabledForSchema("conversation_turn_response"))
 		if completionErr != nil {
 			if a.cognitionFactSuperseded(ctx, inboxID) {
 				return TurnResult{}, errCognitionTurnSuperseded
@@ -845,8 +845,15 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			FluctlightID: fluctlightID, ConversationID: conversationID, SourceFactID: inboxID, ActionID: frozen.ID,
 			Surface: CapabilitySurfaceConversation, ContextSnapshot: mapValue(frozen.Payload["capability_context_snapshot"]), Context: ctx,
 		}); validateErr != nil {
-			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "candidate_invalid")
-			return TurnResult{}, validateErr
+			if failures := capabilityBatchFailures(validateErr); len(failures) > 0 {
+				// Candidate validation is per invocation. Keep the failed call
+				// auditable, but do not discard valid sibling calls from this turn.
+				capabilityResults = mergeCapabilityResults(capabilityResults, failures)
+				slog.Warn("Go Core capability candidate validation degraded per call", "turn_id", turnID, "failed_call_count", len(failures))
+			} else {
+				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "candidate_invalid")
+				return TurnResult{}, validateErr
+			}
 		}
 	}
 	// Exactly one insertion point exists between the A generation and the
@@ -937,7 +944,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if action != "reply" && action != "no_op" {
 		return TurnResult{}, errors.New("decision_effect_invalid")
 	}
-	if action == "no_op" {
+	if action == "no_op" && decision["tool_only"] != true {
 		_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "cognition_visible_text_missing")
 		return TurnResult{}, errors.New("cognition_visible_text_missing")
 	}
@@ -951,9 +958,14 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if len(capabilityInvocations) > 0 {
 		capabilityInvocations, err = a.prepareCapabilityInvocations(ctx, fluctlightID, conversationID, inboxID, capabilityInvocations, capabilityResults)
 		if err != nil {
-			code, _ := capabilityErrorInfo(err, "capability_prepare_failed", true)
-			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
-			return TurnResult{}, newCapabilityError(code, true, err)
+			if failures := capabilityBatchFailures(err); len(failures) > 0 {
+				capabilityResults = mergeCapabilityResults(capabilityResults, failures)
+				slog.Warn("Go Core capability preparation degraded per call", "turn_id", turnID, "failed_call_count", len(failures))
+			} else {
+				code, _ := capabilityErrorInfo(err, "capability_prepare_failed", true)
+				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, code)
+				return TurnResult{}, newCapabilityError(code, true, err)
+			}
 		}
 		// The prepared invocation is the crash/replay boundary. No Capability may
 		// execute until its runtime-owned plan and context snapshot are durable.
@@ -962,12 +974,20 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 	}
 	if action == "no_op" {
+		toolOnlyBinding := OutputBindingV1{}
+		if decision["tool_only"] == true {
+			// Tool-only direct turns have no assistant message yet. Deferred
+			// output capabilities such as image generation bind to the durable
+			// conversation itself; completion may later create a media_reference
+			// message without requiring conversation.reply.
+			toolOnlyBinding = OutputBindingV1{TargetKind: "conversation", TargetRef: conversationID}
+		}
 		if len(capabilityInvocations) > 0 {
 			capabilityResults, err = a.planCapabilitiesForTransaction(ctx, fluctlightID, conversationID, inboxID, capabilityInvocations, capabilityResults)
 			if err != nil {
-				// Optional capability failures remain structured diagnostics. Required
-				// state-changing failures are checked immediately below and quarantine
-				// the frozen turn before any visible output exists.
+				// Each capability failure remains a per-call diagnostic. Only the
+				// capability that owns a concrete visible output target is checked as
+				// a settlement gate; unrelated siblings continue independently.
 				slog.Default().Warn("Go Core capability failed during no-op turn", "turn_id", turnID, "error", err, "capability_results", capabilityResults)
 			}
 		}
@@ -987,7 +1007,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				return err
 			}
 			if len(capabilityInvocations) > 0 {
-				settled, settleErr := a.settleDeferredCapabilitiesTx(ctx, tx, fluctlightID, inboxID, inboxID, capabilityInvocations, capabilityResults, OutputBindingV1{})
+				settled, settleErr := a.settleDeferredCapabilitiesTx(ctx, tx, fluctlightID, inboxID, inboxID, capabilityInvocations, capabilityResults, toolOnlyBinding)
 				if settleErr != nil {
 					return settleErr
 				}
@@ -1002,7 +1022,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				if command.RowsAffected() != 1 {
 					return ErrConflict
 				}
-				if requiredErr := requiredCapabilityFailureCanonical(capabilityResults, capabilityInvocations, a.capabilityRegistry(), false); requiredErr != nil {
+				if requiredErr := requiredVisibleOutputCapabilityFailure(capabilityResults, capabilityInvocations, a.capabilityRegistry(), false); requiredErr != nil {
 					return requiredErr
 				}
 			}
@@ -1044,19 +1064,22 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if len(capabilityInvocations) > 0 {
 		capabilityResults, err = a.planCapabilitiesForTransaction(ctx, fluctlightID, conversationID, inboxID, capabilityInvocations, capabilityResults)
 		if err != nil {
-			// Preserve the structured failure before settling the frozen action.
-			// This keeps native capability diagnostics replayable instead of
-			// reducing every executor error to `tool_call_failed`.
-			if len(capabilityResults) > 0 {
-				_ = a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults)
+			if len(capabilityBatchFailures(err)) == 0 {
+				// Preserve the structured failure before settling the frozen action.
+				// This keeps native capability diagnostics replayable instead of
+				// reducing every executor error to `tool_call_failed`.
+				if len(capabilityResults) > 0 {
+					_ = a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults)
+				}
+				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "tool_call_failed")
+				return TurnResult{}, newCapabilityError("tool_call_failed", true, err)
 			}
-			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "tool_call_failed")
-			return TurnResult{}, newCapabilityError("tool_call_failed", true, err)
+			slog.Warn("Go Core capability planning degraded per call", "turn_id", turnID, "failed_call_count", len(capabilityBatchFailures(err)))
 		}
 		if err := a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults); err != nil {
 			return TurnResult{}, err
 		}
-		if requiredErr := requiredCapabilityFailureCanonical(capabilityResults, capabilityInvocations, a.capabilityRegistry(), false); requiredErr != nil {
+		if requiredErr := requiredVisibleOutputCapabilityFailure(capabilityResults, capabilityInvocations, a.capabilityRegistry(), false); requiredErr != nil {
 			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "required_capability_failed")
 			return TurnResult{}, requiredErr
 		}
@@ -1198,7 +1221,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				return settleErr
 			}
 			capabilityResults = settled
-			if requiredErr := requiredCapabilityFailureCanonical(capabilityResults, capabilityInvocations, a.capabilityRegistry(), true); requiredErr != nil {
+			if requiredErr := requiredVisibleOutputCapabilityFailure(capabilityResults, capabilityInvocations, a.capabilityRegistry(), true); requiredErr != nil {
 				return requiredErr
 			}
 			if err := a.persistFrozenCapabilityInvocationsTx(ctx, tx, frozen.ID, capabilityInvocations); err != nil {
@@ -1359,7 +1382,7 @@ func (a *App) recoverFrozenTurnAfterAssistant(ctx context.Context, inboxID, fluc
 			results = settled
 			mediaIntent = mediaIntentIDFromCapabilityResults(results)
 		}
-		if requiredErr := requiredCapabilityFailureCanonical(results, invocations, a.capabilityRegistry(), true); requiredErr != nil {
+		if requiredErr := requiredVisibleOutputCapabilityFailure(results, invocations, a.capabilityRegistry(), true); requiredErr != nil {
 			return requiredErr
 		}
 		payloadUpdate := `UPDATE public.cognition_frozen_actions SET payload=jsonb_set(jsonb_set(jsonb_set(payload,'{capability_results}',$2::jsonb,true),'{capability_invocations}',$3::jsonb,true),'{decision,composite_action}',$4::jsonb,true) WHERE id=$1 AND status='frozen'`

@@ -161,9 +161,10 @@ func (a *App) normalizeTurnDecision(ctx context.Context, input turnDecisionNorma
 	} else {
 		action = normalizeConversationActionType(stringValue(decision["action_type"]))
 	}
-	// A direct user turn has exactly one terminal product contract: either the
-	// same Main cognition supplies visible text, or the turn fails explicitly
-	// and remains retryable.
+	// A direct user turn has one terminal product contract: visible text from the
+	// same Main cognition, or an explicit tool-only completion when at least one
+	// Capability invocation is present. A completely empty turn still fails
+	// explicitly and remains retryable.
 	if responseMode == "query_continuation" {
 		if input.ForbidQueryContinuation {
 			return result, errTakeoverReplyBudgetExhausted
@@ -179,15 +180,34 @@ func (a *App) normalizeTurnDecision(ctx context.Context, input turnDecisionNorma
 			return result, errors.New("response_mode_invalid")
 		}
 		if visibleCandidate == "" {
-			return result, errors.New("cognition_visible_text_missing")
+			if len(invocations) == 0 {
+				return result, errors.New("cognition_visible_text_missing")
+			}
+			// Tool calls are independent event-driven effects. A direct turn may
+			// complete without assistant prose when it contains valid capability
+			// invocations; each invocation is settled on its own target below.
+			// `tool_only` is frozen so the execution path does not mistake this
+			// valid silent turn for a failed no-op.
+			result.ToolOnlyNoReply = true
+			decision["tool_only"] = true
+			decision["action_type"] = "no_op"
+			responsePlan["action_type"] = "no_op"
+			delete(responsePlan, "visible_text")
+			delete(decision, "visible_text")
+		} else {
+			// Freeze the single authority into both carriers so every consumer
+			// reads the same text.
+			responsePlan["visible_text"] = visibleCandidate
+			decision["visible_text"] = visibleCandidate
 		}
-		// Freeze the single authority into both carriers so every consumer
-		// reads the same text.
-		responsePlan["visible_text"] = visibleCandidate
-		decision["visible_text"] = visibleCandidate
 	}
-	action = "reply"
-	decision["action_type"] = "reply"
+	if result.ToolOnlyNoReply {
+		action = "no_op"
+		decision["action_type"] = "no_op"
+	} else {
+		action = "reply"
+		decision["action_type"] = "reply"
+	}
 	if preferenceDecision := mapValue(responsePlan["output_preference_decision"]); len(preferenceDecision) > 0 {
 		responsePlan["output_preference_decision"] = evaluateOutputPreferenceAction(preferenceDecision, action, invocations, a.capabilityRegistry())
 	}

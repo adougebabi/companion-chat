@@ -12,6 +12,52 @@ func TestNormalizeAppraisalRejectsRawOutOfRangeValues(t *testing.T) {
 	}
 }
 
+func TestNativeCognitionAllowsToolOnlySidecarWithoutFabricatingSemanticState(t *testing.T) {
+	stages, semantic, err := normalizeCognitiveStages(map[string]any{
+		"attention": "", "thought": "", "desire": "", "agency": "",
+	}, true)
+	if err != nil {
+		t.Fatalf("tool-only native cognition sidecar was rejected: %v", err)
+	}
+	if semantic {
+		t.Fatalf("empty sidecar was treated as semantic cognition: %#v", stages)
+	}
+	if _, exists := stages["appraisal"]; exists {
+		t.Fatalf("tool-only sidecar fabricated appraisal: %#v", stages)
+	}
+}
+
+func TestNativeCognitionStillRejectsEmptySidecarWithoutToolCalls(t *testing.T) {
+	if _, _, err := normalizeCognitiveStages(map[string]any{"attention": "", "thought": "", "desire": "", "agency": ""}, false); err == nil {
+		t.Fatal("empty native cognition sidecar without tool calls must fail closed")
+	}
+}
+
+func TestStructuredThinkingPolicySeparatesCognitionFromVisibleQueryProtocols(t *testing.T) {
+	for _, schema := range []string{
+		"conversation_turn_response", "takeover_reply_response", "persistent_switch_assessment",
+		"wake_up_response", "daily_review_response", "native_cognition_response", "reflection_proposal_v2",
+	} {
+		if !structuredThinkingEnabledForSchema(schema) {
+			t.Fatalf("semantic cognition schema %q must enable Provider thinking", schema)
+		}
+	}
+	for _, schema := range []string{"query_continuation_response", "takeover_judgement_response", "unknown_schema"} {
+		if structuredThinkingEnabledForSchema(schema) {
+			t.Fatalf("visible/bounded schema %q must keep Provider thinking disabled", schema)
+		}
+	}
+}
+
+func TestNativeCognitionCycleGuardBoundary(t *testing.T) {
+	if nativeCognitionCycleGuarded(0) || nativeCognitionCycleGuarded(maxNativeCognitionDepth) {
+		t.Fatal("native cognition depth at or below the bound must remain processable")
+	}
+	if !nativeCognitionCycleGuarded(maxNativeCognitionDepth + 1) {
+		t.Fatal("native cognition depth above the bound must be terminally guarded")
+	}
+}
+
 func TestNormalizeAppraisalRejectsUnknownAndNonFiniteNumericFields(t *testing.T) {
 	base := map[string]any{
 		"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.0, "social_threat": 0.0,

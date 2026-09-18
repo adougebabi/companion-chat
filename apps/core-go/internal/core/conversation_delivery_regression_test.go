@@ -300,6 +300,39 @@ func TestDirectConversationReplyToolWithoutAppraisalCommitsBothMessages(t *testi
 	}
 }
 
+func TestDirectConversationToolCallsExecuteIndependentlyWithoutVisibleReply(t *testing.T) {
+	ctx, repository, app, ownerID, fluctlightID, conversationID := setupMixedMediaReplyTurn(t, "tool-only", fakeProviderResult{ToolCalls: []map[string]any{
+		{"id": "tool-only-image", "type": "function", "function": map[string]any{
+			"name": "media.image.generate", "arguments": jsonString(map[string]any{"intent": "林夏希在书桌前，数位板亮着，戴着耳机，背景是暖色书房。"}),
+		}},
+		{"id": "tool-only-affect", "type": "function", "function": map[string]any{
+			"name": "affect_event", "arguments": jsonString(map[string]any{"event": map[string]any{"type": "embarrassed", "confidence": 0.7}}),
+		}},
+	}})
+	result, err := app.HandleTurn(ctx, ownerID, conversationID, map[string]any{
+		"fluctlight_id": fluctlightID, "text": "帮我记录一下现在的状态", "idempotency_key": "tool-only-turn", "turn_id": "tool-only-turn-1", "attachment_refs": []any{},
+	})
+	if err != nil {
+		t.Fatalf("tool-only direct turn failed: %v", err)
+	}
+	if len(result.Assistant) != 0 {
+		t.Fatalf("tool-only direct turn fabricated an assistant message: %#v", result.Assistant)
+	}
+	var assistantCount, mediaCount, affectCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversationID).Scan(&assistantCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND message_id IS NULL`, fluctlightID, conversationID).Scan(&mediaCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.fluctlight_inner_state_events WHERE fluctlight_id=$1 AND payload->>'source_fact_id'=(SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key='tool-only-turn')`, fluctlightID).Scan(&affectCount); err != nil {
+		t.Fatal(err)
+	}
+	if assistantCount != 0 || mediaCount != 1 || affectCount != 1 {
+		t.Fatalf("independent tool effects assistant=%d media=%d affect=%d", assistantCount, mediaCount, affectCount)
+	}
+}
+
 func TestDirectConversationReplyCanonicalToolCallWithEmptyStructuredFieldsCommitsMessage(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "canonical-reply-owner", "canonical-reply-fluctlight", "canonical-reply-conversation"

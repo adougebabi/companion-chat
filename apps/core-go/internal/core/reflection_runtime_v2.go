@@ -178,7 +178,7 @@ func (a *App) processReflectionV2(
 		nil,
 		"reflection_proposal_v2",
 		schema,
-		false,
+		structuredThinkingEnabledForSchema("reflection_proposal_v2"),
 	)
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)

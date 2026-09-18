@@ -85,7 +85,7 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	}
 	projection = assembledProjection
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "daily_review"), assembly.Diagnostics)
-	completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "daily_review_response", schema, false)
+	completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "daily_review_response", schema, structuredThinkingEnabledForSchema("daily_review_response"))
 	if err != nil {
 		// A daily review is one semantic cognition. Invalid Provider output is
 		// retried by its owning workflow with the same durable identity; this call
@@ -117,11 +117,18 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	toolCalls := append([]CapabilityInvocation(nil), completion.ToolCalls...)
 	toolCalls, err = a.bindCapabilityInvocationsToProjection(toolCalls, projection, actionID, "daily-review:"+fluctlightID+":"+localDate, CapabilitySurfaceAutonomy)
 	if err != nil {
-		return nil, err
+		if len(capabilityBatchFailures(err)) == 0 {
+			return nil, err
+		}
+		decisionFailures := capabilityBatchFailures(err)
+		decision["capability_results"] = capabilityResultValues(decisionFailures)
 	}
 	toolCalls, err = a.prepareCapabilityInvocations(ctx, fluctlightID, conversationID, "daily-review:"+fluctlightID+":"+localDate, toolCalls)
 	if err != nil {
-		return nil, err
+		if len(capabilityBatchFailures(err)) == 0 {
+			return nil, err
+		}
+		decision["capability_results"] = capabilityResultValues(mergeCapabilityResultsFromValue(decision["capability_results"], capabilityBatchFailures(err)))
 	}
 	// A thinking-enabled Provider may express a schedule/scene/native update
 	// entirely through optional capability calls and omit the JSON sidecar. Keep

@@ -45,6 +45,80 @@ func capabilityCatalog(registry *CapabilityRegistry, surface CapabilitySurface) 
 	return registry.Catalog(surface)
 }
 
+// capabilityInvocationBatchError carries the per-call failures collected while
+// a batch is being prepared or planned.  The batch itself is deliberately not
+// an all-or-nothing boundary: callers must persist these failures next to the
+// corresponding call and continue with every sibling that reached its own
+// boundary successfully.  Unwrap keeps the historical errors.Is/errors.As
+// behavior for callers that still need the first concrete cause.
+type capabilityInvocationBatchError struct {
+	Failures []CapabilityResult
+	First    error
+}
+
+func (err *capabilityInvocationBatchError) Error() string {
+	if err == nil {
+		return ""
+	}
+	if err.First != nil {
+		return err.First.Error()
+	}
+	return "capability invocation batch failed"
+}
+
+func (err *capabilityInvocationBatchError) Unwrap() error {
+	if err == nil {
+		return nil
+	}
+	return err.First
+}
+
+func (err *capabilityInvocationBatchError) add(invocation CapabilityInvocation, cause error, fallbackCode string) {
+	if err == nil || cause == nil {
+		return
+	}
+	if err.First == nil {
+		err.First = cause
+	}
+	code, retryable := capabilityErrorInfo(cause, fallbackCode, true)
+	if errors.Is(cause, ErrCapabilityNotFound) || errors.Is(cause, ErrInvalidArguments) || errors.Is(cause, ErrUnauthorized) {
+		retryable = false
+	}
+	err.Failures = replaceCapabilityResult(err.Failures, failedCapabilityResultDetail(invocation, code, retryable, cause.Error()))
+}
+
+func capabilityBatchFailures(err error) []CapabilityResult {
+	var batch *capabilityInvocationBatchError
+	if errors.As(err, &batch) && batch != nil {
+		return append([]CapabilityResult(nil), batch.Failures...)
+	}
+	return nil
+}
+
+func mergeCapabilityResults(existing, additions []CapabilityResult) []CapabilityResult {
+	merged := append([]CapabilityResult(nil), existing...)
+	for _, addition := range additions {
+		merged = replaceCapabilityResult(merged, addition)
+	}
+	return merged
+}
+
+func mergeCapabilityResultsFromValue(value any, additions []CapabilityResult) []CapabilityResult {
+	existing, err := capabilityResultsFromValue(value)
+	if err != nil {
+		existing = nil
+	}
+	return mergeCapabilityResults(existing, additions)
+}
+
+func capabilityResultValues(results []CapabilityResult) []any {
+	values := make([]any, 0, len(results))
+	for _, result := range results {
+		values = append(values, result)
+	}
+	return values
+}
+
 // ExecuteCapabilities is the standalone planning/query entry point. It never
 // self-commits a transactional Capability; callers that own an action use the
 // frozen plan plus settleDeferredCapabilitiesTx in their Unit of Work.
@@ -75,6 +149,7 @@ func (a *App) executeCapabilities(ctx context.Context, fluctlightID, conversatio
 	registry := runtime.Registry
 	results := append([]CapabilityResult(nil), existing...)
 	var firstErr error
+	batchErr := &capabilityInvocationBatchError{}
 	for index := range invocations {
 		invocation := normalizeCapabilityInvocationMetadata(invocations[index], fluctlightID, conversationID, sourceFactID, sourceFactID, index)
 		invocations[index] = invocation
@@ -90,8 +165,10 @@ func (a *App) executeCapabilities(ctx context.Context, fluctlightID, conversatio
 		if !ok {
 			result := failedCapabilityResultDetail(invocation, "capability_not_found", false, invocation.CapabilityName)
 			results = replaceCapabilityResult(results, result)
+			batchErr.Failures = replaceCapabilityResult(batchErr.Failures, result)
 			if firstErr == nil {
 				firstErr = fmt.Errorf("%w: %s", ErrCapabilityNotFound, invocation.CapabilityName)
+				batchErr.First = firstErr
 			}
 			continue
 		}
@@ -99,8 +176,10 @@ func (a *App) executeCapabilities(ctx context.Context, fluctlightID, conversatio
 		if !ok {
 			result := failedCapabilityResultDetail(invocation, "capability_not_found", false, "implementation is not registered")
 			results = replaceCapabilityResult(results, result)
+			batchErr.Failures = replaceCapabilityResult(batchErr.Failures, result)
 			if firstErr == nil {
 				firstErr = fmt.Errorf("%w: %s", ErrCapabilityNotFound, invocation.CapabilityName)
+				batchErr.First = firstErr
 			}
 			continue
 		}
@@ -108,8 +187,10 @@ func (a *App) executeCapabilities(ctx context.Context, fluctlightID, conversatio
 		if classErr != nil {
 			result := failedCapabilityResultDetail(invocation, "capability_execution_class_invalid", false, classErr.Error())
 			results = replaceCapabilityResult(results, result)
+			batchErr.Failures = replaceCapabilityResult(batchErr.Failures, result)
 			if firstErr == nil && definition.FailurePolicy == FailurePolicyRequiredForVisibleClaim {
 				firstErr = classErr
+				batchErr.First = firstErr
 			}
 			continue
 		}
@@ -118,8 +199,10 @@ func (a *App) executeCapabilities(ctx context.Context, fluctlightID, conversatio
 				if _, prepareErr := decodeCapabilityPreparedPayload(invocation.PreparedPayload); prepareErr != nil {
 					result := failedCapabilityResultDetail(invocation, "capability_prepared_payload_invalid", false, prepareErr.Error())
 					results = replaceCapabilityResult(results, result)
+					batchErr.Failures = replaceCapabilityResult(batchErr.Failures, result)
 					if firstErr == nil && definition.FailurePolicy == FailurePolicyRequiredForVisibleClaim {
 						firstErr = prepareErr
+						batchErr.First = firstErr
 					}
 					continue
 				}
@@ -129,8 +212,10 @@ func (a *App) executeCapabilities(ctx context.Context, fluctlightID, conversatio
 					code, retryable := capabilityErrorInfo(prepareErr, "capability_prepare_failed", true)
 					result := failedCapabilityResultDetail(invocation, code, retryable, prepareErr.Error())
 					results = replaceCapabilityResult(results, result)
+					batchErr.Failures = replaceCapabilityResult(batchErr.Failures, result)
 					if firstErr == nil && definition.FailurePolicy == FailurePolicyRequiredForVisibleClaim {
 						firstErr = prepareErr
+						batchErr.First = firstErr
 					}
 					continue
 				}
@@ -155,8 +240,12 @@ func (a *App) executeCapabilities(ctx context.Context, fluctlightID, conversatio
 			result, err = runtime.Execute(ctx, invocation)
 		}
 		results = replaceCapabilityResult(results, result)
+		if err != nil {
+			batchErr.Failures = replaceCapabilityResult(batchErr.Failures, result)
+		}
 		if err != nil && firstErr == nil && definition.FailurePolicy == FailurePolicyRequiredForVisibleClaim {
 			firstErr = err
+			batchErr.First = firstErr
 		}
 	}
 	if persistStandaloneOutcomes {
@@ -164,15 +253,26 @@ func (a *App) executeCapabilities(ctx context.Context, fluctlightID, conversatio
 			firstErr = persistErr
 		}
 	}
-	return results, firstErr
+	if firstErr != nil {
+		if batchErr.First == nil {
+			batchErr.First = firstErr
+		}
+		return results, batchErr
+	}
+	return results, nil
 }
 
 func (a *App) prepareCapabilityInvocations(ctx context.Context, fluctlightID, conversationID, sourceFactID string, invocations []CapabilityInvocation, existing ...[]CapabilityResult) ([]CapabilityInvocation, error) {
 	prepared := append([]CapabilityInvocation(nil), invocations...)
 	runtime := a.capabilityRuntime()
 	if runtime == nil {
-		return nil, ErrCapabilityNotFound
+		batch := &capabilityInvocationBatchError{}
+		for _, invocation := range prepared {
+			batch.add(invocation, ErrCapabilityNotFound, "capability_prepare_failed")
+		}
+		return prepared, batch
 	}
+	batch := &capabilityInvocationBatchError{}
 	for index := range prepared {
 		prepared[index] = normalizeCapabilityInvocationMetadata(prepared[index], fluctlightID, conversationID, sourceFactID, sourceFactID, index)
 		if len(existing) > 0 {
@@ -182,19 +282,24 @@ func (a *App) prepareCapabilityInvocations(ctx context.Context, fluctlightID, co
 		}
 		_, ok := runtime.Registry.Definition(prepared[index].CapabilityName)
 		if !ok {
-			return nil, fmt.Errorf("%w: %s", ErrCapabilityNotFound, prepared[index].CapabilityName)
+			batch.add(prepared[index], fmt.Errorf("%w: %s", ErrCapabilityNotFound, prepared[index].CapabilityName), "capability_prepare_failed")
+			continue
 		}
 		if len(prepared[index].PreparedPayload) > 0 {
 			if _, err := decodeCapabilityPreparedPayload(prepared[index].PreparedPayload); err != nil {
-				return nil, fmt.Errorf("%w: %v", ErrInvalidArguments, err)
+				batch.add(prepared[index], fmt.Errorf("%w: %v", ErrInvalidArguments, err), "capability_prepare_failed")
 			}
 			continue
 		}
 		invocation, _, err := runtime.Prepare(ctx, prepared[index])
 		if err != nil {
-			return nil, err
+			batch.add(prepared[index], err, "capability_prepare_failed")
+			continue
 		}
 		prepared[index] = invocation
+	}
+	if len(batch.Failures) > 0 {
+		return prepared, batch
 	}
 	return prepared, nil
 }
@@ -209,14 +314,19 @@ func (a *App) validateCapabilityInvocationsForPersistence(invocations []Capabili
 	if registry == nil {
 		return ErrCapabilityNotFound
 	}
+	batch := &capabilityInvocationBatchError{}
 	for _, invocation := range invocations {
 		definition, ok := registry.Definition(invocation.CapabilityName)
 		if !ok {
-			return fmt.Errorf("%w: %s", ErrCapabilityNotFound, invocation.CapabilityName)
+			batch.add(invocation, fmt.Errorf("%w: %s", ErrCapabilityNotFound, invocation.CapabilityName), "capability_invalid")
+			continue
 		}
 		if err := invocation.Validate(definition); err != nil {
-			return err
+			batch.add(invocation, err, "capability_invalid")
 		}
+	}
+	if len(batch.Failures) > 0 {
+		return batch
 	}
 	return nil
 }
@@ -273,77 +383,88 @@ func (a *App) validateCandidateCapabilityInvocationsWithContext(ctx context.Cont
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("%w: candidate validation context: %v", ErrContextResolve, err)
 	}
-	if err := a.validateCapabilityInvocationsForPersistence(invocations); err != nil {
-		return err
-	}
 	registry := a.capabilityRegistry()
 	if registry == nil {
 		return ErrCapabilityNotFound
 	}
+	batch := &capabilityInvocationBatchError{}
 	for _, invocation := range invocations {
-		definition, ok := registry.Definition(invocation.CapabilityName)
-		if !ok {
-			return fmt.Errorf("%w: %s", ErrCapabilityNotFound, invocation.CapabilityName)
+		if err := validateCandidateCapabilityInvocation(ctx, invocation, candidate, registry); err != nil {
+			batch.add(invocation, err, "candidate_invalid")
 		}
-		// The frozen candidate surface is the only authority. A provider may omit
-		// metadata (Core fills that default), but it may not claim another
-		// already-authorized surface to widen the call's permissions.
-		if declaredSurface := invocation.Metadata.Surface; declaredSurface != "" && declaredSurface != candidate.Surface {
-			return fmt.Errorf("%w: capability %s declares surface %s outside candidate surface %s", ErrUnauthorized, invocation.CapabilityName, declaredSurface, candidate.Surface)
-		}
-		if !definition.SupportsSurface(candidate.Surface) {
-			return fmt.Errorf("%w: capability %s is not authorized for surface %s", ErrUnauthorized, invocation.CapabilityName, candidate.Surface)
-		}
-		if owner := strings.TrimSpace(invocation.Metadata.FluctlightID); owner != "" && owner != strings.TrimSpace(candidate.FluctlightID) {
-			return fmt.Errorf("%w: capability %s targets fluctlight %s outside the candidate %s", ErrUnauthorized, invocation.CapabilityName, owner, candidate.FluctlightID)
-		}
-		if cid := strings.TrimSpace(invocation.Metadata.ConversationID); cid != "" && cid != strings.TrimSpace(candidate.ConversationID) {
-			return fmt.Errorf("%w: capability %s targets conversation %s outside the candidate %s", ErrUnauthorized, invocation.CapabilityName, cid, candidate.ConversationID)
-		}
-		if sourceFactID := strings.TrimSpace(invocation.SourceFactID); sourceFactID != "" && strings.TrimSpace(candidate.SourceFactID) != "" && sourceFactID != strings.TrimSpace(candidate.SourceFactID) {
-			return fmt.Errorf("%w: capability %s targets source fact %s outside the candidate %s", ErrUnauthorized, invocation.CapabilityName, sourceFactID, candidate.SourceFactID)
-		}
-		if actionID := strings.TrimSpace(invocation.ActionID); actionID != "" && strings.TrimSpace(candidate.ActionID) != "" && actionID != strings.TrimSpace(candidate.ActionID) {
-			return fmt.Errorf("%w: capability %s targets action %s outside the candidate %s", ErrUnauthorized, invocation.CapabilityName, actionID, candidate.ActionID)
-		}
-		if binding := invocation.Metadata.OutputBinding; binding != nil {
-			if len(definition.TargetKinds) == 0 || !targetKindAuthorizes(definition.TargetKinds, binding.TargetKind) {
-				return fmt.Errorf("%w: capability %s output target kind %s is not declared", ErrUnauthorized, invocation.CapabilityName, binding.TargetKind)
-			}
-		}
+	}
+	if len(batch.Failures) > 0 {
+		return batch
+	}
+	return nil
+}
 
-		resolved := CapabilityContext{Identity: ContextIdentity{
-			FluctlightID: strings.TrimSpace(candidate.FluctlightID), ConversationID: strings.TrimSpace(candidate.ConversationID),
-			SourceFactID: strings.TrimSpace(candidate.SourceFactID), ActionID: strings.TrimSpace(candidate.ActionID),
-		}, extra: make(map[ContextSlot]any)}
-		if len(definition.RequiredContext) > 0 {
-			if len(candidate.ContextSnapshot) == 0 {
-				return fmt.Errorf("%w: capability %s requires a frozen context snapshot", ErrContextResolve, invocation.CapabilityName)
-			}
-			if err := validateCandidateSnapshotIdentity(candidate.ContextSnapshot, candidate); err != nil {
-				return fmt.Errorf("%w: capability %s: %v", ErrContextResolve, invocation.CapabilityName, err)
-			}
-			resolver := NewSnapshotContextResolver(candidate.ContextSnapshot)
-			var resolveErr error
-			resolved, resolveErr = resolver.Resolve(ctx, ContextRequest{
-				FluctlightID: strings.TrimSpace(candidate.FluctlightID), ConversationID: strings.TrimSpace(candidate.ConversationID),
-				SourceFactID: strings.TrimSpace(candidate.SourceFactID), ActionID: strings.TrimSpace(candidate.ActionID), Surface: candidate.Surface,
-			}, definition.RequiredContext)
-			if resolveErr != nil {
-				return fmt.Errorf("%w: capability %s: %v", ErrContextResolve, invocation.CapabilityName, resolveErr)
-			}
-		} else if len(candidate.ContextSnapshot) > 0 {
-			// A contextful snapshot is still checked when supplied to a contextless
-			// capability so a custom hook cannot receive a forged identity.
-			if err := validateCandidateSnapshotIdentity(candidate.ContextSnapshot, candidate); err != nil {
-				return fmt.Errorf("%w: capability %s: %v", ErrContextResolve, invocation.CapabilityName, err)
-			}
+func validateCandidateCapabilityInvocation(ctx context.Context, invocation CapabilityInvocation, candidate candidateValidationContext, registry *CapabilityRegistry) error {
+	definition, ok := registry.Definition(invocation.CapabilityName)
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrCapabilityNotFound, invocation.CapabilityName)
+	}
+	if err := invocation.Validate(definition); err != nil {
+		return err
+	}
+	// The frozen candidate surface is the only authority. A provider may omit
+	// metadata (Core fills that default), but it may not claim another
+	// already-authorized surface to widen the call's permissions.
+	if declaredSurface := invocation.Metadata.Surface; declaredSurface != "" && declaredSurface != candidate.Surface {
+		return fmt.Errorf("%w: capability %s declares surface %s outside candidate surface %s", ErrUnauthorized, invocation.CapabilityName, declaredSurface, candidate.Surface)
+	}
+	if !definition.SupportsSurface(candidate.Surface) {
+		return fmt.Errorf("%w: capability %s is not authorized for surface %s", ErrUnauthorized, invocation.CapabilityName, candidate.Surface)
+	}
+	if owner := strings.TrimSpace(invocation.Metadata.FluctlightID); owner != "" && owner != strings.TrimSpace(candidate.FluctlightID) {
+		return fmt.Errorf("%w: capability %s targets fluctlight %s outside the candidate %s", ErrUnauthorized, invocation.CapabilityName, owner, candidate.FluctlightID)
+	}
+	if cid := strings.TrimSpace(invocation.Metadata.ConversationID); cid != "" && cid != strings.TrimSpace(candidate.ConversationID) {
+		return fmt.Errorf("%w: capability %s targets conversation %s outside the candidate %s", ErrUnauthorized, invocation.CapabilityName, cid, candidate.ConversationID)
+	}
+	if sourceFactID := strings.TrimSpace(invocation.SourceFactID); sourceFactID != "" && strings.TrimSpace(candidate.SourceFactID) != "" && sourceFactID != strings.TrimSpace(candidate.SourceFactID) {
+		return fmt.Errorf("%w: capability %s targets source fact %s outside the candidate %s", ErrUnauthorized, invocation.CapabilityName, sourceFactID, candidate.SourceFactID)
+	}
+	if actionID := strings.TrimSpace(invocation.ActionID); actionID != "" && strings.TrimSpace(candidate.ActionID) != "" && actionID != strings.TrimSpace(candidate.ActionID) {
+		return fmt.Errorf("%w: capability %s targets action %s outside the candidate %s", ErrUnauthorized, invocation.CapabilityName, actionID, candidate.ActionID)
+	}
+	if binding := invocation.Metadata.OutputBinding; binding != nil {
+		if len(definition.TargetKinds) == 0 || !targetKindAuthorizes(definition.TargetKinds, binding.TargetKind) {
+			return fmt.Errorf("%w: capability %s output target kind %s is not declared", ErrUnauthorized, invocation.CapabilityName, binding.TargetKind)
 		}
-		if validator, ok := registry.LookupCapability(invocation.CapabilityName); ok {
-			if hook, implements := validator.(CapabilityCandidateValidator); implements {
-				if err := hook.ValidateCandidate(ctx, invocation, resolved); err != nil {
-					return fmt.Errorf("capability %s candidate validation: %w", invocation.CapabilityName, err)
-				}
+	}
+
+	resolved := CapabilityContext{Identity: ContextIdentity{
+		FluctlightID: strings.TrimSpace(candidate.FluctlightID), ConversationID: strings.TrimSpace(candidate.ConversationID),
+		SourceFactID: strings.TrimSpace(candidate.SourceFactID), ActionID: strings.TrimSpace(candidate.ActionID),
+	}, extra: make(map[ContextSlot]any)}
+	if len(definition.RequiredContext) > 0 {
+		if len(candidate.ContextSnapshot) == 0 {
+			return fmt.Errorf("%w: capability %s requires a frozen context snapshot", ErrContextResolve, invocation.CapabilityName)
+		}
+		if err := validateCandidateSnapshotIdentity(candidate.ContextSnapshot, candidate); err != nil {
+			return fmt.Errorf("%w: capability %s: %v", ErrContextResolve, invocation.CapabilityName, err)
+		}
+		resolver := NewSnapshotContextResolver(candidate.ContextSnapshot)
+		var resolveErr error
+		resolved, resolveErr = resolver.Resolve(ctx, ContextRequest{
+			FluctlightID: strings.TrimSpace(candidate.FluctlightID), ConversationID: strings.TrimSpace(candidate.ConversationID),
+			SourceFactID: strings.TrimSpace(candidate.SourceFactID), ActionID: strings.TrimSpace(candidate.ActionID), Surface: candidate.Surface,
+		}, definition.RequiredContext)
+		if resolveErr != nil {
+			return fmt.Errorf("%w: capability %s: %v", ErrContextResolve, invocation.CapabilityName, resolveErr)
+		}
+	} else if len(candidate.ContextSnapshot) > 0 {
+		// A contextful snapshot is still checked when supplied to a contextless
+		// capability so a custom hook cannot receive a forged identity.
+		if err := validateCandidateSnapshotIdentity(candidate.ContextSnapshot, candidate); err != nil {
+			return fmt.Errorf("%w: capability %s: %v", ErrContextResolve, invocation.CapabilityName, err)
+		}
+	}
+	if validator, ok := registry.LookupCapability(invocation.CapabilityName); ok {
+		if hook, implements := validator.(CapabilityCandidateValidator); implements {
+			if err := hook.ValidateCandidate(ctx, invocation, resolved); err != nil {
+				return fmt.Errorf("capability %s candidate validation: %w", invocation.CapabilityName, err)
 			}
 		}
 	}
@@ -403,15 +524,20 @@ func targetKindAuthorizes(declared []string, kind string) bool {
 func (a *App) bindCapabilityInvocationsToProjection(invocations []CapabilityInvocation, projection ContextProjection, actionID, sourceFactID string, surface CapabilitySurface) ([]CapabilityInvocation, error) {
 	bound := append([]CapabilityInvocation(nil), invocations...)
 	registry := a.capabilityRegistry()
+	batch := &capabilityInvocationBatchError{}
 	for index := range bound {
 		bound[index] = normalizeCapabilityInvocationMetadata(bound[index], projection.FluctlightID, projection.ConversationID, sourceFactID, sourceFactID, index)
 		bound[index].ActionID = actionID
 		bound[index].Metadata.Surface = surface
 		definition, ok := registry.Definition(bound[index].CapabilityName)
 		if !ok {
-			return nil, fmt.Errorf("%w: %s", ErrCapabilityNotFound, bound[index].CapabilityName)
+			batch.add(bound[index], fmt.Errorf("%w: %s", ErrCapabilityNotFound, bound[index].CapabilityName), "capability_bind_failed")
+			continue
 		}
 		bound[index].ContextSnapshot = capabilitySnapshotForProjection(projection, definition.RequiredContext, actionID)
+	}
+	if len(batch.Failures) > 0 {
+		return bound, batch
 	}
 	return bound, nil
 }
@@ -484,6 +610,14 @@ func requiredCapabilityFailureCanonical(results []CapabilityResult, invocations 
 		if definition.FailurePolicy != FailurePolicyRequiredForVisibleClaim {
 			continue
 		}
+		// Failure policy is scoped to a capability's own output contract. In a
+		// multi-call batch only a primary visible output (conversation message or
+		// Moment) may fail the caller-owned settlement. Media, state, memory, and
+		// other siblings retain their own failed result without rolling back a
+		// successful sibling.
+		if len(invocations) > 1 && definition.OutputRole != "conversation_message" && definition.OutputRole != "moment" {
+			continue
+		}
 		result, found := capabilityResultForCall(results, invocation.CallID)
 		if !found {
 			return newCapabilityError("capability_result_missing", false, fmt.Errorf("required capability %q has no result", invocation.CapabilityName))
@@ -503,6 +637,36 @@ func requiredCapabilityFailureCanonical(results []CapabilityResult, invocations 
 		}
 	}
 	return nil
+}
+
+// requiredVisibleOutputCapabilityFailure is the conversation settlement gate.
+// It protects the one capability that can make a visible assistant claim
+// (conversation_message) while deliberately ignoring failures from independent
+// media/state/memory siblings. Their own CapabilityResult remains durable and
+// is retried or diagnosed by its own worker policy; it cannot turn a valid
+// private reply into a browser retry.
+func requiredVisibleOutputCapabilityFailure(results []CapabilityResult, invocations []CapabilityInvocation, registry *CapabilityRegistry, settled bool) error {
+	return requiredOutputCapabilityFailure(results, invocations, registry, settled, "conversation_message")
+}
+
+func requiredOutputCapabilityFailure(results []CapabilityResult, invocations []CapabilityInvocation, registry *CapabilityRegistry, settled bool, targetKind string) error {
+	if registry == nil {
+		return newCapabilityError("capability_not_found", false, fmt.Errorf("%w: registry is unavailable", ErrCapabilityNotFound))
+	}
+	visible := make([]CapabilityInvocation, 0, len(invocations))
+	for _, invocation := range invocations {
+		definition, ok := registry.Definition(invocation.CapabilityName)
+		if !ok {
+			continue
+		}
+		if definition.OutputRole == targetKind {
+			visible = append(visible, invocation)
+		}
+	}
+	if len(visible) == 0 {
+		return nil
+	}
+	return requiredCapabilityFailureCanonical(results, visible, registry, settled)
 }
 
 func capabilityFailureInfo(err error, results []CapabilityResult, invocations []CapabilityInvocation, registry *CapabilityRegistry, fallbackCode string) (string, bool) {

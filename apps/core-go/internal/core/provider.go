@@ -170,8 +170,10 @@ func structuredResultForRole(role string, completion ProviderCompletion) (map[st
 // StructuredWithTools requests a structured model assessment with the
 // external capability catalog. Native provider calls and JSON sidecars are
 // normalized into ProviderCompletion before the application sees them. The
-// request always asks for the operation's strict JSON Schema; the cognitive
-// assessment default additionally enables the provider's thinking mode.
+// request always asks for the operation's strict JSON Schema; this legacy
+// helper keeps the cognitive-assessment thinking default for callers that use
+// it directly. Assembled production paths pass the flag explicitly per
+// operation so query continuation and the takeover Judge remain no-thinking.
 func (p *ProviderClient) StructuredWithTools(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition) (ProviderCompletion, error) {
 	return p.completeWithTools(ctx, role, messages, true, definitions)
 }
@@ -202,15 +204,29 @@ func (p *ProviderClient) StructuredAssembledWithToolsSchema(ctx context.Context,
 	return p.completeWithToolsSchemaMode(ctx, role, messages, true, definitions, schemaName, schema, enableThinking, true, false)
 }
 
+// structuredThinkingEnabledForSchema keeps the Provider thinking policy at the
+// protocol boundary. Semantic cognition and native event appraisal may use the
+// model's reasoning channel; query continuation and the takeover Judge must
+// keep their output in the visible, strictly bounded channel.
+func structuredThinkingEnabledForSchema(schemaName string) bool {
+	switch strings.TrimSpace(schemaName) {
+	case "conversation_turn_response", "takeover_reply_response", "persistent_switch_assessment",
+		"wake_up_response", "daily_review_response", "native_cognition_response", "reflection_proposal_v2":
+		return true
+	default:
+		return false
+	}
+}
+
 func (p *ProviderClient) StructuredQueryContinuation(ctx context.Context, role string, messages []map[string]any, schemaName string, schema map[string]any) (ProviderCompletion, error) {
 	return p.completeWithToolsSchemaMode(ctx, role, messages, true, nil, schemaName, schema, false, true, true)
 }
 
 // StructuredAssembledJudgement calls a dedicated judge role on the assembled
-// message path. It sends no tools and omits enable_thinking so the structured
-// verdict stays in the normal content channel. The same omission is used by
-// production structured cognition; local OpenAI-compatible Providers commonly
-// spend the output reserve on reasoning_content when the flag is enabled.
+// message path. It sends no tools and omits enable_thinking so the bounded
+// verdict stays in the normal content channel. The main/native cognition
+// surfaces explicitly enable thinking; query continuation remains a separate
+// visible_text-only protocol.
 func (p *ProviderClient) StructuredAssembledJudgement(ctx context.Context, role string, messages []map[string]any, schemaName string, schema map[string]any) (ProviderCompletion, error) {
 	return p.completeWithToolsSchemaMode(ctx, role, messages, true, nil, schemaName, schema, false, true, false)
 }
@@ -350,11 +366,16 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_message_invalid")
 			return ProviderCompletion{}, fmt.Errorf("provider response message is invalid")
 		}
-		calls, err := normalizeProviderToolCallsWithDerivedIDs(message["tool_calls"], "", providerRequestID)
+		calls, err := normalizeProviderToolCallsIndependently(message["tool_calls"], "", providerRequestID)
 		if err != nil {
 			diagnostic := providerToolCallNormalizationDiagnostic(message["tool_calls"], "native", err)
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
-			return ProviderCompletion{}, err
+			if len(calls) == 0 {
+				p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
+				return ProviderCompletion{}, err
+			}
+			// Keep valid sibling calls; the malformed entry is retained only as a
+			// bounded diagnostic and never becomes a second execution authority.
+			logToolCallShapeNormalization(role, schemaName, "native_partial", diagnostic)
 		}
 		if len(calls) > 0 && len(definitions) == 0 {
 			err := errors.New("provider_tool_call_unhandled: no capability catalog is attached to this call")
@@ -369,12 +390,22 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		// structured control channel only; it is never exposed as visible text.
 		structuredCandidates := providerStructuredCandidates(message)
 		parsedStructured, parsedStructuredOK, structuredParseErr := parseStructuredCandidatesForRole(role, structuredCandidates)
+		var structuredParseDiagnostic map[string]any
 		if structuredParseErr != nil {
 			diagnostic := providerResponseDiagnostic(message, structuredCandidates, len(calls))
 			addStructuredParseFailureDiagnostic(diagnostic, structuredCandidates, finishReason)
 			logStructuredParseFailure(role, normalizationSchemaName, diagnostic)
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, structuredParseErr.Error(), diagnostic)
-			return ProviderCompletion{}, structuredParseErr
+			if len(calls) == 0 {
+				p.recordProviderFailure(ctx, assignment, role, correlationID, messages, structuredParseErr.Error(), diagnostic)
+				return ProviderCompletion{}, structuredParseErr
+			}
+			// Native capability calls are an independent event channel. A malformed
+			// structured sidecar must not erase already-normalized calls or turn a
+			// valid tool batch into a browser retry. Keep the bounded diagnostic and
+			// continue with the typed-empty fallback below.
+			structuredParseDiagnostic = diagnostic
+			parsedStructured = nil
+			parsedStructuredOK = false
 		}
 		if len(calls) == 0 && parsedStructuredOK && len(definitions) == 0 {
 			structuredCalls, callErr := normalizeProviderToolCallsWithDerivedIDs(parsedStructured["tool_calls"], "", providerRequestID)
@@ -406,6 +437,9 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			if len(normalizedFields) > 0 {
 				providerResponse["normalized_fields"] = normalizedFields
 			}
+			if structuredParseDiagnostic != nil {
+				providerResponse["structured_diagnostic"] = structuredParseDiagnostic
+			}
 			p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, providerResponse)
 			return completion, nil
 		}
@@ -426,11 +460,14 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, 0, len(structuredCandidates), false, message)
 				if len(definitions) > 0 {
 					logToolCallShapeNormalization(role, schemaName, "structured", parsedStructured["tool_calls"])
-					calls, callErr := normalizeProviderToolCallsWithDerivedIDs(completion.Structured["tool_calls"], "", providerRequestID)
+					calls, callErr := normalizeProviderToolCallsIndependently(completion.Structured["tool_calls"], "", providerRequestID)
 					if callErr != nil {
 						diagnostic := providerToolCallNormalizationDiagnostic(completion.Structured["tool_calls"], "structured", callErr)
-						p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
-						return ProviderCompletion{}, callErr
+						if len(calls) == 0 {
+							p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
+							return ProviderCompletion{}, callErr
+						}
+						logToolCallShapeNormalization(role, schemaName, "structured_partial", diagnostic)
 					}
 					completion.ToolCalls = calls
 				}

@@ -144,9 +144,15 @@ func validateCompositeOutputCapabilities(calls []CapabilityInvocation, targetKin
 	for _, invocation := range calls {
 		definition, ok := registry.Definition(invocation.CapabilityName)
 		if !ok {
+			if len(calls) > 1 {
+				continue
+			}
 			return fmt.Errorf("capability %q is unavailable", invocation.CapabilityName)
 		}
 		if err := invocation.Validate(definition); err != nil {
+			if len(calls) > 1 {
+				continue
+			}
 			return err
 		}
 		if !definition.IsDeferredOutput() {
@@ -156,6 +162,9 @@ func validateCompositeOutputCapabilities(calls []CapabilityInvocation, targetKin
 			continue
 		}
 		if !containsCapabilityTarget(definition.TargetKinds, targetKind) {
+			if len(calls) > 1 {
+				continue
+			}
 			return fmt.Errorf("capability %q does not support target %q", invocation.CapabilityName, targetKind)
 		}
 	}

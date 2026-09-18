@@ -494,7 +494,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		),
 		assembly.Diagnostics,
 	)
-	completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "wake_up_response", schema, false)
+	completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "wake_up_response", schema, structuredThinkingEnabledForSchema("wake_up_response"))
 	if err != nil {
 		if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
 			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
@@ -532,16 +532,28 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	proposedActionWithoutCapability := normalizeWakeUpActionWithoutCapability(assessment, toolCalls)
+	capabilityValidationFailures := make([]CapabilityResult, 0)
 	// Freeze the invocation metadata and context snapshot before persistence.
 	// Capability-local planning/preflight may perform I/O, so it runs from the
 	// durable action worker rather than making a transient failure erase this
 	// wake-up decision.
 	toolCalls, err = a.bindCapabilityInvocationsToProjection(toolCalls, projection, frozenActionID, wakeID, CapabilitySurfaceWakeUp)
 	if err != nil {
-		return nil, err
+		if failures := capabilityBatchFailures(err); len(failures) > 0 {
+			capabilityValidationFailures = mergeCapabilityResults(capabilityValidationFailures, failures)
+		} else {
+			return nil, err
+		}
 	}
 	if err := a.validateCapabilityInvocationsForPersistence(toolCalls); err != nil {
-		return nil, err
+		if failures := capabilityBatchFailures(err); len(failures) > 0 {
+			capabilityValidationFailures = mergeCapabilityResults(capabilityValidationFailures, failures)
+		} else {
+			return nil, err
+		}
+	}
+	if len(capabilityValidationFailures) > 0 {
+		assessment["capability_results"] = capabilityResultValues(capabilityValidationFailures)
 	}
 	assessment["action_type"] = canonicalWakeUpActionType(stringValue(assessment["action_type"]), toolCalls, a.capabilityRegistry())
 	if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {

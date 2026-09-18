@@ -55,14 +55,14 @@ embed(role, inputs) -> VersionedEmbeddings
 - Every result records role, endpoint/model ID, capability/model version when available, prompt/schema version, timing, token usage/budget, and correlation IDs.
 - No implicit role/model fallback. Failure follows explicit interaction/workflow retry/deferred/no-op/terminal rules.
 - Provider adapter returns normalized transport/structured results and bounded parse diagnostics. It does not parse visible prose for semantic effects or choose domain actions.
-- A direct conversation that requests an ACTION with a visible result (for
-  example `media.image.generate` or a Memory write) must also return the
-  canonical `conversation.reply` invocation in the same Main cognition. An
-  action invocation is not a visible-text carrier, and an action-only response
-  fails closed as `cognition_visible_text_missing`. When a request advertises
-  more than one capability definition, the OpenAI-compatible wire payload sets
-  `parallel_tool_calls=true` to allow that same response to contain both the
-  action and reply calls; a single-capability payload omits the hint. This
+- A direct conversation may contain any mix of capability calls, including an
+  action-only response with no `conversation.reply`. Every valid call is
+  normalized and sent through its own Prepare, plan, and settlement boundary;
+  missing visible text is a successful tool-only turn rather than a global
+  `cognition_visible_text_missing` failure. A `conversation.reply` call still
+  owns private text delivery when present. When a request advertises more than
+  one capability definition, the OpenAI-compatible wire payload sets
+  `parallel_tool_calls=true`; a single-capability payload omits the hint. This
   transport flag does not change Registry validation, execution ordering, or
   the one `conversation_messages` delivery path.
 - Structured parsing accepts complete known transport wrappers: whole or
@@ -70,6 +70,21 @@ embed(role, inputs) -> VersionedEmbeddings
   a short prelude followed by one terminal object. Embedded-fence extraction
   reads only the complete fenced body; it never scans arbitrary prose for an
   executable object. An unclosed/truncated fence remains invalid.
+- Thinking is operation-owned. Semantic cognition schemas
+  (`conversation_turn_response`, `takeover_reply_response`,
+  `persistent_switch_assessment`, `wake_up_response`, `daily_review_response`,
+  `native_cognition_response`, and `reflection_proposal_v2`) may send
+  `enable_thinking=true`; the Provider adapter may read a complete structured
+  object from `reasoning_content` but must never expose reasoning as visible
+  text. `query_continuation_response` and `takeover_judgement_response` omit
+  the flag and remain visible/strict protocols.
+- Native cognition may be capability-only: when at least one valid native tool
+  call is present and the semantic sidecar is empty, Core records
+  `cognitive_state_transition=not_proposed`, does not fabricate appraisal or
+  state, and settles the tool call. An empty semantic sidecar without a native
+  call fails closed. A life fact carries `native_cognition_depth`; both the
+  dispatcher and direct native recovery entry point stop processing beyond the
+  configured depth and settle a bounded cycle guard.
 - The Provider boundary emits at most one `system` message, and it must be
   the first message. Operation, context-authority, and language instructions
   are concatenated in caller order; `user`/`assistant` history keeps its order
@@ -83,6 +98,7 @@ embed(role, inputs) -> VersionedEmbeddings
 | --- | --- |
 | Role has no endpoint/model assignment | Role unavailable with explicit configuration error; no fallback. |
 | Structured role returns an empty/mismatched transport shape | Normalize only the affected fields (missing → typed empty, object ↔ array container repair), preserve native tool calls independently, and let the owning domain validator decide whether the resulting semantic payload is usable; never parse arbitrary prose. |
+| One native/sidecar call entry is malformed while sibling entries are valid | Keep the valid entries in the normalized completion, record a bounded diagnostic for the malformed entry, and never execute the malformed entry or discard its valid siblings. |
 | Initialization Provider omits fields or uses a known alias | Preserve returned values, fill missing defaults/typed empties, mechanically map the alias, then validate explicit values. |
 | Initialization is sent through the full JSON Schema constrained decoder | Contract failure; use `response_format.type=json_object` and the canonical prompt skeleton to avoid local-provider timeout/empty fallback. |
 | Realization role lacks streaming/abort | Preflight fails; role cannot activate. |
@@ -92,7 +108,7 @@ embed(role, inputs) -> VersionedEmbeddings
 | Initialization reaches its effective deadline | Persist one `timeout/request_timeout` model run and return `initialization_provider_timeout`; do not store a raw URL/error string as `error_code`. |
 | Initialization returns non-empty content that cannot be parsed | Return `initialization_response_invalid_json` directly; do not construct an empty StructuredFallback that later appears as semantic-empty. |
 | Provider reports `finish_reason=length` or delimiters are unbalanced | Record `structured_response_truncated` with framing, candidate lengths, balance and syntax offset metadata; never repair or activate the partial object. |
-| Direct conversation returns a visible-result ACTION without `conversation.reply` | Keep the ACTION uncommitted and fail the turn as `cognition_visible_text_missing`; do not use ACTION arguments or reasoning as visible text. |
+| Direct conversation returns valid ACTION calls without `conversation.reply` | Settle each call independently, complete cognition without fabricating assistant prose, and keep each per-call failure isolated; do not use ACTION arguments or reasoning as visible text. |
 | Provider/model is temporarily unavailable | Report degraded role health; request/workflow handles explicit failure. |
 | API key decryption fails | Configuration error; do not use env/old-key fallback. |
 | Provider returns hidden reasoning/raw diagnostics | Bound/redact and keep out of ordinary result/trace/browser contract. |
