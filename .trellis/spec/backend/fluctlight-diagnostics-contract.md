@@ -259,3 +259,71 @@ recordModelRun(redactDiagnostic(prompt), boundedResponse, correlationID)
 // Reused role parameter has one explicit PostgreSQL type in every context.
 WHERE role=$2::varchar(64)
 ```
+
+## Scenario: Per-call Eino/ADK model-run diagnostics
+
+### 1. Scope / Trigger
+
+- Trigger: one request-scoped ADK conversation makes multiple physical Eino
+  ChatModel calls around tool execution.
+
+### 2. Signatures
+
+```go
+recordQueuedModelRun(ctx, role, endpointID, modelID, correlationID, scenario, priority, prompt) string
+updateModelRunPromptMetrics(ctx, modelRunID, usage, latency)
+```
+
+### 3. Contracts
+
+- The parent turn correlation may be shared, but each physical ChatModel
+  Generate/Stream call creates its own queued→running→terminal
+  `diagnostic_model_runs` row, attempt identity and Provider request ID.
+- Prompt/response/arguments remain recursively redacted and bounded. Tool-call
+  IDs may be retained only as bounded identity metadata; raw arguments and
+  hidden reasoning do not enter ordinary diagnostics.
+- Queue cancellation, timeout, tool failure and iteration-limit errors update
+  the affected row with a stable bounded error code without changing the
+  business settlement result.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Two ADK model generations | Two model-run rows with distinct attempt/request IDs and one parent correlation |
+| First model call fails | First row terminalizes; no second call or fabricated final row |
+| Diagnostics sink unavailable | Core result remains governed by domain outcome; bounded persistence warning only |
+| Raw prompt/reasoning/tool args supplied | Redact/drop before persistence |
+
+### 5. Good/Base/Bad Cases
+
+- Good: rows show `conversation` parent correlation, `adk:1`/`adk:2`
+  attempts, per-call usage/latency and bounded terminal state.
+- Base: a one-call text task produces one row with the existing role/scenario.
+- Bad: update one shared row twice so the first HTTP call appears to have the
+  second call's usage or terminal status.
+
+### 6. Tests Required
+
+- Assert two ADK calls create two rows, distinct request IDs, bounded usage and
+  one shared parent correlation.
+- Assert cancellation/timeout terminalization and queue release per call.
+- Assert redaction of image data, credentials, raw arguments and reasoning in
+  both rows.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+diagnosticID := recordQueuedModelRun(parentCorrelation)
+runner.Run(ctx) // all Generate calls reuse one row
+```
+
+#### Correct
+
+```go
+// Each queuedToolCallingChatModel.Generate creates its own row.
+callID := recordQueuedModelRun(callCorrelation)
+runProviderQueued(ctx, callID, generateOneModelCall)
+```

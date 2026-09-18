@@ -117,7 +117,7 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 	}
 	app.Provider.generated = newProviderQueue(providerQueueDefaultConcurrency)
 	app.Provider.embedding = newProviderQueue(providerQueueDefaultEmbedding)
-	app.SchedulePlanner = providerSchedulePlanner{provider: app.Provider}
+	app.SchedulePlanner = providerSchedulePlanner{provider: app.Provider, runner: app}
 	registry, registryErr := NewCapabilityRegistry(builtinCapabilities(app)...)
 	if registryErr != nil {
 		return nil, registryErr

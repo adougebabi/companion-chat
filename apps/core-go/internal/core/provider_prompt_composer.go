@@ -40,10 +40,10 @@ func withContextAuthorityInstruction(messages []map[string]any) []map[string]any
 	})
 }
 
-// composeProviderMessages centralizes the ordinary (non-media) system and
+// composeTaskMessages centralizes the ordinary (non-media) system and
 // dynamic document shape. Existing callers may still provide multiple system
 // fragments; they are treated as operation rules and merged deterministically.
-func composeProviderMessages(role string, messages []map[string]any) []map[string]any {
+func composeTaskMessages(role string, messages []map[string]any) []map[string]any {
 	if role == "media_prompt" {
 		return formatProviderMessagesForRole(messages, role)
 	}

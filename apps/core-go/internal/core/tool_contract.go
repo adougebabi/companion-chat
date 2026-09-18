@@ -458,6 +458,7 @@ func normalizeProviderToolCalls(value any, sourceFactID, providerRequestID strin
 			SourceFactID:      strings.TrimSpace(sourceFactID),
 			ProviderRequestID: strings.TrimSpace(providerRequestID),
 			Sequence:          index,
+			Metadata:          InvocationMetadata{Source: "model_tool"},
 		})
 	}
 	return result, nil

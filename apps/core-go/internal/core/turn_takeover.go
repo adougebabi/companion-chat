@@ -7,6 +7,22 @@ import (
 	"time"
 )
 
+func (a *App) RunTakeoverJudgeTask(ctx context.Context, role string, messages []map[string]any, schemaName string, responseSchema map[string]any) (ProviderCompletion, error) {
+	provider, err := a.modelTaskProvider()
+	if err != nil {
+		return ProviderCompletion{}, err
+	}
+	return provider.StructuredAssembledJudgement(WithProviderScenario(ctx, "takeover_judge"), role, messages, schemaName, responseSchema)
+}
+
+func (a *App) RunTakeoverReplyTask(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition, schemaName string, responseSchema map[string]any, thinking bool) (ProviderCompletion, error) {
+	provider, err := a.modelTaskProvider()
+	if err != nil {
+		return ProviderCompletion{}, err
+	}
+	return provider.StructuredAssembledWithToolsSchema(WithProviderScenario(ctx, "takeover_reply"), role, messages, definitions, schemaName, responseSchema, thinking)
+}
+
 // The takeover contract has three pieces (design.md 4.3 / 4.4, R05/R06/R08/F02):
 //
 //  1. CandidatePreview  a bounded, side-effect-free description of what the
@@ -725,7 +741,7 @@ func (a *App) judgeTurnTakeover(ctx context.Context, input turnTakeoverInput, ru
 		return record, takeoverJudgeOutcomeBudgetExceeded, false, nil
 	}
 	started := time.Now()
-	completion, err := a.Provider.StructuredAssembledJudgement(
+	completion, err := a.RunTakeoverJudgeTask(
 		WithProviderCorrelation(ctx, "takeover-judge:"+input.Frozen.ID),
 		takeoverJudgeRole, messages, takeoverJudgeSchemaName, takeoverJudgementSchema())
 	record["latency_ms"] = time.Since(started).Milliseconds()
@@ -912,7 +928,7 @@ func (a *App) generateTakeoverReply(ctx context.Context, input turnTakeoverInput
 	scopedProjection = assembledProjection
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
 	providerCtx = WithProviderCorrelation(providerCtx, "takeover-reply:"+input.Frozen.ID)
-	completion, completionErr := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, takeoverReplySchemaName, schema, structuredThinkingEnabledForSchema(takeoverReplySchemaName))
+	completion, completionErr := a.RunTakeoverReplyTask(providerCtx, "cognitive_assessment", assembly.Messages, definitions, takeoverReplySchemaName, schema, structuredThinkingEnabledForSchema(takeoverReplySchemaName))
 	if completionErr != nil {
 		if a.cognitionFactSuperseded(ctx, input.InboxID) {
 			return false, errCognitionTurnSuperseded

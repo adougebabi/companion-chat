@@ -266,7 +266,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			messages = withChineseOutputInstruction(role, messages)
 			messages = formatProviderMessagesForRole(messages, role)
 		} else {
-			messages = composeProviderMessages(role, messages)
+			messages = (&PromptComposer{}).ComposeTaskMessages(role, messages)
 		}
 	}
 	providerRequestID := providerDiagnosticRequestID(role, correlationID)
@@ -289,7 +289,9 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		diagnostics["continuation_phase"] = "queries_completed"
 	}
 	ctx = WithPromptDiagnostics(ctx, diagnostics)
-	if _, adkEnabled := adkCapabilityContext(ctx); adkEnabled && schemaName == "conversation_turn_response" {
+	adkEnabled := false
+	if _, enabled := adkCapabilityContext(ctx); enabled && schemaName == "conversation_turn_response" {
+		adkEnabled = true
 		// The ADK agent performs multiple model calls. Queue each call through
 		// queuedToolCallingChatModel instead of holding one lease for the full
 		// Agent loop.
@@ -309,23 +311,28 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		return ProviderCompletion{}, err
 	}
 	priority := providerPriority(scenario)
-	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, providerDiagnosticMessages(role, messages))
+	diagnosticID := ""
+	if !adkEnabled {
+		diagnosticID = (&App{DB: p.DB}).recordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, providerDiagnosticMessages(role, messages))
+	}
 	return runProviderQueued(p, ctx, assignment.Role, scenario, priority, diagnosticID, func(runCtx context.Context) (ProviderCompletion, error) {
 		requestStarted := time.Now()
 		usage := map[string]any{}
 		defer func() {
-			(&App{DB: p.DB}).updateModelRunPromptMetrics(ctx, diagnosticID, usage, time.Since(requestStarted))
+			if diagnosticID != "" {
+				(&App{DB: p.DB}).updateModelRunPromptMetrics(ctx, diagnosticID, usage, time.Since(requestStarted))
+			}
 		}()
 		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
 		defer cancel()
 		response, err := p.generateWithEino(requestCtx, EinoModelCall{
-			Assignment: assignment, Role: role, Scenario: scenario, Priority: priority, DiagnosticID: diagnosticID,
+			Assignment: assignment, Role: role, Scenario: scenario, Priority: priority, DiagnosticID: diagnosticID, CorrelationID: correlationID,
 			Messages: messages, Definitions: definitions,
 			JSONMode: jsonMode, SchemaName: normalizationSchemaName, ResponseSchema: structuredSchema,
 			EnableThinking: enableThinking, ProviderRequestID: providerRequestID,
 		})
 		if err != nil {
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, providerRunErrorCode(err))
+			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, providerRunErrorCode(err))
 			return ProviderCompletion{}, fmt.Errorf("provider request failed: %w", err)
 		}
 		usage = response.Usage
@@ -335,7 +342,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		if err != nil {
 			diagnostic := providerToolCallNormalizationDiagnostic(message["tool_calls"], "native", err)
 			if len(calls) == 0 {
-				p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
+				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
 				return ProviderCompletion{}, err
 			}
 			// Keep valid sibling calls; the malformed entry is retained only as a
@@ -344,7 +351,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		}
 		if len(calls) > 0 && len(definitions) == 0 {
 			err := errors.New("provider_tool_call_unhandled: no capability catalog is attached to this call")
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_unhandled")
+			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_unhandled")
 			return ProviderCompletion{}, err
 		}
 		logToolCallShapeNormalization(role, schemaName, "native", message["tool_calls"])
@@ -361,7 +368,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			addStructuredParseFailureDiagnostic(diagnostic, structuredCandidates, finishReason)
 			logStructuredParseFailure(role, normalizationSchemaName, diagnostic)
 			if len(calls) == 0 {
-				p.recordProviderFailure(ctx, assignment, role, correlationID, messages, structuredParseErr.Error(), diagnostic)
+				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, structuredParseErr.Error(), diagnostic)
 				return ProviderCompletion{}, structuredParseErr
 			}
 			// Native capability calls are an independent event channel. A malformed
@@ -375,12 +382,12 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		if len(calls) == 0 && parsedStructuredOK && len(definitions) == 0 {
 			structuredCalls, callErr := normalizeProviderToolCallsWithDerivedIDs(parsedStructured["tool_calls"], "", providerRequestID)
 			if callErr != nil {
-				p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
+				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
 				return ProviderCompletion{}, callErr
 			}
 			if len(structuredCalls) > 0 {
 				err := errors.New("provider_tool_call_unhandled: no capability catalog is attached to this call")
-				p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_unhandled")
+				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_unhandled")
 				return ProviderCompletion{}, err
 			}
 		}
@@ -405,7 +412,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			if structuredParseDiagnostic != nil {
 				providerResponse["structured_diagnostic"] = structuredParseDiagnostic
 			}
-			p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, providerResponse)
+			p.recordProviderSuccessBoundary(ctx, assignment, role, correlationID, messages, providerResponse)
 			return completion, nil
 		}
 		if len(structuredCandidates) == 0 {
@@ -413,10 +420,10 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 				completion.Structured, normalizedFields = emptyProviderStructured(normalizationSchemaName, structuredSchema)
 				completion.StructuredFallback = true
 				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, 0, 0, true, message)
-				p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured, "normalization": "empty"})
+				p.recordProviderSuccessBoundary(ctx, assignment, role, correlationID, messages, map[string]any{"text": content, "structured": completion.Structured, "normalization": "empty"})
 				return completion, nil
 			}
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_content_empty")
+			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "response_content_empty")
 			return ProviderCompletion{}, fmt.Errorf("provider response content is empty")
 		}
 		if jsonMode || len(definitions) > 0 {
@@ -429,7 +436,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 					if callErr != nil {
 						diagnostic := providerToolCallNormalizationDiagnostic(completion.Structured["tool_calls"], "structured", callErr)
 						if len(calls) == 0 {
-							p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
+							p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
 							return ProviderCompletion{}, callErr
 						}
 						logToolCallShapeNormalization(role, schemaName, "structured_partial", diagnostic)
@@ -446,7 +453,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		if len(normalizedFields) > 0 {
 			providerResponse["normalized_fields"] = normalizedFields
 		}
-		p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, providerResponse)
+		p.recordProviderSuccessBoundary(ctx, assignment, role, correlationID, messages, providerResponse)
 		return completion, nil
 	})
 }
@@ -1027,6 +1034,20 @@ func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment p
 	app.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), status, code)
 }
 
+func (p *ProviderClient) recordProviderSuccessBoundary(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, response any) {
+	if _, adk := adkCapabilityContext(ctx); adk {
+		return
+	}
+	p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, response)
+}
+
+func (p *ProviderClient) recordProviderFailureBoundary(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
+	if _, adk := adkCapabilityContext(ctx); adk {
+		return
+	}
+	p.recordProviderFailure(ctx, assignment, role, correlationID, messages, code, diagnostic...)
+}
+
 func providerDiagnosticMessages(role string, messages []map[string]any) []map[string]any {
 	if role != "initialization" {
 		return messages
@@ -1176,7 +1197,7 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 		p.recordProviderPreflightFailure(ctx, providerAssignment{}, role, correlationID, "assignment", messages, err)
 		return "", err
 	}
-	messages = composeProviderMessages(role, messages)
+	messages = (&PromptComposer{}).ComposeTaskMessages(role, messages)
 	providerRequestID := providerDiagnosticRequestID(role, correlationID)
 	payload := providerStreamingPayload(assignment.ModelID, messages, assignment.TokenBudget)
 	wireEstimate := estimatePromptWireInput(messages, nil, nil)

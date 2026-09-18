@@ -56,6 +56,10 @@ func newAppADKCapabilityInvoker(app *App, fluctlightID, conversationID, sourceFa
 }
 
 func (i *appADKCapabilityInvoker) Execute(ctx context.Context, capabilityName string, argumentsJSON string) (string, error) {
+	return i.ExecuteWithID(ctx, "", capabilityName, argumentsJSON)
+}
+
+func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, capabilityName string, argumentsJSON string) (string, error) {
 	if i == nil || i.app == nil || i.trace == nil {
 		return "", errors.New("adk_capability_invoker_unavailable")
 	}
@@ -67,12 +71,15 @@ func (i *appADKCapabilityInvoker) Execute(ctx context.Context, capabilityName st
 	if len(arguments) == 0 {
 		arguments = json.RawMessage(`{}`)
 	}
-	callID := "adk_" + stableDigest(capabilityName+":"+string(arguments)+":"+fmt.Sprint(len(i.trace.Invocations)))
+	callID = strings.TrimSpace(callID)
+	if callID == "" {
+		return "", errors.New("adk_tool_call_id_required")
+	}
 	invocation := normalizeCapabilityInvocationMetadata(CapabilityInvocation{
 		CallID: callID, CapabilityName: capabilityName, Arguments: arguments,
 		SourceFactID: i.sourceFactID, ActionID: i.actionID,
 		ProviderRequestID: "provider:" + stableDigest(i.sourceFactID+":"+callID), Sequence: len(i.trace.Invocations),
-		Metadata: InvocationMetadata{FluctlightID: i.fluctlightID, ConversationID: i.conversationID, Surface: CapabilitySurfaceConversation},
+		Metadata: InvocationMetadata{FluctlightID: i.fluctlightID, ConversationID: i.conversationID, Surface: CapabilitySurfaceConversation, Source: "model_tool"},
 	}, i.fluctlightID, i.conversationID, i.sourceFactID, i.sourceFactID, len(i.trace.Invocations))
 	invocation.ActionID = i.actionID
 	invocation.ContextSnapshot = capabilitySnapshotForProjection(i.projection, definition.RequiredContext, i.actionID)
@@ -136,6 +143,13 @@ type ADKCapabilityInvoker interface {
 	Execute(ctx context.Context, capabilityName string, argumentsJSON string) (string, error)
 }
 
+// ADKCapabilityInvokerWithID is the identity-preserving variant used by the
+// production bridge. Eino exposes the model's formal tool-call ID in the tool
+// context; callers must persist that ID rather than deriving a replacement.
+type ADKCapabilityInvokerWithID interface {
+	ExecuteWithID(ctx context.Context, callID, capabilityName string, argumentsJSON string) (string, error)
+}
+
 type ADKConversationConfig struct {
 	Name            string
 	Description     string
@@ -192,6 +206,13 @@ func (t *adkCapabilityTool) InvokableRun(ctx context.Context, argumentsJSON stri
 	if argumentsJSON == "" {
 		argumentsJSON = "{}"
 	}
+	if identityInvoker, ok := t.invoker.(ADKCapabilityInvokerWithID); ok {
+		callID := strings.TrimSpace(compose.GetToolCallID(ctx))
+		if callID == "" {
+			return "", errors.New("adk_tool_call_id_missing")
+		}
+		return identityInvoker.ExecuteWithID(ctx, callID, t.info.Name, argumentsJSON)
+	}
 	return t.invoker.Execute(ctx, t.info.Name, argumentsJSON)
 }
 
@@ -213,7 +234,7 @@ func RunADKConversation(ctx context.Context, config ADKConversationConfig, messa
 	if maxIterations <= 0 {
 		maxIterations = 2
 	}
-	if maxIterations > 4 {
+	if maxIterations > 2 {
 		return ADKConversationResult{}, errors.New("adk_iteration_limit_invalid")
 	}
 	agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
@@ -237,6 +258,8 @@ func RunADKConversation(ctx context.Context, config ADKConversationConfig, messa
 	}
 	iter := runner.Run(ctx, input)
 	result := ADKConversationResult{Messages: []*schema.Message{}, ToolCalls: []schema.ToolCall{}, ToolResults: []*schema.Message{}}
+	var lastAssistant *schema.Message
+	seenToolCallIDs := make(map[string]struct{})
 	for {
 		event, ok := iter.Next()
 		if !ok {
@@ -261,18 +284,29 @@ func RunADKConversation(ctx context.Context, config ADKConversationConfig, messa
 		copyMessage := message
 		result.Messages = append(result.Messages, copyMessage)
 		if len(copyMessage.ToolCalls) > 0 {
-			result.ToolCalls = append(result.ToolCalls, copyMessage.ToolCalls...)
+			for _, call := range copyMessage.ToolCalls {
+				if strings.TrimSpace(call.ID) != "" {
+					if _, seen := seenToolCallIDs[call.ID]; seen {
+						continue
+					}
+					seenToolCallIDs[call.ID] = struct{}{}
+				}
+				result.ToolCalls = append(result.ToolCalls, call)
+			}
 		}
 		if copyMessage.Role == schema.Tool {
 			result.ToolResults = append(result.ToolResults, copyMessage)
 		}
-		if copyMessage.Role == schema.Assistant && strings.TrimSpace(copyMessage.Content) != "" {
-			result.FinalMessage = copyMessage
+		if copyMessage.Role == schema.Assistant {
+			lastAssistant = copyMessage
+			if strings.TrimSpace(copyMessage.Content) != "" {
+				result.FinalMessage = copyMessage
+			}
 		}
 		result.Iterations++
 	}
-	if result.FinalMessage == nil && len(result.Messages) > 0 {
-		result.FinalMessage = result.Messages[len(result.Messages)-1]
+	if result.FinalMessage == nil {
+		result.FinalMessage = lastAssistant
 	}
 	if result.FinalMessage == nil {
 		return ADKConversationResult{}, errors.New("adk_final_message_missing")

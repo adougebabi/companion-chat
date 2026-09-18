@@ -57,9 +57,20 @@ type SchedulePlanner interface {
 // mutation transaction and returns a complete replacement DTO only.
 type providerSchedulePlanner struct {
 	provider *ProviderClient
+	runner   interface {
+		RunStructuredTask(context.Context, ModelTask, []map[string]any, map[string]any, bool) (map[string]any, error)
+	}
 }
 
 func (planner providerSchedulePlanner) Plan(ctx context.Context, input SchedulePlanInput) (map[string]any, error) {
+	if planner.runner != nil {
+		return planner.runner.RunStructuredTask(ctx, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "schedule_replan_planner", SchemaName: "schedule_replan_plan"}, []map[string]any{
+			{"role": "system", "content": "Return only a complete schedule replacement. Preserve completed history and use the supplied timezone and revision."},
+			{"role": "user", "content": jsonString(map[string]any{
+				"intent": input.Intent, "schedule": compactScheduleForProvider(input.Schedule), "current_life": compactLifeContext(input.CurrentLife), "agency": compactSchedulePlannerAgency(input.Agency), "timezone": input.Timezone,
+			})},
+		}, schedulePlannerOutputSchema(), false)
+	}
 	if planner.provider == nil {
 		return nil, errors.New("schedule_replan_planner_failed: provider unavailable")
 	}

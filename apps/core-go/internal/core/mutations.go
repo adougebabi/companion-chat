@@ -16,6 +16,25 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// RunQueryContinuationTask owns the single no-tools continuation boundary for
+// direct conversations. Keeping the provider call here makes the operation
+// policy explicit while the Provider implementation remains Eino-backed.
+func (a *App) RunQueryContinuationTask(ctx context.Context, role string, messages []map[string]any, schemaName string, responseSchema map[string]any) (ProviderCompletion, error) {
+	provider, err := a.modelTaskProvider()
+	if err != nil {
+		return ProviderCompletion{}, err
+	}
+	return provider.StructuredQueryContinuation(WithProviderScenario(ctx, "query_continuation"), role, messages, schemaName, responseSchema)
+}
+
+func (a *App) RunMainConversationTask(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition, schemaName string, responseSchema map[string]any, thinking bool) (ProviderCompletion, error) {
+	provider, err := a.modelTaskProvider()
+	if err != nil {
+		return ProviderCompletion{}, err
+	}
+	return provider.StructuredAssembledWithToolsSchema(ctx, role, messages, definitions, schemaName, responseSchema, thinking)
+}
+
 type TurnResult struct {
 	UserMessage   map[string]any
 	Assistant     map[string]any
@@ -777,7 +796,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		// reply. Allow the configured Provider to use its thinking channel; the
 		// adapter still parses reasoning_content as a structured candidate and Core
 		// validates the resulting decision before any side effect.
-		completion, completionErr := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "conversation_turn_response", schema, structuredThinkingEnabledForSchema("conversation_turn_response"))
+		completion, completionErr := a.RunMainConversationTask(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "conversation_turn_response", schema, structuredThinkingEnabledForSchema("conversation_turn_response"))
 		if completionErr != nil {
 			if a.cognitionFactSuperseded(ctx, inboxID) {
 				return TurnResult{}, errCognitionTurnSuperseded
@@ -1122,7 +1141,8 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			if a.cognitionFactSuperseded(ctx, inboxID) {
 				return TurnResult{}, errCognitionTurnSuperseded
 			}
-			completion, continuationErr := a.Provider.StructuredQueryContinuation(WithProviderCorrelation(WithProviderScenario(ctx, "query_continuation"), "query-continuation:"+frozen.ID), "cognitive_assessment", messages, "query_continuation_response", queryContinuationResponseSchema())
+			continuationCtx := WithProviderCorrelation(WithProviderScenario(ctx, "query_continuation"), "query-continuation:"+frozen.ID)
+			completion, continuationErr := a.RunQueryContinuationTask(continuationCtx, "cognitive_assessment", messages, "query_continuation_response", queryContinuationResponseSchema())
 			if continuationErr != nil || len(completion.ToolCalls) > 0 {
 				if continuationErr == nil {
 					continuationErr = errors.New("query_continuation_tool_call_forbidden")
@@ -1149,7 +1169,8 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			if a.cognitionFactSuperseded(ctx, inboxID) {
 				return TurnResult{}, errCognitionTurnSuperseded
 			}
-			completion, continuationErr := a.Provider.StructuredQueryContinuation(WithProviderCorrelation(WithProviderScenario(ctx, "query_continuation"), "query-continuation:"+frozen.ID), "cognitive_assessment", messages, "query_continuation_response", queryContinuationResponseSchema())
+			continuationCtx := WithProviderCorrelation(WithProviderScenario(ctx, "query_continuation"), "query-continuation:"+frozen.ID)
+			completion, continuationErr := a.RunQueryContinuationTask(continuationCtx, "cognitive_assessment", messages, "query_continuation_response", queryContinuationResponseSchema())
 			if continuationErr != nil || len(completion.ToolCalls) > 0 {
 				return TurnResult{}, firstError(continuationErr, errors.New("query_continuation_tool_call_forbidden"))
 			}

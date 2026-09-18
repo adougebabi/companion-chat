@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	embeddingopenai "github.com/cloudwego/eino-ext/components/embedding/openai"
@@ -111,6 +112,7 @@ type EinoModelCall struct {
 	Scenario          string
 	Priority          int
 	DiagnosticID      string
+	CorrelationID     string
 	Messages          []map[string]any
 	Definitions       []CapabilityDefinition
 	JSONMode          bool
@@ -121,22 +123,46 @@ type EinoModelCall struct {
 }
 
 type queuedToolCallingChatModel struct {
-	inner        model.ToolCallingChatModel
-	provider     *ProviderClient
-	role         string
-	scenario     string
-	priority     int
-	diagnosticID string
+	inner         model.ToolCallingChatModel
+	provider      *ProviderClient
+	role          string
+	scenario      string
+	priority      int
+	diagnosticID  string
+	assignment    providerAssignment
+	correlationID string
+	sequence      atomic.Uint64
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
-	return runProviderQueued(m.provider, withoutProviderQueueBypass(ctx), m.role, m.scenario, m.priority, m.diagnosticID, func(runCtx context.Context) (*schema.Message, error) {
+	sequence := m.sequence.Add(1)
+	callCorrelation := fmt.Sprintf("%s:adk:%d", m.correlationID, sequence)
+	callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
+	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
+	callDiagnosticID := ""
+	if m.provider != nil && m.provider.DB != nil {
+		callDiagnosticID = (&App{DB: m.provider.DB}).recordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, callCorrelation, m.scenario, m.priority, einoDiagnosticMessages(input))
+	}
+	started := time.Now()
+	result, err := runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.Message, error) {
 		return m.inner.Generate(runCtx, input, opts...)
 	})
+	if callDiagnosticID != "" {
+		(&App{DB: m.provider.DB}).updateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(result), time.Since(started))
+	}
+	return result, err
 }
 
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
-	return runProviderQueued(m.provider, withoutProviderQueueBypass(ctx), m.role, m.scenario, m.priority, m.diagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
+	sequence := m.sequence.Add(1)
+	callCorrelation := fmt.Sprintf("%s:adk:%d", m.correlationID, sequence)
+	callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
+	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
+	callDiagnosticID := ""
+	if m.provider != nil && m.provider.DB != nil {
+		callDiagnosticID = (&App{DB: m.provider.DB}).recordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, callCorrelation, m.scenario, m.priority, einoDiagnosticMessages(input))
+	}
+	return runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
 		return m.inner.Stream(runCtx, input, opts...)
 	})
 }
@@ -146,7 +172,7 @@ func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.
 	if err != nil {
 		return nil, err
 	}
-	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID}, nil
+	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID}, nil
 }
 
 type einoModelResponse struct {
@@ -155,9 +181,29 @@ type einoModelResponse struct {
 	FinishReason string
 }
 
+func einoDiagnosticMessages(messages []*schema.Message) []map[string]any {
+	result := make([]map[string]any, 0, len(messages))
+	for _, message := range messages {
+		if message == nil {
+			continue
+		}
+		result = append(result, einoMessageRaw(message))
+		if len(result) >= 64 {
+			break
+		}
+	}
+	return result
+}
+
 type einoHeaderRoundTripper struct {
 	base    http.RoundTripper
 	headers map[string]string
+}
+
+type einoRequestIDContextKey struct{}
+
+func withEinoRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, einoRequestIDContextKey{}, requestID)
 }
 
 func (t einoHeaderRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -166,6 +212,10 @@ func (t einoHeaderRoundTripper) RoundTrip(request *http.Request) (*http.Response
 		if strings.TrimSpace(value) != "" {
 			clone.Header.Set(key, value)
 		}
+	}
+	if requestID, _ := clone.Context().Value(einoRequestIDContextKey{}).(string); strings.TrimSpace(requestID) != "" {
+		clone.Header.Set("Idempotency-Key", requestID)
+		clone.Header.Set("X-Fluctlight-Provider-Request-Id", requestID)
 	}
 	return t.base.RoundTrip(clone)
 }
@@ -277,7 +327,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	if err != nil {
 		return einoModelResponse{}, err
 	}
-	chat = &queuedToolCallingChatModel{inner: chat, provider: p, role: call.Role, scenario: call.Scenario, priority: call.Priority, diagnosticID: call.DiagnosticID}
+	chat = &queuedToolCallingChatModel{inner: chat, provider: p, role: call.Role, scenario: call.Scenario, priority: call.Priority, diagnosticID: call.DiagnosticID, assignment: call.Assignment, correlationID: call.CorrelationID}
 	tools, err := NewADKCapabilityTools(call.Definitions, adkContext.Invoker)
 	if err != nil {
 		return einoModelResponse{}, err
@@ -309,10 +359,8 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 		return einoModelResponse{}, errors.New("adk_final_message_missing")
 	}
 	final := result.FinalMessage
-	if adkContext.Trace != nil {
-		for _, invocation := range adkContext.Trace.Invocations {
-			final.ToolCalls = append(final.ToolCalls, schema.ToolCall{ID: invocation.CallID, Type: "function", Function: schema.FunctionCall{Name: invocation.CapabilityName, Arguments: string(invocation.Arguments)}})
-		}
+	if len(result.ToolCalls) > 0 {
+		final.ToolCalls = append([]schema.ToolCall(nil), result.ToolCalls...)
 	}
 	return einoModelResponse{Message: final, Usage: einoUsage(final), FinishReason: "stop"}, nil
 }
@@ -461,7 +509,10 @@ func providerMessagesToEino(messages []map[string]any) ([]*schema.Message, error
 		message.ToolName = strings.TrimSpace(stringValue(raw["name"]))
 		content := raw["content"]
 		if parts, ok := content.([]any); ok {
-			multi, text := einoInputParts(parts)
+			multi, text, partErr := einoInputParts(parts)
+			if partErr != nil {
+				return nil, fmt.Errorf("message_%d_parts_invalid: %w", index, partErr)
+			}
 			message.UserInputMultiContent = multi
 			message.Content = text
 		} else if parts, ok := content.([]map[string]any); ok {
@@ -469,7 +520,10 @@ func providerMessagesToEino(messages []map[string]any) ([]*schema.Message, error
 			for i := range parts {
 				asAny[i] = parts[i]
 			}
-			multi, text := einoInputParts(asAny)
+			multi, text, partErr := einoInputParts(asAny)
+			if partErr != nil {
+				return nil, fmt.Errorf("message_%d_parts_invalid: %w", index, partErr)
+			}
 			message.UserInputMultiContent = multi
 			message.Content = text
 		} else {
@@ -502,7 +556,7 @@ func einoToolCalls(raw any) []schema.ToolCall {
 	return result
 }
 
-func einoInputParts(parts []any) ([]schema.MessageInputPart, string) {
+func einoInputParts(parts []any) ([]schema.MessageInputPart, string, error) {
 	result := make([]schema.MessageInputPart, 0, len(parts))
 	var text strings.Builder
 	for _, raw := range parts {
@@ -521,7 +575,9 @@ func einoInputParts(parts []any) ([]schema.MessageInputPart, string) {
 			url := stringValue(part["url"])
 			mime := stringValue(part["mime_type"])
 			result = append(result, schema.MessageInputPart{Type: schema.ChatMessagePartTypeImageURL, Image: &schema.MessageInputImage{MessagePartCommon: schema.MessagePartCommon{URL: &url, MIMEType: mime}}})
+		default:
+			return nil, "", fmt.Errorf("unsupported_part_type:%s", stringValue(part["type"]))
 		}
 	}
-	return result, text.String()
+	return result, text.String(), nil
 }

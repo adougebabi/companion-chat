@@ -86,6 +86,14 @@ func (c *PromptComposer) ComposeAssembly(input PromptAssemblyInput) (PromptAssem
 	return AssemblePromptContext(input)
 }
 
+// ComposeTaskMessages is the operation-task surface for non-assembled calls
+// (initialization/text/media). It keeps the legacy wire-shaping behavior under
+// the same Composer owner while those tasks are incrementally converted to
+// explicit slots.
+func (c *PromptComposer) ComposeTaskMessages(role string, messages []map[string]any) []map[string]any {
+	return composeTaskMessages(role, messages)
+}
+
 func (c *PromptComposer) Compose(ctx context.Context, input PromptCompositionInput) (PromptCompositionResult, error) {
 	if c == nil {
 		return PromptCompositionResult{}, errors.New("prompt_composer_unavailable")

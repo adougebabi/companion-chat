@@ -685,3 +685,78 @@ if _, _, _, err := a.judgeTurnTakeover(ctx, input, rule); err != nil {
 // Arbitration happens exactly once; a Judge failure degrades to A.
 handled, err := a.applyTurnTakeover(ctx, input)
 ```
+
+## Scenario: ADK tool-loop identity and final publication
+
+### 1. Scope / Trigger
+
+- Trigger: a direct conversation uses Eino ADK to make one or more model
+  calls around a Capability tool.
+
+### 2. Signatures
+
+```go
+ADKCapabilityInvokerWithID.ExecuteWithID(ctx, toolCallID, capabilityName, argumentsJSON)
+RunADKConversation(ctx, ADKConversationConfig, messages) (ADKConversationResult, error)
+```
+
+### 3. Contracts
+
+- The tool-call ID supplied by Eino `compose.GetToolCallID(ctx)` is copied
+  unchanged into `CapabilityInvocation.CallID`, `CapabilityResult.CallID`,
+  frozen payload and tool-result `tool_call_id`.
+- Every physical ADK model call has its own queue lease, provider request ID,
+  diagnostic model-run row and bounded usage/latency; the turn correlation is
+  shared only as a parent correlation.
+- ADK may return a final assistant message or a valid assistant tool-call
+  message for a tool-only turn. A tool result is never treated as a final
+  assistant message. No final assistant/tool-call event returns a typed error;
+  it does not fabricate visible text.
+- `MaxIterations` is capped at two and ADK retry/failover is disabled. The
+  final visible assistant is published only by the existing post-settlement
+  Core boundary.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Missing tool-call ID in the Eino tool context | Reject before capability execution |
+| Duplicate or mismatched tool-call ID | Reject canonical invocation; keep no side effect |
+| ADK returns only a tool result | Typed `adk_final_message_missing`; no assistant publish |
+| Model/tool error, cancellation or iteration limit | Typed failure; no fabricated final success |
+| Second model call in one turn | New queue lease, request identity, diagnostic row and bounded metrics |
+
+### 5. Good/Base/Bad Cases
+
+- Good: provider ID `call-7` appears as the assistant tool call, tool result
+  `tool_call_id`, canonical invocation/result ID and frozen payload ID.
+- Base: a tool-only turn settles its capability without emitting assistant
+  prose, while the browser still receives only the committed terminal frames.
+- Bad: derive `adk_<digest>` from name/arguments, reuse one diagnostic ID for
+  two HTTP calls, or publish the tool result as visible assistant text.
+
+### 6. Tests Required
+
+- Assert original tool-call ID/name/arguments and exact tool-result content in
+  the next model request.
+- Assert model/tool failure, cancellation, no-final and `MaxIterations>2`
+  fail closed without publication.
+- Assert two ADK model calls create two queue leases, request IDs and model-run
+  rows under one parent turn correlation.
+- Assert a full database-backed HandleTurn publishes one assistant once after
+  settlement and never publishes a tool result independently.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+callID := "adk_" + stableDigest(toolName+arguments)
+```
+
+#### Correct
+
+```go
+callID := compose.GetToolCallID(ctx)
+return invoker.ExecuteWithID(ctx, callID, toolName, arguments)
+```

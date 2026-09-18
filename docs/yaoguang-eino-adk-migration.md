@@ -44,6 +44,8 @@ Main 与 takeover B 每次调用都重新生成 Eino `schema.Message`；B 不沿
 
 ADK Runner 禁用隐式 retry/failover，Main 迭代上限为 2。浏览器仍只在提交后的 Core NDJSON boundary 收到最终 token/completed frame。
 
+ADK tool adapter 从 `compose.GetToolCallID(ctx)` 保留模型正式的 tool-call ID；每个底层 Generate/Stream 都有独立 queue lease、Provider request ID 和 `diagnostic_model_runs` row，共享的只是父 turn correlation。
+
 ## 删除/替代内容
 
 - `ProviderClient` 的生产结构化、文本、流式和 Embedding 请求不再手写 `/chat/completions` 或 `/embeddings` HTTP/JSON 解析；统一由 Eino OpenAI ChatModel/Embedder 发起。

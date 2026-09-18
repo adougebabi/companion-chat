@@ -7,6 +7,11 @@ import (
 	"testing"
 )
 
+// Kept test-local while production callers use PromptComposer.ComposeTaskMessages.
+func composeProviderMessages(role string, messages []map[string]any) []map[string]any {
+	return composeTaskMessages(role, messages)
+}
+
 func TestProductionMainCallersUseOnlyPromptContextAssembler(t *testing.T) {
 	for _, name := range []string{"mutations.go", "turn_takeover.go", "cognition_growth.go", "autonomy.go", "wakeup.go", "reflection_runtime_v2.go"} {
 		content, err := os.ReadFile(filepath.Clean(name))

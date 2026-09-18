@@ -3,9 +3,11 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -75,9 +77,61 @@ func TestEinoFactoryUsesOfficialEmbedder(t *testing.T) {
 	}
 }
 
+func TestStreamWithEinoAggregatesChunksAndPropagatesCallback(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/chat/completions" {
+			t.Fatalf("path = %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"hel\"}}]}\n\n"))
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"lo\"}}]}\n\n"))
+		_, _ = w.Write([]byte("data: [DONE]\n\n"))
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+	}))
+	defer server.Close()
+	p := &ProviderClient{HTTP: server.Client()}
+	var chunks []string
+	text, err := p.streamWithEino(context.Background(), providerAssignment{BaseURL: server.URL, ModelID: "fake", Timeout: 5 * time.Second, TokenBudget: 64}, []map[string]any{{"role": "user", "content": "hello"}}, "stream-request", func(chunk string) error {
+		chunks = append(chunks, chunk)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if text != "hello" || len(chunks) != 2 {
+		t.Fatalf("text=%q chunks=%#v", text, chunks)
+	}
+}
+
 type adkFakeChatModel struct {
 	mu    sync.Mutex
 	calls int
+}
+
+type adkErrorChatModel struct{}
+
+func (adkErrorChatModel) Generate(context.Context, []*schema.Message, ...model.Option) (*schema.Message, error) {
+	return nil, errors.New("fake_model_failed")
+}
+func (adkErrorChatModel) Stream(context.Context, []*schema.Message, ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+	return nil, errors.New("fake_stream_failed")
+}
+func (m adkErrorChatModel) WithTools([]*schema.ToolInfo) (model.ToolCallingChatModel, error) {
+	return m, nil
+}
+
+type adkLoopChatModel struct{}
+
+func (adkLoopChatModel) Generate(context.Context, []*schema.Message, ...model.Option) (*schema.Message, error) {
+	return schema.AssistantMessage("", []schema.ToolCall{{ID: "loop-call", Type: "function", Function: schema.FunctionCall{Name: "memory.recall", Arguments: `{"intent":"loop"}`}}}), nil
+}
+func (adkLoopChatModel) Stream(context.Context, []*schema.Message, ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+	return schema.StreamReaderFromArray([]*schema.Message{schema.AssistantMessage("", nil)}), nil
+}
+func (m adkLoopChatModel) WithTools([]*schema.ToolInfo) (model.ToolCallingChatModel, error) {
+	return m, nil
 }
 
 func (m *adkFakeChatModel) Generate(_ context.Context, input []*schema.Message, _ ...model.Option) (*schema.Message, error) {
@@ -108,7 +162,10 @@ type adkFakeInvoker struct {
 type adkTraceInvoker struct{ trace *ADKCapabilityTrace }
 
 func (i adkTraceInvoker) Execute(_ context.Context, capabilityName string, argumentsJSON string) (string, error) {
-	callID := "trace-call"
+	return i.ExecuteWithID(context.Background(), "trace-call", capabilityName, argumentsJSON)
+}
+
+func (i adkTraceInvoker) ExecuteWithID(_ context.Context, callID, capabilityName string, argumentsJSON string) (string, error) {
 	i.trace.Invocations = append(i.trace.Invocations, CapabilityInvocation{CallID: callID, CapabilityName: capabilityName, Arguments: json.RawMessage(argumentsJSON), SchemaVersion: CapabilityInvocationSchemaVersion, SourceFactID: "source", ProviderRequestID: "provider"})
 	i.trace.Results = append(i.trace.Results, CapabilityResult{CallID: callID, CapabilityName: capabilityName, Status: "completed", Output: map[string]any{"items": []any{"recent"}}})
 	return `{"items":["recent"]}`, nil
@@ -143,9 +200,111 @@ func TestRunADKConversationExecutesCapabilityAndFeedsResultBack(t *testing.T) {
 	}
 }
 
+func TestRunADKConversationRejectsIterationLimitAboveTwo(t *testing.T) {
+	_, err := RunADKConversation(context.Background(), ADKConversationConfig{
+		Name: "conversation", Description: "test", Model: &adkFakeChatModel{}, MaxIterations: 3,
+	}, []*schema.Message{schema.UserMessage("hello")})
+	if err == nil || err.Error() != "adk_iteration_limit_invalid" {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestRunADKConversationModelFailureHasNoFinalMessage(t *testing.T) {
+	_, err := RunADKConversation(context.Background(), ADKConversationConfig{
+		Name: "conversation", Description: "test", Model: adkErrorChatModel{}, MaxIterations: 2,
+	}, []*schema.Message{schema.UserMessage("hello")})
+	if err == nil || !strings.Contains(err.Error(), "fake_model_failed") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestRunADKConversationStopsLoopAtTwoGenerations(t *testing.T) {
+	defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
+	tools, err := NewADKCapabilityTools(defs, &adkFakeInvoker{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = RunADKConversation(context.Background(), ADKConversationConfig{
+		Name: "conversation", Description: "test", Model: adkLoopChatModel{}, Tools: tools, MaxIterations: 2,
+	}, []*schema.Message{schema.UserMessage("loop")})
+	if err == nil || !strings.Contains(err.Error(), "max iterations") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestAppADKInvokerPreservesFormalToolCallIDAndSource(t *testing.T) {
+	app := &App{}
+	registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Capabilities = registry
+	trace := &ADKCapabilityTrace{}
+	invoker := newAppADKCapabilityInvoker(app, "fluctlight-1", "conversation-1", "fact-1", "frozen-1", ContextProjection{}, trace)
+	identityInvoker, ok := invoker.(ADKCapabilityInvokerWithID)
+	if !ok {
+		t.Fatal("production invoker does not preserve tool-call identity")
+	}
+	if _, err := identityInvoker.ExecuteWithID(context.Background(), "provider-call-7", "conversation.reply", `{"text":"hello"}`); err != nil {
+		t.Fatal(err)
+	}
+	if len(trace.Invocations) != 1 || trace.Invocations[0].CallID != "provider-call-7" || trace.Invocations[0].Metadata.Source != "model_tool" {
+		t.Fatalf("trace = %#v", trace)
+	}
+}
+
+func TestHandleTurnProductionADKToolLoopSettlesOneAssistant(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "adk-e2e-owner", "adk-e2e-fluctlight", "adk-e2e-conversation"
+	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	seedCognitiveProviderRole(t, ctx, repository, "adk-e2e-endpoint")
+	callCount := 0
+	finalDecision := map[string]any{
+		"action_type": "reply", "response_mode": "final", "visible_text": "ADK settled",
+		"response_intent": "answer", "capability_invocations": []any{}, "influences": []any{},
+		"appraisal": map[string]any{"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.5, "social_threat": 0.0, "controllability": 0.5, "responsibility": 0.5, "relationship_significance": 0.5, "expected_effect": 0.5, "evidence_refs": []any{}, "event_kind": "conversation", "direction": "mixed", "drive_signals": []any{}},
+	}
+	router := newFakeProviderRouter().on("conversation_turn_response", func(_ map[string]any) fakeProviderResult {
+		callCount++
+		if callCount == 1 {
+			return fakeProviderResult{ToolCalls: []map[string]any{{"id": "adk-production-call", "type": "function", "function": map[string]any{"name": "conversation.reply", "arguments": `{"text":"deferred"}`}}}}
+		}
+		return fakeProviderResult{Structured: finalDecision}
+	})
+	app := newTestApp(t, repository, router)
+	result, err := app.HandleTurn(ctx, ownerID, conversationID, map[string]any{"fluctlight_id": fluctlightID, "text": "hello", "idempotency_key": "adk-e2e-idempotency", "turn_id": "adk-e2e-turn", "attachment_refs": []any{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stringValue(result.Assistant["text"]) != "ADK settled" || router.requestCount("conversation_turn_response") != 2 {
+		t.Fatalf("result=%#v requests=%d", result, router.requestCount("conversation_turn_response"))
+	}
+	var assistantCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversationID).Scan(&assistantCount); err != nil {
+		t.Fatal(err)
+	}
+	if assistantCount != 1 {
+		t.Fatalf("assistant count = %d", assistantCount)
+	}
+	second := router.payloads("conversation_turn_response")
+	if len(second) != 2 {
+		t.Fatalf("payload count = %d", len(second))
+	}
+	toolResultFound := false
+	for _, message := range arrayValue(second[1]["messages"]) {
+		if stringValue(mapValue(message)["role"]) == "tool" && stringValue(mapValue(message)["tool_call_id"]) == "adk-production-call" {
+			toolResultFound = true
+		}
+	}
+	if !toolResultFound {
+		t.Fatalf("production ADK second request missing matching tool result: %#v", second[1]["messages"])
+	}
+}
+
 func TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace(t *testing.T) {
 	var mu sync.Mutex
 	requests := make([]map[string]any, 0, 2)
+	requestIDs := make([]string, 0, 2)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		var payload map[string]any
@@ -155,6 +314,7 @@ func TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace(t *testing.T) {
 		}
 		mu.Lock()
 		requests = append(requests, payload)
+		requestIDs = append(requestIDs, r.Header.Get("Idempotency-Key"))
 		count := len(requests)
 		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -174,12 +334,12 @@ func TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace(t *testing.T) {
 		Assignment:  providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: 10 * time.Second, TokenBudget: 128},
 		Messages:    []map[string]any{{"role": "system", "content": "protocol"}, {"role": "user", "content": "find"}},
 		Definitions: []CapabilityDefinition{{Name: "memory.recall", Description: "Recall", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}},
-		JSONMode:    true, SchemaName: "conversation_turn_response", ResponseSchema: map[string]any{"type": "object"}, EnableThinking: true, ProviderRequestID: "provider-request-1",
+		JSONMode:    true, SchemaName: "conversation_turn_response", ResponseSchema: map[string]any{"type": "object"}, EnableThinking: true, ProviderRequestID: "provider-request-1", CorrelationID: "turn:adk-test",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if response.Message == nil || len(response.Message.ToolCalls) != 1 || len(trace.Invocations) != 1 || len(trace.Results) != 1 {
+	if response.Message == nil || len(response.Message.ToolCalls) != 1 || response.Message.ToolCalls[0].ID != "provider-call-1" || len(trace.Invocations) != 1 || trace.Invocations[0].CallID != "provider-call-1" || len(trace.Results) != 1 {
 		t.Fatalf("response=%#v trace=%#v", response.Message, trace)
 	}
 	if response.Message.Content == "" || response.Message.Content == "{}" {
@@ -190,14 +350,26 @@ func TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace(t *testing.T) {
 	if len(requests) != 2 {
 		t.Fatalf("ADK requests = %d", len(requests))
 	}
+	if requestIDs[0] == "" || requestIDs[0] == requestIDs[1] {
+		t.Fatalf("ADK request identities = %#v", requestIDs)
+	}
 	secondMessages := arrayValue(requests[1]["messages"])
 	foundToolResult := false
+	foundMatchingAssistantCall := false
 	for _, item := range secondMessages {
-		if stringValue(mapValue(item)["role"]) == "tool" {
+		message := mapValue(item)
+		if stringValue(message["role"]) == "tool" && stringValue(message["tool_call_id"]) == "provider-call-1" {
 			foundToolResult = true
 		}
+		if stringValue(message["role"]) == "assistant" {
+			for _, call := range arrayValue(message["tool_calls"]) {
+				if stringValue(mapValue(call)["id"]) == "provider-call-1" {
+					foundMatchingAssistantCall = true
+				}
+			}
+		}
 	}
-	if !foundToolResult {
+	if !foundToolResult || !foundMatchingAssistantCall {
 		t.Fatalf("second request did not contain tool result: %#v", secondMessages)
 	}
 }
@@ -222,6 +394,62 @@ func TestPromptComposerUsesExplicitSlotsAndPreservesWholeTurns(t *testing.T) {
 	}
 	if len(result.Messages) != 4 || result.Messages[0].Role != schema.System || result.Messages[len(result.Messages)-1].Content != "new input" {
 		t.Fatalf("messages = %#v", result.Messages)
+	}
+}
+
+func TestProviderMessagesToEinoPreservesMultimodalParts(t *testing.T) {
+	messages, err := providerMessagesToEino([]map[string]any{{
+		"role": "user",
+		"content": []any{
+			map[string]any{"type": "text", "text": "inspect"},
+			map[string]any{"type": "image_url", "image_url": map[string]any{"url": "data:image/png;base64,abc", "detail": "high"}},
+		},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 1 || len(messages[0].UserInputMultiContent) != 2 || messages[0].UserInputMultiContent[1].Image == nil {
+		t.Fatalf("messages = %#v", messages)
+	}
+	if got := *messages[0].UserInputMultiContent[1].Image.URL; got != "data:image/png;base64,abc" {
+		t.Fatalf("image URL = %q", got)
+	}
+}
+
+func TestProviderMessagesToEinoRejectsUnknownMultimodalPart(t *testing.T) {
+	_, err := providerMessagesToEino([]map[string]any{{"role": "user", "content": []any{map[string]any{"type": "audio"}}}})
+	if err == nil || !strings.Contains(err.Error(), "unsupported_part_type") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestPromptComposerSlotBudgetAndCancellationFailClosed(t *testing.T) {
+	composer, err := NewPromptComposer(DefaultPromptBudgetPolicy(4096))
+	if err != nil {
+		t.Fatal(err)
+	}
+	optional, err := composer.Compose(context.Background(), PromptCompositionInput{
+		System: "protocol", CurrentInput: "now",
+		Slots: []PromptSlot{{ID: PromptSlotRuntimeFact, Position: PromptSlotRuntime, Order: 1, BudgetTokens: 1, Fragments: []PromptFragment{{Kind: PromptFragmentRuntimeFact, Content: map[string]any{"fact": strings.Repeat("x", 200)}}}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(optional.Messages) != 2 || strings.Contains(optional.Messages[1].Content, "fact") {
+		t.Fatalf("optional slot was not dropped: %#v", optional.Messages)
+	}
+	_, err = composer.Compose(context.Background(), PromptCompositionInput{
+		System: "protocol", CurrentInput: "now",
+		Slots: []PromptSlot{{ID: PromptSlotRuntimeFact, Position: PromptSlotRuntime, Order: 1, Required: true, BudgetTokens: 1, Fragments: []PromptFragment{{Kind: PromptFragmentRuntimeFact, Required: true, Content: map[string]any{"fact": strings.Repeat("x", 200)}}}}},
+	})
+	if err == nil || !strings.Contains(err.Error(), "prompt_required_budget_exceeded") {
+		t.Fatalf("required overflow err = %v", err)
+	}
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err = composer.Compose(cancelled, PromptCompositionInput{System: "protocol", CurrentInput: "now"})
+	if err == nil || !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancel err = %v", err)
 	}
 }
 

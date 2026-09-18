@@ -44,7 +44,7 @@ func (a *App) ProcessMemoryEmbeddingIntentAt(ctx context.Context, intentID, memo
 	if ready {
 		return map[string]any{"memory_id": memoryID, "status": "ready", "revision": requestedRevision, "model_id": assignment.ModelID, "replayed": true}, nil
 	}
-	model, vector, providerErr := a.Provider.embedWithAssignment(ctx, content, assignment)
+	model, vector, providerErr := a.RunFrozenEmbeddingTask(ctx, content, assignment)
 	if providerErr != nil {
 		if settleErr := a.settleMemoryEmbeddingFailure(ctx, memoryID, requestedRevision, embeddingID, assignment, "provider_request_failed"); settleErr != nil {
 			return nil, fmt.Errorf("embedding Provider failed (%v) and failure settlement failed: %w", providerErr, settleErr)

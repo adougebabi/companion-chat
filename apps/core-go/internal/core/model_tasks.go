@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"strings"
 )
 
 // ModelTaskKind names the bounded responsibilities that may call a model.
@@ -59,6 +60,9 @@ func (a *App) RunStructuredToolsTask(ctx context.Context, task ModelTask, messag
 	if err != nil {
 		return ProviderCompletion{}, err
 	}
+	if strings.TrimSpace(task.Scenario) != "" {
+		ctx = WithProviderScenario(ctx, task.Scenario)
+	}
 	if assembled {
 		return provider.StructuredAssembledWithToolsSchema(ctx, task.Role, messages, definitions, task.SchemaName, schema, thinking)
 	}
@@ -73,10 +77,29 @@ func (a *App) RunTextTask(ctx context.Context, task ModelTask, messages []map[st
 	return provider.Text(WithProviderScenario(ctx, task.Scenario), task.Role, messages)
 }
 
+func (a *App) RunStreamTask(ctx context.Context, task ModelTask, messages []map[string]any, onChunk func(string) error) (string, error) {
+	provider, err := a.modelTaskProvider()
+	if err != nil {
+		return "", err
+	}
+	return provider.StreamText(WithProviderScenario(ctx, task.Scenario), task.Role, messages, onChunk)
+}
+
 func (a *App) RunEmbeddingTask(ctx context.Context, text string) (string, []float64, error) {
 	provider, err := a.modelTaskProvider()
 	if err != nil {
 		return "", nil, err
 	}
 	return provider.Embed(WithProviderScenario(ctx, "memory_retrieval"), text)
+}
+
+// RunFrozenEmbeddingTask keeps a workflow-pinned assignment while still
+// exposing an operation-owned task boundary. It is used by durable embedding
+// intents whose endpoint/model tuple must not be re-resolved on retry.
+func (a *App) RunFrozenEmbeddingTask(ctx context.Context, text string, assignment providerAssignment) (string, []float64, error) {
+	provider, err := a.modelTaskProvider()
+	if err != nil {
+		return "", nil, err
+	}
+	return provider.embedWithAssignment(ctx, text, assignment)
 }

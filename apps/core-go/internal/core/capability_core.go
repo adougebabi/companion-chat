@@ -943,7 +943,10 @@ type CapabilityInvocation struct {
 }
 
 type InvocationMetadata struct {
-	CorrelationID  string            `json:"correlation_id,omitempty"`
+	CorrelationID string `json:"correlation_id,omitempty"`
+	// Source distinguishes a model-native tool call from a deterministic policy
+	// invocation without creating a second persistence envelope.
+	Source         string            `json:"source,omitempty"`
 	Surface        CapabilitySurface `json:"surface,omitempty"`
 	OutputBinding  *OutputBindingV1  `json:"output_binding,omitempty"`
 	FluctlightID   string            `json:"fluctlight_id,omitempty"`
@@ -1003,6 +1006,9 @@ func (invocation CapabilityInvocation) Validate(definition CapabilityDefinition)
 	}
 	if invocation.Sequence < 0 {
 		return fmt.Errorf("%w: sequence is invalid", ErrInvalidArguments)
+	}
+	if source := strings.TrimSpace(invocation.Metadata.Source); source != "" && source != "model_tool" && source != "policy" {
+		return fmt.Errorf("%w: invocation source is invalid", ErrInvalidArguments)
 	}
 	arguments, err := normalizeToolArguments(string(invocation.Arguments))
 	if err != nil {
