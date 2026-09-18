@@ -1111,3 +1111,36 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Next Steps
 
 - None - task complete
+
+
+## Session 34: 摇光 Eino 基础层与 ADK 对话接入
+
+**Date**: 2026-09-18
+**Task**: 摇光 Eino 基础层与 ADK 对话接入
+**Branch**: `codex/yaoguang-eino-adk`
+
+### Summary
+
+在独立 codex/yaoguang-eino-adk worktree 完成官方 Eino ChatModel/Embedder 迁移、request-scoped ADK 对话工具循环、Prompt Slot/Composer、模型任务边界、全量入口迁移、文档/spec 更新与 Fake ADK 契约测试。Core/Gateway 全量测试、race、vet、tidy-diff 均通过；真实 Provider/ComfyUI/计费未验证。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `89764bc` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
