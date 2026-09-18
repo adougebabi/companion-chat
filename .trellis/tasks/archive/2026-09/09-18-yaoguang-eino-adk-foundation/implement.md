@@ -31,8 +31,8 @@
 
 - [x] 添加/更新测试：ADK normal turn、tool result next input、query budget、takeover/persistent switch、candidate rejection、failure/cancel/iteration cap、single publish、Prompt Slot budget/isolation、Reflection context、text/structured/multimodal/embedding/stream、legacy format fail-closed。
 - [x] 运行 `gofmt`、`go test -mod=readonly ./...`（两个 module）、相关 `go test -race`、`go vet`、旧符号/旧 HTTP/旧循环全仓扫描。
-- [ ] 运行 Trellis quality check；更新 backend provider/queue/structured-turn/diagnostics specs，记录 Eino/ADK 边界和真实 provider 未验证项。
-- [ ] 提交单一可回滚 commit，归档 Trellis 任务并输出迁移清单、调用路径、删除清单、配置变化、测试证据和外部阻塞。
+- [x] 运行 Trellis quality check；更新 backend provider/queue/structured-turn/diagnostics specs，记录 Eino/ADK 边界和真实 provider 未验证项。
+- [x] 提交可回滚 work commit，归档 Trellis 任务并输出迁移清单、调用路径、删除清单、配置变化、测试证据和外部阻塞。
 
 ## 关键验证命令
 

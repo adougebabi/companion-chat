@@ -311,5 +311,8 @@ func RunADKConversation(ctx context.Context, config ADKConversationConfig, messa
 	if result.FinalMessage == nil {
 		return ADKConversationResult{}, errors.New("adk_final_message_missing")
 	}
+	if strings.TrimSpace(result.FinalMessage.Content) == "" && len(result.FinalMessage.ToolCalls) == 0 {
+		return ADKConversationResult{}, errors.New("adk_final_message_empty")
+	}
 	return result, nil
 }
