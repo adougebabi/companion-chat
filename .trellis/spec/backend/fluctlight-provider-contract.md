@@ -24,6 +24,116 @@ ModelRole
   prompt_budget_policy_version / timeout / retry_policy
 ```
 
+## Scenario: Eino model foundation and ADK direct conversation
+
+### 1. Scope / Trigger
+
+- Trigger: a Core model task, Embedding task, or direct conversation needs to
+  call an OpenAI-compatible endpoint through Eino.
+- The official Eino ChatModel/Embedder owns wire protocol and message/stream
+  decoding. Core owns role assignment, queue/cancellation, prompt budget,
+  bounded diagnostics, capability authorization, frozen decisions and domain
+  settlement.
+
+### 2. Signatures
+
+```go
+NewEinoModelFactory(httpClient *http.Client) EinoModelFactory
+EinoModelFactory.NewChatModel(ctx, EinoModelConfig) (model.ToolCallingChatModel, error)
+EinoModelFactory.NewEmbedder(ctx, EinoModelConfig) (embedding.Embedder, error)
+RunADKConversation(ctx, ADKConversationConfig, []*schema.Message) (ADKConversationResult, error)
+NewADKCapabilityTools(definitions, ADKCapabilityInvoker) ([]tool.BaseTool, error)
+```
+
+`ProviderClient` maps one resolved `providerAssignment` into `EinoModelConfig`;
+business callers use operation-owned `ModelTask` boundaries. `ProviderCompletion`
+and `CapabilityInvocation` v2 remain the only Core result/persistence contracts.
+
+### 3. Contracts
+
+- ChatModel calls use the pinned official Eino components and the configured
+  endpoint/model/secret; no project code posts or decodes `/chat/completions`
+  or `/embeddings`.
+- Each Generate/Stream/EmbedStrings call obtains its own local/Redis queue
+  lease, timeout and cancellation watcher. An ADK Agent loop does not hold one
+  lease across multiple model calls.
+- `schema.ToolCall` is bounded once into `CapabilityInvocation`; tool ID/name/
+  arguments are never guessed from prose. `schema.Message` multimodal parts
+  preserve text plus image URL/data boundaries.
+- Direct conversation builds a request-scoped ADK `ChatModelAgent` and
+  `Runner` with `MaxIterations <= 2`, no automatic retry/failover, and a
+  narrow `ADKCapabilityInvoker`. Query tools return the real bounded result;
+  mutation/external tools return explicit `deferred` status until frozen
+  Prepare/transaction settlement.
+- `ADKCapabilityTrace` is request-scoped metadata only. It is merged into the
+  existing invocation/result arrays and is never persisted as a second tool
+  envelope or global mutable Agent state.
+- Initialization keeps JSON-object response format and its operation-owned
+  budget floor. Embedding stays on the independent embedding queue. Browser
+  NDJSON still publishes only after assistant settlement.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Missing assignment/model or unsupported Eino component | Explicit `eino_*`/role configuration error; no generic fallback |
+| Invalid tool schema/message part/response schema | Fail before Provider I/O; record bounded preflight stage |
+| ADK tool call is unknown, unauthorized, malformed or missing frozen identity | Return rejected/failed bounded result; no domain side effect |
+| Pure query tool execution fails | ADK returns an explicit failed tool result; no empty final success |
+| Mutation/external capability is requested during ADK loop | Return `deferred` result; Core later owns Prepare/CAS/transaction/intent |
+| ADK exceeds two generations, is cancelled or model fails | Typed failure; no assistant publish or fabricated success |
+| Embedding vector is empty, non-finite or wrong dimension | Reject vector and preserve retrieval fallback/intent retry policy |
+| Provider emits hidden reasoning or raw diagnostics | Keep only bounded structured candidate/shape metadata; never expose full reasoning |
+
+### 5. Good/Base/Bad Cases
+
+- Good: the first ADK model call emits `memory.recall`; the Capability adapter
+  executes the read-only runtime, the second request contains one matching
+  `tool` message, and Core publishes the final reply once.
+- Base: an image-generation call receives a truthful `deferred` tool result,
+  freezes the invocation, and settles the external intent after the caller
+  transaction commits.
+- Bad: pass `*App` to an Eino tool, keep a queue lease for the whole Agent
+  loop, call a raw HTTP endpoint beside Eino, or return `completed` before a
+  deferred capability is persisted.
+
+### 6. Tests Required
+
+- Factory tests assert official ChatModel/Embedder request paths, model,
+  response format, tool schema and usage mapping.
+- ADK Fake model tests assert a formal tool call, real tool result in the next
+  request, iteration cap, explicit failure/cancel and one final message.
+- Prompt Composer tests assert explicit Slot selection, order, per-slot/total
+  budget, current-input de-duplication and complete recent turns.
+- Provider regression tests assert all Core model tasks use Eino and no
+  production `/chat/completions` or `/embeddings` request builder remains.
+- Queue tests assert two ADK model calls acquire/release two separate leases;
+  diagnostics retain role/scenario/request identity and bounded usage.
+- Real-provider/ComfyUI/credit/cache behavior remains an explicitly reported
+  external acceptance item when credentials/services are unavailable.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+for toolCall := range modelCalls {
+	result := app.Execute(toolCall) // Agent loop owns a long-lived queue lease
+	model.Generate(append(history, result))
+}
+```
+
+#### Correct
+
+```go
+trace := &ADKCapabilityTrace{}
+tools, _ := NewADKCapabilityTools(definitions, requestScopedInvoker)
+result, err := RunADKConversation(ctx, ADKConversationConfig{
+		Model: chatModel, Tools: tools, MaxIterations: 2,
+}, assembledMessages)
+// Core merges trace into CapabilityInvocation/Result v2 and settles it.
+```
+
 ```python
 preflight(role: ModelRole) -> CapabilityReport
 complete_structured(role, schema, input) -> StructuredResult

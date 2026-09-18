@@ -1,5 +1,7 @@
 package core
 
+// StructuredAssembledWithToolsSchema remains the canonical assembled Eino task boundary.
+
 import (
 	"context"
 	"encoding/json"
@@ -494,7 +496,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		),
 		assembly.Diagnostics,
 	)
-	completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "wake_up_response", schema, structuredThinkingEnabledForSchema("wake_up_response"))
+	completion, err := a.RunStructuredToolsTask(providerCtx, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "wake_up", SchemaName: "wake_up_response"}, assembly.Messages, definitions, schema, true, structuredThinkingEnabledForSchema("wake_up_response"))
 	if err != nil {
 		if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
 			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil

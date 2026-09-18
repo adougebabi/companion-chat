@@ -416,7 +416,7 @@ func (a *App) retrieveMemoryWithPlan(ctx context.Context, authorizationActorID, 
 	trace.AuthorizedCandidateCount = len(scored)
 	if plan.Mode == "semantic_hybrid" && a.Provider != nil && strings.TrimSpace(plan.EmbeddingQuery) != "" {
 		trace.EmbeddingDisposition = "fallback"
-		modelID, queryVector, embedErr := a.Provider.Embed(WithProviderScenario(ctx, "memory_retrieval"), plan.EmbeddingQuery)
+		modelID, queryVector, embedErr := a.RunEmbeddingTask(ctx, plan.EmbeddingQuery)
 		if embedErr != nil {
 			trace.FallbackReason = "embedding_unavailable"
 		} else {

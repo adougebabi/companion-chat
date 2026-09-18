@@ -29,7 +29,7 @@ func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID
 	// consumes an evidence window after the plan is accepted; using it here
 	// returns a reflection proposal shape instead of the required {items,...}
 	// schedule and leaves the lifecycle intent pending forever.
-	result, err := a.Provider.StructuredWithSchema(WithProviderScenario(ctx, "schedule_generation"), "cognitive_assessment", messages, "schedule_response", scheduleResponseSchema(), false)
+	result, err := a.RunStructuredTask(ctx, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "schedule_generation", SchemaName: "schedule_response"}, messages, scheduleResponseSchema(), false)
 	if err != nil {
 		return nil, fmt.Errorf("initial schedule provider request failed: %w", err)
 	}
@@ -39,7 +39,7 @@ func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID
 		// the HTTP request itself succeeds. Retry the same factual context with
 		// an explicit compact-output reminder; never salvage a partial array.
 		retryMessages := append(append([]map[string]any{}, messages...), map[string]any{"role": "user", "content": "上一个日程 JSON 不完整。请重新输出完整且紧凑的 8-16 个时段，必须覆盖从 00:00 到次日 00:00，不能截断，也不要附加解释。"})
-		if retryResult, retryErr := a.Provider.StructuredWithSchema(ctx, "cognitive_assessment", retryMessages, "schedule_response", scheduleResponseSchema(), false); retryErr == nil {
+		if retryResult, retryErr := a.RunStructuredTask(ctx, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "schedule_generation", SchemaName: "schedule_response"}, retryMessages, scheduleResponseSchema(), false); retryErr == nil {
 			payload, err = normalizeScheduleResponse(retryResult, localDate, timezone)
 		}
 	}

@@ -264,10 +264,10 @@ func (a *App) ProcessConversationSummaryIntent(ctx context.Context, intentID, fl
 	providerMessages := conversationSummaryProviderMessages(work.Messages)
 	correlationID := "conversation-summary:" + work.IntentID
 	providerContext := WithProviderCorrelation(WithProviderScenario(ctx, "conversation_summary"), correlationID)
-	structured, err := a.Provider.StructuredWithSchema(providerContext, "reflection", []map[string]any{
+	structured, err := a.RunStructuredTask(providerContext, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "reflection", Scenario: "conversation_summary", SchemaName: "conversation_summary_v1"}, []map[string]any{
 		{"role": "system", "content": conversationSummaryInstruction},
 		{"role": "user", "content": jsonString(map[string]any{"source_messages": providerMessages})},
-	}, "conversation_summary_v1", conversationSummaryProviderSchema(), false)
+	}, conversationSummaryProviderSchema(), false)
 	if err != nil {
 		return nil, err
 	}

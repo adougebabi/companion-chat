@@ -86,7 +86,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 			activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "prompt"})
 			promptInput := mediaPromptInput(intent)
 			providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "media_prompt"), "media:"+intent.ID)
-			value, providerErr := a.Provider.Text(providerCtx, "media_prompt", []map[string]any{{"role": "system", "content": mediaPromptInstruction}, {"role": "user", "content": promptInput}})
+			value, providerErr := a.RunTextTask(providerCtx, ModelTask{Kind: ModelTaskText, Role: "media_prompt", Scenario: "media_prompt"}, []map[string]any{{"role": "system", "content": mediaPromptInstruction}, {"role": "user", "content": promptInput}})
 			if providerErr != nil || strings.TrimSpace(value) == "" {
 				if providerErr != nil {
 					return nil, fmt.Errorf("media prompt generation failed: %w", providerErr)

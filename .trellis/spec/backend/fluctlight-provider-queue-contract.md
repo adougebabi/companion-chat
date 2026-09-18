@@ -196,3 +196,69 @@ claimWithLease(ctx, pendingKey, processingKey, jobID)
 defer releaseOwnedLease(ctx, processingKey, jobID, owner)
 callLocalProviderClosure()
 ```
+
+## Scenario: Per-call queue leases inside an ADK loop
+
+### 1. Scope / Trigger
+
+- Trigger: one direct conversation uses ADK to perform more than one ChatModel
+  generation after a tool call.
+
+### 2. Signatures
+
+```go
+runProviderQueued(ctx, role, scenario, priority, diagnosticID, func(ctx) (T, error))
+queuedToolCallingChatModel.Generate(ctx, messages, opts...) (*schema.Message, error)
+```
+
+### 3. Contracts
+
+- The outer conversation orchestration must not hold a generated-model queue
+  lease across the entire Agent loop.
+- Each ADK `Generate`/`Stream` call enters `runProviderQueued` independently;
+  the next model call waits for a fresh local/Redis lease.
+- The request keeps one correlation/turn identity, but each underlying call
+  remains cancellation-, timeout- and lifecycle-diagnosable.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| ADK makes two model generations | Two queue acquire/release cycles; no long-lived lease |
+| Tool callback is slow | The current model-call lease is released only after that call; no second model call is admitted on the same lease |
+| Redis unavailable | Each call falls back to the local queue independently |
+| Context cancelled between calls | No new queue claim; the Agent returns a cancellation error |
+
+### 5. Good/Base/Bad Cases
+
+- Good: model A → query tool → model B produces two bounded model-run states
+  and two queue leases.
+- Base: a tool-only turn makes one model claim and settles without a second
+  claim.
+- Bad: wrap `Runner.Run` in one `runProviderQueued` callback and let all ADK
+  generations execute under that single permit.
+
+### 6. Tests Required
+
+- Fake ChatModel test counts queue claims/releases for a tool loop and asserts
+  cancellation before the second claim.
+- Redis coordinator test asserts each ADK call has an owner-checked lease and
+  no orphan processing member remains after a model failure.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+runProviderQueued(ctx, "generic_llm", "conversation", 100, id, func(ctx context.Context) error {
+	return runner.Run(ctx, messages) // includes all model/tool/model iterations
+})
+```
+
+#### Correct
+
+```go
+// Runner has no queue lease; the Eino ChatModel adapter claims one per call.
+queuedModel := &queuedToolCallingChatModel{inner: chatModel, provider: provider}
+runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: agent})
+```

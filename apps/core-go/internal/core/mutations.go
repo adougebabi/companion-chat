@@ -766,6 +766,13 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		projection = assembledProjection
 		continuationBaseMessages = cloneMapSlice(assembly.Messages)
 		providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
+		// Direct conversation uses a request-scoped ADK capability bridge. Query
+		// tools may execute their read-only runtime and return the real result to
+		// ADK; mutations return an explicit deferred result and remain owned by
+		// the frozen Prepare/settlement path below.
+		adkTrace := &ADKCapabilityTrace{}
+		adkInvoker := newAppADKCapabilityInvoker(a, fluctlightID, conversationID, inboxID, "frozen_"+stableDigest(inboxID), projection, adkTrace)
+		providerCtx = WithADKCapabilityInvoker(providerCtx, adkInvoker, adkTrace)
 		// Main cognition is the semantic decision boundary for persona, action and
 		// reply. Allow the configured Provider to use its thinking channel; the
 		// adapter still parses reasoning_content as a structured candidate and Core
@@ -783,6 +790,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		decision = completion.Structured
 		structuredFallback = completion.StructuredFallback
 		capabilityInvocations = append([]CapabilityInvocation(nil), completion.ToolCalls...)
+		capabilityResults = append(capabilityResults, adkTrace.Results...)
 		// Both the Main generation and the takeover reply run through this one
 		// normalizer so a takeover candidate cannot bypass a single validation
 		// step that the Main candidate passed (design.md 4.8).

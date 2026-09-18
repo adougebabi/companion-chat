@@ -156,7 +156,7 @@ func (a *App) evaluateMediaQuality(ctx context.Context, intent mediaIntent, cont
 	if err != nil {
 		return mediaQualityAcceptance{}, err
 	}
-	value, err := a.Provider.StructuredWithSchema(WithProviderScenario(ctx, "media_quality_acceptance"), "media_prompt", messages, "media_quality_acceptance_response", mediaQualityAcceptanceResponseSchema(), false)
+	value, err := a.RunStructuredTask(ctx, ModelTask{Kind: ModelTaskMultimodalAssessment, Role: "media_prompt", Scenario: "media_quality_acceptance", SchemaName: "media_quality_acceptance_response"}, messages, mediaQualityAcceptanceResponseSchema(), false)
 	if err != nil {
 		return mediaQualityAcceptance{}, err
 	}

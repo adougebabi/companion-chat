@@ -103,7 +103,11 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	policy.ContextWindowTokens = assignment.ContextWindowTokens
 	policy.MaxInputTokens = assignment.MaxInputTokens
 	policy.Version = assignment.PromptBudgetPolicyVersion
-	result, err := AssemblePromptContext(PromptAssemblyInput{
+	composer, composerErr := NewPromptComposer(policy)
+	if composerErr != nil {
+		return PromptAssemblyResult{}, projection, composerErr
+	}
+	result, err := composer.ComposeAssembly(PromptAssemblyInput{
 		Role: role, OperationRules: operationRules, CorePersona: systemPersonaForProjection(projection, schemaName),
 		WorkingMemory: workingMemory, CurrentInput: currentInput, Tools: RenderCapabilityTools(definitions),
 		ResponseFormat: providerResponseFormatForSchema(role, schemaName, schema), Policy: policy,

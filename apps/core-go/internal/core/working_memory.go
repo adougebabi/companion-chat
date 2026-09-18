@@ -17,7 +17,15 @@ const (
 )
 
 type PromptFragment struct {
-	Kind            PromptFragmentKind `json:"kind"`
+	Kind PromptFragmentKind `json:"kind"`
+	// SlotID/Position/Order make prompt placement explicit without conflating
+	// prompt fragments with Capability ContextSlot or durable evolution slots.
+	// Existing callers may omit them; the Composer derives a stable placement
+	// from Kind for those historical fragments.
+	SlotID          PromptSlotID       `json:"slot_id,omitempty"`
+	Position        PromptSlotPosition `json:"position,omitempty"`
+	Order           int                `json:"order,omitempty"`
+	BudgetTokens    int                `json:"budget_tokens,omitempty"`
 	Priority        int                `json:"priority"`
 	Required        bool               `json:"required"`
 	Content         any                `json:"content"`

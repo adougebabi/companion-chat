@@ -1,5 +1,7 @@
 package core
 
+// StructuredAssembledWithToolsSchema remains the canonical assembled Eino task boundary.
+
 import (
 	"context"
 	"errors"
@@ -367,7 +369,7 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 		}
 		projection = assembledProjection
 		providerCtx = WithPromptDiagnostics(providerCtx, assembly.Diagnostics)
-		completion, err := a.Provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "native_cognition_response", schema, structuredThinkingEnabledForSchema("native_cognition_response"))
+		completion, err := a.RunStructuredToolsTask(providerCtx, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "native_cognition", SchemaName: "native_cognition_response"}, assembly.Messages, definitions, schema, true, structuredThinkingEnabledForSchema("native_cognition_response"))
 		if err != nil {
 			return err
 		}

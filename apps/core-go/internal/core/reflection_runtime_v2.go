@@ -1,5 +1,7 @@
 package core
 
+// StructuredAssembledWithToolsSchema remains the canonical assembled Eino task boundary.
+
 import (
 	"context"
 	"encoding/json"
@@ -171,13 +173,13 @@ func (a *App) processReflectionV2(
 	}
 	projection = assembledProjection
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "reflection"), assembly.Diagnostics)
-	completion, err := a.Provider.StructuredAssembledWithToolsSchema(
+	completion, err := a.RunStructuredToolsTask(
 		providerCtx,
-		"reflection",
+		ModelTask{Kind: ModelTaskStructuredAssessment, Role: "reflection", Scenario: "reflection", SchemaName: "reflection_proposal_v2"},
 		assembly.Messages,
 		nil,
-		"reflection_proposal_v2",
 		schema,
+		true,
 		structuredThinkingEnabledForSchema("reflection_proposal_v2"),
 	)
 	if err != nil {

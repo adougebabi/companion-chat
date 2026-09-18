@@ -1,13 +1,10 @@
 package core
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -170,8 +167,8 @@ func structuredResultForRole(role string, completion ProviderCompletion) (map[st
 // StructuredWithTools requests a structured model assessment with the
 // external capability catalog. Native provider calls and JSON sidecars are
 // normalized into ProviderCompletion before the application sees them. The
-// request always asks for the operation's strict JSON Schema; this legacy
-// helper keeps the cognitive-assessment thinking default for callers that use
+// request always asks for the operation's strict JSON Schema; this helper keeps
+// the cognitive-assessment thinking default for callers that use
 // it directly. Assembled production paths pass the flag explicitly per
 // operation so query continuation and the takeover Judge remain no-thinking.
 func (p *ProviderClient) StructuredWithTools(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition) (ProviderCompletion, error) {
@@ -292,6 +289,12 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		diagnostics["continuation_phase"] = "queries_completed"
 	}
 	ctx = WithPromptDiagnostics(ctx, diagnostics)
+	if _, adkEnabled := adkCapabilityContext(ctx); adkEnabled && schemaName == "conversation_turn_response" {
+		// The ADK agent performs multiple model calls. Queue each call through
+		// queuedToolCallingChatModel instead of holding one lease for the full
+		// Agent loop.
+		ctx = withProviderQueueBypass(ctx)
+	}
 	structuredSchema := schema
 	if structuredSchema == nil {
 		structuredSchema = providerSchemaForRole(role)
@@ -300,7 +303,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 	if normalizationSchemaName == "" {
 		normalizationSchemaName = providerSchemaName(role)
 	}
-	body, err := json.Marshal(payload)
+	_, err = json.Marshal(payload)
 	if err != nil {
 		p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "payload_encode", messages, err)
 		return ProviderCompletion{}, err
@@ -315,57 +318,19 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		}()
 		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
 		defer cancel()
-		request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/chat/completions", bytes.NewReader(body))
-		if err != nil {
-			return ProviderCompletion{}, err
-		}
-		request.Header.Set("Content-Type", "application/json")
-		request.Header.Set("Idempotency-Key", providerRequestID)
-		request.Header.Set("X-Fluctlight-Provider-Request-Id", providerRequestID)
-		if assignment.Secret != "" {
-			request.Header.Set("Authorization", "Bearer "+assignment.Secret)
-		}
-		client := p.HTTP
-		if client == nil {
-			client = &http.Client{}
-		}
-		response, err := client.Do(request)
+		response, err := p.generateWithEino(requestCtx, EinoModelCall{
+			Assignment: assignment, Role: role, Scenario: scenario, Priority: priority, DiagnosticID: diagnosticID,
+			Messages: messages, Definitions: definitions,
+			JSONMode: jsonMode, SchemaName: normalizationSchemaName, ResponseSchema: structuredSchema,
+			EnableThinking: enableThinking, ProviderRequestID: providerRequestID,
+		})
 		if err != nil {
 			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, providerRunErrorCode(err))
 			return ProviderCompletion{}, fmt.Errorf("provider request failed: %w", err)
 		}
-		defer response.Body.Close()
-		data, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
-		if err != nil {
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, providerRunErrorCode(err))
-			return ProviderCompletion{}, err
-		}
-		if response.StatusCode < 200 || response.StatusCode >= 300 {
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, fmt.Sprintf("http_%d", response.StatusCode))
-			return ProviderCompletion{}, fmt.Errorf("provider request returned HTTP %d", response.StatusCode)
-		}
-		var envelope map[string]any
-		if err := json.Unmarshal(data, &envelope); err != nil {
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_not_json")
-			return ProviderCompletion{}, fmt.Errorf("provider response is not JSON: %w", err)
-		}
-		usage = normalizeProviderUsage(envelope)
-		choices, ok := envelope["choices"].([]any)
-		if !ok || len(choices) == 0 {
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_no_choices")
-			return ProviderCompletion{}, fmt.Errorf("provider response has no choices")
-		}
-		choice, ok := choices[0].(map[string]any)
-		if !ok {
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_choice_invalid")
-			return ProviderCompletion{}, fmt.Errorf("provider response choice is invalid")
-		}
-		finishReason := strings.TrimSpace(stringValue(choice["finish_reason"]))
-		message, ok := choice["message"].(map[string]any)
-		if !ok {
-			p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "response_message_invalid")
-			return ProviderCompletion{}, fmt.Errorf("provider response message is invalid")
-		}
+		usage = response.Usage
+		message := einoMessageRaw(response.Message)
+		finishReason := response.FinishReason
 		calls, err := normalizeProviderToolCallsIndependently(message["tool_calls"], "", providerRequestID)
 		if err != nil {
 			diagnostic := providerToolCallNormalizationDiagnostic(message["tool_calls"], "native", err)
@@ -1220,7 +1185,7 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 		return "", ErrPromptRequiredBudgetExceeded
 	}
 	ctx = WithPromptDiagnostics(ctx, map[string]any{"prompt_budget": mergeProviderPromptBudgetDiagnostics(nil, messages, nil, nil, assignment, wireEstimate)})
-	body, err := json.Marshal(payload)
+	_, err = json.Marshal(payload)
 	if err != nil {
 		p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "payload_encode", messages, err)
 		return "", err
@@ -1236,74 +1201,10 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 		}()
 		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
 		defer cancel()
-		request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/chat/completions", bytes.NewReader(body))
+		result, err := p.streamWithEino(requestCtx, assignment, messages, providerRequestID, onChunk)
 		if err != nil {
 			return "", err
 		}
-		request.Header.Set("Content-Type", "application/json")
-		request.Header.Set("Accept", "text/event-stream")
-		request.Header.Set("Idempotency-Key", providerRequestID)
-		request.Header.Set("X-Fluctlight-Provider-Request-Id", providerRequestID)
-		if assignment.Secret != "" {
-			request.Header.Set("Authorization", "Bearer "+assignment.Secret)
-		}
-		client := p.HTTP
-		if client == nil {
-			client = &http.Client{}
-		}
-		response, err := client.Do(request)
-		if err != nil {
-			return "", err
-		}
-		defer response.Body.Close()
-		if response.StatusCode < 200 || response.StatusCode >= 300 {
-			return "", fmt.Errorf("provider stream returned HTTP %d", response.StatusCode)
-		}
-		scanner := bufio.NewScanner(io.LimitReader(response.Body, 16<<20))
-		scanner.Buffer(make([]byte, 4<<10), 1<<20)
-		var builder strings.Builder
-		done := false
-		for scanner.Scan() {
-			line := strings.TrimSpace(scanner.Text())
-			if line == "" || strings.HasPrefix(line, ":") {
-				continue
-			}
-			if !strings.HasPrefix(line, "data:") {
-				continue
-			}
-			data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-			if data == "[DONE]" {
-				done = true
-				break
-			}
-			var envelope struct {
-				Choices []struct {
-					Delta struct {
-						Content string `json:"content"`
-					} `json:"delta"`
-				} `json:"choices"`
-			}
-			if err := json.Unmarshal([]byte(data), &envelope); err != nil {
-				return "", fmt.Errorf("provider stream frame invalid: %w", err)
-			}
-			if len(envelope.Choices) == 0 || envelope.Choices[0].Delta.Content == "" {
-				continue
-			}
-			chunk := envelope.Choices[0].Delta.Content
-			builder.WriteString(chunk)
-			if onChunk != nil {
-				if err := onChunk(chunk); err != nil {
-					return "", err
-				}
-			}
-		}
-		if err := scanner.Err(); err != nil {
-			return "", err
-		}
-		if !done {
-			return "", errors.New("provider stream incomplete")
-		}
-		result := builder.String()
 		p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, map[string]any{"text": result, "streamed": true})
 		return result, nil
 	})
@@ -1327,10 +1228,6 @@ func (p *ProviderClient) embedWithAssignment(ctx context.Context, text string, a
 	correlationID := "embedding:" + stableDigest(assignment.ModelID+":"+text)
 	ctx = ensureProviderAttemptIdentity(ctx)
 	providerRequestID := providerDiagnosticRequestID("embedding", correlationID)
-	body, err := json.Marshal(map[string]any{"model": assignment.ModelID, "input": []string{text}, "encoding_format": "float"})
-	if err != nil {
-		return "", nil, err
-	}
 	prompt := []map[string]any{{"role": "user", "content": text}}
 	scenario := providerScenario(ctx, "embedding", "")
 	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, "embedding", assignment.EndpointID, assignment.ModelID, correlationID, scenario, 0, prompt)
@@ -1340,24 +1237,14 @@ func (p *ProviderClient) embedWithAssignment(ctx context.Context, text string, a
 	}, error) {
 		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
 		defer cancel()
-		request, err := http.NewRequestWithContext(requestCtx, http.MethodPost, assignment.BaseURL+"/embeddings", bytes.NewReader(body))
-		if err != nil {
-			return struct {
-				model  string
-				vector []float64
-			}{}, err
-		}
-		request.Header.Set("Content-Type", "application/json")
-		request.Header.Set("Idempotency-Key", providerRequestID)
-		request.Header.Set("X-Fluctlight-Provider-Request-Id", providerRequestID)
-		if assignment.Secret != "" {
-			request.Header.Set("Authorization", "Bearer "+assignment.Secret)
-		}
-		client := p.HTTP
-		if client == nil {
-			client = &http.Client{}
-		}
-		response, err := client.Do(request)
+		factory := NewEinoModelFactory(p.HTTP)
+		embedHTTP := einoHTTPClientWithHeaders(p.HTTP, map[string]string{
+			"Idempotency-Key": providerRequestID, "X-Fluctlight-Provider-Request-Id": providerRequestID,
+		})
+		embedder, err := factory.NewEmbedder(requestCtx, EinoModelConfig{
+			APIKey: assignment.Secret, BaseURL: assignment.BaseURL, Model: assignment.ModelID,
+			Timeout: assignment.Timeout, HTTPClient: embedHTTP,
+		})
 		if err != nil {
 			p.recordProviderFailure(runCtx, assignment, "embedding", correlationID, prompt, providerRunErrorCode(err))
 			return struct {
@@ -1365,38 +1252,26 @@ func (p *ProviderClient) embedWithAssignment(ctx context.Context, text string, a
 				vector []float64
 			}{}, err
 		}
-		defer response.Body.Close()
-		if response.StatusCode < 200 || response.StatusCode >= 300 {
-			p.recordProviderFailure(runCtx, assignment, "embedding", correlationID, prompt, fmt.Sprintf("http_%d", response.StatusCode))
-			return struct {
-				model  string
-				vector []float64
-			}{}, fmt.Errorf("embedding request returned HTTP %d", response.StatusCode)
-		}
-		var envelope struct {
-			Data []struct {
-				Embedding []float64 `json:"embedding"`
-			} `json:"data"`
-		}
-		if err := json.NewDecoder(io.LimitReader(response.Body, 8<<20)).Decode(&envelope); err != nil {
-			p.recordProviderFailure(runCtx, assignment, "embedding", correlationID, prompt, "embedding_response_invalid")
+		vectors, err := embedder.EmbedStrings(requestCtx, []string{text})
+		if err != nil {
+			p.recordProviderFailure(runCtx, assignment, "embedding", correlationID, prompt, providerRunErrorCode(err))
 			return struct {
 				model  string
 				vector []float64
 			}{}, err
 		}
-		if len(envelope.Data) == 0 || len(envelope.Data[0].Embedding) == 0 {
+		if len(vectors) == 0 || len(vectors[0]) == 0 {
 			p.recordProviderFailure(runCtx, assignment, "embedding", correlationID, prompt, "embedding_response_empty")
 			return struct {
 				model  string
 				vector []float64
 			}{}, fmt.Errorf("embedding response is empty")
 		}
-		p.recordProviderSuccess(runCtx, assignment, "embedding", correlationID, prompt, map[string]any{"dimensions": len(envelope.Data[0].Embedding)})
+		p.recordProviderSuccess(runCtx, assignment, "embedding", correlationID, prompt, map[string]any{"dimensions": len(vectors[0])})
 		return struct {
 			model  string
 			vector []float64
-		}{model: assignment.ModelID, vector: envelope.Data[0].Embedding}, nil
+		}{model: assignment.ModelID, vector: vectors[0]}, nil
 	})
 	return queuedResult.model, queuedResult.vector, queuedErr
 }

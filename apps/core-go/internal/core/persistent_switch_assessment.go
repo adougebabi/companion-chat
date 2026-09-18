@@ -64,13 +64,13 @@ func (a *App) assessPersistentSwitchAfterCandidate(ctx context.Context, input pe
 		WithProviderCorrelation(WithProviderScenario(ctx, "cognitive_assessment"), "persona-switch-after:"+input.InboxID),
 		assembly.Diagnostics,
 	)
-	completion, err := a.Provider.StructuredAssembledWithToolsSchema(
+	completion, err := a.RunStructuredToolsTask(
 		providerCtx,
-		"cognitive_assessment",
+		ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "persistent_switch_assessment", SchemaName: persistentSwitchAssessmentSchemaName},
 		assembly.Messages,
 		nil,
-		persistentSwitchAssessmentSchemaName,
 		persistentSwitchAssessmentSchema(),
+		true,
 		structuredThinkingEnabledForSchema(persistentSwitchAssessmentSchemaName),
 	)
 	if err != nil {

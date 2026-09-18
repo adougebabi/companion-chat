@@ -240,6 +240,21 @@ type providerQueueSettings struct {
 	EmbeddingConcurrency int `json:"embedding_concurrency"`
 }
 
+type providerQueueBypassContextKey struct{}
+
+func withProviderQueueBypass(ctx context.Context) context.Context {
+	return context.WithValue(ctx, providerQueueBypassContextKey{}, true)
+}
+
+func providerQueueBypassed(ctx context.Context) bool {
+	value, _ := ctx.Value(providerQueueBypassContextKey{}).(bool)
+	return value
+}
+
+func withoutProviderQueueBypass(ctx context.Context) context.Context {
+	return context.WithValue(ctx, providerQueueBypassContextKey{}, false)
+}
+
 func (p *ProviderClient) queueFor(role string) *providerQueue {
 	p.queueMu.Lock()
 	defer p.queueMu.Unlock()
@@ -279,6 +294,9 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 	var result T
 	if p == nil {
 		return result, errors.New("provider_unavailable")
+	}
+	if providerQueueBypassed(ctx) {
+		return fn(ctx)
 	}
 	p.refreshQueueLimits(ctx)
 	runCtx, cancel := context.WithCancel(ctx)

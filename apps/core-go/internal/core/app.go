@@ -328,7 +328,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, actorID, description strin
 	messages := initializationAnalysisMessages(description)
 	correlationID := initializationAnalysisCorrelation()
 	providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "initialization"), correlationID)
-	result, err := a.Provider.Structured(providerCtx, "initialization", messages)
+	result, err := a.RunInitializationTask(providerCtx, messages)
 	if err != nil {
 		failure := &initializationAnalysisError{Code: initializationProviderErrorCode(err), CorrelationID: correlationID, ValidationType: "provider", Path: "provider_response", Retryable: true}
 		slog.Default().Warn("Go Core initialization analysis failed",
