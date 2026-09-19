@@ -10,5 +10,3 @@ npm-debug.log*
 **/.gomodcache*
 apps/core-go/.gocache
 apps/core-go/.gomodcache
-apps/gateway-go/.gocache
-apps/gateway-go/.gomodcache

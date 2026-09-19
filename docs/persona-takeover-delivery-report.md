@@ -36,8 +36,8 @@
 8. Judge 前 candidate validator 使用 Core 冻结的 ContextSnapshot；内置 `relationship.lookup` 只从冻结 alias 和授权 actor 集合解析参数，不查询数据库，不调用 Preflight/Prepare/Execute。
 9. B 的 Overlay clone/load/compose 失败返回稳定错误码，跳过 Judge 并走 `judge_degraded` 保留 A；明确无 Overlay 记录才使用声明 baseline。
 10. WakeUp Provider 的 native/structured tool-call 归一化失败持久化 `tool_call_invalid` 与有界 shape 诊断；Worker 及 activity lifecycle `safe_cause` 只输出稳定 `error_code`/allowlist `error_reason`，不输出模型控制的调用内容。
-11. 混合 `media.image.generate` + `conversation.reply` 在同一 Main cognition 中绑定同一个 assistant message；图片 intent、媒体 workflow、outbox 与 Core stream assistant frame 均有回归覆盖。Core 错误帧使用 `payload.code`，BFF/Web 保留旧 `payload.error` 兼容。
-12. 流开始前 BFF HTTP 错误由生成的 `BrowserClient.turn()` 解析为 `BrowserApiError`；Pinia 使用稳定 code，避免状态码错误退化为 `turn_failed`。
+11. 混合 `media.image.generate` + `conversation.reply` 在同一 Main cognition 中绑定同一个 assistant message；图片 intent、媒体 workflow、outbox 与 Core stream assistant frame 均有回归覆盖。Core 错误帧使用 `payload.code`，API/Web 保留旧 `payload.error` 兼容。
+12. 流开始前 API HTTP 错误由生成的 `BrowserClient.turn()` 解析为 `BrowserApiError`；Pinia 使用稳定 code，避免状态码错误退化为 `turn_failed`。
 
 ## 3. Prompt 与数据收敛
 

@@ -1,24 +1,30 @@
-# Fluctlight BFF Contract
+# Fluctlight Browser Boundary Contract
 
 ## Scenario: Typed Browser Boundary Without Domain Ownership
 
 ### 1. Scope / Trigger
 
 - Trigger: a browser command/query/stream/media request crosses the public
-  BFF, or BFF calls Go Core.
-- The active and only BFF uses Go's standard library HTTP server and client.
-  Browser uses Vue 3/Vite/Pinia; no Node BFF runtime remains.
-- BFF owns browser transport/session/DTOs but no Fluctlight domain state, persistence, workflow, or semantic policy.
+  browser boundary, or browser boundary calls the in-process Core App.
+- The active and only browser boundary uses Go's standard library HTTP server and an in-process App backend.
+  Browser uses Vue 3/Vite/Pinia; no Node browser boundary runtime remains.
+- browser boundary owns browser transport/session/DTOs but no Fluctlight domain state, persistence, workflow, or semantic policy.
 
 ### 2. Signatures
 
 - `packages/core-client`: generated from the Go Core OpenAPI contract.
 - `packages/browser-client`: generated from the checked browser OpenAPI artifact;
-  the Go BFF must preserve this contract even though it does not generate the
+  the Go browser boundary must preserve this contract even though it does not generate the
   artifact itself.
 - Browser turn transport: POST `fetch()` with `application/x-ndjson` response.
-- BFF package interfaces: browser API, stream translator, media proxy, health,
+- browser boundary package interfaces: browser API, stream translator, media proxy, health,
   and session transport.
+- Core composition signature: `browser.New(browser.Options{Backend, TrustedOrigin, SecureCookies})`;
+  `Backend` exposes direct `DoJSON/DoAny/DoValue`, `StreamTurn`, and `Media` operations and
+  must not expose URL or HTTP-client methods.
+- Required API startup environment: `FLUCTLIGHT_TRUSTED_ORIGIN`; optional
+  `FLUCTLIGHT_SECURE_COOKIES` overrides the scheme-derived cookie flag. Missing or malformed
+  origin configuration fails startup instead of enabling anonymous mode.
 
 Browser stream envelope:
 
@@ -32,13 +38,13 @@ BrowserTurnEventV1
 
 ### 3. Contracts
 
-- Go routes validate body/query/params/headers and call the HTTP Core client or
-  BFF transport modules only.
-- BFF cannot import PostgreSQL/Redis/Temporal clients, Core module internals, domain repositories, or semantic rule modules.
+- Go routes validate body/query/params/headers and call the typed in-process
+  browser Backend; transport modules never issue a second HTTP request.
+- browser boundary cannot import PostgreSQL/Redis/Temporal clients, Core module internals, domain repositories, or semantic rule modules.
 - Go Core and browser OpenAPI artifacts and their generated clients are
   committed/reviewed together; hand-written duplicate DTOs are prohibited.
 - Internal Core NDJSON is parsed incrementally across arbitrary byte/chunk boundaries, schema-validated, redacted, and mapped to browser events.
-- One browser turn has monotonic sequence and exactly one terminal event. BFF never forwards hidden assessment, Provider chunks, credentials, database rows, or workflow internals.
+- One browser turn has monotonic sequence and exactly one terminal event. browser boundary never forwards hidden assessment, Provider chunks, credentials, database rows, or workflow internals.
 - Optimistic/queued/stream drafts use a local message/turn/idempotency identity
   and never guess an authoritative server sequence. An authoritative assistant
   may replace only the draft bound to its own turn; it cannot match an unrelated
@@ -55,16 +61,16 @@ BrowserTurnEventV1
   history; a retry whose user message already has a later assistant message is
   cleared, while an unresolved retry remains recoverable and is never mistaken
   for the current turn.
-- Browser disconnect/abort cancels BFF upstream read and Core request. BFF suppresses later browser writes while Core settles committed work independently.
-- BFF media route obtains a Go Core authorization grant and proxies only the granted object/version/range with bounded headers.
-- Go package boundaries organize transport/config lifecycle; the BFF is not a
+- Browser disconnect/abort cancels the in-process stream read and Core request context. browser boundary suppresses later browser writes while Core settles committed work independently.
+- browser boundary media route obtains Core authorization and streams only the granted object/version/range with bounded headers.
+- Go package boundaries organize transport/config lifecycle; the browser boundary is not a
   location for Fluctlight business behavior.
-- BFF errors use stable browser codes/messages and correlation IDs mapped from Core errors without leaking stack/provider bodies.
+- browser boundary errors use stable browser codes/messages and correlation IDs mapped from Core errors without leaking stack/provider bodies.
 - Core error `details` are untrusted internal data: before they cross the
   browser boundary, retain only bounded JSON values and drop credential,
   secret, token, prompt, reasoning, stack, and raw provider-response keys.
 - A successful Core media status with a missing or empty response body is a
-  bounded `media_unavailable` failure; the BFF never defers `Close` on a nil
+  bounded `media_unavailable` failure; the browser boundary never defers `Close` on a nil
   body or forwards an empty object-storage response as a successful asset.
 
 ### 4. Validation & Error Matrix
@@ -84,13 +90,13 @@ BrowserTurnEventV1
 | Post-stream history or previous-conversation request returns late | Epoch check and monotonic merge ignore stale regression; newer selection/messages remain authoritative. |
 | Persisted retry references a deleted Fluctlight or recreated conversation | Prune the orphaned retry/queued identity and allow a new current-conversation send; do not block with “another conversation pending”. |
 | Persisted retry's authoritative assistant already exists | Clear the provisional retry after history reconciliation and allow the current-conversation send; do not ask the user to retry a completed turn. |
-| BFF code imports storage/workflow/domain internals | Architecture-test failure. |
+| browser boundary code imports storage/workflow/domain internals | Architecture-test failure. |
 
 ### 5. Good / Base / Bad Cases
 
-- Good: a browser turn uses generated client types, BFF validates input, maps ordered Core NDJSON, and aborts cleanly on navigation.
+- Good: a browser turn uses generated client types, browser boundary validates input, maps ordered Core NDJSON, and aborts cleanly on navigation.
 - Good: a video range request is authorized by Go Core and proxied without exposing bucket/key/credentials.
-- Base: a typed query returns one BFF DTO composed from Core application results.
+- Base: a typed query returns one browser boundary DTO composed from Core application results.
 - Bad: hand-write matching DTOs, directly proxy raw Core JSON, parse Core error text, query Redis for domain state, or add a relationship rule in a transport handler.
 
 ### 6. Tests Required
@@ -99,19 +105,22 @@ BrowserTurnEventV1
 - `net/http/httptest` tests for schema-equivalent validation, stable errors,
   status codes, headers, session context, and server lifecycle.
 - Incremental NDJSON tests for split/multiple frames, UTF-8 boundaries, invalid schema, redaction, sequence, heartbeat, terminal uniqueness, backpressure, and abort.
-- End-to-end browser→BFF→Core cancellation tests with no writes after disconnect.
+- End-to-end browser→API→Core App cancellation tests with no writes after disconnect.
 - Media proxy tests for authorization grant, expiry, Range, ETag, MIME, stream failure, and no storage detail leakage.
 - Browser OpenAPI method/path artifact versus Go route inventory parity, plus
-  a real HTTP browser→BFF→Core auth/conversation/NDJSON smoke and downstream
+  a real HTTP browser→API→Core App auth/conversation/NDJSON smoke and downstream
   disconnect cancellation test.
 - Public error-detail sanitization tests for safe validation fields, sensitive
   keys, nesting depth, collection size, and string limits; media nil-body and
   header allow-list tests.
-- Architecture tests rejecting BFF imports of PostgreSQL, Redis, Temporal, Core internals, domain repositories, and semantic heuristic modules.
+- Architecture tests rejecting browser boundary imports of PostgreSQL, Redis, Temporal, Core internals, domain repositories, and semantic heuristic modules.
 - Browser tests consume generated client types and do not duplicate wire DTO definitions.
+- Browser API composition tests prove `/api/*` reaches the in-process boundary while
+  `/internal/*` without service identity remains unauthorized; architecture tests reject
+  `http.Client`, `http.NewRequest`, and Core URL forwarding in the Backend.
 - Conversation-delivery regressions cover successful old retry plus queued new
   user turn, stale post-stream history, repeated text, conversation switching,
-  and authoritative Core→BFF message fields.
+  and authoritative Core→browser boundary message fields.
 
 ### 7. Wrong vs Correct
 
@@ -129,7 +138,7 @@ fastify.post('/turn', async (request) => {
 
 ```typescript
 fastify.post('/turn', {schema: turnRouteSchema}, async (request, reply) => {
-  const upstream = await coreClient.acceptTurn(mapBrowserTurn(request));
-  return translateCoreNdjson(upstream, reply, request.signal);
+  const result = await apiBackend.acceptTurn(mapBrowserTurn(request));
+  return encodeBrowserNdjson(result, reply, request.signal);
 });
 ```

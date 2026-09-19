@@ -15,6 +15,7 @@ import { useConversationStore } from "../../stores/conversations";
 import { useControlCenterStore } from "../../stores/control-center";
 import { enumLabel, formatDisplayValue, formatTimelineTime, formatZonedRange, isCustomLabel, labelFor, resolveTimezone } from "../../lib/fluctlight-display";
 import { fluctlightStatusLabel } from "../../lib/fluctlight-status";
+import { apiOrigin } from "../../runtime-config";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -23,6 +24,10 @@ const emit = defineEmits<{ close: []; manage: [] }>();
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
 const dialogOpen = computed(() => props.open && Boolean(store.selectedFluctlight));
+
+function mediaUrl(assetId: string): string {
+  return new URL(`/api/media/${encodeURIComponent(assetId)}`, apiOrigin).toString();
+}
 
 function asRecord(value: unknown): JsonRecord {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
@@ -265,13 +270,13 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
               <li v-for="(event, index) in visualIdentityTimeline" :key="`${String(event.id ?? event.stage)}-${String(event.occurred_at ?? '')}`" :class="{ active: index === visualIdentityActiveEventIndex }">
                 <time :datetime="String(event.occurred_at ?? '')">{{ formatTimelineTime(event.occurred_at, scheduleTimezone) }}</time>
                 <div class="visual-identity-event-content"><strong>{{ visualIdentityStageLabel(event.stage) }}<span class="timeline-now-badge">{{ visualIdentityStatusLabel(visualIdentityEventStatus(event, index)) }}</span></strong><span>{{ formatDisplayValue(event.summary) }}</span>
-                  <div v-if="visualIdentityAssetIds(event).length" class="visual-identity-assets"><img v-for="assetId in visualIdentityAssetIds(event)" :key="assetId" :src="`/api/media/${encodeURIComponent(assetId)}`" :alt="`${visualIdentityStageLabel(event.stage)}图片`" loading="lazy" /></div>
+                  <div v-if="visualIdentityAssetIds(event).length" class="visual-identity-assets"><img v-for="assetId in visualIdentityAssetIds(event)" :key="assetId" :src="mediaUrl(assetId)" :alt="`${visualIdentityStageLabel(event.stage)}图片`" loading="lazy" /></div>
                 </div>
               </li>
             </ol>
             <div v-if="visualIdentity.canonical_asset_id || visualIdentity.character_sheet_asset_id" class="visual-identity-canonical">
-              <div v-if="visualIdentity.canonical_asset_id"><span>Canonical reference</span><img :src="`/api/media/${encodeURIComponent(String(visualIdentity.canonical_asset_id))}`" alt="Canonical reference" loading="lazy" /></div>
-              <div v-if="visualIdentity.character_sheet_asset_id"><span>Character sheet</span><img :src="`/api/media/${encodeURIComponent(String(visualIdentity.character_sheet_asset_id))}`" alt="Character sheet" loading="lazy" /></div>
+              <div v-if="visualIdentity.canonical_asset_id"><span>Canonical reference</span><img :src="mediaUrl(String(visualIdentity.canonical_asset_id))" alt="Canonical reference" loading="lazy" /></div>
+              <div v-if="visualIdentity.character_sheet_asset_id"><span>Character sheet</span><img :src="mediaUrl(String(visualIdentity.character_sheet_asset_id))" alt="Character sheet" loading="lazy" /></div>
             </div>
           </section>
 

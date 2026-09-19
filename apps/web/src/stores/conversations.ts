@@ -7,10 +7,10 @@ import {
   type BrowserMessage,
   type BrowserTurnEvent,
 } from "@fluctlight/browser-client";
-import { bffOrigin } from "../runtime-config";
+import { apiOrigin } from "../runtime-config";
 import { randomId } from "../random-id";
 
-const client = new BrowserClient(bffOrigin);
+const client = new BrowserClient(apiOrigin);
 
 const turnErrorCodes = new Set([
   "active_memory_capability_unavailable",

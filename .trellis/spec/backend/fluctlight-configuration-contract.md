@@ -41,7 +41,7 @@ Sensitive setting storage contains ciphertext, nonce, purpose/AAD scope, and upd
 - Missing/invalid settings key blocks sensitive setting save/resolve. It never falls back to plaintext or another old source.
 - Secret fields are write-only in browser/API views. Responses expose only configured state and bounded timestamps/safe summaries.
 - Empty, omitted, or masked sentinel values do not overwrite an existing secret. Clearing requires an explicit clear operation.
-- Decrypted values exist only in the Go Provider adapter call scope and never enter the BFF, prompts, traces, logs, exceptions, debug views, OpenAPI examples, or ordinary DTOs.
+- Decrypted values exist only in the Go Provider adapter call scope and never enter the browser boundary, prompts, traces, logs, exceptions, debug views, OpenAPI examples, or ordinary DTOs.
 - Setting changes are authorized to the Owner and audited by purpose/field/time/result without secret content.
 - NAS backup documentation requires both application data and `.env`. Loss of the settings key requires re-entering Provider secrets but does not corrupt other domain data.
 
@@ -68,7 +68,7 @@ Sensitive setting storage contains ciphertext, nonce, purpose/AAD scope, and upd
 
 - Startup config tests for each required/optional env, role-specific readiness, bounded errors, and no value leakage.
 - Sensitive-setting tests for AEAD round trip, wrong/missing key, nonce uniqueness, AAD/purpose mismatch, explicit clear, empty/masked no-op, and atomic patch rollback.
-- API/BFF tests proving secret fields are write-only and never enter generated browser DTOs.
+- API/browser boundary tests proving secret fields are write-only and never enter generated browser DTOs.
 - Logging/trace/debug snapshot tests scanning for plaintext test secrets.
 - Authorization/audit tests for Owner-only changes and no secret content in audit rows.
 - Database dump fixture asserts Provider test secrets appear only as ciphertext.

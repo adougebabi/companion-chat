@@ -1,1 +1,1 @@
-window.__FLUCTLIGHT_RUNTIME_CONFIG__ = Object.freeze({ bffOrigin: "" });
+window.__FLUCTLIGHT_RUNTIME_CONFIG__ = Object.freeze({ apiOrigin: "" });

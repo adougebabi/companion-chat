@@ -7,7 +7,7 @@
   production Nginx image (or a local static server), not from `file://`.
 - Exercise companion SSE and confirm token, done, and error events render
   without uncaught exceptions.
-- Verify generated browser-client fields are normalized at the BFF boundary and user text
+- Verify generated browser-client fields are normalized at the browser boundary and user text
   is rendered through Vue bindings.
 - Check desktop and narrow/mobile layouts, including overlays and dialogs.
 - Confirm refresh recovery does not lose the active persona, draft, IME state,
@@ -100,7 +100,7 @@ Use a temporary or empty data directory for destructive UI checks when needed.
 ### 1. Scope / Trigger
 
 - Trigger: a chat view appends an optimistic assistant draft and applies
-  incremental `token` frames from the Core/BFF NDJSON stream.
+  incremental `token` frames from the Core/browser boundary NDJSON stream.
 
 ### 2. Signatures
 

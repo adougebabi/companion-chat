@@ -6,7 +6,7 @@
 
 - Trigger: the clean-start system generates, uploads, attaches, reads, proxies, versions, tombstones, deletes, backs up, or restores image/video/audio media.
 - Go Core `media` owns business identity and authorization. Object storage owns
-  bytes. The Go BFF is an authorized transport proxy, not a media-state owner.
+  bytes. The Go browser boundary is an authorized transport proxy, not a media-state owner.
 - The deployment uses an S3-compatible interface; Docker Compose defaults to a pinned MinIO single-node persistent volume.
 
 ### 2. Signatures
@@ -60,7 +60,7 @@ created_at / ready_at / tombstoned_at / deleted_at
 
 ### 3. Contracts
 
-- Buckets are private. Browser requests use the Go BFF media endpoint; Go Core
+- Buckets are private. Browser requests use the Go browser boundary media endpoint; Go Core
   performs Actor/Conversation/reference authorization before issuing a
   short-lived internal grant.
 - Go may proxy bytes, Range, ETag, Content-Type, Content-Length, and cache
@@ -127,10 +127,10 @@ created_at / ready_at / tombstoned_at / deleted_at
 
 ### 5. Good / Base / Bad Cases
 
-- Good: a private video request is authorized by Go Core, the Go BFF proxies a valid byte range, and the browser can seek without seeing bucket credentials.
+- Good: a private video request is authorized by Go Core, the Go browser boundary proxies a valid byte range, and the browser can seek without seeing bucket credentials.
 - Good: a deleted Message removes its final media reference, commits a tombstone, and retries physical deletion after an object outage.
 - Base: an uploaded object exists before its result transaction; retry finds and verifies the same stable key, then marks one asset ready.
-- Bad: save absolute Provider paths, expose a public bucket, trust ETag as SHA-256, delete an object before removing references, or let the BFF query authorization tables.
+- Bad: save absolute Provider paths, expose a public bucket, trust ETag as SHA-256, delete an object before removing references, or let the browser boundary query authorization tables.
 
 ### 6. Tests Required
 
@@ -138,7 +138,7 @@ created_at / ready_at / tombstoned_at / deleted_at
 - Upload/recovery tests for checksum/size mismatch, duplicate upload, success-before-crash, orphan collection, and idempotent result commit.
 - Provider retry tests assert that a persisted external job ID is polled without a second submission, ready-asset replay does not upload again, and cancellation targets the external job ID.
 - Authorization tests across Actor, Conversation, Message, Moment, and tombstoned/deleted states.
-- BFF proxy tests for internal grant expiry, Range, ETag, MIME, cache headers, stream abort, unavailable object, and no leaked bucket credentials.
+- browser boundary proxy tests for internal grant expiry, Range, ETag, MIME, cache headers, stream abort, unavailable object, and no leaked bucket credentials.
 - Deletion tests for last-reference policy, tombstone/read denial, object failure/retry, object-already-absent, and version-specific deletion.
 - S3 adapter contract tests run against the default pinned MinIO container and a fake adapter.
 - Backup/restore tests validate one manifest, row/object counts, sampled SHA-256, missing versions, and restore into empty PostgreSQL/bucket stores.

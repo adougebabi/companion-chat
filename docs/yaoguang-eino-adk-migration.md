@@ -11,7 +11,7 @@ Core Go 现在以官方 Eino 组件作为模型传输边界：
 
 由于当前构建环境是 Go 1.26，Eino 的 JSON runtime 依赖固定到兼容 Go 1.26 runtime layout 的 `github.com/bytedance/sonic v1.15.4`（以及 loader `v0.5.2`）。Core module 仍以 `go 1.25.4` 声明兼容下限。
 
-Eino 只负责模型/消息/工具/Embedding 协议；Core 仍拥有配置角色、预算、队列、取消、权限、冻结、事务、Outbox/Temporal 和诊断。没有新增 BFF、Temporal 或领域状态协议。
+Eino 只负责模型/消息/工具/Embedding 协议；Core 仍拥有配置角色、预算、队列、取消、权限、冻结、事务、Outbox/Temporal 和诊断。浏览器接入由同一 API 进程的 `internal/httpapi/browser` 边界负责，没有新增网关进程或领域状态协议。
 
 ## 旧入口到新路径
 
@@ -71,9 +71,9 @@ ADK tool adapter 从 `compose.GetToolCallID(ctx)` 保留模型正式的 tool-cal
 
 ```text
 cd apps/core-go && go test -mod=readonly ./...
-cd apps/gateway-go && go test -mod=readonly ./...
+go -C apps/core-go test -mod=readonly ./internal/httpapi/browser
 cd apps/core-go && go vet ./...
-cd apps/gateway-go && go vet ./...
+go -C apps/core-go vet ./...
 ```
 
 另有 Eino/Fake 契约测试覆盖：官方 ChatModel 工具调用、官方 Embedder、ADK tool 回填到第二次模型输入、canonical invocation/result trace、Prompt Slot 选择与 whole-turn/current-input 约束。

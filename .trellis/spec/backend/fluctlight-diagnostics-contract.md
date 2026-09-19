@@ -4,7 +4,7 @@
 
 ### 1. Scope / Trigger
 
-- Trigger: BFF/Core/Worker emits a diagnostic event, a model call runs, a cognitive turn/workflow/event/media chain needs inspection, or Owner queries/exports/cleans diagnostics.
+- Trigger: browser boundary/Core/Worker emits a diagnostic event, a model call runs, a cognitive turn/workflow/event/media chain needs inspection, or Owner queries/exports/cleans diagnostics.
 - First delivery does not require OpenTelemetry, Prometheus, Grafana, Loki, Tempo, or an external collector.
 - Diagnostics is operational/debug data and remains separate from authoritative domain audit/revision/evidence.
 
@@ -61,7 +61,7 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 - Diagnostic sink errors cannot recursively emit into the same sink. The
   operational fallback retains stage, category, safe code, retryability, and
   correlation without copying raw payloads.
-- BFF submits bounded batched diagnostics through service-auth internal ingestion; it never writes PostgreSQL directly.
+- browser boundary submits bounded batched diagnostics through service-auth internal ingestion; it never writes PostgreSQL directly.
 - Current Go retention applies 30 days and 10,000 rows independently to
   diagnostic events, model runs, turns, and workflow links. The
   `diagnostic_retention` table is not a runtime override until a producer and
@@ -91,7 +91,7 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
   projection are excluded from ordinary Diagnostics and exist only behind the
   Owner-authorized initialization-source detail boundary.
 - Foundation validation failures expose a bounded structured detail object at
-  the Core/BFF boundary, including `details.validation_error` and a safe error
+  the Core/browser boundary, including `details.validation_error` and a safe error
   type. Clients must preserve this detail; a stable top-level code alone is not
   sufficient to diagnose missing or misrouted model fields.
 
@@ -104,7 +104,7 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
 | Diagnostics PostgreSQL write fails | Preserve the business result; increment the bounded failure signal and emit one rate-limited structured operational warning. |
 | Best-effort diagnostic insert/update fails repeatedly | Retain first/latest safe cause and occurrence count without recursively writing or flooding logs. |
 | Metric JSON is not an object or token/latency value is negative | PostgreSQL rejects the diagnostic mutation; domain result remains unaffected. |
-| BFF ingestion lacks service identity or exceeds batch/schema bounds | Reject ingestion without domain effect. |
+| browser boundary ingestion lacks service identity or exceeds batch/schema bounds | Reject ingestion without domain effect. |
 | Retention cleanup fails | Record bounded stdout/error and retry lifecycle workflow; do not delete domain audit. |
 | Non-Owner queries/exports/clears | Reject before returning diagnostic content. |
 | Workflow runtime is unavailable while reading diagnostics | Keep loaded events/model runs visible; show a workflow-only unavailable state. |
@@ -128,7 +128,7 @@ Correlation fields include source, level/code, Fluctlight/Actor/Conversation/tur
   normalization, estimator delta, latency, and collection cap.
 - Sink tests for database failure, independent diagnostic context,
   rate-bounded operational warning, non-recursion, and no business rollback.
-- BFF ingestion tests for service auth, schema/batch limits, correlation fields, and no direct database access.
+- browser boundary ingestion tests for service auth, schema/batch limits, correlation fields, and no direct database access.
 - Retention tests for age/row dual limits and explicit proof that domain audit/revision/evidence remains.
 - Owner authorization tests for query/tail/export/clear and no diagnostic access through ordinary product DTOs.
 - Lifecycle API/UI tests filter by Fluctlight/correlation/intent/workflow/Run/

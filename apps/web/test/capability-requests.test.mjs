@@ -11,7 +11,7 @@ test("governance exposes the owner capability request pool", () => {
   assert.match(governance, /capabilityRequestVersions/);
 });
 
-test("browser client keeps capability request endpoints at the BFF boundary", () => {
+test("browser client keeps capability request endpoints at the API boundary", () => {
   assert.match(client, /listCapabilityRequests/);
   assert.match(client, /reviewCapabilityRequest/);
   assert.match(client, /api\/capability-requests/);

@@ -4,17 +4,17 @@
 
 ### 1. Scope / Trigger
 
-- Trigger: the public BFF calls Go Core, Go exposes a command/query, or
-  incremental visible output crosses the Core→BFF process boundary.
+- Trigger: the public browser boundary calls the Core App, Go exposes a command/query, or
+  incremental visible output crosses the Core/browser transport boundary.
 - Go's net/http transport and generated OpenAPI types are composition tools, not domain dependencies.
-- Browser contracts are owned by the public BFF and are distinct from this internal contract.
+- Browser contracts are owned by the public browser boundary and are distinct from this internal contract.
 
 ### 2. Signatures
 
 - Synchronous commands/queries: versioned HTTP/JSON described by generated OpenAPI.
 - Internal stream content type: `application/x-ndjson`.
 - The reference Core client is generated from the checked OpenAPI artifact;
-  the Go BFF's HTTP Core client preserves the same contract. Hand-written
+  the Go API browser boundary preserves the same contract. Hand-written
   duplicate domain DTOs are prohibited.
 
 Canonical stream envelope:
@@ -42,7 +42,7 @@ GET /health/ready
 - OpenAPI changes and generated TypeScript client changes commit together; CI rejects ungenerated drift.
 - NDJSON sequence is monotonic per turn and has exactly one terminal `completed` or `error`. Heartbeats do not change domain/action state.
 - Internal stream exposes only visible text/content progress, action results, bounded errors, and terminal metadata. It never exposes perception, appraisal, hidden reasoning, raw Provider chunks, credentials, database rows, or Temporal internals.
-- Public BFF response abort/disconnect propagates to the Core ASGI request and
+- Public browser boundary response abort/disconnect propagates to the Core request context and
   realization cancellation. Committed assessment/state/frozen decision is not
   rolled back by transport disconnect.
 - A retried conversation request reuses the original `turn_id` and `idempotency_key`. The Core responder must bind processing to that fact ID and replay or reopen it in place; it must never consume another pending fact for the request.
@@ -56,8 +56,8 @@ GET /health/ready
 | Request/response violates OpenAPI/Pydantic schema | Return typed bounded internal error; do not call application command on invalid input. |
 | Generated/reference client differs from OpenAPI artifact | CI failure; regenerate and review the artifact and clients. |
 | Stream sequence repeats/skips unexpectedly | Terminate bounded error, record correlation diagnostics, never silently reorder. |
-| More than one terminal event | Contract failure; the BFF forwards only the first terminal and records violation. |
-| Browser/BFF disconnects during realization | Propagate cancellation; suppress later writes; settle frozen action per workflow policy. |
+| More than one terminal event | Contract failure; the browser boundary forwards only the first terminal and records violation. |
+| Browser/browser boundary disconnects during realization | Propagate cancellation; suppress later writes; settle frozen action per workflow policy. |
 | Provider unavailable | Return application-defined failure/status; do not map Core readiness to false unless required startup configuration is invalid. |
 | PostgreSQL unavailable at readiness probe | `/health/ready` fails; liveness remains independent. |
 | Domain module imports FastAPI/Pydantic Web DTO | Architecture-test failure. |
@@ -65,7 +65,7 @@ GET /health/ready
 ### 5. Good / Base / Bad Cases
 
 - Good: OpenAPI keeps the browser contract stable, one turn streams ordered
-  NDJSON, the BFF translates it, and disconnect cancels realization without
+  NDJSON, the browser boundary translates it, and disconnect cancels realization without
   reverting the frozen decision.
 - Base: a command returns one typed JSON result with correlation and no stream.
 - Bad: hand-write matching Go/TypeScript DTOs, return raw ORM rows, stream hidden assessment data, or inject a database session into a route handler.
@@ -75,10 +75,10 @@ GET /health/ready
 - OpenAPI snapshot/semantic-diff and generated-client no-drift tests.
 - Route tests for Pydantic validation, mapping to application commands, stable errors, correlation/causation, and no raw row leakage.
 - NDJSON parser/producer tests for chunking, partial frames, UTF-8, monotonic sequence, heartbeat, one terminal, error, and abort.
-- End-to-end BFF→Core streaming cancellation test with suppression of writes after disconnect.
+- End-to-end browser boundary→Core streaming cancellation test with suppression of writes after disconnect.
 - Liveness/readiness tests for PostgreSQL/config/optional Provider states and API-vs-Worker role separation.
 - Architecture tests preventing FastAPI/Starlette/Uvicorn/Web DTO imports in domain modules and Temporal task-queue polling in API runtime.
-- Real PostgreSQL ASGI integration tests plus in-process application-interface tests.
+- Real PostgreSQL HTTP integration tests plus in-process application-interface tests.
 
 ### 7. Wrong vs Correct
 
@@ -106,7 +106,7 @@ async def turn(dto: TurnRequestDTO, commands: TurnCommandsDep):
 ### 1. Scope / Trigger
 
 - Trigger: a Core mutation receives JSON, a workflow is managed through the
-  API, or an NDJSON completion crosses the BFF boundary.
+  API, or an NDJSON completion crosses the browser boundary.
 
 ### 2. Signatures
 
@@ -165,7 +165,7 @@ workflowID = normalizedWorkflowID(rawWorkflowID)
 
 ### 1. Scope / Trigger
 
-- Trigger: actor groups cross the Go Core/BFF/browser boundary or the browser
+- Trigger: actor groups cross the Go Core/browser boundary or the browser
   filters the Fluctlight directory by group.
 - This contract preserves the established browser field name while allowing a
   rolling deployment to read the previous `members` response.
@@ -183,7 +183,7 @@ workflowID = normalizedWorkflowID(rawWorkflowID)
   and `created_at` remain additive metadata.
 - Browser normalization accepts `actor_ids` or legacy `members`, filters out
   non-string entries, and always stores an array (empty when absent).
-- BFF remains a transport pass-through; Core owns the domain response shape.
+- browser boundary remains a transport pass-through; Core owns the domain response shape.
 
 ### 4. Validation & Error Matrix
 
@@ -198,7 +198,7 @@ workflowID = normalizedWorkflowID(rawWorkflowID)
 
 - Good: Core returns `{id, name, actor_ids: ["fl-1"]}` and desktop/mobile
   filters show only `fl-1`.
-- Base: an old BFF returns `{id, name, members: []}` and the normalized group
+- Base: an old browser boundary returns `{id, name, members: []}` and the normalized group
   remains selectable without a crash.
 - Bad: a view reads `group.actor_ids.includes(...)` directly from an untrusted
   API payload before normalization.
@@ -231,7 +231,7 @@ group.actor_ids.includes(fluctlightId); // always a string[]
 
 ### 1. Scope / Trigger
 
-- Trigger: relationship state crosses Core, BFF, browser detail/governance, or Provider context boundaries.
+- Trigger: relationship state crosses Core, browser boundary, browser detail/governance, or Provider context boundaries.
 - Human and Fluctlight are both Actors. created_by_actor_id and Owner account remain authorization metadata; they do not automatically create a social Relationship.
 
 ### 2. Signatures
@@ -257,7 +257,7 @@ Edit request fields include expectedRevision, role, metrics, trend, summary, emo
 | Condition | Result |
 | --- | --- |
 | Missing/negative expectedRevision | 422; no mutation |
-| Missing evidence refs or reason | BFF rejects before Core; no mutation |
+| Missing evidence refs or reason | browser boundary rejects before Core; no mutation |
 | Unknown role code, invalid trend, or metric outside 0..1 | 422; no revision |
 | Stale expected revision | 409; no mutation |
 | Browser submits a different Actor as current user | Ignore/reject; session Actor remains authoritative |
@@ -273,7 +273,7 @@ Edit request fields include expectedRevision, role, metrics, trend, summary, emo
 
 - Core detail tests assert actor type and authenticated-current-user marker.
 - Relationship edit tests assert role/metrics/trend/summary persistence, CAS, immutable target, provenance and governance audit.
-- BFF tests assert camelCase↔snake_case mapping, validation and route/OpenAPI parity.
+- browser boundary tests assert camelCase↔snake_case mapping, validation and route/OpenAPI parity.
 - Browser tests assert current-user labeling, safe relationship rendering, editor fields and conflict recovery after refresh.
 - Provider projection tests assert mixed Human/Fluctlight sender aliases and no raw Actor IDs in model-facing context.
 

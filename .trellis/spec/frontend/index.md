@@ -20,7 +20,7 @@ as a compatibility entry point.
 ## Pre-Development Checklist
 
 - Find the owning Vue view/component and Pinia store/composable before editing.
-- Trace API payloads through the generated browser client and the BFF route
+- Trace API payloads through the generated browser client and the Core API browser-boundary route
   registry before renaming a field.
 - Render server/user text through Vue text bindings; do not add raw HTML
   interpolation for untrusted values.

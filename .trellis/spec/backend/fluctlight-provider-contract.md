@@ -229,7 +229,7 @@ embed(role, inputs) -> VersionedEmbeddings
   are concatenated in caller order; `user`/`assistant` history keeps its order
   after that merged system message. This prevents strict chat templates such
   as mlx-serve from rejecting a late or repeated system role.
-- API keys are resolved only in Go Core through the configuration secret contract and never returned to BFF/browser/debug output.
+- API keys are resolved only in Go Core through the configuration secret contract and never returned to the browser boundary, browser/debug output.
 
 ### 4. Validation & Error Matrix
 

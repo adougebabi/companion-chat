@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-const baseUrl = process.env.FLUCTLIGHT_E2E_BASE_URL ?? "http://127.0.0.1:13000";
+const baseUrl = process.env.FLUCTLIGHT_E2E_BASE_URL ?? "http://127.0.0.1:13001";
 const origin = process.env.FLUCTLIGHT_E2E_ORIGIN ?? "http://127.0.0.1:13001";
 const password = process.env.FLUCTLIGHT_E2E_PASSWORD;
 const timeoutMs = Number(process.env.FLUCTLIGHT_E2E_TIMEOUT_MS ?? 600000);
@@ -257,9 +257,9 @@ async function createFluctlight(description, requestPrefix, options = {}) {
 const report = { baseUrl, cases: {} };
 const announce = (message) => console.error(`[persona-e2e] ${message}`);
 
-// Authenticate against the real BFF and obtain the CSRF cookie used by all
+// Authenticate against the real API entry and obtain the CSRF cookie used by all
 // subsequent mutations. No provider, database, or HTTP layer is mocked.
-announce("authenticating against the real BFF");
+announce("authenticating against the real API entry");
 await jsonRequest("/auth/setup-status");
 await jsonRequest("/auth/login", { method: "POST", body: JSON.stringify({ password }) });
 assert.equal((await jsonRequest("/auth/session")).authenticated, true);

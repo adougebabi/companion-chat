@@ -1,8 +1,9 @@
 # Backend Guidelines
 
-The active backend is the Go Core plus the Go browser BFF under
-`apps/core-go/` and `apps/gateway-go/`. The retired Python/Node runtimes are
-historical context; `apps/gateway-go/` is the only public browser boundary.
+The active backend is the Go Core plus its in-process browser boundary under
+`apps/core-go/`. The retired Python/Node runtimes and the deleted standalone
+gateway are historical context; `apps/core-go/internal/httpapi/browser/` is the
+only public browser boundary.
 Keep additions inside the clean-start vertical layers and horizontal capability
 boundaries described below.
 
@@ -23,12 +24,12 @@ boundaries described below.
 | [Fluctlight Cognitive Runtime Contract](./fluctlight-cognitive-runtime.md) | Clean-start semantic ownership, LLM-first perception/appraisal/decision/reflection, forbidden heuristic fallbacks, and anti-drift tests |
 | [Fluctlight Persistence Contract](./fluctlight-persistence-contract.md) | Clean-start PostgreSQL module ownership, Unit of Work, short transactions, outbox, external intents, and recovery |
 | [Fluctlight Memory Contract](./fluctlight-memory-contract.md) | Typed Memory authority, provenance, pgvector/FTS hybrid retrieval, async embeddings, visibility, and prompt budgeting |
-| [Fluctlight Media Contract](./fluctlight-media-contract.md) | S3-compatible private media, MinIO default deployment, BFF proxy grants, checksums, lifecycle, recovery, and backup |
+| [Fluctlight Media Contract](./fluctlight-media-contract.md) | S3-compatible private media, MinIO default deployment, API media authorization, checksums, lifecycle, recovery, and backup |
 | [Fluctlight Event Contract](./fluctlight-event-contract.md) | PostgreSQL outbox/inbox authority, Redis Streams delivery, reclaim, poison handling, retention, replay, and progress |
 | [Fluctlight Workflow Contract](./fluctlight-workflow-contract.md) | Runtime-neutral durable execution, domain intent/state separation, stable IDs, long activities, management, history versioning, and single-runtime rule |
 | [Fluctlight Temporal Gate Contract](./fluctlight-temporal-gate-contract.md) | Grouped non-HA Temporal, Go histories/signals/queries/updates, Activity recovery, Worker versioning, continue-as-new, and NAS resource gate |
 | [Fluctlight API Contract](./fluctlight-api-contract.md) | Go HTTP/OpenAPI boundary, generated/reference clients, NDJSON streaming, cancellation, errors, health, and framework isolation |
-| [Fluctlight BFF Contract](./fluctlight-bff-contract.md) | Go HTTP browser boundary, checked browser contract, NDJSON translation, media proxy, errors, and storage isolation |
+| [Fluctlight Browser Boundary Contract](./fluctlight-bff-contract.md) | Go API HTTP browser boundary, checked browser contract, NDJSON translation, media proxy, errors, and storage isolation |
 | [Fluctlight Auth Contract](./fluctlight-auth-contract.md) | Single Owner Human setup, Argon2id, opaque sessions, cookie/CSRF transport, service identity, authorization, and recovery |
 | [Fluctlight Configuration Contract](./fluctlight-configuration-contract.md) | Startup env, PostgreSQL system settings, single-key AEAD, write-only secrets, validation, and redaction |
 | [Fluctlight Provider Contract](./fluctlight-provider-contract.md) | Endpoint/model roles, capability preflight, structured/stream/embedding behavior, budgets, provenance, and failure |
@@ -79,7 +80,7 @@ Specific split rules:
 - Media adapter/lifecycle is implemented in T09 and object restore is prepared in T11; T12 owns the final media/backup/recovery acceptance.
 - Configuration behavior is implemented in T03 and `.env + data` restore is prepared in T11; T12 owns the final security/restore acceptance.
 - Diagnostics storage/query and browser/UI are implemented in T05/T10; T12 owns the final Diagnostics correlation/redaction/UI acceptance.
-- API/BFF schema generation and stream/cancellation are implemented in T02/T06; T12 owns the final browser/Core aggregate acceptance.
+- API/browser-boundary schema generation and stream/cancellation are implemented in T02/T06; T12 owns the final browser/Core aggregate acceptance.
 - Workflow history compatibility and active-workflow recovery are prepared by the owning implementation tasks; T12 owns the final workflow regression.
 
 ### Excluded From Positive Acceptance

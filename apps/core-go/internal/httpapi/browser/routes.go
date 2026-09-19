@@ -1,4 +1,4 @@
-package bff
+package browser
 
 import (
 	"context"
@@ -11,35 +11,34 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf16"
-
-	"github.com/fluctlight/local-ai-companion/apps/gateway-go/internal/platform"
 )
 
 const initializationDescriptionMaxBytes = 60000
 
-// Options is the transport-only composition for the public BFF.  The BFF
+// Options is the transport-only composition for the public browser API. It
 // never receives a database, cache, object-store or workflow dependency.
 type Options struct {
-	CoreBaseURL    *url.URL
-	CoreServiceKey string
-	TrustedOrigin  string
-	SecureCookies  bool
-	Client         *http.Client
+	Backend       Backend
+	TrustedOrigin string
+	SecureCookies bool
 }
 
 type Server struct {
-	core          *coreClient
+	backend       Backend
 	trustedOrigin string
 	secureCookies bool
 }
 
 func New(options Options) *Server {
+	if options.Backend == nil {
+		panic("browser backend is required")
+	}
 	secure := options.SecureCookies
 	if !secure && (options.TrustedOrigin == "" || strings.HasPrefix(options.TrustedOrigin, "https://")) {
 		secure = true
 	}
 	return &Server{
-		core:          newCoreClient(options.CoreBaseURL, options.CoreServiceKey, options.Client),
+		backend:       options.Backend,
 		trustedOrigin: normalizeOrigin(options.TrustedOrigin),
 		secureCookies: secure,
 	}
@@ -68,28 +67,25 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 		if !method(response, request, http.MethodGet) {
 			return
 		}
-		writeJSON(response, http.StatusOK, platform.Live(platform.RoleBFF))
+		writeJSON(response, http.StatusOK, liveHealth())
 		return
 	}
 	if path == "/health/ready" {
 		if !method(response, request, http.MethodGet) {
 			return
 		}
-		if !platform.IsReady(request.Context(), func(ctx context.Context) error {
-			_, err := s.core.health(ctx, "/health/ready")
-			return err
-		}) {
-			writeJSON(response, http.StatusServiceUnavailable, platform.Unavailable(platform.RoleBFF))
+		if !isReady(request.Context(), s.backend.Health) {
+			writeJSON(response, http.StatusServiceUnavailable, unavailableHealth())
 			return
 		}
-		writeJSON(response, http.StatusOK, platform.Ready(platform.RoleBFF))
+		writeJSON(response, http.StatusOK, readyHealth())
 		return
 	}
 	if path == "/api/platform/ping" {
 		if !method(response, request, http.MethodGet) {
 			return
 		}
-		value, err := s.core.doJSON(request.Context(), http.MethodGet, "/internal/platform/ping", "", nil)
+		value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/platform/ping", "", nil)
 		if err != nil {
 			writeError(response, http.StatusBadGateway, "core_unavailable", "Core platform is unavailable")
 			return
@@ -103,8 +99,9 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 		if !method(response, request, http.MethodGet) {
 			return
 		}
-		value, err := s.core.doJSON(request.Context(), http.MethodGet, "/internal/auth/session", cookieValue(request, sessionCookieName), nil)
+		value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/auth/session", cookieValue(request, sessionCookieName), nil)
 		if err != nil || !truthy(value["authenticated"]) {
+			clearSessionCookie(response, s.secureCookies)
 			writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
 			return
 		}
@@ -119,7 +116,7 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 		if !method(response, request, http.MethodGet) {
 			return
 		}
-		value, err := s.core.doJSON(request.Context(), http.MethodGet, "/internal/auth/setup-status", "", nil)
+		value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/auth/setup-status", "", nil)
 		if err != nil {
 			writeError(response, http.StatusBadGateway, "core_unavailable", "Core authentication is unavailable")
 			return
@@ -147,12 +144,17 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 			endpoint = "/internal/auth/setup"
 			coreBody["setup_token"] = body["setupToken"]
 		}
-		value, err := s.core.doJSON(request.Context(), http.MethodPost, endpoint, "", coreBody)
+		value, err := s.backend.DoJSON(request.Context(), http.MethodPost, endpoint, "", coreBody)
 		if err != nil {
 			writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
 			return
 		}
-		setSessionCookie(response, stringValue(first(value, "session_token", "sessionToken")), s.secureCookies)
+		sessionToken := stringValue(first(value, "session_token", "sessionToken"))
+		if sessionToken == "" || !truthy(value["authenticated"]) {
+			writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
+			return
+		}
+		setSessionCookie(response, sessionToken, s.secureCookies)
 		setCSRFCookie(response, newCSRFToken(), s.secureCookies)
 		authenticated := map[string]any{"authenticated": true}
 		if actorID := first(value, "actor_id", "actorId"); actorID != nil {
@@ -185,7 +187,7 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		if path == "/auth/password" {
-			if _, err := s.core.doJSON(request.Context(), http.MethodPost, "/internal/auth/reset-password", session, map[string]any{"password": passwordBody["password"]}); err != nil {
+			if _, err := s.backend.DoJSON(request.Context(), http.MethodPost, "/internal/auth/reset-password", session, map[string]any{"password": passwordBody["password"]}); err != nil {
 				writeError(response, http.StatusForbidden, "password_change_failed", "Password could not be changed")
 				return
 			}
@@ -200,7 +202,13 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 			if path == "/auth/revoke-all" {
 				endpoint, failureCode, failureMessage = "/internal/auth/revoke-all", "revoke_failed", "Session revocation failed"
 			}
-			if _, err := s.core.doJSON(request.Context(), http.MethodPost, endpoint, session, nil); err != nil {
+			if _, err := s.backend.DoJSON(request.Context(), http.MethodPost, endpoint, session, nil); err != nil {
+				if path == "/auth/logout" {
+					clearSessionCookie(response, s.secureCookies)
+					setCSRFCookie(response, newCSRFToken(), s.secureCookies)
+					response.WriteHeader(http.StatusNoContent)
+					return
+				}
 				writeError(response, http.StatusForbidden, failureCode, failureMessage)
 				return
 			}
@@ -245,28 +253,11 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if value, exists := body["turnId"]; exists {
 			mapped["turn_id"] = value
 		}
-		extra := make(http.Header)
-		extra.Set("Accept", "application/x-ndjson")
-		upstream, err := s.core.request(request.Context(), http.MethodPost, "/internal/conversations/"+escape(conversationID)+"/turn", session, mapped, extra)
-		if err != nil {
-			conversationTurnError(response, err)
-			return
-		}
-		if upstream.Body == nil || upstream.ContentLength == 0 {
-			if upstream.Body != nil {
-				_ = upstream.Body.Close()
+		if err := s.streamTurn(request.Context(), session, conversationID, mapped, response); err != nil {
+			if request.Context().Err() != nil {
+				return
 			}
-			writeError(response, http.StatusBadGateway, "conversation_turn_failed", "The conversation turn failed")
-			return
-		}
-		response.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
-		if err := TranslateCoreNDJSON(request.Context(), upstream, response); err != nil && request.Context().Err() == nil {
-			var translationErr *NdjsonTranslationError
-			if errors.As(err, &translationErr) {
-				writeError(response, http.StatusBadGateway, "conversation_turn_failed", "The conversation turn failed")
-			}
-			// Once the stream starts the translator owns the bounded protocol
-			// error frame. A downstream writer failure only ends the response.
+			s.conversationTurnError(response, err)
 		}
 		return
 	}
@@ -327,7 +318,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		query := request.URL.Query().Get("query")
-		value, err := s.core.doAny(request.Context(), http.MethodGet, "/internal/diagnostics/workflows?query="+url.QueryEscape(query), session, nil)
+		value, err := s.backend.DoAny(request.Context(), http.MethodGet, "/internal/diagnostics/workflows?query="+url.QueryEscape(query), session, nil)
 		if err != nil {
 			writeError(response, http.StatusBadGateway, "workflow_runtime_unavailable", "Workflow runtime is unavailable")
 			return
@@ -358,7 +349,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		value, err := s.core.doJSON(request.Context(), http.MethodGet, "/internal/providers/endpoints/"+escape(endpointID)+"/models", session, nil)
+		value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/providers/endpoints/"+escape(endpointID)+"/models", session, nil)
 		if err != nil {
 			writeError(response, http.StatusUnprocessableEntity, "provider_models_unavailable", "Provider models are unavailable")
 			return
@@ -388,8 +379,11 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if mi, ok := body["maxInputTokens"]; ok {
 			corePayload["max_input_tokens"] = mi
 		}
-		value, err := s.core.doJSON(request.Context(), http.MethodPut, "/internal/providers/roles", session, corePayload)
+		value, err := s.backend.DoJSON(request.Context(), http.MethodPut, "/internal/providers/roles", session, corePayload)
 		if err != nil {
+			if s.publicUnauthorized(response, err) {
+				return
+			}
 			providerRoleError(response, err)
 			return
 		}
@@ -438,8 +432,11 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !valid {
 			return
 		}
-		value, err := s.core.doJSON(request.Context(), http.MethodPost, "/internal/fluctlight-creations/analysis", session, map[string]any{"description": body["description"]})
+		value, err := s.backend.DoJSON(request.Context(), http.MethodPost, "/internal/fluctlight-creations/analysis", session, map[string]any{"description": body["description"]})
 		if err != nil {
+			if s.publicUnauthorized(response, err) {
+				return
+			}
 			s.creationError(response, err, "analysis")
 			return
 		}
@@ -464,8 +461,11 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 				mapped[to] = value
 			}
 		}
-		value, err := s.core.doJSON(request.Context(), http.MethodPost, "/internal/fluctlight-creations/activate", session, mapped)
+		value, err := s.backend.DoJSON(request.Context(), http.MethodPost, "/internal/fluctlight-creations/activate", session, mapped)
 		if err != nil {
+			if s.publicUnauthorized(response, err) {
+				return
+			}
 			s.creationError(response, err, "activation")
 			return
 		}
@@ -771,7 +771,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if before := request.URL.Query().Get("beforeSequence"); before != "" {
 			query.Set("before_sequence", before)
 		}
-		value, err := s.core.doJSON(request.Context(), http.MethodGet, "/internal/conversations/"+escape(conversationID)+"/history?"+query.Encode(), session, nil)
+		value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/conversations/"+escape(conversationID)+"/history?"+query.Encode(), session, nil)
 		if err != nil {
 			writeError(response, 404, "conversation_not_found", "Conversation is unavailable")
 			return
@@ -829,9 +829,43 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 	http.NotFound(response, request)
 }
 
+// streamTurn keeps the Core application stream and browser protocol in one
+// process. The pipe is a writer adapter for App.StreamTurn, not an HTTP
+// request/response bridge; TranslateCoreNDJSON remains the sole protocol
+// translator and observes request cancellation while reading.
+func (s *Server) streamTurn(ctx context.Context, session, conversationID string, payload map[string]any, response http.ResponseWriter) error {
+	reader, writer := io.Pipe()
+	done := make(chan error, 1)
+	go func() {
+		err := s.backend.StreamTurn(ctx, session, conversationID, payload, &pipeResponseWriter{writer: writer})
+		_ = writer.CloseWithError(err)
+		done <- err
+	}()
+	translateErr := TranslateCoreNDJSON(ctx, &http.Response{Body: reader}, response)
+	if translateErr != nil {
+		_ = reader.CloseWithError(translateErr)
+	}
+	backendErr := <-done
+	if translateErr != nil {
+		return translateErr
+	}
+	return backendErr
+}
+
+type pipeResponseWriter struct{ writer *io.PipeWriter }
+
+func (w *pipeResponseWriter) Header() http.Header { return http.Header{} }
+func (w *pipeResponseWriter) WriteHeader(int)     {}
+func (w *pipeResponseWriter) Write(value []byte) (int, error) {
+	return w.writer.Write(value)
+}
+
 type routeError func(http.ResponseWriter, error)
 
-func conversationTurnError(response http.ResponseWriter, err error) {
+func (s *Server) conversationTurnError(response http.ResponseWriter, err error) {
+	if s.publicUnauthorized(response, err) {
+		return
+	}
 	code := "conversation_turn_failed"
 	var coreErr *CoreError
 	if errors.As(err, &coreErr) && coreErr != nil {
@@ -848,8 +882,11 @@ func (s *Server) callMap(response http.ResponseWriter, request *http.Request, en
 	if !ok {
 		return
 	}
-	value, err := s.core.doJSON(request.Context(), methodName, endpoint, session, body)
+	value, err := s.backend.DoJSON(request.Context(), methodName, endpoint, session, body)
 	if err != nil {
+		if s.publicUnauthorized(response, err) {
+			return
+		}
 		onError(response, err)
 		return
 	}
@@ -865,8 +902,11 @@ func (s *Server) callAny(response http.ResponseWriter, request *http.Request, en
 	if !ok {
 		return
 	}
-	value, err := s.core.doAny(request.Context(), methodName, endpoint, session, body)
+	value, err := s.backend.DoAny(request.Context(), methodName, endpoint, session, body)
 	if err != nil {
+		if s.publicUnauthorized(response, err) {
+			return
+		}
 		onError(response, err)
 		return
 	}
@@ -881,7 +921,10 @@ func (s *Server) callNoContent(response http.ResponseWriter, request *http.Reque
 	if !ok {
 		return
 	}
-	if _, err := s.core.doJSON(request.Context(), methodName, endpoint, session, body); err != nil {
+	if _, err := s.backend.DoJSON(request.Context(), methodName, endpoint, session, body); err != nil {
+		if s.publicUnauthorized(response, err) {
+			return
+		}
 		writeError(response, status, code, message)
 		return
 	}
@@ -992,8 +1035,8 @@ func (s *Server) diagnostics(response http.ResponseWriter, request *http.Request
 		query.Set("fluctlight_id", value)
 	}
 	var rows []map[string]any
-	if err := s.core.doValue(request.Context(), http.MethodGet, "/internal/diagnostics?"+query.Encode(), session, nil, &rows); err != nil {
-		diagnosticsError(response, err)
+	if err := s.backend.DoValue(request.Context(), http.MethodGet, "/internal/diagnostics?"+query.Encode(), session, nil, &rows); err != nil {
+		s.diagnosticsError(response, err)
 		return
 	}
 	result := make([]any, 0, len(rows))
@@ -1024,8 +1067,8 @@ func (s *Server) diagnosticLifecycle(response http.ResponseWriter, request *http
 	}
 	var value map[string]any
 	query := lifecycleDiagnosticsQuery(request, 100)
-	if err := s.core.doValue(request.Context(), http.MethodGet, "/internal/diagnostics/lifecycle?"+query.Encode(), session, nil, &value); err != nil {
-		diagnosticsError(response, err)
+	if err := s.backend.DoValue(request.Context(), http.MethodGet, "/internal/diagnostics/lifecycle?"+query.Encode(), session, nil, &value); err != nil {
+		s.diagnosticsError(response, err)
 		return
 	}
 	events := make([]any, 0)
@@ -1102,8 +1145,8 @@ func (s *Server) diagnosticModelRuns(response http.ResponseWriter, request *http
 		query.Set("correlation_id", value)
 	}
 	var rows []map[string]any
-	if err := s.core.doValue(request.Context(), http.MethodGet, "/internal/diagnostics/model-runs?"+query.Encode(), session, nil, &rows); err != nil {
-		diagnosticsError(response, err)
+	if err := s.backend.DoValue(request.Context(), http.MethodGet, "/internal/diagnostics/model-runs?"+query.Encode(), session, nil, &rows); err != nil {
+		s.diagnosticsError(response, err)
 		return
 	}
 	result := make([]any, 0, len(rows))
@@ -1120,8 +1163,8 @@ func (s *Server) diagnosticMediaPrompts(response http.ResponseWriter, request *h
 	}
 	query := url.Values{"limit": []string{strconv.Itoa(queryInt(request.URL.Query().Get("limit"), 20))}}
 	var rows []map[string]any
-	if err := s.core.doValue(request.Context(), http.MethodGet, "/internal/diagnostics/media-prompts?"+query.Encode(), session, nil, &rows); err != nil {
-		diagnosticsError(response, err)
+	if err := s.backend.DoValue(request.Context(), http.MethodGet, "/internal/diagnostics/media-prompts?"+query.Encode(), session, nil, &rows); err != nil {
+		s.diagnosticsError(response, err)
 		return
 	}
 	result := make([]any, 0, len(rows))
@@ -1138,8 +1181,8 @@ func (s *Server) diagnosticsExport(response http.ResponseWriter, request *http.R
 	}
 	query := lifecycleDiagnosticsQuery(request, 500)
 	var value map[string]any
-	if err := s.core.doValue(request.Context(), http.MethodGet, "/internal/diagnostics/export?"+query.Encode(), session, nil, &value); err != nil {
-		diagnosticsError(response, err)
+	if err := s.backend.DoValue(request.Context(), http.MethodGet, "/internal/diagnostics/export?"+query.Encode(), session, nil, &value); err != nil {
+		s.diagnosticsError(response, err)
 		return
 	}
 	writeJSON(response, http.StatusOK, value)
@@ -1153,7 +1196,7 @@ func (s *Server) clearDiagnostics(response http.ResponseWriter, request *http.Re
 	if !ok {
 		return
 	}
-	value, err := s.core.doJSON(request.Context(), http.MethodDelete, "/internal/diagnostics", session, nil)
+	value, err := s.backend.DoJSON(request.Context(), http.MethodDelete, "/internal/diagnostics", session, nil)
 	if err != nil {
 		writeError(response, http.StatusForbidden, "diagnostics_clear_failed", "Diagnostics could not be cleared")
 		return
@@ -1161,7 +1204,21 @@ func (s *Server) clearDiagnostics(response http.ResponseWriter, request *http.Re
 	writeJSON(response, http.StatusOK, map[string]any{"cleared": numberValue(value["cleared"])})
 }
 
-func diagnosticsError(response http.ResponseWriter, err error) {
+func (s *Server) publicUnauthorized(response http.ResponseWriter, err error) bool {
+	var coreErr *CoreError
+	if !errors.As(err, &coreErr) || coreErr == nil || coreErr.Status != http.StatusUnauthorized {
+		return false
+	}
+	clearSessionCookie(response, s.secureCookies)
+	setCSRFCookie(response, newCSRFToken(), s.secureCookies)
+	writeError(response, http.StatusUnauthorized, "unauthenticated", "Authentication is required")
+	return true
+}
+
+func (s *Server) diagnosticsError(response http.ResponseWriter, err error) {
+	if s.publicUnauthorized(response, err) {
+		return
+	}
 	var coreErr *CoreError
 	if errors.As(err, &coreErr) {
 		switch {
@@ -1225,28 +1282,16 @@ func (s *Server) media(response http.ResponseWriter, request *http.Request, asse
 	if !ok {
 		return
 	}
-	extra := make(http.Header)
-	if value := request.Header.Get("Range"); value != "" {
-		extra.Set("Range", value)
-	}
-	upstream, err := s.core.request(request.Context(), http.MethodGet, "/internal/media/"+escape(assetID), session, nil, extra)
-	if err != nil {
-		writeError(response, http.StatusNotFound, "media_unavailable", "Media is unavailable")
-		return
-	}
-	if upstream.Body == nil || upstream.Body == http.NoBody || upstream.ContentLength == 0 {
-		writeError(response, http.StatusBadGateway, "media_unavailable", "Media is unavailable")
-		return
-	}
-	defer upstream.Body.Close()
-	response.Header().Set("Content-Type", "application/octet-stream")
-	for _, name := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges", "ETag"} {
-		if value := upstream.Header.Get(name); value != "" {
-			response.Header().Set(name, value)
+	if err := s.backend.Media(request.Context(), session, assetID, request.Header.Get("Range"), response); err != nil && request.Context().Err() == nil {
+		if s.publicUnauthorized(response, err) {
+			return
 		}
+		if coreErr, ok := err.(*CoreError); ok && coreErr.Status == http.StatusNotFound {
+			writeError(response, http.StatusNotFound, "media_unavailable", "Media is unavailable")
+			return
+		}
+		writeError(response, http.StatusBadGateway, "media_unavailable", "Media is unavailable")
 	}
-	response.WriteHeader(upstream.StatusCode)
-	_, _ = io.Copy(response, upstream.Body)
 }
 
 func method(response http.ResponseWriter, request *http.Request, allowed string) bool {

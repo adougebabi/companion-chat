@@ -53,7 +53,7 @@ test("BrowserClient requires an explicit base URL outside the browser", async ()
   }
 });
 
-test("BrowserClient preserves safe BFF failure codes", async () => {
+test("BrowserClient preserves safe API failure codes", async () => {
   const client = new BrowserClient("http://fluctlight.local", async () =>
     new Response(JSON.stringify({
       code: "initialization_response_invalid_json",

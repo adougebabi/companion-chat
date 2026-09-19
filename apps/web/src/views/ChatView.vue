@@ -4,7 +4,7 @@ import type { BrowserMessage } from "@fluctlight/browser-client";
 
 import Button from "@/components/ui/button/Button.vue";
 import Textarea from "@/components/ui/textarea/Textarea.vue";
-import { bffOrigin } from "../runtime-config";
+import { apiOrigin } from "../runtime-config";
 import { useConversationStore } from "../stores/conversations";
 import { fluctlightStatusLabel } from "../lib/fluctlight-status";
 
@@ -71,7 +71,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 function mediaUrl(assetId: string) {
-  return new URL(`/api/media/${encodeURIComponent(assetId)}`, bffOrigin).toString();
+  return new URL(`/api/media/${encodeURIComponent(assetId)}`, apiOrigin).toString();
 }
 
 function deliveryStatus(message: BrowserMessage): "pending" | "failed" | "sent" | "none" {

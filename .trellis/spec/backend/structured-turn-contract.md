@@ -7,7 +7,7 @@
 - Trigger: a chat completion must carry durable memory, affect/drives signals, or capability intent without asking application code to infer meaning from user-visible prose.
 - The browser turn transport is `POST` + `application/x-ndjson` with checked
   `token | message | media | completed | error | heartbeat` frames. Core
-  `action_result.message` carries committed authoritative rows and BFF maps it
+  `action_result.message` carries committed authoritative rows and browser boundary maps it
   to `message`/`media`; this spec governs the provider-to-application boundary
   and commit behavior.
 
@@ -144,7 +144,7 @@ does not consume the released pre-cutover shapes.
 ### 1. Scope / Trigger
 
 - Trigger: the Go Core receives a provider completion that requests an
-  external capability, or a visible turn crosses the Core/BFF stream boundary.
+  external capability, or a visible turn crosses the Core/browser boundary stream boundary.
 - The signatures and examples below are historical migration inputs only.
 
 ### 2. Signatures
@@ -270,7 +270,7 @@ ProviderClient.StructuredWithTools(ctx, role, messages, released definitions)
   persistence, and frozen replay without a second plugin call.
 - Provider tests for `tools` request payloads, native tool-call responses,
   JSON sidecar responses, malformed calls, and stable request headers.
-- Core/BFF stream tests for provider chunk → Core NDJSON → browser frames,
+- Core/browser boundary stream tests for provider chunk → Core NDJSON → browser frames,
   post-settlement token delivery, abort, one terminal frame, and hidden payload
   redaction. No test should require an SSE turn endpoint.
 

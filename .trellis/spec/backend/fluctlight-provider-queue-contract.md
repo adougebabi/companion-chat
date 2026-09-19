@@ -102,7 +102,7 @@ process restart.
   renewal/requeue, orphan-job cleanup, cancellation, and unavailable-Redis
   fallback. Integration tests use a disposable Redis when local listeners are
   permitted.
-- Core, BFF, browser-client, and Web contracts must be updated together when a
+- Core, browser boundary, browser-client, and Web contracts must be updated together when a
   model-run field changes.
 
 ## Wrong vs Correct

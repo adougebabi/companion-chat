@@ -16,7 +16,7 @@ import (
 
 const EventStream = "fluctlight:events:v1"
 
-var DurableConsumerGroups = []string{"bff-notifications", "cache-projections", "integration-observers"}
+var DurableConsumerGroups = []string{"api-notifications", "cache-projections", "integration-observers"}
 
 type EventEnvelope struct {
 	EventID           string          `json:"event_id"`
@@ -292,7 +292,7 @@ func (c *EventConsumer) process(ctx context.Context, message redis.XMessage) err
 
 func consumerEffectType(group string) string {
 	switch group {
-	case "bff-notifications":
+	case "api-notifications":
 		return "notification"
 	case "cache-projections":
 		return "projection"

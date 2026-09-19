@@ -2,7 +2,7 @@ package core
 
 // This file owns the Eino boundary used by the Core model tasks.  Domain code
 // continues to receive the bounded ProviderCompletion contract; Eino messages,
-// tool schemas and stream readers never cross into persistence or BFF DTOs.
+// tool schemas and stream readers never cross into persistence or browser DTOs.
 
 import (
 	"context"

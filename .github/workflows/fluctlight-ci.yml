@@ -31,28 +31,21 @@ jobs:
           go-version-file: apps/core-go/go.mod
           cache-dependency-path: |
             apps/core-go/go.sum
-            apps/gateway-go/go.sum
 
       - name: Test Go Core
         working-directory: apps/core-go
         run: go test -race ./...
 
-      - name: Test Go BFF
-        working-directory: apps/gateway-go
-        run: go test -race ./...
-
-      - name: Vet Go Core and BFF
+      - name: Vet Go Core
         run: |
           go -C apps/core-go vet ./...
-          go -C apps/gateway-go vet ./...
 
-      - name: Build Go Core and BFF
+      - name: Build Go Core
         run: |
           go -C apps/core-go build ./...
-          go -C apps/gateway-go build ./...
 
       - name: Verify Go formatting
-        run: test -z "$(find apps/core-go apps/gateway-go -name '*.go' -print0 | xargs -0 gofmt -l)"
+        run: test -z "$(find apps/core-go -name '*.go' -print0 | xargs -0 gofmt -l)"
 
       - name: Verify Go-only runtime references
         run: ./infra/acceptance/go-core-reference-guard.sh
@@ -141,7 +134,6 @@ jobs:
             echo 'FLUCTLIGHT_CORE_SERVICE_KEY=ci-core-service-key'
             echo 'FLUCTLIGHT_SETTINGS_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
             echo 'FLUCTLIGHT_TRUSTED_ORIGIN=http://127.0.0.1:13001'
-            echo 'FLUCTLIGHT_BFF_ORIGIN=http://127.0.0.1:13000'
             echo 'FLUCTLIGHT_SECURE_COOKIES=false'
             echo 'POSTGRES_USER=fluctlight'
             echo 'POSTGRES_PASSWORD=ci-postgres-password'
@@ -169,9 +161,6 @@ jobs:
           - name: core
             file: apps/core-go/Dockerfile
             image: fluctlight-core-go
-          - name: bff
-            file: apps/gateway-go/Dockerfile
-            image: fluctlight-bff
           - name: web
             file: apps/web/Dockerfile
             image: fluctlight-web
@@ -211,9 +200,6 @@ jobs:
           - name: core
             file: apps/core-go/Dockerfile
             image: fluctlight-core-go
-          - name: bff
-            file: apps/gateway-go/Dockerfile
-            image: fluctlight-bff
           - name: web
             file: apps/web/Dockerfile
             image: fluctlight-web

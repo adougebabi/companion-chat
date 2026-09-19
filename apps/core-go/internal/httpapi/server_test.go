@@ -249,7 +249,7 @@ func TestInitializationDescriptionLimitUsesUTF8Bytes(t *testing.T) {
 			}
 		})
 	}
-	bffSource, err := os.ReadFile("../../../gateway-go/internal/bff/routes.go")
+	browserSource, err := os.ReadFile("browser/routes.go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,12 +257,12 @@ func TestInitializationDescriptionLimitUsesUTF8Bytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bff := string(bffSource)
-	if !strings.Contains(bff, "const initializationDescriptionMaxBytes = 60000") || !strings.Contains(bff, "len(text) <= initializationDescriptionMaxBytes") || !strings.Contains(bff, "initialization_description_too_large") || !strings.Contains(bff, "http.StatusRequestEntityTooLarge") {
-		t.Fatal("BFF does not enforce the shared UTF-8 byte limit")
+	browser := string(browserSource)
+	if !strings.Contains(browser, "const initializationDescriptionMaxBytes = 60000") || !strings.Contains(browser, "len(text) <= initializationDescriptionMaxBytes") || !strings.Contains(browser, "initialization_description_too_large") || !strings.Contains(browser, "http.StatusRequestEntityTooLarge") {
+		t.Fatal("browser API does not enforce the shared UTF-8 byte limit")
 	}
-	if !strings.Contains(bff, `response.Header().Set("Cache-Control", "no-store, private")`) {
-		t.Fatal("BFF Fluctlight detail does not disable caching for Owner-only source text")
+	if !strings.Contains(browser, `response.Header().Set("Cache-Control", "no-store, private")`) {
+		t.Fatal("browser API Fluctlight detail does not disable caching for Owner-only source text")
 	}
 	if !strings.Contains(string(webSource), "new TextEncoder().encode(description).byteLength") || strings.Contains(string(webSource), `maxlength="12000"`) {
 		t.Fatal("Web does not enforce the shared UTF-8 byte limit")

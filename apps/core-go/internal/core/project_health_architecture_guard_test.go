@@ -11,7 +11,7 @@ import (
 
 func TestProjectHealthArchitectureGuardHasNoReflectionV1ProductionSurface(t *testing.T) {
 	forbidden := regexp.MustCompile(`\b(?:reflectionResponseSchema|normalizeReflectionProposal|filterReflectionEvidence|validateReflectionProposal|validateReflectionRelationshipTargets|resolveReflectionActorAliases|applyReflectionCandidates|reflectionEvidenceRefs|compactReflectionEvidence)\b|ReflectionProposalV1|fluctlight\.reflection\.v1|"relationship_candidates"`)
-	walkProductionGo(t, []string{".", "../workflow", "../../../gateway-go"}, func(path string, source []byte) {
+	walkProductionGo(t, []string{".", "../workflow", "../httpapi/browser"}, func(path string, source []byte) {
 		if match := forbidden.Find(source); match != nil {
 			t.Fatalf("legacy Reflection production surface %q in %s", match, path)
 		}
@@ -20,7 +20,7 @@ func TestProjectHealthArchitectureGuardHasNoReflectionV1ProductionSurface(t *tes
 
 func TestProjectHealthArchitectureGuardAllowsToolRoleOnlyInQueryContinuation(t *testing.T) {
 	toolRole := regexp.MustCompile(`(?i)(?:\\?"role\\?"\s*:|\bRole\s*:|\brole\s*(?::=|=))\s*\\?"tool\\?"`)
-	walkProductionGo(t, []string{".", "../workflow", "../../../gateway-go"}, func(path string, source []byte) {
+	walkProductionGo(t, []string{".", "../workflow", "../httpapi/browser"}, func(path string, source []byte) {
 		if match := toolRole.Find(source); match != nil {
 			if filepath.Base(path) == "query_continuation.go" {
 				return

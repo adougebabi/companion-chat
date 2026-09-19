@@ -6,14 +6,11 @@ import { resolve } from 'node:path';
 
 import { runtimeConfigSource } from './runtime-config.mjs';
 
-const bffOrigin = process.env.FLUCTLIGHT_BFF_ORIGIN?.trim();
-if (!bffOrigin) {
-  throw new Error('FLUCTLIGHT_BFF_ORIGIN must be set before starting the Web container');
-}
+const apiOrigin = process.env.FLUCTLIGHT_API_ORIGIN?.trim() ?? "";
 
 await writeFile(
   resolve('apps/web/dist/runtime-config.js'),
-  runtimeConfigSource(bffOrigin),
+  runtimeConfigSource(apiOrigin),
   'utf8',
 );
 

@@ -1,8 +1,8 @@
-package bff
+package browser
 
 import (
-	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -97,96 +97,48 @@ func browserRouteCases() []browserRouteCase {
 	}
 }
 
-// TestEveryBrowserRouteHasAGoHandler is deliberately a route smoke matrix.
-// Detailed mapping, error and stream assertions live beside the individual
-// helpers; this test prevents a new/forgotten operation from silently falling
-// through to 404 during the Go gateway rollout.
-func TestEveryBrowserRouteHasAGoHandler(t *testing.T) {
-	routes := browserRouteCases()
+func invokeBrowser(handler http.Handler, method, target, body string, headers map[string]string, cookies map[string]string) *httptest.ResponseRecorder {
+	request := httptest.NewRequest(method, target, strings.NewReader(body))
+	for key, value := range headers {
+		request.Header.Set(key, value)
+	}
+	for key, value := range cookies {
+		request.AddCookie(&http.Cookie{Name: key, Value: value})
+	}
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	return response
+}
 
-	for _, route := range routes {
+func TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary(t *testing.T) {
+	for _, route := range browserRouteCases() {
 		route := route
 		t.Run(route.name, func(t *testing.T) {
-			handler := testBFF(t, fakeCoreForRoute)
+			backend := &fakeBackend{stream: func(writer http.ResponseWriter) {
+				_, _ = writer.Write([]byte("{\"type\":\"completed\",\"turn_id\":\"turn-1\",\"sequence\":0,\"payload\":{}}\n"))
+			}}
+			handler := newBrowserTestHandler(backend)
 			headers := map[string]string{}
 			cookies := map[string]string{}
 			switch {
 			case route.method == http.MethodOptions:
-				headers["Origin"] = "https://fluctlight.local"
+				headers["Origin"] = "https://fluctlight.test"
 			case route.method != http.MethodGet && route.path != "/auth/login" && route.path != "/auth/setup":
-				headers["Origin"] = "https://fluctlight.local"
+				headers["Origin"] = "https://fluctlight.test"
 				headers["X-CSRF-Token"] = "csrf"
 				cookies[csrfCookieName] = "csrf"
 				cookies[sessionCookieName] = "opaque"
 			case route.path == "/auth/login" || route.path == "/auth/setup":
-				headers["Origin"] = "https://fluctlight.local"
+				headers["Origin"] = "https://fluctlight.test"
 				headers["X-CSRF-Token"] = "csrf"
 				cookies[csrfCookieName] = "csrf"
 			default:
 				cookies[sessionCookieName] = "opaque"
 			}
-			response := invoke(handler, route.method, "http://gateway.test"+route.path, route.body, headers, cookies)
+			response := invokeBrowser(handler, route.method, "https://api.test"+route.path, route.body, headers, cookies)
 			if response.Code != http.StatusOK && response.Code != http.StatusNoContent && response.Code != http.StatusPartialContent {
 				t.Fatalf("route returned %d: %s", response.Code, response.Body.String())
 			}
 		})
 	}
 }
-
-func fakeCoreForRoute(request *http.Request) (*http.Response, error) {
-	path := request.URL.Path
-	switch {
-	case path == "/health/ready":
-		return jsonResponse(http.StatusOK, `{"status":"ready","role":"api"}`), nil
-	case path == "/internal/platform/ping":
-		return jsonResponse(http.StatusOK, `{"status":"ok","role":"api"}`), nil
-	case path == "/internal/auth/session":
-		return jsonResponse(http.StatusOK, `{"authenticated":true,"actor_id":"owner"}`), nil
-	case path == "/internal/auth/setup-status":
-		return jsonResponse(http.StatusOK, `{"setup_available":true}`), nil
-	case path == "/internal/auth/login" || path == "/internal/auth/setup":
-		return jsonResponse(http.StatusOK, `{"authenticated":true,"actor_id":"owner","session_token":"session"}`), nil
-	case path == "/internal/settings":
-		return jsonResponse(http.StatusOK, `{"values":{},"configured_secrets":[]}`), nil
-	case path == "/internal/capability-requests" && request.Method == http.MethodGet:
-		return jsonResponse(http.StatusOK, `[]`), nil
-	case strings.HasSuffix(path, "/review"):
-		return jsonResponse(http.StatusOK, `{"id":"request-1","status":"accepted"}`), nil
-	case strings.HasSuffix(path, "/models"):
-		return jsonResponse(http.StatusOK, `{"endpoint_id":"endpoint","models":[]}`), nil
-	case (path == "/internal/providers/endpoints" || path == "/internal/providers") && request.Method == http.MethodGet:
-		return jsonResponse(http.StatusOK, `[]`), nil
-	case path == "/internal/providers/roles":
-		return jsonResponse(http.StatusOK, `{"role":"interaction","available":true,"capability_version":"v1"}`), nil
-	case (path == "/internal/fluctlights" || path == "/internal/actor-groups" || path == "/internal/moments" || strings.HasSuffix(path, "/moments") || strings.HasSuffix(path, "/autonomy-actions")) && request.Method == http.MethodGet:
-		return jsonResponse(http.StatusOK, `[]`), nil
-	case (path == "/internal/diagnostics" || path == "/internal/diagnostics/model-runs" || path == "/internal/diagnostics/media-prompts") && request.Method == http.MethodGet || strings.HasSuffix(path, "/workflows"):
-		return jsonResponse(http.StatusOK, `[]`), nil
-	case strings.HasSuffix(path, "/media-prompts/media-1/retry"):
-		return jsonResponse(http.StatusOK, `{"media_intent_id":"media-1","status":"retry_queued"}`), nil
-	case path == "/internal/diagnostics" && request.Method == http.MethodDelete:
-		return jsonResponse(http.StatusOK, `{"cleared":1}`), nil
-	case strings.HasSuffix(path, "/history") || strings.HasSuffix(path, "/conversation") || strings.HasSuffix(path, "/conversations"):
-		return jsonResponse(http.StatusOK, conversationPageJSON), nil
-	case path == "/internal/diagnostics/export":
-		return jsonResponse(http.StatusOK, `{}`), nil
-	case strings.HasSuffix(path, "/turn"):
-		return jsonResponseWithContentType(http.StatusOK, "{\"type\":\"completed\",\"turn_id\":\"turn-1\",\"sequence\":0,\"payload\":{}}\n", "application/x-ndjson"), nil
-	case strings.HasPrefix(path, "/internal/media/"):
-		status := http.StatusOK
-		headers := http.Header{"Content-Type": []string{"image/png"}, "Content-Length": []string{"4"}, "ETag": []string{"etag"}}
-		if request.Header.Get("Range") != "" {
-			status = http.StatusPartialContent
-			headers["Content-Range"] = []string{"bytes 0-3/4"}
-			headers["Accept-Ranges"] = []string{"bytes"}
-		}
-		return &http.Response{StatusCode: status, ContentLength: 4, Header: headers, Body: io.NopCloser(strings.NewReader("data"))}, nil
-	default:
-		if request.Method == http.MethodGet {
-			return jsonResponse(http.StatusOK, `{}`), nil
-		}
-		return &http.Response{StatusCode: http.StatusNoContent, Body: io.NopCloser(strings.NewReader(""))}, nil
-	}
-}
-
-const conversationPageJSON = `{"conversation":{"id":"conversation-1","created_by_actor_id":"owner","title":null,"revision":0,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"},"participants":[],"messages":[],"next_before_sequence":null}`

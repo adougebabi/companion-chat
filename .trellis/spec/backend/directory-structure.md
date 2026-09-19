@@ -3,11 +3,13 @@
 ## Actual Layout
 
 ```text
-apps/gateway-go/
-  cmd/gateway/                   Go public BFF composition root
-  internal/bff/                  browser routes, DTOs, NDJSON, media proxy
-  internal/config/               startup and security configuration
-  internal/platform/             transport-neutral health helpers
+apps/core-go/internal/httpapi/browser/
+  auth.go                         Cookie/CSRF/CORS transport
+  routes.go                       browser routes and request validation
+  dto.go                          explicit browser DTO mapping
+  ndjson.go                       incremental stream translation
+apps/core-go/internal/httpapi/
+  browser_backend.go              direct App/Repository operation adapter
 apps/core-go/
   cmd/api/                       Go Core API composition root
   cmd/worker/                    Go Temporal Worker composition root
@@ -18,17 +20,17 @@ apps/core-go/
 packages/core-client/            generated/reference Core contract client
 packages/browser-client/         Browser OpenAPI artifact and generated client
 apps/web/                        Vue/Vite static assets served by Nginx
-infra/compose/                   Core, Worker, BFF and middleware deployment
+infra/compose/                   Core, Worker, browser boundary and middleware deployment
 infra/acceptance/                disposable Compose and public-boundary checks
 ```
 
-`apps/gateway-go` is the only public BFF runtime. The former Node BFF tree,
+`apps/core-go/internal/httpapi/browser` is the only public browser boundary runtime. The former Node browser boundary tree,
 its Dockerfile, tests, package importer, and generator entrypoint are deleted;
 do not restore them as a compatibility entrypoint or rollback service.
 
 ## Module Boundaries
 
-- Go BFF packages may depend on the standard library and transport-neutral
+- Go browser boundary packages may depend on the standard library and transport-neutral
 helpers only. They must not import PostgreSQL, Redis, S3, Temporal, Core
   internals, domain repositories, or semantic policy modules.
 - Go Core owns domain state, authorization, persistence, provider calls, and
@@ -37,8 +39,8 @@ helpers only. They must not import PostgreSQL, Redis, S3, Temporal, Core
 - Browser OpenAPI is generated beside its committed artifact in
   `packages/browser-client/scripts`; root generation updates the artifact and
   generated client together.
-- Compose service name `bff` and image repository `fluctlight-bff` are stable
-  deployment names, but their process and Dockerfile are Go-only.
+- The Web service is the only public container entry; Nginx proxies public browser
+  paths to Core and no standalone browser-boundary service/image exists.
 - `apps/core-go` is the sole Core/Worker runtime and the only writer for the
   PostgreSQL domain tables.
 
@@ -47,7 +49,7 @@ helpers only. They must not import PostgreSQL, Redis, S3, Temporal, Core
 - Put browser validation, status selection, and DTO mapping in the explicit Go
   route that owns the operation; do not add a generic Core path proxy.
 - Put domain rules and durable writes in the owning Go Core module; do not
-  duplicate them in the BFF.
+  duplicate them in the browser boundary.
 - Keep external provider/storage/workflow calls behind their existing Core
   adapters and preserve cancellation and bounded error mapping at transport
   boundaries.

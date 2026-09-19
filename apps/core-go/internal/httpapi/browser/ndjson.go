@@ -1,8 +1,8 @@
-// Package bff contains the transport-only browser boundary for the public
+// Package browser contains the transport-only browser boundary for the public
 // gateway.  This file deliberately has no dependency on the Core or domain
 // packages: it translates the Core's visible NDJSON envelope into the
-// browser's envelope while it is being read.
-package bff
+// browser envelope while it is being read.
+package browser
 
 import (
 	"bufio"
@@ -31,9 +31,9 @@ const (
 
 const browserTurnErrorMessage = "The turn could not be completed"
 
-// CoreStreamEvent is the visible Core-to-BFF stream envelope.  The payload is
+// CoreStreamEvent is the visible Core application stream envelope. The payload is
 // intentionally untyped at this boundary; the event envelope and the hidden
-// payload policy are the only semantics owned by the BFF.
+// payload policy are the only semantics owned by the browser boundary.
 type CoreStreamEvent struct {
 	Type     string
 	TurnID   string
@@ -553,7 +553,7 @@ func browserEvent(core CoreStreamEvent) (BrowserStreamEvent, string) {
 	}
 	if core.Type == "completed" {
 		// Only forward browser-visible completion metadata. Workflow/media
-		// intent identifiers are Core internals and must not cross the BFF.
+		// intent identifiers are Core internals and must not cross the browser boundary.
 		payload := map[string]any{}
 		if ids, ok := core.Payload["message_ids"]; ok {
 			payload["message_ids"] = ids
@@ -622,5 +622,5 @@ func hasHiddenPayload(value any) bool {
 
 // Keep utf8 imported and make strict UTF-8 validation explicit at the frame
 // boundary.  encoding/json replaces invalid UTF-8 by default, which would
-// violate the Core/BFF contract if it were allowed to do so silently.
+// violate the Core/browser contract if it were allowed to do so silently.
 func validUTF8(value []byte) bool { return utf8.Valid(value) }

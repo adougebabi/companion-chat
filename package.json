@@ -7,7 +7,7 @@
     "node": ">=24.12.0"
   },
   "scripts": {
-    "dev": "go -C apps/gateway-go run ./cmd/gateway",
+    "dev": "go -C apps/core-go run ./cmd/api",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",

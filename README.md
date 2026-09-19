@@ -18,13 +18,10 @@ Fluctlight 实例都有自己的名称、身份、人格、情绪与内部状态
 浏览器
   │
   ▼
-Vue Web（Vite + Pinia，生产环境由 Nginx 提供静态文件）
+Vue Web（Vite + Pinia，生产环境由 Nginx 提供静态文件并反向代理公共 API）
   │  浏览器会话、CSRF、camelCase DTO、NDJSON 流
   ▼
-Go BFF（唯一浏览器公网边界）
-  │  内部 service key / human session
-  ▼
-Go Core API（唯一领域写入者）
+Go Core API（唯一公共接入边界与领域写入者）
   ├── PostgreSQL + pgvector   领域事实、修订、审计、outbox
   ├── Redis Streams           事件投递与 durable consumer groups
   ├── Temporal                可恢复的生命周期、交互、媒体工作流
@@ -35,8 +32,9 @@ Go Core API（唯一领域写入者）
 Go Worker（Temporal poller、intent dispatcher、outbox publisher）
 ```
 
-核心边界只有一个原则：浏览器不直接访问 Core、数据库、Redis、Temporal 或
-对象存储；BFF 不承载领域规则；所有领域事实和写入都由 Go Core 统一完成。
+核心边界只有一个原则：浏览器只通过 Go API 的公共传输边界访问业务，不直接访问
+数据库、Redis、Temporal 或对象存储；传输层不承载领域规则；所有领域事实和写入
+都由 Go Core 统一完成。Nginx 只提供静态资源和公共路径的基础反向代理。
 
 一次交互大致经过以下路径：用户消息、已 claim 的 cognition fact、
 workflow intent 与 outbox 在一个短 PostgreSQL 事务内持久化；Core 通过统一
@@ -114,7 +112,7 @@ Main 完成可见回复，不进入 continuation。需要跨进程、重试或�
   `capability.request` 写入 Owner 可审核的全局需求池；新增能力实现 `Capability` 后
   在 composition root 注册即可。
 - **媒体流水线**：通过 ComfyUI 生成媒体，轮询外部任务并把图片、视频或音频写入
-  私有 MinIO/S3；媒体带有校验信息、版本和引用关系，浏览器只能通过 BFF 代理读取。
+  私有 MinIO/S3；媒体带有校验信息、版本和引用关系，浏览器只能通过 API 的授权媒体代理读取。
 - **可靠异步执行**：PostgreSQL outbox 负责事务内记录事件，Worker 发布到 Redis
   Streams；Temporal 负责生命周期、交互和媒体工作流的重试、暂停、恢复、取消和
   版本化执行。
@@ -150,12 +148,12 @@ Main 完成可见回复，不进入 continuation。需要跨进程、重试或�
 
 `apps/web` 是 Vue 3 + Vite + Pinia 的静态浏览器应用。它负责页面、交互、响应式
 布局、流式消息展示和 Control Center，不直接连接任何基础设施。生产镜像使用
-Nginx 提供静态资源，并在启动时写入 `/runtime-config.js`，因此更换浏览器可达的
-BFF 地址通常只需重建或重启 Web 容器。
+Nginx 提供静态资源，并把 `/api`、`/auth`、`/health` 反向代理到同一 Compose
+网络中的 Go API。
 
-### 2. 边界层：Go BFF
+### 2. 公共接入层：Go API browser boundary
 
-`apps/gateway-go` 是唯一的浏览器公网入口，负责：
+`apps/core-go/internal/httpapi/browser` 是 Go API 进程内唯一的浏览器公共边界，负责：
 
 - Owner session Cookie、Origin 和 CSRF 校验；
 - 将浏览器 camelCase DTO 转换为 Core 的 snake_case 请求；
@@ -163,14 +161,15 @@ BFF 地址通常只需重建或重启 Web 容器。
 - 转译对话的 `application/x-ndjson` 流；
 - 代理受授权的私有媒体和 HTTP Range 响应。
 
-BFF 只通过 HTTP 调用 Core，不访问 PostgreSQL、Redis、S3 或 Temporal，也不复制
-领域规则。
+该层不访问数据库或工作流；它通过明确的 in-process backend 直接调用既有
+Core App/Repository 服务，不构造 localhost HTTP 请求，不复制领域规则，也不公开
+`/internal/*`。
 
 ### 3. 领域层：Go Core API
 
 `apps/core-go` 是当前唯一的 Core/Worker 运行时。`internal/core` 组合领域模型、
 Repository、Provider、Capability Registry、媒体服务、诊断和工作流意图；
-`internal/httpapi` 只负责内部 HTTP 路由、认证边界和响应编码。
+`internal/httpapi` 同时承载受保护的 `/internal/*` 机器接口和 browser 公共传输边界。
 
 Core 以 PostgreSQL 中的领域事实为权威来源。Temporal 是 intent 的执行器而不是
 事实来源；Redis 是事件投递通道而不是领域状态库；MinIO/S3 只保存媒体对象。
@@ -189,7 +188,7 @@ Worker Deployment 版本，Compose 的 `cutover` 服务会在新 Worker 接管�
 `packages/browser-client` 保存浏览器契约与生成的 TypeScript 客户端，
 `packages/core-client` 保存 Core 内部契约与参考客户端。Core 使用 snake_case，
 浏览器使用 camelCase；两者不能混用。修改接口时需要同步 OpenAPI artifact、生成
-客户端、BFF route inventory、契约/Parity 测试和 Web store，否则 CI 或运行时检查会
+客户端、API route inventory、契约/Parity 测试和 Web store，否则 CI 或运行时检查会
 拒绝不一致的边界。
 
 ## 目录结构
@@ -197,7 +196,7 @@ Worker Deployment 版本，Compose 的 `cutover` 服务会在新 Worker 接管�
 | 目录 | 职责 |
 | --- | --- |
 | `apps/core-go/` | Go Core API、领域应用层、PostgreSQL Repository、Provider、媒体与诊断；同时包含 Temporal Worker、迁移、初始化 token 和 cutover 入口。 |
-| `apps/gateway-go/` | 唯一浏览器公网 BFF：认证、浏览器路由、DTO/错误转换、NDJSON 和媒体代理。 |
+| `apps/core-go/internal/httpapi/browser/` | API 进程内的浏览器认证、路由、DTO/错误转换、NDJSON 和媒体边界。 |
 | `apps/web/` | Vue 3/Vite/Pinia 产品 UI 与 Control Center；构建产物由 Nginx 提供。 |
 | `packages/browser-client/` | 浏览器 OpenAPI artifact、生成脚本、TypeScript 客户端及客户端测试。 |
 | `packages/core-client/` | Core 内部 OpenAPI artifact、生成脚本和参考 TypeScript 客户端。 |
@@ -226,8 +225,6 @@ GOMODCACHE="$PWD/.gomodcache" GOCACHE="$PWD/.gocache" \
   go -C apps/core-go vet ./...
 GOMODCACHE="$PWD/.gomodcache" GOCACHE="$PWD/.gocache" \
   go -C apps/core-go build ./...
-GOMODCACHE="$PWD/.gomodcache" GOCACHE="$PWD/.gocache" \
-  go -C apps/gateway-go test ./...
 ```
 
 其中 `pnpm generate` 会依次更新 Core Client、Browser OpenAPI 和 Browser Client。
@@ -290,10 +287,10 @@ FLUCTLIGHT_LIVE_PROVIDER_TEST_REGEX='TestLiveHandleTurnUsesRealProviderForPostCo
      up --build --detach --wait
    ```
 
-   默认浏览器地址为 `http://localhost:13001`，BFF 地址为
-   `http://localhost:13000`。启动顺序由健康检查和依赖关系保护：PostgreSQL、
-   Redis、MinIO、Temporal 就绪后，先执行 `migrate`，再执行 `minio-init` 和
-   `cutover`，随后 Worker、Core、BFF 和 Web 才会进入可用状态。
+   默认浏览器地址为 `http://localhost:13001`。浏览器公共 API 通过 Web Nginx
+   同源代理到 Core；启动顺序由健康检查和依赖关系保护：PostgreSQL、Redis、MinIO、
+   Temporal 就绪后，先执行 `migrate`，再执行 `minio-init` 和 `cutover`，随后
+   Worker、Core 和 Web 才会进入可用状态。
 
 3. 首次安装完成后生成 Owner setup token，并在 Web 的 `/auth/setup` 页面使用：
 
@@ -316,9 +313,7 @@ FLUCTLIGHT_LIVE_PROVIDER_TEST_REGEX='TestLiveHandleTurnUsesRealProviderForPostCo
 ### 部署配置要点
 
 - `FLUCTLIGHT_TRUSTED_ORIGIN` 是用户实际打开的 Web URL，必须与浏览器地址完全
-  一致；`FLUCTLIGHT_BFF_ORIGIN` 是浏览器实际可访问的 BFF URL。
-- `CORE_BASE_URL` 是 BFF 到 Core 的容器内部地址，Compose 中通常保持
-  `http://core:8080`。不要把容器 hostname 当作浏览器地址。
+  一致。API 通过 Web Nginx 同源代理提供，浏览器不需要 Core 容器 hostname。
 - `FLUCTLIGHT_CORE_SERVICE_KEY` 和 `FLUCTLIGHT_SETTINGS_KEY` 必须使用私有随机值。
 - `POSTGRES_PASSWORD`、`S3_SECRET_KEY` 会被插入连接 URL，建议使用 URL-safe 的
   随机值（推荐 hex）；避免 `@`、`:`、`/`、`?`、`#`、`%` 等字符造成解析错误。
@@ -328,7 +323,7 @@ FLUCTLIGHT_LIVE_PROVIDER_TEST_REGEX='TestLiveHandleTurnUsesRealProviderForPostCo
   ./infra/acceptance/check-compose-bind-sources.sh
   ```
 
-- NAS 或其他机器部署时，两个公网 origin 都应填写浏览器所在网络真正能访问的
+- NAS 或其他机器部署时，Trusted Origin 应填写浏览器所在网络真正能访问的 Web
   地址，不要使用另一台机器上的 `127.0.0.1`。
 
 ## 备份与恢复
@@ -379,14 +374,14 @@ Provider secrets；不要尝试从旧数据或旧环境变量中解密、复制�
 5. **工作流与版本演进**：继续使用 durable intent、Temporal Worker Deployment、
    immutable build ID 和 reconciliation，降低升级、重试、长任务恢复及旧执行切换
    的运维风险。
-6. **跨端与契约稳定性**：保持 Web、BFF、Core 之间的 OpenAPI 生成和路由一致性，
+6. **跨端与契约稳定性**：保持 Web、API browser boundary、Core 之间的 OpenAPI 生成和路由一致性，
    让未来的移动端或其他客户端复用同一浏览器边界，而无需直接接触领域存储。
 7. **运维可视化**：补齐诊断导出、清理和工作流观测等已有 API 能力的 UI 入口，
    让问题定位、恢复操作和备份/恢复演练更容易被 Owner 安全地执行。
 
 ## 贡献与变更原则
 
-- 先确认变更属于 Web、BFF、Core、Worker、契约或基础设施中的哪一层，不跨层复制
+- 先确认变更属于 Web、API、Core、Worker、契约或基础设施中的哪一层，不跨层复制
   领域规则。
 - 任何 API 变更都要同时更新 OpenAPI artifact、生成客户端、路由清单和对应测试，
   并检查 snake_case / camelCase 边界。

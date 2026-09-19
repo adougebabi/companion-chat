@@ -1,8 +1,8 @@
 # Error Handling
 
 > Historical note: the examples below describe the retired Node/SQLite
-> runtime. Active Go Core/BFF behavior is defined by the Go HTTP and NDJSON
-> handlers under `apps/core-go/` and `apps/gateway-go/`.
+> runtime. Active Go Core/browser boundary behavior is defined by the Go HTTP and NDJSON
+> handlers under `apps/core-go/` and `apps/core-go/internal/httpapi/browser/`.
 
 ## HTTP Contracts
 

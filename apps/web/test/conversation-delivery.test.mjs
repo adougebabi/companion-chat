@@ -179,7 +179,7 @@ test("a terminal cognition error keeps the authoritative user message visible an
 		const body = JSON.parse(String(init.body));
 		const frames = [
 			{ type: "message", turnId: body.turnId, sequence: 0, payload: { message: user } },
-			// Core's current shape carries the stable code; the BFF still accepts
+			// Core's current shape carries the stable code; the API boundary still accepts
 			// the legacy payload.error form during rolling upgrades.
 			{ type: "error", turnId: body.turnId, sequence: 1, payload: { status: "failed", code: "conversation_settlement_failed" } },
 		].map((frame) => JSON.stringify(frame)).join("\n") + "\n";
@@ -206,7 +206,7 @@ test("a terminal cognition error keeps the authoritative user message visible an
 	}
 });
 
-test("a non-2xx turn response keeps the BFF error code instead of collapsing to turn_failed", async () => {
+test("a non-2xx turn response keeps the API error code instead of collapsing to turn_failed", async () => {
 	const originalWindow = globalThis.window;
 	const originalFetch = globalThis.fetch;
 	const originalLocalStorage = globalThis.localStorage;

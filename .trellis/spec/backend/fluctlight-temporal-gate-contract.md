@@ -6,7 +6,7 @@
 
 - Trigger: T01B evaluated Temporal after T01 rejected DBOS. Parent D020/D036 accept the core result and supersede the old resource-duration PASS requirement.
 - Target host is a 16 GiB NAS; MTPLX, ComfyUI and h3 are remote. The gate measures only local Fluctlight infrastructure.
-- T01B validates Temporal suitability only. It does not implement Fluctlight domain modules, final BFF/browser, production schemas or Control Center.
+- T01B validates Temporal suitability only. It does not implement Fluctlight domain modules, final browser boundary, production schemas or Control Center.
 
 ### 2. Signatures
 

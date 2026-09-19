@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,16 +13,19 @@ import (
 	"strings"
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
+	browserboundary "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser"
 )
 
 const serviceKeyHeader = "X-Fluctlight-Service-Key"
 const humanSessionHeader = "X-Fluctlight-Human-Session"
 
 type Server struct {
-	repository core.Repository
-	app        *core.App
-	serviceKey string
-	logger     *slog.Logger
+	repository           core.Repository
+	app                  *core.App
+	serviceKey           string
+	logger               *slog.Logger
+	browserTrustedOrigin string
+	browserSecureCookies bool
 }
 
 func NewApp(app *core.App, serviceKey string, logger *slog.Logger) *Server {
@@ -36,6 +40,14 @@ func New(repository core.Repository, serviceKey string, logger *slog.Logger) *Se
 	}
 	server := &Server{repository: repository, serviceKey: serviceKey, logger: logger}
 	return server
+}
+
+// SetBrowserBoundary configures the public browser transport that is served
+// by this same API process. It does not alter the protected /internal
+// service-identity boundary.
+func (s *Server) SetBrowserBoundary(trustedOrigin string, secureCookies bool) {
+	s.browserTrustedOrigin = trustedOrigin
+	s.browserSecureCookies = secureCookies
 }
 
 func (s *Server) Handler() http.Handler {
@@ -117,10 +129,23 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /internal/diagnostics/workflows/{workflowID}/cancel", s.workflowCommand)
 	mux.HandleFunc("POST /internal/diagnostics/workflows/{workflowID}/reset", s.workflowCommand)
 	mux.HandleFunc("POST /internal/diagnostics/workflows/{workflowID}/restart", s.workflowCommand)
+	browserHandler := browserboundary.New(browserboundary.Options{
+		Backend:       newBrowserBackend(s),
+		TrustedOrigin: s.browserTrustedOrigin,
+		SecureCookies: s.browserSecureCookies,
+	}).Handler()
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		response.Header().Set("Cache-Control", "no-store")
+		if isBrowserPath(request.URL.Path) {
+			browserHandler.ServeHTTP(response, request)
+			return
+		}
 		mux.ServeHTTP(response, request)
 	})
+}
+
+func isBrowserPath(path string) bool {
+	return path == "/health/live" || path == "/health/ready" || strings.HasPrefix(path, "/auth/") || strings.HasPrefix(path, "/api/")
 }
 
 func (s *Server) live(response http.ResponseWriter, _ *http.Request) {
@@ -797,7 +822,9 @@ func (s *Server) media(response http.ResponseWriter, request *http.Request) {
 }
 
 func (s *Server) authorizeService(response http.ResponseWriter, request *http.Request) bool {
-	if request.Header.Get(serviceKeyHeader) != s.serviceKey || s.serviceKey == "" {
+	provided := []byte(request.Header.Get(serviceKeyHeader))
+	expected := []byte(s.serviceKey)
+	if s.serviceKey == "" || len(provided) != len(expected) || subtle.ConstantTimeCompare(provided, expected) != 1 {
 		writeError(response, http.StatusUnauthorized, "invalid_service_key")
 		return false
 	}

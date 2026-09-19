@@ -5,7 +5,7 @@
 ### 1. Scope / Trigger
 
 - Trigger: a Fluctlight is initialized, a WakeUp finds no accepted canonical visual identity, or the current Visual Identity attempt advances through image generation, vision review, regeneration, or character-sheet creation.
-- Ownership: Go Core owns visual identity state and CAS; Go Worker/Temporal owns orchestration on `lifecycle`; MediaWorkflow remains the only ComfyUI executor on `media`; BFF/Vue expose only safe projections and proxied assets.
+- Ownership: Go Core owns visual identity state and CAS; Go Worker/Temporal owns orchestration on `lifecycle`; MediaWorkflow remains the only ComfyUI executor on `media`; browser boundary/Vue expose only safe projections and proxied assets.
 
 ### 2. Signatures
 
@@ -77,7 +77,7 @@
   protection of wake-up/reflection dispatch from visual retry starvation.
 - Failure-injection tests assert attempt/session/timeline settlement errors and
   zero-row CAS cannot produce a successful Activity/Workflow result.
-- API/BFF tests assert detail projection authorization and absence of provider secrets/locators; browser tests assert timeline refresh, media event merge, stable image boxes and safe missing/pending states.
+- API/browser boundary tests assert detail projection authorization and absence of provider secrets/locators; browser tests assert timeline refresh, media event merge, stable image boxes and safe missing/pending states.
 
 ### 7. Wrong vs Correct
 

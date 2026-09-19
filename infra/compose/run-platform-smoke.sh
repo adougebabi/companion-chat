@@ -5,7 +5,6 @@ compose_file="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/fluctlight.compose.ym
 env_file="${FLUCTLIGHT_ENV_FILE:-$(dirname "$compose_file")/fluctlight.env}"
 project_name="fluctlight-smoke-$$"
 bind_source_check="$(dirname "$compose_file")/../acceptance/check-compose-bind-sources.sh"
-export BFF_HOST_PORT="${BFF_HOST_PORT:-0}"
 export WEB_HOST_PORT="${WEB_HOST_PORT:-0}"
 
 if [ ! -f "$env_file" ]; then
@@ -47,17 +46,17 @@ cleanup() {
 
 diagnose() {
   compose ps >&2 || true
-  compose logs --no-color postgres redis minio temporal migrate minio-init cutover core worker bff web >&2 || true
+  compose logs --no-color postgres redis minio temporal migrate minio-init cutover core worker web >&2 || true
 }
 
-check_bff_ready() {
-  compose exec -T bff sh -c \
-    'wget -q -O /dev/null "http://127.0.0.1:${BFF_PORT:-3000}/health/ready"'
+check_api_ready() {
+  compose exec -T web sh -c \
+    'wget -q -O /dev/null "http://127.0.0.1/health/ready"'
 }
 
-check_bff_ping() {
-  compose exec -T bff sh -c \
-    'wget -q -O /dev/null "http://127.0.0.1:${BFF_PORT:-3000}/api/platform/ping"'
+check_api_ping() {
+  compose exec -T web sh -c \
+    'wget -q -O /dev/null "http://127.0.0.1/api/platform/ping"'
 }
 
 trap cleanup EXIT INT TERM
@@ -80,7 +79,7 @@ if ! compose up --build --detach --wait --wait-timeout 180; then
 fi
 
 attempt=0
-until check_bff_ready; do
+until check_api_ready; do
   attempt=$((attempt + 1))
   if [ "$attempt" -ge 60 ]; then
     diagnose
@@ -89,10 +88,10 @@ until check_bff_ready; do
   sleep 2
 done
 
-check_bff_ping
+check_api_ping
 compose ps --all
 
-for service in postgres redis minio temporal core worker bff web; do
+for service in postgres redis minio temporal core worker web; do
   status=$(compose ps --all --format '{{.Service}}|{{.State}}|{{.Health}}|{{.ExitCode}}' "$service")
   case "$status" in
     "$service|running|healthy"|"$service|running|healthy|0") ;;

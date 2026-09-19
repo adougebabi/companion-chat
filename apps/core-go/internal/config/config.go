@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -20,6 +21,8 @@ type Config struct {
 	TemporalAddr  string
 	TemporalNS    string
 	RedisURL      string
+	TrustedOrigin string
+	SecureCookies bool
 }
 
 // DatabaseURLFromEnv is intentionally dependency-light so the migration
@@ -29,8 +32,8 @@ func DatabaseURLFromEnv(lookup func(string) (string, bool)) string {
 }
 
 // FromEnv validates the small startup contract for the read-owned Core slice.
-// It intentionally does not reuse BFF configuration: Core owns its database
-// connection and service identity independently.
+// The API owns its database connection, service identity and browser security
+// configuration independently.
 func FromEnv(lookup func(string) (string, bool)) (Config, error) {
 	databaseURL := DatabaseURLFromEnv(lookup)
 	if databaseURL == "" {
@@ -43,6 +46,20 @@ func FromEnv(lookup func(string) (string, bool)) (Config, error) {
 	serviceKey := strings.TrimSpace(first(lookup, "FLUCTLIGHT_CORE_SERVICE_KEY"))
 	if serviceKey == "" {
 		return Config{}, fmt.Errorf("FLUCTLIGHT_CORE_SERVICE_KEY is required")
+	}
+	trustedOrigin, err := parseTrustedOrigin(first(lookup, "FLUCTLIGHT_TRUSTED_ORIGIN"))
+	if err != nil {
+		return Config{}, err
+	}
+	secureCookies := true
+	if value := first(lookup, "FLUCTLIGHT_SECURE_COOKIES"); value != "" {
+		parsed, parseErr := strconv.ParseBool(value)
+		if parseErr != nil {
+			return Config{}, fmt.Errorf("FLUCTLIGHT_SECURE_COOKIES must be a boolean")
+		}
+		secureCookies = parsed
+	} else if trustedOrigin.Scheme == "http" {
+		secureCookies = false
 	}
 	listen := strings.TrimSpace(first(lookup, "CORE_GO_LISTEN_ADDRESS"))
 	if listen == "" {
@@ -86,7 +103,22 @@ func FromEnv(lookup func(string) (string, bool)) (Config, error) {
 		TemporalAddr:  first(lookup, "TEMPORAL_ADDRESS"),
 		TemporalNS:    first(lookup, "TEMPORAL_NAMESPACE"),
 		RedisURL:      firstOrDefault(lookup, "REDIS_URL", "redis://redis:6379/0"),
+		TrustedOrigin: trustedOrigin.String(),
+		SecureCookies: secureCookies,
 	}, nil
+}
+
+func parseTrustedOrigin(value string) (*url.URL, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, fmt.Errorf("FLUCTLIGHT_TRUSTED_ORIGIN is required")
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Path != "" && parsed.Path != "/") {
+		return nil, fmt.Errorf("FLUCTLIGHT_TRUSTED_ORIGIN must be an absolute HTTP(S) origin without path, query, or fragment")
+	}
+	parsed.Path = ""
+	return parsed, nil
 }
 
 func first(lookup func(string) (string, bool), keys ...string) string {

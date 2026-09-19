@@ -8,6 +8,7 @@ func TestFromEnvUsesCoreDatabaseURLAndDefaultAddress(t *testing.T) {
 			"CORE_GO_DATABASE_URL":        "postgresql://user:pass@postgres:5432/fluctlight",
 			"FLUCTLIGHT_CORE_SERVICE_KEY": "service-key",
 			"FLUCTLIGHT_SETTINGS_KEY":     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+			"FLUCTLIGHT_TRUSTED_ORIGIN":   "http://127.0.0.1:13001",
 			"S3_SECRET_KEY":               "secret",
 		}
 		value, ok := values[key]

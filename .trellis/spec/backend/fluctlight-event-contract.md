@@ -37,7 +37,7 @@ Consumer interface:
 consume(event: EventEnvelopeV1, group: str, consumer: str) -> ConsumerResult
 ```
 
-Initial durable consumer groups are `bff-notifications`, `cache-projections`, and `integration-observers`. Future group-conversation fan-out adds a group only when a real consumer exists.
+Initial durable consumer groups are `api-notifications`, `cache-projections`, and `integration-observers`. Future group-conversation fan-out adds a group only when a real consumer exists.
 
 ### 3. Contracts
 

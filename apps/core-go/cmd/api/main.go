@@ -74,9 +74,11 @@ func main() {
 	if redisClient != nil {
 		defer redisClient.Close()
 	}
+	apiServer := httpapi.NewApp(application, settings.ServiceKey, nil)
+	apiServer.SetBrowserBoundary(settings.TrustedOrigin, settings.SecureCookies)
 	server := &http.Server{
 		Addr:              settings.ListenAddress,
-		Handler:           httpapi.NewApp(application, settings.ServiceKey, nil).Handler(),
+		Handler:           apiServer.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       11 * time.Minute,
 	}

@@ -5,7 +5,7 @@
 ### 1. Scope / Trigger
 
 - Trigger: a new Fluctlight is initialized, a Reflection proposal is applied, or cognition/realization needs Persona context.
-- This contract applies to the clean-start Go Core, Go BFF, browser client, and the existing Persona detail/governance surfaces.
+- This contract applies to the clean-start Go Core, Go browser boundary, browser client, and the existing Persona detail/governance surfaces.
 - Old instances and legacy `provenance.self_model` / `personality_candidates` data are not migrated or replayed by the new flow.
 
 ### 2. Signatures
@@ -104,7 +104,7 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   requiring the edited projection digest to equal the model's original output.
   A successful request replay must match the already linked source and frozen
   activation payload identity.
-- Browser, BFF, and Core enforce one 60,000-byte UTF-8 description limit. HTML
+- Browser, browser boundary, and Core enforce one 60,000-byte UTF-8 description limit. HTML
   character counts are not the security boundary and no layer truncates input.
 - The browser owns one typed Foundation preview. Raw JSON is only its editor;
   valid edits replace the typed value, invalid JSON disables activation, any
@@ -114,7 +114,7 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
 - The original source is available only in the collapsed Owner-authorized
   Fluctlight detail panel. Ordinary prompts, logs, Lifecycle Diagnostics,
   Model Runs, and exports omit source text and full structured response. Core
-  and BFF detail responses containing source data set a private no-store cache
+  and browser boundary detail responses containing source data set a private no-store cache
   policy; switching detail requests uses a Fluctlight-bound epoch so one
   instance's source cannot render under another instance's heading.
 - Common model aliases are mapped mechanically before defaults:
@@ -239,7 +239,7 @@ POST /api/fluctlights/{id}/developing-self/{claimId}/forget
   max delta, cooldown, profile isolation, next-projection effective persona and
   append-only compensating rollback.
 - Context tests for authority/priority fields, complete Current State readback, separate layer revisions, and frozen projection reuse during realization retry.
-- API/BFF tests for detail/layer routes, owner authorization, stable errors, CAS conflicts, rollback/forget, and redaction.
+- API/browser boundary tests for detail/layer routes, owner authorization, stable errors, CAS conflicts, rollback/forget, and redaction.
 - Analysis/activation contract tests for `analysis_id` transport, exact Owner
   binding, latest-source stale rejection, single-use linking, safe idempotent
   replay, edited Foundation collections, and the 60,000-byte UTF-8 boundary.

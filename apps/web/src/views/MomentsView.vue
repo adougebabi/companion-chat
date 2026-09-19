@@ -4,14 +4,14 @@ import { onMounted, watch } from "vue";
 import Badge from "@/components/ui/badge/Badge.vue";
 import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
-import { bffOrigin } from "../runtime-config";
+import { apiOrigin } from "../runtime-config";
 import { useConversationStore } from "../stores/conversations";
 import { useControlCenterStore } from "../stores/control-center";
 
 const store = useConversationStore();
 const controlCenter = useControlCenterStore();
 
-function mediaUrl(assetId: string) { return new URL(`/api/media/${encodeURIComponent(assetId)}`, bffOrigin).toString(); }
+function mediaUrl(assetId: string) { return new URL(`/api/media/${encodeURIComponent(assetId)}`, apiOrigin).toString(); }
 function ownerName(ownerId?: string) {
   const owner = store.fluctlights.find((item) => item.id === ownerId);
   return String(owner?.identity.name ?? ownerId ?? "未知实例");

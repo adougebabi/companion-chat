@@ -6,7 +6,7 @@ cd "$root"
 
 # Acceptance fixtures may retain Python snippets as historical or oracle tests;
 # the guard only scans active runtime/build/deployment paths.
-scan=(apps/gateway-go apps/web packages .github infra/compose infra/backup README.md CONTEXT.md)
+scan=(apps/web packages .github infra/compose infra/backup README.md CONTEXT.md)
 patterns='(^|/)(apps/core|apps/bff)(/|$)|fluctlight_core|Python Core|Python FastAPI|PYTHONPATH=/workspace/apps/core/src|uv run|serve-api|run-worker|run-migrations|alembic upgrade|Alembic'
 
 set +e

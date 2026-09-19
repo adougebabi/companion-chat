@@ -12,11 +12,11 @@ import {
   type BrowserSafeSettings,
   type BrowserWorkflowIntentSnapshot,
 } from "@fluctlight/browser-client";
-import { bffOrigin } from "../runtime-config";
+import { apiOrigin } from "../runtime-config";
 import { planDefaultGroupMembership } from "../lib/group-membership";
 import { normalizeActorGroups, type ActorGroupSnapshot } from "../lib/actor-groups";
 
-const client = new BrowserClient(bffOrigin);
+const client = new BrowserClient(apiOrigin);
 const relationshipKey = (relationship: Record<string, unknown>): string => `${String(relationship.target_actor_id ?? "")}::${String(relationship.profile_id ?? "shared")}`;
 
 export const useControlCenterStore = defineStore("control-center", {
@@ -952,7 +952,7 @@ function diagnosticsFailureMessage(error: unknown): string {
     if (error.status >= 500) return `诊断运行时暂时不可用，请确认 Core、数据库和 Worker 正在运行。${diagnosticIdentity ? `（${diagnosticIdentity}）` : ""}`;
     return `无法读取诊断信息：${error.userMessage}${diagnosticIdentity ? `（${diagnosticIdentity}）` : ""}`;
   }
-  return "无法读取诊断信息，请确认 BFF 与 Core 均在运行。";
+  return "无法读取诊断信息，请确认 API 与 Worker 均在运行。";
 }
 
 function mediaRetryFailureMessage(error: unknown): string {
