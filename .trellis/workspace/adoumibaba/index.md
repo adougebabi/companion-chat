@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 36
+- **Total Sessions**: 37
 - **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1212 | Active |
+| `journal-1.md` | ~1245 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 37 | 2026-09-19 | 摇光项目第四阶段：移除独立 BFF，合并浏览器接入到 API | `2758bb0` | `codex/yaoguang-adk-phase2` |
 | 36 | 2026-09-19 | 摇光第三阶段后台 ADK 接入 | `32d6b10` | `codex/yaoguang-adk-phase2` |
 | 35 | 2026-09-19 | 完成摇光项目第二阶段 ADK 对话运行接入 | `7a47b66` | `codex/yaoguang-adk-phase2` |
 | 34 | 2026-09-18 | 摇光 Eino 基础层与 ADK 对话接入 | `89764bc` | `codex/yaoguang-eino-adk` |

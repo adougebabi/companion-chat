@@ -1210,3 +1210,36 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Next Steps
 
 - None - task complete
+
+
+## Session 37: 摇光项目第四阶段：移除独立 BFF，合并浏览器接入到 API
+
+**Date**: 2026-09-19
+**Task**: 摇光项目第四阶段：移除独立 BFF，合并浏览器接入到 API
+**Branch**: `codex/yaoguang-adk-phase2`
+
+### Summary
+
+将浏览器公共接入边界迁入 Go Core API 进程，直接调用 App/Repository，保留认证、CSRF、DTO、NDJSON、媒体和授权契约；删除独立 gateway-go/BFF 进程、Compose/CI/配置引用，切换 Web/Vite/Nginx 为 API 同源入口，补齐路由矩阵、OpenAPI 对齐、spec 和验证记录。真实 Docker Compose、PostgreSQL/Temporal/Provider/MinIO 和浏览器 E2E 因环境未提供而单列未验证。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2758bb0` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
