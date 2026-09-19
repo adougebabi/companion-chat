@@ -148,7 +148,11 @@ func (registry *CapabilityRegistry) Definition(name string) (CapabilityDefinitio
 func (registry *CapabilityRegistry) Catalog(surface CapabilitySurface) []CapabilityDefinition {
 	definitions := make([]CapabilityDefinition, 0)
 	for _, definition := range registry.Definitions() {
-		if definition.SupportsSurface(surface) {
+		// Internal policy/maintenance capabilities remain executable through the
+		// registry, but are never provider-facing model tools. Their definitions
+		// still carry a surface so deterministic Core policy calls can be audited
+		// against the same capability contract without widening a model catalog.
+		if !definition.InternalOnly && definition.SupportsSurface(surface) {
 			definitions = append(definitions, definition)
 		}
 	}

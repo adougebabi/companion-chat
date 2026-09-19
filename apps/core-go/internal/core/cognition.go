@@ -575,6 +575,7 @@ type frozenTurnOverwrite struct {
 	NextStage     string
 	Decision      map[string]any
 	Invocations   []CapabilityInvocation
+	Results       []CapabilityResult
 	Winner        map[string]any
 	Expected      map[string]any
 	Scope         turnPersonaScope
@@ -635,7 +636,8 @@ func (a *App) ReplaceFrozenTurnDecision(ctx context.Context, frozenID string, ov
 		}
 		payload := decodeObject(raw)
 		payload["decision"] = stripFrozenDecisionSidecars(decision)
-		payload["capability_invocations"] = invocations
+		payload["capability_invocations"] = append([]CapabilityInvocation{}, invocations...)
+		payload["capability_results"] = append([]CapabilityResult{}, overwrite.Results...)
 		payload[turnStagePayloadKey] = overwrite.NextStage
 		payload[persistentSwitchPayloadKey] = mirror[persistentSwitchPayloadKey]
 		if overwrite.Winner != nil {

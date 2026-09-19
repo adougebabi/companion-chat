@@ -79,7 +79,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		CallID: callID, CapabilityName: capabilityName, Arguments: arguments,
 		SourceFactID: i.sourceFactID, ActionID: i.actionID,
 		ProviderRequestID: "provider:" + stableDigest(i.sourceFactID+":"+callID), Sequence: len(i.trace.Invocations),
-		Metadata: InvocationMetadata{FluctlightID: i.fluctlightID, ConversationID: i.conversationID, Surface: CapabilitySurfaceConversation, Source: "model_tool"},
+		Metadata: InvocationMetadata{CorrelationID: firstString(providerCorrelation(ctx), "turn:"+i.sourceFactID), FluctlightID: i.fluctlightID, ConversationID: i.conversationID, Surface: CapabilitySurfaceConversation, Source: "model_tool"},
 	}, i.fluctlightID, i.conversationID, i.sourceFactID, i.sourceFactID, len(i.trace.Invocations))
 	invocation.ActionID = i.actionID
 	invocation.ContextSnapshot = capabilitySnapshotForProjection(i.projection, definition.RequiredContext, i.actionID)
@@ -168,12 +168,33 @@ type ADKConversationResult struct {
 	Iterations   int
 }
 
+// isADKConversationSchema keeps the ADK loop restricted to the two
+// user-visible conversation generations. Query continuation and the takeover
+// Judge remain dedicated no-tools model tasks, while both Main and takeover B
+// use the same request-scoped model→tool→result→model boundary.
+func isADKConversationSchema(schemaName string) bool {
+	switch strings.TrimSpace(schemaName) {
+	case "conversation_turn_response", takeoverReplySchemaName:
+		return true
+	default:
+		return false
+	}
+}
+
 // NewADKCapabilityTools exposes only the installed capability schemas and a
 // request-scoped executor. It is deliberately an adapter, not a second tool
 // protocol or execution runtime.
 func NewADKCapabilityTools(definitions []CapabilityDefinition, invoker ADKCapabilityInvoker) ([]tool.BaseTool, error) {
 	if invoker == nil {
 		return nil, errors.New("adk_capability_invoker_required")
+	}
+	if len(definitions) > 0 {
+		if _, ok := invoker.(ADKCapabilityInvokerWithID); !ok {
+			// A model tool call is not executable without its native identity. Fail
+			// while constructing the adapter, before a model can emit a call that
+			// would otherwise fail after the provider round-trip.
+			return nil, errors.New("adk_tool_call_identity_invoker_required")
+		}
 	}
 	infos, err := capabilityToolInfos(definitions)
 	if err != nil {
@@ -206,14 +227,15 @@ func (t *adkCapabilityTool) InvokableRun(ctx context.Context, argumentsJSON stri
 	if argumentsJSON == "" {
 		argumentsJSON = "{}"
 	}
-	if identityInvoker, ok := t.invoker.(ADKCapabilityInvokerWithID); ok {
-		callID := strings.TrimSpace(compose.GetToolCallID(ctx))
-		if callID == "" {
-			return "", errors.New("adk_tool_call_id_missing")
-		}
-		return identityInvoker.ExecuteWithID(ctx, callID, t.info.Name, argumentsJSON)
+	callID := strings.TrimSpace(compose.GetToolCallID(ctx))
+	if callID == "" {
+		return "", errors.New("adk_tool_call_id_missing")
 	}
-	return t.invoker.Execute(ctx, t.info.Name, argumentsJSON)
+	identityInvoker, ok := t.invoker.(ADKCapabilityInvokerWithID)
+	if !ok {
+		return "", errors.New("adk_tool_call_identity_invoker_required")
+	}
+	return identityInvoker.ExecuteWithID(ctx, callID, t.info.Name, argumentsJSON)
 }
 
 // RunADKConversation is the production ADK entry point for a direct

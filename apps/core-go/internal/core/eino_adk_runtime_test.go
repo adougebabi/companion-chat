@@ -159,14 +159,30 @@ type adkFakeInvoker struct {
 	calls []string
 }
 
+type adkNoIdentityInvoker struct{}
+
+func (adkNoIdentityInvoker) Execute(context.Context, string, string) (string, error) {
+	return `{}`, nil
+}
+
+type adkFailingInvoker struct{}
+
+func (adkFailingInvoker) Execute(context.Context, string, string) (string, error) {
+	return "", errors.New("fake_tool_failed")
+}
+
+func (adkFailingInvoker) ExecuteWithID(ctx context.Context, _ string, capabilityName, argumentsJSON string) (string, error) {
+	return adkFailingInvoker{}.Execute(ctx, capabilityName, argumentsJSON)
+}
+
 type adkTraceInvoker struct{ trace *ADKCapabilityTrace }
 
 func (i adkTraceInvoker) Execute(_ context.Context, capabilityName string, argumentsJSON string) (string, error) {
 	return i.ExecuteWithID(context.Background(), "trace-call", capabilityName, argumentsJSON)
 }
 
-func (i adkTraceInvoker) ExecuteWithID(_ context.Context, callID, capabilityName string, argumentsJSON string) (string, error) {
-	i.trace.Invocations = append(i.trace.Invocations, CapabilityInvocation{CallID: callID, CapabilityName: capabilityName, Arguments: json.RawMessage(argumentsJSON), SchemaVersion: CapabilityInvocationSchemaVersion, SourceFactID: "source", ProviderRequestID: "provider"})
+func (i adkTraceInvoker) ExecuteWithID(ctx context.Context, callID, capabilityName string, argumentsJSON string) (string, error) {
+	i.trace.Invocations = append(i.trace.Invocations, CapabilityInvocation{CallID: callID, CapabilityName: capabilityName, Arguments: json.RawMessage(argumentsJSON), SchemaVersion: CapabilityInvocationSchemaVersion, SourceFactID: "source", ProviderRequestID: "provider:" + callID, Metadata: InvocationMetadata{CorrelationID: providerCorrelation(ctx), Source: "model_tool"}})
 	i.trace.Results = append(i.trace.Results, CapabilityResult{CallID: callID, CapabilityName: capabilityName, Status: "completed", Output: map[string]any{"items": []any{"recent"}}})
 	return `{"items":["recent"]}`, nil
 }
@@ -176,6 +192,13 @@ func (i *adkFakeInvoker) Execute(_ context.Context, capabilityName string, argum
 	defer i.mu.Unlock()
 	i.calls = append(i.calls, capabilityName+":"+argumentsJSON)
 	return `{"items":["recent"]}`, nil
+}
+
+func (i *adkFakeInvoker) ExecuteWithID(ctx context.Context, callID, capabilityName string, argumentsJSON string) (string, error) {
+	if strings.TrimSpace(callID) == "" {
+		return "", errors.New("missing_call_id")
+	}
+	return i.Execute(ctx, capabilityName, argumentsJSON)
 }
 
 func TestRunADKConversationExecutesCapabilityAndFeedsResultBack(t *testing.T) {
@@ -200,6 +223,13 @@ func TestRunADKConversationExecutesCapabilityAndFeedsResultBack(t *testing.T) {
 	}
 }
 
+func TestNewADKCapabilityToolsRejectsInvokerWithoutFormalIdentity(t *testing.T) {
+	defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall bounded memory", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
+	if _, err := NewADKCapabilityTools(defs, adkNoIdentityInvoker{}); err == nil || err.Error() != "adk_tool_call_identity_invoker_required" {
+		t.Fatalf("constructor error = %v", err)
+	}
+}
+
 func TestRunADKConversationRejectsIterationLimitAboveTwo(t *testing.T) {
 	_, err := RunADKConversation(context.Background(), ADKConversationConfig{
 		Name: "conversation", Description: "test", Model: &adkFakeChatModel{}, MaxIterations: 3,
@@ -214,6 +244,20 @@ func TestRunADKConversationModelFailureHasNoFinalMessage(t *testing.T) {
 		Name: "conversation", Description: "test", Model: adkErrorChatModel{}, MaxIterations: 2,
 	}, []*schema.Message{schema.UserMessage("hello")})
 	if err == nil || !strings.Contains(err.Error(), "fake_model_failed") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestRunADKConversationToolFailureHasNoFinalMessage(t *testing.T) {
+	defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
+	tools, err := NewADKCapabilityTools(defs, adkFailingInvoker{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = RunADKConversation(context.Background(), ADKConversationConfig{
+		Name: "conversation", Description: "test", Model: &adkFakeChatModel{}, Tools: tools, MaxIterations: 2,
+	}, []*schema.Message{schema.UserMessage("tool failure")})
+	if err == nil || !strings.Contains(err.Error(), "fake_tool_failed") {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -371,6 +415,111 @@ func TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace(t *testing.T) {
 	}
 	if !foundToolResult || !foundMatchingAssistantCall {
 		t.Fatalf("second request did not contain tool result: %#v", secondMessages)
+	}
+}
+
+func TestProviderConversationWithoutToolsStillUsesADKRunner(t *testing.T) {
+	var requests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		defer r.Body.Close()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"{\"visible_text\":\"direct\",\"response_mode\":\"final\"}"}}]}`))
+	}))
+	defer server.Close()
+
+	trace := &ADKCapabilityTrace{}
+	ctx := WithADKCapabilityInvoker(context.Background(), adkTraceInvoker{trace: trace}, trace)
+	p := &ProviderClient{HTTP: server.Client()}
+	response, err := p.generateWithEino(ctx, EinoModelCall{
+		Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: 10 * time.Second, TokenBudget: 128},
+		Role:       "cognitive_assessment", Scenario: "cognitive_assessment",
+		Messages: []map[string]any{{"role": "user", "content": "hello"}},
+		JSONMode: true, SchemaName: "conversation_turn_response", ResponseSchema: map[string]any{"type": "object"},
+		ProviderRequestID: "provider-no-tool", CorrelationID: "turn:no-tool",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requests != 1 || response.Message == nil || response.Message.Content == "" {
+		t.Fatalf("requests=%d response=%#v", requests, response.Message)
+	}
+	if len(trace.Invocations) != 0 || len(trace.Results) != 0 {
+		t.Fatalf("unexpected no-tool trace: %#v", trace)
+	}
+}
+
+func TestProviderTakeoverReplyUsesADKLoopAndPreservesTrace(t *testing.T) {
+	var mu sync.Mutex
+	requests := make([]map[string]any, 0, 2)
+	requestIDs := make([]string, 0, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Errorf("decode request: %v", err)
+			return
+		}
+		mu.Lock()
+		requests = append(requests, payload)
+		requestIDs = append(requestIDs, r.Header.Get("Idempotency-Key"))
+		count := len(requests)
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if count == 1 {
+			_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":"","tool_calls":[{"id":"b-provider-call-1","type":"function","function":{"name":"memory.recall","arguments":"{\"intent\":\"recent\"}"}}]}}]}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"{\"visible_text\":\"takeover found\",\"response_mode\":\"final\"}"}}]}`))
+	}))
+	defer server.Close()
+
+	trace := &ADKCapabilityTrace{}
+	invoker := adkTraceInvoker{trace: trace}
+	ctx := WithADKCapabilityInvoker(WithProviderCorrelation(WithProviderScenario(context.Background(), "takeover_reply"), "takeover-reply:frozen-1"), invoker, trace)
+	p := &ProviderClient{HTTP: server.Client()}
+	response, err := p.generateWithEino(ctx, EinoModelCall{
+		Assignment:  providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: 10 * time.Second, TokenBudget: 128},
+		Role:        "cognitive_assessment",
+		Scenario:    "takeover_reply",
+		Messages:    []map[string]any{{"role": "system", "content": "takeover protocol"}, {"role": "user", "content": "reply"}},
+		Definitions: []CapabilityDefinition{{Name: "memory.recall", Description: "Recall", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}},
+		JSONMode:    true, SchemaName: takeoverReplySchemaName, ResponseSchema: map[string]any{"type": "object"},
+		ProviderRequestID: "provider-takeover-request", CorrelationID: "takeover-reply:frozen-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.Message == nil || response.Message.Content == "" || len(response.Message.ToolCalls) != 1 || response.Message.ToolCalls[0].ID != "b-provider-call-1" {
+		t.Fatalf("response=%#v", response.Message)
+	}
+	if len(trace.Invocations) != 1 || trace.Invocations[0].CallID != "b-provider-call-1" || trace.Invocations[0].Metadata.Source != "model_tool" || trace.Invocations[0].Metadata.CorrelationID != "takeover-reply:frozen-1" || trace.Invocations[0].ProviderRequestID == "" || len(trace.Results) != 1 || trace.Results[0].CallID != "b-provider-call-1" {
+		t.Fatalf("trace=%#v", trace)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(requests) != 2 || requestIDs[0] == "" || requestIDs[0] == requestIDs[1] {
+		t.Fatalf("ADK requests=%d identities=%#v", len(requests), requestIDs)
+	}
+	secondMessages := arrayValue(requests[1]["messages"])
+	var assistantCall, toolResult bool
+	for _, item := range secondMessages {
+		message := mapValue(item)
+		switch stringValue(message["role"]) {
+		case "assistant":
+			for _, call := range arrayValue(message["tool_calls"]) {
+				if stringValue(mapValue(call)["id"]) == "b-provider-call-1" {
+					assistantCall = true
+				}
+			}
+		case "tool":
+			if stringValue(message["tool_call_id"]) == "b-provider-call-1" && stringValue(message["name"]) == "memory.recall" {
+				toolResult = true
+			}
+		}
+	}
+	if !assistantCall || !toolResult {
+		t.Fatalf("takeover ADK second request lost call/result pair: %#v", secondMessages)
 	}
 }
 

@@ -43,11 +43,29 @@ EinoModelFactory.NewChatModel(ctx, EinoModelConfig) (model.ToolCallingChatModel,
 EinoModelFactory.NewEmbedder(ctx, EinoModelConfig) (embedding.Embedder, error)
 RunADKConversation(ctx, ADKConversationConfig, []*schema.Message) (ADKConversationResult, error)
 NewADKCapabilityTools(definitions, ADKCapabilityInvoker) ([]tool.BaseTool, error)
+
+type ConversationRuntime interface {
+    RunMain(context.Context, ConversationMainInput) (ConversationRunResult, error)
+    RunQueryContinuation(context.Context, QueryContinuationInput) (ConversationRunResult, error)
+    RunTakeoverJudge(context.Context, TakeoverJudgeInput) (ConversationRunResult, error)
+    RunTakeoverReply(context.Context, TakeoverReplyInput) (ConversationRunResult, error)
+}
 ```
 
 `ProviderClient` maps one resolved `providerAssignment` into `EinoModelConfig`;
 business callers use operation-owned `ModelTask` boundaries. `ProviderCompletion`
 and `CapabilityInvocation` v2 remain the only Core result/persistence contracts.
+
+The capability definition adds one Core-only visibility bit:
+
+```go
+type CapabilityDefinition struct {
+    Name        string
+    Type        CapabilityType
+    InternalOnly bool // executable by policy/runtime, never in model Catalog
+    // ... canonical schema, surfaces and failure policy fields
+}
+```
 
 ### 3. Contracts
 
@@ -68,6 +86,17 @@ and `CapabilityInvocation` v2 remain the only Core result/persistence contracts.
 - `ADKCapabilityTrace` is request-scoped metadata only. It is merged into the
   existing invocation/result arrays and is never persisted as a second tool
   envelope or global mutable Agent state.
+- Capability definitions marked `InternalOnly` remain executable through the
+  Core registry for deterministic policy/maintenance actions, but are excluded
+  from every model-facing `CapabilityRegistry.Catalog`; ordinary model tools
+  must therefore be both Registry-defined and catalog-visible.
+- Persona takeover/profile-switch policy invocations use the same capability
+  identity/result contract with `Metadata.Source=policy`; they are nested policy
+  audit records, never fabricated native model ToolCalls.
+- `NewADKCapabilityTools` fails before Provider I/O unless the request-scoped
+  invoker preserves the formal Eino tool-call ID via
+  `ADKCapabilityInvokerWithID`. Missing IDs are fail-closed and are never
+  derived from capability names or arguments.
 - Initialization keeps JSON-object response format and its operation-owned
   budget floor. Embedding stays on the independent embedding queue. Browser
   NDJSON still publishes only after assistant settlement.

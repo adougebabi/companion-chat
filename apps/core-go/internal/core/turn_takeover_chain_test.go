@@ -885,10 +885,10 @@ func TestTakeoverChainStaticGuards(t *testing.T) {
 	if strings.Contains(takeoverSource, "a.applyTurnTakeover(") {
 		t.Fatal("the takeover reply must never navigate back into arbitration")
 	}
-	if count := strings.Count(takeoverSource, ".RunTakeoverJudgeTask("); count != 1 {
+	if count := strings.Count(takeoverSource, ".RunTakeoverJudge("); count != 1 {
 		t.Fatalf("the Judge must be invoked from exactly one place, found %d", count)
 	}
-	if count := strings.Count(takeoverSource, ".RunTakeoverReplyTask("); count != 1 {
+	if count := strings.Count(takeoverSource, ".RunTakeoverReply("); count != 1 {
 		t.Fatalf("the takeover reply is the only second main generation, found %d", count)
 	}
 	// The Main schema name is what authorizes the persistent dominant-profile
@@ -949,10 +949,10 @@ func TestTakeoverChainStaticGuards(t *testing.T) {
 	if ruleIndex := strings.Index(takeoverSource, "selectTurnTakeoverRule("); ruleIndex < 0 || ruleIndex < mutexIndex {
 		t.Fatal("the QUERY mutual exclusion must be decided before the takeover rule is selected")
 	}
-	if judgeIndex := strings.Index(takeoverSource, ".RunTakeoverJudgeTask("); judgeIndex < 0 || judgeIndex < mutexIndex {
+	if judgeIndex := strings.Index(takeoverSource, ".RunTakeoverJudge("); judgeIndex < 0 || judgeIndex < mutexIndex {
 		t.Fatal("the QUERY mutual exclusion must be decided before the Judge is invoked")
 	}
-	if takeoverIndex := strings.Index(takeoverSource, ".RunTakeoverReplyTask("); takeoverIndex < 0 || takeoverIndex < mutexIndex {
+	if takeoverIndex := strings.Index(takeoverSource, ".RunTakeoverReply("); takeoverIndex < 0 || takeoverIndex < mutexIndex {
 		t.Fatal("the QUERY mutual exclusion must be decided before the takeover generation")
 	}
 	// The exclusion is keyed on the RESOLVED response mode, never on "the

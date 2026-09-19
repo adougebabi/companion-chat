@@ -19,7 +19,13 @@ func TestProductionMainCallersUseOnlyPromptContextAssembler(t *testing.T) {
 			t.Fatal(err)
 		}
 		text := string(content)
-		if !strings.Contains(text, "assembleProjectionPrompt") || !strings.Contains(text, "StructuredAssembledWithToolsSchema") {
+		taskBoundary := "RunStructuredToolsTask"
+		if name == "mutations.go" {
+			taskBoundary = "RunMain"
+		} else if name == "turn_takeover.go" {
+			taskBoundary = "RunTakeoverReply"
+		}
+		if !strings.Contains(text, "assembleProjectionPrompt") || !strings.Contains(text, taskBoundary) {
 			t.Fatalf("%s does not use the canonical assembler path", name)
 		}
 		for _, forbidden := range []string{"withActorRelationshipSystemContext", `"current_message"`, "compactCognitionContext(projection)", "StructuredWithToolsSchema("} {

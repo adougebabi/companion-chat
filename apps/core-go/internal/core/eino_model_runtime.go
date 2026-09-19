@@ -131,14 +131,22 @@ type queuedToolCallingChatModel struct {
 	diagnosticID  string
 	assignment    providerAssignment
 	correlationID string
-	sequence      atomic.Uint64
+	sequence      *atomic.Uint64
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
-	sequence := m.sequence.Add(1)
+	input = normalizeEinoToolMessageNames(input)
+	sequence := uint64(1)
+	if m.sequence != nil {
+		sequence = m.sequence.Add(1)
+	}
 	callCorrelation := fmt.Sprintf("%s:adk:%d", m.correlationID, sequence)
 	callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
 	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
+	// The parent turn attempt is intentionally not reused as the physical
+	// model-call attempt. Diagnostics and cancellation state must distinguish
+	// Generate #1 from Generate #2 while both share one turn correlation.
+	callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
 	callDiagnosticID := ""
 	if m.provider != nil && m.provider.DB != nil {
 		callDiagnosticID = (&App{DB: m.provider.DB}).recordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, callCorrelation, m.scenario, m.priority, einoDiagnosticMessages(input))
@@ -154,10 +162,15 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 }
 
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
-	sequence := m.sequence.Add(1)
+	input = normalizeEinoToolMessageNames(input)
+	sequence := uint64(1)
+	if m.sequence != nil {
+		sequence = m.sequence.Add(1)
+	}
 	callCorrelation := fmt.Sprintf("%s:adk:%d", m.correlationID, sequence)
 	callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
 	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
+	callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
 	callDiagnosticID := ""
 	if m.provider != nil && m.provider.DB != nil {
 		callDiagnosticID = (&App{DB: m.provider.DB}).recordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, callCorrelation, m.scenario, m.priority, einoDiagnosticMessages(input))
@@ -172,7 +185,11 @@ func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.
 	if err != nil {
 		return nil, err
 	}
-	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID}, nil
+	sequence := m.sequence
+	if sequence == nil {
+		sequence = &atomic.Uint64{}
+	}
+	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence}, nil
 }
 
 type einoModelResponse struct {
@@ -237,7 +254,7 @@ func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCal
 	if p == nil {
 		return einoModelResponse{}, errors.New("eino_provider_unavailable")
 	}
-	if adkContext, ok := adkCapabilityContext(ctx); ok && call.SchemaName == "conversation_turn_response" {
+	if adkContext, ok := adkCapabilityContext(ctx); ok && isADKConversationSchema(call.SchemaName) {
 		return p.generateWithADK(ctx, call, adkContext)
 	}
 	input, err := providerMessagesToEino(call.Messages)
@@ -327,7 +344,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	if err != nil {
 		return einoModelResponse{}, err
 	}
-	chat = &queuedToolCallingChatModel{inner: chat, provider: p, role: call.Role, scenario: call.Scenario, priority: call.Priority, diagnosticID: call.DiagnosticID, assignment: call.Assignment, correlationID: call.CorrelationID}
+	chat = &queuedToolCallingChatModel{inner: chat, provider: p, role: call.Role, scenario: call.Scenario, priority: call.Priority, diagnosticID: call.DiagnosticID, assignment: call.Assignment, correlationID: call.CorrelationID, sequence: &atomic.Uint64{}}
 	tools, err := NewADKCapabilityTools(call.Definitions, adkContext.Invoker)
 	if err != nil {
 		return einoModelResponse{}, err
@@ -438,6 +455,29 @@ func einoMessageRaw(message *schema.Message) map[string]any {
 	}
 }
 
+// normalizeEinoToolMessageNames bridges Eino's ToolName field to the OpenAI
+// wire adapter's Name field. Eino's ToolMessage constructor stores the formal
+// capability name in ToolName, while the OpenAI chat envelope serializes Name;
+// copying it at the model boundary preserves the call/result name alongside
+// the formal tool_call_id without changing the request-scoped ADK messages.
+func normalizeEinoToolMessageNames(messages []*schema.Message) []*schema.Message {
+	if len(messages) == 0 {
+		return messages
+	}
+	result := make([]*schema.Message, len(messages))
+	for index, message := range messages {
+		if message == nil {
+			continue
+		}
+		copyMessage := *message
+		if copyMessage.Role == schema.Tool && strings.TrimSpace(copyMessage.Name) == "" {
+			copyMessage.Name = strings.TrimSpace(copyMessage.ToolName)
+		}
+		result[index] = &copyMessage
+	}
+	return result
+}
+
 func einoResponseFormat(jsonMode bool, schemaName string, raw map[string]any) (*openaiext.ChatCompletionResponseFormat, error) {
 	if !jsonMode {
 		return nil, nil
@@ -507,6 +547,9 @@ func providerMessagesToEino(messages []map[string]any) ([]*schema.Message, error
 		}
 		message.ToolCallID = strings.TrimSpace(stringValue(raw["tool_call_id"]))
 		message.ToolName = strings.TrimSpace(stringValue(raw["name"]))
+		if role == "tool" {
+			message.Name = message.ToolName
+		}
 		content := raw["content"]
 		if parts, ok := content.([]any); ok {
 			multi, text, partErr := einoInputParts(parts)

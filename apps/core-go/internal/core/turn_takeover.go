@@ -7,22 +7,6 @@ import (
 	"time"
 )
 
-func (a *App) RunTakeoverJudgeTask(ctx context.Context, role string, messages []map[string]any, schemaName string, responseSchema map[string]any) (ProviderCompletion, error) {
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return ProviderCompletion{}, err
-	}
-	return provider.StructuredAssembledJudgement(WithProviderScenario(ctx, "takeover_judge"), role, messages, schemaName, responseSchema)
-}
-
-func (a *App) RunTakeoverReplyTask(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition, schemaName string, responseSchema map[string]any, thinking bool) (ProviderCompletion, error) {
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return ProviderCompletion{}, err
-	}
-	return provider.StructuredAssembledWithToolsSchema(WithProviderScenario(ctx, "takeover_reply"), role, messages, definitions, schemaName, responseSchema, thinking)
-}
-
 // The takeover contract has three pieces (design.md 4.3 / 4.4, R05/R06/R08/F02):
 //
 //  1. CandidatePreview  a bounded, side-effect-free description of what the
@@ -469,6 +453,8 @@ type turnTakeoverRecord struct {
 	ReplyOwnerProfileID string
 	Judge               map[string]any
 	RejectedCandidate   map[string]any
+	ActionInvocation    *CapabilityInvocation
+	ActionResult        *CapabilityResult
 }
 
 func (record turnTakeoverRecord) asMap() map[string]any {
@@ -489,6 +475,12 @@ func (record turnTakeoverRecord) asMap() map[string]any {
 	}
 	if len(record.RejectedCandidate) > 0 {
 		result["rejected_candidate"] = record.RejectedCandidate
+	}
+	if record.ActionInvocation != nil {
+		result["action_invocation"] = record.ActionInvocation
+	}
+	if record.ActionResult != nil {
+		result["action_result"] = record.ActionResult
 	}
 	return result
 }
@@ -533,6 +525,23 @@ type turnTakeoverInput struct {
 	Frozen         frozenTurn
 }
 
+func (a *App) attachTakeoverPolicyAction(ctx context.Context, input turnTakeoverInput, record *turnTakeoverRecord) error {
+	if record == nil {
+		return errors.New("takeover_policy_record_missing")
+	}
+	args := map[string]any{
+		"decision": record.Decision, "rule_id": record.RuleID, "target_profile_id": record.TargetProfileID,
+		"source_profile_id": record.SourceProfileID, "reason": record.SkipReason,
+	}
+	invocation, result, err := a.executePersonaPolicyAction(ctx, personaTakeoverCapabilityName, input.FluctlightID, input.ConversationID, input.InboxID, input.Frozen.ID, args)
+	if err != nil {
+		return err
+	}
+	record.ActionInvocation = &invocation
+	record.ActionResult = &result
+	return nil
+}
+
 // applyTurnTakeover is the single arbitration point between generation and
 // execution. It returns handled=true only when the durable payload was replaced
 // by the takeover reply, which forces the caller to reload every derived
@@ -570,6 +579,9 @@ func (a *App) applyTurnTakeover(ctx context.Context, input turnTakeoverInput) (b
 			Decision: takeoverDecisionNotApplicable, SkipReason: "query_continuation",
 			ActiveProfileID: input.Scope.ActiveProfileID, ReplyOwnerProfileID: input.Scope.replyOwner(),
 		}
+		if err := a.attachTakeoverPolicyAction(ctx, input, &record); err != nil {
+			return false, err
+		}
 		return false, a.advanceTakeoverStage(ctx, input, turnStageAFrozen, turnStageWinnerReady, map[string]any{
 			turnTakeoverPayloadKey: record.asMap(),
 			turnWinnerPayloadKey:   winnerPayload(input.Frozen.ID, "a", input.Scope.replyOwner()),
@@ -583,6 +595,9 @@ func (a *App) applyTurnTakeover(ctx context.Context, input turnTakeoverInput) (b
 		record := turnTakeoverRecord{
 			Decision: takeoverDecisionSkipped, SkipReason: "no_applicable_rule",
 			ActiveProfileID: input.Scope.ActiveProfileID, ReplyOwnerProfileID: input.Scope.replyOwner(),
+		}
+		if err := a.attachTakeoverPolicyAction(ctx, input, &record); err != nil {
+			return false, err
 		}
 		return false, a.advanceTakeoverStage(ctx, input, turnStageAFrozen, turnStageWinnerReady, map[string]any{
 			turnTakeoverPayloadKey: record.asMap(),
@@ -607,6 +622,9 @@ func (a *App) applyTurnTakeover(ctx context.Context, input turnTakeoverInput) (b
 			decision = takeoverDecisionJudgeDegraded
 		}
 		base.Decision = decision
+		if err := a.attachTakeoverPolicyAction(ctx, input, &base); err != nil {
+			return false, err
+		}
 		// Persist the conclusion before anything else so "the Judge already
 		// finished" survives a crash (F03).
 		if err := a.advanceTakeoverStage(ctx, input, turnStageAFrozen, turnStageArbitrationDecided, map[string]any{turnTakeoverPayloadKey: base.asMap()}); err != nil {
@@ -619,6 +637,9 @@ func (a *App) applyTurnTakeover(ctx context.Context, input turnTakeoverInput) (b
 		})
 	}
 	base.Decision = takeoverDecisionJudgeTakeoverBPending
+	if err := a.attachTakeoverPolicyAction(ctx, input, &base); err != nil {
+		return false, err
+	}
 	if err := a.advanceTakeoverStage(ctx, input, turnStageAFrozen, turnStageArbitrationDecided, map[string]any{turnTakeoverPayloadKey: base.asMap()}); err != nil {
 		return false, err
 	}
@@ -741,15 +762,16 @@ func (a *App) judgeTurnTakeover(ctx context.Context, input turnTakeoverInput, ru
 		return record, takeoverJudgeOutcomeBudgetExceeded, false, nil
 	}
 	started := time.Now()
-	completion, err := a.RunTakeoverJudgeTask(
+	run, err := a.conversationRuntime().RunTakeoverJudge(
 		WithProviderCorrelation(ctx, "takeover-judge:"+input.Frozen.ID),
-		takeoverJudgeRole, messages, takeoverJudgeSchemaName, takeoverJudgementSchema())
+		TakeoverJudgeInput{Role: takeoverJudgeRole, Messages: messages, SchemaName: takeoverJudgeSchemaName, Schema: takeoverJudgementSchema()})
 	record["latency_ms"] = time.Since(started).Milliseconds()
 	if err != nil {
 		outcome := takeoverJudgeOutcomeForError(err)
 		record["outcome"] = outcome
 		return record, outcome, false, nil
 	}
+	completion := run.Completion
 	flag, ok := completion.Structured["takeover"].(bool)
 	if !ok {
 		record["outcome"] = takeoverJudgeOutcomeInvalidOutput
@@ -928,7 +950,15 @@ func (a *App) generateTakeoverReply(ctx context.Context, input turnTakeoverInput
 	scopedProjection = assembledProjection
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
 	providerCtx = WithProviderCorrelation(providerCtx, "takeover-reply:"+input.Frozen.ID)
-	completion, completionErr := a.RunTakeoverReplyTask(providerCtx, "cognitive_assessment", assembly.Messages, definitions, takeoverReplySchemaName, schema, structuredThinkingEnabledForSchema(takeoverReplySchemaName))
+	run, completionErr := a.conversationRuntime().RunTakeoverReply(providerCtx, TakeoverReplyInput{
+		Role: "cognitive_assessment", Messages: assembly.Messages, Definitions: definitions,
+		SchemaName: takeoverReplySchemaName, Schema: schema,
+		EnableThinking: structuredThinkingEnabledForSchema(takeoverReplySchemaName),
+		Capability: &ConversationCapabilityContext{
+			FluctlightID: input.FluctlightID, ConversationID: input.ConversationID, SourceFactID: input.InboxID,
+			ActionID: input.Frozen.ID, Projection: scopedProjection,
+		},
+	})
 	if completionErr != nil {
 		if a.cognitionFactSuperseded(ctx, input.InboxID) {
 			return false, errCognitionTurnSuperseded
@@ -937,6 +967,11 @@ func (a *App) generateTakeoverReply(ctx context.Context, input turnTakeoverInput
 	}
 	if a.cognitionFactSuperseded(ctx, input.InboxID) {
 		return false, errCognitionTurnSuperseded
+	}
+	completion := run.Completion
+	capabilityResults := []CapabilityResult{}
+	if run.Trace != nil {
+		capabilityResults = append(capabilityResults, run.Trace.Results...)
 	}
 	normalized, normalizeErr := a.normalizeTurnDecision(ctx, turnDecisionNormalizationInput{
 		InboxID: input.InboxID, FluctlightID: input.FluctlightID, ConversationID: input.ConversationID, TurnID: input.TurnID,
@@ -977,6 +1012,7 @@ func (a *App) generateTakeoverReply(ctx context.Context, input turnTakeoverInput
 		NextStage:     turnStageBFrozen,
 		Decision:      normalized.Decision,
 		Invocations:   normalized.Invocations,
+		Results:       capabilityResults,
 		Winner:        winnerPayload(input.Frozen.ID, "b", target),
 		Expected:      expectedPayload(input.Frozen.StateRev, ownerScope),
 		Scope:         ownerScope,

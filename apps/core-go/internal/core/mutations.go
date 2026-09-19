@@ -16,24 +16,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// RunQueryContinuationTask owns the single no-tools continuation boundary for
-// direct conversations. Keeping the provider call here makes the operation
-// policy explicit while the Provider implementation remains Eino-backed.
-func (a *App) RunQueryContinuationTask(ctx context.Context, role string, messages []map[string]any, schemaName string, responseSchema map[string]any) (ProviderCompletion, error) {
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return ProviderCompletion{}, err
-	}
-	return provider.StructuredQueryContinuation(WithProviderScenario(ctx, "query_continuation"), role, messages, schemaName, responseSchema)
-}
-
-func (a *App) RunMainConversationTask(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition, schemaName string, responseSchema map[string]any, thinking bool) (ProviderCompletion, error) {
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return ProviderCompletion{}, err
-	}
-	return provider.StructuredAssembledWithToolsSchema(ctx, role, messages, definitions, schemaName, responseSchema, thinking)
-}
+func (a *App) conversationRuntime() ConversationRuntime { return newConversationRuntime(a) }
 
 type TurnResult struct {
 	UserMessage   map[string]any
@@ -785,18 +768,20 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		projection = assembledProjection
 		continuationBaseMessages = cloneMapSlice(assembly.Messages)
 		providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
-		// Direct conversation uses a request-scoped ADK capability bridge. Query
-		// tools may execute their read-only runtime and return the real result to
-		// ADK; mutations return an explicit deferred result and remain owned by
-		// the frozen Prepare/settlement path below.
-		adkTrace := &ADKCapabilityTrace{}
-		adkInvoker := newAppADKCapabilityInvoker(a, fluctlightID, conversationID, inboxID, "frozen_"+stableDigest(inboxID), projection, adkTrace)
-		providerCtx = WithADKCapabilityInvoker(providerCtx, adkInvoker, adkTrace)
+		providerCtx = WithProviderCorrelation(providerCtx, "turn:"+turnID)
 		// Main cognition is the semantic decision boundary for persona, action and
 		// reply. Allow the configured Provider to use its thinking channel; the
 		// adapter still parses reasoning_content as a structured candidate and Core
 		// validates the resulting decision before any side effect.
-		completion, completionErr := a.RunMainConversationTask(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "conversation_turn_response", schema, structuredThinkingEnabledForSchema("conversation_turn_response"))
+		run, completionErr := a.conversationRuntime().RunMain(providerCtx, ConversationMainInput{
+			Role: "cognitive_assessment", Messages: assembly.Messages, Definitions: definitions,
+			SchemaName: "conversation_turn_response", Schema: schema,
+			EnableThinking: structuredThinkingEnabledForSchema("conversation_turn_response"),
+			Capability: &ConversationCapabilityContext{
+				FluctlightID: fluctlightID, ConversationID: conversationID, SourceFactID: inboxID,
+				ActionID: "frozen_" + stableDigest(inboxID), Projection: projection,
+			},
+		})
 		if completionErr != nil {
 			if a.cognitionFactSuperseded(ctx, inboxID) {
 				return TurnResult{}, errCognitionTurnSuperseded
@@ -806,10 +791,13 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		if a.cognitionFactSuperseded(ctx, inboxID) {
 			return TurnResult{}, errCognitionTurnSuperseded
 		}
+		completion := run.Completion
 		decision = completion.Structured
 		structuredFallback = completion.StructuredFallback
 		capabilityInvocations = append([]CapabilityInvocation(nil), completion.ToolCalls...)
-		capabilityResults = append(capabilityResults, adkTrace.Results...)
+		if run.Trace != nil {
+			capabilityResults = append(capabilityResults, run.Trace.Results...)
+		}
 		// Both the Main generation and the takeover reply run through this one
 		// normalizer so a takeover candidate cannot bypass a single validation
 		// step that the Main candidate passed (design.md 4.8).
@@ -849,6 +837,14 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				if assessmentPlan != nil && assessmentPlan.TargetProfile != assessmentPlan.CurrentProfile {
 					decision["personality_transition"] = assessmentPlan
 					personalityPlan = assessmentPlan
+					policyInvocation, policyResult, policyErr := a.executePersonaPolicyAction(ctx, personaSwitchCapabilityName, fluctlightID, conversationID, inboxID, "frozen_"+stableDigest(inboxID), map[string]any{
+						"decision": "switch", "source_profile_id": assessmentPlan.CurrentProfile,
+						"target_profile_id": assessmentPlan.TargetProfile, "reason": assessmentPlan.Reason,
+					})
+					if policyErr != nil {
+						return TurnResult{}, policyErr
+					}
+					decision["personality_action"] = map[string]any{"invocation": policyInvocation, "result": policyResult}
 				}
 			}
 		}
@@ -1142,7 +1138,8 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				return TurnResult{}, errCognitionTurnSuperseded
 			}
 			continuationCtx := WithProviderCorrelation(WithProviderScenario(ctx, "query_continuation"), "query-continuation:"+frozen.ID)
-			completion, continuationErr := a.RunQueryContinuationTask(continuationCtx, "cognitive_assessment", messages, "query_continuation_response", queryContinuationResponseSchema())
+			run, continuationErr := a.conversationRuntime().RunQueryContinuation(continuationCtx, QueryContinuationInput{Role: "cognitive_assessment", Messages: messages, SchemaName: "query_continuation_response", Schema: queryContinuationResponseSchema()})
+			completion := run.Completion
 			if continuationErr != nil || len(completion.ToolCalls) > 0 {
 				if continuationErr == nil {
 					continuationErr = errors.New("query_continuation_tool_call_forbidden")
@@ -1170,7 +1167,8 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 				return TurnResult{}, errCognitionTurnSuperseded
 			}
 			continuationCtx := WithProviderCorrelation(WithProviderScenario(ctx, "query_continuation"), "query-continuation:"+frozen.ID)
-			completion, continuationErr := a.RunQueryContinuationTask(continuationCtx, "cognitive_assessment", messages, "query_continuation_response", queryContinuationResponseSchema())
+			run, continuationErr := a.conversationRuntime().RunQueryContinuation(continuationCtx, QueryContinuationInput{Role: "cognitive_assessment", Messages: messages, SchemaName: "query_continuation_response", Schema: queryContinuationResponseSchema()})
+			completion := run.Completion
 			if continuationErr != nil || len(completion.ToolCalls) > 0 {
 				return TurnResult{}, firstError(continuationErr, errors.New("query_continuation_tool_call_forbidden"))
 			}

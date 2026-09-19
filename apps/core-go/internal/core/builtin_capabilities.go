@@ -84,6 +84,8 @@ func builtinCapabilities(app *App) []Capability {
 		memoryRecallCapability{service: newMemoryRecallService(app)},
 		relationshipLookupCapability{service: &relationshipLookupService{app: app}},
 		capabilityRequestCapability{service: &capabilityRequestService{app: app}},
+		personaActionCapability{name: personaTakeoverCapabilityName},
+		personaActionCapability{name: personaSwitchCapabilityName},
 	}
 }
 
@@ -110,6 +112,7 @@ var (
 	_ TransactionalCapability      = scheduleReplanCapability{}
 	_ TransactionalCapability      = visualIdentityInitializeCapability{}
 	_ CapabilityCandidateValidator = relationshipLookupCapability{}
+	_ Capability                   = personaActionCapability{}
 )
 
 func (c conversationReplyCapability) Definition() CapabilityDefinition {

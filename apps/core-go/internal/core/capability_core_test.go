@@ -1056,18 +1056,18 @@ func TestCapabilityRuntimeStaticGuardsPreserveActionSingleCognitionAndGenericQue
 	// conversation-turn generations, so the guard pins the two turn files by
 	// name instead of a global total. A global total cannot tell "the Main
 	// generation moved elsewhere" from "a second Main generation appeared".
-	assertProductionCount(t, sources, "mutations.go", ".RunMainConversationTask(", 1)
-	assertProductionCount(t, sources, "turn_takeover.go", ".RunTakeoverReplyTask(", 1)
+	assertProductionCount(t, sources, "mutations.go", ".RunMain(", 1)
+	assertProductionCount(t, sources, "turn_takeover.go", ".RunTakeoverReply(", 1)
 
 	// The Judge is a dedicated role with exactly one CALL site, and it lives
 	// with the arbitration point it exists for. The Provider method definition
 	// itself is pinned separately so the call-site guard stays meaningful.
-	assertProductionOnlyIn(t, sources, ".RunTakeoverJudgeTask(", "turn_takeover.go", 1)
+	assertProductionOnlyIn(t, sources, ".RunTakeoverJudge(", "turn_takeover.go", 1)
 	assertProductionCount(t, sources, "provider.go", "func (p *ProviderClient) StructuredAssembledJudgement(", 1)
 
 	// The generic query continuation keeps its two call sites (the synchronous
 	// path and the frozen replay) and gains no third one.
-	assertProductionCount(t, sources, "mutations.go", ".RunQueryContinuationTask(", 2)
+	assertProductionCount(t, sources, "mutations.go", ".RunQueryContinuation(", 2)
 
 	// --- No concrete capability dispatch anywhere --------------------------
 	// The earlier guard only checked four files and only the exact spelling

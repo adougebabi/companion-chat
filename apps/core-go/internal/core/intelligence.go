@@ -491,6 +491,9 @@ func annotateLifeContextClock(lifeContext map[string]any, timezone string) {
 func capabilityDefinitionMaps(definitions []CapabilityDefinition) []map[string]any {
 	result := make([]map[string]any, 0, len(definitions))
 	for _, definition := range definitions {
+		if definition.InternalOnly {
+			continue
+		}
 		result = append(result, map[string]any{
 			"name": definition.Name, "version": definition.Version,
 			"description": definition.Description, "side_effect_class": definition.SideEffectClass,

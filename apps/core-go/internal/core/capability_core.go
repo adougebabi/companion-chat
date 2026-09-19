@@ -687,9 +687,13 @@ func contextMapValue(value any) (map[string]any, error) {
 
 // CapabilityDefinition is the canonical provider and runtime contract.
 type CapabilityDefinition struct {
-	Name                  string
-	Version               string
-	Type                  CapabilityType
+	Name    string
+	Version string
+	Type    CapabilityType
+	// InternalOnly keeps deterministic policy and maintenance capabilities in
+	// the canonical registry without exposing them to any model-facing catalog.
+	// Core may still resolve and execute these entries explicitly.
+	InternalOnly          bool
 	Description           string
 	InputSchema           map[string]any
 	OutputSchema          map[string]any
@@ -891,6 +895,9 @@ func (definition CapabilityDefinition) Validate() error {
 	case CapabilityTypeAction, CapabilityTypeQuery, CapabilityTypeInternal:
 	default:
 		return errors.New("capability_definition_invalid_type")
+	}
+	if definition.InternalOnly && definition.Type != CapabilityTypeInternal {
+		return errors.New("capability_definition_internal_only_requires_internal_type")
 	}
 	if strings.TrimSpace(definition.Description) == "" || len([]rune(definition.Description)) > 512 {
 		return errors.New("capability_definition_invalid_description")

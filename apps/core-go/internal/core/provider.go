@@ -290,7 +290,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 	}
 	ctx = WithPromptDiagnostics(ctx, diagnostics)
 	adkEnabled := false
-	if _, enabled := adkCapabilityContext(ctx); enabled && schemaName == "conversation_turn_response" {
+	if _, enabled := adkCapabilityContext(ctx); enabled && isADKConversationSchema(schemaName) {
 		adkEnabled = true
 		// The ADK agent performs multiple model calls. Queue each call through
 		// queuedToolCallingChatModel instead of holding one lease for the full
