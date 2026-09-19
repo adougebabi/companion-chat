@@ -1177,3 +1177,36 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Next Steps
 
 - None - task complete
+
+
+## Session 36: 摇光第三阶段后台 ADK 接入
+
+**Date**: 2026-09-19
+**Task**: 摇光第三阶段后台 ADK 接入
+**Branch**: `codex/yaoguang-adk-phase2`
+
+### Summary
+
+将 WakeUp 模型决策接入共享 surface-aware Eino ADK 两代闭环，保留冻结、自治策略、intent/outbox、Temporal、Redis 与幂等边界；补齐 WakeUp/对话 ADK 回归、权限隔离、失败取消超限和规范文档。Core/Gateway 全量测试、race、vet、tidy、格式和静态扫描通过；PostgreSQL 真实入口因 GO_CORE_TEST_DATABASE_URL 未设置而按基座 skip。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `32d6b10` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
