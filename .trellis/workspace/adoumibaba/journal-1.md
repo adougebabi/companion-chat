@@ -1144,3 +1144,36 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Next Steps
 
 - None - task complete
+
+
+## Session 35: 完成摇光项目第二阶段 ADK 对话运行接入
+
+**Date**: 2026-09-19
+**Task**: 完成摇光项目第二阶段 ADK 对话运行接入
+**Branch**: `codex/yaoguang-adk-phase2`
+
+### Summary
+
+在阶段一 Eino 基础层之上完成 ConversationRuntime 统一接线、Main/B ADK 模型-工具-结果闭环、正式 tool-call identity 保真、每物理模型调用独立 queue/diagnostics、persona policy capability 与 InternalOnly catalog 约束，清理旧对话 facade，补齐闭环/失败/目录一致性测试，并通过 Core/Gateway 全量 test、race、vet、gofmt、mod tidy 和旧路径扫描。PostgreSQL 集成在未设置 GO_CORE_TEST_DATABASE_URL 时按既有规则 skip。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7a47b66` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

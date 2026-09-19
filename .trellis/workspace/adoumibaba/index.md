@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 34
-- **Last Active**: 2026-09-18
+- **Total Sessions**: 35
+- **Last Active**: 2026-09-19
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1146 | Active |
+| `journal-1.md` | ~1179 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 35 | 2026-09-19 | 完成摇光项目第二阶段 ADK 对话运行接入 | `7a47b66` | `codex/yaoguang-adk-phase2` |
 | 34 | 2026-09-18 | 摇光 Eino 基础层与 ADK 对话接入 | `89764bc` | `codex/yaoguang-eino-adk` |
 | 33 | 2026-09-12 | Prompt Context and Memory architecture | `8d58c90`, `68597ad` | `codex/prompt-context-memory` |
 | 32 | 2026-09-06 | 统一 Actor 语义与关系治理 | `ecd325e` | `master` |
