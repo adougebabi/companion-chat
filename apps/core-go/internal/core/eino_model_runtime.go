@@ -254,7 +254,7 @@ func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCal
 	if p == nil {
 		return einoModelResponse{}, errors.New("eino_provider_unavailable")
 	}
-	if adkContext, ok := adkCapabilityContext(ctx); ok && isADKConversationSchema(call.SchemaName) {
+	if adkContext, ok := adkCapabilityContext(ctx); ok && isADKLoopSchema(call.SchemaName) {
 		return p.generateWithADK(ctx, call, adkContext)
 	}
 	input, err := providerMessagesToEino(call.Messages)
@@ -365,8 +365,8 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	}
 	// ADK itself owns the model/tool/result loop; each underlying model call
 	// still receives the same bounded request identity and no retry policy.
-	result, err := RunADKConversation(ctx, ADKConversationConfig{
-		Name: "fluctlight-conversation", Description: "Fluctlight direct conversation runtime",
+	result, err := RunADKLoop(ctx, ADKLoopConfig{
+		Name: "fluctlight-conversation", Description: "Fluctlight bounded model and capability runtime",
 		Model: chat, Tools: tools, MaxIterations: 2,
 	}, input)
 	if err != nil {

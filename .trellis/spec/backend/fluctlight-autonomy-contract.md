@@ -507,3 +507,34 @@ if strings.Contains(message, "remind me") { executeAction() }
 due := ProcessIntentionTrigger(ctx, intentionID)
 // due writes a cognition fact; the normal Main cognition chooses the action.
 ```
+
+## Scenario: WakeUp ADK Decision Boundary
+
+### 1. Scope / Trigger
+
+- Trigger: `WakeUpWorkflow → ProcessWakeUpActivity → App.ProcessWakeUp`
+  reaches its existing model decision.
+
+### 2. Contracts
+
+- WakeUp reuses the shared request-scoped ADK loop with
+  `wake_up_response`, `wake_up` scenario metadata and the
+  `CapabilitySurfaceWakeUp` catalog. It does not create a background-specific
+  Provider, Agent engine or Registry.
+- ADK events are internal protocol data. Core remains the owner of assessment
+  normalization, autonomy policy, action freeze, transaction, intent/outbox,
+  recurrence clock, Reflection hint and output routing.
+- A valid no-op completes the existing WakeUp lifecycle. Model/tool failure,
+  cancellation and iteration-cap errors remain retryable/terminal failures
+  under the existing workflow policy and are never normalized into no-op.
+- A deferred output or capability result is pending until the existing action
+  worker settles it. The ADK callback cannot publish a message, Moment or
+  external effect, and WakeUp does not write a fake user message/history row.
+
+### 3. Tests Required
+
+- Assert the real Core WakeUp path (when PostgreSQL is available) uses the ADK
+  boundary, preserves stable `wakeID`/cycle/action/correlation identities and
+  replays without a second Provider call.
+- Assert catalog scope, policy rejection, cancellation, no-op, deferred
+  output and failure paths preserve the existing frozen/intent lifecycle.

@@ -327,3 +327,30 @@ runner.Run(ctx) // all Generate calls reuse one row
 callID := recordQueuedModelRun(callCorrelation)
 runProviderQueued(ctx, callID, generateOneModelCall)
 ```
+
+## Scenario: ADK Generation-Level Diagnostics
+
+### 1. Scope / Trigger
+
+- Trigger: an ADK structured task performs a model generation or executes a
+  registered capability.
+
+### 2. Contracts
+
+- Diagnostics retain the logical WakeUp/Conversation correlation and record
+  each physical Provider generation with its own attempt/request identity,
+  queue lifecycle, timing and normalized usage when the diagnostic store is
+  available.
+- Tool-call IDs, result pairing, surface and bounded invocation/result status
+  are safe structured trace data. Hidden reasoning, credentials, raw prompts,
+  complete provider responses and unbounded arguments remain redacted or
+  omitted.
+- Diagnostic failure is best-effort: it cannot turn a committed domain result
+  into a failure, and it cannot authorize a capability or publish an ADK
+  intermediate message.
+
+### 3. Tests Required
+
+- Assert two ADK generations retain distinct request/attempt identities while
+  sharing one logical correlation, and that failed/cancelled generations have
+  terminal diagnostics without fabricated success.

@@ -124,6 +124,22 @@ func (m adkErrorChatModel) WithTools([]*schema.ToolInfo) (model.ToolCallingChatM
 
 type adkLoopChatModel struct{}
 
+type adkCancellationChatModel struct{}
+
+func (adkCancellationChatModel) Generate(ctx context.Context, _ []*schema.Message, _ ...model.Option) (*schema.Message, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+func (adkCancellationChatModel) Stream(ctx context.Context, _ []*schema.Message, _ ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
+func (m adkCancellationChatModel) WithTools([]*schema.ToolInfo) (model.ToolCallingChatModel, error) {
+	return m, nil
+}
+
 func (adkLoopChatModel) Generate(context.Context, []*schema.Message, ...model.Option) (*schema.Message, error) {
 	return schema.AssistantMessage("", []schema.ToolCall{{ID: "loop-call", Type: "function", Function: schema.FunctionCall{Name: "memory.recall", Arguments: `{"intent":"loop"}`}}}), nil
 }
@@ -201,14 +217,14 @@ func (i *adkFakeInvoker) ExecuteWithID(ctx context.Context, callID, capabilityNa
 	return i.Execute(ctx, capabilityName, argumentsJSON)
 }
 
-func TestRunADKConversationExecutesCapabilityAndFeedsResultBack(t *testing.T) {
+func TestRunADKLoopExecutesCapabilityAndFeedsResultBack(t *testing.T) {
 	defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall bounded memory", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
 	invoker := &adkFakeInvoker{}
 	tools, err := NewADKCapabilityTools(defs, invoker)
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := RunADKConversation(context.Background(), ADKConversationConfig{
+	result, err := RunADKLoop(context.Background(), ADKLoopConfig{
 		Name: "conversation", Description: "Direct conversation runtime", Instruction: "Use the installed capabilities.",
 		Model: &adkFakeChatModel{}, Tools: tools, MaxIterations: 2,
 	}, []*schema.Message{schema.UserMessage("find recent memory")})
@@ -221,6 +237,9 @@ func TestRunADKConversationExecutesCapabilityAndFeedsResultBack(t *testing.T) {
 	if len(result.ToolCalls) != 1 || len(result.ToolResults) != 1 || len(invoker.calls) != 1 {
 		t.Fatalf("ADK trace calls=%#v results=%#v invocations=%#v", result.ToolCalls, result.ToolResults, invoker.calls)
 	}
+	if result.FinalMessage.Role != schema.Assistant || result.ToolResults[0].Role != schema.Tool {
+		t.Fatalf("tool result became visible final message: final=%#v results=%#v", result.FinalMessage, result.ToolResults)
+	}
 }
 
 func TestNewADKCapabilityToolsRejectsInvokerWithoutFormalIdentity(t *testing.T) {
@@ -230,8 +249,8 @@ func TestNewADKCapabilityToolsRejectsInvokerWithoutFormalIdentity(t *testing.T) 
 	}
 }
 
-func TestRunADKConversationRejectsIterationLimitAboveTwo(t *testing.T) {
-	_, err := RunADKConversation(context.Background(), ADKConversationConfig{
+func TestRunADKLoopRejectsIterationLimitAboveTwo(t *testing.T) {
+	_, err := RunADKLoop(context.Background(), ADKLoopConfig{
 		Name: "conversation", Description: "test", Model: &adkFakeChatModel{}, MaxIterations: 3,
 	}, []*schema.Message{schema.UserMessage("hello")})
 	if err == nil || err.Error() != "adk_iteration_limit_invalid" {
@@ -239,8 +258,8 @@ func TestRunADKConversationRejectsIterationLimitAboveTwo(t *testing.T) {
 	}
 }
 
-func TestRunADKConversationModelFailureHasNoFinalMessage(t *testing.T) {
-	_, err := RunADKConversation(context.Background(), ADKConversationConfig{
+func TestRunADKLoopModelFailureHasNoFinalMessage(t *testing.T) {
+	_, err := RunADKLoop(context.Background(), ADKLoopConfig{
 		Name: "conversation", Description: "test", Model: adkErrorChatModel{}, MaxIterations: 2,
 	}, []*schema.Message{schema.UserMessage("hello")})
 	if err == nil || !strings.Contains(err.Error(), "fake_model_failed") {
@@ -248,13 +267,13 @@ func TestRunADKConversationModelFailureHasNoFinalMessage(t *testing.T) {
 	}
 }
 
-func TestRunADKConversationToolFailureHasNoFinalMessage(t *testing.T) {
+func TestRunADKLoopToolFailureHasNoFinalMessage(t *testing.T) {
 	defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
 	tools, err := NewADKCapabilityTools(defs, adkFailingInvoker{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = RunADKConversation(context.Background(), ADKConversationConfig{
+	_, err = RunADKLoop(context.Background(), ADKLoopConfig{
 		Name: "conversation", Description: "test", Model: &adkFakeChatModel{}, Tools: tools, MaxIterations: 2,
 	}, []*schema.Message{schema.UserMessage("tool failure")})
 	if err == nil || !strings.Contains(err.Error(), "fake_tool_failed") {
@@ -262,17 +281,72 @@ func TestRunADKConversationToolFailureHasNoFinalMessage(t *testing.T) {
 	}
 }
 
-func TestRunADKConversationStopsLoopAtTwoGenerations(t *testing.T) {
+func TestRunADKLoopStopsLoopAtTwoGenerations(t *testing.T) {
 	defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
 	tools, err := NewADKCapabilityTools(defs, &adkFakeInvoker{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = RunADKConversation(context.Background(), ADKConversationConfig{
+	_, err = RunADKLoop(context.Background(), ADKLoopConfig{
 		Name: "conversation", Description: "test", Model: adkLoopChatModel{}, Tools: tools, MaxIterations: 2,
 	}, []*schema.Message{schema.UserMessage("loop")})
 	if err == nil || !strings.Contains(err.Error(), "max iterations") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestRunADKLoopCancellationDoesNotFabricateFinalMessage(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := RunADKLoop(ctx, ADKLoopConfig{
+		Name: "background", Description: "cancellation test", Model: adkCancellationChatModel{}, MaxIterations: 2,
+	}, []*schema.Message{schema.UserMessage("cancel")})
+	if err == nil || !strings.Contains(err.Error(), context.Canceled.Error()) {
+		t.Fatalf("cancellation err = %v", err)
+	}
+}
+
+func TestADKCapabilityDefinitionsFailClosedBySurfaceAndVisibility(t *testing.T) {
+	app := &App{}
+	registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Capabilities = registry
+	app.Provider = &ProviderClient{}
+
+	conversationOnly, ok := registry.Definition("memory.recall")
+	if !ok {
+		t.Fatal("memory.recall definition missing")
+	}
+	if _, err := app.RunADKStructuredTask(context.Background(), ADKStructuredTaskInput{
+		Role: "cognitive_assessment", Scenario: "wake_up", Definitions: []CapabilityDefinition{conversationOnly},
+		SchemaName: "wake_up_response", Schema: wakeUpResponseSchema(), Capability: &ADKCapabilityRequest{Surface: CapabilitySurfaceWakeUp},
+	}); err == nil || !strings.Contains(err.Error(), "surface_forbidden") {
+		t.Fatalf("conversation-only capability was accepted by WakeUp: %v", err)
+	}
+
+	internal, ok := registry.Definition(personaSwitchCapabilityName)
+	if !ok {
+		t.Fatal("internal persona capability missing")
+	}
+	if _, err := app.RunADKStructuredTask(context.Background(), ADKStructuredTaskInput{
+		Role: "cognitive_assessment", Scenario: "wake_up", Definitions: []CapabilityDefinition{internal},
+		SchemaName: "wake_up_response", Schema: wakeUpResponseSchema(), Capability: &ADKCapabilityRequest{Surface: CapabilitySurfaceWakeUp},
+	}); err == nil || !strings.Contains(err.Error(), "internal") {
+		t.Fatalf("internal capability was accepted by WakeUp: %v", err)
+	}
+
+	unknown := conversationOnly
+	unknown.Name = "not.registered"
+	if err := validateADKCapabilityDefinitions(app, []CapabilityDefinition{unknown}, CapabilitySurfaceWakeUp); err == nil || !strings.Contains(err.Error(), "unknown") {
+		t.Fatalf("unknown capability was accepted: %v", err)
+	}
+
+	mismatched := conversationOnly
+	mismatched.Description = mismatched.Description + " changed"
+	if err := validateADKCapabilityDefinitions(app, []CapabilityDefinition{mismatched}, CapabilitySurfaceConversation); err == nil || !strings.Contains(err.Error(), "mismatch") {
+		t.Fatalf("mismatched capability was accepted: %v", err)
 	}
 }
 
@@ -284,7 +358,10 @@ func TestAppADKInvokerPreservesFormalToolCallIDAndSource(t *testing.T) {
 	}
 	app.Capabilities = registry
 	trace := &ADKCapabilityTrace{}
-	invoker := newAppADKCapabilityInvoker(app, "fluctlight-1", "conversation-1", "fact-1", "frozen-1", ContextProjection{}, trace)
+	invoker := newAppADKCapabilityInvoker(app, ADKCapabilityRequest{
+		FluctlightID: "fluctlight-1", ConversationID: "conversation-1", SourceFactID: "fact-1", ActionID: "frozen-1",
+		Surface: CapabilitySurfaceConversation,
+	}, trace)
 	identityInvoker, ok := invoker.(ADKCapabilityInvokerWithID)
 	if !ok {
 		t.Fatal("production invoker does not preserve tool-call identity")
@@ -446,6 +523,129 @@ func TestProviderConversationWithoutToolsStillUsesADKRunner(t *testing.T) {
 	}
 	if len(trace.Invocations) != 0 || len(trace.Results) != 0 {
 		t.Fatalf("unexpected no-tool trace: %#v", trace)
+	}
+}
+
+func TestADKLoopSchemaMatrixKeepsBackgroundSingleTasksOut(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		schema string
+		allow  bool
+	}{
+		{name: "main", schema: "conversation_turn_response", allow: true},
+		{name: "takeover", schema: takeoverReplySchemaName, allow: true},
+		{name: "wakeup", schema: "wake_up_response", allow: true},
+		{name: "query", schema: "query_continuation_response", allow: false},
+		{name: "daily_review", schema: "daily_review_response", allow: false},
+		{name: "native", schema: "native_cognition_response", allow: false},
+		{name: "reflection", schema: "reflection_proposal_v2", allow: false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := isADKLoopSchema(test.schema); got != test.allow {
+				t.Fatalf("schema %q allowed=%v, want %v", test.schema, got, test.allow)
+			}
+		})
+	}
+}
+
+func TestRunADKStructuredTaskRejectsNonLoopSchemaBeforeProviderIO(t *testing.T) {
+	app := &App{Provider: &ProviderClient{}}
+	_, err := app.RunADKStructuredTask(context.Background(), ADKStructuredTaskInput{
+		Role:       "cognitive_assessment",
+		Scenario:   "daily_review",
+		SchemaName: "daily_review_response",
+		Schema:     map[string]any{"type": "object"},
+	})
+	if err == nil || !strings.Contains(err.Error(), "adk_schema_not_allowed") {
+		t.Fatalf("non-loop schema was accepted by ADK boundary: %v", err)
+	}
+}
+
+func TestProviderWakeUpUsesADKLoopAndPreservesTrace(t *testing.T) {
+	var mu sync.Mutex
+	requests := make([]map[string]any, 0, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Errorf("decode request: %v", err)
+			return
+		}
+		mu.Lock()
+		requests = append(requests, payload)
+		count := len(requests)
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if count == 1 {
+			_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":"","tool_calls":[{"id":"wake-provider-call-1","type":"function","function":{"name":"relationship.lookup","arguments":"{\"intent\":\"recent\"}"}}]}}]}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"{\"action_type\":\"no_op\",\"response_mode\":\"final\"}"}}]}`))
+	}))
+	defer server.Close()
+
+	trace := &ADKCapabilityTrace{}
+	ctx := WithADKCapabilityInvoker(WithProviderCorrelation(WithProviderScenario(context.Background(), "wake_up"), "wake_up:fl-1:cycle:3"), adkTraceInvoker{trace: trace}, trace)
+	p := &ProviderClient{HTTP: server.Client()}
+	response, err := p.generateWithEino(ctx, EinoModelCall{
+		Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: 10 * time.Second, TokenBudget: 128},
+		Role:       "cognitive_assessment", Scenario: "wake_up",
+		Messages:    []map[string]any{{"role": "system", "content": "wake protocol"}, {"role": "user", "content": "wake event"}},
+		Definitions: []CapabilityDefinition{{Name: "relationship.lookup", Description: "Read a bounded relationship fact", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}},
+		JSONMode:    true, SchemaName: "wake_up_response", ResponseSchema: map[string]any{"type": "object"},
+		ProviderRequestID: "provider-wake-request", CorrelationID: "wake_up:fl-1:cycle:3",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.Message == nil || len(requests) != 2 || len(trace.Invocations) != 1 || trace.Invocations[0].CallID != "wake-provider-call-1" || trace.Invocations[0].Metadata.Source != "model_tool" {
+		t.Fatalf("response=%#v requests=%d trace=%#v", response.Message, len(requests), trace)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	var assistantCall, toolResult bool
+	for _, item := range arrayValue(requests[1]["messages"]) {
+		message := mapValue(item)
+		if stringValue(message["role"]) == "assistant" {
+			for _, call := range arrayValue(message["tool_calls"]) {
+				if stringValue(mapValue(call)["id"]) == "wake-provider-call-1" {
+					assistantCall = true
+				}
+			}
+		}
+		if stringValue(message["role"]) == "tool" && stringValue(message["tool_call_id"]) == "wake-provider-call-1" && stringValue(message["name"]) == "relationship.lookup" {
+			toolResult = true
+		}
+	}
+	if !assistantCall || !toolResult {
+		t.Fatalf("wake-up ADK second request lost tool pair: %#v", requests[1]["messages"])
+	}
+}
+
+func TestAppADKInvokerUsesWakeUpSurface(t *testing.T) {
+	app := &App{}
+	registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Capabilities = registry
+	trace := &ADKCapabilityTrace{}
+	invoker := newAppADKCapabilityInvoker(app, ADKCapabilityRequest{
+		FluctlightID: "fl-1", ConversationID: "conv-1", SourceFactID: "wake-1", ActionID: "action-1",
+		CorrelationID: "wake_up:fl-1:cycle:1", Surface: CapabilitySurfaceWakeUp,
+	}, trace)
+	identityInvoker, ok := invoker.(ADKCapabilityInvokerWithID)
+	if !ok {
+		t.Fatal("production invoker does not preserve formal tool identity")
+	}
+	if _, err := identityInvoker.ExecuteWithID(context.Background(), "wake-call-1", "moment.publish", `{"text":"later"}`); err != nil {
+		t.Fatal(err)
+	}
+	if len(trace.Invocations) != 1 || trace.Invocations[0].Metadata.Surface != CapabilitySurfaceWakeUp || trace.Invocations[0].Metadata.CorrelationID != "wake_up:fl-1:cycle:1" {
+		t.Fatalf("wake-up invocation metadata = %#v", trace.Invocations)
+	}
+	if len(trace.Results) != 1 || trace.Results[0].Status != "deferred" || stringValue(mapValue(trace.Results[0].Output)["reason"]) != "settlement_pending" {
+		t.Fatalf("wake-up deferred result crossed the ADK callback boundary: %#v", trace.Results)
 	}
 }
 

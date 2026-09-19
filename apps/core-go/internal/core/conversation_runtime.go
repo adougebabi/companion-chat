@@ -3,8 +3,7 @@ package core
 import (
 	"context"
 	"errors"
-	"fmt"
-	"reflect"
+	"strings"
 )
 
 // ConversationRuntime is the single application-facing model boundary for
@@ -89,22 +88,19 @@ func (r *conversationRuntime) provider() (*ProviderClient, error) {
 }
 
 func (r *conversationRuntime) RunMain(ctx context.Context, input ConversationMainInput) (ConversationRunResult, error) {
-	provider, err := r.provider()
+	_, err := r.provider()
 	if err != nil {
 		return ConversationRunResult{}, err
 	}
-	ctx, trace, err := r.withCapabilityBridge(ctx, input.Capability, input.Definitions)
-	if err != nil {
-		return ConversationRunResult{}, err
+	if len(input.Definitions) > 0 && input.Capability == nil {
+		return ConversationRunResult{}, errors.New("conversation_runtime_capability_context_required")
 	}
-	if err := r.validateDefinitions(input.Definitions, CapabilitySurfaceConversation); err != nil {
-		return ConversationRunResult{Trace: trace}, err
-	}
-	completion, err := provider.StructuredAssembledWithToolsSchema(ctx, input.Role, input.Messages, input.Definitions, input.SchemaName, input.Schema, input.EnableThinking)
-	if err != nil {
-		return ConversationRunResult{Trace: trace}, err
-	}
-	return ConversationRunResult{Completion: completion, Trace: trace}, nil
+	result, err := r.app.RunADKStructuredTask(ctx, ADKStructuredTaskInput{
+		Role: input.Role, Scenario: "cognitive_assessment", Messages: input.Messages,
+		Definitions: input.Definitions, SchemaName: input.SchemaName, Schema: input.Schema,
+		EnableThinking: input.EnableThinking, Capability: conversationADKRequest(input.Capability, providerCorrelation(ctx)),
+	})
+	return ConversationRunResult{Completion: result.Completion, Trace: result.Trace}, conversationRuntimeBoundaryError(err)
 }
 
 func (r *conversationRuntime) RunQueryContinuation(ctx context.Context, input QueryContinuationInput) (ConversationRunResult, error) {
@@ -132,69 +128,40 @@ func (r *conversationRuntime) RunTakeoverJudge(ctx context.Context, input Takeov
 }
 
 func (r *conversationRuntime) RunTakeoverReply(ctx context.Context, input TakeoverReplyInput) (ConversationRunResult, error) {
-	provider, err := r.provider()
+	_, err := r.provider()
 	if err != nil {
 		return ConversationRunResult{}, err
 	}
-	ctx = WithProviderScenario(ctx, "takeover_reply")
-	ctx, trace, err := r.withCapabilityBridge(ctx, input.Capability, input.Definitions)
-	if err != nil {
-		return ConversationRunResult{}, err
+	if len(input.Definitions) > 0 && input.Capability == nil {
+		return ConversationRunResult{}, errors.New("conversation_runtime_capability_context_required")
 	}
-	if err := r.validateDefinitions(input.Definitions, CapabilitySurfaceConversation); err != nil {
-		return ConversationRunResult{Trace: trace}, err
-	}
-	completion, err := provider.StructuredAssembledWithToolsSchema(ctx, input.Role, input.Messages, input.Definitions, input.SchemaName, input.Schema, input.EnableThinking)
-	if err != nil {
-		return ConversationRunResult{Trace: trace}, err
-	}
-	return ConversationRunResult{Completion: completion, Trace: trace}, nil
+	result, err := r.app.RunADKStructuredTask(ctx, ADKStructuredTaskInput{
+		Role: input.Role, Scenario: "takeover_reply", Messages: input.Messages,
+		Definitions: input.Definitions, SchemaName: input.SchemaName, Schema: input.Schema,
+		EnableThinking: input.EnableThinking, Capability: conversationADKRequest(input.Capability, providerCorrelation(ctx)),
+	})
+	return ConversationRunResult{Completion: result.Completion, Trace: result.Trace}, conversationRuntimeBoundaryError(err)
 }
 
-func (r *conversationRuntime) withCapabilityBridge(ctx context.Context, capability *ConversationCapabilityContext, definitions []CapabilityDefinition) (context.Context, *ADKCapabilityTrace, error) {
+func conversationADKRequest(capability *ConversationCapabilityContext, correlationID string) *ADKCapabilityRequest {
 	if capability == nil {
-		return nil, nil, errors.New("conversation_runtime_capability_context_required")
-	}
-	trace := &ADKCapabilityTrace{}
-	invoker := newAppADKCapabilityInvoker(r.app, capability.FluctlightID, capability.ConversationID, capability.SourceFactID, capability.ActionID, capability.Projection, trace)
-	return WithADKCapabilityInvoker(ctx, invoker, trace), trace, nil
-}
-
-// validateDefinitions makes the registry the sole authority for model-facing
-// tool schemas. The caller may narrow the catalog, but it cannot replace a
-// registered definition with a same-named schema whose execution contract is
-// different. This check runs before any Provider I/O.
-func (r *conversationRuntime) validateDefinitions(definitions []CapabilityDefinition, surface CapabilitySurface) error {
-	if len(definitions) == 0 {
 		return nil
 	}
-	if r == nil || r.app == nil {
-		return errors.New("conversation_runtime_capability_registry_unavailable")
+	return &ADKCapabilityRequest{
+		FluctlightID: capability.FluctlightID, ConversationID: capability.ConversationID,
+		SourceFactID: capability.SourceFactID, ActionID: capability.ActionID,
+		CorrelationID: correlationID, Surface: CapabilitySurfaceConversation,
+		Projection: capability.Projection,
 	}
-	registry := r.app.capabilityRegistry()
-	if registry == nil {
-		return errors.New("conversation_runtime_capability_registry_unavailable")
+}
+
+func conversationRuntimeBoundaryError(err error) error {
+	if err == nil {
+		return nil
 	}
-	seen := make(map[string]struct{}, len(definitions))
-	for _, definition := range definitions {
-		name := definition.Name
-		if _, duplicate := seen[name]; duplicate {
-			return fmt.Errorf("conversation_runtime_capability_definition_duplicate: %s", name)
-		}
-		seen[name] = struct{}{}
-		canonical, ok := registry.Definition(name)
-		if !ok {
-			return fmt.Errorf("conversation_runtime_capability_definition_unknown: %s", name)
-		}
-		if canonical.InternalOnly {
-			return fmt.Errorf("conversation_runtime_capability_definition_internal: %s", name)
-		}
-		if !canonical.SupportsSurface(surface) {
-			return fmt.Errorf("conversation_runtime_capability_definition_surface_forbidden: %s:%s", name, surface)
-		}
-		if !reflect.DeepEqual(canonical, definition) {
-			return fmt.Errorf("conversation_runtime_capability_definition_mismatch: %s", name)
-		}
+	message := err.Error()
+	if strings.HasPrefix(message, "adk_capability_") {
+		return errors.New("conversation_runtime_" + strings.TrimPrefix(message, "adk_"))
 	}
-	return nil
+	return err
 }

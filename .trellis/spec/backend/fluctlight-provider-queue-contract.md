@@ -262,3 +262,33 @@ runProviderQueued(ctx, "generic_llm", "conversation", 100, id, func(ctx context.
 queuedModel := &queuedToolCallingChatModel{inner: chatModel, provider: provider}
 runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: agent})
 ```
+
+## Scenario: Physical Provider Attempts Inside an ADK Loop
+
+### 1. Scope / Trigger
+
+- Trigger: one logical structured task performs more than one bounded ADK
+  model generation.
+
+### 2. Contracts
+
+- The outer ADK runner does not hold one queue lease for the whole loop. Each
+  physical `Generate`/`Stream` call acquires and releases the normal generated
+  queue independently.
+- Each physical call receives a fresh Provider attempt identity, request ID
+  and correlation suffix while retaining the logical scenario/correlation.
+  Cancellation, timeout and Redis lifecycle markers reach the current call and
+  release its queue slot.
+- Each physical call creates its own `diagnostic_model_runs` lifecycle row
+  when PostgreSQL diagnostics are available. A later model generation must not
+  overwrite the first attempt's identity or usage.
+- Provider queue bypass is permitted only around the ADK runner's outer
+  wrapper; the `queuedToolCallingChatModel` is the re-entry point that restores
+  the ordinary queue and diagnostics boundary.
+
+### 3. Tests Required
+
+- Assert a two-generation WakeUp/Conversation loop produces two request IDs,
+  independent queue lifecycles and no lease held across tool execution.
+- Assert cancellation/failure of one physical call releases the slot and does
+  not become a successful no-op or block a later request.

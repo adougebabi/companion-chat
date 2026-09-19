@@ -496,7 +496,16 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		),
 		assembly.Diagnostics,
 	)
-	completion, err := a.RunStructuredToolsTask(providerCtx, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "wake_up", SchemaName: "wake_up_response"}, assembly.Messages, definitions, schema, true, structuredThinkingEnabledForSchema("wake_up_response"))
+	run, err := a.RunADKStructuredTask(providerCtx, ADKStructuredTaskInput{
+		Role: "cognitive_assessment", Scenario: "wake_up", Messages: assembly.Messages,
+		Definitions: definitions, SchemaName: "wake_up_response", Schema: schema,
+		EnableThinking: structuredThinkingEnabledForSchema("wake_up_response"),
+		Capability: &ADKCapabilityRequest{
+			FluctlightID: fluctlightID, ConversationID: conversationID, SourceFactID: wakeID,
+			ActionID: frozenActionID, CorrelationID: correlationID, Surface: CapabilitySurfaceWakeUp,
+			Projection: projection,
+		},
+	})
 	if err != nil {
 		if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
 			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
@@ -510,6 +519,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		}
 		return nil, err
 	}
+	completion := run.Completion
 	if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
 		return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
 	}

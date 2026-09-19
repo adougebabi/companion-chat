@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/cloudwego/eino/adk"
@@ -42,17 +43,29 @@ func adkCapabilityContext(ctx context.Context) (adkConversationContext, bool) {
 }
 
 type appADKCapabilityInvoker struct {
-	app            *App
-	fluctlightID   string
-	conversationID string
-	sourceFactID   string
-	actionID       string
-	projection     ContextProjection
-	trace          *ADKCapabilityTrace
+	app     *App
+	request ADKCapabilityRequest
+	trace   *ADKCapabilityTrace
 }
 
-func newAppADKCapabilityInvoker(app *App, fluctlightID, conversationID, sourceFactID, actionID string, projection ContextProjection, trace *ADKCapabilityTrace) ADKCapabilityInvoker {
-	return &appADKCapabilityInvoker{app: app, fluctlightID: fluctlightID, conversationID: conversationID, sourceFactID: sourceFactID, actionID: actionID, projection: projection, trace: trace}
+// ADKCapabilityRequest is the request-scoped identity and projection supplied
+// to a surface-specific ADK capability bridge. It contains no App, database
+// handle or transaction; the bridge resolves/executes through CapabilityRuntime.
+type ADKCapabilityRequest struct {
+	FluctlightID   string
+	ConversationID string
+	SourceFactID   string
+	ActionID       string
+	CorrelationID  string
+	Surface        CapabilitySurface
+	Projection     ContextProjection
+}
+
+func newAppADKCapabilityInvoker(app *App, request ADKCapabilityRequest, trace *ADKCapabilityTrace) ADKCapabilityInvoker {
+	if request.Surface == "" {
+		request.Surface = CapabilitySurfaceConversation
+	}
+	return &appADKCapabilityInvoker{app: app, request: request, trace: trace}
 }
 
 func (i *appADKCapabilityInvoker) Execute(ctx context.Context, capabilityName string, argumentsJSON string) (string, error) {
@@ -77,12 +90,12 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	}
 	invocation := normalizeCapabilityInvocationMetadata(CapabilityInvocation{
 		CallID: callID, CapabilityName: capabilityName, Arguments: arguments,
-		SourceFactID: i.sourceFactID, ActionID: i.actionID,
-		ProviderRequestID: "provider:" + stableDigest(i.sourceFactID+":"+callID), Sequence: len(i.trace.Invocations),
-		Metadata: InvocationMetadata{CorrelationID: firstString(providerCorrelation(ctx), "turn:"+i.sourceFactID), FluctlightID: i.fluctlightID, ConversationID: i.conversationID, Surface: CapabilitySurfaceConversation, Source: "model_tool"},
-	}, i.fluctlightID, i.conversationID, i.sourceFactID, i.sourceFactID, len(i.trace.Invocations))
-	invocation.ActionID = i.actionID
-	invocation.ContextSnapshot = capabilitySnapshotForProjection(i.projection, definition.RequiredContext, i.actionID)
+		SourceFactID: i.request.SourceFactID, ActionID: i.request.ActionID,
+		ProviderRequestID: "provider:" + stableDigest(i.request.SourceFactID+":"+callID), Sequence: len(i.trace.Invocations),
+		Metadata: InvocationMetadata{CorrelationID: firstString(providerCorrelation(ctx), firstString(i.request.CorrelationID, "turn:"+i.request.SourceFactID)), FluctlightID: i.request.FluctlightID, ConversationID: i.request.ConversationID, Surface: i.request.Surface, Source: "model_tool"},
+	}, i.request.FluctlightID, i.request.ConversationID, i.request.SourceFactID, i.request.SourceFactID, len(i.trace.Invocations))
+	invocation.ActionID = i.request.ActionID
+	invocation.ContextSnapshot = capabilitySnapshotForProjection(i.request.Projection, definition.RequiredContext, i.request.ActionID)
 	i.trace.Invocations = append(i.trace.Invocations, invocation)
 	result := CapabilityResult{CallID: callID, CapabilityName: capabilityName, Status: "deferred", Retryable: true, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "capability:" + callID, RequiredContext: append([]ContextSlot(nil), definition.RequiredContext...), Output: map[string]any{"status": "deferred", "reason": "settlement_pending"}}
 	capability, found := i.app.capabilityRegistry().LookupCapability(capabilityName)
@@ -103,8 +116,8 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	}
 	if executionClass == CapabilityExecutionPureQuery {
 		if err := validateCandidateCapabilityInvocation(ctx, invocation, candidateValidationContext{
-			FluctlightID: i.fluctlightID, ConversationID: i.conversationID, SourceFactID: i.sourceFactID,
-			ActionID: i.actionID, Surface: CapabilitySurfaceConversation, ContextSnapshot: invocation.ContextSnapshot, Context: ctx,
+			FluctlightID: i.request.FluctlightID, ConversationID: i.request.ConversationID, SourceFactID: i.request.SourceFactID,
+			ActionID: i.request.ActionID, Surface: i.request.Surface, ContextSnapshot: invocation.ContextSnapshot, Context: ctx,
 		}, i.app.capabilityRegistry()); err != nil {
 			result.Status = "rejected"
 			result.ErrorCode = "candidate_invalid"
@@ -150,7 +163,7 @@ type ADKCapabilityInvokerWithID interface {
 	ExecuteWithID(ctx context.Context, callID, capabilityName string, argumentsJSON string) (string, error)
 }
 
-type ADKConversationConfig struct {
+type ADKLoopConfig struct {
 	Name            string
 	Description     string
 	Instruction     string
@@ -160,7 +173,7 @@ type ADKConversationConfig struct {
 	EnableStreaming bool
 }
 
-type ADKConversationResult struct {
+type ADKLoopResult struct {
 	FinalMessage *schema.Message
 	Messages     []*schema.Message
 	ToolCalls    []schema.ToolCall
@@ -168,13 +181,13 @@ type ADKConversationResult struct {
 	Iterations   int
 }
 
-// isADKConversationSchema keeps the ADK loop restricted to the two
-// user-visible conversation generations. Query continuation and the takeover
-// Judge remain dedicated no-tools model tasks, while both Main and takeover B
-// use the same request-scoped model→tool→result→model boundary.
-func isADKConversationSchema(schemaName string) bool {
+// isADKLoopSchema is the explicit allowlist for bounded ADK model/tool loops.
+// Query continuation, Judge, Daily Review, Native Cognition and Reflection
+// remain dedicated single-task boundaries unless a later phase adds a real
+// feedback contract for them.
+func isADKLoopSchema(schemaName string) bool {
 	switch strings.TrimSpace(schemaName) {
-	case "conversation_turn_response", takeoverReplySchemaName:
+	case "conversation_turn_response", takeoverReplySchemaName, "wake_up_response":
 		return true
 	default:
 		return false
@@ -238,26 +251,25 @@ func (t *adkCapabilityTool) InvokableRun(ctx context.Context, argumentsJSON stri
 	return identityInvoker.ExecuteWithID(ctx, callID, t.info.Name, argumentsJSON)
 }
 
-// RunADKConversation is the production ADK entry point for a direct
-// conversation. Eino owns the model→tool→tool-result→model loop; the caller
-// only receives bounded messages and then hands them to the existing frozen
-// decision/settlement path.
-func RunADKConversation(ctx context.Context, config ADKConversationConfig, messages []*schema.Message) (ADKConversationResult, error) {
+// RunADKLoop is the only Eino ADK model/tool event iterator used by Core.
+// Callers receive bounded messages and hand the structured result to their
+// existing domain freeze/settlement boundary.
+func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Message) (ADKLoopResult, error) {
 	if config.Model == nil {
-		return ADKConversationResult{}, errors.New("adk_model_required")
+		return ADKLoopResult{}, errors.New("adk_model_required")
 	}
 	if strings.TrimSpace(config.Name) == "" || strings.TrimSpace(config.Description) == "" {
-		return ADKConversationResult{}, errors.New("adk_agent_identity_required")
+		return ADKLoopResult{}, errors.New("adk_agent_identity_required")
 	}
 	if len(messages) == 0 {
-		return ADKConversationResult{}, errors.New("adk_messages_required")
+		return ADKLoopResult{}, errors.New("adk_messages_required")
 	}
 	maxIterations := config.MaxIterations
 	if maxIterations <= 0 {
 		maxIterations = 2
 	}
 	if maxIterations > 2 {
-		return ADKConversationResult{}, errors.New("adk_iteration_limit_invalid")
+		return ADKLoopResult{}, errors.New("adk_iteration_limit_invalid")
 	}
 	agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 		Name: config.Name, Description: config.Description,
@@ -268,18 +280,18 @@ func RunADKConversation(ctx context.Context, config ADKConversationConfig, messa
 		MaxIterations: maxIterations,
 	})
 	if err != nil {
-		return ADKConversationResult{}, fmt.Errorf("adk_agent_create: %w", err)
+		return ADKLoopResult{}, fmt.Errorf("adk_agent_create: %w", err)
 	}
 	runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: agent, EnableStreaming: config.EnableStreaming})
 	input := make([]adk.Message, 0, len(messages))
 	for _, message := range messages {
 		if message == nil {
-			return ADKConversationResult{}, errors.New("adk_message_nil")
+			return ADKLoopResult{}, errors.New("adk_message_nil")
 		}
 		input = append(input, message)
 	}
 	iter := runner.Run(ctx, input)
-	result := ADKConversationResult{Messages: []*schema.Message{}, ToolCalls: []schema.ToolCall{}, ToolResults: []*schema.Message{}}
+	result := ADKLoopResult{Messages: []*schema.Message{}, ToolCalls: []schema.ToolCall{}, ToolResults: []*schema.Message{}}
 	var lastAssistant *schema.Message
 	seenToolCallIDs := make(map[string]struct{})
 	for {
@@ -291,14 +303,14 @@ func RunADKConversation(ctx context.Context, config ADKConversationConfig, messa
 			continue
 		}
 		if event.Err != nil {
-			return ADKConversationResult{}, fmt.Errorf("adk_run: %w", event.Err)
+			return ADKLoopResult{}, fmt.Errorf("adk_run: %w", event.Err)
 		}
 		if event.Output == nil || event.Output.MessageOutput == nil {
 			continue
 		}
 		message, getErr := event.Output.MessageOutput.GetMessage()
 		if getErr != nil {
-			return ADKConversationResult{}, fmt.Errorf("adk_message_output: %w", getErr)
+			return ADKLoopResult{}, fmt.Errorf("adk_message_output: %w", getErr)
 		}
 		if message == nil {
 			continue
@@ -331,10 +343,99 @@ func RunADKConversation(ctx context.Context, config ADKConversationConfig, messa
 		result.FinalMessage = lastAssistant
 	}
 	if result.FinalMessage == nil {
-		return ADKConversationResult{}, errors.New("adk_final_message_missing")
+		return ADKLoopResult{}, errors.New("adk_final_message_missing")
 	}
 	if strings.TrimSpace(result.FinalMessage.Content) == "" && len(result.FinalMessage.ToolCalls) == 0 {
-		return ADKConversationResult{}, errors.New("adk_final_message_empty")
+		return ADKLoopResult{}, errors.New("adk_final_message_empty")
 	}
 	return result, nil
+}
+
+// ADKStructuredTaskInput is the shared Provider-facing background/conversation
+// boundary. Domain callers keep their own result and settlement contracts.
+type ADKStructuredTaskInput struct {
+	Role           string
+	Scenario       string
+	Messages       []map[string]any
+	Definitions    []CapabilityDefinition
+	SchemaName     string
+	Schema         map[string]any
+	EnableThinking bool
+	Capability     *ADKCapabilityRequest
+}
+
+type ADKStructuredTaskResult struct {
+	Completion ProviderCompletion
+	Trace      *ADKCapabilityTrace
+}
+
+// RunADKStructuredTask uses the shared surface-aware ADK bridge. It does not
+// freeze, settle, publish or open a transaction; the caller owns those rules.
+func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskInput) (ADKStructuredTaskResult, error) {
+	if a == nil || a.Provider == nil {
+		return ADKStructuredTaskResult{}, errors.New("adk_structured_task_provider_unavailable")
+	}
+	if !isADKLoopSchema(input.SchemaName) {
+		return ADKStructuredTaskResult{}, fmt.Errorf("adk_schema_not_allowed: %s", strings.TrimSpace(input.SchemaName))
+	}
+	if len(input.Definitions) > 0 && input.Capability == nil {
+		return ADKStructuredTaskResult{}, errors.New("adk_structured_task_capability_context_required")
+	}
+	if err := validateADKCapabilityDefinitions(a, input.Definitions, firstCapabilitySurface(input.Capability)); err != nil {
+		return ADKStructuredTaskResult{}, err
+	}
+	trace := &ADKCapabilityTrace{}
+	if input.Capability != nil {
+		invoker := newAppADKCapabilityInvoker(a, *input.Capability, trace)
+		ctx = WithADKCapabilityInvoker(ctx, invoker, trace)
+	}
+	if strings.TrimSpace(input.Scenario) != "" {
+		ctx = WithProviderScenario(ctx, input.Scenario)
+	}
+	completion, err := a.Provider.StructuredAssembledWithToolsSchema(ctx, input.Role, input.Messages, input.Definitions, input.SchemaName, input.Schema, input.EnableThinking)
+	if err != nil {
+		return ADKStructuredTaskResult{Trace: trace}, err
+	}
+	return ADKStructuredTaskResult{Completion: completion, Trace: trace}, nil
+}
+
+func firstCapabilitySurface(request *ADKCapabilityRequest) CapabilitySurface {
+	if request == nil || request.Surface == "" {
+		return CapabilitySurfaceConversation
+	}
+	return request.Surface
+}
+
+func validateADKCapabilityDefinitions(app *App, definitions []CapabilityDefinition, surface CapabilitySurface) error {
+	if len(definitions) == 0 {
+		return nil
+	}
+	if app == nil {
+		return errors.New("adk_capability_registry_unavailable")
+	}
+	registry := app.capabilityRegistry()
+	if registry == nil {
+		return errors.New("adk_capability_registry_unavailable")
+	}
+	seen := make(map[string]struct{}, len(definitions))
+	for _, definition := range definitions {
+		if _, duplicate := seen[definition.Name]; duplicate {
+			return fmt.Errorf("adk_capability_definition_duplicate: %s", definition.Name)
+		}
+		seen[definition.Name] = struct{}{}
+		canonical, ok := registry.Definition(definition.Name)
+		if !ok {
+			return fmt.Errorf("adk_capability_definition_unknown: %s", definition.Name)
+		}
+		if canonical.InternalOnly {
+			return fmt.Errorf("adk_capability_definition_internal: %s", definition.Name)
+		}
+		if !canonical.SupportsSurface(surface) {
+			return fmt.Errorf("adk_capability_definition_surface_forbidden: %s:%s", definition.Name, surface)
+		}
+		if !reflect.DeepEqual(canonical, definition) {
+			return fmt.Errorf("adk_capability_definition_mismatch: %s", definition.Name)
+		}
+	}
+	return nil
 }

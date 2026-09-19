@@ -24,6 +24,12 @@ func TestProductionMainCallersUseOnlyPromptContextAssembler(t *testing.T) {
 			taskBoundary = "RunMain"
 		} else if name == "turn_takeover.go" {
 			taskBoundary = "RunTakeoverReply"
+		} else if name == "wakeup.go" {
+			// WakeUp is the only background model decision migrated to the
+			// shared request-scoped ADK boundary in phase three. Its prompt
+			// assembly remains operation-owned, while the model/tool protocol
+			// is now entered through RunADKStructuredTask.
+			taskBoundary = "RunADKStructuredTask"
 		}
 		if !strings.Contains(text, "assembleProjectionPrompt") || !strings.Contains(text, taskBoundary) {
 			t.Fatalf("%s does not use the canonical assembler path", name)

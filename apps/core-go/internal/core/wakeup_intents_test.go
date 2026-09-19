@@ -203,7 +203,18 @@ func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 	}
 	seedCognitiveProviderRole(t, ctx, repository, "wakeup-reply-endpoint")
 	text := "我刚刚想起你了，等你忙完再聊。"
+	providerCalls := 0
 	router := newFakeProviderRouter().on("wake_up_response", func(_ map[string]any) fakeProviderResult {
+		providerCalls++
+		if providerCalls > 1 {
+			// The first ADK generation chooses the deferred output capability;
+			// the second generation receives its ToolResult and terminates with
+			// the structured wake-up decision. Keep the production tool call in
+			// the final ADK trace so Core can freeze it exactly once.
+			return fakeProviderResult{Structured: map[string]any{
+				"action_type": "no_op", "response_intent": "主动联系 Owner", "influences": []any{},
+			}}
+		}
 		return fakeProviderResult{
 			Structured: map[string]any{"action_type": "reply", "response_intent": "主动联系 Owner", "influences": []any{}},
 			ToolCalls: []map[string]any{{
