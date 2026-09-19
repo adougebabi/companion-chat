@@ -1,0 +1,357 @@
+$ nl -ba apps/core-go/internal/core/wakeup.go | sed -n '350,530p'; nl -ba apps/core-go/internal/core/adk_conversation_runtime.go | sed -n '360,430p'; nl -ba apps/core-go/internal/core/eino_adk_runtime_test.go | sed -n '550,650p'
+exit_code=0
+
+   350				return true
+   351			}
+   352		}
+   353		return false
+   354	}
+   355	
+   356	func wakeUpScheduleStatus(schedule map[string]any) string {
+   357		if len(schedule) == 0 {
+   358			return "missing"
+   359		}
+   360		return firstString(schedule["status"], "ready")
+   361	}
+   362	
+   363	// ProcessWakeUp performs one bounded proactive-action assessment. Wake-up is
+   364	// not a second cognition/reflection pass: it decides whether a Moment, direct
+   365	// message, or installed capability should be proposed, records that decision,
+   366	// and schedules the existing reflection workflow against the resulting fact.
+   367	// External effects are frozen only after their capability contract and hard
+   368	// execution invariants pass; delivery itself remains owned by a Temporal
+   369	// action workflow.
+   370	func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int) (map[string]any, error) {
+   371		if fluctlightID == "" {
+   372			return nil, errors.New("wake_up_fluctlight_id_required")
+   373		}
+   374		if cycle < 0 {
+   375			return nil, errors.New("wake_up_cycle_invalid")
+   376		}
+   377		correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)
+   378		// Check the lifecycle marker before reading or mutating any Wake-up state.
+   379		// Cognition can supersede a cycle while the activity is still between its
+   380		// durable boundaries; returning a terminal cancellation here keeps that
+   381		// cycle from repairing its clock or creating another action.
+   382		if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
+   383			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+   384		}
+   385		settings, err := a.readWakeUpSettings(ctx)
+   386		if err != nil {
+   387			return nil, err
+   388		}
+   389		if !settings.Enabled {
+   390			nextDue, err := a.ensureWakeUpNextDue(ctx, fluctlightID, cycle, settings.IntervalSeconds, "wake_up_disabled")
+   391			if err != nil {
+   392				return nil, err
+   393			}
+   394			a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
+   395			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "disabled", "reason": "wake_up_disabled", "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
+   396		}
+   397		fluctlight, err := a.readFluctlightByID(ctx, fluctlightID)
+   398		if err != nil {
+   399			return nil, err
+   400		}
+   401		if fluctlight.Status == "paused" {
+   402			nextDue, err := a.ensureWakeUpNextDue(ctx, fluctlightID, cycle, settings.IntervalSeconds, "fluctlight_paused")
+   403			if err != nil {
+   404				return nil, err
+   405			}
+   406			a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
+   407			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "paused", "reason": "fluctlight_paused", "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
+   408		}
+   409		if fluctlight.Status != "active" {
+   410			nextDue, err := a.ensureWakeUpNextDue(ctx, fluctlightID, cycle, settings.IntervalSeconds, "fluctlight_inactive")
+   411			if err != nil {
+   412				return nil, err
+   413			}
+   414			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "inactive", "reason": "fluctlight_not_active", "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
+   415		}
+   416		ctx = WithProviderExecutionGuard(ctx, a.providerGuardForFluctlight(fluctlightID))
+   417		wakeID := "wake_up_" + stableDigest(fluctlightID+":"+fmt.Sprint(cycle))
+   418		if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
+   419			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": wakeUpCycleCorrelation(fluctlightID, cycle), "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+   420		}
+   421		frozenActionID := "autonomy_wake_" + stableDigest(wakeID)
+   422		var existingStatus, existingActionType string
+   423		var existingActionID, existingReflectionIntentID *string
+   424		if err := a.DB.Pool().QueryRow(ctx, `SELECT status,action_type,action_id,reflection_intent_id FROM public.cognition_wakeups WHERE id=$1`, wakeID).Scan(&existingStatus, &existingActionType, &existingActionID, &existingReflectionIntentID); err == nil {
+   425			nextDue, dueErr := a.ensureWakeUpNextDue(ctx, fluctlightID, cycle, settings.IntervalSeconds, "wake_up_replay_repaired")
+   426			if dueErr != nil {
+   427				return nil, dueErr
+   428			}
+   429			a.scheduleWakeUpHint(ctx, fluctlightID, cycle, nextDue)
+   430			if existingReflectionIntentID != nil && strings.TrimSpace(*existingReflectionIntentID) != "" {
+   431				if triggerErr := a.scheduleReflectionTrigger(ctx, fluctlightID, reflectionQuietPeriod); triggerErr != nil {
+   432					return nil, triggerErr
+   433				}
+   434			}
+   435			return map[string]any{"wake_up_id": wakeID, "fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": existingStatus, "reason": "wake_up_replayed", "action_type": existingActionType, "action_id": existingActionID, "reflection_intent_id": existingReflectionIntentID, "interval_seconds": settings.IntervalSeconds, "next_due_at": nextDue.Format(time.RFC3339Nano)}, nil
+   436		} else if !errors.Is(err, pgx.ErrNoRows) {
+   437			return nil, err
+   438		}
+   439		var ownerID string
+   440		if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, fluctlightID).Scan(&ownerID); err != nil {
+   441			return nil, err
+   442		}
+   443		conversationID := ""
+   444		conversationErr := a.DB.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2 ORDER BY created_at LIMIT 1`, ownerID, fluctlightID).Scan(&conversationID)
+   445		if conversationErr != nil && !errors.Is(conversationErr, pgx.ErrNoRows) {
+   446			return nil, conversationErr
+   447		}
+   448		if conversationID == "" {
+   449			// WakeUp is allowed to send a proactive private message before the
+   450			// Owner has opened the chat page. Ensure the Core-owned direct
+   451			// conversation exists instead of demoting a valid conversation.reply
+   452			// invocation into a capability action with no message target.
+   453			conversationID, err = a.EnsureDirectConversation(ctx, ownerID, fluctlightID)
+   454			if err != nil {
+   455				return nil, err
+   456			}
+   457		}
+   458		memoryMode := MemoryConversationExact
+   459		projection, err := a.BuildContextProjectionFor(ctx, ContextProjectionRequest{
+   460			AuthorizationActorID: ownerID, SpeakerActorID: ownerID, FluctlightID: fluctlightID,
+   461			ConversationID: conversationID, SourceFactID: wakeID,
+   462			MemoryOperation: MemoryForWakeUp, MemoryConversationMode: memoryMode,
+   463		})
+   464		if err != nil {
+   465			return nil, err
+   466		}
+   467		visualIdentityActive, err := a.hasActiveVisualIdentity(ctx, fluctlightID)
+   468		if err != nil {
+   469			return nil, err
+   470		}
+   471		if !visualIdentityActive {
+   472			// The missing identity is an authoritative domain fact. Keep it in the
+   473			// structured wake-up context so the persona can express the need without
+   474			// relying on text matching or a hidden semantic parser.
+   475			if projection.VisualIdentity == nil {
+   476				projection.VisualIdentity = map[string]any{}
+   477			}
+   478			projection.VisualIdentity["missing"] = true
+   479		}
+   480		definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceWakeUp)
+   481		schema := wakeUpResponseSchema()
+   482		wakeUpContext := map[string]any{
+   483			"wake_up_id":      wakeID,
+   484			"cycle":           cycle,
+   485			"schedule_status": wakeUpScheduleStatus(projection.Schedule),
+   486		}
+   487		assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceWakeUp, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityWakeUpPolicyInstruction}, jsonString(wakeUpContext), definitions, "wake_up_response", schema)
+   488		if err != nil {
+   489			return nil, err
+   490		}
+   491		projection = assembledProjection
+   492		providerCtx := WithPromptDiagnostics(
+   493			WithProviderCancellationKey(
+   494				WithProviderCorrelation(WithProviderScenario(ctx, "wake_up"), correlationID),
+   495				WakeUpProviderCancellationMarker(fluctlightID, cycle),
+   496			),
+   497			assembly.Diagnostics,
+   498		)
+   499		run, err := a.RunADKStructuredTask(providerCtx, ADKStructuredTaskInput{
+   500			Role: "cognitive_assessment", Scenario: "wake_up", Messages: assembly.Messages,
+   501			Definitions: definitions, SchemaName: "wake_up_response", Schema: schema,
+   502			EnableThinking: structuredThinkingEnabledForSchema("wake_up_response"),
+   503			Capability: &ADKCapabilityRequest{
+   504				FluctlightID: fluctlightID, ConversationID: conversationID, SourceFactID: wakeID,
+   505				ActionID: frozenActionID, CorrelationID: correlationID, Surface: CapabilitySurfaceWakeUp,
+   506				Projection: projection,
+   507			},
+   508		})
+   509		if err != nil {
+   510			if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
+   511				return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+   512			}
+   513			if status, suppressed := providerSuppressionStatus(err); suppressed {
+   514				reason := "fluctlight_not_active"
+   515				if status == "paused" {
+   516					reason = "fluctlight_paused"
+   517				}
+   518				return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": status, "reason": reason, "interval_seconds": settings.IntervalSeconds}, nil
+   519			}
+   520			return nil, err
+   521		}
+   522		completion := run.Completion
+   523		if a.lifecycleCancellationRequested(ctx, WakeUpProviderCancellationMarker(fluctlightID, cycle)) {
+   524			return map[string]any{"fluctlight_id": fluctlightID, "cycle": cycle, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil
+   525		}
+   526		assessment := completion.Structured
+   527		toolCalls := append([]CapabilityInvocation(nil), completion.ToolCalls...)
+   528		// A tool-only completion is a valid wake-up decision. The tools are the
+   529		// model's decision surface; the JSON sidecar is optional metadata and must
+   530		// not be used as a gate that discards an otherwise executable reply/media or
+   360		Definitions    []CapabilityDefinition
+   361		SchemaName     string
+   362		Schema         map[string]any
+   363		EnableThinking bool
+   364		Capability     *ADKCapabilityRequest
+   365	}
+   366	
+   367	type ADKStructuredTaskResult struct {
+   368		Completion ProviderCompletion
+   369		Trace      *ADKCapabilityTrace
+   370	}
+   371	
+   372	// RunADKStructuredTask uses the shared surface-aware ADK bridge. It does not
+   373	// freeze, settle, publish or open a transaction; the caller owns those rules.
+   374	func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskInput) (ADKStructuredTaskResult, error) {
+   375		if a == nil || a.Provider == nil {
+   376			return ADKStructuredTaskResult{}, errors.New("adk_structured_task_provider_unavailable")
+   377		}
+   378		if !isADKLoopSchema(input.SchemaName) {
+   379			return ADKStructuredTaskResult{}, fmt.Errorf("adk_schema_not_allowed: %s", strings.TrimSpace(input.SchemaName))
+   380		}
+   381		if len(input.Definitions) > 0 && input.Capability == nil {
+   382			return ADKStructuredTaskResult{}, errors.New("adk_structured_task_capability_context_required")
+   383		}
+   384		if err := validateADKCapabilityDefinitions(a, input.Definitions, firstCapabilitySurface(input.Capability)); err != nil {
+   385			return ADKStructuredTaskResult{}, err
+   386		}
+   387		trace := &ADKCapabilityTrace{}
+   388		if input.Capability != nil {
+   389			invoker := newAppADKCapabilityInvoker(a, *input.Capability, trace)
+   390			ctx = WithADKCapabilityInvoker(ctx, invoker, trace)
+   391		}
+   392		if strings.TrimSpace(input.Scenario) != "" {
+   393			ctx = WithProviderScenario(ctx, input.Scenario)
+   394		}
+   395		completion, err := a.Provider.StructuredAssembledWithToolsSchema(ctx, input.Role, input.Messages, input.Definitions, input.SchemaName, input.Schema, input.EnableThinking)
+   396		if err != nil {
+   397			return ADKStructuredTaskResult{Trace: trace}, err
+   398		}
+   399		return ADKStructuredTaskResult{Completion: completion, Trace: trace}, nil
+   400	}
+   401	
+   402	func firstCapabilitySurface(request *ADKCapabilityRequest) CapabilitySurface {
+   403		if request == nil || request.Surface == "" {
+   404			return CapabilitySurfaceConversation
+   405		}
+   406		return request.Surface
+   407	}
+   408	
+   409	func validateADKCapabilityDefinitions(app *App, definitions []CapabilityDefinition, surface CapabilitySurface) error {
+   410		if len(definitions) == 0 {
+   411			return nil
+   412		}
+   413		if app == nil {
+   414			return errors.New("adk_capability_registry_unavailable")
+   415		}
+   416		registry := app.capabilityRegistry()
+   417		if registry == nil {
+   418			return errors.New("adk_capability_registry_unavailable")
+   419		}
+   420		seen := make(map[string]struct{}, len(definitions))
+   421		for _, definition := range definitions {
+   422			if _, duplicate := seen[definition.Name]; duplicate {
+   423				return fmt.Errorf("adk_capability_definition_duplicate: %s", definition.Name)
+   424			}
+   425			seen[definition.Name] = struct{}{}
+   426			canonical, ok := registry.Definition(definition.Name)
+   427			if !ok {
+   428				return fmt.Errorf("adk_capability_definition_unknown: %s", definition.Name)
+   429			}
+   430			if canonical.InternalOnly {
+   550	
+   551	func TestRunADKStructuredTaskRejectsNonLoopSchemaBeforeProviderIO(t *testing.T) {
+   552		app := &App{Provider: &ProviderClient{}}
+   553		_, err := app.RunADKStructuredTask(context.Background(), ADKStructuredTaskInput{
+   554			Role:       "cognitive_assessment",
+   555			Scenario:   "daily_review",
+   556			SchemaName: "daily_review_response",
+   557			Schema:     map[string]any{"type": "object"},
+   558		})
+   559		if err == nil || !strings.Contains(err.Error(), "adk_schema_not_allowed") {
+   560			t.Fatalf("non-loop schema was accepted by ADK boundary: %v", err)
+   561		}
+   562	}
+   563	
+   564	func TestProviderWakeUpUsesADKLoopAndPreservesTrace(t *testing.T) {
+   565		var mu sync.Mutex
+   566		requests := make([]map[string]any, 0, 2)
+   567		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+   568			defer r.Body.Close()
+   569			var payload map[string]any
+   570			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+   571				t.Errorf("decode request: %v", err)
+   572				return
+   573			}
+   574			mu.Lock()
+   575			requests = append(requests, payload)
+   576			count := len(requests)
+   577			mu.Unlock()
+   578			w.Header().Set("Content-Type", "application/json")
+   579			if count == 1 {
+   580				_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","content":"","tool_calls":[{"id":"wake-provider-call-1","type":"function","function":{"name":"relationship.lookup","arguments":"{\"intent\":\"recent\"}"}}]}}]}`))
+   581				return
+   582			}
+   583			_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"{\"action_type\":\"no_op\",\"response_mode\":\"final\"}"}}]}`))
+   584		}))
+   585		defer server.Close()
+   586	
+   587		trace := &ADKCapabilityTrace{}
+   588		ctx := WithADKCapabilityInvoker(WithProviderCorrelation(WithProviderScenario(context.Background(), "wake_up"), "wake_up:fl-1:cycle:3"), adkTraceInvoker{trace: trace}, trace)
+   589		p := &ProviderClient{HTTP: server.Client()}
+   590		response, err := p.generateWithEino(ctx, EinoModelCall{
+   591			Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: 10 * time.Second, TokenBudget: 128},
+   592			Role:       "cognitive_assessment", Scenario: "wake_up",
+   593			Messages:    []map[string]any{{"role": "system", "content": "wake protocol"}, {"role": "user", "content": "wake event"}},
+   594			Definitions: []CapabilityDefinition{{Name: "relationship.lookup", Description: "Read a bounded relationship fact", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}},
+   595			JSONMode:    true, SchemaName: "wake_up_response", ResponseSchema: map[string]any{"type": "object"},
+   596			ProviderRequestID: "provider-wake-request", CorrelationID: "wake_up:fl-1:cycle:3",
+   597		})
+   598		if err != nil {
+   599			t.Fatal(err)
+   600		}
+   601		if response.Message == nil || len(requests) != 2 || len(trace.Invocations) != 1 || trace.Invocations[0].CallID != "wake-provider-call-1" || trace.Invocations[0].Metadata.Source != "model_tool" {
+   602			t.Fatalf("response=%#v requests=%d trace=%#v", response.Message, len(requests), trace)
+   603		}
+   604		mu.Lock()
+   605		defer mu.Unlock()
+   606		var assistantCall, toolResult bool
+   607		for _, item := range arrayValue(requests[1]["messages"]) {
+   608			message := mapValue(item)
+   609			if stringValue(message["role"]) == "assistant" {
+   610				for _, call := range arrayValue(message["tool_calls"]) {
+   611					if stringValue(mapValue(call)["id"]) == "wake-provider-call-1" {
+   612						assistantCall = true
+   613					}
+   614				}
+   615			}
+   616			if stringValue(message["role"]) == "tool" && stringValue(message["tool_call_id"]) == "wake-provider-call-1" && stringValue(message["name"]) == "relationship.lookup" {
+   617				toolResult = true
+   618			}
+   619		}
+   620		if !assistantCall || !toolResult {
+   621			t.Fatalf("wake-up ADK second request lost tool pair: %#v", requests[1]["messages"])
+   622		}
+   623	}
+   624	
+   625	func TestAppADKInvokerUsesWakeUpSurface(t *testing.T) {
+   626		app := &App{}
+   627		registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
+   628		if err != nil {
+   629			t.Fatal(err)
+   630		}
+   631		app.Capabilities = registry
+   632		trace := &ADKCapabilityTrace{}
+   633		invoker := newAppADKCapabilityInvoker(app, ADKCapabilityRequest{
+   634			FluctlightID: "fl-1", ConversationID: "conv-1", SourceFactID: "wake-1", ActionID: "action-1",
+   635			CorrelationID: "wake_up:fl-1:cycle:1", Surface: CapabilitySurfaceWakeUp,
+   636		}, trace)
+   637		identityInvoker, ok := invoker.(ADKCapabilityInvokerWithID)
+   638		if !ok {
+   639			t.Fatal("production invoker does not preserve formal tool identity")
+   640		}
+   641		if _, err := identityInvoker.ExecuteWithID(context.Background(), "wake-call-1", "moment.publish", `{"text":"later"}`); err != nil {
+   642			t.Fatal(err)
+   643		}
+   644		if len(trace.Invocations) != 1 || trace.Invocations[0].Metadata.Surface != CapabilitySurfaceWakeUp || trace.Invocations[0].Metadata.CorrelationID != "wake_up:fl-1:cycle:1" {
+   645			t.Fatalf("wake-up invocation metadata = %#v", trace.Invocations)
+   646		}
+   647		if len(trace.Results) != 1 || trace.Results[0].Status != "deferred" || stringValue(mapValue(trace.Results[0].Output)["reason"]) != "settlement_pending" {
+   648			t.Fatalf("wake-up deferred result crossed the ADK callback boundary: %#v", trace.Results)
+   649		}
+   650	}
+

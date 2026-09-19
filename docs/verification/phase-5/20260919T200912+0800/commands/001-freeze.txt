@@ -1,0 +1,18 @@
+$ printf '%s\n' '## git status'; git status --porcelain=v1 --branch; printf '%s\n' '## HEAD'; git rev-parse HEAD; printf '%s\n' '## recent commits'; git log -8 --oneline --decorate
+exit_code=0
+
+## git status
+## codex/yaoguang-adk-phase2
+?? .trellis/tasks/09-19-yaoguang-phase5-acceptance/
+## HEAD
+ba6457aa5a256adbde245d6df1d062131aad4d8b
+## recent commits
+ba6457a (HEAD -> codex/yaoguang-adk-phase2) chore: record journal
+5a84b6e chore(task): archive 09-19-yaoguang-api-bff-cutover
+2758bb0 feat(api): merge browser boundary into core
+262529b chore: record journal
+c50786e chore(task): archive 09-19-yaoguang-background-adk-phase3
+32d6b10 feat(core): connect wakeup to shared adk runtime
+26aaca2 chore: record journal
+bcf83ad chore(task): archive 09-19-yaoguang-adk-conversation-phase2
+

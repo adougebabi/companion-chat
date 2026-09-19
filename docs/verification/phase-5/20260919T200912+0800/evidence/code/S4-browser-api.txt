@@ -1,0 +1,381 @@
+$ nl -ba apps/core-go/internal/httpapi/server.go | sed -n '100,180p'; nl -ba apps/core-go/internal/httpapi/browser_backend.go | sed -n '1,115p'; nl -ba apps/core-go/internal/httpapi/browser/routes.go | sed -n '40,220p'
+exit_code=0
+
+   100		mux.HandleFunc("GET /internal/capability-requests", s.capabilityRequests)
+   101		mux.HandleFunc("POST /internal/capability-requests/{requestID}/review", s.reviewCapabilityRequest)
+   102		mux.HandleFunc("POST /internal/autonomy-actions/{actionID}/govern", s.governAutonomy)
+   103		mux.HandleFunc("GET /internal/moments", s.allMoments)
+   104		mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/moments/read", s.markMomentsRead)
+   105		mux.HandleFunc("POST /internal/moments/{momentID}/comments", s.commentMoment)
+   106		mux.HandleFunc("POST /internal/moments/{momentID}/reactions", s.reactMoment)
+   107		mux.HandleFunc("POST /internal/moments/{momentID}/hide", s.hideMoment)
+   108		mux.HandleFunc("POST /internal/moments/{momentID}/restore", s.restoreMoment)
+   109		mux.HandleFunc("POST /internal/conversations", s.createConversation)
+   110		mux.HandleFunc("POST /internal/conversations/{conversationID}/read", s.markRead)
+   111		mux.HandleFunc("PUT /internal/memories/{memoryID}", s.reviseMemory)
+   112		mux.HandleFunc("POST /internal/memories/{memoryID}/forget", s.forgetMemory)
+   113		mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/schedules", s.schedule)
+   114		mux.HandleFunc("GET /internal/conversations/{conversationID}/history", s.history)
+   115		mux.HandleFunc("POST /internal/conversations/{conversationID}/turn", s.turn)
+   116		mux.HandleFunc("GET /internal/media/{assetID}", s.media)
+   117		mux.HandleFunc("GET /internal/diagnostics", s.diagnostics)
+   118		mux.HandleFunc("GET /internal/diagnostics/lifecycle", s.lifecycleDiagnostics)
+   119		mux.HandleFunc("DELETE /internal/diagnostics", s.clearDiagnostics)
+   120		mux.HandleFunc("GET /internal/diagnostics/model-runs", s.modelRuns)
+   121		mux.HandleFunc("GET /internal/diagnostics/media-prompts", s.mediaPrompts)
+   122		mux.HandleFunc("POST /internal/diagnostics/media-prompts/{mediaIntentID}/retry", s.retryMediaPrompt)
+   123		mux.HandleFunc("GET /internal/diagnostics/export", s.exportDiagnostics)
+   124		mux.HandleFunc("GET /internal/diagnostics/workflows", s.workflowList)
+   125		mux.HandleFunc("GET /internal/diagnostics/workflows/{workflowID}/status", s.workflowStatus)
+   126		mux.HandleFunc("GET /internal/diagnostics/workflows/{workflowID}/history", s.workflowHistory)
+   127		mux.HandleFunc("POST /internal/diagnostics/workflows/{workflowID}/pause", s.workflowCommand)
+   128		mux.HandleFunc("POST /internal/diagnostics/workflows/{workflowID}/resume", s.workflowCommand)
+   129		mux.HandleFunc("POST /internal/diagnostics/workflows/{workflowID}/cancel", s.workflowCommand)
+   130		mux.HandleFunc("POST /internal/diagnostics/workflows/{workflowID}/reset", s.workflowCommand)
+   131		mux.HandleFunc("POST /internal/diagnostics/workflows/{workflowID}/restart", s.workflowCommand)
+   132		browserHandler := browserboundary.New(browserboundary.Options{
+   133			Backend:       newBrowserBackend(s),
+   134			TrustedOrigin: s.browserTrustedOrigin,
+   135			SecureCookies: s.browserSecureCookies,
+   136		}).Handler()
+   137		return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+   138			response.Header().Set("Cache-Control", "no-store")
+   139			if isBrowserPath(request.URL.Path) {
+   140				browserHandler.ServeHTTP(response, request)
+   141				return
+   142			}
+   143			mux.ServeHTTP(response, request)
+   144		})
+   145	}
+   146	
+   147	func isBrowserPath(path string) bool {
+   148		return path == "/health/live" || path == "/health/ready" || strings.HasPrefix(path, "/auth/") || strings.HasPrefix(path, "/api/")
+   149	}
+   150	
+   151	func (s *Server) live(response http.ResponseWriter, _ *http.Request) {
+   152		writeJSON(response, http.StatusOK, map[string]string{"status": "ok", "role": "api"})
+   153	}
+   154	
+   155	func (s *Server) ready(response http.ResponseWriter, request *http.Request) {
+   156		if err := s.repository.Ping(request.Context()); err != nil {
+   157			writeError(response, http.StatusServiceUnavailable, "core_go_not_ready")
+   158			return
+   159		}
+   160		writeJSON(response, http.StatusOK, map[string]string{"status": "ready", "role": "api"})
+   161	}
+   162	
+   163	func (s *Server) ping(response http.ResponseWriter, request *http.Request) {
+   164		if !s.authorizeService(response, request) {
+   165			return
+   166		}
+   167		writeJSON(response, http.StatusOK, map[string]string{"status": "ok", "role": "api"})
+   168	}
+   169	
+   170	func (s *Server) session(response http.ResponseWriter, request *http.Request) {
+   171		if !s.authorizeService(response, request) {
+   172			return
+   173		}
+   174		actorID, err := s.repository.ResolveSession(request.Context(), request.Header.Get(humanSessionHeader))
+   175		if errors.Is(err, core.ErrUnauthorized) {
+   176			writeJSON(response, http.StatusOK, map[string]any{"authenticated": false})
+   177			return
+   178		}
+   179		if err != nil {
+   180			writeError(response, http.StatusBadGateway, "core_go_session_failed")
+     1	package httpapi
+     2	
+     3	// This file is the in-process implementation of the browser transport
+     4	// boundary. It replaces the former gateway -> Core HTTP client with explicit
+     5	// calls to the existing App/Repository services. No browser request is
+     6	// converted into a second HTTP request and no internal handler is invoked.
+     7	
+     8	import (
+     9		"context"
+    10		"encoding/json"
+    11		"errors"
+    12		"fmt"
+    13		"net/http"
+    14		"net/url"
+    15		"strconv"
+    16		"strings"
+    17	
+    18		"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
+    19		"github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser"
+    20	)
+    21	
+    22	type browserBackend struct{ server *Server }
+    23	
+    24	func newBrowserBackend(server *Server) browser.Backend { return &browserBackend{server: server} }
+    25	
+    26	func (b *browserBackend) Health(ctx context.Context) error {
+    27		if b == nil || b.server == nil || b.server.repository == nil {
+    28			return errors.New("API repository is unavailable")
+    29		}
+    30		return b.server.repository.Ping(ctx)
+    31	}
+    32	
+    33	func (b *browserBackend) DoJSON(ctx context.Context, method, endpoint, session string, body any) (map[string]any, error) {
+    34		value, err := b.dispatch(ctx, method, endpoint, session, body)
+    35		if err != nil {
+    36			return nil, err
+    37		}
+    38		if value == nil {
+    39			return map[string]any{}, nil
+    40		}
+    41		result, ok := value.(map[string]any)
+    42		if ok {
+    43			return result, nil
+    44		}
+    45		return jsonMap(value)
+    46	}
+    47	
+    48	func (b *browserBackend) DoAny(ctx context.Context, method, endpoint, session string, body any) (any, error) {
+    49		return b.dispatch(ctx, method, endpoint, session, body)
+    50	}
+    51	
+    52	func (b *browserBackend) DoValue(ctx context.Context, method, endpoint, session string, body any, out any) error {
+    53		value, err := b.dispatch(ctx, method, endpoint, session, body)
+    54		if err != nil {
+    55			return err
+    56		}
+    57		encoded, err := json.Marshal(value)
+    58		if err != nil {
+    59			return err
+    60		}
+    61		return json.Unmarshal(encoded, out)
+    62	}
+    63	
+    64	func (b *browserBackend) StreamTurn(ctx context.Context, session, conversationID string, payload map[string]any, writer http.ResponseWriter) error {
+    65		actorID, err := b.resolveActor(ctx, session)
+    66		if err != nil {
+    67			return err
+    68		}
+    69		writer.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
+    70		return b.server.app.StreamTurn(ctx, writer, actorID, conversationID, payload)
+    71	}
+    72	
+    73	func (b *browserBackend) Media(ctx context.Context, session, assetID, rangeHeader string, writer http.ResponseWriter) error {
+    74		actorID, err := b.resolveActor(ctx, session)
+    75		if err != nil {
+    76			return err
+    77		}
+    78		if err := b.server.app.AuthorizeAsset(ctx, actorID, assetID); err != nil {
+    79			return browserBackendError(err, "media_unavailable")
+    80		}
+    81		if err := b.server.app.ServeMedia(ctx, writer, assetID, rangeHeader); err != nil {
+    82			return browserBackendError(err, "media_unavailable")
+    83		}
+    84		return nil
+    85	}
+    86	
+    87	func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session string, body any) (any, error) {
+    88		parsed, err := url.Parse(endpoint)
+    89		if err != nil {
+    90			return nil, browserBackendError(err, "core_request_invalid")
+    91		}
+    92		path := parsed.Path
+    93		values := objectBody(body)
+    94	
+    95		// Anonymous authentication operations retain the public session contract.
+    96		switch path {
+    97		case "/internal/platform/ping":
+    98			if method != http.MethodGet {
+    99				return nil, browserBackendError(errors.New("method not allowed"), "method_not_allowed")
+   100			}
+   101			return map[string]any{"status": "ok", "role": "api"}, nil
+   102		case "/internal/auth/session":
+   103			if strings.TrimSpace(session) == "" {
+   104				return map[string]any{"authenticated": false}, nil
+   105			}
+   106			actorID, resolveErr := b.server.repository.ResolveSession(ctx, session)
+   107			if errors.Is(resolveErr, core.ErrUnauthorized) {
+   108				return map[string]any{"authenticated": false}, nil
+   109			}
+   110			if resolveErr != nil {
+   111				return nil, browserBackendError(resolveErr, "core_go_session_failed")
+   112			}
+   113			return map[string]any{"authenticated": true, "actor_id": actorID}, nil
+   114		case "/internal/auth/setup-status":
+   115			available, setupErr := b.server.app.SetupAvailable(ctx)
+    40		return &Server{
+    41			backend:       options.Backend,
+    42			trustedOrigin: normalizeOrigin(options.TrustedOrigin),
+    43			secureCookies: secure,
+    44		}
+    45	}
+    46	
+    47	// NewServer is kept as an explicit constructor alias for callers migrating
+    48	// from the initial gateway package naming.
+    49	func NewServer(options Options) *Server { return New(options) }
+    50	
+    51	func (s *Server) Handler() http.Handler {
+    52		return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+    53			corsHeaders(response, request, s.trustedOrigin)
+    54			wrapped := &commonResponseWriter{ResponseWriter: response, secure: s.secureCookies, request: request}
+    55			if request.Method == http.MethodOptions {
+    56				optionsResponse(wrapped, request, s.trustedOrigin)
+    57				return
+    58			}
+    59			s.route(wrapped, request)
+    60		})
+    61	}
+    62	
+    63	func (s *Server) route(response http.ResponseWriter, request *http.Request) {
+    64		path := request.URL.Path
+    65	
+    66		if path == "/health/live" {
+    67			if !method(response, request, http.MethodGet) {
+    68				return
+    69			}
+    70			writeJSON(response, http.StatusOK, liveHealth())
+    71			return
+    72		}
+    73		if path == "/health/ready" {
+    74			if !method(response, request, http.MethodGet) {
+    75				return
+    76			}
+    77			if !isReady(request.Context(), s.backend.Health) {
+    78				writeJSON(response, http.StatusServiceUnavailable, unavailableHealth())
+    79				return
+    80			}
+    81			writeJSON(response, http.StatusOK, readyHealth())
+    82			return
+    83		}
+    84		if path == "/api/platform/ping" {
+    85			if !method(response, request, http.MethodGet) {
+    86				return
+    87			}
+    88			value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/platform/ping", "", nil)
+    89			if err != nil {
+    90				writeError(response, http.StatusBadGateway, "core_unavailable", "Core platform is unavailable")
+    91				return
+    92			}
+    93			writeJSON(response, http.StatusOK, value)
+    94			return
+    95		}
+    96	
+    97		// Authentication has a small number of anonymous endpoints.
+    98		if path == "/auth/session" {
+    99			if !method(response, request, http.MethodGet) {
+   100				return
+   101			}
+   102			value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/auth/session", cookieValue(request, sessionCookieName), nil)
+   103			if err != nil || !truthy(value["authenticated"]) {
+   104				clearSessionCookie(response, s.secureCookies)
+   105				writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
+   106				return
+   107			}
+   108			sessionResponse := map[string]any{"authenticated": true}
+   109			if actorID := first(value, "actorId", "actor_id"); actorID != nil {
+   110				sessionResponse["actorId"] = actorID
+   111			}
+   112			writeJSON(response, http.StatusOK, sessionResponse)
+   113			return
+   114		}
+   115		if path == "/auth/setup-status" {
+   116			if !method(response, request, http.MethodGet) {
+   117				return
+   118			}
+   119			value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/auth/setup-status", "", nil)
+   120			if err != nil {
+   121				writeError(response, http.StatusBadGateway, "core_unavailable", "Core authentication is unavailable")
+   122				return
+   123			}
+   124			writeJSON(response, http.StatusOK, map[string]any{"setupAvailable": truthy(first(value, "setup_available", "setupAvailable"))})
+   125			return
+   126		}
+   127		if path == "/auth/login" || path == "/auth/setup" {
+   128			if !method(response, request, http.MethodPost) {
+   129				return
+   130			}
+   131			body, ok := readBody(response, request)
+   132			if !ok || !validatePassword(body["password"]) || (path == "/auth/setup" && !validateString(body["setupToken"], 16, 1<<20)) {
+   133				if ok {
+   134					writeError(response, http.StatusBadRequest, "invalid_request", "Request validation failed")
+   135				}
+   136				return
+   137			}
+   138			if !mutationGuard(response, request, s.trustedOrigin) {
+   139				return
+   140			}
+   141			coreBody := map[string]any{"password": body["password"]}
+   142			endpoint := "/internal/auth/login"
+   143			if path == "/auth/setup" {
+   144				endpoint = "/internal/auth/setup"
+   145				coreBody["setup_token"] = body["setupToken"]
+   146			}
+   147			value, err := s.backend.DoJSON(request.Context(), http.MethodPost, endpoint, "", coreBody)
+   148			if err != nil {
+   149				writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
+   150				return
+   151			}
+   152			sessionToken := stringValue(first(value, "session_token", "sessionToken"))
+   153			if sessionToken == "" || !truthy(value["authenticated"]) {
+   154				writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
+   155				return
+   156			}
+   157			setSessionCookie(response, sessionToken, s.secureCookies)
+   158			setCSRFCookie(response, newCSRFToken(), s.secureCookies)
+   159			authenticated := map[string]any{"authenticated": true}
+   160			if actorID := first(value, "actor_id", "actorId"); actorID != nil {
+   161				authenticated["actorId"] = actorID
+   162			}
+   163			writeJSON(response, http.StatusOK, authenticated)
+   164			return
+   165		}
+   166		if path == "/auth/logout" || path == "/auth/revoke-all" || path == "/auth/password" {
+   167			if !method(response, request, http.MethodPost) {
+   168				return
+   169			}
+   170			var passwordBody map[string]any
+   171			if path == "/auth/password" {
+   172				var valid bool
+   173				passwordBody, valid = readBody(response, request)
+   174				if !valid || !validatePassword(passwordBody["password"]) {
+   175					if valid {
+   176						writeError(response, http.StatusBadRequest, "invalid_request", "Request validation failed")
+   177					}
+   178					return
+   179				}
+   180			}
+   181			if !mutationGuard(response, request, s.trustedOrigin) {
+   182				return
+   183			}
+   184			session := cookieValue(request, sessionCookieName)
+   185			if path != "/auth/logout" && session == "" {
+   186				writeError(response, http.StatusUnauthorized, "unauthenticated", "Authentication is required")
+   187				return
+   188			}
+   189			if path == "/auth/password" {
+   190				if _, err := s.backend.DoJSON(request.Context(), http.MethodPost, "/internal/auth/reset-password", session, map[string]any{"password": passwordBody["password"]}); err != nil {
+   191					writeError(response, http.StatusForbidden, "password_change_failed", "Password could not be changed")
+   192					return
+   193				}
+   194				clearSessionCookie(response, s.secureCookies)
+   195				setCSRFCookie(response, newCSRFToken(), s.secureCookies)
+   196				response.WriteHeader(http.StatusNoContent)
+   197				return
+   198			}
+   199			if session != "" {
+   200				endpoint := "/internal/auth/revoke-current"
+   201				failureCode, failureMessage := "logout_failed", "Session could not be revoked"
+   202				if path == "/auth/revoke-all" {
+   203					endpoint, failureCode, failureMessage = "/internal/auth/revoke-all", "revoke_failed", "Session revocation failed"
+   204				}
+   205				if _, err := s.backend.DoJSON(request.Context(), http.MethodPost, endpoint, session, nil); err != nil {
+   206					if path == "/auth/logout" {
+   207						clearSessionCookie(response, s.secureCookies)
+   208						setCSRFCookie(response, newCSRFToken(), s.secureCookies)
+   209						response.WriteHeader(http.StatusNoContent)
+   210						return
+   211					}
+   212					writeError(response, http.StatusForbidden, failureCode, failureMessage)
+   213					return
+   214				}
+   215			}
+   216			clearSessionCookie(response, s.secureCookies)
+   217			setCSRFCookie(response, newCSRFToken(), s.secureCookies)
+   218			response.WriteHeader(http.StatusNoContent)
+   219			return
+   220		}
+

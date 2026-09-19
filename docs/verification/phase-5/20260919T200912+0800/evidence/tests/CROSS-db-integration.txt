@@ -1,0 +1,23 @@
+$ go test -mod=readonly ./internal/core -run 'Test(StructuredTurnSettlementRollsBackStateAssistantAndOutcomeTogether|NativeCognitionRequiredFailureReplaysFrozenDecisionWithoutSecondProviderCall|NativeCognitionCycleGuardBoundsCapabilityProducedLifeFacts|AutonomyCapabilityActionRollsBackTransactionalSiblingOnRequiredFailure|PostgresActiveMemoryLifecycleReplayCASExpiryAndSupersede)' -count=1 -v
+exit_code=0
+wall_time_seconds=1.380008041
+
+=== RUN   TestPostgresActiveMemoryLifecycleReplayCASExpiryAndSupersede
+    active_memory_test.go:204: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestPostgresActiveMemoryLifecycleReplayCASExpiryAndSupersede (0.00s)
+=== RUN   TestStructuredTurnSettlementRollsBackStateAssistantAndOutcomeTogether
+    project_health_transaction_integration_test.go:317: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestStructuredTurnSettlementRollsBackStateAssistantAndOutcomeTogether (0.00s)
+=== RUN   TestNativeCognitionRequiredFailureReplaysFrozenDecisionWithoutSecondProviderCall
+    project_health_transaction_integration_test.go:603: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestNativeCognitionRequiredFailureReplaysFrozenDecisionWithoutSecondProviderCall (0.00s)
+=== RUN   TestNativeCognitionCycleGuardBoundsCapabilityProducedLifeFacts
+    project_health_transaction_integration_test.go:1097: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestNativeCognitionCycleGuardBoundsCapabilityProducedLifeFacts (0.00s)
+=== RUN   TestAutonomyCapabilityActionRollsBackTransactionalSiblingOnRequiredFailure
+    project_health_transaction_integration_test.go:1146: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestAutonomyCapabilityActionRollsBackTransactionalSiblingOnRequiredFailure (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.357s
+
+

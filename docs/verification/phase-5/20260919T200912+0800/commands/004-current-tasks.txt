@@ -1,0 +1,42 @@
+$ python3 ./.trellis/scripts/get_context.py --mode record | sed -n '1,120p'
+exit_code=0
+
+========================================
+SESSION CONTEXT (RECORD MODE)
+========================================
+
+## [!!!] MY ACTIVE TASKS (Assigned to adoumibaba)
+[!] Review whether any should be archived before recording this session.
+
+- [P2] Complete Python Core migration to Go (in_progress) — 08-30-go-core-full-migration
+- [P2] 摇光视觉身份工作流 (in_progress) — 09-03-yaoguang-visual-identity
+- [P2] 项目体检与摇光基础能力修复规划 (planning) — 09-08-project-health-evolution
+- [P2] LLM Capability Runtime 全量重构 (in_progress) — 09-09-llm-capability-runtime
+- [P2] Project Health Evolution (in_progress) — 09-10-project-health-evolution
+- [P2] Runtime usability recovery (in_progress) — 09-13-runtime-usability-recovery
+- [P2] 多重人格接管、Working Persona 与 Prompt 收敛 (completed) — 09-14-persona-takeover-working-prompt
+- [P2] 摇光项目第五阶段：前四阶段联合验收与最终审查证据 (in_progress) — 09-19-yaoguang-phase5-acceptance
+
+## GIT STATUS
+Branch: codex/yaoguang-adk-phase2
+Working directory: 2 uncommitted change(s)
+
+Changes:
+?? .trellis/tasks/09-19-yaoguang-phase5-acceptance/
+?? docs/verification/
+
+## RECENT COMMITS
+ba6457a chore: record journal
+5a84b6e chore(task): archive 09-19-yaoguang-api-bff-cutover
+2758bb0 feat(api): merge browser boundary into core
+262529b chore: record journal
+c50786e chore(task): archive 09-19-yaoguang-background-adk-phase3
+
+## CURRENT TASK
+Path: .trellis/tasks/09-19-yaoguang-phase5-acceptance
+Source: session:codex_01a0b4b8-7538-7cf2-bed2-8579bae5f227
+Name: yaoguang-phase5-acceptance
+Status: in_progress
+
+========================================
+

@@ -1,0 +1,30 @@
+$ printf '%s\n' '## old browser/gateway paths'; rg -n 'apps/gateway-go|fluctlight-bff|CORE_BASE_URL|FLUCTLIGHT_BFF_ORIGIN|BFF_HOST_PORT|BFF_PORT|BFF_IMAGE|BFF_MEMORY_LIMIT|VITE_DEV_BFF|bffOrigin' --glob '!**/.git/**' --glob '!**/archive/**' --glob '!**/dist/**' --glob '!pnpm-lock.yaml' . || true; printf '%s\n' '## raw model HTTP/path patterns'; rg -n 'chat/completions|/embeddings|http.NewRequest|http.Client|for .*Tool|RunMainConversationTask|RunTakeoverReplyTask|RunTakeoverJudgeTask' apps/core-go --glob '*.go' --glob '!**/*_test.go' || true; printf '%s\n' '## gateway filesystem'; if [ -e apps/gateway-go ]; then find apps/gateway-go -maxdepth 3 -type f -print; else echo 'apps/gateway-go absent'; fi
+exit_code=0
+
+## old browser/gateway paths
+## raw model HTTP/path patterns
+apps/core-go/internal/core/adk_conversation_runtime.go:321:			for _, call := range copyMessage.ToolCalls {
+apps/core-go/internal/core/composite_actions.go:202:	for _, call := range action.ToolCalls {
+apps/core-go/internal/core/media.go:134:		request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/prompt", bytes.NewReader(payload))
+apps/core-go/internal/core/media.go:142:			client = &http.Client{Timeout: 30 * time.Second}
+apps/core-go/internal/core/media.go:604:	request, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(baseURL, "/")+"/upload/image", &body)
+apps/core-go/internal/core/media.go:611:		client = &http.Client{Timeout: 30 * time.Second}
+apps/core-go/internal/core/media.go:651:	request, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/history/"+url.PathEscape(jobID), nil)
+apps/core-go/internal/core/media.go:655:	response, err := (&http.Client{Timeout: 30 * time.Second}).Do(request)
+apps/core-go/internal/core/media.go:698:	request, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/view?"+query.Encode(), nil)
+apps/core-go/internal/core/media.go:702:	response, err := (&http.Client{Timeout: 30 * time.Second}).Do(request)
+apps/core-go/internal/core/app.go:112:		Provider:    &ProviderClient{DB: repository, SettingsKey: key, HTTP: &http.Client{Timeout: 15 * time.Minute}},
+apps/core-go/internal/core/eino_model_runtime.go:35:	HTTPClient          *http.Client
+apps/core-go/internal/core/eino_model_runtime.go:44:	HTTPClient *http.Client
+apps/core-go/internal/core/eino_model_runtime.go:47:func NewEinoModelFactory(client *http.Client) EinoModelFactory {
+apps/core-go/internal/core/eino_model_runtime.go:60:		client = &http.Client{Timeout: config.Timeout}
+apps/core-go/internal/core/eino_model_runtime.go:91:		client = &http.Client{Timeout: config.Timeout}
+apps/core-go/internal/core/eino_model_runtime.go:240:func einoHTTPClientWithHeaders(base *http.Client, headers map[string]string) *http.Client {
+apps/core-go/internal/core/eino_model_runtime.go:242:		base = &http.Client{}
+apps/core-go/internal/core/eino_model_runtime.go:444:	for _, call := range message.ToolCalls {
+apps/core-go/internal/core/settings.go:315:	req, _ := http.NewRequestWithContext(requestCtx, http.MethodGet, strings.TrimRight(base, "/")+"/models", nil)
+apps/core-go/internal/core/settings.go:321:		client = &http.Client{Timeout: 10 * time.Second}
+apps/core-go/internal/core/provider.go:21:	HTTP        *http.Client
+apps/core-go/internal/core/provider.go:397:			for index := range completion.ToolCalls {
+## gateway filesystem
+

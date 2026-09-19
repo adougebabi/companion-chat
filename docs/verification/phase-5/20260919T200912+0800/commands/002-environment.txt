@@ -1,0 +1,19 @@
+$ printf '%s\n' '## system'; uname -a; printf '%s\n' '## tools'; go version; node --version; pnpm --version; printf '%s\n' '## env presence (values redacted)'; for k in GO_CORE_TEST_DATABASE_URL DATABASE_URL REDIS_URL TEMPORAL_ADDRESS TEMPORAL_NAMESPACE FLUCTLIGHT_CORE_SERVICE_KEY FLUCTLIGHT_TRUSTED_ORIGIN S3_ENDPOINT; do if printenv "$k" | grep -q .; then printf '%s=present\n' "$k"; else printf '%s=absent\n' "$k"; fi; done
+exit_code=0
+
+## system
+Darwin MacBook-Pro-16.local 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:05:48 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6041 arm64
+## tools
+go version go1.26.3 darwin/arm64
+v24.12.0
+11.0.7
+## env presence (values redacted)
+GO_CORE_TEST_DATABASE_URL=absent
+DATABASE_URL=absent
+REDIS_URL=absent
+TEMPORAL_ADDRESS=absent
+TEMPORAL_NAMESPACE=absent
+FLUCTLIGHT_CORE_SERVICE_KEY=absent
+FLUCTLIGHT_TRUSTED_ORIGIN=absent
+S3_ENDPOINT=absent
+

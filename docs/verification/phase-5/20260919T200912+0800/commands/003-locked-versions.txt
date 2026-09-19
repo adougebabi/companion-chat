@@ -1,0 +1,29 @@
+$ printf '%s\n' '## core go.mod selected versions'; rg -n 'cloudwego/eino|temporalio/sdk|redis/go-redis|pgx/v5' apps/core-go/go.mod; printf '%s\n' '## browser package'; cat packages/browser-client/package.json | sed -n '1,80p'
+exit_code=0
+
+## core go.mod selected versions
+7:	github.com/cloudwego/eino v0.7.37
+8:	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20260916065400-2607f61e807f
+9:	github.com/cloudwego/eino-ext/components/model/openai v0.1.13
+11:	github.com/jackc/pgx/v5 v5.9.2
+13:	github.com/redis/go-redis/v9 v9.7.3
+28:	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.17 // indirect
+## browser package
+{
+  "name": "@fluctlight/browser-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "generate:openapi": "node scripts/generate-openapi.mjs",
+    "generate": "node scripts/generate.mjs",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsx": "4.20.5",
+    "typescript": "5.9.3"
+  }
+}
+

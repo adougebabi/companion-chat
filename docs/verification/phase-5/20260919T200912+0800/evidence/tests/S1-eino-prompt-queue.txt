@@ -1,0 +1,36 @@
+$ go test -mod=readonly ./internal/core -run 'Test(EinoFactoryUsesOfficialChatModelAndPreservesToolCalls|EinoFactoryUsesOfficialEmbedder|StreamWithEinoAggregatesChunksAndPropagatesCallback|RunADKLoopExecutesCapabilityAndFeedsResultBack|RunADKLoopRejectsIterationLimitAboveTwo|RunADKLoopModelFailureHasNoFinalMessage|RunADKLoopToolFailureHasNoFinalMessage|RunADKLoopStopsLoopAtTwoGenerations|RunADKLoopCancellationDoesNotFabricateFinalMessage|PromptComposerUsesExplicitSlotsAndPreservesWholeTurns|PromptComposerSlotBudgetAndCancellationFailClosed|ProviderQueueHonorsPriorityAndFIFO|ProviderQueueCancellationReleasesPendingTask|ProviderModelRunIdentitySeparatesAttempts)$' -count=1 -v
+exit_code=0
+wall_time_seconds=3.320232958
+
+=== RUN   TestProviderModelRunIdentitySeparatesAttempts
+--- PASS: TestProviderModelRunIdentitySeparatesAttempts (0.00s)
+=== RUN   TestEinoFactoryUsesOfficialChatModelAndPreservesToolCalls
+--- PASS: TestEinoFactoryUsesOfficialChatModelAndPreservesToolCalls (0.00s)
+=== RUN   TestEinoFactoryUsesOfficialEmbedder
+--- PASS: TestEinoFactoryUsesOfficialEmbedder (0.00s)
+=== RUN   TestStreamWithEinoAggregatesChunksAndPropagatesCallback
+--- PASS: TestStreamWithEinoAggregatesChunksAndPropagatesCallback (0.00s)
+=== RUN   TestRunADKLoopExecutesCapabilityAndFeedsResultBack
+--- PASS: TestRunADKLoopExecutesCapabilityAndFeedsResultBack (0.00s)
+=== RUN   TestRunADKLoopRejectsIterationLimitAboveTwo
+--- PASS: TestRunADKLoopRejectsIterationLimitAboveTwo (0.00s)
+=== RUN   TestRunADKLoopModelFailureHasNoFinalMessage
+--- PASS: TestRunADKLoopModelFailureHasNoFinalMessage (0.00s)
+=== RUN   TestRunADKLoopToolFailureHasNoFinalMessage
+--- PASS: TestRunADKLoopToolFailureHasNoFinalMessage (0.00s)
+=== RUN   TestRunADKLoopStopsLoopAtTwoGenerations
+--- PASS: TestRunADKLoopStopsLoopAtTwoGenerations (0.00s)
+=== RUN   TestRunADKLoopCancellationDoesNotFabricateFinalMessage
+--- PASS: TestRunADKLoopCancellationDoesNotFabricateFinalMessage (0.00s)
+=== RUN   TestPromptComposerUsesExplicitSlotsAndPreservesWholeTurns
+--- PASS: TestPromptComposerUsesExplicitSlotsAndPreservesWholeTurns (0.00s)
+=== RUN   TestPromptComposerSlotBudgetAndCancellationFailClosed
+--- PASS: TestPromptComposerSlotBudgetAndCancellationFailClosed (0.00s)
+=== RUN   TestProviderQueueHonorsPriorityAndFIFO
+--- PASS: TestProviderQueueHonorsPriorityAndFIFO (0.05s)
+=== RUN   TestProviderQueueCancellationReleasesPendingTask
+--- PASS: TestProviderQueueCancellationReleasesPendingTask (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.794s
+
+

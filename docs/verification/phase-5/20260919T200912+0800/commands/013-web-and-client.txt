@@ -1,0 +1,93 @@
+$ pnpm --filter @fluctlight/web lint && pnpm --filter @fluctlight/web typecheck && pnpm --filter @fluctlight/web test && pnpm --filter @fluctlight/web build && pnpm --filter @fluctlight/browser-client typecheck && pnpm --filter @fluctlight/browser-client test
+exit_code=0
+wall_time_seconds=9.788061
+
+$ vue-tsc --noEmit
+$ vue-tsc --noEmit
+$ node --test test/*.test.mjs
+✔ control center keeps keyboard, live-region, and form boundaries explicit (0.505667ms)
+✔ governance exposes the owner capability request pool (0.333167ms)
+✔ browser client keeps capability request endpoints at the API boundary (0.0645ms)
+✔ a new submit remains visible while an older durable retry is being processed (237.734333ms)
+✔ a stale post-stream history read cannot erase committed streamed messages (58.148541ms)
+✔ a successful older retry cannot overwrite or lose the separately identified queued user turn (55.958084ms)
+✔ a terminal cognition error keeps the authoritative user message visible and retry-bound (47.752375ms)
+✔ a non-2xx turn response keeps the API error code instead of collapsing to turn_failed (55.064458ms)
+✔ a retry from a discarded conversation is pruned when the server returns a new conversation (51.392875ms)
+✔ a completed retry from another conversation no longer blocks the selected conversation (51.829125ms)
+✔ detail display has safe object formatting and Chinese field labels (0.46575ms)
+✔ provider role defaults preserve enough output budget for initialization (0.064ms)
+✔ detail owns read-only life-world sections and uses timezone-aware timeline formatting (0.101167ms)
+✔ detail exposes a Chinese progressive state drawer (0.099208ms)
+✔ detail exposes the owner-only initialization source as a collapsed safe panel (0.612459ms)
+✔ settings accordion remounts when the selected section changes (0.080875ms)
+✔ PC shell and role tabs do not scroll the outer frame (0.134459ms)
+✔ schedule timeline highlights the item active at the current instant (0.074167ms)
+✔ model run diagnostics show the server creation time (2.593916ms)
+✔ Lifecycle Diagnostics exposes typed filters and PostgreSQL intent snapshots (0.351875ms)
+✔ diagnostics sources use independent filter epochs (0.089834ms)
+✔ Lifecycle Diagnostics renders empty, overdue, no-op, retry and failure states safely on narrow screens (0.187708ms)
+✔ filtered export reuses every active lifecycle filter (0.082375ms)
+✔ default group reconciliation keeps only ungrouped actor IDs for assignment (0.354792ms)
+✔ actor group payloads normalize the migrated members key before filtering (0.069792ms)
+✔ Telegram-style workspace keeps four primary tabs (0.533958ms)
+✔ settings configuration is progressively disclosed by closed drawers (0.501959ms)
+✔ media workflow settings accept unquoted placeholder templates (0.054375ms)
+✔ web typography does not depend on a runtime Google Fonts stylesheet (0.128125ms)
+✔ web controls are backed by the local shadcn-vue component layer (0.078333ms)
+✔ diagnostics keeps existing modules and adds a filtered lifecycle disclosure (0.157625ms)
+✔ desktop secondary navigation is page-addressable and chat groups stay flat (0.178792ms)
+✔ chat owns a fixed-height work surface with an internal message scroller (0.114667ms)
+✔ mobile surfaces keep diagnostics, navigation, and empty states shrink-safe (0.389125ms)
+✔ runtime API configuration is emitted at container startup (0.346166ms)
+✔ runtime API configuration rejects non-HTTP URLs (0.189208ms)
+✔ web chat keeps the generated browser client at its boundary (1.677125ms)
+✔ web keeps a failed turn retryable instead of allowing later messages to overtake it (0.623ms)
+✔ chat clears accepted drafts and keeps every streamed token reactive (0.523458ms)
+✔ control center exposes the required product views (0.188ms)
+✔ owner password change explains its policy without trapping the submit button (0.262958ms)
+✔ web uses the secure random-ID compatibility helper instead of randomUUID directly (0.711834ms)
+✔ creation dialog presents activation failures where the user can act on them (0.377125ms)
+✔ persona details expose layered JSON without rendering object coercion (0.88125ms)
+✔ diagnostics entry loads records and creation keeps a direct correlation link (0.125708ms)
+✔ creation preview has one typed authority, stale-analysis epochs, and a UTF-8 byte limit (0.627666ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 757.613709
+$ vite build
+vite v7.1.5 building for production...
+transforming...
+✓ 2522 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.44 kB │ gzip:   0.29 kB
+dist/assets/index-C0XFPMfE.css  126.52 kB │ gzip:  22.19 kB
+dist/assets/index-A_f5-gzQ.js   444.71 kB │ gzip: 134.46 kB
+✓ built in 1.70s
+$ tsc --noEmit
+$ tsx --test test/*.test.ts
+✔ BrowserClient resolves an empty base URL against the browser origin (7.550542ms)
+✔ BrowserClient maps an unauthenticated session response without treating it as a platform failure (0.479916ms)
+✔ BrowserClient requires an explicit base URL outside the browser (0.184292ms)
+✔ BrowserClient preserves safe API failure codes (0.222542ms)
+✔ BrowserClient preserves structured diagnostics details (0.144875ms)
+✔ BrowserClient preserves a non-2xx conversation turn error code (0.15275ms)
+✔ BrowserClient transports initialization analysis authority and typed detail source (4.348334ms)
+✔ BrowserClient requests the bounded media prompt diagnostics module (0.231083ms)
+✔ BrowserClient exposes media prompt retry (0.195708ms)
+✔ BrowserClient serializes every lifecycle diagnostics filter for query and export (0.308833ms)
+✔ BrowserClient serializes the schema-derived Life Context command contracts (0.294042ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 106.680208
+

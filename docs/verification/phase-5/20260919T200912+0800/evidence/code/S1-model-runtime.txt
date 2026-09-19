@@ -1,0 +1,321 @@
+$ nl -ba apps/core-go/internal/core/eino_model_runtime.go | sed -n '100,220p'; nl -ba apps/core-go/internal/core/model_tasks.go | sed -n '1,130p'; nl -ba apps/core-go/internal/core/provider_queue.go | sed -n '270,360p'
+exit_code=0
+
+   100		if err != nil {
+   101			return nil, fmt.Errorf("eino_embedder_create: %w", err)
+   102		}
+   103		return emb, nil
+   104	}
+   105	
+   106	// EinoModelCall captures one bounded Generate/Stream call. It is intentionally
+   107	// request-scoped; an ADK agent never retains queue permits or mutable persona
+   108	// state across calls.
+   109	type EinoModelCall struct {
+   110		Assignment        providerAssignment
+   111		Role              string
+   112		Scenario          string
+   113		Priority          int
+   114		DiagnosticID      string
+   115		CorrelationID     string
+   116		Messages          []map[string]any
+   117		Definitions       []CapabilityDefinition
+   118		JSONMode          bool
+   119		SchemaName        string
+   120		ResponseSchema    map[string]any
+   121		EnableThinking    bool
+   122		ProviderRequestID string
+   123	}
+   124	
+   125	type queuedToolCallingChatModel struct {
+   126		inner         model.ToolCallingChatModel
+   127		provider      *ProviderClient
+   128		role          string
+   129		scenario      string
+   130		priority      int
+   131		diagnosticID  string
+   132		assignment    providerAssignment
+   133		correlationID string
+   134		sequence      *atomic.Uint64
+   135	}
+   136	
+   137	func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
+   138		input = normalizeEinoToolMessageNames(input)
+   139		sequence := uint64(1)
+   140		if m.sequence != nil {
+   141			sequence = m.sequence.Add(1)
+   142		}
+   143		callCorrelation := fmt.Sprintf("%s:adk:%d", m.correlationID, sequence)
+   144		callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
+   145		callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
+   146		// The parent turn attempt is intentionally not reused as the physical
+   147		// model-call attempt. Diagnostics and cancellation state must distinguish
+   148		// Generate #1 from Generate #2 while both share one turn correlation.
+   149		callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
+   150		callDiagnosticID := ""
+   151		if m.provider != nil && m.provider.DB != nil {
+   152			callDiagnosticID = (&App{DB: m.provider.DB}).recordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, callCorrelation, m.scenario, m.priority, einoDiagnosticMessages(input))
+   153		}
+   154		started := time.Now()
+   155		result, err := runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.Message, error) {
+   156			return m.inner.Generate(runCtx, input, opts...)
+   157		})
+   158		if callDiagnosticID != "" {
+   159			(&App{DB: m.provider.DB}).updateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(result), time.Since(started))
+   160		}
+   161		return result, err
+   162	}
+   163	
+   164	func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+   165		input = normalizeEinoToolMessageNames(input)
+   166		sequence := uint64(1)
+   167		if m.sequence != nil {
+   168			sequence = m.sequence.Add(1)
+   169		}
+   170		callCorrelation := fmt.Sprintf("%s:adk:%d", m.correlationID, sequence)
+   171		callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
+   172		callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
+   173		callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
+   174		callDiagnosticID := ""
+   175		if m.provider != nil && m.provider.DB != nil {
+   176			callDiagnosticID = (&App{DB: m.provider.DB}).recordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, callCorrelation, m.scenario, m.priority, einoDiagnosticMessages(input))
+   177		}
+   178		return runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
+   179			return m.inner.Stream(runCtx, input, opts...)
+   180		})
+   181	}
+   182	
+   183	func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.ToolCallingChatModel, error) {
+   184		bound, err := m.inner.WithTools(tools)
+   185		if err != nil {
+   186			return nil, err
+   187		}
+   188		sequence := m.sequence
+   189		if sequence == nil {
+   190			sequence = &atomic.Uint64{}
+   191		}
+   192		return &queuedToolCallingChatModel{inner: bound, provider: m.provider, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence}, nil
+   193	}
+   194	
+   195	type einoModelResponse struct {
+   196		Message      *schema.Message
+   197		Usage        map[string]any
+   198		FinishReason string
+   199	}
+   200	
+   201	func einoDiagnosticMessages(messages []*schema.Message) []map[string]any {
+   202		result := make([]map[string]any, 0, len(messages))
+   203		for _, message := range messages {
+   204			if message == nil {
+   205				continue
+   206			}
+   207			result = append(result, einoMessageRaw(message))
+   208			if len(result) >= 64 {
+   209				break
+   210			}
+   211		}
+   212		return result
+   213	}
+   214	
+   215	type einoHeaderRoundTripper struct {
+   216		base    http.RoundTripper
+   217		headers map[string]string
+   218	}
+   219	
+   220	type einoRequestIDContextKey struct{}
+     1	package core
+     2	
+     3	import (
+     4		"context"
+     5		"errors"
+     6		"strings"
+     7	)
+     8	
+     9	// ModelTaskKind names the bounded responsibilities that may call a model.
+    10	// Tasks share EinoModelRuntime support but do not share prompts, schemas or
+    11	// domain state.
+    12	type ModelTaskKind string
+    13	
+    14	const (
+    15		ModelTaskMainConversation     ModelTaskKind = "main_conversation"
+    16		ModelTaskQueryContinuation    ModelTaskKind = "query_continuation"
+    17		ModelTaskTakeoverJudge        ModelTaskKind = "takeover_judge"
+    18		ModelTaskTakeoverReply        ModelTaskKind = "takeover_reply"
+    19		ModelTaskStructuredAssessment ModelTaskKind = "structured_assessment"
+    20		ModelTaskText                 ModelTaskKind = "text"
+    21		ModelTaskMultimodalAssessment ModelTaskKind = "multimodal_assessment"
+    22		ModelTaskEmbedding            ModelTaskKind = "embedding"
+    23		ModelTaskStream               ModelTaskKind = "stream"
+    24	)
+    25	
+    26	// ModelTask is metadata for an operation-owned model call. It is deliberately
+    27	// small: no App, repository, prompt history or mutable Agent state is kept.
+    28	type ModelTask struct {
+    29		Kind       ModelTaskKind
+    30		Role       string
+    31		Scenario   string
+    32		SchemaName string
+    33	}
+    34	
+    35	func (a *App) modelTaskProvider() (*ProviderClient, error) {
+    36		if a == nil || a.Provider == nil {
+    37			return nil, errors.New("model_task_provider_unavailable")
+    38		}
+    39		return a.Provider, nil
+    40	}
+    41	
+    42	func (a *App) RunStructuredTask(ctx context.Context, task ModelTask, messages []map[string]any, schema map[string]any, thinking bool) (map[string]any, error) {
+    43		provider, err := a.modelTaskProvider()
+    44		if err != nil {
+    45			return nil, err
+    46		}
+    47		return provider.StructuredWithSchema(WithProviderScenario(ctx, task.Scenario), task.Role, messages, task.SchemaName, schema, thinking)
+    48	}
+    49	
+    50	func (a *App) RunInitializationTask(ctx context.Context, messages []map[string]any) (map[string]any, error) {
+    51		provider, err := a.modelTaskProvider()
+    52		if err != nil {
+    53			return nil, err
+    54		}
+    55		return provider.Structured(WithProviderScenario(ctx, "initialization"), "initialization", messages)
+    56	}
+    57	
+    58	func (a *App) RunStructuredToolsTask(ctx context.Context, task ModelTask, messages []map[string]any, definitions []CapabilityDefinition, schema map[string]any, assembled bool, thinking bool) (ProviderCompletion, error) {
+    59		provider, err := a.modelTaskProvider()
+    60		if err != nil {
+    61			return ProviderCompletion{}, err
+    62		}
+    63		if strings.TrimSpace(task.Scenario) != "" {
+    64			ctx = WithProviderScenario(ctx, task.Scenario)
+    65		}
+    66		if assembled {
+    67			return provider.StructuredAssembledWithToolsSchema(ctx, task.Role, messages, definitions, task.SchemaName, schema, thinking)
+    68		}
+    69		return provider.StructuredWithToolsSchema(ctx, task.Role, messages, definitions, task.SchemaName, schema, thinking)
+    70	}
+    71	
+    72	func (a *App) RunTextTask(ctx context.Context, task ModelTask, messages []map[string]any) (string, error) {
+    73		provider, err := a.modelTaskProvider()
+    74		if err != nil {
+    75			return "", err
+    76		}
+    77		return provider.Text(WithProviderScenario(ctx, task.Scenario), task.Role, messages)
+    78	}
+    79	
+    80	func (a *App) RunStreamTask(ctx context.Context, task ModelTask, messages []map[string]any, onChunk func(string) error) (string, error) {
+    81		provider, err := a.modelTaskProvider()
+    82		if err != nil {
+    83			return "", err
+    84		}
+    85		return provider.StreamText(WithProviderScenario(ctx, task.Scenario), task.Role, messages, onChunk)
+    86	}
+    87	
+    88	func (a *App) RunEmbeddingTask(ctx context.Context, text string) (string, []float64, error) {
+    89		provider, err := a.modelTaskProvider()
+    90		if err != nil {
+    91			return "", nil, err
+    92		}
+    93		return provider.Embed(WithProviderScenario(ctx, "memory_retrieval"), text)
+    94	}
+    95	
+    96	// RunFrozenEmbeddingTask keeps a workflow-pinned assignment while still
+    97	// exposing an operation-owned task boundary. It is used by durable embedding
+    98	// intents whose endpoint/model tuple must not be re-resolved on retry.
+    99	func (a *App) RunFrozenEmbeddingTask(ctx context.Context, text string, assignment providerAssignment) (string, []float64, error) {
+   100		provider, err := a.modelTaskProvider()
+   101		if err != nil {
+   102			return "", nil, err
+   103		}
+   104		return provider.embedWithAssignment(ctx, text, assignment)
+   105	}
+   270		return p.generated
+   271	}
+   272	
+   273	func (p *ProviderClient) refreshQueueLimits(ctx context.Context) {
+   274		generated, embedding := providerQueueDefaultConcurrency, providerQueueDefaultEmbedding
+   275		if p != nil && p.DB != nil {
+   276			var raw string
+   277			if err := p.DB.Pool().QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='llm.queue'`).Scan(&raw); err == nil {
+   278				var settings providerQueueSettings
+   279				if json.Unmarshal([]byte(raw), &settings) == nil {
+   280					if settings.GeneratedConcurrency != 0 {
+   281						generated = settings.GeneratedConcurrency
+   282					}
+   283					if settings.EmbeddingConcurrency != 0 {
+   284						embedding = settings.EmbeddingConcurrency
+   285					}
+   286				}
+   287			}
+   288		}
+   289		p.queueFor("generic_llm").setLimit(generated)
+   290		p.queueFor("embedding").setLimit(embedding)
+   291	}
+   292	
+   293	func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scenario string, priority int, diagnosticID string, fn func(context.Context) (T, error)) (T, error) {
+   294		var result T
+   295		if p == nil {
+   296			return result, errors.New("provider_unavailable")
+   297		}
+   298		if providerQueueBypassed(ctx) {
+   299			return fn(ctx)
+   300		}
+   301		p.refreshQueueLimits(ctx)
+   302		runCtx, cancel := context.WithCancel(ctx)
+   303		defer cancel()
+   304		stopWatch := p.watchProviderCancellation(runCtx, cancel)
+   305		defer stopWatch()
+   306		queue := p.queueFor(role)
+   307		releaseRedis, redisEnabled, redisErr := p.acquireProviderRedisSlot(runCtx, role, priority, queue.currentLimit(), diagnosticID)
+   308		if redisErr != nil {
+   309			if diagnosticID != "" {
+   310				(&App{DB: p.DB}).updateModelRunState(ctx, diagnosticID, providerRunFailed, redisErr)
+   311			}
+   312			return result, redisErr
+   313		}
+   314		if redisEnabled {
+   315			defer releaseRedis()
+   316		}
+   317		err := queue.submit(runCtx, priority, func(taskCtx context.Context) error {
+   318			if guard := providerExecutionGuard(taskCtx); guard != nil {
+   319				if guardErr := guard(taskCtx); guardErr != nil {
+   320					return guardErr
+   321				}
+   322			}
+   323			var runErr error
+   324			result, runErr = fn(taskCtx)
+   325			return runErr
+   326		}, func(status string, runErr error) {
+   327			if p.DB == nil || diagnosticID == "" {
+   328				return
+   329			}
+   330			(&App{DB: p.DB}).updateModelRunState(ctx, diagnosticID, status, runErr)
+   331		})
+   332		return result, err
+   333	}
+   334	
+   335	func (p *ProviderClient) watchProviderCancellation(ctx context.Context, cancel context.CancelFunc) func() {
+   336		marker := providerCancellationMarker(ctx)
+   337		if p == nil || p.redis == nil || marker == "" {
+   338			return func() {}
+   339		}
+   340		stop := make(chan struct{})
+   341		done := make(chan struct{})
+   342		go func() {
+   343			defer close(done)
+   344			ticker := time.NewTicker(100 * time.Millisecond)
+   345			defer ticker.Stop()
+   346			key := providerCognitionCancelPrefix + marker
+   347			for {
+   348				select {
+   349				case <-stop:
+   350					return
+   351				case <-ctx.Done():
+   352					return
+   353				case <-ticker.C:
+   354					if exists, err := p.redis.Exists(context.Background(), key).Result(); err == nil && exists > 0 {
+   355						cancel()
+   356						return
+   357					}
+   358				}
+   359			}
+   360		}()
+

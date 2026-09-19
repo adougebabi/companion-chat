@@ -1,0 +1,198 @@
+$ nl -ba apps/web/nginx.conf; nl -ba infra/compose/fluctlight.compose.yml | sed -n '135,245p'; nl -ba .github/workflows/fluctlight-ci.yml | sed -n '20,75p'
+exit_code=0
+
+     1	server {
+     2	    listen 80;
+     3	    server_name _;
+     4	
+     5	    root /usr/share/nginx/html;
+     6	    index index.html;
+     7	
+     8	    location = /runtime-config.js {
+     9	        add_header Cache-Control "no-store" always;
+    10	        try_files $uri =404;
+    11	    }
+    12	
+    13	    location /assets/ {
+    14	        add_header Cache-Control "public, max-age=31536000, immutable" always;
+    15	        try_files $uri =404;
+    16	    }
+    17	
+    18	    # The Web image is only a same-origin static/proxy entry point. Browser
+    19	    # auth, DTO, NDJSON and media policy live in the Go API process; Nginx
+    20	    # does not transform requests or expose /internal routes.
+    21	    location ~ ^/(api|auth|health)(/|$) {
+    22	        proxy_pass http://core:8080;
+    23	        proxy_http_version 1.1;
+    24	        proxy_set_header Host $host;
+    25	        proxy_set_header Origin $http_origin;
+    26	        proxy_set_header X-Real-IP $remote_addr;
+    27	        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    28	        proxy_buffering off;
+    29	        proxy_request_buffering off;
+    30	        proxy_read_timeout 11m;
+    31	    }
+    32	
+    33	    location / {
+    34	        try_files $uri $uri/ /index.html;
+    35	    }
+    36	}
+   135	      temporal:
+   136	        condition: service_healthy
+   137	    restart: "no"
+   138	    mem_limit: ${CUTOVER_MEMORY_LIMIT:-128m}
+   139	    networks: [platform]
+   140	
+   141	  core:
+   142	    image: ${CORE_GO_IMAGE:-${DOCKERHUB_USERNAME:-yourname}/fluctlight-core-go:latest}
+   143	    build:
+   144	      context: ../..
+   145	      dockerfile: apps/core-go/Dockerfile
+   146	    environment: &core_environment
+   147	      CORE_GO_DATABASE_URL: postgresql://${POSTGRES_USER:-fluctlight}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in private env}@postgres:5432/${POSTGRES_DB:-fluctlight}
+   148	      FLUCTLIGHT_CORE_SERVICE_KEY: ${FLUCTLIGHT_CORE_SERVICE_KEY:?set FLUCTLIGHT_CORE_SERVICE_KEY in private env}
+   149	      FLUCTLIGHT_SETTINGS_KEY: ${FLUCTLIGHT_SETTINGS_KEY:?set FLUCTLIGHT_SETTINGS_KEY in private env}
+   150	      FLUCTLIGHT_TRUSTED_ORIGIN: ${FLUCTLIGHT_TRUSTED_ORIGIN:?set FLUCTLIGHT_TRUSTED_ORIGIN in private env}
+   151	      CORE_GO_LISTEN_ADDRESS: :8080
+   152	      S3_ENDPOINT: http://minio:9000
+   153	      S3_REGION: us-east-1
+   154	      S3_BUCKET: ${S3_BUCKET:-fluctlight-media}
+   155	      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-fluctlight}
+   156	      S3_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY in private env}
+   157	      S3_USE_SSL: "false"
+   158	      TEMPORAL_ADDRESS: temporal:7233
+   159	      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+   160	    depends_on:
+   161	      migrate:
+   162	        condition: service_completed_successfully
+   163	      postgres:
+   164	        condition: service_healthy
+   165	      redis:
+   166	        condition: service_healthy
+   167	      minio-init:
+   168	        condition: service_completed_successfully
+   169	      temporal:
+   170	        condition: service_healthy
+   171	    healthcheck:
+   172	      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health/ready"]
+   173	      interval: 5s
+   174	      timeout: 3s
+   175	      retries: 20
+   176	    mem_limit: ${CORE_MEMORY_LIMIT:-256m}
+   177	    networks: [platform]
+   178	
+   179	  worker:
+   180	    image: ${CORE_GO_IMAGE:-${DOCKERHUB_USERNAME:-yourname}/fluctlight-core-go:latest}
+   181	    build:
+   182	      context: ../..
+   183	      dockerfile: apps/core-go/Dockerfile
+   184	    command: ["/usr/local/bin/fluctlight-worker-go"]
+   185	    restart: unless-stopped
+   186	    environment:
+   187	      <<: *core_environment
+   188	      CORE_GO_LISTEN_ADDRESS: :8080
+   189	      TEMPORAL_WORKER_BUILD_ID: ${TEMPORAL_WORKER_BUILD_ID:-platform-v1}
+   190	    depends_on:
+   191	      migrate:
+   192	        condition: service_completed_successfully
+   193	      postgres:
+   194	        condition: service_healthy
+   195	      redis:
+   196	        condition: service_healthy
+   197	      minio-init:
+   198	        condition: service_completed_successfully
+   199	      temporal:
+   200	        condition: service_healthy
+   201	      cutover:
+   202	        condition: service_completed_successfully
+   203	    healthcheck:
+   204	      test: ["CMD-SHELL", "test -f /tmp/fluctlight-worker.ready && find /tmp/fluctlight-worker.ready -mmin -1 -print -quit | grep -q ."]
+   205	      interval: 10s
+   206	      timeout: 3s
+   207	      retries: 6
+   208	    mem_limit: ${WORKER_MEMORY_LIMIT:-768m}
+   209	    networks: [platform]
+   210	
+   211	  web:
+   212	    image: ${WEB_IMAGE:-${DOCKERHUB_USERNAME:-yourname}/fluctlight-web:latest}
+   213	    build:
+   214	      context: ../..
+   215	      dockerfile: apps/web/Dockerfile
+   216	    depends_on:
+   217	      core:
+   218	        condition: service_healthy
+   219	    ports:
+   220	      - "${WEB_HOST_PORT:-13001}:80"
+   221	    healthcheck:
+   222	      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+   223	      interval: 5s
+   224	      timeout: 3s
+   225	      retries: 20
+   226	    mem_limit: ${WEB_MEMORY_LIMIT:-128m}
+   227	    networks: [platform]
+   228	
+   229	networks:
+   230	  platform:
+   231	    internal: false
+   232	
+   233	volumes:
+   234	  fluctlight_postgres:
+   235	  fluctlight_redis:
+   236	  fluctlight_minio:
+    20	      github.event_name == 'pull_request' ||
+    21	      github.event_name == 'workflow_dispatch' ||
+    22	      github.event_name == 'push'
+    23	    runs-on: ubuntu-latest
+    24	    steps:
+    25	      - name: Check out source
+    26	        uses: actions/checkout@v4
+    27	
+    28	      - name: Set up Go
+    29	        uses: actions/setup-go@v5
+    30	        with:
+    31	          go-version-file: apps/core-go/go.mod
+    32	          cache-dependency-path: |
+    33	            apps/core-go/go.sum
+    34	
+    35	      - name: Test Go Core
+    36	        working-directory: apps/core-go
+    37	        run: go test -race ./...
+    38	
+    39	      - name: Vet Go Core
+    40	        run: |
+    41	          go -C apps/core-go vet ./...
+    42	
+    43	      - name: Build Go Core
+    44	        run: |
+    45	          go -C apps/core-go build ./...
+    46	
+    47	      - name: Verify Go formatting
+    48	        run: test -z "$(find apps/core-go -name '*.go' -print0 | xargs -0 gofmt -l)"
+    49	
+    50	      - name: Verify Go-only runtime references
+    51	        run: ./infra/acceptance/go-core-reference-guard.sh
+    52	
+    53	      - name: Verify legacy deletion scope
+    54	        run: ./infra/acceptance/legacy-scope-guard.sh
+    55	
+    56	      - name: Check Compose bind sources
+    57	        run: ./infra/acceptance/check-compose-bind-sources.sh
+    58	
+    59	      - name: Validate Go-only Compose topology
+    60	        run: docker compose --env-file infra/compose/fluctlight.env.example -f infra/compose/fluctlight.compose.yml config --quiet
+    61	
+    62	  validate-web:
+    63	    if: >-
+    64	      github.event_name == 'pull_request' ||
+    65	      github.event_name == 'workflow_dispatch' ||
+    66	      github.event_name == 'push'
+    67	    runs-on: ubuntu-latest
+    68	    steps:
+    69	      - name: Check out source
+    70	        uses: actions/checkout@v4
+    71	
+    72	      - name: Set up pnpm
+    73	        uses: pnpm/action-setup@v6
+    74	        with:
+    75	          run_install: false
+

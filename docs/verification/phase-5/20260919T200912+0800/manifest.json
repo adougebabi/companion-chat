@@ -1,0 +1,181 @@
+{
+  "run_id": "20260919T200912+0800",
+  "source_commit": "ba6457aa5a256adbde245d6df1d062131aad4d8b",
+  "branch": "codex/yaoguang-adk-phase2",
+  "repository": "local-ai-companion-eino-adk",
+  "working_tree_before_verification": "clean at ba6457a",
+  "working_tree_now": "contains only Phase 5 task/evidence artifacts",
+  "tools": {
+    "go": "go1.26.3 darwin/arm64",
+    "node": "v24.12.0",
+    "pnpm": "11.0.7"
+  },
+  "env_presence": {
+    "GO_CORE_TEST_DATABASE_URL": false,
+    "DATABASE_URL": false,
+    "REDIS_URL": false,
+    "TEMPORAL_ADDRESS": false,
+    "TEMPORAL_NAMESPACE": false,
+    "FLUCTLIGHT_CORE_SERVICE_KEY": false,
+    "FLUCTLIGHT_TRUSTED_ORIGIN": false,
+    "S3_ENDPOINT": false
+  },
+  "evidence_levels": {
+    "L0": "static/source",
+    "L1": "fake framework deterministic",
+    "L2": "isolated DB/Redis/Temporal",
+    "L3": "browser/deployment",
+    "L4": "real external provider/media"
+  },
+  "commands": [
+    "docs/verification/phase-5/20260919T200912+0800/commands/001-freeze.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/002-environment.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/003-locked-versions.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/004-current-tasks.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/010-core-full-test.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/011-core-race.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/012-core-vet-tidy-format.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/013-web-and-client.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/014-generation-and-config.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/015-static-scan.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/016-core-json-summary.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/017-evidence-secret-scan.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/018-evidence-secret-scan-final.txt",
+    "docs/verification/phase-5/20260919T200912+0800/commands/019-evidence-secret-scan-final.txt"
+  ],
+  "files": [
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/acceptance-matrix.csv",
+      "sha256": "fb7612d5c55018d06adeecc1a62028b7a5d72d4e72559a12ac5e019d70d439a1",
+      "bytes": 9191
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/001-freeze.txt",
+      "sha256": "67e6b34ab1c8e324e28a6a43b9650b4cc0959f062f3f3d9d61327870ba546e2a",
+      "bytes": 786
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/002-environment.txt",
+      "sha256": "c4558bd47f07b2475d19e4b011f653dcd0574c30c23935d8b7e72073db8c27b2",
+      "bytes": 893
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/003-locked-versions.txt",
+      "sha256": "4f60d63a0e3a33f6a3025f6606faa50c9340dca6b2af06c9f4187d5dea8a5d75",
+      "bytes": 1045
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/004-current-tasks.txt",
+      "sha256": "35d2013e3bfc821bf1eaf4bb2cd5c62f0827767038ac95887f218e04efbaa23d",
+      "bytes": 1762
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/010-core-full-test.txt",
+      "sha256": "d70258ac109b1ccc15d5f1dc9b798784704b43dec0f82a1e907098a527447891",
+      "bytes": 1126
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/011-core-race.txt",
+      "sha256": "2bfd801d8b2532b01a7abe90dd276236b8f18eb357396fe0afc6d46cfcf7187f",
+      "bytes": 291
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/012-core-vet-tidy-format.txt",
+      "sha256": "9c4e1597552972ec7eebbc51a0407631b04038537dc21e688e7b00de174739b4",
+      "bytes": 150
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/013-web-and-client.txt",
+      "sha256": "05a2c3b593f73abe87aa2b17ee46c83a77330c56f24b4b5705a27f528c01ee88",
+      "bytes": 5953
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/014-generation-and-config.txt",
+      "sha256": "558d72b7f682b1dc5ff30339ec5bbd1d1f9b07c16b8cea020e679a573a6e4a2a",
+      "bytes": 733
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/015-static-scan.txt",
+      "sha256": "d98121893532b277f4e9e5c53cff8c73b9abade06c3a8a2d8d43682d7ddf98ee",
+      "bytes": 3375
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/016-core-json-summary.txt",
+      "sha256": "452a5f9e2e8236e3d57105e168bd4afd277bfefdf3a90d63e89da2e3d34ef2d3",
+      "bytes": 4837
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/017-evidence-secret-scan.txt",
+      "sha256": "855f6e454ff9eab7e9815a57bdbd3b9bf0c2429690fcfbe5f469bb161d4a6799",
+      "bytes": 1258
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/018-evidence-secret-scan-final.txt",
+      "sha256": "b97df1998c27320c3064552bc92f1b022fdd66812507b3fe4ee95d3f13d3202f",
+      "bytes": 958
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/commands/019-evidence-secret-scan-final.txt",
+      "sha256": "4df8265718fa0bd8d852a8bb20dab5989ce9c8d191080d113046ecd1985d8dc3",
+      "bytes": 508
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/evidence/code/S1-model-runtime.txt",
+      "sha256": "b7deac02bf2380b30c1fca50ee9d8aa9c4e1018cc25736e7f14eb7207bb269bd",
+      "bytes": 13827
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/evidence/code/S2-adk-runtime.txt",
+      "sha256": "c1e2833e7a7d00da9aad733f07ba8a8d006441cd2fa2579b5acc3cdbf8bb883b",
+      "bytes": 17224
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/evidence/code/S3-wakeup.txt",
+      "sha256": "70f62aee10c01e177dce69834e2783c9146c2c5d0418f06181aef7a525b67816",
+      "bytes": 19991
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/evidence/code/S4-browser-api.txt",
+      "sha256": "f360ddd6129b287b87f5c68ac5459d4e375e8ad4d6e74a38823ed15f45fa9aec",
+      "bytes": 17723
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/evidence/code/S4-deployment.txt",
+      "sha256": "20243791f0e544542e972c36c2d381f9b8156e5620e9d80edc17eca4add9d45f",
+      "bytes": 7652
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/evidence/tests/CROSS-db-integration.txt",
+      "sha256": "03730822711386cd8bf5745e4195b05192639042c708c92e23c0d8007f5b8c7f",
+      "bytes": 1807
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/evidence/tests/S1-eino-prompt-queue.txt",
+      "sha256": "f36f037b7f6755c3849bb227c7460c74093662a4825e336570f63d491fe4ab98",
+      "bytes": 2551
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/evidence/tests/S2-adk-persona.txt",
+      "sha256": "33f068b1a950ee6f42651c885ed89b662af8237e75967057bdfcc19c05002e75",
+      "bytes": 2853
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/evidence/tests/S3-wakeup-background.txt",
+      "sha256": "fe834197afe23e52b24fc8871a3fcb1fef64a7cb188ccdb7729fe07d7891f73e",
+      "bytes": 5731
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/evidence/tests/S4-browser-api.txt",
+      "sha256": "8dbc1a095972ee1f9047d6c4a198eb2dac0ddcd9addbcd32f1cc4524a814698d",
+      "bytes": 16401
+    },
+    {
+      "path": "docs/verification/phase-5/20260919T200912+0800/phase-5-acceptance-report.md",
+      "sha256": "88dc5a8cfc0da838d7477172ff0244a2a9a3080f3ae0e2bf0df5d969e2262f81",
+      "bytes": 15025
+    }
+  ],
+  "manifest_self_hash": "omitted to avoid circular hash",
+  "bundle": "review-bundle.zip"
+}
+

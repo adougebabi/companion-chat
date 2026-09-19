@@ -1,0 +1,37 @@
+$ set +e; out=$(go -C apps/core-go test -mod=readonly -json ./...); rc=$?; printf 'go_test_exit=%s\n' "$rc"; printf '%s\n' "$out" | jq -s '[.[] | select(.Action=="skip" and .Test != null)] | length as $n | "test_skip_count=\($n)"'; printf '%s\n' "$out" | jq -r 'select(.Action=="skip" and .Test != null) | [.Package,.Test] | @tsv' | head -30; exit "$rc"
+exit_code=0
+wall_time_seconds=2.988444708
+
+go_test_exit=0
+"test_skip_count=194"
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestAffectCanonicalMigrationUpgradesProjectHealthHeadAndPreservesState
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestMigrationRoutesCapabilityRuntimeThroughProjectHealthAndAffectAtomically/valid_0026_runs_both_later_revisions
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform	TestRedisConsumerPublishesAndDeduplicates
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestMigrationRoutesCapabilityRuntimeThroughProjectHealthAndAffectAtomically/0028_failure_rolls_0027_effects_back_to_0026
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestMigrationRejectsWhitespacePaddedLedgerHead
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform	TestRedisConsumerRecordsPoisonEvent
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform	TestRedisConsumerReclaimsPendingDelivery
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform	TestRedisConsumerSequenceGapReleasesDatabaseConnection
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestAffectCanonicalMigrationRejectsMalformedMomentumWithoutAdvancingLedger
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestEvolutionAuthorityMigrationUpgradesLifeContextHeadAndIsIdempotent
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestEvolutionAuthorityMigrationRejectsNonemptyPreviousHeadAndRollsBack
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestEvolutionAuthorityMigrationEnforcesClosedRows
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestLifeContextRevisionMigrationUpgradesMemoryHeadAndIsIdempotent
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestLifeContextRevisionMigrationRejectsNonemptyPreviousHead/Actor
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestLifeContextRevisionMigrationRejectsNonemptyPreviousHead/Goal
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestLifeContextRevisionMigrationRejectsNonemptyPreviousHead/Provider_configuration
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	TestPostgresInitializationAnalysisAuthoritySerializesLatestSourceAndReplay
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestLifeContextRevisionMigrationRejectsNonemptyPreviousHead/Workflow_intent
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestLifeContextRevisionMigrationFailsClosed/unprepared_Event
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestLifeContextRevisionMigrationFailsClosed/unprepared_Presence
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestLifeContextRevisionMigrationFailsClosed/multiple_active_Presence_rows
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestLifeContextRevisionMigrationFailsClosed/active_Schedule_without_replay_authority
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestLifeContextRevisionDeferredConstraintsValidateCommittedReplayState
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestMemoryLifecycleMigrationUpgradesAffectHeadAndIsIdempotent
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestMemoryLifecycleMigrationPreservesExplicitlyRepairedMemoryAt0029And0030RejectsIt
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestMemoryLifecycleMigrationFailsClosedWithoutRewritingHistory/pre-lifecycle_Memory
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestMemoryLifecycleMigrationFailsClosedWithoutRewritingHistory/duplicate_active_canonical_key
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestMemoryLifecycleMigrationFailsClosedWithoutRewritingHistory/well-shaped_but_unverifiable_repair
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestMemoryLifecycleMigrationFailsClosedWithoutRewritingHistory/well-shaped_but_incorrect_canonical_key
+github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	TestMemoryLifecycleMigrationFailsClosedWithoutRewritingHistory/duplicate_embedding_tuple
+

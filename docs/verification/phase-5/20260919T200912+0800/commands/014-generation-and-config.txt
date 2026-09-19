@@ -1,0 +1,12 @@
+$ pnpm generate && ./infra/acceptance/go-core-reference-guard.sh && ./infra/acceptance/check-core-openapi.sh && ./infra/acceptance/check-compose-bind-sources.sh && docker compose --env-file infra/compose/fluctlight.env.example -f infra/compose/fluctlight.compose.yml config --quiet && git diff --check
+exit_code=0
+wall_time_seconds=1.368607042
+
+$ pnpm --filter @fluctlight/core-client generate && pnpm --filter @fluctlight/browser-client generate:openapi && pnpm --filter @fluctlight/browser-client generate
+$ node scripts/generate.mjs
+$ node scripts/generate-openapi.mjs
+$ node scripts/generate.mjs
+Go Core reference guard: PASS
+core-openapi-check: Go Core route inventory matches artifact version 0.1.0
+Compose bind sources: PASS
+

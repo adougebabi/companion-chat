@@ -1,0 +1,39 @@
+$ go test -mod=readonly ./internal/core -run 'Test(HandleTurnProductionADKToolLoopSettlesOneAssistant|ProviderConversationUsesADKLoopAndReturnsCanonicalTrace|ProviderTakeoverReplyUsesADKLoopAndPreservesTrace|TakeoverJudgeDeclinesExecutesTheOriginalCandidate|TakeoverJudgeApprovesExecutesTheTakeoverReply|TakeoverReplyIsGeneratedInTheReplyOwnerScope|PureQueryTurnNeverInvokesTheJudge|InvalidCandidateFailsBeforeTheJudge|FailingTakeoverGenerationNeverSendsTheRejectedCandidate|TakeoverReplyCannotWritePersistentActive|RecoveryFromBFrozenExecutesTheTakeoverReply|RejectedCandidateLeavesNoFactTrail|TestTurnStageBudgetNeverExceedsTwoMainGenerations)$' -count=1 -v
+exit_code=0
+wall_time_seconds=1.43988275
+
+=== RUN   TestHandleTurnProductionADKToolLoopSettlesOneAssistant
+    eino_adk_runtime_test.go:378: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestHandleTurnProductionADKToolLoopSettlesOneAssistant (0.00s)
+=== RUN   TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace
+--- PASS: TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace (0.00s)
+=== RUN   TestProviderTakeoverReplyUsesADKLoopAndPreservesTrace
+--- PASS: TestProviderTakeoverReplyUsesADKLoopAndPreservesTrace (0.00s)
+=== RUN   TestTakeoverReplyCannotWritePersistentActive
+    persistent_switch_gate_test.go:266: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestTakeoverReplyCannotWritePersistentActive (0.00s)
+=== RUN   TestTakeoverJudgeDeclinesExecutesTheOriginalCandidate
+    turn_takeover_chain_test.go:291: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestTakeoverJudgeDeclinesExecutesTheOriginalCandidate (0.00s)
+=== RUN   TestTakeoverReplyIsGeneratedInTheReplyOwnerScope
+    turn_takeover_chain_test.go:422: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestTakeoverReplyIsGeneratedInTheReplyOwnerScope (0.00s)
+=== RUN   TestPureQueryTurnNeverInvokesTheJudge
+    turn_takeover_chain_test.go:472: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestPureQueryTurnNeverInvokesTheJudge (0.00s)
+=== RUN   TestInvalidCandidateFailsBeforeTheJudge
+    turn_takeover_chain_test.go:518: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestInvalidCandidateFailsBeforeTheJudge (0.00s)
+=== RUN   TestFailingTakeoverGenerationNeverSendsTheRejectedCandidate
+    turn_takeover_chain_test.go:559: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestFailingTakeoverGenerationNeverSendsTheRejectedCandidate (0.00s)
+=== RUN   TestRecoveryFromBFrozenExecutesTheTakeoverReply
+    turn_takeover_recovery_test.go:201: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestRecoveryFromBFrozenExecutesTheTakeoverReply (0.00s)
+=== RUN   TestRejectedCandidateLeavesNoFactTrail
+    turn_takeover_recovery_test.go:458: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestRejectedCandidateLeavesNoFactTrail (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.347s
+
+

@@ -1,0 +1,376 @@
+$ nl -ba apps/core-go/internal/core/adk_conversation_runtime.go | sed -n '180,430p'; nl -ba apps/core-go/internal/core/eino_adk_runtime_test.go | sed -n '210,330p'
+exit_code=0
+
+   180		ToolResults  []*schema.Message
+   181		Iterations   int
+   182	}
+   183	
+   184	// isADKLoopSchema is the explicit allowlist for bounded ADK model/tool loops.
+   185	// Query continuation, Judge, Daily Review, Native Cognition and Reflection
+   186	// remain dedicated single-task boundaries unless a later phase adds a real
+   187	// feedback contract for them.
+   188	func isADKLoopSchema(schemaName string) bool {
+   189		switch strings.TrimSpace(schemaName) {
+   190		case "conversation_turn_response", takeoverReplySchemaName, "wake_up_response":
+   191			return true
+   192		default:
+   193			return false
+   194		}
+   195	}
+   196	
+   197	// NewADKCapabilityTools exposes only the installed capability schemas and a
+   198	// request-scoped executor. It is deliberately an adapter, not a second tool
+   199	// protocol or execution runtime.
+   200	func NewADKCapabilityTools(definitions []CapabilityDefinition, invoker ADKCapabilityInvoker) ([]tool.BaseTool, error) {
+   201		if invoker == nil {
+   202			return nil, errors.New("adk_capability_invoker_required")
+   203		}
+   204		if len(definitions) > 0 {
+   205			if _, ok := invoker.(ADKCapabilityInvokerWithID); !ok {
+   206				// A model tool call is not executable without its native identity. Fail
+   207				// while constructing the adapter, before a model can emit a call that
+   208				// would otherwise fail after the provider round-trip.
+   209				return nil, errors.New("adk_tool_call_identity_invoker_required")
+   210			}
+   211		}
+   212		infos, err := capabilityToolInfos(definitions)
+   213		if err != nil {
+   214			return nil, err
+   215		}
+   216		tools := make([]tool.BaseTool, 0, len(infos))
+   217		for _, info := range infos {
+   218			tools = append(tools, &adkCapabilityTool{info: info, invoker: invoker})
+   219		}
+   220		return tools, nil
+   221	}
+   222	
+   223	type adkCapabilityTool struct {
+   224		info    *schema.ToolInfo
+   225		invoker ADKCapabilityInvoker
+   226	}
+   227	
+   228	func (t *adkCapabilityTool) Info(context.Context) (*schema.ToolInfo, error) {
+   229		if t == nil || t.info == nil {
+   230			return nil, errors.New("adk_capability_tool_unavailable")
+   231		}
+   232		return t.info, nil
+   233	}
+   234	
+   235	func (t *adkCapabilityTool) InvokableRun(ctx context.Context, argumentsJSON string, _ ...tool.Option) (string, error) {
+   236		if t == nil || t.invoker == nil || t.info == nil {
+   237			return "", errors.New("adk_capability_tool_unavailable")
+   238		}
+   239		argumentsJSON = strings.TrimSpace(argumentsJSON)
+   240		if argumentsJSON == "" {
+   241			argumentsJSON = "{}"
+   242		}
+   243		callID := strings.TrimSpace(compose.GetToolCallID(ctx))
+   244		if callID == "" {
+   245			return "", errors.New("adk_tool_call_id_missing")
+   246		}
+   247		identityInvoker, ok := t.invoker.(ADKCapabilityInvokerWithID)
+   248		if !ok {
+   249			return "", errors.New("adk_tool_call_identity_invoker_required")
+   250		}
+   251		return identityInvoker.ExecuteWithID(ctx, callID, t.info.Name, argumentsJSON)
+   252	}
+   253	
+   254	// RunADKLoop is the only Eino ADK model/tool event iterator used by Core.
+   255	// Callers receive bounded messages and hand the structured result to their
+   256	// existing domain freeze/settlement boundary.
+   257	func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Message) (ADKLoopResult, error) {
+   258		if config.Model == nil {
+   259			return ADKLoopResult{}, errors.New("adk_model_required")
+   260		}
+   261		if strings.TrimSpace(config.Name) == "" || strings.TrimSpace(config.Description) == "" {
+   262			return ADKLoopResult{}, errors.New("adk_agent_identity_required")
+   263		}
+   264		if len(messages) == 0 {
+   265			return ADKLoopResult{}, errors.New("adk_messages_required")
+   266		}
+   267		maxIterations := config.MaxIterations
+   268		if maxIterations <= 0 {
+   269			maxIterations = 2
+   270		}
+   271		if maxIterations > 2 {
+   272			return ADKLoopResult{}, errors.New("adk_iteration_limit_invalid")
+   273		}
+   274		agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
+   275			Name: config.Name, Description: config.Description,
+   276			Instruction: config.Instruction, Model: config.Model,
+   277			ToolsConfig: adk.ToolsConfig{ToolsNodeConfig: compose.ToolsNodeConfig{
+   278				Tools: config.Tools, ExecuteSequentially: true,
+   279			}},
+   280			MaxIterations: maxIterations,
+   281		})
+   282		if err != nil {
+   283			return ADKLoopResult{}, fmt.Errorf("adk_agent_create: %w", err)
+   284		}
+   285		runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: agent, EnableStreaming: config.EnableStreaming})
+   286		input := make([]adk.Message, 0, len(messages))
+   287		for _, message := range messages {
+   288			if message == nil {
+   289				return ADKLoopResult{}, errors.New("adk_message_nil")
+   290			}
+   291			input = append(input, message)
+   292		}
+   293		iter := runner.Run(ctx, input)
+   294		result := ADKLoopResult{Messages: []*schema.Message{}, ToolCalls: []schema.ToolCall{}, ToolResults: []*schema.Message{}}
+   295		var lastAssistant *schema.Message
+   296		seenToolCallIDs := make(map[string]struct{})
+   297		for {
+   298			event, ok := iter.Next()
+   299			if !ok {
+   300				break
+   301			}
+   302			if event == nil {
+   303				continue
+   304			}
+   305			if event.Err != nil {
+   306				return ADKLoopResult{}, fmt.Errorf("adk_run: %w", event.Err)
+   307			}
+   308			if event.Output == nil || event.Output.MessageOutput == nil {
+   309				continue
+   310			}
+   311			message, getErr := event.Output.MessageOutput.GetMessage()
+   312			if getErr != nil {
+   313				return ADKLoopResult{}, fmt.Errorf("adk_message_output: %w", getErr)
+   314			}
+   315			if message == nil {
+   316				continue
+   317			}
+   318			copyMessage := message
+   319			result.Messages = append(result.Messages, copyMessage)
+   320			if len(copyMessage.ToolCalls) > 0 {
+   321				for _, call := range copyMessage.ToolCalls {
+   322					if strings.TrimSpace(call.ID) != "" {
+   323						if _, seen := seenToolCallIDs[call.ID]; seen {
+   324							continue
+   325						}
+   326						seenToolCallIDs[call.ID] = struct{}{}
+   327					}
+   328					result.ToolCalls = append(result.ToolCalls, call)
+   329				}
+   330			}
+   331			if copyMessage.Role == schema.Tool {
+   332				result.ToolResults = append(result.ToolResults, copyMessage)
+   333			}
+   334			if copyMessage.Role == schema.Assistant {
+   335				lastAssistant = copyMessage
+   336				if strings.TrimSpace(copyMessage.Content) != "" {
+   337					result.FinalMessage = copyMessage
+   338				}
+   339			}
+   340			result.Iterations++
+   341		}
+   342		if result.FinalMessage == nil {
+   343			result.FinalMessage = lastAssistant
+   344		}
+   345		if result.FinalMessage == nil {
+   346			return ADKLoopResult{}, errors.New("adk_final_message_missing")
+   347		}
+   348		if strings.TrimSpace(result.FinalMessage.Content) == "" && len(result.FinalMessage.ToolCalls) == 0 {
+   349			return ADKLoopResult{}, errors.New("adk_final_message_empty")
+   350		}
+   351		return result, nil
+   352	}
+   353	
+   354	// ADKStructuredTaskInput is the shared Provider-facing background/conversation
+   355	// boundary. Domain callers keep their own result and settlement contracts.
+   356	type ADKStructuredTaskInput struct {
+   357		Role           string
+   358		Scenario       string
+   359		Messages       []map[string]any
+   360		Definitions    []CapabilityDefinition
+   361		SchemaName     string
+   362		Schema         map[string]any
+   363		EnableThinking bool
+   364		Capability     *ADKCapabilityRequest
+   365	}
+   366	
+   367	type ADKStructuredTaskResult struct {
+   368		Completion ProviderCompletion
+   369		Trace      *ADKCapabilityTrace
+   370	}
+   371	
+   372	// RunADKStructuredTask uses the shared surface-aware ADK bridge. It does not
+   373	// freeze, settle, publish or open a transaction; the caller owns those rules.
+   374	func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskInput) (ADKStructuredTaskResult, error) {
+   375		if a == nil || a.Provider == nil {
+   376			return ADKStructuredTaskResult{}, errors.New("adk_structured_task_provider_unavailable")
+   377		}
+   378		if !isADKLoopSchema(input.SchemaName) {
+   379			return ADKStructuredTaskResult{}, fmt.Errorf("adk_schema_not_allowed: %s", strings.TrimSpace(input.SchemaName))
+   380		}
+   381		if len(input.Definitions) > 0 && input.Capability == nil {
+   382			return ADKStructuredTaskResult{}, errors.New("adk_structured_task_capability_context_required")
+   383		}
+   384		if err := validateADKCapabilityDefinitions(a, input.Definitions, firstCapabilitySurface(input.Capability)); err != nil {
+   385			return ADKStructuredTaskResult{}, err
+   386		}
+   387		trace := &ADKCapabilityTrace{}
+   388		if input.Capability != nil {
+   389			invoker := newAppADKCapabilityInvoker(a, *input.Capability, trace)
+   390			ctx = WithADKCapabilityInvoker(ctx, invoker, trace)
+   391		}
+   392		if strings.TrimSpace(input.Scenario) != "" {
+   393			ctx = WithProviderScenario(ctx, input.Scenario)
+   394		}
+   395		completion, err := a.Provider.StructuredAssembledWithToolsSchema(ctx, input.Role, input.Messages, input.Definitions, input.SchemaName, input.Schema, input.EnableThinking)
+   396		if err != nil {
+   397			return ADKStructuredTaskResult{Trace: trace}, err
+   398		}
+   399		return ADKStructuredTaskResult{Completion: completion, Trace: trace}, nil
+   400	}
+   401	
+   402	func firstCapabilitySurface(request *ADKCapabilityRequest) CapabilitySurface {
+   403		if request == nil || request.Surface == "" {
+   404			return CapabilitySurfaceConversation
+   405		}
+   406		return request.Surface
+   407	}
+   408	
+   409	func validateADKCapabilityDefinitions(app *App, definitions []CapabilityDefinition, surface CapabilitySurface) error {
+   410		if len(definitions) == 0 {
+   411			return nil
+   412		}
+   413		if app == nil {
+   414			return errors.New("adk_capability_registry_unavailable")
+   415		}
+   416		registry := app.capabilityRegistry()
+   417		if registry == nil {
+   418			return errors.New("adk_capability_registry_unavailable")
+   419		}
+   420		seen := make(map[string]struct{}, len(definitions))
+   421		for _, definition := range definitions {
+   422			if _, duplicate := seen[definition.Name]; duplicate {
+   423				return fmt.Errorf("adk_capability_definition_duplicate: %s", definition.Name)
+   424			}
+   425			seen[definition.Name] = struct{}{}
+   426			canonical, ok := registry.Definition(definition.Name)
+   427			if !ok {
+   428				return fmt.Errorf("adk_capability_definition_unknown: %s", definition.Name)
+   429			}
+   430			if canonical.InternalOnly {
+   210		return `{"items":["recent"]}`, nil
+   211	}
+   212	
+   213	func (i *adkFakeInvoker) ExecuteWithID(ctx context.Context, callID, capabilityName string, argumentsJSON string) (string, error) {
+   214		if strings.TrimSpace(callID) == "" {
+   215			return "", errors.New("missing_call_id")
+   216		}
+   217		return i.Execute(ctx, capabilityName, argumentsJSON)
+   218	}
+   219	
+   220	func TestRunADKLoopExecutesCapabilityAndFeedsResultBack(t *testing.T) {
+   221		defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall bounded memory", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
+   222		invoker := &adkFakeInvoker{}
+   223		tools, err := NewADKCapabilityTools(defs, invoker)
+   224		if err != nil {
+   225			t.Fatal(err)
+   226		}
+   227		result, err := RunADKLoop(context.Background(), ADKLoopConfig{
+   228			Name: "conversation", Description: "Direct conversation runtime", Instruction: "Use the installed capabilities.",
+   229			Model: &adkFakeChatModel{}, Tools: tools, MaxIterations: 2,
+   230		}, []*schema.Message{schema.UserMessage("find recent memory")})
+   231		if err != nil {
+   232			t.Fatal(err)
+   233		}
+   234		if result.FinalMessage == nil || result.FinalMessage.Content != "tool result received" {
+   235			t.Fatalf("final = %#v", result.FinalMessage)
+   236		}
+   237		if len(result.ToolCalls) != 1 || len(result.ToolResults) != 1 || len(invoker.calls) != 1 {
+   238			t.Fatalf("ADK trace calls=%#v results=%#v invocations=%#v", result.ToolCalls, result.ToolResults, invoker.calls)
+   239		}
+   240		if result.FinalMessage.Role != schema.Assistant || result.ToolResults[0].Role != schema.Tool {
+   241			t.Fatalf("tool result became visible final message: final=%#v results=%#v", result.FinalMessage, result.ToolResults)
+   242		}
+   243	}
+   244	
+   245	func TestNewADKCapabilityToolsRejectsInvokerWithoutFormalIdentity(t *testing.T) {
+   246		defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall bounded memory", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
+   247		if _, err := NewADKCapabilityTools(defs, adkNoIdentityInvoker{}); err == nil || err.Error() != "adk_tool_call_identity_invoker_required" {
+   248			t.Fatalf("constructor error = %v", err)
+   249		}
+   250	}
+   251	
+   252	func TestRunADKLoopRejectsIterationLimitAboveTwo(t *testing.T) {
+   253		_, err := RunADKLoop(context.Background(), ADKLoopConfig{
+   254			Name: "conversation", Description: "test", Model: &adkFakeChatModel{}, MaxIterations: 3,
+   255		}, []*schema.Message{schema.UserMessage("hello")})
+   256		if err == nil || err.Error() != "adk_iteration_limit_invalid" {
+   257			t.Fatalf("err = %v", err)
+   258		}
+   259	}
+   260	
+   261	func TestRunADKLoopModelFailureHasNoFinalMessage(t *testing.T) {
+   262		_, err := RunADKLoop(context.Background(), ADKLoopConfig{
+   263			Name: "conversation", Description: "test", Model: adkErrorChatModel{}, MaxIterations: 2,
+   264		}, []*schema.Message{schema.UserMessage("hello")})
+   265		if err == nil || !strings.Contains(err.Error(), "fake_model_failed") {
+   266			t.Fatalf("err = %v", err)
+   267		}
+   268	}
+   269	
+   270	func TestRunADKLoopToolFailureHasNoFinalMessage(t *testing.T) {
+   271		defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
+   272		tools, err := NewADKCapabilityTools(defs, adkFailingInvoker{})
+   273		if err != nil {
+   274			t.Fatal(err)
+   275		}
+   276		_, err = RunADKLoop(context.Background(), ADKLoopConfig{
+   277			Name: "conversation", Description: "test", Model: &adkFakeChatModel{}, Tools: tools, MaxIterations: 2,
+   278		}, []*schema.Message{schema.UserMessage("tool failure")})
+   279		if err == nil || !strings.Contains(err.Error(), "fake_tool_failed") {
+   280			t.Fatalf("err = %v", err)
+   281		}
+   282	}
+   283	
+   284	func TestRunADKLoopStopsLoopAtTwoGenerations(t *testing.T) {
+   285		defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
+   286		tools, err := NewADKCapabilityTools(defs, &adkFakeInvoker{})
+   287		if err != nil {
+   288			t.Fatal(err)
+   289		}
+   290		_, err = RunADKLoop(context.Background(), ADKLoopConfig{
+   291			Name: "conversation", Description: "test", Model: adkLoopChatModel{}, Tools: tools, MaxIterations: 2,
+   292		}, []*schema.Message{schema.UserMessage("loop")})
+   293		if err == nil || !strings.Contains(err.Error(), "max iterations") {
+   294			t.Fatalf("err = %v", err)
+   295		}
+   296	}
+   297	
+   298	func TestRunADKLoopCancellationDoesNotFabricateFinalMessage(t *testing.T) {
+   299		ctx, cancel := context.WithCancel(context.Background())
+   300		cancel()
+   301		_, err := RunADKLoop(ctx, ADKLoopConfig{
+   302			Name: "background", Description: "cancellation test", Model: adkCancellationChatModel{}, MaxIterations: 2,
+   303		}, []*schema.Message{schema.UserMessage("cancel")})
+   304		if err == nil || !strings.Contains(err.Error(), context.Canceled.Error()) {
+   305			t.Fatalf("cancellation err = %v", err)
+   306		}
+   307	}
+   308	
+   309	func TestADKCapabilityDefinitionsFailClosedBySurfaceAndVisibility(t *testing.T) {
+   310		app := &App{}
+   311		registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
+   312		if err != nil {
+   313			t.Fatal(err)
+   314		}
+   315		app.Capabilities = registry
+   316		app.Provider = &ProviderClient{}
+   317	
+   318		conversationOnly, ok := registry.Definition("memory.recall")
+   319		if !ok {
+   320			t.Fatal("memory.recall definition missing")
+   321		}
+   322		if _, err := app.RunADKStructuredTask(context.Background(), ADKStructuredTaskInput{
+   323			Role: "cognitive_assessment", Scenario: "wake_up", Definitions: []CapabilityDefinition{conversationOnly},
+   324			SchemaName: "wake_up_response", Schema: wakeUpResponseSchema(), Capability: &ADKCapabilityRequest{Surface: CapabilitySurfaceWakeUp},
+   325		}); err == nil || !strings.Contains(err.Error(), "surface_forbidden") {
+   326			t.Fatalf("conversation-only capability was accepted by WakeUp: %v", err)
+   327		}
+   328	
+   329		internal, ok := registry.Definition(personaSwitchCapabilityName)
+   330		if !ok {
+
