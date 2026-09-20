@@ -232,6 +232,9 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/autonomy-actions") && method == http.MethodGet:
 		parts := splitInternalPath(path)
 		return b.server.app.AutonomyActions(ctx, actorID, pathPart(parts, 2))
+	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/wake-up") && method == http.MethodPost:
+		parts := splitInternalPath(path)
+		return b.server.app.TriggerWakeUp(ctx, actorID, pathPart(parts, 2))
 	case strings.HasPrefix(path, "/internal/fluctlights/") && strings.HasSuffix(path, "/moments") && method == http.MethodGet:
 		parts := splitInternalPath(path)
 		return b.server.app.MomentsWithOptions(ctx, actorID, pathPart(parts, 2), parsed.Query().Get("include_hidden") == "true", queryLimitValue(parsed.Query().Get("limit")))

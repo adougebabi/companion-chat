@@ -91,7 +91,11 @@ function capabilityRequestStatus(value: unknown): string {
           <Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || !controlCenter.governanceReason.trim()" @click="controlCenter.setFluctlightStatus(store.fluctlightId, controlCenter.fluctlightDetail?.status === 'paused' ? 'active' : 'paused')">
             {{ controlCenter.fluctlightDetail.status === "paused" ? "恢复自主性" : "暂停自主性" }}
           </Button>
+          <Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || controlCenter.fluctlightDetail.status !== 'active'" @click="controlCenter.triggerWakeUp(store.fluctlightId)">
+            {{ controlCenter.saving ? "唤醒中..." : "立即唤醒" }}
+          </Button>
         </div>
+        <p class="field-note">立即唤醒只会释放一次 durable Wake-up 任务，由后台 Worker 异步执行。</p>
       </section>
 
       <details class="governance-section">

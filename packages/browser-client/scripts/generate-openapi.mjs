@@ -216,6 +216,7 @@ const schema = {
     "/api/diagnostics/workflows/{workflowId}/reset": { post: { operationId: "resetWorkflow" } },
     "/api/diagnostics/workflows/{workflowId}/restart": { post: { operationId: "restartWorkflow" } },
     "/api/fluctlights/{fluctlightId}/detail": { get: { operationId: "fluctlightDetail", ...jsonResponse("BrowserFluctlightDetail") } },
+    "/api/fluctlights/{fluctlightId}/wake-up": { post: { operationId: "triggerWakeUp" } },
     "/api/fluctlights/{fluctlightId}/developing-self": { get: { operationId: "developingSelf" } },
     "/api/fluctlights/{fluctlightId}/developing-self/{claimId}/rollback": { post: { operationId: "rollbackDevelopingSelf" } },
     "/api/fluctlights/{fluctlightId}/developing-self/{claimId}/forget": { post: { operationId: "forgetDevelopingSelf" } },

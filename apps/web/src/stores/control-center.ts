@@ -373,6 +373,21 @@ export const useControlCenterStore = defineStore("control-center", {
       } catch { this.error = "无法更新 Fluctlight 状态，可能已被其他治理操作更新。"; }
       finally { this.saving = false; }
     },
+    async triggerWakeUp(fluctlightId: string | null) {
+      const detail = this.fluctlightDetail;
+      if (!fluctlightId || !detail || detail.status !== "active") {
+        this.error = "只有运行中的摇光可以立即唤醒。";
+        return;
+      }
+      this.saving = true;
+      this.error = "";
+      try {
+        await client.triggerWakeUp(fluctlightId);
+        await this.loadFluctlightDetail(fluctlightId);
+      } catch {
+        this.error = "无法触发立即唤醒，请检查 Worker 是否在线。";
+      } finally { this.saving = false; }
+    },
     async retireFluctlight(fluctlightId: string | null, reason: string) {
       const detail = this.fluctlightDetail;
       if (!fluctlightId || !detail || !reason.trim()) {

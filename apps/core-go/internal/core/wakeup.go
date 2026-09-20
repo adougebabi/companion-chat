@@ -187,6 +187,97 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 	return ensured, err
 }
 
+// TriggerWakeUp releases one Fluctlight's durable WakeUp intent immediately.
+// It only changes the intent clock; the normal Worker dispatcher remains the
+// sole owner of Temporal workflow execution and provider work.
+func (a *App) TriggerWakeUp(ctx context.Context, actorID, fluctlightID string) (map[string]any, error) {
+	fluctlightID = strings.TrimSpace(fluctlightID)
+	if fluctlightID == "" {
+		return nil, ErrNotFound
+	}
+	var result map[string]any
+	var release wakeUpRelease
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var owner, fluctlightStatus string
+		if err := tx.QueryRow(ctx, `SELECT created_by_actor_id,status FROM public.fluctlights WHERE id=$1 FOR UPDATE`, fluctlightID).Scan(&owner, &fluctlightStatus); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrNotFound
+			}
+			return err
+		}
+		if owner != actorID {
+			return ErrUnauthorized
+		}
+		if fluctlightStatus != "active" {
+			return errors.New("fluctlight_not_active")
+		}
+
+		intentID := "wake_up_intent:" + fluctlightID
+		var intentStatus, workflowID string
+		var payloadRaw []byte
+		var nextDue time.Time
+		if err := tx.QueryRow(ctx, `SELECT workflow_id,status,payload,COALESCE(next_attempt_at,now()) FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='wake_up.current' FOR UPDATE`, intentID).Scan(&workflowID, &intentStatus, &payloadRaw, &nextDue); err != nil {
+			if !errors.Is(err, pgx.ErrNoRows) {
+				return err
+			}
+			workflowID = "wake_up:" + fluctlightID
+			payloadRaw = jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "cycle": 0})
+			inserted, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at) VALUES($1,$2,'lifecycle','wake_up.current',$3,'pending',now()) ON CONFLICT (intent_id) DO NOTHING`, intentID, workflowID, payloadRaw)
+			if err != nil {
+				return err
+			}
+			if inserted.RowsAffected() == 0 {
+				if err := tx.QueryRow(ctx, `SELECT workflow_id,status,payload,COALESCE(next_attempt_at,now()) FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='wake_up.current' FOR UPDATE`, intentID).Scan(&workflowID, &intentStatus, &payloadRaw, &nextDue); err != nil {
+					return err
+				}
+			} else {
+				intentStatus = "pending"
+				nextDue = time.Now().UTC()
+			}
+		}
+
+		var payload map[string]any
+		if err := json.Unmarshal(payloadRaw, &payload); err != nil {
+			return fmt.Errorf("wake_up_intent_payload_invalid: %w", err)
+		}
+		cycle := intValue(payload["cycle"])
+		release = wakeUpRelease{IntentID: intentID, WorkflowID: workflowID, FluctlightID: fluctlightID, Cycle: cycle, DueAt: nextDue}
+		result = map[string]any{"id": fluctlightID, "intent_id": intentID, "workflow_id": workflowID}
+		switch intentStatus {
+		case "started", "running", "cancel_requested":
+			result["status"] = "running"
+			result["cycle"] = cycle
+			return nil
+		case "completed":
+			cycle++
+			payload["cycle"] = cycle
+			payloadRaw = jsonBytes(payload)
+		}
+
+		if intentStatus == "pending" || intentStatus == "retry" {
+			if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET next_attempt_at=now(),last_error=NULL WHERE intent_id=$1`, intentID); err != nil {
+				return err
+			}
+		} else {
+			if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL,payload=$2 WHERE intent_id=$1`, intentID, payloadRaw); err != nil {
+				return err
+			}
+		}
+		release.Cycle = cycle
+		release.DueAt = time.Now().UTC()
+		result["status"] = "queued"
+		result["cycle"] = cycle
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if stringValue(result["status"]) == "queued" {
+		a.recordWakeUpReleaseDiagnostics(ctx, release, "manual_wake_up")
+	}
+	return result, nil
+}
+
 func numberOrDefault(value any, fallback float64) float64 {
 	if parsed, ok := numberFloat(value); ok {
 		return parsed

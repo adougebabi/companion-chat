@@ -433,6 +433,9 @@ function onDialogOpenChange(open: boolean) { if (!open && props.open) close(); }
       </div>
 
       <DialogFooter class="detail-dialog-footer m-0">
+        <Button class="secondary-button" variant="outline" type="button" :disabled="controlCenter.saving || store.selectedFluctlight.status !== 'active'" @click="controlCenter.triggerWakeUp(store.selectedFluctlight.id)">
+          {{ controlCenter.saving ? "唤醒中..." : "立即唤醒" }}
+        </Button>
         <Button class="secondary-button" variant="outline" type="button" @click="emit('manage')">进入编辑与治理</Button>
         <DialogClose as-child><Button class="primary-button" type="button">完成</Button></DialogClose>
       </DialogFooter>

@@ -65,6 +65,13 @@ test("detail exposes a Chinese progressive state drawer", () => {
   assert.match(stylesSource, /\.state-metric-grid/);
 });
 
+test("governance exposes an owner-triggered Wake-up action", () => {
+  assert.match(detailSource, /controlCenter\.triggerWakeUp\(store\.selectedFluctlight\.id\)/);
+  assert.match(governanceSource, /立即唤醒/);
+  assert.match(governanceSource, /controlCenter\.triggerWakeUp\(store\.fluctlightId\)/);
+  assert.match(controlCenterSource, /async triggerWakeUp\(fluctlightId: string \| null\)/);
+});
+
 test("detail exposes the owner-only initialization source as a collapsed safe panel", () => {
 	assert.match(detailSource, /asRecord\(detail\.value\.initialization_source\)/);
 	assert.match(detailSource, /hasInitializationSource/);

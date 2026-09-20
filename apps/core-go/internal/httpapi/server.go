@@ -79,6 +79,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /internal/fluctlights", s.listFluctlights)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}", s.getFluctlight)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/detail", s.fluctlightDetail)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/wake-up", s.triggerWakeUp)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/developing-self", s.developingSelf)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/developing-self/{claimID}/rollback", s.rollbackDevelopingSelf)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/developing-self/{claimID}/forget", s.forgetDevelopingSelf)
@@ -357,6 +358,19 @@ func (s *Server) fluctlightDetail(response http.ResponseWriter, request *http.Re
 	if err != nil {
 		s.logger.Error("Go Core fluctlight detail failed", "fluctlight_id", request.PathValue("fluctlightID"), "error", err)
 		writeError(response, http.StatusBadGateway, "fluctlight_detail_failed")
+		return
+	}
+	writeJSON(response, http.StatusOK, value)
+}
+
+func (s *Server) triggerWakeUp(response http.ResponseWriter, request *http.Request) {
+	actorID, ok := s.authorizeHuman(response, request)
+	if !ok || s.app == nil {
+		return
+	}
+	value, err := s.app.TriggerWakeUp(request.Context(), actorID, request.PathValue("fluctlightID"))
+	if err != nil {
+		s.opError(response, err, "wake_up_trigger_failed")
 		return
 	}
 	writeJSON(response, http.StatusOK, value)

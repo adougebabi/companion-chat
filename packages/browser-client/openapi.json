@@ -872,6 +872,11 @@
         }
       }
     },
+    "/api/fluctlights/{fluctlightId}/wake-up": {
+      "post": {
+        "operationId": "triggerWakeUp"
+      }
+    },
     "/api/fluctlights/{fluctlightId}/developing-self": {
       "get": {
         "operationId": "developingSelf"

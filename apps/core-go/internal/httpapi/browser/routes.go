@@ -526,6 +526,10 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/detail", http.MethodGet, nil, s.readOnlyError(http.StatusNotFound, "fluctlight_not_found", "Fluctlight detail is unavailable"), nil)
 		return
 	}
+	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/wake-up"); ok && methodName == http.MethodPost {
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wake-up", http.MethodPost, map[string]any{}, s.readOnlyError(http.StatusUnprocessableEntity, "wake_up_trigger_failed", "Wake-up could not be triggered"), nil)
+		return
+	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/autonomy-actions"); ok && methodName == http.MethodGet {
 		s.callAny(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/autonomy-actions", http.MethodGet, nil, s.readOnlyError(http.StatusForbidden, "autonomy_actions_unavailable", "Autonomy actions are unavailable"), nil)
 		return

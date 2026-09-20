@@ -51,6 +51,7 @@ func browserRouteCases() []browserRouteCase {
 		{name: "fluctlight moments read", method: http.MethodPost, path: "/api/fluctlights/fl-1/moments/read"},
 		{name: "global moments", method: http.MethodGet, path: "/api/moments"},
 		{name: "fluctlight detail", method: http.MethodGet, path: "/api/fluctlights/fl-1/detail"},
+		{name: "fluctlight wake-up", method: http.MethodPost, path: "/api/fluctlights/fl-1/wake-up", body: `{}`},
 		{name: "developing self", method: http.MethodGet, path: "/api/fluctlights/fl-1/developing-self"},
 		{name: "developing self rollback", method: http.MethodPost, path: "/api/fluctlights/fl-1/developing-self/claim-1/rollback", body: `{"expectedRevision":1,"reason":"test"}`},
 		{name: "developing self forget", method: http.MethodPost, path: "/api/fluctlights/fl-1/developing-self/claim-1/forget", body: `{"expectedRevision":1,"reason":"test"}`},

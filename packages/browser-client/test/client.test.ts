@@ -165,6 +165,21 @@ test("BrowserClient exposes media prompt retry", async () => {
   assert.equal(requestedMethod, "POST");
 });
 
+test("BrowserClient exposes immediate Fluctlight wake-up", async () => {
+  let requestedUrl = "";
+  let requestedMethod = "";
+  const client = new BrowserClient("http://fluctlight.local", async (input, init) => {
+    requestedUrl = String(input);
+    requestedMethod = init?.method ?? "";
+    return Response.json({ id: "fl-1", status: "queued", cycle: 4 });
+  });
+
+  const result = await client.triggerWakeUp("fl-1");
+  assert.equal(requestedUrl, "http://fluctlight.local/api/fluctlights/fl-1/wake-up");
+  assert.equal(requestedMethod, "POST");
+  assert.equal(result.status, "queued");
+});
+
 test("BrowserClient serializes every lifecycle diagnostics filter for query and export", async () => {
   const requested: string[] = [];
   const client = new BrowserClient("http://fluctlight.local", async (input) => {
