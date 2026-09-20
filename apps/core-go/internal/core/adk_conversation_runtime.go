@@ -88,6 +88,32 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if callID == "" {
 		return "", errors.New("adk_tool_call_id_required")
 	}
+	// ADK may replay the same native call while the model is failing to emit a
+	// terminal assistant message.  A formal call ID is the idempotency boundary:
+	// identical replays return the original bounded result and never create a
+	// second invocation/result row; a changed payload under the same ID fails
+	// closed instead of silently merging two authorities.
+	if normalizedArguments, normalizeErr := normalizeToolArguments(arguments); normalizeErr == nil {
+		for _, previous := range i.trace.Invocations {
+			if previous.CallID != callID {
+				continue
+			}
+			previousArguments, previousErr := normalizeToolArguments(previous.Arguments)
+			if previous.CapabilityName != capabilityName || previousErr != nil || string(previousArguments) != string(normalizedArguments) {
+				return "", errors.New("adk_tool_call_id_reused")
+			}
+			for _, previousResult := range i.trace.Results {
+				if previousResult.CallID != callID {
+					continue
+				}
+				return jsonString(map[string]any{
+					"status": previousResult.Status, "capability": previousResult.CapabilityName,
+					"error_code": previousResult.ErrorCode, "output": previousResult.Output,
+				}), nil
+			}
+			return jsonString(map[string]any{"status": "deferred", "reason": "settlement_pending"}), nil
+		}
+	}
 	invocation := normalizeCapabilityInvocationMetadata(CapabilityInvocation{
 		CallID: callID, CapabilityName: capabilityName, Arguments: arguments,
 		SourceFactID: i.request.SourceFactID, ActionID: i.request.ActionID,
@@ -95,7 +121,15 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		Metadata: InvocationMetadata{CorrelationID: firstString(providerCorrelation(ctx), firstString(i.request.CorrelationID, "turn:"+i.request.SourceFactID)), FluctlightID: i.request.FluctlightID, ConversationID: i.request.ConversationID, Surface: i.request.Surface, Source: "model_tool"},
 	}, i.request.FluctlightID, i.request.ConversationID, i.request.SourceFactID, i.request.SourceFactID, len(i.trace.Invocations))
 	invocation.ActionID = i.request.ActionID
-	invocation.ContextSnapshot = capabilitySnapshotForProjection(i.request.Projection, definition.RequiredContext, i.request.ActionID)
+	// Context snapshots are required for contextful capabilities. A
+	// contextless capability must not receive a partial identity-only snapshot
+	// assembled from an optional/empty Projection: candidate validation would
+	// (correctly) reject that incomplete snapshot even though the capability
+	// does not need any context slot. The later freeze/bind boundary still
+	// attaches the full Core-owned snapshot to every persisted invocation.
+	if len(definition.RequiredContext) > 0 {
+		invocation.ContextSnapshot = capabilitySnapshotForProjection(i.request.Projection, definition.RequiredContext, i.request.ActionID)
+	}
 	i.trace.Invocations = append(i.trace.Invocations, invocation)
 	result := CapabilityResult{CallID: callID, CapabilityName: capabilityName, Status: "deferred", Retryable: true, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "capability:" + callID, RequiredContext: append([]ContextSlot(nil), definition.RequiredContext...), Output: map[string]any{"status": "deferred", "reason": "settlement_pending"}}
 	capability, found := i.app.capabilityRegistry().LookupCapability(capabilityName)
@@ -114,18 +148,27 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		i.trace.Results = append(i.trace.Results, result)
 		return jsonString(result.Output), classErr
 	}
+	// Validate every model-proposed invocation before ADK can complete the
+	// round. The post-freeze gate remains authoritative, but validating here
+	// also covers a native tool call that ADK emits in an intermediate round and
+	// whose call is intentionally excluded from the final visible-output list.
+	// Without this early gate, an invalid conversation.reply could disappear
+	// during output filtering and let a valid root sidecar reach the Judge.
+	if err := validateCandidateCapabilityInvocation(ctx, invocation, candidateValidationContext{
+		FluctlightID: i.request.FluctlightID, ConversationID: i.request.ConversationID, SourceFactID: i.request.SourceFactID,
+		ActionID: i.request.ActionID, Surface: i.request.Surface, ContextSnapshot: invocation.ContextSnapshot, Context: ctx,
+	}, i.app.capabilityRegistry()); err != nil {
+		result.Status = "rejected"
+		result.ErrorCode = "candidate_invalid"
+		result.Retryable = false
+		result.Output = map[string]any{"status": "rejected", "error_code": result.ErrorCode}
+		i.trace.Results = append(i.trace.Results, result)
+		// Return a bounded tool result without surfacing a Go error to ADK. The
+		// agent must be allowed to finish its current physical round so Core can
+		// persist the frozen candidate and reject it before Judge/Prepare/Execute.
+		return jsonString(result.Output), nil
+	}
 	if executionClass == CapabilityExecutionPureQuery {
-		if err := validateCandidateCapabilityInvocation(ctx, invocation, candidateValidationContext{
-			FluctlightID: i.request.FluctlightID, ConversationID: i.request.ConversationID, SourceFactID: i.request.SourceFactID,
-			ActionID: i.request.ActionID, Surface: i.request.Surface, ContextSnapshot: invocation.ContextSnapshot, Context: ctx,
-		}, i.app.capabilityRegistry()); err != nil {
-			result.Status = "rejected"
-			result.ErrorCode = "candidate_invalid"
-			result.Retryable = false
-			result.Output = map[string]any{"status": "rejected"}
-			i.trace.Results = append(i.trace.Results, result)
-			return jsonString(result.Output), err
-		}
 		runtime := i.app.capabilityRuntime()
 		if runtime == nil {
 			result.Status = "failed"
@@ -171,6 +214,12 @@ type ADKLoopConfig struct {
 	Tools           []tool.BaseTool
 	MaxIterations   int
 	EnableStreaming bool
+	// ToolOnlyTermination allows a bounded action-only turn to settle after
+	// the model has emitted its calls even when the Provider repeats the same
+	// calls instead of returning an empty assistant terminator.  Pure QUERY
+	// calls must not use this escape hatch: they still require a result-aware
+	// continuation or a normal final assistant message.
+	ToolOnlyTermination func([]schema.ToolCall) bool
 }
 
 type ADKLoopResult struct {
@@ -303,6 +352,17 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 			continue
 		}
 		if event.Err != nil {
+			// A model that emits only transactional/output capabilities may not
+			// have a second semantic message to produce.  Eino reports the repeated
+			// tool round as max-iterations before returning the last assistant
+			// message; preserve that bounded tool-only candidate when the caller
+			// explicitly opted in.  Do not weaken the generic loop contract or
+			// accept pure-query loops here.
+			if strings.Contains(event.Err.Error(), adk.ErrExceedMaxIterations.Error()) &&
+				lastAssistant != nil && len(lastAssistant.ToolCalls) > 0 &&
+				config.ToolOnlyTermination != nil && config.ToolOnlyTermination(lastAssistant.ToolCalls) {
+				break
+			}
 			return ADKLoopResult{}, fmt.Errorf("adk_run: %w", event.Err)
 		}
 		if event.Output == nil || event.Output.MessageOutput == nil {
@@ -333,15 +393,13 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 		}
 		if copyMessage.Role == schema.Assistant {
 			lastAssistant = copyMessage
-			if strings.TrimSpace(copyMessage.Content) != "" {
-				result.FinalMessage = copyMessage
-			}
 		}
 		result.Iterations++
 	}
-	if result.FinalMessage == nil {
-		result.FinalMessage = lastAssistant
-	}
+	// The final assistant event is authoritative. Never reuse an earlier text
+	// candidate when ADK has emitted a later empty assistant termination; doing
+	// so would publish text from before the last tool round (R-02).
+	result.FinalMessage = lastAssistant
 	if result.FinalMessage == nil {
 		return ADKLoopResult{}, errors.New("adk_final_message_missing")
 	}
@@ -356,10 +414,9 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 type ADKStructuredTaskInput struct {
 	Role           string
 	Scenario       string
-	Messages       []map[string]any
+	Prompt         PromptAssemblyResult
 	Definitions    []CapabilityDefinition
 	SchemaName     string
-	Schema         map[string]any
 	EnableThinking bool
 	Capability     *ADKCapabilityRequest
 }
@@ -392,7 +449,10 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	if strings.TrimSpace(input.Scenario) != "" {
 		ctx = WithProviderScenario(ctx, input.Scenario)
 	}
-	completion, err := a.Provider.StructuredAssembledWithToolsSchema(ctx, input.Role, input.Messages, input.Definitions, input.SchemaName, input.Schema, input.EnableThinking)
+	if !validAssembledProviderMessages(input.Prompt.Messages) {
+		return ADKStructuredTaskResult{Trace: trace}, errors.New("adk_structured_task_prompt_invalid")
+	}
+	completion, err := a.Provider.StructuredAssembledWithToolsSchema(ctx, input.Role, input.Prompt.Messages, input.Definitions, input.SchemaName, input.Prompt.ResponseFormat, input.EnableThinking)
 	if err != nil {
 		return ADKStructuredTaskResult{Trace: trace}, err
 	}

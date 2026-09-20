@@ -1,0 +1,268 @@
+# Browser compatibility cleanup
+    35		}
+    36		secure := options.SecureCookies
+    37		if !secure && (options.TrustedOrigin == "" || strings.HasPrefix(options.TrustedOrigin, "https://")) {
+    38			secure = true
+    39		}
+    40		return &Server{
+    41			backend:       options.Backend,
+    42			trustedOrigin: normalizeOrigin(options.TrustedOrigin),
+    43			secureCookies: secure,
+    44		}
+    45	}
+    46	
+    47	func (s *Server) Handler() http.Handler {
+    48		return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+    49			corsHeaders(response, request, s.trustedOrigin)
+    50			wrapped := &commonResponseWriter{ResponseWriter: response, secure: s.secureCookies, request: request}
+    51			if request.Method == http.MethodOptions {
+    52				optionsResponse(wrapped, request, s.trustedOrigin)
+    53				return
+    54			}
+    55			s.route(wrapped, request)
+    56		})
+    57	}
+    58	
+    59	func (s *Server) route(response http.ResponseWriter, request *http.Request) {
+    60		path := request.URL.Path
+    61	
+    62		if path == "/health/live" {
+    63			if !method(response, request, http.MethodGet) {
+    64				return
+    65			}
+    66			writeJSON(response, http.StatusOK, liveHealth())
+    67			return
+    68		}
+    69		if path == "/health/ready" {
+    70			if !method(response, request, http.MethodGet) {
+    71				return
+    72			}
+    73			if !isReady(request.Context(), s.backend.Health) {
+    74				writeJSON(response, http.StatusServiceUnavailable, unavailableHealth())
+    75				return
+    76			}
+    77			writeJSON(response, http.StatusOK, readyHealth())
+    78			return
+    79		}
+    80		if path == "/api/platform/ping" {
+    81			if !method(response, request, http.MethodGet) {
+    82				return
+    83			}
+    84			value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/platform/ping", "", nil)
+    85			if err != nil {
+    86				writeError(response, http.StatusBadGateway, "core_unavailable", "Core platform is unavailable")
+    87				return
+    88			}
+    89			writeJSON(response, http.StatusOK, value)
+    90			return
+    91		}
+    92	
+    93		// Authentication has a small number of anonymous endpoints.
+    94		if path == "/auth/session" {
+    95			if !method(response, request, http.MethodGet) {
+    96				return
+    97			}
+    98			value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/auth/session", cookieValue(request, sessionCookieName), nil)
+    99			if err != nil || !truthy(value["authenticated"]) {
+   100				clearSessionCookie(response, s.secureCookies)
+   101				writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
+   102				return
+   103			}
+   104			sessionResponse := map[string]any{"authenticated": true}
+   105			if actorID := value["actor_id"]; actorID != nil {
+   106				sessionResponse["actorId"] = actorID
+   107			}
+   108			writeJSON(response, http.StatusOK, sessionResponse)
+   109			return
+   110		}
+   111		if path == "/auth/setup-status" {
+   112			if !method(response, request, http.MethodGet) {
+   113				return
+   114			}
+   115			value, err := s.backend.DoJSON(request.Context(), http.MethodGet, "/internal/auth/setup-status", "", nil)
+   116			if err != nil {
+   117				writeError(response, http.StatusBadGateway, "core_unavailable", "Core authentication is unavailable")
+   118				return
+   119			}
+   120			writeJSON(response, http.StatusOK, map[string]any{"setupAvailable": truthy(value["setup_available"])})
+   121			return
+   122		}
+   123		if path == "/auth/login" || path == "/auth/setup" {
+   124			if !method(response, request, http.MethodPost) {
+   125				return
+   126			}
+   127			body, ok := readBody(response, request)
+   128			if !ok || !validatePassword(body["password"]) || (path == "/auth/setup" && !validateString(body["setupToken"], 16, 1<<20)) {
+   129				if ok {
+   130					writeError(response, http.StatusBadRequest, "invalid_request", "Request validation failed")
+   131				}
+   132				return
+   133			}
+   134			if !mutationGuard(response, request, s.trustedOrigin) {
+   135				return
+   136			}
+   137			coreBody := map[string]any{"password": body["password"]}
+   138			endpoint := "/internal/auth/login"
+   139			if path == "/auth/setup" {
+   140				endpoint = "/internal/auth/setup"
+   141				coreBody["setup_token"] = body["setupToken"]
+   142			}
+   143			value, err := s.backend.DoJSON(request.Context(), http.MethodPost, endpoint, "", coreBody)
+   144			if err != nil {
+   145				writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
+   146				return
+   147			}
+   148			sessionToken := stringValue(value["session_token"])
+   149			if sessionToken == "" || !truthy(value["authenticated"]) {
+   150				writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
+   151				return
+   152			}
+   153			setSessionCookie(response, sessionToken, s.secureCookies)
+   154			setCSRFCookie(response, newCSRFToken(), s.secureCookies)
+   155			authenticated := map[string]any{"authenticated": true}
+   156			if actorID := value["actor_id"]; actorID != nil {
+   157				authenticated["actorId"] = actorID
+   158			}
+   159			writeJSON(response, http.StatusOK, authenticated)
+   160			return
+   161		}
+   162		if path == "/auth/logout" || path == "/auth/revoke-all" || path == "/auth/password" {
+   163			if !method(response, request, http.MethodPost) {
+   164				return
+   165			}
+   166			var passwordBody map[string]any
+   167			if path == "/auth/password" {
+   168				var valid bool
+   169				passwordBody, valid = readBody(response, request)
+   170				if !valid || !validatePassword(passwordBody["password"]) {
+    82		}
+    83		if value, exists := event["created_at"]; exists {
+    84			result["createdAt"] = value
+    85		}
+    86		return result
+    87	}
+    88	
+    89	func browserDiagnosticModelRun(row map[string]any) map[string]any {
+    90		result := map[string]any{
+    91			"id":                stringValue(first(row, "id")),
+    92			"role":              stringValue(first(row, "role")),
+    93			"bindingRole":       stringValue(first(row, "binding_role")),
+    94			"scenario":          stringValue(first(row, "scenario")),
+    95			"priority":          first(row, "priority"),
+    96			"queuePendingCount": first(row, "queue_pending_count"),
+    97			"queuePosition":     first(row, "queue_position"),
+    98			"modelId":           stringValue(first(row, "model_id")),
+    99			"prompt":            jsonValue(row["prompt"]),
+   100			"status":            stringValue(first(row, "status")),
+   101			"correlationId":     stringValue(first(row, "correlation_id")),
+   102			"createdAt":         stringValue(first(row, "created_at")),
+   103			"queuedAt":          stringValue(first(row, "queued_at")),
+   104		}
+   105		if value, exists := row["endpoint_id"]; exists {
+   106			result["endpointId"] = value
+   107		}
+   108		if value, exists := row["response"]; exists {
+   109			result["response"] = jsonValue(value)
+   110		}
+   111		if value, exists := row["error_code"]; exists {
+   112			result["errorCode"] = value
+   113		}
+   114		if value, exists := row["started_at"]; exists {
+   115			result["startedAt"] = value
+   116		}
+   117		if value, exists := row["completed_at"]; exists {
+   118			result["completedAt"] = value
+   119		}
+   120		return result
+   121	}
+   122	
+   123	func browserDiagnosticMediaPrompt(row map[string]any) map[string]any {
+   124		result := map[string]any{
+   125			"id":                stringValue(first(row, "id")),
+   126			"mediaIntentId":     stringValue(first(row, "media_intent_id")),
+   127			"fluctlightId":      stringValue(first(row, "fluctlight_id")),
+   128			"kind":              stringValue(first(row, "kind")),
+   129			"mimeType":          stringValue(first(row, "mime_type")),
+   130			"prompt":            jsonValue(row["prompt"]),
+   131			"providerPrompt":    stringValue(first(row, "provider_prompt")),
+   132			"submittedPrompt":   stringValue(first(row, "submitted_prompt")),
+   133			"providerRequestId": stringValue(first(row, "provider_request_id")),
+   134			"providerJobId":     stringValue(first(row, "provider_job_id")),
+   135			"workflowId":        stringValue(first(row, "workflow_id")),
+   136			"status":            stringValue(first(row, "status")),
+   137			"qualityVerdict":    stringValue(first(row, "quality_verdict")),
+   138			"correlationId":     stringValue(first(row, "correlation_id")),
+   139			"createdAt":         stringValue(first(row, "created_at")),
+   140		}
+   141		for _, field := range []struct{ from, to string }{{"submitted_event_id", "submittedEventId"}, {"submitted_at", "submittedAt"}} {
+   142			if value, exists := row[field.from]; exists && stringValue(value) != "" {
+   143				result[field.to] = value
+   144			}
+   145		}
+   146		if value, exists := row["model_run"]; exists {
+   147			if modelRun, ok := value.(map[string]any); ok {
+   148				result["modelRun"] = browserDiagnosticModelRun(modelRun)
+   149			}
+   150		}
+   151		if value, exists := row["request_payload"]; exists {
+   152			result["requestPayload"] = jsonValue(value)
+   153		}
+   154		for _, field := range []struct{ from, to string }{{"error_message", "errorMessage"}, {"failure_stage", "failureStage"}, {"workflow_status", "workflowStatus"}} {
+   155			if value, exists := row[field.from]; exists && stringValue(value) != "" {
+   156				result[field.to] = value
+   157			}
+   158		}
+   159		if value, exists := row["attempt_count"]; exists {
+   160			result["attemptCount"] = value
+   161		}
+   162		return result
+   163	}
+   164	
+   165	// jsonValue preserves diagnostic JSON values such as the provider message
+   166	// array. objectValue is intentionally stricter for DTOs that require an
+   167	// object, but Prompt/Response are documented as arbitrary JSON payloads.
+   168	func jsonValue(value any) any {
+   169		if value == nil {
+   170			return map[string]any{}
+   171		}
+   172		switch typed := value.(type) {
+   173		case json.RawMessage:
+   174			var decoded any
+   175			if json.Unmarshal(typed, &decoded) == nil && decoded != nil {
+   176				return decoded
+   177			}
+   178		case []byte:
+   179			var decoded any
+   180			if json.Unmarshal(typed, &decoded) == nil && decoded != nil {
+   181				return decoded
+   182			}
+   183		}
+   184		return value
+   185	}
+   186	
+   187	func browserCapabilityRequests(value any) []any {
+   188		result := make([]any, 0)
+   189		for _, raw := range array(value) {
+   190			item := object(raw)
+   191			result = append(result, map[string]any{
+   192				"id": item["id"], "capabilityKey": first(item, "capability_key"), "title": item["title"],
+   193				"description": item["description"], "rationale": item["rationale"], "desiredContract": item["desired_contract"],
+   194				"sideEffectClass": first(item, "side_effect_class"), "priority": item["priority"],
+   195				"fluctlightId": first(item, "fluctlight_id"), "sourceFactId": first(item, "source_fact_id"),
+   196				"evidenceRefs": first(item, "evidence_refs"), "status": item["status"], "reviewNote": first(item, "review_note"),
+   197				"reviewerActorId": first(item, "reviewer_actor_id"), "capabilityVersion": first(item, "capability_version"),
+   198				"aggregateCount": first(item, "aggregate_count"), "createdAt": first(item, "created_at"), "updatedAt": first(item, "updated_at"),
+   199			})
+   200		}
+   201		return result
+   202	}
+   203	
+   204	func browserProviderPreflight(value map[string]any) map[string]any {
+   205		result := map[string]any{
+   206			"role":      value["role"],
+   207			"available": value["available"],
+   208		}
+   209		if version, exists := value["capability_version"]; exists {
+   210			result["capabilityVersion"] = version
+
+9:func TestBrowserBoundaryHasNoMigrationAliasesOrDualReadGuessing(t *testing.T) {

@@ -1,0 +1,23 @@
+=== RUN   TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace
+--- PASS: TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace (0.00s)
+=== RUN   TestProviderConversationWithoutToolsStillUsesADKRunner
+--- PASS: TestProviderConversationWithoutToolsStillUsesADKRunner (0.00s)
+=== RUN   TestWireBudgetAccountsForToolsAndResponseFormat
+--- PASS: TestWireBudgetAccountsForToolsAndResponseFormat (0.00s)
+=== RUN   TestPromptAssemblerBuildsBLayoutAndCurrentInputExactlyOnce
+--- PASS: TestPromptAssemblerBuildsBLayoutAndCurrentInputExactlyOnce (0.00s)
+=== RUN   TestPromptAssemblerFailsWhenRequiredWireSectionsExceedCaps
+--- PASS: TestPromptAssemblerFailsWhenRequiredWireSectionsExceedCaps (0.00s)
+=== RUN   TestPromptAssemblerTotalCapNeverSplitsRecentTurn
+--- PASS: TestPromptAssemblerTotalCapNeverSplitsRecentTurn (0.00s)
+=== RUN   TestPromptAssemblerPressureDoesNotScaleWithStores
+--- PASS: TestPromptAssemblerPressureDoesNotScaleWithStores (0.00s)
+=== RUN   TestConversationCapabilityCatalogFitsDefaultPromptBudget
+    provider_live_tool_test.go:45: conversation prompt required tokens: system=5352 tools=9334 schema=7817 required=22519 tools_cap=24576 max_input=98304 capabilities=11
+--- PASS: TestConversationCapabilityCatalogFitsDefaultPromptBudget (0.00s)
+=== RUN   TestProductionModelCallersUseTypedTaskBoundaries
+--- PASS: TestProductionModelCallersUseTypedTaskBoundaries (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.377s
+
+exit_code=

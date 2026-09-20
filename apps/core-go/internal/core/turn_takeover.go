@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -971,6 +972,7 @@ func (a *App) generateTakeoverReply(ctx context.Context, input turnTakeoverInput
 	completion := run.Completion
 	capabilityResults := []CapabilityResult{}
 	if run.Trace != nil {
+		completion.ToolCalls = mergeADKTraceInvocations(completion.ToolCalls, run.Trace)
 		capabilityResults = append(capabilityResults, run.Trace.Results...)
 	}
 	normalized, normalizeErr := a.normalizeTurnDecision(ctx, turnDecisionNormalizationInput{
@@ -992,12 +994,10 @@ func (a *App) generateTakeoverReply(ctx context.Context, input turnTakeoverInput
 			FluctlightID: input.FluctlightID, ConversationID: input.ConversationID, SourceFactID: input.InboxID, ActionID: input.Frozen.ID,
 			Surface: CapabilitySurfaceConversation, ContextSnapshot: ContextSnapshotFromProjection(scopedProjection), Context: ctx,
 		}); validateErr != nil {
-			if len(capabilityBatchFailures(validateErr)) == 0 {
-				return false, validateErr
-			}
-			// A malformed/unauthorized B call is recorded by its own Prepare
-			// boundary after replacement. Do not discard valid sibling calls from
-			// an otherwise eligible takeover candidate.
+			// B must pass the same all-or-nothing candidate gate as A. A valid
+			// sibling or the already validated A candidate cannot mask an
+			// unauthorized/malformed B invocation.
+			return false, fmt.Errorf("takeover_candidate_invalid: %w", validateErr)
 		}
 	}
 	record := make(map[string]any, len(pending)+3)

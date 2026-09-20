@@ -1,0 +1,78 @@
+# Provider runtime boundary
+     1	package core
+     2	
+     3	import (
+     4		"context"
+     5		"time"
+     6	)
+     7	
+     8	// ProviderRuntimeSupport is the narrow persistence/diagnostic seam used by a
+     9	// physical model call. It deliberately does not expose App, Repository,
+    10	// CapabilityRuntime or domain state; the composition root supplies it when a
+    11	// ProviderClient is created.
+    12	type ProviderRuntimeSupport interface {
+    13		RecordModelRun(context.Context, string, string, string, string, any, any, string, string)
+    14		PersistModelRunLifecycle(context.Context, string, string, string, string, string, int, any, any, string, string) (string, error)
+    15		RecordQueuedModelRun(context.Context, string, string, string, string, string, int, any) string
+    16		UpdateModelRunState(context.Context, string, string, error)
+    17		UpdateModelRunPromptMetrics(context.Context, string, map[string]any, time.Duration)
+    18		RecordDiagnosticEvent(context.Context, string, string, string, string, string, any)
+    19		RecordLifecycleDiagnostic(context.Context, LifecycleDiagnostic) (string, error)
+    20		RecordLifecycleDiagnosticBestEffort(context.Context, LifecycleDiagnostic)
+    21	}
+    22	
+    23	type providerRuntimeSupport struct{ DB *PostgresRepository }
+    24	
+    25	func newProviderRuntimeSupport(db *PostgresRepository) ProviderRuntimeSupport {
+    26		return providerRuntimeSupport{DB: db}
+    27	}
+
+# Composition root
+   105		host := strings.TrimPrefix(strings.TrimPrefix(s3Endpoint, "http://"), "https://")
+   106		storage, err := minio.New(host, &minio.Options{Creds: credentials.NewStaticV4(s3Access, s3Secret, ""), Secure: useSSL, Region: s3Region})
+   107		if err != nil {
+   108			return nil, fmt.Errorf("create object storage client: %w", err)
+   109		}
+   110		app := &App{
+   111			DB:          repository,
+   112			Provider:    &ProviderClient{DB: repository, SettingsKey: key, HTTP: &http.Client{Timeout: 15 * time.Minute}},
+   113			SettingsKey: key,
+   114			ServiceKey:  serviceKey,
+   115			Storage:     storage,
+   116			S3Bucket:    s3Bucket,
+   117		}
+   118		app.Provider.SetRuntimeSupport(newProviderRuntimeSupport(repository))
+   119		app.Provider.generated = newProviderQueue(providerQueueDefaultConcurrency)
+   120		app.Provider.embedding = newProviderQueue(providerQueueDefaultEmbedding)
+   121		app.SchedulePlanner = providerSchedulePlanner{provider: app.Provider, runner: app}
+   122		registry, registryErr := NewCapabilityRegistry(builtinCapabilities(app)...)
+   123		if registryErr != nil {
+   124			return nil, registryErr
+   125		}
+   126		app.Capabilities = registry
+   127		app.ContextResolver = NewAppContextResolver(app)
+   128		app.Runtime, err = NewCapabilityRuntime(app.Capabilities, app.ContextResolver)
+   129		if err != nil {
+   130			return nil, err
+
+# Provider no App construction
+apps/core-go/internal/core/provider_queue.go:310:			p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, providerRunFailed, redisErr)
+apps/core-go/internal/core/provider_queue.go:330:		p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, status, runErr)
+apps/core-go/internal/core/app.go:110:	app := &App{
+apps/core-go/internal/core/app.go:118:	app.Provider.SetRuntimeSupport(newProviderRuntimeSupport(repository))
+apps/core-go/internal/core/eino_model_runtime.go:152:		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, callCorrelation, m.scenario, m.priority, einoDiagnosticMessages(input))
+apps/core-go/internal/core/eino_model_runtime.go:159:		m.provider.runtimeSupport().UpdateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(result), time.Since(started))
+apps/core-go/internal/core/eino_model_runtime.go:176:		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, callCorrelation, m.scenario, m.priority, einoDiagnosticMessages(input))
+apps/core-go/internal/core/eino_model_runtime.go:205:				p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, providerRunFailed, redisErr)
+apps/core-go/internal/core/eino_model_runtime.go:254:			p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, status, runErr)
+apps/core-go/internal/core/provider.go:30:// SetRuntimeSupport wires the narrow persistence/diagnostics support used by
+apps/core-go/internal/core/provider.go:32:func (p *ProviderClient) SetRuntimeSupport(support ProviderRuntimeSupport) {
+apps/core-go/internal/core/provider.go:38:func (p *ProviderClient) runtimeSupport() ProviderRuntimeSupport {
+apps/core-go/internal/core/provider.go:335:		diagnosticID = p.runtimeSupport().RecordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, providerDiagnosticMessages(role, messages))
+apps/core-go/internal/core/provider.go:342:				p.runtimeSupport().UpdateModelRunPromptMetrics(ctx, diagnosticID, usage, time.Since(requestStarted))
+apps/core-go/internal/core/provider.go:1037:	p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), "completed", "")
+apps/core-go/internal/core/provider.go:1051:	p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), status, code)
+apps/core-go/internal/core/provider.go:1122:	support := p.runtimeSupport()
+apps/core-go/internal/core/provider.go:1234:	diagnosticID := p.runtimeSupport().RecordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
+apps/core-go/internal/core/provider.go:1238:			p.runtimeSupport().UpdateModelRunPromptMetrics(ctx, diagnosticID, map[string]any{}, time.Since(requestStarted))
+apps/core-go/internal/core/provider.go:1271:	diagnosticID := p.runtimeSupport().RecordQueuedModelRun(ctx, "embedding", assignment.EndpointID, assignment.ModelID, correlationID, scenario, 0, prompt)

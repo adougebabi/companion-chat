@@ -307,7 +307,7 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 	releaseRedis, redisEnabled, redisErr := p.acquireProviderRedisSlot(runCtx, role, priority, queue.currentLimit(), diagnosticID)
 	if redisErr != nil {
 		if diagnosticID != "" {
-			(&App{DB: p.DB}).updateModelRunState(ctx, diagnosticID, providerRunFailed, redisErr)
+			p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, providerRunFailed, redisErr)
 		}
 		return result, redisErr
 	}
@@ -327,7 +327,7 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 		if p.DB == nil || diagnosticID == "" {
 			return
 		}
-		(&App{DB: p.DB}).updateModelRunState(ctx, diagnosticID, status, runErr)
+		p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, status, runErr)
 	})
 	return result, err
 }

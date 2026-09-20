@@ -1,0 +1,246 @@
+# ADK final authority
+   250		}
+   251		return identityInvoker.ExecuteWithID(ctx, callID, t.info.Name, argumentsJSON)
+   252	}
+   253	
+   254	// RunADKLoop is the only Eino ADK model/tool event iterator used by Core.
+   255	// Callers receive bounded messages and hand the structured result to their
+   256	// existing domain freeze/settlement boundary.
+   257	func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Message) (ADKLoopResult, error) {
+   258		if config.Model == nil {
+   259			return ADKLoopResult{}, errors.New("adk_model_required")
+   260		}
+   261		if strings.TrimSpace(config.Name) == "" || strings.TrimSpace(config.Description) == "" {
+   262			return ADKLoopResult{}, errors.New("adk_agent_identity_required")
+   263		}
+   264		if len(messages) == 0 {
+   265			return ADKLoopResult{}, errors.New("adk_messages_required")
+   266		}
+   267		maxIterations := config.MaxIterations
+   268		if maxIterations <= 0 {
+   269			maxIterations = 2
+   270		}
+   271		if maxIterations > 2 {
+   272			return ADKLoopResult{}, errors.New("adk_iteration_limit_invalid")
+   273		}
+   274		agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
+   275			Name: config.Name, Description: config.Description,
+   276			Instruction: config.Instruction, Model: config.Model,
+   277			ToolsConfig: adk.ToolsConfig{ToolsNodeConfig: compose.ToolsNodeConfig{
+   278				Tools: config.Tools, ExecuteSequentially: true,
+   279			}},
+   280			MaxIterations: maxIterations,
+   281		})
+   282		if err != nil {
+   283			return ADKLoopResult{}, fmt.Errorf("adk_agent_create: %w", err)
+   284		}
+   285		runner := adk.NewRunner(ctx, adk.RunnerConfig{Agent: agent, EnableStreaming: config.EnableStreaming})
+   286		input := make([]adk.Message, 0, len(messages))
+   287		for _, message := range messages {
+   288			if message == nil {
+   289				return ADKLoopResult{}, errors.New("adk_message_nil")
+   290			}
+   291			input = append(input, message)
+   292		}
+   293		iter := runner.Run(ctx, input)
+   294		result := ADKLoopResult{Messages: []*schema.Message{}, ToolCalls: []schema.ToolCall{}, ToolResults: []*schema.Message{}}
+   295		var lastAssistant *schema.Message
+   296		seenToolCallIDs := make(map[string]struct{})
+   297		for {
+   298			event, ok := iter.Next()
+   299			if !ok {
+   300				break
+   301			}
+   302			if event == nil {
+   303				continue
+   304			}
+   305			if event.Err != nil {
+   306				return ADKLoopResult{}, fmt.Errorf("adk_run: %w", event.Err)
+   307			}
+   308			if event.Output == nil || event.Output.MessageOutput == nil {
+   309				continue
+   310			}
+   311			message, getErr := event.Output.MessageOutput.GetMessage()
+   312			if getErr != nil {
+   313				return ADKLoopResult{}, fmt.Errorf("adk_message_output: %w", getErr)
+   314			}
+   315			if message == nil {
+   316				continue
+   317			}
+   318			copyMessage := message
+   319			result.Messages = append(result.Messages, copyMessage)
+   320			if len(copyMessage.ToolCalls) > 0 {
+   321				for _, call := range copyMessage.ToolCalls {
+   322					if strings.TrimSpace(call.ID) != "" {
+   323						if _, seen := seenToolCallIDs[call.ID]; seen {
+   324							continue
+   325						}
+   326						seenToolCallIDs[call.ID] = struct{}{}
+   327					}
+   328					result.ToolCalls = append(result.ToolCalls, call)
+   329				}
+   330			}
+   331			if copyMessage.Role == schema.Tool {
+   332				result.ToolResults = append(result.ToolResults, copyMessage)
+   333			}
+   334			if copyMessage.Role == schema.Assistant {
+   335				lastAssistant = copyMessage
+   336			}
+   337			result.Iterations++
+   338		}
+   339		// The final assistant event is authoritative. Never reuse an earlier text
+   340		// candidate when ADK has emitted a later empty assistant termination; doing
+   341		// so would publish text from before the last tool round (R-02).
+   342		result.FinalMessage = lastAssistant
+   343		if result.FinalMessage == nil {
+   344			return ADKLoopResult{}, errors.New("adk_final_message_missing")
+   345		}
+   346		if strings.TrimSpace(result.FinalMessage.Content) == "" && len(result.FinalMessage.ToolCalls) == 0 {
+   347			return ADKLoopResult{}, errors.New("adk_final_message_empty")
+   348		}
+   349		return result, nil
+   350	}
+   351	
+   352	// ADKStructuredTaskInput is the shared Provider-facing background/conversation
+   353	// boundary. Domain callers keep their own result and settlement contracts.
+   354	type ADKStructuredTaskInput struct {
+   355		Role           string
+   356		Scenario       string
+   357		Prompt         PromptAssemblyResult
+   358		Definitions    []CapabilityDefinition
+   359		SchemaName     string
+   360		EnableThinking bool
+   361		Capability     *ADKCapabilityRequest
+   362	}
+   363	
+   364	type ADKStructuredTaskResult struct {
+   365		Completion ProviderCompletion
+   366		Trace      *ADKCapabilityTrace
+   367	}
+   368	
+   369	// RunADKStructuredTask uses the shared surface-aware ADK bridge. It does not
+   370	// freeze, settle, publish or open a transaction; the caller owns those rules.
+
+# Final message / intermediate output filtering
+   450			Name: "fluctlight-conversation", Description: "Fluctlight bounded model and capability runtime",
+   451			Model: chat, Tools: tools, MaxIterations: 2,
+   452		}, input)
+   453		if err != nil {
+   454			return einoModelResponse{}, err
+   455		}
+   456		if result.FinalMessage == nil {
+   457			return einoModelResponse{}, errors.New("adk_final_message_missing")
+   458		}
+   459		final := result.FinalMessage
+   460		// Intermediate ADK generations may use a deferred conversation.reply as a
+   461		// tool round before producing the authoritative structured final reply. That
+   462		// intermediate output proposal is not a second visible-text source: keeping
+   463		// it on the final ProviderCompletion would make the normalizer reject a
+   464		// valid final root text as a false source conflict. Preserve other
+   465		// intermediate capability calls (for example pure queries), and retain a
+   466		// conversation.reply only when it belongs to the final assistant event.
+   467		finalRoundIDs := make(map[string]struct{}, len(final.ToolCalls))
+   468		for _, call := range final.ToolCalls {
+   469			if strings.TrimSpace(call.ID) != "" {
+   470				finalRoundIDs[call.ID] = struct{}{}
+   471			}
+   472		}
+   473		completionCalls := make([]schema.ToolCall, 0, len(result.ToolCalls))
+   474		for _, call := range result.ToolCalls {
+   475			if strings.TrimSpace(final.Content) != "" && call.Function.Name == "conversation.reply" {
+   476				if _, finalRound := finalRoundIDs[call.ID]; !finalRound {
+   477					continue
+   478				}
+   479			}
+   480			completionCalls = append(completionCalls, call)
+   481		}
+   482		final.ToolCalls = completionCalls
+   483		filterADKTraceToToolCalls(adkContext.Trace, completionCalls)
+   484		return einoModelResponse{Message: final, Usage: einoUsage(final), FinishReason: "stop"}, nil
+   485	}
+   486	
+   487	func filterADKTraceToToolCalls(trace *ADKCapabilityTrace, calls []schema.ToolCall) {
+   488		if trace == nil {
+   489			return
+   490		}
+   491		allowed := make(map[string]struct{}, len(calls))
+   492		for _, call := range calls {
+   493			if strings.TrimSpace(call.ID) != "" {
+   494				allowed[call.ID] = struct{}{}
+   495			}
+   496		}
+   497		invocations := trace.Invocations[:0]
+   498		for _, invocation := range trace.Invocations {
+   499			if _, ok := allowed[invocation.CallID]; ok {
+   500				invocations = append(invocations, invocation)
+   501			}
+   502		}
+   503		trace.Invocations = invocations
+   504		results := trace.Results[:0]
+   505		for _, result := range trace.Results {
+   506			if _, ok := allowed[result.CallID]; ok {
+   507				results = append(results, result)
+   508			}
+   509		}
+   510		trace.Results = results
+   511	}
+   512	
+   513	func (p *ProviderClient) streamWithEino(ctx context.Context, assignment providerAssignment, messages []map[string]any, requestID string, onChunk func(string) error) (string, error) {
+   514		input, err := providerMessagesToEino(messages)
+   515		if err != nil {
+   516			return "", fmt.Errorf("eino_message_encode: %w", err)
+   517		}
+   518		factory := NewEinoModelFactory(p.HTTP)
+   519		chat, err := factory.NewChatModel(ctx, EinoModelConfig{
+   520			APIKey: assignment.Secret, BaseURL: assignment.BaseURL, Model: assignment.ModelID,
+   521			Timeout: assignment.Timeout, MaxCompletionTokens: assignment.TokenBudget, HTTPClient: p.HTTP,
+   522		})
+   523		if err != nil {
+   524			return "", err
+   525		}
+   526		stream, err := chat.Stream(ctx, input, openaiext.WithExtraHeader(map[string]string{
+   527			"Idempotency-Key": requestID, "X-Fluctlight-Provider-Request-Id": requestID,
+   528		}))
+   529		if err != nil {
+   530			return "", err
+   531		}
+   532		defer stream.Close()
+   533		var builder strings.Builder
+   534		for {
+   535			message, recvErr := stream.Recv()
+   536			if errors.Is(recvErr, io.EOF) {
+   537				break
+   538			}
+   539			if recvErr != nil {
+   540				return "", recvErr
+   541			}
+   542			if message == nil || message.Content == "" {
+   543				continue
+   544			}
+   545			builder.WriteString(message.Content)
+   546			if onChunk != nil {
+   547				if err := onChunk(message.Content); err != nil {
+   548					return "", err
+   549				}
+   550			}
+   551		}
+   552		return builder.String(), nil
+   553	}
+   554	
+   555	func einoUsage(message *schema.Message) map[string]any {
+   556		if message == nil || message.ResponseMeta == nil || message.ResponseMeta.Usage == nil {
+   557			return map[string]any{}
+   558		}
+   559		usage := message.ResponseMeta.Usage
+   560		return map[string]any{
+
+# R02 regression test
+329-		t.Fatalf("cancellation err = %v", err)
+330-	}
+331-}
+332-
+333:func TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant(t *testing.T) {
+334-	defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
+335-	tools, err := NewADKCapabilityTools(defs, &adkFakeInvoker{})
+336-	if err != nil {
+337-		t.Fatal(err)

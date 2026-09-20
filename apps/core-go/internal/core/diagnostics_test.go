@@ -191,7 +191,11 @@ func TestProviderPreflightFailuresAreDiagnosedBeforeQueue(t *testing.T) {
 			t.Fatalf("Provider preflight stage %s is not diagnosed", stage)
 		}
 	}
-	if strings.Index(body, "ensureProviderAttemptIdentity") > strings.Index(body, "recordQueuedModelRun") {
+	queuedMarker := "RecordQueuedModelRun"
+	if strings.Index(body, queuedMarker) < 0 {
+		queuedMarker = "recordQueuedModelRun"
+	}
+	if strings.Index(body, "ensureProviderAttemptIdentity") > strings.Index(body, queuedMarker) {
 		t.Fatal("Provider attempt identity is created after the queued diagnostic")
 	}
 }

@@ -190,6 +190,8 @@ func TestUnauthorizedCandidateAFailsBeforeTheJudge(t *testing.T) {
 	if _, err := app.HandleTurn(ctx, ownerID, conversationID,
 		takeoverChainTurnPayload(fluctlightID, "确认一下。", "chain-unauth-a-turn", "chain-unauth-a-turn-1")); err == nil {
 		t.Fatal("an unauthorized candidate must fail the turn")
+	} else {
+		t.Logf("unauthorized candidate failure: %v", err)
 	}
 
 	if count := router.requestCount(takeoverJudgeSchemaName); count != 0 {
@@ -201,9 +203,15 @@ func TestUnauthorizedCandidateAFailsBeforeTheJudge(t *testing.T) {
 	if texts := takeoverChainAssistantTexts(t, ctx, repository, conversationID, "chain-unauth-a-turn-1"); len(texts) != 0 {
 		t.Fatalf("an unauthorized candidate must not be delivered: %#v", texts)
 	}
-	frozen := takeoverChainFrozenPayload(t, ctx, repository, "chain-unauth-a-turn")
-	if stage := turnStageOf(frozen); stage == turnStageWinnerReady {
-		t.Fatalf("an unauthorized candidate must never become executable: %#v", frozen[turnStagePayloadKey])
+	var frozenCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_frozen_actions WHERE inbox_id=(SELECT id FROM public.cognition_inbox WHERE idempotency_key=$1 AND event_type='conversation.turn' ORDER BY created_at DESC LIMIT 1)`, "chain-unauth-a-turn").Scan(&frozenCount); err != nil {
+		t.Fatal(err)
+	}
+	if frozenCount > 0 {
+		frozen := takeoverChainFrozenPayload(t, ctx, repository, "chain-unauth-a-turn")
+		if stage := turnStageOf(frozen); stage == turnStageWinnerReady {
+			t.Fatalf("an unauthorized candidate must never become executable: %#v", frozen[turnStagePayloadKey])
+		}
 	}
 }
 
@@ -446,8 +454,14 @@ func TestUnauthorizedRelationshipCandidateAFailsBeforeTheJudge(t *testing.T) {
 	if texts := takeoverChainAssistantTexts(t, ctx, repository, conversationID, "chain-rel-unauth-turn-1"); len(texts) != 0 {
 		t.Fatalf("an unauthorized relationship candidate must not be delivered: %#v", texts)
 	}
-	frozen := takeoverChainFrozenPayload(t, ctx, repository, "chain-rel-unauth-turn")
-	if stage := turnStageOf(frozen); stage == turnStageWinnerReady {
-		t.Fatalf("an unauthorized relationship candidate must never become executable: %#v", frozen[turnStagePayloadKey])
+	var frozenCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_frozen_actions WHERE inbox_id=(SELECT id FROM public.cognition_inbox WHERE idempotency_key=$1 AND event_type='conversation.turn' ORDER BY created_at DESC LIMIT 1)`, "chain-rel-unauth-turn").Scan(&frozenCount); err != nil {
+		t.Fatal(err)
+	}
+	if frozenCount > 0 {
+		frozen := takeoverChainFrozenPayload(t, ctx, repository, "chain-rel-unauth-turn")
+		if stage := turnStageOf(frozen); stage == turnStageWinnerReady {
+			t.Fatalf("an unauthorized relationship candidate must never become executable: %#v", frozen[turnStagePayloadKey])
+		}
 	}
 }

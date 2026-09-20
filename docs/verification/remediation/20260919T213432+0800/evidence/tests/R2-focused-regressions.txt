@@ -1,0 +1,171 @@
+=== RUN   TestDirectConversationReplyToolWithoutAppraisalCommitsBothMessages
+2026/09/20 11:13:13 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=true fields="[action_type influences response_intent response_mode tool_calls]" tool_call_count=1 candidate_count=0 content_present=false content_length=0 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:13 INFO capability lifecycle capability=persona.takeover call_id=policy_1f85c1c7619542e25533b03fbc7cefa1 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:13 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=reply-tool-fluctlight inbox_id=inbox_1680445a520ca1b5df74cfcc2320b67e error_type=*errors.errorString
+--- PASS: TestDirectConversationReplyToolWithoutAppraisalCommitsBothMessages (0.86s)
+=== RUN   TestDirectConversationToolCallsExecuteIndependentlyWithoutVisibleReply
+2026/09/20 11:13:14 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=true fields="[action_type influences response_intent response_mode tool_calls]" tool_call_count=2 candidate_count=0 content_present=false content_length=0 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:14 INFO capability lifecycle capability=persona.takeover call_id=policy_c5d4d938acfc47b316d38a6bbf30fc53 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:14 WARN Go Core cognition follow-up scheduling degraded after no-op turn fluctlight_id=mixed-fluctlight-tool-only inbox_id=inbox_1cf1b95fee567ae6f718c0a4509be097 error_type=*errors.errorString
+--- PASS: TestDirectConversationToolCallsExecuteIndependentlyWithoutVisibleReply (0.84s)
+=== RUN   TestDirectConversationReplyCanonicalToolCallWithEmptyStructuredFieldsCommitsMessage
+2026/09/20 11:13:15 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=true fields="[action_type influences response_intent response_mode tool_calls]" tool_call_count=1 candidate_count=0 content_present=false content_length=0 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:15 INFO capability lifecycle capability=persona.takeover call_id=policy_ad94bcd2c8f4858b21e3da52d3876f0b type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:15 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=canonical-reply-fluctlight inbox_id=inbox_54c33f212086396889f83b8a42694ee9 error_type=*errors.errorString
+--- PASS: TestDirectConversationReplyCanonicalToolCallWithEmptyStructuredFieldsCommitsMessage (0.87s)
+=== RUN   TestRunADKLoopExecutesCapabilityAndFeedsResultBack
+--- PASS: TestRunADKLoopExecutesCapabilityAndFeedsResultBack (0.00s)
+=== RUN   TestRunADKLoopRejectsIterationLimitAboveTwo
+--- PASS: TestRunADKLoopRejectsIterationLimitAboveTwo (0.00s)
+=== RUN   TestRunADKLoopModelFailureHasNoFinalMessage
+--- PASS: TestRunADKLoopModelFailureHasNoFinalMessage (0.00s)
+=== RUN   TestRunADKLoopToolFailureHasNoFinalMessage
+--- PASS: TestRunADKLoopToolFailureHasNoFinalMessage (0.00s)
+=== RUN   TestRunADKLoopStopsLoopAtTwoGenerations
+--- PASS: TestRunADKLoopStopsLoopAtTwoGenerations (0.00s)
+=== RUN   TestRunADKLoopCancellationDoesNotFabricateFinalMessage
+--- PASS: TestRunADKLoopCancellationDoesNotFabricateFinalMessage (0.00s)
+=== RUN   TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant
+--- PASS: TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant (0.00s)
+=== RUN   TestIntermediateReplyFilteringKeepsNonOutputCapabilitiesAndFinalReply
+--- PASS: TestIntermediateReplyFilteringKeepsNonOutputCapabilitiesAndFinalReply (0.00s)
+=== RUN   TestDeferredToolOnlyRoundStopsPhysicalContinuation
+--- PASS: TestDeferredToolOnlyRoundStopsPhysicalContinuation (0.00s)
+=== RUN   TestHandleTurnProductionADKToolLoopSettlesOneAssistant
+2026/09/20 11:13:15 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=false fields=[tool_calls] tool_call_count=0 candidate_count=1 content_present=true content_length=424 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:15 INFO capability lifecycle capability=persona.takeover call_id=policy_bbd1baa8b6e1fc99c1b43facfe86cb99 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:15 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=adk-e2e-fluctlight inbox_id=inbox_6310f79646c1dbd4553687432a67e37c error_type=*errors.errorString
+--- PASS: TestHandleTurnProductionADKToolLoopSettlesOneAssistant (0.78s)
+=== RUN   TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace
+--- PASS: TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace (0.00s)
+=== RUN   TestProviderWakeUpUsesADKLoopAndPreservesTrace
+--- PASS: TestProviderWakeUpUsesADKLoopAndPreservesTrace (0.00s)
+=== RUN   TestAppADKInvokerUsesWakeUpSurface
+--- PASS: TestAppADKInvokerUsesWakeUpSurface (0.00s)
+=== RUN   TestProviderTakeoverReplyUsesADKLoopAndPreservesTrace
+--- PASS: TestProviderTakeoverReplyUsesADKLoopAndPreservesTrace (0.00s)
+=== RUN   TestSameObservationDifferentSceneChangesDecisionPlannerOutcomeAndNextProjection
+2026/09/20 11:13:16 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=false fields=[response_mode] tool_call_count=2 candidate_count=1 content_present=true content_length=535 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:16 INFO capability lifecycle capability=persona.takeover call_id=policy_3b3aab7f80fe88144e5d3f22cef4a3a8 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:16 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=scene-chain-fluctlight inbox_id=inbox_c50182f174c1c48b4108a9cb4f7d7294 error_type=*errors.errorString
+2026/09/20 11:13:17 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=false fields=[response_mode] tool_call_count=2 candidate_count=1 content_present=true content_length=535 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:17 INFO capability lifecycle capability=persona.takeover call_id=policy_3b3aab7f80fe88144e5d3f22cef4a3a8 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:17 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=scene-chain-fluctlight inbox_id=inbox_c50182f174c1c48b4108a9cb4f7d7294 error_type=*errors.errorString
+--- PASS: TestSameObservationDifferentSceneChangesDecisionPlannerOutcomeAndNextProjection (2.50s)
+=== RUN   TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale
+=== RUN   TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale/wake_up
+=== RUN   TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale/daily_review
+--- PASS: TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale (1.54s)
+    --- PASS: TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale/wake_up (0.76s)
+    --- PASS: TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale/daily_review (0.78s)
+=== RUN   TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement
+2026/09/20 11:13:20 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=false fields=[response_mode] tool_call_count=2 candidate_count=1 content_present=true content_length=589 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:20 INFO capability lifecycle capability=persona.takeover call_id=policy_d732247722481040a0d79f40ac7a736a type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+--- PASS: TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement (0.75s)
+=== RUN   TestLifeContextProviderProjectionKeepsOpaqueAuthorityAndDropsRawRows
+--- PASS: TestLifeContextProviderProjectionKeepsOpaqueAuthorityAndDropsRawRows (0.00s)
+=== RUN   TestTurnStageBudgetNeverExceedsTwoMainGenerations
+=== RUN   TestTurnStageBudgetNeverExceedsTwoMainGenerations/no_rule_pays_for_one_generation_and_no_judge
+2026/09/20 11:13:21 INFO capability lifecycle capability=persona.takeover call_id=policy_5c25f941121f865ad2ecb915752737f9 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:21 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=stage-budget-fluctlight-no-rule-pays-for-one-generation-and-no-judge inbox_id=inbox_b2bb742bbfe8b85e20dd7ffa78c81ed8 error_type=*errors.errorString
+=== RUN   TestTurnStageBudgetNeverExceedsTwoMainGenerations/a_declined_judge_is_metered_outside_the_main_budget
+2026/09/20 11:13:22 INFO capability lifecycle capability=persona.takeover call_id=policy_bd48ec685a2c5f85c529f53608cdc166 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:22 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=stage-budget-fluctlight-a-declined-judge-is-metered-outside-the-main-budget inbox_id=inbox_e8ae7a7377300fa4eab381999b2bd126 error_type=*errors.errorString
+=== RUN   TestTurnStageBudgetNeverExceedsTwoMainGenerations/an_approved_judge_adds_exactly_one_second_generation
+2026/09/20 11:13:23 INFO capability lifecycle capability=persona.takeover call_id=policy_2067ffea9b71e5c30d61957228d028e9 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:23 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=stage-budget-fluctlight-an-approved-judge-adds-exactly-one-second-generation inbox_id=inbox_db7bc78b1b3c56569df4e4b27cb62873 error_type=*errors.errorString
+=== RUN   TestTurnStageBudgetNeverExceedsTwoMainGenerations/a_pure_query_skips_arbitration_and_pays_only_for_synthesis
+2026/09/20 11:13:24 INFO capability lifecycle capability=memory.recall call_id=pure-recall type=query surface=conversation required_context=[memory_scope] duration_ms=1 status=completed retryable=false intent_present=true intent_runes=9 intent_digest=3da33f5b0b327c044101c0f603f882a1
+2026/09/20 11:13:24 INFO capability lifecycle capability=persona.takeover call_id=policy_afc5516a97fbf192e096fcf62906a5bd type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:24 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=stage-budget-fluctlight-a-pure-query-skips-arbitration-and-pays-only-for-synthesis inbox_id=inbox_fd039d739f91f8dccc81aa74851ba6a5 error_type=*errors.errorString
+--- PASS: TestTurnStageBudgetNeverExceedsTwoMainGenerations (3.62s)
+    --- PASS: TestTurnStageBudgetNeverExceedsTwoMainGenerations/no_rule_pays_for_one_generation_and_no_judge (1.06s)
+    --- PASS: TestTurnStageBudgetNeverExceedsTwoMainGenerations/a_declined_judge_is_metered_outside_the_main_budget (1.01s)
+    --- PASS: TestTurnStageBudgetNeverExceedsTwoMainGenerations/an_approved_judge_adds_exactly_one_second_generation (0.78s)
+    --- PASS: TestTurnStageBudgetNeverExceedsTwoMainGenerations/a_pure_query_skips_arbitration_and_pays_only_for_synthesis (0.76s)
+=== RUN   TestLogicalInvocationsVsPhysicalAttempts
+=== RUN   TestLogicalInvocationsVsPhysicalAttempts/a_deterministic_turn_spends_one_attempt_per_logical_stage
+2026/09/20 11:13:25 INFO capability lifecycle capability=persona.takeover call_id=policy_716d4bb966b8dd9e429009513bd2613e type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:25 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=physical-ok-fluctlight inbox_id=inbox_fda4af11378d8a8887cf0b70b84f7a12 error_type=*errors.errorString
+=== RUN   TestLogicalInvocationsVsPhysicalAttempts/a_unavailable_judge_keeps_the_candidate_at_bounded_cost
+2026/09/20 11:13:26 INFO capability lifecycle capability=persona.takeover call_id=policy_4c8668e54cb2d8dd9948dde6ba6d6672 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:26 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=physical-judge-fluctlight-unavailable inbox_id=inbox_eeadb64c75aa1c52ba17122b9720f0f9 error_type=*errors.errorString
+=== RUN   TestLogicalInvocationsVsPhysicalAttempts/a_timeout_judge_keeps_the_candidate_at_bounded_cost
+2026/09/20 11:13:26 INFO capability lifecycle capability=persona.takeover call_id=policy_ab9662ae0c6981f8b1e79ddf9ef31936 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:26 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=physical-judge-fluctlight-timeout inbox_id=inbox_1c671f9201263c95ec04b0071fc8f7b2 error_type=*errors.errorString
+=== RUN   TestLogicalInvocationsVsPhysicalAttempts/an_over-budget_judge_packet_is_refused_before_the_network
+2026/09/20 11:13:27 INFO capability lifecycle capability=persona.takeover call_id=policy_9533abce9e212481e2dd2ebad376786e type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:27 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=physical-overbudget-fluctlight inbox_id=inbox_04fb0e3dd02f80def5d54b6d2888d2ec error_type=*errors.errorString
+=== RUN   TestLogicalInvocationsVsPhysicalAttempts/a_schema-invalid_judge_reply_is_coerced,_not_reported_as_invalid_output
+2026/09/20 11:13:28 WARN Go Core Provider structured response normalized role=takeover_judge schema=takeover_judge_response fallback=false fields=[takeover] tool_call_count=0 candidate_count=1 content_present=true content_length=18 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:28 INFO capability lifecycle capability=persona.takeover call_id=policy_e9475280ddd3329e671e56e4c35daee3 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:28 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=physical-coerced-fluctlight inbox_id=inbox_2685b6d10edc4d18f9fe349bf4e81130 error_type=*errors.errorString
+--- PASS: TestLogicalInvocationsVsPhysicalAttempts (4.29s)
+    --- PASS: TestLogicalInvocationsVsPhysicalAttempts/a_deterministic_turn_spends_one_attempt_per_logical_stage (0.91s)
+    --- PASS: TestLogicalInvocationsVsPhysicalAttempts/a_unavailable_judge_keeps_the_candidate_at_bounded_cost (0.93s)
+    --- PASS: TestLogicalInvocationsVsPhysicalAttempts/a_timeout_judge_keeps_the_candidate_at_bounded_cost (0.82s)
+    --- PASS: TestLogicalInvocationsVsPhysicalAttempts/an_over-budget_judge_packet_is_refused_before_the_network (0.85s)
+    --- PASS: TestLogicalInvocationsVsPhysicalAttempts/a_schema-invalid_judge_reply_is_coerced,_not_reported_as_invalid_output (0.78s)
+=== RUN   TestTurnPathCostMeasurement
+2026/09/20 11:13:29 INFO capability lifecycle capability=persona.takeover call_id=policy_2e1f895a40192ad5db52348a6e688aed type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:29 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=cost-fluctlight-plain_no_judge inbox_id=inbox_c6b5e36b8a0304df16414b59558ded4b error_type=*errors.errorString
+2026/09/20 11:13:30 INFO capability lifecycle capability=persona.takeover call_id=policy_1d64c0587b2af726fd19ffc373d5bf98 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:30 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=cost-fluctlight-judge_keeps_a inbox_id=inbox_814bbc78e515faa04d780f82876b026a error_type=*errors.errorString
+2026/09/20 11:13:30 INFO capability lifecycle capability=persona.takeover call_id=policy_64d944c7878cf0424bf359199a55a51b type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:30 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=cost-fluctlight-judge_takeover_b inbox_id=inbox_3f3ae48ce5aeb7406b28bd0fb568030f error_type=*errors.errorString
+2026/09/20 11:13:31 INFO capability lifecycle capability=memory.recall call_id=pure-recall type=query surface=conversation required_context=[memory_scope] duration_ms=2 status=completed retryable=false intent_present=true intent_runes=9 intent_digest=3da33f5b0b327c044101c0f603f882a1
+2026/09/20 11:13:31 INFO capability lifecycle capability=persona.takeover call_id=policy_8b475c396fe535ecb1fe137e9fbc2807 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:31 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=cost-fluctlight-pure_query inbox_id=inbox_4abc391944332fe7848ce416db56e41c error_type=*errors.errorString
+    turn_path_cost_report_test.go:206: plain_no_judge   physical=2 tokens(in)=29290 tokens(out~)=163 bytes=27018 conversation_turn_response×1=23190tok/20578B persistent_switch_assessment×1=6100tok/6440B
+    turn_path_cost_report_test.go:206: judge_keeps_a    physical=3 tokens(in)=31203 tokens(out~)=163 bytes=29172 conversation_turn_response×1=23190tok/20578B persistent_switch_assessment×1=6100tok/6440B takeover_judge_response×1=1913tok/2154B
+    turn_path_cost_report_test.go:206: judge_takeover_b physical=4 tokens(in)=53917 tokens(out~)=326 bytes=49889 conversation_turn_response×1=23190tok/20578B persistent_switch_assessment×1=6100tok/6440B takeover_judge_response×1=1913tok/2154B takeover_reply_response×1=22714tok/20717B
+    turn_path_cost_report_test.go:206: pure_query       physical=4 tokens(in)=59701 tokens(out~)=33 bytes=55420 conversation_turn_response×2=47003tok/41672B persistent_switch_assessment×1=6093tok/6420B query_continuation_response×1=6605tok/7328B
+--- PASS: TestTurnPathCostMeasurement (7.01s)
+=== RUN   TestPureQueryTurnNeverInvokesTheJudge
+2026/09/20 11:13:36 INFO capability lifecycle capability=memory.recall call_id=query-recall type=query surface=conversation required_context=[memory_scope] duration_ms=2 status=completed retryable=false intent_present=true intent_runes=9 intent_digest=3da33f5b0b327c044101c0f603f882a1
+2026/09/20 11:13:36 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:36 INFO capability lifecycle capability=persona.takeover call_id=policy_0be3bb1d1b23a2bbf737530e5eef7f2a type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:36 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=chain-query-fluctlight inbox_id=inbox_a68d8a72cc03a926a7f3f9e253dbee82 error_type=*errors.errorString
+--- PASS: TestPureQueryTurnNeverInvokesTheJudge (0.79s)
+=== RUN   TestInvalidCandidateFailsBeforeTheJudge
+2026/09/20 11:13:37 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+--- PASS: TestInvalidCandidateFailsBeforeTheJudge (0.76s)
+=== RUN   TestMixedQueryActionBatchMayBeArbitratedButNotContinued
+2026/09/20 11:13:37 INFO capability lifecycle capability=memory.recall call_id=mixed-recall type=query surface=conversation required_context=[memory_scope] duration_ms=2 status=completed retryable=false intent_present=true intent_runes=7 intent_digest=24e77c84b71c3b09757d779b2e612336
+2026/09/20 11:13:37 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=false fields="[response_mode tool_calls]" tool_call_count=2 candidate_count=1 content_present=true content_length=65 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:37 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:37 INFO capability lifecycle capability=persona.takeover call_id=policy_bfff577b334ff3778d997611a038cf47 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:37 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=chain-mixed-fluctlight inbox_id=inbox_22af0152e2ac98622dbd7cdc871a3c4b error_type=*errors.errorString
+--- PASS: TestMixedQueryActionBatchMayBeArbitratedButNotContinued (0.82s)
+=== RUN   TestTakeoverReplyQueryContinuationFailsClosed
+2026/09/20 11:13:38 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:38 INFO capability lifecycle capability=persona.takeover call_id=policy_415dd480230fbcd5ecdd24786ac201a9 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:38 INFO capability lifecycle capability=memory.recall call_id=pure-recall type=query surface=conversation required_context=[memory_scope] duration_ms=1 status=completed retryable=false intent_present=true intent_runes=9 intent_digest=3da33f5b0b327c044101c0f603f882a1
+--- PASS: TestTakeoverReplyQueryContinuationFailsClosed (0.70s)
+=== RUN   TestMainGenerationBudgetNeverExceedsTwo
+=== RUN   TestMainGenerationBudgetNeverExceedsTwo/no_takeover_rule_pays_for_nothing_extra
+2026/09/20 11:13:39 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:39 INFO capability lifecycle capability=persona.takeover call_id=policy_81fe5a3e7e4c1b1a4fed6f7b476a7055 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:39 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=budget-fluctlight-no-takeover-rule-pays-for-nothing-extra inbox_id=inbox_542dc3005d9953f82b75e0050ffd6e90 error_type=*errors.errorString
+=== RUN   TestMainGenerationBudgetNeverExceedsTwo/declined_Judge_keeps_the_candidate
+2026/09/20 11:13:39 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:39 INFO capability lifecycle capability=persona.takeover call_id=policy_35d2cf05831e72696ef3563a095fb50c type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:39 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=budget-fluctlight-declined-Judge-keeps-the-candidate inbox_id=inbox_c588ccf2ed8f9ccc70185cda78dcab15 error_type=*errors.errorString
+=== RUN   TestMainGenerationBudgetNeverExceedsTwo/approved_Judge_replaces_the_candidate
+2026/09/20 11:13:40 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:40 INFO capability lifecycle capability=persona.takeover call_id=policy_81c9dadb3850756bc7d9ae9744364d5e type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:40 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=budget-fluctlight-approved-Judge-replaces-the-candidate inbox_id=inbox_e24fc57dbaf04065ad743f3299f1beb4 error_type=*errors.errorString
+=== RUN   TestMainGenerationBudgetNeverExceedsTwo/pure_query_skips_arbitration_entirely
+2026/09/20 11:13:41 INFO capability lifecycle capability=memory.recall call_id=pure-recall type=query surface=conversation required_context=[memory_scope] duration_ms=1 status=completed retryable=false intent_present=true intent_runes=9 intent_digest=3da33f5b0b327c044101c0f603f882a1
+2026/09/20 11:13:41 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:13:41 INFO capability lifecycle capability=persona.takeover call_id=policy_b04efa327eaee1e9033da551772c50a3 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:13:41 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=budget-fluctlight-pure-query-skips-arbitration-entirely inbox_id=inbox_fb91f8815e6985e8bf518126ae3209fc error_type=*errors.errorString
+--- PASS: TestMainGenerationBudgetNeverExceedsTwo (2.87s)
+    --- PASS: TestMainGenerationBudgetNeverExceedsTwo/no_takeover_rule_pays_for_nothing_extra (0.68s)
+    --- PASS: TestMainGenerationBudgetNeverExceedsTwo/declined_Judge_keeps_the_candidate (0.70s)
+    --- PASS: TestMainGenerationBudgetNeverExceedsTwo/approved_Judge_replaces_the_candidate (0.76s)
+    --- PASS: TestMainGenerationBudgetNeverExceedsTwo/pure_query_skips_arbitration_entirely (0.73s)
+=== RUN   TestConflictingReplyArgumentFailsClosed
+--- PASS: TestConflictingReplyArgumentFailsClosed (0.68s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	30.029s

@@ -1,0 +1,13 @@
+=== RUN   TestTakeoverControlViewFailureDoesNotFallBackToBaseline
+--- PASS: TestTakeoverControlViewFailureDoesNotFallBackToBaseline (3.19s)
+=== RUN   TestJudgeSkipsProviderWhenTakeoverControlViewFails
+--- PASS: TestJudgeSkipsProviderWhenTakeoverControlViewFails (2.53s)
+=== RUN   TestOverlayFailureKeepsAByExplicitContractInProductionTurn
+2026/09/20 09:26:15 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 09:26:15 INFO capability lifecycle capability=persona.takeover call_id=policy_bead9ae4484cc4ee41312cd947fae32c type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 09:26:15 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=f05-overlay-production inbox_id=inbox_f054f3edcd7134098f280dc4cdce6f08 error_type=*errors.errorString
+--- PASS: TestOverlayFailureKeepsAByExplicitContractInProductionTurn (2.22s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.332s
+
+exit_code=0

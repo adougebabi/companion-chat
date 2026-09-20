@@ -1,0 +1,10 @@
+$ go -C apps/core-go test -mod=readonly ./internal/core -run TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant -count=1 -v
+source=ba6457a pre-remediation
+exit_code=1
+
+=== RUN   TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant
+    eino_adk_runtime_test.go:343: expected final empty failure, got <nil>
+--- FAIL: TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant (0.00s)
+FAIL
+Confirmed R-02: RunADKLoop reused the earlier non-empty assistant after the final assistant was empty and tool-free.
+

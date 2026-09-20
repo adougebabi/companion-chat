@@ -41,42 +41,14 @@ type persistentSwitchPostAssessmentInput struct {
 // profile should change for the next turn. It never creates a reply or invokes
 // a capability.
 func (a *App) assessPersistentSwitchAfterCandidate(ctx context.Context, input persistentSwitchPostAssessmentInput) (*personalityDecisionPlan, map[string]any, error) {
-	assessmentInput := map[string]any{
-		"user_text":       input.CurrentText,
-		"candidate_reply": input.CandidateReply,
-		"response_intent": input.ResponseIntent,
-	}
-	assembly, _, err := a.assembleProjectionPromptForSurface(
-		ctx,
-		ProviderContextSurfacePersistentSwitch,
-		input.Projection,
-		"cognitive_assessment",
-		[]string{providerContextAuthorityRule, persistentSwitchAssessmentInstruction},
-		jsonString(assessmentInput),
-		nil,
-		persistentSwitchAssessmentSchemaName,
-		persistentSwitchAssessmentSchema(),
-	)
+	result, err := a.RunPersistentSwitchTask(ctx, PersistentSwitchTaskInput{
+		InboxID: input.InboxID, CurrentText: input.CurrentText, CandidateReply: input.CandidateReply,
+		ResponseIntent: input.ResponseIntent, Projection: input.Projection,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-	providerCtx := WithPromptDiagnostics(
-		WithProviderCorrelation(WithProviderScenario(ctx, "cognitive_assessment"), "persona-switch-after:"+input.InboxID),
-		assembly.Diagnostics,
-	)
-	completion, err := a.RunStructuredToolsTask(
-		providerCtx,
-		ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "persistent_switch_assessment", SchemaName: persistentSwitchAssessmentSchemaName},
-		assembly.Messages,
-		nil,
-		persistentSwitchAssessmentSchema(),
-		true,
-		structuredThinkingEnabledForSchema(persistentSwitchAssessmentSchemaName),
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	decision := mapValue(completion.Structured["personality_decision"])
+	decision := mapValue(result.Completion.Structured["personality_decision"])
 	if len(decision) == 0 {
 		return nil, nil, errors.New("persistent_switch_assessment_missing")
 	}

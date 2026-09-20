@@ -1,0 +1,2 @@
+G0 evidence validation: PASS (/Users/vinson/Documents/project/个人/local-ai-companion-yaoguang-eino-adk/docs/verification/remediation/20260919T213432+0800)
+exit_code=0

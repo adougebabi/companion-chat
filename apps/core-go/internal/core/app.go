@@ -115,6 +115,7 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 		Storage:     storage,
 		S3Bucket:    s3Bucket,
 	}
+	app.Provider.SetRuntimeSupport(newProviderRuntimeSupport(repository))
 	app.Provider.generated = newProviderQueue(providerQueueDefaultConcurrency)
 	app.Provider.embedding = newProviderQueue(providerQueueDefaultEmbedding)
 	app.SchedulePlanner = providerSchedulePlanner{provider: app.Provider, runner: app}
@@ -325,10 +326,9 @@ func (a *App) AnalyzeDescription(ctx context.Context, actorID, description strin
 		return nil, errors.New("description_invalid")
 	}
 	analysisStartedAt := time.Now().UTC()
-	messages := initializationAnalysisMessages(description)
 	correlationID := initializationAnalysisCorrelation()
 	providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "initialization"), correlationID)
-	result, err := a.RunInitializationTask(providerCtx, messages)
+	result, err := a.RunInitializationTask(providerCtx, InitializationTaskInput{Description: description})
 	if err != nil {
 		failure := &initializationAnalysisError{Code: initializationProviderErrorCode(err), CorrelationID: correlationID, ValidationType: "provider", Path: "provider_response", Retryable: true}
 		slog.Default().Warn("Go Core initialization analysis failed",

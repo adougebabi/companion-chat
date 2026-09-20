@@ -106,9 +106,41 @@ func (router *fakeProviderRouter) RoundTrip(request *http.Request) (*http.Respon
 	if toolCalls == nil {
 		toolCalls = []map[string]any{}
 	}
+	toolCalls = fakeProviderNativeToolCalls(toolCalls)
 	message := map[string]any{"role": "assistant", "content": content, "tool_calls": toolCalls}
 	envelope := map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": message}}}
 	return embeddingHTTPResponse(request, status, string(jsonBytes(envelope))), nil
+}
+
+// fakeProviderNativeToolCalls keeps the scripted router's public input
+// convenient: tests may use the canonical call_id/capability_name/arguments
+// sidecar shape, while the response still travels over the OpenAI-compatible
+// native tool_calls wire that Eino's decoder understands.
+func fakeProviderNativeToolCalls(calls []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(calls))
+	for _, call := range calls {
+		if len(call) == 0 {
+			result = append(result, call)
+			continue
+		}
+		if len(mapValue(call["function"])) > 0 {
+			result = append(result, call)
+			continue
+		}
+		name := firstString(call["capability_name"], firstString(call["name"], ""))
+		arguments := call["arguments"]
+		if text := stringValue(arguments); text != "" {
+			arguments = text
+		} else if arguments != nil {
+			arguments = jsonString(arguments)
+		}
+		result = append(result, map[string]any{
+			"id":       firstString(call["call_id"], stringValue(call["id"])),
+			"type":     firstString(call["type"], "function"),
+			"function": map[string]any{"name": name, "arguments": arguments},
+		})
+	}
+	return result
 }
 
 // payloads returns every captured request payload whose schema matches.
@@ -132,6 +164,32 @@ func (router *fakeProviderRouter) requestCount(schemaName string) int {
 	router.mu.Lock()
 	defer router.mu.Unlock()
 	return router.calls[schemaName]
+}
+
+// logicalRequestCount separates one logical ADK stage from its physical model
+// rounds. A follow-up request that carries a tool result is still part of the
+// same stage; requestCount remains available for physical-attempt and wire
+// order assertions.
+func (router *fakeProviderRouter) logicalRequestCount(schemaName string) int {
+	router.mu.Lock()
+	defer router.mu.Unlock()
+	count := 0
+	for _, payload := range router.requests {
+		if providerWireSchemaName(payload) != schemaName || payloadHasToolResult(payload) {
+			continue
+		}
+		count++
+	}
+	return count
+}
+
+func payloadHasToolResult(payload map[string]any) bool {
+	for _, raw := range arrayValue(payload["messages"]) {
+		if stringValue(mapValue(raw)["role"]) == "tool" {
+			return true
+		}
+	}
+	return false
 }
 
 // totalRequests reports every HTTP round trip the router saw, scripted or not.

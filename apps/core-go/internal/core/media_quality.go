@@ -152,15 +152,7 @@ func (a *App) evaluateMediaQuality(ctx context.Context, intent mediaIntent, cont
 	if a == nil || a.Provider == nil {
 		return mediaQualityAcceptance{}, errors.New("media quality provider unavailable")
 	}
-	messages, err := mediaQualityMessages(intent, contentType, content)
-	if err != nil {
-		return mediaQualityAcceptance{}, err
-	}
-	value, err := a.RunStructuredTask(ctx, ModelTask{Kind: ModelTaskMultimodalAssessment, Role: "media_prompt", Scenario: "media_quality_acceptance", SchemaName: "media_quality_acceptance_response"}, messages, mediaQualityAcceptanceResponseSchema(), false)
-	if err != nil {
-		return mediaQualityAcceptance{}, err
-	}
-	return normalizeMediaQualityAcceptance(value)
+	return a.RunMediaQualityTask(ctx, MediaQualityTaskInput{Intent: intent, ContentType: contentType, Content: content})
 }
 
 func mediaQualityDiagnostic(result mediaQualityAcceptance, reason string, candidateSHA string, retryCount int) map[string]any {

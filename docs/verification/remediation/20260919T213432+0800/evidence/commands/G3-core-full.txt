@@ -1,0 +1,14 @@
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/api	[no test files]
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/cutover	[no test files]
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/migrate	[no test files]
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/setup-token	[no test files]
+?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/worker	[no test files]
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/config	(cached)
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	1.049s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	0.504s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser	(cached)
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	(cached)
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform	(cached)
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow	0.568s
+
+exit_code=

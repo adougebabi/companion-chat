@@ -126,6 +126,30 @@ type adkLoopChatModel struct{}
 
 type adkCancellationChatModel struct{}
 
+type adkTextThenEmptyChatModel struct {
+	mu    sync.Mutex
+	calls int
+}
+
+func (m *adkTextThenEmptyChatModel) Generate(context.Context, []*schema.Message, ...model.Option) (*schema.Message, error) {
+	m.mu.Lock()
+	m.calls++
+	call := m.calls
+	m.mu.Unlock()
+	if call == 1 {
+		return schema.AssistantMessage("candidate before tool", []schema.ToolCall{{ID: "reply-tool-1", Type: "function", Function: schema.FunctionCall{Name: "memory.recall", Arguments: `{"intent":"recent"}`}}}), nil
+	}
+	return schema.AssistantMessage("", nil), nil
+}
+
+func (m *adkTextThenEmptyChatModel) Stream(context.Context, []*schema.Message, ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+	return schema.StreamReaderFromArray([]*schema.Message{schema.AssistantMessage("", nil)}), nil
+}
+
+func (m *adkTextThenEmptyChatModel) WithTools([]*schema.ToolInfo) (model.ToolCallingChatModel, error) {
+	return m, nil
+}
+
 func (adkCancellationChatModel) Generate(ctx context.Context, _ []*schema.Message, _ ...model.Option) (*schema.Message, error) {
 	<-ctx.Done()
 	return nil, ctx.Err()
@@ -306,6 +330,67 @@ func TestRunADKLoopCancellationDoesNotFabricateFinalMessage(t *testing.T) {
 	}
 }
 
+func TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant(t *testing.T) {
+	defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
+	tools, err := NewADKCapabilityTools(defs, &adkFakeInvoker{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = RunADKLoop(context.Background(), ADKLoopConfig{
+		Name: "conversation", Description: "final empty regression", Model: &adkTextThenEmptyChatModel{}, Tools: tools, MaxIterations: 2,
+	}, []*schema.Message{schema.UserMessage("reply")})
+	if err == nil || !strings.Contains(err.Error(), "adk_final_message_empty") {
+		t.Fatalf("expected final empty failure, got %v", err)
+	}
+}
+
+func TestIntermediateReplyFilteringKeepsNonOutputCapabilitiesAndFinalReply(t *testing.T) {
+	trace := &ADKCapabilityTrace{
+		Invocations: []CapabilityInvocation{
+			{CallID: "query-1", CapabilityName: "memory.recall"},
+			{CallID: "reply-intermediate", CapabilityName: "conversation.reply"},
+			{CallID: "reply-final", CapabilityName: "conversation.reply"},
+		},
+		Results: []CapabilityResult{
+			{CallID: "query-1", CapabilityName: "memory.recall"},
+			{CallID: "reply-intermediate", CapabilityName: "conversation.reply"},
+			{CallID: "reply-final", CapabilityName: "conversation.reply"},
+		},
+	}
+	filterADKTraceToToolCalls(trace, []schema.ToolCall{
+		{ID: "query-1", Function: schema.FunctionCall{Name: "memory.recall"}},
+		{ID: "reply-final", Function: schema.FunctionCall{Name: "conversation.reply"}},
+	})
+	if len(trace.Invocations) != 2 || trace.Invocations[0].CallID != "query-1" || trace.Invocations[1].CallID != "reply-final" {
+		t.Fatalf("trace invocations lost a non-output or final call: %#v", trace.Invocations)
+	}
+	if len(trace.Results) != 2 || trace.Results[0].CallID != "query-1" || trace.Results[1].CallID != "reply-final" {
+		t.Fatalf("trace results lost a non-output or final call: %#v", trace.Results)
+	}
+}
+
+func TestDeferredToolOnlyRoundStopsPhysicalContinuation(t *testing.T) {
+	proposal := schema.AssistantMessage(`{"action_type":"reply"}`, []schema.ToolCall{
+		{ID: "scene-call", Type: "function", Function: schema.FunctionCall{Name: "scene_event", Arguments: `{"operation":"start"}`}},
+		{ID: "reply-call", Type: "function", Function: schema.FunctionCall{Name: "conversation.reply", Arguments: `{"text":"已记录"}`}},
+	})
+	terminal, ok := deferredToolOnlyRoundMessage([]*schema.Message{
+		schema.AssistantMessage(`{"visible_text":"已记录","action_type":"reply"}`, proposal.ToolCalls),
+		schema.ToolMessage(`{"status":"deferred","reason":"settlement_pending"}`, "scene-call"),
+		schema.ToolMessage(`{"status":"rejected","error_code":"candidate_invalid"}`, "reply-call"),
+	}, true)
+	if !ok || terminal == nil || len(terminal.ToolCalls) != 2 || terminal.ToolCalls[0].ID != "scene-call" || terminal.ToolCalls[1].ID != "reply-call" {
+		t.Fatalf("deferred-only round was not preserved: ok=%t terminal=%#v", ok, terminal)
+	}
+	if _, ok := deferredToolOnlyRoundMessage([]*schema.Message{
+		proposal,
+		schema.ToolMessage(`{"status":"completed","output":{"items":["memory"]}}`, "scene-call"),
+		schema.ToolMessage(`{"status":"deferred","reason":"settlement_pending"}`, "reply-call"),
+	}, true); ok {
+		t.Fatal("completed query result must continue to the Provider")
+	}
+}
+
 func TestADKCapabilityDefinitionsFailClosedBySurfaceAndVisibility(t *testing.T) {
 	app := &App{}
 	registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
@@ -321,7 +406,7 @@ func TestADKCapabilityDefinitionsFailClosedBySurfaceAndVisibility(t *testing.T) 
 	}
 	if _, err := app.RunADKStructuredTask(context.Background(), ADKStructuredTaskInput{
 		Role: "cognitive_assessment", Scenario: "wake_up", Definitions: []CapabilityDefinition{conversationOnly},
-		SchemaName: "wake_up_response", Schema: wakeUpResponseSchema(), Capability: &ADKCapabilityRequest{Surface: CapabilitySurfaceWakeUp},
+		SchemaName: "wake_up_response", Prompt: PromptAssemblyResult{ResponseFormat: wakeUpResponseSchema()}, Capability: &ADKCapabilityRequest{Surface: CapabilitySurfaceWakeUp},
 	}); err == nil || !strings.Contains(err.Error(), "surface_forbidden") {
 		t.Fatalf("conversation-only capability was accepted by WakeUp: %v", err)
 	}
@@ -332,7 +417,7 @@ func TestADKCapabilityDefinitionsFailClosedBySurfaceAndVisibility(t *testing.T) 
 	}
 	if _, err := app.RunADKStructuredTask(context.Background(), ADKStructuredTaskInput{
 		Role: "cognitive_assessment", Scenario: "wake_up", Definitions: []CapabilityDefinition{internal},
-		SchemaName: "wake_up_response", Schema: wakeUpResponseSchema(), Capability: &ADKCapabilityRequest{Surface: CapabilitySurfaceWakeUp},
+		SchemaName: "wake_up_response", Prompt: PromptAssemblyResult{ResponseFormat: wakeUpResponseSchema()}, Capability: &ADKCapabilityRequest{Surface: CapabilitySurfaceWakeUp},
 	}); err == nil || !strings.Contains(err.Error(), "internal") {
 		t.Fatalf("internal capability was accepted by WakeUp: %v", err)
 	}
@@ -554,7 +639,7 @@ func TestRunADKStructuredTaskRejectsNonLoopSchemaBeforeProviderIO(t *testing.T) 
 		Role:       "cognitive_assessment",
 		Scenario:   "daily_review",
 		SchemaName: "daily_review_response",
-		Schema:     map[string]any{"type": "object"},
+		Prompt:     PromptAssemblyResult{ResponseFormat: map[string]any{"type": "object"}},
 	})
 	if err == nil || !strings.Contains(err.Error(), "adk_schema_not_allowed") {
 		t.Fatalf("non-loop schema was accepted by ADK boundary: %v", err)

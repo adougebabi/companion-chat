@@ -1,0 +1,6 @@
+$ node infra/acceptance/verify-phase5-evidence.mjs docs/verification/phase-5/20260919T200912+0800 --require-clear
+exit_code=1
+wall_time_seconds=0.202289083
+
+G0: clear gate blocked by statuses: S1-TASK-02,S1-REAL-01,S2-PERSONA-01,S2-DELIVERY-01,S3-PERM-01,S3-TEMPORAL-01,S4-BROWSER-01,CROSS-DB-01,CROSS-OUTBOX-01,CROSS-MODEL-01
+

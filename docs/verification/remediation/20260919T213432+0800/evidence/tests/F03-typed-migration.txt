@@ -1,0 +1,10 @@
+=== RUN   TestForcedActivationRuleIDIsStructuralNotTextual
+--- PASS: TestForcedActivationRuleIDIsStructuralNotTextual (0.00s)
+=== RUN   TestUnclassifiedForcedActivationKeepsRawValueAndIsReported
+--- PASS: TestUnclassifiedForcedActivationKeepsRawValueAndIsReported (0.00s)
+=== RUN   TestPersonaSwitchRulesNormalizeTheRealMultiProfileCard
+--- PASS: TestPersonaSwitchRulesNormalizeTheRealMultiProfileCard (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.390s
+
+exit_code=

@@ -1,0 +1,182 @@
+=== RUN   TestBrowserCapabilityRequestsMapsOwnerSafeFields
+--- PASS: TestBrowserCapabilityRequestsMapsOwnerSafeFields (0.00s)
+=== RUN   TestBrowserBoundaryHasNoMigrationAliasesOrDualReadGuessing
+--- PASS: TestBrowserBoundaryHasNoMigrationAliasesOrDualReadGuessing (0.00s)
+=== RUN   TestBrowserDiagnosticModelRunPreservesPromptArrays
+--- PASS: TestBrowserDiagnosticModelRunPreservesPromptArrays (0.00s)
+=== RUN   TestBrowserDiagnosticModelRunDecodesRawJSONPrompt
+--- PASS: TestBrowserDiagnosticModelRunDecodesRawJSONPrompt (0.00s)
+=== RUN   TestBrowserDiagnosticModelRunMapsQueueLifecycleFields
+--- PASS: TestBrowserDiagnosticModelRunMapsQueueLifecycleFields (0.00s)
+=== RUN   TestBrowserDiagnosticMediaPromptMapsProviderAndSubmittedPrompts
+--- PASS: TestBrowserDiagnosticMediaPromptMapsProviderAndSubmittedPrompts (0.00s)
+=== RUN   TestBrowserRouteMatrixMatchesOpenAPIArtifact
+--- PASS: TestBrowserRouteMatrixMatchesOpenAPIArtifact (0.00s)
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/options
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/live
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/ready
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/ping
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/session
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/setup_status
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/logout
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/revoke_all
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/password
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/setup
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/login
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/settings_get
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/settings_put
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/capability_request_list
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/capability_request_review
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_endpoint_put
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_endpoint_get
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_models
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_bindings
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_role
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_create
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_create
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/creation_analysis
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/creation_activation
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_list
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_list
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_create
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_member_add
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_member_remove
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_get
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/direct_conversation
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_moments
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_moments_read
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/global_moments
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_detail
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/developing_self
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/developing_self_rollback
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/developing_self_forget
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_status
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_retire
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_revision
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_accept
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_reject
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_rollback
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_comment
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/memory_revise
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/memory_forget
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/relationship_rollback
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/relationship_edit
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/autonomy_list
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/autonomy_govern
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/life_event_create
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/life_event_cancel
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/life_presence
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/schedule_accept
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/schedule_cancel
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_list
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_status
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_history
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_pause
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_resume
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_cancel
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_reset
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_restart
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_reaction
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_hide
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_restore
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_history
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_read
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_turn
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostics
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/lifecycle_diagnostics
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostics_clear
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostic_model_runs
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostic_media_prompts
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostic_media_prompt_retry
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostics_export
+=== RUN   TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/media
+--- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/options (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/live (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/ready (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/ping (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/session (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/setup_status (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/logout (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/revoke_all (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/password (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/setup (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/login (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/settings_get (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/settings_put (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/capability_request_list (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/capability_request_review (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_endpoint_put (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_endpoint_get (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_models (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_bindings (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_role (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_create (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_create (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/creation_analysis (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/creation_activation (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_list (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_list (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_create (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_member_add (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_member_remove (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_get (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/direct_conversation (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_moments (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_moments_read (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/global_moments (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_detail (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/developing_self (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/developing_self_rollback (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/developing_self_forget (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_status (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_retire (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_revision (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_accept (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_reject (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_rollback (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_comment (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/memory_revise (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/memory_forget (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/relationship_rollback (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/relationship_edit (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/autonomy_list (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/autonomy_govern (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/life_event_create (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/life_event_cancel (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/life_presence (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/schedule_accept (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/schedule_cancel (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_list (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_status (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_history (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_pause (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_resume (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_cancel (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_reset (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_restart (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_reaction (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_hide (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_restore (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_history (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_read (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_turn (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostics (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/lifecycle_diagnostics (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostics_clear (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostic_model_runs (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostic_media_prompts (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostic_media_prompt_retry (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostics_export (0.00s)
+    --- PASS: TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/media (0.00s)
+=== RUN   TestBrowserHandlerKeepsAuthAndCSRFAtPublicBoundary
+--- PASS: TestBrowserHandlerKeepsAuthAndCSRFAtPublicBoundary (0.00s)
+=== RUN   TestBrowserHandlerTranslatesCoreNDJSONWithoutHTTPHop
+--- PASS: TestBrowserHandlerTranslatesCoreNDJSONWithoutHTTPHop (0.00s)
+=== RUN   TestBrowserHandlerRejectsUnknownAPIRouteAndInvalidOrigin
+--- PASS: TestBrowserHandlerRejectsUnknownAPIRouteAndInvalidOrigin (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser	0.316s
+
+exit_code=

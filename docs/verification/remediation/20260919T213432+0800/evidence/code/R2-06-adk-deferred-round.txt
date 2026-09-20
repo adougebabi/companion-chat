@@ -1,0 +1,22 @@
+ADK deferred-round physical-request remediation (2026-09-20)
+
+Implementation
+
+- apps/core-go/internal/core/eino_model_runtime.go:132-160 adds a bounded
+  stopOnDeferredToolRound policy to the queued ADK bridge.
+- deferredToolOnlyRoundMessage (eino_model_runtime.go:292-350) reuses the
+  immediately preceding assistant proposal only when every following tool
+  result is deferred or rejected; malformed or completed results do not match.
+- Conversation/takeover still require visible text before early closure, while
+  WakeUp may settle an action-only round. Pure-query completed results continue
+  to a normal Provider round.
+- WithTools preserves the policy across the ADK-bound model wrapper.
+
+Regression evidence
+
+- eino_adk_runtime_test.go:372 TestDeferredToolOnlyRoundStopsPhysicalContinuation
+- eino_adk_runtime_test.go:330 TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant
+- eino_adk_runtime_test.go:350 TestIntermediateReplyFilteringKeepsNonOutputCapabilitiesAndFinalReply
+
+The focused ADK loop and deferred-round tests passed in
+evidence/tests/R2-06-adk-deferred-round.txt.

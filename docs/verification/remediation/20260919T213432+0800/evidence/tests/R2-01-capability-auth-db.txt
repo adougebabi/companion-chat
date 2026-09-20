@@ -1,0 +1,10 @@
+=== RUN   TestUnauthorizedTakeoverCandidateBFailsControlled
+2026/09/20 09:17:34 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 09:17:34 INFO capability lifecycle capability=persona.takeover call_id=policy_328eb1cdea28682349b39e8e794bc528 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+--- PASS: TestUnauthorizedTakeoverCandidateBFailsControlled (4.89s)
+=== RUN   TestUnauthorizedRelationshipCandidateAFailsBeforeTheJudge
+--- PASS: TestUnauthorizedRelationshipCandidateAFailsBeforeTheJudge (3.74s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	9.229s
+
+exit_code=0

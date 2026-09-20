@@ -1,0 +1,44 @@
+=== RUN   TestTakeoverJudgeDeclinesExecutesTheOriginalCandidate
+2026/09/20 09:39:09 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 09:39:09 INFO capability lifecycle capability=persona.takeover call_id=policy_3afd0a1954ff9d77da2215fa8ee0204d type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 09:39:09 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=chain-decline-fluctlight inbox_id=inbox_78cc19571a1d06f07a45c106667dcc63 error_type=*errors.errorString
+--- PASS: TestTakeoverJudgeDeclinesExecutesTheOriginalCandidate (2.75s)
+=== RUN   TestTakeoverJudgeApprovesExecutesOnlyTheTakeoverReply
+2026/09/20 09:39:11 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=false fields="[appraisal personality_decision]" tool_call_count=0 candidate_count=1 content_present=true content_length=468 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 09:39:11 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 09:39:11 INFO capability lifecycle capability=persona.takeover call_id=policy_c9146f8a32f50f0798fcf5094eb6feed type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 09:39:11 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=chain-approve-fluctlight inbox_id=inbox_1a158e31fdd7e3c536ea8d691abcc049 error_type=*errors.errorString
+--- PASS: TestTakeoverJudgeApprovesExecutesOnlyTheTakeoverReply (2.33s)
+=== RUN   TestPureQueryTurnNeverInvokesTheJudge
+2026/09/20 09:39:13 INFO capability lifecycle capability=memory.recall call_id=query-recall type=query surface=conversation required_context=[memory_scope] duration_ms=2 status=completed retryable=false intent_present=true intent_runes=9 intent_digest=3da33f5b0b327c044101c0f603f882a1
+2026/09/20 09:39:13 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 09:39:13 INFO capability lifecycle capability=persona.takeover call_id=policy_0be3bb1d1b23a2bbf737530e5eef7f2a type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 09:39:13 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=chain-query-fluctlight inbox_id=inbox_a68d8a72cc03a926a7f3f9e253dbee82 error_type=*errors.errorString
+    turn_takeover_chain_test.go:530: a pure-query turn spends exactly one main generation, got 2
+--- FAIL: TestPureQueryTurnNeverInvokesTheJudge (1.94s)
+=== RUN   TestInvalidCandidateFailsBeforeTheJudge
+2026/09/20 09:39:16 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 09:39:16 INFO capability lifecycle capability=persona.takeover call_id=policy_6cd2d11457e56c96aea1165f37ce1cf5 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 09:39:16 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=takeover_reply_response fallback=false fields="[action_type influences response_intent response_mode tool_calls]" tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+    turn_takeover_chain_test.go:572: an invalid candidate must fail before the Judge, got 1 judge calls
+--- FAIL: TestInvalidCandidateFailsBeforeTheJudge (2.35s)
+=== RUN   TestFailingTakeoverGenerationNeverSendsTheRejectedCandidate
+2026/09/20 09:39:18 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 09:39:18 INFO capability lifecycle capability=persona.takeover call_id=policy_7cf3b9e0b45a3e7a1fe4f6fc2d9af48d type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+--- PASS: TestFailingTakeoverGenerationNeverSendsTheRejectedCandidate (2.28s)
+=== RUN   TestTakeoverReplyQueryContinuationFailsClosed
+2026/09/20 09:39:20 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 09:39:20 INFO capability lifecycle capability=persona.takeover call_id=policy_415dd480230fbcd5ecdd24786ac201a9 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 09:39:20 INFO capability lifecycle capability=memory.recall call_id=pure-recall type=query surface=conversation required_context=[memory_scope] duration_ms=2 status=completed retryable=false intent_present=true intent_runes=9 intent_digest=3da33f5b0b327c044101c0f603f882a1
+    turn_takeover_chain_test.go:751: the takeover generation must run exactly once, got 2
+--- FAIL: TestTakeoverReplyQueryContinuationFailsClosed (2.41s)
+=== RUN   TestRejectedCandidateLeavesNoFactTrail
+2026/09/20 09:39:23 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 09:39:23 INFO capability lifecycle capability=persona.takeover call_id=policy_07ad2227d0a04ff4378cf81922666e68 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 09:39:23 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=contain-fluctlight inbox_id=inbox_367ab241804f5f1500007f04433459f3 error_type=*errors.errorString
+--- PASS: TestRejectedCandidateLeavesNoFactTrail (2.79s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	17.269s
+FAIL
+
+exit_code=1

@@ -165,23 +165,7 @@ func (a *App) processReflectionV2(
 		return nil, err
 	}
 	providerEvidence := compactReflectionEvidenceV2(evidence)
-	schema := reflectionProposalV2ProviderSchema()
-	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceReflection, projection, "reflection", []string{providerContextAuthorityRule, reflectionV2Instruction}, jsonString(map[string]any{"evidence": providerEvidence}), nil, "reflection_proposal_v2", schema)
-	if err != nil {
-		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
-		return nil, err
-	}
-	projection = assembledProjection
-	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "reflection"), assembly.Diagnostics)
-	completion, err := a.RunStructuredToolsTask(
-		providerCtx,
-		ModelTask{Kind: ModelTaskStructuredAssessment, Role: "reflection", Scenario: "reflection", SchemaName: "reflection_proposal_v2"},
-		assembly.Messages,
-		nil,
-		schema,
-		true,
-		structuredThinkingEnabledForSchema("reflection_proposal_v2"),
-	)
+	taskResult, err := a.RunReflectionProposalTask(ctx, ReflectionProposalTaskInput{Evidence: evidence, Projection: projection})
 	if err != nil {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		if a.lifecycleCancellationRequested(ctx, providerCancellationMarker(ctx)) {
@@ -196,6 +180,8 @@ func (a *App) processReflectionV2(
 		}
 		return nil, err
 	}
+	projection = taskResult.Projection
+	completion := taskResult.Completion
 	if a.lifecycleCancellationRequested(ctx, providerCancellationMarker(ctx)) {
 		_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 		return map[string]any{"fluctlight_id": fluctlightID, "correlation_id": correlationID, "status": "cancelled", "reason": "superseded_by_cognition"}, nil

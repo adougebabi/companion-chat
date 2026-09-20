@@ -1,0 +1,7 @@
+command: FLUCTLIGHT_ENV_FILE=infra/compose/fluctlight.env.example infra/acceptance/run-go-actor-chat-smoke.sh
+scope: disposable Compose Web/Core/PostgreSQL/Redis/Temporal/MinIO, no shared resources
+result: BLOCKED
+exit_code: 1
+reason: the second disposable build could not resolve docker.io/library/alpine:3.22 because the Docker registry TLS handshake timed out.
+prior_attempt: services reached healthy state, but the old smoke script accepted JSON null IDs and reported a false zero-row result; the script now rejects null IDs and will not report that as a pass.
+no_browser_business_result_claimed: true

@@ -1,0 +1,17 @@
+$ node --test infra/acceptance/verify-phase5-evidence.test.mjs
+exit_code=0
+wall_time_seconds=0.235044334
+
+✔ G0 rejects CSV column drift (1.051083ms)
+✔ G0 rejects missing evidence and invalid status (0.424709ms)
+✔ G0 rejects parent pass with required child skip (0.4385ms)
+✔ G0 rejects a failed process hidden behind a successful summary (0.38975ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 36.153542
+

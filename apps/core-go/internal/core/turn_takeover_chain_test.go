@@ -135,20 +135,60 @@ func takeoverChainMainResult(text string, extra map[string]any) fakeProviderResu
 // absorbed.
 func takeoverChainSequence(results ...fakeProviderResult) fakeProviderScript {
 	position := 0
-	return func(map[string]any) fakeProviderResult {
+	var pendingToolRound *fakeProviderResult
+	return func(payload map[string]any) fakeProviderResult {
+		// The production ADK loop makes a second physical Provider request after
+		// a native tool call. The logical candidate is still the same scripted
+		// decision; emit its structured sidecar again without duplicating the
+		// native call so the aggregate ADK trace retains the original invocation.
+		// This keeps the fixture aligned with the actual model/tool protocol
+		// instead of turning an internal follow-up into an "unexpected extra"
+		// candidate.
+		if pendingToolRound != nil && takeoverChainPayloadHasToolResult(payload) {
+			followUp := *pendingToolRound
+			followUp.ToolCalls = nil
+			pendingToolRound = nil
+			return followUp
+		}
 		if position >= len(results) {
 			position++
 			return takeoverChainMainResult("unexpected extra main generation", nil)
 		}
 		result := results[position]
 		position++
+		if len(result.ToolCalls) > 0 {
+			copyResult := result
+			copyResult.ToolCalls = append([]map[string]any(nil), result.ToolCalls...)
+			pendingToolRound = &copyResult
+		}
 		return result
 	}
+}
+
+func takeoverChainPayloadHasToolResult(payload map[string]any) bool {
+	for _, raw := range arrayValue(payload["messages"]) {
+		if stringValue(mapValue(raw)["role"]) == "tool" {
+			return true
+		}
+	}
+	return false
 }
 
 func takeoverChainJudge(takeover bool) fakeProviderScript {
 	return func(map[string]any) fakeProviderResult {
 		return fakeProviderResult{Structured: map[string]any{"takeover": takeover, "decision_code": "other"}}
+	}
+}
+
+// takeoverChainPersistentSwitchKeep scripts the independent post-cognition
+// personality assessment. It is an auxiliary physical Provider stage: it must
+// be accounted for in wire-attempt tests, but it is not a Main/Judge/Takeover
+// generation and therefore does not consume the two-generation budget.
+func takeoverChainPersistentSwitchKeep() fakeProviderScript {
+	return func(map[string]any) fakeProviderResult {
+		return fakeProviderResult{Structured: map[string]any{
+			"personality_decision": map[string]any{"decision": "keep"},
+		}}
 	}
 }
 
@@ -492,13 +532,13 @@ func TestPureQueryTurnNeverInvokesTheJudge(t *testing.T) {
 	app := newTestApp(t, repository, router)
 	if _, err := app.HandleTurn(ctx, ownerID, conversationID,
 		takeoverChainTurnPayload(fluctlightID, "你还记得我上次说的计划吗？", "chain-query-turn", "chain-query-turn-1")); err != nil {
-		t.Fatal(err)
+		t.Fatalf("pure query turn failed: %v; main_payloads=%#v; takeover_payloads=%#v", err, router.payloads(workingPersonaMainTurnSchema), router.payloads(takeoverReplySchemaName))
 	}
 
 	if count := router.requestCount(takeoverJudgeSchemaName); count != 0 {
 		t.Fatalf("a pure-query turn must never invoke the Judge, got %d calls", count)
 	}
-	if count := router.requestCount(workingPersonaMainTurnSchema); count != 1 {
+	if count := router.logicalRequestCount(workingPersonaMainTurnSchema); count != 1 {
 		t.Fatalf("a pure-query turn spends exactly one main generation, got %d", count)
 	}
 	if count := router.requestCount(takeoverReplySchemaName); count != 0 {
@@ -716,10 +756,10 @@ func TestTakeoverReplyQueryContinuationFailsClosed(t *testing.T) {
 		t.Fatalf("the failure must be the controlled budget exhaustion, got %v", err)
 	}
 
-	if count := router.requestCount(workingPersonaMainTurnSchema); count != 1 {
+	if count := router.logicalRequestCount(workingPersonaMainTurnSchema); count != 1 {
 		t.Fatalf("the candidate generation must run exactly once, got %d", count)
 	}
-	if count := router.requestCount(takeoverReplySchemaName); count != 1 {
+	if count := router.logicalRequestCount(takeoverReplySchemaName); count != 1 {
 		t.Fatalf("the takeover generation must run exactly once, got %d", count)
 	}
 	if count := router.requestCount(queryContinuationTestSchemaName); count != 0 {
@@ -796,8 +836,8 @@ func TestMainGenerationBudgetNeverExceedsTwo(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			candidates := router.requestCount(workingPersonaMainTurnSchema)
-			takeovers := router.requestCount(takeoverReplySchemaName)
+			candidates := router.logicalRequestCount(workingPersonaMainTurnSchema)
+			takeovers := router.logicalRequestCount(takeoverReplySchemaName)
 			if candidates != testCase.wantCandidate || takeovers != testCase.wantTakeover {
 				t.Fatalf("expected %d candidate + %d takeover generations, got %d + %d",
 					testCase.wantCandidate, testCase.wantTakeover, candidates, takeovers)

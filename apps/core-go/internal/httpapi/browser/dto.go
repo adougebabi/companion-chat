@@ -90,11 +90,11 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 	result := map[string]any{
 		"id":                stringValue(first(row, "id")),
 		"role":              stringValue(first(row, "role")),
-		"bindingRole":       stringValue(first(row, "binding_role", "bindingRole")),
+		"bindingRole":       stringValue(first(row, "binding_role")),
 		"scenario":          stringValue(first(row, "scenario")),
 		"priority":          first(row, "priority"),
-		"queuePendingCount": first(row, "queue_pending_count", "queuePendingCount"),
-		"queuePosition":     first(row, "queue_position", "queuePosition"),
+		"queuePendingCount": first(row, "queue_pending_count"),
+		"queuePosition":     first(row, "queue_position"),
 		"modelId":           stringValue(first(row, "model_id")),
 		"prompt":            jsonValue(row["prompt"]),
 		"status":            stringValue(first(row, "status")),
@@ -122,8 +122,8 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 
 func browserDiagnosticMediaPrompt(row map[string]any) map[string]any {
 	result := map[string]any{
-		"id":                stringValue(first(row, "id", "media_intent_id")),
-		"mediaIntentId":     stringValue(first(row, "media_intent_id", "id")),
+		"id":                stringValue(first(row, "id")),
+		"mediaIntentId":     stringValue(first(row, "media_intent_id")),
 		"fluctlightId":      stringValue(first(row, "fluctlight_id")),
 		"kind":              stringValue(first(row, "kind")),
 		"mimeType":          stringValue(first(row, "mime_type")),
@@ -189,13 +189,13 @@ func browserCapabilityRequests(value any) []any {
 	for _, raw := range array(value) {
 		item := object(raw)
 		result = append(result, map[string]any{
-			"id": item["id"], "capabilityKey": first(item, "capability_key", "capabilityKey"), "title": item["title"],
+			"id": item["id"], "capabilityKey": first(item, "capability_key"), "title": item["title"],
 			"description": item["description"], "rationale": item["rationale"], "desiredContract": item["desired_contract"],
-			"sideEffectClass": first(item, "side_effect_class", "sideEffectClass"), "priority": item["priority"],
-			"fluctlightId": first(item, "fluctlight_id", "fluctlightId"), "sourceFactId": first(item, "source_fact_id", "sourceFactId"),
-			"evidenceRefs": first(item, "evidence_refs", "evidenceRefs"), "status": item["status"], "reviewNote": first(item, "review_note", "reviewNote"),
-			"reviewerActorId": first(item, "reviewer_actor_id", "reviewerActorId"), "capabilityVersion": first(item, "capability_version", "capabilityVersion"),
-			"aggregateCount": first(item, "aggregate_count", "aggregateCount"), "createdAt": first(item, "created_at", "createdAt"), "updatedAt": first(item, "updated_at", "updatedAt"),
+			"sideEffectClass": first(item, "side_effect_class"), "priority": item["priority"],
+			"fluctlightId": first(item, "fluctlight_id"), "sourceFactId": first(item, "source_fact_id"),
+			"evidenceRefs": first(item, "evidence_refs"), "status": item["status"], "reviewNote": first(item, "review_note"),
+			"reviewerActorId": first(item, "reviewer_actor_id"), "capabilityVersion": first(item, "capability_version"),
+			"aggregateCount": first(item, "aggregate_count"), "createdAt": first(item, "created_at"), "updatedAt": first(item, "updated_at"),
 		})
 	}
 	return result

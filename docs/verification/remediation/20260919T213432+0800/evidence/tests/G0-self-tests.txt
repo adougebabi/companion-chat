@@ -1,0 +1,13 @@
+✔ G0 rejects CSV column drift (1.874667ms)
+✔ G0 rejects missing evidence and invalid status (0.618541ms)
+✔ G0 rejects evidence references outside the run directory and malformed stages (0.608708ms)
+✔ G0 rejects parent pass with required child skip (0.556792ms)
+✔ G0 rejects a failed process hidden behind a successful summary (0.483834ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 53.885208

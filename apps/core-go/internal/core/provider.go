@@ -19,11 +19,30 @@ type ProviderClient struct {
 	DB          *PostgresRepository
 	SettingsKey []byte
 	HTTP        *http.Client
+	runtime     ProviderRuntimeSupport
 	queueMu     sync.Mutex
 	generated   *providerQueue
 	embedding   *providerQueue
 	redis       redis.UniversalClient
 	redisID     string
+}
+
+// SetRuntimeSupport wires the narrow persistence/diagnostics support used by
+// each physical model call. It must not receive *App or a domain repository.
+func (p *ProviderClient) SetRuntimeSupport(support ProviderRuntimeSupport) {
+	if p != nil {
+		p.runtime = support
+	}
+}
+
+func (p *ProviderClient) runtimeSupport() ProviderRuntimeSupport {
+	if p != nil && p.runtime != nil {
+		return p.runtime
+	}
+	if p == nil {
+		return providerRuntimeSupport{}
+	}
+	return newProviderRuntimeSupport(p.DB)
 }
 
 // SetRedisClient enables the optional cross-process queue coordinator. Redis
@@ -313,14 +332,14 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 	priority := providerPriority(scenario)
 	diagnosticID := ""
 	if !adkEnabled {
-		diagnosticID = (&App{DB: p.DB}).recordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, providerDiagnosticMessages(role, messages))
+		diagnosticID = p.runtimeSupport().RecordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, providerDiagnosticMessages(role, messages))
 	}
 	return runProviderQueued(p, ctx, assignment.Role, scenario, priority, diagnosticID, func(runCtx context.Context) (ProviderCompletion, error) {
 		requestStarted := time.Now()
 		usage := map[string]any{}
 		defer func() {
 			if diagnosticID != "" {
-				(&App{DB: p.DB}).updateModelRunPromptMetrics(ctx, diagnosticID, usage, time.Since(requestStarted))
+				p.runtimeSupport().UpdateModelRunPromptMetrics(ctx, diagnosticID, usage, time.Since(requestStarted))
 			}
 		}()
 		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
@@ -1015,12 +1034,10 @@ func providerSchemaForRole(role string) map[string]any {
 }
 
 func (p *ProviderClient) recordProviderSuccess(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, response any) {
-	app := &App{DB: p.DB}
-	app.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), "completed", "")
+	p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), "completed", "")
 }
 
 func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
-	app := &App{DB: p.DB}
 	var response any
 	if len(diagnostic) > 0 {
 		response = diagnostic[0]
@@ -1031,7 +1048,7 @@ func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment p
 	} else if code == "request_cancelled" {
 		status = providerRunCancelled
 	}
-	app.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), status, code)
+	p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), status, code)
 }
 
 func (p *ProviderClient) recordProviderSuccessBoundary(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, response any) {
@@ -1102,20 +1119,20 @@ func (p *ProviderClient) recordProviderPreflightFailure(ctx context.Context, ass
 	}
 	stage = strings.TrimSpace(stage)
 	category, code, retryable := classifyProviderPreflightError(stage, preflightErr)
-	application := &App{DB: p.DB}
+	support := p.runtimeSupport()
 	scenario := providerScenario(ctx, role, "")
-	application.recordDiagnosticEvent(ctx, "provider.preflight.failed", "error", strings.TrimSpace(stringValue(providerPromptDiagnostics(ctx)["fluctlight_id"])), "", correlationID, map[string]any{
+	support.RecordDiagnosticEvent(ctx, "provider.preflight.failed", "error", strings.TrimSpace(stringValue(providerPromptDiagnostics(ctx)["fluctlight_id"])), "", correlationID, map[string]any{
 		"role": role, "scenario": scenario, "stage": stage,
 		"error_category": category, "error_code": code, "error_type": fmt.Sprintf("%T", preflightErr), "retryable": retryable,
 		"provider_attempt_id": providerAttemptIdentity(ctx),
 	})
 	if strings.TrimSpace(assignment.EndpointID) != "" && strings.TrimSpace(assignment.ModelID) != "" {
-		application.recordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerPreflightDiagnosticPrompt(messages), map[string]any{
+		support.RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerPreflightDiagnosticPrompt(messages), map[string]any{
 			"stage": stage, "error_type": fmt.Sprintf("%T", preflightErr), "retryable": retryable,
 		}, providerRunFailed, code)
 	}
 	if scenario == "wake_up" || scenario == "reflection" {
-		application.RecordLifecycleDiagnosticBestEffort(ctx, LifecycleDiagnostic{
+		support.RecordLifecycleDiagnosticBestEffort(ctx, LifecycleDiagnostic{
 			Surface: scenario, Transition: LifecycleTransitionFailed, Severity: "error",
 			FluctlightID:  strings.TrimSpace(stringValue(providerPromptDiagnostics(ctx)["fluctlight_id"])),
 			CorrelationID: correlationID, ProviderRequestID: providerDiagnosticRequestID(role, correlationID),
@@ -1214,11 +1231,11 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 	scenario := providerScenario(ctx, role, "")
 	priority := providerPriority(scenario)
 	ctx = WithProviderScenario(ctx, scenario)
-	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
+	diagnosticID := p.runtimeSupport().RecordQueuedModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, scenario, priority, messages)
 	return runProviderQueued(p, ctx, assignment.Role, scenario, priority, diagnosticID, func(runCtx context.Context) (string, error) {
 		requestStarted := time.Now()
 		defer func() {
-			(&App{DB: p.DB}).updateModelRunPromptMetrics(ctx, diagnosticID, map[string]any{}, time.Since(requestStarted))
+			p.runtimeSupport().UpdateModelRunPromptMetrics(ctx, diagnosticID, map[string]any{}, time.Since(requestStarted))
 		}()
 		requestCtx, cancel := context.WithTimeout(runCtx, assignment.Timeout)
 		defer cancel()
@@ -1251,7 +1268,7 @@ func (p *ProviderClient) embedWithAssignment(ctx context.Context, text string, a
 	providerRequestID := providerDiagnosticRequestID("embedding", correlationID)
 	prompt := []map[string]any{{"role": "user", "content": text}}
 	scenario := providerScenario(ctx, "embedding", "")
-	diagnosticID := (&App{DB: p.DB}).recordQueuedModelRun(ctx, "embedding", assignment.EndpointID, assignment.ModelID, correlationID, scenario, 0, prompt)
+	diagnosticID := p.runtimeSupport().RecordQueuedModelRun(ctx, "embedding", assignment.EndpointID, assignment.ModelID, correlationID, scenario, 0, prompt)
 	queuedResult, queuedErr := runProviderQueued(p, ctx, assignment.Role, scenario, 0, diagnosticID, func(runCtx context.Context) (struct {
 		model  string
 		vector []float64

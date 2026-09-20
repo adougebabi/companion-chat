@@ -41,13 +41,20 @@ create_fluctlight() {
 }
 first=$(create_fluctlight "群聊主摇光")
 second=$(create_fluctlight "群聊副摇光")
-fluctlight_one=$(printf '%s' "$first" | jq -r '.id')
-fluctlight_two=$(printf '%s' "$second" | jq -r '.id')
-test -n "$fluctlight_one" -a -n "$fluctlight_two"
+if ! fluctlight_one=$(printf '%s' "$first" | jq -e -r 'select(.id | strings | length > 0) | .id'); then
+	printf 'create first Fluctlight returned no id: %s\n' "$first" >&2
+	exit 1
+fi
+if ! fluctlight_two=$(printf '%s' "$second" | jq -e -r 'select(.id | strings | length > 0) | .id'); then
+	printf 'create second Fluctlight returned no id: %s\n' "$second" >&2
+	exit 1
+fi
 
 group=$(curl -sS -f -H "Origin: $trusted_origin" -H "X-CSRF-Token: $csrf" -H "Cookie: $cookie" -H "Content-Type: application/json" --data "{\"title\":\"双摇光群聊\",\"participantActorIds\":[\"$fluctlight_one\",\"$fluctlight_two\"]}" "http://127.0.0.1:$api_port/api/conversations")
-conversation_id=$(printf '%s' "$group" | jq -r '.conversation.id')
-test -n "$conversation_id"
+if ! conversation_id=$(printf '%s' "$group" | jq -e -r 'select(.conversation.id | strings | length > 0) | .conversation.id'); then
+	printf 'create conversation returned no conversation id: %s\n' "$group" >&2
+	exit 1
+fi
 
 # Provider configuration is intentionally optional in this smoke. The turn
 # may produce a bounded provider error, but the user fact must still be

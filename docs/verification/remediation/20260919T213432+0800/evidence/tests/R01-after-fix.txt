@@ -1,0 +1,8 @@
+=== RUN   TestRunProviderQueuedStreamHoldsLeaseUntilEOF
+--- PASS: TestRunProviderQueuedStreamHoldsLeaseUntilEOF (0.05s)
+=== RUN   TestRunProviderQueuedStreamCancellationClosesInnerReader
+--- PASS: TestRunProviderQueuedStreamCancellationClosesInnerReader (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.666s
+
+exit_code=

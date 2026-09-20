@@ -230,6 +230,54 @@ func TestJudgeSkipsProviderWhenTakeoverControlViewFails(t *testing.T) {
 	}
 }
 
+// TestOverlayFailureKeepsAByExplicitContractInProductionTurn covers the full
+// HandleTurn path. The architecture contract explicitly permits a
+// `judge_degraded` keep-A conclusion when B's accepted overlay cannot be
+// loaded/composed; this is not a silent baseline fallback and it must not
+// invoke the Judge or change the persistent active/reply owner.
+func TestOverlayFailureKeepsAByExplicitContractInProductionTurn(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	fluctlightID := "f05-overlay-production"
+	ownerID := "f05-overlay-production-owner"
+	conversationID := "f05-overlay-production-conversation"
+	takeoverChainSeed(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlight_evolution_states(fluctlight_id,profile_id,profile_ref,revision,domain_revisions) VALUES($1,'twilight','corrupt-profile-ref',0,'{}')`, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+
+	router := newFakeProviderRouter().
+		on(workingPersonaMainTurnSchema, takeoverChainSequence(takeoverChainMainResult("A 候选回复", nil))).
+		on(takeoverJudgeSchemaName, func(map[string]any) fakeProviderResult {
+			t.Fatalf("overlay composition failure must skip Judge in the production turn")
+			return fakeProviderResult{}
+		})
+	app := newTestApp(t, repository, router)
+	if _, err := app.HandleTurn(ctx, ownerID, conversationID, takeoverChainTurnPayload(fluctlightID, "请确认。", "f05-overlay-production-turn", "f05-overlay-production-turn-1")); err != nil {
+		t.Fatal(err)
+	}
+	if texts := takeoverChainAssistantTexts(t, ctx, repository, conversationID, "f05-overlay-production-turn-1"); len(texts) != 1 || texts[0] != "A 候选回复" {
+		t.Fatalf("the explicit degraded keep-A contract must settle A exactly once, got %#v", texts)
+	}
+	if count := router.requestCount(takeoverJudgeSchemaName); count != 0 {
+		t.Fatalf("overlay failure must not invoke Judge, got %d calls", count)
+	}
+	frozen := takeoverChainFrozenPayload(t, ctx, repository, "f05-overlay-production-turn")
+	takeover := mapValue(frozen[turnTakeoverPayloadKey])
+	if stringValue(takeover["decision"]) != takeoverDecisionJudgeDegraded {
+		t.Fatalf("overlay failure must be recorded as judge_degraded, got %#v", takeover)
+	}
+	if stringValue(mapValue(takeover["judge"])["error_code"]) != takeoverOverlayComposeFailed {
+		t.Fatalf("overlay failure code was not retained: %#v", takeover)
+	}
+	scope := mapValue(frozen[turnPersonaScopePayloadKey])
+	if stringValue(scope["active_profile_id"]) != "spark" || stringValue(scope["reply_owner_profile_id"]) != "spark" {
+		t.Fatalf("degraded keep-A changed active/reply owner scope: %#v", scope)
+	}
+	if active := readActiveProfileForGate(t, ctx, repository, fluctlightID); active != "spark" {
+		t.Fatalf("degraded keep-A changed persistent active profile to %q", active)
+	}
+}
+
 // TestTakeoverControlViewCompositionFailureIsNotAnEmptyOverlay verifies that a
 // malformed persisted evolution state is surfaced as a composition failure.
 // The state row exists, so treating this case as "no overlay" would hide data

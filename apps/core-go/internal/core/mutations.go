@@ -796,6 +796,7 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		structuredFallback = completion.StructuredFallback
 		capabilityInvocations = append([]CapabilityInvocation(nil), completion.ToolCalls...)
 		if run.Trace != nil {
+			capabilityInvocations = mergeADKTraceInvocations(capabilityInvocations, run.Trace)
 			capabilityResults = append(capabilityResults, run.Trace.Results...)
 		}
 		// Both the Main generation and the takeover reply run through this one
@@ -869,14 +870,17 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			Surface: CapabilitySurfaceConversation, ContextSnapshot: mapValue(frozen.Payload["capability_context_snapshot"]), Context: ctx,
 		}); validateErr != nil {
 			if failures := capabilityBatchFailures(validateErr); len(failures) > 0 {
-				// Candidate validation is per invocation. Keep the failed call
-				// auditable, but do not discard valid sibling calls from this turn.
+				// Candidate validation is a Judge precondition. A malformed or
+				// unauthorized sibling cannot be hidden by a valid reply or by a
+				// takeover; retain its bounded result, quarantine the frozen turn,
+				// and stop before any Judge/Prepare/Execute path.
 				capabilityResults = mergeCapabilityResults(capabilityResults, failures)
-				slog.Warn("Go Core capability candidate validation degraded per call", "turn_id", turnID, "failed_call_count", len(failures))
-			} else {
-				_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "candidate_invalid")
-				return TurnResult{}, validateErr
+				if persistErr := a.PersistCapabilityResults(ctx, frozen.ID, capabilityResults); persistErr != nil {
+					return TurnResult{}, persistErr
+				}
 			}
+			_ = a.FailTurnCognition(ctx, inboxID, frozen.ID, "candidate_invalid")
+			return TurnResult{}, validateErr
 		}
 	}
 	// Exactly one insertion point exists between the A generation and the

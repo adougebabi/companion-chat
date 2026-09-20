@@ -1,0 +1,10 @@
+$ go test -mod=readonly ./internal/core -run TestBeforeFixStreamLeaseIsHeldUntilEOF -count=1 -v
+worktree=/tmp/yaoguang-phase5-before.PfcrSA (HEAD ba6457a pre-remediation)
+exit_code=1
+
+=== RUN   TestBeforeFixStreamLeaseIsHeldUntilEOF
+    phase5_before_stream_test.go:36: before-fix stream lease was released before first EOF
+--- FAIL: TestBeforeFixStreamLeaseIsHeldUntilEOF (0.00s)
+FAIL
+go test failed as expected: the pre-fix runProviderQueued returned a StreamReader and released the lease before EOF.
+

@@ -1,0 +1,23 @@
+=== RUN   TestTakeoverControlViewMergesBAcceptedOverlay
+    turn_takeover_f05_test.go:26: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestTakeoverControlViewMergesBAcceptedOverlay (0.00s)
+=== RUN   TestTakeoverControlViewFallsBackToBaselineWithoutOverlay
+    turn_takeover_f05_test.go:119: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestTakeoverControlViewFallsBackToBaselineWithoutOverlay (0.00s)
+=== RUN   TestTakeoverControlViewFailureDoesNotFallBackToBaseline
+    turn_takeover_f05_test.go:156: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestTakeoverControlViewFailureDoesNotFallBackToBaseline (0.00s)
+=== RUN   TestJudgeSkipsProviderWhenTakeoverControlViewFails
+    turn_takeover_f05_test.go:189: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestJudgeSkipsProviderWhenTakeoverControlViewFails (0.00s)
+=== RUN   TestTakeoverControlViewCompositionFailureIsNotAnEmptyOverlay
+    turn_takeover_f05_test.go:238: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestTakeoverControlViewCompositionFailureIsNotAnEmptyOverlay (0.00s)
+=== RUN   TestTakeoverControlViewCloneFailureIsNotAnEmptyOverlay
+--- PASS: TestTakeoverControlViewCloneFailureIsNotAnEmptyOverlay (0.00s)
+=== RUN   TestTakeoverControlViewIsBoundedAndHidesOtherProfileMaterial
+--- PASS: TestTakeoverControlViewIsBoundedAndHidesOtherProfileMaterial (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.338s
+
+exit_code=

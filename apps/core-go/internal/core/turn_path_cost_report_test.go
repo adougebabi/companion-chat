@@ -25,6 +25,11 @@ import (
 //     output is discarded but still counted as cost);
 //   4. pure_query       — main generation + one continuation synthesis, no
 //     Judge (F06 mutual exclusion).
+//
+// Every path also carries the independent post-cognition persistent-switch
+// assessment. The report preserves that physical request in SchemaSequence;
+// the budget sanity checks below project it away and collapse an ADK
+// tool-result round so they measure logical Main/Judge/Takeover/Query stages.
 
 const turnPathCostReportPath = "testdata/turn_path_cost_report.json"
 
@@ -105,7 +110,8 @@ func TestTurnPathCostMeasurement(t *testing.T) {
 		// 1. Plain: no takeover_rules declared, so no Judge is reachable.
 		func() turnPathReport {
 			report := turnPathRunTurn(t, "plain_no_judge", nil, newFakeProviderRouter().
-				on(workingPersonaMainTurnSchema, takeoverChainSequence(candidate)))
+				on(workingPersonaMainTurnSchema, takeoverChainSequence(candidate)).
+				on(persistentSwitchAssessmentSchemaName, takeoverChainPersistentSwitchKeep()))
 			report.ScriptedOutputTokens = EstimatePromptTokens(jsonString(candidate.Structured))
 			return report
 		}(),
@@ -113,7 +119,8 @@ func TestTurnPathCostMeasurement(t *testing.T) {
 		func() turnPathReport {
 			report := turnPathRunTurn(t, "judge_keeps_a", takeoverChainDefaultRules(), newFakeProviderRouter().
 				on(workingPersonaMainTurnSchema, takeoverChainSequence(candidate)).
-				on(takeoverJudgeSchemaName, takeoverChainJudge(false)))
+				on(takeoverJudgeSchemaName, takeoverChainJudge(false)).
+				on(persistentSwitchAssessmentSchemaName, takeoverChainPersistentSwitchKeep()))
 			report.ScriptedOutputTokens = EstimatePromptTokens(jsonString(candidate.Structured))
 			return report
 		}(),
@@ -122,7 +129,8 @@ func TestTurnPathCostMeasurement(t *testing.T) {
 			report := turnPathRunTurn(t, "judge_takeover_b", takeoverChainDefaultRules(), newFakeProviderRouter().
 				on(workingPersonaMainTurnSchema, takeoverChainSequence(candidate)).
 				on(takeoverJudgeSchemaName, takeoverChainJudge(true)).
-				on(takeoverReplySchemaName, takeoverChainSequence(reply)))
+				on(takeoverReplySchemaName, takeoverChainSequence(reply)).
+				on(persistentSwitchAssessmentSchemaName, takeoverChainPersistentSwitchKeep()))
 			report.ScriptedOutputTokens = EstimatePromptTokens(jsonString(candidate.Structured)) + EstimatePromptTokens(jsonString(reply.Structured))
 			return report
 		}(),
@@ -131,6 +139,7 @@ func TestTurnPathCostMeasurement(t *testing.T) {
 			report := turnPathRunTurn(t, "pure_query", takeoverChainDefaultRules(), newFakeProviderRouter().
 				on(workingPersonaMainTurnSchema, takeoverChainSequence(pure)).
 				on(takeoverJudgeSchemaName, takeoverChainJudge(true)).
+				on(persistentSwitchAssessmentSchemaName, takeoverChainPersistentSwitchKeep()).
 				on(queryContinuationTestSchemaName, func(map[string]any) fakeProviderResult {
 					return continuation
 				}))
@@ -142,8 +151,8 @@ func TestTurnPathCostMeasurement(t *testing.T) {
 	// Budget invariants double as the measurement's sanity gate.
 	counts := func(report turnPathReport) map[string]int {
 		result := map[string]int{}
-		for _, call := range report.Calls {
-			result[call.Schema] = call.Requests
+		for _, schemaName := range turnBudgetSchemaSequence(report.SchemaSequence) {
+			result[schemaName]++
 		}
 		return result
 	}
@@ -159,8 +168,13 @@ func TestTurnPathCostMeasurement(t *testing.T) {
 	if got := counts(reports[3]); got[workingPersonaMainTurnSchema] != 1 || got[takeoverJudgeSchemaName] != 0 || got[queryContinuationTestSchemaName] != 1 {
 		t.Fatalf("pure-query path budget violated: %#v", got)
 	}
-	if total := len(reports[2].SchemaSequence); total != 3 {
-		t.Fatalf("the takeover path must be exactly A, Judge, B — got %d physical requests", total)
+	if got := reports[2].SchemaSequence; !equalStrings(got, []string{
+		workingPersonaMainTurnSchema,
+		persistentSwitchAssessmentSchemaName,
+		takeoverJudgeSchemaName,
+		takeoverReplySchemaName,
+	}) {
+		t.Fatalf("the takeover path physical sequence must be A, post-cognition assessment, Judge, B — got %#v", got)
 	}
 
 	notes := []string{

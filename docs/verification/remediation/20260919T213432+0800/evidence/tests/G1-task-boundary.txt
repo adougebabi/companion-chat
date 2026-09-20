@@ -1,0 +1,16 @@
+=== RUN   TestADKCapabilityDefinitionsFailClosedBySurfaceAndVisibility
+--- PASS: TestADKCapabilityDefinitionsFailClosedBySurfaceAndVisibility (0.00s)
+=== RUN   TestRunADKStructuredTaskRejectsNonLoopSchemaBeforeProviderIO
+--- PASS: TestRunADKStructuredTaskRejectsNonLoopSchemaBeforeProviderIO (0.00s)
+=== RUN   TestProductionModelCallersUseTypedTaskBoundaries
+--- PASS: TestProductionModelCallersUseTypedTaskBoundaries (0.00s)
+=== RUN   TestFormatProviderMessagesUsesTOONOnlyForNonMediaContexts
+--- PASS: TestFormatProviderMessagesUsesTOONOnlyForNonMediaContexts (0.00s)
+=== RUN   TestProviderRuntimeSupportDoesNotConstructAppForDiagnosticsOrQueue
+--- PASS: TestProviderRuntimeSupportDoesNotConstructAppForDiagnosticsOrQueue (0.00s)
+=== RUN   TestProviderRuntimeSupportIsNarrowAndWiredAtCompositionRoot
+--- PASS: TestProviderRuntimeSupportIsNarrowAndWiredAtCompositionRoot (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.370s
+
+exit_code=

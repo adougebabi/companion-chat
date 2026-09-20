@@ -1,0 +1,13 @@
+=== RUN   TestRunADKLoopExecutesCapabilityAndFeedsResultBack
+--- PASS: TestRunADKLoopExecutesCapabilityAndFeedsResultBack (0.00s)
+=== RUN   TestRunADKLoopStopsLoopAtTwoGenerations
+--- PASS: TestRunADKLoopStopsLoopAtTwoGenerations (0.00s)
+=== RUN   TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant
+--- PASS: TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant (0.00s)
+=== RUN   TestHandleTurnProductionADKToolLoopSettlesOneAssistant
+    eino_adk_runtime_test.go:416: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestHandleTurnProductionADKToolLoopSettlesOneAssistant (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.349s
+
+exit_code=

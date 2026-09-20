@@ -1,0 +1,22 @@
+=== RUN   TestSameObservationDifferentSceneChangesDecisionPlannerOutcomeAndNextProjection
+2026/09/20 11:10:08 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=false fields=[response_mode] tool_call_count=2 candidate_count=1 content_present=true content_length=535 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:10:08 INFO capability lifecycle capability=persona.takeover call_id=policy_3b3aab7f80fe88144e5d3f22cef4a3a8 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:10:08 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=scene-chain-fluctlight inbox_id=inbox_c50182f174c1c48b4108a9cb4f7d7294 error_type=*errors.errorString
+2026/09/20 11:10:09 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=false fields=[response_mode] tool_call_count=2 candidate_count=1 content_present=true content_length=535 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:10:09 INFO capability lifecycle capability=persona.takeover call_id=policy_3b3aab7f80fe88144e5d3f22cef4a3a8 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/20 11:10:09 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=scene-chain-fluctlight inbox_id=inbox_c50182f174c1c48b4108a9cb4f7d7294 error_type=*errors.errorString
+--- PASS: TestSameObservationDifferentSceneChangesDecisionPlannerOutcomeAndNextProjection (2.83s)
+=== RUN   TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale
+=== RUN   TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale/wake_up
+=== RUN   TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale/daily_review
+--- PASS: TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale (1.54s)
+    --- PASS: TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale/wake_up (0.80s)
+    --- PASS: TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale/daily_review (0.74s)
+=== RUN   TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement
+2026/09/20 11:10:12 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=false fields=[response_mode] tool_call_count=2 candidate_count=1 content_present=true content_length=589 reasoning_content_present=false reasoning_content_length=0
+2026/09/20 11:10:12 INFO capability lifecycle capability=persona.takeover call_id=policy_d732247722481040a0d79f40ac7a736a type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+--- PASS: TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement (0.80s)
+=== RUN   TestLifeContextProviderProjectionKeepsOpaqueAuthorityAndDropsRawRows
+--- PASS: TestLifeContextProviderProjectionKeepsOpaqueAuthorityAndDropsRawRows (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	5.771s

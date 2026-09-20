@@ -12,14 +12,23 @@ func composeProviderMessages(role string, messages []map[string]any) []map[strin
 	return composeTaskMessages(role, messages)
 }
 
-func TestProductionMainCallersUseOnlyPromptContextAssembler(t *testing.T) {
+func TestProductionModelCallersUseTypedTaskBoundaries(t *testing.T) {
+	taskSource, err := os.ReadFile(filepath.Clean("model_tasks.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, boundary := range []string{"RunNativeCognitionTask", "RunDailyReviewTask", "RunReflectionProposalTask", "RunPersistentSwitchTask", "RunMediaPromptTask", "RunMediaQualityTask", "RunConversationSummaryTask", "RunScheduleGenerationTask", "RunScheduleReplanTask"} {
+		if !strings.Contains(string(taskSource), boundary) {
+			t.Fatalf("typed task boundary %s is missing", boundary)
+		}
+	}
 	for _, name := range []string{"mutations.go", "turn_takeover.go", "cognition_growth.go", "autonomy.go", "wakeup.go", "reflection_runtime_v2.go"} {
 		content, err := os.ReadFile(filepath.Clean(name))
 		if err != nil {
 			t.Fatal(err)
 		}
 		text := string(content)
-		taskBoundary := "RunStructuredToolsTask"
+		taskBoundary := "RunADKStructuredTask"
 		if name == "mutations.go" {
 			taskBoundary = "RunMain"
 		} else if name == "turn_takeover.go" {
@@ -30,9 +39,15 @@ func TestProductionMainCallersUseOnlyPromptContextAssembler(t *testing.T) {
 			// assembly remains operation-owned, while the model/tool protocol
 			// is now entered through RunADKStructuredTask.
 			taskBoundary = "RunADKStructuredTask"
+		} else if name == "cognition_growth.go" {
+			taskBoundary = "RunNativeCognitionTask"
+		} else if name == "autonomy.go" {
+			taskBoundary = "RunDailyReviewTask"
+		} else if name == "reflection_runtime_v2.go" {
+			taskBoundary = "RunReflectionProposalTask"
 		}
-		if !strings.Contains(text, "assembleProjectionPrompt") || !strings.Contains(text, taskBoundary) {
-			t.Fatalf("%s does not use the canonical assembler path", name)
+		if !strings.Contains(text, taskBoundary) {
+			t.Fatalf("%s does not use the typed task/ADK boundary", name)
 		}
 		for _, forbidden := range []string{"withActorRelationshipSystemContext", `"current_message"`, "compactCognitionContext(projection)", "StructuredWithToolsSchema("} {
 			if strings.Contains(text, forbidden) {

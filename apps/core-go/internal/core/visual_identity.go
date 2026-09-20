@@ -871,11 +871,12 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		if imageErr != nil {
 			return nil, imageErr
 		}
-		visionUserContent := []any{map[string]any{"type": "text", "text": jsonString(map[string]any{"asset_id": candidateAssetID, "render_intent": "character_design_sheet", "expected_subject": "one_human_character", "expected_views": visualIdentityExpectedViews(), "panel_layout": map[string]string{"left": "front_closeup_portrait", "center": "front_full_body_standing", "right": "back_full_body"}, "visual_identity": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints)})}}
-		if imageContent != nil {
-			visionUserContent = append(visionUserContent, imageContent)
-		}
-		completion, err := a.RunStructuredTask(ctx, ModelTask{Kind: ModelTaskMultimodalAssessment, Role: "visual_identity_vision", Scenario: "visual_identity_vision", SchemaName: "visual_identity_vision_response"}, []map[string]any{{"role": "system", "content": "Inspect the supplied candidate image for visual identity continuity. The required target is one character design sheet with exactly three separate panels on a white background: left front close-up portrait, center front full-body standing straight, right back full-body from behind. There is explicitly no side-view panel. If the image is an art photo, abstract silhouette, landscape, object-only image, missing a person, missing any required panel, or shows a side view instead of the center front full body, report a low identity_match and make that mismatch explicit in observations. Return bounded structured observations only."}, {"role": "user", "content": visionUserContent}}, visualIdentityVisionResponseSchema(), false)
+		completion, err := a.RunVisualIdentityVisionTask(ctx, VisualIdentityVisionTaskInput{
+			CandidateAssetID: candidateAssetID,
+			InputSnapshot:    decodeObject(inputSnapshot),
+			Constraints:      decodeObject(constraints),
+			ImageContent:     imageContent,
+		})
 		if err != nil {
 			if visualIdentityProviderPending(err) {
 				if stageErr := a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStageVisionRequested, "pending", "等待 visual_identity_vision 模型角色配置", []string{candidateAssetID}); stageErr != nil {
@@ -899,7 +900,12 @@ func (a *App) ProcessVisualIdentity(ctx context.Context, sessionID string) (map[
 		if err := a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStagePatchRequested, "running", "正在评审并生成身份补丁", []string{candidateAssetID}); err != nil {
 			return nil, err
 		}
-		completion, err := a.RunStructuredTask(ctx, ModelTask{Kind: ModelTaskMultimodalAssessment, Role: "visual_identity_patch", Scenario: "visual_identity_patch", SchemaName: "visual_identity_patch_response"}, []map[string]any{{"role": "system", "content": "Review the candidate against the visual identity and return accepted or regenerate. Acceptance is allowed only for one character design sheet with exactly three separate panels on a white background: left front close-up portrait, center front full body standing straight, right back full body from behind. There is explicitly no side-view panel. An art photo, abstract silhouette, landscape, object-only image, missing person, missing panel, or side-view substitution must be decision=regenerate. Preserve the explicit decision and a structured patch."}, {"role": "user", "content": jsonString(map[string]any{"stage": "review", "render_intent": "character_design_sheet", "expected_subject": "one_human_character", "expected_views": visualIdentityExpectedViews(), "panel_layout": map[string]string{"left": "front_closeup_portrait", "center": "front_full_body_standing", "right": "back_full_body"}, "visual_identity": decodeObject(inputSnapshot), "renderer_constraints": decodeObject(constraints), "vision": decodeObject(visionResult), "candidate_asset_id": candidateAssetID})}}, visualIdentityPatchResponseSchema(), false)
+		completion, err := a.RunVisualIdentityPatchTask(ctx, VisualIdentityPatchTaskInput{
+			CandidateAssetID: candidateAssetID,
+			InputSnapshot:    decodeObject(inputSnapshot),
+			Constraints:      decodeObject(constraints),
+			Vision:           decodeObject(visionResult),
+		})
 		if err != nil {
 			if visualIdentityProviderPending(err) {
 				if stageErr := a.recordVisualIdentityStage(ctx, sessionID, attemptID, fluctlightID, visualIdentityStagePatchRequested, "pending", "等待 visual_identity_patch 模型角色配置", []string{candidateAssetID}); stageErr != nil {

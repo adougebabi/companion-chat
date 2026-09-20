@@ -477,7 +477,7 @@ func compactCurrentStateForSurface(projection ContextProjection) map[string]any 
 	if inner := compactInnerStateForSurface(mapValue(data["inner_state"])); len(inner) > 0 {
 		resultData["inner_state"] = inner
 	}
-	if life := compactLifeContextForSurface(mapValue(data["life_context"])); len(life) > 0 {
+	if life := compactLifeContextForSurface(mapValue(data["life_context"]), projection.ReferenceIndex); len(life) > 0 {
 		resultData["life_context"] = life
 	}
 	if len(resultData) == 0 {
@@ -526,15 +526,32 @@ func compactCurrentDrivesForSurface(value any) []map[string]any {
 	return result
 }
 
-func compactLifeContextForSurface(value map[string]any) map[string]any {
+var providerLifeContextRevisionPattern = regexp.MustCompile(`^life_ctx_[a-f0-9]{32}$`)
+
+func compactLifeContextForSurface(value map[string]any, index ContextReferenceIndex) map[string]any {
 	result := map[string]any{}
-	for _, key := range []string{"scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at"} {
+	// Life Context is the authority boundary for scene/schedule decisions. Keep
+	// only Core-issued opaque references and the bounded revision token needed by
+	// Prepare/CAS validation; raw event/schedule/presence IDs never cross this
+	// surface.
+	for _, key := range []string{"ref", "event_ref", "schedule_ref", "schedule_item_ref", "presence_ref"} {
+		if ref := providerSafeContextRef(value[key], index); ref != "" {
+			result[key] = ref
+		}
+	}
+	if revision := strings.TrimSpace(stringValue(value["context_revision"])); providerLifeContextRevisionPattern.MatchString(revision) {
+		result["context_revision"] = revision
+	}
+	for _, key := range []string{"source", "authority_status", "scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at"} {
 		if raw, ok := value[key]; ok && raw != nil && raw != "" {
 			result[key] = raw
 		}
 	}
 	if presence := mapValue(value["presence"]); len(presence) > 0 {
 		compact := map[string]any{}
+		if ref := providerSafeContextRef(presence["ref"], index); ref != "" {
+			compact["ref"] = ref
+		}
 		for _, key := range []string{"current_task", "user_presence", "effective_at", "expires_at"} {
 			if raw, ok := presence[key]; ok && raw != nil && raw != "" {
 				compact[key] = raw

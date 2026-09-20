@@ -24,26 +24,47 @@ import (
 // pure-query turn's delivered text is distinguishable from the candidate's.
 const takeoverChainQuerySynthesisText = "我记得那件事。"
 
+// turnBudgetSchemaSequence projects the complete wire sequence onto the
+// interactive Main/Judge/Takeover/Query budget. The ADK tool-result round is
+// a second physical conversation_turn_response request belonging to the same
+// logical Main stage, while persistent_switch_assessment is an independent
+// post-cognition stage that does not consume the main-generation budget.
+func turnBudgetSchemaSequence(sequence []string) []string {
+	projected := make([]string, 0, len(sequence))
+	for _, schemaName := range sequence {
+		if schemaName == persistentSwitchAssessmentSchemaName {
+			continue
+		}
+		if schemaName == workingPersonaMainTurnSchema && len(projected) > 0 && projected[len(projected)-1] == schemaName {
+			continue
+		}
+		projected = append(projected, schemaName)
+	}
+	return projected
+}
+
 // TestTurnStageBudgetNeverExceedsTwoMainGenerations asserts the budget table of
 // design.md 4.7 against the ACTUAL wire sequence. Counts alone would accept a
 // turn that generated A twice, or that consulted the Judge after deciding to
 // hand over; the ordered sequence makes both observable.
 func TestTurnStageBudgetNeverExceedsTwoMainGenerations(t *testing.T) {
 	cases := []struct {
-		name          string
-		rules         []any
-		candidate     fakeProviderResult
-		judge         bool
-		wantSequence  []string
-		wantDelivered string
+		name                 string
+		rules                []any
+		candidate            fakeProviderResult
+		judge                bool
+		wantPhysicalSequence []string
+		wantBudgetSequence   []string
+		wantDelivered        string
 	}{
 		{
 			name:      "no rule pays for one generation and no judge",
 			rules:     nil,
 			candidate: takeoverChainMainResult(takeoverChainCandidateText, nil),
 			// [1] of the budget table: no Judge, no second generation.
-			wantSequence:  []string{workingPersonaMainTurnSchema},
-			wantDelivered: takeoverChainCandidateText,
+			wantPhysicalSequence: []string{workingPersonaMainTurnSchema, persistentSwitchAssessmentSchemaName},
+			wantBudgetSequence:   []string{workingPersonaMainTurnSchema},
+			wantDelivered:        takeoverChainCandidateText,
 		},
 		{
 			name:      "a declined judge is metered outside the main budget",
@@ -52,8 +73,9 @@ func TestTurnStageBudgetNeverExceedsTwoMainGenerations(t *testing.T) {
 			judge:     false,
 			// [2]: A + Judge. The Judge is a separate role and does not consume
 			// one of the two main generations.
-			wantSequence:  []string{workingPersonaMainTurnSchema, takeoverJudgeSchemaName},
-			wantDelivered: takeoverChainCandidateText,
+			wantPhysicalSequence: []string{workingPersonaMainTurnSchema, persistentSwitchAssessmentSchemaName, takeoverJudgeSchemaName},
+			wantBudgetSequence:   []string{workingPersonaMainTurnSchema, takeoverJudgeSchemaName},
+			wantDelivered:        takeoverChainCandidateText,
 		},
 		{
 			name:      "an approved judge adds exactly one second generation",
@@ -61,8 +83,9 @@ func TestTurnStageBudgetNeverExceedsTwoMainGenerations(t *testing.T) {
 			candidate: takeoverChainMainResult(takeoverChainCandidateText, nil),
 			judge:     true,
 			// [3]: A + Judge + B, and the Judge is never consulted again.
-			wantSequence:  []string{workingPersonaMainTurnSchema, takeoverJudgeSchemaName, takeoverReplySchemaName},
-			wantDelivered: takeoverChainTakeoverText,
+			wantPhysicalSequence: []string{workingPersonaMainTurnSchema, persistentSwitchAssessmentSchemaName, takeoverJudgeSchemaName, takeoverReplySchemaName},
+			wantBudgetSequence:   []string{workingPersonaMainTurnSchema, takeoverJudgeSchemaName, takeoverReplySchemaName},
+			wantDelivered:        takeoverChainTakeoverText,
 		},
 		{
 			name:      "a pure query skips arbitration and pays only for synthesis",
@@ -70,8 +93,9 @@ func TestTurnStageBudgetNeverExceedsTwoMainGenerations(t *testing.T) {
 			candidate: takeoverChainPureQueryCandidate(),
 			// [4]: the result-dependent continuation path skips the whole
 			// arbitration block, so no Judge and no takeover generation appear.
-			wantSequence:  []string{workingPersonaMainTurnSchema, queryContinuationTestSchemaName},
-			wantDelivered: takeoverChainQuerySynthesisText,
+			wantPhysicalSequence: []string{workingPersonaMainTurnSchema, workingPersonaMainTurnSchema, persistentSwitchAssessmentSchemaName, queryContinuationTestSchemaName},
+			wantBudgetSequence:   []string{workingPersonaMainTurnSchema, queryContinuationTestSchemaName},
+			wantDelivered:        takeoverChainQuerySynthesisText,
 		},
 	}
 
@@ -86,6 +110,7 @@ func TestTurnStageBudgetNeverExceedsTwoMainGenerations(t *testing.T) {
 				on(workingPersonaMainTurnSchema, takeoverChainSequence(testCase.candidate)).
 				on(takeoverReplySchemaName, takeoverChainSequence(takeoverChainMainResult(takeoverChainTakeoverText, nil))).
 				on(takeoverJudgeSchemaName, takeoverChainJudge(testCase.judge)).
+				on(persistentSwitchAssessmentSchemaName, takeoverChainPersistentSwitchKeep()).
 				on(queryContinuationTestSchemaName, func(map[string]any) fakeProviderResult {
 					return fakeProviderResult{Structured: map[string]any{"visible_text": takeoverChainQuerySynthesisText}}
 				})
@@ -95,24 +120,36 @@ func TestTurnStageBudgetNeverExceedsTwoMainGenerations(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			// The exact physical call sequence, in order.
+			// First retain the exact physical wire sequence, including the
+			// independent post-cognition assessment and any ADK tool-result round.
 			// equalStrings is shared with settings_provider_models_test.go.
-			if got := router.schemaSequence(); !equalStrings(got, testCase.wantSequence) {
-				t.Fatalf("the turn issued %#v, expected exactly %#v", got, testCase.wantSequence)
+			physical := router.schemaSequence()
+			if !equalStrings(physical, testCase.wantPhysicalSequence) {
+				t.Fatalf("the turn issued physical sequence %#v, expected exactly %#v", physical, testCase.wantPhysicalSequence)
+			}
+			// Then project that sequence onto the Main/Judge/Takeover/Query
+			// budget. This deliberately removes only the known auxiliary stage
+			// and collapses the ADK tool-result round; logical stage counters below
+			// still make any repeated Main stage observable.
+			if budget := turnBudgetSchemaSequence(physical); !equalStrings(budget, testCase.wantBudgetSequence) {
+				t.Fatalf("the turn budget sequence %#v, expected exactly %#v", budget, testCase.wantBudgetSequence)
 			}
 			takeoverChainAssertDeliveredOnce(t, ctx, repository, conversationID, turnID, testCase.wantDelivered)
 
 			// The main-generation budget is two, always.
-			mainGenerations := router.requestCount(workingPersonaMainTurnSchema) + router.requestCount(takeoverReplySchemaName)
+			mainGenerations := router.logicalRequestCount(workingPersonaMainTurnSchema) + router.logicalRequestCount(takeoverReplySchemaName)
 			if mainGenerations > 2 {
 				t.Fatalf("the main-generation budget is two, spent %d", mainGenerations)
 			}
 			// Every stage runs at most once: a repeated stage would be a replay
 			// or an arbitration loop wearing a correct total.
 			for _, schemaName := range takeoverChainModelRoles() {
-				if count := router.requestCount(schemaName); count > 1 {
+				if count := router.logicalRequestCount(schemaName); count > 1 {
 					t.Fatalf("stage %s ran %d times; the stage machine allows one run each", schemaName, count)
 				}
+			}
+			if count := router.logicalRequestCount(persistentSwitchAssessmentSchemaName); count != 1 {
+				t.Fatalf("the independent post-cognition assessment must run once, got %d", count)
 			}
 			// The turn really entered the side-effect window and settled.
 			frozen := takeoverChainFrozenPayload(t, ctx, repository, inboxKey)
@@ -141,18 +178,20 @@ func TestLogicalInvocationsVsPhysicalAttempts(t *testing.T) {
 		router := newFakeProviderRouter().
 			on(workingPersonaMainTurnSchema, takeoverChainSequence(takeoverChainMainResult(takeoverChainCandidateText, nil))).
 			on(takeoverReplySchemaName, takeoverChainSequence(takeoverChainMainResult(takeoverChainTakeoverText, nil))).
-			on(takeoverJudgeSchemaName, takeoverChainJudge(true))
+			on(takeoverJudgeSchemaName, takeoverChainJudge(true)).
+			on(persistentSwitchAssessmentSchemaName, takeoverChainPersistentSwitchKeep())
 		app := newTestApp(t, repository, router)
 		if err := takeoverChainRunTurn(t, app, ctx, ownerID, conversationID, fluctlightID, "你根本没在听我说话。", "physical-ok-turn", "physical-ok-turn-1"); err != nil {
 			t.Fatal(err)
 		}
 
 		logical := map[string]int{
-			workingPersonaMainTurnSchema: router.requestCount(workingPersonaMainTurnSchema),
-			takeoverJudgeSchemaName:      router.requestCount(takeoverJudgeSchemaName),
-			takeoverReplySchemaName:      router.requestCount(takeoverReplySchemaName),
+			workingPersonaMainTurnSchema:         router.logicalRequestCount(workingPersonaMainTurnSchema),
+			takeoverJudgeSchemaName:              router.requestCount(takeoverJudgeSchemaName),
+			takeoverReplySchemaName:              router.logicalRequestCount(takeoverReplySchemaName),
+			persistentSwitchAssessmentSchemaName: router.logicalRequestCount(persistentSwitchAssessmentSchemaName),
 		}
-		if logical[workingPersonaMainTurnSchema] != 1 || logical[takeoverJudgeSchemaName] != 1 || logical[takeoverReplySchemaName] != 1 {
+		if logical[workingPersonaMainTurnSchema] != 1 || logical[takeoverJudgeSchemaName] != 1 || logical[takeoverReplySchemaName] != 1 || logical[persistentSwitchAssessmentSchemaName] != 1 {
 			t.Fatalf("expected one attempt per logical stage, got %#v", logical)
 		}
 		attributed := 0
@@ -192,7 +231,8 @@ func TestLogicalInvocationsVsPhysicalAttempts(t *testing.T) {
 			router := newFakeProviderRouter().
 				on(workingPersonaMainTurnSchema, takeoverChainSequence(takeoverChainMainResult(takeoverChainCandidateText, nil))).
 				on(takeoverReplySchemaName, takeoverChainFailGeneration()).
-				on(takeoverJudgeSchemaName, testCase.judge)
+				on(takeoverJudgeSchemaName, testCase.judge).
+				on(persistentSwitchAssessmentSchemaName, takeoverChainPersistentSwitchKeep())
 			app := newTestApp(t, repository, router)
 			inboxKey, turnID := "physical-judge-turn-"+slug, "physical-judge-turn-"+slug+"-1"
 			if err := takeoverChainRunTurn(t, app, ctx, ownerID, conversationID, fluctlightID, "你在敷衍我吗？", inboxKey, turnID); err != nil {
@@ -212,8 +252,8 @@ func TestLogicalInvocationsVsPhysicalAttempts(t *testing.T) {
 			}
 			// The physical attempt count is bounded by the number of stages the
 			// turn may run: no retry was appended to the failure.
-			if physical := router.totalRequests(); physical != 2 {
-				t.Fatalf("a failing judge must cost A + one judge attempt, saw %d physical attempts", physical)
+			if physical := router.totalRequests(); physical != 3 {
+				t.Fatalf("a failing judge must cost A + one post-cognition assessment + one judge attempt, saw %d physical attempts", physical)
 			}
 			takeoverChainAssertDeliveredOnce(t, ctx, repository, conversationID, turnID, takeoverChainCandidateText)
 
@@ -245,7 +285,8 @@ func TestLogicalInvocationsVsPhysicalAttempts(t *testing.T) {
 		router := newFakeProviderRouter().
 			on(workingPersonaMainTurnSchema, takeoverChainSequence(takeoverChainMainResult(longReply, nil))).
 			on(takeoverReplySchemaName, takeoverChainFailGeneration()).
-			on(takeoverJudgeSchemaName, takeoverChainFailGeneration())
+			on(takeoverJudgeSchemaName, takeoverChainFailGeneration()).
+			on(persistentSwitchAssessmentSchemaName, takeoverChainPersistentSwitchKeep())
 		app := newTestApp(t, repository, router)
 		inboxKey, turnID := "physical-overbudget-turn", "physical-overbudget-turn-1"
 		if err := takeoverChainRunTurn(t, app, ctx, ownerID, conversationID, fluctlightID, "你在敷衍我吗？", inboxKey, turnID); err != nil {
@@ -255,8 +296,8 @@ func TestLogicalInvocationsVsPhysicalAttempts(t *testing.T) {
 		if count := router.requestCount(takeoverJudgeSchemaName); count != 0 {
 			t.Fatalf("an over-budget judge packet must not cost a physical attempt, saw %d", count)
 		}
-		if physical := router.totalRequests(); physical != 1 {
-			t.Fatalf("the turn must spend only its main generation, saw %d physical attempts", physical)
+		if physical := router.totalRequests(); physical != 2 {
+			t.Fatalf("the turn must spend its main generation plus the independent post-cognition assessment, saw %d physical attempts", physical)
 		}
 		takeoverChainAssertDeliveredOnce(t, ctx, repository, conversationID, turnID, longReply)
 
@@ -286,7 +327,8 @@ func TestLogicalInvocationsVsPhysicalAttempts(t *testing.T) {
 			on(takeoverReplySchemaName, takeoverChainFailGeneration()).
 			on(takeoverJudgeSchemaName, func(map[string]any) fakeProviderResult {
 				return fakeProviderResult{Structured: map[string]any{"takeover": "yes"}}
-			})
+			}).
+			on(persistentSwitchAssessmentSchemaName, takeoverChainPersistentSwitchKeep())
 		app := newTestApp(t, repository, router)
 		inboxKey, turnID := "physical-coerced-turn", "physical-coerced-turn-1"
 		if err := takeoverChainRunTurn(t, app, ctx, ownerID, conversationID, fluctlightID, "你在敷衍我吗？", inboxKey, turnID); err != nil {

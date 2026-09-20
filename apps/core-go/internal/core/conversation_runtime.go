@@ -96,8 +96,8 @@ func (r *conversationRuntime) RunMain(ctx context.Context, input ConversationMai
 		return ConversationRunResult{}, errors.New("conversation_runtime_capability_context_required")
 	}
 	result, err := r.app.RunADKStructuredTask(ctx, ADKStructuredTaskInput{
-		Role: input.Role, Scenario: "cognitive_assessment", Messages: input.Messages,
-		Definitions: input.Definitions, SchemaName: input.SchemaName, Schema: input.Schema,
+		Role: input.Role, Scenario: "cognitive_assessment", Prompt: PromptAssemblyResult{Messages: input.Messages, ResponseFormat: input.Schema},
+		Definitions: input.Definitions, SchemaName: input.SchemaName,
 		EnableThinking: input.EnableThinking, Capability: conversationADKRequest(input.Capability, providerCorrelation(ctx)),
 	})
 	return ConversationRunResult{Completion: result.Completion, Trace: result.Trace}, conversationRuntimeBoundaryError(err)
@@ -136,8 +136,8 @@ func (r *conversationRuntime) RunTakeoverReply(ctx context.Context, input Takeov
 		return ConversationRunResult{}, errors.New("conversation_runtime_capability_context_required")
 	}
 	result, err := r.app.RunADKStructuredTask(ctx, ADKStructuredTaskInput{
-		Role: input.Role, Scenario: "takeover_reply", Messages: input.Messages,
-		Definitions: input.Definitions, SchemaName: input.SchemaName, Schema: input.Schema,
+		Role: input.Role, Scenario: "takeover_reply", Prompt: PromptAssemblyResult{Messages: input.Messages, ResponseFormat: input.Schema},
+		Definitions: input.Definitions, SchemaName: input.SchemaName,
 		EnableThinking: input.EnableThinking, Capability: conversationADKRequest(input.Capability, providerCorrelation(ctx)),
 	})
 	return ConversationRunResult{Completion: result.Completion, Trace: result.Trace}, conversationRuntimeBoundaryError(err)

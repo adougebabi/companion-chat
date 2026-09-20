@@ -261,17 +261,9 @@ func (a *App) ProcessConversationSummaryIntent(ctx context.Context, intentID, fl
 		existing["replayed"] = true
 		return existing, nil
 	}
-	providerMessages := conversationSummaryProviderMessages(work.Messages)
 	correlationID := "conversation-summary:" + work.IntentID
 	providerContext := WithProviderCorrelation(WithProviderScenario(ctx, "conversation_summary"), correlationID)
-	structured, err := a.RunStructuredTask(providerContext, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "reflection", Scenario: "conversation_summary", SchemaName: "conversation_summary_v1"}, []map[string]any{
-		{"role": "system", "content": conversationSummaryInstruction},
-		{"role": "user", "content": jsonString(map[string]any{"source_messages": providerMessages})},
-	}, conversationSummaryProviderSchema(), false)
-	if err != nil {
-		return nil, err
-	}
-	response, err := decodeConversationSummaryProviderResponse(structured)
+	response, err := a.RunConversationSummaryTask(providerContext, ConversationSummaryTaskInput{Messages: work.Messages})
 	if err != nil {
 		return nil, err
 	}

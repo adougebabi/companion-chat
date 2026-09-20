@@ -79,21 +79,15 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
-	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceAutonomy)
-	schema := dailyReviewResponseSchema()
-	assembly, assembledProjection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceDailyReview, projection, "cognitive_assessment", []string{providerContextAuthorityRule, capabilityDailyReviewPolicyInstruction}, jsonString(map[string]any{"local_date": localDate}), definitions, "daily_review_response", schema)
-	if err != nil {
-		return nil, err
-	}
-	projection = assembledProjection
-	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "daily_review"), assembly.Diagnostics)
-	completion, err := a.RunStructuredToolsTask(providerCtx, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "daily_review", SchemaName: "daily_review_response"}, assembly.Messages, definitions, schema, true, structuredThinkingEnabledForSchema("daily_review_response"))
+	taskResult, err := a.RunDailyReviewTask(ctx, DailyReviewTaskInput{LocalDate: localDate, Projection: projection})
 	if err != nil {
 		// A daily review is one semantic cognition. Invalid Provider output is
 		// retried by its owning workflow with the same durable identity; this call
 		// never opens a second Main LLM request with a different tool contract.
 		return nil, err
 	}
+	projection = taskResult.Projection
+	completion := taskResult.Completion
 	// A structured fallback with native calls is still a valid tool-only
 	// assessment. Do not issue a second no-tools model request here: that would
 	// discard schedule/scene changes and turn an optional capability decision

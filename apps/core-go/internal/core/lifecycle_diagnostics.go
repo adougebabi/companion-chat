@@ -228,7 +228,15 @@ func lifecycleDiagnosticID(value LifecycleDiagnostic) string {
 }
 
 func (a *App) RecordLifecycleDiagnostic(ctx context.Context, value LifecycleDiagnostic) (string, error) {
-	if a == nil || a.DB == nil || a.DB.Pool() == nil {
+	return newProviderRuntimeSupport(a.DB).RecordLifecycleDiagnostic(ctx, value)
+}
+
+func (a *App) RecordLifecycleDiagnosticBestEffort(ctx context.Context, value LifecycleDiagnostic) {
+	newProviderRuntimeSupport(a.DB).RecordLifecycleDiagnosticBestEffort(ctx, value)
+}
+
+func (s providerRuntimeSupport) RecordLifecycleDiagnostic(ctx context.Context, value LifecycleDiagnostic) (string, error) {
+	if s.DB == nil || s.DB.Pool() == nil {
 		return "", ErrDiagnosticsUnavailable
 	}
 	recordedAt := time.Now().UTC()
@@ -246,7 +254,7 @@ func (a *App) RecordLifecycleDiagnostic(ctx context.Context, value LifecycleDiag
 	if severity == "" {
 		severity = "info"
 	}
-	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+	err = withTransaction(ctx, s.DB.Pool(), func(tx pgx.Tx) error {
 		var storedID string
 		if err := tx.QueryRow(ctx, `
 			INSERT INTO public.diagnostic_events(
@@ -305,8 +313,8 @@ var lifecycleDiagnosticWarningState = struct {
 	last map[string]time.Time
 }{last: map[string]time.Time{}}
 
-func (a *App) RecordLifecycleDiagnosticBestEffort(ctx context.Context, value LifecycleDiagnostic) {
-	if _, err := a.RecordLifecycleDiagnostic(ctx, value); err != nil {
+func (s providerRuntimeSupport) RecordLifecycleDiagnosticBestEffort(ctx context.Context, value LifecycleDiagnostic) {
+	if _, err := s.RecordLifecycleDiagnostic(ctx, value); err != nil {
 		recordDiagnosticPersistenceFailure(
 			value.Surface,
 			value.Stage,

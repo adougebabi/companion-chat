@@ -1,23 +1,31 @@
 [
   {
     "path": "plain_no_judge",
-    "physical_requests": 1,
+    "physical_requests": 2,
     "schema_sequence": [
-      "conversation_turn_response"
+      "conversation_turn_response",
+      "persistent_switch_assessment"
     ],
     "calls": [
       {
         "schema": "conversation_turn_response",
         "requests": 1,
-        "estimated_input_tokens": 23593,
-        "chars": 18874,
-        "bytes": 20584
+        "estimated_input_tokens": 23190,
+        "chars": 18552,
+        "bytes": 20578
+      },
+      {
+        "schema": "persistent_switch_assessment",
+        "requests": 1,
+        "estimated_input_tokens": 6100,
+        "chars": 4880,
+        "bytes": 6440
       }
     ],
-    "total_estimated_input_tokens": 23593,
+    "total_estimated_input_tokens": 29290,
     "scripted_output_estimated_tokens": 163,
-    "total_chars": 18874,
-    "total_bytes": 20584,
+    "total_chars": 23432,
+    "total_bytes": 27018,
     "notes": [
       "input side: estimated from the captured wire payload (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
       "output side: scripted structured replies, not real model output; on judge_takeover_b the discarded A output is included",
@@ -27,31 +35,39 @@
   },
   {
     "path": "judge_keeps_a",
-    "physical_requests": 2,
+    "physical_requests": 3,
     "schema_sequence": [
       "conversation_turn_response",
+      "persistent_switch_assessment",
       "takeover_judge_response"
     ],
     "calls": [
       {
         "schema": "conversation_turn_response",
         "requests": 1,
-        "estimated_input_tokens": 23593,
-        "chars": 18874,
-        "bytes": 20584
+        "estimated_input_tokens": 23190,
+        "chars": 18552,
+        "bytes": 20578
+      },
+      {
+        "schema": "persistent_switch_assessment",
+        "requests": 1,
+        "estimated_input_tokens": 6100,
+        "chars": 4880,
+        "bytes": 6440
       },
       {
         "schema": "takeover_judge_response",
         "requests": 1,
-        "estimated_input_tokens": 1940,
-        "chars": 1552,
-        "bytes": 2176
+        "estimated_input_tokens": 1913,
+        "chars": 1530,
+        "bytes": 2154
       }
     ],
-    "total_estimated_input_tokens": 25533,
+    "total_estimated_input_tokens": 31203,
     "scripted_output_estimated_tokens": 163,
-    "total_chars": 20426,
-    "total_bytes": 22760,
+    "total_chars": 24962,
+    "total_bytes": 29172,
     "notes": [
       "input side: estimated from the captured wire payload (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
       "output side: scripted structured replies, not real model output; on judge_takeover_b the discarded A output is included",
@@ -61,9 +77,10 @@
   },
   {
     "path": "judge_takeover_b",
-    "physical_requests": 3,
+    "physical_requests": 4,
     "schema_sequence": [
       "conversation_turn_response",
+      "persistent_switch_assessment",
       "takeover_judge_response",
       "takeover_reply_response"
     ],
@@ -71,29 +88,36 @@
       {
         "schema": "conversation_turn_response",
         "requests": 1,
-        "estimated_input_tokens": 23593,
-        "chars": 18874,
-        "bytes": 20584
+        "estimated_input_tokens": 23190,
+        "chars": 18552,
+        "bytes": 20578
+      },
+      {
+        "schema": "persistent_switch_assessment",
+        "requests": 1,
+        "estimated_input_tokens": 6100,
+        "chars": 4880,
+        "bytes": 6440
       },
       {
         "schema": "takeover_judge_response",
         "requests": 1,
-        "estimated_input_tokens": 1940,
-        "chars": 1552,
-        "bytes": 2176
+        "estimated_input_tokens": 1913,
+        "chars": 1530,
+        "bytes": 2154
       },
       {
         "schema": "takeover_reply_response",
         "requests": 1,
-        "estimated_input_tokens": 23117,
-        "chars": 18493,
-        "bytes": 20723
+        "estimated_input_tokens": 22714,
+        "chars": 18171,
+        "bytes": 20717
       }
     ],
-    "total_estimated_input_tokens": 48650,
+    "total_estimated_input_tokens": 53917,
     "scripted_output_estimated_tokens": 326,
-    "total_chars": 38919,
-    "total_bytes": 43483,
+    "total_chars": 43133,
+    "total_bytes": 49889,
     "notes": [
       "input side: estimated from the captured wire payload (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
       "output side: scripted structured replies, not real model output; on judge_takeover_b the discarded A output is included",
@@ -103,31 +127,40 @@
   },
   {
     "path": "pure_query",
-    "physical_requests": 2,
+    "physical_requests": 4,
     "schema_sequence": [
       "conversation_turn_response",
+      "conversation_turn_response",
+      "persistent_switch_assessment",
       "query_continuation_response"
     ],
     "calls": [
       {
         "schema": "conversation_turn_response",
+        "requests": 2,
+        "estimated_input_tokens": 47003,
+        "chars": 37602,
+        "bytes": 41672
+      },
+      {
+        "schema": "persistent_switch_assessment",
         "requests": 1,
-        "estimated_input_tokens": 23593,
-        "chars": 18874,
-        "bytes": 20584
+        "estimated_input_tokens": 6093,
+        "chars": 4874,
+        "bytes": 6420
       },
       {
         "schema": "query_continuation_response",
         "requests": 1,
-        "estimated_input_tokens": 7024,
-        "chars": 5619,
-        "bytes": 7347
+        "estimated_input_tokens": 6605,
+        "chars": 5284,
+        "bytes": 7328
       }
     ],
-    "total_estimated_input_tokens": 30617,
+    "total_estimated_input_tokens": 59701,
     "scripted_output_estimated_tokens": 33,
-    "total_chars": 24493,
-    "total_bytes": 27931,
+    "total_chars": 47760,
+    "total_bytes": 55420,
     "notes": [
       "input side: estimated from the captured wire payload (EstimatePromptTokens, ~1.25 tokens per rune heuristic)",
       "output side: scripted structured replies, not real model output; on judge_takeover_b the discarded A output is included",

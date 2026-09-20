@@ -861,3 +861,103 @@ completion, err := provider.StructuredAssembledWithToolsSchema(
 - Assert model/tool failure and cancellation do not fabricate a final result;
   WakeUp no-op and deferred output remain valid only after the owning Core
   lifecycle path settles them.
+
+## Scenario: Task-Owned Model Operation Contracts
+
+### 1. Scope / Trigger
+
+- Trigger: any non-embedding domain operation needs a model call, including
+  media prompt/quality, Visual Identity, conversation summary, schedule
+  generation/replan, initialization, Native Cognition, Daily Review,
+  Reflection, or persistent-switch assessment.
+- The operation-owned Task is the only layer that selects prompt fragments,
+  combines them with bounded business facts, selects the response schema,
+  invokes Eino, and normalizes the result. Domain code owns authorization,
+  semantic validation, freeze, prepare, transaction and settlement.
+
+### 2. Signatures
+
+```go
+RunMediaPromptTask(ctx, MediaPromptTaskInput) (string, error)
+RunMediaQualityTask(ctx, MediaQualityTaskInput) (MediaQualityAcceptance, error)
+RunReflectionProposalTask(ctx, ReflectionProposalTaskInput) (ProjectionTaskResult, error)
+RunNativeCognitionTask(ctx, NativeCognitionTaskInput) (ProjectionTaskResult, error)
+RunScheduleGenerationTask(ctx, ScheduleGenerationTaskInput) (map[string]any, error)
+RunFrozenEmbeddingTask(ctx, text, frozenAssignment) (modelID string, vector []float64, error)
+```
+
+`ProjectionTaskResult` contains the normalized Provider completion, the
+assembled projection used by the request, and bounded prompt diagnostics. The
+ADK bridge accepts one `PromptAssemblyResult`; it does not expose independent
+raw `Messages`/`Schema` forwarding fields.
+
+### 3. Contracts
+
+- Task inputs are typed operation facts. A caller does not pass a complete
+  system prompt, arbitrary provider message list, response schema or tool
+  catalog to a generic forwarding wrapper.
+- Each Task owns its instruction constants, selected slots, schema and output
+  decoder. Shared Eino/queue/diagnostic support remains below the Task; no
+  second Provider/Composer/Agent engine is introduced.
+- Projection-backed Tasks select one explicit `ProviderContextSurface`, build
+  the operation rules and capability catalog, and return the exact assembled
+  projection for later domain validation. They never commit domain state.
+- Media, Visual Identity and summary Tasks keep their existing multimodal or
+  language-specific format and do not enter the ordinary cognition composer.
+- Embedding remains an independent contract. A durable retry uses its frozen
+  endpoint/model assignment and cannot silently re-resolve a role.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Task input missing required business facts | Return a typed task validation error before Provider I/O. |
+| Generic caller attempts to supply arbitrary messages/schema | No generic forwarding API exists; compile-time boundary prevents the path. |
+| Prompt assembly violates section/total budget | Return `prompt_required_budget_exceeded`; send no request. |
+| Provider structured output is malformed | Task returns the bounded provider parse/normalization error; domain retry policy decides whether to retry. |
+| Task result is semantically invalid for the domain | Domain validator rejects it; Task never fabricates a fallback. |
+| Frozen embedding assignment is unavailable on retry | Return the explicit assignment error; never switch models implicitly. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: `RunReflectionProposalTask` receives evidence and a projection,
+  selects the Reflection surface/schema, and returns a normalized proposal for
+  Core's evolution compiler.
+- Base: `RunScheduleGenerationTask` retries with the same typed facts and a
+  bounded compact-output reminder; schedule continuity remains domain-owned.
+- Bad: `RunStructuredTask(ctx, task, messages, schema)` lets every caller
+  inject a different system prompt, schema and raw user payload while the
+  supposed Task only forwards them.
+
+### 6. Tests Required
+
+- Assert each production model entry uses its concrete Task boundary and no
+  deleted generic wrapper remains in production callers.
+- Assert media/quality/Visual Identity/summary/schedule Tasks select their own
+  instruction and schema and return bounded decoded values.
+- Assert projection Tasks preserve surface isolation, selected slots, tool
+  catalog, output budget and frozen projection identity.
+- Assert ADK bridge rejects invalid assembled PromptAssemblyResult before
+  Provider I/O and preserves request-scoped capability trace.
+- Assert a frozen embedding retry sends the original endpoint/model tuple.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+func RunStructuredTask(ctx context.Context, task ModelTask,
+    messages []map[string]any, schema map[string]any) (map[string]any, error) {
+    return provider.StructuredWithSchema(ctx, task.Role, messages, task.SchemaName, schema, false)
+}
+```
+
+#### Correct
+
+```go
+func (a *App) RunReflectionProposalTask(ctx context.Context,
+    input ReflectionProposalTaskInput) (ProjectionTaskResult, error) {
+    // select reflection surface/rules/schema, assemble bounded projection,
+    // invoke the shared Eino runtime, and return the normalized proposal.
+}
+```

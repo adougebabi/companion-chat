@@ -1,0 +1,11 @@
+=== RUN   TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant
+--- PASS: TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant (0.00s)
+=== RUN   TestHandleTurnProductionADKToolLoopSettlesOneAssistant
+2026/09/19 23:31:26 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=conversation_turn_response fallback=false fields=[tool_calls] tool_call_count=0 candidate_count=1 content_present=true content_length=424 reasoning_content_present=false reasoning_content_length=0
+2026/09/19 23:31:26 INFO capability lifecycle capability=persona.takeover call_id=policy_bbd1baa8b6e1fc99c1b43facfe86cb99 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/19 23:31:26 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=adk-e2e-fluctlight inbox_id=inbox_6310f79646c1dbd4553687432a67e37c error_type=*errors.errorString
+--- PASS: TestHandleTurnProductionADKToolLoopSettlesOneAssistant (1.46s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.067s
+
+exit_code=0

@@ -1,0 +1,4 @@
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	1.589s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.681s
+
+exit_code=

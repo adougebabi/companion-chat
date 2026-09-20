@@ -360,19 +360,12 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 			return err
 		}
 		providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "native_cognition"), "native-cognition:"+inboxID)
-		definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceNativeCognition)
-		schema := nativeCognitionResponseSchema()
-		operationInput := jsonString(map[string]any{"event_type": eventType, "fact": compactProviderFact(payload)})
-		assembly, assembledProjection, assemblyErr := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceNativeCognition, projection, "cognitive_assessment", []string{providerContextAuthorityRule, nativeCognitionInstruction}, operationInput, definitions, "native_cognition_response", schema)
-		if assemblyErr != nil {
-			return assemblyErr
-		}
-		projection = assembledProjection
-		providerCtx = WithPromptDiagnostics(providerCtx, assembly.Diagnostics)
-		completion, err := a.RunStructuredToolsTask(providerCtx, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "native_cognition", SchemaName: "native_cognition_response"}, assembly.Messages, definitions, schema, true, structuredThinkingEnabledForSchema("native_cognition_response"))
+		taskResult, err := a.RunNativeCognitionTask(providerCtx, NativeCognitionTaskInput{EventType: eventType, Fact: payload, Projection: projection})
 		if err != nil {
 			return err
 		}
+		projection = taskResult.Projection
+		completion := taskResult.Completion
 		semanticStages := false
 		stages, semanticStages, err = normalizeCognitiveStages(completion.Structured, len(completion.ToolCalls) > 0)
 		if err != nil {

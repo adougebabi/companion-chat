@@ -1,0 +1,34 @@
+=== RUN   TestRecoveryFromPendingTakeoverResumesFromFrozenRuleNotCurrentRules
+2026/09/19 23:10:39 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/19 23:10:39 INFO capability lifecycle capability=persona.takeover call_id=policy_54e4318ce257ad6c0f28d26a7abdb034 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+--- PASS: TestRecoveryFromPendingTakeoverResumesFromFrozenRuleNotCurrentRules (0.96s)
+=== RUN   TestRecoveryFromPendingTakeoverRebuildsRuleFromFrozenRecord
+2026/09/19 23:10:40 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/19 23:10:40 INFO capability lifecycle capability=persona.takeover call_id=policy_7e1785a1d6385a343d81dac9a476e10f type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/19 23:10:40 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=f04p-fluctlight inbox_id=inbox_70ca99edf2bc1b6d7b174a9443799081 error_type=*errors.errorString
+--- PASS: TestRecoveryFromPendingTakeoverRebuildsRuleFromFrozenRecord (0.56s)
+=== RUN   TestRecoveryFromPendingTakeoverRequiresFrozenRuleProof
+--- PASS: TestRecoveryFromPendingTakeoverRequiresFrozenRuleProof (0.00s)
+=== RUN   TestTakeoverControlViewMergesBAcceptedOverlay
+--- PASS: TestTakeoverControlViewMergesBAcceptedOverlay (0.93s)
+=== RUN   TestTakeoverControlViewFallsBackToBaselineWithoutOverlay
+--- PASS: TestTakeoverControlViewFallsBackToBaselineWithoutOverlay (0.94s)
+=== RUN   TestTakeoverControlViewFailureDoesNotFallBackToBaseline
+--- PASS: TestTakeoverControlViewFailureDoesNotFallBackToBaseline (1.11s)
+=== RUN   TestJudgeSkipsProviderWhenTakeoverControlViewFails
+--- PASS: TestJudgeSkipsProviderWhenTakeoverControlViewFails (1.09s)
+=== RUN   TestTakeoverControlViewCompositionFailureIsNotAnEmptyOverlay
+--- PASS: TestTakeoverControlViewCompositionFailureIsNotAnEmptyOverlay (1.09s)
+=== RUN   TestTakeoverControlViewCloneFailureIsNotAnEmptyOverlay
+--- PASS: TestTakeoverControlViewCloneFailureIsNotAnEmptyOverlay (0.00s)
+=== RUN   TestRecoveryFromPendingTakeoverContinuesWithoutReJudging
+2026/09/19 23:10:46 WARN Go Core Provider structured response normalized role=cognitive_assessment schema=persistent_switch_assessment fallback=false fields=[personality_decision] tool_call_count=0 candidate_count=1 content_present=true content_length=2 reasoning_content_present=false reasoning_content_length=0
+2026/09/19 23:10:46 INFO capability lifecycle capability=persona.takeover call_id=policy_134d068e5ea874fd4505f13c184060e5 type=internal surface=autonomy required_context=[] duration_ms=0 status=deferred retryable=false intent_present=false intent_runes=0
+2026/09/19 23:10:46 WARN Go Core cognition follow-up scheduling degraded after reply turn fluctlight_id=recover-pd-fluctlight inbox_id=inbox_a04d95b2c81d089072f8d7bd471a807a error_type=*errors.errorString
+--- PASS: TestRecoveryFromPendingTakeoverContinuesWithoutReJudging (1.04s)
+=== RUN   TestTakeoverControlViewIsBoundedAndHidesOtherProfileMaterial
+--- PASS: TestTakeoverControlViewIsBoundedAndHidesOtherProfileMaterial (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.113s
+
+exit_code=0

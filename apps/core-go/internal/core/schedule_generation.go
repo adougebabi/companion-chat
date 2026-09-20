@@ -16,20 +16,12 @@ type scheduleEntry struct {
 }
 
 func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID, localDate, timezone, expectedLifeContextRevision string, identity, lifeProfile map[string]any) (map[string]any, error) {
-	messages := []map[string]any{
-		{"role": "system", "content": "Return one compact object with items and reschedule_policy. items must contain 8-16 objects covering the complete local day contiguously from 00:00 through the next 00:00 in the supplied timezone. Every item needs start_at, end_at, activity, scene, location, item_type, status, priority, flexibility, interruption_cost. Keep activity, scene, and location each under 80 Chinese characters; use one concrete activity and one concrete scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent periods with the same activity and scene instead of producing many small segments. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1 (never a 1-10 score). Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."},
-		{"role": "user", "content": jsonString(map[string]any{
-			"local_date":   localDate,
-			"timezone":     timezone,
-			"identity":     identity,
-			"life_profile": lifeProfile,
-		})},
-	}
 	// Schedule semantics are owned by the cognitive-assessment role. Reflection
 	// consumes an evidence window after the plan is accepted; using it here
 	// returns a reflection proposal shape instead of the required {items,...}
 	// schedule and leaves the lifecycle intent pending forever.
-	result, err := a.RunStructuredTask(ctx, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "schedule_generation", SchemaName: "schedule_response"}, messages, scheduleResponseSchema(), false)
+	taskInput := ScheduleGenerationTaskInput{LocalDate: localDate, Timezone: timezone, Identity: identity, LifeProfile: lifeProfile}
+	result, err := a.RunScheduleGenerationTask(ctx, taskInput)
 	if err != nil {
 		return nil, fmt.Errorf("initial schedule provider request failed: %w", err)
 	}
@@ -38,8 +30,8 @@ func (a *App) generateInitialSchedule(ctx context.Context, ownerID, fluctlightID
 		// A local model can stop midway through a long JSON schedule even when
 		// the HTTP request itself succeeds. Retry the same factual context with
 		// an explicit compact-output reminder; never salvage a partial array.
-		retryMessages := append(append([]map[string]any{}, messages...), map[string]any{"role": "user", "content": "上一个日程 JSON 不完整。请重新输出完整且紧凑的 8-16 个时段，必须覆盖从 00:00 到次日 00:00，不能截断，也不要附加解释。"})
-		if retryResult, retryErr := a.RunStructuredTask(ctx, ModelTask{Kind: ModelTaskStructuredAssessment, Role: "cognitive_assessment", Scenario: "schedule_generation", SchemaName: "schedule_response"}, retryMessages, scheduleResponseSchema(), false); retryErr == nil {
+		taskInput.CompactOutputReminder = true
+		if retryResult, retryErr := a.RunScheduleGenerationTask(ctx, taskInput); retryErr == nil {
 			payload, err = normalizeScheduleResponse(retryResult, localDate, timezone)
 		}
 	}

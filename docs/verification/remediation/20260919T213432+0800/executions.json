@@ -1,0 +1,609 @@
+{
+  "command": "go test -json",
+  "exitCode": 0,
+  "required": [
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderRuntimeSupportDoesNotConstructAppForDiagnosticsOrQueue"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderRuntimeSupportIsNarrowAndWiredAtCompositionRoot"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestRunProviderQueuedStreamHoldsLeaseUntilEOF"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestRunProviderQueuedStreamCancellationClosesInnerReader"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestBrowserRouteMatrixMatchesOpenAPIArtifact"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestBrowserHandlerKeepsAuthAndCSRFAtPublicBoundary"
+    }
+  ],
+  "conditional": [
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestHandleTurnProductionADKToolLoopSettlesOneAssistant",
+      "reason": "requires isolated PostgreSQL via GO_CORE_TEST_DATABASE_URL"
+    }
+  ],
+  "actual": [
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestBrowserRouteMatrixMatchesOpenAPIArtifact",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/options",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/live",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/ready",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/ping",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/session",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/setup_status",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/logout",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/revoke_all",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/password",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/setup",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/login",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/settings_get",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/settings_put",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/capability_request_list",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/capability_request_review",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_endpoint_put",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_endpoint_get",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_models",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_bindings",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/provider_role",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_create",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_create",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/creation_analysis",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/creation_activation",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_list",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_list",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_create",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_member_add",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/actor_group_member_remove",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_get",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/direct_conversation",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_moments",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_moments_read",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/global_moments",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_detail",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/developing_self",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/developing_self_rollback",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/developing_self_forget",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_status",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/fluctlight_retire",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_revision",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_accept",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_reject",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/foundation_rollback",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_comment",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/memory_revise",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/memory_forget",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/relationship_rollback",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/relationship_edit",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/autonomy_list",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/autonomy_govern",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/life_event_create",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/life_event_cancel",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/life_presence",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/schedule_accept",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/schedule_cancel",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_list",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_status",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_history",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_pause",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_resume",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_cancel",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_reset",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/workflow_restart",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_reaction",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_hide",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/moment_restore",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_history",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_read",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/conversation_turn",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostics",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/lifecycle_diagnostics",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostics_clear",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostic_model_runs",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostic_media_prompts",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostic_media_prompt_retry",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/diagnostics_export",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary/media",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestEveryBrowserOpenAPIRouteReachesTheInProcessBoundary",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser",
+      "test": "TestBrowserHandlerKeepsAuthAndCSRFAtPublicBoundary",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestHandleTurnProductionADKToolLoopSettlesOneAssistant",
+      "action": "skip",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderRuntimeSupportDoesNotConstructAppForDiagnosticsOrQueue",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderRuntimeSupportIsNarrowAndWiredAtCompositionRoot",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestRunProviderQueuedStreamHoldsLeaseUntilEOF",
+      "action": "pass",
+      "elapsed": 0.05
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestRunProviderQueuedStreamCancellationClosesInnerReader",
+      "action": "pass",
+      "elapsed": 0
+    }
+  ],
+  "malformedEventLines": [],
+  "focusedChecks": [
+    {
+      "id": "R2-06-life-context-authority",
+      "command": "GO_CORE_TEST_DATABASE_URL=postgresql://fluctlight:fluctlight@127.0.0.1:32768/fluctlight go test -mod=readonly -count=1 -timeout=300s -run 'TestLifeContextProviderProjectionKeepsOpaqueAuthorityAndDropsRawRows|TestSameObservationDifferentSceneChangesDecisionPlannerOutcomeAndNextProjection|TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale|TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement' ./internal/core",
+      "exitCode": 0,
+      "tests": [
+        "TestLifeContextProviderProjectionKeepsOpaqueAuthorityAndDropsRawRows",
+        "TestSameObservationDifferentSceneChangesDecisionPlannerOutcomeAndNextProjection",
+        "TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale",
+        "TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement"
+      ],
+      "evidence": "evidence/tests/L1-life-context-authority.txt"
+    },
+    {
+      "id": "R2-07-adk-deferred-round",
+      "command": "GO_CORE_TEST_DATABASE_URL=postgresql://fluctlight:fluctlight@127.0.0.1:32768/fluctlight go test -v -mod=readonly -count=1 -timeout=300s -run 'Test(DeferredToolOnlyRoundStopsPhysicalContinuation|RunADKLoop|ProviderConversationUsesADKLoopAndReturnsCanonicalTrace|HandleTurnProductionADKToolLoopSettlesOneAssistant|ProviderWakeUpUsesADKLoopAndPreservesTrace|ProviderTakeoverReplyUsesADKLoopAndPreservesTrace|AppADKInvokerUsesWakeUpSurface|IntermediateReplyFilteringKeepsNonOutputCapabilitiesAndFinalReply)' ./internal/core",
+      "exitCode": 0,
+      "tests": [
+        "TestDeferredToolOnlyRoundStopsPhysicalContinuation",
+        "TestRunADKLoop*",
+        "TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace",
+        "TestHandleTurnProductionADKToolLoopSettlesOneAssistant",
+        "TestProviderWakeUpUsesADKLoopAndPreservesTrace",
+        "TestProviderTakeoverReplyUsesADKLoopAndPreservesTrace",
+        "TestAppADKInvokerUsesWakeUpSurface",
+        "TestIntermediateReplyFilteringKeepsNonOutputCapabilitiesAndFinalReply"
+      ],
+      "evidence": "evidence/tests/R2-06-adk-deferred-round.txt"
+    },
+    {
+      "id": "R2-focused-regressions",
+      "command": "GO_CORE_TEST_DATABASE_URL=postgresql://fluctlight:fluctlight@127.0.0.1:32768/fluctlight GOCACHE=/tmp/yaoguang-focused-cache7 go -C apps/core-go test -v -mod=readonly -count=1 -p 1 -timeout=600s -run 'Test(DirectConversationReplyToolWithoutAppraisalCommitsBothMessages|DirectConversationToolCallsExecuteIndependentlyWithoutVisibleReply|DirectConversationReplyCanonicalToolCallWithEmptyStructuredFieldsCommitsMessage|MixedQueryActionBatchMayBeArbitratedButNotContinued|ConflictingReplyArgumentFailsClosed|RunADKLoop|ProviderConversationUsesADKLoopAndReturnsCanonicalTrace|HandleTurnProductionADKToolLoopSettlesOneAssistant|ProviderWakeUpUsesADKLoopAndPreservesTrace|ProviderTakeoverReplyUsesADKLoopAndPreservesTrace|AppADKInvokerUsesWakeUpSurface|IntermediateReplyFilteringKeepsNonOutputCapabilitiesAndFinalReply|DeferredToolOnlyRoundStopsPhysicalContinuation|TurnStageBudgetNeverExceedsTwoMainGenerations|MainGenerationBudgetNeverExceedsTwo|LogicalInvocationsVsPhysicalAttempts|TurnPathCostMeasurement|PureQueryTurnNeverInvokesTheJudge|InvalidCandidateFailsBeforeTheJudge|TakeoverReplyQueryContinuationFailsClosed|LifeContextProviderProjectionKeepsOpaqueAuthorityAndDropsRawRows|SameObservationDifferentSceneChangesDecisionPlannerOutcomeAndNextProjection|WakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale|ConversationRejectsLifeContextChangeBetweenDecisionAndSettlement)' ./internal/core",
+      "exitCode": 0,
+      "tests": [
+        "focused Life Context, ADK, delivery, takeover and budget regression selector"
+      ],
+      "evidence": "evidence/tests/R2-focused-regressions.txt"
+    }
+  ]
+}

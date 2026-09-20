@@ -44,10 +44,6 @@ func New(options Options) *Server {
 	}
 }
 
-// NewServer is kept as an explicit constructor alias for callers migrating
-// from the initial gateway package naming.
-func NewServer(options Options) *Server { return New(options) }
-
 func (s *Server) Handler() http.Handler {
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		corsHeaders(response, request, s.trustedOrigin)
@@ -106,7 +102,7 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		sessionResponse := map[string]any{"authenticated": true}
-		if actorID := first(value, "actorId", "actor_id"); actorID != nil {
+		if actorID := value["actor_id"]; actorID != nil {
 			sessionResponse["actorId"] = actorID
 		}
 		writeJSON(response, http.StatusOK, sessionResponse)
@@ -121,7 +117,7 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 			writeError(response, http.StatusBadGateway, "core_unavailable", "Core authentication is unavailable")
 			return
 		}
-		writeJSON(response, http.StatusOK, map[string]any{"setupAvailable": truthy(first(value, "setup_available", "setupAvailable"))})
+		writeJSON(response, http.StatusOK, map[string]any{"setupAvailable": truthy(value["setup_available"])})
 		return
 	}
 	if path == "/auth/login" || path == "/auth/setup" {
@@ -149,7 +145,7 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 			writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
 			return
 		}
-		sessionToken := stringValue(first(value, "session_token", "sessionToken"))
+		sessionToken := stringValue(value["session_token"])
 		if sessionToken == "" || !truthy(value["authenticated"]) {
 			writeJSON(response, http.StatusUnauthorized, map[string]any{"authenticated": false})
 			return
@@ -157,7 +153,7 @@ func (s *Server) route(response http.ResponseWriter, request *http.Request) {
 		setSessionCookie(response, sessionToken, s.secureCookies)
 		setCSRFCookie(response, newCSRFToken(), s.secureCookies)
 		authenticated := map[string]any{"authenticated": true}
-		if actorID := first(value, "actor_id", "actorId"); actorID != nil {
+		if actorID := value["actor_id"]; actorID != nil {
 			authenticated["actorId"] = actorID
 		}
 		writeJSON(response, http.StatusOK, authenticated)
@@ -354,7 +350,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			writeError(response, http.StatusUnprocessableEntity, "provider_models_unavailable", "Provider models are unavailable")
 			return
 		}
-		writeJSON(response, http.StatusOK, map[string]any{"endpointId": first(value, "endpoint_id", "endpointId"), "models": value["models"]})
+		writeJSON(response, http.StatusOK, map[string]any{"endpointId": value["endpoint_id"], "models": value["models"]})
 		return
 	}
 	if path == "/api/providers/roles" && methodName == http.MethodPut {

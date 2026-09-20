@@ -1,0 +1,24 @@
+Life Context surface-authority remediation (2026-09-20)
+
+Implementation
+
+- apps/core-go/internal/core/provider_context.go:477-549
+  compactCurrentStateForSurface now passes ContextProjection.ReferenceIndex into
+  compactLifeContextForSurface.
+- The surface projection keeps only ContextReferenceIndex-validated opaque refs:
+  ref, event_ref, schedule_ref, schedule_item_ref and presence_ref.
+- A valid life_ctx_[32 lowercase hex] context_revision is preserved for the
+  decision/prepare CAS boundary. Raw event_id, schedule_id, schedule_item_id,
+  presence id, actor id and database revisions remain filtered.
+- Presence is projected through the same opaque-ref validation and semantic
+  allowlist.
+
+Regression evidence
+
+- provider_context_test.go:136 TestLifeContextProviderProjectionKeepsOpaqueAuthorityAndDropsRawRows
+- life_context_e2e_test.go:26 TestSameObservationDifferentSceneChangesDecisionPlannerOutcomeAndNextProjection
+- life_context_surface_test.go:170 TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale
+- life_context_test.go:333 TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement
+
+The focused PostgreSQL-backed and projection tests passed in
+evidence/tests/L1-life-context-authority.txt.

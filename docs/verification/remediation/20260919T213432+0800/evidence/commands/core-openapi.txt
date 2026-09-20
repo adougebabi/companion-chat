@@ -1,0 +1,3 @@
+core-openapi-check: Go Core route inventory matches artifact version 0.1.0
+
+exit_code=

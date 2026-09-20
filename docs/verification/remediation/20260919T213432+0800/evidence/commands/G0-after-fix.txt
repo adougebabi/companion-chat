@@ -1,0 +1,6 @@
+$ node infra/acceptance/verify-phase5-evidence.mjs docs/verification/phase-5/20260919T200912+0800
+exit_code=0
+wall_time_seconds=0.213991667
+
+G0 evidence validation: PASS (/Users/vinson/Documents/project/个人/local-ai-companion-yaoguang-eino-adk/docs/verification/phase-5/20260919T200912+0800)
+

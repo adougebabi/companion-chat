@@ -497,8 +497,8 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		assembly.Diagnostics,
 	)
 	run, err := a.RunADKStructuredTask(providerCtx, ADKStructuredTaskInput{
-		Role: "cognitive_assessment", Scenario: "wake_up", Messages: assembly.Messages,
-		Definitions: definitions, SchemaName: "wake_up_response", Schema: schema,
+		Role: "cognitive_assessment", Scenario: "wake_up", Prompt: PromptAssemblyResult{Messages: assembly.Messages, ResponseFormat: schema},
+		Definitions: definitions, SchemaName: "wake_up_response",
 		EnableThinking: structuredThinkingEnabledForSchema("wake_up_response"),
 		Capability: &ADKCapabilityRequest{
 			FluctlightID: fluctlightID, ConversationID: conversationID, SourceFactID: wakeID,
