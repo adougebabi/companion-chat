@@ -21,6 +21,22 @@ func TestEnsureWakeUpIntentsDoesNotRequireAcceptedSchedule(t *testing.T) {
 	}
 }
 
+func TestWakeUpClockRepairOnlyRepairsMissingOrUninitializedRows(t *testing.T) {
+	source, err := os.ReadFile("wakeup.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := sourceBetween(t, string(source), "func (a *App) RepairWakeUpClocks", "// TriggerWakeUp")
+	for _, required := range []string{"ON CONFLICT (intent_id) DO NOTHING", "i.next_attempt_at IS NULL"} {
+		if !strings.Contains(body, required) {
+			t.Fatalf("WakeUp clock repair missing %q", required)
+		}
+	}
+	if strings.Contains(body, "status='failed'") || strings.Contains(body, "status='retry'") {
+		t.Fatal("WakeUp clock repair must not requeue terminal workflow failures")
+	}
+}
+
 func TestConversationRearmsWakeUpThroughCognitionFollowups(t *testing.T) {
 	for _, file := range []string{"cognition.go", "mutations.go"} {
 		source, err := os.ReadFile(file)

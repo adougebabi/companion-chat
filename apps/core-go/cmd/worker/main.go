@@ -124,6 +124,8 @@ func main() {
 	defer healthTicker.Stop()
 	retentionTicker := time.NewTicker(15 * time.Minute)
 	defer retentionTicker.Stop()
+	wakeUpRepairTicker := time.NewTicker(time.Minute)
+	defer wakeUpRepairTicker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
@@ -151,6 +153,12 @@ func main() {
 				logger.Warn("Go Worker WakeUp clock audit retry", "error", err)
 			} else if audited > 0 {
 				logger.Warn("Go Worker found unhealthy WakeUp clocks", "count", audited)
+			}
+		case <-wakeUpRepairTicker.C:
+			if repaired, err := application.RepairWakeUpClocks(ctx); err != nil {
+				logger.Warn("Go Worker WakeUp clock repair retry", "error", err)
+			} else if repaired > 0 {
+				logger.Info("Go Worker repaired WakeUp clocks", "count", repaired)
 			}
 		case <-dispatchTicker.C:
 			if err := runWorkerTickOperation(ctx, func(operationCtx context.Context) error {

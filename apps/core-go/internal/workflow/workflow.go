@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"
+	"github.com/jackc/pgx/v5"
 	enumspb "go.temporal.io/api/enums/v1"
 	failurepb "go.temporal.io/api/failure/v1"
 	historypb "go.temporal.io/api/history/v1"
@@ -1319,6 +1320,20 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			var sessionStatus string
 			lookupErr := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlight_visual_identity_sessions WHERE id=(SELECT payload->>'session_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&sessionStatus)
 			if lookupErr != nil {
+				if errors.Is(lookupErr, pgx.ErrNoRows) {
+					command, settleErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='dead_letter',completed_at=COALESCE(completed_at,now()),last_error='visual_identity_session_not_found' WHERE intent_id=$1 AND status='failed'`, intentID)
+					if settleErr != nil {
+						return count, settleErr
+					}
+					if command.RowsAffected() == 1 {
+						d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "workflow_reconcile", "dead_letter", "visual_identity_session_not_found", attemptCount, lookupErr)
+						if d.Started != nil {
+							delete(d.Started, intentID)
+						}
+						count++
+					}
+					continue
+				}
 				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "reconcile_dependency_lookup", "retry", "visual_identity_dependency_lookup_failed", attemptCount, lookupErr)
 				continue
 			}

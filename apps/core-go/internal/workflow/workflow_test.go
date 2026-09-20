@@ -414,6 +414,7 @@ func TestWorkflowCriticalPersistenceWritesAreNeverIgnored(t *testing.T) {
 		"action_dependency_lookup_failed",
 		"reflection_dependency_lookup_failed",
 		"visual_identity_dependency_lookup_failed",
+		"visual_identity_session_not_found",
 		"workflow_start_settlement_failed",
 		"media_terminal_status_not_written",
 	} {

@@ -89,7 +89,7 @@ type VisualIdentityVisionTaskInput struct {
 	ImageContent     map[string]any
 }
 
-const visualIdentityVisionTaskInstruction = "Inspect the supplied candidate image for visual identity continuity. The required target is one character design sheet with exactly three separate panels on a white background: left front close-up portrait, center front full-body standing straight, right back full-body from behind. There is explicitly no side-view panel. If the image is an art photo, abstract silhouette, landscape, object-only image, missing a person, missing any required panel, or shows a side view instead of the center front full body, report a low identity_match and make that mismatch explicit in observations. Return bounded structured observations only."
+const visualIdentityVisionTaskInstruction = "Inspect the supplied candidate image for visual identity continuity. The required target is one complete CHARACTER PROFILE card on a white minimalist background with an editorial 3:4 vertical layout. It must include BASIC INFORMATION, exactly three MODEL SHEET views (front, side and back), six EXPRESSIONS, OUTFIT BREAKDOWN, ACCESSORIES, DETAIL CLOSE-UP, COLOR PALETTE, CHARACTER INTRODUCTION, KEYWORDS and SIGNATURE. Verify that the same face is preserved across the front, side and back views. If the image is anime, chibi, an unrelated art photo, abstract silhouette, landscape, object-only image, missing a person, missing a required section, or inconsistent across views, report a low identity_match and make that mismatch explicit in observations. Return bounded structured observations only."
 
 func (a *App) RunVisualIdentityVisionTask(ctx context.Context, input VisualIdentityVisionTaskInput) (map[string]any, error) {
 	provider, err := a.modelTaskProvider()
@@ -98,7 +98,7 @@ func (a *App) RunVisualIdentityVisionTask(ctx context.Context, input VisualIdent
 	}
 	content := []any{map[string]any{"type": "text", "text": jsonString(map[string]any{
 		"asset_id": input.CandidateAssetID, "render_intent": "character_design_sheet", "expected_subject": "one_human_character",
-		"expected_views": visualIdentityExpectedViews(), "panel_layout": map[string]string{"left": "front_closeup_portrait", "center": "front_full_body_standing", "right": "back_full_body"},
+		"expected_views": visualIdentityExpectedViews(), "panel_layout": map[string]string{"front": "front_full_body", "side": "side_full_body", "back": "back_full_body"},
 		"visual_identity": input.InputSnapshot, "renderer_constraints": input.Constraints,
 	})}}
 	if input.ImageContent != nil {
@@ -116,7 +116,7 @@ type VisualIdentityPatchTaskInput struct {
 	Vision           map[string]any
 }
 
-const visualIdentityPatchTaskInstruction = "Review the candidate against the visual identity and return accepted or regenerate. Acceptance is allowed only for one character design sheet with exactly three separate panels on a white background: left front close-up portrait, center front full body standing straight, right back full body from behind. There is explicitly no side-view panel. An art photo, abstract silhouette, landscape, object-only image, missing person, missing panel, or side-view substitution must be decision=regenerate. Preserve the explicit decision and a structured patch."
+const visualIdentityPatchTaskInstruction = "Review the candidate against the visual identity and return accepted or regenerate. Acceptance is allowed only for one complete CHARACTER PROFILE card on a white minimalist background with an editorial 3:4 vertical layout, including BASIC INFORMATION, front/side/back MODEL SHEET views, six EXPRESSIONS, OUTFIT BREAKDOWN, ACCESSORIES, DETAIL CLOSE-UP, COLOR PALETTE, CHARACTER INTRODUCTION, KEYWORDS and SIGNATURE. The same face must remain consistent across all three views. Anime, chibi, unrelated art photos, abstract silhouettes, missing sections, missing views or inconsistent facial identity must be decision=regenerate. Preserve the explicit decision and a structured patch."
 
 func (a *App) RunVisualIdentityPatchTask(ctx context.Context, input VisualIdentityPatchTaskInput) (map[string]any, error) {
 	provider, err := a.modelTaskProvider()
@@ -125,7 +125,7 @@ func (a *App) RunVisualIdentityPatchTask(ctx context.Context, input VisualIdenti
 	}
 	payload := map[string]any{
 		"stage": "review", "render_intent": "character_design_sheet", "expected_subject": "one_human_character", "expected_views": visualIdentityExpectedViews(),
-		"panel_layout":    map[string]string{"left": "front_closeup_portrait", "center": "front_full_body_standing", "right": "back_full_body"},
+		"panel_layout":    map[string]string{"front": "front_full_body", "side": "side_full_body", "back": "back_full_body"},
 		"visual_identity": input.InputSnapshot, "renderer_constraints": input.Constraints, "vision": input.Vision, "candidate_asset_id": input.CandidateAssetID,
 	}
 	return provider.StructuredWithSchema(ctx, "visual_identity_patch", []map[string]any{

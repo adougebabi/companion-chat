@@ -98,14 +98,26 @@ func visualIdentityStageOrder(stage string) int {
 }
 
 // visualIdentityExpectedViews is the canonical three-panel layout requested
-// for the character sheet. It intentionally has two front-facing panels (a
-// close-up portrait and a full-body standing pose) and one back full-body
-// panel; there is no side-view requirement in this workflow.
+// for the character sheet: front, side and back views of one consistent face.
 func visualIdentityExpectedViews() []string {
-	return []string{"front_closeup", "front_full_body", "back_full_body"}
+	return []string{"front_full_body", "side_full_body", "back_full_body"}
 }
 
-const visualIdentityPromptTemplate = "Character design sheet, three separate panels on a white background. Left: front close-up portrait of %s. Center: front full body standing straight. Right: back full body from behind. Symmetrical pose, no side view, high resolution concept art."
+const visualIdentityPromptTemplate = `角色设定卡
+%s
+制作完整 CHARACTER PROFILE / 角色档案卡，白色极简背景，高级时尚杂志排版，3:4 竖图。
+画面必须包含：
+BASIC INFORMATION｜人物基础资料
+MODEL SHEET｜正面、侧面、背面三视图
+EXPRESSIONS｜平静、微笑、侧眸、思考、惊讶、冷漠六种表情
+OUTFIT BREAKDOWN｜校服拆解
+ACCESSORIES｜包、领结、腕表、耳饰、发饰
+DETAIL CLOSE-UP｜眼睛、嘴唇、发型、校徽细节
+COLOR PALETTE｜角色专属色卡
+CHARACTER INTRODUCTION｜人物简介
+KEYWORDS｜性格关键词
+SIGNATURE｜角色签名
+整体视觉：真实真人、高级商业摄影、柔和棚拍光、高清皮肤纹理、服装材质真实、人物五官统一、三视图保持同一张脸、非动漫、非Q版。`
 
 // VisualIdentitySnapshot is the browser-safe, cognition-safe representation of
 // the current visual identity aggregate. Large model responses and provider
@@ -496,7 +508,7 @@ func visualIdentityBoundedText(value string, limit int) string {
 func visualIdentityPromptFromConcept(concept map[string]any) string {
 	description := visualIdentityCharacterDescription(mapValue(concept["visual_identity"]))
 	if description == "" {
-		description = "the same consistent character"
+		description = "保持同一张脸的角色"
 	}
 	return fmt.Sprintf(visualIdentityPromptTemplate, description)
 }

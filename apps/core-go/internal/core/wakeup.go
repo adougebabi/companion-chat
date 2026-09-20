@@ -187,6 +187,53 @@ func (a *App) EnsureWakeUpIntents(ctx context.Context) (int64, error) {
 	return ensured, err
 }
 
+// RepairWakeUpClocks repairs only missing or uninitialized durable clocks.
+// It is safe to run periodically while the Worker is alive and deliberately
+// does not requeue failed executions; retry policy remains owned by the
+// dispatcher reconciliation path.
+func (a *App) RepairWakeUpClocks(ctx context.Context) (int64, error) {
+	settings, err := a.readWakeUpSettings(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var repaired int64
+	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		inserted, err := tx.Exec(ctx, `
+			INSERT INTO public.platform_workflow_intents(
+				intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at
+			)
+			SELECT
+				'wake_up_intent:' || f.id,
+				'wake_up:' || f.id,
+				'lifecycle',
+				'wake_up.current',
+				jsonb_build_object('fluctlight_id', f.id, 'cycle', 0),
+				'pending',
+				now()+($1 * interval '1 second')
+			FROM public.fluctlights AS f
+			WHERE f.status IN ('active','paused')
+			ON CONFLICT (intent_id) DO NOTHING`, settings.IntervalSeconds)
+		if err != nil {
+			return err
+		}
+		repaired += inserted.RowsAffected()
+		initialized, err := tx.Exec(ctx, `
+			UPDATE public.platform_workflow_intents AS i
+			SET next_attempt_at=now()+($1 * interval '1 second')
+			FROM public.fluctlights AS f
+			WHERE i.intent_type='wake_up.current'
+			  AND i.payload->>'fluctlight_id'=f.id
+			  AND f.status IN ('active','paused')
+			  AND i.next_attempt_at IS NULL`, settings.IntervalSeconds)
+		if err != nil {
+			return err
+		}
+		repaired += initialized.RowsAffected()
+		return nil
+	})
+	return repaired, err
+}
+
 // TriggerWakeUp releases one Fluctlight's durable WakeUp intent immediately.
 // It only changes the intent clock; the normal Worker dispatcher remains the
 // sole owner of Temporal workflow execution and provider work.

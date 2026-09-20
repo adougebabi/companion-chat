@@ -147,7 +147,7 @@ func TestVisualIdentityMediaPromptInstructionRequiresThreePanelCharacterSheet(t 
 		{"role": "system", "content": "generic"},
 		{"role": "user", "content": `{"purpose":"visual_identity","stage":"seed","render_intent":"character_design_sheet"}`},
 	})
-	if len(messages) != 2 || !strings.Contains(stringValue(messages[0]["content"]), "three separate panels") || !strings.Contains(stringValue(messages[0]["content"]), "front full body standing straight") || !strings.Contains(stringValue(messages[0]["content"]), "no side view") {
+	if len(messages) != 2 || !strings.Contains(stringValue(messages[0]["content"]), "CHARACTER PROFILE") || !strings.Contains(stringValue(messages[0]["content"]), "front/side/back MODEL SHEET") || !strings.Contains(stringValue(messages[0]["content"]), "consistent real human face") {
 		t.Fatalf("visual identity prompt instruction = %#v", messages)
 	}
 }
