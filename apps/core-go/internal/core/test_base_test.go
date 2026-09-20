@@ -65,7 +65,6 @@ func readSourceFile(t *testing.T, filename string) []byte {
 	return nil
 }
 
-
 // This file is the shared deterministic test base (implement.md phase 1). It
 // converges the manual &App{...} assembly that used to be copy-pasted across
 // integration tests, provides a scripted Provider router keyed by response

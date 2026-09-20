@@ -91,4 +91,3 @@ func (s *MediaService) createMediaIntentTargetTx(ctx context.Context, tx pgx.Tx,
 func (s *MediaService) requireLifeContextRevisionTx(ctx context.Context, tx pgx.Tx, fluctlightID, expected string, now time.Time) (map[string]any, error) {
 	return s.app.requireLifeContextRevisionTx(ctx, tx, fluctlightID, expected, now)
 }
-

@@ -60,4 +60,3 @@ type RawHistoryReader interface {
 	Search(context.Context, RawHistorySearchQuery) ([]RawHistoryEvent, error)
 	ReadSources(context.Context, RawHistorySourceQuery) ([]RawHistoryEvent, error)
 }
-

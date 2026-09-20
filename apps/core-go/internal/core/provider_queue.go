@@ -60,7 +60,6 @@ func (q *providerQueue) close() {
 	q.Queue.Close()
 }
 
-
 type providerQueueSettings struct {
 	GeneratedConcurrency int `json:"generated_concurrency"`
 	EmbeddingConcurrency int `json:"embedding_concurrency"`

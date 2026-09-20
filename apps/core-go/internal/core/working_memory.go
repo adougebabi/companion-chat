@@ -20,7 +20,6 @@ const (
 
 type PromptFragment = aiprompt.PromptFragment
 
-
 type WorkingMemoryInput struct {
 	RuntimeFacts      []PromptFragment
 	ActiveCandidates  []PromptFragment

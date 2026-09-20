@@ -33,7 +33,6 @@ func NewEinoModelFactory(client *http.Client) EinoModelFactory {
 	return aimodel.NewEinoModelFactory(client)
 }
 
-
 // EinoModelCall captures one bounded Generate/Stream call. It is intentionally
 // request-scoped; an ADK agent never retains queue permits or mutable persona
 // state across calls.

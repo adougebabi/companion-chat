@@ -864,8 +864,6 @@ func capabilityInvocationsFromValue(value any) ([]CapabilityInvocation, error) {
 	return invocations, nil
 }
 
-
-
 func validateRequiredSchemaFields(object map[string]any, schema map[string]any) error {
 	return validateCapabilitySchemaValue(object, schema)
 }
@@ -1133,7 +1131,6 @@ func validateCapabilitySchemaValue(value any, schema map[string]any) error {
 }
 
 type CapabilityResult = capability.CapabilityResult
-
 
 // Capability is the implementation seam for migrated capabilities.
 type Capability interface {

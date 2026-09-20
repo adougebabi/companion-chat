@@ -55,7 +55,6 @@ type personaSwitchNormalization = personality.PersonaSwitchNormalization
 type persistentSwitchGrant = personality.PersistentSwitchGrant
 type turnPersonaScope = personality.TurnPersonaScope
 
-
 // ---------------------------------------------------------------------------
 // Declaration parsing helpers
 // ---------------------------------------------------------------------------

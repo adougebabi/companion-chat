@@ -73,4 +73,3 @@ func decodeSettingsKey(encoded string) ([]byte, error) {
 func decryptSecret(key []byte, purpose string, nonce, ciphertext []byte) (string, error) {
 	return platformcrypto.DecryptSecret(key, purpose, nonce, ciphertext)
 }
-

@@ -16,11 +16,11 @@ import (
 )
 
 const (
-	CapabilityInvocationSchemaVersion = "fluctlight.capability-invocation.v2"
+	CapabilityInvocationSchemaVersion      = "fluctlight.capability-invocation.v2"
 	CapabilityPreparedPayloadSchemaVersion = "fluctlight.capability-prepared.v1"
-	CapabilityRuntimePayloadVersion = "v2"
-	maxToolNameLength                 = 128
-	maxToolArgumentsBytes             = 64 << 10
+	CapabilityRuntimePayloadVersion        = "v2"
+	maxToolNameLength                      = 128
+	maxToolArgumentsBytes                  = 64 << 10
 )
 
 var toolNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
@@ -570,26 +570,26 @@ func contextMapValue(value any) (map[string]any, error) {
 }
 
 type CapabilityDefinition struct {
-	Name    string
-	Version string
-	Type    CapabilityType
-	InternalOnly          bool
-	Description           string
-	InputSchema           map[string]any
-	OutputSchema          map[string]any
-	Surfaces              []CapabilitySurface
-	TargetKinds           []string
-	OutputRole            string
-	SideEffectClass       string
-	SuccessBoundary       string
-	CompletionBoundary    string
-	OutcomeReferenceField string
-	ConcurrencyClass      string
-	SupportsCancel        bool
-	SupportsRetry         bool
-	RequiresPreflight     bool
-	FailurePolicy         CapabilityFailurePolicy
-	RequiredContext       []ContextSlot
+	Name                   string
+	Version                string
+	Type                   CapabilityType
+	InternalOnly           bool
+	Description            string
+	InputSchema            map[string]any
+	OutputSchema           map[string]any
+	Surfaces               []CapabilitySurface
+	TargetKinds            []string
+	OutputRole             string
+	SideEffectClass        string
+	SuccessBoundary        string
+	CompletionBoundary     string
+	OutcomeReferenceField  string
+	ConcurrencyClass       string
+	SupportsCancel         bool
+	SupportsRetry          bool
+	RequiresPreflight      bool
+	FailurePolicy          CapabilityFailurePolicy
+	RequiredContext        []ContextSlot
 	ProvenanceFields       []string `json:"-"`
 	NestedProvenanceObject string   `json:"-"`
 }

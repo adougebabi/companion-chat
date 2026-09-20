@@ -22,11 +22,11 @@ func TestObjectSchemaBuilder(t *testing.T) {
 
 func TestNormalizeStructuredShape(t *testing.T) {
 	schema := ObjectSchema(map[string]any{
-		"title":       StringSchema(),
-		"count":       IntegerSchema(),
-		"tags":        ArraySchema(StringSchema()),
-		"is_active":   BooleanSchema(),
-		"meta":        ObjectSchema(map[string]any{"source": StringSchema()}, []string{"source"}, false),
+		"title":     StringSchema(),
+		"count":     IntegerSchema(),
+		"tags":      ArraySchema(StringSchema()),
+		"is_active": BooleanSchema(),
+		"meta":      ObjectSchema(map[string]any{"source": StringSchema()}, []string{"source"}, false),
 	}, []string{"title", "tags", "meta"}, false)
 
 	input := map[string]any{
