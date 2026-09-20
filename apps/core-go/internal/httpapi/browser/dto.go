@@ -1,6 +1,9 @@
 package browser
 
-import "encoding/json"
+import (
+	"bytes"
+	"encoding/json"
+)
 
 // Browser DTO mapping is intentionally explicit.  Core's snake_case records
 // are not recursively converted: most Core responses are already part of the
@@ -105,7 +108,7 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 	if value, exists := row["endpoint_id"]; exists {
 		result["endpointId"] = value
 	}
-	if value, exists := row["response"]; exists {
+	if value, exists := row["response"]; exists && jsonPayloadPresent(value) {
 		result["response"] = jsonValue(value)
 	}
 	if value, exists := row["error_code"]; exists {
@@ -118,6 +121,21 @@ func browserDiagnosticModelRun(row map[string]any) map[string]any {
 		result["completedAt"] = value
 	}
 	return result
+}
+
+func jsonPayloadPresent(value any) bool {
+	switch typed := value.(type) {
+	case nil:
+		return false
+	case json.RawMessage:
+		trimmed := bytes.TrimSpace(typed)
+		return len(trimmed) > 0 && !bytes.Equal(trimmed, []byte("null"))
+	case []byte:
+		trimmed := bytes.TrimSpace(typed)
+		return len(trimmed) > 0 && !bytes.Equal(trimmed, []byte("null"))
+	default:
+		return true
+	}
 }
 
 func browserDiagnosticMediaPrompt(row map[string]any) map[string]any {

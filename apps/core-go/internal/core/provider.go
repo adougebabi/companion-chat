@@ -1058,16 +1058,14 @@ func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment p
 }
 
 func (p *ProviderClient) recordProviderSuccessBoundary(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, response any) {
-	if _, adk := adkCapabilityContext(ctx); adk {
-		return
-	}
+	// ADK uses several low-level model calls, but each completed call still
+	// needs a response snapshot in Diagnostics. The ADK capability trace owns
+	// execution semantics; this record is observability only and is safe to
+	// persist as a separate model-run row.
 	p.recordProviderSuccess(ctx, assignment, role, correlationID, messages, response)
 }
 
 func (p *ProviderClient) recordProviderFailureBoundary(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, code string, diagnostic ...any) {
-	if _, adk := adkCapabilityContext(ctx); adk {
-		return
-	}
 	p.recordProviderFailure(ctx, assignment, role, correlationID, messages, code, diagnostic...)
 }
 

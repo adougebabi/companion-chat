@@ -56,6 +56,18 @@ func TestBrowserDiagnosticModelRunMapsQueueLifecycleFields(t *testing.T) {
 	}
 }
 
+func TestBrowserDiagnosticModelRunOmitsMissingResponsePayload(t *testing.T) {
+	row := map[string]any{
+		"id": "run-empty-response", "role": "cognitive_assessment", "model_id": "model-1",
+		"prompt": json.RawMessage(`[]`), "response": json.RawMessage(nil), "status": "running",
+		"correlation_id": "wake_up:fl-1:cycle:1", "created_at": "2026-09-01T00:00:00Z",
+	}
+	mapped := browserDiagnosticModelRun(row)
+	if _, exists := mapped["response"]; exists {
+		t.Fatalf("missing response should not render as an empty object: %#v", mapped["response"])
+	}
+}
+
 func TestBrowserDiagnosticMediaPromptMapsProviderAndSubmittedPrompts(t *testing.T) {
 	row := map[string]any{
 		"id": "media-1", "media_intent_id": "media-1", "fluctlight_id": "fl-1", "kind": "image", "mime_type": "image/png",
