@@ -604,6 +604,22 @@
         "focused Life Context, ADK, delivery, takeover and budget regression selector"
       ],
       "evidence": "evidence/tests/R2-focused-regressions.txt"
+    },
+    {
+      "id": "R2-08-multimodal-content-collision",
+      "command": "go -C apps/core-go test -v -mod=readonly -count=1 -run 'Test(EinoFactorySerializesMultimodalMessageWithoutContentCollision|ProviderMessagesToEinoPreservesMultimodalParts|ProviderMessagesToEinoRejectsUnknownMultimodalPart|EinoFactoryUsesOfficialChatModelAndPreservesToolCalls|RunADKLoop|ProviderConversationUsesADKLoop|ProviderWakeUpUsesADKLoop|ProviderTakeoverReplyUsesADKLoop)' ./internal/core",
+      "exitCode": 0,
+      "tests": [
+        "TestEinoFactorySerializesMultimodalMessageWithoutContentCollision",
+        "TestProviderMessagesToEinoPreservesMultimodalParts",
+        "TestProviderMessagesToEinoRejectsUnknownMultimodalPart",
+        "TestEinoFactoryUsesOfficialChatModelAndPreservesToolCalls",
+        "TestRunADKLoop*",
+        "TestProviderConversationUsesADKLoop*",
+        "TestProviderWakeUpUsesADKLoop*",
+        "TestProviderTakeoverReplyUsesADKLoop*"
+      ],
+      "evidence": "evidence/tests/R2-08-multimodal-content-collision.txt"
     }
   ]
 }

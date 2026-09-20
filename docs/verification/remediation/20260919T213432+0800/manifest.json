@@ -1,9 +1,9 @@
 {
   "schemaVersion": "yaoguang-remediation-manifest.v1",
-  "generatedAt": "2026-09-20T03:16:57.685Z",
+  "generatedAt": "2026-09-20T03:59:54.398Z",
   "repository": {
     "branch": "codex/yaoguang-adk-phase2",
-    "head": "95052f70617164e746de3c9bee6a561e49971820",
+    "head": "a7b47289b9375d2f9f2569824097c96b4eb0591c",
     "dirty": true
   },
   "sourceFiles": {
@@ -17,8 +17,8 @@
     "apps/core-go/internal/core/conversation_summary.go": "129009d861cb9959a50a7ae5b2eff523dc00c9ef8fdd2905e1f2914827cad9a3",
     "apps/core-go/internal/core/diagnostics.go": "83548cd2eb52be332cf4507ceb22c3b1f3ef9d5ebdddc09e690969a67df07ded",
     "apps/core-go/internal/core/diagnostics_test.go": "66e193e7230be7fb6d205a91f67ecd0ca644f21a3a4bc06d2af2c0aabf8ed835",
-    "apps/core-go/internal/core/eino_adk_runtime_test.go": "e80e785746b4246512550ffc99498f0916b831c076f95afe1b29cc3c560a387e",
-    "apps/core-go/internal/core/eino_model_runtime.go": "084c86e12d885bacc042411c8185ba3a425a10340d26dee4baec8354c0278f3b",
+    "apps/core-go/internal/core/eino_adk_runtime_test.go": "d873df24d8c0e7d0425d9571dfe6a1f813e0be4d028bf9c0797b335a39b4d71e",
+    "apps/core-go/internal/core/eino_model_runtime.go": "8ff5d2f1ab361bfce779a5d46423d0d549b2c4d628a465ea9b236750e0523d0a",
     "apps/core-go/internal/core/life_context.go": "5521e7593e14b2cddccc8e7fb42d4a3eb46c1a1853bcb1b1c040a980f39ace99",
     "apps/core-go/internal/core/life_context_e2e_test.go": "398f6d02d4273698d88292cf7c26a620804be6ee9125289db80f6e9b816fad27",
     "apps/core-go/internal/core/life_context_surface_test.go": "98dc73a8061c741fc7ccdf38b1621a73ff26004db68f98421fed062f614e105d",
@@ -54,9 +54,11 @@
     "infra/acceptance/verify-phase5-evidence.test.mjs": "981f7e7a1ecf9ed05abba16549335e0ea73b078f626af5e89344b7161d1f6674"
   },
   "evidenceFiles": {
-    "acceptance-matrix.csv": "1aad688690883e35cccce5fc439ae3fec6b687157d93444d0a89de325334ffc4",
+    ".DS_Store": "355be11826b4d54a9025460a07cfa50bda645a397d7bf86c95da13453d0e396c",
+    "acceptance-matrix.csv": "4d2c25b176d477c07640f0b4a73e916628918bc16dedd7759f8d23c177443899",
     "commands/g0-checker-tests.txt": "22824e9d5dd20bf64922da4f2902be083e3c3a8e63bc04af328ca4fff445bf95",
     "commands/g0-required-go-test.jsonl": "b9c8ae5741e4e2f4167483d4ed35a03f828e9141748712b4f7690777482c20d2",
+    "evidence/.DS_Store": "efffa3484ba671e6163719f68375d7546c08889821fd6687d26852d513630f50",
     "evidence/code/F01-provider-boundary.txt": "e7d0887531983a49bde965ebf2edb76e2973ec0c45c8801e2db72f4bae72e6a3",
     "evidence/code/F02-browser-compatibility.txt": "176192b61dfe9403c180974bdcffbf44c46e20302fe23f4e33921e2f5e974889",
     "evidence/code/G1-task-prompt-contract.txt": "1a42a3ab6c1a10c3d2ba8157a4bd3273d9a024beebcbd35a086ed09a8b28a9ab",
@@ -64,6 +66,7 @@
     "evidence/code/R01-stream-lifecycle.txt": "d0cdad275b498a0b65f7d26bf0864686bd7ea90c7826a03031a3fd243722798c",
     "evidence/code/R02-final-reply-authority.txt": "c2e228744f460ae42a9dc5ece33cfdd240fab559fc353130d60ab7540a27f321",
     "evidence/code/R2-06-adk-deferred-round.txt": "e45f593ee4f43f5bc7e1d853629a3d3f3933be5ab743f73e428e215b69ce35fa",
+    "evidence/code/R2-08-multimodal-content-collision.txt": "ab8ede96394bb7760b16b4a8a2f45c20b35b2b39653dcc3bc1b95889c8de3239",
     "evidence/commands/compose-config.txt": "3ec222fa0ff8cfc02e03405b0c993abd973f667934faff444612e4253bf2b760",
     "evidence/commands/core-openapi.txt": "fac182b238443eea7a77d64bce9c85c8855f4a9fc15ea35898fe21b3114ffb18",
     "evidence/commands/diff-check.txt": "3ec222fa0ff8cfc02e03405b0c993abd973f667934faff444612e4253bf2b760",
@@ -102,9 +105,10 @@
     "evidence/tests/R2-03-overlay-production.txt": "5af8b92ceb29973da3e8a519c0983d10362a54f1321b7976b7a4ebb42db93cf1",
     "evidence/tests/R2-04-offline-prompt.txt": "eb590ff83791ef3ed2a65c4f3630ac270bb2e8290df0ada66ff5c8e49c41c9d8",
     "evidence/tests/R2-06-adk-deferred-round.txt": "82942d8993ba1b2f4426bdb658babd568f1bb0afaeca08d0023a06d79734cce1",
+    "evidence/tests/R2-08-multimodal-content-collision.txt": "4b6649330d39c28f3494664826354b3ff740848700389364570650647ed01023",
     "evidence/tests/R2-focused-regressions.txt": "b3409c458d18b9dc40bb711d3980333e48a627ed8cb9bb9d0601f38fa56941c2",
-    "executions.json": "0db7145e7aa8c8f9be293d6b3ea100983331f2963767fea99e1819a3469cfe75",
-    "remediation-report.md": "093a889d199cd0096d0908ebff7721e0708f6f00d63b68758d7981b54e8342fc",
+    "executions.json": "5807a8e77a682e85ac72110c3a0271b7a69cd4508d0e73b6b46fbc83c56c789e",
+    "remediation-report.md": "e551f34826481b6c6ae862d502af47c0366b7a25e007b49df046dc97f665627e",
     "task-prompt-migration.md": "d3f8a4a6c4f3ee2ef19c40fd6aedcf20b24925261cd88a1fc008d990e4b09b44"
   },
   "matrix": [
@@ -180,6 +184,11 @@
     },
     {
       "id": "R2-07",
+      "stage": "R",
+      "status": "PASS"
+    },
+    {
+      "id": "R2-08",
       "stage": "R",
       "status": "PASS"
     }
@@ -259,6 +268,11 @@
       "name": "Focused Life Context/ADK/delivery/takeover/budget regressions",
       "exitCode": 0,
       "evidence": "evidence/tests/R2-focused-regressions.txt"
+    },
+    {
+      "name": "Multimodal Eino serialization regressions",
+      "exitCode": 0,
+      "evidence": "evidence/tests/R2-08-multimodal-content-collision.txt"
     }
   ]
 }

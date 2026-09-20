@@ -845,8 +845,45 @@ func TestProviderMessagesToEinoPreservesMultimodalParts(t *testing.T) {
 	if len(messages) != 1 || len(messages[0].UserInputMultiContent) != 2 || messages[0].UserInputMultiContent[1].Image == nil {
 		t.Fatalf("messages = %#v", messages)
 	}
+	if messages[0].Content != "" {
+		t.Fatalf("multimodal message retained mutually-exclusive Content field: %q", messages[0].Content)
+	}
 	if got := *messages[0].UserInputMultiContent[1].Image.URL; got != "data:image/png;base64,abc" {
 		t.Fatalf("image URL = %q", got)
+	}
+}
+
+func TestEinoFactorySerializesMultimodalMessageWithoutContentCollision(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Errorf("decode multimodal request: %v", err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"ok"}}]}`))
+	}))
+	defer server.Close()
+
+	messages, err := providerMessagesToEino([]map[string]any{{
+		"role": "user",
+		"content": []any{
+			map[string]any{"type": "text", "text": "inspect"},
+			map[string]any{"type": "image_url", "image_url": map[string]any{"url": "data:image/png;base64,abc", "detail": "high"}},
+		},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	chat, err := NewEinoModelFactory(server.Client()).NewChatModel(context.Background(), EinoModelConfig{
+		BaseURL: server.URL, Model: "fake", HTTPClient: server.Client(), MaxCompletionTokens: 64,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := chat.Generate(context.Background(), messages); err != nil {
+		t.Fatalf("multimodal Generate returned serialization error: %v", err)
 	}
 }
 

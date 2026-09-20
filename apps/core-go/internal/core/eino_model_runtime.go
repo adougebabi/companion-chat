@@ -865,7 +865,14 @@ func providerMessagesToEino(messages []map[string]any) ([]*schema.Message, error
 				return nil, fmt.Errorf("message_%d_parts_invalid: %w", index, partErr)
 			}
 			message.UserInputMultiContent = multi
-			message.Content = text
+			// Eino's OpenAI adapter maps UserInputMultiContent to the wire
+			// MultiContent field. Content and MultiContent are mutually exclusive
+			// in openai.ChatCompletionMessage; keeping the flattened text here
+			// makes multimodal requests fail during JSON marshaling before they
+			// reach the Provider. Text-only messages still use Content below.
+			if len(multi) == 0 {
+				message.Content = text
+			}
 		} else if parts, ok := content.([]map[string]any); ok {
 			asAny := make([]any, len(parts))
 			for i := range parts {
@@ -876,7 +883,9 @@ func providerMessagesToEino(messages []map[string]any) ([]*schema.Message, error
 				return nil, fmt.Errorf("message_%d_parts_invalid: %w", index, partErr)
 			}
 			message.UserInputMultiContent = multi
-			message.Content = text
+			if len(multi) == 0 {
+				message.Content = text
+			}
 		} else {
 			message.Content = stringValue(content)
 		}

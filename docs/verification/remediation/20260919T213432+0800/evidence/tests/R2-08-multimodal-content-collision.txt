@@ -1,0 +1,30 @@
+=== RUN   TestEinoFactoryUsesOfficialChatModelAndPreservesToolCalls
+--- PASS: TestEinoFactoryUsesOfficialChatModelAndPreservesToolCalls (0.00s)
+=== RUN   TestRunADKLoopExecutesCapabilityAndFeedsResultBack
+--- PASS: TestRunADKLoopExecutesCapabilityAndFeedsResultBack (0.00s)
+=== RUN   TestRunADKLoopRejectsIterationLimitAboveTwo
+--- PASS: TestRunADKLoopRejectsIterationLimitAboveTwo (0.00s)
+=== RUN   TestRunADKLoopModelFailureHasNoFinalMessage
+--- PASS: TestRunADKLoopModelFailureHasNoFinalMessage (0.00s)
+=== RUN   TestRunADKLoopToolFailureHasNoFinalMessage
+--- PASS: TestRunADKLoopToolFailureHasNoFinalMessage (0.00s)
+=== RUN   TestRunADKLoopStopsLoopAtTwoGenerations
+--- PASS: TestRunADKLoopStopsLoopAtTwoGenerations (0.00s)
+=== RUN   TestRunADKLoopCancellationDoesNotFabricateFinalMessage
+--- PASS: TestRunADKLoopCancellationDoesNotFabricateFinalMessage (0.00s)
+=== RUN   TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant
+--- PASS: TestRunADKLoopDoesNotReuseTextBeforeFinalEmptyAssistant (0.00s)
+=== RUN   TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace
+--- PASS: TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace (0.00s)
+=== RUN   TestProviderWakeUpUsesADKLoopAndPreservesTrace
+--- PASS: TestProviderWakeUpUsesADKLoopAndPreservesTrace (0.00s)
+=== RUN   TestProviderTakeoverReplyUsesADKLoopAndPreservesTrace
+--- PASS: TestProviderTakeoverReplyUsesADKLoopAndPreservesTrace (0.00s)
+=== RUN   TestProviderMessagesToEinoPreservesMultimodalParts
+--- PASS: TestProviderMessagesToEinoPreservesMultimodalParts (0.00s)
+=== RUN   TestEinoFactorySerializesMultimodalMessageWithoutContentCollision
+--- PASS: TestEinoFactorySerializesMultimodalMessageWithoutContentCollision (0.00s)
+=== RUN   TestProviderMessagesToEinoRejectsUnknownMultimodalPart
+--- PASS: TestProviderMessagesToEinoRejectsUnknownMultimodalPart (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	0.552s

@@ -1,0 +1,25 @@
+Multimodal Eino message serialization remediation (2026-09-20)
+
+Root cause
+
+- apps/core-go/internal/core/eino_model_runtime.go:845-893 converted array-form
+  message content into both UserInputMultiContent and Content.
+- The Eino OpenAI adapter maps those fields to mutually exclusive OpenAI
+  Content/MultiContent properties, so visual-identity requests failed during
+  JSON marshaling before reaching the Provider.
+
+Fix
+
+- Multimodal parts now set only UserInputMultiContent.
+- Content is populated only when the parsed part list contains no multimodal
+  parts; plain scalar text messages keep the existing Content path.
+
+Regression coverage
+
+- TestProviderMessagesToEinoPreservesMultimodalParts asserts Content is empty.
+- TestEinoFactorySerializesMultimodalMessageWithoutContentCollision sends the
+  converted image message through the official Eino OpenAI ChatModel and fails
+  if serialization rejects the request.
+
+The focused Eino/ADK regression output is in
+evidence/tests/R2-08-multimodal-content-collision.txt.

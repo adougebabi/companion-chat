@@ -128,6 +128,17 @@ capability 或最终 reply。
 
 证据：`evidence/code/R2-06-adk-deferred-round.txt`、`evidence/tests/R2-06-adk-deferred-round.txt`、`evidence/tests/R2-focused-regressions.txt`
 
+### R2-08：多模态 Eino 消息序列化 — PASS
+
+Visual Identity 的图片请求在 Eino 转换层同时设置了 `Content` 和
+`UserInputMultiContent`。OpenAI adapter 在 JSON 编码时将其映射为互斥的
+`Content/MultiContent` 字段，因此 Activity 即使 endpoint、模型和凭据正确，也会在发出
+HTTP 请求前失败，并被包装成 `provider_request_failed`。现在多模态消息只设置
+`UserInputMultiContent`，只有没有多模态 part 的数组内容才使用 `Content`。新增测试直接经过
+官方 Eino ChatModel 和 httptest Provider，确认序列化不再失败。
+
+证据：`evidence/code/R2-08-multimodal-content-collision.txt`、`evidence/tests/R2-08-multimodal-content-collision.txt`
+
 ## G1 Task/Prompt 迁移
 
 普通模型入口已迁移到 typed Task：
