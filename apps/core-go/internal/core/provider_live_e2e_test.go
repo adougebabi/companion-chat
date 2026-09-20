@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"sync"
@@ -163,6 +164,15 @@ func TestLiveHandleTurnRealToolCallsReachDurableMediaAndReply(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "live-tool-owner", "live-tool-fluctlight", "live-tool-conversation"
 	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.fluctlights SET identity=$2 WHERE id=$1`, fluctlightID, jsonString(map[string]any{
+		"timezone":   "Asia/Shanghai",
+		"appearance": map[string]any{"hair": "black shoulder-length hair", "outfit": "simple dark blouse"},
+	})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlight_visual_identities(id,fluctlight_id,status,current_revision,identity_snapshot,renderer_constraints,adapter_version) VALUES($1,$2,'active',1,$3,'{}','chest-cup-adapter.v1')`, "visual-identity-"+fluctlightID, fluctlightID, jsonString(map[string]any{"identity": map[string]any{"appearance": "black shoulder-length hair"}})); err != nil {
+		t.Fatal(err)
+	}
 	endpointID := "live-tool-endpoint-" + fluctlightID
 	seedCognitiveProviderRole(t, ctx, repository, endpointID)
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
@@ -171,7 +181,25 @@ func TestLiveHandleTurnRealToolCallsReachDurableMediaAndReply(t *testing.T) {
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
 		t.Fatal(err)
 	}
-	capture := captureProviderWirePayload(&liveResponseCapture{inner: http.DefaultTransport})
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('media_prompt',$1,$2,'structured_output',4096,600,'{}')`, endpointID, model); err != nil {
+		t.Fatal(err)
+	}
+	var comfyPromptBody []byte
+	comfy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/prompt" {
+			http.NotFound(w, r)
+			return
+		}
+		comfyPromptBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"error":"test ComfyUI boundary"}`))
+	}))
+	defer comfy.Close()
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES('media.comfyui',$1) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json`, jsonString(map[string]any{"baseUrl": comfy.URL, "workflow": map[string]any{"prompt": "{{prompt}}"}})); err != nil {
+		t.Fatal(err)
+	}
+	responseCapture := &liveResponseCapture{inner: http.DefaultTransport}
+	capture := captureProviderWirePayload(responseCapture)
 	app := newTestApp(t, repository, capture)
 	turnCtx, cancel := context.WithTimeout(context.Background(), liveProviderRequestTimeout()+2*time.Minute)
 	defer cancel()
@@ -180,23 +208,58 @@ func TestLiveHandleTurnRealToolCallsReachDurableMediaAndReply(t *testing.T) {
 		"idempotency_key": "live-tool-image-reply", "turn_id": "live-tool-image-reply", "attachment_refs": []any{},
 	})
 	if err != nil {
-		t.Fatalf("real HandleTurn tool flow failed: %v", err)
+		var payload []byte
+		_ = repository.Pool().QueryRow(turnCtx, `SELECT payload FROM public.cognition_frozen_actions WHERE fluctlight_id=$1 ORDER BY frozen_at DESC LIMIT 1`, fluctlightID).Scan(&payload)
+		t.Fatalf("real HandleTurn tool flow failed: %v; latest_frozen=%s", err, string(payload))
 	}
 	if strings.TrimSpace(stringValue(result.Assistant["text"])) == "" {
 		t.Fatalf("real tool flow persisted no assistant text: %#v", result.Assistant)
 	}
-	var mediaCount, actionCount, assistantCount int
+	var mediaCount, assistantCount int
 	if err := repository.Pool().QueryRow(turnCtx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1`, fluctlightID).Scan(&mediaCount); err != nil {
-		t.Fatal(err)
-	}
-	if err := repository.Pool().QueryRow(turnCtx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1`, fluctlightID).Scan(&actionCount); err != nil {
 		t.Fatal(err)
 	}
 	if err := repository.Pool().QueryRow(turnCtx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversationID).Scan(&assistantCount); err != nil {
 		t.Fatal(err)
 	}
-	if mediaCount < 1 || actionCount < 1 || assistantCount < 1 {
-		t.Fatalf("real tool calls did not reach durable Core boundaries: media_intents=%d autonomy_actions=%d assistant_messages=%d", mediaCount, actionCount, assistantCount)
+	if mediaCount < 1 || assistantCount < 1 {
+		var payload []byte
+		var capabilityResults []byte
+		_ = repository.Pool().QueryRow(turnCtx, `SELECT payload FROM public.cognition_frozen_actions WHERE fluctlight_id=$1 ORDER BY frozen_at DESC LIMIT 1`, fluctlightID).Scan(&payload)
+		_ = repository.Pool().QueryRow(turnCtx, `SELECT COALESCE(payload->'capability_results','null'::jsonb) FROM public.cognition_frozen_actions WHERE fluctlight_id=$1 ORDER BY frozen_at DESC LIMIT 1`, fluctlightID).Scan(&capabilityResults)
+		t.Fatalf("real tool calls did not reach durable Core boundaries: media_intents=%d assistant_messages=%d provider_tool_shapes=%#v capability_results=%s latest_frozen=%s", mediaCount, assistantCount, responseCapture.snapshot(), string(capabilityResults), string(payload))
+	}
+	var mediaIntentID, providerPrompt string
+	if err := repository.Pool().QueryRow(turnCtx, `SELECT id,COALESCE(provider_prompt,'') FROM public.media_intents WHERE owner_fluctlight_id=$1 ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&mediaIntentID, &providerPrompt); err != nil {
+		t.Fatal(err)
+	}
+	if mediaIntentID == "" {
+		t.Fatal("real image tool call did not create a media intent")
+	}
+	_, mediaErr := app.ProcessMediaIntent(turnCtx, mediaIntentID)
+	if mediaErr == nil || !strings.Contains(mediaErr.Error(), "ComfyUI returned HTTP 503") {
+		t.Fatalf("media execution did not reach the mocked ComfyUI boundary: err=%v body=%s", mediaErr, string(comfyPromptBody))
+	}
+	if err := repository.Pool().QueryRow(turnCtx, `SELECT COALESCE(provider_prompt,'') FROM public.media_intents WHERE id=$1`, mediaIntentID).Scan(&providerPrompt); err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(providerPrompt) == "" {
+		var persistedStatus string
+		_ = repository.Pool().QueryRow(turnCtx, `SELECT status FROM public.media_intents WHERE id=$1`, mediaIntentID).Scan(&persistedStatus)
+		t.Fatalf("media_prompt Provider did not persist a completed prompt before ComfyUI submission: err=%v status=%s body=%s", mediaErr, persistedStatus, string(comfyPromptBody))
+	}
+	var comfyPayload map[string]any
+	_ = json.Unmarshal(comfyPromptBody, &comfyPayload)
+	comfyWorkflowPrompt := stringValue(mapValue(comfyPayload["prompt"])["prompt"])
+	if len(comfyPromptBody) == 0 || !strings.Contains(comfyWorkflowPrompt, providerPrompt) {
+		t.Fatalf("ComfyUI request did not contain the generated media prompt: body=%s provider_prompt=%s", string(comfyPromptBody), providerPrompt)
+	}
+	var promptEvents int
+	if err := repository.Pool().QueryRow(turnCtx, `SELECT count(*) FROM public.diagnostic_events WHERE event_type='media.comfyui.prompt_submitted' AND correlation_id=$1`, "media:"+mediaIntentID).Scan(&promptEvents); err != nil {
+		t.Fatal(err)
+	}
+	if promptEvents != 1 {
+		t.Fatalf("media prompt submission diagnostic count=%d, want 1", promptEvents)
 	}
 }
 
@@ -209,6 +272,20 @@ func TestLiveWakeUpRealToolCallsReachDurableActionAndReflection(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID := "live-wake-owner", "live-wake-fluctlight"
 	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.fluctlights SET identity=$2 WHERE id=$1`, fluctlightID, jsonString(map[string]any{
+		"timezone":   "Asia/Shanghai",
+		"appearance": map[string]any{"hair": "black shoulder-length hair", "outfit": "simple dark blouse"},
+	})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlight_visual_identities(id,fluctlight_id,status,current_revision,identity_snapshot,renderer_constraints,adapter_version) VALUES($1,$2,'missing',0,$3,'{}','chest-cup-adapter.v1')`, "visual-identity-"+fluctlightID, fluctlightID, jsonString(map[string]any{"identity": map[string]any{"appearance": "black shoulder-length hair"}})); err != nil {
+		t.Fatal(err)
+	}
+	baseApp := &App{DB: repository}
+	initialLife := currentLifeForTest(t, ctx, baseApp, fluctlightID, time.Now().UTC())
+	if _, err := baseApp.AcceptSchedule(ctx, ownerID, fluctlightID, fullDaySchedulePayloadForTest(time.Now().UTC(), "live-wake-schedule", stringValue(initialLife["context_revision"]))); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.fluctlights SET behavioral_policy=$2 WHERE id=$1`, fluctlightID, jsonString(map[string]any{"required_action_type": "proactive_message", "autonomy": "每次 Wake-up 都必须主动联系 Owner，同时生成图片并发送，不能选择 no_op。"})); err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +300,25 @@ func TestLiveWakeUpRealToolCallsReachDurableActionAndReflection(t *testing.T) {
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
 		t.Fatal(err)
 	}
-	app := newTestApp(t, repository, captureProviderWirePayload(&liveResponseCapture{inner: http.DefaultTransport}))
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('media_prompt',$1,$2,'structured_output',4096,600,'{}')`, endpointID, model); err != nil {
+		t.Fatal(err)
+	}
+	var comfyPromptBody []byte
+	comfy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/prompt" {
+			http.NotFound(w, r)
+			return
+		}
+		comfyPromptBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"error":"test ComfyUI boundary"}`))
+	}))
+	defer comfy.Close()
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES('media.comfyui',$1) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json`, jsonString(map[string]any{"baseUrl": comfy.URL, "workflow": map[string]any{"prompt": "{{prompt}}"}})); err != nil {
+		t.Fatal(err)
+	}
+	responseCapture := &liveResponseCapture{inner: http.DefaultTransport}
+	app := newTestApp(t, repository, captureProviderWirePayload(responseCapture))
 	wakeCtx, cancel := context.WithTimeout(context.Background(), liveProviderRequestTimeout()+2*time.Minute)
 	defer cancel()
 	result, err := app.ProcessWakeUp(wakeCtx, fluctlightID, 1)
@@ -246,7 +341,42 @@ func TestLiveWakeUpRealToolCallsReachDurableActionAndReflection(t *testing.T) {
 	if err := repository.Pool().QueryRow(wakeCtx, `SELECT count(*) FROM public.platform_workflow_intents WHERE intent_type='reflection.run' AND payload->>'fluctlight_id'=$1`, fluctlightID).Scan(&reflectionCount); err != nil {
 		t.Fatal(err)
 	}
-	if wakeCount != 1 || actionCount < 1 || mediaCount < 1 || reflectionCount < 1 {
-		t.Fatalf("real Wake-up tool calls did not reach durable boundaries: wakeups=%d actions=%d media=%d reflections=%d result=%#v", wakeCount, actionCount, mediaCount, reflectionCount, result)
+	if wakeCount != 1 || actionCount < 1 || reflectionCount < 1 {
+		var actionPayload, wakePayload []byte
+		_ = repository.Pool().QueryRow(wakeCtx, `SELECT payload FROM public.autonomy_actions WHERE fluctlight_id=$1 ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&actionPayload)
+		_ = repository.Pool().QueryRow(wakeCtx, `SELECT payload FROM public.cognition_wakeups WHERE fluctlight_id=$1 AND cycle=$2`, fluctlightID, 1).Scan(&wakePayload)
+		t.Fatalf("real Wake-up tool calls did not reach durable boundaries: wakeups=%d actions=%d media=%d reflections=%d provider_tool_shapes=%#v action_payload=%s wake_payload=%s result=%#v", wakeCount, actionCount, mediaCount, reflectionCount, responseCapture.snapshot(), string(actionPayload), string(wakePayload), result)
+	}
+	var actionID, actionType string
+	if err := repository.Pool().QueryRow(wakeCtx, `SELECT id,action_type FROM public.autonomy_actions WHERE fluctlight_id=$1 ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&actionID, &actionType); err != nil {
+		t.Fatal(err)
+	}
+	if actionType == "proactive_message" {
+		if _, err := app.ProcessAutonomyAction(wakeCtx, actionID); err != nil {
+			t.Fatalf("real Wake-up proactive action failed before media execution: %v", err)
+		}
+	} else {
+		if _, err := app.ProcessCapabilityAction(wakeCtx, actionID); err != nil {
+			t.Fatalf("real Wake-up capability action failed before media execution: %v", err)
+		}
+	}
+	var mediaIntentID, providerPrompt string
+	if err := repository.Pool().QueryRow(wakeCtx, `SELECT id,COALESCE(provider_prompt,'') FROM public.media_intents WHERE owner_fluctlight_id=$1 ORDER BY created_at DESC LIMIT 1`, fluctlightID).Scan(&mediaIntentID, &providerPrompt); err != nil {
+		t.Fatal(err)
+	}
+	if mediaIntentID == "" {
+		t.Fatal("real Wake-up action did not create a media intent")
+	}
+	if _, err := app.ProcessMediaIntent(wakeCtx, mediaIntentID); err == nil || !strings.Contains(err.Error(), "ComfyUI returned HTTP 503") {
+		t.Fatalf("Wake-up media execution did not reach the mocked ComfyUI boundary: err=%v", err)
+	}
+	if err := repository.Pool().QueryRow(wakeCtx, `SELECT COALESCE(provider_prompt,'') FROM public.media_intents WHERE id=$1`, mediaIntentID).Scan(&providerPrompt); err != nil {
+		t.Fatal(err)
+	}
+	var comfyPayload map[string]any
+	_ = json.Unmarshal(comfyPromptBody, &comfyPayload)
+	comfyWorkflowPrompt := stringValue(mapValue(comfyPayload["prompt"])["prompt"])
+	if strings.TrimSpace(providerPrompt) == "" || len(comfyPromptBody) == 0 || !strings.Contains(comfyWorkflowPrompt, providerPrompt) {
+		t.Fatalf("Wake-up media_prompt did not complete before ComfyUI submission: prompt=%s body=%s", providerPrompt, string(comfyPromptBody))
 	}
 }

@@ -177,8 +177,17 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 		if err != nil {
 			return nil, err
 		}
-		outcome.CompletionBoundary = definition.CompletionBoundary
-		outcome.ExternalRef = externalRef
+		// A deferred/failed result may legitimately exist before its durable
+		// asynchronous target has been created (or after the target transaction
+		// rolled back).  The completion boundary is meaningful only when the
+		// capability returned the external reference that can later be settled.
+		// Completed async results are already required to provide that reference
+		// above, so keeping the pair conditional preserves the fail-closed
+		// contract without manufacturing an invalid pending outcome.
+		if definition.CompletionBoundary != "" && externalRef != "" {
+			outcome.CompletionBoundary = definition.CompletionBoundary
+			outcome.ExternalRef = externalRef
+		}
 		if err := outcome.Validate(); err != nil {
 			return nil, err
 		}

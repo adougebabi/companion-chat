@@ -33,7 +33,7 @@ type mediaIntent struct {
 func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[string]any, error) {
 	stopHeartbeat := startMediaHeartbeat(ctx, intentID)
 	defer stopHeartbeat()
-	activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "loading"})
+	recordMediaHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "loading"})
 	intent, err := a.readMediaIntent(ctx, intentID)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 				}
 			}
 		} else if prompt == "" || intent.QualityVerdict == mediaQualityVerdictRetry {
-			activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "prompt"})
+			recordMediaHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "prompt"})
 			providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "media_prompt"), "media:"+intent.ID)
 			value, providerErr := a.RunMediaPromptTask(providerCtx, MediaPromptTaskInput{Intent: intent})
 			if providerErr != nil || strings.TrimSpace(value) == "" {
@@ -100,7 +100,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 			intent.QualityVerdict = ""
 			intent.QualityCandidateSHA = ""
 		}
-		activity.RecordHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "submit"})
+		recordMediaHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "submit"})
 		constraints := map[string]any{}
 		if json.Unmarshal([]byte(intent.Prompt), &concept) == nil {
 			constraints = mediaRendererConstraints(concept)
@@ -169,7 +169,7 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 	}
 	var output map[string]any
 	for attempt := 0; attempt < 900; attempt++ {
-		activity.RecordHeartbeat(ctx, map[string]any{"provider_job_id": providerJobID, "attempt": attempt})
+		recordMediaHeartbeat(ctx, map[string]any{"provider_job_id": providerJobID, "attempt": attempt})
 		value, done, err := pollComfy(ctx, baseURL, providerJobID)
 		if err != nil {
 			return nil, err
@@ -351,13 +351,23 @@ func startMediaHeartbeat(ctx context.Context, intentID string) func() {
 			case <-heartbeatCtx.Done():
 				return
 			case <-ticker.C:
-				activity.RecordHeartbeat(heartbeatCtx, map[string]any{"intent_id": intentID, "phase": "in-flight"})
+				recordMediaHeartbeat(heartbeatCtx, map[string]any{"intent_id": intentID, "phase": "in-flight"})
 			}
 		}
 	}()
 	return func() {
 		cancel()
 		<-done
+	}
+}
+
+// recordMediaHeartbeat is safe for both Temporal activity execution and
+// direct Core invocation (tests, local recovery, and administrative retries).
+// The Temporal SDK panics when RecordHeartbeat receives a non-activity
+// context, so every media heartbeat must pass through this guard.
+func recordMediaHeartbeat(ctx context.Context, details any) {
+	if activity.IsActivity(ctx) {
+		activity.RecordHeartbeat(ctx, details)
 	}
 }
 

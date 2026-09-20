@@ -93,6 +93,32 @@ func TestExternalAsyncOutcomeSeparatesDurableIntentFromFinalCompletion(t *testin
 	}
 }
 
+func TestExternalAsyncOutcomeWithoutReferenceRemainsSettledWithoutFinalBoundary(t *testing.T) {
+	registry := mustCapabilityRegistry(imageGenerateCapability{service: nil})
+	for _, status := range []string{"deferred", "failed", "rejected"} {
+		t.Run(status, func(t *testing.T) {
+			results := []CapabilityResult{{
+				CallID: "image-call-" + status, CapabilityName: "media.image.generate", Status: status,
+				ErrorCode: "capability_settlement_failed", Retryable: true,
+			}}
+			outcomes, err := buildActionOutcomes("action-image-"+status, "fluctlight-image", "fact-image", "reply", results, map[string]any{"status": "failed"}, registry)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(outcomes) != 2 {
+				t.Fatalf("outcomes=%#v", outcomes)
+			}
+			call := outcomes[1]
+			if call.CompletionBoundary != "" || call.ExternalRef != "" {
+				t.Fatalf("missing external reference must not claim final async boundary: %#v", call)
+			}
+			if call.Status != ActionOutcomeFailed {
+				t.Fatalf("status=%s, want failed", call.Status)
+			}
+		})
+	}
+}
+
 func TestCancelledActionCancelsUnsettledCapabilityOutcome(t *testing.T) {
 	registry := mustCapabilityRegistry(&canonicalTestCapability{definition: CapabilityDefinition{
 		Name: "mutation.cancel", Version: "v1", Type: CapabilityTypeAction, Description: "Test cancelled mutation.",
