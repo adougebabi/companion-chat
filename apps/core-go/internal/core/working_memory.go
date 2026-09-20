@@ -4,35 +4,22 @@ import (
 	"errors"
 	"sort"
 	"strings"
+
+	aiprompt "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/prompt"
 )
 
-type PromptFragmentKind string
+type PromptFragmentKind = aiprompt.PromptFragmentKind
 
 const (
-	PromptFragmentRuntimeFact     PromptFragmentKind = "runtime_fact"
-	PromptFragmentActiveMemory    PromptFragmentKind = "active_memory"
-	PromptFragmentRecentMessage   PromptFragmentKind = "recent_message"
-	PromptFragmentRetrievedMemory PromptFragmentKind = "retrieved_memory"
-	PromptFragmentSummary         PromptFragmentKind = "conversation_summary"
+	PromptFragmentRuntimeFact     = aiprompt.PromptFragmentRuntimeFact
+	PromptFragmentActiveMemory    = aiprompt.PromptFragmentActiveMemory
+	PromptFragmentRecentMessage   = aiprompt.PromptFragmentRecentMessage
+	PromptFragmentRetrievedMemory = aiprompt.PromptFragmentRetrievedMemory
+	PromptFragmentSummary         = aiprompt.PromptFragmentSummary
 )
 
-type PromptFragment struct {
-	Kind PromptFragmentKind `json:"kind"`
-	// SlotID/Position/Order make prompt placement explicit without conflating
-	// prompt fragments with Capability ContextSlot or durable evolution slots.
-	// Existing callers may omit them; the Composer derives a stable placement
-	// from Kind for those historical fragments.
-	SlotID          PromptSlotID       `json:"slot_id,omitempty"`
-	Position        PromptSlotPosition `json:"position,omitempty"`
-	Order           int                `json:"order,omitempty"`
-	BudgetTokens    int                `json:"budget_tokens,omitempty"`
-	Priority        int                `json:"priority"`
-	Required        bool               `json:"required"`
-	Content         any                `json:"content"`
-	EstimatedTokens int                `json:"estimated_tokens"`
-	SourceRefs      []string           `json:"source_refs"`
-	GroupKey        string             `json:"group_key,omitempty"`
-}
+type PromptFragment = aiprompt.PromptFragment
+
 
 type WorkingMemoryInput struct {
 	RuntimeFacts      []PromptFragment

@@ -232,7 +232,7 @@ func turnPersonaScopeFromPayload(payload map[string]any) (turnPersonaScope, bool
 func turnPersonaScopePayload(scope turnPersonaScope) map[string]any {
 	return map[string]any{
 		"active_profile_id":      scope.ActiveProfileID,
-		"reply_owner_profile_id": scope.replyOwner(),
+		"reply_owner_profile_id": scope.ReplyOwner(),
 		"persona_revision":       scope.PersonaRevision,
 		"overlay_revision":       scope.OverlayRevision,
 		"scope_revision":         scope.ScopeRevision,

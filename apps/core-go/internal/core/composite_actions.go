@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 const compositeActionSchemaVersion = "fluctlight.composite-action.v1"
@@ -29,11 +31,7 @@ type CompositeActionV1 struct {
 // OutputBindingV1 connects a Tool result to the Composite Action output. The
 // reference is resolved by Core after the output resource (message or Moment)
 // receives its durable ID.
-type OutputBindingV1 struct {
-	ToolCallID string `json:"tool_call_id"`
-	TargetKind string `json:"target_kind"`
-	TargetRef  string `json:"target_ref"`
-}
+type OutputBindingV1 = capability.OutputBindingV1
 
 func normalizeCompositeAction(decision map[string]any, providerCalls []CapabilityInvocation, sourceFactID, defaultActionType string) (CompositeActionV1, error) {
 	if decision == nil {

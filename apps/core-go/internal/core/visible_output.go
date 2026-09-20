@@ -2,61 +2,21 @@ package core
 
 import (
 	"strings"
+
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/conversation"
 )
 
-// The visible text that reaches the user has exactly one authority (R05 / F02).
-// Before this type existed the precedence between the root decision, the
-// response plan and the conversation.reply capability argument was re-derived
-// at every consumer (generation, candidate preview, takeover Judge, settlement
-// INSERT). Any disagreement silently let the Judge or the preview read one
-// text while a different text was actually sent. resolveCanonicalVisibleReply
-// computes the winner once, freezes it into the decision and the response plan,
-// and every consumer reads the frozen value.
-type canonicalVisibleReply struct {
-	// Text is the only text that may be written to conversation_messages.
-	Text string
-	// Source is the field that won, in the existing precedence order.
-	Source string
-	// Conflict records that two or more non-empty sources disagreed. The
-	// existing precedence still wins, so behaviour is unchanged; the flag and
-	// the matching diagnostic make the disagreement observable.
-	Conflict bool
-	// Digest is a stable fingerprint of Text, used to bind a preview or a
-	// Judge verdict to the exact text it was derived from.
-	Digest string
-}
+type canonicalVisibleReply = conversation.CanonicalVisibleReply
 
 const (
-	canonicalVisibleSourceResponsePlan    = "response_plan"
-	canonicalVisibleSourceDecision        = "decision"
-	canonicalVisibleSourceReplyCapability = "reply_capability"
+	canonicalVisibleSourceResponsePlan    = conversation.CanonicalVisibleSourceResponsePlan
+	canonicalVisibleSourceDecision        = conversation.CanonicalVisibleSourceDecision
+	canonicalVisibleSourceReplyCapability = conversation.CanonicalVisibleSourceReplyCapability
 
-	canonicalVisibleTextConflictCode = "visible_text_source_conflict"
+	canonicalVisibleTextConflictCode = conversation.CanonicalVisibleTextConflictCode
 )
 
-// visibleTextDiagnostic is the structured, bounded record of a visible-text
-// reconciliation. It carries no unbounded model output: only the winning source
-// and a short excerpt of the text that was actually chosen.
-type visibleTextDiagnostic struct {
-	Code   string
-	Winner string
-	Detail string
-	Digest string
-}
-
-func (value visibleTextDiagnostic) asMap() map[string]any {
-	result := map[string]any{"code": value.Code}
-	if value.Winner != "" {
-		result["winner"] = value.Winner
-	}
-	if value.Detail != "" {
-		result["detail"] = value.Detail
-	}
-	if value.Digest != "" {
-		result["digest"] = value.Digest
-	}
-	return result
-}
+type visibleTextDiagnostic = conversation.VisibleTextDiagnostic
 
 // resolveCanonicalVisibleReply picks the single authoritative visible text and
 // reports whether the candidate sources disagreed. Under the F-01 path b

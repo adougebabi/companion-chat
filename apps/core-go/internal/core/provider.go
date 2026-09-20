@@ -12,11 +12,17 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
 
+// ProviderDatabase is the minimal database access contract needed by ProviderClient.
+type ProviderDatabase interface {
+	Pool() *pgxpool.Pool
+}
+
 type ProviderClient struct {
-	DB          *PostgresRepository
+	DB          ProviderDatabase
 	SettingsKey []byte
 	HTTP        *http.Client
 	runtime     ProviderRuntimeSupport

@@ -53,10 +53,7 @@ func TestReflectionWindowCleanupUsesLeaseTokenAndCAS(t *testing.T) {
 }
 
 func TestReflectionEvidenceReadersCheckRowsErrors(t *testing.T) {
-	source, err := os.ReadFile("workflow_ops.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := readSourceFile(t, "workflow_ops.go")
 	body := sourceBetween(t, string(source), "func (a *App) ProcessReflection", "func boundedNumber")
 	if !strings.Contains(body, "rows.Err()") || !strings.Contains(body, "appraisalRows.Err()") {
 		t.Fatal("Reflection may accept partial evidence without checking iterator errors")
@@ -64,10 +61,7 @@ func TestReflectionEvidenceReadersCheckRowsErrors(t *testing.T) {
 }
 
 func TestUserActivitySupersedesEarlierPendingReflectionQuietPeriod(t *testing.T) {
-	source, err := os.ReadFile("cognition.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := readSourceFile(t, "cognition.go")
 	body := sourceBetween(t, string(source), "func enqueueQuietPeriodReflectionIntentTx", "func (a *App) FailTurnCognition")
 	for _, required := range []string{
 		"status='superseded'",

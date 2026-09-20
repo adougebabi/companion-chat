@@ -12,47 +12,42 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 	"github.com/jackc/pgx/v5"
 )
 
-// CapabilityType describes the policy/audit class of a capability.  It is
-// metadata only; execution is always selected through the registry entry.
-type CapabilityType string
+type CapabilityType = capability.CapabilityType
 
 const (
-	CapabilityTypeAction   CapabilityType = "action"
-	CapabilityTypeQuery    CapabilityType = "query"
-	CapabilityTypeInternal CapabilityType = "internal"
+	CapabilityTypeAction   = capability.CapabilityTypeAction
+	CapabilityTypeQuery    = capability.CapabilityTypeQuery
+	CapabilityTypeInternal = capability.CapabilityTypeInternal
 )
 
-// CapabilitySurface identifies a provider-facing catalog.  Callers select a
-// surface, never a list of concrete capability names.
-type CapabilitySurface string
+type CapabilitySurface = capability.CapabilitySurface
 
 const (
-	CapabilitySurfaceConversation    CapabilitySurface = "conversation"
-	CapabilitySurfaceWakeUp          CapabilitySurface = "wake_up"
-	CapabilitySurfaceAutonomy        CapabilitySurface = "autonomy"
-	CapabilitySurfaceNativeCognition CapabilitySurface = "native_cognition"
-	CapabilitySurfaceReflection      CapabilitySurface = "reflection"
+	CapabilitySurfaceConversation    = capability.CapabilitySurfaceConversation
+	CapabilitySurfaceWakeUp          = capability.CapabilitySurfaceWakeUp
+	CapabilitySurfaceAutonomy        = capability.CapabilitySurfaceAutonomy
+	CapabilitySurfaceNativeCognition = capability.CapabilitySurfaceNativeCognition
+	CapabilitySurfaceReflection      = capability.CapabilitySurfaceReflection
 )
 
-// CapabilityFailurePolicy controls visible-settlement behavior.  The Runtime
-// does not inspect capability names when applying this policy.
-type CapabilityFailurePolicy string
+type CapabilityFailurePolicy = capability.CapabilityFailurePolicy
 
 const (
-	FailurePolicyRequiredForVisibleClaim CapabilityFailurePolicy = "required_for_visible_claim"
-	FailurePolicyOptionalInternal        CapabilityFailurePolicy = "optional_internal"
+	FailurePolicyRequiredForVisibleClaim = capability.FailurePolicyRequiredForVisibleClaim
+	FailurePolicyOptionalInternal        = capability.FailurePolicyOptionalInternal
 )
 
-type CapabilityExecutionClass string
+type CapabilityExecutionClass = capability.CapabilityExecutionClass
 
 const (
-	CapabilityExecutionPureQuery             CapabilityExecutionClass = "pure_query"
-	CapabilityExecutionTransactionalMutation CapabilityExecutionClass = "transactional_mutation"
-	CapabilityExecutionDeferredOutput        CapabilityExecutionClass = "deferred_output"
-	CapabilityExecutionExternalAsyncIntent   CapabilityExecutionClass = "external_async_intent"
+	CapabilityExecutionPureQuery             = capability.CapabilityExecutionPureQuery
+	CapabilityExecutionTransactionalMutation = capability.CapabilityExecutionTransactionalMutation
+	CapabilityExecutionDeferredOutput        = capability.CapabilityExecutionDeferredOutput
+	CapabilityExecutionExternalAsyncIntent   = capability.CapabilityExecutionExternalAsyncIntent
 )
 
 func classifyCapabilityExecution(capability Capability, definition CapabilityDefinition) (CapabilityExecutionClass, error) {
@@ -83,22 +78,19 @@ func classifyCapabilityExecution(capability Capability, definition CapabilityDef
 	return "", errors.New("capability_execution_class_invalid")
 }
 
-// ContextSlot is a typed request for execution context.  A capability should
-// declare the smallest set of slots it needs rather than reading App state
-// directly.
-type ContextSlot string
+type ContextSlot = capability.ContextSlot
 
 const (
-	SlotCorePersona       ContextSlot = "core_persona"
-	SlotCurrentState      ContextSlot = "current_state"
-	SlotCurrentLife       ContextSlot = "current_life"
-	SlotSchedule          ContextSlot = "schedule"
-	SlotVisualIdentity    ContextSlot = "visual_identity"
-	SlotAppearance        ContextSlot = "appearance"
-	SlotRelationshipScope ContextSlot = "relationship_scope"
-	SlotMemoryScope       ContextSlot = "memory_scope"
-	SlotAgency            ContextSlot = "agency"
-	SlotRecentOutcomes    ContextSlot = "recent_outcomes"
+	SlotCorePersona       = capability.SlotCorePersona
+	SlotCurrentState      = capability.SlotCurrentState
+	SlotCurrentLife       = capability.SlotCurrentLife
+	SlotSchedule          = capability.SlotSchedule
+	SlotVisualIdentity    = capability.SlotVisualIdentity
+	SlotAppearance        = capability.SlotAppearance
+	SlotRelationshipScope = capability.SlotRelationshipScope
+	SlotMemoryScope       = capability.SlotMemoryScope
+	SlotAgency            = capability.SlotAgency
+	SlotRecentOutcomes    = capability.SlotRecentOutcomes
 )
 
 // ContextRequest is intentionally small.  It carries resource identity and
@@ -685,37 +677,7 @@ func contextMapValue(value any) (map[string]any, error) {
 	}
 }
 
-// CapabilityDefinition is the canonical provider and runtime contract.
-type CapabilityDefinition struct {
-	Name    string
-	Version string
-	Type    CapabilityType
-	// InternalOnly keeps deterministic policy and maintenance capabilities in
-	// the canonical registry without exposing them to any model-facing catalog.
-	// Core may still resolve and execute these entries explicitly.
-	InternalOnly          bool
-	Description           string
-	InputSchema           map[string]any
-	OutputSchema          map[string]any
-	Surfaces              []CapabilitySurface
-	TargetKinds           []string
-	OutputRole            string
-	SideEffectClass       string
-	SuccessBoundary       string
-	CompletionBoundary    string
-	OutcomeReferenceField string
-	ConcurrencyClass      string
-	SupportsCancel        bool
-	SupportsRetry         bool
-	RequiresPreflight     bool
-	FailurePolicy         CapabilityFailurePolicy
-	RequiredContext       []ContextSlot
-	// ProvenanceFields are mechanically filled by the Runtime when a thin
-	// provider input omits source/evidence/idempotency fields. They are not
-	// provider-facing semantic decisions.
-	ProvenanceFields       []string `json:"-"`
-	NestedProvenanceObject string   `json:"-"`
-}
+type CapabilityDefinition = capability.CapabilityDefinition
 
 const CapabilityPreparedPayloadSchemaVersion = "fluctlight.capability-prepared.v1"
 const CapabilityRuntimePayloadVersion = "v2"
@@ -859,22 +821,6 @@ func capabilityExecutionArguments(invocation CapabilityInvocation, definition Ca
 	return arguments, nil
 }
 
-func (definition CapabilityDefinition) IsDeferredOutput() bool {
-	return definition.SideEffectClass == "external_async" && len(definition.TargetKinds) > 0
-}
-
-func (definition CapabilityDefinition) SupportsSurface(surface CapabilitySurface) bool {
-	if len(definition.Surfaces) == 0 {
-		return true
-	}
-	for _, candidate := range definition.Surfaces {
-		if candidate == surface {
-			return true
-		}
-	}
-	return false
-}
-
 func containsCapabilityTarget(targets []string, target string) bool {
 	for _, candidate := range targets {
 		if candidate == target {
@@ -884,88 +830,8 @@ func containsCapabilityTarget(targets []string, target string) bool {
 	return false
 }
 
-func (definition CapabilityDefinition) Validate() error {
-	if strings.TrimSpace(definition.Name) == "" || !toolNamePattern.MatchString(definition.Name) {
-		return errors.New("capability_definition_invalid_name")
-	}
-	if strings.TrimSpace(definition.Version) == "" {
-		return errors.New("capability_definition_invalid_version")
-	}
-	switch definition.Type {
-	case CapabilityTypeAction, CapabilityTypeQuery, CapabilityTypeInternal:
-	default:
-		return errors.New("capability_definition_invalid_type")
-	}
-	if definition.InternalOnly && definition.Type != CapabilityTypeInternal {
-		return errors.New("capability_definition_internal_only_requires_internal_type")
-	}
-	if strings.TrimSpace(definition.Description) == "" || len([]rune(definition.Description)) > 512 {
-		return errors.New("capability_definition_invalid_description")
-	}
-	if definition.CompletionBoundary != "" {
-		if strings.TrimSpace(definition.SuccessBoundary) == "" || strings.TrimSpace(definition.OutcomeReferenceField) == "" || len([]rune(definition.CompletionBoundary)) > 128 || len([]rune(definition.OutcomeReferenceField)) > 128 {
-			return errors.New("capability_definition_async_outcome_invalid")
-		}
-		if _, ok := mapValue(definition.OutputSchema["properties"])[definition.OutcomeReferenceField]; !ok {
-			return errors.New("capability_definition_async_reference_undeclared")
-		}
-	} else if definition.OutcomeReferenceField != "" {
-		return errors.New("capability_definition_async_outcome_invalid")
-	}
-	if definition.InputSchema != nil && stringValue(definition.InputSchema["type"]) != "object" {
-		return errors.New("capability_definition_input_schema_invalid")
-	}
-	if err := validateCapabilitySchemaDefinition(definition.InputSchema, nil); err != nil {
-		return fmt.Errorf("capability_definition_input_schema_invalid: %w", err)
-	}
-	if err := validateCapabilitySchemaDefinition(definition.OutputSchema, nil); err != nil {
-		return fmt.Errorf("capability_definition_output_schema_invalid: %w", err)
-	}
-	if definition.FailurePolicy != FailurePolicyRequiredForVisibleClaim && definition.FailurePolicy != FailurePolicyOptionalInternal {
-		return errors.New("capability_definition_failure_policy_invalid")
-	}
-	for _, slot := range definition.RequiredContext {
-		if !knownContextSlot(slot) {
-			return fmt.Errorf("capability_definition_context_slot_invalid: %q", slot)
-		}
-	}
-	return nil
-}
-
-// CapabilityInvocation is the canonical call envelope produced by the
-// Provider codec and persisted by the runtime.
-type CapabilityInvocation struct {
-	CallID            string             `json:"call_id"`
-	CapabilityName    string             `json:"capability_name"`
-	SchemaVersion     string             `json:"schema_version"`
-	Arguments         json.RawMessage    `json:"arguments"`
-	PreparedPayload   json.RawMessage    `json:"prepared_payload,omitempty"`
-	Intent            string             `json:"intent,omitempty"`
-	SourceFactID      string             `json:"source_fact_id"`
-	ActionID          string             `json:"action_id,omitempty"`
-	ProviderRequestID string             `json:"provider_request_id"`
-	Sequence          int                `json:"sequence"`
-	Metadata          InvocationMetadata `json:"metadata,omitempty"`
-	ContextSnapshot   map[string]any     `json:"context_snapshot,omitempty"`
-}
-
-type InvocationMetadata struct {
-	CorrelationID string `json:"correlation_id,omitempty"`
-	// Source distinguishes a model-native tool call from a deterministic policy
-	// invocation without creating a second persistence envelope.
-	Source         string            `json:"source,omitempty"`
-	Surface        CapabilitySurface `json:"surface,omitempty"`
-	OutputBinding  *OutputBindingV1  `json:"output_binding,omitempty"`
-	FluctlightID   string            `json:"fluctlight_id,omitempty"`
-	ConversationID string            `json:"conversation_id,omitempty"`
-}
-
-func (definition CapabilityDefinition) ValidateOutput(output any) error {
-	if definition.OutputSchema == nil {
-		return nil
-	}
-	return validateCapabilitySchemaValue(output, definition.OutputSchema)
-}
+type CapabilityInvocation = capability.CapabilityInvocation
+type InvocationMetadata = capability.InvocationMetadata
 
 func capabilityInvocationsFromValue(value any) ([]CapabilityInvocation, error) {
 	if value == nil {
@@ -998,43 +864,7 @@ func capabilityInvocationsFromValue(value any) ([]CapabilityInvocation, error) {
 	return invocations, nil
 }
 
-func (invocation CapabilityInvocation) Validate(definition CapabilityDefinition) error {
-	if invocation.SchemaVersion != "" && invocation.SchemaVersion != CapabilityInvocationSchemaVersion {
-		return fmt.Errorf("%w: invocation schema version", ErrInvalidArguments)
-	}
-	if strings.TrimSpace(invocation.CallID) == "" || strings.TrimSpace(invocation.CapabilityName) == "" || invocation.CapabilityName != definition.Name {
-		return fmt.Errorf("%w: invocation identity", ErrInvalidArguments)
-	}
-	if strings.TrimSpace(invocation.SourceFactID) == "" {
-		return fmt.Errorf("%w: source fact is required", ErrInvalidArguments)
-	}
-	if strings.TrimSpace(invocation.ProviderRequestID) == "" {
-		return fmt.Errorf("%w: provider request is required", ErrInvalidArguments)
-	}
-	if invocation.Sequence < 0 {
-		return fmt.Errorf("%w: sequence is invalid", ErrInvalidArguments)
-	}
-	if source := strings.TrimSpace(invocation.Metadata.Source); source != "" && source != "model_tool" && source != "policy" {
-		return fmt.Errorf("%w: invocation source is invalid", ErrInvalidArguments)
-	}
-	arguments, err := normalizeToolArguments(string(invocation.Arguments))
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrInvalidArguments, err)
-	}
-	var object map[string]any
-	if err := json.Unmarshal(arguments, &object); err != nil || object == nil {
-		return fmt.Errorf("%w: arguments must be an object", ErrInvalidArguments)
-	}
-	if err := validateRequiredSchemaFields(object, definition.InputSchema); err != nil {
-		return fmt.Errorf("%w: %v", ErrInvalidArguments, err)
-	}
-	if len(invocation.PreparedPayload) > 0 {
-		if _, err := decodeCapabilityPreparedPayload(invocation.PreparedPayload); err != nil {
-			return fmt.Errorf("%w: %v", ErrInvalidArguments, err)
-		}
-	}
-	return nil
-}
+
 
 func validateRequiredSchemaFields(object map[string]any, schema map[string]any) error {
 	return validateCapabilitySchemaValue(object, schema)
@@ -1302,30 +1132,8 @@ func validateCapabilitySchemaValue(value any, schema map[string]any) error {
 	return nil
 }
 
-type CapabilityResult struct {
-	CallID            string        `json:"call_id"`
-	CapabilityName    string        `json:"capability_name"`
-	Status            string        `json:"status"`
-	Output            any           `json:"output,omitempty"`
-	ErrorCode         string        `json:"error_code,omitempty"`
-	Retryable         bool          `json:"retryable"`
-	ProviderRequestID string        `json:"provider_request_id,omitempty"`
-	CorrelationID     string        `json:"correlation_id,omitempty"`
-	Duration          time.Duration `json:"-"`
-	RequiredContext   []ContextSlot `json:"required_context,omitempty"`
-}
+type CapabilityResult = capability.CapabilityResult
 
-func (result CapabilityResult) Validate(invocation CapabilityInvocation) error {
-	if result.CallID != invocation.CallID || result.CapabilityName != invocation.CapabilityName {
-		return errors.New("capability result identity invalid")
-	}
-	switch result.Status {
-	case "completed", "failed", "rejected", "deferred":
-		return nil
-	default:
-		return errors.New("capability result status invalid")
-	}
-}
 
 // Capability is the implementation seam for migrated capabilities.
 type Capability interface {

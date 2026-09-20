@@ -862,6 +862,45 @@ completion, err := provider.StructuredAssembledWithToolsSchema(
   WakeUp no-op and deferred output remain valid only after the owning Core
   lifecycle path settles them.
 
+## Scenario: Surface-Aware Bounded ADK Structured Tasks
+
+### 1. Scope / Trigger
+
+- Trigger: a conversation Main/Takeover-B turn or the WakeUp model decision
+  needs the existing Eino ADK model→Capability→ToolResult→model protocol.
+- The request is operation-scoped. It carries only identity, correlation,
+  surface and a read-only context projection; it never exposes `*App`, a
+  repository or a transaction to the ADK tool adapter.
+
+### 2. Contracts
+
+- The explicit ADK loop allowlist is `conversation_turn_response`,
+  `takeover_reply_response`, and `wake_up_response`.
+- The loop has at most two model generations, has no hidden retry/fallback,
+  preserves the Provider tool-call ID, and returns typed errors for model,
+  tool, cancellation, empty-final and iteration-limit failures.
+- WakeUp definitions are taken from
+  `CapabilityRegistry.Catalog(CapabilitySurfaceWakeUp)` and are checked against
+  the canonical Registry definition before Provider I/O. Unknown, duplicate,
+  mismatched, `InternalOnly`, and cross-surface definitions fail closed.
+- Pure query capabilities may return a bounded result to the next ADK request.
+  Deferred, mutation and external capabilities return a pending/deferred
+  result only; the ADK callback never commits a transaction or publishes an
+  output. Existing freeze, policy, intent/outbox and action-worker boundaries
+  remain authoritative.
+- Daily Review, Native Cognition, Reflection and query/Judge schemas remain
+  single-task/no-feedback paths until an explicit feedback contract is added;
+  a capability catalog alone does not opt a schema into ADK.
+
+### 3. Tests Required
+
+- Assert WakeUp enters the same Eino ADK loop used by conversation, preserves
+  formal call/result pairing and correlation, and bounds the loop to two
+  generations.
+- Assert model/tool failure and cancellation do not fabricate a final result;
+  WakeUp no-op and deferred output remain valid only after the owning Core
+  lifecycle path settles them.
+
 ## Scenario: Task-Owned Model Operation Contracts
 
 ### 1. Scope / Trigger

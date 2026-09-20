@@ -1,7 +1,6 @@
 package core
 
 import (
-	"os"
 	"strings"
 	"testing"
 )
@@ -215,10 +214,7 @@ func TestDefaultCapabilityRegistryIncludesVisualIdentityInitializer(t *testing.T
 }
 
 func TestVisualIdentityWaitingOutcomesRequireAuthoritativeSettlement(t *testing.T) {
-	source, err := os.ReadFile("visual_identity.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := readSourceFile(t, "visual_identity.go")
 	body := sourceBetween(t, string(source), "func (a *App) ProcessVisualIdentity", "func (a *App) recordVisualIdentityStage")
 	if strings.Contains(body, "_, _ = a.DB.Pool().Exec") {
 		t.Fatal("Visual Identity still ignores an authoritative session settlement")

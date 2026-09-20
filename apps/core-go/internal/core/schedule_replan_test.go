@@ -162,10 +162,7 @@ func TestScheduleAcceptanceRequestDigestIsStableAndPayloadSensitive(t *testing.T
 }
 
 func TestSchedulePlannerUsesStructuredCognitiveRole(t *testing.T) {
-	data, err := os.ReadFile("schedule_capability.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	data := readSourceFile(t, "schedule_capability.go")
 	source := string(data)
 	if !strings.Contains(source, `"schedule_replan_planner"`) || !strings.Contains(source, `"cognitive_assessment"`) {
 		t.Fatalf("schedule planner is not bound to the structured cognition role: %s", source)

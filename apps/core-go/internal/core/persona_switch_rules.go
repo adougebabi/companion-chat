@@ -6,177 +6,55 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/personality"
 )
 
-// personaSwitchRuleSetVersion identifies the normalizer contract. It is stored
-// on every frozen turn so a replay can prove which classifier produced a rule
-// identity.
-const personaSwitchRuleSetVersion = "persona-switch-rules.v1"
+const personaSwitchRuleSetVersion = personality.PersonaSwitchRuleSetVersion
+const personaTakeoverRuleVersion = personality.PersonaTakeoverRuleVersion
 
-// personaTakeoverRuleVersion identifies the typed declaration contract. It is
-// deliberately separate from personaSwitchRuleSetVersion: the former versions
-// the data contract emitted by initialization/migration, while the latter
-// versions the Runtime normalizer that selects and freezes a rule.
-const personaTakeoverRuleVersion = "turn-takeover.v1"
-
-// personaSwitchRuleKind is the normalized execution class of one declared
-// persona-switch rule. Only switchRuleTurnTakeover has an execution path in
-// this change; switchRulePersistentDeterministic is classified and reported but
-// deliberately not evaluated (see design.md 3.5, option A).
-type personaSwitchRuleKind string
+type personaSwitchRuleKind = personality.PersonaSwitchRuleKind
 
 const (
-	switchRulePersistentDeterministic personaSwitchRuleKind = "persistent_deterministic"
-	switchRulePersistentSemantic      personaSwitchRuleKind = "persistent_semantic"
-	switchRuleTurnTakeover            personaSwitchRuleKind = "turn_takeover"
-	switchRuleUnclassified            personaSwitchRuleKind = "unclassified"
+	switchRulePersistentDeterministic = personality.SwitchRulePersistentDeterministic
+	switchRulePersistentSemantic      = personality.SwitchRulePersistentSemantic
+	switchRuleTurnTakeover            = personality.SwitchRuleTurnTakeover
+	switchRuleUnclassified            = personality.SwitchRuleUnclassified
 )
 
-// Declared sources. The runtime only ever consumes the normalized structure;
-// the source value is retained for diagnostics and for the persistent-switch
-// authorization decision.
 const (
-	personaSwitchSourceSwitching          = "switching.rules"
-	personaSwitchSourceSwitchingList      = "switching"
-	personaSwitchSourceSwitchingDefault   = "switching.default_profile_id"
-	personaSwitchSourceTakeoverRules      = "takeover_rules"
-	personaSwitchSourceForcedActivation   = "forced_activation"
-	persistentSwitchGrantScenarioMain     = "cognitive_assessment"
-	persistentSwitchGrantScenarioTakeover = "takeover_reply"
-	persistentSwitchGrantScenarioQuery    = "query_continuation"
-	persistentSwitchGrantScenarioJudge    = "takeover_judge"
+	personaSwitchSourceSwitching          = personality.PersonaSwitchSourceSwitching
+	personaSwitchSourceSwitchingList      = personality.PersonaSwitchSourceSwitchingList
+	personaSwitchSourceSwitchingDefault   = personality.PersonaSwitchSourceSwitchingDefault
+	personaSwitchSourceTakeoverRules      = personality.PersonaSwitchSourceTakeoverRules
+	personaSwitchSourceForcedActivation   = personality.PersonaSwitchSourceForcedActivation
+	persistentSwitchGrantScenarioMain     = personality.PersistentSwitchGrantScenarioMain
+	persistentSwitchGrantScenarioTakeover = personality.PersistentSwitchGrantScenarioTakeover
+	persistentSwitchGrantScenarioQuery    = personality.PersistentSwitchGrantScenarioQuery
+	persistentSwitchGrantScenarioJudge    = personality.PersistentSwitchGrantScenarioJudge
 )
 
-// personaSwitchDiagnosticCode values are stable, bounded codes. They are the
-// only way an unresolved or unrecognized declaration is reported; the
-// normalizer never silently drops declared material.
 const (
-	personaSwitchDiagnosticUnclassified       = "unclassified"
-	personaSwitchDiagnosticTargetUnresolved   = "target_profile_unresolved"
-	personaSwitchDiagnosticTargetAmbiguous    = "target_profile_ambiguous"
-	personaSwitchDiagnosticRuleIDMissing      = "switch_rule_id_missing"
-	personaSwitchDiagnosticSourceUnresolved   = "source_profile_unresolved"
-	personaSwitchDiagnosticTakeoverCooldown   = "takeover_cooldown_active"
-	personaSwitchDiagnosticProfileIndexAbsent = "profile_index_empty"
-	personaSwitchDiagnosticKindInvalid        = "takeover_rule_kind_invalid"
-	personaSwitchDiagnosticVersionInvalid     = "takeover_rule_version_unsupported"
-	personaSwitchDiagnosticFieldMissing       = "takeover_rule_field_missing"
-	personaSwitchDiagnosticTargetExplicit     = "takeover_target_explicit_required"
-	personaSwitchDiagnosticEnabledInvalid     = "takeover_rule_enabled_invalid"
+	personaSwitchDiagnosticUnclassified       = personality.PersonaSwitchDiagnosticUnclassified
+	personaSwitchDiagnosticTargetUnresolved   = personality.PersonaSwitchDiagnosticTargetUnresolved
+	personaSwitchDiagnosticTargetAmbiguous    = personality.PersonaSwitchDiagnosticTargetAmbiguous
+	personaSwitchDiagnosticRuleIDMissing      = personality.PersonaSwitchDiagnosticRuleIDMissing
+	personaSwitchDiagnosticSourceUnresolved   = personality.PersonaSwitchDiagnosticSourceUnresolved
+	personaSwitchDiagnosticTakeoverCooldown   = personality.PersonaSwitchDiagnosticTakeoverCooldown
+	personaSwitchDiagnosticProfileIndexAbsent = personality.PersonaSwitchDiagnosticProfileIndexAbsent
+	personaSwitchDiagnosticKindInvalid        = personality.PersonaSwitchDiagnosticKindInvalid
+	personaSwitchDiagnosticVersionInvalid     = personality.PersonaSwitchDiagnosticVersionInvalid
+	personaSwitchDiagnosticFieldMissing       = personality.PersonaSwitchDiagnosticFieldMissing
+	personaSwitchDiagnosticTargetExplicit     = personality.PersonaSwitchDiagnosticTargetExplicit
+	personaSwitchDiagnosticEnabledInvalid     = personality.PersonaSwitchDiagnosticEnabledInvalid
 )
 
-// personaSwitchRule is the normalized, deterministic form of one declared
-// switch/takeover rule. Raw keeps the source value untouched so persistence and
-// replay never depend on the normalizer's interpretation.
-type personaSwitchRule struct {
-	RuleID            string
-	RuleContentDigest string
-	// DeclarationVersion is the version of the typed rule data contract. It is
-	// distinct from personaSwitchNormalization.Version, which identifies the
-	// Runtime normalizer used to derive this rule.
-	DeclarationVersion string
-	Kind               personaSwitchRuleKind
-	Source             string
-	SourceProfileID    string
-	TargetProfileID    string
-	Condition          string
-	Priority           float64
-	CooldownSeconds    int
-	// Enabled reports whether the declaration is fully resolved (a target
-	// profile exists, no ambiguity). It is not an execution decision: only
-	// Kind == switchRuleTurnTakeover rules reach selectTurnTakeoverRule.
-	Enabled bool
-	Raw     map[string]any
-}
+type personaSwitchRule = personality.PersonaSwitchRule
+type personaSwitchDiagnostic = personality.PersonaSwitchDiagnostic
+type personaSwitchNormalization = personality.PersonaSwitchNormalization
+type persistentSwitchGrant = personality.PersistentSwitchGrant
+type turnPersonaScope = personality.TurnPersonaScope
 
-// personaSwitchDiagnostic is a bounded, structured report of material the
-// normalizer could not turn into an executable rule. RuleID/Path locate the
-// declaration; Excerpt keeps a short verbatim sample for the operator.
-type personaSwitchDiagnostic struct {
-	Code    string
-	Source  string
-	Path    string
-	RuleID  string
-	Excerpt string
-	Detail  string
-}
-
-func (value personaSwitchDiagnostic) asMap() map[string]any {
-	result := map[string]any{"code": value.Code}
-	for key, child := range map[string]string{
-		"source": value.Source, "path": value.Path, "rule_id": value.RuleID,
-		"excerpt": value.Excerpt, "detail": value.Detail,
-	} {
-		if strings.TrimSpace(child) != "" {
-			result[key] = child
-		}
-	}
-	return result
-}
-
-// personaSwitchNormalization is the single normalized view of every declared
-// persona-switch rule plus the diagnostics produced while building it.
-type personaSwitchNormalization struct {
-	Version     string
-	Rules       []personaSwitchRule
-	Diagnostics []personaSwitchDiagnostic
-	// DeclaredProfileIDs is the set of profile identifiers the persona
-	// actually declares. A takeover target outside this set is never
-	// executable.
-	DeclaredProfileIDs map[string]struct{}
-	// DeclaredProfileIDsOrdered preserves declaration order; selection is
-	// priority-then-identifier so order is only used for target resolution.
-	DeclaredProfileIDsOrdered []string
-}
-
-func (value personaSwitchNormalization) hasDeclaredPersistentSwitch() bool {
-	for _, rule := range value.Rules {
-		if strings.HasPrefix(rule.Source, "switching") {
-			return true
-		}
-	}
-	return false
-}
-
-func (value personaSwitchNormalization) declaredRuleIDs() []string {
-	result := make([]string, 0, len(value.Rules))
-	for _, rule := range value.Rules {
-		if strings.HasPrefix(rule.Source, "switching") {
-			result = append(result, rule.RuleID)
-		}
-	}
-	sort.Strings(result)
-	return result
-}
-
-// persistentSwitchGrant answers exactly one question: may the model call being
-// made right now propose a persistent dominant-persona change? It is a
-// structural decision derived from the call scenario, not a prompt-level hint
-// (design.md 0.3/0.4).
-type persistentSwitchGrant struct {
-	Allowed       bool
-	Scenario      string
-	DeclaredRules []string
-	Reason        string
-}
-
-// turnPersonaScope is the frozen persona view of one turn. It is resolved
-// before the A generation so the record can prove which active profile and
-// revisions that generation actually saw (design.md 4.1).
-type turnPersonaScope struct {
-	ActiveProfileID     string
-	ReplyOwnerProfileID string
-	PersonaRevision     int
-	OverlayRevision     int
-	ScopeRevision       int
-}
-
-func (value turnPersonaScope) replyOwner() string {
-	if owner := strings.TrimSpace(value.ReplyOwnerProfileID); owner != "" {
-		return owner
-	}
-	return strings.TrimSpace(value.ActiveProfileID)
-}
 
 // ---------------------------------------------------------------------------
 // Declaration parsing helpers
@@ -422,13 +300,13 @@ func normalizePersonaSwitchRules(corePersona, runtime map[string]any, subjectPro
 	system := mapValue(corePersonaData(corePersona)["personality_system"])
 
 	for _, candidate := range personaSwitchingCandidates(system) {
-		result.appendPersistentCandidate(candidate, subject, index)
+		appendPersistentCandidate(&result, candidate, subject, index)
 	}
 	for _, candidate := range personaTakeoverRuleCandidates(system) {
-		result.appendTakeoverCandidate(candidate, index)
+		appendTakeoverCandidate(&result, candidate, index)
 	}
-	result.appendDefaultProfileCandidate(system, index)
-	result.appendForcedActivationCandidates(system, index)
+	appendDefaultProfileCandidate(&result, system, index)
+	appendForcedActivationCandidates(&result, system, index)
 
 	sort.SliceStable(result.Rules, func(left, right int) bool {
 		if result.Rules[left].Priority != result.Rules[right].Priority {
@@ -439,7 +317,7 @@ func normalizePersonaSwitchRules(corePersona, runtime map[string]any, subjectPro
 	return result
 }
 
-func (value *personaSwitchNormalization) appendPersistentCandidate(candidate personaRuleCandidate, subject string, index personaProfileIndex) {
+func appendPersistentCandidate(value *personaSwitchNormalization, candidate personaRuleCandidate, subject string, index personaProfileIndex) {
 	condition := strings.TrimSpace(candidate.clause)
 	target := strings.TrimSpace(stringValue(candidate.object["target_profile_id"]))
 	resolvedTarget := ""
@@ -496,7 +374,7 @@ func (value *personaSwitchNormalization) appendPersistentCandidate(candidate per
 	value.Rules = append(value.Rules, rule)
 }
 
-func (value *personaSwitchNormalization) appendTakeoverCandidate(candidate personaRuleCandidate, index personaProfileIndex) {
+func appendTakeoverCandidate(value *personaSwitchNormalization, candidate personaRuleCandidate, index personaProfileIndex) {
 	condition := strings.TrimSpace(candidate.clause)
 	ruleID := ""
 	valid := true
@@ -602,7 +480,7 @@ func (value *personaSwitchNormalization) appendTakeoverCandidate(candidate perso
 	value.Rules = append(value.Rules, rule)
 }
 
-func (value *personaSwitchNormalization) appendDefaultProfileCandidate(system map[string]any, index personaProfileIndex) {
+func appendDefaultProfileCandidate(value *personaSwitchNormalization, system map[string]any, index personaProfileIndex) {
 	defaultProfile := strings.TrimSpace(stringValue(mapValue(system["switching"])["default_profile_id"]))
 	if defaultProfile == "" {
 		return
@@ -626,7 +504,7 @@ func (value *personaSwitchNormalization) appendDefaultProfileCandidate(system ma
 	value.Rules = append(value.Rules, rule)
 }
 
-func (value *personaSwitchNormalization) appendForcedActivationCandidates(system map[string]any, index personaProfileIndex) {
+func appendForcedActivationCandidates(value *personaSwitchNormalization, system map[string]any, index personaProfileIndex) {
 	raw, exists := system["forced_activation"]
 	if !exists {
 		return
@@ -1076,7 +954,7 @@ func resolvePersistentSwitchGrant(scope turnPersonaScope, scenario string, rules
 // take over the current turn. The Judge never participates in this choice: it
 // only answers whether the selected takeover is warranted (design.md 0.2).
 func selectTurnTakeoverRule(rules []personaSwitchRule, scope turnPersonaScope, cooldownUntil *time.Time, now time.Time) (personaSwitchRule, bool) {
-	owner := scope.replyOwner()
+	owner := scope.ReplyOwner()
 	eligible := make([]personaSwitchRule, 0, len(rules))
 	for _, rule := range rules {
 		if rule.Kind != switchRuleTurnTakeover || rule.DeclarationVersion != personaTakeoverRuleVersion || !rule.Enabled {

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -17,18 +18,46 @@ var ErrNotFound = errors.New("resource not found")
 var ErrUnauthorized = errors.New("resource is not authorized")
 var ErrConflict = errors.New("resource revision conflict")
 
-type Repository interface {
-	Ping(context.Context) error
-	ResolveSession(context.Context, string) (string, error)
+// DBTX is the unified database query and execution interface implemented by both *pgxpool.Pool and pgx.Tx.
+type DBTX interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+// FluctlightRepository provides domain access to Fluctlight entities.
+type FluctlightRepository interface {
 	ListFluctlights(context.Context, string) ([]Fluctlight, error)
 	GetFluctlight(context.Context, string, string) (Fluctlight, error)
+}
+
+// AuthRepository provides session and authentication resolution.
+type AuthRepository interface {
+	ResolveSession(context.Context, string) (string, error)
+}
+
+// ConversationRepository provides conversation history access.
+type ConversationRepository interface {
 	DirectConversationID(context.Context, string, string) (string, error)
 	History(context.Context, string, string, *int, int) (ConversationPage, error)
 }
 
+// Repository aggregates the Core read-side query interfaces.
+type Repository interface {
+	Ping(context.Context) error
+	AuthRepository
+	FluctlightRepository
+	ConversationRepository
+}
+
 type PostgresRepository struct{ pool *pgxpool.Pool }
 
-func (r *PostgresRepository) Pool() *pgxpool.Pool { return r.pool }
+func (r *PostgresRepository) Pool() *pgxpool.Pool {
+	if r == nil {
+		return nil
+	}
+	return r.pool
+}
 
 func NewPostgresRepository(ctx context.Context, databaseURL string) (*PostgresRepository, error) {
 	pool, err := pgxpool.New(ctx, databaseURL)

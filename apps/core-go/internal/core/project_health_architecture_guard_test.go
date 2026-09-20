@@ -42,10 +42,7 @@ func TestProjectHealthArchitectureGuardAllowsToolRoleOnlyInQueryContinuation(t *
 }
 
 func TestProjectHealthArchitectureGuardHasNoScheduleSemanticSplitter(t *testing.T) {
-	source, err := os.ReadFile("schedule_generation.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := readSourceFile(t, "schedule_generation.go")
 	for _, forbidden := range []string{"splitAmbiguousScheduleEntries", "splitScheduleAlternatives", `ReplaceAll(value, "或"`} {
 		if strings.Contains(string(source), forbidden) {
 			t.Fatalf("Go schedule semantic heuristic %q remains", forbidden)
@@ -92,10 +89,7 @@ func TestAffectStaticGuardPreservesBipolarAndUnitClampOwnership(t *testing.T) {
 	if clampBipolar(-0.5) != -0.5 || clampUnit(-0.5) != 0 {
 		t.Fatal("bipolar and unit ranges collapsed")
 	}
-	source, err := os.ReadFile("affect_reducer.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	source := readSourceFile(t, "affect_reducer.go")
 	text := string(source)
 	for _, required := range []string{`case "pad":`, `target, clamp = pad, clampBipolar`, `case "momentum":`, `target, clamp = momentum, clampBipolar`} {
 		if !strings.Contains(text, required) {

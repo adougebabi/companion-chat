@@ -3,6 +3,8 @@ package core
 import (
 	"log/slog"
 	"sort"
+
+	aitask "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/task"
 )
 
 // normalizeStructuredShape repairs only fields that are absent or have the
@@ -10,52 +12,7 @@ import (
 // the expected shape are returned unchanged; this is deliberately not a
 // second semantic validation pass.
 func normalizeStructuredShape(value map[string]any, schema map[string]any) (map[string]any, []string) {
-	if value == nil {
-		value = map[string]any{}
-	}
-	root := selectObjectSchema(schema, value)
-	properties := mapValue(root["properties"])
-	if len(properties) == 0 {
-		return value, nil
-	}
-	result := value
-	changed := false
-	changedFields := make(map[string]struct{})
-	ensureCopy := func() {
-		if changed {
-			return
-		}
-		result = make(map[string]any, len(value)+len(properties))
-		for key, item := range value {
-			result[key] = item
-		}
-		changed = true
-	}
-	for key, rawSchema := range properties {
-		fieldSchema := mapValue(rawSchema)
-		raw, exists := value[key]
-		if !exists || raw == nil {
-			if schemaHasRequired(root, key) {
-				ensureCopy()
-				result[key] = emptySchemaValue(fieldSchema)
-				changedFields[key] = struct{}{}
-			}
-			continue
-		}
-		normalized, fieldChanged := normalizeSchemaValue(raw, fieldSchema)
-		if !fieldChanged {
-			continue
-		}
-		ensureCopy()
-		result[key] = normalized
-		changedFields[key] = struct{}{}
-	}
-	fields := make([]string, 0, len(changedFields))
-	for field := range changedFields {
-		fields = append(fields, field)
-	}
-	sort.Strings(fields)
-	return result, fields
+	return aitask.NormalizeStructuredShape(value, schema)
 }
 
 func normalizeProviderStructured(value map[string]any, schemaName string, schema map[string]any) (map[string]any, []string) {

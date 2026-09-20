@@ -21,21 +21,38 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// App serves as the Composition Root and Application Module Container for Go Core.
+// Domain services receive narrow interfaces rather than holding the entire *App.
 type App struct {
-	DB           *PostgresRepository
-	Provider     *ProviderClient
-	Capabilities *CapabilityRegistry
+	// --- Persistence & Storage Infrastructure ---
+	DB          *PostgresRepository
+	Storage     *minio.Client
+	S3Bucket    string
+	Redis       redis.UniversalClient
+	Workflows   WorkflowRuntime
+	SettingsKey []byte
+	ServiceKey  string
+
+	// --- AI Provider & Planning Subsystems ---
+	Provider        *ProviderClient
+	SchedulePlanner SchedulePlanner
+
+	// --- Domain Subsystem Services ---
+	Schedule    *ScheduleService
+	Memory      *MemoryService
+	Media       *MediaService
+	Cognition   *CognitionService
+	Reflection  *ReflectionService
+	LifeContext *LifeContextService
+
+	// --- Capability Execution Subsystems ---
 	// ContextResolver and Runtime are the canonical capability execution
 	// boundaries for all active calls and replay.
+	Capabilities    *CapabilityRegistry
 	ContextResolver ContextResolver
 	Runtime         *CapabilityRuntime
-	SchedulePlanner SchedulePlanner
-	Workflows       WorkflowRuntime
-	SettingsKey     []byte
-	ServiceKey      string
-	Storage         *minio.Client
-	S3Bucket        string
-	Redis           redis.UniversalClient
+
+	// --- System Environment & Clocks ---
 	// Clock is an optional injectable time source. Production leaves it nil and
 	// the pipeline uses time.Now, so behaviour is unchanged. Tests inject a
 	// fixed clock to make settlement ordering deterministic.
@@ -119,6 +136,12 @@ func NewApp(repository *PostgresRepository, settingsKey, serviceKey, s3Endpoint,
 	app.Provider.generated = newProviderQueue(providerQueueDefaultConcurrency)
 	app.Provider.embedding = newProviderQueue(providerQueueDefaultEmbedding)
 	app.SchedulePlanner = providerSchedulePlanner{provider: app.Provider, runner: app}
+	app.Schedule = NewScheduleService(repository.Pool(), app.SchedulePlanner, app)
+	app.Memory = NewMemoryService(repository.Pool(), app)
+	app.Media = NewMediaService(repository.Pool(), storage, s3Bucket, app)
+	app.Cognition = NewCognitionService(repository.Pool(), app)
+	app.Reflection = NewReflectionService(repository.Pool(), app)
+	app.LifeContext = NewLifeContextService(repository.Pool(), app)
 	registry, registryErr := NewCapabilityRegistry(builtinCapabilities(app)...)
 	if registryErr != nil {
 		return nil, registryErr

@@ -4,12 +4,67 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 )
+
+// readSourceFile finds and reads a source file, looking first in the current directory (internal/core),
+// and searching subpackages (internal/*) or repository root if not found directly.
+func readSourceFile(t *testing.T, filename string) []byte {
+	t.Helper()
+	filename = filepath.Clean(filename)
+	// 1. Direct relative check
+	if data, err := os.ReadFile(filename); err == nil {
+		return data
+	}
+	// 2. Look in ../<subpkg>/filename or ../../...
+	candidates := []string{
+		filepath.Join(".", filename),
+		filepath.Join("..", filename),
+		filepath.Join("..", "personality", filename),
+		filepath.Join("..", "conversation", filename),
+		filepath.Join("..", "capability", filename),
+		filepath.Join("..", "workflow", filename),
+		filepath.Join("..", "schedule", filename),
+		filepath.Join("..", "memory", filename),
+		filepath.Join("..", "media", filename),
+		filepath.Join("..", "cognition", filename),
+		filepath.Join("..", "reflection", filename),
+		filepath.Join("..", "lifecontext", filename),
+		filepath.Join("..", "ai", "model", filename),
+		filepath.Join("..", "ai", "prompt", filename),
+		filepath.Join("..", "ai", "agent", filename),
+		filepath.Join("..", "ai", "task", filename),
+	}
+	for _, cand := range candidates {
+		if data, err := os.ReadFile(cand); err == nil {
+			return data
+		}
+	}
+	// 3. Fallback: walk from internal/
+	var found []byte
+	_ = filepath.Walk("..", func(path string, info os.FileInfo, err error) error {
+		if err == nil && !info.IsDir() && filepath.Base(path) == filepath.Base(filename) {
+			if data, readErr := os.ReadFile(path); readErr == nil {
+				found = data
+				return fmt.Errorf("found")
+			}
+		}
+		return nil
+	})
+	if len(found) > 0 {
+		return found
+	}
+	t.Fatalf("readSourceFile: source file %q not found in any candidate directory", filename)
+	return nil
+}
+
 
 // This file is the shared deterministic test base (implement.md phase 1). It
 // converges the manual &App{...} assembly that used to be copy-pasted across
@@ -306,6 +361,15 @@ func newTestApp(t *testing.T, repository *PostgresRepository, transport http.Rou
 	app.Provider = &ProviderClient{DB: repository}
 	if transport != nil {
 		app.Provider.HTTP = &http.Client{Transport: transport}
+	}
+	app.SchedulePlanner = providerSchedulePlanner{provider: app.Provider, runner: app}
+	if repository != nil && repository.Pool() != nil {
+		app.Schedule = NewScheduleService(repository.Pool(), app.SchedulePlanner, app)
+		app.Memory = NewMemoryService(repository.Pool(), app)
+		app.Media = NewMediaService(repository.Pool(), nil, "", app)
+		app.Cognition = NewCognitionService(repository.Pool(), app)
+		app.Reflection = NewReflectionService(repository.Pool(), app)
+		app.LifeContext = NewLifeContextService(repository.Pool(), app)
 	}
 	app.ContextResolver = NewAppContextResolver(app)
 	app.Capabilities = app.capabilityRegistry()

@@ -1094,10 +1094,7 @@ func TestCapabilityRuntimeStaticGuardsPreserveActionSingleCognitionAndGenericQue
 }
 
 func TestConversationPersistsPreparedInvocationBeforeCapabilityExecution(t *testing.T) {
-	data, err := os.ReadFile("mutations.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	data := readSourceFile(t, "mutations.go")
 	source := string(data)
 	prepareAt := strings.Index(source, "capabilityInvocations, err = a.prepareCapabilityInvocations")
 	persistAt := strings.Index(source, "if err := a.persistFrozenCapabilityInvocations(ctx, frozen.ID, capabilityInvocations)")
@@ -1108,10 +1105,7 @@ func TestConversationPersistsPreparedInvocationBeforeCapabilityExecution(t *test
 }
 
 func TestAutonomyPersistsPreparedInvocationBeforeCapabilityExecution(t *testing.T) {
-	data, err := os.ReadFile("workflow_ops.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	data := readSourceFile(t, "workflow_ops.go")
 	source := string(data)
 	if strings.Contains(source, "resumeCapabilities(") {
 		t.Fatal("autonomy must not execute transactional capabilities outside its settlement transaction")

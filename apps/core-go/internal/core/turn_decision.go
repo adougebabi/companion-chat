@@ -95,7 +95,7 @@ func (a *App) normalizeTurnDecision(ctx context.Context, input turnDecisionNorma
 	if len(personaSwitchDiagnostics) > 0 {
 		recorded := make([]any, 0, len(personaSwitchDiagnostics))
 		for _, diagnostic := range personaSwitchDiagnostics {
-			recorded = append(recorded, diagnostic.asMap())
+			recorded = append(recorded, diagnostic.AsMap())
 		}
 		decision["persona_switch_diagnostics"] = recorded
 	}
@@ -127,7 +127,7 @@ func (a *App) normalizeTurnDecision(ctx context.Context, input turnDecisionNorma
 	if len(visibleTextDiagnostics) > 0 {
 		recorded := make([]any, 0, len(visibleTextDiagnostics))
 		for _, diagnostic := range visibleTextDiagnostics {
-			recorded = append(recorded, diagnostic.asMap())
+			recorded = append(recorded, diagnostic.AsMap())
 		}
 		decision["visible_text_diagnostics"] = recorded
 		a.recordDiagnosticEvent(ctx, "cognition.visible_text.source_conflict", "warning", input.FluctlightID, input.InboxID, "turn:"+input.TurnID, recorded)

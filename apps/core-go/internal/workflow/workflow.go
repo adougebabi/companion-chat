@@ -66,9 +66,30 @@ func workflowIntentRetryExhausted(intentType string, attemptCount int) bool {
 	return maximum > 0 && attemptCount >= maximum
 }
 
+// ApplicationService specifies the narrow operations invoked by Temporal activities.
+// This decouples the workflow activities from the monolithic *core.App struct.
+type ApplicationService interface {
+	ProcessDailyReview(ctx context.Context, fluctlightID, localDate string) (map[string]any, error)
+	ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int) (map[string]any, error)
+	ProcessCognitionInbox(ctx context.Context, inboxID string) (map[string]any, error)
+	ProcessIntentionTrigger(ctx context.Context, intentionID string) (map[string]any, error)
+	ProcessMediaIntent(ctx context.Context, intentID string) (map[string]any, error)
+	ProcessAutonomyAction(ctx context.Context, actionID string) (map[string]any, error)
+	ProcessCapabilityAction(ctx context.Context, actionID string) (map[string]any, error)
+	ProcessReflection(ctx context.Context, fluctlightID, triggerEventID string) (map[string]any, error)
+	ProcessMemoryEmbeddingIntentAt(ctx context.Context, intentID, memoryID string, revision int, providerEndpointID, modelID string) (map[string]any, error)
+	ProcessConversationSummaryIntent(ctx context.Context, intentID, fluctlightID, conversationID, sourceMessageID string, sourceSequence, fromSequence, toSequence int, sourceDigest string, sourceMessageRefs []string) (map[string]any, error)
+	EnsureCurrentDaySchedule(ctx context.Context, fluctlightID string) (map[string]any, error)
+	ProcessVisualIdentity(ctx context.Context, sessionID string) (map[string]any, error)
+	EnsureVisualIdentityInitializationWithPersona(ctx context.Context, fluctlightID, personaID, visualIdentityID string, options map[string]any) (string, error)
+	FailAutonomyAction(ctx context.Context, actionID, reason string) (map[string]any, error)
+	RecordLifecycleDiagnosticBestEffort(ctx context.Context, diagnostic core.LifecycleDiagnostic)
+	RecordMediaActivityFailure(ctx context.Context, intentID, message string) error
+}
+
 var runtime struct {
 	sync.RWMutex
-	app *core.App
+	app ApplicationService
 }
 
 var workflowDiagnosticSampleState = struct {
@@ -76,13 +97,13 @@ var workflowDiagnosticSampleState = struct {
 	last map[string]time.Time
 }{last: map[string]time.Time{}}
 
-func Configure(app *core.App) {
+func Configure(app ApplicationService) {
 	runtime.Lock()
 	defer runtime.Unlock()
 	runtime.app = app
 }
 
-func app() *core.App { runtime.RLock(); defer runtime.RUnlock(); return runtime.app }
+func app() ApplicationService { runtime.RLock(); defer runtime.RUnlock(); return runtime.app }
 
 // WorkerDeploymentBuildID returns the immutable build identity used by every
 // queue worker and by the deployment bootstrap. Keeping this resolution in one
@@ -662,40 +683,16 @@ func ProcessMediaActivity(ctx context.Context, input Input) (map[string]any, err
 		// the generic workflow_terminal_failure fallback.
 		terminal := !activity.IsActivity(ctx) || activity.GetInfo(ctx).Attempt >= mediaActivityMaximumAttempts
 		if terminal {
-			if repairErr := recordMediaActivityFailure(application, input.IntentID, err); repairErr != nil {
-				slog.Default().Warn("Go Worker could not persist terminal media failure", "intent_id", input.IntentID, "error", repairErr)
+			message := boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()})
+			if message != "" {
+				if repairErr := application.RecordMediaActivityFailure(ctx, input.IntentID, message); repairErr != nil {
+					slog.Default().Warn("Go Worker could not persist terminal media failure", "intent_id", input.IntentID, "error", repairErr)
+				}
 			}
 		}
 		return nil, err
 	}
 	return result, nil
-}
-
-func recordMediaActivityFailure(application *core.App, intentID string, err error) error {
-	if application == nil || strings.TrimSpace(intentID) == "" || err == nil {
-		return nil
-	}
-	message := boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()})
-	if message == "" {
-		return nil
-	}
-	// Activity contexts may already be cancelled when the final attempt is
-	// being reported. A short detached context keeps the diagnostic write from
-	// being lost while retaining a strict upper bound on the repair query.
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(context.Background()), 2*time.Second)
-	defer cancel()
-	tx, err := application.DB.Pool().Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-	if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, intentID); err != nil {
-		return err
-	}
-	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET last_error=$2 WHERE workflow_id=(SELECT workflow_id FROM public.media_intents WHERE id=$1) AND intent_type='media.generation' AND status IN ('pending','started','retry')`, intentID, message); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
 }
 
 func ProcessAutonomyActionActivity(ctx context.Context, input Input) (map[string]any, error) {
@@ -714,7 +711,7 @@ func ProcessCapabilityActionActivity(ctx context.Context, input Input) (map[stri
 	return processActionActivity(application, ctx, input, "capability", application.ProcessCapabilityAction)
 }
 
-func processActionActivity(application *core.App, ctx context.Context, input Input, surface string, execute func(context.Context, string) (map[string]any, error)) (map[string]any, error) {
+func processActionActivity(application ApplicationService, ctx context.Context, input Input, surface string, execute func(context.Context, string) (map[string]any, error)) (map[string]any, error) {
 	ctx, input = prepareActivityLifecycleContext(ctx, input, surface)
 	recordActivityLifecycle(application, ctx, input, surface, core.LifecycleTransitionActivityStarted, "running", "activity_started", nil)
 	result, err := execute(ctx, input.ActionID)
@@ -790,7 +787,7 @@ func prepareActivityLifecycleContext(ctx context.Context, input Input, surface s
 	return ctx, input
 }
 
-func recordActivityLifecycle(application *core.App, ctx context.Context, input Input, surface string, transition core.LifecycleTransition, status, reason string, activityErr error) {
+func recordActivityLifecycle(application ApplicationService, ctx context.Context, input Input, surface string, transition core.LifecycleTransition, status, reason string, activityErr error) {
 	if application == nil {
 		return
 	}

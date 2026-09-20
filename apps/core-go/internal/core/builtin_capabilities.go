@@ -72,15 +72,49 @@ type capabilityRequestCapability struct{ service *capabilityRequestService }
 
 func builtinCapabilities(app *App) []Capability {
 	var schedule scheduleReplanCapability
+	var memory memoryCapabilityService
+	var activeMemory activeMemoryCapabilityService
 	if app != nil {
 		schedule.planner = app.SchedulePlanner
-		schedule.apply = app.applyScheduleReplanCapability
-		schedule.applyTx = app.applyScheduleReplanCapabilityTx
+		if app.Schedule != nil {
+			schedule.apply = app.Schedule.ApplyScheduleReplanCapability
+			schedule.applyTx = app.Schedule.ApplyScheduleReplanCapabilityTx
+		} else {
+			schedule.apply = app.applyScheduleReplanCapability
+			schedule.applyTx = app.applyScheduleReplanCapabilityTx
+		}
+		if app.Memory != nil {
+			memory = app.Memory
+			activeMemory = app.Memory
+		} else {
+			memory = app
+			activeMemory = app
+		}
+	}
+	var image imageCapabilityService
+	var visualIdentity visualIdentityCapabilityService
+	var lifeScene sceneCapabilityService
+	var lifePresence presenceCapabilityService
+	if app != nil {
+		if app.Media != nil {
+			image = app.Media
+			visualIdentity = app.Media
+		} else {
+			image = app
+			visualIdentity = app
+		}
+		if app.LifeContext != nil {
+			lifeScene = app.LifeContext
+			lifePresence = app.LifeContext
+		} else {
+			lifeScene = app
+			lifePresence = app
+		}
 	}
 	return []Capability{
-		conversationReplyCapability{}, momentPublishCapability{}, imageGenerateCapability{service: app},
-		visualIdentityInitializeCapability{service: app}, sceneEventCapability{service: app}, schedule,
-		presenceEventCapability{service: app}, memoryEventCapability{service: app}, activeMemoryEventCapability{service: app}, affectEventCapability{service: app},
+		conversationReplyCapability{}, momentPublishCapability{}, imageGenerateCapability{service: image},
+		visualIdentityInitializeCapability{service: visualIdentity}, sceneEventCapability{service: lifeScene}, schedule,
+		presenceEventCapability{service: lifePresence}, memoryEventCapability{service: memory}, activeMemoryEventCapability{service: activeMemory}, affectEventCapability{service: app},
 		memoryRecallCapability{service: newMemoryRecallService(app)},
 		relationshipLookupCapability{service: &relationshipLookupService{app: app}},
 		capabilityRequestCapability{service: &capabilityRequestService{app: app}},

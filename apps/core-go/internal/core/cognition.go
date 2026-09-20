@@ -564,7 +564,7 @@ func frozenReplyOwner(payload map[string]any) string {
 	if !ok {
 		return ""
 	}
-	return scope.replyOwner()
+	return scope.ReplyOwner()
 }
 
 // frozenTurnOverwrite describes a complete candidate replacement. Every field is

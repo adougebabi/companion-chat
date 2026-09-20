@@ -8,41 +8,38 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model"
 	"github.com/redis/go-redis/v9"
 )
 
 const (
-	providerRedisQueuePrefix      = "fluctlight:llm"
-	providerCognitionCancelPrefix = "fluctlight:cognition:cancel:"
-	providerCancellationTTL       = 15 * time.Minute
-	providerRedisLease            = 2 * time.Minute
-	providerRedisPendingTTL       = providerRedisLease
-	providerRedisJobTTL           = 24 * time.Hour
-	providerRedisPoll             = 40 * time.Millisecond
-	providerRedisMaximumWait      = 2 * time.Minute
-	providerRedisScoreUnit        = int64(1_000_000_000_000)
+	providerRedisQueuePrefix      = model.RedisQueuePrefix
+	providerCognitionCancelPrefix = model.CognitionCancelPrefix
+	providerCancellationTTL       = model.CancellationTTL
+	providerRedisLease            = model.RedisLease
+	providerRedisPendingTTL       = model.RedisPendingTTL
+	providerRedisJobTTL           = model.RedisJobTTL
+	providerRedisPoll             = model.RedisPoll
+	providerRedisMaximumWait      = model.RedisMaximumWait
+	providerRedisScoreUnit        = model.RedisScoreUnit
 )
 
-type providerCancellationKey struct{}
+type providerCancellationKey = model.CancellationKey
 
 func WithProviderCancellationKey(ctx context.Context, sourceFactID string) context.Context {
-	return context.WithValue(ctx, providerCancellationKey{}, strings.TrimSpace(sourceFactID))
+	return model.WithCancellationKey(ctx, sourceFactID)
 }
 
 func providerCancellationMarker(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	value, _ := ctx.Value(providerCancellationKey{}).(string)
-	return strings.TrimSpace(value)
+	return model.CancellationMarker(ctx)
 }
 
 func WakeUpProviderCancellationMarker(fluctlightID string, cycle int) string {
-	return fmt.Sprintf("wake_up:%s:cycle:%d", strings.TrimSpace(fluctlightID), cycle)
+	return model.WakeUpCancellationMarker(fluctlightID, cycle)
 }
 
 func ReflectionProviderCancellationMarker(intentID string) string {
-	return "reflection:" + strings.TrimSpace(intentID)
+	return model.ReflectionCancellationMarker(intentID)
 }
 
 // RequestProviderCancellation asks an in-flight Provider request to stop. The
@@ -203,26 +200,15 @@ return #members
 `)
 
 func providerRedisKeys(binding string) (string, string, string) {
-	binding = strings.TrimSpace(binding)
-	if binding == "" {
-		binding = "generic_llm"
-	}
-	base := providerRedisQueuePrefix + ":" + binding
-	return base + ":pending", base + ":processing", base + ":sequence"
+	return model.RedisKeys(binding)
 }
 
 func providerRedisScore(priority int, sequence int64) int64 {
-	if priority < 0 {
-		priority = 0
-	}
-	if priority > 100 {
-		priority = 100
-	}
-	return int64(100-priority)*providerRedisScoreUnit + sequence
+	return model.RedisScore(priority, sequence)
 }
 
 func providerRedisAgedScore(sequence int64) int64 {
-	return -providerRedisScoreUnit + sequence
+	return model.RedisAgedScore(sequence)
 }
 
 // acquireProviderRedisSlot coordinates the existing synchronous provider call

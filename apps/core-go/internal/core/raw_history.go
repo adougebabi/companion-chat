@@ -6,67 +6,28 @@ import (
 	"errors"
 	"sort"
 	"strings"
-	"time"
+
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/conversation"
 )
 
 const (
-	RawHistoryConversationMessage RawHistoryKind = "conversation_message"
-	RawHistoryCognitionFact       RawHistoryKind = "cognition_fact"
-	RawHistoryCapabilityOutcome   RawHistoryKind = "capability_outcome"
+	RawHistoryConversationMessage = conversation.RawHistoryConversationMessage
+	RawHistoryCognitionFact       = conversation.RawHistoryCognitionFact
+	RawHistoryCapabilityOutcome   = conversation.RawHistoryCapabilityOutcome
 
-	defaultRawHistoryLimit = 50
-	maxRawHistoryLimit     = 200
-	maxRawHistorySources   = 64
-	maxRawHistoryQueryRune = 2000
+	defaultRawHistoryLimit = conversation.DefaultRawHistoryLimit
+	maxRawHistoryLimit     = conversation.MaxRawHistoryLimit
+	maxRawHistorySources   = conversation.MaxRawHistorySources
+	maxRawHistoryQueryRune = conversation.MaxRawHistoryQueryRune
 )
 
-type RawHistoryKind string
+type RawHistoryKind = conversation.RawHistoryKind
+type RawHistoryEvent = conversation.RawHistoryEvent
+type RawHistoryQuery = conversation.RawHistoryQuery
+type RawHistorySearchQuery = conversation.RawHistorySearchQuery
+type RawHistorySourceQuery = conversation.RawHistorySourceQuery
 
-// RawHistoryEvent is a read-only envelope over an owning domain record. It is
-// not a copied event-store row: SourceRef and Authority point back to the
-// table that remains authoritative for the observation.
-type RawHistoryEvent struct {
-	SourceRef      string
-	Kind           RawHistoryKind
-	FluctlightID   string
-	ConversationID string
-	ActorID        string
-	OccurredAt     time.Time
-	Sequence       int64
-	Content        map[string]any
-	Authority      string
-	Relevance      float64
-}
-
-type RawHistoryQuery struct {
-	AuthorizationActorID string
-	FluctlightID         string
-	ConversationID       string
-	BeforeOccurredAt     *time.Time
-	BeforeSourceRef      string
-	Limit                int
-}
-
-type RawHistorySearchQuery struct {
-	AuthorizationActorID string
-	FluctlightID         string
-	ConversationID       string
-	Query                string
-	Limit                int
-}
-
-type RawHistorySourceQuery struct {
-	AuthorizationActorID string
-	FluctlightID         string
-	ConversationID       string
-	SourceRefs           []string
-}
-
-type RawHistoryReader interface {
-	Recent(context.Context, RawHistoryQuery) ([]RawHistoryEvent, error)
-	Search(context.Context, RawHistorySearchQuery) ([]RawHistoryEvent, error)
-	ReadSources(context.Context, RawHistorySourceQuery) ([]RawHistoryEvent, error)
-}
+type RawHistoryReader = conversation.RawHistoryReader
 
 type PostgresRawHistoryReader struct {
 	repository *PostgresRepository

@@ -7,45 +7,33 @@ import (
 	"strings"
 
 	"github.com/cloudwego/eino/schema"
+	aiprompt "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/prompt"
 )
 
-// PromptSlotID is a task-owned prompt slot identifier. It is intentionally a
-// different type from CapabilityContextSlot and the durable evolution slots.
-type PromptSlotID string
-
-type PromptSlotPosition string
+type PromptSlotID = aiprompt.PromptSlotID
+type PromptSlotPosition = aiprompt.PromptSlotPosition
 
 const (
-	PromptSlotSystem         PromptSlotPosition = "system"
-	PromptSlotRuntime        PromptSlotPosition = "runtime"
-	PromptSlotRecent         PromptSlotPosition = "recent"
-	PromptSlotCurrentInput   PromptSlotPosition = "current_input"
-	PromptSlotTools          PromptSlotPosition = "tools"
-	PromptSlotResponseSchema PromptSlotPosition = "response_schema"
+	PromptSlotSystem         = aiprompt.PromptSlotSystem
+	PromptSlotRuntime        = aiprompt.PromptSlotRuntime
+	PromptSlotRecent         = aiprompt.PromptSlotRecent
+	PromptSlotCurrentInput   = aiprompt.PromptSlotCurrentInput
+	PromptSlotTools          = aiprompt.PromptSlotTools
+	PromptSlotResponseSchema = aiprompt.PromptSlotResponseSchema
 )
 
 const (
-	PromptSlotCorePersona PromptSlotID = "core_persona"
-	PromptSlotOperation   PromptSlotID = "operation"
-	PromptSlotRuntimeFact PromptSlotID = "runtime_fact"
-	PromptSlotMemory      PromptSlotID = "memory"
-	PromptSlotRecentTurns PromptSlotID = "recent_turns"
-	PromptSlotCurrent     PromptSlotID = "current_input"
-	PromptSlotToolCatalog PromptSlotID = "tool_catalog"
-	PromptSlotSchema      PromptSlotID = "response_schema"
+	PromptSlotCorePersona = aiprompt.PromptSlotCorePersona
+	PromptSlotOperation   = aiprompt.PromptSlotOperation
+	PromptSlotRuntimeFact = aiprompt.PromptSlotRuntimeFact
+	PromptSlotMemory      = aiprompt.PromptSlotMemory
+	PromptSlotRecentTurns = aiprompt.PromptSlotRecentTurns
+	PromptSlotCurrent     = aiprompt.PromptSlotCurrent
+	PromptSlotToolCatalog = aiprompt.PromptSlotToolCatalog
+	PromptSlotSchema      = aiprompt.PromptSlotSchema
 )
 
-// PromptSlot declares one independently selectable region. A task includes
-// only the slots it needs; adding a new slot therefore cannot affect another
-// task's prompt by accident.
-type PromptSlot struct {
-	ID           PromptSlotID
-	Position     PromptSlotPosition
-	Order        int
-	Required     bool
-	BudgetTokens int
-	Fragments    []PromptFragment
-}
+type PromptSlot = aiprompt.PromptSlot
 
 type PromptCompositionInput struct {
 	System         string

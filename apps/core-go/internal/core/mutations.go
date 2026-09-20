@@ -499,6 +499,9 @@ func (a *App) HandleActorTurn(ctx context.Context, ownerActorID, senderActorID, 
 }
 
 func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, payload map[string]any, callbacks turnCallbacks, claimStream bool) (TurnResult, error) {
+	// ─────────────────────────────────────────────────────────────────────────
+	// STAGE 1: Parameter Validation & Actor Authorization
+	// ─────────────────────────────────────────────────────────────────────────
 	authorizationActorID := firstString(payload["authorization_actor_id"], actorID)
 	fluctlightID := stringValue(payload["fluctlight_id"])
 	text := stringValue(payload["text"])
@@ -523,6 +526,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		claimOwner = "go-stream:" + randomID("claim_")
 	}
 	claimSettled := !claimStream
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// STAGE 2: Atomic Turn Message & Cognition Fact Enqueue (Transaction 1)
+	// ─────────────────────────────────────────────────────────────────────────
 	var user map[string]any
 	var inboxID string
 	var supersededInboxIDs []string
@@ -606,6 +613,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if err != nil {
 		return TurnResult{}, err
 	}
+	// ─────────────────────────────────────────────────────────────────────────
+	// STAGE 3: Lifecycle Preemption & Stream Setup
+	// ─────────────────────────────────────────────────────────────────────────
 	a.cancelSupersededCognitionFacts(ctx, supersededInboxIDs)
 	// A synchronous turn starts its Provider call in this process instead of
 	// waiting for Dispatcher.DispatchOnce.  Apply the same lifecycle preemption
@@ -652,6 +662,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if a.cognitionFactSuperseded(ctx, inboxID) {
 		return TurnResult{}, errCognitionTurnSuperseded
 	}
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// STAGE 4: Replay Fast-Path & Crash Recovery Check
+	// ─────────────────────────────────────────────────────────────────────────
 	var replayed map[string]any
 	var replayedID, replayedText string
 	var replayedSequence int
@@ -687,6 +701,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 		return TurnResult{UserMessage: user, Assistant: replayed, TurnID: turnID, CorrelationID: "turn:" + turnID}, nil
 	}
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// STAGE 5: Context Projection & Persona Authority Derivation
+	// ─────────────────────────────────────────────────────────────────────────
 	var decision map[string]any
 	var action string
 	var capabilityInvocations []CapabilityInvocation
@@ -735,6 +753,9 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	personaSwitch = normalizePersonaSwitchRules(projection.CorePersona, projection.PersonalityRuntime, personaScope.ActiveProfileID)
 	personaGrant = resolvePersistentSwitchGrant(personaScope, persistentSwitchGrantScenarioMain, personaSwitch.Rules)
 	personaAuthority := turnDecisionAuthority{Grant: personaGrant, Scope: personaScope}
+	// ─────────────────────────────────────────────────────────────────────────
+	// STAGE 6: Agent Decision Generation & Normalization
+	// ─────────────────────────────────────────────────────────────────────────
 	if frozenFound && frozen.Status == "frozen" {
 		hydrated, hydrateErr := a.hydrateFrozenTurn(frozen, fluctlightID)
 		if hydrateErr != nil {
@@ -857,7 +878,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, err
 		}
 	}
-	// ───────────────────────── arbitration ─────────────────────────
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// STAGE 7: Side-Effect-Free Candidate Capability Validation Gate
+	// ─────────────────────────────────────────────────────────────────────────
 	// Candidate validation happens BEFORE the Judge (F02/F05). The cheap,
 	// side-effect-free validator runs the same schema check the WakeUp worker
 	// uses plus the deterministic authorization gate F-02 requires (declared
@@ -883,6 +907,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, validateErr
 		}
 	}
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// STAGE 8: Turn Takeover Arbitration & Execution Window Entry
+	// ─────────────────────────────────────────────────────────────────────────
 	// Exactly one insertion point exists between the A generation and the
 	// Prepare/execution window. Only turn_stage == winner_ready may execute
 	// (F03), so a rejected candidate can never reach a side effect.
@@ -951,6 +979,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		}
 		frozen.Payload[turnStagePayloadKey] = turnStageExecuting
 	}
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// STAGE 9: Query Continuation & Capability Preparation
+	// ─────────────────────────────────────────────────────────────────────────
 	var continuationState QueryContinuationState
 	if responseMode == "query_continuation" {
 		if raw := frozen.Payload["query_continuation"]; raw != nil {
@@ -1000,6 +1032,10 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			return TurnResult{}, err
 		}
 	}
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// STAGE 10: Capability Planning & Turn Settlement (Transaction 2)
+	// ─────────────────────────────────────────────────────────────────────────
 	if action == "no_op" {
 		toolOnlyBinding := OutputBindingV1{}
 		if decision["tool_only"] == true {

@@ -1,239 +1,65 @@
 package core
 
 import (
-	"container/heap"
 	"context"
 	"encoding/json"
 	"errors"
-	"sync"
 	"time"
+
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model"
 )
 
 const (
-	providerQueueDefaultConcurrency = 1
-	providerQueueDefaultEmbedding   = 1
-	providerQueueMinConcurrency     = 1
-	providerQueueMaxConcurrency     = 8
-	providerQueueMaximumWait        = 2 * time.Minute
+	providerQueueDefaultConcurrency = model.DefaultConcurrency
+	providerQueueDefaultEmbedding   = model.DefaultEmbedding
+	providerQueueMinConcurrency     = model.MinConcurrency
+	providerQueueMaxConcurrency     = model.MaxConcurrency
+	providerQueueMaximumWait        = model.MaximumWait
 )
 
-type providerQueueClass string
+type providerQueueClass = model.QueueClass
 
 const (
-	providerQueueGenerated providerQueueClass = "generated"
-	providerQueueEmbedding providerQueueClass = "embedding"
+	providerQueueGenerated = model.QueueGenerated
+	providerQueueEmbedding = model.QueueEmbedding
 )
 
-type providerQueueTask struct {
-	priority   int
-	sequence   uint64
-	enqueuedAt time.Time
-	ctx        context.Context
-	run        func(context.Context) error
-	onState    func(string, error)
-	done       chan error
-	canceled   bool
-	index      int
-}
-
-type providerTaskHeap []*providerQueueTask
-
-func (h providerTaskHeap) Len() int { return len(h) }
-func (h providerTaskHeap) Less(i, j int) bool {
-	if h[i].priority != h[j].priority {
-		return h[i].priority > h[j].priority
-	}
-	return h[i].sequence < h[j].sequence
-}
-func (h providerTaskHeap) Swap(i, j int) {
-	h[i], h[j] = h[j], h[i]
-	h[i].index = i
-	h[j].index = j
-}
-func (h *providerTaskHeap) Push(value any) {
-	task := value.(*providerQueueTask)
-	task.index = len(*h)
-	*h = append(*h, task)
-}
-func (h *providerTaskHeap) Pop() any {
-	old := *h
-	n := len(old)
-	task := old[n-1]
-	old[n-1] = nil
-	task.index = -1
-	*h = old[:n-1]
-	return task
-}
+type providerQueueTask = model.QueueTask
+type providerTaskHeap = model.TaskHeap
 
 func popProviderQueueTask(pending *providerTaskHeap, now time.Time) *providerQueueTask {
-	if pending == nil || pending.Len() == 0 {
-		return nil
-	}
-	agedIndex := -1
-	var agedSequence uint64
-	for index, task := range *pending {
-		if task == nil || task.enqueuedAt.IsZero() || now.Sub(task.enqueuedAt) < providerQueueMaximumWait {
-			continue
-		}
-		if agedIndex < 0 || task.sequence < agedSequence {
-			agedIndex = index
-			agedSequence = task.sequence
-		}
-	}
-	if agedIndex >= 0 {
-		return heap.Remove(pending, agedIndex).(*providerQueueTask)
-	}
-	return heap.Pop(pending).(*providerQueueTask)
+	return model.PopQueueTask(pending, now)
 }
 
-// providerQueue is an in-process priority/FIFO executor. Persistence and
-// lifecycle diagnostics are supplied by onState; keeping this primitive free
-// of SQL makes cancellation and ordering independently testable.
+// providerQueue is an in-process priority/FIFO executor wrapping model.Queue.
 type providerQueue struct {
-	mu      sync.Mutex
-	cond    *sync.Cond
-	pending providerTaskHeap
-	limit   int
-	running int
-	closed  bool
-	seq     uint64
+	*model.Queue
 }
 
 func newProviderQueue(limit int) *providerQueue {
-	queue := &providerQueue{limit: clampProviderConcurrency(limit)}
-	queue.cond = sync.NewCond(&queue.mu)
-	heap.Init(&queue.pending)
-	for index := 0; index < providerQueueMaxConcurrency; index++ {
-		go queue.worker()
-	}
-	return queue
+	return &providerQueue{Queue: model.NewProviderQueue(limit)}
 }
 
 func clampProviderConcurrency(value int) int {
-	if value < providerQueueMinConcurrency {
-		return providerQueueMinConcurrency
-	}
-	if value > providerQueueMaxConcurrency {
-		return providerQueueMaxConcurrency
-	}
-	return value
+	return model.ClampProviderConcurrency(value)
 }
 
 func (q *providerQueue) setLimit(value int) {
-	q.mu.Lock()
-	q.limit = clampProviderConcurrency(value)
-	q.cond.Broadcast()
-	q.mu.Unlock()
+	q.Queue.SetLimit(value)
 }
 
 func (q *providerQueue) currentLimit() int {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-	return q.limit
+	return q.Queue.CurrentLimit()
 }
 
 func (q *providerQueue) submit(ctx context.Context, priority int, run func(context.Context) error, onState func(string, error)) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	if err := ctx.Err(); err != nil {
-		if onState != nil {
-			onState(providerRunCancelled, err)
-		}
-		return err
-	}
-	task := &providerQueueTask{priority: priority, enqueuedAt: time.Now().UTC(), ctx: ctx, run: run, onState: onState, done: make(chan error, 1)}
-	q.mu.Lock()
-	if q.closed {
-		q.mu.Unlock()
-		err := errors.New("provider_queue_closed")
-		if onState != nil {
-			onState(providerRunFailed, err)
-		}
-		return err
-	}
-	q.seq++
-	task.sequence = q.seq
-	heap.Push(&q.pending, task)
-	q.cond.Signal()
-	q.mu.Unlock()
-
-	select {
-	case err := <-task.done:
-		return err
-	case <-ctx.Done():
-		q.cancel(task)
-		return ctx.Err()
-	}
-}
-
-func (q *providerQueue) cancel(task *providerQueueTask) {
-	q.mu.Lock()
-	if task.index >= 0 && task.index < len(q.pending) && q.pending[task.index] == task {
-		task.canceled = true
-		heap.Remove(&q.pending, task.index)
-		q.mu.Unlock()
-		if task.onState != nil {
-			task.onState(providerRunCancelled, task.ctx.Err())
-		}
-		return
-	}
-	task.canceled = true
-	q.cond.Broadcast()
-	q.mu.Unlock()
-}
-
-func (q *providerQueue) worker() {
-	for {
-		q.mu.Lock()
-		for !q.closed && (q.pending.Len() == 0 || q.running >= q.limit) {
-			q.cond.Wait()
-		}
-		if q.closed {
-			q.mu.Unlock()
-			return
-		}
-		task := popProviderQueueTask(&q.pending, time.Now().UTC())
-		if task.canceled {
-			q.mu.Unlock()
-			continue
-		}
-		q.running++
-		// Wake another waiter while capacity remains; a single submit signal
-		// must not serialize a queue configured for multiple concurrent calls.
-		q.cond.Broadcast()
-		q.mu.Unlock()
-
-		var err error
-		if task.ctx.Err() != nil {
-			err = task.ctx.Err()
-			if task.onState != nil {
-				task.onState(providerRunCancelled, err)
-			}
-		} else {
-			if task.onState != nil {
-				task.onState(providerRunRunning, nil)
-			}
-			err = task.run(task.ctx)
-			if task.onState != nil {
-				task.onState(providerRunStatusForError(err), err)
-			}
-		}
-		task.done <- err
-
-		q.mu.Lock()
-		q.running--
-		q.cond.Broadcast()
-		q.mu.Unlock()
-	}
+	return q.Queue.Submit(ctx, priority, run, onState)
 }
 
 func (q *providerQueue) close() {
-	q.mu.Lock()
-	q.closed = true
-	q.cond.Broadcast()
-	q.mu.Unlock()
+	q.Queue.Close()
 }
+
 
 type providerQueueSettings struct {
 	GeneratedConcurrency int `json:"generated_concurrency"`

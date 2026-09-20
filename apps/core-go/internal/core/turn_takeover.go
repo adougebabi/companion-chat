@@ -578,14 +578,14 @@ func (a *App) applyTurnTakeover(ctx context.Context, input turnTakeoverInput) (b
 	if strings.TrimSpace(input.ResponseMode) == "query_continuation" {
 		record := turnTakeoverRecord{
 			Decision: takeoverDecisionNotApplicable, SkipReason: "query_continuation",
-			ActiveProfileID: input.Scope.ActiveProfileID, ReplyOwnerProfileID: input.Scope.replyOwner(),
+			ActiveProfileID: input.Scope.ActiveProfileID, ReplyOwnerProfileID: input.Scope.ReplyOwner(),
 		}
 		if err := a.attachTakeoverPolicyAction(ctx, input, &record); err != nil {
 			return false, err
 		}
 		return false, a.advanceTakeoverStage(ctx, input, turnStageAFrozen, turnStageWinnerReady, map[string]any{
 			turnTakeoverPayloadKey: record.asMap(),
-			turnWinnerPayloadKey:   winnerPayload(input.Frozen.ID, "a", input.Scope.replyOwner()),
+			turnWinnerPayloadKey:   winnerPayload(input.Frozen.ID, "a", input.Scope.ReplyOwner()),
 			turnExpectedPayloadKey: expectedPayload(input.Frozen.StateRev, input.Scope),
 		})
 	}
@@ -595,14 +595,14 @@ func (a *App) applyTurnTakeover(ctx context.Context, input turnTakeoverInput) (b
 	if !selected {
 		record := turnTakeoverRecord{
 			Decision: takeoverDecisionSkipped, SkipReason: "no_applicable_rule",
-			ActiveProfileID: input.Scope.ActiveProfileID, ReplyOwnerProfileID: input.Scope.replyOwner(),
+			ActiveProfileID: input.Scope.ActiveProfileID, ReplyOwnerProfileID: input.Scope.ReplyOwner(),
 		}
 		if err := a.attachTakeoverPolicyAction(ctx, input, &record); err != nil {
 			return false, err
 		}
 		return false, a.advanceTakeoverStage(ctx, input, turnStageAFrozen, turnStageWinnerReady, map[string]any{
 			turnTakeoverPayloadKey: record.asMap(),
-			turnWinnerPayloadKey:   winnerPayload(input.Frozen.ID, "a", input.Scope.replyOwner()),
+			turnWinnerPayloadKey:   winnerPayload(input.Frozen.ID, "a", input.Scope.ReplyOwner()),
 			turnExpectedPayloadKey: expectedPayload(input.Frozen.StateRev, input.Scope),
 		})
 	}
@@ -615,7 +615,7 @@ func (a *App) applyTurnTakeover(ctx context.Context, input turnTakeoverInput) (b
 		RuleID: rule.RuleID, RuleContentDigest: rule.RuleContentDigest, RuleVersion: personaSwitchRuleSetVersion,
 		RuleCondition:   rule.Condition,
 		SourceProfileID: rule.SourceProfileID, TargetProfileID: rule.TargetProfileID,
-		ActiveProfileID: input.Scope.ActiveProfileID, ReplyOwnerProfileID: input.Scope.replyOwner(), Judge: judge,
+		ActiveProfileID: input.Scope.ActiveProfileID, ReplyOwnerProfileID: input.Scope.ReplyOwner(), Judge: judge,
 	}
 	if !takeover {
 		decision := takeoverDecisionJudgeKeptA
@@ -633,7 +633,7 @@ func (a *App) applyTurnTakeover(ctx context.Context, input turnTakeoverInput) (b
 		}
 		return false, a.advanceTakeoverStage(ctx, input, turnStageArbitrationDecided, turnStageWinnerReady, map[string]any{
 			turnTakeoverPayloadKey: base.asMap(),
-			turnWinnerPayloadKey:   winnerPayload(input.Frozen.ID, "a", input.Scope.replyOwner()),
+			turnWinnerPayloadKey:   winnerPayload(input.Frozen.ID, "a", input.Scope.ReplyOwner()),
 			turnExpectedPayloadKey: expectedPayload(input.Frozen.StateRev, input.Scope),
 		})
 	}
@@ -665,7 +665,7 @@ func (a *App) resumeArbitration(ctx context.Context, input turnTakeoverInput) (b
 		return a.generateTakeoverReply(ctx, input, rule, persisted)
 	case takeoverDecisionJudgeKeptA, takeoverDecisionJudgeDegraded:
 		return false, a.advanceTakeoverStage(ctx, input, turnStageArbitrationDecided, turnStageWinnerReady, map[string]any{
-			turnWinnerPayloadKey:   winnerPayload(input.Frozen.ID, "a", input.Scope.replyOwner()),
+			turnWinnerPayloadKey:   winnerPayload(input.Frozen.ID, "a", input.Scope.ReplyOwner()),
 			turnExpectedPayloadKey: expectedPayload(input.Frozen.StateRev, input.Scope),
 		})
 	default:
@@ -755,7 +755,7 @@ func (a *App) judgeTurnTakeover(ctx context.Context, input turnTakeoverInput, ru
 		InternalIntent:     stringValue(input.Decision["internal_intent"]),
 		ActionSummary:      preview.ActionSummary,
 		ControlView:        controlView,
-		RelationshipFacts:  takeoverJudgeRelationshipFacts(input.Projection, input.Scope.replyOwner()),
+		RelationshipFacts:  takeoverJudgeRelationshipFacts(input.Projection, input.Scope.ReplyOwner()),
 	})
 	record := map[string]any{"role": takeoverJudgeRole, "takeover": false}
 	if takeoverJudgeInputBudgetExceeded(messages, takeoverJudgeInputBudgetTokens()) {

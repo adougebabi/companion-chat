@@ -23,7 +23,7 @@ func persistentSwitchAssessmentSchema() map[string]any {
 }
 
 func persistentSwitchAssessmentRequired(grant persistentSwitchGrant, normalization personaSwitchNormalization) bool {
-	return grant.Allowed && normalization.hasDeclaredPersistentSwitch()
+	return grant.Allowed && normalization.HasDeclaredPersistentSwitch()
 }
 
 type persistentSwitchPostAssessmentInput struct {

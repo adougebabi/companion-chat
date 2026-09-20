@@ -20,8 +20,8 @@ type ProviderRuntimeSupport interface {
 	RecordLifecycleDiagnosticBestEffort(context.Context, LifecycleDiagnostic)
 }
 
-type providerRuntimeSupport struct{ DB *PostgresRepository }
+type providerRuntimeSupport struct{ DB ProviderDatabase }
 
-func newProviderRuntimeSupport(db *PostgresRepository) ProviderRuntimeSupport {
+func newProviderRuntimeSupport(db ProviderDatabase) ProviderRuntimeSupport {
 	return providerRuntimeSupport{DB: db}
 }

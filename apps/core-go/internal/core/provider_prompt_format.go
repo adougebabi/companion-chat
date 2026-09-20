@@ -3,100 +3,43 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	aiprompt "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/prompt"
 )
 
 // formatProviderMessages converts only complete JSON payloads in user/tool
 // messages. System instructions and ordinary prose are intentionally left
-// untouched so response-format contracts remain explicit. Nested maps stay
-// YAML, while homogeneous object arrays use a compact TOON table because the
-// current cognition context repeats the same field names dozens of times.
+// untouched so response-format contracts remain explicit.
 func formatProviderMessages(messages []map[string]any) []map[string]any {
-	return formatProviderMessagesForRole(messages, "")
+	return aiprompt.FormatMessages(messages)
 }
 
 func formatProviderMessagesForRole(messages []map[string]any, role string) []map[string]any {
-	formatted := make([]map[string]any, 0, len(messages))
-	useTOON := role != "media_prompt"
-	for _, message := range messages {
-		copyMessage := make(map[string]any, len(message))
-		for key, value := range message {
-			copyMessage[key] = value
-		}
-		if content, ok := message["content"].(string); ok && stringValue(message["role"]) != "system" {
-			copyMessage["content"] = formatProviderPromptContentWithMode(content, useTOON)
-		}
-		formatted = append(formatted, copyMessage)
-	}
-	return formatted
+	return aiprompt.FormatMessagesForRole(messages, role)
 }
 
 func formatProviderPromptContent(content string) string {
-	return formatProviderPromptContentWithMode(content, true)
+	return aiprompt.FormatPromptContent(content)
 }
 
 func formatProviderPromptContentWithMode(content string, useTOON bool) string {
-	trimmed := strings.TrimSpace(content)
-	if trimmed == "" {
-		return content
-	}
-	prefix, value, ok := decodeProviderJSONPayload(trimmed)
-	if !ok {
-		return content
-	}
-	if _, ok := value.(map[string]any); !ok {
-		if _, ok := value.([]any); !ok {
-			return content
-		}
-	}
-	formatted := renderProviderYAMLWithMode(value, useTOON)
-	if prefix != "" {
-		return strings.TrimSpace(prefix) + "\n\n" + formatted
-	}
-	return formatted
+	return aiprompt.FormatPromptContentWithMode(content, useTOON)
 }
 
 func decodeProviderJSONPayload(content string) (string, any, bool) {
-	start := 0
-	if content[0] != '{' && content[0] != '[' {
-		objectStart, arrayStart := strings.IndexByte(content, '{'), strings.IndexByte(content, '[')
-		start = -1
-		if objectStart >= 0 {
-			start = objectStart
-		}
-		if arrayStart >= 0 && (start < 0 || arrayStart < start) {
-			start = arrayStart
-		}
-		if start < 0 {
-			return "", nil, false
-		}
-	}
-	payload := content[start:]
-	decoder := json.NewDecoder(strings.NewReader(payload))
-	decoder.UseNumber()
-	var value any
-	if err := decoder.Decode(&value); err != nil {
-		return "", nil, false
-	}
-	var trailing any
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		return "", nil, false
-	}
-	return strings.TrimSpace(content[:start]), value, true
+	return aiprompt.DecodeJSONPayload(content)
 }
 
 func renderProviderYAML(value any) string {
-	return renderProviderYAMLWithMode(value, true)
+	return aiprompt.RenderYAML(value)
 }
 
 func renderProviderYAMLWithMode(value any, useTOON bool) string {
-	var builder strings.Builder
-	renderProviderYAMLValueWithMode(&builder, value, 0, useTOON)
-	return strings.TrimRight(builder.String(), "\n")
+	return aiprompt.RenderYAMLWithMode(value, useTOON)
 }
 
 func renderProviderYAMLValue(builder *strings.Builder, value any, indent int) {

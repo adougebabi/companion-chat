@@ -1910,21 +1910,35 @@ func (a *App) RetryMediaIntent(ctx context.Context, actorID, intentID string) (m
 }
 
 func (a *App) persistPermanentMediaRetryFailure(ctx context.Context, intentID, workflowID, message string) error {
-	tx, err := a.DB.Pool().Begin(ctx)
-	if err != nil {
-		return err
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND status='pending'`, intentID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error=$2,completed_at=now() WHERE workflow_id=$1 AND intent_type='media.generation'`, workflowID, message); err != nil {
+			return err
+		}
+		if _, err := a.settleActionOutcomeByExternalRefTx(ctx, tx, intentID, ActionOutcomeFailed, map[string]any{"media_intent_id": intentID, "status": "failed", "reason_code": "media_workflow_terminal_failure"}, "media_workflow_terminal_failure"); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (a *App) RecordMediaActivityFailure(ctx context.Context, intentID, message string) error {
+	if a == nil || strings.TrimSpace(intentID) == "" {
+		return nil
 	}
-	defer tx.Rollback(ctx)
-	if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND status='pending'`, intentID); err != nil {
-		return err
-	}
-	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error=$2,completed_at=now() WHERE workflow_id=$1 AND intent_type='media.generation'`, workflowID, message); err != nil {
-		return err
-	}
-	if _, err := a.settleActionOutcomeByExternalRefTx(ctx, tx, intentID, ActionOutcomeFailed, map[string]any{"media_intent_id": intentID, "status": "failed", "reason_code": "media_workflow_terminal_failure"}, "media_workflow_terminal_failure"); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+	defer cancel()
+	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `UPDATE public.media_intents SET status='failed',revision=revision+1 WHERE id=$1 AND status IN ('pending','running')`, intentID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET last_error=$2 WHERE workflow_id=(SELECT workflow_id FROM public.media_intents WHERE id=$1) AND intent_type='media.generation' AND status IN ('pending','started','retry')`, intentID, message); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func mediaRetryRestartIsPermanent(err error) bool {
