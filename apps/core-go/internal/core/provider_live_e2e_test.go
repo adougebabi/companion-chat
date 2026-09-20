@@ -140,3 +140,113 @@ func TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment(t *
 		t.Fatalf("live HandleTurn assistant message count = %d, want 1", messageCount)
 	}
 }
+
+func requireLiveDatabaseProvider(t *testing.T) (string, string) {
+	t.Helper()
+	if strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_TEST")) != "1" {
+		t.Skip("set FLUCTLIGHT_LIVE_PROVIDER_TEST=1 to call a real Provider")
+	}
+	if strings.TrimSpace(os.Getenv("GO_CORE_TEST_DATABASE_URL")) == "" {
+		t.Skip("GO_CORE_TEST_DATABASE_URL is required for the live durable chain")
+	}
+	return liveProviderConfig(t)
+}
+
+// TestLiveHandleTurnRealToolCallsReachDurableMediaAndReply proves that native
+// Provider tool calls do not stop at the model boundary. It requires the real
+// Provider and disposable PostgreSQL; no fake router or scripted completion is
+// installed. The media workflow itself may be completed by the Worker/ComfyUI
+// acceptance stack, while this test owns the Core freeze and durable intent
+// boundary.
+func TestLiveHandleTurnRealToolCallsReachDurableMediaAndReply(t *testing.T) {
+	baseURL, model := requireLiveDatabaseProvider(t)
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "live-tool-owner", "live-tool-fluctlight", "live-tool-conversation"
+	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	endpointID := "live-tool-endpoint-" + fluctlightID
+	seedCognitiveProviderRole(t, ctx, repository, endpointID)
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+		t.Fatal(err)
+	}
+	capture := captureProviderWirePayload(&liveResponseCapture{inner: http.DefaultTransport})
+	app := newTestApp(t, repository, capture)
+	turnCtx, cancel := context.WithTimeout(context.Background(), liveProviderRequestTimeout()+2*time.Minute)
+	defer cancel()
+	result, err := app.HandleTurn(turnCtx, ownerID, conversationID, map[string]any{
+		"fluctlight_id": fluctlightID, "text": "请同时调用 media.image.generate 生成一张雨后昏暗卧室里 22 岁中国女性的真实图片，并用 conversation.reply 给我一句正常回复。不要只解释，必须真实调用两个能力。",
+		"idempotency_key": "live-tool-image-reply", "turn_id": "live-tool-image-reply", "attachment_refs": []any{},
+	})
+	if err != nil {
+		t.Fatalf("real HandleTurn tool flow failed: %v", err)
+	}
+	if strings.TrimSpace(stringValue(result.Assistant["text"])) == "" {
+		t.Fatalf("real tool flow persisted no assistant text: %#v", result.Assistant)
+	}
+	var mediaCount, actionCount, assistantCount int
+	if err := repository.Pool().QueryRow(turnCtx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1`, fluctlightID).Scan(&mediaCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(turnCtx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1`, fluctlightID).Scan(&actionCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(turnCtx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversationID).Scan(&assistantCount); err != nil {
+		t.Fatal(err)
+	}
+	if mediaCount < 1 || actionCount < 1 || assistantCount < 1 {
+		t.Fatalf("real tool calls did not reach durable Core boundaries: media_intents=%d autonomy_actions=%d assistant_messages=%d", mediaCount, actionCount, assistantCount)
+	}
+}
+
+// TestLiveWakeUpRealToolCallsReachDurableActionAndReflection proves the
+// background Wake-up path, not just an interactive turn. It requires the real
+// Provider and disposable PostgreSQL and asserts the Wake-up fact, action,
+// media intent and reflection intent are all durable after one cycle.
+func TestLiveWakeUpRealToolCallsReachDurableActionAndReflection(t *testing.T) {
+	baseURL, model := requireLiveDatabaseProvider(t)
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "live-wake-owner", "live-wake-fluctlight"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.fluctlights SET behavioral_policy=$2 WHERE id=$1`, fluctlightID, jsonString(map[string]any{"required_action_type": "proactive_message", "autonomy": "每次 Wake-up 都必须主动联系 Owner，同时生成图片并发送，不能选择 no_op。"})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.autonomy_policies(fluctlight_id,mode,allowed_actions,budget_remaining,quiet_hours,concurrency_limit,revision) VALUES($1,'active',$2,'10','{}',4,0)`, fluctlightID, jsonBytes([]string{"proactive_message", "moment", "capability"})); err != nil {
+		t.Fatal(err)
+	}
+	endpointID := "live-wake-endpoint-" + fluctlightID
+	seedCognitiveProviderRole(t, ctx, repository, endpointID)
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+		t.Fatal(err)
+	}
+	app := newTestApp(t, repository, captureProviderWirePayload(&liveResponseCapture{inner: http.DefaultTransport}))
+	wakeCtx, cancel := context.WithTimeout(context.Background(), liveProviderRequestTimeout()+2*time.Minute)
+	defer cancel()
+	result, err := app.ProcessWakeUp(wakeCtx, fluctlightID, 1)
+	if err != nil {
+		t.Fatalf("real Wake-up tool flow failed: %v", err)
+	}
+	if stringValue(result["status"]) == "blocked" || stringValue(result["reason"]) == "policy_action_not_allowed" || stringValue(result["reason"]) == "policy_budget_exhausted" {
+		t.Fatalf("real Wake-up was blocked by policy: %#v", result)
+	}
+	var wakeCount, actionCount, mediaCount, reflectionCount int
+	if err := repository.Pool().QueryRow(wakeCtx, `SELECT count(*) FROM public.cognition_wakeups WHERE fluctlight_id=$1 AND cycle=$2`, fluctlightID, 1).Scan(&wakeCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(wakeCtx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1`, fluctlightID).Scan(&actionCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(wakeCtx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1`, fluctlightID).Scan(&mediaCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(wakeCtx, `SELECT count(*) FROM public.platform_workflow_intents WHERE intent_type='reflection.run' AND payload->>'fluctlight_id'=$1`, fluctlightID).Scan(&reflectionCount); err != nil {
+		t.Fatal(err)
+	}
+	if wakeCount != 1 || actionCount < 1 || mediaCount < 1 || reflectionCount < 1 {
+		t.Fatalf("real Wake-up tool calls did not reach durable boundaries: wakeups=%d actions=%d media=%d reflections=%d result=%#v", wakeCount, actionCount, mediaCount, reflectionCount, result)
+	}
+}

@@ -510,8 +510,8 @@ func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (ma
 	result := map[string]any{"action_id": actionID, "status": "failed", "action_status": "failed", "error_code": code}
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var fluctlightID, actionType, status string
-		var rawPayload []byte
-		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,action_type,status,payload FROM public.autonomy_actions WHERE id=$1 FOR UPDATE`, actionID).Scan(&fluctlightID, &actionType, &status, &rawPayload); err != nil {
+		var rawPayload, rawPolicySnapshot []byte
+		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,action_type,status,payload,policy_snapshot FROM public.autonomy_actions WHERE id=$1 FOR UPDATE`, actionID).Scan(&fluctlightID, &actionType, &status, &rawPayload, &rawPolicySnapshot); err != nil {
 			return err
 		}
 		if status != "frozen" && status != "running" {
@@ -524,6 +524,9 @@ func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (ma
 			return err
 		}
 		settlement := cloneMap(result)
+		if policySnapshot := decodeObject(rawPolicySnapshot); len(policySnapshot) > 0 {
+			settlement["policy_snapshot"] = policySnapshot
+		}
 		for key, value := range causality {
 			settlement[key] = value
 		}
@@ -579,8 +582,9 @@ func (a *App) failAutonomyAction(ctx context.Context, actionID, code string) (ma
 
 func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, fluctlightID string, result map[string]any) error {
 	var actionPayload []byte
+	var policySnapshotRaw []byte
 	var actionType string
-	if err := tx.QueryRow(ctx, `SELECT action_type,payload FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&actionType, &actionPayload); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT action_type,payload,policy_snapshot FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&actionType, &actionPayload, &policySnapshotRaw); err != nil {
 		return err
 	}
 	payload := decodeObject(actionPayload)
@@ -589,6 +593,9 @@ func (a *App) settleWakeUpActionTx(ctx context.Context, tx pgx.Tx, actionID, flu
 		return err
 	}
 	settledResult := cloneMap(result)
+	if policySnapshot := decodeObject(policySnapshotRaw); len(policySnapshot) > 0 {
+		settledResult["policy_snapshot"] = policySnapshot
+	}
 	for key, value := range causality {
 		settledResult[key] = value
 	}

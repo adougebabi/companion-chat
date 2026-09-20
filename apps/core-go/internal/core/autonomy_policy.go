@@ -70,7 +70,14 @@ func (a *App) evaluateAutonomyPolicyWithBudget(ctx context.Context, fluctlightID
 	}
 	if _, ok := allowedSet[actionType]; !ok {
 		if actionType == "capability" {
+			// `media_request` was the pre-capability policy name used by older
+			// runtime settings. Treat it as a compatibility alias so existing
+			// owners do not have every voice/image action rejected after the
+			// capability runtime migration.
 			if _, ok = allowedSet["capability"]; !ok {
+				_, ok = allowedSet["media_request"]
+			}
+			if !ok {
 				return autonomyDenied(mode, "action_not_allowed", mode, allowed, budgetText, quietRaw, cooldown, concurrency, revision), nil
 			}
 		} else {

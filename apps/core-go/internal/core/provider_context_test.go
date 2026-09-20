@@ -6,6 +6,29 @@ import (
 	"testing"
 )
 
+func TestCompactReflectionEvidenceIncludesPolicyBlockSnapshot(t *testing.T) {
+	payload := map[string]any{
+		"policy_snapshot": map[string]any{
+			"mode": "active", "allowed_actions": []any{"proactive_message"},
+			"budget_remaining": "0", "denied_reason": "budget_exhausted",
+			"secret": "must_not_cross",
+		},
+		"outcomes": []any{map[string]any{"capability_name": "media.image.generate", "status": "failed", "error_code": "policy_budget_exhausted"}},
+	}
+	compact := mapValue(compactReflectionEvidencePayload("autonomy.result", payload))
+	policy := mapValue(compact["policy_snapshot"])
+	if policy["denied_reason"] != "budget_exhausted" || policy["budget_remaining"] != "0" {
+		t.Fatalf("policy block snapshot lost its reason: %#v", policy)
+	}
+	if _, leaked := policy["secret"]; leaked {
+		t.Fatalf("policy snapshot leaked an unallowlisted field: %#v", policy)
+	}
+	outcomes := arrayValue(compact["outcomes"])
+	if len(outcomes) != 1 || stringValue(mapValue(outcomes[0])["error_code"]) != "policy_budget_exhausted" {
+		t.Fatalf("policy outcome was not retained: %#v", outcomes)
+	}
+}
+
 func TestCompactCognitionContextKeepsOnlyCanonicalLayersAndNonEmptyEvidence(t *testing.T) {
 	projection := ContextProjection{
 		SchemaVersion:          "fluctlight.context.v2",

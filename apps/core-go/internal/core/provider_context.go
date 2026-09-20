@@ -1637,8 +1637,22 @@ func compactReflectionEvidencePayload(eventType string, value any) any {
 	if compact := compactRecentActionOutcomes(outcomes); len(compact) > 0 {
 		result["outcomes"] = compact
 	}
+	if policy := compactReflectionPolicySnapshot(payload["policy_snapshot"]); len(policy) > 0 {
+		result["policy_snapshot"] = policy
+	}
 	if influences := compactReflectionInfluences(payload["influences"]); len(influences) > 0 {
 		result["influences"] = influences
+	}
+	return result
+}
+
+func compactReflectionPolicySnapshot(value any) map[string]any {
+	snapshot := mapValue(value)
+	result := make(map[string]any)
+	for _, key := range []string{"mode", "action_type", "allowed_actions", "budget_remaining", "quiet_hours", "cooldown_until", "concurrency_limit", "revision", "denied_reason", "budget_reserved", "rejected"} {
+		if child, ok := snapshot[key]; ok && child != nil && child != "" {
+			result[key] = child
+		}
 	}
 	return result
 }
