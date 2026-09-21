@@ -1,10 +1,10 @@
 {
   "schema": "phase8-eino-native-evidence.v1",
-  "generated_at": "2026-09-21T04:07:08.957Z",
-  "head": "0a9c32c5f5cc389344bc6c08399e3bb392bed6b7",
+  "generated_at": "2026-09-21T04:08:57.469Z",
+  "head": "6bf6287f7e6d30bfb3ba4b3d2eba26db7f584d98",
   "branch": "master",
   "worktree_status_file": "commands/git-status.txt",
-  "source_diff_sha256": "a5c20f3a0f6c8c2ea16e9beb82b59613b2e4998da205ffdf475e861a1b088b84  -",
+  "source_diff_sha256": "ee59ed2d80e9be8314160a8fc44ba81654e14567d9c91ae148dc7699ae8384ab  -",
   "dependencies": {
     "go_module": "1.25.4",
     "toolchain": "go version go1.26.3 darwin/arm64",
@@ -204,8 +204,8 @@
     },
     {
       "path": "reports/phase8-eino-native-report.md",
-      "bytes": 11291,
-      "sha256": "95158b7206480ccb1161cd43cd9abc209c3ba8368a98f07e56b6a757b82da437"
+      "bytes": 11299,
+      "sha256": "1783cd7afe9fa6446639dd88b898c369cbec48aad359a58370a91e32e5255daf"
     }
   ],
   "manifest_sha256_file": "manifest.sha256"

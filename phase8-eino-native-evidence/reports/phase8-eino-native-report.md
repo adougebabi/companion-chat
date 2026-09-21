@@ -150,7 +150,7 @@ completed result 保留在 trace，后续 malformed structured response 被归�
 
 ## 证据文件
 
-- 计划与设计：[.trellis/tasks/09-21-phase8-eino-native/prd.md](.trellis/tasks/09-21-phase8-eino-native/prd.md)、[design.md](.trellis/tasks/09-21-phase8-eino-native/design.md)、[implement.md](.trellis/tasks/09-21-phase8-eino-native/implement.md)。
+- 计划与设计：[prd.md](.trellis/tasks/archive/2026-09/09-21-phase8-eino-native/prd.md)、[design.md](.trellis/tasks/archive/2026-09/09-21-phase8-eino-native/design.md)、[implement.md](.trellis/tasks/archive/2026-09/09-21-phase8-eino-native/implement.md)。
 - 矩阵：[phase8-eino-native-evidence/acceptance-matrix.csv](phase8-eino-native-evidence/acceptance-matrix.csv)。
 - Agent/Task/Tool/阶段对账：[phase8-eino-native-evidence/contract-coverage.csv](phase8-eino-native-evidence/contract-coverage.csv)。
 - 原始测试事件：[phase8-eino-native-evidence/commands/p8-required-go-test.jsonl](phase8-eino-native-evidence/commands/p8-required-go-test.jsonl)。
