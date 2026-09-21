@@ -1,6 +1,0 @@
-docker_version=29.4.0
-docker_compose_version=v5.1.2
-postgres_image=postgres:16-alpine
-postgres_container=not_started
-postgres_probe=interrupted_after_image_pull_stall
-GO_CORE_TEST_DATABASE_URL=<unset>

@@ -1,9 +1,0 @@
-$ go.mod versions
-3:go 1.25.4
-7:	github.com/cloudwego/eino v0.7.37
-8:	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20260916065400-2607f61e807f
-9:	github.com/cloudwego/eino-ext/components/model/openai v0.1.13
-28:	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.17 // indirect
-
-$ go env
-go version go1.26.3 darwin/arm64
