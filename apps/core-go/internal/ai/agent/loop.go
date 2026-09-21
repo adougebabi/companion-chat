@@ -36,13 +36,14 @@ type ADKCapabilityInvokerWithID interface {
 }
 
 type ADKLoopConfig struct {
-	Name            string
-	Description     string
-	Instruction     string
-	Model           model.ToolCallingChatModel
-	Tools           []tool.BaseTool
-	MaxIterations   int
-	EnableStreaming bool
+	Name                string
+	Description         string
+	Instruction         string
+	Model               model.ToolCallingChatModel
+	Tools               []tool.BaseTool
+	MaxIterations       int
+	EnableStreaming     bool
+	ToolOnlyTermination func([]schema.ToolCall) bool
 }
 
 type ADKLoopResult struct {
@@ -181,6 +182,17 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 			continue
 		}
 		if event.Err != nil {
+			// A bounded action-only proposal may legitimately have no useful
+			// provider continuation: Core has already captured the calls and
+			// deferred/rejected results for its caller-owned settlement. Allow
+			// that terminal projection only after ADK has made the configured
+			// number of model rounds; provider errors and parse failures still
+			// propagate with the partial trace below.
+			if strings.Contains(event.Err.Error(), adk.ErrExceedMaxIterations.Error()) &&
+				lastAssistant != nil && len(lastAssistant.ToolCalls) > 0 &&
+				config.ToolOnlyTermination != nil && config.ToolOnlyTermination(lastAssistant.ToolCalls) {
+				break
+			}
 			return result, fmt.Errorf("adk_run: %w", event.Err)
 		}
 		if event.Output == nil || event.Output.MessageOutput == nil {

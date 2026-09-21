@@ -332,7 +332,7 @@ func normalizeProviderToolCallsIndependently(value any, sourceFactID, providerRe
 		calls, err := normalizeProviderToolCalls([]any{object}, sourceFactID, providerRequestID)
 		if err != nil {
 			if firstErr == nil {
-				firstErr = newProviderToolCallNormalizationError(index, "item_invalid", err)
+				firstErr = newProviderToolCallNormalizationError(index, providerToolCallNormalizationReasonFromError(err), err)
 			}
 			continue
 		}
@@ -431,6 +431,18 @@ type providerToolCallNormalizationError struct {
 
 func newProviderToolCallNormalizationError(index int, reason string, cause error) error {
 	return &providerToolCallNormalizationError{Index: index, Reason: reason, Cause: cause}
+}
+
+// providerToolCallNormalizationReason preserves the specific reason from a
+// single-item normalization error when an independent sibling pass wraps it.
+// Diagnostics should say arguments_not_object/id_required/etc., not merely
+// item_invalid, while the outer index remains the original sibling index.
+func providerToolCallNormalizationReasonFromError(err error) string {
+	var normalizationErr *providerToolCallNormalizationError
+	if errors.As(err, &normalizationErr) && normalizationErr != nil && strings.TrimSpace(normalizationErr.Reason) != "" {
+		return normalizationErr.Reason
+	}
+	return "item_invalid"
 }
 
 func (e *providerToolCallNormalizationError) Error() string {

@@ -63,15 +63,12 @@ type queuedToolCallingChatModel struct {
 	correlationID string
 	sequence      *atomic.Uint64
 	// stopOnDeferredToolRound is enabled only for the bounded ADK bridge. A
-	// mutation/output capability returns a deferred result because Core owns its
-	// later settlement; asking the provider for another cognition round cannot
-	// add semantic information and would turn one action turn into a second
-	// physical Provider request. Pure-query results remain completed and still
-	// trigger the normal ADK continuation.
+	// deferred/rejected action round with an already-present visible proposal
+	// can terminate locally; pure-query results and reply-less conversation
+	// proposals still make the configured second model call.
 	stopOnDeferredToolRound bool
-	// Conversation and takeover replies still need a second model round when
-	// the first action-only proposal carried no visible text. WakeUp may settle
-	// an action-only proposal without synthesis; its policy sets this false.
+	// Conversation and takeover replies require root visible text before this
+	// early terminal projection. WakeUp may settle an action-only proposal.
 	requireVisibleTextForDeferredStop bool
 }
 
@@ -326,13 +323,11 @@ func (m *queuedToolCallingChatModel) WithTools(tools []*schema.ToolInfo) (model.
 	return &queuedToolCallingChatModel{inner: bound, provider: m.provider, role: m.role, scenario: m.scenario, priority: m.priority, diagnosticID: m.diagnosticID, assignment: m.assignment, correlationID: m.correlationID, sequence: sequence, stopOnDeferredToolRound: m.stopOnDeferredToolRound, requireVisibleTextForDeferredStop: m.requireVisibleTextForDeferredStop}, nil
 }
 
-// deferredToolOnlyRoundMessage returns the previous assistant tool proposal
-// when every tool result in the immediately following round is deferred or
-// rejected. Such a round is already complete from Core's perspective: there is
-// no query result for the model to incorporate, and the action/output call is
-// frozen for later settlement. Returning the proposal lets ADK close the loop
-// without a second physical Provider request while keeping the canonical call
-// identity and trace intact.
+// deferredToolOnlyRoundMessage projects a deferred/rejected action round into
+// a terminal assistant message when every tool result in the immediately
+// following round is non-query. Core keeps the original call/result pair in
+// the request-scoped trace; the terminal message intentionally omits ToolCalls
+// so ADK does not invoke the same tools again.
 func deferredToolOnlyRoundMessage(messages []*schema.Message, requireVisibleText bool) (*schema.Message, bool) {
 	assistantIndex := -1
 	for index := len(messages) - 1; index >= 0; index-- {
@@ -370,7 +365,11 @@ func deferredToolOnlyRoundMessage(messages []*schema.Message, requireVisibleText
 	if requireVisibleText && !assistantMessageDeclaresVisibleText(proposal) {
 		return nil, false
 	}
-	return schema.AssistantMessage(proposal.Content, append([]schema.ToolCall(nil), proposal.ToolCalls...)), true
+	// Return a terminal assistant message without replaying ToolCalls. The
+	// original calls/results remain in the request-scoped ADK trace and are
+	// merged by Core after the runner returns; replaying them here would make
+	// ADK invoke the same tools again and hit its iteration guard.
+	return schema.AssistantMessage(proposal.Content, nil), true
 }
 
 type einoModelResponse struct {
@@ -554,6 +553,22 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	result, err := RunADKLoop(ctx, ADKLoopConfig{
 		Name: "fluctlight-conversation", Description: "Fluctlight bounded model and capability runtime",
 		Model: chat, Tools: tools, MaxIterations: 2,
+		ToolOnlyTermination: func(calls []schema.ToolCall) bool {
+			if len(calls) == 0 {
+				return false
+			}
+			definitions := make(map[string]CapabilityDefinition, len(call.Definitions))
+			for _, definition := range call.Definitions {
+				definitions[definition.Name] = definition
+			}
+			for _, toolCall := range calls {
+				definition, ok := definitions[toolCall.Function.Name]
+				if !ok || (definition.Type == CapabilityTypeQuery && definition.SideEffectClass == "read_only") {
+					return false
+				}
+			}
+			return true
+		},
 	}, input)
 	recordADKTerminationDiagnostic(ctx, p, call, result, err)
 	if err != nil {
@@ -861,7 +876,7 @@ func normalizeEinoNativeToolCallsIndependently(message *schema.Message, provider
 		calls, err := normalizeProviderToolCalls(raw, "", providerRequestID)
 		if err != nil {
 			if firstErr == nil {
-				firstErr = newProviderToolCallNormalizationError(index, "item_invalid", err)
+				firstErr = newProviderToolCallNormalizationError(index, providerToolCallNormalizationReasonFromError(err), err)
 			}
 			continue
 		}

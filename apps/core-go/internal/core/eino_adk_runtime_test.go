@@ -482,8 +482,8 @@ func TestDeferredToolOnlyRoundStopsPhysicalContinuation(t *testing.T) {
 		schema.ToolMessage(`{"status":"deferred","reason":"settlement_pending"}`, "scene-call"),
 		schema.ToolMessage(`{"status":"rejected","error_code":"candidate_invalid"}`, "reply-call"),
 	}, true)
-	if !ok || terminal == nil || len(terminal.ToolCalls) != 2 || terminal.ToolCalls[0].ID != "scene-call" || terminal.ToolCalls[1].ID != "reply-call" {
-		t.Fatalf("deferred-only round was not preserved: ok=%t terminal=%#v", ok, terminal)
+	if !ok || terminal == nil || len(terminal.ToolCalls) != 0 || !strings.Contains(terminal.Content, "已记录") {
+		t.Fatalf("deferred-only round was not projected as terminal assistant: ok=%t terminal=%#v", ok, terminal)
 	}
 	if _, ok := deferredToolOnlyRoundMessage([]*schema.Message{
 		proposal,

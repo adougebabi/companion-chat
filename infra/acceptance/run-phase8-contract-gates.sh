@@ -46,7 +46,7 @@ if [[ -n "${GO_CORE_TEST_DATABASE_URL:-}" ]]; then
     status=1
   else
     sed -i.bak 's/^P8-04-DB,\([^,]*\),\([^,]*\),\([^,]*\),\([^,]*\),\([^,]*\),\([^,]*\),BLOCKED,/P8-04-DB,\1,\2,\3,\4,\5,\6,PASS,/' "$run_dir/acceptance-matrix.csv"
-    sed -i.bak 's/^P8-05-DB,\([^,]*\),\([^,]*\),\([^,]*\),\([^,]*\),\([^,]*\),\([^,]*\),BLOCKED,/P8-05-DB,\1,\2,\3,\4,\5,\6,\7,PASS,/' "$run_dir/acceptance-matrix.csv"
+    sed -i.bak 's/^P8-05-DB,\([^,]*\),\([^,]*\),\([^,]*\),\([^,]*\),\([^,]*\),\([^,]*\),BLOCKED,/P8-05-DB,\1,\2,\3,\4,\5,\6,PASS,/' "$run_dir/acceptance-matrix.csv"
     rm -f "$run_dir/acceptance-matrix.csv.bak"
   fi
 fi

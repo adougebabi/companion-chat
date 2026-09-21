@@ -10,27 +10,33 @@ import (
 
 func TestProviderToolCallFailuresPersistBoundedDiagnosticsForNativeAndStructuredSources(t *testing.T) {
 	cases := []struct {
-		name       string
-		source     string
-		wantReason string
-		response   map[string]any
+		name          string
+		source        string
+		wantErrorCode string
+		wantReason    string
+		response      map[string]any
 	}{
 		{
-			name:       "native-invalid-arguments",
-			source:     "native",
-			wantReason: "arguments_not_object",
+			name:          "native-invalid-arguments",
+			source:        "native",
+			wantErrorCode: "tool_call_invalid",
+			wantReason:    "arguments_not_object",
 			response: map[string]any{
 				"content": "{}",
 				"tool_calls": []any{map[string]any{
-					"name":      "conversation.reply",
-					"arguments": []any{"PRIVATE_NATIVE_ARGUMENT_CANARY"},
+					"id":   "native-invalid-arguments",
+					"type": "function",
+					"function": map[string]any{
+						"name":      "conversation.reply",
+						"arguments": `[]`,
+					},
 				}},
 			},
 		},
 		{
-			name:       "structured-sidecar-invalid-arguments",
-			source:     "structured",
-			wantReason: "arguments_not_object",
+			name:          "structured-sidecar-is-not-an-execution-channel",
+			source:        "structured",
+			wantErrorCode: "tool_call_unhandled",
 			response: map[string]any{
 				"content": jsonString(map[string]any{
 					"response_mode":   "final",
@@ -89,8 +95,14 @@ func TestProviderToolCallFailuresPersistBoundedDiagnosticsForNativeAndStructured
 			if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,''),COALESCE(response,'null'::jsonb) FROM public.diagnostic_model_runs WHERE correlation_id=$1 ORDER BY queued_at DESC LIMIT 1`, correlationID).Scan(&status, &errorCode, &response); err != nil {
 				t.Fatal(err)
 			}
-			if status != providerRunFailed || errorCode != "tool_call_invalid" {
+			if status != providerRunFailed || errorCode != testCase.wantErrorCode {
 				t.Fatalf("tool call model run = status=%q error_code=%q", status, errorCode)
+			}
+			if testCase.wantReason == "" {
+				if strings.Contains(string(response), "PRIVATE_STRUCTURED_ARGUMENT_CANARY") || strings.Contains(string(response), "PRIVATE_NATIVE_ARGUMENT_CANARY") {
+					t.Fatalf("pseudo tool diagnostic leaked argument content: %s", string(response))
+				}
+				return
 			}
 			var diagnostic map[string]any
 			if err := json.Unmarshal(response, &diagnostic); err != nil {

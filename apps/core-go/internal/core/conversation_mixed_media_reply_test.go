@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -48,25 +49,36 @@ func TestConversationTurnWithNativeImageAndReplyCommitsBothOutputs(t *testing.T)
 	assertMixedMediaReplyDurability(t, ctx, repository, fluctlightID, conversationID, "mixed-turn-native", "mixed-turn-native-1", result.Assistant)
 }
 
-func TestConversationTurnWithStructuredImageAndReplyCommitsBothOutputs(t *testing.T) {
+func TestEinoADKStructuredContentToolCallsAreNotExecuted(t *testing.T) {
 	structured := map[string]any{
 		"response_mode":   "final",
 		"action_type":     "reply",
 		"response_intent": "同时发送图片和说明文字",
 		"influences":      []any{},
-		"tool_calls":      mixedImageReplyToolCalls(),
+		// Content.tool_calls is deliberately a pseudo request. Only the Eino
+		// Message.ToolCalls channel may reach the capability runtime.
+		"tool_calls": mixedImageReplyToolCalls(),
 	}
 	ctx, repository, app, ownerID, fluctlightID, conversationID := setupMixedMediaReplyTurn(t, "structured", fakeProviderResult{Structured: structured})
 	result, err := app.HandleTurn(ctx, ownerID, conversationID, map[string]any{
 		"fluctlight_id": fluctlightID, "text": "给我看看", "idempotency_key": "mixed-turn-structured", "turn_id": "mixed-turn-structured-1", "attachment_refs": []any{},
 	})
-	if err != nil {
-		t.Fatalf("structured mixed turn failed: %v", err)
+	if err == nil || !strings.Contains(err.Error(), "cognition_visible_text_missing") {
+		t.Fatalf("structured pseudo-tool turn did not fail clearly: result=%#v err=%v", result, err)
 	}
-	if stringValue(result.Assistant["text"]) != "诶？真的要看啊。" {
-		t.Fatalf("assistant result = %#v", result.Assistant)
+	if len(result.Assistant) != 0 {
+		t.Fatalf("structured pseudo-tool turn fabricated an assistant: %#v", result.Assistant)
 	}
-	assertMixedMediaReplyDurability(t, ctx, repository, fluctlightID, conversationID, "mixed-turn-structured", "mixed-turn-structured-1", result.Assistant)
+	var assistantCount, mediaCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversationID).Scan(&assistantCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1`, fluctlightID).Scan(&mediaCount); err != nil {
+		t.Fatal(err)
+	}
+	if assistantCount != 0 || mediaCount != 0 {
+		t.Fatalf("structured pseudo-tool executed or published output: assistant=%d media=%d", assistantCount, mediaCount)
+	}
 }
 
 func TestStreamTurnWithNativeImageAndReplyEmitsAssistantFrame(t *testing.T) {
