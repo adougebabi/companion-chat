@@ -231,6 +231,9 @@ func TestPhase8CIUsesTheRealGateAndVectorEnabledDatabase(t *testing.T) {
 	if !strings.Contains(text, "pgvector/pgvector:pg16") {
 		t.Fatal("CI database service does not provide the vector extension required by migrations")
 	}
+	if !strings.Contains(text, "go run ./cmd/migrate") || !strings.Contains(text, "CORE_GO_DATABASE_URL:") {
+		t.Fatal("CI does not apply the Go Core schema before database-backed tests")
+	}
 	if strings.Contains(text, "-run 'Test(Phase8") {
 		t.Fatal("CI still replaces the Phase 8 gate with a selector-only go test")
 	}

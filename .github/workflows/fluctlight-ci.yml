@@ -37,6 +37,7 @@ jobs:
           --health-retries 10
     env:
       GO_CORE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
+      CORE_GO_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -47,6 +48,10 @@ jobs:
           go-version-file: apps/core-go/go.mod
           cache-dependency-path: |
             apps/core-go/go.sum
+
+      - name: Apply Go Core schema for database-backed tests
+        working-directory: apps/core-go
+        run: go run ./cmd/migrate
 
       - name: Test Go Core
         working-directory: apps/core-go
