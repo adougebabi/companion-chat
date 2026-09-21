@@ -363,7 +363,11 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		usage = response.Usage
 		message := einoMessageRaw(response.Message)
 		finishReason := response.FinishReason
-		calls, err := normalizeProviderToolCallsIndependently(message["tool_calls"], "", providerRequestID)
+		// The Eino message is already the typed native boundary for both ADK
+		// and fixed-task calls. Do not recover calls from content or sidecars;
+		// valid typed siblings may survive a malformed sibling, but each accepted
+		// call must retain its real Eino ID.
+		calls, err := normalizeEinoNativeToolCallsIndependently(response.Message, providerRequestID)
 		if err != nil {
 			diagnostic := providerToolCallNormalizationDiagnostic(message["tool_calls"], "native", err)
 			if len(calls) == 0 {
@@ -404,8 +408,8 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			parsedStructured = nil
 			parsedStructuredOK = false
 		}
-		if len(calls) == 0 && parsedStructuredOK && len(definitions) == 0 {
-			structuredCalls, callErr := normalizeProviderToolCallsWithDerivedIDs(parsedStructured["tool_calls"], "", providerRequestID)
+		if !adkEnabled && len(calls) == 0 && parsedStructuredOK && len(definitions) == 0 {
+			structuredCalls, callErr := NormalizeProviderToolCalls(parsedStructured["tool_calls"], "", providerRequestID)
 			if callErr != nil {
 				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
 				return ProviderCompletion{}, callErr
@@ -424,6 +428,12 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			}
 			if parsedStructuredOK {
 				completion.Structured, normalizedFields = normalizeProviderStructured(parsedStructured, normalizationSchemaName, structuredSchema)
+				if adkEnabled {
+					// A thinking-enabled provider may echo a structured tool_calls
+					// sidecar. It is diagnostic noise on an ADK completion, never a
+					// second invocation envelope.
+					delete(completion.Structured, "tool_calls")
+				}
 				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, len(calls), len(structuredCandidates), false, message)
 			} else if jsonMode {
 				completion.Structured, normalizedFields = emptyProviderStructured(normalizationSchemaName, structuredSchema)
@@ -454,8 +464,11 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		if jsonMode || len(definitions) > 0 {
 			if parsedStructuredOK {
 				completion.Structured, normalizedFields = normalizeProviderStructured(parsedStructured, normalizationSchemaName, structuredSchema)
+				if adkEnabled {
+					delete(completion.Structured, "tool_calls")
+				}
 				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, 0, len(structuredCandidates), false, message)
-				if len(definitions) > 0 {
+				if len(definitions) > 0 && !adkEnabled {
 					logToolCallShapeNormalization(role, schemaName, "structured", parsedStructured["tool_calls"])
 					calls, callErr := normalizeProviderToolCallsIndependently(completion.Structured["tool_calls"], "", providerRequestID)
 					if callErr != nil {

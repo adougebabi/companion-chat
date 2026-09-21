@@ -119,6 +119,13 @@ func (a *App) ProcessDailyReview(ctx context.Context, fluctlightID, localDate st
 		decisionFailures := capabilityBatchFailures(err)
 		decision["capability_results"] = capabilityResultValues(decisionFailures)
 	}
+	if validationErr := a.validateCandidateCapabilityInvocationsWithContext(ctx, toolCalls, candidateValidationContext{
+		FluctlightID: fluctlightID, ConversationID: conversationID,
+		SourceFactID: "daily-review:" + fluctlightID + ":" + localDate, ActionID: actionID,
+		Surface: CapabilitySurfaceAutonomy, ContextSnapshot: ContextSnapshotFromProjection(projection), Context: ctx,
+	}); validationErr != nil {
+		return nil, fmt.Errorf("daily_review_candidate_invalid: %w", validationErr)
+	}
 	toolCalls, err = a.prepareCapabilityInvocations(ctx, fluctlightID, conversationID, "daily-review:"+fluctlightID+":"+localDate, toolCalls)
 	if err != nil {
 		if len(capabilityBatchFailures(err)) == 0 {

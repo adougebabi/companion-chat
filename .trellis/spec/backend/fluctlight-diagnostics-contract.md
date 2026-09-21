@@ -287,6 +287,78 @@ WHERE role=$2::varchar(64)
   sharing one logical correlation, and that failed/cancelled generations have
   terminal diagnostics without fabricated success.
 
+## Scenario: ADK Run/Tool/Input Correlation Export
+
+### 1. Scope / Trigger
+
+- Trigger: a Conversation, WakeUp or Takeover ADK run needs to explain whether
+  a model requested a Tool, whether it was authorized/dispatched, and whether
+  the next physical model input actually contained the matching result.
+
+### 2. Signatures
+
+```text
+adk.model.input
+adk.model.output
+adk.tool.requested / adk.tool.rejected / adk.tool.dispatched / adk.tool.result
+adk.run.termination
+DiagnosticsExportFiltered(filter.RunID)
+```
+
+### 3. Contracts
+
+- All events share the parent correlation and a bounded `run_id`; physical
+  model runs retain distinct attempt/request/model-run identities.
+- `adk.model.input` records message count, formal tool-result IDs and matched
+  assistant/tool pair count. “Model received the result” is true only when
+  this actual next-input event contains the pair; direct return is `n/a`.
+- Tool events retain call ID, capability, surface, status, error code and an
+  arguments digest. Raw arguments, prompts, hidden reasoning and credentials
+  never enter the diagnostic payload.
+- Diagnostic writes are best-effort and do not authorize, settle or publish a
+  Capability. Owner-authorized export may filter ordinary events and model
+  runs by `run_id` while keeping the small ordinary ModelRuns projection.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Unknown tool fails before `InvokableRun` | model output/termination remains correlated; no dispatched event is fabricated |
+| Tool result is not in next model input | pair count is zero; trace reports the missing-result stage |
+| Diagnostic sink is unavailable | domain result remains unchanged; bounded persistence warning only |
+| Export uses a non-owner or unsafe run filter | reject before returning diagnostic content |
+
+### 5. Good/Base/Bad Cases
+
+- Good: one run shows two physical model calls, one formal call ID, a matching
+  next-input pair, typed tool result and final termination.
+- Base: a legal direct return records `tool_result_pair_status=n/a` because
+  there is no next model call.
+- Bad: infer “model received result” from a successful tool log, persist raw
+  arguments, or reuse one model-run row for two physical calls.
+
+### 6. Tests Required
+
+- Assert bounded/redacted event payloads, separate model input/output/termination
+  events, run ID filtering, owner authorization and no diagnostic write in the
+  business transaction.
+- Use controlled Conversation/WakeUp success, Tool failure and model parse
+  failure fixtures when no real incident run is available.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+receivedByModel := toolResultLoggedSuccessfully
+```
+
+#### Correct
+
+```go
+receivedByModel := nextInput.MatchedAssistantToolPairCount > 0
+```
+
 ## Scenario: Per-call Eino/ADK model-run diagnostics
 
 ### 1. Scope / Trigger

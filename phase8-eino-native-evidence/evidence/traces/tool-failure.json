@@ -1,0 +1,10 @@
+{
+  "evidence_level": "L0-controlled-runner",
+  "source_test": "TestRunADKLoopToolFailureHasNoFinalMessage",
+  "run_id": "controlled:adk-tool-failure",
+  "surface": "conversation",
+  "tool_call": {"tool_call_id": "call-1", "name": "memory.recall", "authorized": true, "entered_invokable_run": true},
+  "tool_result": {"status": "failed", "error_code": "fake_tool_failed", "returned_to_model": false},
+  "termination": {"status": "failed", "reason": "tool_error", "final_message_published": false},
+  "diagnostic_stage": "tool_execution"
+}

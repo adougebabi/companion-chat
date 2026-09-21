@@ -1365,6 +1365,10 @@ func (a *App) Diagnostics(ctx context.Context, actorID string, limit int) ([]map
 }
 
 func (a *App) DiagnosticsFiltered(ctx context.Context, actorID string, limit int, correlationID, fluctlightID string) ([]map[string]any, error) {
+	return a.diagnosticsFiltered(ctx, actorID, limit, correlationID, fluctlightID, "")
+}
+
+func (a *App) diagnosticsFiltered(ctx context.Context, actorID string, limit int, correlationID, fluctlightID, runID string) ([]map[string]any, error) {
 	if err := a.requireOwner(ctx, actorID); err != nil {
 		return nil, err
 	}
@@ -1375,7 +1379,7 @@ func (a *App) DiagnosticsFiltered(ctx context.Context, actorID string, limit int
 		limit = 500
 	}
 	query := `SELECT id,event_type,severity,fluctlight_id,causation_id,correlation_id,payload,created_at FROM public.diagnostic_events WHERE 1=1`
-	args := make([]any, 0, 3)
+	args := make([]any, 0, 4)
 	if strings.TrimSpace(correlationID) != "" {
 		args = append(args, strings.TrimSpace(correlationID))
 		query += fmt.Sprintf(" AND correlation_id=$%d", len(args))
@@ -1383,6 +1387,10 @@ func (a *App) DiagnosticsFiltered(ctx context.Context, actorID string, limit int
 	if strings.TrimSpace(fluctlightID) != "" {
 		args = append(args, strings.TrimSpace(fluctlightID))
 		query += fmt.Sprintf(" AND fluctlight_id=$%d", len(args))
+	}
+	if strings.TrimSpace(runID) != "" {
+		args = append(args, strings.TrimSpace(runID))
+		query += fmt.Sprintf(" AND (payload->>'run_id'=$%d OR correlation_id=$%d)", len(args), len(args))
 	}
 	args = append(args, limit)
 	query += fmt.Sprintf(" ORDER BY created_at DESC,id DESC LIMIT $%d", len(args))
@@ -1655,72 +1663,7 @@ func (a *App) ModelRuns(ctx context.Context, actorID string, limit int) ([]map[s
 }
 
 func (a *App) ModelRunsFiltered(ctx context.Context, actorID string, limit int, correlationID string) ([]map[string]any, error) {
-	if err := a.requireOwner(ctx, actorID); err != nil {
-		return nil, err
-	}
-	if limit < 1 {
-		limit = 100
-	}
-	if limit > 500 {
-		limit = 500
-	}
-	query := `WITH runs AS (
-		SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,
-			COUNT(*) FILTER (WHERE status IN ('queued','running')) OVER (PARTITION BY binding_role) AS queue_pending_count,
-			CASE WHEN status IN ('queued','running') THEN ROW_NUMBER() OVER (
-				PARTITION BY binding_role
-				ORDER BY CASE WHEN status IN ('queued','running') THEN 0 ELSE 1 END, priority DESC, queued_at ASC, id ASC
-			) END AS queue_position
-		FROM public.diagnostic_model_runs`
-	args := []any{}
-	if strings.TrimSpace(correlationID) != "" {
-		args = append(args, strings.TrimSpace(correlationID))
-		query += ` WHERE correlation_id=$1`
-	}
-	args = append(args, limit)
-	query += fmt.Sprintf(`
-	)
-	SELECT id,role,binding_role,scenario,priority,endpoint_id,model_id,prompt,response,status,error_code,correlation_id,created_at,queued_at,started_at,completed_at,queue_pending_count,queue_position
-	FROM runs
-	ORDER BY CASE WHEN status IN ('queued','running') THEN 0 ELSE 1 END,
-		CASE WHEN status IN ('queued','running') THEN priority END DESC NULLS LAST,
-		CASE WHEN status IN ('queued','running') THEN queued_at END ASC NULLS LAST,
-		CASE WHEN status NOT IN ('queued','running') THEN completed_at END DESC NULLS LAST,
-		created_at DESC,id DESC
-	LIMIT $%d`, len(args))
-	rows, err := a.DB.Pool().Query(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := make([]map[string]any, 0)
-	for rows.Next() {
-		var id, role, bindingRole, scenario, model, status, corr string
-		var priority int
-		var queuePendingCount, queuePosition *int64
-		var endpoint, code *string
-		var prompt, response []byte
-		var created, queued time.Time
-		var started, completed *time.Time
-		if err := rows.Scan(&id, &role, &bindingRole, &scenario, &priority, &endpoint, &model, &prompt, &response, &status, &code, &corr, &created, &queued, &started, &completed, &queuePendingCount, &queuePosition); err != nil {
-			return nil, err
-		}
-		row := map[string]any{"id": id, "role": role, "binding_role": bindingRole, "scenario": scenario, "priority": priority, "endpoint_id": endpoint, "model_id": model, "prompt": json.RawMessage(prompt), "response": json.RawMessage(response), "status": status, "error_code": code, "correlation_id": corr, "created_at": created.Format(time.RFC3339Nano), "queued_at": queued.Format(time.RFC3339Nano)}
-		if queuePendingCount != nil {
-			row["queue_pending_count"] = *queuePendingCount
-		}
-		if queuePosition != nil {
-			row["queue_position"] = *queuePosition
-		}
-		if started != nil {
-			row["started_at"] = started.Format(time.RFC3339Nano)
-		}
-		if completed != nil {
-			row["completed_at"] = completed.Format(time.RFC3339Nano)
-		}
-		out = append(out, row)
-	}
-	return out, rows.Err()
+	return a.modelRunsFiltered(ctx, actorID, limit, correlationID, "")
 }
 
 // MediaPromptsFiltered returns the media-generation prompt projection used by
@@ -1971,11 +1914,21 @@ func (a *App) DiagnosticsExportFiltered(ctx context.Context, actorID string, fil
 	if err != nil {
 		return nil, err
 	}
-	events, err := a.DiagnosticsFiltered(ctx, actorID, normalized.Limit, normalized.CorrelationID, normalized.FluctlightID)
+	var events []map[string]any
+	if normalized.RunID == "" {
+		events, err = a.DiagnosticsFiltered(ctx, actorID, normalized.Limit, normalized.CorrelationID, normalized.FluctlightID)
+	} else {
+		events, err = a.diagnosticsFiltered(ctx, actorID, normalized.Limit, normalized.CorrelationID, normalized.FluctlightID, normalized.RunID)
+	}
 	if err != nil {
 		return nil, err
 	}
-	runs, err := a.ModelRunsFiltered(ctx, actorID, normalized.Limit, normalized.CorrelationID)
+	var runs []map[string]any
+	if normalized.RunID == "" {
+		runs, err = a.ModelRunsFiltered(ctx, actorID, normalized.Limit, normalized.CorrelationID)
+	} else {
+		runs, err = a.modelRunsFiltered(ctx, actorID, normalized.Limit, normalized.CorrelationID, normalized.RunID)
+	}
 	if err != nil {
 		return nil, err
 	}

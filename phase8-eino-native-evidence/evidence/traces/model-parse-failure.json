@@ -1,0 +1,12 @@
+{
+  "evidence_level": "L0-controlled-parser",
+  "source_test": "provider_tool_call_diagnostics_test.go and strict structured parser contract",
+  "run_id": "controlled:model-parse-failure",
+  "surface": "fixed_task",
+  "tool_call": {"tool_call_id": null, "requested": false, "executed": false},
+  "termination": {"status": "failed", "reason": "structured_parse_invalid", "final_message_published": false},
+  "diagnostic_stage": "model_response_parse",
+  "error_code": "initialization_response_invalid_json",
+  "raw_model_content_persisted": false,
+  "reasoning_exposed": false
+}

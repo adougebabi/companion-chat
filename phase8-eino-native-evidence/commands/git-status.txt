@@ -1,0 +1,36 @@
+$ git status --short
+ M .github/workflows/fluctlight-ci.yml
+ M .trellis/spec/backend/fluctlight-diagnostics-contract.md
+ M .trellis/spec/backend/fluctlight-provider-contract.md
+ M apps/core-go/internal/ai/agent/loop.go
+ M apps/core-go/internal/core/adk_conversation_runtime.go
+ M apps/core-go/internal/core/autonomy.go
+ M apps/core-go/internal/core/capability_runtime.go
+ M apps/core-go/internal/core/cognition_growth.go
+ M apps/core-go/internal/core/diagnostics.go
+ M apps/core-go/internal/core/eino_adk_runtime_test.go
+ M apps/core-go/internal/core/eino_model_runtime.go
+ M apps/core-go/internal/core/operations.go
+ M apps/core-go/internal/core/provider.go
+ M apps/core-go/internal/core/provider_live_tool_test.go
+ M apps/core-go/internal/core/tool_contract.go
+ M apps/core-go/internal/core/tool_contract_test.go
+?? .trellis/tasks/09-21-phase8-eino-native/
+?? apps/core-go/internal/core/diagnostic_model_runs_filter.go
+?? apps/core-go/internal/core/phase8_contract_matrix_test.go
+?? infra/acceptance/phase8-required-tests.json
+?? infra/acceptance/run-phase8-contract-gates.sh
+?? phase8-eino-audit-evidence.zip
+?? phase8-eino-audit-evidence/
+?? phase8-eino-audit.md
+?? phase8-eino-native-evidence.zip
+?? phase8-eino-native-evidence.zip-test.txt
+?? phase8-eino-native-evidence.zip.sha256
+?? phase8-eino-native-evidence/
+?? phase8-eino-native-report.md
+
+$ git rev-parse HEAD
+50db5325e24252f1f44db5f9f8c4efbb92e4b466
+
+$ git diff --no-ext-diff | shasum -a 256
+1c9b2da65f8687c256c5e1367fb8d67fe1ae331e44dbe04a49e4b670f87ffc34  -

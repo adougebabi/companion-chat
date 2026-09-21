@@ -36,6 +36,12 @@ jobs:
         working-directory: apps/core-go
         run: go test -race ./...
 
+      - name: Run Phase 8 Eino contract gate
+        run: |
+          go -C apps/core-go test -mod=readonly -count=1 \
+            -run 'Test(Phase8|EinoNative|EinoADK|RunADKLoop|ProviderConversation|ProviderWakeUp|ProviderTakeover|ADKLoopSchemaMatrix|RunADKStructuredTask)' \
+            ./internal/core ./internal/ai/agent
+
       - name: Vet Go Core
         run: |
           go -C apps/core-go vet ./...

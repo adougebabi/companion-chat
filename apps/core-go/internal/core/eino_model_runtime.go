@@ -89,6 +89,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	callCorrelation := fmt.Sprintf("%s:adk:%d", m.correlationID, sequence)
 	callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
 	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
+	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, callCorrelation, sequence, input)
 	// The parent turn attempt is intentionally not reused as the physical
 	// model-call attempt. Diagnostics and cancellation state must distinguish
 	// Generate #1 from Generate #2 while both share one turn correlation.
@@ -101,6 +102,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	result, err := runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.Message, error) {
 		return m.inner.Generate(runCtx, input, opts...)
 	})
+	recordEinoModelOutputDiagnostic(callCtx, m.provider, m.role, callCorrelation, sequence, result, err)
 	if callDiagnosticID != "" {
 		m.provider.runtimeSupport().UpdateModelRunPromptMetrics(callCtx, callDiagnosticID, einoUsage(result), time.Since(started))
 	}
@@ -117,6 +119,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
 	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
 	callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
+	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, callCorrelation, sequence, input)
 	callDiagnosticID := ""
 	if m.provider != nil && m.provider.DB != nil {
 		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, callCorrelation, m.scenario, m.priority, einoDiagnosticMessages(input))
@@ -124,6 +127,95 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	return runProviderQueuedStream(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
 		return m.inner.Stream(runCtx, input, opts...)
 	})
+}
+
+func recordEinoModelInputDiagnostic(ctx context.Context, provider *ProviderClient, role, correlationID string, sequence uint64, input []*schema.Message) {
+	if provider == nil || provider.DB == nil || provider.DB.Pool() == nil {
+		return
+	}
+	assistantCalls := make(map[string]struct{})
+	toolResults := make([]string, 0, 8)
+	messageCount := 0
+	for _, message := range input {
+		if message == nil {
+			continue
+		}
+		messageCount++
+		if message.Role == schema.Assistant {
+			for _, call := range message.ToolCalls {
+				if id := strings.TrimSpace(call.ID); id != "" {
+					assistantCalls[id] = struct{}{}
+				}
+			}
+		}
+		if message.Role == schema.Tool {
+			if id := strings.TrimSpace(message.ToolCallID); id != "" {
+				toolResults = append(toolResults, id)
+			}
+		}
+	}
+	matched := 0
+	for _, id := range toolResults {
+		if _, ok := assistantCalls[id]; ok {
+			matched++
+		}
+	}
+	diagnostics := providerPromptDiagnostics(ctx)
+	fluctlightID := stringValue(diagnostics["fluctlight_id"])
+	runID := stringValue(diagnostics["run_id"])
+	if runID == "" {
+		runID = correlationID
+	}
+	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.model.input", "info", fluctlightID, "", correlationID, map[string]any{
+		"run_id": runID, "stage": "model_input", "role": role, "sequence": sequence,
+		"message_count": messageCount, "tool_result_ids": boundedDiagnosticStrings(toolResults, 32),
+		"tool_result_pair_count": matched, "tool_result_pair_status": map[bool]string{true: "present", false: "absent"}[matched > 0],
+	})
+}
+
+func recordEinoModelOutputDiagnostic(ctx context.Context, provider *ProviderClient, role, correlationID string, sequence uint64, message *schema.Message, runErr error) {
+	if provider == nil || provider.DB == nil || provider.DB.Pool() == nil {
+		return
+	}
+	diagnostics := providerPromptDiagnostics(ctx)
+	fluctlightID := stringValue(diagnostics["fluctlight_id"])
+	runID := stringValue(diagnostics["run_id"])
+	if runID == "" {
+		runID = correlationID
+	}
+	callIDs := make([]string, 0, 8)
+	if message != nil {
+		for _, call := range message.ToolCalls {
+			if id := strings.TrimSpace(call.ID); id != "" {
+				callIDs = append(callIDs, id)
+			}
+		}
+	}
+	status := "completed"
+	if runErr != nil {
+		status = "failed"
+	}
+	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.model.output", "info", fluctlightID, "", correlationID, map[string]any{
+		"run_id": runID, "stage": "model_output", "role": role, "sequence": sequence,
+		"status": status, "tool_call_ids": boundedDiagnosticStrings(callIDs, 32),
+		"error_code": providerRunErrorCode(runErr),
+	})
+}
+
+func boundedDiagnosticStrings(values []string, limit int) []string {
+	if limit < 1 {
+		return []string{}
+	}
+	if len(values) > limit {
+		values = values[:limit]
+	}
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 // runProviderQueuedStream keeps the physical queue lease and cancellation
@@ -447,26 +539,8 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	result, err := RunADKLoop(ctx, ADKLoopConfig{
 		Name: "fluctlight-conversation", Description: "Fluctlight bounded model and capability runtime",
 		Model: chat, Tools: tools, MaxIterations: 2,
-		ToolOnlyTermination: func(calls []schema.ToolCall) bool {
-			if len(calls) == 0 {
-				return false
-			}
-			definitions := make(map[string]CapabilityDefinition, len(call.Definitions))
-			for _, definition := range call.Definitions {
-				definitions[definition.Name] = definition
-			}
-			for _, toolCall := range calls {
-				definition, ok := definitions[toolCall.Function.Name]
-				if !ok {
-					return false
-				}
-				if definition.Type == CapabilityTypeQuery && definition.SideEffectClass == "read_only" {
-					return false
-				}
-			}
-			return true
-		},
 	}, input)
+	recordADKTerminationDiagnostic(ctx, p, call, result, err)
 	if err != nil {
 		return einoModelResponse{}, err
 	}
@@ -518,6 +592,27 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	final.ToolCalls = completionCalls
 	filterADKTraceToToolCalls(adkContext.Trace, completionCalls)
 	return einoModelResponse{Message: final, Usage: einoUsage(final), FinishReason: "stop"}, nil
+}
+
+func recordADKTerminationDiagnostic(ctx context.Context, provider *ProviderClient, call EinoModelCall, result ADKLoopResult, runErr error) {
+	if provider == nil || provider.DB == nil || provider.DB.Pool() == nil {
+		return
+	}
+	status := "completed"
+	reason := "final_message"
+	if runErr != nil {
+		status = "failed"
+		reason = providerRunErrorCode(runErr)
+	}
+	diagnostics := providerPromptDiagnostics(ctx)
+	runID := stringValue(diagnostics["run_id"])
+	if runID == "" {
+		runID = call.CorrelationID
+	}
+	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.run.termination", statusSeverity(status), stringValue(diagnostics["fluctlight_id"]), "", call.CorrelationID, map[string]any{
+		"run_id": runID, "stage": "termination", "status": status, "reason": reason,
+		"iterations": result.Iterations, "tool_call_count": len(result.ToolCalls), "tool_result_count": len(result.ToolResults),
+	})
 }
 
 func filterADKTraceToToolCalls(trace *ADKCapabilityTrace, calls []schema.ToolCall) {
@@ -693,6 +788,56 @@ func einoMessageRaw(message *schema.Message) map[string]any {
 	}
 }
 
+// normalizeEinoNativeToolCalls is the ADK-only bridge from Eino's typed
+// schema.Message to the Core invocation contract. It deliberately does not
+// inspect Content or ReasoningContent and never derives an ID: Eino's formal
+// ToolCall identity is the only execution authority for an ADK round.
+func normalizeEinoNativeToolCalls(message *schema.Message, providerRequestID string) ([]CapabilityInvocation, error) {
+	if message == nil || len(message.ToolCalls) == 0 {
+		return []CapabilityInvocation{}, nil
+	}
+	raw := make([]any, 0, len(message.ToolCalls))
+	for _, call := range message.ToolCalls {
+		raw = append(raw, map[string]any{
+			"id":       call.ID,
+			"type":     firstString(call.Type, "function"),
+			"function": map[string]any{"name": call.Function.Name, "arguments": call.Function.Arguments},
+		})
+	}
+	return normalizeProviderToolCalls(raw, "", providerRequestID)
+}
+
+// normalizeEinoNativeToolCallsIndependently keeps valid typed siblings while
+// retaining a bounded error for malformed siblings. It still requires every
+// accepted sibling to carry Eino's real ID; no per-position or request-derived
+// identity is ever manufactured.
+func normalizeEinoNativeToolCallsIndependently(message *schema.Message, providerRequestID string) ([]CapabilityInvocation, error) {
+	if message == nil || len(message.ToolCalls) == 0 {
+		return []CapabilityInvocation{}, nil
+	}
+	result := make([]CapabilityInvocation, 0, len(message.ToolCalls))
+	var firstErr error
+	for index, call := range message.ToolCalls {
+		raw := []any{map[string]any{
+			"id":       call.ID,
+			"type":     firstString(call.Type, "function"),
+			"function": map[string]any{"name": call.Function.Name, "arguments": call.Function.Arguments},
+		}}
+		calls, err := normalizeProviderToolCalls(raw, "", providerRequestID)
+		if err != nil {
+			if firstErr == nil {
+				firstErr = newProviderToolCallNormalizationError(index, "item_invalid", err)
+			}
+			continue
+		}
+		for callIndex := range calls {
+			calls[callIndex].Sequence = index
+		}
+		result = append(result, calls...)
+	}
+	return result, firstErr
+}
+
 // normalizeEinoToolMessageNames bridges Eino's ToolName field to the OpenAI
 // wire adapter's Name field. Eino's ToolMessage constructor stores the formal
 // capability name in ToolName, while the OpenAI chat envelope serializes Name;
@@ -781,7 +926,11 @@ func providerMessagesToEino(messages []map[string]any) ([]*schema.Message, error
 		}
 		message := &schema.Message{Role: schema.RoleType(role)}
 		if calls := raw["tool_calls"]; calls != nil {
-			message.ToolCalls = einoToolCalls(calls)
+			toolCalls, toolErr := einoToolCalls(calls)
+			if toolErr != nil {
+				return nil, fmt.Errorf("message_%d_tool_calls_invalid: %w", index, toolErr)
+			}
+			message.ToolCalls = toolCalls
 		}
 		message.ToolCallID = strings.TrimSpace(stringValue(raw["tool_call_id"]))
 		message.ToolName = strings.TrimSpace(stringValue(raw["name"]))
@@ -827,34 +976,71 @@ func providerMessagesToEino(messages []map[string]any) ([]*schema.Message, error
 	return result, nil
 }
 
-func einoToolCalls(raw any) []schema.ToolCall {
-	items := arrayValue(raw)
+// einoToolCalls decodes the already-canonical assistant/tool envelope used to
+// seed a subsequent Eino request. It intentionally accepts only the formal
+// id/name/arguments fields; a missing ID is not repaired from the capability
+// name or request position because doing so would create a second execution
+// identity outside Eino's native ToolCall channel.
+func einoToolCalls(raw any) ([]schema.ToolCall, error) {
+	items := toolCallArrayValue(raw)
 	result := make([]schema.ToolCall, 0, len(items))
-	for _, item := range items {
+	seen := make(map[string]struct{}, len(items))
+	for index, item := range items {
 		value := mapValue(item)
-		function := mapValue(value["function"])
-		name := firstString(stringValue(function["name"]), firstString(value["name"], stringValue(value["capability_name"])))
-		args := einoToolCallArguments(function["arguments"])
-		if args == "" {
-			args = einoToolCallArguments(value["arguments"])
+		if len(value) == 0 {
+			return nil, fmt.Errorf("tool call %d must be an object", index)
 		}
-		result = append(result, schema.ToolCall{ID: firstString(value["id"], stringValue(value["call_id"])), Type: firstString(value["type"], "function"), Function: schema.FunctionCall{Name: name, Arguments: args}})
+		function := mapValue(value["function"])
+		if kind := strings.TrimSpace(stringValue(value["type"])); kind != "" && kind != "function" {
+			return nil, fmt.Errorf("tool call %d type is unsupported", index)
+		}
+		id := strings.TrimSpace(stringValue(value["id"]))
+		canonicalID := strings.TrimSpace(stringValue(value["call_id"]))
+		if id != "" && canonicalID != "" && id != canonicalID {
+			return nil, fmt.Errorf("tool call %d id fields disagree", index)
+		}
+		if id == "" {
+			id = canonicalID
+		}
+		if id == "" {
+			return nil, fmt.Errorf("tool call %d id is required", index)
+		}
+		if _, exists := seen[id]; exists {
+			return nil, fmt.Errorf("tool call id %q is duplicated", id)
+		}
+		seen[id] = struct{}{}
+		name := strings.TrimSpace(stringValue(function["name"]))
+		outerName := strings.TrimSpace(stringValue(value["name"]))
+		canonicalName := strings.TrimSpace(stringValue(value["capability_name"]))
+		if name != "" && outerName != "" && name != outerName {
+			return nil, fmt.Errorf("tool call %q name fields disagree", id)
+		}
+		if outerName != "" && canonicalName != "" && outerName != canonicalName {
+			return nil, fmt.Errorf("tool call %q name fields disagree", id)
+		}
+		if name == "" {
+			name = outerName
+		}
+		if name == "" {
+			name = canonicalName
+		}
+		if name == "" || len(name) > maxToolNameLength || !toolNamePattern.MatchString(name) {
+			return nil, fmt.Errorf("tool call %q name is invalid", id)
+		}
+		arguments := function["arguments"]
+		if arguments == nil {
+			arguments = value["arguments"]
+		}
+		if arguments == nil {
+			return nil, fmt.Errorf("tool call %q arguments are required", id)
+		}
+		normalizedArguments, argumentsErr := normalizeToolArguments(arguments)
+		if argumentsErr != nil {
+			return nil, fmt.Errorf("tool call %q arguments invalid: %w", id, argumentsErr)
+		}
+		result = append(result, schema.ToolCall{ID: id, Type: firstString(value["type"], "function"), Function: schema.FunctionCall{Name: name, Arguments: string(normalizedArguments)}})
 	}
-	return result
-}
-
-func einoToolCallArguments(value any) string {
-	if value == nil {
-		return ""
-	}
-	if text := strings.TrimSpace(stringValue(value)); text != "" {
-		return text
-	}
-	encoded, err := json.Marshal(value)
-	if err != nil {
-		return ""
-	}
-	return string(encoded)
+	return result, nil
 }
 
 func einoInputParts(parts []any) ([]schema.MessageInputPart, string, error) {

@@ -676,12 +676,12 @@ func liveProviderStructuredOrFallback(t *testing.T, message map[string]any, sche
 
 func liveProviderInvocations(t *testing.T, message, structured map[string]any) []CapabilityInvocation {
 	t.Helper()
-	calls, err := normalizeProviderToolCallsWithDerivedIDs(message["tool_calls"], "", "live-provider")
+	calls, err := NormalizeProviderToolCalls(message["tool_calls"], "", "live-provider")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(calls) == 0 {
-		calls, err = normalizeProviderToolCallsWithDerivedIDs(structured["tool_calls"], "", "live-provider")
+		calls, err = NormalizeProviderToolCalls(structured["tool_calls"], "", "live-provider")
 		if err != nil {
 			t.Fatal(err)
 		}

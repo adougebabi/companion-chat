@@ -1000,3 +1000,78 @@ func (a *App) RunReflectionProposalTask(ctx context.Context,
     // invoke the shared Eino runtime, and return the normalized proposal.
 }
 ```
+
+## Scenario: Native Eino ToolCall Authority And Fail-Closed ADK Projection
+
+### 1. Scope / Trigger
+
+- Trigger: an Eino `schema.Message` contains native ToolCalls, an ADK Runner
+  returns AgentEvents, or a fixed structured Task returns a JSON sidecar that
+  also contains a `tool_calls` field.
+
+### 2. Signatures
+
+```go
+normalizeEinoNativeToolCalls(*schema.Message, providerRequestID)
+normalizeEinoNativeToolCallsIndependently(*schema.Message, providerRequestID)
+RunADKLoop(ctx, ADKLoopConfig, []*schema.Message)
+```
+
+### 3. Contracts
+
+- ADK and fixed-task model ToolCalls enter the Core contract only from
+  `schema.Message.ToolCalls`; accepted calls retain the model's formal ID,
+  name and object arguments.
+- Missing/conflicting/duplicate IDs, invalid names, malformed arguments and
+  unknown tools fail closed. No ID may be derived from request ID, position,
+  capability name, prose, Markdown or reasoning.
+- A malformed sibling may produce a bounded diagnostic while valid typed
+  siblings remain available; the malformed sibling never executes.
+- A structured/reasoning sidecar can be decoded for the fixed Task DTO, but
+  its `tool_calls` field is never a second execution authority on an ADK
+  completion. The Provider must not normalize the same ADK call twice.
+- `RunADKLoop` propagates `ErrExceedMaxIterations`, cancellation and model/tool
+  errors. It may project AgentEvents and request-scoped trace, but it may not
+  swallow an upper-limit error as success or run another model/tool loop.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Native call has no ID or conflicting identity fields | bounded `tool_call_invalid`; no invocation |
+| Native arguments are not a JSON object | bounded `arguments_not_object`/`arguments_invalid_json`; no invocation |
+| Valid and malformed native siblings share a response | valid sibling retained; malformed sibling rejected and diagnosed |
+| Sidecar repeats a native ADK call | native Eino call remains sole authority; sidecar tool call ignored |
+| ADK reaches max iterations | typed failure; no fabricated success |
+
+### 5. Good/Base/Bad Cases
+
+- Good: `call-7` appears unchanged in the assistant ToolCall, invoker trace,
+  tool result and next model input.
+- Base: a fixed Task parses a strict DTO while a sidecar `tool_calls` field is
+  ignored for execution.
+- Bad: derive `call_derived_*`, scan visible prose for a tool, or use the last
+  non-empty assistant text after a failed/empty final event.
+
+### 6. Tests Required
+
+- Native formal identity, malformed sibling, sidecar conflict, tool feedback,
+  model/tool failure, cancellation and iteration-limit tests.
+- Production Conversation/WakeUp/Takeover Runner tests must assert the actual
+  next input contains the matching assistant/tool pair and that only the
+  existing settlement boundary publishes.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+id := "call_derived_" + stableDigest(providerRequestID+name+arguments)
+```
+
+#### Correct
+
+```go
+id := toolCall.ID // copied from Eino schema.Message.ToolCalls
+```
+```

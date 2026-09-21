@@ -407,6 +407,9 @@ func validateCandidateCapabilityInvocation(ctx context.Context, invocation Capab
 	if err := invocation.Validate(definition); err != nil {
 		return err
 	}
+	if definition.InternalOnly {
+		return fmt.Errorf("%w: capability %s is internal-only", ErrUnauthorized, invocation.CapabilityName)
+	}
 	// The frozen candidate surface is the only authority. A provider may omit
 	// metadata (Core fills that default), but it may not claim another
 	// already-authorized surface to widen the call's permissions.

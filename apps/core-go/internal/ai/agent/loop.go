@@ -36,14 +36,13 @@ type ADKCapabilityInvokerWithID interface {
 }
 
 type ADKLoopConfig struct {
-	Name                string
-	Description         string
-	Instruction         string
-	Model               model.ToolCallingChatModel
-	Tools               []tool.BaseTool
-	MaxIterations       int
-	EnableStreaming     bool
-	ToolOnlyTermination func([]schema.ToolCall) bool
+	Name            string
+	Description     string
+	Instruction     string
+	Model           model.ToolCallingChatModel
+	Tools           []tool.BaseTool
+	MaxIterations   int
+	EnableStreaming bool
 }
 
 type ADKLoopResult struct {
@@ -182,11 +181,6 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 			continue
 		}
 		if event.Err != nil {
-			if strings.Contains(event.Err.Error(), adk.ErrExceedMaxIterations.Error()) &&
-				lastAssistant != nil && len(lastAssistant.ToolCalls) > 0 &&
-				config.ToolOnlyTermination != nil && config.ToolOnlyTermination(lastAssistant.ToolCalls) {
-				break
-			}
 			return ADKLoopResult{}, fmt.Errorf("adk_run: %w", event.Err)
 		}
 		if event.Output == nil || event.Output.MessageOutput == nil {

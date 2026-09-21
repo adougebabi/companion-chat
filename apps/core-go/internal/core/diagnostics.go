@@ -460,6 +460,12 @@ func (s providerRuntimeSupport) PersistModelRunLifecycle(ctx context.Context, ro
 		priority = providerPriority(scenario)
 	}
 	metrics := providerPromptDiagnostics(ctx)
+	if strings.TrimSpace(stringValue(metrics["run_id"])) == "" {
+		// A physical model run inherits the parent correlation when no durable
+		// workflow run identity was supplied. This keeps run_id exportable without
+		// manufacturing a second random correlation namespace.
+		metrics["run_id"] = correlationID
+	}
 	attemptID := providerAttemptIdentity(ctx)
 	if attemptID == "" {
 		// Legacy/internal diagnostic callers that do not pass through Provider

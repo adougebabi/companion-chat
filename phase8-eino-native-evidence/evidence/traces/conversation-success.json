@@ -1,0 +1,17 @@
+{
+  "evidence_level": "L1-controlled-eino-wire",
+  "source_test": "TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace",
+  "run_id": "turn:adk-test",
+  "surface": "conversation",
+  "agent": "conversation_turn_response",
+  "physical_model_calls": [
+    {"sequence": 1, "request_id": "provider:cognitive_assessment:turn:adk-test:adk:1", "status": "completed", "output": "native_tool_call"},
+    {"sequence": 2, "request_id": "provider:cognitive_assessment:turn:adk-test:adk:2", "status": "completed", "output": "visible_text"}
+  ],
+  "tool_calls": [
+    {"tool_call_id": "provider-call-1", "name": "memory.recall", "arguments_digest": "redacted", "authorized": true, "dispatched": true, "business_status": "completed"}
+  ],
+  "next_model_input": {"contains_matching_assistant_tool_pair": true, "contains_matching_tool_result": true},
+  "termination": {"status": "completed", "reason": "final_message"},
+  "settlement": {"domain_publish": "not_exercised_in_this_L1_fixture", "duplicate_execution": false}
+}

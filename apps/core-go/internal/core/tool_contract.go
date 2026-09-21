@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -307,17 +306,7 @@ func visualIdentityInitializeCapabilityDefinition() CapabilityDefinition {
 // intentionally rejects prose, missing identifiers, non-object arguments, and
 // oversized values at one boundary.
 func NormalizeProviderToolCalls(value any, sourceFactID, providerRequestID string) ([]CapabilityInvocation, error) {
-	return normalizeProviderToolCalls(value, sourceFactID, providerRequestID, false)
-}
-
-// normalizeProviderToolCallsWithDerivedIDs accepts the subset of
-// OpenAI-compatible Providers that omit native/sidecar call IDs. The derived
-// ID is deterministic for one Provider request and invocation position, so a
-// retry can reuse the same idempotency identity without trusting model text as
-// an identifier. The strict public helper above remains available for payload
-// validation tests and any caller that must reject missing identity outright.
-func normalizeProviderToolCallsWithDerivedIDs(value any, sourceFactID, providerRequestID string) ([]CapabilityInvocation, error) {
-	return normalizeProviderToolCalls(value, sourceFactID, providerRequestID, true)
+	return normalizeProviderToolCalls(value, sourceFactID, providerRequestID)
 }
 
 // normalizeProviderToolCallsIndependently keeps valid native calls when one
@@ -340,32 +329,7 @@ func normalizeProviderToolCallsIndependently(value any, sourceFactID, providerRe
 			}
 			continue
 		}
-		// Derive a stable ID using the original array position before handing the
-		// single item to the strict validator (which otherwise sees position 0).
-		if strings.TrimSpace(stringValue(object["id"])) == "" && strings.TrimSpace(stringValue(object["call_id"])) == "" {
-			name := stringValue(object["name"])
-			if name == "" {
-				name = stringValue(object["capability_name"])
-			}
-			if function := mapValue(object["function"]); name == "" && len(function) > 0 {
-				name = stringValue(function["name"])
-			}
-			arguments := object["arguments"]
-			if arguments == nil {
-				arguments = mapValue(object["function"])["arguments"]
-			}
-			if strings.TrimSpace(providerRequestID) != "" {
-				if normalized, err := normalizeToolArguments(arguments); err == nil {
-					copyObject := make(map[string]any, len(object)+1)
-					for key, value := range object {
-						copyObject[key] = value
-					}
-					copyObject["id"] = derivedProviderToolCallID(providerRequestID, index, name, normalized)
-					object = copyObject
-				}
-			}
-		}
-		calls, err := normalizeProviderToolCalls([]any{object}, sourceFactID, providerRequestID, false)
+		calls, err := normalizeProviderToolCalls([]any{object}, sourceFactID, providerRequestID)
 		if err != nil {
 			if firstErr == nil {
 				firstErr = newProviderToolCallNormalizationError(index, "item_invalid", err)
@@ -380,7 +344,7 @@ func normalizeProviderToolCallsIndependently(value any, sourceFactID, providerRe
 	return result, firstErr
 }
 
-func normalizeProviderToolCalls(value any, sourceFactID, providerRequestID string, deriveMissingIDs bool) ([]CapabilityInvocation, error) {
+func normalizeProviderToolCalls(value any, sourceFactID, providerRequestID string) ([]CapabilityInvocation, error) {
 	rawCalls := toolCallArrayValue(value)
 	if len(rawCalls) == 0 {
 		return []CapabilityInvocation{}, nil
@@ -424,19 +388,6 @@ func normalizeProviderToolCalls(value any, sourceFactID, providerRequestID strin
 			return nil, newProviderToolCallNormalizationError(index, "name_invalid", fmt.Errorf("tool call %d name is invalid", index))
 		}
 		var rawArguments []byte
-		if id == "" && deriveMissingIDs && strings.TrimSpace(providerRequestID) != "" {
-			var argumentsErr error
-			rawArguments, argumentsErr = normalizeToolArguments(arguments)
-			if argumentsErr != nil {
-				reason := "arguments_invalid"
-				var typedErr *providerToolArgumentsNormalizationError
-				if errors.As(argumentsErr, &typedErr) {
-					reason = typedErr.Reason
-				}
-				return nil, newProviderToolCallNormalizationError(index, reason, fmt.Errorf("tool call at index %d arguments invalid: %w", index, argumentsErr))
-			}
-			id = derivedProviderToolCallID(providerRequestID, index, name, rawArguments)
-		}
 		if id == "" {
 			return nil, newProviderToolCallNormalizationError(index, "id_required", fmt.Errorf("tool call %d id is required", index))
 		}
@@ -466,12 +417,6 @@ func normalizeProviderToolCalls(value any, sourceFactID, providerRequestID strin
 		})
 	}
 	return result, nil
-}
-
-func derivedProviderToolCallID(providerRequestID string, index int, name string, arguments []byte) string {
-	return "call_derived_" + stableDigest(strings.Join([]string{
-		strings.TrimSpace(providerRequestID), strconv.Itoa(index), strings.TrimSpace(name), string(arguments),
-	}, "\x1f"))
 }
 
 // providerToolCallNormalizationError preserves the stable reason and item

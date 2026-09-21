@@ -1,0 +1,106 @@
+{
+  "schema": "phase8-eino-native-evidence.v1",
+  "generated_at": "2026-09-21T03:22:23.654Z",
+  "head": "50db5325e24252f1f44db5f9f8c4efbb92e4b466",
+  "branch": "master",
+  "worktree_status_file": "commands/git-status.txt",
+  "source_diff_sha256": "1c9b2da65f8687c256c5e1367fb8d67fe1ae331e44dbe04a49e4b670f87ffc34  -",
+  "dependencies": {
+    "go": "1.25.4",
+    "eino": "v0.7.37",
+    "openai_model_extension": "v0.1.13"
+  },
+  "files": [
+    {
+      "path": "acceptance-matrix.csv",
+      "bytes": 3787,
+      "sha256": "1af71d592c0feccabbfd64d015c3d224ced799405fcc6c47c68bb3964d96a7e3"
+    },
+    {
+      "path": "commands/dependency-versions.txt",
+      "bytes": 341,
+      "sha256": "b84c5e30ca47bd44a9896c67d8520151c5c9bac2ffed94ff916f66f24df270d5"
+    },
+    {
+      "path": "commands/environment.txt",
+      "bytes": 211,
+      "sha256": "f53c12fe10f6e5a8d7f1e7286e38bddbbaf13d64b8b6963bf2c9be76d821b6d0"
+    },
+    {
+      "path": "commands/full-quality.txt",
+      "bytes": 9888,
+      "sha256": "4eb08b7b0852f7c4f209a5c12f64bde4a920753e84f6f059c3849842556a0d2e"
+    },
+    {
+      "path": "commands/git-status.txt",
+      "bytes": 1525,
+      "sha256": "7b1825e6d8ba6e4a226759d3e8a8203a0471c6016cd0fdea5adae55b53df6cc0"
+    },
+    {
+      "path": "commands/p8-checker-tests.txt",
+      "bytes": 474,
+      "sha256": "ff11480bbd8674badc35d139dc3929fb15c3357549831001d987798dfe8ac6b6"
+    },
+    {
+      "path": "commands/p8-required-go-test.jsonl",
+      "bytes": 32486,
+      "sha256": "86eed44a6171548851d700b7844934b71affe07ab6832d128e7fb573763b84bc"
+    },
+    {
+      "path": "commands/secret-scan.txt",
+      "bytes": 178,
+      "sha256": "c43b1e76009668f8310e732d2011867525f126c86c40baa2338215c8e00d271f"
+    },
+    {
+      "path": "commands/source-hashes.txt",
+      "bytes": 2273,
+      "sha256": "f39f5b2e2a2a96236fbbf719abd10f9631e996a6caf3a191211cb14d129f2935"
+    },
+    {
+      "path": "commands/static-guards.txt",
+      "bytes": 673,
+      "sha256": "0107b557b653d271df36e8fb30127e26ebdd067666fa61d5b0775ab46a8efb2e"
+    },
+    {
+      "path": "evidence/code/adk-native-boundary-excerpt.md",
+      "bytes": 860,
+      "sha256": "fff879880b699a74a5ad7d87d3314438aadad81e3b82ce6b03025ab7ad787479"
+    },
+    {
+      "path": "evidence/code/diagnostic-trace-excerpt.md",
+      "bytes": 663,
+      "sha256": "a1bb55d47f68c1c094da8137b4f5401434ef987840db384f569686fe79a1fee1"
+    },
+    {
+      "path": "evidence/traces/conversation-success.json",
+      "bytes": 1012,
+      "sha256": "555fb91f00a80d9a6bcd67b8ef87249a96547782c74b7864853a397a7ed73d53"
+    },
+    {
+      "path": "evidence/traces/model-parse-failure.json",
+      "bytes": 578,
+      "sha256": "bc55f475a11b8105556ecaa1dc73cf39fce46f35390600a146888ed93fde0ead"
+    },
+    {
+      "path": "evidence/traces/tool-failure.json",
+      "bytes": 539,
+      "sha256": "b10ea5ca19298ae1dd32eea423263c45bed55352173a15853c8cb4de7c508e34"
+    },
+    {
+      "path": "evidence/traces/wakeup-success.json",
+      "bytes": 989,
+      "sha256": "4f76a48390c71ff4698fb27445afe11ba17b386af2781568ffa46a64bda64eda"
+    },
+    {
+      "path": "executions.json",
+      "bytes": 10186,
+      "sha256": "4fdfff37374550712687c7fe63ea0d49902faa02c5911616999839abe0cb5b4d"
+    },
+    {
+      "path": "reports/phase8-eino-native-report.md",
+      "bytes": 10254,
+      "sha256": "250f68342752f943def3613769d6631986ff0a709dd8d62d1179017d2c770156"
+    }
+  ],
+  "manifest_sha256_file": "manifest.sha256"
+}

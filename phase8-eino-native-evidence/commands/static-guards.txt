@@ -1,0 +1,18 @@
+$ ./infra/acceptance/check-core-openapi.sh
+core-openapi-check: Go Core route inventory matches artifact version 0.1.0
+exit_code=0
+$ ./infra/acceptance/check-compose-bind-sources.sh
+Compose bind sources: PASS
+exit_code=0
+$ ./infra/acceptance/go-core-reference-guard.sh
+Go Core reference guard: PASS
+exit_code=0
+$ ./infra/acceptance/legacy-scope-guard.sh
+legacy scope guard: PASS
+exit_code=0
+$ pnpm generate
+$ pnpm --filter @fluctlight/core-client generate && pnpm --filter @fluctlight/browser-client generate:openapi && pnpm --filter @fluctlight/browser-client generate
+$ node scripts/generate.mjs
+$ node scripts/generate-openapi.mjs
+$ node scripts/generate.mjs
+exit_code=0

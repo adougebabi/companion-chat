@@ -383,9 +383,16 @@ func (a *App) ProcessNativeCognitionFact(ctx context.Context, inboxID string) er
 			stages["cognitive_state_transition"] = "not_proposed"
 		}
 		capabilityInvocations = append([]CapabilityInvocation(nil), completion.ToolCalls...)
-		for index := range capabilityInvocations {
-			capabilityInvocations[index] = normalizeCapabilityInvocationMetadata(capabilityInvocations[index], fluctlightID, "", inboxID, inboxID, index)
-			capabilityInvocations[index].Metadata.Surface = CapabilitySurfaceNativeCognition
+		frozenActionID := "frozen_" + stableDigest(inboxID)
+		capabilityInvocations, err = a.bindCapabilityInvocationsToProjection(capabilityInvocations, projection, frozenActionID, inboxID, CapabilitySurfaceNativeCognition)
+		if err != nil {
+			return err
+		}
+		if validationErr := a.validateCandidateCapabilityInvocationsWithContext(ctx, capabilityInvocations, candidateValidationContext{
+			FluctlightID: fluctlightID, SourceFactID: inboxID, ActionID: frozenActionID,
+			Surface: CapabilitySurfaceNativeCognition, ContextSnapshot: ContextSnapshotFromProjection(projection), Context: ctx,
+		}); validationErr != nil {
+			return fmt.Errorf("native_cognition_candidate_invalid: %w", validationErr)
 		}
 		// Native Provider calls are authoritative execution requests. Preserve
 		// every normalized invocation even when the optional influence sidecar is

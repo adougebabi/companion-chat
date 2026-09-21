@@ -71,8 +71,10 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if i == nil || i.app == nil || i.trace == nil {
 		return "", errors.New("adk_capability_invoker_unavailable")
 	}
+	i.recordADKToolDiagnostic(ctx, "adk.tool.requested", callID, capabilityName, "requested", "", argumentsJSON)
 	definition, ok := i.app.capabilityRegistry().Definition(capabilityName)
 	if !ok {
+		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "capability_not_found", argumentsJSON)
 		return "", fmt.Errorf("capability_not_found: %s", capabilityName)
 	}
 	arguments := json.RawMessage(strings.TrimSpace(argumentsJSON))
@@ -81,6 +83,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	}
 	callID = strings.TrimSpace(callID)
 	if callID == "" {
+		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "adk_tool_call_id_required", argumentsJSON)
 		return "", errors.New("adk_tool_call_id_required")
 	}
 	// ADK may replay the same native call while the model is failing to emit a
@@ -95,6 +98,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 			}
 			previousArguments, previousErr := normalizeToolArguments(previous.Arguments)
 			if previous.CapabilityName != capabilityName || previousErr != nil || string(previousArguments) != string(normalizedArguments) {
+				i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, "rejected", "adk_tool_call_id_reused", argumentsJSON)
 				return "", errors.New("adk_tool_call_id_reused")
 			}
 			for _, previousResult := range i.trace.Results {
@@ -106,6 +110,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 					"error_code": previousResult.ErrorCode, "output": previousResult.Output,
 				}), nil
 			}
+			i.recordADKToolDiagnostic(ctx, "adk.tool.dispatched", callID, capabilityName, "deferred", "", argumentsJSON)
 			return jsonString(map[string]any{"status": "deferred", "reason": "settlement_pending"}), nil
 		}
 	}
@@ -126,6 +131,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		invocation.ContextSnapshot = capabilitySnapshotForProjection(i.request.Projection, definition.RequiredContext, i.request.ActionID)
 	}
 	i.trace.Invocations = append(i.trace.Invocations, invocation)
+	i.recordADKToolDiagnostic(ctx, "adk.tool.dispatched", callID, capabilityName, "dispatched", "", argumentsJSON)
 	result := CapabilityResult{CallID: callID, CapabilityName: capabilityName, Status: "deferred", Retryable: true, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "capability:" + callID, RequiredContext: append([]ContextSlot(nil), definition.RequiredContext...), Output: map[string]any{"status": "deferred", "reason": "settlement_pending"}}
 	capability, found := i.app.capabilityRegistry().LookupCapability(capabilityName)
 	if !found {
@@ -133,6 +139,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		result.Retryable = false
 		result.ErrorCode = "capability_not_found"
 		i.trace.Results = append(i.trace.Results, result)
+		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
 		return jsonString(result.Output), errors.New("capability_not_found")
 	}
 	executionClass, classErr := classifyCapabilityExecution(capability, definition)
@@ -141,6 +148,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		result.Retryable = false
 		result.ErrorCode = "capability_execution_class_invalid"
 		i.trace.Results = append(i.trace.Results, result)
+		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
 		return jsonString(result.Output), classErr
 	}
 	// Validate every model-proposed invocation before ADK can complete the
@@ -158,6 +166,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		result.Retryable = false
 		result.Output = map[string]any{"status": "rejected", "error_code": result.ErrorCode}
 		i.trace.Results = append(i.trace.Results, result)
+		i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
 		// Return a bounded tool result without surfacing a Go error to ADK. The
 		// agent must be allowed to finish its current physical round so Core can
 		// persist the frozen candidate and reject it before Judge/Prepare/Execute.
@@ -170,6 +179,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 			result.Retryable = true
 			result.ErrorCode = "capability_runtime_unavailable"
 			i.trace.Results = append(i.trace.Results, result)
+			i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
 			return jsonString(map[string]any{"status": result.Status, "error_code": result.ErrorCode}), errors.New(result.ErrorCode)
 		}
 		executed, execErr := runtime.Execute(ctx, invocation)
@@ -179,11 +189,37 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 				result.Status = "failed"
 			}
 			i.trace.Results = append(i.trace.Results, result)
+			i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
 			return jsonString(map[string]any{"status": result.Status, "error_code": result.ErrorCode}), execErr
 		}
 	}
 	i.trace.Results = append(i.trace.Results, result)
+	i.recordADKToolDiagnostic(ctx, "adk.tool.result", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
 	return jsonString(map[string]any{"status": result.Status, "capability": capabilityName, "output": result.Output}), nil
+}
+
+func (i *appADKCapabilityInvoker) recordADKToolDiagnostic(ctx context.Context, eventType, callID, capabilityName, status, errorCode, arguments string) {
+	if i == nil || i.app == nil || i.app.DB == nil || i.app.DB.Pool() == nil {
+		return
+	}
+	correlationID := firstString(providerCorrelation(ctx), firstString(i.request.CorrelationID, "turn:"+i.request.SourceFactID))
+	newProviderRuntimeSupport(i.app.DB).RecordDiagnosticEvent(ctx, eventType, statusSeverity(status), i.request.FluctlightID, i.request.SourceFactID, correlationID, map[string]any{
+		"run_id": correlationID, "stage": "tool", "surface": i.request.Surface,
+		"call_id": strings.TrimSpace(callID), "capability": strings.TrimSpace(capabilityName),
+		"status": strings.TrimSpace(status), "error_code": strings.TrimSpace(errorCode),
+		"arguments_digest": stableDigest(strings.TrimSpace(arguments)),
+	})
+}
+
+func statusSeverity(status string) string {
+	switch strings.TrimSpace(status) {
+	case "failed", "rejected", "cancelled", "timeout":
+		return "error"
+	case "deferred", "accepted_pending":
+		return "notice"
+	default:
+		return "info"
+	}
 }
 
 // ADKCapabilityInvoker is the only dependency an ADK tool adapter receives.

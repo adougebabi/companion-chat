@@ -95,24 +95,13 @@ func TestNormalizeProviderToolCallsWrapsSingleObject(t *testing.T) {
 	}
 }
 
-func TestNormalizeProviderToolCallsDerivesStableIDsForProviderSidecars(t *testing.T) {
+func TestNormalizeProviderToolCallsRejectsMissingSidecarIDs(t *testing.T) {
 	raw := []any{
 		map[string]any{"name": "conversation.reply", "arguments": map[string]any{"text": "hello"}},
 		map[string]any{"name": "media.image.generate", "arguments": map[string]any{"intent": "a cat"}},
 	}
-	first, err := normalizeProviderToolCallsWithDerivedIDs(raw, "fact-1", "provider:request-1")
-	if err != nil {
-		t.Fatalf("derived-id normalization error = %v", err)
-	}
-	second, err := normalizeProviderToolCallsWithDerivedIDs(raw, "fact-1", "provider:request-1")
-	if err != nil {
-		t.Fatalf("repeated derived-id normalization error = %v", err)
-	}
-	if len(first) != 2 || len(second) != 2 || first[0].CallID == "" || first[0].CallID != second[0].CallID || first[1].CallID != second[1].CallID || first[0].CallID == first[1].CallID {
-		t.Fatalf("derived call ids are not stable and unique: first=%#v second=%#v", first, second)
-	}
 	if _, err := NormalizeProviderToolCalls(raw, "fact-1", "provider:request-1"); err == nil {
-		t.Fatal("strict normalization must still reject a missing provider id")
+		t.Fatal("sidecar normalization must reject a missing provider id")
 	}
 }
 
