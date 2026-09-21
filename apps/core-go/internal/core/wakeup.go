@@ -663,6 +663,16 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	}
 	assessment := completion.Structured
 	toolCalls := append([]CapabilityInvocation(nil), completion.ToolCalls...)
+	traceResults := make([]CapabilityResult, 0)
+	if run.Trace != nil {
+		// A Wake-up may finish its ADK loop with a structured no_op sidecar
+		// after an earlier assistant event emitted the real capabilities. Keep
+		// those invocations authoritative just as the conversation cognition
+		// path does; otherwise diagnostics show conversation.reply while the
+		// frozen action silently loses the private-message delivery call.
+		toolCalls = mergeADKTraceInvocations(toolCalls, run.Trace)
+		traceResults = append(traceResults, run.Trace.Results...)
+	}
 	// A tool-only completion is a valid wake-up decision. The tools are the
 	// model's decision surface; the JSON sidecar is optional metadata and must
 	// not be used as a gate that discards an otherwise executable reply/media or
@@ -703,7 +713,10 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		}
 	}
 	if len(capabilityValidationFailures) > 0 {
-		assessment["capability_results"] = capabilityResultValues(capabilityValidationFailures)
+		traceResults = append(traceResults, capabilityValidationFailures...)
+	}
+	if len(traceResults) > 0 {
+		assessment["capability_results"] = capabilityResultValues(traceResults)
 	}
 	assessment["action_type"] = canonicalWakeUpActionType(stringValue(assessment["action_type"]), toolCalls, a.capabilityRegistry())
 	if preference := mapValue(assessment["output_preference_decision"]); len(preference) > 0 {

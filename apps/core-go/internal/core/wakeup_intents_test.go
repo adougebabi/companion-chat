@@ -270,6 +270,62 @@ func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 	}
 }
 
+func TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "wakeup-noop-sidecar-owner", "wakeup-noop-sidecar-fluctlight"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	baseApp := &App{DB: repository}
+	initialLife := currentLifeForTest(t, ctx, baseApp, fluctlightID, time.Now().UTC())
+	if _, err := baseApp.AcceptSchedule(ctx, ownerID, fluctlightID, fullDaySchedulePayloadForTest(time.Now().UTC(), "wakeup-noop-sidecar-schedule", stringValue(initialLife["context_revision"]))); err != nil {
+		t.Fatal(err)
+	}
+	seedCognitiveProviderRole(t, ctx, repository, "wakeup-noop-sidecar-endpoint")
+	text := "……嗯。"
+	providerCalls := 0
+	router := newFakeProviderRouter().on("wake_up_response", func(_ map[string]any) fakeProviderResult {
+		providerCalls++
+		if providerCalls > 1 {
+			return fakeProviderResult{Structured: map[string]any{"action_type": "no_op", "response_intent": ""}}
+		}
+		return fakeProviderResult{
+			// This is the exact shape observed in diagnostics: the structured
+			// sidecar says no_op, while native calls contain an affect update and
+			// the actual proactive conversation reply.
+			Structured: map[string]any{"action_type": "no_op", "evidence_refs": []any{}, "influences": []any{}, "response_intent": "", "tool_calls": []any{}},
+			ToolCalls: []map[string]any{
+				{"id": "noop-affect-call", "type": "function", "function": map[string]any{"name": "affect_event", "arguments": jsonString(map[string]any{"event": map[string]any{"type": "excited", "confidence": 0.35}})}},
+				{"id": "noop-reply-call", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": text})}},
+			},
+		}
+	})
+	app := newTestApp(t, repository, router)
+	wakeResult, err := app.ProcessWakeUp(ctx, fluctlightID, 1)
+	if err != nil {
+		t.Fatalf("ProcessWakeUp failed: %v", err)
+	}
+	if stringValue(wakeResult["action_type"]) != "proactive_message" {
+		t.Fatalf("WakeUp action type = %#v", wakeResult)
+	}
+	actionID := stringValue(wakeResult["action_id"])
+	if actionID == "" {
+		t.Fatalf("WakeUp did not freeze an action: %#v", wakeResult)
+	}
+	var conversationID string
+	if err := repository.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2`, ownerID, fluctlightID).Scan(&conversationID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.ProcessAutonomyAction(ctx, actionID); err != nil {
+		t.Fatalf("ProcessAutonomyAction failed: %v", err)
+	}
+	var messageCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text=$2`, conversationID, text).Scan(&messageCount); err != nil {
+		t.Fatal(err)
+	}
+	if messageCount != 1 {
+		t.Fatalf("WakeUp no-op sidecar private message count = %d, want 1; result=%#v", messageCount, wakeResult)
+	}
+}
+
 func TestWakeUpDerivedIntentsKeepCycleCorrelation(t *testing.T) {
 	wakeSource, err := os.ReadFile("wakeup.go")
 	if err != nil {

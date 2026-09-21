@@ -106,6 +106,16 @@ func TestWakeUpToolOnlyReplyBecomesProactiveMessage(t *testing.T) {
 	}
 }
 
+func TestWakeUpRetainsTraceToolCallsWhenFinalSidecarIsNoOp(t *testing.T) {
+	reply := CapabilityInvocation{CallID: "trace-reply", CapabilityName: conversationReplyCapabilityName, Arguments: json.RawMessage(`{"text":"……嗯。"}`)}
+	affect := CapabilityInvocation{CallID: "trace-affect", CapabilityName: "affect_event", Arguments: json.RawMessage(`{"event":{"type":"excited","confidence":0.35}}`)}
+	calls := mergeADKTraceInvocations(nil, &ADKCapabilityTrace{Invocations: []CapabilityInvocation{affect, reply}})
+	assessment := mergeWakeUpToolCallAssessment(map[string]any{"action_type": "no_op", "tool_calls": []any{}}, calls, mustCapabilityRegistry(conversationReplyCapability{}, affectEventCapability{}))
+	if len(calls) != 2 || assessment["action_type"] != "proactive_message" {
+		t.Fatalf("trace wake-up reply was not promoted to proactive message: calls=%#v assessment=%#v", calls, assessment)
+	}
+}
+
 func TestWakeUpToolCallAssessmentMergePreservesInfluences(t *testing.T) {
 	registry := mustCapabilityRegistry(conversationReplyCapability{}, affectEventCapability{})
 	assessment := map[string]any{"action_type": "no_op", "influences": []any{"keep-me"}}
