@@ -409,21 +409,12 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			diagnostic := providerResponseDiagnostic(message, structuredCandidates, len(calls))
 			addStructuredParseFailureDiagnostic(diagnostic, structuredCandidates, finishReason)
 			logStructuredParseFailure(role, normalizationSchemaName, diagnostic)
+			errorCode := structuredParseErr.Error()
 			if adkEnabled {
-				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "adk_structured_response_invalid", diagnostic)
-				return ProviderCompletion{}, errors.New("adk_structured_response_invalid")
+				errorCode = "adk_structured_response_invalid"
 			}
-			if len(calls) == 0 {
-				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, structuredParseErr.Error(), diagnostic)
-				return ProviderCompletion{}, structuredParseErr
-			}
-			// Native capability calls are an independent event channel. A malformed
-			// structured sidecar must not erase already-normalized calls or turn a
-			// valid tool batch into a browser retry. Keep the bounded diagnostic and
-			// continue with the typed-empty fallback below.
-			structuredParseDiagnostic = diagnostic
-			parsedStructured = nil
-			parsedStructuredOK = false
+			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, errorCode, diagnostic)
+			return ProviderCompletion{}, structuredParseErr
 		}
 		if adkEnabled && len(structuredCandidates) > 0 && !parsedStructuredOK {
 			diagnostic := providerResponseDiagnostic(message, structuredCandidates, len(calls))
