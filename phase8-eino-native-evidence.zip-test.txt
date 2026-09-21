@@ -26,4 +26,27 @@ Archive:  phase8-eino-native-evidence.zip
     testing: phase8-eino-native-evidence/commands/static-guards.txt   OK
     testing: phase8-eino-native-evidence/reports/   OK
     testing: phase8-eino-native-evidence/reports/phase8-eino-native-report.md   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/eino-model-runtime.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/provider.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/capability-runtime.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/model-tasks.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/tool-contract.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/adk-conversation-runtime.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/fluctlight-ci.yml   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/diagnostic-model-runs-filter.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/phase8-required-tests.json   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/autonomy.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/eino-adk-runtime-test.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/diagnostics.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/cognition-growth.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/run-phase8-contract-gates.sh   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/operations.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/phase8-contract-matrix-test.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/ai-agent-loop.go   OK
+    testing: phase8-eino-native-evidence/contract-coverage.csv   OK
+    testing: phase8-eino-native-evidence/planning/   OK
+    testing: phase8-eino-native-evidence/planning/implement.md   OK
+    testing: phase8-eino-native-evidence/planning/prd.md   OK
+    testing: phase8-eino-native-evidence/planning/design.md   OK
 No errors detected in compressed data of phase8-eino-native-evidence.zip.

@@ -4,22 +4,22 @@ $ go -C apps/core-go test -mod=readonly -race -count=1 ./...
 ?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/migrate	[no test files]
 ?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/setup-token	[no test files]
 ?   	github.com/fluctlight/local-ai-companion/apps/core-go/cmd/worker	[no test files]
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent	1.212s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model	1.240s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/prompt	1.081s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/task	1.069s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent	1.186s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/model	1.250s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/prompt	1.075s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/task	1.076s
 ?   	github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability	[no test files]
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/config	1.070s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/conversation	1.070s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.410s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	1.401s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser	1.127s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	1.142s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/personality	1.073s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform	1.144s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/config	1.077s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/conversation	1.076s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	8.898s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi	1.390s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser	1.103s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	1.125s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/personality	1.067s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform	1.143s
 ?   	github.com/fluctlight/local-ai-companion/apps/core-go/internal/platform/crypto	[no test files]
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow	1.338s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/test/integration	1.376s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow	1.344s
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/test/integration	1.381s
 exit_code=0
 $ go -C apps/core-go vet ./...
 exit_code=0
@@ -31,18 +31,18 @@ $ pnpm test
 $ pnpm -r test
 Scope: 3 of 4 workspace projects
 packages/browser-client test$ tsx --test test/*.test.ts
-packages/browser-client test: ✔ BrowserClient resolves an empty base URL against the browser origin (6.699708ms)
-packages/browser-client test: ✔ BrowserClient maps an unauthenticated session response without treating it as a platform failure (0.41275ms)
-packages/browser-client test: ✔ BrowserClient requires an explicit base URL outside the browser (0.161417ms)
-packages/browser-client test: ✔ BrowserClient preserves safe API failure codes (0.243917ms)
-packages/browser-client test: ✔ BrowserClient preserves structured diagnostics details (0.142042ms)
-packages/browser-client test: ✔ BrowserClient preserves a non-2xx conversation turn error code (0.150209ms)
-packages/browser-client test: ✔ BrowserClient transports initialization analysis authority and typed detail source (3.349875ms)
-packages/browser-client test: ✔ BrowserClient requests the bounded media prompt diagnostics module (0.174792ms)
-packages/browser-client test: ✔ BrowserClient exposes media prompt retry (0.152541ms)
-packages/browser-client test: ✔ BrowserClient exposes immediate Fluctlight wake-up (0.143542ms)
-packages/browser-client test: ✔ BrowserClient serializes every lifecycle diagnostics filter for query and export (0.252875ms)
-packages/browser-client test: ✔ BrowserClient serializes the schema-derived Life Context command contracts (0.302625ms)
+packages/browser-client test: ✔ BrowserClient resolves an empty base URL against the browser origin (7.846208ms)
+packages/browser-client test: ✔ BrowserClient maps an unauthenticated session response without treating it as a platform failure (0.512708ms)
+packages/browser-client test: ✔ BrowserClient requires an explicit base URL outside the browser (0.191291ms)
+packages/browser-client test: ✔ BrowserClient preserves safe API failure codes (0.250584ms)
+packages/browser-client test: ✔ BrowserClient preserves structured diagnostics details (0.156292ms)
+packages/browser-client test: ✔ BrowserClient preserves a non-2xx conversation turn error code (0.166416ms)
+packages/browser-client test: ✔ BrowserClient transports initialization analysis authority and typed detail source (3.749208ms)
+packages/browser-client test: ✔ BrowserClient requests the bounded media prompt diagnostics module (0.171375ms)
+packages/browser-client test: ✔ BrowserClient exposes media prompt retry (0.159ms)
+packages/browser-client test: ✔ BrowserClient exposes immediate Fluctlight wake-up (0.153583ms)
+packages/browser-client test: ✔ BrowserClient serializes every lifecycle diagnostics filter for query and export (0.454459ms)
+packages/browser-client test: ✔ BrowserClient serializes the schema-derived Life Context command contracts (0.451292ms)
 packages/browser-client test: ℹ tests 12
 packages/browser-client test: ℹ suites 0
 packages/browser-client test: ℹ pass 12
@@ -50,56 +50,56 @@ packages/browser-client test: ℹ fail 0
 packages/browser-client test: ℹ cancelled 0
 packages/browser-client test: ℹ skipped 0
 packages/browser-client test: ℹ todo 0
-packages/browser-client test: ℹ duration_ms 94.87325
+packages/browser-client test: ℹ duration_ms 110.429084
 packages/browser-client test: Done
 apps/web test$ node --test test/*.test.mjs
-apps/web test: ✔ control center keeps keyboard, live-region, and form boundaries explicit (0.495458ms)
-apps/web test: ✔ governance exposes the owner capability request pool (0.326875ms)
-apps/web test: ✔ browser client keeps capability request endpoints at the API boundary (0.0645ms)
-apps/web test: ✔ a new submit remains visible while an older durable retry is being processed (147.777667ms)
-apps/web test: ✔ a stale post-stream history read cannot erase committed streamed messages (56.447583ms)
-apps/web test: ✔ a successful older retry cannot overwrite or lose the separately identified queued user turn (54.236625ms)
-apps/web test: ✔ a terminal cognition error keeps the authoritative user message visible and retry-bound (40.386834ms)
-apps/web test: ✔ a non-2xx turn response keeps the API error code instead of collapsing to turn_failed (44.958708ms)
-apps/web test: ✔ a retry from a discarded conversation is pruned when the server returns a new conversation (48.229792ms)
-apps/web test: ✔ a completed retry from another conversation no longer blocks the selected conversation (41.1985ms)
-apps/web test: ✔ detail display has safe object formatting and Chinese field labels (0.485958ms)
-apps/web test: ✔ provider role defaults preserve enough output budget for initialization (0.060666ms)
-apps/web test: ✔ detail owns read-only life-world sections and uses timezone-aware timeline formatting (0.100875ms)
-apps/web test: ✔ detail exposes a Chinese progressive state drawer (0.098958ms)
-apps/web test: ✔ governance exposes an owner-triggered Wake-up action (0.463625ms)
-apps/web test: ✔ detail exposes the owner-only initialization source as a collapsed safe panel (0.208834ms)
-apps/web test: ✔ settings accordion remounts when the selected section changes (0.083417ms)
-apps/web test: ✔ PC shell and role tabs do not scroll the outer frame (0.127334ms)
-apps/web test: ✔ schedule timeline highlights the item active at the current instant (0.065875ms)
-apps/web test: ✔ model run diagnostics show the server creation time (2.438166ms)
-apps/web test: ✔ Lifecycle Diagnostics exposes typed filters and PostgreSQL intent snapshots (0.364708ms)
-apps/web test: ✔ diagnostics sources use independent filter epochs (0.085416ms)
-apps/web test: ✔ Lifecycle Diagnostics renders empty, overdue, no-op, retry and failure states safely on narrow screens (0.190333ms)
-apps/web test: ✔ filtered export reuses every active lifecycle filter (0.083625ms)
-apps/web test: ✔ default group reconciliation keeps only ungrouped actor IDs for assignment (0.338459ms)
-apps/web test: ✔ actor group payloads normalize the migrated members key before filtering (0.066541ms)
-apps/web test: ✔ Telegram-style workspace keeps four primary tabs (0.516917ms)
-apps/web test: ✔ settings configuration is progressively disclosed by closed drawers (0.546625ms)
-apps/web test: ✔ media workflow settings accept unquoted placeholder templates (0.074125ms)
-apps/web test: ✔ web typography does not depend on a runtime Google Fonts stylesheet (0.150708ms)
-apps/web test: ✔ web controls are backed by the local shadcn-vue component layer (0.083625ms)
-apps/web test: ✔ diagnostics keeps existing modules and adds a filtered lifecycle disclosure (0.156375ms)
-apps/web test: ✔ desktop secondary navigation is page-addressable and chat groups stay flat (0.177708ms)
-apps/web test: ✔ chat owns a fixed-height work surface with an internal message scroller (0.117125ms)
-apps/web test: ✔ mobile surfaces keep diagnostics, navigation, and empty states shrink-safe (0.393667ms)
-apps/web test: ✔ runtime API configuration is emitted at container startup (0.31775ms)
-apps/web test: ✔ runtime API configuration rejects non-HTTP URLs (0.169583ms)
-apps/web test: ✔ web chat keeps the generated browser client at its boundary (1.554416ms)
-apps/web test: ✔ web keeps a failed turn retryable instead of allowing later messages to overtake it (0.565792ms)
-apps/web test: ✔ chat clears accepted drafts and keeps every streamed token reactive (0.494541ms)
-apps/web test: ✔ control center exposes the required product views (0.165584ms)
-apps/web test: ✔ owner password change explains its policy without trapping the submit button (0.233584ms)
-apps/web test: ✔ web uses the secure random-ID compatibility helper instead of randomUUID directly (0.721625ms)
-apps/web test: ✔ creation dialog presents activation failures where the user can act on them (0.273291ms)
-apps/web test: ✔ persona details expose layered JSON without rendering object coercion (0.773417ms)
-apps/web test: ✔ diagnostics entry loads records and creation keeps a direct correlation link (0.145083ms)
-apps/web test: ✔ creation preview has one typed authority, stale-analysis epochs, and a UTF-8 byte limit (0.609208ms)
+apps/web test: ✔ control center keeps keyboard, live-region, and form boundaries explicit (0.493416ms)
+apps/web test: ✔ governance exposes the owner capability request pool (0.329125ms)
+apps/web test: ✔ browser client keeps capability request endpoints at the API boundary (0.066125ms)
+apps/web test: ✔ a new submit remains visible while an older durable retry is being processed (226.97775ms)
+apps/web test: ✔ a stale post-stream history read cannot erase committed streamed messages (59.729459ms)
+apps/web test: ✔ a successful older retry cannot overwrite or lose the separately identified queued user turn (55.943167ms)
+apps/web test: ✔ a terminal cognition error keeps the authoritative user message visible and retry-bound (53.983708ms)
+apps/web test: ✔ a non-2xx turn response keeps the API error code instead of collapsing to turn_failed (34.494166ms)
+apps/web test: ✔ a retry from a discarded conversation is pruned when the server returns a new conversation (49.605416ms)
+apps/web test: ✔ a completed retry from another conversation no longer blocks the selected conversation (41.953ms)
+apps/web test: ✔ detail display has safe object formatting and Chinese field labels (0.485666ms)
+apps/web test: ✔ provider role defaults preserve enough output budget for initialization (0.06175ms)
+apps/web test: ✔ detail owns read-only life-world sections and uses timezone-aware timeline formatting (0.101333ms)
+apps/web test: ✔ detail exposes a Chinese progressive state drawer (0.098166ms)
+apps/web test: ✔ governance exposes an owner-triggered Wake-up action (0.491708ms)
+apps/web test: ✔ detail exposes the owner-only initialization source as a collapsed safe panel (0.170708ms)
+apps/web test: ✔ settings accordion remounts when the selected section changes (0.0665ms)
+apps/web test: ✔ PC shell and role tabs do not scroll the outer frame (0.120875ms)
+apps/web test: ✔ schedule timeline highlights the item active at the current instant (0.063375ms)
+apps/web test: ✔ model run diagnostics show the server creation time (2.447917ms)
+apps/web test: ✔ Lifecycle Diagnostics exposes typed filters and PostgreSQL intent snapshots (0.356792ms)
+apps/web test: ✔ diagnostics sources use independent filter epochs (0.086667ms)
+apps/web test: ✔ Lifecycle Diagnostics renders empty, overdue, no-op, retry and failure states safely on narrow screens (0.1915ms)
+apps/web test: ✔ filtered export reuses every active lifecycle filter (0.08275ms)
+apps/web test: ✔ default group reconciliation keeps only ungrouped actor IDs for assignment (0.33275ms)
+apps/web test: ✔ actor group payloads normalize the migrated members key before filtering (0.066083ms)
+apps/web test: ✔ Telegram-style workspace keeps four primary tabs (0.549875ms)
+apps/web test: ✔ settings configuration is progressively disclosed by closed drawers (0.558458ms)
+apps/web test: ✔ media workflow settings accept unquoted placeholder templates (0.072042ms)
+apps/web test: ✔ web typography does not depend on a runtime Google Fonts stylesheet (0.15475ms)
+apps/web test: ✔ web controls are backed by the local shadcn-vue component layer (0.087209ms)
+apps/web test: ✔ diagnostics keeps existing modules and adds a filtered lifecycle disclosure (0.173292ms)
+apps/web test: ✔ desktop secondary navigation is page-addressable and chat groups stay flat (0.190833ms)
+apps/web test: ✔ chat owns a fixed-height work surface with an internal message scroller (0.123709ms)
+apps/web test: ✔ mobile surfaces keep diagnostics, navigation, and empty states shrink-safe (0.391667ms)
+apps/web test: ✔ runtime API configuration is emitted at container startup (0.309541ms)
+apps/web test: ✔ runtime API configuration rejects non-HTTP URLs (0.167834ms)
+apps/web test: ✔ web chat keeps the generated browser client at its boundary (1.78225ms)
+apps/web test: ✔ web keeps a failed turn retryable instead of allowing later messages to overtake it (0.497ms)
+apps/web test: ✔ chat clears accepted drafts and keeps every streamed token reactive (0.622125ms)
+apps/web test: ✔ control center exposes the required product views (0.192208ms)
+apps/web test: ✔ owner password change explains its policy without trapping the submit button (0.27075ms)
+apps/web test: ✔ web uses the secure random-ID compatibility helper instead of randomUUID directly (0.80075ms)
+apps/web test: ✔ creation dialog presents activation failures where the user can act on them (0.30075ms)
+apps/web test: ✔ persona details expose layered JSON without rendering object coercion (0.689833ms)
+apps/web test: ✔ diagnostics entry loads records and creation keeps a direct correlation link (0.127459ms)
+apps/web test: ✔ creation preview has one typed authority, stale-analysis epochs, and a UTF-8 byte limit (0.552708ms)
 apps/web test: ℹ tests 47
 apps/web test: ℹ suites 0
 apps/web test: ℹ pass 47
@@ -107,10 +107,10 @@ apps/web test: ℹ fail 0
 apps/web test: ℹ cancelled 0
 apps/web test: ℹ skipped 0
 apps/web test: ℹ todo 0
-apps/web test: ℹ duration_ms 599.183
+apps/web test: ℹ duration_ms 720.603208
 apps/web test: Done
 exit_code=0
-$ pnpm typecheck && pnpm build
+$ pnpm typecheck && pnpm build && pnpm generate
 $ pnpm -r typecheck
 Scope: 3 of 4 workspace projects
 packages/browser-client typecheck$ tsc --noEmit
@@ -130,6 +130,10 @@ apps/web build: computing gzip size...
 apps/web build: dist/index.html                   0.44 kB │ gzip:   0.29 kB
 apps/web build: dist/assets/index-THum2Kqb.css  126.52 kB │ gzip:  22.19 kB
 apps/web build: dist/assets/index-BS_NmIqp.js   445.81 kB │ gzip: 134.71 kB
-apps/web build: ✓ built in 1.54s
+apps/web build: ✓ built in 1.86s
 apps/web build: Done
+$ pnpm --filter @fluctlight/core-client generate && pnpm --filter @fluctlight/browser-client generate:openapi && pnpm --filter @fluctlight/browser-client generate
+$ node scripts/generate.mjs
+$ node scripts/generate-openapi.mjs
+$ node scripts/generate.mjs
 exit_code=0

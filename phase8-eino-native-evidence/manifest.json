@@ -1,12 +1,13 @@
 {
   "schema": "phase8-eino-native-evidence.v1",
-  "generated_at": "2026-09-21T03:22:23.654Z",
-  "head": "50db5325e24252f1f44db5f9f8c4efbb92e4b466",
+  "generated_at": "2026-09-21T04:04:49.147Z",
+  "head": "8b4c43eb80478636f94509cf8cd3aa7b879e19cc",
   "branch": "master",
   "worktree_status_file": "commands/git-status.txt",
-  "source_diff_sha256": "1c9b2da65f8687c256c5e1367fb8d67fe1ae331e44dbe04a49e4b670f87ffc34  -",
+  "source_diff_sha256": "f38a7b5a787626b77a688a9a634c1e251ccd713afe25cb6e713c768c65f95880  -",
   "dependencies": {
-    "go": "1.25.4",
+    "go_module": "1.25.4",
+    "toolchain": "go version go1.26.3 darwin/arm64",
     "eino": "v0.7.37",
     "openai_model_extension": "v0.1.13"
   },
@@ -23,28 +24,28 @@
     },
     {
       "path": "commands/environment.txt",
-      "bytes": 211,
-      "sha256": "f53c12fe10f6e5a8d7f1e7286e38bddbbaf13d64b8b6963bf2c9be76d821b6d0"
+      "bytes": 201,
+      "sha256": "24b15dd07e11919516af10d2230caa1437e3f7a852c10ceed24034863375432e"
     },
     {
       "path": "commands/full-quality.txt",
-      "bytes": 9888,
-      "sha256": "4eb08b7b0852f7c4f209a5c12f64bde4a920753e84f6f059c3849842556a0d2e"
+      "bytes": 10149,
+      "sha256": "ae5046de05c01012029aa3e73c2dac24fae6aef822c1f72673029e0fe2c21bfd"
     },
     {
       "path": "commands/git-status.txt",
-      "bytes": 1525,
-      "sha256": "7b1825e6d8ba6e4a226759d3e8a8203a0471c6016cd0fdea5adae55b53df6cc0"
+      "bytes": 1306,
+      "sha256": "504ff6ac1a1371d111e88a8e1803021cdf6d18768214c85e8610d3a81a9e4800"
     },
     {
       "path": "commands/p8-checker-tests.txt",
-      "bytes": 474,
-      "sha256": "ff11480bbd8674badc35d139dc3929fb15c3357549831001d987798dfe8ac6b6"
+      "bytes": 473,
+      "sha256": "12757c4f8963b983fd9a7d442c70cf6c585259bae971c29399ae4e1113fb3412"
     },
     {
       "path": "commands/p8-required-go-test.jsonl",
-      "bytes": 32486,
-      "sha256": "86eed44a6171548851d700b7844934b71affe07ab6832d128e7fb573763b84bc"
+      "bytes": 34477,
+      "sha256": "ea71357da690d104aaf3b6494daffa842a2684521e6af1b76cbff8b1a312ea80"
     },
     {
       "path": "commands/secret-scan.txt",
@@ -54,12 +55,17 @@
     {
       "path": "commands/source-hashes.txt",
       "bytes": 2273,
-      "sha256": "f39f5b2e2a2a96236fbbf719abd10f9631e996a6caf3a191211cb14d129f2935"
+      "sha256": "7442d50306b17513f73266e0a8076bd381f70492130cdb88a69685178263b1f6"
     },
     {
       "path": "commands/static-guards.txt",
       "bytes": 673,
       "sha256": "0107b557b653d271df36e8fb30127e26ebdd067666fa61d5b0775ab46a8efb2e"
+    },
+    {
+      "path": "contract-coverage.csv",
+      "bytes": 8398,
+      "sha256": "b199bb68c22421b8b24cc06c0f04c57d9ddbeb0eb7c51ba69a879bd150452d25"
     },
     {
       "path": "evidence/code/adk-native-boundary-excerpt.md",
@@ -72,14 +78,99 @@
       "sha256": "a1bb55d47f68c1c094da8137b4f5401434ef987840db384f569686fe79a1fee1"
     },
     {
+      "path": "evidence/code/source/adk-conversation-runtime.go",
+      "bytes": 16329,
+      "sha256": "53160501f2655577dfd11c21a933c1008ec2b56b572edabb129db6add37e5f67"
+    },
+    {
+      "path": "evidence/code/source/ai-agent-loop.go",
+      "bytes": 7391,
+      "sha256": "6d294ce2c27a212b202b6cf53b97eb93df75253f5dc2876b96758e0119477af9"
+    },
+    {
+      "path": "evidence/code/source/autonomy.go",
+      "bytes": 22805,
+      "sha256": "5eba0479620d7bf2a5b14984d1f31a83cf6d572b76cb093743fd87d36a6add5e"
+    },
+    {
+      "path": "evidence/code/source/capability-runtime.go",
+      "bytes": 42331,
+      "sha256": "871078ea0d562b60bc959d27409948779be6b4a13ccfc93603257dc7b01c6527"
+    },
+    {
+      "path": "evidence/code/source/cognition-growth.go",
+      "bytes": 24728,
+      "sha256": "b10980abdb0428a226fd4215b9a1f3ced0a3899c903314bcf61a21f49ffd3888"
+    },
+    {
+      "path": "evidence/code/source/diagnostic-model-runs-filter.go",
+      "bytes": 3684,
+      "sha256": "ea0ee7f98a61c567d1a92360db3cb7759462ec01e84150440726b48115cceff6"
+    },
+    {
+      "path": "evidence/code/source/diagnostics.go",
+      "bytes": 25660,
+      "sha256": "254a217de6bc8ec1967ce99f61fb7bd0b49e0e08eb1b64c15f99a377842b2b28"
+    },
+    {
+      "path": "evidence/code/source/eino-adk-runtime-test.go",
+      "bytes": 47256,
+      "sha256": "d94e423af608b8e2e2c544a37f89ff9909ac9838b0587204adef12b62ca6e5e3"
+    },
+    {
+      "path": "evidence/code/source/eino-model-runtime.go",
+      "bytes": 40621,
+      "sha256": "62b326fa18fcf722704b3f7c79b76cb27b2add94402123f95dbeb4b7f135f277"
+    },
+    {
+      "path": "evidence/code/source/fluctlight-ci.yml",
+      "bytes": 7509,
+      "sha256": "1807e52b27efe53d2c6c4856512242736fa1242036ffd3d5a2e97ff956edf37f"
+    },
+    {
+      "path": "evidence/code/source/model-tasks.go",
+      "bytes": 16666,
+      "sha256": "e7ad39230ac49ce7d89bd96b6c6d045349c6fcaa3b6a6ccb92a84e2007d0577b"
+    },
+    {
+      "path": "evidence/code/source/operations.go",
+      "bytes": 103376,
+      "sha256": "446fca772027474d37fcbca9e2ad6f824dd0d0c38b0482404f71ba7b242b3aef"
+    },
+    {
+      "path": "evidence/code/source/phase8-contract-matrix-test.go",
+      "bytes": 9509,
+      "sha256": "f4973a4a0829d1e1fd7b7e055b43413628f7da3238934de8e43272a894695b9c"
+    },
+    {
+      "path": "evidence/code/source/phase8-required-tests.json",
+      "bytes": 3294,
+      "sha256": "d579a8b9e3c6c86c4153262f90bf8c30109a9e1a68153d1580ea9ea37ec6e3b4"
+    },
+    {
+      "path": "evidence/code/source/provider.go",
+      "bytes": 59998,
+      "sha256": "cf042f908c86dd792ecdeaee57c686cab0fa8e632077b74d6d39a52771bda6b7"
+    },
+    {
+      "path": "evidence/code/source/run-phase8-contract-gates.sh",
+      "bytes": 1796,
+      "sha256": "08f2e424140c596b6e6afb79ce5f7c535d261348e400f0193ca06b6e19932190"
+    },
+    {
+      "path": "evidence/code/source/tool-contract.go",
+      "bytes": 24126,
+      "sha256": "c9b90ab42459787207c34240a8864e94467a31759a074db838488d23ba9e1520"
+    },
+    {
       "path": "evidence/traces/conversation-success.json",
       "bytes": 1012,
       "sha256": "555fb91f00a80d9a6bcd67b8ef87249a96547782c74b7864853a397a7ed73d53"
     },
     {
       "path": "evidence/traces/model-parse-failure.json",
-      "bytes": 578,
-      "sha256": "bc55f475a11b8105556ecaa1dc73cf39fce46f35390600a146888ed93fde0ead"
+      "bytes": 784,
+      "sha256": "99d38a02f6cd63cf4de1f6e550caacac4cb44634548f0f7e11d25af850624a2c"
     },
     {
       "path": "evidence/traces/tool-failure.json",
@@ -93,13 +184,28 @@
     },
     {
       "path": "executions.json",
-      "bytes": 10186,
-      "sha256": "4fdfff37374550712687c7fe63ea0d49902faa02c5911616999839abe0cb5b4d"
+      "bytes": 10962,
+      "sha256": "099b5d66a896367ec5fb21b91d26dc928763fe1b007dc8d100032d96c890b493"
+    },
+    {
+      "path": "planning/design.md",
+      "bytes": 8858,
+      "sha256": "8dc86c685400cd1ac3d10b3b845d3e0a99bbef9d128233d1302e47508ee90d5d"
+    },
+    {
+      "path": "planning/implement.md",
+      "bytes": 10468,
+      "sha256": "569d43906578ba131e7f3562983ddb0a4ee09656be000e30b29a12536aaecc97"
+    },
+    {
+      "path": "planning/prd.md",
+      "bytes": 11627,
+      "sha256": "dc1ba11029c5eea7eaa198d798a47f1e54a50b5b3605bce2d5fc7b2a62ea7153"
     },
     {
       "path": "reports/phase8-eino-native-report.md",
-      "bytes": 10254,
-      "sha256": "250f68342752f943def3613769d6631986ff0a709dd8d62d1179017d2c770156"
+      "bytes": 10966,
+      "sha256": "37af5be7e3fe522f1a04c5dccbd5ed9644566143ea54b21edd488ed5f67e5d89"
     }
   ],
   "manifest_sha256_file": "manifest.sha256"

@@ -1,8 +1,8 @@
-✔ G0 rejects CSV column drift (1.036958ms)
-✔ G0 rejects missing evidence and invalid status (0.379375ms)
-✔ G0 rejects evidence references outside the run directory and malformed stages (0.408583ms)
-✔ G0 rejects parent pass with required child skip (0.430333ms)
-✔ G0 rejects a failed process hidden behind a successful summary (0.387458ms)
+✔ G0 rejects CSV column drift (1.203792ms)
+✔ G0 rejects missing evidence and invalid status (0.51975ms)
+✔ G0 rejects evidence references outside the run directory and malformed stages (0.4565ms)
+✔ G0 rejects parent pass with required child skip (0.477333ms)
+✔ G0 rejects a failed process hidden behind a successful summary (0.438042ms)
 ℹ tests 5
 ℹ suites 0
 ℹ pass 5
@@ -10,6 +10,6 @@
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 34.4235
+ℹ duration_ms 38.221834
 
 exit_code=0

@@ -28,6 +28,10 @@
     },
     {
       "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestPhase8FixedTaskInventoryMatchesProductionFunctions"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
       "test": "TestEinoNativeToolCallsRequireFormalIdentityAndObjectArguments"
     },
     {
@@ -37,6 +41,10 @@
     {
       "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
       "test": "TestEinoNativeToolCallNormalizationKeepsValidSiblingAndRejectsMalformedSibling"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestADKToolSuccessThenStructuredParseFailureKeepsTrace"
     },
     {
       "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
@@ -169,6 +177,12 @@
     },
     {
       "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestADKToolSuccessThenStructuredParseFailureKeepsTrace",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
       "test": "TestADKLoopSchemaMatrixKeepsBackgroundSingleTasksOut/main",
       "action": "pass",
       "elapsed": 0
@@ -266,6 +280,12 @@
     {
       "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
       "test": "TestPhase8DiagnosticsExportSupportsRunIDCorrelation",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestPhase8FixedTaskInventoryMatchesProductionFunctions",
       "action": "pass",
       "elapsed": 0
     }
