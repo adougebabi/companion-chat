@@ -176,7 +176,7 @@ func TestVisualIdentityJSONEmptyTreatsDatabaseDefaultAsEmpty(t *testing.T) {
 
 func TestEnforceVisualIdentityPromptRequiresThreePanelLayout(t *testing.T) {
 	prompt := enforceVisualIdentityTurnaroundPrompt("character description", "seed")
-	for _, required := range []string{"角色设定卡", "character description", "MODEL SHEET｜正面、侧面、背面三视图", "EXPRESSIONS｜平静、微笑、侧眸、思考、惊讶、冷漠六种表情", "非动漫、非Q版"} {
+	for _, required := range []string{"角色设定卡", "character description", "正面/侧面/背面三视图", "六种不同表情", "禁止生成任何文字", "非动漫、非Q版"} {
 		if !strings.Contains(prompt, required) {
 			t.Fatalf("three-panel prompt missing %q: %q", required, prompt)
 		}
@@ -185,7 +185,7 @@ func TestEnforceVisualIdentityPromptRequiresThreePanelLayout(t *testing.T) {
 		"purpose":         "visual_identity",
 		"visual_identity": map[string]any{"identity_snapshot": map[string]any{"identity": map[string]any{"visible_text": "一位20岁女性"}}},
 	})
-	if !strings.Contains(conceptPrompt, "一位20岁女性") || !strings.Contains(conceptPrompt, "MODEL SHEET｜正面、侧面、背面三视图") || !strings.Contains(conceptPrompt, "CHARACTER PROFILE") {
+	if !strings.Contains(conceptPrompt, "一位20岁女性") || !strings.Contains(conceptPrompt, "正面/侧面/背面三视图") || strings.Contains(conceptPrompt, "校服") || strings.Contains(conceptPrompt, "BASIC INFORMATION｜") || !strings.Contains(conceptPrompt, "禁止生成任何文字") {
 		t.Fatalf("concept prompt = %q", conceptPrompt)
 	}
 	if got := enforceVisualIdentityTurnaroundPrompt("front view", "review"); got != "front view" {

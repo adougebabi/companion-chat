@@ -147,8 +147,28 @@ func TestVisualIdentityMediaPromptInstructionRequiresThreePanelCharacterSheet(t 
 		{"role": "system", "content": "generic"},
 		{"role": "user", "content": `{"purpose":"visual_identity","stage":"seed","render_intent":"character_design_sheet"}`},
 	})
-	if len(messages) != 2 || !strings.Contains(stringValue(messages[0]["content"]), "CHARACTER PROFILE") || !strings.Contains(stringValue(messages[0]["content"]), "front/side/back MODEL SHEET") || !strings.Contains(stringValue(messages[0]["content"]), "consistent real human face") {
+	if len(messages) != 2 || !strings.Contains(stringValue(messages[0]["content"]), "CHARACTER PROFILE") || !strings.Contains(stringValue(messages[0]["content"]), "Do not render any text") || !strings.Contains(stringValue(messages[0]["content"]), "consistent real human face") {
 		t.Fatalf("visual identity prompt instruction = %#v", messages)
+	}
+}
+
+func TestVisualIdentityValidationInstructionsDoNotRequireRenderedText(t *testing.T) {
+	for name, instruction := range map[string]string{
+		"vision": visualIdentityVisionTaskInstruction,
+		"patch":  visualIdentityPatchTaskInstruction,
+	} {
+		t.Run(name, func(t *testing.T) {
+			for _, section := range visualIdentityRequiredCardSections {
+				if !strings.Contains(instruction, section) {
+					t.Errorf("validation instruction missing visual section %q", section)
+				}
+			}
+			for _, requirement := range []string{"text-free", "Do not require", "incidental unreadable marks"} {
+				if !strings.Contains(instruction, requirement) {
+					t.Errorf("validation instruction missing text-free rule %q", requirement)
+				}
+			}
+		})
 	}
 }
 

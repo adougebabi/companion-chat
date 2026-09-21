@@ -103,20 +103,26 @@ func visualIdentityExpectedViews() []string {
 	return []string{"front_full_body", "side_full_body", "back_full_body"}
 }
 
+var visualIdentityRequiredCardSections = []string{
+	"人物基础资料视觉区",
+	"正面、侧面、背面三视图",
+	"平静、微笑、侧眸、思考、惊讶、冷漠六种表情",
+	"服装拆解视觉区",
+	"包、领结、腕表、耳饰、发饰配饰展示",
+	"眼睛、嘴唇、发型、校徽细节特写",
+	"角色专属色卡",
+	"人物简介视觉区",
+	"性格关键词视觉区",
+	"角色签名视觉区",
+}
+
+var visualIdentityRequiredCardSectionsText = strings.Join(visualIdentityRequiredCardSections, "; ")
+
 const visualIdentityPromptTemplate = `角色设定卡
 %s
-制作完整 CHARACTER PROFILE / 角色档案卡，白色极简背景，高级时尚杂志排版，3:4 竖图。
-画面必须包含：
-BASIC INFORMATION｜人物基础资料
-MODEL SHEET｜正面、侧面、背面三视图
-EXPRESSIONS｜平静、微笑、侧眸、思考、惊讶、冷漠六种表情
-OUTFIT BREAKDOWN｜校服拆解
-ACCESSORIES｜包、领结、腕表、耳饰、发饰
-DETAIL CLOSE-UP｜眼睛、嘴唇、发型、校徽细节
-COLOR PALETTE｜角色专属色卡
-CHARACTER INTRODUCTION｜人物简介
-KEYWORDS｜性格关键词
-SIGNATURE｜角色签名
+制作完整角色档案卡，白色极简背景，高级时尚杂志排版，3:4 竖图。
+画面必须包含以下视觉分区：人物基础资料视觉区、正面/侧面/背面三视图、六种不同表情、服装拆解视觉区、包/领结/腕表/耳饰/发饰配饰展示、眼睛/嘴唇/发型/校徽细节特写、角色专属色卡、人物简介视觉区、性格关键词视觉区、角色签名视觉区。
+所有分区只用版式、人物小图、示意图、色块和留白表达，禁止生成任何文字、字母、数字、标题、标签、签名文字或伪文字；可以保留空白信息栏和空白签名线，但不要填入字符。
 整体视觉：真实真人、高级商业摄影、柔和棚拍光、高清皮肤纹理、服装材质真实、人物五官统一、三视图保持同一张脸、非动漫、非Q版。`
 
 // VisualIdentitySnapshot is the browser-safe, cognition-safe representation of
