@@ -49,4 +49,6 @@ Archive:  phase8-eino-native-evidence.zip
     testing: phase8-eino-native-evidence/planning/implement.md   OK
     testing: phase8-eino-native-evidence/planning/prd.md   OK
     testing: phase8-eino-native-evidence/planning/design.md   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/visible-output.go   OK
+    testing: phase8-eino-native-evidence/evidence/code/source/phase8-acceptance-matrix.csv   OK
 No errors detected in compressed data of phase8-eino-native-evidence.zip.

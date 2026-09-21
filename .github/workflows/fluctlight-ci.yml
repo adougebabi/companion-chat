@@ -21,6 +21,22 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'push'
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      GO_CORE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -38,9 +54,7 @@ jobs:
 
       - name: Run Phase 8 Eino contract gate
         run: |
-          go -C apps/core-go test -mod=readonly -count=1 \
-            -run 'Test(Phase8|EinoNative|EinoADK|ADKToolSuccess|RunADKLoop|ProviderConversation|ProviderWakeUp|ProviderTakeover|ADKLoopSchemaMatrix|RunADKStructuredTask)' \
-            ./internal/core ./internal/ai/agent
+          ./infra/acceptance/run-phase8-contract-gates.sh "$RUNNER_TEMP/phase8-eino-contract-gate"
 
       - name: Vet Go Core
         run: |

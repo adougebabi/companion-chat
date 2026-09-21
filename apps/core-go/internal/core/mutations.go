@@ -791,9 +791,8 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 		providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), assembly.Diagnostics)
 		providerCtx = WithProviderCorrelation(providerCtx, "turn:"+turnID)
 		// Main cognition is the semantic decision boundary for persona, action and
-		// reply. Allow the configured Provider to use its thinking channel; the
-		// adapter still parses reasoning_content as a structured candidate and Core
-		// validates the resulting decision before any side effect.
+		// reply. Thinking/reasoning remains diagnostics-only; structured decisions
+		// must arrive through formal Content JSON before Core validation.
 		run, completionErr := a.conversationRuntime().RunMain(providerCtx, ConversationMainInput{
 			Role: "cognitive_assessment", Messages: assembly.Messages, Definitions: definitions,
 			SchemaName: "conversation_turn_response", Schema: schema,

@@ -24,7 +24,7 @@
 
 - `providerMessagesToEino` 使用严格的 `einoToolCalls`，要求正式 ID、名称、对象 arguments，拒绝冲突/重复/缺失身份和非对象参数。
 - `normalizeEinoNativeToolCallsIndependently` 只从 Eino `schema.Message.ToolCalls` 建立领域 invocation；坏 sibling 产生有界错误但不抹掉合法 sibling。
-- 移除 Provider sidecar 的缺失 ID 派生路径：删除 `normalizeProviderToolCallsWithDerivedIDs` 和 `derivedProviderToolCallID` 的执行使用；固定 Task 的 structured JSON 仍按严格 DTO/Schema 解析，但不会制造 ToolCall 执行身份。
+- 移除 Provider sidecar 的缺失 ID 派生路径：删除 `normalizeProviderToolCallsWithDerivedIDs` 和 `derivedProviderToolCallID` 的执行使用；正文 JSON `tool_calls`、Reasoning、`<think>`、Markdown 和双编码内容不再作为工具请求或结构化 DTO 兜底，固定 Task 只接受正式 Content JSON。
 - ADK completion 的 `tool_calls` 只来自 Eino typed message；structured/reasoning sidecar 中的 `tool_calls` 被忽略/删除为执行权威，仅可作为受限诊断来源。
 
 保留内容：固定 Task 的严格结构化输出、冻结记录领域解码、非 ADK 合法 DTO 映射；这些不再拥有 ADK 工具执行权。
@@ -43,6 +43,7 @@
 - `RunADKLoop` 保留官方 `adk.NewChatModelAgent`、`adk.NewRunner`、`AgentEvent` 消费和 Core trace 投影；删除通过吞掉 `ErrExceedMaxIterations` 把上限错误转成成功的 `ToolOnlyTermination` 分支。
 - `queuedToolCallingChatModel` 继续负责已存在的 deferred/rejected round 边界，保持纯查询结果可继续回到模型、写/输出 deferred 不产生无意义第二次物理请求；这不是第二个通用模型循环，也不执行工具或事务。
 - 工具事实、工具结果、最终文本、模型/工具错误、取消、空最终消息和迭代上限仍分别识别；没有回退旧 assistant 文本。
+- Runner 后续模型错误返回保留已发生 ToolCall、ToolResult、消息和迭代计数的 partial result；运行仍失败，不进入提交/发布。
 - Conversation、WakeUp、Takeover Reply 的正式 Eino Runner/Tool result pairing 和 WakeUp trace 保留测试。
 
 关键测试：
@@ -53,6 +54,7 @@
 - `TestProviderConversationUsesADKLoopAndReturnsCanonicalTrace`
 - `TestProviderWakeUpUsesADKLoopAndPreservesTrace`
 - `TestProviderTakeoverReplyUsesADKLoopAndPreservesTrace`
+- `TestRunADKLoopToolSuccessThenModelErrorPreservesPartialResult`
 
 ## P8-03 工具适配与权限
 
@@ -81,6 +83,7 @@
 - 物理 ADK Generate/Stream 输入记录 `adk.model.input`，包括 bounded message count、formal tool-result IDs 和 assistant/tool pair match count；输出和终止分别记录 `adk.model.output`、`adk.run.termination`。
 - Tool invoker 记录 `adk.tool.requested`、`adk.tool.rejected`、`adk.tool.dispatched`、`adk.tool.result`，只保留 call ID、capability、surface、status、error code 和 arguments digest，不保存原始参数/推理。
 - 每个 model-run metrics 在缺少独立 workflow run 时继承同一 parent correlation 作为 `run_id`，不制造随机关联。
+- 业务 `run_id` 与每个物理 `model_call_id` 分开记录；物理调用不能覆盖父运行身份。
 - `DiagnosticsExportFiltered` 对 owner-authorized `run_id` 过滤事件和 model-run；普通 ModelRuns API 仍不暴露详细 metrics/prompt 字段。
 
 可导出链路：
@@ -108,7 +111,7 @@ completed result 保留在 trace，后续 malformed structured response 被归�
 
 - `phase8_contract_matrix_test.go` 维护独立期望关系，生产 catalog 仅作为被审查对象；实际注册项、surface、InternalOnly、Agent/Task allowlist 漂移会使测试失败。
 - `infra/acceptance/phase8-required-tests.json` 登记必跑叶子测试；`run-phase8-contract-gates.sh` 使用原始 Go JSON events、真实退出码和既有 evidence checker，拒绝父 PASS 掩盖子 SKIP、零匹配和 pipeline 吞错。
-- CI 的 Go job 显式运行 Phase 8 selector；完整 `go test -race ./...` 仍保留。
+- CI 的 Go job 直接运行 `run-phase8-contract-gates.sh`，并声明隔离 PostgreSQL service；完整 `go test -race ./...` 仍保留。CI 缺少数据库或 conditional 测试 SKIP 时 clear gate 非零。
 - 每个正式 ADK Agent 的基础套件、固定 Task 不进入 ADK、native ToolCall 负例和模型可见 adapter matrix 均有确定性证据。
 - 写能力的 PostgreSQL rollback/idempotency/最终发布集成仍受环境条件约束，未伪造通过。
 

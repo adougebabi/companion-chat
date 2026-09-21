@@ -1,10 +1,10 @@
 {
   "schema": "phase8-eino-native-evidence.v1",
-  "generated_at": "2026-09-21T04:08:57.469Z",
-  "head": "0a9c32c5f5cc389344bc6c08399e3bb392bed6b7",
+  "generated_at": "2026-09-21T06:42:40.100Z",
+  "head": "572eec51521231dc059849ca16c2d9e9808eca3c",
   "branch": "master",
   "worktree_status_file": "commands/git-status.txt",
-  "source_diff_sha256": "ee59ed2d80e9be8314160a8fc44ba81654e14567d9c91ae148dc7699ae8384ab  -",
+  "source_diff_sha256": "861abdcfca211992a419837d4104346fa392f7f2e30d04fa95c80b53db674efe  -",
   "dependencies": {
     "go_module": "1.25.4",
     "toolchain": "go version go1.26.3 darwin/arm64",
@@ -29,8 +29,8 @@
     },
     {
       "path": "commands/full-quality.txt",
-      "bytes": 10149,
-      "sha256": "ae5046de05c01012029aa3e73c2dac24fae6aef822c1f72673029e0fe2c21bfd"
+      "bytes": 10141,
+      "sha256": "4bf5fe59e1f3bde22fa7d0511bb0296326c16be036317380b9d47996762434ce"
     },
     {
       "path": "commands/git-status.txt",
@@ -39,13 +39,13 @@
     },
     {
       "path": "commands/p8-checker-tests.txt",
-      "bytes": 473,
-      "sha256": "12757c4f8963b983fd9a7d442c70cf6c585259bae971c29399ae4e1113fb3412"
+      "bytes": 475,
+      "sha256": "00508822c2ce16f5cfc9d1accca9bf3610fc84f31ef5ed270ab6835c76461a60"
     },
     {
       "path": "commands/p8-required-go-test.jsonl",
-      "bytes": 34477,
-      "sha256": "ea71357da690d104aaf3b6494daffa842a2684521e6af1b76cbff8b1a312ea80"
+      "bytes": 45508,
+      "sha256": "88b9ddf248e2ecee1c921d7c68f0c986cd6f3c6866e380b6e22cb2b2498aece6"
     },
     {
       "path": "commands/secret-scan.txt",
@@ -54,8 +54,8 @@
     },
     {
       "path": "commands/source-hashes.txt",
-      "bytes": 2273,
-      "sha256": "7442d50306b17513f73266e0a8076bd381f70492130cdb88a69685178263b1f6"
+      "bytes": 2369,
+      "sha256": "ec093534b7277c3c1837d080c3dc41631e8cece0ce0778ed9c6f29831413f32d"
     },
     {
       "path": "commands/static-guards.txt",
@@ -79,13 +79,13 @@
     },
     {
       "path": "evidence/code/source/adk-conversation-runtime.go",
-      "bytes": 16329,
-      "sha256": "53160501f2655577dfd11c21a933c1008ec2b56b572edabb129db6add37e5f67"
+      "bytes": 16526,
+      "sha256": "d70be4c9f9dfa8e8e47c9faa0c60eb2afbe496435d4c1daea8cb1955907fcba6"
     },
     {
       "path": "evidence/code/source/ai-agent-loop.go",
-      "bytes": 7391,
-      "sha256": "6d294ce2c27a212b202b6cf53b97eb93df75253f5dc2876b96758e0119477af9"
+      "bytes": 7355,
+      "sha256": "c637dffb8104a765fd4551456cd776a12e6f47c4b26f607193575fc12773b79f"
     },
     {
       "path": "evidence/code/source/autonomy.go",
@@ -114,18 +114,18 @@
     },
     {
       "path": "evidence/code/source/eino-adk-runtime-test.go",
-      "bytes": 47256,
-      "sha256": "d94e423af608b8e2e2c544a37f89ff9909ac9838b0587204adef12b62ca6e5e3"
+      "bytes": 49236,
+      "sha256": "7c249a006acee2f1180cbe16d0c6116ff5c097907108c3420a11883e8cfc9973"
     },
     {
       "path": "evidence/code/source/eino-model-runtime.go",
-      "bytes": 40621,
-      "sha256": "62b326fa18fcf722704b3f7c79b76cb27b2add94402123f95dbeb4b7f135f277"
+      "bytes": 41421,
+      "sha256": "2c72ad0de14d9c075dfbb80ccf7ce7ef3f849b41e1aa3f794f8a27e32fcca137"
     },
     {
       "path": "evidence/code/source/fluctlight-ci.yml",
-      "bytes": 7509,
-      "sha256": "1807e52b27efe53d2c6c4856512242736fa1242036ffd3d5a2e97ff956edf37f"
+      "bytes": 7824,
+      "sha256": "7c51934691e982e6e9febf80a2044431db388dff392d30ebb467a0c08d2564dc"
     },
     {
       "path": "evidence/code/source/model-tasks.go",
@@ -138,29 +138,39 @@
       "sha256": "446fca772027474d37fcbca9e2ad6f824dd0d0c38b0482404f71ba7b242b3aef"
     },
     {
+      "path": "evidence/code/source/phase8-acceptance-matrix.csv",
+      "bytes": 1720,
+      "sha256": "3c4e5f7d0f37c7c9be0e19c3c46708817b53a413abf6823d6cd984d271c25e63"
+    },
+    {
       "path": "evidence/code/source/phase8-contract-matrix-test.go",
-      "bytes": 9509,
-      "sha256": "f4973a4a0829d1e1fd7b7e055b43413628f7da3238934de8e43272a894695b9c"
+      "bytes": 10159,
+      "sha256": "af1fc3bc487985b0a6158b3ab0f947118e3a4beb556287504c86d121a2528f1b"
     },
     {
       "path": "evidence/code/source/phase8-required-tests.json",
-      "bytes": 3294,
-      "sha256": "d579a8b9e3c6c86c4153262f90bf8c30109a9e1a68153d1580ea9ea37ec6e3b4"
+      "bytes": 3915,
+      "sha256": "c581f7cb9537a1e049e2be15ccdbb8c27af98adbbd663bddf02f228c4c30d62e"
     },
     {
       "path": "evidence/code/source/provider.go",
-      "bytes": 59998,
-      "sha256": "cf042f908c86dd792ecdeaee57c686cab0fa8e632077b74d6d39a52771bda6b7"
+      "bytes": 54086,
+      "sha256": "465b8a1b5c75a7792e63258fcd98a1b945c9c876a74b983ffa9214cf9513c5ba"
     },
     {
       "path": "evidence/code/source/run-phase8-contract-gates.sh",
-      "bytes": 1796,
-      "sha256": "08f2e424140c596b6e6afb79ce5f7c535d261348e400f0193ca06b6e19932190"
+      "bytes": 2820,
+      "sha256": "0fb9c510dd04b99e8cc5a179debd742f2212400bd105bf0823c936a2d5d449d9"
     },
     {
       "path": "evidence/code/source/tool-contract.go",
       "bytes": 24126,
       "sha256": "c9b90ab42459787207c34240a8864e94467a31759a074db838488d23ba9e1520"
+    },
+    {
+      "path": "evidence/code/source/visible-output.go",
+      "bytes": 5830,
+      "sha256": "a6adca0ab76b963b2058f7842719159bc95cc38c217dd95dea3bc506bb3f8d63"
     },
     {
       "path": "evidence/traces/conversation-success.json",
@@ -184,8 +194,8 @@
     },
     {
       "path": "executions.json",
-      "bytes": 10962,
-      "sha256": "099b5d66a896367ec5fb21b91d26dc928763fe1b007dc8d100032d96c890b493"
+      "bytes": 14007,
+      "sha256": "afebcc078cb0c9a6a003e0902eaec69cdb853bc9781c7228f5705be741d7bf75"
     },
     {
       "path": "planning/design.md",
@@ -204,8 +214,8 @@
     },
     {
       "path": "reports/phase8-eino-native-report.md",
-      "bytes": 11299,
-      "sha256": "1783cd7afe9fa6446639dd88b898c369cbec48aad359a58370a91e32e5255daf"
+      "bytes": 11819,
+      "sha256": "e294d7b0ded21a9832b8375553954d6e36c30cf2cb6593179c57be6c03a5e022"
     }
   ],
   "manifest_sha256_file": "manifest.sha256"

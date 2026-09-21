@@ -181,14 +181,14 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 			continue
 		}
 		if event.Err != nil {
-			return ADKLoopResult{}, fmt.Errorf("adk_run: %w", event.Err)
+			return result, fmt.Errorf("adk_run: %w", event.Err)
 		}
 		if event.Output == nil || event.Output.MessageOutput == nil {
 			continue
 		}
 		message, getErr := event.Output.MessageOutput.GetMessage()
 		if getErr != nil {
-			return ADKLoopResult{}, fmt.Errorf("adk_message_output: %w", getErr)
+			return result, fmt.Errorf("adk_message_output: %w", getErr)
 		}
 		if message == nil {
 			continue
@@ -216,10 +216,10 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 	}
 	result.FinalMessage = lastAssistant
 	if result.FinalMessage == nil {
-		return ADKLoopResult{}, errors.New("adk_final_message_missing")
+		return result, errors.New("adk_final_message_missing")
 	}
 	if strings.TrimSpace(result.FinalMessage.Content) == "" && len(result.FinalMessage.ToolCalls) == 0 {
-		return ADKLoopResult{}, errors.New("adk_final_message_empty")
+		return result, errors.New("adk_final_message_empty")
 	}
 	return result, nil
 }

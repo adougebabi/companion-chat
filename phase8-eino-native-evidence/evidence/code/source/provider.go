@@ -309,6 +309,11 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		}
 	}
 	diagnostics := providerPromptDiagnostics(ctx)
+	if strings.TrimSpace(stringValue(diagnostics["run_id"])) == "" {
+		// The business correlation is the parent run identity. Physical ADK
+		// generations receive separate model_call_id values below.
+		diagnostics["run_id"] = correlationID
+	}
 	diagnostics["prompt_budget"] = mergeProviderPromptBudgetDiagnostics(mapValue(diagnostics["prompt_budget"]), messages, renderedTools, responseFormat, assignment, wireEstimate)
 	if continuation {
 		diagnostics["continuation_phase"] = "queries_completed"
@@ -394,9 +399,9 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		logToolCallShapeNormalization(role, schemaName, "native", message["tool_calls"])
 		content, _ := message["content"].(string)
 		content = strings.TrimSpace(content)
-		// mlx-serve places structured JSON in reasoning_content when thinking is
-		// enabled, while leaving message.content empty. Treat that field as a
-		// structured control channel only; it is never exposed as visible text.
+		// Structured output is accepted only from the formal Content channel;
+		// reasoning_content is diagnostics-only and can never become a DTO or
+		// execution request.
 		structuredCandidates := providerStructuredCandidates(message)
 		parsedStructured, parsedStructuredOK, structuredParseErr := parseStructuredCandidatesForRole(role, structuredCandidates)
 		var structuredParseDiagnostic map[string]any
@@ -426,17 +431,10 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "adk_structured_response_invalid", diagnostic)
 			return ProviderCompletion{}, errors.New("adk_structured_response_invalid")
 		}
-		if !adkEnabled && len(calls) == 0 && parsedStructuredOK && len(definitions) == 0 {
-			structuredCalls, callErr := NormalizeProviderToolCalls(parsedStructured["tool_calls"], "", providerRequestID)
-			if callErr != nil {
-				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
-				return ProviderCompletion{}, callErr
-			}
-			if len(structuredCalls) > 0 {
-				err := errors.New("provider_tool_call_unhandled: no capability catalog is attached to this call")
-				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_unhandled")
-				return ProviderCompletion{}, err
-			}
+		if !adkEnabled && parsedStructuredOK && len(toolCallArrayValue(parsedStructured["tool_calls"])) > 0 {
+			err := errors.New("provider_tool_call_unhandled: structured Content tool_calls are not an execution channel")
+			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_unhandled")
+			return ProviderCompletion{}, err
 		}
 		completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
 		var normalizedFields []string
@@ -446,12 +444,9 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			}
 			if parsedStructuredOK {
 				completion.Structured, normalizedFields = normalizeProviderStructured(parsedStructured, normalizationSchemaName, structuredSchema)
-				if adkEnabled {
-					// A thinking-enabled provider may echo a structured tool_calls
-					// sidecar. It is diagnostic noise on an ADK completion, never a
-					// second invocation envelope.
-					delete(completion.Structured, "tool_calls")
-				}
+				// Structured Content is a DTO channel, never a second ToolCall
+				// authority. Native Eino calls remain in completion.ToolCalls.
+				delete(completion.Structured, "tool_calls")
 				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, len(calls), len(structuredCandidates), false, message)
 			} else if jsonMode {
 				completion.Structured, normalizedFields = emptyProviderStructured(normalizationSchemaName, structuredSchema)
@@ -486,19 +481,6 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 					delete(completion.Structured, "tool_calls")
 				}
 				logStructuredNormalization(role, normalizationSchemaName, normalizedFields, 0, len(structuredCandidates), false, message)
-				if len(definitions) > 0 && !adkEnabled {
-					logToolCallShapeNormalization(role, schemaName, "structured", parsedStructured["tool_calls"])
-					calls, callErr := normalizeProviderToolCallsIndependently(completion.Structured["tool_calls"], "", providerRequestID)
-					if callErr != nil {
-						diagnostic := providerToolCallNormalizationDiagnostic(completion.Structured["tool_calls"], "structured", callErr)
-						if len(calls) == 0 {
-							p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "tool_call_invalid", diagnostic)
-							return ProviderCompletion{}, callErr
-						}
-						logToolCallShapeNormalization(role, schemaName, "structured_partial", diagnostic)
-					}
-					completion.ToolCalls = calls
-				}
 			} else if jsonMode {
 				completion.Structured, normalizedFields = emptyProviderStructured(normalizationSchemaName, structuredSchema)
 				completion.StructuredFallback = true
@@ -548,31 +530,11 @@ func providerStructuredCandidates(message map[string]any) []string {
 	if message == nil {
 		return nil
 	}
-	result := make([]string, 0, 2)
-	appendCandidate := func(value any) {
-		var candidate string
-		switch typed := value.(type) {
-		case string:
-			candidate = strings.TrimSpace(typed)
-		case map[string]any, []any:
-			encoded, err := json.Marshal(typed)
-			if err == nil {
-				candidate = strings.TrimSpace(string(encoded))
-			}
-		}
-		if candidate == "" {
-			return
-		}
-		for _, existing := range result {
-			if existing == candidate {
-				return
-			}
-		}
-		result = append(result, candidate)
+	content, ok := message["content"].(string)
+	if !ok || strings.TrimSpace(content) == "" {
+		return nil
 	}
-	appendCandidate(message["content"])
-	appendCandidate(message["reasoning_content"])
-	return result
+	return []string{strings.TrimSpace(content)}
 }
 
 func parseStructuredCandidates(candidates []string) (map[string]any, bool) {
@@ -589,22 +551,19 @@ func parseStructuredCandidatesForRole(role string, candidates []string) (map[str
 	if ok {
 		return structured, true, nil
 	}
-	if role == "initialization" && len(candidates) > 0 {
-		return nil, false, errors.New("initialization_response_invalid_json")
+	if len(candidates) > 0 {
+		if role == "initialization" {
+			return nil, false, errors.New("initialization_response_invalid_json")
+		}
+		return nil, false, errors.New("structured_response_invalid_json")
 	}
 	return nil, false, nil
 }
 
-// parseStructuredCandidate handles protocol framing added by otherwise
-// OpenAI-compatible Providers. In particular, thinking-enabled local models
-// may wrap their JSON in a <think> block, a Markdown JSON fence, or encode the
-// JSON object as a JSON string. These are transport wrappers, not semantic
-// fallbacks: prose without a complete terminal structured object remains
-// invalid and is never interpreted as a decision.
-func parseStructuredCandidate(candidate string, depth int) (map[string]any, bool) {
-	if depth > 3 {
-		return nil, false
-	}
+// parseStructuredCandidate accepts only a complete JSON object from the formal
+// Content channel. Reasoning, <think>, Markdown fences, encoded strings and
+// trailing prose are transport guesses and are deliberately rejected.
+func parseStructuredCandidate(candidate string, _ int) (map[string]any, bool) {
 	candidate = strings.TrimSpace(candidate)
 	if candidate == "" {
 		return nil, false
@@ -614,149 +573,7 @@ func parseStructuredCandidate(candidate string, depth int) (map[string]any, bool
 	if json.Unmarshal([]byte(candidate), &structured) == nil && structured != nil {
 		return structured, true
 	}
-
-	// Some gateways serialize the provider's JSON string one additional time.
-	var encoded string
-	if json.Unmarshal([]byte(candidate), &encoded) == nil && strings.TrimSpace(encoded) != candidate {
-		if structured, ok := parseStructuredCandidate(encoded, depth+1); ok {
-			return structured, true
-		}
-	}
-
-	// mlx-serve and compatible thinking adapters can place a transport-only
-	// explanation before or around the structured payload. Only strip complete,
-	// known wrappers; do not scan arbitrary prose for an embedded object.
-	if start := strings.Index(candidate, "<think>"); start == 0 {
-		if end := strings.Index(candidate[len("<think>"):], "</think>"); end >= 0 {
-			end += len("<think>")
-			if structured, ok := parseStructuredCandidate(candidate[len("<think>"):end], depth+1); ok {
-				return structured, true
-			}
-			if structured, ok := parseStructuredCandidate(candidate[end+len("</think>"):], depth+1); ok {
-				return structured, true
-			}
-		}
-	} else if end := strings.Index(candidate, "</think>"); end >= 0 {
-		if structured, ok := parseStructuredCandidate(candidate[end+len("</think>"):], depth+1); ok {
-			return structured, true
-		}
-	}
-
-	if strings.HasPrefix(candidate, "```") {
-		lines := strings.Split(candidate, "\n")
-		if len(lines) >= 3 {
-			last := len(lines) - 1
-			if strings.TrimSpace(lines[last]) == "```" {
-				first := strings.TrimSpace(lines[0])
-				if first == "```" || strings.EqualFold(first, "```json") {
-					if structured, ok := parseStructuredCandidate(strings.Join(lines[1:last], "\n"), depth+1); ok {
-						return structured, true
-					}
-				}
-			}
-		}
-	}
-
-	// A Provider may add a short explanation before and after an otherwise
-	// complete Markdown JSON fence. The fence is an explicit transport boundary,
-	// so extracting its complete body is safer than scanning arbitrary prose for
-	// braces. Unclosed fences and invalid/truncated bodies remain rejected.
-	if fenced := embeddedStructuredFence(candidate); fenced != "" {
-		if structured, ok := parseStructuredCandidate(fenced, depth+1); ok {
-			return structured, true
-		}
-	}
-
-	// A few thinking adapters omit the XML/fence marker and leave a short
-	// transport prelude before the final object. Accept only a balanced object
-	// that extends to the end of the designated structured channel; an object
-	// embedded in trailing prose is still rejected.
-	if trailing := trailingJSONObject(candidate); trailing != "" && trailing != candidate {
-		if structured, ok := parseStructuredCandidate(trailing, depth+1); ok {
-			return structured, true
-		}
-	}
 	return nil, false
-}
-
-func embeddedStructuredFence(value string) string {
-	searchFrom := 0
-	for searchFrom < len(value) {
-		openOffset := strings.Index(value[searchFrom:], "```")
-		if openOffset < 0 {
-			return ""
-		}
-		open := searchFrom + openOffset
-		lineEndOffset := strings.IndexByte(value[open:], '\n')
-		if lineEndOffset < 0 {
-			return ""
-		}
-		lineEnd := open + lineEndOffset
-		marker := strings.TrimSpace(value[open:lineEnd])
-		if marker != "```" && !strings.EqualFold(marker, "```json") {
-			searchFrom = open + 3
-			continue
-		}
-		bodyStart := lineEnd + 1
-		closeOffset := strings.Index(value[bodyStart:], "\n```")
-		if closeOffset < 0 {
-			return ""
-		}
-		close := bodyStart + closeOffset
-		closeLineStart := close + 1
-		closeLineEnd := len(value)
-		if endOffset := strings.IndexByte(value[closeLineStart:], '\n'); endOffset >= 0 {
-			closeLineEnd = closeLineStart + endOffset
-		}
-		if strings.TrimSpace(value[closeLineStart:closeLineEnd]) != "```" {
-			searchFrom = open + 3
-			continue
-		}
-		return strings.TrimSpace(value[bodyStart:close])
-	}
-	return ""
-}
-
-func trailingJSONObject(value string) string {
-	start := -1
-	depth := 0
-	inString := false
-	escaped := false
-	lastEnd := -1
-	for index := 0; index < len(value); index++ {
-		char := value[index]
-		if inString {
-			if escaped {
-				escaped = false
-			} else if char == '\\' {
-				escaped = true
-			} else if char == '"' {
-				inString = false
-			}
-			continue
-		}
-		switch char {
-		case '"':
-			inString = true
-		case '{':
-			if depth == 0 {
-				start = index
-			}
-			depth++
-		case '}':
-			if depth == 0 {
-				return ""
-			}
-			depth--
-			if depth == 0 {
-				lastEnd = index + 1
-			}
-		}
-	}
-	if depth != 0 || start < 0 || lastEnd < 0 || strings.TrimSpace(value[lastEnd:]) != "" {
-		return ""
-	}
-	return strings.TrimSpace(value[start:lastEnd])
 }
 
 func providerResponseDiagnostic(message map[string]any, candidates []string, toolCallCount int) map[string]any {
@@ -813,7 +630,7 @@ func addStructuredParseFailureDiagnostic(diagnostic map[string]any, candidates [
 	diagnostic["framing"] = framing
 	balanced := structuredDelimitersBalanced(candidate)
 	diagnostic["delimiters_balanced"] = balanced
-	if finishReason == "length" || !balanced || (framing == "markdown_fence" && embeddedStructuredFence(candidate) == "" && strings.Count(candidate, "```")%2 != 0) {
+	if finishReason == "length" || !balanced || (framing == "markdown_fence" && strings.Count(candidate, "```")%2 != 0) {
 		diagnostic["parse_error"] = "structured_response_truncated"
 		return
 	}

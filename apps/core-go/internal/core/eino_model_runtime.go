@@ -89,6 +89,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	callCorrelation := fmt.Sprintf("%s:adk:%d", m.correlationID, sequence)
 	callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
 	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
+	callCtx = withPhysicalModelCallDiagnostics(callCtx, m.correlationID, callRequestID)
 	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, callCorrelation, sequence, input)
 	// The parent turn attempt is intentionally not reused as the physical
 	// model-call attempt. Diagnostics and cancellation state must distinguish
@@ -119,6 +120,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	callRequestID := providerDiagnosticRequestID(m.role, callCorrelation)
 	callCtx := withEinoRequestID(withoutProviderQueueBypass(ctx), callRequestID)
 	callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
+	callCtx = withPhysicalModelCallDiagnostics(callCtx, m.correlationID, callRequestID)
 	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, callCorrelation, sequence, input)
 	callDiagnosticID := ""
 	if m.provider != nil && m.provider.DB != nil {
@@ -127,6 +129,17 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	return runProviderQueuedStream(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
 		return m.inner.Stream(runCtx, input, opts...)
 	})
+}
+
+func withPhysicalModelCallDiagnostics(ctx context.Context, runID, modelCallID string) context.Context {
+	diagnostics := providerPromptDiagnostics(ctx)
+	if strings.TrimSpace(runID) != "" {
+		diagnostics["run_id"] = strings.TrimSpace(runID)
+	}
+	if strings.TrimSpace(modelCallID) != "" {
+		diagnostics["model_call_id"] = strings.TrimSpace(modelCallID)
+	}
+	return WithPromptDiagnostics(ctx, diagnostics)
 }
 
 func recordEinoModelInputDiagnostic(ctx context.Context, provider *ProviderClient, role, correlationID string, sequence uint64, input []*schema.Message) {
@@ -166,8 +179,9 @@ func recordEinoModelInputDiagnostic(ctx context.Context, provider *ProviderClien
 	if runID == "" {
 		runID = correlationID
 	}
+	modelCallID := stringValue(diagnostics["model_call_id"])
 	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.model.input", "info", fluctlightID, "", correlationID, map[string]any{
-		"run_id": runID, "stage": "model_input", "role": role, "sequence": sequence,
+		"run_id": runID, "model_call_id": modelCallID, "stage": "model_input", "role": role, "sequence": sequence,
 		"message_count": messageCount, "tool_result_ids": boundedDiagnosticStrings(toolResults, 32),
 		"tool_result_pair_count": matched, "tool_result_pair_status": map[bool]string{true: "present", false: "absent"}[matched > 0],
 	})
@@ -183,6 +197,7 @@ func recordEinoModelOutputDiagnostic(ctx context.Context, provider *ProviderClie
 	if runID == "" {
 		runID = correlationID
 	}
+	modelCallID := stringValue(diagnostics["model_call_id"])
 	callIDs := make([]string, 0, 8)
 	if message != nil {
 		for _, call := range message.ToolCalls {
@@ -196,7 +211,7 @@ func recordEinoModelOutputDiagnostic(ctx context.Context, provider *ProviderClie
 		status = "failed"
 	}
 	provider.runtimeSupport().RecordDiagnosticEvent(ctx, "adk.model.output", "info", fluctlightID, "", correlationID, map[string]any{
-		"run_id": runID, "stage": "model_output", "role": role, "sequence": sequence,
+		"run_id": runID, "model_call_id": modelCallID, "stage": "model_output", "role": role, "sequence": sequence,
 		"status": status, "tool_call_ids": boundedDiagnosticStrings(callIDs, 32),
 		"error_code": providerRunErrorCode(runErr),
 	})
@@ -800,7 +815,7 @@ func validateADKStructuredResponse(message *schema.Message, role string) error {
 	}
 	_, ok, parseErr := parseStructuredCandidatesForRole(role, candidates)
 	if parseErr != nil {
-		return parseErr
+		return fmt.Errorf("adk_structured_response_invalid: %w", parseErr)
 	}
 	if !ok {
 		return errors.New("adk_structured_response_invalid")

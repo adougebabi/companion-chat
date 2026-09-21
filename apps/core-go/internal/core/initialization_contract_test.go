@@ -48,7 +48,7 @@ func TestInitializationProviderCauseCodePreservesStructuredParseFailure(t *testi
 	}
 }
 
-func TestInitializationStructuredCandidateAcceptsEmbeddedCompleteJSONFence(t *testing.T) {
+func TestInitializationStructuredCandidateRejectsEmbeddedJSONFence(t *testing.T) {
 	payload := map[string]any{
 		"core_persona": map[string]any{
 			"identity": map[string]any{"name": "岚音", "notes": strings.Repeat("完整设定", 3100)},
@@ -62,9 +62,8 @@ func TestInitializationStructuredCandidateAcceptsEmbeddedCompleteJSONFence(t *te
 		t.Fatalf("fixture is too short: %d", len([]rune(content)))
 	}
 	candidates := providerStructuredCandidates(map[string]any{"content": content})
-	parsed, ok := parseStructuredCandidates(candidates)
-	if !ok || stringValue(mapValue(mapValue(parsed["core_persona"])["identity"])["name"]) != "岚音" {
-		t.Fatalf("complete embedded initialization JSON was rejected: ok=%v field_count=%d", ok, len(parsed))
+	if _, ok := parseStructuredCandidates(candidates); ok {
+		t.Fatal("Markdown fenced initialization content must not be treated as formal Content JSON")
 	}
 	truncated := "前置说明\n```json\n" + jsonString(payload)[:6000]
 	if _, ok := parseStructuredCandidates(providerStructuredCandidates(map[string]any{"content": truncated})); ok {
@@ -96,8 +95,8 @@ func TestInitializationNonEmptyParseFailureIsTypedAndMetadataOnly(t *testing.T) 
 	if invalidDiagnostic["parse_error"] != "structured_response_invalid_json" || intValue(invalidDiagnostic["syntax_offset"]) <= 0 {
 		t.Fatalf("invalid JSON diagnostic = %#v", invalidDiagnostic)
 	}
-	if _, ok, err := parseStructuredCandidatesForRole("cognitive_assessment", candidates); ok || err != nil {
-		t.Fatalf("non-initialization fallback behavior changed: ok=%v err=%v", ok, err)
+	if _, ok, err := parseStructuredCandidatesForRole("cognitive_assessment", candidates); ok || err == nil || err.Error() != "structured_response_invalid_json" {
+		t.Fatalf("non-initialization malformed Content must fail explicitly: ok=%v err=%v", ok, err)
 	}
 }
 

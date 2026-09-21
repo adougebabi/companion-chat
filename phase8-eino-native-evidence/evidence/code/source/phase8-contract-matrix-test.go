@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -202,6 +203,18 @@ func TestPhase8FixedTaskInventoryMatchesProductionFunctions(t *testing.T) {
 		if !strings.Contains(text, marker) {
 			t.Errorf("fixed task inventory marker %q is missing from model_tasks.go", marker)
 		}
+	}
+}
+
+func TestPhase8BusinessRunAndPhysicalModelCallIdentitiesStayDistinct(t *testing.T) {
+	parent := WithPromptDiagnostics(context.Background(), map[string]any{"run_id": "run-1"})
+	physical := withPhysicalModelCallDiagnostics(parent, "run-1", "model-call-1")
+	diagnostics := providerPromptDiagnostics(physical)
+	if stringValue(diagnostics["run_id"]) != "run-1" || stringValue(diagnostics["model_call_id"]) != "model-call-1" {
+		t.Fatalf("physical diagnostics = %#v", diagnostics)
+	}
+	if stringValue(diagnostics["run_id"]) == stringValue(diagnostics["model_call_id"]) {
+		t.Fatal("physical model call replaced the parent business run_id")
 	}
 }
 

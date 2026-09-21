@@ -582,13 +582,13 @@ func TestDailyReviewProviderPayloadUsesItsCompositeActionSchema(t *testing.T) {
 	}
 }
 
-func TestProviderStructuredContentAcceptsMlxReasoningContent(t *testing.T) {
+func TestProviderStructuredContentUsesFormalContentOnly(t *testing.T) {
 	message := map[string]any{
 		"content":           "",
 		"reasoning_content": `{"names":["李雷","韩梅梅"]}`,
 	}
-	if got := providerStructuredContent(message); got != `{"names":["李雷","韩梅梅"]}` {
-		t.Fatalf("structured content = %q", got)
+	if got := providerStructuredContent(message); got != "" {
+		t.Fatalf("reasoning content must not become structured Content: %q", got)
 	}
 	content := map[string]any{"content": `{"action_type":"reply"}`, "reasoning_content": `{"action_type":"wrong"}`}
 	if got := providerStructuredContent(content); got != `{"action_type":"reply"}` {
@@ -597,12 +597,12 @@ func TestProviderStructuredContentAcceptsMlxReasoningContent(t *testing.T) {
 	if parsed, ok := parseStructuredCandidates(providerStructuredCandidates(map[string]any{
 		"content":           `{"action_type":"reply"}尾部文本`,
 		"reasoning_content": `{"action_type":"reply","visible_text":"你好"}`,
-	})); !ok || parsed["visible_text"] != "你好" {
-		t.Fatalf("invalid content should fall back to valid reasoning JSON: %#v, ok=%v", parsed, ok)
+	})); ok {
+		t.Fatalf("invalid Content must not fall back to reasoning JSON: %#v", parsed)
 	}
 }
 
-func TestProviderStructuredContentAcceptsWrappedAndEncodedJSON(t *testing.T) {
+func TestProviderStructuredContentRejectsReasoningAndWrappedJSON(t *testing.T) {
 	cases := []struct {
 		name      string
 		message   map[string]any
@@ -652,16 +652,16 @@ func TestProviderStructuredContentAcceptsWrappedAndEncodedJSON(t *testing.T) {
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			parsed, ok := parseStructuredCandidates(providerStructuredCandidates(testCase.message))
-			if !ok || stringValue(parsed["action_type"]) != testCase.wantValue {
-				t.Fatalf("parsed=%#v ok=%v", parsed, ok)
+			if ok {
+				t.Fatalf("non-Content structured candidate was accepted: parsed=%#v", parsed)
 			}
 		})
 	}
 	if parsed, ok := parseStructuredCandidates(providerStructuredCandidates(map[string]any{
 		"content":           `{"action_type":"reply"}尾部文本`,
 		"reasoning_content": `{"action_type":"no_op","response_intent":"","tool_calls":[]}`,
-	})); !ok || stringValue(parsed["action_type"]) != "no_op" {
-		t.Fatalf("malformed content must fall back to reasoning JSON: parsed=%#v ok=%v", parsed, ok)
+	})); ok {
+		t.Fatalf("malformed Content must not fall back to reasoning JSON: parsed=%#v", parsed)
 	}
 }
 

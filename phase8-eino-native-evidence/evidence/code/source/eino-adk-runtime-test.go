@@ -189,6 +189,30 @@ type adkTextThenEmptyChatModel struct {
 	calls int
 }
 
+type adkToolThenErrorChatModel struct {
+	mu    sync.Mutex
+	calls int
+}
+
+func (m *adkToolThenErrorChatModel) Generate(context.Context, []*schema.Message, ...model.Option) (*schema.Message, error) {
+	m.mu.Lock()
+	m.calls++
+	call := m.calls
+	m.mu.Unlock()
+	if call == 1 {
+		return schema.AssistantMessage("", []schema.ToolCall{{ID: "tool-then-error", Type: "function", Function: schema.FunctionCall{Name: "memory.recall", Arguments: `{"intent":"recent"}`}}}), nil
+	}
+	return nil, errors.New("second_model_call_failed")
+}
+
+func (m *adkToolThenErrorChatModel) Stream(context.Context, []*schema.Message, ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+	return nil, errors.New("second_stream_call_failed")
+}
+
+func (m *adkToolThenErrorChatModel) WithTools([]*schema.ToolInfo) (model.ToolCallingChatModel, error) {
+	return m, nil
+}
+
 func (m *adkTextThenEmptyChatModel) Generate(context.Context, []*schema.Message, ...model.Option) (*schema.Message, error) {
 	m.mu.Lock()
 	m.calls++
@@ -360,6 +384,27 @@ func TestRunADKLoopToolFailureHasNoFinalMessage(t *testing.T) {
 	}, []*schema.Message{schema.UserMessage("tool failure")})
 	if err == nil || !strings.Contains(err.Error(), "fake_tool_failed") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestRunADKLoopToolSuccessThenModelErrorPreservesPartialResult(t *testing.T) {
+	defs := []CapabilityDefinition{{Name: "memory.recall", Description: "Recall", InputSchema: objectSchema(map[string]any{"intent": stringSchema()}, []string{"intent"}, false)}}
+	trace := &ADKCapabilityTrace{}
+	tools, err := NewADKCapabilityTools(defs, adkTraceInvoker{trace: trace})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := RunADKLoop(context.Background(), ADKLoopConfig{
+		Name: "conversation", Description: "test", Model: &adkToolThenErrorChatModel{}, Tools: tools, MaxIterations: 2,
+	}, []*schema.Message{schema.UserMessage("tool then model failure")})
+	if err == nil || !strings.Contains(err.Error(), "second_model_call_failed") {
+		t.Fatalf("expected second model failure, got %v", err)
+	}
+	if len(result.ToolCalls) != 1 || len(result.ToolResults) != 1 || len(result.Messages) < 2 {
+		t.Fatalf("partial ADK result lost after model failure: result=%#v", result)
+	}
+	if len(trace.Invocations) != 1 || len(trace.Results) != 1 || trace.Results[0].Status != "completed" {
+		t.Fatalf("tool trace lost after model failure: trace=%#v", trace)
 	}
 }
 

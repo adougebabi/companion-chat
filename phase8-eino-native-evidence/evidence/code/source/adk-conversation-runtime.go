@@ -203,9 +203,15 @@ func (i *appADKCapabilityInvoker) recordADKToolDiagnostic(ctx context.Context, e
 		return
 	}
 	correlationID := firstString(providerCorrelation(ctx), firstString(i.request.CorrelationID, "turn:"+i.request.SourceFactID))
+	diagnostics := providerPromptDiagnostics(ctx)
+	runID := stringValue(diagnostics["run_id"])
+	if runID == "" {
+		runID = correlationID
+	}
 	newProviderRuntimeSupport(i.app.DB).RecordDiagnosticEvent(ctx, eventType, statusSeverity(status), i.request.FluctlightID, i.request.SourceFactID, correlationID, map[string]any{
-		"run_id": correlationID, "stage": "tool", "surface": i.request.Surface,
-		"call_id": strings.TrimSpace(callID), "capability": strings.TrimSpace(capabilityName),
+		"run_id": runID, "stage": "tool", "surface": i.request.Surface,
+		"model_call_id": stringValue(diagnostics["model_call_id"]),
+		"call_id":       strings.TrimSpace(callID), "capability": strings.TrimSpace(capabilityName),
 		"status": strings.TrimSpace(status), "error_code": strings.TrimSpace(errorCode),
 		"arguments_digest": stableDigest(strings.TrimSpace(arguments)),
 	})

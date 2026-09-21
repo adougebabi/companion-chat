@@ -32,6 +32,10 @@
     },
     {
       "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestPhase8BusinessRunAndPhysicalModelCallIdentitiesStayDistinct"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
       "test": "TestEinoNativeToolCallsRequireFormalIdentityAndObjectArguments"
     },
     {
@@ -45,6 +49,18 @@
     {
       "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
       "test": "TestADKToolSuccessThenStructuredParseFailureKeepsTrace"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestRunADKLoopToolSuccessThenModelErrorPreservesPartialResult"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderStructuredContentUsesFormalContentOnly"
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderStructuredContentRejectsReasoningAndWrappedJSON"
     },
     {
       "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
@@ -92,12 +108,6 @@
   ],
   "actual": [
     {
-      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent",
-      "test": "TestRunADKLoopRequiresModel",
-      "action": "pass",
-      "elapsed": 0
-    },
-    {
       "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
       "test": "TestEinoNativeToolCallsRequireFormalIdentityAndObjectArguments",
       "action": "pass",
@@ -136,6 +146,12 @@
     {
       "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
       "test": "TestRunADKLoopToolFailureHasNoFinalMessage",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestRunADKLoopToolSuccessThenModelErrorPreservesPartialResult",
       "action": "pass",
       "elapsed": 0
     },
@@ -286,6 +302,66 @@
     {
       "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
       "test": "TestPhase8FixedTaskInventoryMatchesProductionFunctions",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestPhase8BusinessRunAndPhysicalModelCallIdentitiesStayDistinct",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderStructuredContentUsesFormalContentOnly",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderStructuredContentRejectsReasoningAndWrappedJSON/thinking_wrapper",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderStructuredContentRejectsReasoningAndWrappedJSON/json_inside_thinking_block",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderStructuredContentRejectsReasoningAndWrappedJSON/thinking_prelude_before_terminal_object",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderStructuredContentRejectsReasoningAndWrappedJSON/double_encoded_reasoning",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderStructuredContentRejectsReasoningAndWrappedJSON/object_reasoning_channel",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderStructuredContentRejectsReasoningAndWrappedJSON",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestProviderStructuredFailureDiagnosticRetainsChannelShape",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent",
+      "test": "TestRunADKLoopRequiresModel",
       "action": "pass",
       "elapsed": 0
     }

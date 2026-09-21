@@ -13,9 +13,9 @@ func TestNormalizeVisibleReplyExtractsNestedActionContent(t *testing.T) {
 }
 
 func TestNormalizeVisibleReplyExtractsFencedNestedActionContent(t *testing.T) {
-	got := normalizeVisibleReply("```json\n{\n  \"action\": {\n    \"action_type\": \"send_message\",\n    \"content\": \"围栏里的消息\"\n  }\n}\n```")
-	if got != "围栏里的消息" {
-		t.Fatalf("normalized fenced visible reply = %q", got)
+	fenced := "```json\n{\n  \"action\": {\n    \"action_type\": \"send_message\",\n    \"content\": \"围栏里的消息\"\n  }\n}\n```"
+	if got := normalizeVisibleReply(fenced); got != fenced {
+		t.Fatalf("fenced structured output must remain invalid/plain, got %q", got)
 	}
 }
 
@@ -56,7 +56,7 @@ func TestVisibleReplyStreamFiltersFencedActionWrapperBeforeEmission(t *testing.T
 			t.Fatal(err)
 		}
 	}
-	if !wasEmitted() || len(emitted) != 1 || emitted[0] != "围栏流式消息" {
+	if !wasEmitted() || len(emitted) != 1 || !strings.Contains(emitted[0], "```json") || !strings.Contains(emitted[0], "围栏流式消息") {
 		t.Fatalf("emitted fenced visible chunks = %#v", emitted)
 	}
 }
