@@ -1,18 +1,24 @@
-FROM golang:1.25.4-alpine AS build
+ARG REGISTRY_PREFIX=""
+FROM ${REGISTRY_PREFIX}golang:1.25.4-alpine AS build
 
-WORKDIR /src
-COPY apps/core-go/go.mod apps/core-go/go.sum* ./apps/core-go/
-COPY apps/core-go ./apps/core-go
+ARG GOPROXY=https://goproxy.cn,direct
+ENV GOPROXY=${GOPROXY}
+
 WORKDIR /src/apps/core-go
+COPY apps/core-go/go.mod apps/core-go/go.sum* ./
+RUN go mod download
+
+COPY apps/core-go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-core-go ./cmd/api
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-worker-go ./cmd/worker
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-migrate-go ./cmd/migrate
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-cutover-go ./cmd/cutover
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-setup-token-go ./cmd/setup-token
 
-FROM alpine:3.22
+FROM ${REGISTRY_PREFIX}alpine:3.22
 
-RUN apk add --no-cache wget tzdata \
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
+  && apk add --no-cache wget tzdata \
   && addgroup -S fluctlight \
   && adduser -S -G fluctlight fluctlight
 COPY --from=build /out/fluctlight-core-go /usr/local/bin/fluctlight-core-go
