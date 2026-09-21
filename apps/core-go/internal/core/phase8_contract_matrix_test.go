@@ -218,6 +218,24 @@ func TestPhase8BusinessRunAndPhysicalModelCallIdentitiesStayDistinct(t *testing.
 	}
 }
 
+func TestPhase8CIUsesTheRealGateAndVectorEnabledDatabase(t *testing.T) {
+	workflowPath := filepath.Join("..", "..", "..", "..", ".github", "workflows", "fluctlight-ci.yml")
+	workflow, err := os.ReadFile(workflowPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(workflow)
+	if !strings.Contains(text, "./infra/acceptance/run-phase8-contract-gates.sh") {
+		t.Fatal("CI does not invoke the Phase 8 gate script")
+	}
+	if !strings.Contains(text, "pgvector/pgvector:pg16") {
+		t.Fatal("CI database service does not provide the vector extension required by migrations")
+	}
+	if strings.Contains(text, "-run 'Test(Phase8") {
+		t.Fatal("CI still replaces the Phase 8 gate with a selector-only go test")
+	}
+}
+
 func capabilityDefinitionNames(definitions []CapabilityDefinition) []string {
 	result := make([]string, 0, len(definitions))
 	for _, definition := range definitions {

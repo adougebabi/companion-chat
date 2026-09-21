@@ -8,6 +8,7 @@
     {"package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","test":"TestPhase8DiagnosticsExportSupportsRunIDCorrelation"},
     {"package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","test":"TestPhase8FixedTaskInventoryMatchesProductionFunctions"},
     {"package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","test":"TestPhase8BusinessRunAndPhysicalModelCallIdentitiesStayDistinct"},
+    {"package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","test":"TestPhase8CIUsesTheRealGateAndVectorEnabledDatabase"},
     {"package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","test":"TestEinoNativeToolCallsRequireFormalIdentityAndObjectArguments"},
     {"package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","test":"TestEinoADKNativeToolCallsDoNotReadStructuredSidecar"},
     {"package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","test":"TestEinoNativeToolCallNormalizationKeepsValidSiblingAndRejectsMalformedSibling"},
