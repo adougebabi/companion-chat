@@ -2,11 +2,11 @@
 
 ## 交付结论
 
-本阶段已在当前工作树 `HEAD=50db5325e24252f1f44db5f9f8c4efbb92e4b466` 上完成可执行的 Eino Native 收敛、ADK 事件/结果投影、模型/工具协议负例、surface/InternalOnly 权限门禁、run_id 诊断关联和确定性契约门禁。
+本阶段初始实现基线为 `50db5325e24252f1f44db5f9f8c4efbb92e4b466`；本次外部复核收口已在后续提交 `0a9c32c` 上补齐可执行的 Eino Native 解析失败回归、实际源码/测试快照、完整 Agent/Task/Tool 对账和隔离环境探测。
 
 本地确定性质量门禁通过。数据库、真实 Provider、Temporal/Redis/S3/Compose 外部链路因当前环境未提供必要端点或凭据，按要求标记为 `BLOCKED`/conditional；没有将这些条件用例写成 PASS，也没有声称已经定位线上真实故障。
 
-详细可回读材料位于 [phase8-eino-native-evidence](../)，压缩包为 the outer `phase8-eino-native-evidence.zip` bundle。旧的 `phase8-eino-audit.*` 文件保持原样，未被覆盖。
+详细可回读材料位于 [phase8-eino-native-evidence](phase8-eino-native-evidence/)，压缩包为 [phase8-eino-native-evidence.zip](phase8-eino-native-evidence.zip)。旧的 `phase8-eino-audit.*` 文件保持原样，未被覆盖。
 
 ## 基线与范围
 
@@ -150,16 +150,16 @@ completed result 保留在 trace，后续 malformed structured response 被归�
 
 ## 证据文件
 
-- 计划与设计：[.trellis/tasks/09-21-phase8-eino-native/prd.md](../planning/prd.md)、[design.md](../planning/design.md)、[implement.md](../planning/implement.md)。
-- 矩阵：[phase8-eino-native-evidence/acceptance-matrix.csv](../acceptance-matrix.csv)。
-- Agent/Task/Tool/阶段对账：[phase8-eino-native-evidence/contract-coverage.csv](../contract-coverage.csv)。
-- 原始测试事件：[phase8-eino-native-evidence/commands/p8-required-go-test.jsonl](../commands/p8-required-go-test.jsonl)。
-- 执行对账：[phase8-eino-native-evidence/executions.json](../executions.json)。
-- 受控 trace：[phase8-eino-native-evidence/evidence/traces](../evidence/traces)。
-- 关键连续摘录：[phase8-eino-native-evidence/evidence/code](../evidence/code)。
-- 关键实际源码/测试快照：[phase8-eino-native-evidence/evidence/code/source](../evidence/code/source)。
-- 可复用 gate：[infra/acceptance/run-phase8-contract-gates.sh](../evidence/code/source/run-phase8-contract-gates.sh)。
+- 计划与设计：[.trellis/tasks/09-21-phase8-eino-native/prd.md](.trellis/tasks/09-21-phase8-eino-native/prd.md)、[design.md](.trellis/tasks/09-21-phase8-eino-native/design.md)、[implement.md](.trellis/tasks/09-21-phase8-eino-native/implement.md)。
+- 矩阵：[phase8-eino-native-evidence/acceptance-matrix.csv](phase8-eino-native-evidence/acceptance-matrix.csv)。
+- Agent/Task/Tool/阶段对账：[phase8-eino-native-evidence/contract-coverage.csv](phase8-eino-native-evidence/contract-coverage.csv)。
+- 原始测试事件：[phase8-eino-native-evidence/commands/p8-required-go-test.jsonl](phase8-eino-native-evidence/commands/p8-required-go-test.jsonl)。
+- 执行对账：[phase8-eino-native-evidence/executions.json](phase8-eino-native-evidence/executions.json)。
+- 受控 trace：[phase8-eino-native-evidence/evidence/traces](phase8-eino-native-evidence/evidence/traces)。
+- 关键连续摘录：[phase8-eino-native-evidence/evidence/code](phase8-eino-native-evidence/evidence/code)。
+- 关键实际源码/测试快照：[phase8-eino-native-evidence/evidence/code/source](phase8-eino-native-evidence/evidence/code/source)。
+- 可复用 gate：[infra/acceptance/run-phase8-contract-gates.sh](infra/acceptance/run-phase8-contract-gates.sh)。
 
 `manifest.json` 记录本快照的 HEAD、工作树指纹、依赖版本、文件大小和 SHA-256；报告自身的哈希也以 manifest 中记录为准。压缩包重新解压后检查报告、矩阵、执行事件、trace 和 hash 一致性。
 
-当前 evidence manifest 的 SHA-256 以 `../manifest.sha256` 为准。Evidence bundle 的最终 SHA-256 在交付摘要中给出；它不被写回 bundle 内部，避免自引用哈希。
+当前 evidence manifest 的 SHA-256 以 `phase8-eino-native-evidence/manifest.sha256` 为准。Evidence bundle 的最终 SHA-256 在交付摘要中给出；它不被写回 bundle 内部，避免自引用哈希。

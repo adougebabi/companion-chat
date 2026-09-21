@@ -2,7 +2,7 @@
 
 ## 交付结论
 
-本阶段已在当前工作树 `HEAD=50db5325e24252f1f44db5f9f8c4efbb92e4b466` 上完成可执行的 Eino Native 收敛、ADK 事件/结果投影、模型/工具协议负例、surface/InternalOnly 权限门禁、run_id 诊断关联和确定性契约门禁。
+本阶段初始实现基线为 `50db5325e24252f1f44db5f9f8c4efbb92e4b466`；本次外部复核收口已在后续提交 `0a9c32c` 上补齐可执行的 Eino Native 解析失败回归、实际源码/测试快照、完整 Agent/Task/Tool 对账和隔离环境探测。
 
 本地确定性质量门禁通过。数据库、真实 Provider、Temporal/Redis/S3/Compose 外部链路因当前环境未提供必要端点或凭据，按要求标记为 `BLOCKED`/conditional；没有将这些条件用例写成 PASS，也没有声称已经定位线上真实故障。
 

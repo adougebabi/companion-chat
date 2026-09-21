@@ -1,29 +1,13 @@
 $ git status --short
- M .github/workflows/fluctlight-ci.yml
- M apps/core-go/internal/core/eino_adk_runtime_test.go
- M apps/core-go/internal/core/eino_model_runtime.go
- M apps/core-go/internal/core/phase8_contract_matrix_test.go
- M apps/core-go/internal/core/provider.go
- M infra/acceptance/phase8-required-tests.json
- M infra/acceptance/run-phase8-contract-gates.sh
- M phase8-eino-native-evidence/commands/environment.txt
- M phase8-eino-native-evidence/commands/full-quality.txt
  M phase8-eino-native-evidence/commands/git-status.txt
- M phase8-eino-native-evidence/commands/p8-checker-tests.txt
- M phase8-eino-native-evidence/commands/p8-required-go-test.jsonl
- M phase8-eino-native-evidence/commands/source-hashes.txt
- M phase8-eino-native-evidence/evidence/traces/model-parse-failure.json
- M phase8-eino-native-evidence/executions.json
  M phase8-eino-native-evidence/reports/phase8-eino-native-report.md
  M phase8-eino-native-report.md
 ?? phase8-eino-audit-evidence.zip
 ?? phase8-eino-audit-evidence/
 ?? phase8-eino-audit.md
-?? phase8-eino-native-evidence/contract-coverage.csv
-?? phase8-eino-native-evidence/evidence/code/source/
 
 $ git rev-parse HEAD
-8b4c43eb80478636f94509cf8cd3aa7b879e19cc
+0a9c32c5f5cc389344bc6c08399e3bb392bed6b7
 
 $ git diff --no-ext-diff | shasum -a 256
-ab0d050dceec21b7aca41414cca2c2c53cd1e74dcb404788cac4e0f47763d0a9  -
+a6328cc8547ad48be8bc565a9c1865f4db0e86a7082673e19d4ed0d21f044f1b  -

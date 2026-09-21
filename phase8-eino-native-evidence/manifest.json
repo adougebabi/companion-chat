@@ -1,10 +1,10 @@
 {
   "schema": "phase8-eino-native-evidence.v1",
-  "generated_at": "2026-09-21T04:04:49.147Z",
-  "head": "8b4c43eb80478636f94509cf8cd3aa7b879e19cc",
+  "generated_at": "2026-09-21T04:07:08.957Z",
+  "head": "0a9c32c5f5cc389344bc6c08399e3bb392bed6b7",
   "branch": "master",
   "worktree_status_file": "commands/git-status.txt",
-  "source_diff_sha256": "f38a7b5a787626b77a688a9a634c1e251ccd713afe25cb6e713c768c65f95880  -",
+  "source_diff_sha256": "a5c20f3a0f6c8c2ea16e9beb82b59613b2e4998da205ffdf475e861a1b088b84  -",
   "dependencies": {
     "go_module": "1.25.4",
     "toolchain": "go version go1.26.3 darwin/arm64",
@@ -34,8 +34,8 @@
     },
     {
       "path": "commands/git-status.txt",
-      "bytes": 1306,
-      "sha256": "504ff6ac1a1371d111e88a8e1803021cdf6d18768214c85e8610d3a81a9e4800"
+      "bytes": 438,
+      "sha256": "9b14fe80b6b4ce9ea0e11d88a9da2b032f50ff6ea1b111a4749e4eab69e7b6f3"
     },
     {
       "path": "commands/p8-checker-tests.txt",
@@ -204,8 +204,8 @@
     },
     {
       "path": "reports/phase8-eino-native-report.md",
-      "bytes": 10966,
-      "sha256": "37af5be7e3fe522f1a04c5dccbd5ed9644566143ea54b21edd488ed5f67e5d89"
+      "bytes": 11291,
+      "sha256": "95158b7206480ccb1161cd43cd9abc209c3ba8368a98f07e56b6a757b82da437"
     }
   ],
   "manifest_sha256_file": "manifest.sha256"
