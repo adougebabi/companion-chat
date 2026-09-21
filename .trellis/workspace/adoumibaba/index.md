@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 38
-- **Last Active**: 2026-09-19
+- **Total Sessions**: 39
+- **Last Active**: 2026-09-21
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1278 | Active |
+| `journal-1.md` | ~1311 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 39 | 2026-09-21 | 摇光第八阶段 Eino Native 收敛与契约门禁 | `7c497cf` | `master` |
 | 38 | 2026-09-19 | 摇光项目第五阶段：前四阶段联合验收与最终审查证据 | `996895b` | `codex/yaoguang-adk-phase2` |
 | 37 | 2026-09-19 | 摇光项目第四阶段：移除独立 BFF，合并浏览器接入到 API | `2758bb0` | `codex/yaoguang-adk-phase2` |
 | 36 | 2026-09-19 | 摇光第三阶段后台 ADK 接入 | `32d6b10` | `codex/yaoguang-adk-phase2` |

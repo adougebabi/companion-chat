@@ -1276,3 +1276,36 @@ Implemented bounded B-layout prompt assembly, Raw/Active/Long-term/Working memor
 ### Next Steps
 
 - None - task complete
+
+
+## Session 39: 摇光第八阶段 Eino Native 收敛与契约门禁
+
+**Date**: 2026-09-21
+**Task**: 摇光第八阶段 Eino Native 收敛与契约门禁
+**Branch**: `master`
+
+### Summary
+
+完成 Eino v0.7.37 ADK 原生 ToolCall 权威收敛，移除 sidecar/缺失 ID 派生执行路径，保留 Runner 失败语义；补齐 surface/InternalOnly candidate gate、Agent/Task/Tool 独立矩阵、run_id 诊断事件与导出过滤、P8 acceptance gate、报告/trace/hash evidence bundle。Go/Web/race/vet/build/static checks 通过；数据库、真实 Provider、Temporal/Redis/S3 条件链因环境缺失明确 BLOCKED。保留旧 phase8-eino-audit 未跟踪文件。
+
+### Main Changes
+
+- Detailed change bullets were not supplied; see the summary above.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7c497cf` | (see git log) |
+
+### Testing
+
+- Validation was not recorded for this session.
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
