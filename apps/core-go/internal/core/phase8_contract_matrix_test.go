@@ -234,6 +234,17 @@ func TestPhase8CIUsesTheRealGateAndVectorEnabledDatabase(t *testing.T) {
 	if !strings.Contains(text, "go run ./cmd/migrate") || !strings.Contains(text, "CORE_GO_DATABASE_URL:") {
 		t.Fatal("CI does not apply the Go Core schema before database-backed tests")
 	}
+	gateMarker := "      - name: Run Phase 8 Eino contract gate\n"
+	gateIndex := strings.Index(text, gateMarker)
+	if gateIndex < 0 {
+		t.Fatal("CI Phase 8 gate step is missing")
+	}
+	if strings.Contains(text[:gateIndex], "GO_CORE_TEST_DATABASE_URL:") {
+		t.Fatal("GO_CORE_TEST_DATABASE_URL must not activate every full-race database test")
+	}
+	if !strings.Contains(text[gateIndex:], "        env:\n          GO_CORE_TEST_DATABASE_URL:") {
+		t.Fatal("Phase 8 gate step does not receive its isolated database explicitly")
+	}
 	if strings.Contains(text, "-run 'Test(Phase8") {
 		t.Fatal("CI still replaces the Phase 8 gate with a selector-only go test")
 	}

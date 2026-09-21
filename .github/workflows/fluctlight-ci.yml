@@ -36,7 +36,6 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      GO_CORE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
       CORE_GO_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
     steps:
       - name: Check out source
@@ -58,6 +57,8 @@ jobs:
         run: go test -race ./...
 
       - name: Run Phase 8 Eino contract gate
+        env:
+          GO_CORE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable
         run: |
           ./infra/acceptance/run-phase8-contract-gates.sh "$RUNNER_TEMP/phase8-eino-contract-gate"
 

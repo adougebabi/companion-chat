@@ -696,25 +696,22 @@ func assistantMessageDeclaresVisibleText(message *schema.Message) bool {
 	if message == nil {
 		return false
 	}
-	for _, candidate := range []string{message.Content, message.ReasoningContent} {
-		candidate = strings.TrimSpace(candidate)
-		if candidate == "" {
-			continue
-		}
-		if structured, ok := parseStructuredCandidate(candidate, 0); ok {
-			if normalizeVisibleReply(stringValue(structured["visible_text"])) != "" {
-				return true
-			}
-			plan := mapValue(structured["response_plan"])
-			if normalizeVisibleReply(stringValue(plan["visible_text"])) != "" {
-				return true
-			}
-			continue
-		}
-		// Non-JSON assistant content is a normal visible response.
-		return true
+	candidate := strings.TrimSpace(message.Content)
+	if candidate == "" {
+		return false
 	}
-	return false
+	if structured, ok := parseStructuredCandidate(candidate, 0); ok {
+		if normalizeVisibleReply(stringValue(structured["visible_text"])) != "" {
+			return true
+		}
+		plan := mapValue(structured["response_plan"])
+		if normalizeVisibleReply(stringValue(plan["visible_text"])) != "" {
+			return true
+		}
+		return false
+	}
+	// ReasoningContent is diagnostics-only; only formal Content can be visible.
+	return true
 }
 
 // mergeADKTraceInvocations joins calls retained by the final assistant event
