@@ -30,7 +30,6 @@ const (
 	personaSwitchSourceForcedActivation   = personality.PersonaSwitchSourceForcedActivation
 	persistentSwitchGrantScenarioMain     = personality.PersistentSwitchGrantScenarioMain
 	persistentSwitchGrantScenarioTakeover = personality.PersistentSwitchGrantScenarioTakeover
-	persistentSwitchGrantScenarioQuery    = personality.PersistentSwitchGrantScenarioQuery
 	persistentSwitchGrantScenarioJudge    = personality.PersistentSwitchGrantScenarioJudge
 )
 
@@ -917,9 +916,6 @@ func resolvePersistentSwitchGrant(scope turnPersonaScope, scenario string, rules
 	case persistentSwitchGrantScenarioTakeover:
 		grant.Allowed = false
 		grant.Reason = "takeover_reply_owner"
-	case persistentSwitchGrantScenarioQuery:
-		grant.Allowed = false
-		grant.Reason = "query_continuation_owner"
 	case persistentSwitchGrantScenarioJudge:
 		grant.Allowed = false
 		grant.Reason = "judge_has_no_persistent_switch_field"

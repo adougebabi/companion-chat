@@ -12,10 +12,6 @@ func conversationSummaryProviderSchema() map[string]any {
 	}, []string{"schema_version", "summary"}, false)
 }
 
-func queryContinuationResponseSchema() map[string]any {
-	return objectSchema(map[string]any{"visible_text": map[string]any{"type": "string", "minLength": 1, "maxLength": 32000}}, []string{"visible_text"}, false)
-}
-
 func objectSchema(properties map[string]any, required []string, additionalProperties bool) map[string]any {
 	result := map[string]any{"type": "object", "properties": properties, "additionalProperties": additionalProperties}
 	if len(required) > 0 {
@@ -213,7 +209,7 @@ func cognitiveTurnResponseSchemaForGrant(grant persistentSwitchGrant) map[string
 	if !grant.Allowed {
 		delete(properties, "personality_decision")
 	}
-	return objectSchema(properties, []string{"response_mode", "action_type", "response_intent", "tool_calls", "influences"}, false)
+	return objectSchema(properties, []string{"action_type", "response_intent", "influences"}, false)
 }
 
 // cognitiveTurnResponseProperties is the shared property table. It is rebuilt per
@@ -229,7 +225,6 @@ func cognitiveTurnResponseProperties() map[string]any {
 		"evidence_refs":     arraySchema(stringSchema()),
 	}, []string{"decision", "from_profile_id", "target_profile_id", "trigger_id", "reason", "confidence", "evidence_refs"}, false)
 	return map[string]any{
-		"response_mode":              enumStringSchema("final", "query_continuation"),
 		"action_type":                enumStringSchema("reply"),
 		"response_intent":            stringSchema(),
 		"internal_intent":            map[string]any{"type": "string", "maxLength": 120},
@@ -246,7 +241,6 @@ func cognitiveTurnResponseProperties() map[string]any {
 		"desire":                     cognitiveStageSchema(),
 		"agency":                     cognitiveStageSchema(),
 		"self_evaluation":            selfEvaluationSchema(),
-		"tool_calls":                 arraySchema(toolCallSchema()),
 		"evidence_refs":              arraySchema(stringSchema()),
 		"influences":                 decisionInfluencesSchema(),
 	}
@@ -256,10 +250,9 @@ func dailyReviewResponseSchema() map[string]any {
 	return objectSchema(map[string]any{
 		"action_type":                enumStringSchema("proactive_message", "moment", "no_op"),
 		"response_intent":            stringSchema(),
-		"tool_calls":                 arraySchema(toolCallSchema()),
 		"output_preference_decision": outputPreferenceDecisionSchema(),
 		"influences":                 decisionInfluencesSchema(),
-	}, []string{"action_type", "response_intent", "tool_calls", "influences"}, false)
+	}, []string{"action_type", "response_intent", "influences"}, false)
 }
 
 func wakeUpResponseSchema() map[string]any {
@@ -267,10 +260,9 @@ func wakeUpResponseSchema() map[string]any {
 		"action_type":                stringSchema(),
 		"response_intent":            stringSchema(),
 		"evidence_refs":              arraySchema(stringSchema()),
-		"tool_calls":                 arraySchema(toolCallSchema()),
 		"output_preference_decision": outputPreferenceDecisionSchema(),
 		"influences":                 decisionInfluencesSchema(),
-	}, []string{"action_type", "response_intent", "evidence_refs", "tool_calls", "influences"}, false)
+	}, []string{"action_type", "response_intent", "evidence_refs", "influences"}, false)
 }
 
 func mediaQualityAcceptanceResponseSchema() map[string]any {
@@ -325,22 +317,49 @@ func scheduleResponseSchema() map[string]any {
 	}, []string{"items", "reschedule_policy"}, false)
 }
 
+func reflectionCandidateVariant(properties map[string]any, operation map[string]any, allowed, required []string) map[string]any {
+	variantProperties := make(map[string]any, len(allowed))
+	for _, field := range allowed {
+		if field == "operation" {
+			variantProperties[field] = operation
+			continue
+		}
+		variantProperties[field] = properties[field]
+	}
+	return objectSchema(variantProperties, required, false)
+}
+
 func reflectionProposalV2ProviderSchema() map[string]any {
 	evidenceRefs := map[string]any{"type": "array", "minItems": 1, "maxItems": 64, "items": map[string]any{"type": "string", "minLength": 1, "maxLength": 256}}
 	contextRef := map[string]any{"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes}
-	activeMemoryCandidate := objectSchema(map[string]any{
+	activeMemoryProperties := map[string]any{
 		"operation": enumStringSchema("create", "confirm", "revise", "complete", "expire", "supersede"), "target_ref": contextRef,
 		"kind": enumStringSchema("future_event", "commitment", "temporary_context"), "content": stringSchema(),
 		"confidence": unitNumberSchema(), "importance": unitNumberSchema(), "original_time_expression": stringSchema(),
 		"valid_from": stringSchema(), "valid_until": stringSchema(), "time_precision": enumStringSchema("exact", "part_of_day", "date", "range", "unknown"),
 		"evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
-	}, []string{"operation", "confidence", "importance", "evidence_refs", "semantic_reason"}, false)
-	memoryCandidate := objectSchema(map[string]any{
+	}
+	activeMemoryCandidate := objectSchema(activeMemoryProperties, []string{"operation", "evidence_refs", "semantic_reason"}, false)
+	activeSemanticFields := []string{"operation", "target_ref", "kind", "content", "confidence", "importance", "original_time_expression", "valid_from", "valid_until", "time_precision", "evidence_refs", "semantic_reason"}
+	activeMemoryCandidate["anyOf"] = []any{
+		reflectionCandidateVariant(activeMemoryProperties, enumStringSchema("create"), []string{"operation", "kind", "content", "confidence", "importance", "original_time_expression", "valid_from", "valid_until", "time_precision", "evidence_refs", "semantic_reason"}, []string{"operation", "kind", "content", "confidence", "importance", "evidence_refs", "semantic_reason"}),
+		reflectionCandidateVariant(activeMemoryProperties, enumStringSchema("revise", "supersede"), activeSemanticFields, []string{"operation", "target_ref", "kind", "content", "confidence", "importance", "evidence_refs", "semantic_reason"}),
+		reflectionCandidateVariant(activeMemoryProperties, enumStringSchema("confirm", "complete", "expire"), []string{"operation", "target_ref", "evidence_refs", "semantic_reason"}, []string{"operation", "target_ref", "evidence_refs", "semantic_reason"}),
+	}
+	memoryProperties := map[string]any{
 		"operation": enumStringSchema("create", "confirm", "revise", "merge", "supersede", "deprecate"), "target_ref": contextRef,
 		"merge_refs": arraySchema(contextRef), "type": enumStringSchema("episodic", "semantic", "relationship", "autobiographical"),
 		"content": stringSchema(), "confidence": unitNumberSchema(), "importance": unitNumberSchema(), "emotional_significance": unitNumberSchema(),
 		"evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),
-	}, []string{"operation", "confidence", "importance", "emotional_significance", "evidence_refs", "semantic_reason"}, false)
+	}
+	memoryCandidate := objectSchema(memoryProperties, []string{"operation", "evidence_refs", "semantic_reason"}, false)
+	memorySemanticFields := []string{"operation", "target_ref", "type", "content", "confidence", "importance", "emotional_significance", "evidence_refs", "semantic_reason"}
+	memoryCandidate["anyOf"] = []any{
+		reflectionCandidateVariant(memoryProperties, enumStringSchema("create"), []string{"operation", "type", "content", "confidence", "importance", "emotional_significance", "evidence_refs", "semantic_reason"}, []string{"operation", "type", "content", "confidence", "importance", "emotional_significance", "evidence_refs", "semantic_reason"}),
+		reflectionCandidateVariant(memoryProperties, enumStringSchema("revise", "supersede"), memorySemanticFields, []string{"operation", "target_ref", "type", "content", "confidence", "importance", "emotional_significance", "evidence_refs", "semantic_reason"}),
+		reflectionCandidateVariant(memoryProperties, enumStringSchema("merge"), append(append([]string(nil), memorySemanticFields...), "merge_refs"), []string{"operation", "target_ref", "merge_refs", "type", "content", "confidence", "importance", "emotional_significance", "evidence_refs", "semantic_reason"}),
+		reflectionCandidateVariant(memoryProperties, enumStringSchema("confirm", "deprecate"), []string{"operation", "target_ref", "evidence_refs", "semantic_reason"}, []string{"operation", "target_ref", "evidence_refs", "semantic_reason"}),
+	}
 	relationshipObservation := objectSchema(map[string]any{
 		"target_ref": contextRef, "observation": stringSchema(), "direction": stringSchema(), "strength": unitNumberSchema(),
 		"confidence": unitNumberSchema(), "evidence_refs": evidenceRefs, "semantic_reason": stringSchema(),

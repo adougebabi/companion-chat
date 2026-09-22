@@ -18,14 +18,11 @@ func TestProjectHealthArchitectureGuardHasNoReflectionV1ProductionSurface(t *tes
 	})
 }
 
-func TestProjectHealthArchitectureGuardAllowsToolRoleOnlyInQueryContinuation(t *testing.T) {
+func TestProjectHealthArchitectureGuardRejectsCallerOwnedToolResultMessages(t *testing.T) {
 	toolRole := regexp.MustCompile(`(?i)(?:\\?"role\\?"\s*:|\bRole\s*:|\brole\s*(?::=|=))\s*\\?"tool\\?"`)
 	walkProductionGo(t, []string{".", "../workflow", "../httpapi/browser"}, func(path string, source []byte) {
 		if match := toolRole.Find(source); match != nil {
-			if filepath.Base(path) == "query_continuation.go" {
-				return
-			}
-			t.Fatalf("role=tool continuation %q in %s", match, path)
+			t.Fatalf("caller-owned role=tool message %q in %s", match, path)
 		}
 	})
 	for _, path := range []string{"mutations.go", "composite_actions.go"} {
@@ -38,6 +35,39 @@ func TestProjectHealthArchitectureGuardAllowsToolRoleOnlyInQueryContinuation(t *
 				t.Fatalf("legacy decision fallback %q remains in %s", forbidden, path)
 			}
 		}
+	}
+}
+
+func TestRetiredCallerOwnedToolDispatchIsPhysicallyAbsent(t *testing.T) {
+	if _, err := os.Stat("query_continuation.go"); !os.IsNotExist(err) {
+		t.Fatalf("retired query continuation file still exists: %v", err)
+	}
+	for _, path := range []string{
+		"mutations.go", "wakeup.go", "cognition_growth.go", "autonomy.go",
+		"capability_runtime.go", "workflow_ops.go", "conversation_runtime.go",
+		"provider.go", "provider_schemas.go",
+	} {
+		source, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, forbidden := range []string{
+			"handleTurnLegacy", "processWakeUpLegacy", "processNativeCognitionFactLegacy",
+			"processDailyReviewLegacy", "prepareCapabilityInvocations",
+			"planCapabilitiesForTransaction", "settleDeferredCapabilitiesTx",
+			"StructuredQueryContinuation", "query_continuation",
+		} {
+			if strings.Contains(string(source), forbidden) {
+				t.Fatalf("retired execution mechanism %q remains in %s", forbidden, path)
+			}
+		}
+	}
+	workflowSource, err := os.ReadFile("workflow_ops.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(workflowSource), "a.ExecuteTool(ctx, ToolExecutionRequest{") {
+		t.Fatal("durable Action recovery does not use the formal Tool boundary")
 	}
 }
 

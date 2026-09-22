@@ -26,7 +26,8 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
 ### 3. Contracts
 
 - Goal source is `drive | event | human | self`. A Human request is evidence, not automatic forced execution.
-- Goal has no side effect. A concrete qualified Intention and frozen final decision are required before Action.
+- Goal has no side effect. A qualified Intention is required for Intention-driven actions; independent
+  Tools use explicit authorization, resources and stable business operations.
 - Time triggers use Temporal durable timers; Event triggers use inbox facts; semantic triggers re-enter LLM assessment and are not keyword listeners.
 - A ready current-local-day Schedule is one typed lifecycle fact. The Worker may
   enqueue a stable `life_world.daily_review` inbox fact containing the accepted
@@ -36,11 +37,14 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
   duration or Schedule text.
 - Execution rechecks current permission, per-action budget, quiet hours, cooldown, concurrency, Context, Schedule, Relationship, state revisions, and expiration.
 - Go Core freezes the accepted final decision. Retry reuses it and stable IDs rather than re-assessing implicitly.
-- Capability Prepare and pure queries happen before the settlement transaction,
-  but every transactional mutation for a proactive message, Moment, or
-  capability-only Action executes inside the same caller-owned transaction as
-  its durable target, CapabilityResult, ActionOutcome, result fact, and action
-  status. A required sibling failure rolls that complete boundary back.
+- Background Agents pass `AuthorizationPolicy="autonomy"` explicitly. Each Tool
+  checks actual action permissions, quiet hours, cooldown and budget in its own
+  short transaction. `tool_policy_reservations` reserves budget once per run.
+  Internal cognition continues when external actions are denied. Direct Owner
+  commands remain governed by Owner authorization rather than Agent names.
+- Tool preparation/Provider work occurs outside its transaction. Domain effect,
+  receipt and outbox commit together. Later sibling/model/final-output failure
+  preserves earlier committed effects; retries cannot rerun the entire Agent.
 - Allowed pre-authorized Actions: any installed, preflighted Capability slot plus
   internal Memory/Relationship/Goal/Intention candidates. Product code does not
   restrict the semantic Action type; the CapabilityDefinition and Core hard
@@ -70,7 +74,7 @@ Intention includes Goal/one-shot Event reference, action, preferred time, typed 
 | Permission disabled, budget exhausted, quiet hours/cooldown active | Deny/defer by explicit policy and record reason; do not reinterpret semantics. |
 | State/Schedule/Relationship revision changed before freeze | Requalify/re-assess explicitly; do not execute stale action. |
 | Frozen Action retry | Reuse same decision/workflow/Provider IDs; no duplicate action. |
-| Transactional Capability succeeds but a required sibling/target/outcome settlement fails | Roll back the mutation and target; keep/retry the frozen action only when the failure is retryable, otherwise settle a bounded failed ActionOutcome. |
+| Tool commits before later sibling/model/final settlement fails | Preserve committed receipt/effect, record failed run and partial facts; do not replay the whole Agent. |
 | Owner pauses/cancels | Append lifecycle/audit transition, cancel cooperative workflow, preserve history. |
 | Paused Fluctlight receives direct Human message | Process explicit interaction; do not create unrelated autonomous external Actions. |
 | Action targets forbidden infrastructure/destructive capability | Hard reject regardless of LLM confidence. |
@@ -91,8 +95,8 @@ boundary.
 - Good: Owner pauses autonomy; Schedule and affect decay continue while pending external intentions remain paused.
 - Base: a due Intention is denied by quiet hours and explicitly deferred without changing its semantic meaning.
 - Bad: “no message for 10 minutes” directly sends a message, regex creates a Goal, cancellation deletes history, or LLM changes Provider settings.
-- Bad: call a transactional Capability through a standalone/resume path, commit
-  it, and only then start the message/Moment/action-result transaction.
+- Bad: report a committed Tool as rolled back, replay it after model failure,
+  or bypass the actual action policy by selecting a different surface.
 
 ### 6. Tests Required
 
@@ -104,8 +108,8 @@ boundary.
 - Assert recent exact proactive text is suppressed transactionally while
   different text and text outside the duplicate window still deliver.
 - Anti-heuristic tests prove time/engagement facts are LLM inputs and code does not infer relationship/action meaning.
-- Atomic action tests execute an optional transactional sibling followed by a
-  required failure and assert the first mutation does not survive.
+- Local atomicity tests fail receipt/outbox persistence and assert that Tool
+  rolls back; later-sibling failures preserve previously committed receipts.
 
 ### T04 Ownership And Governance Persistence
 
@@ -167,39 +171,19 @@ the `reflection.run` intent are committed.
 - The default interval is 1800 seconds. Core clamps configured
   `product.wakeup.interval_seconds` to 300–86400 seconds and accepts
   `product.wakeup.enabled=false` as an explicit pause of the internal timer.
-- The model owns the semantic action decision and may propose `no_op`, a
-  `proactive_message`, a `moment`, or any installed Capability slot through a
-  tool call. A thinking-enabled Provider may return only Tool calls and omit
-  the optional JSON sidecar; Core derives the minimal action assessment from
-  the returned output/native calls instead of rejecting the wake-up.
-- Output-only Capability calls (`conversation.reply`, `moment.publish`, or an
-  output-bound media call) do not require a separate `influences` sidecar. A
-  state-changing or internal Capability call still requires a non-empty
-  Core-owned evidence influence before it can be frozen.
-  Core stores the frozen action decision and never asks Wake-up to synthesize
-  attention/thought/desire/agency/appraisal state.
-- `moment` output uses the registered `moment.publish` deferred Capability slot;
-  proactive private delivery uses `conversation.reply`. The output text is
-  supplied by the capability call and is bound to the durable Moment or direct
-  Conversation target before execution. Native calls such as affect, memory,
-  scene, or relationship updates may accompany a deferred output call; they
-  must not invalidate or suppress the output call.
-- WakeUp action metadata is subordinate to output capabilities: whenever a
-  non-empty `conversation.reply` invocation is present, Core canonicalizes the
-  output lane to `proactive_message` (including compatibility names such as
-  `reply`, `respond`, and `send_message`). Core ensures the Owner/Fluctlight
-  direct conversation projection before freezing that action; it must not route
-  the invocation to `capability.action` with a `wake_up` target.
-- A standalone wake-up `media.image.generate` call is bound to the wake-up
-  action as its durable provenance target and creates a media intent without
-  requiring a chat message or Moment.
-- A proposed external action is frozen only after its CapabilityDefinition,
-  arguments, source fact, Owner authorization, and deterministic idempotency
-  checks pass. Capability preflight/planner I/O runs in the action worker before
-  any side effect; a transient failure leaves the action executable for bounded
-  retry, while a non-retryable failure is recorded as failed. There is no
-  product-type allowlist; visible text is supplied by the output
-  CapabilityInvocation and delivery remains workflow-owned.
+- The formal WakeUp Agent owns semantic decisions and native Tool selection.
+  Each Tool executes through `ExecuteTool` and feeds its actual receipt into the
+  next model decision. A legal final no-op completes without visible output;
+  invalid final output, cancellation and runtime errors remain failures.
+- `conversation.reply` and `moment.publish` commit through the existing
+  publication service. Media Tools return actual accepted intents. The outer
+  WakeUp handler consumes committed results and never schedules a second
+  execution of those native calls.
+- Proactive reply requires an explicit authorized direct conversation target.
+  Exact recent duplicate suppression applies only under the autonomy policy.
+  No synthetic user message is needed to execute the Agent or a Tool.
+- A state Tool owns its explicit evidence/business constraints. There is no
+  universal freeze stage or sidecar requirement before Tool execution.
 - Every wake-up commits a processed `internal.wake_up` fact and one stable
   `reflection.run` intent. Reflection consumes it through the normal evidence
   window and watermark/CAS boundary; a wake-up does not write self-model or
@@ -217,8 +201,8 @@ the `reflection.run` intent are committed.
 | --- | --- |
 | Missing/negative cycle or Fluctlight ID | Reject with `wake_up_*_required/invalid`; no fact or action |
 | Wake-up assessment has neither an action decision nor any CapabilityInvocation, returns an unsupported action, or exceeds bounded field size | Reject; no synthetic cognition state or fallback action is persisted |
-| Wake-up returns only valid registered CapabilityInvocations | Accept the tool-only decision; derive `proactive_message`/`moment` for output calls or a capability/no-op action for native calls |
-| Provider failure or invalid JSON | Workflow retries; after exhaustion the source intent remains auditable and no fabricated action decision is written |
+| Native Tools execute and a legal final DTO completes | Record actual committed outputs and finish lifecycle once |
+| Provider failure or invalid final JSON | Record failed run and retain committed effects; same-run recovery cannot restart the model decision loop |
 | Autonomy paused or capability is not installed/authorized | Persist the internal cycle as `blocked`/`deferred`; do not create an external Action |
 | Capability arguments or Definition are malformed | Fail closed and persist the internal cycle without an external Action |
 | Proactive action has no direct conversation projection | Core ensures the Owner/Fluctlight direct conversation before freezing the action; only a creation failure remains a bounded workflow error |
@@ -233,8 +217,7 @@ the `reflection.run` intent are committed.
 - Base: the model returns a rich internal cycle with `no_op`; the private fact
   and reflection intent are retained even though no visible message is sent.
 - Bad: scan every Fluctlight from a process ticker, infer loneliness from idle
-  time, store raw chain-of-thought, send a message directly from the wake-up
-  activity without a frozen Action, or turn a missing capability into a fake
+  time, store raw chain-of-thought, publish outside the authorized Tool service, or turn a missing capability into a fake
   successful result.
 
 ### 6. Tests Required
@@ -508,64 +491,46 @@ due := ProcessIntentionTrigger(ctx, intentionID)
 // due writes a cognition fact; the normal Main cognition chooses the action.
 ```
 
-## Scenario: WakeUp ADK Decision Boundary
+## Scenario: WakeUp formal Agent boundary
 
 ### 1. Scope / Trigger
 
-- Trigger: `WakeUpWorkflow → ProcessWakeUpActivity → App.ProcessWakeUp`
-  reaches its existing model decision.
+`WakeUpWorkflow → ProcessWakeUpActivity → App.ProcessWakeUp` starts the formal
+WakeUp Agent with its stable cycle/run identity.
 
-### 2. Contracts
+### 2. Signatures
 
-- WakeUp reuses the shared request-scoped ADK loop with
-  `wake_up_response`, `wake_up` scenario metadata and the
-  `CapabilitySurfaceWakeUp` catalog. It does not create a background-specific
-  Provider, Agent engine or Registry.
-- ADK events are internal protocol data. Core remains the owner of assessment
-  normalization, autonomy policy, action freeze, transaction, intent/outbox,
-  recurrence clock, Reflection hint and output routing.
-- A valid no-op completes the existing WakeUp lifecycle. Model/tool failure,
-  cancellation and iteration-cap errors remain retryable/terminal failures
-  under the existing workflow policy and are never normalized into no-op.
-- A deferred output or capability result is pending until the existing action
-  worker settles it. The ADK callback cannot publish a message, Moment or
-  external effect, and WakeUp does not write a fake user message/history row.
+`RunWakeUpTask` delegates to the registered Agent; `ExecuteTool` owns every
+native business call. `agent_runs` and `tool_executions` retain recovery facts.
 
-### 3. Tests Required
+### 3. Contracts
 
-- Assert the real Core WakeUp path (when PostgreSQL is available) uses the ADK
-  boundary, preserves stable `wakeID`/cycle/action/correlation identities and
-  replays without a second Provider call.
-- Assert catalog scope, policy rejection, cancellation, no-op, deferred
-  output and failure paths preserve the existing frozen/intent lifecycle.
+The shared Eino loop owns feedback. Catalogs select defaults, not execution
+permissions. Autonomy policy is explicit and rechecked per operation. Later
+policy revocation blocks new operations without erasing prior receipts.
 
-## Scenario: WakeUp ADK Decision Boundary
+### 4. Validation & Error Matrix
 
-### 1. Scope / Trigger
+| Condition | Result |
+| --- | --- |
+| Valid no-op | Complete lifecycle without fabricated output |
+| Business rejection | Feed reason back to Agent |
+| Cancellation/invalid final after commit | Failed run, retained effects, no whole-run replay |
+| Repeated completed cycle | Read existing result; no new Provider or publication |
 
-- Trigger: `WakeUpWorkflow → ProcessWakeUpActivity → App.ProcessWakeUp`
-  reaches its existing model decision.
+### 5. Good/Base/Bad Cases
 
-### 2. Contracts
+Good: committed reply receipt is consumed by the next decision and handler.
+Base: quiet hours reject external publication while internal cognition proceeds.
+Bad: return deferred for all writes or execute trace calls again in the worker.
 
-- WakeUp reuses the shared request-scoped ADK loop with
-  `wake_up_response`, `wake_up` scenario metadata and the
-  `CapabilitySurfaceWakeUp` catalog. It does not create a background-specific
-  Provider, Agent engine or Registry.
-- ADK events are internal protocol data. Core remains the owner of assessment
-  normalization, autonomy policy, action freeze, transaction, intent/outbox,
-  recurrence clock, Reflection hint and output routing.
-- A valid no-op completes the existing WakeUp lifecycle. Model/tool failure,
-  cancellation and iteration-cap errors remain retryable/terminal failures
-  under the existing workflow policy and are never normalized into no-op.
-- A deferred output or capability result is pending until the existing action
-  worker settles it. The ADK callback cannot publish a message, Moment or
-  external effect, and WakeUp does not write a fake user message/history row.
+### 6. Tests Required
 
-### 3. Tests Required
+Real PostgreSQL tests cover policy denial/revocation, same-run budget reservation,
+no-op, duplicate suppression, committed-effect recovery and run replay. Controlled
+model evidence is separate from strictly serial real Provider acceptance.
 
-- Assert the real Core WakeUp path (when PostgreSQL is available) uses the ADK
-  boundary, preserves stable `wakeID`/cycle/action/correlation identities and
-  replays without a second Provider call.
-- Assert catalog scope, policy rejection, cancellation, no-op, deferred
-  output and failure paths preserve the existing frozen/intent lifecycle.
+### 7. Wrong vs Correct
+
+Wrong: caller freezes native ToolCalls for a second executor.
+Correct: native Runner executes Tools; caller records committed outcome.

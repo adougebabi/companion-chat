@@ -26,7 +26,6 @@ const (
 	PersonaSwitchSourceForcedActivation   = "forced_activation"
 	PersistentSwitchGrantScenarioMain     = "cognitive_assessment"
 	PersistentSwitchGrantScenarioTakeover = "takeover_reply"
-	PersistentSwitchGrantScenarioQuery    = "query_continuation"
 	PersistentSwitchGrantScenarioJudge    = "takeover_judge"
 )
 

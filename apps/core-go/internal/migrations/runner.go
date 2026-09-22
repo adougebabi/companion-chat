@@ -12,8 +12,8 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; the bounded capability-runtime reconciliation below is the one
 // explicitly allowed active-payload migration and preserves audit history.
-const Head = "0033_initialization_source"
-const PreviousHead = "0032_prompt_context_memory"
+const Head = "0034_tool_execution_source"
+const PreviousHead = "0033_initialization_source"
 const InitializationSourceHead = "0033_initialization_source"
 const PromptContextMemoryHead = "0032_prompt_context_memory"
 const EvolutionAuthorityHead = "0031_evolution_authority"
@@ -83,7 +83,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
 	if len(revisions) == 1 && current != Head {
-		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead {
+		if current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead {
 			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
 	}
@@ -132,6 +132,11 @@ func (r *Runner) Apply(ctx context.Context) error {
 		if _, err := tx.Exec(ctx, promptContextMemorySchemaSQL+initializationSourceSchemaSQL); err != nil {
 			return fmt.Errorf("verify Prompt Context and Memory schema: %w", err)
 		}
+	}
+	// Direct business tools carry real application evidence, which need not
+	// be a cognition inbox fact. Preserve existing evidence and owning scope.
+	if _, err := tx.Exec(ctx, toolExecutionSourceSchemaSQL); err != nil {
+		return fmt.Errorf("apply independent tool evidence contract: %w", err)
 	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.alembic_version`); err != nil {

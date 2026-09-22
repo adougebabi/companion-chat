@@ -50,9 +50,12 @@ type affectCapabilityService interface {
 	applyAffectEventTx(context.Context, pgx.Tx, string, string, normalizedAffectEvent, map[string]any) (map[string]any, error)
 }
 
-type conversationReplyCapability struct{}
-type momentPublishCapability struct{}
-type imageGenerateCapability struct{ service imageCapabilityService }
+type conversationReplyCapability struct{ publication *ToolPublicationService }
+type momentPublishCapability struct{ publication *ToolPublicationService }
+type imageGenerateCapability struct {
+	service     imageCapabilityService
+	publication *ToolPublicationService
+}
 type visualIdentityInitializeCapability struct {
 	service visualIdentityCapabilityService
 }
@@ -74,7 +77,9 @@ func builtinCapabilities(app *App) []Capability {
 	var schedule scheduleReplanCapability
 	var memory memoryCapabilityService
 	var activeMemory activeMemoryCapabilityService
+	var affect affectCapabilityService
 	if app != nil {
+		affect = app
 		schedule.planner = app.SchedulePlanner
 		if app.Schedule != nil {
 			schedule.apply = app.Schedule.ApplyScheduleReplanCapability
@@ -111,16 +116,19 @@ func builtinCapabilities(app *App) []Capability {
 			lifePresence = app
 		}
 	}
-	return []Capability{
-		conversationReplyCapability{}, momentPublishCapability{}, imageGenerateCapability{service: image},
+	publication := NewToolPublicationService(app)
+	personaActions := newPersonaActionService(app)
+	capabilities := []Capability{
+		conversationReplyCapability{publication: publication}, momentPublishCapability{publication: publication}, imageGenerateCapability{service: image, publication: publication},
 		visualIdentityInitializeCapability{service: visualIdentity}, sceneEventCapability{service: lifeScene}, schedule,
-		presenceEventCapability{service: lifePresence}, memoryEventCapability{service: memory}, activeMemoryEventCapability{service: activeMemory}, affectEventCapability{service: app},
+		presenceEventCapability{service: lifePresence}, memoryEventCapability{service: memory}, activeMemoryEventCapability{service: activeMemory}, affectEventCapability{service: affect},
 		memoryRecallCapability{service: newMemoryRecallService(app)},
 		relationshipLookupCapability{service: &relationshipLookupService{app: app}},
 		capabilityRequestCapability{service: &capabilityRequestService{app: app}},
-		personaActionCapability{name: personaTakeoverCapabilityName},
-		personaActionCapability{name: personaSwitchCapabilityName},
+		personaActionCapability{name: personaTakeoverCapabilityName, service: personaActions},
+		personaActionCapability{name: personaSwitchCapabilityName, service: personaActions},
 	}
+	return append(capabilities, visualIdentityAgentCapabilities(app)...)
 }
 
 var (
@@ -147,7 +155,16 @@ var (
 	_ TransactionalCapability      = visualIdentityInitializeCapability{}
 	_ CapabilityCandidateValidator = relationshipLookupCapability{}
 	_ Capability                   = personaActionCapability{}
+	_ TransactionalCapability      = personaActionCapability{}
+	_ DirectToolCapability         = conversationReplyCapability{}
+	_ DirectToolCapability         = momentPublishCapability{}
+	_ DirectToolCapability         = imageGenerateCapability{}
 )
+
+func executeToolRequired(invocation CapabilityInvocation) (CapabilityResult, error) {
+	err := newCapabilityError("execute_tool_required", false, ErrCapabilityExecution)
+	return failedCapabilityResult(invocation, "execute_tool_required", false), err
+}
 
 func (c conversationReplyCapability) Definition() CapabilityDefinition {
 	return conversationReplyCapabilityDefinition()
@@ -156,45 +173,72 @@ func (c conversationReplyCapability) RequiredContext() []ContextSlot {
 	return []ContextSlot{SlotCurrentLife}
 }
 func (c conversationReplyCapability) Execute(_ context.Context, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
-	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "deferred", Output: map[string]any{"reason": "conversation_output_target_pending"}, Retryable: true, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "reply:" + invocation.CallID}, nil
+	return executeToolRequired(invocation)
 }
-func (c conversationReplyCapability) ExecuteDeferredTx(_ context.Context, _ pgx.Tx, invocation CapabilityInvocation, _ CapabilityContext, binding OutputBindingV1) (CapabilityResult, error) {
-	if binding.TargetKind != "conversation_message" || strings.TrimSpace(binding.TargetRef) == "" {
-		return failedCapabilityResult(invocation, "reply_target_invalid", false), errors.New("reply target invalid")
+
+func (c conversationReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, _ CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
+	if c.publication == nil {
+		return failedCapabilityResultDetail(invocation, "conversation_publication_unavailable", true, "conversation publication is unavailable"), errors.New("conversation publication unavailable")
 	}
 	var args map[string]any
 	if err := json.Unmarshal(invocation.Arguments, &args); err != nil {
-		return failedCapabilityResult(invocation, "reply_arguments_invalid", false), err
+		return failedCapabilityResult(invocation, "reply_arguments_invalid", false), newCapabilityError("reply_arguments_invalid", false, err)
 	}
 	text := strings.TrimSpace(stringValue(args["text"]))
-	if text == "" || len([]rune(text)) > 32000 {
-		return failedCapabilityResult(invocation, "reply_text_invalid", false), errors.New("reply text invalid")
+	resource, err := c.publication.PublishConversationReplyTx(ctx, tx, ConversationReplyPublication{
+		SuppressRecentDuplicate: target.AuthorizationPolicy == "autonomy",
+		AuthorizationActorID:    target.AuthorizationActorID,
+		FluctlightID:            target.FluctlightID,
+		ConversationID:          target.ConversationID,
+		OperationID:             capabilityOperationID(invocation),
+		CorrelationID:           invocation.Metadata.CorrelationID,
+		Text:                    text,
+	})
+	if err != nil {
+		code, retryable := publicationCapabilityError(err, "reply_publication_failed")
+		return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), newCapabilityError(code, retryable, err)
 	}
-	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"text": text, "target_kind": binding.TargetKind, "target_ref": binding.TargetRef}, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "reply:" + invocation.CallID}, nil
+	output := map[string]any{"text": text, "target_kind": "conversation_message", "target_ref": resource.ID, "replayed": resource.Replayed}
+	if resource.DuplicateSuppressed {
+		output["delivery_status"] = "duplicate_suppressed"
+	}
+	return CapabilityResult{
+		CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
+		Output:            output,
+		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "reply:" + resource.ID,
+	}, nil
 }
-
 func (c momentPublishCapability) Definition() CapabilityDefinition {
 	return momentPublishCapabilityDefinition()
 }
 func (c momentPublishCapability) RequiredContext() []ContextSlot { return nil }
 func (c momentPublishCapability) Execute(_ context.Context, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
-	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "deferred", Output: map[string]any{"reason": "moment_output_target_pending"}, Retryable: true, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "moment:" + invocation.CallID}, nil
+	return executeToolRequired(invocation)
 }
-func (c momentPublishCapability) ExecuteDeferredTx(_ context.Context, _ pgx.Tx, invocation CapabilityInvocation, _ CapabilityContext, binding OutputBindingV1) (CapabilityResult, error) {
-	if binding.TargetKind != "moment" || strings.TrimSpace(binding.TargetRef) == "" {
-		return failedCapabilityResult(invocation, "moment_target_invalid", false), errors.New("moment target invalid")
+
+func (c momentPublishCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, _ CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
+	if c.publication == nil {
+		return failedCapabilityResultDetail(invocation, "moment_publication_unavailable", true, "Moment publication is unavailable"), errors.New("moment publication unavailable")
 	}
 	var args map[string]any
 	if err := json.Unmarshal(invocation.Arguments, &args); err != nil {
-		return failedCapabilityResult(invocation, "moment_arguments_invalid", false), err
+		return failedCapabilityResult(invocation, "moment_arguments_invalid", false), newCapabilityError("moment_arguments_invalid", false, err)
 	}
 	text := strings.TrimSpace(stringValue(args["text"]))
-	if text == "" || len([]rune(text)) > 32000 {
-		return failedCapabilityResult(invocation, "moment_text_invalid", false), errors.New("moment text invalid")
+	resource, err := c.publication.PublishMomentTx(ctx, tx, MomentPublication{
+		FluctlightID: target.FluctlightID, OperationID: capabilityOperationID(invocation),
+		CorrelationID: invocation.Metadata.CorrelationID, Text: text,
+	})
+	if err != nil {
+		code, retryable := publicationCapabilityError(err, "moment_publication_failed")
+		return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), newCapabilityError(code, retryable, err)
 	}
-	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"text": text, "target_kind": binding.TargetKind, "target_ref": binding.TargetRef}, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "moment:" + invocation.CallID}, nil
+	return CapabilityResult{
+		CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed",
+		Output:            map[string]any{"text": text, "target_kind": "moment", "target_ref": resource.ID, "replayed": resource.Replayed},
+		ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "moment:" + resource.ID,
+	}, nil
 }
-
 func (c imageGenerateCapability) Definition() CapabilityDefinition {
 	d := imageCapabilityDefinition()
 	d.InputSchema = map[string]any{"type": "object", "additionalProperties": false, "required": []any{"intent"}, "properties": map[string]any{"intent": map[string]any{"type": "string", "minLength": 1, "maxLength": 4000}}}
@@ -255,16 +299,71 @@ func validatePreparedMediaConcept(concept map[string]any, intent string) error {
 	return nil
 }
 func (c imageGenerateCapability) Execute(_ context.Context, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
-	intent := strings.TrimSpace(invocation.Intent)
-	if intent == "" {
-		var args map[string]any
-		_ = json.Unmarshal(invocation.Arguments, &args)
-		intent = strings.TrimSpace(stringValue(args["intent"]))
+	return executeToolRequired(invocation)
+}
+
+func (c imageGenerateCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
+	if c.service == nil || c.publication == nil {
+		return failedCapabilityResultDetail(invocation, "media_capability_unavailable", true, "media capability is unavailable"), errors.New("media capability unavailable")
 	}
-	if intent == "" {
-		return failedCapabilityResult(invocation, "media_intent_invalid", false), errors.New("media intent is required")
+	if err := requireCapabilityContext(resolved, SlotVisualIdentity, SlotCurrentLife, SlotAppearance, SlotCurrentState); err != nil {
+		return failedCapabilityResult(invocation, "context_resolve_failed", true), err
 	}
-	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "deferred", Output: map[string]any{"reason": "output_target_pending", "intent": intent}, Retryable: true, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "image:" + invocation.CallID}, nil
+	preparedConcept, found, err := capabilityPreparedData(invocation, "media_concept")
+	if err != nil || !found || len(mapValue(preparedConcept)) == 0 {
+		if err == nil {
+			err = errors.New("image invocation was not prepared")
+		}
+		return failedCapabilityResultDetail(invocation, "media_prepare_required", false, err.Error()), newCapabilityError("media_prepare_required", false, err)
+	}
+	concept := mapValue(preparedConcept)
+	contextBinding := mapValue(concept["context_binding"])
+	expectedLifeContextRevision := stringValue(mapValue(contextBinding["current_life"])["context_revision"])
+	frozenLifeContextRevision := stringValue(resolved.Life.Data["context_revision"])
+	if frozenLifeContextRevision == "" || expectedLifeContextRevision != frozenLifeContextRevision {
+		err := newCapabilityError("media_prepared_context_mismatch", false, ErrConflict)
+		return failedCapabilityResult(invocation, "media_prepared_context_mismatch", false), err
+	}
+	if _, err := c.service.requireLifeContextRevisionTx(ctx, tx, invocation.Metadata.FluctlightID, frozenLifeContextRevision, time.Now().UTC()); err != nil {
+		if errors.Is(err, ErrLifeContextStale) {
+			return failedCapabilityResult(invocation, "media_context_stale", false), newCapabilityError("media_context_stale", false, err)
+		}
+		return failedCapabilityResult(invocation, "media_intent_failed", true), err
+	}
+	conversationID, messageID, momentID, err := c.publication.ValidateMediaTargetTx(ctx, tx, MediaPublicationTarget{
+		AuthorizationActorID: target.AuthorizationActorID, FluctlightID: target.FluctlightID,
+		ConversationID: target.ConversationID, Kind: target.Kind, Ref: target.Ref,
+	})
+	if err != nil {
+		code, retryable := publicationCapabilityError(err, "media_target_invalid")
+		return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), newCapabilityError(code, retryable, err)
+	}
+	intentID, workflowID, providerRequestID := mediaInvocationIdentity(invocation)
+	replayed, intentStatus, err := c.publication.CreateMediaIntentTx(ctx, tx, c.service, invocation.Metadata.FluctlightID, concept, intentID, workflowID, providerRequestID, conversationID, messageID, momentID)
+	if err != nil {
+		code, retryable := publicationCapabilityError(err, "media_intent_failed")
+		return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), newCapabilityError(code, retryable, err)
+	}
+	status := "accepted"
+	switch intentStatus {
+	case "pending", "running":
+	case "completed":
+		status = "completed"
+	case "failed":
+		err := newCapabilityError("media_task_failed", true, errors.New("media task previously failed"))
+		return failedCapabilityResultDetail(invocation, "media_task_failed", true, err.Error()), err
+	default:
+		err := newCapabilityError("media_intent_status_invalid", false, fmt.Errorf("unsupported media intent status %q", intentStatus))
+		return failedCapabilityResultDetail(invocation, "media_intent_status_invalid", false, err.Error()), err
+	}
+	return CapabilityResult{
+		CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: status,
+		Output: map[string]any{
+			"media_intent_id": intentID, "task_id": workflowID, "status": intentStatus,
+			"target_kind": target.Kind, "target_ref": target.Ref, "replayed": replayed,
+		},
+		ProviderRequestID: providerRequestID, CorrelationID: "image:" + intentID,
+	}, nil
 }
 func (c imageGenerateCapability) Preflight(ctx context.Context, _ CapabilityContext) error {
 	if c.service == nil {
@@ -278,63 +377,6 @@ func (c imageGenerateCapability) PreflightTx(ctx context.Context, tx pgx.Tx) err
 	}
 	return c.service.preflightImageCapabilityTx(ctx, tx)
 }
-func (c imageGenerateCapability) ExecuteDeferredTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext, binding OutputBindingV1) (CapabilityResult, error) {
-	if c.service == nil {
-		return failedCapabilityResult(invocation, "media_capability_unavailable", true), errors.New("media capability unavailable")
-	}
-	if err := requireCapabilityContext(resolved, SlotVisualIdentity, SlotCurrentLife, SlotAppearance, SlotCurrentState); err != nil {
-		return failedCapabilityResult(invocation, "context_resolve_failed", true), err
-	}
-	preparedConcept, found, err := capabilityPreparedData(invocation, "media_concept")
-	if err != nil {
-		return failedCapabilityResult(invocation, "media_arguments_invalid", false), err
-	}
-	concept := mapValue(preparedConcept)
-	if !found || len(concept) == 0 {
-		return failedCapabilityResultDetail(invocation, "media_prepare_required", false, "image invocation was not prepared"), errors.New("image invocation was not prepared")
-	}
-	if strings.TrimSpace(stringValue(concept["intent"])) == "" {
-		return failedCapabilityResult(invocation, "media_intent_invalid", false), errors.New("media intent is required")
-	}
-	contextBinding := mapValue(concept["context_binding"])
-	for _, key := range []string{"visual_identity", "current_life", "appearance", "current_state"} {
-		if len(mapValue(contextBinding[key])) == 0 {
-			return failedCapabilityResultDetail(invocation, "media_prepare_required", false, "prepared image context is incomplete"), errors.New("prepared image context is incomplete")
-		}
-	}
-	expectedLifeContextRevision := stringValue(mapValue(contextBinding["current_life"])["context_revision"])
-	frozenLifeContextRevision := stringValue(resolved.Life.Data["context_revision"])
-	if frozenLifeContextRevision == "" || expectedLifeContextRevision != frozenLifeContextRevision {
-		return failedCapabilityResult(invocation, "media_prepared_context_mismatch", false), newCapabilityError("media_prepared_context_mismatch", false, ErrConflict)
-	}
-	if _, err := c.service.requireLifeContextRevisionTx(ctx, tx, invocation.Metadata.FluctlightID, frozenLifeContextRevision, time.Now().UTC()); err != nil {
-		if errors.Is(err, ErrLifeContextStale) {
-			return failedCapabilityResult(invocation, "media_context_stale", false), newCapabilityError("media_context_stale", false, err)
-		}
-		return failedCapabilityResult(invocation, "media_intent_failed", true), err
-	}
-	if !containsCapabilityTarget(c.Definition().TargetKinds, binding.TargetKind) {
-		return failedCapabilityResult(invocation, "tool_target_invalid", false), errors.New("tool target invalid")
-	}
-	conversationID, messageID, momentID := "", "", ""
-	switch binding.TargetKind {
-	case "conversation":
-		conversationID = binding.TargetRef
-	case "conversation_message":
-		messageID = binding.TargetRef
-	case "moment":
-		momentID = binding.TargetRef
-	case "wake_up":
-	default:
-		return failedCapabilityResult(invocation, "tool_target_invalid", false), errors.New("unsupported output target")
-	}
-	intentID, workflowID, providerRequestID := mediaInvocationIdentity(invocation)
-	if err := c.service.createMediaIntentTargetTx(ctx, tx, invocation.Metadata.FluctlightID, concept, intentID, workflowID, providerRequestID, conversationID, messageID, momentID); err != nil {
-		return failedCapabilityResult(invocation, "media_intent_failed", true), err
-	}
-	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"media_intent_id": intentID, "target_kind": binding.TargetKind, "target_ref": binding.TargetRef}, ProviderRequestID: providerRequestID, CorrelationID: "image:" + intentID}, nil
-}
-
 func (c visualIdentityInitializeCapability) Definition() CapabilityDefinition {
 	return visualIdentityInitializeCapabilityDefinition()
 }
@@ -345,39 +387,40 @@ func (c visualIdentityInitializeCapability) Execute(ctx context.Context, invocat
 	if c.service == nil {
 		return failedCapabilityResult(invocation, "visual_identity_unavailable", true), errors.New("visual identity unavailable")
 	}
-	if !strings.HasPrefix(strings.TrimSpace(invocation.SourceFactID), "wake_up_") {
-		return failedCapabilityResult(invocation, "visual_identity_trigger_invalid", false), errors.New("visual identity initialization is only callable from WakeUp")
-	}
 	if resolved.Visual == nil || resolved.Persona == nil {
 		return failedCapabilityResultDetail(invocation, "context_resolve_failed", true, "visual identity context missing"), errors.New("visual identity context missing")
 	}
 	if status := stringValue(resolved.Visual.Data["status"]); status == "active" {
 		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"session_id": stringValue(resolved.Visual.Data["active_session_id"]), "status": "already_active"}, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "visual_identity:" + invocation.CallID}, nil
 	}
-	sessionID, err := c.service.EnsureVisualIdentityInitializationWithPersona(ctx, invocation.Metadata.FluctlightID, "wakeup", invocation.SourceFactID, resolved.Persona.Data)
+	sessionID, err := c.service.EnsureVisualIdentityInitializationWithPersona(ctx, invocation.Metadata.FluctlightID, visualIdentityTriggerType(invocation), invocation.SourceFactID, resolved.Persona.Data)
 	if err != nil {
 		return failedCapabilityResult(invocation, "visual_identity_initialization_failed", true), err
 	}
-	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"session_id": sessionID, "status": "queued"}, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "visual_identity:" + sessionID}, nil
+	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "accepted", Output: map[string]any{"session_id": sessionID, "status": "queued"}, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "visual_identity:" + sessionID}, nil
 }
 func (c visualIdentityInitializeCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
 	if c.service == nil {
 		return failedCapabilityResult(invocation, "visual_identity_unavailable", true), errors.New("visual identity unavailable")
 	}
-	if !strings.HasPrefix(strings.TrimSpace(invocation.SourceFactID), "wake_up_") {
-		return failedCapabilityResult(invocation, "visual_identity_trigger_invalid", false), errors.New("visual identity initialization is only callable from WakeUp")
-	}
 	if resolved.Visual == nil || resolved.Persona == nil {
 		return failedCapabilityResultDetail(invocation, "context_resolve_failed", true, "visual identity context missing"), errors.New("visual identity context missing")
 	}
 	if status := stringValue(resolved.Visual.Data["status"]); status == "active" {
 		return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"session_id": stringValue(resolved.Visual.Data["active_session_id"]), "status": "already_active"}, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "visual_identity:" + invocation.CallID}, nil
 	}
-	sessionID, err := c.service.EnsureVisualIdentityInitializationWithPersonaTx(ctx, tx, invocation.Metadata.FluctlightID, "wakeup", invocation.SourceFactID, resolved.Persona.Data)
+	sessionID, err := c.service.EnsureVisualIdentityInitializationWithPersonaTx(ctx, tx, invocation.Metadata.FluctlightID, visualIdentityTriggerType(invocation), invocation.SourceFactID, resolved.Persona.Data)
 	if err != nil {
 		return failedCapabilityResult(invocation, "visual_identity_initialization_failed", true), err
 	}
-	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"session_id": sessionID, "status": "queued"}, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "visual_identity:" + sessionID}, nil
+	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "accepted", Output: map[string]any{"session_id": sessionID, "status": "queued"}, ProviderRequestID: invocation.ProviderRequestID, CorrelationID: "visual_identity:" + sessionID}, nil
+}
+
+func visualIdentityTriggerType(invocation CapabilityInvocation) string {
+	if invocation.Metadata.Surface == CapabilitySurfaceWakeUp {
+		return "wakeup"
+	}
+	return "initialization"
 }
 
 func (c sceneEventCapability) Definition() CapabilityDefinition {
@@ -488,7 +531,7 @@ func (c scheduleReplanCapability) Prepare(ctx context.Context, invocation Capabi
 	planned["expected_life_context_revision"] = stringValue(resolved.Life.Data["context_revision"])
 	planned["intent"] = stringValue(args["intent"])
 	planned["evidence_refs"] = []any{invocation.SourceFactID}
-	planned["idempotency_key"] = "tool:" + invocation.CallID
+	planned["idempotency_key"] = "tool:" + capabilityOperationID(invocation)
 	if err := validatePreparedSchedulePlan(planned, args, resolved); err != nil {
 		code := "schedule_replan_planner_failed"
 		if errors.Is(err, ErrConflict) {
@@ -775,11 +818,23 @@ func requireCapabilityContext(resolved CapabilityContext, slots ...ContextSlot) 
 }
 
 func mediaInvocationIdentity(invocation CapabilityInvocation) (string, string, string) {
-	base := invocation.ActionID + ":" + invocation.CallID
-	if invocation.ActionID == "" {
-		base = invocation.SourceFactID + ":" + invocation.CallID
-	}
+	base := invocation.Metadata.FluctlightID + ":" + invocation.CapabilityName + ":" + capabilityOperationID(invocation)
 	return "media_intent_" + stableDigest(base), "media_workflow_" + stableDigest(base), "media_request_" + stableDigest(base)
+}
+
+func publicationCapabilityError(err error, fallback string) (string, bool) {
+	switch {
+	case errors.Is(err, ErrUnauthorized):
+		return "tool_target_unauthorized", false
+	case errors.Is(err, ErrNotFound):
+		return "tool_target_not_found", false
+	case errors.Is(err, ErrInvalidArguments):
+		return "invalid_arguments", false
+	case errors.Is(err, ErrConflict):
+		return "operation_id_conflict", false
+	default:
+		return fallback, true
+	}
 }
 
 func firstInt(value any, fallback int) int {

@@ -2,9 +2,9 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -12,594 +12,378 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// ProcessAutonomyAction settles a previously frozen action exactly once. The
-// action row is authoritative; retries never re-run an already settled side
-// effect and failed/cancelled actions remain observable instead of being
-// silently converted into success.
+// ProcessAutonomyAction resumes a frozen product command through the same
+// standalone Tool boundary used by formal Agents. The action row remains the
+// durable workflow authority, while ExecuteTool owns preparation, idempotency,
+// the short mutation transaction, and publication.
 func (a *App) ProcessAutonomyAction(ctx context.Context, actionID string) (map[string]any, error) {
-	var fluctlightID, actionType, status, workflowID, providerRequestID string
-	var payload, policySnapshotRaw, expectedRevisionsRaw []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,action_type,status,workflow_id,provider_request_id,payload,policy_snapshot,expected_revisions FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&fluctlightID, &actionType, &status, &workflowID, &providerRequestID, &payload, &policySnapshotRaw, &expectedRevisionsRaw); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
-		}
-		return nil, err
-	}
-	if status == "completed" || status == "failed" || status == "cancelled" || status == "paused" || status == "deferred" || status == "cancel_requested" {
-		return map[string]any{"action_id": actionID, "action_type": actionType, "status": status}, nil
-	}
-	if status != "frozen" {
-		return nil, fmt.Errorf("autonomy action is not executable: %s", status)
-	}
-	policyActionType := actionType
-	reserved := false
-	if value, ok := mapValue(decodeObject(policySnapshotRaw))["budget_reserved"].(bool); ok {
-		reserved = value
-	}
-	policyEvaluator := a.evaluateAutonomyPolicy
-	if reserved {
-		policyEvaluator = a.evaluateAutonomyPolicyAllowReserved
-	}
-	policyDecision, policyErr := policyEvaluator(ctx, fluctlightID, policyActionType, time.Now().UTC(), actionID)
-	if policyErr != nil {
-		return nil, policyErr
-	}
-	if !policyDecision.Allowed {
-		return a.failAutonomyAction(ctx, actionID, "policy_"+policyDecision.Reason)
-	}
-	expectedFoundationRevision, expectedCurrentStateRevision, expectedLifeContextRevision, revisionErr := cognitionAuthorityRevisionsFromValue(decodeObject(expectedRevisionsRaw))
-	if revisionErr != nil {
-		return a.failAutonomyAction(ctx, actionID, "cognition_authority_revisions_invalid")
-	}
-	if err := a.validateCognitionAuthorityRevisions(ctx, fluctlightID, expectedFoundationRevision, expectedCurrentStateRevision, expectedLifeContextRevision, time.Now().UTC()); err != nil {
-		if code := cognitionAuthorityStaleCode(err); code != "" {
-			return a.failAutonomyAction(ctx, actionID, code)
-		}
-		return nil, err
-	}
-	data := decodeObject(payload)
-	rootCorrelationID := firstString(data["correlation_id"], "autonomy:"+actionID)
-	if err := validateExecutableCapabilityPayload(data); err != nil {
-		return a.failAutonomyAction(ctx, actionID, "capability_runtime_envelope_invalid")
-	}
-	if err := validateFrozenDecisionInfluences(data); err != nil {
-		return a.failAutonomyAction(ctx, actionID, "context_reference_invalid")
-	}
-	calls, err := capabilityInvocationsFromValue(data["capability_invocations"])
-	if err != nil {
-		return a.failAutonomyAction(ctx, actionID, "capability_payload_invalid")
-	}
-	sourceFactID := firstString(data["source_fact_id"], actionID)
-	storedResults, resultsErr := capabilityResultsFromValue(data["capability_results"])
-	if resultsErr != nil {
-		return a.failAutonomyAction(ctx, actionID, "capability_results_invalid")
-	}
-	duplicatePreflight := false
-	if actionType == "proactive_message" {
-		conversationID := stringValue(data["conversation_id"])
-		text := stringValue(data["text"])
-		if conversationID == "" || text == "" {
-			return a.failAutonomyAction(ctx, actionID, "proactive_target_invalid")
-		}
-		_, duplicatePreflight, err = recentExactAssistantMessage(ctx, a.DB, conversationID, fluctlightID, text, proactiveMessageDuplicateWindow)
-		if err != nil {
-			return nil, err
-		}
-	}
-	for index := range calls {
-		calls[index].ActionID = actionID
-	}
-	if !duplicatePreflight {
-		calls, err = a.prepareCapabilityInvocations(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls, storedResults)
-		if err != nil {
-			if len(capabilityBatchFailures(err)) == 0 {
-				code, retryable := capabilityErrorInfo(err, "capability_prepare_failed", true)
-				if retryable {
-					// Keep the action executable. The Temporal activity will retry a few
-					// times and Dispatcher reconciliation requeues this intent when a
-					// terminal workflow failure leaves the action frozen.
-					return nil, err
-				}
-				return a.failAutonomyAction(ctx, actionID, code)
-			}
-			storedResults = mergeCapabilityResults(storedResults, capabilityBatchFailures(err))
-		}
-		if err := a.persistAutonomyCapabilityResults(ctx, actionID, calls, storedResults); err != nil {
-			return nil, err
-		}
-	} else {
-		// The locked transaction below will re-check the duplicate. Avoid planner
-		// calls and capability preflight work for the common suppression path, but
-		// retain the original invocations for an auditable duplicate result.
-	}
-	data["capability_invocations"] = calls
-	if actionType == "proactive_message" {
-		conversationID := stringValue(data["conversation_id"])
-		text := stringValue(data["text"])
-		if conversationID == "" || text == "" {
-			return a.failAutonomyAction(ctx, actionID, "proactive_target_invalid")
-		}
-		duplicateSuppressed := false
-		duplicateMessageID := ""
-		deferredCalls, _ := splitDeferredOutputCapabilities(calls, a.capabilityRegistry())
-		capabilityResults := append([]CapabilityResult(nil), storedResults...)
-		if len(calls) > 0 && !duplicatePreflight {
-			capabilityResults, err = a.planCapabilitiesForTransaction(ctx, fluctlightID, conversationID, sourceFactID, calls, capabilityResults)
-			if err != nil {
-				if len(capabilityBatchFailures(err)) == 0 {
-					return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
-				}
-			}
-			if err := requiredOutputCapabilityFailure(capabilityResults, calls, a.capabilityRegistry(), false, "conversation_message"); err != nil {
-				return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
-			}
-		}
-		err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-			if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, expectedFoundationRevision, expectedCurrentStateRevision, expectedLifeContextRevision, time.Now().UTC()); err != nil {
-				return err
-			}
-			messageID, duplicate, err := recentExactAssistantMessageTx(ctx, tx, conversationID, fluctlightID, text, proactiveMessageDuplicateWindow)
-			if err != nil {
-				return err
-			}
-			if duplicate {
-				duplicateSuppressed = true
-				duplicateMessageID = messageID
-				deliveryResult := map[string]any{
-					"status":          "completed",
-					"action_status":   "completed",
-					"delivery_status": "duplicate_suppressed",
-					"message_id":      messageID,
-				}
-				command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=payload || $2::jsonb,status='completed',settled_at=now() WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(map[string]any{"delivery_status": "duplicate_suppressed", "message_id": messageID, "capability_invocations_suppressed": true}))
-				if err != nil {
-					return err
-				}
-				if command.RowsAffected() != 1 {
-					return ErrConflict
-				}
-				if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, deliveryResult); err != nil {
-					return err
-				}
-				return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed", "delivery_status": "duplicate_suppressed", "message_id": messageID, "aggregate_sequence": 1})
-			}
-			messageID, err = appendAssistantTxWithID(ctx, tx, conversationID, fluctlightID, text, "proactive:"+actionID)
-			if err != nil {
-				return err
-			}
-			binding := OutputBindingV1{TargetKind: "conversation_message", TargetRef: messageID}
-			if len(deferredCalls) > 0 {
-				for index := range deferredCalls {
-					deferredCalls[index] = normalizeCapabilityInvocationMetadata(deferredCalls[index], fluctlightID, conversationID, firstString(data["source_fact_id"], actionID), actionID, index)
-				}
-				if err := validateCompositeOutputCapabilities(deferredCalls, binding.TargetKind, a.capabilityRegistry()); err != nil {
-					return err
-				}
-			}
-			if len(calls) > 0 {
-				settled, settleErr := a.settleDeferredCapabilitiesTx(ctx, tx, fluctlightID, firstString(data["source_fact_id"], actionID), actionID, calls, capabilityResults, binding)
-				if settleErr != nil {
-					return settleErr
-				}
-				capabilityResults = settled
-				if requiredErr := requiredOutputCapabilityFailure(capabilityResults, calls, a.capabilityRegistry(), true, "conversation_message"); requiredErr != nil {
-					return requiredErr
-				}
-			}
-			if len(deferredCalls) > 0 {
-				bound := make([]OutputBindingV1, 0, len(deferredCalls))
-				for _, invocation := range deferredCalls {
-					bound = append(bound, OutputBindingV1{ToolCallID: invocation.CallID, TargetKind: binding.TargetKind, TargetRef: binding.TargetRef})
-				}
-				if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(payload,'{output_bindings}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(bound)); err != nil {
-					return err
-				}
-			}
-			if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(jsonb_set(payload,'{capability_invocations}',$2::jsonb,true),'{capability_results}',$3::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(calls), jsonBytes(capabilityResults)); err != nil {
-				return err
-			}
-			command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET status='completed',settled_at=now() WHERE id=$1 AND status='frozen'`, actionID)
-			if err != nil {
-				return err
-			}
-			if command.RowsAffected() != 1 {
-				return ErrConflict
-			}
-			if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, map[string]any{"status": "completed", "action_status": "completed", "message_id": messageID, "capability_results": capabilityResults}); err != nil {
-				return err
-			}
-			if err := a.enqueueConversationSummaryIntentTx(ctx, tx, fluctlightID, conversationID, messageID); err != nil {
-				return err
-			}
-			return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", actionID, fluctlightID, actionID, "autonomy:"+actionID, "autonomy-outbox:"+actionID, map[string]any{"action_type": actionType, "status": "completed", "aggregate_sequence": 1})
-		})
-		if err != nil {
-			failed := capabilityResultsAfterSettlementFailure(capabilityResults, calls, a.capabilityRegistry(), "capability_settlement_failed")
-			a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, failed)
-			code, retryable := capabilityFailureInfo(err, failed, calls, a.capabilityRegistry(), "capability_settlement_failed")
-			if !retryable {
-				return a.failAutonomyAction(ctx, actionID, code)
-			}
-			return nil, err
-		}
-		if duplicateSuppressed {
-			return map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed", "delivery_status": "duplicate_suppressed", "message_id": duplicateMessageID}, nil
-		}
-		return map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed"}, nil
-	}
-	if actionType == "moment" {
-		text := stringValue(data["text"])
-		if text == "" {
-			return a.failAutonomyAction(ctx, actionID, "moment_text_invalid")
-		}
-		momentID := "moment_" + stableDigest(actionID)
-		deferredCalls, _ := splitDeferredOutputCapabilities(calls, a.capabilityRegistry())
-		capabilityResults := append([]CapabilityResult(nil), storedResults...)
-		if len(calls) > 0 {
-			capabilityResults, err = a.planCapabilitiesForTransaction(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls, capabilityResults)
-			if err != nil {
-				if len(capabilityBatchFailures(err)) == 0 {
-					return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
-				}
-			}
-			if err := requiredOutputCapabilityFailure(capabilityResults, calls, a.capabilityRegistry(), false, "moment"); err != nil {
-				return a.failAutonomyAction(ctx, actionID, "required_capability_failed")
-			}
-		}
-		settlementErr := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-			if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, expectedFoundationRevision, expectedCurrentStateRevision, expectedLifeContextRevision, time.Now().UTC()); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(ctx, `INSERT INTO public.moments(id,owner_fluctlight_id,author_actor_id,text,visibility,status,media_asset_ids) VALUES($1,$2,$2,$3,'participants','visible','[]') ON CONFLICT DO NOTHING`, momentID, fluctlightID, text); err != nil {
-				return err
-			}
-			binding := OutputBindingV1{TargetKind: "moment", TargetRef: momentID}
-			if len(deferredCalls) > 0 {
-				for index := range deferredCalls {
-					deferredCalls[index] = normalizeCapabilityInvocationMetadata(deferredCalls[index], fluctlightID, stringValue(data["conversation_id"]), firstString(data["source_fact_id"], actionID), actionID, index)
-				}
-				if err := validateCompositeOutputCapabilities(deferredCalls, binding.TargetKind, a.capabilityRegistry()); err != nil {
-					return err
-				}
-			}
-			if len(calls) > 0 {
-				settled, settleErr := a.settleDeferredCapabilitiesTx(ctx, tx, fluctlightID, firstString(data["source_fact_id"], actionID), actionID, calls, capabilityResults, binding)
-				if settleErr != nil {
-					return settleErr
-				}
-				capabilityResults = settled
-				if requiredErr := requiredOutputCapabilityFailure(capabilityResults, calls, a.capabilityRegistry(), true, "moment"); requiredErr != nil {
-					return requiredErr
-				}
-			}
-			if len(deferredCalls) > 0 {
-				bound := make([]OutputBindingV1, 0, len(deferredCalls))
-				for _, invocation := range deferredCalls {
-					bound = append(bound, OutputBindingV1{ToolCallID: invocation.CallID, TargetKind: binding.TargetKind, TargetRef: binding.TargetRef})
-				}
-				if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(payload,'{output_bindings}',$2::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(bound)); err != nil {
-					return err
-				}
-			}
-			if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(jsonb_set(payload,'{capability_invocations}',$2::jsonb,true),'{capability_results}',$3::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(calls), jsonBytes(capabilityResults)); err != nil {
-				return err
-			}
-			command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET status='completed',settled_at=now() WHERE id=$1 AND status='frozen'`, actionID)
-			if err != nil {
-				return err
-			}
-			if command.RowsAffected() != 1 {
-				return ErrConflict
-			}
-			if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, map[string]any{"status": "completed", "action_status": "completed", "moment_id": momentID, "capability_results": capabilityResults}); err != nil {
-				return err
-			}
-			return appendOutboxTx(ctx, tx, "moment.published", "moment", momentID, fluctlightID, actionID, "autonomy:"+actionID, "moment-outbox:"+actionID, map[string]any{"moment_id": momentID, "action_id": actionID, "aggregate_sequence": 1})
-		})
-		if settlementErr != nil {
-			failed := capabilityResultsAfterSettlementFailure(capabilityResults, calls, a.capabilityRegistry(), "capability_settlement_failed")
-			a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, failed)
-			code, retryable := capabilityFailureInfo(settlementErr, failed, calls, a.capabilityRegistry(), "capability_settlement_failed")
-			if !retryable {
-				return a.failAutonomyAction(ctx, actionID, code)
-			}
-			return nil, settlementErr
-		}
-		return map[string]any{"action_id": actionID, "action_type": actionType, "status": "completed", "moment_id": momentID}, nil
-	}
-	return a.failAutonomyAction(ctx, actionID, "unsupported_action_type")
+	return a.processFrozenToolAction(ctx, actionID)
 }
 
+// ProcessCapabilityAction is the workflow alias for capability.action intents.
+// Both intent kinds consume the same frozen command and never dispatch a second
+// capability runtime.
 func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map[string]any, error) {
-	var fluctlightID, status string
-	var payload, policySnapshotRaw, expectedRevisionsRaw []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,status,payload,policy_snapshot,expected_revisions FROM public.autonomy_actions WHERE id=$1`, actionID).Scan(&fluctlightID, &status, &payload, &policySnapshotRaw, &expectedRevisionsRaw); err != nil {
+	return a.processFrozenToolAction(ctx, actionID)
+}
+
+type frozenToolAction struct {
+	ID                   string
+	FluctlightID         string
+	ActionType           string
+	Status               string
+	Payload              map[string]any
+	PolicySnapshot       map[string]any
+	ExpectedRevisions    map[string]any
+	AuthorizationActorID string
+	ConversationID       string
+	SourceFactID         string
+	CorrelationID        string
+	Invocations          []CapabilityInvocation
+	Results              []CapabilityResult
+}
+
+func (a *App) loadFrozenToolAction(ctx context.Context, actionID string) (frozenToolAction, error) {
+	action := frozenToolAction{ID: strings.TrimSpace(actionID)}
+	if action.ID == "" {
+		return action, ErrInvalidArguments
+	}
+	var payloadRaw, policyRaw, revisionsRaw []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,action_type,status,payload,policy_snapshot,expected_revisions FROM public.autonomy_actions WHERE id=$1`, action.ID).Scan(
+		&action.FluctlightID, &action.ActionType, &action.Status, &payloadRaw, &policyRaw, &revisionsRaw,
+	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
+			return action, ErrNotFound
 		}
+		return action, err
+	}
+	action.Payload = decodeObject(payloadRaw)
+	action.PolicySnapshot = decodeObject(policyRaw)
+	action.ExpectedRevisions = decodeObject(revisionsRaw)
+	action.ConversationID = strings.TrimSpace(stringValue(action.Payload["conversation_id"]))
+	action.SourceFactID = firstString(action.Payload["source_fact_id"], action.ID)
+	action.CorrelationID = firstString(action.Payload["correlation_id"], "action-result:"+action.ID)
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1`, action.FluctlightID).Scan(&action.AuthorizationActorID); err != nil {
+		return action, err
+	}
+	var err error
+	action.Invocations, err = capabilityInvocationsFromValue(action.Payload["capability_invocations"])
+	if err != nil {
+		return action, errors.New("capability_payload_invalid")
+	}
+	action.Results, err = capabilityResultsFromValue(action.Payload["capability_results"])
+	if err != nil {
+		return action, errors.New("capability_results_invalid")
+	}
+	return action, nil
+}
+
+func (a *App) processFrozenToolAction(ctx context.Context, actionID string) (map[string]any, error) {
+	action, err := a.loadFrozenToolAction(ctx, actionID)
+	if err != nil {
 		return nil, err
 	}
-	if status == "completed" || status == "failed" || status == "cancelled" || status == "paused" || status == "deferred" || status == "cancel_requested" {
-		return map[string]any{"action_id": actionID, "action_type": "capability", "status": status}, nil
+	switch action.Status {
+	case "completed", "failed", "cancelled", "paused", "deferred", "cancel_requested":
+		return map[string]any{"action_id": action.ID, "action_type": action.ActionType, "status": action.Status}, nil
+	case "frozen":
+	default:
+		return nil, fmt.Errorf("autonomy action is not executable: %s", action.Status)
 	}
-	if status != "frozen" {
-		return nil, fmt.Errorf("capability action is not executable: %s", status)
+	if err := validateExecutableCapabilityPayload(action.Payload); err != nil {
+		return a.failAutonomyAction(ctx, action.ID, "capability_runtime_envelope_invalid")
 	}
-	reserved := false
-	if value, ok := mapValue(decodeObject(policySnapshotRaw))["budget_reserved"].(bool); ok {
-		reserved = value
+	if err := validateFrozenDecisionInfluences(action.Payload); err != nil {
+		return a.failAutonomyAction(ctx, action.ID, "context_reference_invalid")
 	}
+	reserved, _ := action.PolicySnapshot["budget_reserved"].(bool)
 	policyEvaluator := a.evaluateAutonomyPolicy
 	if reserved {
 		policyEvaluator = a.evaluateAutonomyPolicyAllowReserved
 	}
-	policyDecision, policyErr := policyEvaluator(ctx, fluctlightID, "capability", time.Now().UTC(), actionID)
-	if policyErr != nil {
-		return nil, policyErr
+	policyDecision, err := policyEvaluator(ctx, action.FluctlightID, action.ActionType, a.now().UTC(), action.ID)
+	if err != nil {
+		return nil, err
 	}
 	if !policyDecision.Allowed {
-		return a.failAutonomyAction(ctx, actionID, "policy_"+policyDecision.Reason)
+		return a.failAutonomyAction(ctx, action.ID, "policy_"+policyDecision.Reason)
 	}
-	expectedFoundationRevision, expectedCurrentStateRevision, expectedLifeContextRevision, revisionErr := cognitionAuthorityRevisionsFromValue(decodeObject(expectedRevisionsRaw))
-	if revisionErr != nil {
-		return a.failAutonomyAction(ctx, actionID, "cognition_authority_revisions_invalid")
+	expectedFoundation, expectedState, expectedLife, err := cognitionAuthorityRevisionsFromValue(action.ExpectedRevisions)
+	if err != nil {
+		return a.failAutonomyAction(ctx, action.ID, "cognition_authority_revisions_invalid")
 	}
-	if err := a.validateCognitionAuthorityRevisions(ctx, fluctlightID, expectedFoundationRevision, expectedCurrentStateRevision, expectedLifeContextRevision, time.Now().UTC()); err != nil {
+	if err := a.validateCognitionAuthorityRevisions(ctx, action.FluctlightID, expectedFoundation, expectedState, expectedLife, a.now().UTC()); err != nil {
 		if code := cognitionAuthorityStaleCode(err); code != "" {
-			return a.failAutonomyAction(ctx, actionID, code)
+			return a.failAutonomyAction(ctx, action.ID, code)
 		}
 		return nil, err
 	}
-	data := decodeObject(payload)
-	rootCorrelationID := firstString(data["correlation_id"], "capability:"+actionID)
-	if err := validateExecutableCapabilityPayload(data); err != nil {
-		return a.failAutonomyAction(ctx, actionID, "capability_runtime_envelope_invalid")
+	action.Invocations, err = materializeActionPublicationInvocation(action)
+	if err != nil {
+		return a.failAutonomyAction(ctx, action.ID, "action_output_invalid")
 	}
-	if err := validateFrozenDecisionInfluences(data); err != nil {
-		return a.failAutonomyAction(ctx, actionID, "context_reference_invalid")
-	}
-	calls, invocationErr := capabilityInvocationsFromValue(data["capability_invocations"])
-	if invocationErr != nil {
-		return a.failAutonomyAction(ctx, actionID, "capability_payload_invalid")
-	}
-	if len(calls) == 0 {
-		return a.failAutonomyAction(ctx, actionID, "capability_calls_empty")
-	}
-	var sourceFactID string
-	sourceFactID = stringValue(data["source_fact_id"])
-	if sourceFactID == "" && len(calls) > 0 {
-		sourceFactID = calls[0].SourceFactID
-	}
-	if sourceFactID == "" {
-		return a.failAutonomyAction(ctx, actionID, "capability_source_missing")
-	}
-	for index := range calls {
-		calls[index].ActionID = actionID
-	}
-	results, resultsErr := capabilityResultsFromValue(data["capability_results"])
-	if resultsErr != nil {
-		return a.failAutonomyAction(ctx, actionID, "capability_results_invalid")
-	}
-	preparedCalls, prepareErr := a.prepareCapabilityInvocations(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls, results)
-	if prepareErr != nil {
-		if len(capabilityBatchFailures(prepareErr)) == 0 {
-			code, retryable := capabilityErrorInfo(prepareErr, "capability_prepare_failed", true)
-			if retryable {
-				// Leave the frozen action executable so Temporal/Dispatcher can retry a
-				// transient provider, renderer, or configuration failure.
-				return nil, prepareErr
-			}
-			return a.failAutonomyAction(ctx, actionID, code)
+	if action.ActionType == "proactive_message" {
+		text := actionPublicationText(action.Invocations, conversationReplyCapabilityName)
+		if action.ConversationID == "" || text == "" {
+			return a.failAutonomyAction(ctx, action.ID, "proactive_target_invalid")
 		}
-		results = mergeCapabilityResults(results, capabilityBatchFailures(prepareErr))
+		messageID, duplicate, duplicateErr := recentExactAssistantMessage(ctx, a.DB, action.ConversationID, action.FluctlightID, text, proactiveMessageDuplicateWindow)
+		if duplicateErr != nil {
+			return nil, duplicateErr
+		}
+		if duplicate {
+			return a.settleFrozenToolAction(ctx, action, map[string]any{
+				"delivery_status": "duplicate_suppressed", "message_id": messageID,
+				"capability_invocations_suppressed": true,
+			})
+		}
 	}
-	calls = preparedCalls
-	data["capability_invocations"] = calls
-	if err := a.persistAutonomyCapabilityResults(ctx, actionID, calls, results); err != nil {
+	if len(action.Invocations) == 0 {
+		if action.ActionType != "no_op" {
+			return a.failAutonomyAction(ctx, action.ID, "capability_calls_empty")
+		}
+		return a.settleFrozenToolAction(ctx, action, nil)
+	}
+
+	targetKind, targetRef := "", ""
+	if action.ConversationID != "" {
+		targetKind, targetRef = "conversation", action.ConversationID
+	}
+	for _, index := range actionExecutionOrder(action.Invocations, action.ActionType) {
+		invocation := action.Invocations[index]
+		if prior, found := capabilityResultForCall(action.Results, invocation.CallID); found && toolActionResultIsFinal(prior) {
+			targetKind, targetRef = actionOutputTarget(prior, targetKind, targetRef)
+			continue
+		}
+		arguments := invocation.Arguments
+		if len(arguments) == 0 {
+			arguments = json.RawMessage(`{}`)
+		}
+		operationID := strings.TrimSpace(invocation.Metadata.OperationID)
+		if operationID == "" {
+			operationID = "workflow_action:" + action.ID + ":" + firstString(invocation.CallID, fmt.Sprint(index))
+		}
+		surface := invocation.Metadata.Surface
+		if surface == "" {
+			surface = CapabilitySurfaceAutonomy
+		}
+		receipt, executeErr := a.ExecuteTool(ctx, ToolExecutionRequest{
+			CapabilityName: invocation.CapabilityName, OperationID: operationID,
+			AuthorizationActorID: action.AuthorizationActorID, FluctlightID: action.FluctlightID,
+			ConversationID: action.ConversationID, TargetKind: targetKind, TargetRef: targetRef,
+			EvidenceID: action.SourceFactID, Surface: surface, Arguments: arguments,
+		})
+		result := receipt.Result
+		if result.CallID == "" {
+			result = failedCapabilityResultDetail(invocation, "tool_execution_failed", true, errorText(executeErr))
+		}
+		result.CallID = invocation.CallID
+		result.CapabilityName = invocation.CapabilityName
+		if result.ProviderRequestID == "" {
+			result.ProviderRequestID = invocation.ProviderRequestID
+		}
+		action.Results = replaceCapabilityResult(action.Results, result)
+		targetKind, targetRef = actionOutputTarget(result, targetKind, targetRef)
+		if executeErr != nil && result.Retryable {
+			if persistErr := a.persistFrozenToolActionTrace(ctx, action); persistErr != nil {
+				return nil, persistErr
+			}
+			return nil, executeErr
+		}
+	}
+	if err := a.persistFrozenToolActionTrace(ctx, action); err != nil {
 		return nil, err
 	}
-	for _, invocation := range calls {
-		definition, ok := a.capabilityRegistry().Definition(invocation.CapabilityName)
-		if !ok || invocation.Validate(definition) != nil {
-			// The preparer has already recorded this call's own failure. Keep
-			// processing every sibling instead of turning one malformed call into
-			// a batch-level capability_unavailable failure.
-			if _, found := capabilityResultForCall(results, invocation.CallID); found {
-				continue
-			}
-			results = mergeCapabilityResults(results, []CapabilityResult{failedCapabilityResult(invocation, "capability_unavailable", false)})
-		}
+	if code, failed := requiredToolActionFailure(action.Results, action.Invocations, a.capabilityRegistry()); failed {
+		return a.failAutonomyAction(ctx, action.ID, code)
 	}
-	for index := range calls {
-		calls[index] = normalizeCapabilityInvocationMetadata(calls[index], fluctlightID, stringValue(data["conversation_id"]), sourceFactID, actionID, index)
-		calls[index].ActionID = actionID
-	}
-	var planErr error
-	results, planErr = a.planCapabilitiesForTransaction(ctx, fluctlightID, stringValue(data["conversation_id"]), sourceFactID, calls, results)
-	if planErr != nil {
-		if len(capabilityBatchFailures(planErr)) == 0 {
-			a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, results)
-			code, retryable := capabilityFailureInfo(planErr, results, calls, a.capabilityRegistry(), "capability_plan_failed")
-			if !retryable {
-				return a.failAutonomyAction(ctx, actionID, code)
-			}
-			return nil, planErr
-		}
-	}
-	if len(capabilityBatchFailures(planErr)) > 0 {
-		results = mergeCapabilityResults(results, capabilityBatchFailures(planErr))
-	}
-	result := map[string]any{}
-	settlementErr := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, expectedFoundationRevision, expectedCurrentStateRevision, expectedLifeContextRevision, time.Now().UTC()); err != nil {
-			return err
-		}
-		binding, output, bindingErr := a.prepareCapabilityActionOutputTargetTx(ctx, tx, actionID, fluctlightID, stringValue(data["conversation_id"]), calls)
-		if bindingErr != nil {
-			return bindingErr
-		}
-		settled, settleErr := a.settleDeferredCapabilitiesTx(ctx, tx, fluctlightID, sourceFactID, actionID, calls, results, binding)
-		if settleErr != nil {
-			return settleErr
-		}
-		results = settled
-		if requiredErr := requiredActionCapabilityFailure(results, calls, a.capabilityRegistry()); requiredErr != nil {
-			return requiredErr
-		}
-		result = map[string]any{"status": "completed", "action_status": "completed", "capability_results": results}
-		for key, value := range output {
-			result[key] = value
-		}
-		bound := make([]OutputBindingV1, 0, len(calls))
-		for _, invocation := range calls {
-			if definition, ok := a.capabilityRegistry().Definition(invocation.CapabilityName); ok && definition.IsDeferredOutput() {
-				callBinding := binding
-				callBinding.ToolCallID = invocation.CallID
-				bound = append(bound, callBinding)
-			}
-		}
-		payloadUpdate := `UPDATE public.autonomy_actions SET payload=jsonb_set(jsonb_set(jsonb_set(payload,'{capability_invocations}',$2::jsonb,true),'{capability_results}',$3::jsonb,true),'{output_bindings}',$4::jsonb,true) WHERE id=$1 AND status='frozen'`
-		if _, err := tx.Exec(ctx, payloadUpdate, actionID, jsonBytes(calls), jsonBytes(results), jsonBytes(bound)); err != nil {
-			return err
-		}
-		command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET status='completed',settled_at=now() WHERE id=$1 AND status='frozen'`, actionID)
-		if err != nil {
-			return err
-		}
-		if command.RowsAffected() != 1 {
-			return ErrConflict
-		}
-		if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, result); err != nil {
-			return err
-		}
-		if stringValue(output["target_kind"]) == "moment" {
-			return appendOutboxTx(ctx, tx, "moment.published", "moment", stringValue(output["target_ref"]), fluctlightID, actionID, "autonomy:"+actionID, "moment-outbox:"+actionID, map[string]any{"moment_id": stringValue(output["target_ref"]), "action_id": actionID, "aggregate_sequence": 1})
-		}
-		return nil
-	})
-	if settlementErr != nil {
-		failed := capabilityResultsAfterSettlementFailure(results, calls, a.capabilityRegistry(), "capability_settlement_failed")
-		a.persistAutonomyCapabilityResultsBestEffort(ctx, actionID, fluctlightID, rootCorrelationID, calls, failed)
-		code, retryable := capabilityFailureInfo(settlementErr, failed, calls, a.capabilityRegistry(), "capability_settlement_failed")
-		if !retryable {
-			return a.failAutonomyAction(ctx, actionID, code)
-		}
-		return nil, settlementErr
-	}
-	return map[string]any{"action_id": actionID, "action_type": "capability", "status": "completed", "capability_results": results}, nil
+	return a.settleFrozenToolAction(ctx, action, actionSettlementOutput(action.Results))
 }
 
-// requiredActionCapabilityFailure applies the action-level failure policy to
-// every required capability in a generic capability action. Unlike a visible
-// conversation/moment settlement, a capability action may consist entirely of
-// internal or transactional capabilities, so OutputRole is not a reason to
-// hide a required sibling failure.
-func requiredActionCapabilityFailure(results []CapabilityResult, invocations []CapabilityInvocation, registry *CapabilityRegistry) error {
+func materializeActionPublicationInvocation(action frozenToolAction) ([]CapabilityInvocation, error) {
+	invocations := append([]CapabilityInvocation(nil), action.Invocations...)
+	requiredName := ""
+	switch action.ActionType {
+	case "proactive_message":
+		requiredName = conversationReplyCapabilityName
+	case "moment":
+		requiredName = "moment.publish"
+	default:
+		return invocations, nil
+	}
+	for _, invocation := range invocations {
+		if invocation.CapabilityName == requiredName {
+			return invocations, nil
+		}
+	}
+	text := strings.TrimSpace(stringValue(action.Payload["text"]))
+	if text == "" {
+		return nil, errors.New("action output text is missing")
+	}
+	arguments, err := json.Marshal(map[string]any{"text": text})
+	if err != nil {
+		return nil, err
+	}
+	return append([]CapabilityInvocation{{
+		CallID: "action_output_" + stableDigest(action.ID)[:24], CapabilityName: requiredName,
+		SchemaVersion: CapabilityInvocationSchemaVersion, Arguments: arguments,
+		SourceFactID: action.SourceFactID, ActionID: action.ID,
+		Metadata: InvocationMetadata{
+			OperationID:  "workflow_action:" + action.ID + ":output",
+			FluctlightID: action.FluctlightID, ConversationID: action.ConversationID,
+			Surface: CapabilitySurfaceAutonomy, Source: "workflow_command",
+		},
+	}}, invocations...), nil
+}
+
+func actionExecutionOrder(invocations []CapabilityInvocation, actionType string) []int {
+	order := make([]int, 0, len(invocations))
+	publication := ""
+	switch actionType {
+	case "proactive_message":
+		publication = conversationReplyCapabilityName
+	case "moment":
+		publication = "moment.publish"
+	}
+	if publication == "" {
+		for _, invocation := range invocations {
+			if invocation.CapabilityName == conversationReplyCapabilityName || invocation.CapabilityName == "moment.publish" {
+				publication = invocation.CapabilityName
+				break
+			}
+		}
+	}
+	if publication != "" {
+		for index, invocation := range invocations {
+			if invocation.CapabilityName == publication {
+				order = append(order, index)
+			}
+		}
+	}
+	for index, invocation := range invocations {
+		if invocation.CapabilityName != publication {
+			order = append(order, index)
+		}
+	}
+	return order
+}
+
+func actionPublicationText(invocations []CapabilityInvocation, capabilityName string) string {
+	for _, invocation := range invocations {
+		if invocation.CapabilityName != capabilityName {
+			continue
+		}
+		var arguments map[string]any
+		if json.Unmarshal(invocation.Arguments, &arguments) == nil {
+			return strings.TrimSpace(stringValue(arguments["text"]))
+		}
+	}
+	return ""
+}
+
+func toolActionResultIsFinal(result CapabilityResult) bool {
+	if result.Status == "completed" || result.Status == "accepted" {
+		return true
+	}
+	return (result.Status == "failed" || result.Status == "rejected") && !result.Retryable
+}
+
+func actionOutputTarget(result CapabilityResult, fallbackKind, fallbackRef string) (string, string) {
+	output := mapValue(result.Output)
+	kind, ref := strings.TrimSpace(stringValue(output["target_kind"])), strings.TrimSpace(stringValue(output["target_ref"]))
+	if kind == "" || ref == "" {
+		return fallbackKind, fallbackRef
+	}
+	return kind, ref
+}
+
+func actionSettlementOutput(results []CapabilityResult) map[string]any {
+	output := map[string]any{}
+	for _, result := range results {
+		values := mapValue(result.Output)
+		switch result.CapabilityName {
+		case conversationReplyCapabilityName:
+			output["delivery_status"] = "delivered"
+			output["message_id"] = values["target_ref"]
+		case "moment.publish":
+			output["delivery_status"] = "published"
+			output["moment_id"] = values["target_ref"]
+		case "media.image.generate":
+			output["media_intent_id"] = values["media_intent_id"]
+		}
+	}
+	return output
+}
+
+func requiredToolActionFailure(results []CapabilityResult, invocations []CapabilityInvocation, registry *CapabilityRegistry) (string, bool) {
 	if registry == nil {
-		return newCapabilityError("capability_not_found", false, ErrCapabilityNotFound)
+		return "capability_not_found", true
 	}
 	for _, invocation := range invocations {
 		definition, ok := registry.Definition(invocation.CapabilityName)
-		if !ok || definition.FailurePolicy != FailurePolicyRequiredForVisibleClaim {
+		if !ok {
+			return "capability_not_found", true
+		}
+		if definition.FailurePolicy != FailurePolicyRequiredForVisibleClaim {
 			continue
 		}
 		result, found := capabilityResultForCall(results, invocation.CallID)
 		if !found {
-			return newCapabilityError("capability_result_missing", false, fmt.Errorf("required capability %q has no result", invocation.CapabilityName))
+			return "capability_result_missing", true
 		}
-		if result.Status == "failed" || result.Status == "rejected" || result.Status != "completed" {
-			code := firstString(result.ErrorCode, "capability_execution_failed")
-			return newCapabilityError(code, result.Retryable, fmt.Errorf("required capability %q failed", invocation.CapabilityName))
+		if result.Status != "completed" && result.Status != "accepted" {
+			return firstString(result.ErrorCode, "capability_execution_failed"), true
 		}
+	}
+	return "", false
+}
+
+func (a *App) persistFrozenToolActionTrace(ctx context.Context, action frozenToolAction) error {
+	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(jsonb_set(payload,'{capability_invocations}',$2::jsonb,true),'{capability_results}',$3::jsonb,true) WHERE id=$1 AND status='frozen'`, action.ID, jsonBytes(action.Invocations), jsonBytes(action.Results))
+	if err != nil {
+		return err
+	}
+	if command.RowsAffected() != 1 {
+		return ErrConflict
 	}
 	return nil
 }
 
-// prepareCapabilityActionOutputTargetTx resolves the concrete target for a
-// generic capability action. A wake_up target is valid for media-only calls,
-// but it is not a valid durable target for moment.publish or
-// conversation.reply. Those visible capabilities must own a real Moment or
-// assistant message before settlement, just like the typed autonomy paths.
-func (a *App) prepareCapabilityActionOutputTargetTx(ctx context.Context, tx pgx.Tx, actionID, fluctlightID, conversationID string, calls []CapabilityInvocation) (OutputBindingV1, map[string]any, error) {
-	registry := a.capabilityRegistry()
-	if registry == nil {
-		return OutputBindingV1{}, nil, fmt.Errorf("%w: capability registry is unavailable", ErrCapabilityNotFound)
+func (a *App) settleFrozenToolAction(ctx context.Context, action frozenToolAction, extra map[string]any) (map[string]any, error) {
+	result := map[string]any{
+		"action_id": action.ID, "action_type": action.ActionType,
+		"status": "completed", "action_status": "completed",
+		"capability_results": action.Results,
 	}
-	role := ""
-	for _, invocation := range calls {
-		definition, ok := registry.Definition(invocation.CapabilityName)
-		if !ok || !definition.IsDeferredOutput() {
-			continue
-		}
-		if definition.OutputRole == "moment" || definition.OutputRole == "conversation_message" {
-			role = definition.OutputRole
-			break
-		}
+	for key, value := range extra {
+		result[key] = value
 	}
-	if role == "" {
-		return OutputBindingV1{TargetKind: "wake_up", TargetRef: actionID}, map[string]any{}, nil
-	}
-	for _, invocation := range calls {
-		definition, ok := registry.Definition(invocation.CapabilityName)
-		if !ok || definition.OutputRole != role {
-			continue
-		}
-		text := capabilityInvocationText(invocation)
-		if text == "" {
-			return OutputBindingV1{}, nil, fmt.Errorf("%s_text_invalid", role)
-		}
-		if role == "moment" {
-			momentID := "moment_" + stableDigest(actionID+":"+invocation.CallID)
-			if _, err := tx.Exec(ctx, `INSERT INTO public.moments(id,owner_fluctlight_id,author_actor_id,text,visibility,status,media_asset_ids) VALUES($1,$2,$2,$3,'participants','visible','[]') ON CONFLICT DO NOTHING`, momentID, fluctlightID, text); err != nil {
-				return OutputBindingV1{}, nil, err
-			}
-			return OutputBindingV1{TargetKind: role, TargetRef: momentID}, map[string]any{"target_kind": role, "target_ref": momentID, "text": text}, nil
-		}
-		if strings.TrimSpace(conversationID) == "" {
-			return OutputBindingV1{}, nil, errors.New("proactive_target_invalid")
-		}
-		messageID, err := appendAssistantTxWithID(ctx, tx, conversationID, fluctlightID, text, "capability:"+actionID)
-		if err != nil {
-			return OutputBindingV1{}, nil, err
-		}
-		return OutputBindingV1{TargetKind: role, TargetRef: messageID}, map[string]any{"target_kind": role, "target_ref": messageID, "text": text}, nil
-	}
-	return OutputBindingV1{TargetKind: "wake_up", TargetRef: actionID}, map[string]any{}, nil
-}
-
-func (a *App) persistAutonomyCapabilityResults(ctx context.Context, actionID string, invocations []CapabilityInvocation, results []CapabilityResult) error {
-	if a == nil || a.DB == nil || strings.TrimSpace(actionID) == "" {
-		return errors.New("autonomy_action_persistence_unavailable")
-	}
-	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(jsonb_set(payload,'{capability_invocations}',$2::jsonb,true),'{capability_results}',$3::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(invocations), jsonBytes(results))
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(jsonb_set(payload,'{capability_invocations}',$2::jsonb,true),'{capability_results}',$3::jsonb,true),status='completed',settled_at=now(),error_code=NULL WHERE id=$1 AND status='frozen'`, action.ID, jsonBytes(action.Invocations), jsonBytes(action.Results))
 		if err != nil {
 			return err
 		}
 		if command.RowsAffected() != 1 {
 			return ErrConflict
 		}
-		return nil
+		if err := a.settleWakeUpActionTx(ctx, tx, action.ID, action.FluctlightID, result); err != nil {
+			return err
+		}
+		return appendOutboxTx(ctx, tx, "autonomy.action.completed", "autonomy_action", action.ID, action.FluctlightID, action.ID, action.CorrelationID, "autonomy-outbox:"+action.ID, map[string]any{
+			"action_type": action.ActionType, "status": "completed", "aggregate_sequence": 1,
+		})
 	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-func (a *App) persistAutonomyCapabilityResultsBestEffort(ctx context.Context, actionID, fluctlightID, correlationID string, invocations []CapabilityInvocation, results []CapabilityResult) {
-	if err := a.persistAutonomyCapabilityResults(ctx, actionID, invocations, results); err != nil {
-		slog.Warn("Go Core capability-result diagnostic settlement failed",
-			"action_id", actionID,
-			"fluctlight_id", fluctlightID,
-			"correlation_id", correlationID,
-			"error_type", fmt.Sprintf("%T", err),
-		)
-		a.RecordLifecycleDiagnosticBestEffort(ctx, LifecycleDiagnostic{
-			Surface: "capability", Transition: LifecycleTransitionFailed, Severity: "warn",
-			FluctlightID: fluctlightID, CorrelationID: correlationID, CausationID: actionID,
-			Stage: "capability_result_settlement", Status: "retry",
-			ReasonCode:    "capability_results_persistence_failed",
-			ErrorCategory: "persistence", ErrorCode: "capability_results_persistence_failed",
-			Retryable: true, SafeCause: err.Error(), Metadata: map[string]any{"action_id": actionID},
-		})
+func errorText(err error) string {
+	if err == nil {
+		return "tool execution failed"
 	}
+	return err.Error()
 }
 
 // FailAutonomyAction is the workflow-owned terminal failure boundary used when

@@ -81,7 +81,7 @@ func TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome(t *testing
 		if len(goalRefs) == 0 || len(outcomeRefs) == 0 {
 			t.Fatalf("Provider request omitted Goal/Outcome refs: %s", text)
 		}
-		proposal := reflectionProposalV2Fixture(nil)
+		proposal := reflectionProposalV2Fixture([]any{})
 		proposal["summary"] = "完成结果支持目标进展"
 		proposal["goal_candidates"] = []any{map[string]any{
 			"operation": "update", "target_ref": goalRefs[0], "direction": "increase", "strength": 0.8, "confidence": 0.9,

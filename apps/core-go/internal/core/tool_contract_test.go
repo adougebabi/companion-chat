@@ -731,8 +731,8 @@ func TestEmptyProviderStructuredUsesOperationTypedEmptyValues(t *testing.T) {
 	if refs := arrayValue(value["evidence_refs"]); len(refs) != 0 {
 		t.Fatalf("wake-up evidence refs = %#v", refs)
 	}
-	if len(arrayValue(value["tool_calls"])) != 0 {
-		t.Fatalf("wake-up empty tool calls = %#v", value["tool_calls"])
+	if _, exists := value["tool_calls"]; exists {
+		t.Fatalf("wake-up final contract duplicates native ToolCalls: %#v", value)
 	}
 	if len(fields) == 0 {
 		t.Fatal("empty fallback should report normalized fields")
@@ -797,10 +797,13 @@ func TestOperationSpecificResponseSchemasRequireTheirDomainShape(t *testing.T) {
 		}
 	}
 	cognitive := cognitiveTurnResponseSchema()
-	for _, key := range []string{"action_type", "appraisal", "attention", "thought", "desire", "agency", "personality_decision", "output_preference_decision", "tool_calls"} {
+	for _, key := range []string{"action_type", "appraisal", "attention", "thought", "desire", "agency", "personality_decision", "output_preference_decision"} {
 		if _, ok := mapValue(cognitive["properties"])[key]; !ok {
 			t.Fatalf("cognitive schema missing property %q: %#v", key, cognitive)
 		}
+	}
+	if _, ok := mapValue(cognitive["properties"])["tool_calls"]; ok {
+		t.Fatalf("cognitive final schema duplicates native ToolCalls: %#v", cognitive)
 	}
 	cognitiveActionSchema := mapValue(mapValue(cognitive["properties"])["action_type"])
 	if values := arrayValue(cognitiveActionSchema["enum"]); len(values) != 1 || stringValue(values[0]) != "reply" {

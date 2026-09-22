@@ -33,7 +33,7 @@ func TestSameObservationDifferentSceneChangesDecisionPlannerOutcomeAndNextProjec
 		t.Fatalf("different scenes did not change the structured chain: A=%#v B=%#v", chainA, chainB)
 	}
 	for _, chain := range []sceneDecisionChain{chainA, chainB} {
-		if chain.ProviderCalls != 1 || chain.InfluenceRef != chain.InitialLifeRef || chain.PreparedRevision != chain.InitialLifeRevision || len(chain.OutcomeRefs) < 2 {
+		if chain.ProviderCalls != 2 || chain.InfluenceRef != chain.InitialLifeRef || chain.PreparedRevision != chain.InitialLifeRevision || len(chain.OutcomeRefs) < 2 {
 			t.Fatalf("scene chain lost cognition/planner/outcome causality: %#v", chain)
 		}
 	}
@@ -83,14 +83,17 @@ func runSceneDecisionChain(t *testing.T, initialScene, targetScene string) scene
 		if !strings.Contains(bodyText, initialScene) {
 			return nil, fmt.Errorf("Provider did not receive initial Scene %q", initialScene)
 		}
-		providerLifeRef = regexp.MustCompile(`life_context:ctx_[a-f0-9]{32}`).FindString(bodyText)
-		providerLifeRevision = regexp.MustCompile(`life_ctx_[a-f0-9]{32}`).FindString(bodyText)
+		lifeRef := regexp.MustCompile(`life_context:ctx_[a-f0-9]{32}`).FindString(bodyText)
+		lifeRevision := regexp.MustCompile(`life_ctx_[a-f0-9]{32}`).FindString(bodyText)
+		if providerCalls == 1 {
+			providerLifeRef = lifeRef
+			providerLifeRevision = lifeRevision
+		}
 		if providerLifeRef == "" || providerLifeRevision == "" {
 			return nil, errors.New("Provider request omitted Life Context authority")
 		}
 		structured := map[string]any{
 			"action_type": "reply", "response_intent": "根据当前 Scene 回应并更新事实", "visible_text": assistantText,
-			"tool_calls": []any{},
 			"influences": []any{map[string]any{"ref": providerLifeRef, "role": "constrains", "confidence": 0.95, "note": "当前 Scene 约束回复和场景切换"}},
 			"appraisal": map[string]any{
 				"relevance": 0.7, "goal_congruence": 0.6, "reward": 0.5, "loss": 0.2, "social_threat": 0.0,
@@ -98,13 +101,16 @@ func runSceneDecisionChain(t *testing.T, initialScene, targetScene string) scene
 				"evidence_refs": []any{}, "event_kind": "conversation", "direction": "positive", "drive_signals": []any{},
 			},
 		}
-		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{
-			"content": jsonString(structured),
-			"tool_calls": []any{
+		message := map[string]any{"content": jsonString(structured), "tool_calls": []any{}}
+		finishReason := "stop"
+		if providerCalls == 1 {
+			message = map[string]any{"content": "", "tool_calls": []any{
 				map[string]any{"id": "scene-chain-switch", "type": "function", "function": map[string]any{"name": "scene_event", "arguments": jsonString(map[string]any{"operation": "switch", "scene": targetScene, "activity": "阅读", "confidence": 0.9})}},
 				map[string]any{"id": "scene-chain-reply", "type": "function", "function": map[string]any{"name": "conversation.reply", "arguments": jsonString(map[string]any{"text": assistantText})}},
-			},
-		}}}}
+			}}
+			finishReason = "tool_calls"
+		}
+		response := map[string]any{"choices": []any{map[string]any{"finish_reason": finishReason, "message": message}}}
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 	})}}
 	app.ContextResolver = NewAppContextResolver(app)
@@ -126,16 +132,18 @@ func runSceneDecisionChain(t *testing.T, initialScene, targetScene string) scene
 	if providerLifeRevision != initialLifeRevision {
 		t.Fatalf("Provider Life revision=%q want %q", providerLifeRevision, initialLifeRevision)
 	}
-	var frozenPayload []byte
-	if err := repository.Pool().QueryRow(ctx, `SELECT payload FROM public.cognition_frozen_actions WHERE inbox_id=(SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key='scene-chain-turn')`, fluctlightID).Scan(&frozenPayload); err != nil {
+	var inboxPayload, assessmentPayload []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT payload FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key='scene-chain-turn'`, fluctlightID).Scan(&inboxPayload); err != nil {
 		t.Fatal(err)
 	}
-	payload := decodeObject(frozenPayload)
-	influences := arrayValue(mapValue(payload["decision"])["influences"])
+	if err := repository.Pool().QueryRow(ctx, `SELECT payload FROM public.cognition_assessments WHERE inbox_id=(SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key='scene-chain-turn')`, fluctlightID).Scan(&assessmentPayload); err != nil {
+		t.Fatal(err)
+	}
+	influences := arrayValue(decodeObject(assessmentPayload)["influences"])
 	if len(influences) != 1 {
 		t.Fatalf("frozen influences=%#v", influences)
 	}
-	invocations, err := capabilityInvocationsFromValue(payload["capability_invocations"])
+	invocations, err := capabilityInvocationsFromValue(mapValue(decodeObject(inboxPayload)["agent_result"])["capability_invocations"])
 	if err != nil || len(invocations) != 2 {
 		t.Fatalf("frozen invocations=%#v err=%v", invocations, err)
 	}
@@ -145,10 +153,7 @@ func runSceneDecisionChain(t *testing.T, initialScene, targetScene string) scene
 			sceneInvocation = invocation
 		}
 	}
-	plan, err := scenePlanFromInvocation(sceneInvocation)
-	if err != nil {
-		t.Fatal(err)
-	}
+	preparedRevision := stringValue(mapValue(sceneInvocation.ContextSnapshot["current_life"])["context_revision"])
 	nextProjection := lifeProjectionForTest(t, ctx, app, ownerID, fluctlightID, "scene-chain-next-observation")
 	outcomeRefs := make([]string, 0, len(nextProjection.RecentOutcomes))
 	for _, outcome := range nextProjection.RecentOutcomes {
@@ -163,6 +168,6 @@ func runSceneDecisionChain(t *testing.T, initialScene, targetScene string) scene
 		InitialLifeRef: providerLifeRef, InitialLifeRevision: initialLifeRevision,
 		ResultingLifeRef: stringValue(nextProjection.LifeContext["ref"]), ResultingScene: stringValue(nextProjection.LifeContext["scene"]),
 		AssistantText: stringValue(turn.Assistant["text"]), InfluenceRef: stringValue(mapValue(influences[0])["ref"]),
-		PreparedRevision: plan.ExpectedLifeContextRevision, OutcomeRefs: outcomeRefs, ProviderCalls: providerCalls,
+		PreparedRevision: preparedRevision, OutcomeRefs: outcomeRefs, ProviderCalls: providerCalls,
 	}
 }

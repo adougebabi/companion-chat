@@ -23,10 +23,10 @@ boundaries described below.
 | [Persona Layer Contract](./persona-layer-contract.md) | Core Persona, evidence-backed Developing Self, Current State ownership, initialization, reflection and anti-drift boundaries |
 | [Fluctlight Memory Contract](./fluctlight-memory-contract.md) | Typed Memory authority, provenance, pgvector/FTS hybrid retrieval, async embeddings, visibility, and prompt budgeting |
 | [Fluctlight Life World Contract](./fluctlight-life-world-contract.md) | Local-day versioned Schedule, replan, Event/Context authority, timezone, pending state, and no heuristic routine |
-| [Fluctlight Autonomy Contract](./fluctlight-autonomy-contract.md) | Goal/Intention lifecycle, typed triggers, pre-authorized actions, budgets, frozen decisions, pause/cancel, and governance |
+| [Fluctlight Autonomy Contract](./fluctlight-autonomy-contract.md) | Goal/Intention lifecycle, typed triggers, pre-authorized actions, budgets, independent Tool authorization and receipts, pause/cancel, and governance |
 | [Fluctlight Media Contract](./fluctlight-media-contract.md) | S3-compatible private media, MinIO default deployment, API media authorization, checksums, lifecycle, recovery, and backup |
 | [Media Prompt Contract](./media-prompt-contract.md) | Typed image/video intent, direct chat requests, and prompt authority |
-| [Visual Identity Contract](./visual-identity-contract.md) | Durable visual self-creation, vision/patch regeneration loop, canonical assets, and renderer constraints |
+| [Visual Identity Contract](./visual-identity-contract.md) | Durable visual self-creation, formal visual Agent and independent generation/review/finalize Tools, canonical assets, and renderer constraints |
 | [Fluctlight Event Contract](./fluctlight-event-contract.md) | PostgreSQL outbox/inbox authority, Redis Streams delivery, reclaim, poison handling, retention, replay, and progress |
 | [Fluctlight Workflow Contract](./fluctlight-workflow-contract.md) | Runtime-neutral durable execution, domain intent/state separation, stable IDs, long activities, management, history versioning, and single-runtime rule |
 | [Fluctlight Provider Contract](./fluctlight-provider-contract.md) | Endpoint/model roles, capability preflight, structured/stream/embedding behavior, budgets, provenance, and failure |

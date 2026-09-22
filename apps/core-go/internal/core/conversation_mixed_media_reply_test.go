@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -33,8 +35,8 @@ func TestStreamTurnFailureCodeDistinguishesMissingReplyToolAndCapabilityFailure(
 
 // This is the production shape reported by the UI: the Provider emits native
 // image and conversation.reply calls while the structured sidecar is the
-// typed-empty fallback. Both deferred outputs must be frozen, settled against
-// one assistant message, and leave durable media/workflow records.
+// typed-empty final contract. Both Tools commit through their own formal
+// boundaries and leave durable message, media, workflow, and source records.
 func TestConversationTurnWithNativeImageAndReplyCommitsBothOutputs(t *testing.T) {
 	ctx, repository, app, ownerID, fluctlightID, conversationID := setupMixedMediaReplyTurn(t, "native", fakeProviderResult{ToolCalls: mixedImageReplyToolCalls()})
 	result, err := app.HandleTurn(ctx, ownerID, conversationID, map[string]any{
@@ -51,7 +53,6 @@ func TestConversationTurnWithNativeImageAndReplyCommitsBothOutputs(t *testing.T)
 
 func TestEinoADKStructuredContentToolCallsAreNotExecuted(t *testing.T) {
 	structured := map[string]any{
-		"response_mode":   "final",
 		"action_type":     "reply",
 		"response_intent": "同时发送图片和说明文字",
 		"influences":      []any{},
@@ -63,7 +64,7 @@ func TestEinoADKStructuredContentToolCallsAreNotExecuted(t *testing.T) {
 	result, err := app.HandleTurn(ctx, ownerID, conversationID, map[string]any{
 		"fluctlight_id": fluctlightID, "text": "给我看看", "idempotency_key": "mixed-turn-structured", "turn_id": "mixed-turn-structured-1", "attachment_refs": []any{},
 	})
-	if err == nil || !strings.Contains(err.Error(), "cognition_visible_text_missing") {
+	if err == nil || !strings.Contains(err.Error(), "adk_final_output_invalid") {
 		t.Fatalf("structured pseudo-tool turn did not fail clearly: result=%#v err=%v", result, err)
 	}
 	if len(result.Assistant) != 0 {
@@ -108,6 +109,9 @@ func TestStreamTurnWithNativeImageAndReplyEmitsAssistantFrame(t *testing.T) {
 	if stringValue(frames[0]["type"]) != "action_result" || stringValue(frames[1]["type"]) != "token" || stringValue(frames[2]["type"]) != "action_result" || stringValue(frames[3]["type"]) != "completed" {
 		t.Fatalf("stream frame types = %#v", frames)
 	}
+	if token := stringValue(mapValue(frames[1]["payload"])["text"]); token != "诶？真的要看啊。" {
+		t.Fatalf("stream token exposed non-committed content: %q", token)
+	}
 	assistant := mapValue(mapValue(frames[2]["payload"])["message"])
 	if stringValue(assistant["kind"]) != "assistant" || stringValue(assistant["text"]) != "诶？真的要看啊。" {
 		t.Fatalf("assistant stream frame = %#v", frames[2])
@@ -134,11 +138,61 @@ func setupMixedMediaReplyTurn(t *testing.T, suffix string, providerResult fakePr
 		t.Fatal(err)
 	}
 
-	router := newFakeProviderRouter().on("conversation_turn_response", func(_ map[string]any) fakeProviderResult {
-		return providerResult
-	})
-	app := newTestApp(t, repository, router)
+	app := newTestApp(t, repository, newConversationToolLoopTransport(providerResult))
 	return ctx, repository, app, ownerID, fluctlightID, conversationID
+}
+
+func conversationPayloadHasToolResult(payload map[string]any) bool {
+	for _, raw := range arrayValue(payload["messages"]) {
+		if stringValue(mapValue(raw)["role"]) == "tool" {
+			return true
+		}
+	}
+	return false
+}
+
+func validToolOnlyConversationFinal() map[string]any {
+	return map[string]any{
+		"action_type": "reply", "response_intent": "committed native Tool results",
+		"visible_text": "", "influences": []any{},
+	}
+}
+
+func newConversationToolLoopTransport(first fakeProviderResult) http.RoundTripper {
+	return projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		body, err := io.ReadAll(request.Body)
+		if err != nil {
+			return nil, err
+		}
+		payload := decodeObject(body)
+		result := first
+		if len(first.ToolCalls) > 0 && conversationPayloadHasToolResult(payload) {
+			result = fakeProviderResult{Structured: validToolOnlyConversationFinal()}
+		}
+		content := result.Text
+		if result.Structured != nil {
+			content = jsonString(result.Structured)
+		}
+		toolCalls := fakeProviderNativeToolCalls(result.ToolCalls)
+		finishReason := "stop"
+		if len(toolCalls) > 0 {
+			finishReason = "tool_calls"
+		}
+		if boolValue(payload["stream"]) {
+			for index := range toolCalls {
+				toolCalls[index]["index"] = index
+			}
+			delta := map[string]any{"role": "assistant", "content": content}
+			if len(toolCalls) > 0 {
+				delta["tool_calls"] = toolCalls
+			}
+			chunk := map[string]any{"choices": []any{map[string]any{"delta": delta, "finish_reason": finishReason}}}
+			return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"text/event-stream"}}, Body: io.NopCloser(strings.NewReader("data: " + string(jsonBytes(chunk)) + "\n\ndata: [DONE]\n\n")), Request: request}, nil
+		}
+		message := map[string]any{"role": "assistant", "content": content, "tool_calls": toolCalls}
+		envelope := map[string]any{"choices": []any{map[string]any{"finish_reason": finishReason, "message": message}}}
+		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(envelope))), nil
+	})
 }
 
 func mixedImageReplyToolCalls() []map[string]any {
@@ -158,7 +212,7 @@ func assertMixedMediaReplyDurability(t *testing.T, ctx context.Context, reposito
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text=$2`, conversationID, "诶？真的要看啊。").Scan(&assistantCount); err != nil {
 		t.Fatal(err)
 	}
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1 AND message_id=(SELECT id FROM public.conversation_messages WHERE conversation_id=$2 AND kind='assistant' AND turn_id=$3)`, fluctlightID, conversationID, turnID).Scan(&mediaCount); err != nil {
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND message_id IS NULL`, fluctlightID, conversationID).Scan(&mediaCount); err != nil {
 		t.Fatal(err)
 	}
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.platform_workflow_intents WHERE intent_type='media.generation' AND payload->>'fluctlight_id'=$1`, fluctlightID).Scan(&workflowCount); err != nil {
@@ -177,16 +231,21 @@ func assertMixedMediaReplyDurability(t *testing.T, ctx context.Context, reposito
 	if mediaStatus != "pending" {
 		t.Fatalf("media status=%q, want pending durable intent", mediaStatus)
 	}
-	var frozenPayload []byte
-	if err := repository.Pool().QueryRow(ctx, `SELECT payload FROM public.cognition_frozen_actions WHERE inbox_id=(SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key=$2)`, fluctlightID, idempotencyKey).Scan(&frozenPayload); err != nil {
+	var inboxPayload []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT payload FROM public.cognition_inbox WHERE fluctlight_id=$1 AND idempotency_key=$2`, fluctlightID, idempotencyKey).Scan(&inboxPayload); err != nil {
 		t.Fatal(err)
 	}
 	var payload map[string]any
-	if err := json.Unmarshal(frozenPayload, &payload); err != nil {
+	if err := json.Unmarshal(inboxPayload, &payload); err != nil {
 		t.Fatal(err)
 	}
-	if len(arrayValue(payload["capability_invocations"])) != 2 || len(arrayValue(payload["capability_results"])) != 2 {
-		t.Fatalf("frozen capability envelope = %#v", payload)
+	agentResult := mapValue(payload["agent_result"])
+	if len(arrayValue(agentResult["capability_invocations"])) != 2 || len(arrayValue(agentResult["capability_results"])) != 2 {
+		t.Fatalf("agent capability envelope = %#v", payload)
+	}
+	var linked int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE id=$1 AND turn_id=$2 AND source_fact_id=(SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$3 AND idempotency_key=$4) AND correlation_id='turn:' || $2`, stringValue(assistant["id"]), turnID, fluctlightID, idempotencyKey).Scan(&linked); err != nil || linked != 1 {
+		t.Fatalf("assistant source linkage count=%d err=%v", linked, err)
 	}
 	if len(assistant) == 0 || stringValue(assistant["id"]) == "" {
 		t.Fatalf("assistant id missing: %#v", assistant)

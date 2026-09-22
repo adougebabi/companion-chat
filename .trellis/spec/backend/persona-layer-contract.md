@@ -285,93 +285,69 @@ foundation, err := prepareInitializationResponse(rawProviderResult)
 // typed empties, then rejects only explicit invalid identities/references/values.
 ```
 
-## Scenario: Takeover Reply Scope And The Multi-Profile Data Matrix
+## Scenario: Native persona Tool scope and reply attribution
 
 ### 1. Scope / Trigger
 
-Applies to any change that affects which persona a takeover reply reads or
-writes as: `resumeProjectionForReplyOwner` (`takeover_scope.go`),
-`generateTakeoverReply`, the reply-owner write path
-(`frozenReplyOwner` + `recordRelationshipInteractionTx`), or any profile-scoped
-read/write for relationships, goals, intentions, and memory perspectives.
-Authority: `design.md` §0.2/§0.4/§10 (F04), phase 10 of `implement.md`.
+`persona.takeover` or `persona.switch` executes through `App.ExecuteTool`,
+independently or in the shared Eino loop. The caller no longer runs an
+A/Judge/B arbitration and settlement chain.
 
 ### 2. Signatures
 
-- Reply owner: `takeover.reply_owner_profile_id` on the frozen payload; the
-  persistent `fluctlight_personality_runtime.active_profile_id` is **never**
-  written by a takeover (`takeover_once`).
-- Read scoping helpers (single source of truth): `filterActiveProfileRows`
-  (goals/intentions: shared + owner rows), `selectActiveProfileRelationships`
-  (per `target_actor_id`: owner row preferred over shared, other profiles
-  hidden), `compactMemoriesForProfile` (per-profile
-  `personality_perspectives[].{interpretation,emotion}` attached as
-  `current_profile_perspective`).
-- Write scoping: `recordRelationshipInteractionTx(ctx, tx, fluctlightID,
-  targetActorID, meaningful, frozenReplyOwner(frozenObject))` — the frozen
-  reply owner is used verbatim; empty falls back to the runtime row.
+- `ToolExecutionRequest.WorkingProfileID` and `InvocationMetadata.WorkingProfileID`
+  explicitly scope subsequent reads and mutations.
+- Committed persona results contain `working_persona`; successful takeover is
+  run-local, while `persona.switch` commits the persistent runtime transition.
+- `CapabilityResult.ActingProfileID` attributes actual reply results.
+- `replyProfileFromOutcome` supplies the actual speaker to Relationship settlement.
 
 ### 3. Contracts
 
-- A takeover reply is generated inside the reply owner's scope:
-  `resumeProjectionForReplyOwner` rewrites the projection's
-  `active_profile_id` in memory only, recomposes the Effective Persona
-  (no cross-profile overlay leakage), and rebuilds the opaque reference index.
-  The persistent runtime row is untouched.
-- Read matrix (F04): whichever profile speaks sees its own rows plus shared
-  (`profile_id IS NULL`) rows, never another profile's rows; a shared
-  relationship for the same `target_actor_id` is shadowed by the speaker's own
-  row.
-- Write matrix (F04): the durable interaction fact lands on the row of the
-  profile that actually replied; a profile without its own row falls back to
-  the shared row; an interaction never invents a relationship row.
-- Takeover is per-turn in the read direction too: the turn after a takeover
-  runs as the persistent dominant profile again, with its own scoped rows.
-- Memory perspectives are per-profile annotations on shared memories; a
-  takeover generation attaches the reply owner's perspective, never the
-  persistent profile's.
+- Persona Tools validate declared rules, source/target profiles, cooldown and
+  resource authorization. No model-generated profile grants access to an
+  undeclared identity. Mutations and audit/receipt share a short transaction.
+- Working persona includes the target profile's accepted Evolution overlays.
+  Missing overlay uses its declared baseline; corrupt or unreadable overlay
+  fails and cannot silently revert to that baseline.
+- Subsequent memory/relationship Tools use the committed working profile.
+  Relationships prefer owned rows over shared rows and exclude foreign-profile
+  rows; shared memories retain only the current profile perspective.
+- Relationship interaction facts use the profile that actually published the
+  reply, including when a later persona Tool changes the working profile.
+- Takeover leaves `fluctlight_personality_runtime.active_profile_id` untouched.
+  The next run restores its persistent profile. Persistent switching changes
+  the next run as well and records one audited operation.
+- A failed final model response does not roll back an already committed switch
+  or reply. Durable receipts prevent whole-run replay and duplicate effects.
 
 ### 4. Validation & Error Matrix
 
-| Violation | Expected behavior |
-|---|---|
-| Takeover writes `active_profile_id` | Persistent-switch grant is structurally forbidden in the takeover scenario (`persistentSwitchGrantScenarioTakeover`) |
-| B generation sees A's rows | Wire-level matrix test fails (own + shared markers only) |
-| Settlement ignores the reply owner | Interaction counter lands on the wrong row — caught by `TestRelationshipInteractionSettlementFollowsTheReplyOwner` |
-| Memory perspective not re-scoped | `current_profile_perspective` carries the wrong profile — caught by the read matrix test |
-| Projection rescoping shares maps with the frozen projection | `resumeProjectionForReplyOwner` clones through the canonical codec |
+| Condition | Result |
+| --- | --- |
+| Unknown/disabled rule, wrong source/target | Explicit rejection; no scope escalation |
+| Target overlay corrupt/unavailable | Error; no successful persona receipt |
+| Takeover writes persistent active profile | Contract failure |
+| Same operation different payload/profile | Conflict |
+| Final model fails after switch | Preserve committed switch, record failed run |
 
 ### 5. Good / Base / Bad Cases
 
-Good: Judge approves → B's wire payload contains B's relationship/goal/
-intention markers, B's memory perspective, and shared rows; settlement
-increments B's relationship row.
-Base: a profile with no owned row falls back to the shared row on both read
-and write.
-Bad: a takeover turn mutating the persistent dominant profile, or a next-turn
-Main generation still reading the takeover owner's scoped rows.
+Good: native takeover → scoped recall/relationship query → reply attributed to
+the target → next run restores the persistent profile.
+Base: a profile without an owned relationship uses the existing shared row.
+Bad: silently use another profile's Memory interpretation or duplicate its rows.
 
 ### 6. Tests Required
 
-- `takeover_scope_matrix_test.go`: read matrix on the real wire payloads,
-  settlement write matrix (A/B/shared fallback), next-turn persistent
-  perspective restoration.
-- Reverse verification requirement: these tests must fail when the reply-owner
-  parameter is dropped from the settlement call or when profile filtering is
-  bypassed in the read helpers.
+`takeover_scope_matrix_test.go`, native persona chain/recovery tests and
+`persona_tool_overlay_test.go` use real PostgreSQL and controlled Provider
+requests. They assert read scope, actual reply attribution, next-run persistence,
+overlay composition/failure, audited replay and committed effects after errors.
+Real Provider evidence remains a separate serial acceptance requirement.
 
 ### 7. Wrong vs Correct
 
-#### Wrong
-
-```go
-// Settlement uses the runtime row, so a takeover B reply writes A's row.
-a.recordRelationshipInteractionTx(ctx, tx, fluctlightID, sourceActorID, meaningful, "")
-```
-
-#### Correct
-
-```go
-// The frozen reply owner decides the write scope (design.md 10).
-a.recordRelationshipInteractionTx(ctx, tx, fluctlightID, sourceActorID, meaningful, frozenReplyOwner(frozenObject))
-```
+Wrong: choose the persistent runtime profile for every interaction write.
+Correct: use the committed reply result's `ActingProfileID`, then perform the
+existing owner/shared Relationship write without inventing a new row.

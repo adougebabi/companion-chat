@@ -5,28 +5,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 	"time"
 )
 
 func TestAcceptScheduleUsesDatabaseIdempotencyBoundary(t *testing.T) {
-	databaseURL := os.Getenv("GO_CORE_TEST_DATABASE_URL")
-	if databaseURL == "" {
-		t.Skip("GO_CORE_TEST_DATABASE_URL is not set")
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	repository, err := NewPostgresRepository(ctx, databaseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer repository.Close()
-	var head string
-	if err := repository.Pool().QueryRow(ctx, `SELECT version_num FROM public.alembic_version`).Scan(&head); err != nil || head != "0030_life_context_revision" {
-		t.Skipf("test database is not at capability runtime head: head=%q err=%v", head, err)
-	}
+	ctx, repository := isolatedCoreTestRepository(t)
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
 	ownerID := "actor_schedule_idempotency_" + suffix
 	fluctlightID := "fluctlight_schedule_idempotency_" + suffix

@@ -58,10 +58,11 @@ field-level egress policy explicitly sets `AllowEmbedding`.
 
 - `applyMemoryCommandTx` is the only production SQL authority for Memory rows,
   revisions and governance. Interactive `memory_event`, Reflection, and Owner
-  governance delegate to it; non-transactional `memory_event.Execute` returns
-  `caller_transaction_required`.
+  governance delegate to it. The public standalone boundary is
+  `App.ExecuteTool`; internal transactional implementations receive its transaction.
 - Memory parent row, full immutable snapshot revision, governance disposition,
-  embedding workflow intent and outbox events share the caller-owned transaction.
+  embedding workflow intent, Tool receipt and outbox events share the Tool-owned
+  short transaction (or the explicit Reflection/Owner command transaction).
 - `memory_event` Provider arguments contain only `type`, `content`, `confidence`,
   `importance`, and optional `emotional_significance`. Runtime Prepare freezes
   owner/profile/conversation/evidence/visibility/time/idempotency/request digest
@@ -244,8 +245,9 @@ conversation_summaries
 
 Active operations are `create|confirm|revise|complete|expire|supersede`;
 kinds are `future_event|commitment|temporary_context`; statuses are
-`active|completed|expired|superseded`. `memory.recall/v1` is conversation-only,
-requires `memory_scope`, and accepts only `{intent: string[1..1000]}`.
+`active|completed|expired|superseded`. `memory.recall/v1` requires explicit
+authorized `memory_scope` and accepts only `{intent: string[1..1000]}`. Its
+default conversation catalog is not an execution restriction.
 
 ### 3. Contracts
 
@@ -258,6 +260,11 @@ requires `memory_scope`, and accepts only `{intent: string[1..1000]}`.
   `valid_until`; expiry therefore removes an item before cleanup writes the
   terminal revision. `applyActiveMemoryCommandTx` is its only lifecycle SQL
   authority.
+- `active_memory_event` accepts an explicit business evidence ID without requiring
+  a cognition inbox row. Migration `0034_tool_execution_source` removes only the
+  source-fact inbox FKs; owner, conversation, revision and evidence validation
+  remain. Repeated mutation operations replay committed receipts; queries run
+  again and can observe preceding Tool commits.
 - Active time keeps both the original expression and validated absolute bounds.
   `unknown` precision has no invented bounds; named timezone and supplied
   offset must agree. Every create supplies `original_time_expression` and
@@ -285,7 +292,7 @@ requires `memory_scope`, and accepts only `{intent: string[1..1000]}`.
   projection cues set `AllowEmbedding=false` unless a separate field-level
   policy exists. Duplicate lexical query tokens count once so repeated state
   text cannot inflate relevance.
-- `memory.recall` uses frozen authorization/viewer/conversation/profile scope
+- `memory.recall` uses explicit authorization/viewer/conversation/working-profile scope
   but executes a fresh bounded query over Active, Long-term, authorized older
   conversation messages, and Summary. Final output is deduplicated, at most 12
   whole items and 3072 estimated tokens, and contains only opaque refs plus
@@ -339,7 +346,7 @@ requires `memory_scope`, and accepts only `{intent: string[1..1000]}`.
 - Automatic Retrieval tests for authorization-before-limit, old relevant rows,
   irrelevant bulk, lexical fallback honesty, cue cap, and ABA current lineage.
 - `memory.recall` definition/scope/deep-query/opaque-output/item-token-bound tests;
-  continuation behavior is tested by the Structured Turn contract.
+  native multi-round result feedback is tested by the Structured Turn contract.
 - Real PostgreSQL migration and lifecycle cases remain mandatory at the final
   acceptance gate; unit/compile evidence is not a substitute.
 

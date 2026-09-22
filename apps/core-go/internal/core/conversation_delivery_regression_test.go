@@ -47,7 +47,7 @@ func TestDirectConversationMessageIsDurableDuringCognitionAndNoReplyCannotComple
 		}
 		structured := map[string]any{
 			"action_type": "reply", "response_intent": "acknowledge the direct message", "visible_text": "",
-			"tool_calls": []any{}, "influences": []any{},
+			"influences": []any{},
 			"appraisal": map[string]any{
 				"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.5, "social_threat": 0.0,
 				"controllability": 0.5, "responsibility": 0.5, "relationship_significance": 0.5, "expected_effect": 0.5,
@@ -118,7 +118,7 @@ func TestDirectConversationMessageIsDurableDuringCognitionAndNoReplyCannotComple
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_frozen_actions WHERE fluctlight_id=$1 AND status='completed'`, fluctlightID).Scan(&completedFrozenCount); err != nil {
 		t.Fatal(err)
 	}
-	if outcome.err == nil || !strings.Contains(outcome.err.Error(), "cognition_visible_text_missing") || assistantCount != 0 || inboxStatus != "pending" || completedFrozenCount != 0 {
+	if outcome.err == nil || !strings.Contains(outcome.err.Error(), "cognition_visible_text_missing") || assistantCount != 0 || inboxStatus != "failed" || completedFrozenCount != 0 {
 		t.Fatalf("no-reply cognition was silently completed: result=%#v err=%v assistant=%d inbox=%s completed_frozen=%d", outcome.result, outcome.err, assistantCount, inboxStatus, completedFrozenCount)
 	}
 }
@@ -147,7 +147,8 @@ func TestDirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCo
 	releaseProvider := make(chan struct{})
 	app := &App{DB: repository}
 	app.Provider = &ProviderClient{DB: repository, HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
-		_, _ = io.ReadAll(request.Body)
+		requestBody, _ := io.ReadAll(request.Body)
+		requestPayload := decodeObject(requestBody)
 		close(providerReceived)
 		select {
 		case <-releaseProvider:
@@ -156,15 +157,28 @@ func TestDirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCo
 		}
 		structured := map[string]any{
 			"action_type": "reply", "response_intent": "acknowledge", "visible_text": "我收到了。",
-			"tool_calls": []any{}, "influences": []any{},
+			"influences": []any{},
 			"appraisal": map[string]any{
 				"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.5, "social_threat": 0.0,
 				"controllability": 0.5, "responsibility": 0.5, "relationship_significance": 0.5, "expected_effect": 0.5,
 				"evidence_refs": []any{}, "event_kind": "conversation", "direction": "mixed", "drive_signals": []any{},
 			},
 		}
-		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(structured), "tool_calls": []any{}}}}}
-		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
+		if !boolValue(requestPayload["stream"]) {
+			return nil, errors.New("production stream used non-stream Provider request")
+		}
+		encoded := []rune(jsonString(structured))
+		parts := []string{string(encoded[:len(encoded)/2]), string(encoded[len(encoded)/2:])}
+		var wire strings.Builder
+		for index, part := range parts {
+			choice := map[string]any{"delta": map[string]any{"role": "assistant", "content": part}}
+			if index == len(parts)-1 {
+				choice["finish_reason"] = "stop"
+			}
+			wire.WriteString("data: " + jsonString(map[string]any{"choices": []any{choice}}) + "\n\n")
+		}
+		wire.WriteString("data: [DONE]\n\n")
+		return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"text/event-stream"}}, Body: io.NopCloser(strings.NewReader(wire.String())), Request: request}, nil
 	})}}
 	app.ContextResolver = NewAppContextResolver(app)
 	app.Capabilities = app.capabilityRegistry()
@@ -255,28 +269,12 @@ func TestDirectConversationReplyToolWithoutAppraisalCommitsBothMessages(t *testi
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('cognitive_assessment',$1,'reply-tool-model','structured_output,tool_calling',4096,10,'{}')`, endpointID); err != nil {
 		t.Fatal(err)
 	}
-	app := &App{DB: repository}
-	app.Provider = &ProviderClient{DB: repository, HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
-		_, _ = io.ReadAll(request.Body)
-		message := map[string]any{
-			"content": "", "reasoning_content": "internal reasoning must not become visible",
-			"tool_calls": []any{map[string]any{
-				"id": "reply-tool-call", "type": "function",
-				"function": map[string]any{"name": "conversation.reply", "arguments": jsonString(map[string]any{"text": "我收到你的消息了。"})},
-			}},
-		}
-		response := map[string]any{"choices": []any{map[string]any{"message": message}}}
-		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
-	})}}
-	app.ContextResolver = NewAppContextResolver(app)
-	app.Capabilities = app.capabilityRegistry()
-	runtime, err := NewCapabilityRuntime(app.Capabilities, app.ContextResolver)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app.Runtime = runtime
+	app := newTestApp(t, repository, newConversationToolLoopTransport(fakeProviderResult{ToolCalls: []map[string]any{map[string]any{
+		"id": "reply-tool-call", "type": "function",
+		"function": map[string]any{"name": "conversation.reply", "arguments": jsonString(map[string]any{"text": "我收到你的消息了。"})},
+	}}}))
 	events := make([]string, 0, 3)
-	_, err = app.handleTurn(ctx, ownerID, conversationID, map[string]any{
+	_, err := app.handleTurn(ctx, ownerID, conversationID, map[string]any{
 		"fluctlight_id": fluctlightID, "text": "在吗？", "idempotency_key": "reply-tool-turn", "turn_id": "reply-tool-turn-1", "attachment_refs": []any{},
 	}, turnCallbacks{
 		onActionResult: func(payload map[string]any) error {
@@ -339,16 +337,14 @@ func TestDirectConversationReplyCanonicalToolCallWithEmptyStructuredFieldsCommit
 	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
 	seedCognitiveProviderRole(t, ctx, repository, "canonical-reply-endpoint")
 	text := "哦，那还行。\n到点了记得吃，别又拖到八点多。\n我这边客户又回了条，我去看看。"
-	router := newFakeProviderRouter().on("conversation_turn_response", func(_ map[string]any) fakeProviderResult {
-		return fakeProviderResult{ToolCalls: []map[string]any{{
-			"call_id":             "canonical-reply-call",
-			"capability_name":     "conversation.reply",
-			"schema_version":      CapabilityInvocationSchemaVersion,
-			"arguments":           map[string]any{"text": text},
-			"provider_request_id": "provider:canonical-reply",
-			"sequence":            0,
-		}}}
-	})
+	router := newConversationToolLoopTransport(fakeProviderResult{ToolCalls: []map[string]any{{
+		"call_id":             "canonical-reply-call",
+		"capability_name":     "conversation.reply",
+		"schema_version":      CapabilityInvocationSchemaVersion,
+		"arguments":           map[string]any{"text": text},
+		"provider_request_id": "provider:canonical-reply",
+		"sequence":            0,
+	}}})
 	app := newTestApp(t, repository, router)
 	result, err := app.HandleTurn(ctx, ownerID, conversationID, map[string]any{
 		"fluctlight_id": fluctlightID, "text": "你忙完了吗？", "idempotency_key": "canonical-reply-turn", "turn_id": "canonical-reply-turn-1", "attachment_refs": []any{},
@@ -374,14 +370,12 @@ func TestStreamTurnCanonicalConversationReplyWithEmptyStructuredFieldsEmitsAssis
 	seedTurnConversation(t, ctx, repository, ownerID, fluctlightID, conversationID)
 	seedCognitiveProviderRole(t, ctx, repository, "canonical-stream-endpoint")
 	text := "哦，那还行。\n到点了记得吃，别又拖到八点多。\n我这边客户又回了条，我去看看。"
-	router := newFakeProviderRouter().on("conversation_turn_response", func(_ map[string]any) fakeProviderResult {
-		return fakeProviderResult{ToolCalls: []map[string]any{{
-			"call_id":         "canonical-stream-reply-call",
-			"capability_name": "conversation.reply",
-			"schema_version":  CapabilityInvocationSchemaVersion,
-			"arguments":       map[string]any{"text": text},
-		}}}
-	})
+	router := newConversationToolLoopTransport(fakeProviderResult{ToolCalls: []map[string]any{{
+		"call_id":         "canonical-stream-reply-call",
+		"capability_name": "conversation.reply",
+		"schema_version":  CapabilityInvocationSchemaVersion,
+		"arguments":       map[string]any{"text": text},
+	}}})
 	app := newTestApp(t, repository, router)
 	response := httptest.NewRecorder()
 	if err := app.StreamTurn(ctx, response, ownerID, conversationID, map[string]any{
@@ -403,6 +397,9 @@ func TestStreamTurnCanonicalConversationReplyWithEmptyStructuredFieldsEmitsAssis
 	}
 	if len(frames) != 4 || stringValue(frames[0]["type"]) != "action_result" || stringValue(frames[1]["type"]) != "token" || stringValue(frames[2]["type"]) != "action_result" || stringValue(frames[3]["type"]) != "completed" {
 		t.Fatalf("canonical conversation.reply stream frames = %#v", frames)
+	}
+	if token := stringValue(mapValue(frames[1]["payload"])["text"]); token != text {
+		t.Fatalf("canonical stream token was not the committed reply: %q", token)
 	}
 	assistant := mapValue(mapValue(frames[2]["payload"])["message"])
 	if stringValue(assistant["kind"]) != "assistant" || stringValue(assistant["text"]) != text {

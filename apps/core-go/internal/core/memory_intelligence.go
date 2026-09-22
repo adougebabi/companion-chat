@@ -97,7 +97,7 @@ func (a *App) prepareMemoryCapability(_ context.Context, invocation CapabilityIn
 		ActorRefs: []string{}, EventRefs: []string{}, EvidenceRefs: evidence, Semantic: &semantic,
 		Visibility: "private", OccurredAt: time.Now().UTC(), SourceFactID: invocation.SourceFactID,
 		CandidateIndex: -1, SemanticReason: "explicit_memory_event",
-		IdempotencyKey: "memory:create:" + invocation.Metadata.FluctlightID + ":" + invocation.CallID,
+		IdempotencyKey: "memory:create:" + invocation.Metadata.FluctlightID + ":" + capabilityOperationID(invocation),
 	}
 	command.RequestDigest = memoryCommandDigest(command)
 	if err := validatePreparedMemoryMutation(command); err != nil {

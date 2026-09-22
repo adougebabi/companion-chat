@@ -147,6 +147,8 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 		switch result.Status {
 		case "completed":
 			status = ActionOutcomeCompleted
+		case "accepted":
+			status = ActionOutcomePending
 		case "failed", "rejected":
 			status = ActionOutcomeFailed
 		case "deferred":
@@ -159,10 +161,13 @@ func buildActionOutcomes(actionID, fluctlightID, sourceFactID, actionType string
 				status = ActionOutcomePending
 			}
 		}
+		if stringValue(mapValue(result.Output)["delivery_status"]) == "duplicate_suppressed" {
+			status = ActionOutcomeSuppressed
+		}
 		externalRef := ""
 		if definition.OutcomeReferenceField != "" {
 			externalRef = stringValue(mapValue(result.Output)[definition.OutcomeReferenceField])
-			if definition.CompletionBoundary != "" && result.Status == "completed" {
+			if definition.CompletionBoundary != "" && (result.Status == "completed" || result.Status == "accepted") {
 				if externalRef == "" {
 					return nil, errors.New("action_outcome_external_ref_missing")
 				}

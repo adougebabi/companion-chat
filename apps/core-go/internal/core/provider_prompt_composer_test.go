@@ -22,27 +22,15 @@ func TestProductionModelCallersUseTypedTaskBoundaries(t *testing.T) {
 			t.Fatalf("typed task boundary %s is missing", boundary)
 		}
 	}
-	for _, name := range []string{"mutations.go", "turn_takeover.go", "cognition_growth.go", "autonomy.go", "wakeup.go", "reflection_runtime_v2.go"} {
+	for _, name := range []string{"agent_result_adapter.go", "reflection_runtime_v2.go"} {
 		content, err := os.ReadFile(filepath.Clean(name))
 		if err != nil {
 			t.Fatal(err)
 		}
 		text := string(content)
 		taskBoundary := "RunADKStructuredTask"
-		if name == "mutations.go" {
-			taskBoundary = "RunMain"
-		} else if name == "turn_takeover.go" {
-			taskBoundary = "RunTakeoverReply"
-		} else if name == "wakeup.go" {
-			// WakeUp is the only background model decision migrated to the
-			// shared request-scoped ADK boundary in phase three. Its prompt
-			// assembly remains operation-owned, while the model/tool protocol
-			// is now entered through RunADKStructuredTask.
-			taskBoundary = "RunADKStructuredTask"
-		} else if name == "cognition_growth.go" {
-			taskBoundary = "RunNativeCognitionTask"
-		} else if name == "autonomy.go" {
-			taskBoundary = "RunDailyReviewTask"
+		if name == "agent_result_adapter.go" {
+			taskBoundary = "RunConversationCognitionAgent"
 		} else if name == "reflection_runtime_v2.go" {
 			taskBoundary = "RunReflectionProposalTask"
 		}
@@ -53,6 +41,23 @@ func TestProductionModelCallersUseTypedTaskBoundaries(t *testing.T) {
 			if strings.Contains(text, forbidden) {
 				t.Fatalf("%s retains legacy Main assembly fragment %q", name, forbidden)
 			}
+		}
+	}
+	runtimeSource, err := os.ReadFile(filepath.Clean("conversation_runtime.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtimeText := string(runtimeSource)
+	for _, required := range []string{
+		"type TakeoverJudgeInput struct",
+		"type TakeoverReplyInput struct",
+		"func (r *conversationRuntime) RunTakeoverJudge",
+		"FormalAgentTakeoverJudge",
+		"func (r *conversationRuntime) RunTakeoverReply",
+		"FormalAgentTakeoverReply",
+	} {
+		if !strings.Contains(runtimeText, required) {
+			t.Fatalf("conversation runtime is missing standalone takeover Agent boundary %q", required)
 		}
 	}
 }

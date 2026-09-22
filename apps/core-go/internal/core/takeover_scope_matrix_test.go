@@ -6,23 +6,6 @@ import (
 	"testing"
 )
 
-// This file is the multi-profile read/write matrix that design.md 10 (F04)
-// requires and phases 7/8 only partially exercised: prompt-side scoping was
-// verified for the persona, but the same proof is needed for every
-// profile-scoped read domain (relationships, goals, intentions, memory
-// perspectives) and — separately — for the settlement write path, where the
-// interaction counter must follow the frozen reply owner rather than the
-// persistent dominant profile.
-//
-// The seeded matrix is one fluctlight with three variants of every domain:
-//   * a shared row (profile_id NULL) visible to every profile;
-//   * a spark-owned row (the persistent dominant profile, A);
-//   * a twilight-owned row (the takeover reply owner, B);
-// plus one shared memory carrying a per-profile perspective for both.
-//
-// Every marker is ASCII so a plain substring check on the wire payload is
-// unambiguous regardless of JSON escaping.
-
 const (
 	scopeMatrixSharedRelationshipSummary    = "matrix-shared-relationship-summary"
 	scopeMatrixSparkRelationshipSummary     = "matrix-spark-relationship-summary"
@@ -43,8 +26,6 @@ const (
 	scopeMatrixRequestDigest          = "0123456789abcdef0123456789abcdef"
 )
 
-// takeoverScopeMatrixSeed seeds the full A-only / B-only / shared read matrix
-// on top of the standard two-profile chain seed.
 func takeoverScopeMatrixSeed(t *testing.T, ctx context.Context, repository *PostgresRepository, ownerID, fluctlightID, conversationID string) {
 	t.Helper()
 	takeoverChainSeed(t, ctx, repository, ownerID, fluctlightID, conversationID)
@@ -84,83 +65,6 @@ func takeoverScopeMatrixSeed(t *testing.T, ctx context.Context, repository *Post
 	}
 }
 
-// scopeMatrixWireJSON renders one captured request payload as the exact JSON
-// the Provider received, so an assertion cannot miss a fragment that landed in
-// the user message instead of the system message.
-func scopeMatrixWireJSON(t *testing.T, payload map[string]any) string {
-	t.Helper()
-	return jsonString(payload)
-}
-
-// TestMultiProfileScopeMatrixReadFollowsTheSpeaker asserts the whole read side
-// of the F04 matrix on the real wire: whichever profile is speaking sees its
-// own rows plus shared rows, never the other profile's rows, and a shared
-// relationship is shadowed by the speaker's own row for the same target.
-func TestMultiProfileScopeMatrixReadFollowsTheSpeaker(t *testing.T) {
-	ctx, repository := isolatedCoreTestRepository(t)
-	ownerID, fluctlightID, conversationID := "scope-matrix-owner", "scope-matrix-fluctlight", "scope-matrix-conversation"
-	takeoverScopeMatrixSeed(t, ctx, repository, ownerID, fluctlightID, conversationID)
-
-	router := newFakeProviderRouter().
-		on(workingPersonaMainTurnSchema, takeoverChainSequence(takeoverChainMainResult("星火的候选回复", nil))).
-		on(takeoverReplySchemaName, takeoverChainSequence(takeoverChainMainResult("暮光的接管回复", nil))).
-		on(takeoverJudgeSchemaName, takeoverChainJudge(true))
-	app := newTestApp(t, repository, router)
-	if _, err := app.HandleTurn(ctx, ownerID, conversationID,
-		takeoverChainTurnPayload(fluctlightID, "我们上次聊到哪儿了？", "scope-matrix-read-turn", "scope-matrix-read-turn-1")); err != nil {
-		t.Fatal(err)
-	}
-
-	candidates := router.payloads(workingPersonaMainTurnSchema)
-	replies := router.payloads(takeoverReplySchemaName)
-	if len(candidates) != 1 || len(replies) != 1 {
-		t.Fatalf("expected one candidate and one takeover generation, got %d and %d", len(candidates), len(replies))
-	}
-	aWire := scopeMatrixWireJSON(t, candidates[0])
-	bWire := scopeMatrixWireJSON(t, replies[0])
-
-	// A (the persistent dominant profile) reads its own rows plus shared rows.
-	for _, marker := range []string{
-		scopeMatrixSparkRelationshipSummary, scopeMatrixSparkGoalOutcome, scopeMatrixSparkIntentionAction,
-		scopeMatrixSharedGoalOutcome, scopeMatrixSharedIntentionAction,
-		scopeMatrixMemoryContent, scopeMatrixSparkMemoryInterpretation,
-	} {
-		if !strings.Contains(aWire, marker) {
-			t.Fatalf("the A generation is missing its own or shared scope data: %s", marker)
-		}
-	}
-	// A never reads B's rows, and A's own relationship shadows the shared one.
-	for _, marker := range []string{
-		scopeMatrixTwilightRelationshipSummary, scopeMatrixTwilightGoalOutcome, scopeMatrixTwilightIntentionAction,
-		scopeMatrixTwilightMemoryInterpretation, scopeMatrixSharedRelationshipSummary,
-	} {
-		if strings.Contains(aWire, marker) {
-			t.Fatalf("the A generation leaked out-of-scope data: %s", marker)
-		}
-	}
-
-	// B (the takeover reply owner) reads its own rows plus the same shared rows.
-	for _, marker := range []string{
-		scopeMatrixTwilightRelationshipSummary, scopeMatrixTwilightGoalOutcome, scopeMatrixTwilightIntentionAction,
-		scopeMatrixSharedGoalOutcome, scopeMatrixSharedIntentionAction,
-		scopeMatrixMemoryContent, scopeMatrixTwilightMemoryInterpretation,
-	} {
-		if !strings.Contains(bWire, marker) {
-			t.Fatalf("the B generation is missing its own or shared scope data: %s", marker)
-		}
-	}
-	// B never reads A's rows, and B's own relationship shadows the shared one.
-	for _, marker := range []string{
-		scopeMatrixSparkRelationshipSummary, scopeMatrixSparkGoalOutcome, scopeMatrixSparkIntentionAction,
-		scopeMatrixSparkMemoryInterpretation, scopeMatrixSharedRelationshipSummary,
-	} {
-		if strings.Contains(bWire, marker) {
-			t.Fatalf("the B generation leaked out-of-scope data: %s", marker)
-		}
-	}
-}
-
-// scopeMatrixInteractionFrequency reads one relationship's interaction counter.
 func scopeMatrixInteractionFrequency(t *testing.T, ctx context.Context, repository *PostgresRepository, relationshipID string) int {
 	t.Helper()
 	var frequency int
@@ -170,136 +74,127 @@ func scopeMatrixInteractionFrequency(t *testing.T, ctx context.Context, reposito
 	return frequency
 }
 
-// TestRelationshipInteractionSettlementFollowsTheReplyOwner asserts the write
-// side of the F04 matrix: the durable interaction fact of a turn lands on the
-// row of the profile that actually replied — A's turn updates A's row, a
-// takeover B reply updates B's row, and a profile without its own row falls
-// back to the shared row without inventing one.
-func TestRelationshipInteractionSettlementFollowsTheReplyOwner(t *testing.T) {
-	for _, scenario := range []struct {
-		name           string
-		judgeApproves  bool
-		wantSpark      int
-		wantTwilight   int
-		wantShared     int
-		seedSharedOnly bool
-		wantSharedOnly int
+func scopeMatrixWireJSON(_ *testing.T, payload map[string]any) string { return jsonString(payload) }
+
+func TestToolProfileContextResolverScopesRealRelationshipAndMemoryReads(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "scope-tool-owner", "scope-tool-fluctlight", "scope-tool-conversation"
+	takeoverScopeMatrixSeed(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	app := newTestApp(t, repository, newFakeProviderRouter())
+	for _, testCase := range []struct {
+		profile, wantRelationship, rejectRelationship string
 	}{
-		{name: "judge kept A", judgeApproves: false, wantSpark: 1, wantTwilight: 0, wantShared: 0},
-		{name: "judge approved B", judgeApproves: true, wantSpark: 0, wantTwilight: 1, wantShared: 0},
-		// Without a profile-owned row the shared row is the fallback for both
-		// speakers; an interaction alone must never create a new row.
-		{name: "shared fallback for A", judgeApproves: false, seedSharedOnly: true, wantSharedOnly: 1},
-		{name: "shared fallback for B", judgeApproves: true, seedSharedOnly: true, wantSharedOnly: 1},
+		{profile: "spark", wantRelationship: scopeMatrixSparkRelationshipSummary, rejectRelationship: scopeMatrixTwilightRelationshipSummary},
+		{profile: "twilight", wantRelationship: scopeMatrixTwilightRelationshipSummary, rejectRelationship: scopeMatrixSparkRelationshipSummary},
 	} {
-		t.Run(scenario.name, func(t *testing.T) {
-			ctx, repository := isolatedCoreTestRepository(t)
-			slug := strings.ReplaceAll(scenario.name, " ", "-")
-			ownerID, fluctlightID, conversationID := "scope-write-owner-"+slug, "scope-write-fluctlight-"+slug, "scope-write-conversation-"+slug
-			takeoverScopeMatrixSeed(t, ctx, repository, ownerID, fluctlightID, conversationID)
-			if scenario.seedSharedOnly {
-				if _, err := repository.Pool().Exec(ctx, `DELETE FROM public.relationships WHERE owner_fluctlight_id=$1 AND profile_id IS NOT NULL`, fluctlightID); err != nil {
-					t.Fatal(err)
-				}
+		t.Run(testCase.profile, func(t *testing.T) {
+			relationship, err := app.ExecuteTool(ctx, ToolExecutionRequest{
+				WorkingProfileID: testCase.profile, CapabilityName: "relationship.lookup", OperationID: "scope-relationship-" + testCase.profile,
+				AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID,
+				EvidenceID: "scope-evidence-" + testCase.profile, Surface: CapabilitySurfaceConversation, Arguments: jsonBytes(map[string]any{"target_actor_id": ownerID}),
+			})
+			if err != nil || relationship.Result.Status != "completed" || relationship.Result.ActingProfileID != testCase.profile {
+				t.Fatalf("relationship receipt=%#v err=%v", relationship, err)
 			}
-
-			router := newFakeProviderRouter().
-				on(workingPersonaMainTurnSchema, takeoverChainSequence(takeoverChainMainResult("星火的候选回复", nil))).
-				on(takeoverReplySchemaName, takeoverChainSequence(takeoverChainMainResult("暮光的接管回复", nil))).
-				on(takeoverJudgeSchemaName, takeoverChainJudge(scenario.judgeApproves))
-			app := newTestApp(t, repository, router)
-			if _, err := app.HandleTurn(ctx, ownerID, conversationID,
-				takeoverChainTurnPayload(fluctlightID, "你在听吗？", "scope-write-turn-"+slug, "scope-write-turn-"+slug+"-1")); err != nil {
-				t.Fatal(err)
+			encoded := jsonString(relationship.Result.Output)
+			if !strings.Contains(encoded, testCase.wantRelationship) || strings.Contains(encoded, testCase.rejectRelationship) {
+				t.Fatalf("relationship read escaped %s scope: %s", testCase.profile, encoded)
 			}
-
-			if scenario.seedSharedOnly {
-				if got := scopeMatrixInteractionFrequency(t, ctx, repository, scopeMatrixSharedRelationshipID); got != scenario.wantSharedOnly {
-					t.Fatalf("shared-row fallback interaction_frequency=%d, expected %d", got, scenario.wantSharedOnly)
-				}
-				if count := takeoverChainCount(t, ctx, repository, `SELECT count(*) FROM public.relationships WHERE owner_fluctlight_id=$1`, fluctlightID); count != 1 {
-					t.Fatalf("an interaction must not create relationship rows, got %d", count)
-				}
-				return
-			}
-			for _, check := range []struct {
-				id   string
-				want int
-			}{
-				{scopeMatrixSparkRelationshipID, scenario.wantSpark},
-				{scopeMatrixTwilightRelationshipID, scenario.wantTwilight},
-				{scopeMatrixSharedRelationshipID, scenario.wantShared},
-			} {
-				if got := scopeMatrixInteractionFrequency(t, ctx, repository, check.id); got != check.want {
-					t.Fatalf("relationship %s interaction_frequency=%d, expected %d", check.id, got, check.want)
-				}
+			memory, err := app.ExecuteTool(ctx, ToolExecutionRequest{
+				WorkingProfileID: testCase.profile, CapabilityName: "memory.recall", OperationID: "scope-memory-" + testCase.profile,
+				AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID,
+				EvidenceID: "scope-evidence-" + testCase.profile, Surface: CapabilitySurfaceConversation, Arguments: jsonBytes(map[string]any{"intent": scopeMatrixMemoryContent}),
+			})
+			if err != nil || memory.Result.Status != "completed" || memory.Result.ActingProfileID != testCase.profile || !strings.Contains(jsonString(memory.Result.Output), scopeMatrixMemoryContent) {
+				t.Fatalf("memory receipt=%#v err=%v", memory, err)
 			}
 		})
 	}
 }
 
-// TestNextTurnAfterTakeoverRestoresThePersistentPerspective asserts that a
-// takeover is per-turn in the read direction too: after B's turn settles, the
-// next Main generation runs as the persistent dominant profile again, with
-// A's scoped rows and A's settlement writes.
-func TestNextTurnAfterTakeoverRestoresThePersistentPerspective(t *testing.T) {
+func TestRelationshipInteractionSettlementFollowsNativeReplyActingProfile(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "scope-write-owner", "scope-write-fluctlight", "scope-write-conversation"
+	takeoverScopeMatrixSeed(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	step := 0
+	router := newFakeProviderRouter().on(workingPersonaMainTurnSchema, func(map[string]any) fakeProviderResult {
+		step++
+		switch step {
+		case 1:
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("scope-takeover", personaTakeoverCapabilityName, map[string]any{
+				"decision": takeoverDecisionTakeoverB, "rule_id": "public-doubt", "source_profile_id": "spark", "target_profile_id": "twilight",
+			})}}
+		case 2:
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("scope-reply", "conversation.reply", map[string]any{"text": "暮光发言"})}}
+		default:
+			return nativePersonaFinal()
+		}
+	})
+	app := newTestApp(t, repository, router)
+	if _, err := app.HandleTurn(ctx, ownerID, conversationID, takeoverChainTurnPayload(fluctlightID, "由你回答。", "scope-write-turn", "scope-write-turn-1")); err != nil {
+		t.Fatal(err)
+	}
+	if got := scopeMatrixInteractionFrequency(t, ctx, repository, scopeMatrixTwilightRelationshipID); got != 1 {
+		t.Fatalf("twilight interaction_frequency=%d, want 1", got)
+	}
+	if got := scopeMatrixInteractionFrequency(t, ctx, repository, scopeMatrixSparkRelationshipID); got != 0 {
+		t.Fatalf("spark interaction_frequency=%d, want 0", got)
+	}
+}
+
+func TestNextTurnAfterNativeTakeoverRestoresPersistentProfile(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "scope-next-owner", "scope-next-fluctlight", "scope-next-conversation"
 	takeoverScopeMatrixSeed(t, ctx, repository, ownerID, fluctlightID, conversationID)
-
-	// The Judge approves the first turn's handover and declines the second, so
-	// turn 1 settles as B and turn 2 settles as A.
-	judgeCall := 0
-	judgeScript := func(map[string]any) fakeProviderResult {
-		judgeCall++
-		return takeoverChainJudge(judgeCall == 1)(nil)
-	}
-	router := newFakeProviderRouter().
-		on(workingPersonaMainTurnSchema, takeoverChainSequence(
-			takeoverChainMainResult("星火的第一回合", nil),
-			takeoverChainMainResult("星火的第二回合", nil),
-		)).
-		on(takeoverReplySchemaName, takeoverChainSequence(takeoverChainMainResult("暮光的接管回复", nil))).
-		on(takeoverJudgeSchemaName, judgeScript)
+	step := 0
+	router := newFakeProviderRouter().on(workingPersonaMainTurnSchema, func(payload map[string]any) fakeProviderResult {
+		step++
+		switch step {
+		case 1:
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("next-takeover", personaTakeoverCapabilityName, map[string]any{
+				"decision": takeoverDecisionTakeoverB, "rule_id": "public-doubt", "source_profile_id": "spark", "target_profile_id": "twilight",
+			})}}
+		case 2:
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("next-twilight-reply", "conversation.reply", map[string]any{"text": "暮光第一轮"})}}
+		case 3:
+			return nativePersonaFinal()
+		case 4:
+			wire := jsonString(payload)
+			if !strings.Contains(wire, takeoverChainSparkMarker) || strings.Contains(wire, takeoverChainTwilightMarker) {
+				t.Fatalf("next turn did not restore persistent persona")
+			}
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("next-spark-relationship", "relationship.lookup", map[string]any{"target_actor_id": ownerID})}}
+		case 5:
+			tools := nativePersonaToolMessages(payload)
+			if !strings.Contains(tools, scopeMatrixSparkRelationshipSummary) || strings.Contains(tools, scopeMatrixTwilightRelationshipSummary) {
+				t.Fatalf("next-turn relationship scope did not restore spark: %s", tools)
+			}
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("next-spark-reply", "conversation.reply", map[string]any{"text": "星火第二轮"})}}
+		case 6:
+			return nativePersonaFinal()
+		default:
+			t.Fatalf("unexpected model decision %d", step)
+			return fakeProviderResult{Status: 500}
+		}
+	})
 	app := newTestApp(t, repository, router)
-	if _, err := app.HandleTurn(ctx, ownerID, conversationID,
-		takeoverChainTurnPayload(fluctlightID, "你根本没在听我说话。", "scope-next-turn-1", "scope-next-turn-1")); err != nil {
+	if _, err := app.HandleTurn(ctx, ownerID, conversationID, takeoverChainTurnPayload(fluctlightID, "第一轮", "scope-next-turn-1", "scope-next-turn-1")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := app.HandleTurn(ctx, ownerID, conversationID,
-		takeoverChainTurnPayload(fluctlightID, "现在好一些了吗？", "scope-next-turn-2", "scope-next-turn-2")); err != nil {
+	if _, err := app.HandleTurn(ctx, ownerID, conversationID, takeoverChainTurnPayload(fluctlightID, "第二轮", "scope-next-turn-2", "scope-next-turn-2")); err != nil {
 		t.Fatal(err)
 	}
-
-	candidates := router.payloads(workingPersonaMainTurnSchema)
-	if len(candidates) != 2 {
-		t.Fatalf("expected two Main generations, got %d", len(candidates))
-	}
-	secondWire := scopeMatrixWireJSON(t, candidates[1])
-	if !strings.Contains(secondWire, takeoverChainSparkMarker) || strings.Contains(secondWire, takeoverChainTwilightMarker) {
-		t.Fatalf("the turn after a takeover did not run as the persistent dominant profile")
-	}
-	if !strings.Contains(secondWire, scopeMatrixSparkRelationshipSummary) || !strings.Contains(secondWire, scopeMatrixSparkMemoryInterpretation) {
-		t.Fatalf("the turn after a takeover lost the persistent profile's scoped rows")
-	}
-	if strings.Contains(secondWire, scopeMatrixTwilightRelationshipSummary) || strings.Contains(secondWire, scopeMatrixTwilightMemoryInterpretation) {
-		t.Fatalf("the turn after a takeover leaked the takeover owner's scoped rows")
-	}
-
-	// takeover_once in the durable direction: the persistent dominant profile
-	// row is unchanged, and the second (A) settlement wrote into A's scope.
 	if active := readActiveProfileForGate(t, ctx, repository, fluctlightID); active != "spark" {
-		t.Fatalf("a settled takeover changed the persistent dominant profile to %q", active)
+		t.Fatalf("takeover changed persistent profile to %q", active)
+	}
+	secondTrace := nativePersonaTrace(t, ctx, repository, "scope-next-turn-2")
+	if acting := stringValue(nativePersonaResultByName(t, secondTrace, "conversation.reply")["acting_profile_id"]); acting != "spark" {
+		t.Fatalf("next-turn reply acting profile=%q", acting)
 	}
 	if got := scopeMatrixInteractionFrequency(t, ctx, repository, scopeMatrixSparkRelationshipID); got != 1 {
-		t.Fatalf("the post-takeover A turn must write A's relationship row, got interaction_frequency=%d", got)
+		t.Fatalf("spark interaction_frequency=%d, want 1", got)
 	}
 	if got := scopeMatrixInteractionFrequency(t, ctx, repository, scopeMatrixTwilightRelationshipID); got != 1 {
-		t.Fatalf("the takeover turn must have written B's relationship row exactly once, got interaction_frequency=%d", got)
-	}
-
-	texts := takeoverChainAssistantTexts(t, ctx, repository, conversationID, "scope-next-turn-2")
-	if len(texts) != 1 || texts[0] != "星火的第二回合" {
-		t.Fatalf("the second turn did not deliver A's reply, got %#v", texts)
+		t.Fatalf("twilight interaction_frequency=%d, want 1", got)
 	}
 }

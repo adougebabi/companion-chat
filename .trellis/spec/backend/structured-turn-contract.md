@@ -1,762 +1,244 @@
-# Structured Turn Contract
+# Structured Turn And Independent Agent / Tool Contract
 
-## Scenario: Structured control alongside streamed visible chat
-
-### 1. Scope / Trigger
-
-- Trigger: a chat completion must carry durable memory, affect/drives signals, or capability intent without asking application code to infer meaning from user-visible prose.
-- The browser turn transport is `POST` + `application/x-ndjson` with checked
-  `token | message | media | completed | error | heartbeat` frames. Core
-  `action_result.message` carries committed authoritative rows and browser boundary maps it
-  to `message`/`media`; this spec governs the provider-to-application boundary
-  and commit behavior.
-
-### 2. Signatures
-
-- Provider normalized completion: `{text, tokens, toolCalls, structuredTurn?, control?, parseErrors?, doneSeen}`.
-- Main cognition requires `response_mode=final|query_continuation`. `final`
-  visible text is emitted when a `conversation.reply` or other visible-output
-  capability supplies it; missing text is not an error when the turn contains
-  valid independent capability calls. Compatibility action names such as
-  `respond` normalize to canonical `reply` before this decision.
-- A direct conversation with neither visible text nor capability calls fails
-  with `cognition_visible_text_missing`. A direct conversation with valid tool
-  calls is a successful tool-only turn: Core freezes and settles every call
-  independently, records per-call failures without rolling back successful
-  siblings, and completes the inbox without fabricating assistant prose. The
-  only continuation exception remains `query_continuation` with one or two pure
-  QUERY calls; Core persists their bounded results and performs one no-tools,
-  visible-text-only continuation before the assistant settlement.
-- When a newer turn is accepted for the same conversation, older pending or
-  claimed conversation cognition facts are marked superseded. Completion locks
-  the inbox and requires the current claim/status; an old settlement can never
-  restore `processed` or persist a late assistant after supersession.
-- Canonical turn schema: `schemaVersion: 'companion.turn.v1'` with `control.affectEvents[]`, `control.driveSignals[]`, `control.memoryWrites[]`, `control.appraisals[]`, `control.memoryConsolidations[]`, `control.selfModelClaims[]`, `control.agencyIntentions[]`, and `control.capabilityCalls[]`.
-- Appraisal candidate: `companion.appraisal.v1` with model rationale, confidence, evidence references, optional `interactionFactId`, and only allowlisted reducer candidates. The application must validate an optional fact link against the current persona and source message before persistence.
-- Memory consolidation candidate: `companion.memory-consolidation.v1` with exactly one bounded `key`/`value` claim or free-form `claim`, evidence/source-fact references, revision/status, and optional `interactionFactId`. It is an auditable candidate ledger entry, not an automatic write to `companion_memories`.
-- Self-model claim: `companion.self-model.v1` with LLM-owned category/claim/summary, uncertainty, evidence refs, revision/status and optional decay policy. Active claims are a separate projection and never mutate foundation.
-- Agency intention: `companion.agency-intention.v1` with LLM-owned intent/topic/explanation, evidence refs and lifecycle status. Candidate persistence does not deliver a message; qualification, freeze, lease and delivery remain owned by proactive flows.
-- Supported first-release drives: `social`, `exploration`, `rest`; pressure is `0..1`, where higher means more unmet need.
-- Memory capability: `memory_event({type, content, confidence, importance,
-  emotional_significance?})`. Owner/profile/Conversation/evidence/visibility/
-  time/idempotency/revision and embedding data are Runtime-owned and frozen in
-  the separate `memory_plan` PreparedPayload.
-- Appearance capability: `appearance_event({operation: 'set'|'clear', outfit?, reason?})`; it is persona-scoped, source-message-bound, idempotent, and persists the current outfit in the normalized state projection while retaining an auditable `appearance_change` life event.
-- State tools: `affect_event({event: {type, confidence, idempotencyKey}})` and `drive_signal({signal: {drive, direction, confidence, idempotencyKey}})`; the server owns numeric deltas.
-- Native capability tools are defined once by the Go Runtime capability registry. The registry exposes only installed/preflighted slots in stable order; capability-specific filtering and additional slots are additive.
-- Affect persistence: `companion_persona_affect_states` materialized snapshot plus `companion_persona_affect_events` append-only events, unique on `(persona_id, idempotency_key)`.
-
-### 3. Contracts
-
-- Visible text may stream from provider `content`; structured controls are accumulated and validated before any side effect is applied.
-- If a text-only realization provider returns a structured action wrapper,
-  treat it as transport/control data and expose only its user-facing
-  `content`/`text` value; `action_type`, arguments, and the wrapper object must
-  never be persisted or emitted as conversation text. This applies to bare
-  JSON, fenced Markdown JSON, and equivalent transport wrappers.
-- Native tool calls and parsed provider sidecars are normalized at one application boundary. The codec accepts both the OpenAI-compatible `id`/`name` (including the nested `function` object) and the canonical `call_id`/`capability_name` aliases, then emits one `CapabilityInvocation`. New affect/memory behavior must not add text markers.
-- `conversation.reply` is the direct-conversation visible-output capability. When a normalized invocation with that canonical name carries a non-empty `arguments.text`, Core must freeze and deliver that text even when Provider `text` and the structured sidecar fields are empty; unrelated normalized/structured fields must not suppress the reply path.
-- Capability calls are event-driven and independent: the presence or absence of
-  `conversation.reply`, `text`, `structured`, `action_type`, or another sibling
-  call must not prevent a valid installed call from reaching its own Prepare,
-  plan, and settlement boundary. A call can still fail its own argument,
-  context, authorization, or target validation; that failure must not suppress
-  unrelated sibling calls.
-- After the caller-owned assistant/capability settlement transaction commits, Reflection/WakeUp follow-up hints are best-effort maintenance. A Redis, clock, or follow-up scheduling failure is logged/diagnosed but must not convert the committed private reply into a terminal browser error or suppress its `action_result`/`completed` frames.
-- Every successful cognition (conversation or native/life-event) refreshes one Fluctlight-scoped Reflection debounce key for exactly ten minutes and refreshes the Fluctlight Wake-up key for the configured interval plus ten minutes; repeated cognition writes the same keys and therefore refreshes their TTLs. A completed Wake-up refreshes the Reflection key for ten minutes and its own Wake-up key for only the configured interval. When cognition is accepted, pending or running Wake-up/Reflection intents for that Fluctlight are superseded, their in-flight Provider/workflow execution receives cooperative cancellation, and Dispatcher does not admit a due Wake-up/Reflection while that cognition is pending or running.
-- Machine-readable argument shape belongs to the canonical capability catalog and provider `tools` payload. The model-facing system prompt contains only short behavioral guidance; it must not duplicate JSON schema bounds, dispatcher internals, or legacy marker syntax. Flow validators remain authoritative for ownership, time windows, policy, idempotency, and transactions.
-- Native-capable providers receive the catalog directly. Provider-native calls
-  and the single root JSON sidecar normalize into the same
-  `CapabilityInvocation`; no active marker adapter or second execution path is
-  advertised. A future provider-specific capability profile may filter tools,
-  but the current base implementation selects definitions by surface metadata.
-- Scene and appearance are separate facts. When a scene transition also changes clothing, the model may issue one `scene_event` and one `appearance_event` in the same turn; an explicit clothing change in an unchanged scene may issue only `appearance_event`. Ordinary prose or transient gestures never update clothing state.
-- `memory_event` is the only ordinary-chat path to long-term memory. It is persona-private, source-message-bound, idempotent, and committed with the assistant facts when the turn succeeds.
-- Appraisal and memory-consolidation sidecars are LLM-owned semantic candidates. The server may reject invalid schema, missing evidence, source ownership, idempotency, or CAS state, but must not infer a replacement from visible text or a rejected candidate. A candidate's `interactionFactId`, when present, must resolve to an existing fact owned by the same persona and bound to the same source message.
-- Appraisal, memory-consolidation, and affect effects are applied through the existing caller-owned chat commit transaction. They remain distinct effect capability identifiers and never create a second NDJSON/control stream or a second chat commit boundary.
-- Self-model and agency intention effects use the same caller-owned transaction and distinct effect capability identifiers; they remain candidate/projection writes and cannot create a second NDJSON/control stream or bypass proactive delivery gates.
-- Affect state uses persona baselines and lazy exponential decay; normal decay does not create timer events. Unknown future drive keys may be retained but are inactive until a server policy exists.
-- Raw PAD values, hidden reasoning, prompts, credentials, and unbounded provider diagnostics never enter user-visible chat or ordinary API DTOs.
-
-### 4. Validation & Error Matrix
-
-| Condition | Result |
-| --- | --- |
-| Unknown schema version or oversized/unknown control field | Drop optional control effects, retain valid visible text, store a bounded diagnostic |
-| Invalid memory source/persona/confidence/idempotency | Reject memory plan; do not write memory or claim `learned` success |
-| Invalid affect event or arbitrary model delta | Reject the event; server reducer remains the only delta owner |
-| Invalid appraisal/consolidation schema, required evidence, or interaction-fact ownership | Drop the optional semantic candidate, retain visible text, and record a bounded diagnostic; never synthesize a semantic fallback |
-| Invalid self-model/agency schema, evidence, or source ownership | Drop the optional semantic candidate, retain visible text, and record a bounded diagnostic; never synthesize a self/agency fallback |
-| Duplicate `(persona_id, idempotency_key)` | Replay existing result; do not duplicate rows or effects |
-| Snapshot revision/CAS conflict | Refuse stale update; do not overwrite newer state |
-| Provider text-only completion | Normalize with empty control channels and preserve existing chat behavior |
-| Duplicate native and root-sidecar call for one provider response | Native call owns the capability; the matching sidecar cannot execute a second effect |
-| Assistant/message or memory/effect transaction failure | Roll back the complete caller-owned transaction |
-| `query_continuation` includes visible text, non-pure call, zero/three calls, or a mixed batch | Reject as `query_continuation_contract_invalid`; commit no assistant/effect. |
-| Native tool-only response omits mode but is not a pure-query `StructuredFallback` | Treat as final and fail the normal visible-output/contract guard; never infer from reasoning prose. |
-| Continuation query/result identity fails or Provider requests another tool | Fail the dependent turn; replay only stable prior results/request identity. |
-
-### 5. Good/Base/Bad Cases
-
-- Good: a native `memory_event` call and a visible assistant sentence produce one assistant message and one persona-scoped memory row in one commit.
-- Base: a plain text completion produces the same NDJSON events and no control rows.
-- Base: one result-dependent `memory.recall` pure query is persisted, then one
-  visible-text-only continuation settles the ordinary assistant message.
-- Bad: parsing “我有点生气” with a regex and writing PAD, trusting a model-supplied numeric delta, or exposing raw structured arguments in `token`/`done`.
-- Bad: continue after `scene_event`, `memory_event`, or a QUERY+ACTION batch,
-  expose Tools again, or accept appraisal/claims/effects from the second call.
-
-### 6. Tests Required
-
-- Contract tests for text, native tool, structured sidecar, strict JSON content, malformed sidecar, unknown fields, source scope, and duplicate idempotency.
-- Provider tests for streamed/native control accumulation and JSON completion sidecar extraction without a second stream accumulator.
-- Affect repository tests for lazy decay, bounded reducer deltas, event/snapshot atomicity, CAS, replay, future drive preservation, and persona isolation.
-- Memory flow tests for explicit invocation, source ownership, upsert/replay, rollback, deletion compatibility, and no implicit extraction.
-- Chat integration test asserting assistant message + memory + affect/drives commit and existing `token`/`completed` output.
-- Continuation tests for 1–2 metadata-classified pure queries, final/ACTION/mixed
-  rejection, ordinary assistant history, canonical tool-call/result roles,
-  no-tools second request, visible-text-only schema, replay, and supersession.
-
-### 7. Wrong vs Correct
-
-#### Wrong
-
-```js
-const angry = /生气|讨厌/.test(userText);
-database.prepare('UPDATE companion_persona_states SET mood = ?').run(angry ? '生气' : '平静');
-```
-
-#### Correct
-
-```js
-const turn = normalizeStructuredTurn(completion, {personaId, sourceMessageId});
-const plan = affectFlow.plan(turn.control);
-// Commit the validated plan with the assistant facts in the caller transaction.
-```
-
-## Historical Scenario: Go Runtime Capability Slots And Tool Calls (pre-cutover)
-
-This section records the released pre-cutover envelope for audit and migration
-reference only. It is not an active contract. The active Go contract is the
-unified Capability Runtime scenario below; production replay and workflow code
-does not consume the released pre-cutover shapes.
+## Scenario: Formal tasks share one native Eino loop
 
 ### 1. Scope / Trigger
 
-- Trigger: the Go Core receives a provider completion that requests an
-  external capability, or a visible turn crosses the Core/browser boundary stream boundary.
-- The signatures and examples below are historical migration inputs only.
+Applies to every complete model task, direct business Tool command, conversation,
+background task and streamed browser turn. The Agent/Tool convergence replaces
+the earlier single-Main, two-generation, pure-QUERY continuation, frozen-output
+settlement and structured-sidecar execution rules. Those are retired contracts,
+not compatibility requirements. Eino remains pinned to the repository version.
 
 ### 2. Signatures
 
-```text
-Released invocation envelope {
-  id, name, arguments,
-  source_fact_id, action_id,
-  provider_request_id, schema_version, sequence
-}
-
-Released result envelope {
-  tool_call_id, name, status, output?, error_code?, retryable,
-  provider_request_id?, correlation_id?, schema_version
-}
-
-Released composite envelope {
-  schema_version, kind, action_type, response_intent,
-  tool_calls[], output_bindings[]
-}
-
-OutputBindingV1 {
-  tool_call_id, target_kind, target_ref
-}
-
-ProviderClient.StructuredWithTools(ctx, role, messages, released definitions)
-  -> ProviderCompletion{text, structured?, tool_calls, done_seen}
+```go
+RunFormalAgent(ctx, FormalAgentID, FormalAgentRunInput) (ADKStructuredTaskResult, error)
+RunFormalAgentStream(ctx, FormalAgentID, FormalAgentRunInput) (ADKStructuredTaskResult, error)
+RunConversationCognitionAgent(ctx, ConversationCognitionAgentInput) (ConversationCognitionAgentResult, error)
+RunVisualIdentityAgent(ctx, VisualIdentityAgentInput) (VisualIdentityAgentResult, error)
+RunADKLoop(ctx, ADKLoopConfig, []*schema.Message) (ADKLoopResult, error)
+App.ExecuteTool(ctx, ToolExecutionRequest) (ToolExecutionReceipt, error)
 ```
+
+`FormalAgentDefinitions()` explicitly registers complete tasks. Shared language,
+context-authority fragments, Slots, serializers and embedding calls are not
+Agents. Typed task entries own their prompt, input/context assembly, model role,
+Tool selection and final decoder; they all use `internal/ai/agent`'s Eino
+`ChatModelAgent` / `Runner`, including naturally tool-free tasks.
+
+`ToolExecutionRequest` separates authorized resource/subject, operation ID,
+arguments and optional output target from actual model/run correlation.
+`NativeToolCallID` and `ProviderRequestID` describe a model call only when it
+really occurred. Direct commands use an explicit local execution identity.
 
 ### 3. Contracts
 
-- `CapabilityRegistry` was a generic slot registry. Runtime owned lookup,
-  authorization/resource scope, revision/idempotency checks, persistence,
-  timeout/retry/cancel and result settlement; an executor owns only its
-  external provider operation.
-- A user-visible conversation reply or Moment is a `CompositeActionV1`, not a
-  Tool. The same target-neutral capability slot may be bound to either output
-  through `OutputBindingV1`; target-specific names such as `message_media` or
-  `moment_media` are not part of the protocol.
-- A released definition with `side_effect_class=external_async` and non-empty
-  `target_kinds` is a deferred output slot. Runtime records a bounded
-  `deferred` ToolResult while the action is being realized, persists the
-  message/Moment, then invokes the executor's `ExecuteDeferredTx` in the same
-  caller-owned transaction. The executor creates the durable external intent
-  with the concrete target ID. This ordering prevents a conversation-level
-  compatibility message from being created for a message-targeted result.
-- The released definition was the typed slot contract. New code uses the
-  direct `CapabilityDefinition` contract documented in the active scenario.
-- Structured Provider calls always send a strict `response_format` using a
-  named `json_schema`. Production structured cognition omits
-  `enable_thinking` so the control JSON remains in `content`; the adapter may
-  still read a complete `reasoning_content` JSON wrapper as control data, but it
-  never exposes hidden reasoning as visible text or infers semantics from
-  arbitrary prose. The adapter may remove complete, known transport wrappers
-  (`<think>`, a JSON Markdown fence, one JSON-string encoding, or a terminal
-  object after a transport prelude), but it must not infer semantics from
-  arbitrary prose. A rejected
-  structured response is normalized field-by-field: missing values use the
-  schema's empty value, an object supplied for an array field is wrapped as a
-  one-item array, and an array supplied for an object field uses its first
-  object. Correctly typed sibling fields are left untouched. Native tool calls
-  are normalized independently and remain usable when the structured sidecar
-  is empty or malformed. The adapter records only bounded channel-shape
-  diagnostics (such as presence and length), never hidden reasoning/raw
-  provider output. The visible `action_realization` stream remains ordinary
-  text and does not use JSON response formatting.
-- Tool names use `[A-Za-z0-9][A-Za-z0-9._-]{0,127}`. Arguments are bounded JSON
-  objects (64 KiB maximum) and are validated once at the provider-to-runtime
-  boundary. Native provider entries and JSON sidecars normalize to the same
-  the released call envelope.
-- The released external slot used a thick media argument. Future external
-  video/audio/search slots and native
-  Fluctlight slots such as `scene_event`, `presence_event`,
-  `memory_event`, or `relationship_signal` are additive executors; a slot is
-  advertised only when its implementation is installed and preflighted, and
-  adding a slot does not change cognition schemas.
-- A tool call is a structured proposal, not direct SQL or arbitrary domain
-  access. Memory, Reflection, affect, evolution, and other native Fluctlight
-  capabilities remain authority services even if a narrow intent is exposed to
-  the model.
-- No human approval/HITL state is introduced. Installed and preflighted
-  capabilities are callable subject to deterministic schema, ownership,
-  revision, budget, timeout, cancellation and idempotency checks.
-- Interactive turns use `POST` + `application/x-ndjson`. Provider SSE is an
-  adapter detail. A future authenticated SSE subscription for committed
-  server-push projections is separate from the turn command and cannot be a
-  second state source.
-- Released tool results were persisted with the frozen action before
-  realization and may
-  be included in the next provider prompt. Raw tool arguments and provider
-  internals never cross the browser boundary.
+- Only Eino native ToolCalls request execution. Body text, reasoning and final
+  JSON fields never create a second Tool protocol. Tool results return through
+  matching native IDs and are consumed by the next model decision.
+- Normal reads, writes, publications and business rejections may be followed by
+  more decisions. Never terminate based on a QUERY/ACTION classification,
+  number of prior queries, `deferred` result, or a write-tool list.
+- Max iterations, deadlines and cancellation are protection. Exceeding a guard
+  is an error, never an action-only success. Each physical model request has
+  its own queue lease, request identity, diagnostic record and usage metrics;
+  no hidden retry/failover is introduced around the whole Agent.
+- Final schema validation applies only to the final assistant result. An
+  intermediate ToolCall/result is not a final DTO. Invalid final output cannot
+  fall back to older text. Text-output Agents are not subjected to JSON DTO
+  validation merely because their text resembles JSON.
+- Keep final content and executed-call audit separate. Preserve all actual
+  intermediate ToolCalls/results, including published replies. A repeat native
+  ID must not overwrite the original execution's physical model provenance.
+- Registry schemas are the sole argument contract. Model-owned arguments cannot
+  supply prepared state, ownership, database revision, or idempotency fields.
+  A context resolver reads declared dependencies; optional internal preparation
+  is not a deferred business outcome and does not require a frozen Main action.
+- Catalog surfaces are default assembly groups, not execution-stage permission.
+  Explicit Agent installation validates canonical registration and visibility;
+  each Tool independently validates resource ownership and business conditions.
+- `ExecuteTool` is the direct and Eino-adapter business boundary. Pure queries
+  execute fresh reads. Writes prepare outside the transaction, then own a short
+  transaction containing domain state, required outbox and `tool_executions`
+  receipt. A target-owning Tool uses `DirectToolCapability`; ordinary mutation
+  implementations use `TransactionalCapability` behind the same boundary.
+- `completed` means the declared synchronous effect committed. `accepted`
+  means an actual durable asynchronous task exists and includes its ID. Neither
+  `waiting`, queued media nor a prepared candidate claims completed business.
+  Business rejection is a normal explicit result; code/dependency/cancellation
+  failures preserve their cause and are not silently normalized to success.
+- Stable operation identity is independent of model ToolCall identity. Same
+  scoped operation and same payload replays the committed receipt; changed
+  parameters, evidence, subject or target conflict. Read-only queries are not
+  cached in the mutation receipt ledger.
+- `agent_runs` admits a business run before model work. Completed results can
+  be replayed; failed/interrupted runs retain committed Tool evidence and cannot
+  silently restart the whole decision loop. Cancellation-independent terminal
+  recording is bounded. A durable visual checkpoint uses a stable state/attempt
+  identity, so an unchanged waiting checkpoint does not resubmit a media task.
+- A Tool commit survives later model failure, invalid final output, cancellation
+  or another Tool's rejection. No global transaction spans model, database and
+  external services. Never rewrite a committed sibling as rolled back because
+  a later cognition projection failed.
+- Conversation/API/background callers provide input and consume final output
+  plus committed receipts. They do not prepare/execute an action list, assemble
+  Tool results, select continuation, or publish a reply that a Tool published.
+  Natural final text uses the same publication service as `conversation.reply`
+  without fabricating a model ToolCall. Empty structured final text must never
+  expose raw JSON; a valid Tool-only completion needs no invented assistant text.
+- Browser transport remains POST/NDJSON with committed message/media resources,
+  bounded errors, cancellation and one terminal event. Production streaming uses
+  the same streaming Eino Runner. Prove Provider streaming with actual
+  `stream=true` requests and consumed SSE deltas/DONE records; an aggregated
+  final text alone is not that evidence. Browser `token` frames deliver only
+  committed visible replies, preserving the existing post-commit publication
+  contract. They are not speculative raw model-token deltas: structured JSON,
+  ToolCall arguments and intermediate candidate text must never be flushed
+  before validation/publication. Prompts, reasoning, credentials and private
+  locators stay private.
+- `persona.switch` and `persona.takeover` are business Tools, not exempt internal
+  runtime controls. They validate declared profiles/rules and commit/audit their
+  contracts. A takeover returns its working persona without changing persistent
+  dominance; a persistent switch commits once and is not applied again outside
+  the Agent. Model interpretation remains LLM-owned; Core owns authorization,
+  CAS, cooldown and numeric policy.
+- Existing Temporal activities may recover already-persisted business commands
+  through this same Tool boundary and receipt ledger. They must not restore a
+  second dispatcher/loop or interpret unexecuted final JSON as model ToolCalls.
 
 ### 4. Validation & Error Matrix
 
-| Condition | Result |
+| Condition | Required outcome |
 | --- | --- |
-| Missing/duplicate ID or invalid name | Derive a stable ID only when the Provider request identity is present; otherwise reject the call. Invalid names are always rejected. No executor invocation occurs before validation. |
-| Arguments missing, non-object, invalid JSON, or over 64 KiB | `tool_arguments_invalid`; no side effect |
-| Unknown schema version or capability slot | `tool_call_rejected` / `tool_capability_unavailable`; no side effect |
-| Source fact differs from current Fluctlight fact | `tool_call_source_invalid`; no side effect |
-| Plugin operation fails before durable result | `failed` result with explicit retryable flag; frozen action remains auditable |
-| External request result is ambiguous | `result_unknown`; reconcile by stable request ID, never resubmit blindly |
-| Provider has no native tool call | Accept only the same structured JSON sidecar; never parse prose markers |
-| Browser disconnects after action result | Stop later writes and cancel reads; keep committed action/effect settlement independent |
+| Missing/unknown Tool, invalid schema or foreign target | Explicit error/rejection; no unauthorized write |
+| Direct command lacks model ToolCall ID | Valid when business identity/resources are valid; no fabricated Provider request |
+| Agent native call lacks real physical model identity | Reject execution; retain accurate diagnostics |
+| Same operation with changed payload/target/subject | Conflict; original committed result unchanged |
+| Same native ID reused with conflicting name/arguments | Protocol error; never merge incompatible calls |
+| Business failure | Actual reason reaches subsequent model input |
+| Dependency failure, cancellation, timeout, iteration exhaustion | Error; partial committed results preserved |
+| Final structured result malformed | Error, no previous-text fallback; earlier Tool commits remain facts |
+| Media is queued but no image exists | `accepted`/waiting with actual task ID, never completed asset |
+| Mutation succeeds but receipt/outbox write fails in same transaction | Roll back that local transaction |
+| Model fails after Tool local commit | Persist failed run and committed receipt; no whole-run replay |
+| Structured final contains no visible text | Do not publish its serialized control JSON |
+| A newer accepted conversation supersedes this run | Fence later final settlement; preserve already committed facts accurately |
 
 ### 5. Good / Base / Bad Cases
 
-- Good: a native `media.image.generate` call is normalized, frozen against the
-  source fact, recorded as a deferred result, then bound to the persisted
-  assistant message (or Moment) and creates one idempotent media intent.
-- Base: a provider returns the canonical JSON sidecar for a reply; the existing
-  turn behavior remains unchanged and no external effect is created.
-- Bad: parse “请画一张图” with a keyword branch, write a media row directly,
-  or execute a second effect when duplicate provider shapes accompany a native call.
+Good: `memory_event` commits, `memory.recall` observes that commit, and another
+model decision uses the result. A failed scene change is returned to the model,
+which chooses a valid alternative. A committed reply remains visible when a
+later model call fails.
+
+Base: a summary Agent has no tools and completes naturally through one Runner
+model decision. A direct Tool call has an operation ID and no Agent context.
+
+Bad: publish from final JSON `tool_calls`, cap every Agent at two decisions,
+return candidate/deferred as successful business, fabricate a cognition fact to
+invoke a Tool, or create a second message after `conversation.reply` committed.
 
 ### 6. Tests Required
 
-- Unit tests for native/sidecar normalization, strict name/argument bounds,
-  duplicate IDs, unknown capabilities, stable manifest ordering, and result
-  identity/status validation.
-- Runtime tests for registry injection, source-fact ownership, idempotent
-  media intent creation, target binding, deferred settlement, tool-result
-  persistence, and frozen replay without a second plugin call.
-- Provider tests for `tools` request payloads, native tool-call responses,
-  JSON sidecar responses, malformed calls, and stable request headers.
-- Core/browser boundary stream tests for provider chunk → Core NDJSON → browser frames,
-  post-settlement token delivery, abort, one terminal frame, and hidden payload
-  redaction. No test should require an SSE turn endpoint.
+- Fixed product inventory for all business Tools and all complete-task Agents;
+  expected sets never come only from the current registry.
+- Each Tool: direct success without Agent state, real business rejection,
+  independent database/task/message/object assertion, dependency fault,
+  repeat/conflict semantics, and actual Eino adapter execution.
+- Each Agent: its real prompt, context, model adapter, tools and output contract.
+  Across appropriate tasks cover no tools, one tool, two tool rounds/three
+  decisions, failure adjustment, write/read, multiple calls, cancellation,
+  isolation and commit-before-model-failure. Controlled regressions are labeled
+  separately from real Provider evidence.
+- A random database-only secret must be retrieved through the real memory Tool,
+  observed in the next request and used in the final result; initial input and
+  prompt cannot already contain the answer.
+- Break result feedback and skip a write while returning success in isolated
+  test-only experiments. The original success checks must fail, then pass again
+  against final restored production code. No production fault flags remain.
+- Existing runner: `infra/acceptance/run-go-live-provider-smoke.sh --suite
+  tools|agents|all`, with `--tool`/`--agent` selectors. Full suites fail on missing
+  coverage, zero matches, SKIP, BLOCKED or failure. LLM requests run one at a time
+  with cross-process locking. Deferred user-run live acceptance stays NOT_RUN or
+  BLOCKED; ordinary Go tests are not dual E2E acceptance.
 
 ### 7. Wrong vs Correct
 
-#### Wrong
+Wrong:
 
 ```go
-if strings.Contains(userText, "画") {
-    return createMediaIntent(ctx, fluctlightID, conversationID, map[string]any{
-        "prompt": userText,
-    })
-}
+calls := parseActionsFromFinalJSON(completion)
+freeze(calls)
+settleInMainTransaction(calls)
 ```
 
-#### Correct
+Correct:
 
 ```go
-completion, err := provider.StructuredWithTools(ctx, "cognitive_assessment", messages, registry.Catalog(surface))
-invocations := completion.ToolCalls // native and sidecar forms are already normalized
-frozen := validateAndFreeze(invocations, sourceFactID, stateRevision)
-output := persistAssistantOrMoment(...)
-result, _ := runtime.ExecuteDeferred(ctx, tx, frozen, OutputBindingV1{TargetKind: output.Kind, TargetRef: output.ID})
-persistCapabilityResult(result)
+// Inside the native Tool adapter, with a real Eino call ID and physical request.
+receipt, err := app.ExecuteTool(ctx, request)
+// Eino consumes the same serialized receipt before the next model decision.
+// Outside the Agent, only inspect committed receipts and publish no duplicate.
 ```
 
-## Scenario: P1 Context Projection And Self-Evaluated Expression
+## Scenario: Bounded context, semantic evidence and publication ownership
 
 ### 1. Scope / Trigger
 
-- Trigger: a Fluctlight response or native capability candidate needs current
-  life context, authorized Memory, evidence-bound claims, or self-model
-  evolution.
+Applies to context projections, claims, state proposals, persona attribution,
+Memory/Relationship writes and reflection after an Agent run.
 
 ### 2. Signatures
 
-```text
-BuildContextProjection(ctx, actorID, fluctlightID, conversationID,
-                       sourceFactID, currentUserText) -> ContextProjection
-normalizeResponsePlan(decision, sourceFactID, context) -> ResponsePlanV1
-RetrieveMemoryContext(ctx, actorID, fluctlightID, conversationID,
-                      query, limit, tokenBudget) -> MemoryContextV1
-ProcessReflection(ctx, fluctlightID, correlationID) -> ReflectionOutcome
-```
+`BuildContextProjectionFor`, `normalizeResponsePlan`, `freezeDecisionInfluences`,
+`applyFrozenCognitiveStagesTx`, `MemoryRecallService.Recall`, and
+`ProcessReflection` retain their owning domain authority. Function names with
+`Frozen` do not reintroduce a Tool execution stage or global transaction.
 
 ### 3. Contracts
 
-- `ContextProjection` is the sole current-context reader for cognition,
-  realization, Memory retrieval, Reflection and scene/presence slots. It
-  includes source/revision/confidence/expiry metadata and bounded recent
-  messages; full transcript is a record, not a truth source.
-- Claims are classified as `confirmed_fact`, `observed_fact`,
-  `supported_hypothesis`, `uncertain_hypothesis`, or `unsupported_self_claim`.
-  Unsupported self-claims are omitted or downgraded and are never promoted to
-  long-term Memory/Personality merely because an assistant message contains
-  them.
-- The cognition response schema is closed for persisted claims: each claim
-  uses `kind`, `content`, `confidence`, and `evidence_refs` (with optional
-  `repetition_key`). Older provider aliases such as `claim` are normalized to
-  `content` only at the cognition application boundary. Semantic references such as
-  `current_message.content` or `life_context.*` are bound to the current
-  source fact before persistence; arbitrary provider-supplied IDs are not
-  trusted as evidence.
-- Repetition of the same normalized claim/topic without new evidence is a
-  deterministic no-op: it does not raise confidence, create another Memory or
-  Life World row, or re-enter the same context section.
-- Ordinary replies may use a one-call fast path. Effects and native candidates
-  use `assessment → self-evaluation → freeze → effect → optional realization`;
-  realization renders the frozen plan and cannot add semantic effects.
-- `scene_event` and `presence_event` are replaceable native slots. Life World
-  owns canonical Event persistence; Presence can overlay only
-  `user_presence/current_task` and never replace scene/activity/location.
-- Memory retrieval filters owner/visibility/actor/conversation before lexical,
-  FTS/vector or hybrid ranking and token budgeting. New Memory records create
-  their revision, embedding intent and outbox atomically.
-- Reflection claims a Fluctlight evidence window with watermark/CAS, validates
-  refs against that window, and applies Memory/Relationship/Self-model/
-  Personality revisions through authority ports. Slow fields require multiple
-  evidence-bearing facts and every revision is auditable/rollbackable.
-- Reflection V2 exposes no Capability catalog. A Provider response containing
-  native/root Tool Calls is rejected as `reflection_tool_call_forbidden`; the
-  calls are never executed or silently ignored, and the evidence window returns
-  to an idle/retryable state.
+- Initial context is an authorized bounded snapshot. Subsequent committed Tool
+  results and fresh queries are newer facts; the model must consume them.
+- Authority remains confirmed Event > inferred Event > accepted Schedule >
+  pending. Presence overlays only subject presence/current task. Core Persona
+  identity is a hard constraint; Developing Self remains evidence-backed.
+- Actor identity is explicit; transport role=user is not an authorization actor.
+  Owner, speaking/subject Actor and Fluctlight are distinct when the product
+  involves Actor-to-Actor conversations. Profile-scoped effects remain attributed
+  to the actual acting profile; a Tool cannot widen ownership or visibility.
+- Claims use bounded kind/content/confidence/evidence references. Unsupported or
+  repeated self-claims do not become durable Memory or increase confidence.
+  Never infer semantic state from assistant prose, regex or keywords.
+- No appraisal means no fabricated state transition. A present malformed
+  appraisal fails validation. Core owns bounded numeric deltas and CAS.
+- Reflection validates its complete closed proposal and evidence window before
+  applying candidates. Its domain mutations and watermark CAS remain atomic.
+  Raw assistant realization is not new learning evidence. Reflection's current
+  default tool set may be empty, but it uses the same formal Agent runtime.
+- Publication uses authoritative message/Moment rows and existing outbox kinds;
+  private storage URLs and internal control envelopes are never chat content.
 
 ### 4. Validation & Error Matrix
 
-| Condition | Result |
-| --- | --- |
-| Claim has unknown kind, foreign evidence, or invalid confidence | Reject the plan; no semantic write |
-| Unsupported self-claim or repeated claim without new evidence | Store bounded rejected/expired provenance; omit from normal context |
-| Scene/presence candidate has invalid temporal bounds or source fact | Reject candidate; no Event/Presence mutation |
-| Memory visibility/owner filter fails | Exclude before ranking; do not leak to provider |
-| Reflection candidate references an outside-window fact | Reject candidate and keep the window retryable |
-| Reflection Provider returns any Tool Call | Reject with `reflection_tool_call_forbidden`; execute no capability and keep the window retryable |
-| Personality/Self-model evidence is below its threshold | Defer candidate; do not mutate slow state |
-| Realization adds a claim/effect not in frozen plan | One bounded rewrite; then omit/uncertain/deferred |
+Foreign evidence, stale revision, invalid numeric input and unauthorized scope
+fail before their domain mutation. These failures never erase prior independent
+Tool commits. Invalid reflection candidates leave the watermark unchanged.
 
 ### 5. Good / Base / Bad Cases
 
-- Good: a user fact creates one evidence-bound Memory, later retrieval injects
-  it into ContextProjection, and a Reflection window promotes a recurring
-  preference only after enough evidence.
-- Base: a provider emits no claims; the Runtime returns a normal grounded reply
-  without inventing a Memory or scene.
-- Bad: feed the complete transcript to every call, treat the last assistant
-  sentence as a new fact, create a scene event on every turn, or let realization
-  re-decide the action.
+Good: a fresh Tool query observes a just-committed scene revision. Base: no claims
+means no invented Memory. Bad: retain an old initial state after a Tool changed
+it, or attribute another Actor's statement to the human Owner.
 
 ### 6. Tests Required
 
-- Projection tests for current-input priority, Event > Schedule > pending,
-  Presence overlay, authorized Memory and hypothesis expiry.
-- Claim tests for unsupported self-claim omission, repeated no-op,
-  correction/supersede, confidence/evidence bounds and one bounded rewrite.
-- Native slot tests for scene/presence idempotency, temporal bounds and ordered
-  cognition re-entry without duplicate events.
-- Memory tests for authorization-before-ranking, FTS/vector/hybrid scoring,
-  token budget, embedding failure, revise/forget and rollback.
-- Reflection tests for producer, window lease/CAS, evidence ownership,
-  candidate apply, fast/medium/slow evolution and future projection use.
+Retain authorization-before-ranking, whole-fragment prompt budgeting, Actor and
+profile attribution, reflection watermark rollback, claim non-promotion,
+post-commit publication, supersession and real streamed request coverage.
 
 ### 7. Wrong vs Correct
 
-#### Wrong
-
-```go
-history := fullConversationTranscript()
-prompt := append(history, "You previously said ...")
-return provider.Generate(prompt) // old assistant prose becomes a new fact
-```
-
-#### Correct
-
-```go
-projection := BuildContextProjection(...)
-plan := normalizeResponsePlan(assessment, factID, projection)
-gate := selfEvaluateAndValidate(plan, projection)
-frozen := freeze(gate)
-return renderFrozenPlan(frozen, projection)
-```
-
-## Scenario: Unified Capability Runtime And Thin Provider Catalog
-
-### 1. Scope / Trigger
-
-- Trigger: a Go Core provider call advertises local capabilities, a native or
-  structured-sidecar invocation is frozen, or a frozen/action payload is
-  replayed after the Capability Runtime cutover.
-- The Registry/Definition/Invocation/Result/ContextResolver chain is the only
-  active execution model. Provider-native/root-sidecar envelopes are decoded
-  once at ingress and are not accepted by Runtime/replay as a second API.
-
-### 2. Signatures
-
-```go
-type Capability interface {
-    Definition() CapabilityDefinition
-    RequiredContext() []ContextSlot
-    Execute(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
-}
-
-type CapabilityPreparer interface {
-    Prepare(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityInvocation, error)
-}
-
-type TransactionalCapability interface {
-    ExecuteTx(context.Context, pgx.Tx, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
-}
-
-type ContextResolver interface {
-    Resolve(context.Context, ContextRequest, []ContextSlot) (CapabilityContext, error)
-}
-
-CapabilityRegistry.Catalog(surface) []CapabilityDefinition
-RenderCapabilityTools(definitions) []map[string]any
-CapabilityRuntime.Execute(ctx, invocation) (CapabilityResult, error)
-```
-
-### 3. Contracts
-
-- `CapabilityDefinition.InputSchema` is the only Provider-facing schema. Thin
-  inputs contain model-owned decisions; renderer/workflow/database/evidence,
-  revision, and idempotency fields stay Core-owned. Planner schemas are never
-  sent in `tools`.
-- Provider `Arguments` are immutable and validated with the complete bounded
-  Definition schema, including additional-properties, conditional alternatives,
-  nested types, enum, pattern, length and numeric bounds. Capability-local plans
-  and Runtime provenance live only in the separately versioned
-  `PreparedPayload`; a Provider cannot supply or override that payload through
-  Arguments.
-- `CapabilitySurface` selects conversation, WakeUp, autonomy, or native
-  cognition catalogs. Callers do not maintain concrete-name exclusion lists.
-- A Capability declares `ContextSlot` dependencies. The resolver loads only
-  those slots and exposes typed value objects plus a bounded replay snapshot;
-  live authorization, revision, and idempotency guards remain in execution.
-- Runtime order is invocation validation → Registry lookup → context resolve →
-  optional preflight/Prepare → persist frozen PreparedPayload → sequential
-  execute or caller-owned transactional apply → provider-safe result. Native
-  and sidecar calls normalize once and native calls remain authoritative.
-- Runtime Prepare is mandatory for every invocation, even when a Capability has
-  no capability-local planner. It freezes Runtime-owned provenance, an explicit
-  PreparedPayload envelope, and the declared ContextSnapshot before apply;
-  replay validates that envelope and never regenerates it.
-- Interactive Memory/Affect mutations execute in per-Capability savepoints
-  inside the caller-owned settlement transaction. A failure rolls back only
-  that Capability savepoint and persists its failed result; successful sibling
-  calls and the primary visible output continue. Provider/Redis/object/workflow
-  I/O is forbidden in this phase.
-- `required_for_visible_claim` is scoped to the Capability that owns the
-  concrete visible output target. A failed `conversation.reply` or
-  `moment.publish` cannot claim delivery, while a failed Memory, Affect, media,
-  or other sibling never rolls back an unrelated visible reply. Its
-  non-transactional executor returns `caller_transaction_required`.
-- Reflection Memory output is the closed operation-aware candidate shape
-  (`create|confirm|revise|merge|supersede|deprecate`, opaque target/merge refs,
-  semantic fields/evidence/reason). Core compiles it to the same Memory
-  lifecycle authority used by chat and Owner governance; malformed candidates
-  invalidate the proposal before watermark advancement.
-- A `required_for_visible_claim` failure rolls back only the settlement of the
-  visible output Capability that declared that policy; sibling failures remain
-  structured and auditable. Direct conversation defaults to a final visible
-  result in the Main call.
-  Only one or two result-dependent invocations classified generically as
-  `pure_query` may create the dedicated same-turn `role=tool` continuation;
-  concrete capability names never select that path.
-- A tool-only result without a structured appraisal may settle as a
-  capability-only `no_op` on a direct conversation or background surface. A
-  direct conversation with no visible text and no valid Capability calls still
-  fails before settlement. ACTION and mixed batches cannot use continuation.
-  Core never creates a synthetic neutral/default appraisal, and Provider output
-  cannot set `cognitive_state_transition=not_proposed`.
-- Appraisal is optional independently of the visible-output channel. A valid
-  direct reply supplied through `visible_text` or `conversation.reply` with no
-  appraisal commits both authoritative messages and records Core-owned
-  `cognitive_state_transition=not_proposed`; it writes no appraisal/state
-  revision. A present malformed appraisal is not equivalent to absence and
-  still fails closed.
-- Appraisal is closed and ref-bound. Optional Drive signals contain only an
-  opaque Drive ref, increase/decrease direction, bounded strength/confidence,
-  and frozen context evidence refs. Core owns pressure/conflict numbers and
-  records the post-transition state ref in the frozen action and ActionOutcome.
-- Active frozen/action payloads use `capability_runtime_version`,
-  `capability_invocations`, `capability_results`, and bounded per-invocation
-  context snapshots. Migration head `0026_capability_runtime` converts only
-  active released rows, moves legacy prepared/provenance fields out of
-  Arguments, converts legacy results, and validates workflow authority.
-  Completed audit rows are not rewritten; completed per-call results are not
-  re-executed. Missing active provenance fails closed and IDs are never fabricated.
-
-### 4. Validation & Error Matrix
-
-| Condition | Result |
-| --- | --- |
-| Nil, duplicate, invalid, or unknown capability | Deterministic registry error or `capability_not_found`; no executor call |
-| Invalid invocation JSON/identity/source/provider ID | `invalid_arguments`; no side effect |
-| Declared slot missing, loader failure, or cancelled context | `context_resolve_failed`; no side effect |
-| Capability returns invalid status/output or execution error | `execution_failed`; required policies fail closed |
-| Provider Arguments contain an undeclared prepared/runtime field | `invalid_arguments`; Prepare and executor are not called |
-| Frozen PreparedPayload is malformed or conflicts with thin intent/context | fail closed; do not re-plan or repair it |
-| Invocation has no Capability-local preparer | Runtime still freezes provenance, declared ContextSnapshot, and an explicit empty PreparedPayload envelope before apply |
-| Direct conversation omits visible assistant text and has no valid Capability | `cognition_visible_text_missing`; preserve committed user row and same retry identity; commit no completed action/effect |
-| Background tool-only result omits appraisal | Settle the Capability-only `no_op`; write no appraisal or state revision |
-| Appraisal contains unknown/raw numeric fields or foreign context evidence | Reject before freeze; do not infer or append a replacement appraisal |
-| Frozen State or AffectProfile revision changed before apply | Terminal conflict/re-assessment boundary; no mutation and no blind retry |
-| Thin schedule intent without a configured internal planner | `schedule_replan_planner_failed`; never fall back to thick schema |
-| Active replay payload lacks stable provenance | Migration/replay fails closed; completed audit data remains readable |
-
-### 5. Good / Base / Bad Cases
-
-- Good: a dummy Capability is registered once, appears in a surface catalog,
-  renders through `RenderCapabilityTools`, resolves its declared slot, and
-  executes without a MainAgent/schema switch.
-- Base: a native and root sidecar call normalize to one Invocation; a deferred
-  output binds after its durable target exists and retries the same IDs.
-- Bad: add a `switch call.Name` to MainAgent, expose the old image concept or
-  schedule revision fields, infer a missing semantic field, or continue with
-  ACTION/mixed ToolResults.
-- Bad: manufacture a “neutral” appraisal for a Tool-only result, or execute a
-  transactional autonomy sibling before the message/Moment/action transaction.
-
-### 6. Tests Required
-
-- Registry tests cover registration, nil/invalid/duplicate behavior, stable
-  ordering, lookup, and surface catalogs.
-- Context tests cover slot declarations, cancellation, missing loaders,
-  snapshot round-trip, deduplicated requests, and no unrelated reads.
-- Schema tests cover thin forbidden fields, one root sidecar, and byte/char
-  reports; Runtime tests cover taxonomy, preflight, sequential ordering,
-  deferred binding, and required/optional failure policies.
-- Replay tests cover canonical payload enrichment, stable IDs, malformed active
-  fail-closed behavior, and untouched completed audit rows.
-- Affect/Drive tests cover foreign appraisal refs, raw numeric rejection,
-  non-finite values, profile/state CAS, same-source coalescing, elapsed-time
-  partition invariance, typed-slot deactivation, and later state-ref citation.
-- Transaction tests make one sibling mutate and a required sibling fail, then
-  assert state/action/output/outcome/outbox authorities all roll back together.
-
-### 7. Wrong vs Correct
-
-#### Wrong
-
-```go
-if call.Name == "media.image.generate" {
-    createMediaIntent(ctx, call.Arguments)
-}
-```
-
-#### Correct
-
-```go
-definition := registry.Definition(invocation.CapabilityName)
-context := resolver.Resolve(ctx, request, definition.RequiredContext)
-result := runtime.Execute(ctx, invocation)
-```
-
-## Scenario: Turn Takeover Arbitration, Stage Machine, And Per-Turn Budget
-
-### 1. Scope / Trigger
-
-Applies to any change in `apps/core-go/internal/core` that touches the interactive
-turn chain between the A candidate freeze and settlement: `applyTurnTakeover`
-(`turn_takeover.go`), `generateTakeoverReply`, `normalizeTurnDecision`
-(`turn_decision.go`), the frozen-payload stage key, or the recovery paths in
-`mutations.go` / `cognition.go`. Source of authority: `design.md` §4.4–§4.8, §8
-(tasks F03/F06/F10/F13).
-
-### 2. Signatures
-
-- Stage key: `payload["turn_stage"]` ∈ `a_frozen` → `arbitration_decided` →
-  `b_frozen` → `winner_ready` → `executing` (`turn_takeover.go:313-318`).
-  `settled` is a terminal marker; the durable row transitions to
-  `status='completed'`/`'failed'` instead of advancing the stage.
-- One arbitration point only: `applyTurnTakeover` is called once from
-  `mutations.go` after `PersistTurnDecision` and before
-  `prepareCapabilityInvocations`.
-- Provider schemas: `conversation_turn_response` (A), `takeover_judge_response`
-  (Judge, boolean), `takeover_reply_response` (B). B must never request
-  `conversation_turn_response`.
-- Execution gate: `turnStageExecutable` accepts `winner_ready|executing` only;
-  `BeginTurnExecution` is the sole `winner_ready → executing` transition.
-
-### 3. Contracts
-
-- **Single normalization**: every turn decision (A and B) is normalized by
-  `normalizeTurnDecision`. The "not proposed" cognitive-state outlet
-  (`decision["cognitive_state_transition"] = "not_proposed"`) exists in exactly
-  one place (`turn_decision.go`).
-- **Single visible-text authority**: `resolveCanonicalVisibleReply`; the
-  rejected candidate's text survives only inside
-  `takeover.rejected_candidate` (diagnostics, never rendered).
-- **Sidecar stripping**: any frozen-decision overwrite must go through
-  `stripFrozenDecisionSidecars()` (`cognition.go`) so `tool_calls` sidecars
-  never survive into a reloaded payload (M4/D2).
-- **QUERY mutual exclusion (F06)**: a `query_continuation` turn never reaches
-  the Judge; a takeover reply is generated with
-  `ForbidQueryContinuation: true` and fails closed on a continuation request.
-- **Budget (F10)**: per interactive turn — at most 2 main generations
-  (A + optional B), at most 1 Judge call, no retries. A failing Judge
-  (timeout/unavailable/invalid output) degrades to `judge_degraded` with an
-  explicit `outcome` and never grows into a second generation. Every physical
-  HTTP attempt must map to a scripted logical stage (no unattributed attempts).
-- **Recovery (F03)**: resume without re-deciding for every stage — `b_frozen`
-  and `winner_ready`/`executing` execute the decided winner; `a_frozen`
-  re-arbitrates exactly once; `settled`/completed turns error on re-entry.
-  Stage transitions are CAS via `SELECT … FOR UPDATE` + stage match.
-
-### 4. Validation & Error Matrix
-
-| Violation | Expected behavior |
-|---|---|
-| Judge consulted twice | Static guard: `StructuredAssembledJudgement(` appears once, in `turn_takeover.go` only |
-| B reuses the Main schema | Guard fails: `takeoverReplySchemaName != workingPersonaMainTurnSchema` |
-| Third main generation | Runtime test: schema sequence is a subsequence of `[conversation_turn_response, takeover_judge_response, takeover_reply_response]` |
-| Unattributed HTTP attempt | `fakeProviderRouter.unattributedRequests() == 0` |
-| Overwrite from a non-matching stage | `ReplaceFrozenTurnDecision`/`AdvanceTurnStage` CAS conflict |
-| Stage with no writer (e.g. `executing`) | Qualification gate accepts `winner_ready|executing`; recovery resumes instead of quarantining |
-
-### 5. Good / Base / Bad Cases
-
-Good: A frozen → Judge declines → A settles with its own text; A frozen → Judge
-approves → B generated in reply-owner scope → B settles; Judge fails →
-`judge_degraded`, A settles.
-Base: pure-query turn skips arbitration entirely.
-Bad: re-judging on recovery, sending the rejected candidate after a failed B
-generation, or a budget-exhausted arbitration leaving the row stuck in
-`arbitration_decided` (must fail with `takeoverFailureCode(err)` unless
-superseded).
-
-### 6. Tests Required
-
-- `turn_takeover_chain_test.go`, `turn_takeover_recovery_test.go`,
-  `turn_chain_budget_test.go` (chain/recovery/budget);
-- `TestTakeoverChainStaticGuards` and
-  `TestCapabilityRuntimeStaticGuardsPreserveActionSingleCognitionAndGenericQueryContinuation`
-  (cross-file precise counts);
-- every recovery row asserts both physical call counts and delivered-once texts.
-
-### 7. Wrong vs Correct
-
-#### Wrong
-
-```go
-// A second Judge consultation "for reliability" on the takeover path.
-if _, _, _, err := a.judgeTurnTakeover(ctx, input, rule); err != nil {
-    return false, err
-}
-```
-
-#### Correct
-
-```go
-// Arbitration happens exactly once; a Judge failure degrades to A.
-handled, err := a.applyTurnTakeover(ctx, input)
-```
-
-## Scenario: ADK tool-loop identity and final publication
-
-### 1. Scope / Trigger
-
-- Trigger: a direct conversation uses Eino ADK to make one or more model
-  calls around a Capability tool.
-
-### 2. Signatures
-
-```go
-ADKCapabilityInvokerWithID.ExecuteWithID(ctx, toolCallID, capabilityName, argumentsJSON)
-RunADKConversation(ctx, ADKConversationConfig, messages) (ADKConversationResult, error)
-```
-
-### 3. Contracts
-
-- The tool-call ID supplied by Eino `compose.GetToolCallID(ctx)` is copied
-  unchanged into `CapabilityInvocation.CallID`, `CapabilityResult.CallID`,
-  frozen payload and tool-result `tool_call_id`.
-- Every physical ADK model call has its own queue lease, provider request ID,
-  diagnostic model-run row and bounded usage/latency; the turn correlation is
-  shared only as a parent correlation.
-- ADK may return a final assistant message or a valid assistant tool-call
-  message for a tool-only turn. A tool result is never treated as a final
-  assistant message. No final assistant/tool-call event returns a typed error;
-  it does not fabricate visible text.
-- `MaxIterations` is capped at two and ADK retry/failover is disabled. The
-  final visible assistant is published only by the existing post-settlement
-  Core boundary.
-
-### 4. Validation & Error Matrix
-
-| Condition | Result |
-| --- | --- |
-| Missing tool-call ID in the Eino tool context | Reject before capability execution |
-| Duplicate or mismatched tool-call ID | Reject canonical invocation; keep no side effect |
-| ADK returns only a tool result | Typed `adk_final_message_missing`; no assistant publish |
-| Model/tool error, cancellation or iteration limit | Typed failure; no fabricated final success |
-| Second model call in one turn | New queue lease, request identity, diagnostic row and bounded metrics |
-
-### 5. Good/Base/Bad Cases
-
-- Good: provider ID `call-7` appears as the assistant tool call, tool result
-  `tool_call_id`, canonical invocation/result ID and frozen payload ID.
-- Base: a tool-only turn settles its capability without emitting assistant
-  prose, while the browser still receives only the committed terminal frames.
-- Bad: derive `adk_<digest>` from name/arguments, reuse one diagnostic ID for
-  two HTTP calls, or publish the tool result as visible assistant text.
-
-### 6. Tests Required
-
-- Assert original tool-call ID/name/arguments and exact tool-result content in
-  the next model request.
-- Assert model/tool failure, cancellation, no-final and `MaxIterations>2`
-  fail closed without publication.
-- Assert two ADK model calls create two queue leases, request IDs and model-run
-  rows under one parent turn correlation.
-- Assert a full database-backed HandleTurn publishes one assistant once after
-  settlement and never publishes a tool result independently.
-
-### 7. Wrong vs Correct
-
-#### Wrong
-
-```go
-callID := "adk_" + stableDigest(toolName+arguments)
-```
-
-#### Correct
-
-```go
-callID := compose.GetToolCallID(ctx)
-return invoker.ExecuteWithID(ctx, callID, toolName, arguments)
-```
+Wrong: treat the last assistant sentence as evidence of a scene/Memory write.
+Correct: read the owned resource or committed Tool receipt and retain its source,
+revision and operation identity.

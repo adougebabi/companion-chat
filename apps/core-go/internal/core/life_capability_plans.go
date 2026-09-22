@@ -62,9 +62,6 @@ func (a *App) prepareSceneCapability(_ context.Context, invocation CapabilityInv
 	if err := requireCapabilityContext(resolved, SlotCurrentLife); err != nil {
 		return invocation, err
 	}
-	if strings.TrimSpace(invocation.ActionID) == "" || len(invocation.ContextSnapshot) == 0 {
-		return invocation, errors.New("scene_frozen_action_required")
-	}
 	args, err := capabilityExecutionArguments(invocation, sceneCapabilityDefinition())
 	if err != nil {
 		return invocation, err
@@ -76,11 +73,11 @@ func (a *App) prepareSceneCapability(_ context.Context, invocation CapabilityInv
 	scene := strings.TrimSpace(stringValue(args["scene"]))
 	activity := strings.TrimSpace(stringValue(args["activity"]))
 	if operation != "end" && (scene == "" || activity == "") {
-		return invocation, errors.New("scene_fields_required")
+		return invocation, newCapabilityError("scene_fields_required", false, ErrInvalidArguments)
 	}
 	confidence, err := boundedNumberOrError(args["confidence"], -1)
 	if err != nil || confidence < 0 {
-		return invocation, errors.New("scene_confidence_invalid")
+		return invocation, newCapabilityError("scene_confidence_invalid", false, ErrInvalidArguments)
 	}
 	life := resolved.Life.Data
 	expectedRevision := stringValue(life["context_revision"])
@@ -89,10 +86,10 @@ func (a *App) prepareSceneCapability(_ context.Context, invocation CapabilityInv
 		return invocation, errors.New("scene_context_revision_required")
 	}
 	if operation == "start" && expectedSource == "event" {
-		return invocation, errors.New("scene_start_requires_no_active_event")
+		return invocation, newCapabilityError("scene_start_requires_no_active_event", false, ErrConflict)
 	}
 	if operation == "end" && expectedSource != "event" {
-		return invocation, errors.New("scene_end_requires_active_event")
+		return invocation, newCapabilityError("scene_end_requires_active_event", false, ErrConflict)
 	}
 	evidence := sortedUniqueStrings(decisionServiceRefValues(args["evidence_refs"]))
 	if len(evidence) != 1 || evidence[0] != invocation.SourceFactID {
@@ -105,7 +102,7 @@ func (a *App) prepareSceneCapability(_ context.Context, invocation CapabilityInv
 		OccurredAt: occurredAt, EndsAt: occurredAt.Add(sceneDefaultDuration),
 		ExpectedLifeContextRevision: expectedRevision, ExpectedSource: expectedSource,
 		ExpectedEventID: stringValue(life["event_id"]), ExpectedEventRevision: intValue(life["event_revision"]),
-		IdempotencyKey: "scene:" + stableDigest(invocation.Metadata.FluctlightID+"\x1f"+invocation.ActionID+"\x1f"+invocation.CallID),
+		IdempotencyKey: "scene:" + stableDigest(invocation.Metadata.FluctlightID+"\x1f"+capabilityOperationID(invocation)),
 	}
 	plan.RequestDigest = sceneMutationDigest(plan)
 	return withCapabilityPreparedData(invocation, "scene_plan", plan)
@@ -115,36 +112,33 @@ func (a *App) preparePresenceCapability(_ context.Context, invocation Capability
 	if err := requireCapabilityContext(resolved, SlotCurrentLife); err != nil {
 		return invocation, err
 	}
-	if strings.TrimSpace(invocation.ActionID) == "" || len(invocation.ContextSnapshot) == 0 {
-		return invocation, errors.New("presence_frozen_action_required")
-	}
 	args, err := capabilityExecutionArguments(invocation, presenceCapabilityDefinition())
 	if err != nil {
 		return invocation, err
 	}
 	operation := firstString(args["operation"], "set")
 	if operation != "set" && operation != "clear" {
-		return invocation, errors.New("presence_operation_invalid")
+		return invocation, newCapabilityError("presence_operation_invalid", false, ErrInvalidArguments)
 	}
 	currentTask := stringValue(args["current_task"])
 	userPresence := stringValue(args["user_presence"])
 	if operation == "set" && currentTask == "" && userPresence == "" {
-		return invocation, errors.New("presence_fields_required")
+		return invocation, newCapabilityError("presence_fields_required", false, ErrInvalidArguments)
 	}
 	if operation == "clear" && (currentTask != "" || userPresence != "" || stringValue(args["expires_at"]) != "") {
-		return invocation, errors.New("presence_clear_fields_forbidden")
+		return invocation, newCapabilityError("presence_clear_fields_forbidden", false, ErrInvalidArguments)
 	}
 	confidence, err := boundedNumberOrError(args["confidence"], -1)
 	if err != nil || confidence < 0 {
-		return invocation, errors.New("presence_confidence_invalid")
+		return invocation, newCapabilityError("presence_confidence_invalid", false, ErrInvalidArguments)
 	}
-	index, err := contextReferenceIndexFromValue(invocation.ContextSnapshot["context_reference_index"])
-	if err != nil {
-		return invocation, err
-	}
-	actorID := strings.TrimSpace(index.SpeakerActorID)
+	actorID := strings.TrimSpace(firstString(invocation.Metadata.SubjectActorID, invocation.Metadata.AuthorizationActorID))
 	if actorID == "" {
-		actorID = strings.TrimSpace(index.OwnerActorID)
+		index, indexErr := contextReferenceIndexFromValue(invocation.ContextSnapshot["context_reference_index"])
+		if indexErr != nil {
+			return invocation, indexErr
+		}
+		actorID = firstString(index.SpeakerActorID, index.OwnerActorID)
 	}
 	if actorID == "" {
 		return invocation, errors.New("presence_actor_required")
@@ -160,7 +154,7 @@ func (a *App) preparePresenceCapability(_ context.Context, invocation Capability
 		if raw := stringValue(args["expires_at"]); raw != "" {
 			parsed, parseErr := time.Parse(time.RFC3339, raw)
 			if parseErr != nil || !parsed.After(occurredAt) || parsed.After(occurredAt.Add(presenceMaxDuration)) {
-				return invocation, errors.New("presence_expiration_invalid")
+				return invocation, newCapabilityError("presence_expiration_invalid", false, ErrInvalidArguments)
 			}
 			expires = parsed.UTC()
 		}
@@ -171,7 +165,7 @@ func (a *App) preparePresenceCapability(_ context.Context, invocation Capability
 		CurrentTask: currentTask, UserPresence: userPresence, Confidence: confidence, EvidenceRefs: evidence,
 		OccurredAt: occurredAt, ExpiresAt: expiresAt,
 		ExpectedLifeContextRevision: stringValue(resolved.Life.Data["context_revision"]),
-		IdempotencyKey:              "presence:" + stableDigest(invocation.Metadata.FluctlightID+"\x1f"+invocation.ActionID+"\x1f"+invocation.CallID),
+		IdempotencyKey:              "presence:" + stableDigest(invocation.Metadata.FluctlightID+"\x1f"+capabilityOperationID(invocation)),
 	}
 	if plan.ExpectedLifeContextRevision == "" {
 		return invocation, errors.New("presence_context_revision_required")

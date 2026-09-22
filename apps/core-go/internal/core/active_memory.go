@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"sort"
 	"strings"
@@ -15,6 +16,20 @@ const (
 	activeMemoryCandidateLimit = 256
 	activeMemoryResultLimit    = 30
 )
+
+// ActiveMemoryCapabilitySource is the Core-owned source contract frozen into
+// an Active Memory command. A cognition fact is one valid source, but a direct
+// business operation uses its explicit evidence ID and admission time instead
+// of manufacturing a cognition inbox row or an action snapshot.
+type ActiveMemoryCapabilitySource struct {
+	Kind         string    `json:"kind"`
+	EvidenceID   string    `json:"evidence_id"`
+	OccurredAt   time.Time `json:"occurred_at"`
+	ActorID      string    `json:"actor_id"`
+	ActorRefs    []string  `json:"actor_refs"`
+	OperationID  string    `json:"operation_id"`
+	Conversation string    `json:"conversation_id,omitempty"`
+}
 
 func activeMemoryEventCapabilityDefinition() CapabilityDefinition {
 	properties := map[string]any{
@@ -67,8 +82,8 @@ func (a *App) prepareActiveMemoryCapability(ctx context.Context, invocation Capa
 	if err := requireCapabilityContext(resolved, SlotMemoryScope, SlotCurrentLife); err != nil {
 		return invocation, err
 	}
-	if a == nil || a.DB == nil || strings.TrimSpace(invocation.ActionID) == "" || len(invocation.ContextSnapshot) == 0 {
-		return invocation, errors.New("active_memory_frozen_action_required")
+	if a == nil || a.DB == nil || a.DB.Pool() == nil {
+		return invocation, errors.New("active_memory_database_unavailable")
 	}
 	args, err := capabilityExecutionArguments(invocation, activeMemoryEventCapabilityDefinition())
 	if err != nil {
@@ -83,33 +98,27 @@ func (a *App) prepareActiveMemoryCapability(ctx context.Context, invocation Capa
 	if ownerActorID == "" || timezone == "" {
 		return invocation, errors.New("active_memory_scope_invalid")
 	}
-	index, err := contextReferenceIndexFromValue(invocation.ContextSnapshot["context_reference_index"])
+	idempotencyKey := "active-memory:direct:" + stableDigest(invocation.Metadata.FluctlightID+"\x1f"+capabilityOperationID(invocation))
+	index, hasIndex, err := activeMemoryReferenceIndexFromInvocation(invocation, ownerActorID)
 	if err != nil {
 		return invocation, err
 	}
-	if index.FluctlightID != invocation.Metadata.FluctlightID || index.OwnerActorID != ownerActorID || index.ConversationID != invocation.Metadata.ConversationID {
-		return invocation, errors.New("active_memory_reference_scope_invalid")
-	}
-	actorID := strings.TrimSpace(index.SpeakerActorID)
-	if actorID == "" {
-		actorID = ownerActorID
-	}
-	var occurredAt time.Time
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT occurred_at FROM public.cognition_inbox WHERE id=$1 AND fluctlight_id=$2`, invocation.SourceFactID, invocation.Metadata.FluctlightID).Scan(&occurredAt); err != nil {
+	source, err := a.resolveActiveMemoryCapabilitySource(ctx, invocation, ownerActorID, idempotencyKey, index, hasIndex)
+	if err != nil {
 		return invocation, err
 	}
 	command := PreparedActiveMemoryMutation{
 		SchemaVersion: activeMemoryLifecycleSchemaVersion, Operation: operation,
-		OwnerFluctlightID: invocation.Metadata.FluctlightID, OwnerActorID: ownerActorID, ActorID: invocation.Metadata.FluctlightID,
-		ActorRefs:      []string{actorID},
+		OwnerFluctlightID: invocation.Metadata.FluctlightID, OwnerActorID: ownerActorID, ActorID: source.ActorID,
+		ActorRefs:      append([]string(nil), source.ActorRefs...),
 		ConversationID: invocation.Metadata.ConversationID, SourceFactID: invocation.SourceFactID,
-		EvidenceRefs: []string{invocation.SourceFactID}, OccurredAt: occurredAt,
+		EvidenceRefs: []string{source.EvidenceID}, OccurredAt: source.OccurredAt,
 		SemanticReason: "direct_active_memory_" + string(operation),
-		IdempotencyKey: "active-memory:direct:" + stableDigest(invocation.Metadata.FluctlightID+"\x1f"+invocation.ActionID+"\x1f"+invocation.CallID),
+		IdempotencyKey: idempotencyKey,
 	}
 	var targetSnapshot map[string]any
 	if operation != ActiveMemoryCreate {
-		target, snapshot, targetErr := activeMemoryTargetFromRef(stringValue(args["target_ref"]), index)
+		target, snapshot, targetErr := a.resolveActiveMemoryCapabilityTarget(ctx, stringValue(args["target_ref"]), invocation, resolved, source, index, hasIndex)
 		if targetErr != nil {
 			return invocation, targetErr
 		}
@@ -127,7 +136,7 @@ func (a *App) prepareActiveMemoryCapability(ctx context.Context, invocation Capa
 				fallbackImportance = value
 			}
 		}
-		semantic, semanticErr := activeMemorySemanticFromArguments(args, timezone, occurredAt, fallbackImportance)
+		semantic, semanticErr := activeMemorySemanticFromArguments(args, timezone, source.OccurredAt, fallbackImportance)
 		if semanticErr != nil {
 			return invocation, semanticErr
 		}
@@ -141,6 +150,119 @@ func (a *App) prepareActiveMemoryCapability(ctx context.Context, invocation Capa
 		return invocation, err
 	}
 	return withCapabilityPreparedData(invocation, "active_memory_plan", command)
+}
+
+func activeMemoryReferenceIndexFromInvocation(invocation CapabilityInvocation, ownerActorID string) (ContextReferenceIndex, bool, error) {
+	raw, ok := invocation.ContextSnapshot["context_reference_index"]
+	if !ok || raw == nil {
+		return ContextReferenceIndex{}, false, nil
+	}
+	index, err := contextReferenceIndexFromValue(raw)
+	if err != nil {
+		return ContextReferenceIndex{}, false, err
+	}
+	if index.FluctlightID != invocation.Metadata.FluctlightID || index.OwnerActorID != ownerActorID || index.ConversationID != invocation.Metadata.ConversationID {
+		return ContextReferenceIndex{}, false, errors.New("active_memory_reference_scope_invalid")
+	}
+	return index, true, nil
+}
+
+func (a *App) resolveActiveMemoryCapabilitySource(ctx context.Context, invocation CapabilityInvocation, ownerActorID, idempotencyKey string, index ContextReferenceIndex, hasIndex bool) (ActiveMemoryCapabilitySource, error) {
+	evidenceID := strings.TrimSpace(invocation.SourceFactID)
+	operationID := strings.TrimSpace(capabilityOperationID(invocation))
+	if evidenceID == "" || operationID == "" || len([]rune(operationID)) > 256 {
+		return ActiveMemoryCapabilitySource{}, errors.New("active_memory_source_invalid")
+	}
+	// A replay reuses the exact source time and actor authority already stored
+	// with the command. This keeps a fresh native ToolCall ID from changing the
+	// business command digest.
+	var priorRaw []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT command FROM public.active_memory_commands WHERE owner_fluctlight_id=$1 AND idempotency_key=$2`, invocation.Metadata.FluctlightID, idempotencyKey).Scan(&priorRaw); err == nil {
+		var prior PreparedActiveMemoryMutation
+		if jsonUnmarshal(priorRaw, &prior) != nil || validatePreparedActiveMemoryMutation(prior) != nil {
+			return ActiveMemoryCapabilitySource{}, errors.New("active_memory_source_replay_invalid")
+		}
+		return ActiveMemoryCapabilitySource{
+			Kind: "command_replay", EvidenceID: prior.SourceFactID, OccurredAt: prior.OccurredAt,
+			ActorID: prior.ActorID, ActorRefs: append([]string(nil), prior.ActorRefs...), OperationID: operationID,
+			Conversation: prior.ConversationID,
+		}, nil
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return ActiveMemoryCapabilitySource{}, err
+	}
+	source := ActiveMemoryCapabilitySource{
+		Kind: "business_operation", EvidenceID: evidenceID, OccurredAt: a.now().UTC(),
+		ActorID: ownerActorID, ActorRefs: []string{ownerActorID}, OperationID: operationID,
+		Conversation: invocation.Metadata.ConversationID,
+	}
+	var cognitionOccurredAt time.Time
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT occurred_at FROM public.cognition_inbox WHERE id=$1 AND fluctlight_id=$2`, evidenceID, invocation.Metadata.FluctlightID).Scan(&cognitionOccurredAt); err == nil {
+		source.Kind = "cognition_fact"
+		source.OccurredAt = cognitionOccurredAt.UTC()
+		source.ActorID = invocation.Metadata.FluctlightID
+		if hasIndex {
+			if speaker := strings.TrimSpace(index.SpeakerActorID); speaker != "" {
+				source.ActorRefs = []string{speaker}
+			}
+		}
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return ActiveMemoryCapabilitySource{}, err
+	}
+	return source, nil
+}
+
+func (a *App) resolveActiveMemoryCapabilityTarget(ctx context.Context, ref string, invocation CapabilityInvocation, resolved CapabilityContext, source ActiveMemoryCapabilitySource, index ContextReferenceIndex, hasIndex bool) (ActiveMemoryTarget, map[string]any, error) {
+	ref = strings.TrimSpace(ref)
+	if ref == "" {
+		return ActiveMemoryTarget{}, nil, errors.New("active_memory_context_ref_unknown")
+	}
+	if hasIndex {
+		if target, snapshot, err := activeMemoryTargetFromRef(ref, index); err == nil {
+			return target, snapshot, nil
+		}
+	}
+	rows, err := a.DB.Pool().Query(ctx, `
+		SELECT id,owner_fluctlight_id,COALESCE(conversation_id,''),kind,content,status,confidence,importance,
+		       actor_refs,source_fact_id,evidence_refs,COALESCE(original_time_expression,''),valid_from,valid_until,
+		       time_precision,timezone,last_relevant_at,revision,canonical_key,request_digest,
+		       COALESCE(superseded_by_active_memory_id,''),COALESCE(supersedes_active_memory_id,''),created_at,updated_at,closed_at
+		FROM public.active_memories
+		WHERE owner_fluctlight_id=$1 AND status='active' AND (conversation_id IS NULL OR conversation_id=$2)
+		ORDER BY last_relevant_at DESC,id LIMIT $3`, invocation.Metadata.FluctlightID, nullableString(strings.TrimSpace(invocation.Metadata.ConversationID)), activeMemoryCandidateLimit)
+	if err != nil {
+		return ActiveMemoryTarget{}, nil, err
+	}
+	defer rows.Close()
+	liveIndex := ContextReferenceIndex{
+		SchemaVersion: contextReferenceIndexVersion, FluctlightID: invocation.Metadata.FluctlightID,
+		OwnerActorID: stringValue(resolved.Memory.Data["owner_actor_id"]), ConversationID: invocation.Metadata.ConversationID,
+		ActiveProfileID: stringValue(resolved.Memory.Data["active_profile_id"]), ByRef: map[string]ContextReference{},
+	}
+	if len(source.ActorRefs) > 0 {
+		liveIndex.SpeakerActorID = source.ActorRefs[0]
+	}
+	recallRequest := MemoryRecallRequest{FluctlightID: invocation.Metadata.FluctlightID, ConversationID: invocation.Metadata.ConversationID}
+	for rows.Next() {
+		row, scanErr := scanActiveMemoryAuthorityRow(rows)
+		if scanErr != nil {
+			return ActiveMemoryTarget{}, nil, scanErr
+		}
+		snapshot := activeMemoryRowMap(row)
+		if recallOpaqueRef("active_memory", row.ID+":"+fmt.Sprint(row.Revision), recallRequest) == ref {
+			return ActiveMemoryTarget{Ref: ref, ActiveMemoryID: row.ID, ExpectedRevision: row.Revision}, snapshot, nil
+		}
+		candidate := cloneMap(snapshot)
+		if err := addActiveMemoryReferences(&liveIndex, []map[string]any{candidate}); err != nil {
+			return ActiveMemoryTarget{}, nil, err
+		}
+		if stringValue(candidate["ref"]) == ref {
+			return ActiveMemoryTarget{Ref: ref, ActiveMemoryID: row.ID, ExpectedRevision: row.Revision}, snapshot, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return ActiveMemoryTarget{}, nil, err
+	}
+	return ActiveMemoryTarget{}, nil, errors.New("active_memory_context_ref_unknown")
 }
 
 func activeMemorySemanticFromArguments(args map[string]any, timezone string, occurredAt time.Time, fallbackImportance float64) (ActiveMemorySemanticInput, error) {

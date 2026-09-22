@@ -100,7 +100,7 @@ func (service *capabilityRequestService) executeWith(ctx context.Context, tx pgx
 	}
 	idempotency := stringValue(args["idempotency_key"])
 	if idempotency == "" {
-		idempotency = "tool:" + invocation.CallID
+		idempotency = "tool:" + capabilityOperationID(invocation)
 	}
 	if len([]rune(idempotency)) > 256 {
 		return failedCapabilityResultDetail(invocation, "capability_request_idempotency_invalid", false, "idempotency_key is too long"), errors.New("capability request idempotency invalid")

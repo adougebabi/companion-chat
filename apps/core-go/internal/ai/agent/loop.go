@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/components/model"
@@ -20,8 +21,120 @@ import (
 // invocation/result pair from an ADK tool callback into Core's existing frozen
 // settlement path. It is never persisted as an alternative envelope.
 type ADKCapabilityTrace struct {
+	mu          sync.RWMutex
 	Invocations []capability.CapabilityInvocation
 	Results     []capability.CapabilityResult
+	ModelCalls  map[string]ADKToolCallModelIdentity
+}
+
+// ADKToolCallModelIdentity binds a native ToolCall to the physical Provider
+// request that emitted it. ProviderRequestID is transport provenance;
+// ModelCallSequence/ToolIndex are stable run coordinates used to derive a
+// business operation identity independently of the model's call ID.
+type ADKToolCallModelIdentity struct {
+	ProviderRequestID string
+	ModelCallSequence uint64
+	ToolIndex         int
+}
+
+func (trace *ADKCapabilityTrace) RecordModelToolCalls(providerRequestID string, sequence uint64, calls []schema.ToolCall) {
+	if trace == nil {
+		return
+	}
+	trace.mu.Lock()
+	defer trace.mu.Unlock()
+	if trace.ModelCalls == nil {
+		trace.ModelCalls = make(map[string]ADKToolCallModelIdentity)
+	}
+	for index, call := range calls {
+		callID := strings.TrimSpace(call.ID)
+		if callID == "" {
+			continue
+		}
+		// Repeated delivery of a native call reuses its original execution
+		// receipt. Never rewrite that receipt's physical model provenance.
+		if _, exists := trace.ModelCalls[callID]; exists {
+			continue
+		}
+		trace.ModelCalls[callID] = ADKToolCallModelIdentity{
+			ProviderRequestID: strings.TrimSpace(providerRequestID), ModelCallSequence: sequence, ToolIndex: index,
+		}
+	}
+}
+
+func (trace *ADKCapabilityTrace) ModelIdentity(callID string) (ADKToolCallModelIdentity, bool) {
+	if trace == nil {
+		return ADKToolCallModelIdentity{}, false
+	}
+	trace.mu.RLock()
+	defer trace.mu.RUnlock()
+	identity, ok := trace.ModelCalls[strings.TrimSpace(callID)]
+	return identity, ok
+}
+
+func (trace *ADKCapabilityTrace) Snapshot() ([]capability.CapabilityInvocation, []capability.CapabilityResult) {
+	if trace == nil {
+		return nil, nil
+	}
+	trace.mu.RLock()
+	defer trace.mu.RUnlock()
+	return append([]capability.CapabilityInvocation(nil), trace.Invocations...), append([]capability.CapabilityResult(nil), trace.Results...)
+}
+
+func (trace *ADKCapabilityTrace) FindInvocation(callID string) (capability.CapabilityInvocation, bool) {
+	if trace == nil {
+		return capability.CapabilityInvocation{}, false
+	}
+	trace.mu.RLock()
+	defer trace.mu.RUnlock()
+	for _, invocation := range trace.Invocations {
+		if invocation.CallID == callID {
+			return invocation, true
+		}
+	}
+	return capability.CapabilityInvocation{}, false
+}
+
+func (trace *ADKCapabilityTrace) FindResult(callID string) (capability.CapabilityResult, bool) {
+	if trace == nil {
+		return capability.CapabilityResult{}, false
+	}
+	trace.mu.RLock()
+	defer trace.mu.RUnlock()
+	for _, result := range trace.Results {
+		if result.CallID == callID {
+			return result, true
+		}
+	}
+	return capability.CapabilityResult{}, false
+}
+
+func (trace *ADKCapabilityTrace) Append(invocation capability.CapabilityInvocation, result capability.CapabilityResult) {
+	if trace == nil {
+		return
+	}
+	trace.mu.Lock()
+	defer trace.mu.Unlock()
+	trace.Invocations = append(trace.Invocations, invocation)
+	trace.Results = append(trace.Results, result)
+}
+
+func (trace *ADKCapabilityTrace) AppendInvocation(invocation capability.CapabilityInvocation) {
+	if trace == nil {
+		return
+	}
+	trace.mu.Lock()
+	defer trace.mu.Unlock()
+	trace.Invocations = append(trace.Invocations, invocation)
+}
+
+func (trace *ADKCapabilityTrace) AppendResult(result capability.CapabilityResult) {
+	if trace == nil {
+		return
+	}
+	trace.mu.Lock()
+	defer trace.mu.Unlock()
+	trace.Results = append(trace.Results, result)
 }
 
 type ADKCapabilityInvoker interface {
@@ -36,14 +149,13 @@ type ADKCapabilityInvokerWithID interface {
 }
 
 type ADKLoopConfig struct {
-	Name                string
-	Description         string
-	Instruction         string
-	Model               model.ToolCallingChatModel
-	Tools               []tool.BaseTool
-	MaxIterations       int
-	EnableStreaming     bool
-	ToolOnlyTermination func([]schema.ToolCall) bool
+	Name            string
+	Description     string
+	Instruction     string
+	Model           model.ToolCallingChatModel
+	Tools           []tool.BaseTool
+	MaxIterations   int
+	EnableStreaming bool
 }
 
 type ADKLoopResult struct {
@@ -143,20 +255,16 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 	if len(messages) == 0 {
 		return ADKLoopResult{}, errors.New("adk_messages_required")
 	}
-	maxIterations := config.MaxIterations
-	if maxIterations <= 0 {
-		maxIterations = 2
-	}
-	if maxIterations > 2 {
-		return ADKLoopResult{}, errors.New("adk_iteration_limit_invalid")
-	}
 	agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
 		Name: config.Name, Description: config.Description,
 		Instruction: config.Instruction, Model: config.Model,
 		ToolsConfig: adk.ToolsConfig{ToolsNodeConfig: compose.ToolsNodeConfig{
 			Tools: config.Tools, ExecuteSequentially: true,
 		}},
-		MaxIterations: maxIterations,
+		// Eino owns the native loop guard. A non-positive value deliberately
+		// selects the framework default (20 in the locked v0.7.37 runtime);
+		// callers may set any positive task-appropriate bound.
+		MaxIterations: config.MaxIterations,
 	})
 	if err != nil {
 		return ADKLoopResult{}, fmt.Errorf("adk_agent_create: %w", err)
@@ -182,17 +290,7 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 			continue
 		}
 		if event.Err != nil {
-			// A bounded action-only proposal may legitimately have no useful
-			// provider continuation: Core has already captured the calls and
-			// deferred/rejected results for its caller-owned settlement. Allow
-			// that terminal projection only after ADK has made the configured
-			// number of model rounds; provider errors and parse failures still
-			// propagate with the partial trace below.
-			if strings.Contains(event.Err.Error(), adk.ErrExceedMaxIterations.Error()) &&
-				lastAssistant != nil && len(lastAssistant.ToolCalls) > 0 &&
-				config.ToolOnlyTermination != nil && config.ToolOnlyTermination(lastAssistant.ToolCalls) {
-				break
-			}
+			result.FinalMessage = lastAssistant
 			return result, fmt.Errorf("adk_run: %w", event.Err)
 		}
 		if event.Output == nil || event.Output.MessageOutput == nil {
@@ -200,6 +298,7 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 		}
 		message, getErr := event.Output.MessageOutput.GetMessage()
 		if getErr != nil {
+			result.FinalMessage = lastAssistant
 			return result, fmt.Errorf("adk_message_output: %w", getErr)
 		}
 		if message == nil {
@@ -209,6 +308,10 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 		result.Messages = append(result.Messages, copyMessage)
 		if len(copyMessage.ToolCalls) > 0 {
 			for _, call := range copyMessage.ToolCalls {
+				// Eino may publish the same assistant event once from the model
+				// callback and once as the graph output. The formal call ID is the
+				// identity boundary, so count that physical call exactly once while
+				// retaining distinct calls from every round.
 				if strings.TrimSpace(call.ID) != "" {
 					if _, seen := seenToolCallIDs[call.ID]; seen {
 						continue
@@ -223,8 +326,8 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 		}
 		if copyMessage.Role == schema.Assistant {
 			lastAssistant = copyMessage
+			result.Iterations++
 		}
-		result.Iterations++
 	}
 	result.FinalMessage = lastAssistant
 	if result.FinalMessage == nil {

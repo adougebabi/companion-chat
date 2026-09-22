@@ -33,18 +33,29 @@ func TestAuthorizedPersistentSwitchLoadsTheNewPersonaNextTurn(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "switch-next-owner", "switch-next-fluctlight", "switch-next-conversation"
 	takeoverChainSeed(t, ctx, repository, ownerID, fluctlightID, conversationID)
-
-	router := newFakeProviderRouter().
-		on(workingPersonaMainTurnSchema, takeoverChainSequence(
-			takeoverChainMainResult("星火确认安全，按规则切换", map[string]any{
-				"personality_decision": map[string]any{
-					"decision": "switch", "from_profile_id": "spark", "target_profile_id": "twilight",
-					"trigger_id": "safety", "reason": "收到明确的安全确认",
-				},
-			}),
-			takeoverChainMainResult("暮光的后续回复", nil),
-		)).
-		on(takeoverJudgeSchemaName, takeoverChainJudge(false))
+	step := 0
+	var nextTurnWire string
+	router := newFakeProviderRouter().on(workingPersonaMainTurnSchema, func(payload map[string]any) fakeProviderResult {
+		step++
+		switch step {
+		case 1:
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("next-switch", personaSwitchCapabilityName, map[string]any{
+				"decision": "switch", "source_profile_id": "spark", "target_profile_id": "twilight",
+				"trigger_id": "switch:safety", "reason": "收到明确的安全确认",
+			})}}
+		case 2:
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("switch-first-reply", "conversation.reply", map[string]any{"text": "暮光确认切换"})}}
+		case 3:
+			return nativePersonaFinal()
+		case 4:
+			nextTurnWire = jsonString(payload)
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("switch-next-reply", "conversation.reply", map[string]any{"text": "暮光的后续回复"})}}
+		case 5:
+			return nativePersonaFinal()
+		default:
+			return fakeProviderResult{Status: 500}
+		}
+	})
 	app := newTestApp(t, repository, router)
 
 	if _, err := app.HandleTurn(ctx, ownerID, conversationID,
@@ -55,26 +66,21 @@ func TestAuthorizedPersistentSwitchLoadsTheNewPersonaNextTurn(t *testing.T) {
 		t.Fatalf("the authorized switch did not reach the durable runtime, active=%q", active)
 	}
 
-	// Turn 2 must be generated as twilight: the wire carries twilight's
-	// personality marker and never spark's (the roster may name spark as an
-	// identifier, so only the signature-phrase markers count as content).
 	if _, err := app.HandleTurn(ctx, ownerID, conversationID,
 		takeoverChainTurnPayload(fluctlightID, "继续聊聊", "switch-next-turn-2", "switch-next-turn-2")); err != nil {
 		t.Fatal(err)
 	}
-	mainRequests := router.payloads(workingPersonaMainTurnSchema)
-	if len(mainRequests) != 2 {
-		t.Fatalf("expected two main generations, got %d", len(mainRequests))
-	}
-	nextWire := scopeMatrixWireJSON(t, mainRequests[1])
-	if !strings.Contains(nextWire, takeoverChainTwilightMarker) {
+	if !strings.Contains(nextTurnWire, takeoverChainTwilightMarker) {
 		t.Fatal("the next turn after an authorized switch did not load the new persona's Working Persona")
 	}
-	if strings.Contains(nextWire, takeoverChainSparkMarker) {
+	if strings.Contains(nextTurnWire, takeoverChainSparkMarker) {
 		t.Fatal("the next turn still carries the previous persona's personality content")
 	}
 	if active := readActiveProfileForGate(t, ctx, repository, fluctlightID); active != "twilight" {
 		t.Fatalf("a plain follow-up turn must not move the durable profile, active=%q", active)
+	}
+	if count := takeoverChainCount(t, ctx, repository, `SELECT count(*) FROM public.platform_outbox_events WHERE aggregate_type='persona_action' AND fluctlight_id=$1 AND kind='persona.switch.committed'`, fluctlightID); count != 1 {
+		t.Fatalf("persistent switch committed %d times", count)
 	}
 }
 

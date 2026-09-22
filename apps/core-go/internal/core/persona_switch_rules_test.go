@@ -348,7 +348,6 @@ func TestResolvePersistentSwitchGrantScenarioTable(t *testing.T) {
 	}{
 		{persistentSwitchGrantScenarioMain, true, "", 1},
 		{persistentSwitchGrantScenarioTakeover, false, "takeover_reply_owner", 0},
-		{persistentSwitchGrantScenarioQuery, false, "query_continuation_owner", 0},
 		{persistentSwitchGrantScenarioJudge, false, "judge_has_no_persistent_switch_field", 0},
 		{"wake_up", false, "scenario_not_authorized", 0},
 		{"reflection", false, "scenario_not_authorized", 0},

@@ -33,7 +33,7 @@ func TestNativeCognitionStillRejectsEmptySidecarWithoutToolCalls(t *testing.T) {
 	}
 }
 
-func TestStructuredThinkingPolicySeparatesCognitionFromVisibleQueryProtocols(t *testing.T) {
+func TestStructuredThinkingPolicySeparatesCognitionFromBoundedJudgeProtocols(t *testing.T) {
 	for _, schema := range []string{
 		"conversation_turn_response", "takeover_reply_response", "persistent_switch_assessment",
 		"wake_up_response", "daily_review_response", "native_cognition_response", "reflection_proposal_v2",
@@ -42,7 +42,7 @@ func TestStructuredThinkingPolicySeparatesCognitionFromVisibleQueryProtocols(t *
 			t.Fatalf("semantic cognition schema %q must enable Provider thinking", schema)
 		}
 	}
-	for _, schema := range []string{"query_continuation_response", "takeover_judgement_response", "unknown_schema"} {
+	for _, schema := range []string{"takeover_judgement_response", "unknown_schema"} {
 		if structuredThinkingEnabledForSchema(schema) {
 			t.Fatalf("visible/bounded schema %q must keep Provider thinking disabled", schema)
 		}

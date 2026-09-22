@@ -58,7 +58,6 @@ type CapabilityExecutionClass string
 const (
 	CapabilityExecutionPureQuery             CapabilityExecutionClass = "pure_query"
 	CapabilityExecutionTransactionalMutation CapabilityExecutionClass = "transactional_mutation"
-	CapabilityExecutionDeferredOutput        CapabilityExecutionClass = "deferred_output"
 	CapabilityExecutionExternalAsyncIntent   CapabilityExecutionClass = "external_async_intent"
 )
 
@@ -72,11 +71,8 @@ func ClassifyCapabilityExecution(capability Capability, definition CapabilityDef
 		}
 		return CapabilityExecutionExternalAsyncIntent, nil
 	}
-	if definition.IsDeferredOutput() {
-		if _, ok := capability.(DeferredCapability); !ok {
-			return "", errors.New("capability_deferred_output_seam_missing")
-		}
-		return CapabilityExecutionDeferredOutput, nil
+	if _, ok := capability.(DirectToolCapability); ok {
+		return CapabilityExecutionTransactionalMutation, nil
 	}
 	if _, ok := capability.(TransactionalCapability); ok {
 		return CapabilityExecutionTransactionalMutation, nil
@@ -695,7 +691,11 @@ func AugmentCapabilityInvocationProvenance(invocation CapabilityInvocation, defi
 		case "evidence_refs":
 			payload.Provenance[key] = []any{invocation.SourceFactID}
 		case "idempotency_key":
-			payload.Provenance[key] = "capability:" + invocation.CallID
+			operationID := strings.TrimSpace(invocation.Metadata.OperationID)
+			if operationID == "" {
+				operationID = invocation.CallID
+			}
+			payload.Provenance[key] = "capability:" + operationID
 		}
 	}
 	encoded, err := EncodeCapabilityPreparedPayload(payload)
@@ -822,8 +822,16 @@ type CapabilityInvocation struct {
 }
 
 type InvocationMetadata struct {
-	CorrelationID  string            `json:"correlation_id,omitempty"`
-	Source         string            `json:"source,omitempty"`
+	WorkingProfileID     string `json:"working_profile_id,omitempty"`
+	SubjectActorID       string `json:"subject_actor_id,omitempty"`
+	AuthorizationActorID string `json:"authorization_actor_id,omitempty"`
+	CorrelationID        string `json:"correlation_id,omitempty"`
+	Source               string `json:"source,omitempty"`
+	// OperationID is the stable business-command identity. It is deliberately
+	// separate from CallID: an Agent retry may receive a new native ToolCall ID
+	// while still referring to the same business operation, and a direct call
+	// has no native ToolCall at all.
+	OperationID    string            `json:"operation_id,omitempty"`
 	Surface        CapabilitySurface `json:"surface,omitempty"`
 	OutputBinding  *OutputBindingV1  `json:"output_binding,omitempty"`
 	FluctlightID   string            `json:"fluctlight_id,omitempty"`
@@ -875,16 +883,14 @@ func (invocation CapabilityInvocation) Validate(definition CapabilityDefinition)
 	if strings.TrimSpace(invocation.CallID) == "" || strings.TrimSpace(invocation.CapabilityName) == "" || invocation.CapabilityName != definition.Name {
 		return fmt.Errorf("%w: invocation identity", ErrInvalidArguments)
 	}
-	if strings.TrimSpace(invocation.SourceFactID) == "" {
-		return fmt.Errorf("%w: source fact is required", ErrInvalidArguments)
-	}
-	if strings.TrimSpace(invocation.ProviderRequestID) == "" {
+	source := strings.TrimSpace(invocation.Metadata.Source)
+	if strings.TrimSpace(invocation.ProviderRequestID) == "" && source != "direct" {
 		return fmt.Errorf("%w: provider request is required", ErrInvalidArguments)
 	}
 	if invocation.Sequence < 0 {
 		return fmt.Errorf("%w: sequence is invalid", ErrInvalidArguments)
 	}
-	if source := strings.TrimSpace(invocation.Metadata.Source); source != "" && source != "model_tool" && source != "policy" {
+	if source != "" && source != "model_tool" && source != "policy" && source != "direct" {
 		return fmt.Errorf("%w: invocation source is invalid", ErrInvalidArguments)
 	}
 	arguments, err := NormalizeToolArguments(string(invocation.Arguments))
@@ -1162,6 +1168,7 @@ func ValidateCapabilitySchemaValue(value any, schema map[string]any) error {
 }
 
 type CapabilityResult struct {
+	ActingProfileID   string        `json:"acting_profile_id,omitempty"`
 	CallID            string        `json:"call_id"`
 	CapabilityName    string        `json:"capability_name"`
 	Status            string        `json:"status"`
@@ -1179,7 +1186,7 @@ func (result CapabilityResult) Validate(invocation CapabilityInvocation) error {
 		return errors.New("capability result identity invalid")
 	}
 	switch result.Status {
-	case "completed", "failed", "rejected", "deferred":
+	case "completed", "accepted", "failed", "rejected":
 		return nil
 	default:
 		return errors.New("capability result status invalid")
@@ -1192,6 +1199,24 @@ type Capability interface {
 	Execute(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error)
 }
 
+// DirectToolTarget carries the application-authorized resource binding which
+// is intentionally absent from model-owned Tool arguments.
+type DirectToolTarget struct {
+	AuthorizationPolicy  string
+	AuthorizationActorID string
+	FluctlightID         string
+	ConversationID       string
+	Kind                 string
+	Ref                  string
+}
+
+// DirectToolCapability is the standalone mutation seam used by ExecuteTool
+// when a capability needs an application-authorized target.
+type DirectToolCapability interface {
+	Capability
+	ExecuteDirectTx(context.Context, pgx.Tx, CapabilityInvocation, CapabilityContext, DirectToolTarget) (CapabilityResult, error)
+}
+
 type CapabilityCandidateValidator interface {
 	ValidateCandidate(context.Context, CapabilityInvocation, CapabilityContext) error
 }
@@ -1202,11 +1227,6 @@ type CapabilityPreflighter interface {
 
 type CapabilityPreparer interface {
 	Prepare(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityInvocation, error)
-}
-
-type DeferredCapability interface {
-	Capability
-	ExecuteDeferredTx(context.Context, pgx.Tx, CapabilityInvocation, CapabilityContext, OutputBindingV1) (CapabilityResult, error)
 }
 
 type TransactionalCapability interface {
@@ -1293,6 +1313,9 @@ func (runtime *CapabilityRuntime) Execute(ctx context.Context, invocation Capabi
 	if !ok {
 		return FailedCapabilityResult(invocation, "capability_not_found", false), fmt.Errorf("%w: %s", ErrCapabilityNotFound, invocation.CapabilityName)
 	}
+	if _, direct := capability.(DirectToolCapability); direct {
+		return FailedCapabilityResult(invocation, "execute_tool_required", false), NewCapabilityError("execute_tool_required", false, ErrCapabilityExecution)
+	}
 	if _, transactional := capability.(TransactionalCapability); transactional {
 		return FailedCapabilityResult(invocation, "caller_transaction_required", false), NewCapabilityError("caller_transaction_required", false, ErrConflict)
 	}
@@ -1305,7 +1328,7 @@ func (runtime *CapabilityRuntime) Execute(ctx context.Context, invocation Capabi
 		return FailedCapabilityResult(invocation, "invalid_arguments", false), err
 	}
 	if err := ctx.Err(); err != nil {
-		return FailedCapabilityResult(invocation, "execution_cancelled", true), fmt.Errorf("%w: %v", ErrCapabilityExecution, err)
+		return FailedCapabilityResult(invocation, "execution_cancelled", true), fmt.Errorf("%w: %w", ErrCapabilityExecution, err)
 	}
 	request := ContextRequest{FluctlightID: invocation.Metadata.FluctlightID, ConversationID: invocation.Metadata.ConversationID, SourceFactID: invocation.SourceFactID, ActionID: invocation.ActionID, CorrelationID: invocation.Metadata.CorrelationID, Surface: invocation.Metadata.Surface, SemanticIntent: invocation.Intent}
 	resolver := runtime.Resolver
@@ -1319,13 +1342,13 @@ func (runtime *CapabilityRuntime) Execute(ctx context.Context, invocation Capabi
 	if err != nil {
 		result := FailedCapabilityResult(invocation, "context_resolve_failed", true)
 		runtime.log(ctx, invocation, definition, result, started, err)
-		return result, fmt.Errorf("%w: %v", ErrContextResolve, err)
+		return result, fmt.Errorf("%w: %w", ErrContextResolve, err)
 	}
 	if preflight, ok := capability.(CapabilityPreflighter); ok {
 		if err := preflight.Preflight(ctx, resolved); err != nil {
 			result := FailedCapabilityResult(invocation, "context_resolve_failed", true)
 			runtime.log(ctx, invocation, definition, result, started, err)
-			return result, fmt.Errorf("%w: preflight: %v", ErrContextResolve, err)
+			return result, fmt.Errorf("%w: preflight: %w", ErrContextResolve, err)
 		}
 	}
 	if preparer, ok := capability.(CapabilityPreparer); ok && len(invocation.PreparedPayload) == 0 {
@@ -1410,11 +1433,11 @@ func (runtime *CapabilityRuntime) Prepare(ctx context.Context, invocation Capabi
 	}
 	resolved, err := resolver.Resolve(ctx, ContextRequest{FluctlightID: invocation.Metadata.FluctlightID, ConversationID: invocation.Metadata.ConversationID, SourceFactID: invocation.SourceFactID, ActionID: invocation.ActionID, CorrelationID: invocation.Metadata.CorrelationID, Surface: invocation.Metadata.Surface, SemanticIntent: invocation.Intent}, definition.RequiredContext)
 	if err != nil {
-		return invocation, CapabilityContext{}, fmt.Errorf("%w: %v", ErrContextResolve, err)
+		return invocation, CapabilityContext{}, fmt.Errorf("%w: %w", ErrContextResolve, err)
 	}
 	if preflight, ok := runtime.Registry.capabilities[invocation.CapabilityName].(CapabilityPreflighter); ok {
 		if err := preflight.Preflight(ctx, resolved); err != nil {
-			return invocation, resolved, fmt.Errorf("%w: preflight: %v", ErrContextResolve, err)
+			return invocation, resolved, fmt.Errorf("%w: preflight: %w", ErrContextResolve, err)
 		}
 	}
 	if preparer, ok := runtime.Registry.capabilities[invocation.CapabilityName].(CapabilityPreparer); ok {
@@ -1463,72 +1486,6 @@ func (runtime *CapabilityRuntime) ExecuteMany(ctx context.Context, invocations [
 	return results, firstErr
 }
 
-func (runtime *CapabilityRuntime) ExecuteDeferred(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, binding OutputBindingV1) (CapabilityResult, error) {
-	if runtime == nil || runtime.Registry == nil {
-		return FailedCapabilityResult(invocation, "capability_not_found", false), fmt.Errorf("%w: registry is nil", ErrCapabilityNotFound)
-	}
-	definition, ok := runtime.Registry.Definition(invocation.CapabilityName)
-	if !ok {
-		return FailedCapabilityResult(invocation, "capability_not_found", false), fmt.Errorf("%w: %s", ErrCapabilityNotFound, invocation.CapabilityName)
-	}
-	capability, ok := runtime.Registry.LookupCapability(invocation.CapabilityName)
-	deferred, ok := capability.(DeferredCapability)
-	if !ok {
-		return FailedCapabilityResult(invocation, "execution_failed", false), fmt.Errorf("%w: capability is not deferred", ErrCapabilityExecution)
-	}
-	if len(invocation.PreparedPayload) == 0 || (len(definition.RequiredContext) > 0 && len(invocation.ContextSnapshot) == 0) {
-		return FailedCapabilityResult(invocation, "prepared_invocation_required", false), fmt.Errorf("%w: deferred invocation is not frozen", ErrInvalidArguments)
-	}
-	var err error
-	invocation, err = AugmentCapabilityInvocationProvenance(invocation, definition)
-	if err != nil {
-		return FailedCapabilityResult(invocation, "invalid_arguments", false), fmt.Errorf("%w: %v", ErrInvalidArguments, err)
-	}
-	if err := invocation.Validate(definition); err != nil {
-		return FailedCapabilityResult(invocation, "invalid_arguments", false), err
-	}
-	request := ContextRequest{FluctlightID: invocation.Metadata.FluctlightID, ConversationID: invocation.Metadata.ConversationID, SourceFactID: invocation.SourceFactID, ActionID: invocation.ActionID, CorrelationID: invocation.Metadata.CorrelationID, Surface: invocation.Metadata.Surface, SemanticIntent: invocation.Intent}
-	resolver := runtime.Resolver
-	if resolver == nil {
-		return FailedCapabilityResult(invocation, "context_resolve_failed", false), ErrContextResolve
-	}
-	if len(invocation.ContextSnapshot) > 0 {
-		resolver = NewSnapshotContextResolver(invocation.ContextSnapshot)
-	}
-	resolved, err := resolver.Resolve(ctx, request, definition.RequiredContext)
-	if err != nil {
-		return FailedCapabilityResult(invocation, "context_resolve_failed", true), fmt.Errorf("%w: %v", ErrContextResolve, err)
-	}
-	result, executeErr := deferred.ExecuteDeferredTx(ctx, tx, invocation, resolved, binding)
-	if result.CallID == "" {
-		result.CallID = invocation.CallID
-	}
-	if result.CapabilityName == "" {
-		result.CapabilityName = invocation.CapabilityName
-	}
-	if executeErr != nil {
-		result.Status = "failed"
-		if result.ErrorCode == "" {
-			result.ErrorCode = "capability_execution_failed"
-		}
-		result.CallID = invocation.CallID
-		result.CapabilityName = invocation.CapabilityName
-		if result.ProviderRequestID == "" {
-			result.ProviderRequestID = invocation.ProviderRequestID
-		}
-		return result, fmt.Errorf("%w: %v", ErrCapabilityExecution, executeErr)
-	}
-	if err := result.Validate(invocation); err != nil {
-		return FailedCapabilityResult(invocation, "execution_failed", false), fmt.Errorf("%w: %v", ErrCapabilityExecution, err)
-	}
-	if result.Status == "completed" {
-		if err := definition.ValidateOutput(result.Output); err != nil {
-			return FailedCapabilityResult(invocation, "execution_failed", false), fmt.Errorf("%w: invalid output: %v", ErrCapabilityExecution, err)
-		}
-	}
-	return result, nil
-}
-
 func (runtime *CapabilityRuntime) ExecuteTransactional(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation) (CapabilityResult, error) {
 	if runtime == nil || runtime.Registry == nil {
 		return FailedCapabilityResult(invocation, "capability_not_found", false), fmt.Errorf("%w: registry is nil", ErrCapabilityNotFound)
@@ -1563,7 +1520,7 @@ func (runtime *CapabilityRuntime) ExecuteTransactional(ctx context.Context, tx p
 	request := ContextRequest{FluctlightID: invocation.Metadata.FluctlightID, ConversationID: invocation.Metadata.ConversationID, SourceFactID: invocation.SourceFactID, ActionID: invocation.ActionID, CorrelationID: invocation.Metadata.CorrelationID, Surface: invocation.Metadata.Surface, SemanticIntent: invocation.Intent}
 	resolved, err := resolver.Resolve(ctx, request, definition.RequiredContext)
 	if err != nil {
-		return FailedCapabilityResult(invocation, "context_resolve_failed", true), fmt.Errorf("%w: %v", ErrContextResolve, err)
+		return FailedCapabilityResult(invocation, "context_resolve_failed", true), fmt.Errorf("%w: %w", ErrContextResolve, err)
 	}
 	result, executeErr := transactional.ExecuteTx(ctx, tx, invocation, resolved)
 	if result.CallID == "" {

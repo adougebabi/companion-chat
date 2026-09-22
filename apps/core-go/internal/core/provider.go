@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	einoschema "github.com/cloudwego/eino/schema"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -195,7 +197,7 @@ func structuredResultForRole(role string, completion ProviderCompletion) (map[st
 // request always asks for the operation's strict JSON Schema; this helper keeps
 // the cognitive-assessment thinking default for callers that use
 // it directly. Assembled production paths pass the flag explicitly per
-// operation so query continuation and the takeover Judge remain no-thinking.
+// operation so bounded judgement tasks remain no-thinking.
 func (p *ProviderClient) StructuredWithTools(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition) (ProviderCompletion, error) {
 	return p.completeWithTools(ctx, role, messages, true, definitions)
 }
@@ -223,13 +225,20 @@ func (p *ProviderClient) StructuredWithToolsSchema(ctx context.Context, role str
 }
 
 func (p *ProviderClient) StructuredAssembledWithToolsSchema(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool) (ProviderCompletion, error) {
-	return p.completeWithToolsSchemaMode(ctx, role, messages, true, definitions, schemaName, schema, enableThinking, true, false)
+	return p.completeWithToolsSchemaMode(ctx, role, messages, true, definitions, schemaName, schema, enableThinking, true)
+}
+
+// AgentAssembledCompletion is the single Provider entry used by formal
+// Agents. Structured and text tasks differ only in their declared final output
+// contract; both enter the same Eino Runner and physical-call queue path.
+func (p *ProviderClient) AgentAssembledCompletion(ctx context.Context, role string, messages []map[string]any, definitions []CapabilityDefinition, schemaName string, schema map[string]any, structured, enableThinking bool) (ProviderCompletion, error) {
+	return p.completeWithToolsSchemaMode(ctx, role, messages, structured, definitions, schemaName, schema, enableThinking, true)
 }
 
 // structuredThinkingEnabledForSchema keeps the Provider thinking policy at the
 // protocol boundary. Semantic cognition and native event appraisal may use the
-// model's reasoning channel; query continuation and the takeover Judge must
-// keep their output in the visible, strictly bounded channel.
+// model's reasoning channel; the takeover Judge keeps its output in the
+// visible, strictly bounded channel.
 func structuredThinkingEnabledForSchema(schemaName string) bool {
 	switch strings.TrimSpace(schemaName) {
 	case "conversation_turn_response", "takeover_reply_response", "persistent_switch_assessment",
@@ -240,24 +249,19 @@ func structuredThinkingEnabledForSchema(schemaName string) bool {
 	}
 }
 
-func (p *ProviderClient) StructuredQueryContinuation(ctx context.Context, role string, messages []map[string]any, schemaName string, schema map[string]any) (ProviderCompletion, error) {
-	return p.completeWithToolsSchemaMode(ctx, role, messages, true, nil, schemaName, schema, false, true, true)
-}
-
 // StructuredAssembledJudgement calls a dedicated judge role on the assembled
 // message path. It sends no tools and omits enable_thinking so the bounded
 // verdict stays in the normal content channel. The main/native cognition
-// surfaces explicitly enable thinking; query continuation remains a separate
-// visible_text-only protocol.
+// surfaces explicitly enable thinking.
 func (p *ProviderClient) StructuredAssembledJudgement(ctx context.Context, role string, messages []map[string]any, schemaName string, schema map[string]any) (ProviderCompletion, error) {
-	return p.completeWithToolsSchemaMode(ctx, role, messages, true, nil, schemaName, schema, false, true, false)
+	return p.completeWithToolsSchemaMode(ctx, role, messages, true, nil, schemaName, schema, false, true)
 }
 
 func (p *ProviderClient) completeWithToolsSchema(ctx context.Context, role string, messages []map[string]any, jsonMode bool, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool) (ProviderCompletion, error) {
-	return p.completeWithToolsSchemaMode(ctx, role, messages, jsonMode, definitions, schemaName, schema, enableThinking, false, false)
+	return p.completeWithToolsSchemaMode(ctx, role, messages, jsonMode, definitions, schemaName, schema, enableThinking, false)
 }
 
-func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role string, messages []map[string]any, jsonMode bool, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool, assembled, continuation bool) (ProviderCompletion, error) {
+func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role string, messages []map[string]any, jsonMode bool, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool, assembled bool) (ProviderCompletion, error) {
 	correlationID := providerCorrelation(ctx)
 	if correlationID == "" {
 		correlationID = diagnosticCorrelation(messages, "")
@@ -276,11 +280,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		return ProviderCompletion{}, err
 	}
 	if assembled {
-		validMessages := validAssembledProviderMessages(messages)
-		if continuation {
-			validMessages = validQueryContinuationMessages(messages)
-		}
-		if role == "media_prompt" || !validMessages || (continuation && len(definitions) > 0) {
+		if !validAssembledProviderMessages(messages) {
 			err := errors.New("provider_assembled_messages_invalid")
 			p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "message_validation", messages, err)
 			return ProviderCompletion{}, err
@@ -315,12 +315,15 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		diagnostics["run_id"] = correlationID
 	}
 	diagnostics["prompt_budget"] = mergeProviderPromptBudgetDiagnostics(mapValue(diagnostics["prompt_budget"]), messages, renderedTools, responseFormat, assignment, wireEstimate)
-	if continuation {
-		diagnostics["continuation_phase"] = "queries_completed"
-	}
 	ctx = WithPromptDiagnostics(ctx, diagnostics)
 	adkEnabled := false
-	if _, enabled := adkCapabilityContext(ctx); enabled && isADKLoopSchema(schemaName) {
+	agentDefinition, formalAgent := formalAgentDefinitionFromContext(ctx)
+	if _, enabled := adkCapabilityContext(ctx); enabled {
+		if !formalAgent {
+			err := errors.New("formal_agent_definition_required")
+			p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "formal_agent", messages, err)
+			return ProviderCompletion{}, err
+		}
 		adkEnabled = true
 		// The ADK agent performs multiple model calls. Queue each call through
 		// queuedToolCallingChatModel instead of holding one lease for the full
@@ -359,7 +362,8 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			Assignment: assignment, Role: role, Scenario: scenario, Priority: priority, DiagnosticID: diagnosticID, CorrelationID: correlationID,
 			Messages: messages, Definitions: definitions,
 			JSONMode: jsonMode, SchemaName: normalizationSchemaName, ResponseSchema: structuredSchema,
-			EnableThinking: enableThinking, ProviderRequestID: providerRequestID,
+			EnableThinking: enableThinking, EnableStreaming: agentDefinition.EnableStreaming,
+			ProviderRequestID: providerRequestID, Agent: agentDefinition,
 		})
 		if err != nil {
 			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, providerRunErrorCode(err))
@@ -368,7 +372,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		usage = response.Usage
 		message := einoMessageRaw(response.Message)
 		finishReason := response.FinishReason
-		if adkEnabled {
+		if adkEnabled && jsonMode {
 			if responseErr := validateADKStructuredResponse(response.Message, role); responseErr != nil {
 				diagnostic := providerResponseDiagnostic(message, providerStructuredCandidates(message), 0)
 				addStructuredParseFailureDiagnostic(diagnostic, providerStructuredCandidates(message), finishReason)
@@ -380,7 +384,20 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		// and fixed-task calls. Do not recover calls from content or sidecars;
 		// valid typed siblings may survive a malformed sibling, but each accepted
 		// call must retain its real Eino ID.
-		calls, err := normalizeEinoNativeToolCallsIndependently(response.Message, providerRequestID)
+		callMessage := response.Message
+		if adkEnabled {
+			callMessage = &einoschema.Message{ToolCalls: append([]einoschema.ToolCall(nil), response.ExecutedToolCalls...)}
+		}
+		calls, err := normalizeEinoNativeToolCallsIndependently(callMessage, providerRequestID)
+		if adkEnabled {
+			if adkCtx, ok := adkCapabilityContext(ctx); ok && adkCtx.Trace != nil {
+				for index := range calls {
+					if identity, found := adkCtx.Trace.ModelIdentity(calls[index].CallID); found {
+						calls[index].ProviderRequestID = identity.ProviderRequestID
+					}
+				}
+			}
+		}
 		if err != nil {
 			diagnostic := providerToolCallNormalizationDiagnostic(message["tool_calls"], "native", err)
 			if len(calls) == 0 {
@@ -403,7 +420,12 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		// reasoning_content is diagnostics-only and can never become a DTO or
 		// execution request.
 		structuredCandidates := providerStructuredCandidates(message)
-		parsedStructured, parsedStructuredOK, structuredParseErr := parseStructuredCandidatesForRole(role, structuredCandidates)
+		var parsedStructured map[string]any
+		var parsedStructuredOK bool
+		var structuredParseErr error
+		if jsonMode {
+			parsedStructured, parsedStructuredOK, structuredParseErr = parseStructuredCandidatesForRole(role, structuredCandidates)
+		}
 		var structuredParseDiagnostic map[string]any
 		if structuredParseErr != nil {
 			diagnostic := providerResponseDiagnostic(message, structuredCandidates, len(calls))
@@ -416,7 +438,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, errorCode, diagnostic)
 			return ProviderCompletion{}, structuredParseErr
 		}
-		if adkEnabled && len(structuredCandidates) > 0 && !parsedStructuredOK {
+		if adkEnabled && jsonMode && len(structuredCandidates) > 0 && !parsedStructuredOK {
 			diagnostic := providerResponseDiagnostic(message, structuredCandidates, len(calls))
 			addStructuredParseFailureDiagnostic(diagnostic, structuredCandidates, finishReason)
 			p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "adk_structured_response_invalid", diagnostic)
@@ -428,6 +450,31 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 			return ProviderCompletion{}, err
 		}
 		completion := ProviderCompletion{Text: content, ToolCalls: calls, DoneSeen: true}
+		if adkEnabled {
+			// The Runner's last assistant message is the sole final-output
+			// authority. Intermediate ToolCalls/results live in completion.ToolCalls
+			// and the request trace; they never supply or repair this contract.
+			if jsonMode {
+				if !parsedStructuredOK {
+					err := errors.New("adk_final_output_missing")
+					p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "adk_final_output_missing")
+					return ProviderCompletion{}, err
+				}
+				if err := capabilitycontract.ValidateCapabilitySchemaValue(parsedStructured, structuredSchema); err != nil {
+					p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "adk_final_output_invalid")
+					return ProviderCompletion{}, fmt.Errorf("adk_final_output_invalid: %w", err)
+				}
+				completion.Structured = parsedStructured
+			} else if content == "" {
+				err := errors.New("adk_final_text_missing")
+				p.recordProviderFailureBoundary(ctx, assignment, role, correlationID, messages, "adk_final_text_missing")
+				return ProviderCompletion{}, err
+			}
+			p.recordProviderSuccessBoundary(ctx, assignment, role, correlationID, messages, map[string]any{
+				"text": content, "structured": completion.Structured, "executed_tool_calls": completion.ToolCalls,
+			})
+			return completion, nil
+		}
 		var normalizedFields []string
 		if len(calls) > 0 {
 			for index := range completion.ToolCalls {
@@ -708,49 +755,6 @@ func providerStreamingPayload(model string, messages []map[string]any, outputRes
 	return payload
 }
 
-func validQueryContinuationMessages(messages []map[string]any) bool {
-	if len(messages) < 4 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[len(messages)-1]["role"]) != "tool" {
-		return false
-	}
-	systemCount, assistantCallMessages, assistantCalls, toolResults := 0, 0, 0, 0
-	toolResultsStarted := false
-	for index, message := range messages {
-		switch stringValue(message["role"]) {
-		case "system":
-			systemCount++
-			if index != 0 || strings.TrimSpace(stringValue(message["content"])) == "" {
-				return false
-			}
-		case "user":
-			if assistantCallMessages > 0 || strings.TrimSpace(stringValue(message["content"])) == "" {
-				return false
-			}
-		case "assistant":
-			calls := arrayValue(message["tool_calls"])
-			if len(calls) == 0 {
-				if assistantCallMessages > 0 || strings.TrimSpace(stringValue(message["content"])) == "" {
-					return false
-				}
-				continue
-			}
-			if assistantCallMessages > 0 || toolResultsStarted || len(calls) > 2 || strings.TrimSpace(stringValue(message["content"])) != "" {
-				return false
-			}
-			assistantCallMessages++
-			assistantCalls += len(calls)
-		case "tool":
-			if assistantCallMessages != 1 || stringValue(message["tool_call_id"]) == "" || strings.TrimSpace(stringValue(message["content"])) == "" {
-				return false
-			}
-			toolResultsStarted = true
-			toolResults++
-		default:
-			return false
-		}
-	}
-	return systemCount == 1 && assistantCallMessages == 1 && assistantCalls >= 1 && assistantCalls <= 2 && toolResults == assistantCalls
-}
-
 func mergeProviderPromptBudgetDiagnostics(existing map[string]any, messages, tools []map[string]any, responseFormat map[string]any, assignment providerAssignment, wireEstimate int) map[string]any {
 	result := cloneMap(existing)
 	if result == nil {
@@ -893,7 +897,9 @@ func (p *ProviderClient) recordProviderFailure(ctx context.Context, assignment p
 	} else if code == "request_cancelled" {
 		status = providerRunCancelled
 	}
-	p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), status, code)
+	diagnosticCtx, cancel := boundedDiagnosticWriteContext(ctx)
+	defer cancel()
+	p.runtimeSupport().RecordModelRun(diagnosticCtx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, response), status, code)
 }
 
 func (p *ProviderClient) recordProviderSuccessBoundary(ctx context.Context, assignment providerAssignment, role, correlationID string, messages []map[string]any, response any) {

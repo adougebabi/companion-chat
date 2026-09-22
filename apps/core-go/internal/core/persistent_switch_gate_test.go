@@ -323,7 +323,7 @@ func TestPersistentSwitchStillWorksViaAuthorizedScenarios(t *testing.T) {
 func TestUnauthorizedScenarioHasNoPersonalityDecisionField(t *testing.T) {
 	rules := []personaSwitchRule{{RuleID: "switch:safety", Source: personaSwitchSourceSwitchingList, Kind: switchRulePersistentSemantic, TargetProfileID: "twilight", Enabled: true}}
 	owner := turnPersonaScope{ActiveProfileID: "spark", ReplyOwnerProfileID: "spark"}
-	for _, scenario := range []string{persistentSwitchGrantScenarioTakeover, persistentSwitchGrantScenarioQuery, persistentSwitchGrantScenarioJudge} {
+	for _, scenario := range []string{persistentSwitchGrantScenarioTakeover, persistentSwitchGrantScenarioJudge} {
 		grant := resolvePersistentSwitchGrant(owner, scenario, rules)
 		decision, _ := applyPersistentSwitchGrant(map[string]any{
 			"personality_decision":   map[string]any{"decision": "switch", "target_profile_id": "twilight"},
@@ -366,30 +366,31 @@ func TestRecoveryDoesNotApplyUnauthorizedSwitch(t *testing.T) {
 // Static guard: the settlement points cannot write active_profile_id directly
 // ---------------------------------------------------------------------------
 
-func TestPersistentSwitchStaticGuardOnlyGateWritesActiveProfile(t *testing.T) {
-	data, err := os.ReadFile("mutations.go")
+func TestPersistentSwitchStaticGuardWritesStayWithinPersonaServices(t *testing.T) {
+	data, err := os.ReadFile("agent_result_adapter.go")
 	if err != nil {
 		t.Fatal(err)
 	}
 	source := string(data)
 	if count := strings.Count(source, "a.applyPersonalityDecisionPlanTx("); count != 0 {
-		t.Fatalf("mutations.go must write the persistent active profile only through the authorized gate, found %d direct calls", count)
+		t.Fatalf("production Agent adapter must not apply a model sidecar personality plan, found %d direct calls", count)
 	}
-	if count := strings.Count(source, "a.applyPersistentSwitchIfAuthorizedTx("); count != 3 {
-		t.Fatalf("the three settlement points (main reply, query continuation, recovery) must call the gate, found %d", count)
+	if count := strings.Count(source, "a.applyPersistentSwitchIfAuthorizedTx("); count != 0 {
+		t.Fatalf("production Agent adapter must use persona Tools instead of caller-side switch settlement, found %d", count)
 	}
 	if count := strings.Count(source, "applyPersistentSwitchGrant(decision, personaGrant)"); count != 0 {
 		t.Fatalf("the Main turn must not keep a second E1 call site outside the shared normalizer, found %d", count)
 	}
 
-	// E1 lives in the single shared normalizer so the takeover reply is filtered
-	// by exactly the same rule as the Main turn.
-	normalizer, err := os.ReadFile("turn_decision.go")
+	service, err := os.ReadFile("persona_action_service.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count := strings.Count(string(normalizer), "applyPersistentSwitchGrant(decision, input.Grant)"); count != 1 {
-		t.Fatalf("the Main turn must drop an unauthorized persistent proposal before persisting it (E1), found %d call sites", count)
+	if count := strings.Count(string(service), "service.app.applyPersonalityDecisionPlanTx("); count != 1 {
+		t.Fatalf("native persona Tool must have one domain switch commit boundary, got %d", count)
+	}
+	if !strings.Contains(string(service), "service.app.preparePersonalityDecision(") || !strings.Contains(string(service), "persistPersonaActionAuditTx(") {
+		t.Fatal("native persona switch must retain declared-rule validation and transactional audit")
 	}
 
 	gate, err := os.ReadFile("persistent_switch_gate.go")
@@ -397,7 +398,7 @@ func TestPersistentSwitchStaticGuardOnlyGateWritesActiveProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 	if count := strings.Count(string(gate), "a.applyPersonalityDecisionPlanTx("); count != 1 {
-		t.Fatalf("the gate must be the single place that writes the persistent active profile, found %d", count)
+		t.Fatalf("historical-command recovery must retain one gated persistent profile write, found %d", count)
 	}
 	if !strings.Contains(string(gate), "!persistentSwitchAuthorizedByPayload(payload)") {
 		t.Fatal("the gate must refuse a payload without positive authorization (E3)")

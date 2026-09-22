@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"regexp"
@@ -38,12 +37,6 @@ type projectHealthRoundTripFunc func(*http.Request) (*http.Response, error)
 
 func (fn projectHealthRoundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
 	return fn(request)
-}
-
-type nativeReplayTestCapability struct {
-	prepareCalls atomic.Int32
-	txCalls      atomic.Int32
-	failFirst    atomic.Bool
 }
 
 type autonomyMutationTestCapability struct{ settingKey string }
@@ -84,43 +77,6 @@ func (autonomyFailureTestCapability) Execute(_ context.Context, invocation Capab
 }
 func (autonomyFailureTestCapability) ExecuteTx(_ context.Context, _ pgx.Tx, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
 	return failedCapabilityResult(invocation, "autonomy_test_required_failure", false), newCapabilityError("autonomy_test_required_failure", false, fmt.Errorf("required test failure"))
-}
-
-func (capability *nativeReplayTestCapability) Definition() CapabilityDefinition {
-	return CapabilityDefinition{
-		Name: "test.native.transaction", Version: "v1", Type: CapabilityTypeInternal,
-		Description:     "Exercise the native caller-owned transaction boundary.",
-		InputSchema:     map[string]any{"type": "object", "additionalProperties": false},
-		OutputSchema:    map[string]any{"type": "object", "additionalProperties": false, "required": []any{"applied"}, "properties": map[string]any{"applied": map[string]any{"type": "boolean"}}},
-		Surfaces:        []CapabilitySurface{CapabilitySurfaceNativeCognition},
-		SuccessBoundary: "native_test_applied",
-		FailurePolicy:   FailurePolicyRequiredForVisibleClaim,
-	}
-}
-
-func (capability *nativeReplayTestCapability) RequiredContext() []ContextSlot { return nil }
-
-func (capability *nativeReplayTestCapability) Prepare(_ context.Context, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityInvocation, error) {
-	capability.prepareCalls.Add(1)
-	return withCapabilityPreparedData(invocation, "native_test_plan", map[string]any{"stable": true})
-}
-
-func (capability *nativeReplayTestCapability) Execute(_ context.Context, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
-	return failedCapabilityResult(invocation, "native_test_wrong_execution_path", false), newCapabilityError("native_test_wrong_execution_path", false, fmt.Errorf("transactional capability executed outside caller transaction"))
-}
-
-func (capability *nativeReplayTestCapability) ExecuteTx(_ context.Context, _ pgx.Tx, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
-	capability.txCalls.Add(1)
-	if _, found, err := capabilityPreparedData(invocation, "native_test_plan"); err != nil || !found {
-		if err == nil {
-			err = fmt.Errorf("prepared plan missing")
-		}
-		return failedCapabilityResult(invocation, "native_test_plan_invalid", false), newCapabilityError("native_test_plan_invalid", false, err)
-	}
-	if capability.failFirst.CompareAndSwap(true, false) {
-		return failedCapabilityResult(invocation, "native_test_retryable", true), newCapabilityError("native_test_retryable", true, fmt.Errorf("retryable native failure"))
-	}
-	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"applied": true}, ProviderRequestID: invocation.ProviderRequestID}, nil
 }
 
 func isolatedCoreTestRepository(t *testing.T) (context.Context, *PostgresRepository) {
@@ -599,213 +555,44 @@ func TestProjectHealthNativeMutationsUseCallerOwnedTransaction(t *testing.T) {
 	}
 }
 
-func TestNativeCognitionRequiredFailureReplaysFrozenDecisionWithoutSecondProviderCall(t *testing.T) {
+func TestNativeCognitionFailureIsTerminalWithoutWholeLoopReplay(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
-	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
-	ownerID := "native-replay-owner-" + suffix
-	fluctlightID := "native-replay-fluctlight-" + suffix
-	inboxID := "native-replay-inbox-" + suffix
-	endpointID := "native-replay-endpoint-" + suffix
-
-	capability := &nativeReplayTestCapability{}
-	capability.failFirst.Store(true)
-	registry := mustCapabilityRegistry(capability)
-	var providerCalls atomic.Int32
-	var providerRef string
-	var providerDriveRef string
-	stateRefPattern := regexp.MustCompile(`state:ctx_[a-f0-9]{32}`)
-	driveRefPattern := regexp.MustCompile(`drive:ctx_[a-f0-9]{32}`)
-	providerHTTP := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
-		providerCalls.Add(1)
-		body, err := io.ReadAll(request.Body)
-		if err != nil {
-			return nil, err
-		}
-		matched := stateRefPattern.Find(body)
-		if len(matched) == 0 {
-			return nil, fmt.Errorf("native Provider request did not contain a state context ref")
-		}
-		providerRef = string(matched)
-		driveMatched := driveRefPattern.Find(body)
-		if len(driveMatched) == 0 {
-			return nil, fmt.Errorf("native Provider request did not contain a drive context ref")
-		}
-		providerDriveRef = string(driveMatched)
-		structured := map[string]any{
-			"appraisal": map[string]any{
-				"relevance": 0.6, "goal_congruence": 0.4, "reward": 0.3, "loss": 0.7, "social_threat": 0.2,
-				"controllability": 0.5, "responsibility": 0.5, "relationship_significance": 0.1, "expected_effect": 0.4,
-				"evidence_refs": []any{}, "event_kind": "life_observation", "direction": "negative",
-				"drive_signals": []any{map[string]any{"ref": providerDriveRef, "direction": "increase", "strength": 0.8, "confidence": 0.9, "evidence_refs": []any{providerDriveRef, providerRef}}},
-			},
-			"attention": "observe", "thought": "assess", "desire": "adapt", "agency": "act",
-			"influences": []any{
-				map[string]any{"ref": providerRef, "role": "grounds", "confidence": 0.9, "note": "当前状态影响了本次内部决策"},
-				map[string]any{"ref": providerDriveRef, "role": "motivates", "confidence": 0.9, "note": "当前需要影响了本次内部决策"},
-			},
-		}
-		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{
-			"content":    string(jsonBytes(structured)),
-			"tool_calls": []any{map[string]any{"id": "native-call-1", "type": "function", "function": map[string]any{"name": capability.Definition().Name, "arguments": `{}`}}},
-		}}}}
-		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(string(jsonBytes(response)))), Request: request}, nil
-	})}
-
-	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, HTTP: providerHTTP}, Capabilities: registry}
-	app.ContextResolver = NewAppContextResolver(app)
-	runtime, err := NewCapabilityRuntime(registry, app.ContextResolver)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app.Runtime = runtime
-
-	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status,checked_at) VALUES($1,'openai_compatible','http://native-replay.invalid',$2,'ready',now())`, endpointID, "native-replay-secret-"+suffix); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('generic_llm',$1,'native-replay-model','structured_output',4096,5,'{}')`, endpointID); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES($1,'human','active'),($2,'fluctlight','active')`, ownerID, fluctlightID); err != nil {
-		t.Fatal(err)
-	}
-	identityJSON := json.RawMessage(`{"name":"native-replay","timezone":"Asia/Shanghai"}`)
-	corePersonaJSON := json.RawMessage(`{"personality_system":{"active_profile_id":"default"}}`)
-	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES($1,$2,'llm_defined','active',$3,$4,'{}','{}','{}','{}')`, fluctlightID, ownerID, corePersonaJSON, identityJSON); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlight_inner_states(fluctlight_id,revision,pad,mood,momentum,regulation,drives,conflicts,last_updated_at) VALUES($1,0,'{"pleasure":0,"arousal":0,"dominance":0}','{"label":"neutral","intensity":0}','{"value":0}','{"stability":0.5}','[]','[]',now())`, fluctlightID); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlight_affect_profiles(fluctlight_id) VALUES($1)`, fluctlightID); err != nil {
-		t.Fatal(err)
-	}
+	ownerID := "native-terminal-owner"
+	fluctlightID := "native-terminal-fluctlight"
+	inboxID := "native-terminal-inbox"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.cognition_inbox_heads(fluctlight_id,next_sequence,last_processed_sequence) VALUES($1,2,0)`, fluctlightID); err != nil {
 		t.Fatal(err)
 	}
-	inboxPayload := jsonBytes(map[string]any{"event_type": "life.test.observed", "fluctlight_id": fluctlightID})
-	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) VALUES($1,$2,1,'life.test.observed',$3,$1,$1,$1,now(),'pending')`, inboxID, fluctlightID, inboxPayload); err != nil {
+	payload := jsonBytes(map[string]any{"event_type": "life.test.observed", "fluctlight_id": fluctlightID, "native_cognition_depth": 0})
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status) VALUES($1,$2,1,'life.test.observed',$3,$1,$1,$1,now(),'pending')`, inboxID, fluctlightID, payload); err != nil {
 		t.Fatal(err)
 	}
-
+	endpointID := "native-terminal-endpoint"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status,checked_at) VALUES($1,'openai_compatible','http://native-terminal.invalid','native-terminal-secret','ready',now())`, endpointID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('generic_llm',$1,'native-terminal-model','structured_output,tool_calling',4096,5,'{}')`, endpointID); err != nil {
+		t.Fatal(err)
+	}
+	var providerCalls atomic.Int32
+	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		providerCalls.Add(1)
+		return embeddingHTTPResponse(request, http.StatusServiceUnavailable, `{"error":{"message":"controlled native failure"}}`), nil
+	})}}}
 	if _, err := app.ProcessCognitionInbox(ctx, inboxID); err == nil {
-		t.Fatal("first native settlement should expose the retryable required capability failure")
+		t.Fatal("native Provider failure was presented as a completed cognition run")
 	}
-	if providerCalls.Load() != 1 || capability.prepareCalls.Load() != 1 || capability.txCalls.Load() != 1 {
-		t.Fatalf("first attempt calls provider=%d prepare=%d tx=%d", providerCalls.Load(), capability.prepareCalls.Load(), capability.txCalls.Load())
-	}
-	var stateRevision, appraisalCount int
-	var inboxStatus, frozenStatus string
-	var drives []byte
-	if err := repository.Pool().QueryRow(ctx, `SELECT revision,drives FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&stateRevision, &drives); err != nil {
+	var status, errorCode string
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&status, &errorCode); err != nil {
 		t.Fatal(err)
 	}
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_appraisals WHERE source_fact_id=$1`, inboxID).Scan(&appraisalCount); err != nil {
-		t.Fatal(err)
+	if status != "failed" || errorCode != "native_cognition_agent_failed" || providerCalls.Load() != 1 {
+		t.Fatalf("terminal native failure status=%q code=%q provider_calls=%d", status, errorCode, providerCalls.Load())
 	}
-	if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&inboxStatus); err != nil {
-		t.Fatal(err)
-	}
-	if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.cognition_frozen_actions WHERE inbox_id=$1`, inboxID).Scan(&frozenStatus); err != nil {
-		t.Fatal(err)
-	}
-	if stateRevision != 0 || appraisalCount != 0 || inboxStatus != "pending" || frozenStatus != "frozen" {
-		t.Fatalf("retryable failure escaped rollback: state=%d appraisals=%d inbox=%s frozen=%s", stateRevision, appraisalCount, inboxStatus, frozenStatus)
-	}
-	for authority, query := range map[string]string{
-		"state revisions":   `SELECT count(*) FROM public.fluctlight_state_revisions WHERE fluctlight_id=$1`,
-		"affect events":     `SELECT count(*) FROM public.fluctlight_inner_state_events WHERE fluctlight_id=$1`,
-		"internal dynamics": `SELECT count(*) FROM public.cognition_internal_dynamics WHERE fluctlight_id=$1`,
-		"focus cycles":      `SELECT count(*) FROM public.cognition_focus_cycles WHERE fluctlight_id=$1`,
-		"outcomes":          `SELECT count(*) FROM public.cognition_action_outcomes WHERE fluctlight_id=$1`,
-		"outbox":            `SELECT count(*) FROM public.platform_outbox_events WHERE fluctlight_id=$1`,
-		"reflection intents": `SELECT count(*) FROM public.platform_workflow_intents
-			WHERE intent_type='reflection.run' AND payload->>'fluctlight_id'=$1`,
-	} {
-		var count int
-		if err := repository.Pool().QueryRow(ctx, query, fluctlightID).Scan(&count); err != nil || count != 0 {
-			t.Fatalf("%s escaped required-failure rollback: count=%d err=%v", authority, count, err)
-		}
-	}
-
-	if _, err := app.ProcessCognitionInbox(ctx, inboxID); err != nil {
-		t.Fatalf("frozen native retry failed: %v", err)
-	}
-	if _, err := app.ProcessCognitionInbox(ctx, inboxID); err != nil {
-		t.Fatalf("completed native replay failed: %v", err)
-	}
-	if providerCalls.Load() != 1 || capability.prepareCalls.Load() != 1 || capability.txCalls.Load() != 2 {
-		t.Fatalf("replay repeated semantic/planner work: provider=%d prepare=%d tx=%d", providerCalls.Load(), capability.prepareCalls.Load(), capability.txCalls.Load())
-	}
-
-	var frozenPayload []byte
-	var claimedBy *string
-	if err := repository.Pool().QueryRow(ctx, `SELECT status,claimed_by FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&inboxStatus, &claimedBy); err != nil {
-		t.Fatal(err)
-	}
-	if err := repository.Pool().QueryRow(ctx, `SELECT status,payload FROM public.cognition_frozen_actions WHERE inbox_id=$1`, inboxID).Scan(&frozenStatus, &frozenPayload); err != nil {
-		t.Fatal(err)
-	}
-	if err := repository.Pool().QueryRow(ctx, `SELECT revision,drives FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, fluctlightID).Scan(&stateRevision, &drives); err != nil {
-		t.Fatal(err)
-	}
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_appraisals WHERE source_fact_id=$1`, inboxID).Scan(&appraisalCount); err != nil {
-		t.Fatal(err)
-	}
-	if inboxStatus != "processed" || claimedBy != nil || frozenStatus != "completed" || stateRevision != 1 || appraisalCount != 1 {
-		t.Fatalf("native completion state inbox=%s claimed=%v frozen=%s state=%d appraisals=%d", inboxStatus, claimedBy, frozenStatus, stateRevision, appraisalCount)
-	}
-	var driven bool
-	for _, raw := range decodeArray(drives) {
-		drive := mapValue(raw)
-		if stringValue(drive["key"]) == "exploration" && numberOrZero(drive["pressure"]) > 0 {
-			driven = true
-		}
-	}
-	if !driven || providerDriveRef == "" {
-		t.Fatalf("semantic Drive signal did not change persisted pressure: %s", drives)
-	}
-	invocations, err := capabilityInvocationsFromValue(decodeObject(frozenPayload)["capability_invocations"])
-	if err != nil || len(invocations) != 1 {
-		t.Fatalf("frozen invocations=%#v err=%v", invocations, err)
-	}
-	snapshotIdentity := mapValue(invocations[0].ContextSnapshot["identity"])
-	if invocations[0].ActionID == "" || stringValue(snapshotIdentity["action_id"]) != invocations[0].ActionID || len(invocations[0].PreparedPayload) == 0 {
-		t.Fatalf("invocation was not frozen against its action: %#v", invocations[0])
-	}
-	resultingState := mapValue(decodeObject(frozenPayload)["resulting_state"])
-	resultingStateRef := stringValue(resultingState["ref"])
-	if intValue(resultingState["revision"]) != 1 || !stateRefPattern.MatchString(resultingStateRef) || resultingStateRef == providerRef {
-		t.Fatalf("frozen action lost post-transition state causality: %#v", resultingState)
-	}
-	var outcomeCount, reflectionIntentCount int
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_action_outcomes WHERE action_id=$1`, invocations[0].ActionID).Scan(&outcomeCount); err != nil {
-		t.Fatal(err)
-	}
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.platform_workflow_intents WHERE intent_type='reflection.run' AND payload->>'source_fact_id'=$1`, inboxID).Scan(&reflectionIntentCount); err != nil {
-		t.Fatal(err)
-	}
-	var primaryObserved, primaryReferences []byte
-	if err := repository.Pool().QueryRow(ctx, `SELECT observed,context_references FROM public.cognition_action_outcomes WHERE action_id=$1 AND call_id=$2`, invocations[0].ActionID, actionPrimaryCallID).Scan(&primaryObserved, &primaryReferences); err != nil {
-		t.Fatal(err)
-	}
-	if stringValue(decodeObject(primaryObserved)["resulting_state_ref"]) != resultingStateRef {
-		t.Fatalf("primary Outcome lost resulting state ref: %s", primaryObserved)
-	}
-	if _, ok := decodeObject(primaryReferences)[resultingStateRef]; !ok {
-		t.Fatalf("primary Outcome lost resulting state mapping: %s", primaryReferences)
-	}
-	if outcomeCount != 2 || reflectionIntentCount != 1 || providerRef == "" {
-		t.Fatalf("native settlement outcomes=%d reflection_intents=%d provider_ref=%q", outcomeCount, reflectionIntentCount, providerRef)
-	}
-	for authority, query := range map[string]string{
-		"state revisions":   `SELECT count(*) FROM public.fluctlight_state_revisions WHERE fluctlight_id=$1`,
-		"internal dynamics": `SELECT count(*) FROM public.cognition_internal_dynamics WHERE fluctlight_id=$1`,
-		"focus cycles":      `SELECT count(*) FROM public.cognition_focus_cycles WHERE fluctlight_id=$1`,
-	} {
-		var count int
-		if err := repository.Pool().QueryRow(ctx, query, fluctlightID).Scan(&count); err != nil || count != 1 {
-			t.Fatalf("native replay %s count=%d err=%v", authority, count, err)
-		}
+	replayed, err := app.ProcessCognitionInbox(ctx, inboxID)
+	if err != nil || stringValue(replayed["status"]) != "failed" || providerCalls.Load() != 1 {
+		t.Fatalf("failed native run replayed model work: result=%#v err=%v provider_calls=%d", replayed, err, providerCalls.Load())
 	}
 }
 
@@ -1095,8 +882,13 @@ func TestAppraisalAndAffectEventCommitOneRevisionVisibleToNextProjection(t *test
 
 func TestNativeCognitionCycleGuardBoundsCapabilityProducedLifeFacts(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID := "native-cycle-owner"
 	fluctlightID := "native-cycle-fluctlight"
 	parentID := "native-cycle-parent"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at) VALUES($1,$2,'lifecycle','wake_up.current',$3,'pending',now())`, "wake_up_intent:"+fluctlightID, "wake_up:"+fluctlightID, jsonBytes(map[string]any{"fluctlight_id": fluctlightID, "cycle": 0})); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.cognition_inbox_heads(fluctlight_id,next_sequence,last_processed_sequence) VALUES($1,2,1)`, fluctlightID); err != nil {
 		t.Fatal(err)
 	}
@@ -1142,7 +934,7 @@ func TestNativeCognitionCycleGuardBoundsCapabilityProducedLifeFacts(t *testing.T
 	}
 }
 
-func TestAutonomyCapabilityActionRollsBackTransactionalSiblingOnRequiredFailure(t *testing.T) {
+func TestAutonomyCapabilityActionKeepsCommittedSiblingAndFailsRequiredCommand(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID := "autonomy-atomic-owner"
 	fluctlightID := "autonomy-atomic-fluctlight"
@@ -1192,8 +984,15 @@ func TestAutonomyCapabilityActionRollsBackTransactionalSiblingOnRequiredFailure(
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_action_outcomes WHERE action_id=$1`, actionID).Scan(&outcomeCount); err != nil {
 		t.Fatal(err)
 	}
-	if settingCount != 0 || status != "failed" || errorCode != "autonomy_test_required_failure" || outcomeCount != 3 {
-		t.Fatalf("autonomy split commit: setting=%d status=%s code=%s outcomes=%d", settingCount, status, errorCode, outcomeCount)
+	if settingCount != 1 || status != "failed" || errorCode != "autonomy_test_required_failure" || outcomeCount != 3 {
+		t.Fatalf("autonomy committed sibling contract: setting=%d status=%s code=%s outcomes=%d", settingCount, status, errorCode, outcomeCount)
+	}
+	replayed, replayErr := app.ProcessCapabilityAction(ctx, actionID)
+	if replayErr != nil || stringValue(replayed["status"]) != "failed" {
+		t.Fatalf("terminal action replay=%#v err=%v", replayed, replayErr)
+	}
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.runtime_settings WHERE key=$1`, settingKey).Scan(&settingCount); err != nil || settingCount != 1 {
+		t.Fatalf("committed sibling replayed: count=%d err=%v", settingCount, err)
 	}
 }
 
@@ -1209,7 +1008,7 @@ func TestCapabilityActionBindsMomentPublishToDurableMomentTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	app := &App{DB: repository}
-	app.Capabilities = mustCapabilityRegistry(momentPublishCapability{})
+	app.Capabilities = mustCapabilityRegistry(momentPublishCapability{publication: NewToolPublicationService(app)})
 	app.ContextResolver = NewStaticContextResolver(nil)
 	runtime, err := NewCapabilityRuntime(app.Capabilities, app.ContextResolver)
 	if err != nil {

@@ -108,7 +108,8 @@ func (service *relationshipLookupService) execute(ctx context.Context, invocatio
 	if activeProfileID == "" {
 		activeProfileID = "default"
 	}
-	var role, metrics, summary, emotional, provenance []byte
+	var role, metrics, emotional, provenance []byte
+	var summary string
 	var revision int
 	var profileID *string
 	if err := service.app.DB.Pool().QueryRow(ctx, `SELECT r.profile_id,COALESCE(a.actor_type,'unknown'),r.role,r.metrics,r.trend,r.summary,r.emotional_association,r.provenance,r.revision FROM public.relationships r LEFT JOIN public.actors a ON a.id=r.target_actor_id WHERE r.owner_fluctlight_id=$1 AND r.target_actor_id=$2 AND (r.profile_id=$3 OR r.profile_id IS NULL) ORDER BY CASE WHEN r.profile_id=$3 THEN 0 ELSE 1 END LIMIT 1`, fluctlightID, target, activeProfileID).Scan(&profileID, &actorType, &role, &metrics, &trend, &summary, &emotional, &provenance, &revision); err != nil {

@@ -43,8 +43,8 @@ Data-access baseline: pgx/v5, PostgreSQL transactions, and the embedded Go migra
 ### 3. Contracts
 
 - All application tables use one PostgreSQL schema. Each domain module owns its tables, constraints, migration changes, repository implementation, and row-to-domain mapping.
-- SQLAlchemy Core is the default; ORM may be used internally by one module but ORM entities/lazy relationships cannot cross module or transport interfaces.
-- One Unit of Work owns one AsyncSession, which cannot be shared across concurrent tasks.
+- Go Core uses pgx/v5; transaction handles and storage rows stay inside Core.
+- One transaction has one commit owner and is never shared across concurrent Tool executions.
 - Production uses the explicit Go migration command and revision verification. API/Worker never call `create_all()` or automatic upgrade.
 - One module never queries another module's table or imports its internal repository. Cross-module reads and writes use public module interfaces.
 - An application Unit of Work may compose multiple module interfaces in one short PostgreSQL transaction when one business invariant requires atomicity.
@@ -135,7 +135,7 @@ await inner_state.apply_assessment(fluctlight_id, assessment,
 await inner_state.govern_intention(command, tx=tx)
 ```
 
-The released schema owns one linear revision chain, ending at `0020_media_provider_job`, and these public
+The released schema owns one linear revision chain, currently ending at `0034_tool_execution_source`, and these public
 tables: `fluctlights`, `fluctlight_foundation_revisions`,
 `fluctlight_foundation_governance`, `fluctlight_inner_states`,
 `fluctlight_inner_state_events`, `fluctlight_goals`,
@@ -254,7 +254,7 @@ async with unit_of_work.begin(command_id=command_id) as tx:
 ### 1. Scope / Trigger
 
 - Trigger: an empty database, `0031_evolution_authority`, or an already-current
-  database applies migration `0032_prompt_context_memory`.
+  database applies migration `0032_prompt_context_memory -> 0033_initialization_source -> 0034_tool_execution_source`.
 - The migration is additive. It links owning Raw History records, creates
   Active/Summary authorities, persists model input budgets and prompt metrics,
   and never converts conversation history into durable Memory.
@@ -262,8 +262,8 @@ async with unit_of_work.begin(command_id=command_id) as tx:
 ### 2. Signatures
 
 ```text
-Head = 0032_prompt_context_memory
-PreviousHead = 0031_evolution_authority
+Historical step = 0031_evolution_authority -> 0032_prompt_context_memory
+Current head = 0034_tool_execution_source
 
 conversation_messages += turn_id, source_fact_id, correlation_id,
                          generated search_document
@@ -362,3 +362,62 @@ ALTER owning message rows with nullable source links and FTS
 + validate sequence and prompt-budget invariants
 + advance the ledger in the same transaction
 ```
+
+## Scenario: Independent Tool receipts and Agent recovery
+
+### 1. Scope / Trigger
+
+Migration `0033_initialization_source → 0034_tool_execution_source` and every
+independent or native Tool mutation.
+
+### 2. Signatures
+
+`App.ExecuteTool(ctx, ToolExecutionRequest) (ToolExecutionReceipt, error)`;
+`tool_executions`, `agent_runs`, `tool_policy_reservations` in `public`.
+
+### 3. Contracts
+
+- Mutation identity is `(fluctlight_id, capability_name, operation_id)` and binds
+  canonical arguments, actor/subject, target, evidence and working profile.
+- Tool effect, receipt and outbox share one short transaction. Queries are
+  fresh and do not replay cached reads. Asynchronous `accepted` retains a real
+  task identity and is distinct from completed output.
+- Native model/ToolCall IDs are diagnostic facts; direct operations do not
+  fabricate them. Ledger invocation links actual Agent/run provenance.
+- Agent admission fences completed/failed/interrupted runs. Later model failure
+  cannot erase committed effects or trigger a whole-run restart. Cancellation
+  terminal recording uses bounded cancellation-independent context.
+- Tool authority revisions support settlement CAS against this run's own
+  commits while rejecting unrelated state changes.
+- Autonomy reservations count once per run and preserve per-action permission
+  checks. Internal cognition and explicitly authorized Owner Tools remain usable.
+- The migration removes Active Memory source-fact FKs to cognition inbox;
+  explicit evidence and remaining owner/conversation/revision constraints stay.
+  Initialization source snapshots and all historical domain rows remain intact.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Repeated identical mutation operation | Return committed receipt |
+| Same operation, changed payload/target/profile | Conflict before new effect |
+| Receipt/outbox insert fails | Roll back this Tool transaction |
+| Later model fails | Preserve previous Tool commits and failed run |
+| New concurrent authority revision | Reject stale semantic settlement |
+
+### 5. Good/Base/Bad Cases
+
+Good: write Memory, then query sees committed content before final Agent output.
+Base: accepted media task finishes later through its existing workflow.
+Bad: span Provider calls with a database transaction or claim global rollback.
+
+### 6. Tests Required
+
+Real PostgreSQL empty/0033-to-head/head-rerun tests preserve initialization source
+hashes and assert all three tables. Tool tests cover payload conflict, receipt
+atomicity, cancellation after commit, run replay and concurrency CAS.
+
+### 7. Wrong vs Correct
+
+Wrong: rerun the whole failed Agent to recover an already-published reply.
+Correct: load committed receipts and durable task state; report the failed run.

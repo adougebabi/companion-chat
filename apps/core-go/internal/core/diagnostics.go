@@ -22,6 +22,15 @@ const (
 	providerRunTimeout   = "timeout"
 )
 
+func boundedDiagnosticWriteContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	if ctx == nil {
+		ctx = context.Background()
+	} else {
+		ctx = context.WithoutCancel(ctx)
+	}
+	return context.WithTimeout(ctx, 2*time.Second)
+}
+
 type providerScenarioContextKey struct{}
 type providerCorrelationContextKey struct{}
 type providerAttemptIdentityContextKey struct{}
@@ -342,7 +351,7 @@ func (s providerRuntimeSupport) UpdateModelRunState(ctx context.Context, id, sta
 	if runErr != nil {
 		errorCode = providerRunErrorCode(runErr)
 	}
-	diagnosticCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	diagnosticCtx, cancel := boundedDiagnosticWriteContext(ctx)
 	defer cancel()
 	command, err := s.DB.Pool().Exec(diagnosticCtx, `UPDATE public.diagnostic_model_runs SET status=CASE WHEN status IN ('completed','failed','cancelled','timeout') AND $2 IN ('completed','failed','cancelled','timeout') THEN status ELSE $2 END,error_code=CASE WHEN $3='' OR COALESCE(error_code,'')<>'' THEN error_code ELSE $3 END,started_at=CASE WHEN $2='running' THEN COALESCE(started_at,now()) ELSE started_at END,completed_at=CASE WHEN $2 IN ('completed','failed','cancelled','timeout') THEN COALESCE(completed_at,now()) ELSE completed_at END WHERE id=$1 AND ((status='queued' AND $2 IN ('running','completed','failed','cancelled','timeout')) OR (status='running' AND $2 IN ('completed','failed','cancelled','timeout')) OR (status IN ('completed','failed','cancelled','timeout') AND $2 IN ('completed','failed','cancelled','timeout')) OR status=$2)`, id, status, nullableString(errorCode))
 	if err != nil || command.RowsAffected() != 1 {

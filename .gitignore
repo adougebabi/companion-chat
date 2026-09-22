@@ -16,3 +16,10 @@ infra/compose/fluctlight.local.env
 apps/*/.gocache/
 apps/*/.gocache-*/
 apps/*/.gomodcache/
+
+# Test artifacts and audit evidence
+image.png
+phase8-eino-*
+.trellis/tasks/**/runs/
+.trellis/tasks/**/research/*.json
+.trellis/tasks/**/research/*.txt

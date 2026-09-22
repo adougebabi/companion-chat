@@ -7,6 +7,7 @@ import (
 )
 
 type ProjectionTaskResult struct {
+	Trace       *ADKCapabilityTrace
 	Completion  ProviderCompletion
 	Projection  ContextProjection
 	Diagnostics map[string]any
@@ -17,6 +18,30 @@ func (a *App) modelTaskProvider() (*ProviderClient, error) {
 		return nil, errors.New("model_task_provider_unavailable")
 	}
 	return a.Provider, nil
+}
+
+func (a *App) runFormalStructuredTask(ctx context.Context, id FormalAgentID, messages []map[string]any, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool, capability *ADKCapabilityRequest) (ADKStructuredTaskResult, error) {
+	return a.RunFormalAgent(ctx, id, FormalAgentRunInput{
+		Prompt: PromptAssemblyResult{Messages: messages, ResponseFormat: schema}, Definitions: definitions,
+		SchemaName: schemaName, EnableThinking: enableThinking, Capability: capability,
+	})
+}
+
+func formalTaskCapabilityRequest(id FormalAgentID, projection ContextProjection, surface CapabilitySurface) *ADKCapabilityRequest {
+	sourceFactID := strings.TrimSpace(projection.SourceFactID)
+	operationRoot := sourceFactID
+	if operationRoot == "" {
+		operationRoot = "formal-agent:" + string(id) + ":" + stableDigest(jsonString(projection))[:24]
+	}
+	return &ADKCapabilityRequest{
+		AuthorizationPolicy:  "autonomy",
+		AuthorizationActorID: projection.OwnerActorID, FluctlightID: projection.FluctlightID,
+		ConversationID: projection.ConversationID, SourceFactID: sourceFactID,
+		ActionID:      "agent_action_" + stableDigest(string(id) + "\x1f" + operationRoot)[:32],
+		OperationID:   "agent_run_" + stableDigest(string(id) + "\x1f" + operationRoot)[:32],
+		CorrelationID: "agent:" + string(id) + ":" + operationRoot,
+		Surface:       surface, Projection: projection,
+	}
 }
 
 // InitializationTaskInput is the complete business input for the
@@ -30,12 +55,10 @@ func (a *App) RunInitializationTask(ctx context.Context, input InitializationTas
 	if strings.TrimSpace(input.Description) == "" {
 		return nil, errors.New("initialization_description_required")
 	}
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return nil, err
-	}
 	messages := initializationAnalysisMessages(input.Description)
-	return provider.Structured(WithProviderScenario(ctx, "initialization"), "initialization", messages)
+	messages = (&PromptComposer{}).ComposeTaskMessages("initialization", messages)
+	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "initialization"), FormalAgentInitialization, messages, nil, "initialization_response", initializationResponseSchema(), false, nil)
+	return run.Completion.Structured, err
 }
 
 // MediaPromptTaskInput contains only the frozen media facts and retry
@@ -46,15 +69,16 @@ type MediaPromptTaskInput struct {
 }
 
 func (a *App) RunMediaPromptTask(ctx context.Context, input MediaPromptTaskInput) (string, error) {
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return "", err
-	}
 	messages := []map[string]any{
 		{"role": "system", "content": mediaPromptInstruction},
 		{"role": "user", "content": mediaPromptInput(input.Intent)},
 	}
-	return provider.Text(WithProviderScenario(ctx, "media_prompt"), "media_prompt", messages)
+	messages = addVisualIdentityMediaPromptInstruction("media_prompt", messages)
+	messages = formatProviderMessagesForRole(messages, "media_prompt")
+	run, err := a.RunFormalAgent(WithProviderScenario(ctx, "media_prompt"), FormalAgentMediaPrompt, FormalAgentRunInput{
+		Prompt: PromptAssemblyResult{Messages: messages}, SchemaName: "media_prompt_text",
+	})
+	return run.Completion.Text, err
 }
 
 type MediaQualityTaskInput struct {
@@ -64,22 +88,19 @@ type MediaQualityTaskInput struct {
 }
 
 func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInput) (mediaQualityAcceptance, error) {
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return mediaQualityAcceptance{}, err
-	}
 	messages, err := mediaQualityMessages(input.Intent, input.ContentType, input.Content)
 	if err != nil {
 		return mediaQualityAcceptance{}, err
 	}
-	value, err := provider.StructuredWithSchema(
+	messages = formatProviderMessagesForRole(messages, "media_prompt")
+	run, err := a.runFormalStructuredTask(
 		WithProviderScenario(ctx, "media_quality_acceptance"),
-		"media_prompt", messages, "media_quality_acceptance_response", mediaQualityAcceptanceResponseSchema(), false,
+		FormalAgentMediaQuality, messages, nil, "media_quality_acceptance_response", mediaQualityAcceptanceResponseSchema(), false, nil,
 	)
 	if err != nil {
 		return mediaQualityAcceptance{}, err
 	}
-	return normalizeMediaQualityAcceptance(value)
+	return normalizeMediaQualityAcceptance(run.Completion.Structured)
 }
 
 type VisualIdentityVisionTaskInput struct {
@@ -92,10 +113,6 @@ type VisualIdentityVisionTaskInput struct {
 var visualIdentityVisionTaskInstruction = "Inspect the supplied candidate image for visual identity continuity. The required target is one complete text-free CHARACTER PROFILE card on a white minimalist background with an editorial 3:4 vertical layout. It must contain these visual sections, represented by layout, figures, diagrams, swatches and whitespace rather than rendered text: " + visualIdentityRequiredCardSectionsText + ". Do not require OCR, exact lettering, section headers, titles, labels, numbers or signature characters; generated text is intentionally omitted and incidental unreadable marks must not by themselves lower identity_match. Verify that the same face is preserved across the front, side and back views. If the image is anime, chibi, an unrelated art photo, abstract silhouette, landscape, object-only image, missing a person, missing a required visual section, or inconsistent across views, report a low identity_match and make that mismatch explicit in observations. Return bounded structured observations only."
 
 func (a *App) RunVisualIdentityVisionTask(ctx context.Context, input VisualIdentityVisionTaskInput) (map[string]any, error) {
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return nil, err
-	}
 	content := []any{map[string]any{"type": "text", "text": jsonString(map[string]any{
 		"asset_id": input.CandidateAssetID, "render_intent": "character_design_sheet", "expected_subject": "one_human_character",
 		"expected_views": visualIdentityExpectedViews(), "panel_layout": map[string]string{"front": "front_full_body", "side": "side_full_body", "back": "back_full_body"},
@@ -104,9 +121,11 @@ func (a *App) RunVisualIdentityVisionTask(ctx context.Context, input VisualIdent
 	if input.ImageContent != nil {
 		content = append(content, input.ImageContent)
 	}
-	return provider.StructuredWithSchema(ctx, "visual_identity_vision", []map[string]any{
+	messages := (&PromptComposer{}).ComposeTaskMessages("visual_identity_vision", []map[string]any{
 		{"role": "system", "content": visualIdentityVisionTaskInstruction}, {"role": "user", "content": content},
-	}, "visual_identity_vision_response", visualIdentityVisionResponseSchema(), false)
+	})
+	run, err := a.runFormalStructuredTask(ctx, FormalAgentVisualIdentityVision, messages, nil, "visual_identity_vision_response", visualIdentityVisionResponseSchema(), false, nil)
+	return run.Completion.Structured, err
 }
 
 type VisualIdentityPatchTaskInput struct {
@@ -119,18 +138,16 @@ type VisualIdentityPatchTaskInput struct {
 var visualIdentityPatchTaskInstruction = "Review the candidate against the visual identity and return accepted or regenerate. Acceptance is allowed only for one complete text-free CHARACTER PROFILE card on a white minimalist background with an editorial 3:4 vertical layout, containing these visual sections: " + visualIdentityRequiredCardSectionsText + ". Do not require or score exact lettering, titles, headers, labels, numbers or signature characters; text is intentionally omitted, and incidental unreadable marks must not by themselves require regeneration. Regenerate only when a required visual section, view, person or consistent facial identity is missing, or when the image is anime, chibi, an unrelated art photo or an abstract silhouette. Preserve the explicit decision and a structured patch."
 
 func (a *App) RunVisualIdentityPatchTask(ctx context.Context, input VisualIdentityPatchTaskInput) (map[string]any, error) {
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return nil, err
-	}
 	payload := map[string]any{
 		"stage": "review", "render_intent": "character_design_sheet", "expected_subject": "one_human_character", "expected_views": visualIdentityExpectedViews(),
 		"panel_layout":    map[string]string{"front": "front_full_body", "side": "side_full_body", "back": "back_full_body"},
 		"visual_identity": input.InputSnapshot, "renderer_constraints": input.Constraints, "vision": input.Vision, "candidate_asset_id": input.CandidateAssetID,
 	}
-	return provider.StructuredWithSchema(ctx, "visual_identity_patch", []map[string]any{
+	messages := (&PromptComposer{}).ComposeTaskMessages("visual_identity_patch", []map[string]any{
 		{"role": "system", "content": visualIdentityPatchTaskInstruction}, {"role": "user", "content": jsonString(payload)},
-	}, "visual_identity_patch_response", visualIdentityPatchResponseSchema(), false)
+	})
+	run, err := a.runFormalStructuredTask(ctx, FormalAgentVisualIdentityPatch, messages, nil, "visual_identity_patch_response", visualIdentityPatchResponseSchema(), false, nil)
+	return run.Completion.Structured, err
 }
 
 type ConversationSummaryTaskInput struct {
@@ -138,21 +155,19 @@ type ConversationSummaryTaskInput struct {
 }
 
 func (a *App) RunConversationSummaryTask(ctx context.Context, input ConversationSummaryTaskInput) (conversationSummaryProviderResponse, error) {
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return conversationSummaryProviderResponse{}, err
-	}
 	providerMessages := conversationSummaryProviderMessages(input.Messages)
-	value, err := provider.StructuredWithSchema(
-		WithProviderScenario(ctx, "conversation_summary"), "reflection", []map[string]any{
-			{"role": "system", "content": conversationSummaryInstruction},
-			{"role": "user", "content": jsonString(map[string]any{"source_messages": providerMessages})},
-		}, "conversation_summary_v1", conversationSummaryProviderSchema(), false,
+	messages := (&PromptComposer{}).ComposeTaskMessages("reflection", []map[string]any{
+		{"role": "system", "content": conversationSummaryInstruction},
+		{"role": "user", "content": jsonString(map[string]any{"source_messages": providerMessages})},
+	})
+	run, err := a.runFormalStructuredTask(
+		WithProviderScenario(ctx, "conversation_summary"), FormalAgentConversationSummary, messages,
+		nil, "conversation_summary_v1", conversationSummaryProviderSchema(), false, nil,
 	)
 	if err != nil {
 		return conversationSummaryProviderResponse{}, err
 	}
-	return decodeConversationSummaryProviderResponse(value)
+	return decodeConversationSummaryProviderResponse(run.Completion.Structured)
 }
 
 type ScheduleGenerationTaskInput struct {
@@ -166,23 +181,22 @@ type ScheduleGenerationTaskInput struct {
 const scheduleGenerationTaskInstruction = "Return one compact object with items and reschedule_policy. items must contain 8-16 objects covering the complete local day contiguously from 00:00 through the next 00:00 in the supplied timezone. Every item needs start_at, end_at, activity, scene, location, item_type, status, priority, flexibility, interruption_cost. Keep activity, scene, and location each under 80 Chinese characters; use one concrete activity and one concrete scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent periods with the same activity and scene instead of producing many small segments. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1 (never a 1-10 score). Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."
 
 func (a *App) RunScheduleGenerationTask(ctx context.Context, input ScheduleGenerationTaskInput) (map[string]any, error) {
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return nil, err
-	}
 	instruction := scheduleGenerationTaskInstruction
 	if input.CompactOutputReminder {
 		instruction += " 上一个日程 JSON 不完整。请重新输出完整且紧凑的 8-16 个时段，必须覆盖从 00:00 到次日 00:00，不能截断，也不要附加解释。"
 	}
-	return provider.StructuredWithSchema(ctx, "cognitive_assessment", []map[string]any{
+	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": instruction},
 		{"role": "user", "content": jsonString(map[string]any{"local_date": input.LocalDate, "timezone": input.Timezone, "identity": input.Identity, "life_profile": input.LifeProfile})},
-	}, "schedule_response", scheduleResponseSchema(), false)
+	})
+	run, err := a.runFormalStructuredTask(ctx, FormalAgentScheduleGeneration, messages, nil, "schedule_response", scheduleResponseSchema(), false, nil)
+	return run.Completion.Structured, err
 }
 
 // Projection-backed tasks own selection of context surfaces, operation rules,
-// tool catalog and schema. They return the assembled projection because the
-// caller still owns domain validation and settlement after model execution.
+// tool catalog and schema. They return the assembled projection so callers can
+// validate and persist the final semantic contract; Tool effects in the trace
+// are already committed by the formal Agent loop.
 type NativeCognitionTaskInput struct {
 	EventType  string
 	Fact       []byte
@@ -196,13 +210,9 @@ func (a *App) RunNativeCognitionTask(ctx context.Context, input NativeCognitionT
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return ProjectionTaskResult{}, err
-	}
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "native_cognition"), assembly.Diagnostics)
-	completion, err := provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "native_cognition_response", schema, true)
-	return ProjectionTaskResult{Completion: completion, Projection: projection, Diagnostics: assembly.Diagnostics}, err
+	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentNativeCognition, assembly.Messages, definitions, "native_cognition_response", schema, true, formalTaskCapabilityRequest(FormalAgentNativeCognition, projection, CapabilitySurfaceNativeCognition))
+	return ProjectionTaskResult{Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
 }
 
 type DailyReviewTaskInput struct {
@@ -217,13 +227,9 @@ func (a *App) RunDailyReviewTask(ctx context.Context, input DailyReviewTaskInput
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return ProjectionTaskResult{}, err
-	}
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "daily_review"), assembly.Diagnostics)
-	completion, err := provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, definitions, "daily_review_response", schema, true)
-	return ProjectionTaskResult{Completion: completion, Projection: projection, Diagnostics: assembly.Diagnostics}, err
+	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentDailyReview, assembly.Messages, definitions, "daily_review_response", schema, true, formalTaskCapabilityRequest(FormalAgentDailyReview, projection, CapabilitySurfaceAutonomy))
+	return ProjectionTaskResult{Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
 }
 
 type PersistentSwitchTaskInput struct {
@@ -242,13 +248,9 @@ func (a *App) RunPersistentSwitchTask(ctx context.Context, input PersistentSwitc
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return ProjectionTaskResult{}, err
-	}
 	providerCtx := WithPromptDiagnostics(WithProviderCorrelation(WithProviderScenario(ctx, "cognitive_assessment"), "persona-switch-after:"+input.InboxID), assembly.Diagnostics)
-	completion, err := provider.StructuredAssembledWithToolsSchema(providerCtx, "cognitive_assessment", assembly.Messages, nil, persistentSwitchAssessmentSchemaName, schema, false)
-	return ProjectionTaskResult{Completion: completion, Projection: projection, Diagnostics: assembly.Diagnostics}, err
+	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentPersistentSwitch, assembly.Messages, nil, persistentSwitchAssessmentSchemaName, schema, false, nil)
+	return ProjectionTaskResult{Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
 }
 
 type ReflectionProposalTaskInput struct {
@@ -256,35 +258,61 @@ type ReflectionProposalTaskInput struct {
 	Projection ContextProjection
 }
 
+func compactReflectionEvidenceWithReferences(evidence []map[string]any, projection ContextProjection) []map[string]any {
+	result := compactReflectionEvidenceV2(evidence)
+	outcomeRefsByID := make(map[string]string)
+	for ref, entry := range projection.ReferenceIndex.ByRef {
+		if entry.Kind == ContextReferenceOutcome && strings.TrimSpace(entry.EntityID) != "" {
+			outcomeRefsByID[entry.EntityID] = ref
+		}
+	}
+	for evidenceIndex, source := range evidence {
+		if evidenceIndex >= len(result) || strings.TrimSpace(stringValue(source["event_type"])) != "autonomy.result" {
+			continue
+		}
+		payload := mapValue(source["payload"])
+		rawOutcomes := arrayValue(payload["outcomes"])
+		if len(rawOutcomes) == 0 && payload["outcome"] != nil {
+			rawOutcomes = []any{payload["outcome"]}
+		}
+		providerEnvelope := mapValue(result[evidenceIndex]["action_outcomes"])
+		providerOutcomes := arrayValue(providerEnvelope["outcomes"])
+		for outcomeIndex, raw := range rawOutcomes {
+			if outcomeIndex >= len(providerOutcomes) {
+				break
+			}
+			providerOutcome := mapValue(providerOutcomes[outcomeIndex])
+			if ref := outcomeRefsByID[strings.TrimSpace(stringValue(mapValue(raw)["id"]))]; ref != "" {
+				providerOutcome["ref"] = ref
+			}
+		}
+	}
+	return result
+}
+
 func (a *App) RunReflectionProposalTask(ctx context.Context, input ReflectionProposalTaskInput) (ProjectionTaskResult, error) {
 	schema := reflectionProposalV2ProviderSchema()
-	providerEvidence := compactReflectionEvidenceV2(input.Evidence)
+	providerEvidence := compactReflectionEvidenceWithReferences(input.Evidence, input.Projection)
 	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceReflection, input.Projection, "reflection", []string{providerContextAuthorityRule, reflectionV2Instruction}, jsonString(map[string]any{"evidence": providerEvidence}), nil, "reflection_proposal_v2", schema)
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return ProjectionTaskResult{}, err
-	}
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "reflection"), assembly.Diagnostics)
-	completion, err := provider.StructuredAssembledWithToolsSchema(providerCtx, "reflection", assembly.Messages, nil, "reflection_proposal_v2", schema, true)
-	return ProjectionTaskResult{Completion: completion, Projection: projection, Diagnostics: assembly.Diagnostics}, err
+	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentReflection, assembly.Messages, nil, "reflection_proposal_v2", schema, true, nil)
+	return ProjectionTaskResult{Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
 }
 
 // RunScheduleReplanTask is the typed task boundary used by the capability
 // planner. It owns the planner instruction, factual slots and output schema.
 func (a *App) RunScheduleReplanTask(ctx context.Context, input SchedulePlanInput) (map[string]any, error) {
-	provider, err := a.modelTaskProvider()
-	if err != nil {
-		return nil, err
-	}
-	return provider.StructuredWithSchema(WithProviderScenario(ctx, "schedule_replan_planner"), "cognitive_assessment", []map[string]any{
+	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": "Return only a complete schedule replacement. Preserve completed history and use the supplied timezone and revision."},
 		{"role": "user", "content": jsonString(map[string]any{
 			"intent": input.Intent, "schedule": compactScheduleForProvider(input.Schedule), "current_life": compactLifeContext(input.CurrentLife), "agency": compactSchedulePlannerAgency(input.Agency), "timezone": input.Timezone,
 		})},
-	}, "schedule_replan_plan", schedulePlannerOutputSchema(), false)
+	})
+	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "schedule_replan_planner"), FormalAgentScheduleReplan, messages, nil, "schedule_replan_plan", schedulePlannerOutputSchema(), false, nil)
+	return run.Completion.Structured, err
 }
 
 func (a *App) RunEmbeddingTask(ctx context.Context, text string) (string, []float64, error) {

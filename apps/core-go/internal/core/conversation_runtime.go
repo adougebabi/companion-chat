@@ -11,7 +11,7 @@ import (
 // Eino/ADK support and never owns a transaction or global run state.
 type ConversationRuntime interface {
 	RunMain(context.Context, ConversationMainInput) (ConversationRunResult, error)
-	RunQueryContinuation(context.Context, QueryContinuationInput) (ConversationRunResult, error)
+	RunMainStream(context.Context, ConversationMainInput) (ConversationRunResult, error)
 	RunTakeoverJudge(context.Context, TakeoverJudgeInput) (ConversationRunResult, error)
 	RunTakeoverReply(context.Context, TakeoverReplyInput) (ConversationRunResult, error)
 }
@@ -36,13 +36,6 @@ type ConversationMainInput struct {
 	Capability     *ConversationCapabilityContext
 }
 
-type QueryContinuationInput struct {
-	Role       string
-	Messages   []map[string]any
-	SchemaName string
-	Schema     map[string]any
-}
-
 type TakeoverJudgeInput struct {
 	Role       string
 	Messages   []map[string]any
@@ -65,11 +58,14 @@ type TakeoverReplyInput struct {
 // no App, repository, transaction, or mutable global state; the bridge owns
 // the actual authorization and execution through CapabilityRuntime.
 type ConversationCapabilityContext struct {
-	FluctlightID   string
-	ConversationID string
-	SourceFactID   string
-	ActionID       string
-	Projection     ContextProjection
+	AuthorizationActorID string
+	SubjectActorID       string
+	FluctlightID         string
+	ConversationID       string
+	SourceFactID         string
+	ActionID             string
+	OperationID          string
+	Projection           ContextProjection
 }
 
 // ConversationRunResult keeps the normalized ProviderCompletion separate from
@@ -88,6 +84,14 @@ func (r *conversationRuntime) provider() (*ProviderClient, error) {
 }
 
 func (r *conversationRuntime) RunMain(ctx context.Context, input ConversationMainInput) (ConversationRunResult, error) {
+	return r.runMain(ctx, input, false)
+}
+
+func (r *conversationRuntime) RunMainStream(ctx context.Context, input ConversationMainInput) (ConversationRunResult, error) {
+	return r.runMain(ctx, input, true)
+}
+
+func (r *conversationRuntime) runMain(ctx context.Context, input ConversationMainInput, streaming bool) (ConversationRunResult, error) {
 	_, err := r.provider()
 	if err != nil {
 		return ConversationRunResult{}, err
@@ -95,36 +99,32 @@ func (r *conversationRuntime) RunMain(ctx context.Context, input ConversationMai
 	if len(input.Definitions) > 0 && input.Capability == nil {
 		return ConversationRunResult{}, errors.New("conversation_runtime_capability_context_required")
 	}
-	result, err := r.app.RunADKStructuredTask(ctx, ADKStructuredTaskInput{
-		Role: input.Role, Scenario: "cognitive_assessment", Prompt: PromptAssemblyResult{Messages: input.Messages, ResponseFormat: input.Schema},
+	runInput := FormalAgentRunInput{
+		Prompt:      PromptAssemblyResult{Messages: input.Messages, ResponseFormat: input.Schema},
 		Definitions: input.Definitions, SchemaName: input.SchemaName,
 		EnableThinking: input.EnableThinking, Capability: conversationADKRequest(input.Capability, providerCorrelation(ctx)),
-	})
+	}
+	var result ADKStructuredTaskResult
+	if streaming {
+		result, err = r.app.RunFormalAgentStream(ctx, FormalAgentConversationCognition, runInput)
+	} else {
+		result, err = r.app.RunFormalAgent(ctx, FormalAgentConversationCognition, runInput)
+	}
 	return ConversationRunResult{Completion: result.Completion, Trace: result.Trace}, conversationRuntimeBoundaryError(err)
 }
 
-func (r *conversationRuntime) RunQueryContinuation(ctx context.Context, input QueryContinuationInput) (ConversationRunResult, error) {
-	provider, err := r.provider()
-	if err != nil {
-		return ConversationRunResult{}, err
-	}
-	completion, err := provider.StructuredQueryContinuation(WithProviderScenario(ctx, "query_continuation"), input.Role, input.Messages, input.SchemaName, input.Schema)
-	if err != nil {
-		return ConversationRunResult{}, err
-	}
-	return ConversationRunResult{Completion: completion}, nil
-}
-
 func (r *conversationRuntime) RunTakeoverJudge(ctx context.Context, input TakeoverJudgeInput) (ConversationRunResult, error) {
-	provider, err := r.provider()
+	_, err := r.provider()
 	if err != nil {
 		return ConversationRunResult{}, err
 	}
-	completion, err := provider.StructuredAssembledJudgement(WithProviderScenario(ctx, "takeover_judge"), input.Role, input.Messages, input.SchemaName, input.Schema)
+	result, err := r.app.RunFormalAgent(WithProviderScenario(ctx, "takeover_judge"), FormalAgentTakeoverJudge, FormalAgentRunInput{
+		Prompt: PromptAssemblyResult{Messages: input.Messages, ResponseFormat: input.Schema}, SchemaName: input.SchemaName,
+	})
 	if err != nil {
 		return ConversationRunResult{}, err
 	}
-	return ConversationRunResult{Completion: completion}, nil
+	return ConversationRunResult{Completion: result.Completion, Trace: result.Trace}, nil
 }
 
 func (r *conversationRuntime) RunTakeoverReply(ctx context.Context, input TakeoverReplyInput) (ConversationRunResult, error) {
@@ -135,8 +135,8 @@ func (r *conversationRuntime) RunTakeoverReply(ctx context.Context, input Takeov
 	if len(input.Definitions) > 0 && input.Capability == nil {
 		return ConversationRunResult{}, errors.New("conversation_runtime_capability_context_required")
 	}
-	result, err := r.app.RunADKStructuredTask(ctx, ADKStructuredTaskInput{
-		Role: input.Role, Scenario: "takeover_reply", Prompt: PromptAssemblyResult{Messages: input.Messages, ResponseFormat: input.Schema},
+	result, err := r.app.RunFormalAgent(ctx, FormalAgentTakeoverReply, FormalAgentRunInput{
+		Prompt:      PromptAssemblyResult{Messages: input.Messages, ResponseFormat: input.Schema},
 		Definitions: input.Definitions, SchemaName: input.SchemaName,
 		EnableThinking: input.EnableThinking, Capability: conversationADKRequest(input.Capability, providerCorrelation(ctx)),
 	})
@@ -148,8 +148,11 @@ func conversationADKRequest(capability *ConversationCapabilityContext, correlati
 		return nil
 	}
 	return &ADKCapabilityRequest{
-		FluctlightID: capability.FluctlightID, ConversationID: capability.ConversationID,
+		AuthorizationActorID: firstString(capability.AuthorizationActorID, capability.Projection.OwnerActorID),
+		SubjectActorID:       firstString(capability.SubjectActorID, capability.Projection.ReferenceIndex.SpeakerActorID),
+		FluctlightID:         capability.FluctlightID, ConversationID: capability.ConversationID,
 		SourceFactID: capability.SourceFactID, ActionID: capability.ActionID,
+		OperationID:   firstString(capability.OperationID, firstString(capability.ActionID, capability.SourceFactID)),
 		CorrelationID: correlationID, Surface: CapabilitySurfaceConversation,
 		Projection: capability.Projection,
 	}

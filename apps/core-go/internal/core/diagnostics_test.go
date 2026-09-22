@@ -310,6 +310,38 @@ func TestPostgresProviderTimeoutPersistsOneTypedTerminalState(t *testing.T) {
 	}
 }
 
+func TestPostgresProviderCancellationPersistsTerminalStateAfterContextCancellation(t *testing.T) {
+	databaseURL := os.Getenv("GO_CORE_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("GO_CORE_TEST_DATABASE_URL is not set")
+	}
+	baseCtx := WithProviderAttemptIdentity(WithProviderScenario(context.Background(), "reflection"), "provider-attempt-cancelled-test")
+	repository, err := NewPostgresRepository(baseCtx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer repository.Close()
+	correlationID := "reflection:" + stableDigest(t.Name()+time.Now().UTC().Format(time.RFC3339Nano))
+	t.Cleanup(func() {
+		_, _ = repository.Pool().Exec(context.Background(), `DELETE FROM public.provider_provenance WHERE correlation_id=$1`, correlationID)
+		_, _ = repository.Pool().Exec(context.Background(), `DELETE FROM public.diagnostic_model_runs WHERE correlation_id=$1`, correlationID)
+	})
+
+	cancelledCtx, cancel := context.WithCancel(baseCtx)
+	cancel()
+	provider := &ProviderClient{DB: repository}
+	provider.recordProviderFailure(cancelledCtx, providerAssignment{EndpointID: "endpoint-test", ModelID: "model-test"}, "reflection", correlationID, []map[string]any{{"role": "user", "content": "private-reflection"}}, "request_cancelled")
+
+	var status, errorCode, scenario, attemptID string
+	var count int
+	if err := repository.Pool().QueryRow(context.Background(), `SELECT min(status),min(COALESCE(error_code,'')),min(scenario),min(metrics->>'provider_attempt_id'),count(*) FROM public.diagnostic_model_runs WHERE correlation_id=$1`, correlationID).Scan(&status, &errorCode, &scenario, &attemptID, &count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 || status != providerRunCancelled || errorCode != "request_cancelled" || scenario != "reflection" || attemptID != "provider-attempt-cancelled-test" {
+		t.Fatalf("cancelled model run = count=%d status=%q error_code=%q scenario=%q attempt=%q", count, status, errorCode, scenario, attemptID)
+	}
+}
+
 func TestProviderProvenanceRoleParameterHasOnePostgresType(t *testing.T) {
 	source, err := os.ReadFile("diagnostics.go")
 	if err != nil {
@@ -428,7 +460,6 @@ func TestLifecycleOwningFilesUseOnlyExplicitBestEffortAssignments(t *testing.T) 
 		"workflow.GetVersion":     1,  // deterministic version marker returns no error
 		"setReflectionWindowIdle": 11, // this best-effort cleanup diagnoses its own failure
 		"DB.Pool().QueryRow":      2,  // diagnostic-only Fluctlight enrichment must not recurse on sink failure
-		"_ = factID":              1,  // intentionally discard a returned identity after checked persistence
 	}
 	observed := map[string]int{}
 	for _, file := range files {

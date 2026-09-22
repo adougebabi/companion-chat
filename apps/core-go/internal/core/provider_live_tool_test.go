@@ -254,7 +254,7 @@ func TestLiveProviderRecognizesImageGenerationIntent(t *testing.T) {
 		t.Fatalf("live Provider returned no choices: %s", boundedLiveProviderBody(responseBody))
 	}
 	message := mapValue(mapValue(choices[0])["message"])
-	structured, structuredFallback := liveProviderStructuredOrFallback(t, message, "conversation_turn_response", schema)
+	structured, _ := liveProviderStructuredOrFallback(t, message, "conversation_turn_response", schema)
 	calls := liveProviderInvocations(t, message, structured)
 	foundImage := false
 	foundReply := false
@@ -279,64 +279,13 @@ func TestLiveProviderRecognizesImageGenerationIntent(t *testing.T) {
 		t.Fatalf("live conversation.reply invocation must carry non-empty text: calls=%s response=%s", fmt.Sprint(calls), boundedLiveProviderBody(responseBody))
 	}
 
-	// Exercise the same visible-output normalization used by HandleTurn. The
-	// Provider may put the structured decision in a sidecar or omit it when it
-	// returns native calls, so this deliberately supplies only the minimal
-	// closed decision fields needed to test the native-call fallback. Root and
-	// response_plan visible_text stay absent: the expected canonical source is
-	// the conversation.reply argument itself.
-	if mode := stringValue(structured["response_mode"]); mode != "" && mode != "final" {
-		t.Fatalf("a final native reply plus image action must not request %q: structured=%s", mode, jsonString(structured))
-	}
-	const (
-		liveFluctlightID   = "live-provider-fluctlight"
-		liveOwnerActorID   = "live-provider-owner"
-		liveConversationID = "live-provider-conversation"
-		liveSourceFactID   = "live-provider-fact"
-		liveActiveProfile  = "live-provider-profile"
-	)
-	projection := ContextProjection{
-		SchemaVersion:      "fluctlight.context.v3",
-		FluctlightID:       liveFluctlightID,
-		OwnerActorID:       liveOwnerActorID,
-		ConversationID:     liveConversationID,
-		SourceFactID:       liveSourceFactID,
-		CurrentSpeaker:     map[string]any{"actor_id": liveOwnerActorID},
-		PersonalityRuntime: map[string]any{"active_profile_id": liveActiveProfile},
-		ReferenceIndex: ContextReferenceIndex{
-			SchemaVersion:   contextReferenceIndexVersion,
-			FluctlightID:    liveFluctlightID,
-			OwnerActorID:    liveOwnerActorID,
-			SpeakerActorID:  liveOwnerActorID,
-			ConversationID:  liveConversationID,
-			ActiveProfileID: liveActiveProfile,
-			ByRef:           map[string]ContextReference{},
-		},
-	}
-	normalized, err := (&App{}).normalizeTurnDecision(context.Background(), turnDecisionNormalizationInput{
-		InboxID:        "live-provider-inbox",
-		FluctlightID:   liveFluctlightID,
-		ConversationID: liveConversationID,
-		TurnID:         "live-provider-turn",
-		Projection:     projection,
-		Decision: map[string]any{
-			"response_mode":   "final",
-			"action_type":     "reply",
-			"response_intent": "同时生成视觉作品并说明构图重点",
-			"influences":      []any{},
-		},
-		Invocations:        calls,
-		Definitions:        manifests,
-		StructuredFallback: structuredFallback,
-	})
-	if err != nil {
-		t.Fatalf("live Provider calls failed Core turn normalization: %v; calls=%s", err, fmt.Sprint(calls))
-	}
-	if normalized.ResponseMode != "final" || normalized.Canonical.Source != canonicalVisibleSourceReplyCapability || normalized.Canonical.Text != replyText || normalized.Canonical.Digest != stableDigest(replyText) {
-		t.Fatalf("live Provider canonical visible reply is wrong: mode=%q canonical=%#v reply_text=%q decision=%s", normalized.ResponseMode, normalized.Canonical, replyText, jsonString(normalized.Decision))
-	}
-	if stringValue(normalized.Decision["visible_text"]) != replyText || stringValue(normalized.ResponsePlan["visible_text"]) != replyText {
-		t.Fatalf("normalized visible text was not frozen into both Core carriers: decision=%s response_plan=%s", jsonString(normalized.Decision), jsonString(normalized.ResponsePlan))
+	// A native ToolCall response is an intermediate Agent step. The current
+	// production contract publishes the committed conversation.reply result and
+	// only reads visible text from the final assistant completion. If this
+	// response also carries final structured text, it must agree with the reply
+	// Tool instead of introducing a second visible-output protocol.
+	if finalText := finalAgentVisibleText(ProviderCompletion{Structured: structured}); finalText != "" && finalText != replyText {
+		t.Fatalf("live Provider returned conflicting Tool and final text: final=%q reply=%q structured=%s", finalText, replyText, jsonString(structured))
 	}
 }
 
@@ -421,56 +370,6 @@ func TestLiveProviderActiveMemory(t *testing.T) {
 	arguments := decodeObject(active.Arguments)
 	if stringValue(arguments["operation"]) != "create" || stringValue(arguments["kind"]) != "future_event" || !strings.Contains(stringValue(arguments["content"]), "7") || stringValue(arguments["original_time_expression"]) == "" {
 		t.Fatalf("live Active Memory arguments invalid: %s", string(active.Arguments))
-	}
-}
-
-func TestLiveProviderRecallContinuation(t *testing.T) {
-	baseURL, model := liveProviderConfig(t)
-	definition := memoryRecallCapabilityDefinition()
-	schema := cognitiveTurnResponseSchema()
-	current := "当前上下文没有答案。请告诉我之前确认的天文镜校准日期；必须先调用 memory.recall 查找更深记忆，不要猜测。"
-	working, err := ResolveWorkingMemory(WorkingMemoryInput{
-		RuntimeFacts: []PromptFragment{{Kind: PromptFragmentRuntimeFact, Priority: 100, Content: map[string]any{"current_time": "2026-09-12T21:00:00+08:00", "known_answer": false}, SourceRefs: []string{"live:recall-state"}}},
-		RecentMessages: []PromptFragment{
-			{Kind: PromptFragmentRecentMessage, Priority: 50, Content: map[string]any{"role": "user", "content": "我们之前记录过仪器维护。"}, SourceRefs: []string{"live:recent-user"}, GroupKey: "live:turn"},
-			{Kind: PromptFragmentRecentMessage, Priority: 50, Content: map[string]any{"role": "assistant", "content": "是的，但具体日期不在当前上下文里。"}, SourceRefs: []string{"live:recent-assistant"}, GroupKey: "live:turn"},
-		},
-	}, DefaultWorkingMemoryPolicy())
-	if err != nil {
-		t.Fatal(err)
-	}
-	assembly, err := AssemblePromptContext(PromptAssemblyInput{
-		Role: "cognitive_assessment", OperationRules: []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction},
-		CorePersona: map[string]any{"identity": map[string]any{"name": "摇光"}}, WorkingMemory: working, CurrentInput: current,
-		Tools: RenderCapabilityTools([]CapabilityDefinition{definition}), ResponseFormat: providerResponseFormatForSchema("cognitive_assessment", "conversation_turn_response", schema), Policy: DefaultPromptBudgetPolicy(1800),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	message := liveProviderMessage(t, baseURL, providerChatPayloadWithSchema(model, assembly.Messages, 1800, true, []CapabilityDefinition{definition}, "cognitive_assessment", "conversation_turn_response", schema, true))
-	decision, structuredFallback := liveProviderStructuredOrFallback(t, message, "conversation_turn_response", schema)
-	calls := liveProviderInvocations(t, message, decision)
-	visibleCandidate := strings.TrimSpace(firstString(stringValue(decision["visible_text"]), stringValue(mapValue(decision["response_plan"])["visible_text"])))
-	mode := normalizeConversationResponseMode(stringValue(decision["response_mode"]), structuredFallback, visibleCandidate, calls, mustCapabilityRegistry(memoryRecallCapability{}))
-	if mode != "query_continuation" || visibleCandidate != "" || len(calls) != 1 || calls[0].CapabilityName != "memory.recall" {
-		t.Fatalf("live recall did not request pure-query continuation: calls=%#v decision=%s", calls, jsonString(decision))
-	}
-	results := []CapabilityResult{{
-		CallID: calls[0].CallID, CapabilityName: calls[0].CapabilityName, Status: "completed",
-		Output: map[string]any{"items": []any{map[string]any{"ref": "memory:ctx_0123456789abcdef0123456789abcdef", "source_kind": "long_term_memory", "content": "天文镜校准日期是 2026 年 8 月 18 日。"}}, "count": 1, "truncated": false},
-	}}
-	continuationMessages, err := queryContinuationMessages(newQueryContinuationState(assembly.Messages, calls), calls, results)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !validQueryContinuationMessages(continuationMessages) {
-		t.Fatalf("live continuation rejected frozen B-layout: %#v", continuationMessages)
-	}
-	continuationSchema := queryContinuationResponseSchema()
-	continued := liveProviderMessage(t, baseURL, providerChatPayloadWithSchema(model, continuationMessages, 1200, true, nil, "cognitive_assessment", "query_continuation_response", continuationSchema, false))
-	visible, err := continuationVisibleText(liveProviderStructured(t, continued, "query_continuation_response", continuationSchema))
-	if err != nil || !strings.Contains(visible, "2026") || !strings.Contains(visible, "8") || !strings.Contains(visible, "18") {
-		t.Fatalf("live continuation visible=%q err=%v", visible, err)
 	}
 }
 

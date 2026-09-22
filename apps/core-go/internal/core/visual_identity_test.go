@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -174,6 +175,42 @@ func TestVisualIdentityJSONEmptyTreatsDatabaseDefaultAsEmpty(t *testing.T) {
 	}
 }
 
+func TestVisualIdentityProviderPendingRecognizesCurrentGenericBinding(t *testing.T) {
+	for _, message := range []string{
+		"provider role generic_llm unavailable: no rows in result set",
+		"provider role visual_identity_vision unavailable: no rows in result set",
+	} {
+		if !visualIdentityProviderPending(errors.New(message)) {
+			t.Fatalf("provider pending error was not recognized: %s", message)
+		}
+	}
+	if visualIdentityProviderPending(errors.New("provider request failed: timeout")) {
+		t.Fatal("runtime Provider failure was incorrectly downgraded to configuration pending")
+	}
+}
+
+func TestVisualIdentityAgentCheckpointIdentityIsStableAndAdvancesWithDurableState(t *testing.T) {
+	generate := visualIdentityAgentState{SessionID: "session-1", Attempt: 1, ActionRequired: visualIdentityGenerateCandidateCapabilityName}
+	if first, replay := visualIdentityAgentCheckpointOperationID(generate), visualIdentityAgentCheckpointOperationID(generate); first == "" || first != replay {
+		t.Fatalf("same durable checkpoint is not stable: first=%q replay=%q", first, replay)
+	}
+	review := generate
+	review.ActionRequired = visualIdentityCommitReviewCapabilityName
+	if visualIdentityAgentCheckpointOperationID(review) == visualIdentityAgentCheckpointOperationID(generate) {
+		t.Fatal("candidate-ready review checkpoint reused the generation run identity")
+	}
+	nextAttempt := generate
+	nextAttempt.Attempt = 2
+	if visualIdentityAgentCheckpointOperationID(nextAttempt) == visualIdentityAgentCheckpointOperationID(generate) {
+		t.Fatal("regenerated attempt reused the prior attempt run identity")
+	}
+	finalize := review
+	finalize.ActionRequired = visualIdentityFinalizeCapabilityName
+	if visualIdentityAgentCheckpointOperationID(finalize) == visualIdentityAgentCheckpointOperationID(review) {
+		t.Fatal("character-sheet-ready checkpoint reused the review run identity")
+	}
+}
+
 func TestEnforceVisualIdentityPromptRequiresThreePanelLayout(t *testing.T) {
 	prompt := enforceVisualIdentityTurnaroundPrompt("character description", "seed")
 	for _, required := range []string{"角色设定卡", "character description", "正面/侧面/背面三视图", "六种不同表情", "禁止生成任何文字", "非动漫、非Q版"} {
@@ -214,25 +251,16 @@ func TestDefaultCapabilityRegistryIncludesVisualIdentityInitializer(t *testing.T
 	}
 }
 
-func TestVisualIdentityWaitingOutcomesRequireAuthoritativeSettlement(t *testing.T) {
+func TestVisualIdentityProductionEntryUsesCompleteFormalAgent(t *testing.T) {
 	source := readSourceFile(t, "visual_identity.go")
-	body := sourceBetween(t, string(source), "func (a *App) ProcessVisualIdentity", "func (a *App) recordVisualIdentityStage")
-	if strings.Contains(body, "_, _ = a.DB.Pool().Exec") {
-		t.Fatal("Visual Identity still ignores an authoritative session settlement")
+	body := sourceBetween(t, string(source), "func (a *App) ProcessVisualIdentity", "func visualIdentityJSONEmpty")
+	if !strings.Contains(body, "RunVisualIdentityAgent") || !strings.Contains(body, "VisualIdentityAgentInput{SessionID: sessionID}") {
+		t.Fatalf("production Visual Identity entry does not use the complete formal Agent: %s", body)
 	}
-	for _, required := range []string{
-		"visual_identity_renderer_pending_not_written",
-		"visual_identity_max_attempts_not_written",
-		"visual_identity_candidate_asset_not_written",
-		"command.RowsAffected() != 1",
-		"if err := a.recordVisualIdentityStage",
-	} {
-		if !strings.Contains(body, required) {
-			t.Fatalf("Visual Identity settlement guard missing %q", required)
+	for _, forbidden := range []string{"RunVisualIdentityVisionTask", "RunVisualIdentityPatchTask", "promoteVisualIdentityCanonical("} {
+		if strings.Contains(body, forbidden) {
+			t.Fatalf("production Visual Identity entry still chooses model/persistence stage %q", forbidden)
 		}
-	}
-	if strings.Contains(body, "_ = a.recordVisualIdentityStage") {
-		t.Fatal("Visual Identity still ignores a domain timeline write")
 	}
 	creation := sourceBetween(t, string(source), "func (a *App) ensureVisualIdentityInitializationTx", "func appendVisualIdentityTimelineTx")
 	if !strings.Contains(creation, `"correlation_id": "visual_identity:" + sessionID`) {

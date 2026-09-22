@@ -1,25 +1,12 @@
 package core
 
 import (
-	"context"
-	"os"
 	"testing"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func TestReleaseCognitionClaimRequeuesOwnedClaim(t *testing.T) {
-	databaseURL := os.Getenv("GO_CORE_TEST_DATABASE_URL")
-	if databaseURL == "" {
-		t.Skip("GO_CORE_TEST_DATABASE_URL is not set")
-	}
-	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, databaseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer pool.Close()
+	ctx, repository := isolatedCoreTestRepository(t)
 
 	inboxID := "test-cognition-claim-" + stableDigest(time.Now().UTC().String())
 	fluctlightID := "test-fluctlight-" + stableDigest(inboxID)
@@ -27,8 +14,10 @@ func TestReleaseCognitionClaimRequeuesOwnedClaim(t *testing.T) {
 	turnID := "test-turn-" + stableDigest(inboxID)
 	idempotencyKey := "test-idempotency-" + stableDigest(inboxID)
 	claimOwner := "go-cognition:test-owner"
+	ownerID := "test-owner-" + stableDigest(inboxID)
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
 
-	_, err = pool.Exec(ctx, `
+	_, err := repository.Pool().Exec(ctx, `
 		INSERT INTO public.cognition_inbox(
 			id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,
 			idempotency_key,occurred_at,status,claimed_by,claimed_at
@@ -44,11 +33,7 @@ func TestReleaseCognitionClaimRequeuesOwnedClaim(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		_, _ = pool.Exec(ctx, `DELETE FROM public.cognition_inbox WHERE id=$1`, inboxID)
-	})
-
-	app := &App{DB: &PostgresRepository{pool: pool}}
+	app := &App{DB: repository}
 	if err := app.releaseCognitionClaim(ctx, inboxID, claimOwner); err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +41,7 @@ func TestReleaseCognitionClaimRequeuesOwnedClaim(t *testing.T) {
 	var status string
 	var claimedBy *string
 	var claimedAt *time.Time
-	if err := pool.QueryRow(ctx, `SELECT status,claimed_by,claimed_at FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&status, &claimedBy, &claimedAt); err != nil {
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,claimed_by,claimed_at FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&status, &claimedBy, &claimedAt); err != nil {
 		t.Fatal(err)
 	}
 	if status != "pending" || claimedBy != nil || claimedAt != nil {
@@ -65,16 +50,7 @@ func TestReleaseCognitionClaimRequeuesOwnedClaim(t *testing.T) {
 }
 
 func TestEnqueueTurnFactClaimedReplaysCommittedAssistant(t *testing.T) {
-	databaseURL := os.Getenv("GO_CORE_TEST_DATABASE_URL")
-	if databaseURL == "" {
-		t.Skip("GO_CORE_TEST_DATABASE_URL is not set")
-	}
-	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, databaseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer pool.Close()
+	ctx, repository := isolatedCoreTestRepository(t)
 
 	inboxID := "test-cognition-claim-assistant-" + stableDigest(time.Now().UTC().String())
 	fluctlightID := "test-fluctlight-" + stableDigest(inboxID)
@@ -84,8 +60,9 @@ func TestEnqueueTurnFactClaimedReplaysCommittedAssistant(t *testing.T) {
 	actorID := "test-owner-" + stableDigest(inboxID)
 	claimOwner := "go-stream:test-owner"
 	assistantID := "test-assistant-" + stableDigest(inboxID)
+	seedTurnConversation(t, ctx, repository, actorID, fluctlightID, conversationID)
 
-	_, err = pool.Exec(ctx, `
+	_, err := repository.Pool().Exec(ctx, `
 		INSERT INTO public.cognition_inbox(
 			id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,
 			idempotency_key,occurred_at,status,claimed_by,claimed_at
@@ -101,7 +78,7 @@ func TestEnqueueTurnFactClaimedReplaysCommittedAssistant(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = pool.Exec(ctx, `
+	_, err = repository.Pool().Exec(ctx, `
 		INSERT INTO public.conversation_messages(
 			id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key
 		) VALUES($1,$2,1,$3,'assistant','already committed','[]',$4)`,
@@ -111,15 +88,10 @@ func TestEnqueueTurnFactClaimedReplaysCommittedAssistant(t *testing.T) {
 		"assistant:"+turnID,
 	)
 	if err != nil {
-		_, _ = pool.Exec(ctx, `DELETE FROM public.cognition_inbox WHERE id=$1`, inboxID)
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		_, _ = pool.Exec(ctx, `DELETE FROM public.conversation_messages WHERE id=$1`, assistantID)
-		_, _ = pool.Exec(ctx, `DELETE FROM public.cognition_inbox WHERE id=$1`, inboxID)
-	})
 
-	app := &App{DB: &PostgresRepository{pool: pool}}
+	app := &App{DB: repository}
 	replayedInboxID, _, err := app.enqueueTurnFactClaimed(ctx, actorID, fluctlightID, conversationID, turnID, idempotencyKey, "test", []any{})
 	if err != nil {
 		t.Fatal(err)
@@ -131,7 +103,7 @@ func TestEnqueueTurnFactClaimedReplaysCommittedAssistant(t *testing.T) {
 	var status string
 	var processedAt *time.Time
 	var claimedBy *string
-	if err := pool.QueryRow(ctx, `SELECT status,processed_at,claimed_by FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&status, &processedAt, &claimedBy); err != nil {
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,processed_at,claimed_by FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&status, &processedAt, &claimedBy); err != nil {
 		t.Fatal(err)
 	}
 	if status != "processed" || processedAt == nil || claimedBy != nil {

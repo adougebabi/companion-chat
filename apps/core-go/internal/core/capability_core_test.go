@@ -157,8 +157,6 @@ type canonicalTestCapability struct {
 	called     int
 }
 
-type faultyDeferredCapability struct{}
-
 type transactionalTestCapability struct {
 	executeCalls int
 	txCalls      int
@@ -175,17 +173,6 @@ func (capability *transactionalTestCapability) Execute(_ context.Context, invoca
 func (capability *transactionalTestCapability) ExecuteTx(_ context.Context, _ pgx.Tx, invocation CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
 	capability.txCalls++
 	return CapabilityResult{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed", Output: map[string]any{"applied": true}}, nil
-}
-
-func (faultyDeferredCapability) Definition() CapabilityDefinition {
-	return CapabilityDefinition{Name: "faulty.output", Version: "v1", Type: CapabilityTypeAction, Description: "Test output capability.", InputSchema: map[string]any{"type": "object"}, OutputRole: "conversation_message", TargetKinds: []string{"conversation_message"}, SideEffectClass: "external_async", FailurePolicy: FailurePolicyRequiredForVisibleClaim}
-}
-func (faultyDeferredCapability) RequiredContext() []ContextSlot { return nil }
-func (faultyDeferredCapability) Execute(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error) {
-	return CapabilityResult{}, nil
-}
-func (faultyDeferredCapability) ExecuteDeferredTx(context.Context, pgx.Tx, CapabilityInvocation, CapabilityContext, OutputBindingV1) (CapabilityResult, error) {
-	return CapabilityResult{Status: "completed"}, errors.New("simulated output failure")
 }
 
 func mustCapabilityRegistry(entries ...Capability) *CapabilityRegistry {
@@ -241,8 +228,8 @@ func TestBuiltInCapabilityExecutionClassesUseGenericMetadataAndInterfaces(t *tes
 	registry := mustCapabilityRegistry(builtinCapabilities(nil)...)
 	want := map[string]CapabilityExecutionClass{
 		"relationship.lookup":        CapabilityExecutionPureQuery,
-		"conversation.reply":         CapabilityExecutionDeferredOutput,
-		"moment.publish":             CapabilityExecutionDeferredOutput,
+		"conversation.reply":         CapabilityExecutionTransactionalMutation,
+		"moment.publish":             CapabilityExecutionTransactionalMutation,
 		"media.image.generate":       CapabilityExecutionExternalAsyncIntent,
 		"visual_identity.initialize": CapabilityExecutionExternalAsyncIntent,
 		"scene_event":                CapabilityExecutionTransactionalMutation,
@@ -643,106 +630,34 @@ func TestCapabilityRegistryRejectsNilDuplicateInvalidAndContextMismatch(t *testi
 	_ = mismatch
 }
 
-func TestCapabilityRuntimeNormalizesDeferredErrorsToFailedResult(t *testing.T) {
-	runtime, err := NewCapabilityRuntime(mustCapabilityRegistry(faultyDeferredCapability{}), NewStaticContextResolver(nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-	result, err := runtime.ExecuteDeferred(context.Background(), nil, CapabilityInvocation{CallID: "fault-1", CapabilityName: "faulty.output", Arguments: json.RawMessage(`{}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}, OutputBindingV1{TargetKind: "conversation_message", TargetRef: "message-1"})
-	if err == nil || result.Status != "failed" || result.CallID != "fault-1" || result.CapabilityName != "faulty.output" || result.ErrorCode == "" {
-		t.Fatalf("result=%#v err=%v", result, err)
-	}
-}
-
-func TestDeferredOutputSchemasMatchRuntimeResults(t *testing.T) {
+func TestDirectToolCapabilitiesRequireExecuteToolBoundary(t *testing.T) {
 	for _, fixture := range []struct {
-		capability Capability
-		invocation CapabilityInvocation
-		binding    OutputBindingV1
+		implementation Capability
+		name           string
 	}{
-		{conversationReplyCapability{}, CapabilityInvocation{CallID: "reply-output", CapabilityName: "conversation.reply", Arguments: json.RawMessage(`{"text":"hello"}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}, OutputBindingV1{TargetKind: "conversation_message", TargetRef: "message-1"}},
-		{momentPublishCapability{}, CapabilityInvocation{CallID: "moment-output", CapabilityName: "moment.publish", Arguments: json.RawMessage(`{"text":"hello"}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}, OutputBindingV1{TargetKind: "moment", TargetRef: "moment-1"}},
+		{implementation: conversationReplyCapability{}, name: "conversation.reply"},
+		{implementation: momentPublishCapability{}, name: "moment.publish"},
+		{implementation: imageGenerateCapability{}, name: "media.image.generate"},
 	} {
-		resolver := NewStaticContextResolver(map[ContextSlot]ContextLoader{
-			SlotCurrentLife: func(context.Context, ContextRequest) (any, error) {
-				return map[string]any{"source": "pending", "context_revision": "life_ctx_test"}, nil
-			},
-		})
-		runtime, err := NewCapabilityRuntime(mustCapabilityRegistry(fixture.capability), resolver)
+		runtime, err := NewCapabilityRuntime(mustCapabilityRegistry(fixture.implementation), NewStaticContextResolver(nil))
 		if err != nil {
 			t.Fatal(err)
 		}
-		prepared, _, err := runtime.Prepare(context.Background(), fixture.invocation)
-		if err != nil {
-			t.Fatal(err)
+		invocation := CapabilityInvocation{CallID: "direct-boundary", CapabilityName: fixture.name, Arguments: json.RawMessage(`{}`)}
+		result, err := runtime.Execute(context.Background(), invocation)
+		if err == nil || result.Status != "failed" || result.ErrorCode != "execute_tool_required" {
+			t.Fatalf("%s low-level execution result=%#v err=%v", fixture.name, result, err)
 		}
-		result, err := runtime.ExecuteDeferred(context.Background(), nil, prepared, fixture.binding)
-		if err != nil || result.Status != "completed" {
-			t.Fatalf("%s output result=%#v err=%v", fixture.invocation.CapabilityName, result, err)
+		var capabilityErr *CapabilityError
+		if !errors.As(err, &capabilityErr) || capabilityErr.Code != "execute_tool_required" || capabilityErr.Retryable {
+			t.Fatalf("%s low-level execution error=%#v %v", fixture.name, capabilityErr, err)
 		}
-	}
-}
-
-func TestInteractiveCapabilityPlanDefersNativeMutationUntilCallerTransaction(t *testing.T) {
-	capability := &transactionalTestCapability{}
-	registry := mustCapabilityRegistry(capability)
-	resolver := NewStaticContextResolver(nil)
-	runtime, err := NewCapabilityRuntime(registry, resolver)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := &App{Capabilities: registry, ContextResolver: resolver, Runtime: runtime}
-	invocations := []CapabilityInvocation{{CallID: "tx-1", CapabilityName: "transactional.test", Arguments: json.RawMessage(`{}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}}
-	standalone, err := app.ExecuteCapabilities(context.Background(), "fl-1", "conv-1", "fact-1", invocations)
-	if err != nil || len(standalone) != 1 || standalone[0].Status != "deferred" || capability.executeCalls != 0 || capability.txCalls != 0 {
-		t.Fatalf("standalone path self-committed transactional capability: results=%#v err=%v execute=%d tx=%d", standalone, err, capability.executeCalls, capability.txCalls)
-	}
-	results, err := app.planCapabilitiesForTransaction(context.Background(), "fl-1", "conv-1", "fact-1", invocations, nil)
-	if err != nil || len(results) != 1 || results[0].Status != "deferred" || capability.executeCalls != 0 || capability.txCalls != 0 {
-		t.Fatalf("plan results=%#v err=%v execute=%d tx=%d", results, err, capability.executeCalls, capability.txCalls)
-	}
-	settled, err := app.settleDeferredCapabilitiesTx(context.Background(), nil, "fl-1", "fact-1", "action-1", invocations, results, OutputBindingV1{})
-	if err != nil || len(settled) != 1 || settled[0].Status != "completed" || capability.executeCalls != 0 || capability.txCalls != 1 {
-		t.Fatalf("settled=%#v err=%v execute=%d tx=%d", settled, err, capability.executeCalls, capability.txCalls)
-	}
-	rolledBack := capabilityResultsAfterSettlementFailure(settled, invocations, registry, "transaction_rolled_back")
-	if rolledBack[0].Status != "failed" || rolledBack[0].ErrorCode != "transaction_rolled_back" {
-		t.Fatalf("rolled back result=%#v", rolledBack)
-	}
-	replayed, err := app.planCapabilitiesForTransaction(context.Background(), "fl-1", "conv-1", "fact-1", invocations, settled)
-	if err != nil || len(replayed) != 1 || replayed[0].Status != "completed" || capability.txCalls != 1 {
-		t.Fatalf("completed replay executed again: results=%#v err=%v tx_calls=%d", replayed, err, capability.txCalls)
-	}
-	if _, err := app.settleDeferredCapabilitiesTx(context.Background(), nil, "fl-1", "fact-1", "action-1", invocations, replayed, OutputBindingV1{}); err != nil || capability.txCalls != 1 {
-		t.Fatalf("completed transactional result was re-applied: err=%v tx_calls=%d", err, capability.txCalls)
-	}
-}
-
-func TestSettlementPreservesOrExecutesPureQueryResults(t *testing.T) {
-	definition := CapabilityDefinition{
-		Name: "test.query", Version: "v1", Type: CapabilityTypeQuery,
-		Description: "Read-only test query.", InputSchema: map[string]any{"type": "object"},
-		SideEffectClass: "read_only", FailurePolicy: FailurePolicyOptionalInternal,
-	}
-	capability := testCapabilityWithDefinition{definition: definition}
-	registry := mustCapabilityRegistry(capability)
-	runtime, err := NewCapabilityRuntime(registry, NewStaticContextResolver(nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := &App{Capabilities: registry, ContextResolver: NewStaticContextResolver(nil), Runtime: runtime}
-	invocation := CapabilityInvocation{CallID: "query-1", CapabilityName: "test.query", Arguments: json.RawMessage(`{}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}
-	prepared, _, err := runtime.Prepare(context.Background(), invocation)
-	if err != nil {
-		t.Fatal(err)
-	}
-	settled, err := app.settleDeferredCapabilitiesTx(context.Background(), nil, "fl-1", "fact-1", "action-1", []CapabilityInvocation{prepared}, nil, OutputBindingV1{})
-	if err != nil || len(settled) != 1 || settled[0].Status != "completed" {
-		t.Fatalf("pure query settlement = %#v err=%v", settled, err)
-	}
-	settled, err = app.settleDeferredCapabilitiesTx(context.Background(), nil, "fl-1", "fact-1", "action-1", []CapabilityInvocation{prepared}, settled, OutputBindingV1{})
-	if err != nil || len(settled) != 1 || settled[0].Status != "completed" {
-		t.Fatalf("completed pure query replay = %#v err=%v", settled, err)
+		directResult, directErr := fixture.implementation.Execute(context.Background(), invocation, CapabilityContext{})
+		capabilityErr = nil
+		if directErr == nil || directResult.Status != "failed" || directResult.ErrorCode != "execute_tool_required" ||
+			!errors.As(directErr, &capabilityErr) || capabilityErr.Code != "execute_tool_required" || capabilityErr.Retryable {
+			t.Fatalf("%s direct Execute result=%#v error=%#v %v", fixture.name, directResult, capabilityErr, directErr)
+		}
 	}
 }
 
@@ -768,79 +683,6 @@ func TestRuntimeRequiresFrozenCallerTransactionForTransactionalCapabilities(t *t
 	result, err = runtime.ExecuteTransactional(context.Background(), nil, prepared)
 	if err != nil || result.Status != "completed" || capability.executeCalls != 0 || capability.txCalls != 1 {
 		t.Fatalf("prepared transactional result=%#v err=%v execute=%d tx=%d", result, err, capability.executeCalls, capability.txCalls)
-	}
-}
-
-func TestPrepareCapabilityInvocationsFreezesRuntimeProvenanceWithoutCapabilityPreparer(t *testing.T) {
-	definition := CapabilityDefinition{
-		Name: "test.provenance.only", Version: "v1", Type: CapabilityTypeQuery, Description: "Test runtime provenance preparation.",
-		InputSchema: map[string]any{"type": "object", "additionalProperties": false}, SideEffectClass: "read_only",
-		FailurePolicy:    FailurePolicyOptionalInternal,
-		ProvenanceFields: []string{"evidence_refs", "idempotency_key"},
-	}
-	registry := mustCapabilityRegistry(testCapabilityWithDefinition{definition: definition})
-	resolver := NewStaticContextResolver(nil)
-	runtime, err := NewCapabilityRuntime(registry, resolver)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := &App{Capabilities: registry, ContextResolver: resolver, Runtime: runtime}
-	originalArguments := json.RawMessage(`{}`)
-	prepared, err := app.prepareCapabilityInvocations(context.Background(), "fl-1", "conv-1", "fact-1", []CapabilityInvocation{{
-		CallID: "provenance-1", CapabilityName: definition.Name, Arguments: originalArguments, SourceFactID: "fact-1", ProviderRequestID: "provider-1",
-	}})
-	if err != nil || len(prepared) != 1 {
-		t.Fatalf("prepared=%#v err=%v", prepared, err)
-	}
-	payload, err := decodeCapabilityPreparedPayload(prepared[0].PreparedPayload)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if stringValue(arrayValue(payload.Provenance["evidence_refs"])[0]) != "fact-1" || stringValue(payload.Provenance["idempotency_key"]) != "capability:provenance-1" {
-		t.Fatalf("runtime provenance was not frozen: %#v", payload.Provenance)
-	}
-	if string(prepared[0].Arguments) != string(originalArguments) {
-		t.Fatalf("Provider arguments were mutated: %s", prepared[0].Arguments)
-	}
-	replayed, err := app.prepareCapabilityInvocations(context.Background(), "fl-1", "conv-1", "fact-1", prepared)
-	if err != nil || len(replayed) != 1 || string(replayed[0].PreparedPayload) != string(prepared[0].PreparedPayload) {
-		t.Fatalf("prepared provenance replay changed: replayed=%#v err=%v", replayed, err)
-	}
-}
-
-func TestRequiredCapabilityFailureFailsClosedForMissingOrDeferredResult(t *testing.T) {
-	definition := CapabilityDefinition{Name: "required.state", Version: "v1", Type: CapabilityTypeAction, Description: "Required state change.", InputSchema: map[string]any{"type": "object"}, FailurePolicy: FailurePolicyRequiredForVisibleClaim}
-	capability := testCapabilityWithDefinition{definition: definition}
-	registry := mustCapabilityRegistry(capability)
-	invocation := CapabilityInvocation{CallID: "required-1", CapabilityName: "required.state"}
-	if err := requiredCapabilityFailureCanonical(nil, []CapabilityInvocation{invocation}, registry, true); err == nil {
-		t.Fatal("missing required result must fail closed")
-	}
-	if err := requiredCapabilityFailureCanonical([]CapabilityResult{{CallID: "required-1", CapabilityName: "required.state", Status: "deferred"}}, []CapabilityInvocation{invocation}, registry, true); err == nil {
-		t.Fatal("unsettled required result must fail closed")
-	}
-	nonRetryable := requiredCapabilityFailureCanonical([]CapabilityResult{{CallID: "required-1", CapabilityName: "required.state", Status: "failed", ErrorCode: "required_rejected", Retryable: false}}, []CapabilityInvocation{invocation}, registry, true)
-	if code, retryable := capabilityErrorInfo(nonRetryable, "fallback", true); nonRetryable == nil || code != "required_rejected" || retryable {
-		t.Fatalf("required failure lost terminal disposition: code=%q retryable=%v err=%v", code, retryable, nonRetryable)
-	}
-	retryableFailure := requiredCapabilityFailureCanonical([]CapabilityResult{{CallID: "required-1", CapabilityName: "required.state", Status: "failed", ErrorCode: "required_temporarily_unavailable", Retryable: true}}, []CapabilityInvocation{invocation}, registry, true)
-	if code, retryable := capabilityErrorInfo(retryableFailure, "fallback", false); retryableFailure == nil || code != "required_temporarily_unavailable" || !retryable {
-		t.Fatalf("required failure lost retry disposition: code=%q retryable=%v err=%v", code, retryable, retryableFailure)
-	}
-}
-
-func TestSettlementFailureConvertsDeferredTargetResultsToDurableFailures(t *testing.T) {
-	registry := mustCapabilityRegistry(conversationReplyCapability{})
-	invocation := CapabilityInvocation{CallID: "reply-1", CapabilityName: "conversation.reply", ProviderRequestID: "provider-1"}
-	results := capabilityResultsAfterSettlementFailure([]CapabilityResult{{CallID: invocation.CallID, CapabilityName: invocation.CapabilityName, Status: "completed"}}, []CapabilityInvocation{invocation}, registry, "output_transaction_failed")
-	result, found := capabilityResultForCall(results, invocation.CallID)
-	if !found || result.Status != "failed" || result.ErrorCode != "output_transaction_failed" || !result.Retryable {
-		t.Fatalf("settlement failure result = %#v", results)
-	}
-	missing := capabilityResultsAfterSettlementFailure(nil, []CapabilityInvocation{invocation}, registry, "output_transaction_failed")
-	result, found = capabilityResultForCall(missing, invocation.CallID)
-	if !found || result.Status != "failed" {
-		t.Fatalf("missing settlement result = %#v", missing)
 	}
 }
 
@@ -958,8 +800,8 @@ func TestResponsePlanSchemaHasNoNestedCapabilitySidecar(t *testing.T) {
 	if _, exists := mapValue(plan["properties"])["tool_calls"]; exists {
 		t.Fatalf("response_plan still duplicates tool_calls: %#v", plan)
 	}
-	if _, exists := responsePlan["tool_calls"]; !exists {
-		t.Fatal("root tool_calls sidecar is missing")
+	if _, exists := responsePlan["tool_calls"]; exists {
+		t.Fatal("final Agent contract still duplicates native tool calls")
 	}
 }
 
@@ -977,84 +819,12 @@ func TestCompositeActionPersistsOnlyCapabilityCallIDs(t *testing.T) {
 	}
 }
 
-func TestRequiredCapabilityFailureIsGenericAndNameIndependent(t *testing.T) {
-	registry := mustCapabilityRegistry(testCapabilityWithDefinition{definition: CapabilityDefinition{
-		Name: "appearance_change", Version: "v1", Type: CapabilityTypeAction,
-		Description: "Change appearance.", InputSchema: map[string]any{"type": "object"},
-		FailurePolicy: FailurePolicyRequiredForVisibleClaim,
-	}})
-	invocation := CapabilityInvocation{CallID: "call-1", CapabilityName: "appearance_change"}
-	results := []CapabilityResult{{CallID: "call-1", CapabilityName: "appearance_change", Status: "failed", ErrorCode: "execution_failed"}}
-	if err := requiredCapabilityFailureCanonical(results, []CapabilityInvocation{invocation}, registry, true); err == nil {
-		t.Fatal("required capability failure was not surfaced")
-	}
-}
-
-func TestRequiredCapabilityFailureRejectsUnknownCapabilityAndIdentityMismatch(t *testing.T) {
-	registry := mustCapabilityRegistry(testCapabilityWithDefinition{definition: CapabilityDefinition{
-		Name: "required.state", Version: "v1", Type: CapabilityTypeAction, Description: "Required state.",
-		InputSchema: map[string]any{"type": "object"}, FailurePolicy: FailurePolicyRequiredForVisibleClaim,
-	}})
-	unknown := CapabilityInvocation{CallID: "unknown-1", CapabilityName: "unknown.state"}
-	if err := requiredCapabilityFailureCanonical(nil, []CapabilityInvocation{unknown}, registry, true); err == nil {
-		t.Fatal("unknown required capability must fail closed")
-	}
-	invocation := CapabilityInvocation{CallID: "required-1", CapabilityName: "required.state"}
-	results := []CapabilityResult{{CallID: "other", CapabilityName: invocation.CapabilityName, Status: "completed"}}
-	if err := requiredCapabilityFailureCanonical(results, []CapabilityInvocation{invocation}, registry, true); err == nil {
-		t.Fatal("missing result identity must fail closed")
-	}
-}
-
 func TestResolveToolCallActionUsesTargetMetadataInsteadOfCapabilityName(t *testing.T) {
 	manifest := CapabilityDefinition{Name: "reply_like", Version: "v1", Type: CapabilityTypeAction, Description: "Reply-like output.", TargetKinds: []string{"conversation_message"}, OutputRole: "conversation_message", SideEffectClass: "external_async", FailurePolicy: FailurePolicyRequiredForVisibleClaim, InputSchema: map[string]any{"type": "object"}}
 	call := ToolCallV1{ID: "call-1", Name: "reply_like", Arguments: json.RawMessage(`{"text":"hello"}`)}
 	action, err := resolveCapabilityAction(testInvocations([]ToolCallV1{call}), capabilityDefinitionMap([]CapabilityDefinition{manifest}))
 	if err != nil || action != "reply" {
 		t.Fatalf("action=%q err=%v", action, err)
-	}
-}
-
-func TestOutputBindingTextExtractionRequiresDeclaredOutputRole(t *testing.T) {
-	registry := mustCapabilityRegistry(&canonicalTestCapability{definition: CapabilityDefinition{
-		Name: "media_like", Version: "v1", Type: CapabilityTypeAction, Description: "Media-like output.",
-		InputSchema: map[string]any{"type": "object"}, FailurePolicy: FailurePolicyRequiredForVisibleClaim,
-		TargetKinds: []string{"conversation_message"}, OutputRole: "media", SideEffectClass: "external_async",
-	}})
-	invocation := CapabilityInvocation{CallID: "media-1", CapabilityName: "media_like", Arguments: json.RawMessage(`{"text":"not a visible reply"}`)}
-	if got := textFromOutputBinding([]CapabilityInvocation{invocation}, "conversation_message", registry); got != "" {
-		t.Fatalf("media output was misclassified as visible text: %q", got)
-	}
-}
-
-func TestDeferredOutputCapabilitiesBindOnlyDeclaredTargets(t *testing.T) {
-	replyInvocation := CapabilityInvocation{CallID: "reply-1", CapabilityName: "conversation.reply", Arguments: json.RawMessage(`{"text":"hello"}`), ProviderRequestID: "provider-1"}
-	reply, err := (conversationReplyCapability{}).ExecuteDeferredTx(context.Background(), nil, replyInvocation, CapabilityContext{}, OutputBindingV1{TargetKind: "conversation_message", TargetRef: "message-1"})
-	if err != nil || reply.Status != "completed" {
-		t.Fatalf("reply settlement=%#v err=%v", reply, err)
-	}
-	momentInvocation := CapabilityInvocation{CallID: "moment-1", CapabilityName: "moment.publish", Arguments: json.RawMessage(`{"text":"a moment"}`), ProviderRequestID: "provider-1"}
-	moment, err := (momentPublishCapability{}).ExecuteDeferredTx(context.Background(), nil, momentInvocation, CapabilityContext{}, OutputBindingV1{TargetKind: "moment", TargetRef: "moment-1"})
-	if err != nil || moment.Status != "completed" {
-		t.Fatalf("moment settlement=%#v err=%v", moment, err)
-	}
-	if _, err := (conversationReplyCapability{}).ExecuteDeferredTx(context.Background(), nil, replyInvocation, CapabilityContext{}, OutputBindingV1{TargetKind: "moment", TargetRef: "moment-1"}); err == nil {
-		t.Fatal("reply capability accepted a non-declared target")
-	}
-}
-
-func TestDeferredOutputCapabilityMissingBindingProducesExplicitFailure(t *testing.T) {
-	registry := mustCapabilityRegistry(conversationReplyCapability{})
-	app := &App{Capabilities: registry, ContextResolver: NewStaticContextResolver(nil)}
-	invocation := CapabilityInvocation{
-		CallID: "reply-missing-binding", CapabilityName: "conversation.reply",
-		SchemaVersion: CapabilityInvocationSchemaVersion,
-		Arguments:     json.RawMessage(`{"text":"hello"}`), SourceFactID: "fact-1",
-		ProviderRequestID: "provider-1",
-	}
-	results, err := app.settleDeferredCapabilitiesTx(context.Background(), nil, "fl-1", "fact-1", "action-1", []CapabilityInvocation{invocation}, nil, OutputBindingV1{})
-	if err != nil || len(results) != 1 || results[0].Status != "failed" || results[0].ErrorCode != "output_binding_required" {
-		t.Fatalf("missing binding result=%#v err=%v", results, err)
 	}
 }
 
@@ -1074,75 +844,16 @@ func TestImageCapabilityUsesStableDurableIdentitiesOnReplay(t *testing.T) {
 // are not dispatch and stay legal.
 var capabilityNameLiteralComparison = regexp.MustCompile(`\bCapabilityName\s*[!=]=\s*"[^"]+"`)
 
-func TestCapabilityRuntimeStaticGuardsPreserveActionSingleCognitionAndGenericQueryContinuation(t *testing.T) {
-	sources := productionSourceText(t)
-
-	// --- Main generation A + B (design.md 8) -------------------------------
-	// Exactly one Main generation and exactly one takeover generation, in two
-	// distinct files. The wake_up / reflection / autonomy / native-cognition
-	// chains legitimately call the same Provider entry point; they are not
-	// conversation-turn generations, so the guard pins the two turn files by
-	// name instead of a global total. A global total cannot tell "the Main
-	// generation moved elsewhere" from "a second Main generation appeared".
-	assertProductionCount(t, sources, "mutations.go", ".RunMain(", 1)
-	assertProductionCount(t, sources, "turn_takeover.go", ".RunTakeoverReply(", 1)
-
-	// The Judge is a dedicated role with exactly one CALL site, and it lives
-	// with the arbitration point it exists for. The Provider method definition
-	// itself is pinned separately so the call-site guard stays meaningful.
-	assertProductionOnlyIn(t, sources, ".RunTakeoverJudge(", "turn_takeover.go", 1)
-	assertProductionCount(t, sources, "provider.go", "func (p *ProviderClient) StructuredAssembledJudgement(", 1)
-
-	// The generic query continuation keeps its two call sites (the synchronous
-	// path and the frozen replay) and gains no third one.
-	assertProductionCount(t, sources, "mutations.go", ".RunQueryContinuation(", 2)
-
-	// --- No concrete capability dispatch anywhere --------------------------
-	// The earlier guard only checked four files and only the exact spelling
-	// `invocation.CapabilityName ==`, so it would have missed
-	// `result.CapabilityName == "media.image.generate"` entirely. The rule that
-	// matters is "never compare a capability name against a non-empty literal",
-	// and it is asserted across every production source of the package.
-	assertProductionAbsent(t, sources, "switch invocation.CapabilityName")
-	assertProductionAbsent(t, sources, "switch call.Name")
-	assertProductionAbsent(t, sources, "toolOnlyCognitionAppraisal")
-	for name, source := range sources {
-		if match := capabilityNameLiteralComparison.FindString(source); match != "" {
-			t.Fatalf("concrete capability dispatch %q remains in %s", match, name)
+func TestGenericAgentAndToolExecutionDoNotDispatchBusinessNames(t *testing.T) {
+	for _, name := range []string{"adk_conversation_runtime.go", "tool_execution.go", "capability_core.go"} {
+		data, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
 		}
-	}
-
-	// --- Capability-only turns keep the single shared normalizer ------------
-	// "not proposed" must have exactly one producer: the normalizer shared by A
-	// and B (it used to be inline in mutations.go before the A/B normalization
-	// was extracted, design.md 4.8). Reading the value elsewhere is fine;
-	// producing it twice is not, because B would then be able to fabricate a
-	// state proposal through a second path.
-	assertProductionOnlyIn(t, sources, `decision["cognitive_state_transition"] = "not_proposed"`, "turn_decision.go", 1)
-}
-
-func TestConversationPersistsPreparedInvocationBeforeCapabilityExecution(t *testing.T) {
-	data := readSourceFile(t, "mutations.go")
-	source := string(data)
-	prepareAt := strings.Index(source, "capabilityInvocations, err = a.prepareCapabilityInvocations")
-	persistAt := strings.Index(source, "if err := a.persistFrozenCapabilityInvocations(ctx, frozen.ID, capabilityInvocations)")
-	executeAt := strings.Index(source, "capabilityResults, err = a.planCapabilitiesForTransaction")
-	if prepareAt < 0 || persistAt < 0 || executeAt < 0 || !(prepareAt < persistAt && persistAt < executeAt) {
-		t.Fatalf("prepare/freeze/execute order is unsafe: prepare=%d persist=%d execute=%d", prepareAt, persistAt, executeAt)
-	}
-}
-
-func TestAutonomyPersistsPreparedInvocationBeforeCapabilityExecution(t *testing.T) {
-	data := readSourceFile(t, "workflow_ops.go")
-	source := string(data)
-	if strings.Contains(source, "resumeCapabilities(") {
-		t.Fatal("autonomy must not execute transactional capabilities outside its settlement transaction")
-	}
-	prepareAt := strings.Index(source, "calls, err = a.prepareCapabilityInvocations")
-	persistAt := strings.Index(source, "a.persistAutonomyCapabilityResults(ctx, actionID, calls, storedResults)")
-	executeAt := strings.Index(source, "a.planCapabilitiesForTransaction(ctx, fluctlightID, conversationID, sourceFactID, calls")
-	if prepareAt < 0 || persistAt < 0 || executeAt < 0 || !(prepareAt < persistAt && persistAt < executeAt) {
-		t.Fatalf("autonomy prepare/freeze/execute order is unsafe: prepare=%d persist=%d execute=%d", prepareAt, persistAt, executeAt)
+		source := string(data)
+		if strings.Contains(source, "switch invocation.CapabilityName") || capabilityNameLiteralComparison.MatchString(source) {
+			t.Fatalf("business-specific dispatch in generic execution boundary %s", name)
+		}
 	}
 }
 
@@ -1198,33 +909,6 @@ func TestSchedulePlannerProviderErrorFailsClosed(t *testing.T) {
 	result, err := capability.Execute(context.Background(), CapabilityInvocation{CallID: "schedule-1", CapabilityName: "schedule.replan", Arguments: json.RawMessage(`{"intent":"move reading"}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}, CapabilityContext{Schedule: &ScheduleContext{Data: map[string]any{"revision": 1}}, Life: &CurrentLifeContext{Data: map[string]any{"timezone": "Asia/Shanghai"}}, Agency: &AgencyContext{Data: map[string]any{}}})
 	if err == nil || result.ErrorCode != "schedule_replan_planner_failed" {
 		t.Fatalf("provider failure result=%#v err=%v", result, err)
-	}
-}
-
-func TestExecuteCapabilitiesPreservesSchedulePlannerDomainError(t *testing.T) {
-	capability := scheduleReplanCapability{planner: fakeSchedulePlanner{err: errors.New("provider unavailable")}}
-	registry := mustCapabilityRegistry(capability)
-	resolver := NewStaticContextResolver(map[ContextSlot]ContextLoader{
-		SlotSchedule: func(context.Context, ContextRequest) (any, error) {
-			return map[string]any{"revision": 1, "timezone": "Asia/Shanghai"}, nil
-		},
-		SlotCurrentLife: func(context.Context, ContextRequest) (any, error) {
-			return map[string]any{"timezone": "Asia/Shanghai", "context_revision": "life_ctx_test"}, nil
-		},
-		SlotAgency: func(context.Context, ContextRequest) (any, error) { return map[string]any{}, nil },
-	})
-	runtime, err := NewCapabilityRuntime(registry, resolver)
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := &App{Capabilities: registry, ContextResolver: resolver, Runtime: runtime}
-	results, err := app.ExecuteCapabilities(context.Background(), "fl-1", "conv-1", "fact-1", []CapabilityInvocation{{CallID: "schedule-domain-1", CapabilityName: "schedule.replan", Arguments: json.RawMessage(`{"intent":"move reading"}`)}})
-	if err == nil || len(results) != 1 || results[0].ErrorCode != "schedule_replan_planner_failed" || !results[0].Retryable {
-		t.Fatalf("results=%#v err=%v", results, err)
-	}
-	var domainErr *CapabilityError
-	if !errors.As(err, &domainErr) || domainErr.Code != "schedule_replan_planner_failed" {
-		t.Fatalf("typed planner error was lost: %#v %v", domainErr, err)
 	}
 }
 

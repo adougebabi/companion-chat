@@ -33,6 +33,14 @@ func (a *App) evaluateAutonomyPolicyAllowReserved(ctx context.Context, fluctligh
 }
 
 func (a *App) evaluateAutonomyPolicyWithBudget(ctx context.Context, fluctlightID, actionType string, now time.Time, excludeActionID string, budgetReserved bool) (AutonomyPolicyDecision, error) {
+	return a.evaluateAutonomyPolicyWithReader(ctx, a.DB.Pool(), fluctlightID, actionType, now, excludeActionID, budgetReserved)
+}
+
+type autonomyPolicyReader interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+}
+
+func (a *App) evaluateAutonomyPolicyWithReader(ctx context.Context, reader autonomyPolicyReader, fluctlightID, actionType string, now time.Time, excludeActionID string, budgetReserved bool) (AutonomyPolicyDecision, error) {
 	if strings.TrimSpace(actionType) == "" || actionType == "no_op" {
 		return AutonomyPolicyDecision{Allowed: true, Snapshot: map[string]any{"mode": "active", "action_type": actionType}}, nil
 	}
@@ -40,12 +48,12 @@ func (a *App) evaluateAutonomyPolicyWithBudget(ctx context.Context, fluctlightID
 	var allowedRaw, quietRaw []byte
 	var cooldown *time.Time
 	var concurrency, revision int
-	err := a.DB.Pool().QueryRow(ctx, `SELECT mode,allowed_actions,budget_remaining,quiet_hours,cooldown_until,concurrency_limit,revision FROM public.autonomy_policies WHERE fluctlight_id=$1`, fluctlightID).Scan(&mode, &allowedRaw, &budgetText, &quietRaw, &cooldown, &concurrency, &revision)
+	err := reader.QueryRow(ctx, `SELECT mode,allowed_actions,budget_remaining,quiet_hours,cooldown_until,concurrency_limit,revision FROM public.autonomy_policies WHERE fluctlight_id=$1`, fluctlightID).Scan(&mode, &allowedRaw, &budgetText, &quietRaw, &cooldown, &concurrency, &revision)
 	if errors.Is(err, pgx.ErrNoRows) {
 		mode, budgetText, concurrency = "active", "100", 1
 		allowedRaw, quietRaw = jsonBytes([]string{"proactive_message", "moment", "capability"}), jsonBytes(map[string]any{})
 		var settingRaw string
-		if settingErr := a.DB.Pool().QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='product.autonomy'`).Scan(&settingRaw); settingErr == nil {
+		if settingErr := reader.QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='product.autonomy'`).Scan(&settingRaw); settingErr == nil {
 			var setting map[string]any
 			if json.Unmarshal([]byte(settingRaw), &setting) == nil {
 				mode = firstString(setting["mode"], mode)
@@ -100,9 +108,9 @@ func (a *App) evaluateAutonomyPolicyWithBudget(ctx context.Context, fluctlightID
 	var active int
 	var activeErr error
 	if excludeActionID == "" {
-		activeErr = a.DB.Pool().QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND status IN ('frozen','running')`, fluctlightID).Scan(&active)
+		activeErr = reader.QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND status IN ('frozen','running')`, fluctlightID).Scan(&active)
 	} else {
-		activeErr = a.DB.Pool().QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND id<>$2 AND status IN ('frozen','running')`, fluctlightID, excludeActionID).Scan(&active)
+		activeErr = reader.QueryRow(ctx, `SELECT count(*) FROM public.autonomy_actions WHERE fluctlight_id=$1 AND id<>$2 AND status IN ('frozen','running')`, fluctlightID, excludeActionID).Scan(&active)
 	}
 	if activeErr != nil {
 		return AutonomyPolicyDecision{}, activeErr
@@ -124,16 +132,33 @@ func reserveAutonomyBudgetTx(ctx context.Context, tx pgx.Tx, fluctlightID string
 	if errors.Is(err, pgx.ErrNoRows) {
 		budgetText = "100"
 		revision = 0
+		mode := "active"
+		allowed := []any{"proactive_message", "moment", "capability"}
+		quiet := map[string]any{}
+		concurrency := 1
 		var settingRaw string
 		if settingErr := tx.QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='product.autonomy'`).Scan(&settingRaw); settingErr == nil {
 			var setting map[string]any
-			if json.Unmarshal([]byte(settingRaw), &setting) == nil && setting["budget_remaining"] != nil {
-				budgetText = numberString(setting["budget_remaining"], 100)
+			if json.Unmarshal([]byte(settingRaw), &setting) == nil {
+				mode = firstString(setting["mode"], mode)
+				if setting["budget_remaining"] != nil {
+					budgetText = numberString(setting["budget_remaining"], 100)
+				}
+				if values := arrayValue(setting["allowed_actions"]); len(values) > 0 {
+					allowed = values
+				}
+				if values := mapValue(setting["quiet_hours"]); len(values) > 0 {
+					quiet = values
+				}
+				if value := intValue(setting["concurrency_limit"]); value > 0 {
+					concurrency = value
+				}
 			}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_policies(fluctlight_id,mode,allowed_actions,budget_remaining,quiet_hours,concurrency_limit,revision) VALUES($1,'active',$2,$3,'{}',1,0) ON CONFLICT DO NOTHING`, fluctlightID, jsonBytes([]string{"proactive_message", "moment", "capability"}), budgetText); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.autonomy_policies(fluctlight_id,mode,allowed_actions,budget_remaining,quiet_hours,concurrency_limit,revision) VALUES($1,$2,$3,$4,$5,$6,0) ON CONFLICT DO NOTHING`, fluctlightID, mode, jsonBytes(allowed), budgetText, jsonBytes(quiet), concurrency); err != nil {
 			return err
 		}
+
 		if err := tx.QueryRow(ctx, `SELECT budget_remaining,revision FROM public.autonomy_policies WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&budgetText, &revision); err != nil {
 			return err
 		}

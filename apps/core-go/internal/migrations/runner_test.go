@@ -59,13 +59,13 @@ func TestPersonalityGrowthSchemaIncludesTypedSlotsAndCapabilityRequests(t *testi
 			t.Fatalf("schemaSQL is missing %s", table)
 		}
 	}
-	if Head != InitializationSourceHead || PreviousHead != PromptContextMemoryHead {
+	if Head != "0034_tool_execution_source" || PreviousHead != InitializationSourceHead {
 		t.Fatalf("Head = %q", Head)
 	}
 }
 
 func TestInitializationSourceMigrationIsAppendOnlyAndOwnerScoped(t *testing.T) {
-	if InitializationSourceHead != "0033_initialization_source" || PreviousHead != PromptContextMemoryHead {
+	if InitializationSourceHead != "0033_initialization_source" || PreviousHead != InitializationSourceHead {
 		t.Fatalf("initialization source migration chain previous=%q head=%q", PreviousHead, InitializationSourceHead)
 	}
 	for _, fragment := range []string{
@@ -111,6 +111,9 @@ func TestPostgresInitializationSourceMigrationFromPreviousHead(t *testing.T) {
 	if err := New(pool).Apply(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if err := New(pool).Apply(ctx); err != nil {
+		t.Fatalf("current-head rerun: %v", err)
+	}
 	var head string
 	var sources, links *string
 	if err := pool.QueryRow(ctx, `SELECT version_num FROM public.alembic_version`).Scan(&head); err != nil {
@@ -119,8 +122,67 @@ func TestPostgresInitializationSourceMigrationFromPreviousHead(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT to_regclass('public.fluctlight_initialization_sources')::text,to_regclass('public.fluctlight_initialization_source_links')::text`).Scan(&sources, &links); err != nil {
 		t.Fatal(err)
 	}
-	if head != InitializationSourceHead || sources == nil || links == nil {
+	if head != Head || sources == nil || links == nil {
 		t.Fatalf("initialization source migration head=%q sources=%v links=%v", head, sources, links)
+	}
+}
+
+func TestPostgresToolExecutionSourceMigrationFromPreviousHeadPreservesInitializationSource(t *testing.T) {
+	ctx, pool := isolatedMigrationPool(t)
+	applyEvolutionHeadPromptContextFixture(t, ctx, pool)
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, promptContextMemoryMigrationSQL); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, initializationSourceSchemaSQL); err != nil {
+		t.Fatal(err)
+	}
+	if command, err := tx.Exec(ctx, `UPDATE public.alembic_version SET version_num=$1 WHERE version_num=$2`, InitializationSourceHead, EvolutionAuthorityHead); err != nil || command.RowsAffected() != 1 {
+		t.Fatalf("prepare 0033 migration head rows=%d err=%v", command.RowsAffected(), err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+INSERT INTO public.actors(id,actor_type,status) VALUES('migration-source-owner','human','active');
+INSERT INTO public.fluctlight_initialization_sources(
+  id,owner_actor_id,correlation_id,source_text,source_digest,prompt_version,
+  schema_version,classification,structured_projection,projection_digest
+) VALUES(
+  'migration-source','migration-source-owner','migration-source-correlation',
+  'immutable initialization source','source-digest','initialization.v1',
+  'initialization.schema.v2','single','{"identity":{"name":"摇光"}}','projection-digest'
+);`); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := New(pool).Apply(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := New(pool).Apply(ctx); err != nil {
+		t.Fatalf("0034 current-head rerun: %v", err)
+	}
+
+	var head, sourceText, sourceDigest, projectionDigest, projection string
+	if err := pool.QueryRow(ctx, `SELECT version_num FROM public.alembic_version`).Scan(&head); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT source_text,source_digest,projection_digest,structured_projection::text FROM public.fluctlight_initialization_sources WHERE id='migration-source'`).Scan(&sourceText, &sourceDigest, &projectionDigest, &projection); err != nil {
+		t.Fatal(err)
+	}
+	var toolExecutions, agentRuns, reservations *string
+	if err := pool.QueryRow(ctx, `SELECT to_regclass('public.tool_executions')::text,to_regclass('public.agent_runs')::text,to_regclass('public.tool_policy_reservations')::text`).Scan(&toolExecutions, &agentRuns, &reservations); err != nil {
+		t.Fatal(err)
+	}
+	if head != Head || sourceText != "immutable initialization source" || sourceDigest != "source-digest" || projectionDigest != "projection-digest" || projection != `{"identity": {"name": "摇光"}}` {
+		t.Fatalf("0033→0034 changed initialization source: head=%q text=%q source_digest=%q projection_digest=%q projection=%s", head, sourceText, sourceDigest, projectionDigest, projection)
+	}
+	if toolExecutions == nil || agentRuns == nil || reservations == nil {
+		t.Fatalf("0033→0034 missing Tool execution schema: tool_executions=%v agent_runs=%v reservations=%v", toolExecutions, agentRuns, reservations)
 	}
 }
 
@@ -506,7 +568,7 @@ func TestMigrationBridgeAcceptsOnlyReleasedHead(t *testing.T) {
 	if Head == ReleasedHead {
 		t.Fatal("bridge head must differ from current Go head")
 	}
-	if PreviousHead != PromptContextMemoryHead || PreviousHead == Head || PromptContextMemoryHead == EvolutionAuthorityHead || EvolutionAuthorityHead == LifeContextRevisionHead || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
+	if PreviousHead != InitializationSourceHead || PreviousHead == Head || PromptContextMemoryHead == EvolutionAuthorityHead || EvolutionAuthorityHead == LifeContextRevisionHead || LifeContextRevisionHead == MemoryLifecycleHead || MemoryLifecycleHead == AffectCanonicalHead || AffectCanonicalHead == ProjectHealthHead || ProjectHealthHead == CapabilityRuntimeHead {
 		t.Fatalf("Initialization/Prompt/Evolution/Life/Memory/Affect/Project Health migration chain is invalid: previous=%q prompt=%q evolution=%q life=%q memory=%q affect=%q project_health=%q head=%q", PreviousHead, PromptContextMemoryHead, EvolutionAuthorityHead, LifeContextRevisionHead, MemoryLifecycleHead, AffectCanonicalHead, ProjectHealthHead, Head)
 	}
 	if CapabilityRuntimePreviousHead != "0025_llm_queue" || CapabilityRuntimeHead != "0026_capability_runtime" {

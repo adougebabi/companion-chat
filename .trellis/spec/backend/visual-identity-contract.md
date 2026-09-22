@@ -10,6 +10,8 @@
 ### 2. Signatures
 
 - `ensureVisualIdentityInitializationTx(ctx, tx, fluctlightID, triggerType, sourceFactID, corePersona) -> sessionID` creates/reuses the aggregate, session, attempt 1, timeline event and `visual_identity.initialize` intent in the caller transaction.
+- `RunVisualIdentityAgent(ctx, VisualIdentityAgentInput)` owns prompt, multimodal context, model, Tools and final contract.
+- `App.ExecuteTool` independently executes `visual_identity.initialize`, `visual_identity.generate_candidate`, `visual_identity.commit_review`, and `visual_identity.finalize`.
 - `ProcessVisualIdentity(ctx, sessionID) -> {session_id, attempt, status, stage, media_intent_id?, asset_id?}` advances one idempotent checkpoint.
 - `VisualIdentityWorkflow(ctx, Input{fluctlight_id, session_id, intent_id})` runs on `lifecycle` and continue-as-news while Core state is pending.
 - `ContextProjection.visual_identity` and Fluctlight detail `visual_identity` expose the current safe snapshot and bounded timeline.
@@ -18,9 +20,10 @@
 ### 3. Contracts
 
 - Tables: `fluctlight_visual_identities`, `_revisions`, `_sessions`, `_attempts`, and `_timeline` are Fluctlight-scoped. Sessions have one active (`queued|running`) row per Fluctlight; attempts are unique by `(session_id, attempt_number)`.
-- Session triggers are `initialization|wakeup`; initial and WakeUp triggers share the same Core helper. On WakeUp, the model must issue exactly one `visual_identity.initialize` tool call when no active canonical exists; the native executor is restricted to `wake_up_*` source facts and reuses an active session.
+- Session triggers are `initialization|wakeup`; initial and WakeUp triggers share the same Core helper. On WakeUp, the model must issue exactly one `visual_identity.initialize` tool call when no active canonical exists; the independent Tool accepts an explicit authorized business source and reuses an active session; source-name prefixes are not execution gates.
 - Attempt stages are `seed_requested`, `seed_ready`, `image_requested`, `image_ready`, `vision_requested`, `vision_ready`, `patch_requested`, `patch_ready`, `regenerate`, `accepted`, `character_sheet_requested`, `character_sheet_ready`, and `completed`.
-- `visual_identity_patch(stage=seed)` returns a seed prompt. `visual_identity_vision` receives a multimodal image content block and bounded identity snapshot. `visual_identity_patch(stage=review)` returns `decision: accepted|regenerate` and structured patch data.
+- The complete `visual_identity` Agent uses the shared native Eino loop. It calls `generate_candidate`, consumes the committed receipt, and returns a durable waiting state while media runs. On review, Core reads authorized ready asset bytes from object storage and sends an actual `image_url` content block. `commit_review` records observations and `accepted|regenerate`; `finalize` requires a completed character-sheet intent and ready asset. The caller does not run a separate vision/patch decision loop.
+- Run identity is `visual_identity_agent:<session_id>:attempt-<n>:<action_required>`. Pending media does not trigger new model requests. Failed runs retain committed Tool receipts and do not replay the whole decision loop.
 - Automatic regeneration is bounded to three attempts. `accepted` promotes canonical and queues a separate character-sheet media intent; rejected attempts and assets remain immutable history.
 - Renderer constraints preserve `chest_cup`, resolved `chest_lora_weight`, and `adapter_version`. Mapping is explicit code (`A=-5`, `B=-3`, `C=-1`, `D=1` in adapter v1) and must be bumped when tuning changes.
 - `media.comfyui.visual_identity_workflow` is an optional structured workflow map. Its `seed`/`character_sheet` variants are selected only from explicit concept fields; the legacy `workflow` remains the Scene Image fallback. `{{prompt}}` injects text, while `{{chest_lora_weight}}` (or `{{renderer_constraints.chest_lora_weight}}`) injects a validated numeric weight when it occupies a whole JSON value; missing weight is an error. For an image-to-image LoadImage node, use the canonical `{{visual_identity_reference_image}}` placeholder in its `inputs.image` value. Core resolves the active character-sheet asset (falling back to canonical reference), uploads it to ComfyUI `/upload/image`, and replaces the placeholder with the returned input filename before `/prompt`; missing/unauthorized assets fail without submitting a job. Provider/job persistence uses the existing MediaWorkflow.
@@ -46,10 +49,10 @@
 | --- | --- |
 | Missing/unsupported cup or adapter output outside `[-10,10]` | Set `renderer_config_pending`; do not create a provider media job. |
 | No visual identity row on an old Fluctlight | Read as `missing`; initialization/WakeUp lazily creates the durable rows. |
-| Provider role missing, malformed seed/vision/patch JSON, or missing Comfy workflow | Leave the attempt retryable/pending and record a bounded timeline/error; never synthesize a semantic fallback prompt. |
+| Provider role missing, invalid final Agent output, or missing Comfy workflow | Return the precise failure or configuration wait, retain committed effects and bounded timeline; never synthesize a semantic fallback prompt or rerun a failed decision after commit. |
 | Duplicate initialization/WakeUp | Reuse the active session and stable intent/workflow/media IDs; no duplicate external submission. |
-| Patch decision `regenerate` with attempts remaining | Mark prior attempt `rejected_not_self`, append timeline, create the next attempt, preserve prior asset/vision/patch. |
-| Patch decision `regenerate` at attempt 3 | Set session `awaiting_review`; stop automatic generation. |
+| `commit_review` decision `regenerate` with attempts remaining | Mark prior attempt `rejected_not_self`, append timeline, create the next attempt, preserve prior asset/vision/patch. |
+| `commit_review` decision `regenerate` at attempt 3 | Set session `awaiting_review`; stop automatic generation. |
 | Accepted attempt | CAS increment canonical revision, preserve candidate asset, queue character-sheet media intent, then mark profile/session active/completed when ready. |
 | Worker restart/provider retry | Re-read Core state, reuse persisted provider job IDs, and continue from the latest stable stage. |
 | Visual Identity Activity exceeds 30 seconds in Provider/media work | Periodic heartbeat keeps the Activity lease alive; cancellation remains cooperative. |
@@ -61,7 +64,7 @@
 ### 5. Good / Base / Bad Cases
 
 - Good: initialization creates a session, attempt 1 produces an image, vision returns observations, patch returns `regenerate`, attempt 2 is shown beside attempt 1, and an accepted attempt becomes canonical with a character sheet.
-- Good: a WakeUp with missing identity emits a concise model-realized notice and queues/reuses the same session in the wake-up transaction.
+- Good: a WakeUp with missing identity emits a concise model-realized notice and queues/reuses the same session through the Tool-owned short transaction.
 - Base: no ComfyUI visual workflow is configured; the timeline remains at pending/configuration while the user can add JSON in Media settings.
 - Bad: parsing “自拍/两人/胸部” in a prompt, changing canonical state from a rejected attempt, generating a new Provider ID after retry, or returning MinIO/ComfyUI URLs to the browser.
 - Bad: log a persistence failure and still return Activity success, or allow
@@ -71,7 +74,8 @@
 
 - Migration tests assert all five tables, indexes, compatibility column and idempotent startup.
 - Unit tests cover cup normalization/adapter boundaries, seed/review schemas, explicit workflow selection, visual identity context binding and timeline stage labels.
-- Integration tests cover initialization/WakeUp transaction idempotency, missing-identity notice, media job reuse, multimodal vision input, accepted/regenerate loop, three-attempt stop, canonical/character-sheet CAS and restart recovery.
+- Integration tests cover independent Tool transaction idempotency, missing-identity notice, media job reuse, multimodal vision input, accepted/regenerate loop, three-attempt stop, canonical/character-sheet CAS and restart recovery.
+- Controlled PostgreSQL/MinIO tests verify exact image bytes in the model request, Tool receipt feedback and no replay after invalid final output. Live `TestFormalAgentE2E/visual_identity` uses real Provider/ComfyUI/S3 through production handlers; it does not alone prove Temporal transport/history recovery.
 - Workflow tests cover heartbeat-before-work, stable-ID failed recovery,
   explicit duplicate-start disposition, preserved failure/backoff and
   protection of wake-up/reflection dispatch from visual retry starvation.

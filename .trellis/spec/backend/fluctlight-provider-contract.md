@@ -24,144 +24,81 @@ ModelRole
   prompt_budget_policy_version / timeout / retry_policy
 ```
 
-## Scenario: Eino model foundation and ADK direct conversation
+## Scenario: Shared native Agent execution
 
 ### 1. Scope / Trigger
 
-- Trigger: a Core model task, Embedding task, or direct conversation needs to
-  call an OpenAI-compatible endpoint through Eino.
-- The official Eino ChatModel/Embedder owns wire protocol and message/stream
-  decoding. Core owns role assignment, queue/cancellation, prompt budget,
-  bounded diagnostics, capability authorization, frozen decisions and domain
-  settlement.
+Every complete non-embedding task uses a registered formal Agent and the pinned
+Eino v0.7.37 ChatModelAgent/Runner. Embedding retains its separate queue/API.
 
 ### 2. Signatures
 
 ```go
-NewEinoModelFactory(httpClient *http.Client) EinoModelFactory
-EinoModelFactory.NewChatModel(ctx, EinoModelConfig) (model.ToolCallingChatModel, error)
-EinoModelFactory.NewEmbedder(ctx, EinoModelConfig) (embedding.Embedder, error)
-RunADKConversation(ctx, ADKConversationConfig, []*schema.Message) (ADKConversationResult, error)
-NewADKCapabilityTools(definitions, ADKCapabilityInvoker) ([]tool.BaseTool, error)
-
-type ConversationRuntime interface {
-    RunMain(context.Context, ConversationMainInput) (ConversationRunResult, error)
-    RunQueryContinuation(context.Context, QueryContinuationInput) (ConversationRunResult, error)
-    RunTakeoverJudge(context.Context, TakeoverJudgeInput) (ConversationRunResult, error)
-    RunTakeoverReply(context.Context, TakeoverReplyInput) (ConversationRunResult, error)
-}
-```
-
-`ProviderClient` maps one resolved `providerAssignment` into `EinoModelConfig`;
-business callers use operation-owned `ModelTask` boundaries. `ProviderCompletion`
-and `CapabilityInvocation` v2 remain the only Core result/persistence contracts.
-
-The capability definition adds one Core-only visibility bit:
-
-```go
-type CapabilityDefinition struct {
-    Name        string
-    Type        CapabilityType
-    InternalOnly bool // executable by policy/runtime, never in model Catalog
-    // ... canonical schema, surfaces and failure policy fields
-}
+App.RunConversationCognitionAgent(ctx, ConversationCognitionAgentInput)
+App.RunVisualIdentityAgent(ctx, VisualIdentityAgentInput)
+App.ExecuteTool(ctx, ToolExecutionRequest) (ToolExecutionReceipt, error)
+RunADKLoop(ctx, ADKLoopConfig, []*schema.Message)
 ```
 
 ### 3. Contracts
 
-- ChatModel calls use the pinned official Eino components and the configured
-  endpoint/model/secret; no project code posts or decodes `/chat/completions`
-  or `/embeddings`.
-- Each Generate/Stream/EmbedStrings call obtains its own local/Redis queue
-  lease, timeout and cancellation watcher. An ADK Agent loop does not hold one
-  lease across multiple model calls.
-- `schema.ToolCall` is bounded once into `CapabilityInvocation`; tool ID/name/
-  arguments are never guessed from prose. `schema.Message` multimodal parts
-  preserve text plus image URL/data boundaries.
-- Direct conversation builds a request-scoped ADK `ChatModelAgent` and
-  `Runner` with `MaxIterations <= 2`, no automatic retry/failover, and a
-  narrow `ADKCapabilityInvoker`. Query tools return the real bounded result;
-  mutation/external tools return explicit `deferred` status until frozen
-  Prepare/transaction settlement.
-- `ADKCapabilityTrace` is request-scoped metadata only. It is merged into the
-  existing invocation/result arrays and is never persisted as a second tool
-  envelope or global mutable Agent state.
-- Capability definitions marked `InternalOnly` remain executable through the
-  Core registry for deterministic policy/maintenance actions, but are excluded
-  from every model-facing `CapabilityRegistry.Catalog`; ordinary model tools
-  must therefore be both Registry-defined and catalog-visible.
-- Persona takeover/profile-switch policy invocations use the same capability
-  identity/result contract with `Metadata.Source=policy`; they are nested policy
-  audit records, never fabricated native model ToolCalls.
-- `NewADKCapabilityTools` fails before Provider I/O unless the request-scoped
-  invoker preserves the formal Eino tool-call ID via
-  `ADKCapabilityInvokerWithID`. Missing IDs are fail-closed and are never
-  derived from capability names or arguments.
-- Initialization keeps JSON-object response format and its operation-owned
-  budget floor. Embedding stays on the independent embedding queue. Browser
-  NDJSON still publishes only after assistant settlement.
+- Agent definitions own task prompt, typed context, model role, Tools and final
+  decoder. Existing typed Task methods delegate to those definitions; no
+  single-call schema allowlist bypass remains.
+- The shared native loop consumes actual Tool receipts and continues after
+  reads, writes and business rejection. MaxIterations, timeout and cancellation
+  are failure guards, never successful completion conditions. No two-round or
+  query-only limit and no write-Tool early stop exists.
+- Tools call the same `ExecuteTool` boundary as independent callers. Mutations
+  commit their domain effect, receipt and outbox in a short local transaction.
+  `accepted` means a durable asynchronous task exists, not that media is ready.
+- Each physical Generate/Stream obtains its own queue lease, cancellation,
+  request identity, diagnostics and budget checks. No lease or transaction
+  spans the decision loop.
+- Native IDs are preserved. Direct operations use separate business operation
+  identities and never invent native ToolCall or Provider request facts.
+- Surface catalogs select default Tools; explicit canonical Tool installation
+  is allowed. Resource ownership, authorization and business conditions still
+  apply, but surface/source/Agent names are not execution gates.
+- Final output is validated only after native loop completion. JSON-looking
+  text is valid for a text-output Agent. Invalid final DTOs fail without using
+  an earlier message; an empty visible field never publishes the raw DTO.
+- `agent_runs` fences whole-run replay. Later model error/cancellation preserves
+  committed Tool effects and partial facts; no caller re-executes trace calls.
+- Production streaming uses the native streaming Runner. Publication uses the
+  existing message/outbox service, including Tool publication and natural final
+  output. A committed explicit reply is not published twice.
 
 ### 4. Validation & Error Matrix
 
 | Condition | Result |
 | --- | --- |
-| Missing assignment/model or unsupported Eino component | Explicit `eino_*`/role configuration error; no generic fallback |
-| Invalid tool schema/message part/response schema | Fail before Provider I/O; record bounded preflight stage |
-| ADK tool call is unknown, unauthorized, malformed or missing frozen identity | Return rejected/failed bounded result; no domain side effect |
-| Pure query tool execution fails | ADK returns an explicit failed tool result; no empty final success |
-| Mutation/external capability is requested during ADK loop | Return `deferred` result; Core later owns Prepare/CAS/transaction/intent |
-| ADK exceeds two generations, is cancelled or model fails | Typed failure; no assistant publish or fabricated success |
-| Embedding vector is empty, non-finite or wrong dimension | Reject vector and preserve retrieval fallback/intent retry policy |
-| Provider emits hidden reasoning or raw diagnostics | Keep only bounded structured candidate/shape metadata; never expose full reasoning |
+| Missing role/model or unsupported capability | Fail before model I/O |
+| Missing native ID, malformed arguments, unknown Tool | Fail closed; no invented identity |
+| Tool business rejection | Return explicit receipt to the next model decision |
+| Dependency error, cancellation or iteration exhaustion | Error with committed facts retained |
+| Same operation with changed payload/target/profile | Conflict, no new side effect |
+| Model fails after Tool commit | Failed run; replay cannot rerun the whole loop |
 
 ### 5. Good/Base/Bad Cases
 
-- Good: the first ADK model call emits `memory.recall`; the Capability adapter
-  executes the read-only runtime, the second request contains one matching
-  `tool` message, and Core publishes the final reply once.
-- Base: an image-generation call receives a truthful `deferred` tool result,
-  freezes the invocation, and settles the external intent after the caller
-  transaction commits.
-- Bad: pass `*App` to an Eino tool, keep a queue lease for the whole Agent
-  loop, call a raw HTTP endpoint beside Eino, or return `completed` before a
-  deferred capability is persisted.
+- Good: write Memory, recall the committed row, then produce a final answer.
+- Base: a no-tool Agent completes in one model decision.
+- Bad: return deferred for every mutation, fabricate IDs or count exhaustion as success.
 
 ### 6. Tests Required
 
-- Factory tests assert official ChatModel/Embedder request paths, model,
-  response format, tool schema and usage mapping.
-- ADK Fake model tests assert a formal tool call, real tool result in the next
-  request, iteration cap, explicit failure/cancel and one final message.
-- Prompt Composer tests assert explicit Slot selection, order, per-slot/total
-  budget, current-input de-duplication and complete recent turns.
-- Provider regression tests assert all Core model tasks use Eino and no
-  production `/chat/completions` or `/embeddings` request builder remains.
-- Queue tests assert two ADK model calls acquire/release two separate leases;
-  diagnostics retain role/scenario/request identity and bounded usage.
-- Real-provider/ComfyUI/credit/cache behavior remains an explicitly reported
-  external acceptance item when credentials/services are unavailable.
+- Fixed 17-Agent and 18-Tool catalogs; every Tool direct and native adapter path.
+- Multi-round, same-round multiple calls, write/read, business rejection, stream,
+  cancellation, final-schema failure and committed-effect recovery.
+- Real Provider Agent evidence is separate from controlled HTTP regressions.
+- Disconnect feedback and skip actual writes in test-only subprocess probes;
+  the corresponding assertions must fail, then pass with production behavior.
 
 ### 7. Wrong vs Correct
 
-#### Wrong
-
-```go
-for toolCall := range modelCalls {
-	result := app.Execute(toolCall) // Agent loop owns a long-lived queue lease
-	model.Generate(append(history, result))
-}
-```
-
-#### Correct
-
-```go
-trace := &ADKCapabilityTrace{}
-tools, _ := NewADKCapabilityTools(definitions, requestScopedInvoker)
-result, err := RunADKConversation(ctx, ADKConversationConfig{
-		Model: chatModel, Tools: tools, MaxIterations: 2,
-}, assembledMessages)
-// Core merges trace into CapabilityInvocation/Result v2 and settles it.
-```
+Wrong: freeze native calls for later caller execution and end after two models.
+Correct: native Runner → `ExecuteTool` → committed receipt → next model decision.
 
 ```python
 preflight(role: ModelRole) -> CapabilityReport
@@ -195,8 +132,8 @@ embed(role, inputs) -> VersionedEmbeddings
 - No implicit role/model fallback. Failure follows explicit interaction/workflow retry/deferred/no-op/terminal rules.
 - Provider adapter returns normalized transport/structured results and bounded parse diagnostics. It does not parse visible prose for semantic effects or choose domain actions.
 - A direct conversation may contain any mix of capability calls, including an
-  action-only response with no `conversation.reply`. Every valid call is
-  normalized and sent through its own Prepare, plan, and settlement boundary;
+  action-only response with no `conversation.reply`. Every valid native call is
+  executed through the same independent Tool boundary;
   missing visible text is a successful tool-only turn rather than a global
   `cognition_visible_text_missing` failure. A `conversation.reply` call still
   owns private text delivery when present. When a request advertises more than
@@ -209,21 +146,12 @@ embed(role, inputs) -> VersionedEmbeddings
   a short prelude followed by one terminal object. Embedded-fence extraction
   reads only the complete fenced body; it never scans arbitrary prose for an
   executable object. An unclosed/truncated fence remains invalid.
-- Thinking is operation-owned. Semantic cognition schemas
-  (`conversation_turn_response`, `takeover_reply_response`,
-  `persistent_switch_assessment`, `wake_up_response`, `daily_review_response`,
-  `native_cognition_response`, and `reflection_proposal_v2`) may send
-  `enable_thinking=true`; the Provider adapter may read a complete structured
-  object from `reasoning_content` but must never expose reasoning as visible
-  text. `query_continuation_response` and `takeover_judgement_response` omit
-  the flag and remain visible/strict protocols.
-- Native cognition may be capability-only: when at least one valid native tool
-  call is present and the semantic sidecar is empty, Core records
-  `cognitive_state_transition=not_proposed`, does not fabricate appraisal or
-  state, and settles the tool call. An empty semantic sidecar without a native
-  call fails closed. A life fact carries `native_cognition_depth`; both the
-  dispatcher and direct native recovery entry point stop processing beyond the
-  configured depth and settle a bounded cycle guard.
+- Thinking is operation-owned and never becomes visible output or Tool execution
+  authority. Final structured output must satisfy the Agent contract; no
+  reasoning/prose fallback supplies missing native calls or a failed final DTO.
+- Native cognition may complete a tool-only task with an explicit legal final
+  DTO and committed receipts. It does not fabricate semantic state from calls.
+  The native cognition depth guard still bounds recursive life facts.
 - The Provider boundary emits at most one `system` message, and it must be
   the first message. Operation, context-authority, and language instructions
   are concatenated in caller order; `user`/`assistant` history keeps its order
@@ -237,7 +165,7 @@ embed(role, inputs) -> VersionedEmbeddings
 | --- | --- |
 | Role has no endpoint/model assignment | Role unavailable with explicit configuration error; no fallback. |
 | Structured role returns an empty/mismatched transport shape | Normalize only the affected fields (missing → typed empty, object ↔ array container repair), preserve native tool calls independently, and let the owning domain validator decide whether the resulting semantic payload is usable; never parse arbitrary prose. |
-| One native/sidecar call entry is malformed while sibling entries are valid | Keep the valid entries in the normalized completion, record a bounded diagnostic for the malformed entry, and never execute the malformed entry or discard its valid siblings. |
+| One native call entry is malformed while sibling entries are valid | Keep the valid entries in the normalized completion, record a bounded diagnostic for the malformed entry, and never execute the malformed entry or discard its valid siblings. |
 | Initialization Provider omits fields or uses a known alias | Preserve returned values, fill missing defaults/typed empties, mechanically map the alias, then validate explicit values. |
 | Initialization is sent through the full JSON Schema constrained decoder | Contract failure; use `response_format.type=json_object` and the canonical prompt skeleton to avoid local-provider timeout/empty fallback. |
 | Realization role lacks streaming/abort | Preflight fails; role cannot activate. |
@@ -287,8 +215,8 @@ embed(role, inputs) -> VersionedEmbeddings
 - Provider adapter contract suite runs against fake normalized adapters and configured OpenAI-compatible test endpoints.
 - The opt-in live conversation regression asserts that a media ACTION is
   returned together with `conversation.reply`, that both native calls normalize
-  to canonical capabilities with non-empty reply text, and that Core freezes
-  the reply fallback as visible output without `cognition_visible_text_missing`.
+  to canonical capabilities with non-empty reply text, and that Core loads
+  the committed reply exactly once without `cognition_visible_text_missing`.
 - Assert every real payload has exactly one leading system message and that
   merging preserves every operation/context/language instruction; media-prompt
   calls may omit the language instruction but follow the same single-system
@@ -379,98 +307,18 @@ markMediaIntentFailed("provider_model_not_available")
 return err
 ```
 
-## Scenario: Bounded Tool-Call Normalization Diagnostics
+## Scenario: Bounded native Tool diagnostics
 
-### 1. Scope / Trigger
-
-- Trigger: an OpenAI-compatible Provider returns malformed native
-  `message.tool_calls` or a malformed structured JSON `tool_calls` sidecar.
-- The Provider boundary must explain why a call could not become a
-  `CapabilityInvocation` without persisting model arguments, user text, or the
-  raw response.
-
-### 2. Signatures
-
-```go
-NormalizeProviderToolCalls(value, sourceFactID, providerRequestID)
-  ([]CapabilityInvocation, error)
-providerToolCallNormalizationDiagnostic(value, source, err)
-  map[string]any
-```
-
-### 3. Contracts
-
-- Both native and structured-sidecar failures use the bounded
-  `tool_call_invalid` model-run error code and retain the original fail-closed
-  normalization behavior. The strict fixture helper rejects a missing call ID;
-  the production Provider adapter may derive a stable ID when the endpoint
-  supplies a provider request ID, using only request identity, sequence, tool
-  name and canonical arguments. It never trusts model text as the identity.
-- `diagnostic_model_runs.response` may contain only shape metadata: `source`
-  (`native` or `structured`), `value_shape`, `call_count`,
-  `failed_item_index`, `normalization_reason`, and bounded item fields such as
-  `id_present`, `id_type`, `type_value`, `name_present`, `name_length`,
-  `name_valid`, `arguments_present`, `arguments_shape`, and
-  `arguments_length`.
-- Lengths are byte/serialized-shape measurements, and reasons are stable codes
-  such as `id_required`, `name_invalid`, `duplicate_id`,
-  `arguments_invalid_json`, `arguments_not_object`, and
-  `arguments_oversized`.
-- No call ID/name value, argument value, reasoning, user text, or complete
-  Provider response may enter this diagnostic response. Unknown capability
-  names remain a later registry/semantic validation error and are not reported
-  as normalization failures.
-- Worker/activity logs may expose the stable `tool_call_invalid` code and one
-  allowlisted normalization reason through `core.ProviderErrorInfo`; they must
-  omit the original error string so model-controlled IDs, names, and arguments
-  cannot leak through the log path.
-
-### 4. Validation & Error Matrix
-
-| Condition | Result |
-| --- | --- |
-| native/structured call item is missing an ID but has a provider request identity | derive a deterministic `call_derived_<digest>` ID before registry validation; retries of the same request reuse it |
-| call item is missing an ID and no provider request identity is available | return `tool_call_invalid`; persist the bounded `id_required` reason |
-| arguments are missing, invalid JSON, non-object, or oversized | return `tool_call_invalid` with the corresponding stable reason |
-| duplicate IDs or invalid names/types | return `tool_call_invalid` with the failing item index; do not execute any call |
-| diagnostic contains model-controlled content | omit it; retain only bounded shape fields |
-
-### 5. Good / Base / Bad Cases
-
-- Good: a Provider that omits native IDs still gets deterministic call identity
-  from the request boundary, while malformed arguments remain a bounded
-  `tool_call_invalid` diagnostic with no tool payload.
-- Base: a valid native or sidecar call continues through the existing
-  normalization path unchanged.
-- Bad: log the full arguments, response body, or model reasoning to explain a
-  `tool_call_invalid`, or derive an ID from an unbounded/model-controlled field
-  without the stable provider request identity.
-
-### 6. Tests Required
-
-- Unit tests cover each stable reason and assert source, call count, failing
-  index, field shapes, and absence of argument canaries.
-- PostgreSQL Provider integration tests exercise native and structured-sidecar
-  failures and assert one failed model run with `error_code=tool_call_invalid`
-  plus the safe response metadata.
-- Regression tests verify successful native/sidecar normalization and confirm
-  malformed calls never reach Capability execution.
-
-### 7. Wrong vs Correct
-
-#### Wrong
-
-```go
-p.recordProviderFailure(ctx, assignment, role, correlationID, messages, "tool_call_invalid")
-```
-
-#### Correct
-
-```go
-diagnostic := providerToolCallNormalizationDiagnostic(rawCalls, "native", err)
-p.recordProviderFailure(ctx, assignment, role, correlationID, messages,
-    "tool_call_invalid", diagnostic)
-```
+- Only `schema.Message.ToolCalls` authorizes execution. Body, reasoning and
+  structured `tool_calls` fields never create calls.
+- Missing IDs fail as `tool_call_invalid`; never derive `call_derived_*`.
+- Diagnostics retain bounded shape/reason metadata, physical request identity
+  and formal correlation, not arguments, hidden reasoning or credentials.
+- Invalid siblings never execute; previously committed valid calls remain facts.
+- Cancellation/timeout terminal writes retain scenario/attempt values through
+  bounded `context.WithoutCancel`; first-terminal-wins remains authoritative.
+- Tests assert malformed call rejection, no argument canary leaks, physical
+  request/Tool/result association and cancelled-run diagnostic persistence.
 
 ## Scenario: Compact Provider Cognition Context
 
@@ -681,7 +529,7 @@ input := workingMemoryInputFromProjectionForSurface(projection, surface, active,
 
 ### 1. Scope / Trigger
 
-- Trigger: a Main cognition, Reflection, Summary, or query continuation sends
+- Trigger: a formal cognition, Reflection, Summary, or later native Agent round sends
   non-media messages to an OpenAI-compatible Provider.
 - The assembler changes only Provider-facing selection, roles, formatting, and
   budget enforcement. Retrieval, semantic ranking, Tool execution, workflow
@@ -734,15 +582,9 @@ ProviderClient.StructuredAssembledWithToolsSchema(ctx, role, messages, tools, sc
   network I/O; optional items are dropped whole by priority.
 - Every non-media structured and streaming request executes a final wire
   estimate. `max_tokens` receives output reserve only; it is not input budget.
-- A continuation reuses frozen B-layout messages, appends exactly one assistant
-  tool-call envelope and 1–2 matching `role=tool` results, sends no Tools, and
-  accepts only closed `{visible_text}` output. Normal historical assistant
-  messages remain valid before that terminal envelope. A native-tool response
-  that omits the structured sidecar may normalize its missing response mode only
-  when the adapter marked `StructuredFallback`, visible text is empty, and all
-  1–2 calls pass the generic pure-query registry gate. Non-fallback schema
-  omission, ACTION, mixed, visible, empty, and over-limit results remain final/
-  invalid; reasoning content is never treated as visible text.
+- Later native rounds retain the full assistant ToolCall/result association and
+  installed Tools. Writes, mixed calls and repeated queries are legal; the
+  final Agent schema applies only to the terminal assistant output.
 - `media_prompt`, `media_quality_acceptance`, and Visual Identity media calls
   retain their existing English/YAML/multimodal path and do not enter this
   ordinary composer.
@@ -760,8 +602,6 @@ ProviderClient.StructuredAssembledWithToolsSchema(ctx, role, messages, tools, sc
 | Optional whole item exceeds section/total/final-wire budget | Drop it with `section_cap`, `total_cap`, or `total_cap_final_wire` trace reason. |
 | Role budget violates `max_input + output_reserve + 4096 <= context_window` or uses an unknown policy | Reject configuration as `provider_prompt_budget_invalid` or `prompt_budget_policy_unknown`. |
 | Preassembled messages have multiple/late system roles, empty content, or non-user final input | Reject as `provider_assembled_messages_invalid`. |
-| Continuation contains ACTION/mixed calls, multiple assistant tool envelopes, unmatched results, Tools, or a second tool request | Reject the continuation; perform no assistant settlement. |
-| Native tool response omits structured sidecar | Infer continuation only for `StructuredFallback` + empty visible text + 1–2 generic pure queries; otherwise preserve final/fail-closed behavior. |
 | Media role reaches composer | Preserve media-specific formatter/instructions; ordinary protocol is not injected. |
 
 ### 5. Good / Base / Bad Cases
@@ -770,9 +610,8 @@ ProviderClient.StructuredAssembledWithToolsSchema(ctx, role, messages, tools, sc
   Runtime Context user message contains current dynamic facts; recent messages
   keep real roles; current input appears once and last; the complete wire
   remains at or below the persisted max input.
-- Good: a pure-query continuation with ordinary assistant history appends one
-  canonical tool-call assistant message and matching bounded results, without a
-  Tools catalog or another mutation schema.
+- Good: a later native round sees every matching Tool result and can select
+  another installed Tool before final output.
 - Base: a legacy projection has parallel identity fields; the composer rebuilds
   one Core Persona envelope and keeps the dynamic context readable.
 - Bad: put `schema_version` or persona IDs in the system, delete all
@@ -792,9 +631,8 @@ ProviderClient.StructuredAssembledWithToolsSchema(ctx, role, messages, tools, sc
 - Assert whole-fragment/whole-turn selection, cross-source dedupe, exact default
   role budgets, estimator formula, section/final-wire drops, required overflow,
   and output reserve mapped to `max_tokens`.
-- Assert continuation accepts ordinary historical assistant messages but only
-  one terminal assistant tool-call envelope, 1–2 matching results, no Tools, and
-  visible-text-only output.
+- Assert later native rounds preserve historical messages, matching Tool
+  results, installed Tools and final output validation.
 - Assert media prompt/quality/Visual Identity payloads remain outside the
   ordinary composer and preserve their language/format behavior.
 - Assert frozen realization still uses its captured projection and provider
@@ -823,84 +661,6 @@ completion, err := provider.StructuredAssembledWithToolsSchema(
 	ctx, role, assembled.Messages, tools, schema)
 ```
 
-## Scenario: Surface-Aware Bounded ADK Structured Tasks
-
-### 1. Scope / Trigger
-
-- Trigger: a conversation Main/Takeover-B turn or the WakeUp model decision
-  needs the existing Eino ADK model→Capability→ToolResult→model protocol.
-- The request is operation-scoped. It carries only identity, correlation,
-  surface and a read-only context projection; it never exposes `*App`, a
-  repository or a transaction to the ADK tool adapter.
-
-### 2. Contracts
-
-- The explicit ADK loop allowlist is `conversation_turn_response`,
-  `takeover_reply_response`, and `wake_up_response`.
-- The loop has at most two model generations, has no hidden retry/fallback,
-  preserves the Provider tool-call ID, and returns typed errors for model,
-  tool, cancellation, empty-final and iteration-limit failures.
-- WakeUp definitions are taken from
-  `CapabilityRegistry.Catalog(CapabilitySurfaceWakeUp)` and are checked against
-  the canonical Registry definition before Provider I/O. Unknown, duplicate,
-  mismatched, `InternalOnly`, and cross-surface definitions fail closed.
-- Pure query capabilities may return a bounded result to the next ADK request.
-  Deferred, mutation and external capabilities return a pending/deferred
-  result only; the ADK callback never commits a transaction or publishes an
-  output. Existing freeze, policy, intent/outbox and action-worker boundaries
-  remain authoritative.
-- Daily Review, Native Cognition, Reflection and query/Judge schemas remain
-  single-task/no-feedback paths until an explicit feedback contract is added;
-  a capability catalog alone does not opt a schema into ADK.
-
-### 3. Tests Required
-
-- Assert WakeUp enters the same Eino ADK loop used by conversation, preserves
-  formal call/result pairing and correlation, and bounds the loop to two
-  generations.
-- Assert model/tool failure and cancellation do not fabricate a final result;
-  WakeUp no-op and deferred output remain valid only after the owning Core
-  lifecycle path settles them.
-
-## Scenario: Surface-Aware Bounded ADK Structured Tasks
-
-### 1. Scope / Trigger
-
-- Trigger: a conversation Main/Takeover-B turn or the WakeUp model decision
-  needs the existing Eino ADK model→Capability→ToolResult→model protocol.
-- The request is operation-scoped. It carries only identity, correlation,
-  surface and a read-only context projection; it never exposes `*App`, a
-  repository or a transaction to the ADK tool adapter.
-
-### 2. Contracts
-
-- The explicit ADK loop allowlist is `conversation_turn_response`,
-  `takeover_reply_response`, and `wake_up_response`.
-- The loop has at most two model generations, has no hidden retry/fallback,
-  preserves the Provider tool-call ID, and returns typed errors for model,
-  tool, cancellation, empty-final and iteration-limit failures.
-- WakeUp definitions are taken from
-  `CapabilityRegistry.Catalog(CapabilitySurfaceWakeUp)` and are checked against
-  the canonical Registry definition before Provider I/O. Unknown, duplicate,
-  mismatched, `InternalOnly`, and cross-surface definitions fail closed.
-- Pure query capabilities may return a bounded result to the next ADK request.
-  Deferred, mutation and external capabilities return a pending/deferred
-  result only; the ADK callback never commits a transaction or publishes an
-  output. Existing freeze, policy, intent/outbox and action-worker boundaries
-  remain authoritative.
-- Daily Review, Native Cognition, Reflection and query/Judge schemas remain
-  single-task/no-feedback paths until an explicit feedback contract is added;
-  a capability catalog alone does not opt a schema into ADK.
-
-### 3. Tests Required
-
-- Assert WakeUp enters the same Eino ADK loop used by conversation, preserves
-  formal call/result pairing and correlation, and bounds the loop to two
-  generations.
-- Assert model/tool failure and cancellation do not fabricate a final result;
-  WakeUp no-op and deferred output remain valid only after the owning Core
-  lifecycle path settles them.
-
 ## Scenario: Task-Owned Model Operation Contracts
 
 ### 1. Scope / Trigger
@@ -909,7 +669,7 @@ completion, err := provider.StructuredAssembledWithToolsSchema(
   media prompt/quality, Visual Identity, conversation summary, schedule
   generation/replan, initialization, Native Cognition, Daily Review,
   Reflection, or persistent-switch assessment.
-- The operation-owned Task is the only layer that selects prompt fragments,
+- The operation-owned formal Agent (exposed by typed Task methods) is the layer that selects prompt fragments,
   combines them with bounded business facts, selects the response schema,
   invokes Eino, and normalizes the result. Domain code owns authorization,
   semantic validation, freeze, prepare, transaction and settlement.
@@ -940,7 +700,8 @@ raw `Messages`/`Schema` forwarding fields.
   second Provider/Composer/Agent engine is introduced.
 - Projection-backed Tasks select one explicit `ProviderContextSurface`, build
   the operation rules and capability catalog, and return the exact assembled
-  projection for later domain validation. They never commit domain state.
+  projection for later domain validation. Installed Tools own their commits;
+  callers never replay those effects.
 - Media, Visual Identity and summary Tasks keep their existing multimodal or
   language-specific format and do not enter the ordinary cognition composer.
 - Embedding remains an independent contract. A durable retry uses its frozen
@@ -1027,7 +788,7 @@ RunADKLoop(ctx, ADKLoopConfig, []*schema.Message)
   capability name, prose, Markdown or reasoning.
 - A malformed sibling may produce a bounded diagnostic while valid typed
   siblings remain available; the malformed sibling never executes.
-- A structured/reasoning sidecar can be decoded for the fixed Task DTO, but
+- A final structured body can be decoded for the Agent DTO, but
   its `tool_calls` field is never a second execution authority on an ADK
   completion. The Provider must not normalize the same ADK call twice.
 - `RunADKLoop` propagates `ErrExceedMaxIterations`, cancellation and model/tool
@@ -1073,5 +834,4 @@ id := "call_derived_" + stableDigest(providerRequestID+name+arguments)
 
 ```go
 id := toolCall.ID // copied from Eino schema.Message.ToolCalls
-```
 ```

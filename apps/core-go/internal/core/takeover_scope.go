@@ -53,14 +53,6 @@ func newTakeoverScopeError(code string, cause error) error {
 	return &takeoverScopeError{code: code, cause: cause}
 }
 
-func takeoverScopeErrorCode(err error) string {
-	var scopedErr *takeoverScopeError
-	if errors.As(err, &scopedErr) && scopedErr != nil {
-		return scopedErr.Error()
-	}
-	return "takeover_scope_failed"
-}
-
 // resumeProjectionForReplyOwner returns a projection whose active profile is the
 // reply owner. It is deterministic for the same input and never mutates the
 // projection it is given.

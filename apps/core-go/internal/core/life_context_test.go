@@ -303,30 +303,19 @@ func TestCognitionSurfacesBindFrozenProjectionBeforeCapabilityPrepare(t *testing
 	if err != nil || len(boundReply) != 1 || stringValue(mapValue(boundReply[0].ContextSnapshot["current_life"])["context_revision"]) != projection.LifeContextRevision {
 		t.Fatalf("conversation reply did not freeze current Life Context: bound=%#v err=%v", boundReply, err)
 	}
-	for _, target := range []struct {
-		path     string
-		boundary string
-	}{
-		{path: "wakeup.go", boundary: "validateCapabilityInvocationsForPersistence"},
-		{path: "autonomy.go", boundary: "prepareCapabilityInvocations"},
-	} {
-		content, err := os.ReadFile(target.path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		text := string(content)
-		bindAt := strings.Index(text, "bindCapabilityInvocationsToProjection")
-		prepareAt := strings.Index(text, target.boundary)
-		if bindAt < 0 || prepareAt < 0 || bindAt > prepareAt {
-			t.Fatalf("%s does not bind the model-visible projection before %s", target.path, target.boundary)
-		}
-	}
-	conversationSource, err := os.ReadFile("mutations.go")
+	executionSource, err := os.ReadFile("tool_execution.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reloadAt, prepareAt := strings.Index(string(conversationSource), `capabilityInvocationsFromValue(frozen.Payload["capability_invocations"])`), strings.Index(string(conversationSource), "prepareCapabilityInvocations"); reloadAt < 0 || prepareAt < 0 || reloadAt > prepareAt {
-		t.Fatal("conversation does not reload projection-bound frozen invocations before Prepare")
+	prepareAt := strings.Index(string(executionSource), "runtime.Prepare(ctx, invocation)")
+	executeAt := strings.Index(string(executionSource), "executeToolMutation(ctx, request")
+	if prepareAt < 0 || executeAt < 0 || prepareAt > executeAt {
+		t.Fatal("formal Tool execution must resolve and freeze context before its short mutation transaction")
+	}
+	for _, retired := range []string{"prepareCapabilityInvocations", "planCapabilitiesForTransaction", "settleDeferredCapabilitiesTx"} {
+		if strings.Contains(string(executionSource), retired) {
+			t.Fatalf("formal Tool boundary still references retired caller dispatcher %q", retired)
+		}
 	}
 }
 
@@ -354,23 +343,25 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 	var decisionLifeRevision string
 	app := &App{DB: repository}
 	providerHTTP := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
-		providerCalls.Add(1)
+		call := providerCalls.Add(1)
 		body, _ := io.ReadAll(request.Body)
 		lifeRef := regexp.MustCompile(`life_context:ctx_[a-f0-9]{32}`).FindString(string(body))
 		decisionLifeRevision = regexp.MustCompile(`life_ctx_[a-f0-9]{32}`).FindString(string(body))
 		if lifeRef == "" || decisionLifeRevision == "" {
 			t.Fatalf("Provider request omitted frozen Life Context ref: %s", body)
 		}
-		if _, err := app.CreateLifeEvent(ctx, ownerID, fluctlightID, map[string]any{
-			"kind": "interruption", "start_at": time.Now().UTC().Add(-time.Minute).Format(time.RFC3339),
-			"end_at": time.Now().UTC().Add(time.Hour).Format(time.RFC3339), "scene": "客厅", "activity": "临时交谈",
-			"location": "家", "evidence_refs": []any{"external-fact"}, "idempotency_key": "life-turn-interruption",
-			"expected_life_context_revision": decisionLifeRevision,
-		}); err != nil {
-			t.Fatal(err)
+		if call == 1 {
+			if _, err := app.CreateLifeEvent(ctx, ownerID, fluctlightID, map[string]any{
+				"kind": "interruption", "start_at": time.Now().UTC().Add(-time.Minute).Format(time.RFC3339),
+				"end_at": time.Now().UTC().Add(time.Hour).Format(time.RFC3339), "scene": "客厅", "activity": "临时交谈",
+				"location": "家", "evidence_refs": []any{"external-fact"}, "idempotency_key": "life-turn-interruption",
+				"expected_life_context_revision": decisionLifeRevision,
+			}); err != nil {
+				t.Fatal(err)
+			}
 		}
 		structured := map[string]any{
-			"action_type": "reply", "response_intent": "observe", "visible_text": "我会按刚才看到的场景处理。", "tool_calls": []any{},
+			"action_type": "reply", "response_intent": "observe", "visible_text": "我会按刚才看到的场景处理。",
 			"appraisal": map[string]any{
 				"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.5, "social_threat": 0.0,
 				"controllability": 0.5, "responsibility": 0.5, "relationship_significance": 0.0, "expected_effect": 0.5,
@@ -379,12 +370,15 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 			"attention": "listen", "thought": "hold", "desire": "wait", "agency": "no action",
 			"influences": []any{map[string]any{"ref": lifeRef, "role": "constrains", "confidence": 0.9, "note": "决策基于当时尚未发生新事件的生活上下文"}},
 		}
-		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{
-			"content": jsonString(structured),
-			"tool_calls": []any{
+		toolCalls := []any{}
+		if call == 1 {
+			toolCalls = []any{
 				map[string]any{"id": "life-turn-scene-call", "type": "function", "function": map[string]any{"name": "scene_event", "arguments": `{"operation":"start","scene":"书房","activity":"阅读","confidence":0.9}`}},
 				map[string]any{"id": "life-turn-reply-call", "type": "function", "function": map[string]any{"name": "conversation.reply", "arguments": `{"text":"我会按刚才看到的场景处理。"}`}},
-			},
+			}
+		}
+		response := map[string]any{"choices": []any{map[string]any{"finish_reason": map[bool]string{true: "tool_calls", false: "stop"}[call == 1], "message": map[string]any{
+			"content": jsonString(structured), "tool_calls": toolCalls,
 		}}}}
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 	})}
@@ -402,19 +396,19 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 	if err == nil || !errors.Is(err, ErrLifeContextStale) {
 		t.Fatalf("stale conversation err=%v", err)
 	}
-	if providerCalls.Load() != 1 {
+	if providerCalls.Load() != 2 {
 		t.Fatalf("Provider calls=%d", providerCalls.Load())
 	}
 	var assistantCount int
-	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversationID).Scan(&assistantCount); err != nil || assistantCount != 0 {
-		t.Fatalf("stale turn persisted assistant count=%d err=%v", assistantCount, err)
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND turn_id='life-turn-1' AND source_fact_id IS NOT NULL`, conversationID).Scan(&assistantCount); err != nil || assistantCount != 1 {
+		t.Fatalf("stale turn lost committed assistant count=%d err=%v", assistantCount, err)
 	}
-	var frozenStatus, frozenError string
-	var frozenPayload []byte
-	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,''),payload FROM public.cognition_frozen_actions WHERE inbox_id=(SELECT id FROM public.cognition_inbox WHERE idempotency_key='life-turn-user' AND event_type='conversation.turn')`).Scan(&frozenStatus, &frozenError, &frozenPayload); err != nil || frozenStatus != "failed" || frozenError != "life_context_stale" {
-		t.Fatalf("stale frozen status=%q error=%q err=%v", frozenStatus, frozenError, err)
+	var inboxStatus, inboxError string
+	var inboxPayload []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,''),payload FROM public.cognition_inbox WHERE idempotency_key='life-turn-user' AND event_type='conversation.turn'`).Scan(&inboxStatus, &inboxError, &inboxPayload); err != nil || inboxStatus != "failed" || inboxError != "agent_cognition_settlement_failed" {
+		t.Fatalf("stale inbox status=%q error=%q err=%v", inboxStatus, inboxError, err)
 	}
-	invocations, err := capabilityInvocationsFromValue(decodeObject(frozenPayload)["capability_invocations"])
+	invocations, err := capabilityInvocationsFromValue(mapValue(decodeObject(inboxPayload)["agent_partial"])["capability_invocations"])
 	if err != nil || len(invocations) != 2 {
 		t.Fatalf("frozen invocations=%#v err=%v", invocations, err)
 	}
@@ -424,9 +418,8 @@ func TestConversationRejectsLifeContextChangeBetweenDecisionAndSettlement(t *tes
 			sceneInvocation = invocation
 		}
 	}
-	plan, err := scenePlanFromInvocation(sceneInvocation)
-	if err != nil || plan.ExpectedLifeContextRevision != decisionLifeRevision || stringValue(mapValue(sceneInvocation.ContextSnapshot["current_life"])["context_revision"]) != decisionLifeRevision {
-		t.Fatalf("conversation capability did not preserve decision context plan=%#v snapshot=%#v err=%v", plan, sceneInvocation.ContextSnapshot, err)
+	if stringValue(mapValue(sceneInvocation.ContextSnapshot["current_life"])["context_revision"]) != decisionLifeRevision {
+		t.Fatalf("conversation capability did not preserve decision context snapshot=%#v", sceneInvocation.ContextSnapshot)
 	}
 	var staleCapabilitySceneCount int
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.life_events WHERE fluctlight_id=$1 AND scene='书房'`, fluctlightID).Scan(&staleCapabilitySceneCount); err != nil || staleCapabilitySceneCount != 0 {

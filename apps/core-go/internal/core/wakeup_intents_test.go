@@ -38,7 +38,7 @@ func TestWakeUpClockRepairOnlyRepairsMissingOrUninitializedRows(t *testing.T) {
 }
 
 func TestConversationRearmsWakeUpThroughCognitionFollowups(t *testing.T) {
-	for _, file := range []string{"cognition.go", "mutations.go"} {
+	for _, file := range []string{"cognition.go", "agent_result_adapter.go"} {
 		source, err := os.ReadFile(file)
 		if err != nil {
 			t.Fatal(err)
@@ -53,16 +53,16 @@ func TestConversationRearmsWakeUpThroughCognitionFollowups(t *testing.T) {
 }
 
 func TestSynchronousCognitionPreemptsLifecycleBeforeProvider(t *testing.T) {
-	source, err := os.ReadFile("mutations.go")
+	source, err := os.ReadFile("agent_result_adapter.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := sourceBetween(t, string(source), "func (a *App) handleTurn", "func (a *App) authorizeActorTurn")
+	body := sourceBetween(t, string(source), "func (a *App) handleTurn", "func (a *App) replayCommittedAgentTurn")
 	if !strings.Contains(body, "CancelLifecycleForCognition") {
 		t.Fatal("synchronous cognition path does not preempt WakeUp/Reflection")
 	}
 	preemptIndex := strings.Index(body, "CancelLifecycleForCognition")
-	providerIndex := strings.Index(body, "StructuredAssembledWithToolsSchema")
+	providerIndex := strings.Index(body, "RunMain")
 	if providerIndex >= 0 && preemptIndex > providerIndex {
 		t.Fatal("synchronous cognition starts the Provider before lifecycle preemption")
 	}
@@ -115,11 +115,11 @@ func TestWakeUpDueReleaseUsesLockedStatusAndDueCAS(t *testing.T) {
 }
 
 func TestWakeUpOutcomePersistsNextDueInsideOwningTransaction(t *testing.T) {
-	source, err := os.ReadFile("wakeup.go")
+	source, err := os.ReadFile("agent_result_adapter.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := sourceBetween(t, string(source), "func (a *App) persistWakeUp", "func updateWakeUpNextDueTx")
+	body := sourceBetween(t, string(source), "func (a *App) persistCommittedWakeUp", "func (a *App) ProcessNativeCognitionFact")
 	if !strings.Contains(body, "updateWakeUpNextDueTx") ||
 		!strings.Contains(body, "\"next_due_at\"") ||
 		strings.Index(body, "updateWakeUpNextDueTx") > strings.LastIndex(body, "appendOutboxTx") {
@@ -177,11 +177,11 @@ func TestWakeUpScheduleStatusIsExplicitWhenContextIsMissing(t *testing.T) {
 }
 
 func TestWakeUpAndReflectionProviderCallsUseLifecycleCorrelation(t *testing.T) {
-	wakeSource, err := os.ReadFile("wakeup.go")
+	wakeSource, err := os.ReadFile("agent_result_adapter.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	wakeBody := sourceBetween(t, string(wakeSource), "func (a *App) ProcessWakeUp", "func capabilityInvocationText")
+	wakeBody := sourceBetween(t, string(wakeSource), "func (a *App) ProcessWakeUp", "func (a *App) ProcessNativeCognitionFact")
 	if !strings.Contains(wakeBody, "WithProviderCorrelation") || !strings.Contains(wakeBody, "wakeUpCycleCorrelation(fluctlightID, cycle)") {
 		t.Fatal("WakeUp Provider call does not inherit the stable cycle correlation")
 	}
@@ -196,11 +196,11 @@ func TestWakeUpAndReflectionProviderCallsUseLifecycleCorrelation(t *testing.T) {
 }
 
 func TestWakeUpCreatesDirectConversationBeforeBuildingReplyContext(t *testing.T) {
-	source, err := os.ReadFile("wakeup.go")
+	source, err := os.ReadFile("agent_result_adapter.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := sourceBetween(t, string(source), "func (a *App) ProcessWakeUp", "func capabilityInvocationText")
+	body := sourceBetween(t, string(source), "func (a *App) ProcessWakeUp", "func (a *App) ProcessNativeCognitionFact")
 	ensureAt := strings.Index(body, "EnsureDirectConversation(ctx, ownerID, fluctlightID)")
 	projectionAt := strings.Index(body, "BuildContextProjectionFor(ctx, ContextProjectionRequest{")
 	if ensureAt < 0 || projectionAt < 0 || ensureAt > projectionAt {
@@ -228,7 +228,7 @@ func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 			// the structured wake-up decision. Keep the production tool call in
 			// the final ADK trace so Core can freeze it exactly once.
 			return fakeProviderResult{Structured: map[string]any{
-				"action_type": "no_op", "response_intent": "主动联系 Owner", "influences": []any{},
+				"action_type": "no_op", "response_intent": "主动联系 Owner", "evidence_refs": []any{}, "influences": []any{},
 			}}
 		}
 		return fakeProviderResult{
@@ -247,19 +247,12 @@ func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 	if stringValue(wakeResult["action_type"]) != "proactive_message" {
 		t.Fatalf("WakeUp action type = %#v", wakeResult)
 	}
-	actionID := stringValue(wakeResult["action_id"])
-	if actionID == "" {
-		t.Fatalf("WakeUp did not freeze an action: %#v", wakeResult)
-	}
 	var conversationID string
 	if err := repository.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2`, ownerID, fluctlightID).Scan(&conversationID); err != nil {
 		t.Fatal(err)
 	}
 	if conversationID == "" {
 		t.Fatal("WakeUp did not ensure a direct conversation")
-	}
-	if _, err := app.ProcessAutonomyAction(ctx, actionID); err != nil {
-		t.Fatalf("ProcessAutonomyAction failed: %v", err)
 	}
 	var messageCount int
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text=$2`, conversationID, text).Scan(&messageCount); err != nil {
@@ -285,13 +278,13 @@ func TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage(t *testi
 	router := newFakeProviderRouter().on("wake_up_response", func(_ map[string]any) fakeProviderResult {
 		providerCalls++
 		if providerCalls > 1 {
-			return fakeProviderResult{Structured: map[string]any{"action_type": "no_op", "response_intent": ""}}
+			return fakeProviderResult{Structured: map[string]any{"action_type": "no_op", "response_intent": "", "evidence_refs": []any{}, "influences": []any{}}}
 		}
 		return fakeProviderResult{
 			// This is the exact shape observed in diagnostics: the structured
 			// sidecar says no_op, while native calls contain an affect update and
 			// the actual proactive conversation reply.
-			Structured: map[string]any{"action_type": "no_op", "evidence_refs": []any{}, "influences": []any{}, "response_intent": "", "tool_calls": []any{}},
+			Structured: map[string]any{"action_type": "no_op", "evidence_refs": []any{}, "influences": []any{}, "response_intent": ""},
 			ToolCalls: []map[string]any{
 				{"id": "noop-affect-call", "type": "function", "function": map[string]any{"name": "affect_event", "arguments": jsonString(map[string]any{"event": map[string]any{"type": "excited", "confidence": 0.35}})}},
 				{"id": "noop-reply-call", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": text})}},
@@ -306,16 +299,9 @@ func TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage(t *testi
 	if stringValue(wakeResult["action_type"]) != "proactive_message" {
 		t.Fatalf("WakeUp action type = %#v", wakeResult)
 	}
-	actionID := stringValue(wakeResult["action_id"])
-	if actionID == "" {
-		t.Fatalf("WakeUp did not freeze an action: %#v", wakeResult)
-	}
 	var conversationID string
 	if err := repository.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2`, ownerID, fluctlightID).Scan(&conversationID); err != nil {
 		t.Fatal(err)
-	}
-	if _, err := app.ProcessAutonomyAction(ctx, actionID); err != nil {
-		t.Fatalf("ProcessAutonomyAction failed: %v", err)
 	}
 	var messageCount int
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text=$2`, conversationID, text).Scan(&messageCount); err != nil {
@@ -327,11 +313,11 @@ func TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage(t *testi
 }
 
 func TestWakeUpDerivedIntentsKeepCycleCorrelation(t *testing.T) {
-	wakeSource, err := os.ReadFile("wakeup.go")
+	wakeSource, err := os.ReadFile("agent_result_adapter.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := sourceBetween(t, string(wakeSource), "func (a *App) persistWakeUp", "func updateWakeUpNextDueTx")
+	body := sourceBetween(t, string(wakeSource), "func (a *App) persistCommittedWakeUp", "func (a *App) ProcessNativeCognitionFact")
 	for _, required := range []string{
 		"correlationID := wakeUpCycleCorrelation(fluctlightID, cycle)",
 		`"correlation_id": correlationID`,
@@ -352,77 +338,19 @@ func TestWakeUpDerivedIntentsKeepCycleCorrelation(t *testing.T) {
 	}
 }
 
-func TestWakeUpReturnPreservesQueuedBlockedAndNoopStatus(t *testing.T) {
-	source, err := os.ReadFile("wakeup.go")
+func TestWakeUpReturnPreservesCommittedBlockedAndNoopStatus(t *testing.T) {
+	source, err := os.ReadFile("agent_result_adapter.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := sourceBetween(t, string(source), "func (a *App) ProcessWakeUp", "func capabilityInvocationText")
-	if !strings.Contains(body, `"status": firstString(result["status"], "no_op")`) {
-		t.Fatal("WakeUp completion still collapses queued/blocked/no-op into completed")
+	body := sourceBetween(t, string(source), "func (a *App) ProcessWakeUp", "func (a *App) ProcessNativeCognitionFact")
+	if strings.Contains(body, `"status": "queued"`) || strings.Contains(body, "capability.action") || strings.Contains(body, "autonomy.action") {
+		t.Fatal("WakeUp still queues a second execution after Agent Tool commit")
 	}
 	for _, reason := range []string{"wake_up_disabled", "fluctlight_paused", "fluctlight_not_active", "no_action_selected"} {
 		if !strings.Contains(body, reason) {
 			t.Fatalf("WakeUp suppression/no-op reason %q is missing", reason)
 		}
-	}
-}
-
-func TestWakeUpMissingCapabilityActionFallsBackBeforeInfluenceValidation(t *testing.T) {
-	for _, proposedActionType := range []string{"reply", "proactive_message", "moment", "schedule"} {
-		assessment := map[string]any{"action_type": proposedActionType}
-		if proposed := normalizeWakeUpActionWithoutCapability(assessment, nil); proposed != proposedActionType {
-			t.Fatalf("proposed action = %q, want %q", proposed, proposedActionType)
-		}
-		if actionType := stringValue(assessment["action_type"]); actionType != "no_op" {
-			t.Fatalf("normalized action = %q, want no_op", actionType)
-		}
-		if wakeUpDecisionRequiresInfluences(stringValue(assessment["action_type"]), nil, nil) {
-			t.Fatalf("missing optional %q capability still requires influences", proposedActionType)
-		}
-		actual, result := fallbackWakeUpActionWithoutCapability(proposedActionType)
-		if actual != "no_op" || result["status"] != "no_op" || result["reason"] != "action_requires_capability_call" || result["proposed_action_type"] != proposedActionType {
-			t.Fatalf("fallback for %q = %q %#v", proposedActionType, actual, result)
-		}
-	}
-
-	assessment := map[string]any{"action_type": "no_op"}
-	if proposed := normalizeWakeUpActionWithoutCapability(assessment, nil); proposed != "" || assessment["action_type"] != "no_op" {
-		t.Fatalf("no-op assessment changed: proposed=%q assessment=%#v", proposed, assessment)
-	}
-	assessment = map[string]any{"action_type": "proactive_message"}
-	call := CapabilityInvocation{CapabilityName: "conversation.reply"}
-	if proposed := normalizeWakeUpActionWithoutCapability(assessment, []CapabilityInvocation{call}); proposed != "" || assessment["action_type"] != "proactive_message" {
-		t.Fatalf("capability-backed assessment changed: proposed=%q assessment=%#v", proposed, assessment)
-	}
-}
-
-func TestWakeUpMissingInfluencesNeverDropsProviderCalls(t *testing.T) {
-	registry := mustCapabilityRegistry(conversationReplyCapability{}, affectEventCapability{})
-	calls := []CapabilityInvocation{
-		{CapabilityName: "affect_event"},
-		{CapabilityName: "conversation.reply"},
-	}
-	deferred, immediate := splitDeferredOutputCapabilities(calls, registry)
-	if len(deferred) != 1 || deferred[0].CapabilityName != "conversation.reply" {
-		t.Fatalf("deferred calls = %#v", deferred)
-	}
-	if len(immediate) != 1 || immediate[0].CapabilityName != "affect_event" {
-		t.Fatalf("state-changing calls = %#v", immediate)
-	}
-	if wakeUpDecisionRequiresInfluences("proactive_message", deferred, registry) {
-		t.Fatal("retained deferred output still requires an influence sidecar")
-	}
-	if !wakeUpDecisionRequiresInfluences("no_op", immediate, registry) {
-		t.Fatal("state-changing capability unexpectedly became ungrounded")
-	}
-	source, err := os.ReadFile("wakeup.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	body := sourceBetween(t, string(source), "func (a *App) ProcessWakeUp", "func capabilityInvocationText")
-	if strings.Contains(body, "toolCalls = deferredCalls") || strings.Contains(body, "toolCalls = nil") {
-		t.Fatal("WakeUp must not silently discard a Provider tool call")
 	}
 }
 

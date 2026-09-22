@@ -1,54 +1,39 @@
 package core
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
-// TestPersistentSwitchAssessmentRunsAfterTheCandidateKeepsTheTurn Simple:
-// the normal Main response is produced first, then a tool-free switch
-// assessment decides the persistent profile for the next turn. The assessment
-// itself never becomes a user-visible candidate.
-func TestPersistentSwitchAssessmentRunsAfterTheCandidateKeepsTheTurn(t *testing.T) {
+func TestNativePersistentSwitchCommitsOnceAndUpdatesSubsequentToolProfile(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
-	ownerID, fluctlightID, conversationID := "post-assessment-owner", "post-assessment-fluctlight", "post-assessment-conversation"
-	takeoverChainSeedWithTakeoverRules(t, ctx, repository, ownerID, fluctlightID, conversationID, nil)
-	router := newFakeProviderRouter().
-		on(workingPersonaMainTurnSchema, func(map[string]any) fakeProviderResult {
-			return takeoverChainMainResult("星火先完成本轮回复", nil)
-		}).
-		on(persistentSwitchAssessmentSchemaName, func(map[string]any) fakeProviderResult {
-			return fakeProviderResult{Structured: map[string]any{"personality_decision": map[string]any{
-				"decision": "switch", "from_profile_id": "spark", "target_profile_id": "twilight",
-				"trigger_id": "safety", "reason": "回复后确认安全切换", "confidence": 0.95,
-				"evidence_refs": []any{},
-			}}}
-		})
+	ownerID, fluctlightID, conversationID := "native-switch-owner", "native-switch-fluctlight", "native-switch-conversation"
+	takeoverChainSeed(t, ctx, repository, ownerID, fluctlightID, conversationID)
+	step := 0
+	router := newFakeProviderRouter().on(workingPersonaMainTurnSchema, func(map[string]any) fakeProviderResult {
+		step++
+		switch step {
+		case 1:
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("native-switch", personaSwitchCapabilityName, map[string]any{
+				"decision": "switch", "source_profile_id": "spark", "target_profile_id": "twilight",
+				"trigger_id": "switch:safety", "reason": "declared safety rule is satisfied",
+			})}}
+		case 2:
+			return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("native-switch-reply", "conversation.reply", map[string]any{"text": "暮光已接手持久主导"})}}
+		default:
+			return nativePersonaFinal()
+		}
+	})
 	app := newTestApp(t, repository, router)
-	if _, err := app.HandleTurn(ctx, ownerID, conversationID, takeoverChainTurnPayload(
-		fluctlightID, "安全确认已收到。", "post-assessment-turn", "post-assessment-turn",
-	)); err != nil {
+	result, err := app.HandleTurn(ctx, ownerID, conversationID, takeoverChainTurnPayload(fluctlightID, "安全确认已收到。", "native-switch-turn", "native-switch-turn-1"))
+	if err != nil {
 		t.Fatal(err)
 	}
-	if got := router.requestCount(workingPersonaMainTurnSchema); got != 1 {
-		t.Fatalf("Main response calls = %d, want 1", got)
+	if stringValue(result.Assistant["text"]) != "暮光已接手持久主导" || readActiveProfileForGate(t, ctx, repository, fluctlightID) != "twilight" {
+		t.Fatalf("persistent switch result=%#v active=%q", result, readActiveProfileForGate(t, ctx, repository, fluctlightID))
 	}
-	if got := router.requestCount(persistentSwitchAssessmentSchemaName); got != 1 {
-		t.Fatalf("post-cognition switch assessments = %d, want 1", got)
+	results := nativePersonaTrace(t, ctx, repository, "native-switch-turn")
+	if acting := stringValue(nativePersonaResultByName(t, results, "conversation.reply")["acting_profile_id"]); acting != "twilight" {
+		t.Fatalf("post-switch reply acting profile=%q", acting)
 	}
-	if active := readActiveProfileForGate(t, ctx, repository, fluctlightID); active != "twilight" {
-		t.Fatalf("post-cognition assessment did not settle active profile: %q", active)
-	}
-	texts := takeoverChainAssistantTexts(t, ctx, repository, conversationID, "post-assessment-turn")
-	if len(texts) != 1 || texts[0] != "星火先完成本轮回复" {
-		t.Fatalf("the switch assessment must not replace the current reply: %#v", texts)
-	}
-	assessmentPayloads := router.payloads(persistentSwitchAssessmentSchemaName)
-	if len(assessmentPayloads) != 1 {
-		t.Fatalf("assessment wire payload count = %d", len(assessmentPayloads))
-	}
-	assessmentWire := takeoverChainSystemContent(t, assessmentPayloads[0])
-	if !strings.Contains(assessmentWire, "persistent_switch") || !strings.Contains(assessmentWire, "switch:safety") {
-		t.Fatalf("post-cognition assessment did not receive the declared switch rule: %s", assessmentWire)
+	if count := takeoverChainCount(t, ctx, repository, `SELECT count(*) FROM public.platform_outbox_events WHERE aggregate_type='persona_action' AND fluctlight_id=$1 AND kind='persona.switch.committed'`, fluctlightID); count != 1 {
+		t.Fatalf("persona.switch committed %d times", count)
 	}
 }

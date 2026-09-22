@@ -1,53 +1,15 @@
 package core
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"regexp"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 )
-
-type capturingSceneCapability struct {
-	delegate sceneEventCapability
-	mu       sync.Mutex
-	prepared []CapabilityInvocation
-}
-
-func (c *capturingSceneCapability) Definition() CapabilityDefinition { return c.delegate.Definition() }
-func (c *capturingSceneCapability) RequiredContext() []ContextSlot {
-	return c.delegate.RequiredContext()
-}
-func (c *capturingSceneCapability) Execute(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
-	return c.delegate.Execute(ctx, invocation, resolved)
-}
-func (c *capturingSceneCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityResult, error) {
-	return c.delegate.ExecuteTx(ctx, tx, invocation, resolved)
-}
-func (c *capturingSceneCapability) Prepare(ctx context.Context, invocation CapabilityInvocation, resolved CapabilityContext) (CapabilityInvocation, error) {
-	prepared, err := c.delegate.Prepare(ctx, invocation, resolved)
-	if err == nil {
-		c.mu.Lock()
-		c.prepared = append(c.prepared, prepared)
-		c.mu.Unlock()
-	}
-	return prepared, err
-}
-func (c *capturingSceneCapability) lastPrepared() (CapabilityInvocation, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if len(c.prepared) == 0 {
-		return CapabilityInvocation{}, false
-	}
-	return c.prepared[len(c.prepared)-1], true
-}
 
 func TestImageDurableIntentRejectsPreCommitStaleContextAndKeepsPostCommitSnapshot(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
@@ -57,11 +19,18 @@ func TestImageDurableIntentRejectsPreCommitStaleContextAndKeepsPostCommitSnapsho
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.conversations(id,created_by_actor_id) VALUES($1,$2)`, conversationID, ownerID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.conversation_heads(conversation_id,next_sequence) VALUES($1,2)`, conversationID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.conversation_participants(conversation_id,actor_id,role,status) VALUES($1,$2,'owner','active'),($1,$3,'member','active')`, conversationID, ownerID, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,idempotency_key) VALUES($1,$2,1,$3,'assistant','',$1)`, messageID, conversationID, fluctlightID); err != nil {
 		t.Fatal(err)
 	}
 	app := &App{DB: repository}
-	capability := imageGenerateCapability{service: app}
+	capability := imageGenerateCapability{service: app, publication: NewToolPublicationService(app)}
+	target := DirectToolTarget{AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID, Kind: "conversation_message", Ref: messageID}
 	initialLife := currentLifeForTest(t, ctx, app, fluctlightID, time.Now().UTC())
 	resolved := CapabilityContext{
 		Visual: &VisualIdentityContext{Data: map[string]any{"status": "active", "ref": "visual:test"}},
@@ -102,7 +71,7 @@ func TestImageDurableIntentRejectsPreCommitStaleContextAndKeepsPostCommitSnapsho
 	if err != nil {
 		t.Fatal(err)
 	}
-	forgedResult, forgedErr := capability.ExecuteDeferredTx(ctx, tx, forgedPrepared, resolved, OutputBindingV1{TargetKind: "conversation_message", TargetRef: messageID})
+	forgedResult, forgedErr := capability.ExecuteDirectTx(ctx, tx, forgedPrepared, resolved, target)
 	_ = tx.Rollback(ctx)
 	if forgedErr == nil || forgedResult.ErrorCode != "media_prepared_context_mismatch" {
 		t.Fatalf("split media authority result=%#v err=%v", forgedResult, forgedErr)
@@ -111,7 +80,7 @@ func TestImageDurableIntentRejectsPreCommitStaleContextAndKeepsPostCommitSnapsho
 	if err != nil {
 		t.Fatal(err)
 	}
-	staleResult, staleErr := capability.ExecuteDeferredTx(ctx, tx, preparedInitial, resolved, OutputBindingV1{TargetKind: "conversation_message", TargetRef: messageID})
+	staleResult, staleErr := capability.ExecuteDirectTx(ctx, tx, preparedInitial, resolved, target)
 	_ = tx.Rollback(ctx)
 	if staleErr == nil || staleResult.ErrorCode != "media_context_stale" {
 		t.Fatalf("stale media intent result=%#v err=%v", staleResult, staleErr)
@@ -131,7 +100,7 @@ func TestImageDurableIntentRejectsPreCommitStaleContextAndKeepsPostCommitSnapsho
 	if err != nil {
 		t.Fatal(err)
 	}
-	committedResult, err := capability.ExecuteDeferredTx(ctx, tx, preparedFrozen, resolved, OutputBindingV1{TargetKind: "conversation_message", TargetRef: messageID})
+	committedResult, err := capability.ExecuteDirectTx(ctx, tx, preparedFrozen, resolved, target)
 	if err != nil {
 		_ = tx.Rollback(ctx)
 		t.Fatal(err)
@@ -193,9 +162,8 @@ func TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale(t *test
 			if _, err := app.AcceptSchedule(ctx, ownerID, fluctlightID, schedulePayload); err != nil {
 				t.Fatal(err)
 			}
-			spy := &capturingSceneCapability{delegate: sceneEventCapability{service: app}}
 			app.ContextResolver = NewAppContextResolver(app)
-			app.Capabilities = mustCapabilityRegistry(spy)
+			app.Capabilities = app.capabilityRegistry()
 			runtime, err := NewCapabilityRuntime(app.Capabilities, app.ContextResolver)
 			if err != nil {
 				t.Fatal(err)
@@ -211,32 +179,37 @@ func TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale(t *test
 			var providerCalls atomic.Int32
 			var decisionRevision string
 			providerHTTP := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
-				providerCalls.Add(1)
+				call := providerCalls.Add(1)
 				body, _ := io.ReadAll(request.Body)
 				lifeRef := regexp.MustCompile(`life_context:ctx_[a-f0-9]{32}`).FindString(string(body))
 				decisionRevision = regexp.MustCompile(`life_ctx_[a-f0-9]{32}`).FindString(string(body))
 				if lifeRef == "" || decisionRevision == "" {
 					return nil, errors.New("model-visible Life Context authority missing")
 				}
-				now := time.Now().UTC()
-				if _, err := app.CreateLifeEvent(ctx, ownerID, fluctlightID, map[string]any{
-					"kind": "owner_event", "start_at": now.Add(-time.Minute).Format(time.RFC3339), "end_at": now.Add(time.Hour).Format(time.RFC3339),
-					"scene": "变更后的客厅", "activity": "临时交谈", "evidence_refs": []any{"surface-life-external-" + surface},
-					"expected_life_context_revision": decisionRevision, "idempotency_key": "surface-life-change-" + surface,
-				}); err != nil {
-					return nil, err
+				if call == 1 {
+					now := time.Now().UTC()
+					if _, err := app.CreateLifeEvent(ctx, ownerID, fluctlightID, map[string]any{
+						"kind": "owner_event", "start_at": now.Add(-time.Minute).Format(time.RFC3339), "end_at": now.Add(time.Hour).Format(time.RFC3339),
+						"scene": "变更后的客厅", "activity": "临时交谈", "evidence_refs": []any{"surface-life-external-" + surface},
+						"expected_life_context_revision": decisionRevision, "idempotency_key": "surface-life-change-" + surface,
+					}); err != nil {
+						return nil, err
+					}
 				}
 				structured := map[string]any{
-					"action_type": "no_op", "response_intent": "根据原快照更新场景", "tool_calls": []any{},
+					"action_type": "no_op", "response_intent": "根据原快照更新场景",
 					"influences": []any{map[string]any{"ref": lifeRef, "role": "constrains", "confidence": 0.9, "note": "使用模型实际看到的生活上下文"}},
 				}
 				if surface == "wake_up" {
 					structured["action_type"] = "scene_change"
 					structured["evidence_refs"] = []any{}
 				}
-				response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{
-					"content":    jsonString(structured),
-					"tool_calls": []any{map[string]any{"id": "surface-scene-" + surface, "type": "function", "function": map[string]any{"name": "scene_event", "arguments": `{"operation":"start","scene":"原快照书房","activity":"阅读","confidence":0.9}`}}},
+				toolCalls := []any{}
+				if call == 1 {
+					toolCalls = []any{map[string]any{"id": "surface-scene-" + surface, "type": "function", "function": map[string]any{"name": "scene_event", "arguments": `{"operation":"start","scene":"原快照书房","activity":"阅读","confidence":0.9}`}}}
+				}
+				response := map[string]any{"choices": []any{map[string]any{"finish_reason": map[bool]string{true: "tool_calls", false: "stop"}[call == 1], "message": map[string]any{
+					"content": jsonString(structured), "tool_calls": toolCalls,
 				}}}}
 				return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 			})}
@@ -250,27 +223,12 @@ func TestWakeUpAndDailyReviewPrepareAgainstModelVisibleLifeThenFailStale(t *test
 			if !errors.Is(runErr, ErrLifeContextStale) {
 				t.Fatalf("%s stale run err=%v", surface, runErr)
 			}
-			if providerCalls.Load() != 1 {
+			if providerCalls.Load() != 2 {
 				t.Fatalf("%s Provider calls=%d", surface, providerCalls.Load())
 			}
-			if surface == "wake_up" {
-				if _, prepared := spy.lastPrepared(); prepared {
-					t.Fatal("stale WakeUp prepared a capability before its authoritative transaction succeeded")
-				}
-			} else {
-				prepared, ok := spy.lastPrepared()
-				if !ok {
-					t.Fatalf("%s did not prepare the frozen scene invocation", surface)
-				}
-				plan, err := scenePlanFromInvocation(prepared)
-				if err != nil {
-					t.Fatal(err)
-				}
-				frozenLife := mapValue(prepared.ContextSnapshot["current_life"])
-				liveLife := currentLifeForTest(t, ctx, app, fluctlightID, time.Now().UTC())
-				if plan.ExpectedLifeContextRevision != decisionRevision || stringValue(frozenLife["context_revision"]) != decisionRevision || stringValue(liveLife["context_revision"]) == decisionRevision || prepared.ActionID == "" {
-					t.Fatalf("%s mixed model/frozen/live context: plan=%#v snapshot=%#v live=%#v", surface, plan, frozenLife, liveLife)
-				}
+			liveLife := currentLifeForTest(t, ctx, app, fluctlightID, time.Now().UTC())
+			if stringValue(liveLife["context_revision"]) == decisionRevision || stringValue(liveLife["scene"]) != "变更后的客厅" {
+				t.Fatalf("%s stale Tool overwrote the external Life Context: decision=%q live=%#v", surface, decisionRevision, liveLife)
 			}
 			var wakeCount, actionCount int
 			if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.cognition_wakeups WHERE fluctlight_id=$1`, fluctlightID).Scan(&wakeCount); err != nil {
@@ -382,7 +340,7 @@ func TestConcurrentDailyReviewUsesOneMainProviderCall(t *testing.T) {
 		case <-request.Context().Done():
 			return nil, request.Context().Err()
 		}
-		structured := map[string]any{"action_type": "no_op", "response_intent": "今日无需主动行动", "tool_calls": []any{}, "influences": []any{}}
+		structured := map[string]any{"action_type": "no_op", "response_intent": "今日无需主动行动", "influences": []any{}}
 		response := map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(structured), "tool_calls": []any{}}}}}
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 	})}}

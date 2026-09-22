@@ -416,6 +416,50 @@ func TestProcessReflectionMemoryCandidateUsesOpaqueRefLifecycleAuthority(t *test
 	}
 }
 
+func TestReflectionProviderSchemaUsesOperationSpecificMemoryShapes(t *testing.T) {
+	schema := reflectionProposalV2ProviderSchema()
+	properties := mapValue(schema["properties"])
+	memorySchema := mapValue(mapValue(properties["memory_candidates"])["items"])
+	activeMemorySchema := mapValue(mapValue(properties["active_memory_candidates"])["items"])
+	if err := validateCapabilitySchemaDefinition(memorySchema, nil); err != nil {
+		t.Fatalf("Memory candidate schema definition: %v", err)
+	}
+	if err := validateCapabilitySchemaDefinition(activeMemorySchema, nil); err != nil {
+		t.Fatalf("Active Memory candidate schema definition: %v", err)
+	}
+	targetRef := "memory:ctx_0123456789abcdef0123456789abcdef"
+	activeTargetRef := "active_memory:ctx_0123456789abcdef0123456789abcdef"
+	validMemoryConfirm := map[string]any{"operation": "confirm", "target_ref": targetRef, "evidence_refs": []any{"sequence:1"}, "semantic_reason": "再次确认"}
+	if err := validateCapabilitySchemaValue(validMemoryConfirm, memorySchema); err != nil {
+		t.Fatalf("non-semantic Memory confirm rejected: %v", err)
+	}
+	invalidMemoryConfirm := cloneMap(validMemoryConfirm)
+	invalidMemoryConfirm["confidence"] = 1.0
+	if err := validateCapabilitySchemaValue(invalidMemoryConfirm, memorySchema); err == nil {
+		t.Fatal("Memory confirm accepted forbidden semantic fields")
+	}
+	validMemoryCreate := map[string]any{
+		"operation": "create", "type": "semantic", "content": "形成的新事实", "confidence": 0.9,
+		"importance": 0.8, "emotional_significance": 0.2, "evidence_refs": []any{"sequence:1"}, "semantic_reason": "证据支持",
+	}
+	if err := validateCapabilitySchemaValue(validMemoryCreate, memorySchema); err != nil {
+		t.Fatalf("semantic Memory create rejected: %v", err)
+	}
+	delete(validMemoryCreate, "confidence")
+	if err := validateCapabilitySchemaValue(validMemoryCreate, memorySchema); err == nil {
+		t.Fatal("Memory create accepted without required semantic confidence")
+	}
+	validActiveConfirm := map[string]any{"operation": "confirm", "target_ref": activeTargetRef, "evidence_refs": []any{"sequence:1"}, "semantic_reason": "仍然相关"}
+	if err := validateCapabilitySchemaValue(validActiveConfirm, activeMemorySchema); err != nil {
+		t.Fatalf("non-semantic Active Memory confirm rejected: %v", err)
+	}
+	invalidActiveConfirm := cloneMap(validActiveConfirm)
+	invalidActiveConfirm["content"] = "不应重写"
+	if err := validateCapabilitySchemaValue(invalidActiveConfirm, activeMemorySchema); err == nil {
+		t.Fatal("Active Memory confirm accepted forbidden semantic fields")
+	}
+}
+
 func TestProcessReflectionAppliesAllMemoryCandidateV2OperationsAtomically(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID := "memory-reflection-all-owner"
@@ -581,7 +625,7 @@ FOR EACH ROW EXECUTE FUNCTION public.fail_reflection_watermark_test();`); err !=
 		return embeddingHTTPResponse(request, http.StatusOK, string(jsonBytes(response))), nil
 	})}
 	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, HTTP: providerHTTP}}
-	if _, err := app.ProcessReflection(ctx, fluctlightID, "reflection-malformed-correlation"); err == nil || !strings.Contains(err.Error(), "reflection_memory_candidate_0_invalid") {
+	if _, err := app.ProcessReflection(ctx, fluctlightID, "reflection-malformed-correlation"); err == nil || !strings.Contains(err.Error(), "adk_final_output_invalid") {
 		t.Fatalf("malformed Reflection err=%v", err)
 	}
 	var malformedWatermark int

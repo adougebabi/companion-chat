@@ -22,18 +22,20 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 		"active_memory_event", "affect_event", "capability.request", "conversation.reply",
 		"media.image.generate", "memory.recall", "memory_event", "moment.publish",
 		"persona.switch", "persona.takeover", "presence_event", "relationship.lookup",
-		"scene_event", "schedule.replan", "visual_identity.initialize",
+		"scene_event", "schedule.replan", "visual_identity.commit_review", "visual_identity.finalize",
+		"visual_identity.generate_candidate", "visual_identity.initialize",
 	}
 	if got := capabilityDefinitionNames(registry.Definitions()); !phase8EqualStrings(got, expectedAll) {
 		t.Fatalf("registered capabilities drifted: got=%v want=%v", got, expectedAll)
 	}
 
 	expectedBySurface := map[CapabilitySurface][]string{
-		CapabilitySurfaceConversation:    {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory.recall", "memory_event", "presence_event", "relationship.lookup", "scene_event", "schedule.replan"},
-		CapabilitySurfaceWakeUp:          {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory_event", "moment.publish", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize"},
-		CapabilitySurfaceAutonomy:        {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory_event", "moment.publish", "presence_event", "relationship.lookup", "scene_event", "schedule.replan"},
-		CapabilitySurfaceNativeCognition: {"active_memory_event", "capability.request", "media.image.generate", "memory_event", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize"},
+		CapabilitySurfaceConversation:    {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory.recall", "memory_event", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan"},
+		CapabilitySurfaceWakeUp:          {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory_event", "moment.publish", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize"},
+		CapabilitySurfaceAutonomy:        {"active_memory_event", "affect_event", "capability.request", "conversation.reply", "media.image.generate", "memory_event", "moment.publish", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan"},
+		CapabilitySurfaceNativeCognition: {"active_memory_event", "capability.request", "media.image.generate", "memory_event", "persona.switch", "persona.takeover", "presence_event", "relationship.lookup", "scene_event", "schedule.replan", "visual_identity.initialize"},
 		CapabilitySurfaceReflection:      {},
+		CapabilitySurfaceVisualIdentity:  {"visual_identity.commit_review", "visual_identity.finalize", "visual_identity.generate_candidate"},
 	}
 	for surface, expected := range expectedBySurface {
 		if got := capabilityDefinitionNames(registry.Catalog(surface)); !phase8EqualStrings(got, expected) {
@@ -43,7 +45,7 @@ func TestPhase8ProductionCapabilityMatrixIsExplicitAndStable(t *testing.T) {
 
 	for _, definition := range registry.Definitions() {
 		if definition.InternalOnly {
-			for _, surface := range []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition, CapabilitySurfaceReflection} {
+			for _, surface := range []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition, CapabilitySurfaceReflection, CapabilitySurfaceVisualIdentity} {
 				for _, visible := range registry.Catalog(surface) {
 					if visible.Name == definition.Name {
 						t.Fatalf("internal-only capability %q leaked into %s catalog", definition.Name, surface)
@@ -59,7 +61,7 @@ func TestPhase8ModelVisibleCapabilitiesHaveRealEinoAdapters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, surface := range []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition} {
+	for _, surface := range []CapabilitySurface{CapabilitySurfaceConversation, CapabilitySurfaceWakeUp, CapabilitySurfaceAutonomy, CapabilitySurfaceNativeCognition, CapabilitySurfaceVisualIdentity} {
 		definitions := registry.Catalog(surface)
 		tools, err := aiagent.NewADKCapabilityTools(definitions, adkFailingInvoker{})
 		if err != nil {
@@ -85,27 +87,24 @@ func TestPhase8ModelVisibleCapabilitiesHaveRealEinoAdapters(t *testing.T) {
 	}
 }
 
-func TestPhase8ADKAllowlistDoesNotExpandFixedTasks(t *testing.T) {
-	wantADK := []string{"conversation_turn_response", takeoverReplySchemaName, "wake_up_response"}
-	for _, schemaName := range wantADK {
-		if !isADKLoopSchema(schemaName) {
-			t.Fatalf("expected ADK schema %q is not allowlisted", schemaName)
-		}
+func TestPhase8FormalAgentRegistryCoversCompleteTaskInventory(t *testing.T) {
+	definitions := FormalAgentDefinitions()
+	if len(definitions) != 17 {
+		t.Fatalf("formal Agent count=%d, want 17: %#v", len(definitions), definitions)
 	}
-	fixedTasks := []string{
-		"initialization", "media_prompt", "media_quality_acceptance_response", "visual_identity_vision_response",
-		"visual_identity_patch_response", "conversation_summary_v1", "schedule_response", "native_cognition_response",
-		"daily_review_response", "persistent_switch_assessment", "reflection_proposal_v2", "schedule_replan_plan",
-		"query_continuation_response", "takeover_judgement_response",
-	}
-	for _, schemaName := range fixedTasks {
-		if isADKLoopSchema(schemaName) {
-			t.Fatalf("fixed task %q unexpectedly entered the ADK loop", schemaName)
+	seen := make(map[FormalAgentID]struct{}, len(definitions))
+	for _, definition := range definitions {
+		if definition.ID == "" || definition.Name == "" || definition.Description == "" || definition.Role == "" || definition.Scenario == "" || definition.OutputKind == "" {
+			t.Fatalf("incomplete formal Agent definition: %#v", definition)
 		}
+		if _, duplicate := seen[definition.ID]; duplicate {
+			t.Fatalf("duplicate formal Agent %q", definition.ID)
+		}
+		seen[definition.ID] = struct{}{}
 	}
 }
 
-func TestPhase8CandidateGateRejectsPolicyOnlyCapabilities(t *testing.T) {
+func TestPhase8PersonaCandidateGateRejectsForeignResource(t *testing.T) {
 	registry, err := NewCapabilityRegistry(builtinCapabilities(&App{})...)
 	if err != nil {
 		t.Fatal(err)
@@ -115,10 +114,10 @@ func TestPhase8CandidateGateRejectsPolicyOnlyCapabilities(t *testing.T) {
 		CallID: "policy-forged", CapabilityName: personaSwitchCapabilityName,
 		Arguments: json.RawMessage(`{"decision":"switch"}`), SourceFactID: "fact-1",
 		ProviderRequestID: "provider-1", SchemaVersion: CapabilityInvocationSchemaVersion,
-		Metadata: InvocationMetadata{FluctlightID: "fl-1", Surface: CapabilitySurfaceAutonomy},
+		Metadata: InvocationMetadata{FluctlightID: "foreign-fluctlight", Surface: CapabilitySurfaceAutonomy},
 	}}, candidateValidationContext{FluctlightID: "fl-1", SourceFactID: "fact-1", Surface: CapabilitySurfaceAutonomy})
 	if !errors.Is(err, ErrUnauthorized) {
-		t.Fatalf("policy-only capability validation error = %v", err)
+		t.Fatalf("foreign-resource capability validation error = %v", err)
 	}
 }
 
@@ -187,10 +186,15 @@ func TestPhase8FixedTaskInventoryMatchesProductionFunctions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	text := string(modelTasks) + string(persistentSwitch)
+	visualIdentityAgent, err := os.ReadFile("visual_identity_agent.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(modelTasks) + string(persistentSwitch) + string(visualIdentityAgent)
 	expected := []string{
 		"RunInitializationTask", "RunMediaPromptTask", "RunMediaQualityTask",
 		"RunVisualIdentityVisionTask", "RunVisualIdentityPatchTask", "RunConversationSummaryTask",
+		"RunVisualIdentityAgent", "visual_identity_agent_response",
 		"RunScheduleGenerationTask", "RunNativeCognitionTask", "RunDailyReviewTask",
 		"RunPersistentSwitchTask", "RunReflectionProposalTask", "RunScheduleReplanTask",
 		"RunEmbeddingTask", "RunFrozenEmbeddingTask",
