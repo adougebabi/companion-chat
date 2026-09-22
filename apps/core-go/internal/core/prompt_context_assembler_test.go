@@ -110,7 +110,7 @@ func TestPromptAssemblerPressureDoesNotScaleWithStores(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Trace.EstimatedInputTokens <= defaultMaxInputTokens || len(input.RecentMessages) != 1000 || len(input.RetrievedMemories) != 100 || len(input.ActiveCandidates) != 30 {
+	if result.Trace.EstimatedInputTokens > defaultMaxInputTokens || len(input.RecentMessages) != 1000 || len(input.RetrievedMemories) != 100 || len(input.ActiveCandidates) != 30 {
 		t.Fatalf("pressure assembly/store mutation: tokens=%d recent=%d durable=%d active=%d", result.Trace.EstimatedInputTokens, len(input.RecentMessages), len(input.RetrievedMemories), len(input.ActiveCandidates))
 	}
 }
