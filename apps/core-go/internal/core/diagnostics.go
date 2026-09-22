@@ -362,6 +362,30 @@ func (s providerRuntimeSupport) UpdateModelRunState(ctx context.Context, id, sta
 	}
 }
 
+// UpdateModelRunResponse persists the response observed by the physical
+// Provider call independently of terminal status. ADK may receive a valid
+// response and then fail while validating the final contract or settling a
+// Tool; diagnostics must still expose the response that the Provider returned.
+func (s providerRuntimeSupport) UpdateModelRunResponse(ctx context.Context, id string, response any) {
+	if s.DB == nil || strings.TrimSpace(id) == "" || response == nil {
+		return
+	}
+	responseJSON, err := json.Marshal(redactDiagnostic(response))
+	if err != nil {
+		recordDiagnosticPersistenceFailure("model_run", "response", id, err)
+		return
+	}
+	diagnosticCtx, cancel := boundedDiagnosticWriteContext(ctx)
+	defer cancel()
+	command, err := s.DB.Pool().Exec(diagnosticCtx, `UPDATE public.diagnostic_model_runs SET response=$2 WHERE id=$1`, id, responseJSON)
+	if err != nil || command.RowsAffected() != 1 {
+		if err == nil {
+			err = errors.New("diagnostic_model_run_response_not_written")
+		}
+		recordDiagnosticPersistenceFailure("model_run", "response", id, err)
+	}
+}
+
 func providerRunErrorCode(err error) string {
 	if err == nil {
 		return ""

@@ -724,7 +724,7 @@ func (a *App) persistCommittedWakeUp(ctx context.Context, wakeID, fluctlightID s
 		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,processed_at) VALUES($1,$2,$3,'internal.wake_up',$4,$5,$6,$7,now(),'processed',now()) ON CONFLICT DO NOTHING`, factID, fluctlightID, sequence, jsonBytes(payload), wakeID, correlationID, wakeID); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_wakeups(id,fluctlight_id,cycle,internal_dynamics,attention,thought,desire,agency,action_type,action_id,result,reflection_intent_id) VALUES($1,$2,$3,$4,'{}','{}','{}','{}',$5,NULL,$6,$7) ON CONFLICT DO NOTHING`, wakeID, fluctlightID, cycle, jsonBytes(projection.InnerState), actionType, jsonBytes(result), reflectionIntentID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_wakeups(id,fluctlight_id,cycle,internal_dynamics,attention,thought,desire,agency,action_type,action_id,result,reflection_intent_id,status) VALUES($1,$2,$3,$4,'{}','{}','{}','{}',$5,NULL,$6,$7,$8) ON CONFLICT DO NOTHING`, wakeID, fluctlightID, cycle, jsonBytes(projection.InnerState), actionType, jsonBytes(result), reflectionIntentID, status); err != nil {
 			return err
 		}
 		if err := insertReflectionIntentWithDelayTx(ctx, tx, reflectionIntentID, "reflection:wake:"+wakeID, map[string]any{"fluctlight_id": fluctlightID, "source_fact_id": factID, "wake_up_id": wakeID, "correlation_id": correlationID, "causation_id": factID}, reflectionQuietPeriod); err != nil {

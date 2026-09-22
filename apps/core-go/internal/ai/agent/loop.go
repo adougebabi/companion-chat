@@ -261,10 +261,12 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 		ToolsConfig: adk.ToolsConfig{ToolsNodeConfig: compose.ToolsNodeConfig{
 			Tools: config.Tools, ExecuteSequentially: true,
 		}},
-		// Eino owns the native loop guard. A non-positive value deliberately
-		// selects the framework default (20 in the locked v0.7.37 runtime);
-		// callers may set any positive task-appropriate bound.
-		MaxIterations: config.MaxIterations,
+		// Production Agents do not impose a model/tool round limit. The
+		// framework requires a positive value and otherwise defaults to 20, so
+		// use the largest representable int when the caller did not explicitly
+		// request a bounded test loop. Cancellation and request lifetime remain
+		// the only production termination controls.
+		MaxIterations: unboundedIterations(config.MaxIterations),
 	})
 	if err != nil {
 		return ADKLoopResult{}, fmt.Errorf("adk_agent_create: %w", err)
@@ -337,4 +339,11 @@ func RunADKLoop(ctx context.Context, config ADKLoopConfig, messages []*schema.Me
 		return result, errors.New("adk_final_message_empty")
 	}
 	return result, nil
+}
+
+func unboundedIterations(requested int) int {
+	if requested > 0 {
+		return requested
+	}
+	return int(^uint(0) >> 1)
 }

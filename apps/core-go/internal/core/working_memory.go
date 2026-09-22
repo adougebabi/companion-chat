@@ -127,12 +127,8 @@ func selectRankedPromptFragments(input []PromptFragment, capTokens int, seen map
 		return jsonString(fragments[i].SourceRefs) < jsonString(fragments[j].SourceRefs)
 	})
 	selected := make([]PromptFragment, 0, len(fragments))
-	used := 0
 	for _, fragment := range fragments {
 		reason := duplicatePromptFragmentReason(fragment, seen)
-		if reason == "" && used+fragment.EstimatedTokens > capTokens {
-			reason = "section_cap"
-		}
 		if reason != "" {
 			if fragment.Required {
 				return nil, errors.New("working_memory_required_budget_exceeded")
@@ -140,7 +136,6 @@ func selectRankedPromptFragments(input []PromptFragment, capTokens int, seen map
 			trace.Dropped = append(trace.Dropped, workingMemoryDecision(fragment, false, reason))
 			continue
 		}
-		used += fragment.EstimatedTokens
 		selected = append(selected, fragment)
 		markPromptFragmentSources(fragment, seen)
 		trace.Selected = append(trace.Selected, workingMemoryDecision(fragment, true, "selected"))
@@ -187,7 +182,6 @@ func selectRecentPromptFragments(input []PromptFragment, capTokens int, seen map
 		index = end
 	}
 	selectedGroups := make([]group, 0, len(groups))
-	used := 0
 	for index := len(groups) - 1; index >= 0; index-- {
 		value := groups[index]
 		reason := ""
@@ -196,9 +190,6 @@ func selectRecentPromptFragments(input []PromptFragment, capTokens int, seen map
 				reason = duplicate
 				break
 			}
-		}
-		if reason == "" && used+value.tokens > capTokens {
-			reason = "section_cap"
 		}
 		if reason != "" {
 			for _, fragment := range value.fragments {
@@ -209,7 +200,6 @@ func selectRecentPromptFragments(input []PromptFragment, capTokens int, seen map
 			}
 			continue
 		}
-		used += value.tokens
 		selectedGroups = append(selectedGroups, value)
 		for _, fragment := range value.fragments {
 			markPromptFragmentSources(fragment, seen)

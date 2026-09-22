@@ -14,6 +14,7 @@ type ProviderRuntimeSupport interface {
 	PersistModelRunLifecycle(context.Context, string, string, string, string, string, int, any, any, string, string) (string, error)
 	RecordQueuedModelRun(context.Context, string, string, string, string, string, int, any) string
 	UpdateModelRunState(context.Context, string, string, error)
+	UpdateModelRunResponse(context.Context, string, any)
 	UpdateModelRunPromptMetrics(context.Context, string, map[string]any, time.Duration)
 	RecordDiagnosticEvent(context.Context, string, string, string, string, string, any)
 	RecordLifecycleDiagnostic(context.Context, LifecycleDiagnostic) (string, error)

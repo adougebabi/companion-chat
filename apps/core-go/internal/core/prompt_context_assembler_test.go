@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -51,7 +50,7 @@ func TestPromptAssemblerBuildsBLayoutAndCurrentInputExactlyOnce(t *testing.T) {
 	if strings.Count(jsonString(result.Messages), current) != 1 || stringValue(result.Messages[len(result.Messages)-1]["content"]) != current {
 		t.Fatalf("current input duplication: %#v", result.Messages)
 	}
-	if result.Trace.EstimatedInputTokens > result.Trace.MaxInputTokens || len(result.Tools) != 1 || len(result.ResponseFormat) == 0 {
+	if result.Trace.EstimatedInputTokens <= 0 || len(result.Tools) != 1 || len(result.ResponseFormat) == 0 {
 		t.Fatalf("assembly budget/result = %#v", result)
 	}
 }
@@ -59,9 +58,9 @@ func TestPromptAssemblerBuildsBLayoutAndCurrentInputExactlyOnce(t *testing.T) {
 func TestPromptAssemblerFailsWhenRequiredWireSectionsExceedCaps(t *testing.T) {
 	policy := DefaultPromptBudgetPolicy(4096)
 	policy.CurrentInputTokensCap = 8
-	_, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", CurrentInput: strings.Repeat("x", 100), Policy: policy})
-	if !errors.Is(err, ErrPromptRequiredBudgetExceeded) {
-		t.Fatalf("required overflow error = %v", err)
+	result, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", CurrentInput: strings.Repeat("x", 100), Policy: policy})
+	if err != nil || len(result.Messages) == 0 {
+		t.Fatalf("required content was blocked by an estimate: result=%#v err=%v", result, err)
 	}
 }
 
@@ -80,8 +79,8 @@ func TestPromptAssemblerTotalCapNeverSplitsRecentTurn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Messages) != 2 || len(result.Trace.Dropped) != 2 || result.Trace.Dropped[0].Reason != "total_cap" || result.Trace.Dropped[1].Reason != "total_cap" {
-		t.Fatalf("recent turn was partially selected: messages=%#v trace=%#v", result.Messages, result.Trace)
+	if len(result.Messages) < 4 || len(result.Trace.Dropped) != 0 || !strings.Contains(jsonString(result.Messages), strings.Repeat("u", 100)) || !strings.Contains(jsonString(result.Messages), strings.Repeat("a", 100)) {
+		t.Fatalf("recent turn was unexpectedly filtered: messages=%#v trace=%#v", result.Messages, result.Trace)
 	}
 }
 
@@ -111,7 +110,7 @@ func TestPromptAssemblerPressureDoesNotScaleWithStores(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Trace.EstimatedInputTokens > defaultMaxInputTokens || len(input.RecentMessages) != 1000 || len(input.RetrievedMemories) != 100 || len(input.ActiveCandidates) != 30 {
+	if result.Trace.EstimatedInputTokens <= defaultMaxInputTokens || len(input.RecentMessages) != 1000 || len(input.RetrievedMemories) != 100 || len(input.ActiveCandidates) != 30 {
 		t.Fatalf("pressure assembly/store mutation: tokens=%d recent=%d durable=%d active=%d", result.Trace.EstimatedInputTokens, len(input.RecentMessages), len(input.RetrievedMemories), len(input.ActiveCandidates))
 	}
 }

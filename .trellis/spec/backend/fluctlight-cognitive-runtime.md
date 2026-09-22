@@ -50,9 +50,9 @@ still use it. Embedding remains model infrastructure rather than an Agent.
   never happen. Committed results and later queries update the facts used by
   subsequent decisions. Keep real query/result/model-request correlation.
 - No-tool completion is valid. Read, write, mixed and multiple Tool batches may
-  continue normally. Model errors, cancellation and iteration limits are errors,
-  never inferred completion. Only the actual final assistant result is decoded
-  against the task contract; no previous text fallback.
+  continue normally. Model errors and cancellation are errors, never inferred
+  completion. Only the actual final assistant result is decoded against the
+  task contract; no previous text fallback.
 - Tool writes are independent local commits. A later invalid final result does
   not roll them back. `tool_executions` preserves receipts; `agent_runs` fences
   failed/interrupted decision-loop replay. Final cognition projection failures

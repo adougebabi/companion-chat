@@ -519,8 +519,8 @@ func TestProviderChatPayloadUsesToolsInsteadOfProseControl(t *testing.T) {
 	if !ok || len(tools) != 4 {
 		t.Fatalf("tools = %#v", payload["tools"])
 	}
-	if payload["max_tokens"] != 512 {
-		t.Fatalf("max_tokens = %#v", payload["max_tokens"])
+	if payload["max_tokens"] != nil {
+		t.Fatalf("Tool payload imposed max_tokens = %#v", payload["max_tokens"])
 	}
 
 	sidecar := providerChatPayload("model", messages, 0, true, nil)

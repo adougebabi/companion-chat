@@ -312,6 +312,69 @@ func TestWakeUpNoOpSidecarWithAffectAndReplyStillDeliversPrivateMessage(t *testi
 	}
 }
 
+func TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID := "wakeup-failed-agent-owner", "wakeup-failed-agent-fluctlight"
+	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
+	if _, err := (&App{DB: repository}).EnsureWakeUpIntents(ctx); err != nil {
+		t.Fatal(err)
+	}
+	seedCognitiveProviderRole(t, ctx, repository, "wakeup-failed-agent-endpoint")
+
+	text := "这条消息已经由工具提交，最终输出失败也不能再次发送。"
+	providerCalls := 0
+	router := newFakeProviderRouter().on("wake_up_response", func(_ map[string]any) fakeProviderResult {
+		providerCalls++
+		if providerCalls == 1 {
+			return fakeProviderResult{ToolCalls: []map[string]any{{
+				"id": "wakeup-committed-before-final-failure", "type": "function",
+				"function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(map[string]any{"text": text})},
+			}}}
+		}
+		// The observed failure shape is a successful Tool round followed by an
+		// empty final assistant message. The Agent rejects that as
+		// adk_final_message_empty; Wake-up must still persist the cycle marker so
+		// Temporal's Activity retry cannot replay the committed Tool.
+		return fakeProviderResult{}
+	})
+	app := newTestApp(t, repository, router)
+
+	if _, err := app.ProcessWakeUp(ctx, fluctlightID, 1); err == nil || !strings.Contains(err.Error(), "adk_final_message_empty") {
+		t.Fatalf("first Wake-up error = %v, want adk_final_message_empty", err)
+	}
+	if providerCalls != 2 {
+		t.Fatalf("first Wake-up provider calls = %d, want tool round plus failed final round", providerCalls)
+	}
+
+	var persistedStatus string
+	var persistedResult []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,result FROM public.cognition_wakeups WHERE fluctlight_id=$1 AND cycle=1`, fluctlightID).Scan(&persistedStatus, &persistedResult); err != nil {
+		t.Fatalf("failed Wake-up cycle was not persisted: %v", err)
+	}
+	if persistedStatus != "failed" || !strings.Contains(string(persistedResult), conversationReplyCapabilityName) {
+		t.Fatalf("failed Wake-up status=%q result=%s", persistedStatus, persistedResult)
+	}
+
+	replay, err := app.ProcessWakeUp(ctx, fluctlightID, 1)
+	if err != nil {
+		t.Fatalf("failed Wake-up replay returned an error: %v", err)
+	}
+	if stringValue(replay["status"]) != "failed" || stringValue(replay["reason"]) != "wake_up_replayed" {
+		t.Fatalf("failed Wake-up replay = %#v", replay)
+	}
+	if providerCalls != 2 {
+		t.Fatalf("failed Wake-up replay called Provider again: calls=%d", providerCalls)
+	}
+
+	var messageCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE author_actor_id=$1 AND kind='assistant' AND text=$2`, fluctlightID, text).Scan(&messageCount); err != nil {
+		t.Fatal(err)
+	}
+	if messageCount != 1 {
+		t.Fatalf("committed reply count after failed Wake-up replay = %d, want 1", messageCount)
+	}
+}
+
 func TestWakeUpDerivedIntentsKeepCycleCorrelation(t *testing.T) {
 	wakeSource, err := os.ReadFile("agent_result_adapter.go")
 	if err != nil {

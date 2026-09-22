@@ -91,17 +91,6 @@ func providerAssignmentForScenario(assignment providerAssignment, scenario strin
 	if strings.TrimSpace(scenario) != "initialization" {
 		return assignment, nil
 	}
-	if assignment.TokenBudget < initializationMinimumOutputReserveTokens {
-		if err := validatePromptBudgetConfiguration(
-			assignment.ContextWindowTokens,
-			assignment.MaxInputTokens,
-			initializationMinimumOutputReserveTokens,
-			assignment.PromptBudgetPolicyVersion,
-		); err != nil {
-			return assignment, errors.New("initialization_output_reserve_unavailable")
-		}
-		assignment.TokenBudget = initializationMinimumOutputReserveTokens
-	}
 	if assignment.Timeout < initializationMinimumRequestTimeout {
 		assignment.Timeout = initializationMinimumRequestTimeout
 	}
@@ -302,12 +291,6 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 	}
 	renderedTools := RenderCapabilityTools(definitions)
 	wireEstimate := estimatePromptWireInput(messages, renderedTools, responseFormat)
-	if role != "media_prompt" {
-		if wireEstimate > assignment.MaxInputTokens {
-			p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "wire_budget", messages, ErrPromptRequiredBudgetExceeded)
-			return ProviderCompletion{}, ErrPromptRequiredBudgetExceeded
-		}
-	}
 	diagnostics := providerPromptDiagnostics(ctx)
 	if strings.TrimSpace(stringValue(diagnostics["run_id"])) == "" {
 		// The business correlation is the parent run identity. Physical ADK
@@ -372,6 +355,11 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		usage = response.Usage
 		message := einoMessageRaw(response.Message)
 		finishReason := response.FinishReason
+		// Persist the actual Provider response before any ADK normalization,
+		// final-schema validation, or Tool settlement. A model can return a
+		// response successfully while a later Core stage fails; diagnostics
+		// must still display what the Provider returned.
+		p.runtimeSupport().RecordModelRun(ctx, role, assignment.EndpointID, assignment.ModelID, correlationID, providerDiagnosticMessages(role, messages), providerDiagnosticResponse(role, map[string]any{"message": message, "finish_reason": finishReason, "usage": response.Usage}), providerRunRunning, "")
 		if adkEnabled && jsonMode {
 			if responseErr := validateADKStructuredResponse(response.Message, role); responseErr != nil {
 				diagnostic := providerResponseDiagnostic(message, providerStructuredCandidates(message), 0)
@@ -749,9 +737,6 @@ func providerChatPayload(model string, messages []map[string]any, tokenBudget in
 
 func providerStreamingPayload(model string, messages []map[string]any, outputReserve int) map[string]any {
 	payload := map[string]any{"model": model, "messages": messages, "temperature": 0.7, "stream": true}
-	if outputReserve > 0 {
-		payload["max_tokens"] = outputReserve
-	}
 	return payload
 }
 
@@ -825,9 +810,6 @@ func providerChatPayloadWithSchema(model string, messages []map[string]any, toke
 	}
 	if enableThinking {
 		payload["enable_thinking"] = true
-	}
-	if tokenBudget > 0 {
-		payload["max_tokens"] = tokenBudget
 	}
 	return payload
 }
@@ -1067,10 +1049,6 @@ func (p *ProviderClient) StreamText(ctx context.Context, role string, messages [
 	providerRequestID := providerDiagnosticRequestID(role, correlationID)
 	payload := providerStreamingPayload(assignment.ModelID, messages, assignment.TokenBudget)
 	wireEstimate := estimatePromptWireInput(messages, nil, nil)
-	if wireEstimate > assignment.MaxInputTokens {
-		p.recordProviderPreflightFailure(ctx, assignment, role, correlationID, "wire_budget", messages, ErrPromptRequiredBudgetExceeded)
-		return "", ErrPromptRequiredBudgetExceeded
-	}
 	ctx = WithPromptDiagnostics(ctx, map[string]any{"prompt_budget": mergeProviderPromptBudgetDiagnostics(nil, messages, nil, nil, assignment, wireEstimate)})
 	_, err = json.Marshal(payload)
 	if err != nil {

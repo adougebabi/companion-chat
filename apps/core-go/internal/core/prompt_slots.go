@@ -105,25 +105,6 @@ func (c *PromptComposer) Compose(ctx context.Context, input PromptCompositionInp
 			return PromptCompositionResult{}, errors.New("prompt_required_slot_empty")
 		}
 		fragments := append([]PromptFragment(nil), slot.Fragments...)
-		if slot.BudgetTokens > 0 {
-			used := 0
-			bounded := make([]PromptFragment, 0, len(fragments))
-			for _, candidate := range fragments {
-				cost := candidate.EstimatedTokens
-				if cost <= 0 {
-					cost = EstimatePromptTokens(candidate.Content) + 4
-				}
-				if used+cost > slot.BudgetTokens {
-					if slot.Required || candidate.Required {
-						return PromptCompositionResult{}, ErrPromptRequiredBudgetExceeded
-					}
-					continue
-				}
-				used += cost
-				bounded = append(bounded, candidate)
-			}
-			fragments = bounded
-		}
 		for _, fragment := range fragments {
 			fragment.SlotID = slot.ID
 			fragment.Position = slot.Position

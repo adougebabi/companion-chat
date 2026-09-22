@@ -67,7 +67,7 @@ func TestInitializationScenarioUsesFidelityBudgetAndTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if effective.TokenBudget != initializationMinimumOutputReserveTokens || effective.Timeout != initializationMinimumRequestTimeout {
+	if effective.TokenBudget != configured.TokenBudget || effective.Timeout != initializationMinimumRequestTimeout {
 		t.Fatalf("initialization assignment = %#v", effective)
 	}
 	ordinary, err := providerAssignmentForScenario(configured, "wake_up")
@@ -77,7 +77,7 @@ func TestInitializationScenarioUsesFidelityBudgetAndTimeout(t *testing.T) {
 	insufficient := configured
 	insufficient.ContextWindowTokens = 55000
 	preserved, err := providerAssignmentForScenario(insufficient, "initialization")
-	if err == nil || err.Error() != "initialization_output_reserve_unavailable" || preserved.TokenBudget != insufficient.TokenBudget || preserved.Timeout != insufficient.Timeout {
+	if err != nil || preserved.TokenBudget != insufficient.TokenBudget || preserved.Timeout != initializationMinimumRequestTimeout {
 		t.Fatalf("insufficient initialization context = %#v, %v", preserved, err)
 	}
 }
@@ -186,10 +186,13 @@ func TestProviderPreflightFailuresAreDiagnosedBeforeQueue(t *testing.T) {
 		t.Fatal("Provider completion boundary not found")
 	}
 	body := text[start:end]
-	for _, stage := range []string{`"assignment"`, `"message_validation"`, `"wire_budget"`, `"payload_encode"`} {
+	for _, stage := range []string{`"assignment"`, `"message_validation"`, `"payload_encode"`} {
 		if !strings.Contains(body, "recordProviderPreflightFailure") || !strings.Contains(body, stage) {
 			t.Fatalf("Provider preflight stage %s is not diagnosed", stage)
 		}
+	}
+	if strings.Contains(body, `"wire_budget"`) || strings.Contains(body, "ErrPromptRequiredBudgetExceeded") {
+		t.Fatal("Provider request path still intercepts an estimated token budget")
 	}
 	queuedMarker := "RecordQueuedModelRun"
 	if strings.Index(body, queuedMarker) < 0 {
@@ -339,6 +342,46 @@ func TestPostgresProviderCancellationPersistsTerminalStateAfterContextCancellati
 	}
 	if count != 1 || status != providerRunCancelled || errorCode != "request_cancelled" || scenario != "reflection" || attemptID != "provider-attempt-cancelled-test" {
 		t.Fatalf("cancelled model run = count=%d status=%q error_code=%q scenario=%q attempt=%q", count, status, errorCode, scenario, attemptID)
+	}
+}
+
+func TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure(t *testing.T) {
+	databaseURL := os.Getenv("GO_CORE_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("GO_CORE_TEST_DATABASE_URL is not set")
+	}
+	ctx := WithProviderAttemptIdentity(WithProviderScenario(context.Background(), "cognitive_assessment"), "provider-attempt-response-preserved")
+	repository, err := NewPostgresRepository(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer repository.Close()
+	correlationID := "conversation-response-preserved:" + stableDigest(t.Name()+time.Now().UTC().Format(time.RFC3339Nano))
+	t.Cleanup(func() {
+		_, _ = repository.Pool().Exec(context.Background(), `DELETE FROM public.provider_provenance WHERE correlation_id=$1`, correlationID)
+		_, _ = repository.Pool().Exec(context.Background(), `DELETE FROM public.diagnostic_model_runs WHERE correlation_id=$1`, correlationID)
+	})
+	support := newProviderRuntimeSupport(repository)
+	modelRunID := support.RecordQueuedModelRun(ctx, "cognitive_assessment", "endpoint-test", "model-test", correlationID, "cognitive_assessment", 1, []map[string]any{{"role": "user", "content": "request"}})
+	if modelRunID == "" {
+		t.Fatal("queued model run was not persisted")
+	}
+	support.UpdateModelRunResponse(ctx, modelRunID, map[string]any{"text": "LLM response", "structured": map[string]any{"action_type": "reply"}})
+	support.UpdateModelRunState(ctx, modelRunID, providerRunFailed, errors.New("adk_final_output_invalid"))
+	var status, errorCode string
+	var response []byte
+	if err := repository.Pool().QueryRow(context.Background(), `SELECT status,COALESCE(error_code,''),COALESCE(response,'null'::jsonb) FROM public.diagnostic_model_runs WHERE id=$1`, modelRunID).Scan(&status, &errorCode, &response); err != nil {
+		t.Fatal(err)
+	}
+	if status != providerRunFailed || errorCode != "provider_request_failed" || string(response) == "null" || !strings.Contains(string(response), "LLM response") {
+		t.Fatalf("physical response was lost: status=%q error=%q response=%s", status, errorCode, response)
+	}
+	var visibleResponseCount int
+	if err := repository.Pool().QueryRow(context.Background(), `SELECT count(*) FROM public.diagnostic_model_runs WHERE correlation_id=$1 AND response IS NOT NULL`, correlationID).Scan(&visibleResponseCount); err != nil {
+		t.Fatal(err)
+	}
+	if visibleResponseCount != 1 {
+		t.Fatalf("diagnostic correlation has no visible Provider response: count=%d", visibleResponseCount)
 	}
 }
 

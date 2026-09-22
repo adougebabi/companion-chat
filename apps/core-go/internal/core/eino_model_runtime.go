@@ -68,50 +68,8 @@ type queuedToolCallingChatModel struct {
 	responseFormat map[string]any
 }
 
-// Every native round includes growing Tool history. Recheck the whole input,
-// not the bounded diagnostic sample or only the initial assembled prompt.
-func (m *queuedToolCallingChatModel) validateInputBudget(ctx context.Context, input []*schema.Message) error {
-	if m.role == "media_prompt" || m.assignment.MaxInputTokens <= 0 {
-		return nil
-	}
-	messages := make([]map[string]any, 0, len(input))
-	for _, message := range input {
-		if message != nil {
-			raw := einoMessageRaw(message)
-			raw["tool_call_id"], raw["name"] = message.ToolCallID, message.ToolName
-			if len(message.UserInputMultiContent) > 0 {
-				parts := make([]any, 0, len(message.UserInputMultiContent))
-				for _, part := range message.UserInputMultiContent {
-					switch part.Type {
-					case schema.ChatMessagePartTypeText:
-						parts = append(parts, map[string]any{"type": "text", "text": part.Text})
-					case schema.ChatMessagePartTypeImageURL:
-						detail := ""
-						if part.Image != nil {
-							detail = string(part.Image.Detail)
-						}
-						parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]any{"detail": detail}})
-					}
-				}
-				raw["content"] = parts
-			}
-			messages = append(messages, raw)
-		}
-	}
-	if estimatePromptWireInput(messages, RenderCapabilityTools(m.definitions), m.responseFormat) <= m.assignment.MaxInputTokens {
-		return nil
-	}
-	if m.provider != nil {
-		m.provider.recordProviderPreflightFailure(ctx, m.assignment, m.role, m.correlationID, "wire_budget", messages, ErrPromptRequiredBudgetExceeded)
-	}
-	return ErrPromptRequiredBudgetExceeded
-}
-
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
 	input = normalizeEinoToolMessageNames(input)
-	if err := m.validateInputBudget(ctx, input); err != nil {
-		return nil, err
-	}
 	sequence := uint64(1)
 	if m.sequence != nil {
 		sequence = m.sequence.Add(1)
@@ -127,12 +85,15 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	callCtx = WithProviderAttemptIdentity(callCtx, randomID("provider_attempt_"))
 	callDiagnosticID := ""
 	if m.provider != nil && m.provider.DB != nil {
-		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, callCorrelation, m.scenario, m.priority, einoDiagnosticMessages(input))
+		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, m.correlationID, m.scenario, m.priority, einoDiagnosticMessages(input))
 	}
 	started := time.Now()
 	result, err := runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.Message, error) {
 		return m.inner.Generate(runCtx, input, opts...)
 	})
+	if callDiagnosticID != "" && result != nil {
+		m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(result))
+	}
 	if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Trace != nil && result != nil {
 		adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, result.ToolCalls)
 	}
@@ -145,9 +106,6 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 
 func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
 	input = normalizeEinoToolMessageNames(input)
-	if err := m.validateInputBudget(ctx, input); err != nil {
-		return nil, err
-	}
 	sequence := uint64(1)
 	if m.sequence != nil {
 		sequence = m.sequence.Add(1)
@@ -160,7 +118,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	recordEinoModelInputDiagnostic(callCtx, m.provider, m.role, callCorrelation, sequence, input)
 	callDiagnosticID := ""
 	if m.provider != nil && m.provider.DB != nil {
-		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, callCorrelation, m.scenario, m.priority, einoDiagnosticMessages(input))
+		callDiagnosticID = m.provider.runtimeSupport().RecordQueuedModelRun(callCtx, m.role, m.assignment.EndpointID, m.assignment.ModelID, m.correlationID, m.scenario, m.priority, einoDiagnosticMessages(input))
 	}
 	stream, err := runProviderQueuedStream(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
 		return m.inner.Stream(runCtx, input, opts...)
@@ -178,6 +136,9 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 	return schema.StreamReaderWithConvert(stream, func(message *schema.Message) (*schema.Message, error) {
 		if message != nil {
 			adkContext.Trace.RecordModelToolCalls(callRequestID, sequence, message.ToolCalls)
+			if callDiagnosticID != "" && (message.Content != "" || len(message.ToolCalls) > 0 || message.ReasoningContent != "") {
+				m.provider.runtimeSupport().UpdateModelRunResponse(callCtx, callDiagnosticID, einoMessageRaw(message))
+			}
 		}
 		return message, nil
 	}), nil
@@ -463,7 +424,7 @@ func (p *ProviderClient) generateWithEino(ctx context.Context, call EinoModelCal
 	chat, err := factory.NewChatModel(ctx, EinoModelConfig{
 		APIKey: call.Assignment.Secret, BaseURL: call.Assignment.BaseURL,
 		Model: call.Assignment.ModelID, Timeout: call.Assignment.Timeout,
-		MaxCompletionTokens: call.Assignment.TokenBudget, HTTPClient: p.HTTP,
+		MaxCompletionTokens: 0, HTTPClient: p.HTTP,
 		ResponseFormat: responseFormat, ExtraFields: extra,
 	})
 	if err != nil {
@@ -532,7 +493,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 	chat, err := factory.NewChatModel(ctx, EinoModelConfig{
 		APIKey: call.Assignment.Secret, BaseURL: call.Assignment.BaseURL,
 		Model: call.Assignment.ModelID, Timeout: call.Assignment.Timeout,
-		MaxCompletionTokens: call.Assignment.TokenBudget, HTTPClient: requestHTTP,
+		MaxCompletionTokens: 0, HTTPClient: requestHTTP,
 		ResponseFormat: responseFormat, ExtraFields: extra,
 	})
 	if err != nil {
@@ -647,7 +608,7 @@ func (p *ProviderClient) streamWithEino(ctx context.Context, assignment provider
 	factory := NewEinoModelFactory(p.HTTP)
 	chat, err := factory.NewChatModel(ctx, EinoModelConfig{
 		APIKey: assignment.Secret, BaseURL: assignment.BaseURL, Model: assignment.ModelID,
-		Timeout: assignment.Timeout, MaxCompletionTokens: assignment.TokenBudget, HTTPClient: p.HTTP,
+		Timeout: assignment.Timeout, MaxCompletionTokens: 0, HTTPClient: p.HTTP,
 	})
 	if err != nil {
 		return "", err

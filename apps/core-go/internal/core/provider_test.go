@@ -6,13 +6,13 @@ import (
 	"testing"
 )
 
-func TestProviderWirePayloadKeepsOutputReserveSeparateFromEstimatedInput(t *testing.T) {
+func TestProviderWirePayloadDoesNotImposeAnOutputTokenLimit(t *testing.T) {
 	definitions := []CapabilityDefinition{conversationReplyCapabilityDefinition()}
 	schema := objectSchema(map[string]any{"result": stringSchema()}, []string{"result"}, false)
 	messages := []map[string]any{{"role": "system", "content": "system"}, {"role": "user", "content": "current"}}
 	payload := providerChatPayloadWithSchema("model", messages, 4096, true, definitions, "cognitive_assessment", "test_schema", schema, false)
-	if intValue(payload["max_tokens"]) != 4096 {
-		t.Fatalf("output reserve = %#v", payload["max_tokens"])
+	if _, exists := payload["max_tokens"]; exists {
+		t.Fatalf("provider payload imposed max_tokens: %#v", payload["max_tokens"])
 	}
 	tools := arrayValue(payload["tools"])
 	responseFormat := mapValue(payload["response_format"])
@@ -20,16 +20,14 @@ func TestProviderWirePayloadKeepsOutputReserveSeparateFromEstimatedInput(t *test
 		t.Fatalf("wire components missing: %#v", payload)
 	}
 	estimatedInput := EstimatePromptTokens(payload["messages"]) + EstimatePromptTokens(payload["tools"]) + EstimatePromptTokens(payload["response_format"])
-	withoutOutputField := cloneMap(payload)
-	delete(withoutOutputField, "max_tokens")
-	if estimatedInput <= 0 || intValue(payload["max_tokens"]) == estimatedInput || withoutOutputField["max_tokens"] != nil {
-		t.Fatalf("input/output budgets were conflated: input=%d payload=%#v", estimatedInput, payload)
+	if estimatedInput <= 0 {
+		t.Fatalf("input estimate missing: payload=%#v", payload)
 	}
 }
 
-func TestProviderStreamingPayloadHonorsOutputReserve(t *testing.T) {
+func TestProviderStreamingPayloadDoesNotImposeAnOutputTokenLimit(t *testing.T) {
 	payload := providerStreamingPayload("model", []map[string]any{{"role": "user", "content": "hello"}}, 4096)
-	if streaming, _ := payload["stream"].(bool); !streaming || intValue(payload["max_tokens"]) != 4096 {
+	if streaming, _ := payload["stream"].(bool); !streaming || payload["max_tokens"] != nil {
 		t.Fatalf("streaming payload = %#v", payload)
 	}
 }

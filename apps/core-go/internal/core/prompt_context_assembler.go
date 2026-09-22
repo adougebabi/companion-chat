@@ -248,17 +248,6 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	}
 	system := map[string]any{"role": "system", "content": renderProviderSystem(input.OperationRules, filterCorePersona(input.CorePersona), nil, input.Role)}
 	current := map[string]any{"role": "user", "content": input.CurrentInput}
-	systemTokens := estimateProviderMessageTokens(system)
-	currentTokens := estimateProviderMessageTokens(current)
-	toolsTokens := EstimatePromptTokens(input.Tools)
-	schemaTokens := EstimatePromptTokens(input.ResponseFormat)
-	if systemTokens > input.Policy.SystemTokensCap || currentTokens > input.Policy.CurrentInputTokensCap || toolsTokens+schemaTokens > input.Policy.ToolsSchemaTokensCap {
-		return PromptAssemblyResult{}, ErrPromptRequiredBudgetExceeded
-	}
-	requiredTokens := systemTokens + currentTokens + toolsTokens + schemaTokens + 16
-	if requiredTokens > input.Policy.MaxInputTokens {
-		return PromptAssemblyResult{}, ErrPromptRequiredBudgetExceeded
-	}
 	candidates, err := promptOptionalCandidates(input.WorkingMemory, input.CurrentInput)
 	if err != nil {
 		return PromptAssemblyResult{}, err
@@ -270,30 +259,19 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 		SafetyMarginTokens: input.Policy.SafetyMarginTokens, SectionTokens: map[string]int{},
 		Selected: []PromptAssemblyDecision{}, Dropped: []PromptAssemblyDecision{},
 	}
-	used := requiredTokens
 	for index := 0; index < len(candidates); {
 		end := index + 1
 		for end < len(candidates) && candidates[end].unitKey == candidates[index].unitKey {
 			end++
 		}
 		unit := append([]promptOptionalCandidate(nil), candidates[index:end]...)
-		unitCost := 0
 		for position := range unit {
 			cost := unit[position].fragment.EstimatedTokens
 			if unit[position].fragment.Kind == PromptFragmentRecentMessage {
 				cost = estimateProviderMessageTokens(mapValue(unit[position].fragment.Content))
 			}
 			unit[position].fragment.EstimatedTokens = cost
-			unitCost += cost
 		}
-		if used+unitCost > input.Policy.MaxInputTokens {
-			for _, candidate := range unit {
-				trace.Dropped = append(trace.Dropped, promptAssemblyDecision(candidate.fragment, "total_cap"))
-			}
-			index = end
-			continue
-		}
-		used += unitCost
 		selected = append(selected, unit...)
 		for _, candidate := range unit {
 			trace.Selected = append(trace.Selected, promptAssemblyDecision(candidate.fragment, "selected"))
@@ -302,24 +280,6 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	}
 	messages := assemblePromptMessages(system, current, selected)
 	total := estimatePromptWireInput(messages, input.Tools, input.ResponseFormat)
-	for total > input.Policy.MaxInputTokens && len(selected) > 0 {
-		unitKey := selected[len(selected)-1].unitKey
-		start := len(selected) - 1
-		for start > 0 && selected[start-1].unitKey == unitKey {
-			start--
-		}
-		dropped := append([]promptOptionalCandidate(nil), selected[start:]...)
-		selected = selected[:start]
-		for _, candidate := range dropped {
-			trace.Dropped = append(trace.Dropped, promptAssemblyDecision(candidate.fragment, "total_cap_final_wire"))
-			removePromptAssemblySelected(&trace, candidate.fragment)
-		}
-		messages = assemblePromptMessages(system, current, selected)
-		total = estimatePromptWireInput(messages, input.Tools, input.ResponseFormat)
-	}
-	if total > input.Policy.MaxInputTokens {
-		return PromptAssemblyResult{}, ErrPromptRequiredBudgetExceeded
-	}
 	trace.EstimatedInputTokens = total
 	trace.SectionTokens = promptAssemblySectionTokens(system, current, selected, input.Tools, input.ResponseFormat)
 	return PromptAssemblyResult{Messages: messages, Tools: cloneMapSlice(input.Tools), ResponseFormat: cloneMap(input.ResponseFormat), Trace: trace}, nil

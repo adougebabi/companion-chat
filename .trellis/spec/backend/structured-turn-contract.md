@@ -40,10 +40,10 @@ really occurred. Direct commands use an explicit local execution identity.
 - Normal reads, writes, publications and business rejections may be followed by
   more decisions. Never terminate based on a QUERY/ACTION classification,
   number of prior queries, `deferred` result, or a write-tool list.
-- Max iterations, deadlines and cancellation are protection. Exceeding a guard
-  is an error, never an action-only success. Each physical model request has
-  its own queue lease, request identity, diagnostic record and usage metrics;
-  no hidden retry/failover is introduced around the whole Agent.
+- Cancellation and request lifetime are protection. Production Agents do not
+  impose a model/tool round or Tool-call count limit. Each physical model
+  request has its own queue lease, request identity, diagnostic record and usage
+  metrics; no hidden retry/failover is introduced around the whole Agent.
 - Final schema validation applies only to the final assistant result. An
   intermediate ToolCall/result is not a final DTO. Invalid final output cannot
   fall back to older text. Text-output Agents are not subjected to JSON DTO
