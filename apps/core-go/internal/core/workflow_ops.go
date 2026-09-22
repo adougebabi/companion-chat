@@ -434,13 +434,32 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, expectedFoundationRevision, expectedCurrentStateRevision, expectedLifeContextRevision, time.Now().UTC()); err != nil {
 			return err
 		}
-		settled, settleErr := a.settleDeferredCapabilitiesTx(ctx, tx, fluctlightID, sourceFactID, actionID, calls, results, OutputBindingV1{TargetKind: "wake_up", TargetRef: actionID})
+		binding, output, bindingErr := a.prepareCapabilityActionOutputTargetTx(ctx, tx, actionID, fluctlightID, stringValue(data["conversation_id"]), calls)
+		if bindingErr != nil {
+			return bindingErr
+		}
+		settled, settleErr := a.settleDeferredCapabilitiesTx(ctx, tx, fluctlightID, sourceFactID, actionID, calls, results, binding)
 		if settleErr != nil {
 			return settleErr
 		}
 		results = settled
+		if requiredErr := requiredActionCapabilityFailure(results, calls, a.capabilityRegistry()); requiredErr != nil {
+			return requiredErr
+		}
 		result = map[string]any{"status": "completed", "action_status": "completed", "capability_results": results}
-		if _, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET payload=jsonb_set(jsonb_set(payload,'{capability_invocations}',$2::jsonb,true),'{capability_results}',$3::jsonb,true) WHERE id=$1 AND status='frozen'`, actionID, jsonBytes(calls), jsonBytes(results)); err != nil {
+		for key, value := range output {
+			result[key] = value
+		}
+		bound := make([]OutputBindingV1, 0, len(calls))
+		for _, invocation := range calls {
+			if definition, ok := a.capabilityRegistry().Definition(invocation.CapabilityName); ok && definition.IsDeferredOutput() {
+				callBinding := binding
+				callBinding.ToolCallID = invocation.CallID
+				bound = append(bound, callBinding)
+			}
+		}
+		payloadUpdate := `UPDATE public.autonomy_actions SET payload=jsonb_set(jsonb_set(jsonb_set(payload,'{capability_invocations}',$2::jsonb,true),'{capability_results}',$3::jsonb,true),'{output_bindings}',$4::jsonb,true) WHERE id=$1 AND status='frozen'`
+		if _, err := tx.Exec(ctx, payloadUpdate, actionID, jsonBytes(calls), jsonBytes(results), jsonBytes(bound)); err != nil {
 			return err
 		}
 		command, err := tx.Exec(ctx, `UPDATE public.autonomy_actions SET status='completed',settled_at=now() WHERE id=$1 AND status='frozen'`, actionID)
@@ -450,7 +469,13 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 		if command.RowsAffected() != 1 {
 			return ErrConflict
 		}
-		return a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, result)
+		if err := a.settleWakeUpActionTx(ctx, tx, actionID, fluctlightID, result); err != nil {
+			return err
+		}
+		if stringValue(output["target_kind"]) == "moment" {
+			return appendOutboxTx(ctx, tx, "moment.published", "moment", stringValue(output["target_ref"]), fluctlightID, actionID, "autonomy:"+actionID, "moment-outbox:"+actionID, map[string]any{"moment_id": stringValue(output["target_ref"]), "action_id": actionID, "aggregate_sequence": 1})
+		}
+		return nil
 	})
 	if settlementErr != nil {
 		failed := capabilityResultsAfterSettlementFailure(results, calls, a.capabilityRegistry(), "capability_settlement_failed")
@@ -462,6 +487,84 @@ func (a *App) ProcessCapabilityAction(ctx context.Context, actionID string) (map
 		return nil, settlementErr
 	}
 	return map[string]any{"action_id": actionID, "action_type": "capability", "status": "completed", "capability_results": results}, nil
+}
+
+// requiredActionCapabilityFailure applies the action-level failure policy to
+// every required capability in a generic capability action. Unlike a visible
+// conversation/moment settlement, a capability action may consist entirely of
+// internal or transactional capabilities, so OutputRole is not a reason to
+// hide a required sibling failure.
+func requiredActionCapabilityFailure(results []CapabilityResult, invocations []CapabilityInvocation, registry *CapabilityRegistry) error {
+	if registry == nil {
+		return newCapabilityError("capability_not_found", false, ErrCapabilityNotFound)
+	}
+	for _, invocation := range invocations {
+		definition, ok := registry.Definition(invocation.CapabilityName)
+		if !ok || definition.FailurePolicy != FailurePolicyRequiredForVisibleClaim {
+			continue
+		}
+		result, found := capabilityResultForCall(results, invocation.CallID)
+		if !found {
+			return newCapabilityError("capability_result_missing", false, fmt.Errorf("required capability %q has no result", invocation.CapabilityName))
+		}
+		if result.Status == "failed" || result.Status == "rejected" || result.Status != "completed" {
+			code := firstString(result.ErrorCode, "capability_execution_failed")
+			return newCapabilityError(code, result.Retryable, fmt.Errorf("required capability %q failed", invocation.CapabilityName))
+		}
+	}
+	return nil
+}
+
+// prepareCapabilityActionOutputTargetTx resolves the concrete target for a
+// generic capability action. A wake_up target is valid for media-only calls,
+// but it is not a valid durable target for moment.publish or
+// conversation.reply. Those visible capabilities must own a real Moment or
+// assistant message before settlement, just like the typed autonomy paths.
+func (a *App) prepareCapabilityActionOutputTargetTx(ctx context.Context, tx pgx.Tx, actionID, fluctlightID, conversationID string, calls []CapabilityInvocation) (OutputBindingV1, map[string]any, error) {
+	registry := a.capabilityRegistry()
+	if registry == nil {
+		return OutputBindingV1{}, nil, fmt.Errorf("%w: capability registry is unavailable", ErrCapabilityNotFound)
+	}
+	role := ""
+	for _, invocation := range calls {
+		definition, ok := registry.Definition(invocation.CapabilityName)
+		if !ok || !definition.IsDeferredOutput() {
+			continue
+		}
+		if definition.OutputRole == "moment" || definition.OutputRole == "conversation_message" {
+			role = definition.OutputRole
+			break
+		}
+	}
+	if role == "" {
+		return OutputBindingV1{TargetKind: "wake_up", TargetRef: actionID}, map[string]any{}, nil
+	}
+	for _, invocation := range calls {
+		definition, ok := registry.Definition(invocation.CapabilityName)
+		if !ok || definition.OutputRole != role {
+			continue
+		}
+		text := capabilityInvocationText(invocation)
+		if text == "" {
+			return OutputBindingV1{}, nil, fmt.Errorf("%s_text_invalid", role)
+		}
+		if role == "moment" {
+			momentID := "moment_" + stableDigest(actionID+":"+invocation.CallID)
+			if _, err := tx.Exec(ctx, `INSERT INTO public.moments(id,owner_fluctlight_id,author_actor_id,text,visibility,status,media_asset_ids) VALUES($1,$2,$2,$3,'participants','visible','[]') ON CONFLICT DO NOTHING`, momentID, fluctlightID, text); err != nil {
+				return OutputBindingV1{}, nil, err
+			}
+			return OutputBindingV1{TargetKind: role, TargetRef: momentID}, map[string]any{"target_kind": role, "target_ref": momentID, "text": text}, nil
+		}
+		if strings.TrimSpace(conversationID) == "" {
+			return OutputBindingV1{}, nil, errors.New("proactive_target_invalid")
+		}
+		messageID, err := appendAssistantTxWithID(ctx, tx, conversationID, fluctlightID, text, "capability:"+actionID)
+		if err != nil {
+			return OutputBindingV1{}, nil, err
+		}
+		return OutputBindingV1{TargetKind: role, TargetRef: messageID}, map[string]any{"target_kind": role, "target_ref": messageID, "text": text}, nil
+	}
+	return OutputBindingV1{TargetKind: "wake_up", TargetRef: actionID}, map[string]any{}, nil
 }
 
 func (a *App) persistAutonomyCapabilityResults(ctx context.Context, actionID string, invocations []CapabilityInvocation, results []CapabilityResult) error {

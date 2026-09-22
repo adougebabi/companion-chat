@@ -358,7 +358,7 @@ func normalizeWakeUpAssessment(value map[string]any) (map[string]any, error) {
 	for key, raw := range value {
 		result[key] = raw
 	}
-	actionType := stringValue(value["action_type"])
+	actionType := normalizeConversationActionType(stringValue(value["action_type"]))
 	if actionType == "" || (actionType != "no_op" && !validateSlotKey(actionType)) {
 		return nil, errors.New("wake_up_action_type_invalid")
 	}

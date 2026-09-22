@@ -62,6 +62,18 @@ func TestNormalizeCompositeActionMapsRespondToReply(t *testing.T) {
 	}
 }
 
+func TestNormalizeCompositeActionMapsMomentPublishAliasesToMoment(t *testing.T) {
+	for _, actionType := range []string{"moment_publish", "publish_moment"} {
+		action, err := normalizeCompositeAction(map[string]any{"action_type": actionType}, nil, "fact-moment-alias", "no_op")
+		if err != nil {
+			t.Fatalf("action type %q: %v", actionType, err)
+		}
+		if action.ActionType != "moment" || action.Kind != "moment" {
+			t.Fatalf("action type %q normalized to %#v", actionType, action)
+		}
+	}
+}
+
 func TestCompositeOutputValidationUsesTypedTargetKinds(t *testing.T) {
 	registry, err := NewCapabilityRegistry(testCapabilityWithDefinition{definition: CapabilityDefinition{
 		Name:             "calendar.event.create",

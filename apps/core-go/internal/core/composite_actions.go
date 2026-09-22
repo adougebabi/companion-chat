@@ -123,6 +123,11 @@ func normalizeConversationActionType(value string) string {
 	switch strings.TrimSpace(value) {
 	case "respond", "send_message":
 		return "reply"
+	case "moment_publish", "publish_moment":
+		// WakeUp and autonomy providers use the same Composite Action
+		// contract.  Keep the durable action vocabulary canonical even when a
+		// provider names the output operation instead of the product action.
+		return "moment"
 	default:
 		return strings.TrimSpace(value)
 	}

@@ -1196,3 +1196,63 @@ func TestAutonomyCapabilityActionRollsBackTransactionalSiblingOnRequiredFailure(
 		t.Fatalf("autonomy split commit: setting=%d status=%s code=%s outcomes=%d", settingCount, status, errorCode, outcomeCount)
 	}
 }
+
+func TestCapabilityActionBindsMomentPublishToDurableMomentTarget(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID := "capability-moment-owner"
+	fluctlightID := "capability-moment-fluctlight"
+	actionID := "capability-moment-action"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES($1,'human','active'),($2,'fluctlight','active')`, ownerID, fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlights(id,created_by_actor_id,initialization_mode,status,core_persona,identity,personality,behavioral_policy,life_profile,provenance) VALUES($1,$2,'blank_slate','active','{}','{"name":"capability-moment"}','{}','{}','{}','{}')`, fluctlightID, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	app := &App{DB: repository}
+	app.Capabilities = mustCapabilityRegistry(momentPublishCapability{})
+	app.ContextResolver = NewStaticContextResolver(nil)
+	runtime, err := NewCapabilityRuntime(app.Capabilities, app.ContextResolver)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Runtime = runtime
+	_, life, err := app.readLifeContextSnapshotAt(ctx, fluctlightID, time.Now().UTC())
+	if err != nil {
+		t.Fatal(err)
+	}
+	call := CapabilityInvocation{
+		CallID: "moment-call", CapabilityName: "moment.publish", Arguments: json.RawMessage(`{"text":"隔离能力动作已完成真实发布。"}`),
+		SourceFactID: "capability-moment-source", ProviderRequestID: "capability-moment-provider",
+		SchemaVersion: CapabilityInvocationSchemaVersion, Intent: "发布隔离回归动态",
+		Metadata: InvocationMetadata{FluctlightID: fluctlightID, Surface: CapabilitySurfaceAutonomy},
+	}
+	payload := map[string]any{
+		"capability_runtime_version": CapabilityRuntimePayloadVersion,
+		"source_fact_id":             call.SourceFactID,
+		"conversation_id":            "",
+		"capability_invocations":     []CapabilityInvocation{call},
+		"capability_results":         []CapabilityResult{},
+	}
+	attachEmptyFrozenCausalityForTest(payload, fluctlightID, ownerID, call.SourceFactID)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.autonomy_actions(id,fluctlight_id,action_type,payload,policy_snapshot,expected_revisions,status,workflow_id,provider_request_id) VALUES($1,$2,'capability',$3,'{"budget_reserved":true}',$4,'frozen',$5,$6)`, actionID, fluctlightID, jsonBytes(payload), jsonBytes(map[string]any{"foundation_revision": 0, "current_state_revision": 0, "life_context_revision": stringValue(life["context_revision"])}), "capability-moment-workflow", "capability-moment-provider"); err != nil {
+		t.Fatal(err)
+	}
+	result, err := app.ProcessCapabilityAction(ctx, actionID)
+	if err != nil || stringValue(result["status"]) != "completed" {
+		t.Fatalf("capability moment action result=%#v err=%v", result, err)
+	}
+	var momentID, text string
+	if err := repository.Pool().QueryRow(ctx, `SELECT id,text FROM public.moments WHERE owner_fluctlight_id=$1`, fluctlightID).Scan(&momentID, &text); err != nil {
+		t.Fatal(err)
+	}
+	if momentID == "" || text != "隔离能力动作已完成真实发布。" {
+		t.Fatalf("moment target=%s text=%q", momentID, text)
+	}
+	var outcomeStatus, errorCode string
+	if err := repository.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_action_outcomes WHERE action_id=$1 AND call_id=$2`, actionID, call.CallID).Scan(&outcomeStatus, &errorCode); err != nil {
+		t.Fatal(err)
+	}
+	if outcomeStatus != "completed" || errorCode != "" {
+		t.Fatalf("moment outcome status=%s error=%s", outcomeStatus, errorCode)
+	}
+}

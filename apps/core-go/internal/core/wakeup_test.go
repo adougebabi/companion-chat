@@ -46,6 +46,19 @@ func TestNormalizeWakeUpAssessmentAcceptsActionOnlyDecision(t *testing.T) {
 	}
 }
 
+func TestNormalizeWakeUpAssessmentCanonicalizesMomentPublishAlias(t *testing.T) {
+	value, err := normalizeWakeUpAssessment(map[string]any{
+		"action_type":     "moment_publish",
+		"response_intent": "发布一条简短动态",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value["action_type"] != "moment" {
+		t.Fatalf("action type = %#v, want moment", value["action_type"])
+	}
+}
+
 func TestTextFromOutputBindingReadsFinalText(t *testing.T) {
 	call := CapabilityInvocation{CapabilityName: "moment.publish", Arguments: json.RawMessage(`{"text":"  今天有点风。  "}`)}
 	registry := mustCapabilityRegistry(momentPublishCapability{})

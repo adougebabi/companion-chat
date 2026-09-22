@@ -718,6 +718,34 @@ func TestInteractiveCapabilityPlanDefersNativeMutationUntilCallerTransaction(t *
 	}
 }
 
+func TestSettlementPreservesOrExecutesPureQueryResults(t *testing.T) {
+	definition := CapabilityDefinition{
+		Name: "test.query", Version: "v1", Type: CapabilityTypeQuery,
+		Description: "Read-only test query.", InputSchema: map[string]any{"type": "object"},
+		SideEffectClass: "read_only", FailurePolicy: FailurePolicyOptionalInternal,
+	}
+	capability := testCapabilityWithDefinition{definition: definition}
+	registry := mustCapabilityRegistry(capability)
+	runtime, err := NewCapabilityRuntime(registry, NewStaticContextResolver(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	app := &App{Capabilities: registry, ContextResolver: NewStaticContextResolver(nil), Runtime: runtime}
+	invocation := CapabilityInvocation{CallID: "query-1", CapabilityName: "test.query", Arguments: json.RawMessage(`{}`), SourceFactID: "fact-1", ProviderRequestID: "provider-1"}
+	prepared, _, err := runtime.Prepare(context.Background(), invocation)
+	if err != nil {
+		t.Fatal(err)
+	}
+	settled, err := app.settleDeferredCapabilitiesTx(context.Background(), nil, "fl-1", "fact-1", "action-1", []CapabilityInvocation{prepared}, nil, OutputBindingV1{})
+	if err != nil || len(settled) != 1 || settled[0].Status != "completed" {
+		t.Fatalf("pure query settlement = %#v err=%v", settled, err)
+	}
+	settled, err = app.settleDeferredCapabilitiesTx(context.Background(), nil, "fl-1", "fact-1", "action-1", []CapabilityInvocation{prepared}, settled, OutputBindingV1{})
+	if err != nil || len(settled) != 1 || settled[0].Status != "completed" {
+		t.Fatalf("completed pure query replay = %#v err=%v", settled, err)
+	}
+}
+
 func TestRuntimeRequiresFrozenCallerTransactionForTransactionalCapabilities(t *testing.T) {
 	capability := &transactionalTestCapability{}
 	runtime, err := NewCapabilityRuntime(mustCapabilityRegistry(capability), NewStaticContextResolver(nil))

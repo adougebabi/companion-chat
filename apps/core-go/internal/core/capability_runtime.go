@@ -746,17 +746,35 @@ func (a *App) settleDeferredCapabilitiesTx(ctx context.Context, tx pgx.Tx, fluct
 			results = replaceCapabilityResult(results, failedCapabilityResultDetail(invocation, "capability_not_found", false, "implementation is not registered"))
 			continue
 		}
+		// A pure query is executed during the planning/continuation phase.  If
+		// that result is already durable, settlement must preserve it instead of
+		// classifying the query as a write-capability and overwriting it with
+		// capability_execution_class_invalid.  The early replay check also keeps
+		// every completed capability idempotent before any settlement-only class
+		// gate runs.
+		if existingResult, found := capabilityResultForCall(results, invocation.CallID); found && (existingResult.Status == "completed" || existingResult.Status == "failed" || existingResult.Status == "rejected") {
+			continue
+		}
 		executionClass, classErr := classifyCapabilityExecution(capability, definition)
 		if classErr != nil {
 			results = replaceCapabilityResult(results, failedCapabilityResultDetail(invocation, "capability_execution_class_invalid", false, classErr.Error()))
 			continue
 		}
+		if executionClass == CapabilityExecutionPureQuery {
+			// Recovery can reach settlement with a missing query result after a
+			// crash between the query continuation and its frozen payload update.
+			// Re-run the read-only query once so the continuation/result contract
+			// remains complete; no domain mutation is allowed through this path.
+			result, executeErr := runtime.Execute(ctx, invocation)
+			if executeErr != nil {
+				result = failedCapabilityResultDetail(invocation, "capability_execution_failed", true, executeErr.Error())
+			}
+			results = replaceCapabilityResult(results, result)
+			continue
+		}
 		_, transactional := capability.(TransactionalCapability)
 		if executionClass != CapabilityExecutionTransactionalMutation && executionClass != CapabilityExecutionDeferredOutput && !(executionClass == CapabilityExecutionExternalAsyncIntent && (definition.IsDeferredOutput() || transactional)) {
 			results = replaceCapabilityResult(results, failedCapabilityResultDetail(invocation, "capability_execution_class_invalid", false, "capability is not executable in the settlement phase"))
-			continue
-		}
-		if existingResult, found := capabilityResultForCall(results, invocation.CallID); found && (existingResult.Status == "completed" || existingResult.Status == "failed" || existingResult.Status == "rejected") {
 			continue
 		}
 		if definition.IsDeferredOutput() && binding.TargetKind == "" {
