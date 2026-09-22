@@ -30,7 +30,7 @@ events_file="$run_dir/commands/p8-required-go-test.jsonl"
 executions_file="$run_dir/executions.json"
 set +e
 go -C apps/core-go test -mod=readonly -count=1 -json \
-  -run 'Test(Phase8|EinoNative|EinoADK|ProviderStructured|ADKToolSuccess|RunADKLoop|ProviderConversation|ProviderWakeUp|ProviderTakeover|ADKLoopSchemaMatrix|RunADKStructuredTask|HandleTurnProductionADKToolLoop)' \
+  -run 'Test(Phase8|EinoNative|EinoADK|ProviderStructured|ProviderADKLoop|ADKToolSuccess|RunADKLoop|ProviderConversation|ProviderWakeUp|ProviderTakeover|FormalAgentSchemaMatrix|RunADKStructuredTask|HandleTurnProductionADKToolLoop)' \
   ./internal/core ./internal/ai/agent > >(tee "$events_file") 2>&1
 go_code=${PIPESTATUS[0]}
 set -e
