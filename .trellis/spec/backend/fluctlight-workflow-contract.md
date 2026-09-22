@@ -6,8 +6,7 @@
 
 - Trigger: the clean-start system delays, schedules, retries, cancels, resumes, compensates, upgrades, or administratively repairs background work.
 - This contract is runtime-neutral at its domain boundary. T01 rejected DBOS;
-  Temporal is the selected runtime and remains governed by
-  `fluctlight-temporal-gate-contract.md` and the final acceptance gate.
+  Temporal is the selected runtime and is governed by this contract.
 - Workflow history executes application processes; it never replaces PostgreSQL domain facts, outbox/inbox, Redis event transport, or media metadata.
 
 ### 2. Signatures
