@@ -60,6 +60,7 @@ export const useControlCenterStore = defineStore("control-center", {
 	fluctlightDetailRequestId: 0,
 	fluctlightDetailFluctlightId: "",
     governanceReason: "",
+    governanceNotice: "",
     revisionChangesJson: "",
     revisionReason: "",
     rollbackTargetRevision: "",
@@ -381,8 +382,12 @@ export const useControlCenterStore = defineStore("control-center", {
       }
       this.saving = true;
       this.error = "";
+      this.governanceNotice = "";
       try {
-        await client.triggerWakeUp(fluctlightId);
+        const result = await client.triggerWakeUp(fluctlightId);
+        const status = String(result.status ?? "queued");
+        const cycle = result.cycle == null ? "" : `（第 ${String(result.cycle)} 次）`;
+        this.governanceNotice = status === "running" ? `唤醒任务正在执行${cycle}。` : `唤醒任务已加入后台队列${cycle}。`;
         await this.loadFluctlightDetail(fluctlightId);
       } catch {
         this.error = "无法触发立即唤醒，请检查 Worker 是否在线。";

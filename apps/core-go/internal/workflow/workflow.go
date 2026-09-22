@@ -44,7 +44,7 @@ const (
 	minWakeUpIntervalSeconds     = 5 * 60
 	maxWakeUpIntervalSeconds     = 24 * 60 * 60
 	dispatcherIntentOrder        = "CASE WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
-	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','autonomy.action','capability.action','reflection.run')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
+	reconcileIntentQuery         = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE (status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','cognition.processing','autonomy.action','capability.action','reflection.run','visual_identity.initialize')) ORDER BY started_at NULLS LAST,created_at LIMIT $1`
 )
 
 func workflowIntentMaximumAttempts(intentType string) int {
@@ -1182,6 +1182,19 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			count++
 			continue
 		}
+		if intentType == "visual_identity.initialize" && intentStatus == "failed" {
+			handled, reconcileErr := d.reconcileVisualIdentityFailure(ctx, input, intentID, workflowID, runID, attemptCount, terminalFailure)
+			if reconcileErr != nil {
+				return count, reconcileErr
+			}
+			if handled {
+				if d.Started != nil {
+					delete(d.Started, intentID)
+				}
+				count++
+				continue
+			}
+		}
 		if intentType == "wake_up.current" {
 			var fluctlightStatus string
 			lookupErr := d.App.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlights WHERE id=(SELECT payload->>'fluctlight_id' FROM public.platform_workflow_intents WHERE intent_id=$1)`, intentID).Scan(&fluctlightStatus)
@@ -1389,6 +1402,125 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		count++
 	}
 	return count, rows.Err()
+}
+
+// reconcileVisualIdentityFailure closes a terminal Visual Identity workflow
+// when its durable dependency graph is already broken. A missing session,
+// attempt, media intent, or candidate asset cannot be repaired by replaying
+// the same Temporal Activity; replaying it only creates an endless
+// visual_identity_activity_failed/no-rows loop.
+func (d *Dispatcher) reconcileVisualIdentityFailure(ctx context.Context, input Input, intentID, workflowID, runID string, attemptCount int, terminalFailure string) (bool, error) {
+	if d == nil || d.App == nil || d.App.DB == nil {
+		return false, errors.New("visual_identity_reconcile_unavailable")
+	}
+	sessionID := strings.TrimSpace(input.SessionID)
+	if sessionID == "" {
+		if err := d.App.DB.Pool().QueryRow(ctx, `SELECT payload->>'session_id' FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID).Scan(&sessionID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return false, nil
+			}
+			return false, err
+		}
+	}
+	var profileID, sessionStatus, characterSheetIntentID string
+	var currentAttempt int
+	lookupErr := d.App.DB.Pool().QueryRow(ctx, `SELECT visual_identity_id,status,current_attempt,COALESCE(character_sheet_media_intent_id,'') FROM public.fluctlight_visual_identity_sessions WHERE id=$1`, sessionID).Scan(&profileID, &sessionStatus, &currentAttempt, &characterSheetIntentID)
+	if errors.Is(lookupErr, pgx.ErrNoRows) {
+		return d.deadLetterVisualIdentityIntent(ctx, input, intentID, workflowID, runID, attemptCount, "visual_identity_session_not_found", nil)
+	}
+	if lookupErr != nil {
+		return false, lookupErr
+	}
+	terminalCode := ""
+	var exists bool
+	if err := d.App.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_visual_identities WHERE id=$1)`, profileID).Scan(&exists); err != nil {
+		return false, err
+	}
+	if !exists {
+		terminalCode = "visual_identity_profile_not_found"
+	}
+	var attemptID, mediaIntentID, candidateAssetID string
+	if terminalCode == "" {
+		if err := d.App.DB.Pool().QueryRow(ctx, `SELECT id,COALESCE(media_intent_id,''),COALESCE(candidate_asset_id,'') FROM public.fluctlight_visual_identity_attempts WHERE session_id=$1 AND attempt_number=$2`, sessionID, currentAttempt).Scan(&attemptID, &mediaIntentID, &candidateAssetID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				terminalCode = "visual_identity_attempt_not_found"
+			} else {
+				return false, err
+			}
+		}
+	}
+	if terminalCode == "" && mediaIntentID != "" {
+		if err := d.App.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_intents WHERE id=$1)`, mediaIntentID).Scan(&exists); err != nil {
+			return false, err
+		}
+		if !exists {
+			terminalCode = "visual_identity_media_intent_not_found"
+		}
+	}
+	if terminalCode == "" && candidateAssetID != "" {
+		if err := d.App.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_assets WHERE id=$1)`, candidateAssetID).Scan(&exists); err != nil {
+			return false, err
+		}
+		if !exists {
+			terminalCode = "visual_identity_candidate_asset_not_found"
+		}
+	}
+	if terminalCode == "" && characterSheetIntentID != "" {
+		if err := d.App.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_intents WHERE id=$1)`, characterSheetIntentID).Scan(&exists); err != nil {
+			return false, err
+		}
+		if !exists {
+			terminalCode = "visual_identity_character_sheet_intent_not_found"
+		}
+	}
+	if terminalCode == "" && strings.Contains(strings.ToLower(terminalFailure), "no rows in result set") {
+		terminalCode = "visual_identity_dependency_not_found"
+	}
+	if terminalCode != "" {
+		return d.deadLetterVisualIdentityIntent(ctx, input, intentID, workflowID, runID, attemptCount, terminalCode, func(tx pgx.Tx) error {
+			_, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='failed',last_error=$2,updated_at=now() WHERE id=$1 AND status IN ('queued','running','character_sheet_pending')`, sessionID, terminalCode)
+			return err
+		})
+	}
+	switch sessionStatus {
+	case "completed", "awaiting_review":
+		command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='completed',completed_at=COALESCE(completed_at,now()),last_error=COALESCE(NULLIF(last_error,''),$2) WHERE intent_id=$1 AND status IN ('started','failed','retry')`, intentID, "visual_identity_"+sessionStatus)
+		if err != nil {
+			return false, err
+		}
+		if command.RowsAffected() == 1 {
+			d.recordIntentLifecycle(ctx, input, "visual_identity.initialize", workflowID, runID, core.LifecycleTransitionCompletedNoop, "workflow_reconcile", sessionStatus, "visual_identity_"+sessionStatus, attemptCount, nil)
+			return true, nil
+		}
+	case "failed", "cancelled":
+		return d.deadLetterVisualIdentityIntent(ctx, input, intentID, workflowID, runID, attemptCount, "visual_identity_session_"+sessionStatus, nil)
+	}
+	return false, nil
+}
+
+func (d *Dispatcher) deadLetterVisualIdentityIntent(ctx context.Context, input Input, intentID, workflowID, runID string, attemptCount int, reason string, before func(pgx.Tx) error) (bool, error) {
+	tx, err := d.App.DB.Pool().Begin(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback(ctx)
+	if before != nil {
+		if err := before(tx); err != nil {
+			return false, err
+		}
+	}
+	command, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='dead_letter',completed_at=COALESCE(completed_at,now()),last_error=$2 WHERE intent_id=$1 AND status IN ('pending','retry','started','failed')`, intentID, reason)
+	if err != nil {
+		return false, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return false, err
+	}
+	if command.RowsAffected() == 1 {
+		d.recordIntentLifecycle(ctx, input, "visual_identity.initialize", workflowID, runID, core.LifecycleTransitionFailed, "workflow_reconcile", "dead_letter", reason, attemptCount, errors.New(reason))
+		return true, nil
+	}
+	return false, nil
 }
 
 // terminalFailureReason reads the terminal workflow event because Temporal's

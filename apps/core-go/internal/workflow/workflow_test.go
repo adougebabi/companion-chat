@@ -524,6 +524,26 @@ func TestDispatcherPrioritizesLifecycleRecoveryBeforeVisualIdentityRetries(t *te
 	}
 }
 
+func TestVisualIdentityReconciliationDeadLettersMissingDependencies(t *testing.T) {
+	source, err := os.ReadFile("workflow.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(source)
+	for _, required := range []string{
+		`'visual_identity.initialize'`,
+		"reconcileVisualIdentityFailure",
+		"visual_identity_session_not_found",
+		"visual_identity_attempt_not_found",
+		"visual_identity_media_intent_not_found",
+		"status='dead_letter'",
+	} {
+		if !strings.Contains(text, required) {
+			t.Fatalf("visual identity reconciliation missing %q", required)
+		}
+	}
+}
+
 func TestDispatcherFairSelectionRanksEachIntentClassBeforeBacklog(t *testing.T) {
 	source, err := os.ReadFile("workflow.go")
 	if err != nil {

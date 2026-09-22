@@ -80,6 +80,7 @@ function capabilityRequestStatus(value: unknown): string {
     </header>
 
     <p v-if="controlCenter.error" class="error-banner" role="alert">{{ controlCenter.error }}</p>
+    <p v-if="controlCenter.governanceNotice" class="notice-banner" role="status">{{ controlCenter.governanceNotice }}</p>
 
     <template v-if="controlCenter.fluctlightDetail">
       <section class="governance-section governance-overview">
