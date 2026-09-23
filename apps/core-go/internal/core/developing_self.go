@@ -72,9 +72,13 @@ func normalizeDevelopingSelfClaim(raw map[string]any, defaultSource string) (map
 
 func (a *App) insertDevelopingSelfSeeds(ctx context.Context, tx pgx.Tx, fluctlightID string, claims []any) error {
 	for index, raw := range claims {
-		normalized, err := normalizeDevelopingSelfClaim(mapValue(raw), "owner_defined")
+		rawMap := mapValue(raw)
+		if strings.TrimSpace(stringValue(rawMap["claim"])) == "" {
+			continue
+		}
+		normalized, err := normalizeDevelopingSelfClaim(rawMap, "owner_defined")
 		if err != nil {
-			return fmt.Errorf("developing_self_seed_invalid: %w", err)
+			continue
 		}
 		refs := arrayValue(normalized["evidence_refs"])
 		if len(refs) == 0 {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 
@@ -122,27 +123,127 @@ func (a *App) personaCompilationInputForProfile(ctx context.Context, fluctlightI
 	return input, nil
 }
 
-func (a *App) compileOneWorkingPersona(ctx context.Context, input PersonaCompilationInput, mode string) (CompiledWorkingPersona, error) {
-	if mode != "blank_slate" || input.SourceRevision > 0 || input.OverlayRevision > 0 {
-		return a.CompileWorkingPersona(ctx, input)
-	}
+func synthesizeBaselineWorkingPersona(input PersonaCompilationInput) (CompiledWorkingPersona, error) {
 	source, err := personaCompilationSource(input)
 	if err != nil {
 		return CompiledWorkingPersona{}, err
 	}
-	ref := "identity.name"
+	budget := input.TargetBudgetRunes
+	if budget < 512 {
+		budget = defaultWorkingPersonaMaxRunes
+	}
+
+	facts := make([]PersonaPortraitFact, 0)
+	seen := make(map[string]struct{})
+
+	// 1. Identity facts
 	name := strings.TrimSpace(stringValue(mapValue(source["identity"])["name"]))
-	if name == "" {
-		ref = "profile.id"
-		name = input.ProfileID
+	if name != "" && personaCompilationSourcePathExists(source, "identity.name") {
+		facts = append(facts, PersonaPortraitFact{Category: "identity", Text: name, SourceRefs: []string{"identity.name"}})
+		seen["identity.name"] = struct{}{}
+	} else if input.ProfileID != "" {
+		facts = append(facts, PersonaPortraitFact{Category: "identity", Text: input.ProfileID, SourceRefs: []string{"profile.id"}})
+		seen["profile.id"] = struct{}{}
 	}
-	if name == "" {
-		return CompiledWorkingPersona{}, errors.New("blank_slate_identity_missing")
+
+	if occ := strings.TrimSpace(stringValue(mapValue(source["identity"])["occupation"])); occ != "" && personaCompilationSourcePathExists(source, "identity.occupation") {
+		facts = append(facts, PersonaPortraitFact{Category: "identity", Text: occ, SourceRefs: []string{"identity.occupation"}})
+		seen["identity.occupation"] = struct{}{}
 	}
+
+	// 2. Personality / mechanisms facts
+	for _, ref := range []string{"profile.personality", "personality"} {
+		if val := mapValue(source[ref]); len(val) > 0 {
+			for k, v := range val {
+				kPath := ref + "." + k
+				if personaCompilationSourcePathExists(source, kPath) {
+					text := fmt.Sprintf("%s: %v", k, v)
+					if len([]rune(text)) <= 1000 {
+						facts = append(facts, PersonaPortraitFact{Category: "core_mechanisms", Text: text, SourceRefs: []string{kPath}})
+						seen[kPath] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+
+	// 3. Behavioral policy / boundaries facts
+	for _, ref := range []string{"profile.behavioral_policy", "behavioral_policy"} {
+		if val := mapValue(source[ref]); len(val) > 0 {
+			for k, v := range val {
+				kPath := ref + "." + k
+				if personaCompilationSourcePathExists(source, kPath) {
+					text := fmt.Sprintf("%s: %v", k, v)
+					if len([]rune(text)) <= 1000 {
+						facts = append(facts, PersonaPortraitFact{Category: "behavior_boundaries", Text: text, SourceRefs: []string{kPath}})
+						seen[kPath] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+
+	// 4. Stable preferences & habits - every key in life_profile.preferences / habits / profile.preferences / habits MUST be covered
+	for _, group := range []struct {
+		path  string
+		value map[string]any
+	}{
+		{"life_profile.preferences", mapValue(mapValue(source["life_profile"])["preferences"])},
+		{"life_profile.habits", mapValue(mapValue(source["life_profile"])["habits"])},
+		{"profile.preferences", mapValue(mapValue(source["profile"])["preferences"])},
+		{"profile.habits", mapValue(mapValue(source["profile"])["habits"])},
+	} {
+		for key, val := range group.value {
+			ref := group.path + "." + key
+			if _, already := seen[ref]; !already && personaCompilationSourcePathExists(source, ref) {
+				text := fmt.Sprintf("%s: %v", key, val)
+				if len([]rune(text)) > 1000 {
+					text = string([]rune(text)[:1000])
+				}
+				facts = append(facts, PersonaPortraitFact{Category: "stable_preferences", Text: text, SourceRefs: []string{ref}})
+				seen[ref] = struct{}{}
+			}
+		}
+	}
+
+	if len(facts) == 0 {
+		facts = append(facts, PersonaPortraitFact{Category: "identity", Text: input.ProfileID, SourceRefs: []string{"profile.id"}})
+	}
+
 	return CompiledWorkingPersona{
-		ProfileID: input.ProfileID, Facts: []PersonaPortraitFact{{Category: "identity", Text: name, SourceRefs: []string{ref}}},
-		SourceRevision: input.SourceRevision, SourceHash: stableDigest(jsonString(source)), RulesVersion: personaCompilationRulesVersion, BudgetRunes: input.TargetBudgetRunes,
+		ProfileID:       input.ProfileID,
+		Facts:           facts,
+		SourceRevision:  input.SourceRevision,
+		SourceHash:      stableDigest(jsonString(source)),
+		OverlayRevision: input.OverlayRevision,
+		RulesVersion:    personaCompilationRulesVersion,
+		BudgetRunes:     budget,
 	}, nil
+}
+
+func (a *App) compileOneWorkingPersona(ctx context.Context, input PersonaCompilationInput, mode string) (CompiledWorkingPersona, error) {
+	if mode == "blank_slate" && input.SourceRevision == 0 && input.OverlayRevision == 0 {
+		return synthesizeBaselineWorkingPersona(input)
+	}
+	compiled, err := a.CompileWorkingPersona(ctx, input)
+	if err == nil {
+		return compiled, nil
+	}
+	if input.SourceRevision == 0 && input.OverlayRevision == 0 {
+		slog.Default().Warn("CompileWorkingPersona LLM failed during activation, falling back to baseline working persona",
+			"profile_id", input.ProfileID,
+			"error", err,
+		)
+		fallback, fallbackErr := synthesizeBaselineWorkingPersona(input)
+		if fallbackErr == nil {
+			return fallback, nil
+		}
+		slog.Default().Error("synthesizeBaselineWorkingPersona fallback also failed",
+			"profile_id", input.ProfileID,
+			"fallback_error", fallbackErr,
+		)
+	}
+	return CompiledWorkingPersona{}, err
 }
 
 func insertCompiledWorkingPersonasTx(ctx context.Context, tx pgx.Tx, fluctlightID string, compiled []CompiledWorkingPersona) error {

@@ -1269,6 +1269,14 @@ func (s *Server) creationError(response http.ResponseWriter, err error, operatio
 			if operation == "activation" {
 				message = "Fluctlight activation service is unavailable"
 			}
+			if coreErr.Message != "" {
+				if coreErr.Details == nil {
+					coreErr.Details = map[string]any{}
+				}
+				if _, ok := coreErr.Details["cause"]; !ok {
+					coreErr.Details["cause"] = coreErr.Message
+				}
+			}
 			writeErrorWithDetails(response, 503, coreErr.Code, message, coreErr.Details)
 			return
 		}

@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -396,7 +397,7 @@ func (b *browserBackend) activate(ctx context.Context, actorID string, body map[
 	}
 	item, err := b.server.app.CreateFluctlight(ctx, actorID, core.StableFluctlightID(actorID, requestID), name, mode, analysisID, initialization, arrayValue(body["initial_goals"]), arrayValue(body["initial_intentions"]))
 	if err != nil {
-		return nil, browserBackendError(err, "activation_persona_invalid")
+		return nil, browserBackendError(err, "activation_persistence_failed")
 	}
 	return map[string]any{"id": item.ID, "core_persona": item.CorePersona, "identity": item.Identity, "personality": item.Personality, "behavioral_policy": item.BehavioralPolicy, "life_profile": item.LifeProfile, "provenance": item.Provenance, "status": item.Status, "current_revision": item.CurrentRevision}, nil
 }
@@ -405,6 +406,7 @@ func browserBackendError(err error, fallback string) error {
 	if err == nil {
 		return nil
 	}
+	slog.Default().Error("browserBackend error", "err", err, "error_type", fmt.Sprintf("%T", err), "fallback", fallback)
 	status := http.StatusBadGateway
 	code := fallback
 	var details map[string]any
@@ -413,9 +415,7 @@ func browserBackendError(err error, fallback string) error {
 	if errors.As(err, &detailed) {
 		status = http.StatusUnprocessableEntity
 		details = detailed.PublicDetails()
-		if fallback != "" {
-			code = fallback
-		}
+		code = "activation_persona_invalid"
 	} else {
 		switch {
 		case errors.Is(err, core.ErrActivationAnalysisRequired):
@@ -431,12 +431,18 @@ func browserBackendError(err error, fallback string) error {
 		case errors.Is(err, core.ErrNotFound):
 			status, code = http.StatusNotFound, "not_found"
 		case errors.Is(err, core.ErrConflict):
-			status, code = http.StatusConflict, "conflict"
+			status, code = http.StatusConflict, "activation_request_conflict"
 		case errors.Is(err, context.Canceled):
 			status, code = http.StatusRequestTimeout, "request_cancelled"
 		case errors.Is(err, context.DeadlineExceeded):
 			status, code = http.StatusGatewayTimeout, "request_timeout"
 		}
+	}
+	if details == nil {
+		details = map[string]any{}
+	}
+	if _, ok := details["cause"]; !ok && err != nil {
+		details["cause"] = err.Error()
 	}
 	return &browser.CoreError{Status: status, Code: code, Message: err.Error(), Details: details}
 }

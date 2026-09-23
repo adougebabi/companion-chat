@@ -953,11 +953,15 @@ function creationAnalysisFailureMessage(error: unknown): string {
 function creationActivationFailureMessage(error: unknown): string {
   if (!(error instanceof BrowserApiError)) return "Fluctlight 激活服务暂时不可用。";
   if (error.code === "unauthenticated") return "登录会话已失效，请重新登录后再激活。";
+  const cause = typeof error.details?.cause === "string" && error.details.cause.trim() ? error.details.cause.trim() : "";
   if (error.code === "activation_persona_invalid" || error.code === "activation_foundation_invalid") {
     const validationError = error.details?.validation_error as Record<string, unknown> | undefined;
     if (validationError && (validationError.path || validationError.type)) {
       const parts = [validationError.path, validationError.type].filter(Boolean);
       return `预览中的 Persona 分层结构无效（${parts.join(" · ")}）。`;
+    }
+    if (cause) {
+      return `预览中的 Persona 分层结构无效（${cause}）。`;
     }
     return "预览中的 Persona 分层结构无效。";
   }
@@ -966,7 +970,12 @@ function creationActivationFailureMessage(error: unknown): string {
   if (error.code === "activation_analysis_stale") return "当前预览已被更新的分析取代，请使用最新预览激活。";
   if (error.code === "activation_analysis_conflict") return "该分析结果已经绑定到另一个激活请求，请重新分析。";
   if (error.code === "activation_request_conflict") return "该激活请求已被不同的预览内容占用。";
-  if (error.code === "activation_persistence_failed") return "Fluctlight 数据无法保存，请查看诊断信息。";
+  if (error.code === "activation_persistence_failed") {
+    return cause ? `Fluctlight 数据无法保存（${cause}）。` : "Fluctlight 数据无法保存，请查看诊断信息。";
+  }
+  if (cause) {
+    return `${error.userMessage || "Fluctlight 激活失败"}（${cause}）。`;
+  }
   return error.userMessage || "Fluctlight 激活失败。";
 }
 

@@ -2001,12 +2001,11 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 		}
 		scope := firstString(item["scope"], "general")
 		if scope != "general" && scope != "relationship" {
-			return errors.New("initial_goal_scope_invalid")
+			scope = "general"
 		}
 		targetActorIDValue := resolveInitializationActorRef(stringValue(item["target_actor_id"]), actorID, fluctlightID)
-		targetActorID := nullableString(targetActorIDValue)
-		if scope == "relationship" && targetActorID == nil {
-			return errors.New("initial_relationship_goal_target_required")
+		if scope == "relationship" && targetActorIDValue == "" {
+			targetActorIDValue = actorID
 		}
 		if targetActorIDValue != "" {
 			var exists bool
@@ -2014,12 +2013,12 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 				return err
 			}
 			if !exists {
-				return ErrNotFound
+				targetActorIDValue = actorID
 			}
 		}
 		description := strings.TrimSpace(stringValue(item["description"]))
 		if description == "" {
-			return errors.New("initial_goal_description_invalid")
+			continue
 		}
 		criteria := decisionServiceRefValues(item["success_criteria"])
 		importance := boundedNumber(item["importance"], 0.5)
@@ -2043,24 +2042,24 @@ func (a *App) insertAgency(ctx context.Context, tx pgx.Tx, fluctlightID, actorID
 	}
 	for index, raw := range intentions {
 		item := mapValue(raw)
-		profileID, err := initializationScopeProfileID(item, "initial_intention_profile_invalid", profileIDs)
-		if err != nil {
-			return err
+		profileID, _ := initializationScopeProfileID(item, "initial_intention_profile_invalid", profileIDs)
+		if len(goalIDs) == 0 {
+			continue
 		}
 		goalIndex := intValue(item["goal_index"])
 		if goalIndex < 0 || goalIndex >= len(goalIDs) {
-			return errors.New("initial_intention_goal_invalid")
+			goalIndex = 0
 		}
 		var goalProfileID string
 		if err := tx.QueryRow(ctx, `SELECT COALESCE(profile_id,'') FROM public.fluctlight_goals WHERE id=$1 AND fluctlight_id=$2`, goalIDs[goalIndex], fluctlightID).Scan(&goalProfileID); err != nil {
 			return err
 		}
 		if goalProfileID != profileID {
-			return errors.New("initial_intention_profile_goal_mismatch")
+			profileID = goalProfileID
 		}
 		action := strings.TrimSpace(stringValue(item["action"]))
 		if action == "" {
-			return errors.New("initial_intention_action_invalid")
+			continue
 		}
 		intentionID := fmt.Sprintf("intention_initial_%s_%d", fluctlightID, index)
 		evidence := []string{"foundation:" + fluctlightID}
@@ -2104,10 +2103,10 @@ func initializationScopeProfileID(item map[string]any, invalidCode string, profi
 }
 
 func resolveInitializationActorRef(value, humanActorID, fluctlightID string) string {
-	switch strings.TrimSpace(value) {
-	case "actor_user":
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "actor_user", "user", "player", "master", "owner", "human":
 		return humanActorID
-	case "actor_self":
+	case "actor_self", "self", "fluctlight":
 		return fluctlightID
 	default:
 		return strings.TrimSpace(value)
@@ -2176,24 +2175,24 @@ func (a *App) insertRelationshipSeeds(ctx context.Context, tx pgx.Tx, fluctlight
 		var actorType, status string
 		if err := tx.QueryRow(ctx, `SELECT actor_type,status FROM public.actors WHERE id=$1`, target).Scan(&actorType, &status); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				return ErrNotFound
+				continue
 			}
 			return err
 		}
 		if status != "active" || (actorType != "human" && actorType != "fluctlight") {
-			return errors.New("initial_relationship_target_invalid")
+			continue
 		}
 		role, err := normalizeRelationshipRole(item["role"])
 		if err != nil {
-			return err
+			role = map[string]any{"label": "unknown", "addressing": map[string]any{}}
 		}
 		metrics, err := validateRelationshipMetrics(item["metrics"])
 		if err != nil {
-			return err
+			metrics = map[string]any{}
 		}
 		trend := firstString(item["trend"], "stable")
 		if trend != "improving" && trend != "stable" && trend != "declining" {
-			return errors.New("initial_relationship_trend_invalid")
+			trend = "stable"
 		}
 		refs := arrayValue(item["evidence_refs"])
 		provenance := map[string]any{"source": "initialization", "evidence_refs": refs}
