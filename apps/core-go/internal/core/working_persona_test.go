@@ -512,3 +512,91 @@ func TestWorkingPersonaLifeProfileBeforeAfterComparison(t *testing.T) {
 		t.Fatalf("the F-06 allowlist did not reduce the life_profile key count (before=%d, after=%d)", report.Before.LifeProfileKeys, report.After.LifeProfileKeys)
 	}
 }
+
+func TestSystemPersonaPrunesSinglePersonalityAndDeduplicatesSwitchingRules(t *testing.T) {
+	// Case 1: Single personality projection
+	singleProjection := ContextProjection{
+		FluctlightID: "single-persona-fluctlight",
+		CorePersona: map[string]any{
+			"identity": map[string]any{"name": "摇光单人格"},
+			"personality_system": map[string]any{
+				"mode":              "single",
+				"active_profile_id": "default",
+				"profiles": []any{
+					map[string]any{
+						"id":          "default",
+						"name":        "默认人格",
+						"personality": map[string]any{"traits": map[string]any{"description": "温和"}},
+					},
+				},
+				"switching": map[string]any{
+					"rules": []any{
+						map[string]any{"id": "dummy_rule", "condition": "不应该存在"},
+					},
+				},
+			},
+		},
+		PersonalityRuntime: map[string]any{"active_profile_id": "default"},
+	}
+
+	singleBundle := systemPersonaForProjection(singleProjection, workingPersonaMainTurnSchema)
+	if _, exists := singleBundle["personality_system"]; exists {
+		t.Fatalf("single personality leaked personality_system: %#v", singleBundle["personality_system"])
+	}
+	if _, exists := singleBundle[workingPersonaSwitchKey]; exists {
+		t.Fatalf("single personality leaked persistent_switch: %#v", singleBundle[workingPersonaSwitchKey])
+	}
+	if working := mapValue(singleBundle[workingPersonaBodyKey]); len(working) == 0 {
+		t.Fatalf("working persona body was missing in single personality bundle: %#v", singleBundle)
+	}
+
+	// Case 2: Multi-personality projection with switching rules
+	multiProjection := ContextProjection{
+		FluctlightID: "multi-persona-fluctlight",
+		CorePersona: map[string]any{
+			"identity": map[string]any{"name": "多重人格摇光"},
+			"personality_system": map[string]any{
+				"mode":              "multiple",
+				"active_profile_id": "warm",
+				"profiles": []any{
+					map[string]any{
+						"id":          "warm",
+						"name":        "温柔",
+						"personality": map[string]any{"traits": map[string]any{"description": "安静温和"}},
+					},
+					map[string]any{
+						"id":          "guarded",
+						"name":        "克制",
+						"personality": map[string]any{"traits": map[string]any{"description": "冷淡防备"}},
+					},
+				},
+				"switching": map[string]any{
+					"rules": []any{
+						map[string]any{"id": "stress_switch", "condition": "遭遇攻击", "target_profile_id": "guarded"},
+					},
+				},
+				"conflict_resolution": map[string]any{"strategy": "dominant"},
+			},
+		},
+		PersonalityRuntime: map[string]any{"active_profile_id": "warm", "revision": 1},
+	}
+
+	multiBundle := systemPersonaForProjection(multiProjection, workingPersonaMainTurnSchema)
+	multiSystem := mapValue(multiBundle["personality_system"])
+	if len(multiSystem) == 0 {
+		t.Fatalf("multi-personality bundle missing personality_system: %#v", multiBundle)
+	}
+	// Verify switching was removed from personality_system to avoid duplication
+	if _, exists := multiSystem["switching"]; exists {
+		t.Fatalf("personality_system still duplicated switching rules: %#v", multiSystem["switching"])
+	}
+	// Verify persistent_switch contains the authorized switching rules
+	switchSection := mapValue(multiBundle[workingPersonaSwitchKey])
+	if len(switchSection) == 0 {
+		t.Fatalf("persistent_switch section missing in multi-personality bundle: %#v", multiBundle)
+	}
+	rules := arrayValue(switchSection["rules"])
+	if len(rules) != 1 || stringValue(mapValue(rules[0])["id"]) != "switch:stress_switch" {
+		t.Fatalf("persistent_switch rules unexpected: %#v", switchSection)
+	}
+}

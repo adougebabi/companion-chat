@@ -312,6 +312,20 @@ func workingPersonaSortedKeys(value map[string]any) []string {
 // never receive the persistent-switch section (design.md 0.3, user decision).
 const workingPersonaMainTurnSchema = "conversation_turn_response"
 
+// isMultiPersonalitySystem returns true only when the persona system has more
+// than one profile and is not explicitly configured in single mode.
+func isMultiPersonalitySystem(system map[string]any) bool {
+	if len(system) == 0 {
+		return false
+	}
+	mode := strings.ToLower(strings.TrimSpace(stringValue(system["mode"])))
+	if mode == "single" {
+		return false
+	}
+	profiles := arrayValue(system["profiles"])
+	return len(profiles) > 1
+}
+
 // systemPersonaForProjection assembles the bundle handed to filterCorePersona:
 // the Working Persona, the identifier-only roster and the shared extensions,
 // plus the authorized persistent-switch section for the interactive Main turn.
@@ -329,17 +343,18 @@ func systemPersonaForProjection(projection ContextProjection, schemaName string)
 	if len(system) == 0 {
 		system = mapValue(projection.PersonalitySystem)
 	}
-	if len(system) > 0 {
-		bundle["personality_system"] = system
-	}
-	if strings.TrimSpace(schemaName) != workingPersonaMainTurnSchema && strings.TrimSpace(schemaName) != persistentSwitchAssessmentSchemaName {
-		return bundle
-	}
-	scope := resolveTurnPersonaScope(projection)
-	normalization := normalizePersonaSwitchRules(corePersona, projection.PersonalityRuntime, scope.ActiveProfileID)
-	grant := resolvePersistentSwitchGrant(scope, persistentSwitchGrantScenarioMain, normalization.Rules)
-	if section := persistentSwitchPromptSection(scope, grant, normalization.Rules); len(section) > 0 {
-		bundle[workingPersonaSwitchKey] = section
+	if len(system) > 0 && isMultiPersonalitySystem(system) {
+		clonedSystem := cloneMap(system)
+		if strings.TrimSpace(schemaName) == workingPersonaMainTurnSchema || strings.TrimSpace(schemaName) == persistentSwitchAssessmentSchemaName {
+			scope := resolveTurnPersonaScope(projection)
+			normalization := normalizePersonaSwitchRules(corePersona, projection.PersonalityRuntime, scope.ActiveProfileID)
+			grant := resolvePersistentSwitchGrant(scope, persistentSwitchGrantScenarioMain, normalization.Rules)
+			if section := persistentSwitchPromptSection(scope, grant, normalization.Rules); len(section) > 0 {
+				bundle[workingPersonaSwitchKey] = section
+				delete(clonedSystem, "switching")
+			}
+		}
+		bundle["personality_system"] = clonedSystem
 	}
 	return bundle
 }

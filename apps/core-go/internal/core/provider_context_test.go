@@ -797,11 +797,10 @@ func TestConversationProviderSurfaceKeepsSemanticFactsAndDropsInternalMetadata(t
 			break
 		}
 	}
-	var runtime map[string]any
-	if runtimeBody == "" || json.Unmarshal([]byte(runtimeBody), &runtime) != nil {
-		t.Fatalf("runtime context was not valid JSON: %q", runtimeBody)
+	if runtimeBody == "" {
+		t.Fatalf("runtime context was empty")
 	}
-	wire := jsonString(runtime)
+	wire := runtimeBody
 	for _, forbidden := range []string{"actor_id", "target_actor_id", "revision", "expected_revision", "renderer_constraints", "resulting_state_ref", "resulting_context_revision", "actor_b", "source_digest", "summary_projection"} {
 		if strings.Contains(wire, forbidden) {
 			t.Fatalf("final runtime context leaked %q: %s", forbidden, wire)

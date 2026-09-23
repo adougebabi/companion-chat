@@ -103,6 +103,17 @@ func TestProviderYAMLModePropagatesThroughNestedArrays(t *testing.T) {
 	if !strings.Contains(toon, "drives[2]{key,pressure}:") {
 		t.Fatalf("TOON mode did not render the nested homogeneous array: %s", toon)
 	}
+
+	mapSliceValue := map[string]any{
+		"developing_self": []map[string]any{
+			{"claim": "保持专注", "confidence": 0.8},
+			{"claim": "自我保护", "confidence": 0.9},
+		},
+	}
+	mapSliceTOON := renderProviderYAMLWithMode(mapSliceValue, true)
+	if !strings.Contains(mapSliceTOON, "developing_self[2]{claim,confidence}:") {
+		t.Fatalf("TOON mode failed to render []map[string]any as table: %s", mapSliceTOON)
+	}
 }
 
 func TestProviderFormatterLeavesRuntimeContextEnvelopeUntouched(t *testing.T) {

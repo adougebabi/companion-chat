@@ -62,7 +62,7 @@ func renderProviderYAMLValueWithMode(builder *strings.Builder, value any, indent
 			writeProviderIndent(builder, indent)
 			builder.WriteString(formatProviderYAMLKey(key))
 			if useTOON {
-				if rows, ok := typed[key].([]any); ok {
+				if rows, ok := toAnyRows(typed[key]); ok {
 					if fields, render := providerTOONFields(rows); render {
 						builder.WriteString("[")
 						builder.WriteString(strconv.Itoa(len(rows)))
@@ -87,6 +87,12 @@ func renderProviderYAMLValueWithMode(builder *strings.Builder, value any, indent
 			builder.WriteString(":")
 			writeProviderYAMLChildWithMode(builder, typed[key], indent, useTOON)
 		}
+	case []map[string]any:
+		converted := make([]any, len(typed))
+		for i, row := range typed {
+			converted[i] = row
+		}
+		renderProviderYAMLValueWithMode(builder, converted, indent, useTOON)
 	case []any:
 		if len(typed) == 0 {
 			builder.WriteString("[]\n")
@@ -168,8 +174,26 @@ func writeProviderYAMLChildWithMode(builder *strings.Builder, value any, indent 
 		builder.WriteString(" []\n")
 		return
 	}
+	if list, ok := value.([]map[string]any); ok && len(list) == 0 {
+		builder.WriteString(" []\n")
+		return
+	}
 	builder.WriteString("\n")
 	renderProviderYAMLValueWithMode(builder, value, indent+2, useTOON)
+}
+
+func toAnyRows(value any) ([]any, bool) {
+	if rows, ok := value.([]any); ok {
+		return rows, true
+	}
+	if rows, ok := value.([]map[string]any); ok {
+		converted := make([]any, len(rows))
+		for i, row := range rows {
+			converted[i] = row
+		}
+		return converted, true
+	}
+	return nil, false
 }
 
 func providerTOONFields(rows []any) ([]string, bool) {

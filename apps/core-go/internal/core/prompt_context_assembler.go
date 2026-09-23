@@ -336,7 +336,13 @@ func assemblePromptMessages(system, current map[string]any, selected []promptOpt
 		case PromptFragmentRecentMessage:
 			recent = append(recent, cloneMap(mapValue(fragment.Content)))
 		case PromptFragmentRuntimeFact:
-			runtimeContext["facts"] = append(arrayValue(runtimeContext["facts"]), boundedSnapshotValue(fragment.Content))
+			fact := mapValue(fragment.Content)
+			kind := stringValue(fact["kind"])
+			if kind != "" {
+				runtimeContext[kind] = boundedSnapshotValue(fact["value"])
+			} else {
+				runtimeContext["facts"] = append(arrayValue(runtimeContext["facts"]), boundedSnapshotValue(fragment.Content))
+			}
 		case PromptFragmentActiveMemory:
 			runtimeContext["active_memory"] = append(arrayValue(runtimeContext["active_memory"]), boundedSnapshotValue(fragment.Content))
 		case PromptFragmentRetrievedMemory:
@@ -347,7 +353,7 @@ func assemblePromptMessages(system, current map[string]any, selected []promptOpt
 	}
 	messages := []map[string]any{cloneMap(system)}
 	if len(runtimeContext) > 0 {
-		messages = append(messages, map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + jsonString(runtimeContext) + "\n[/RUNTIME CONTEXT]"})
+		messages = append(messages, map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + renderProviderYAMLWithMode(runtimeContext, true) + "\n[/RUNTIME CONTEXT]"})
 	}
 	messages = append(messages, recent...)
 	messages = append(messages, cloneMap(current))
