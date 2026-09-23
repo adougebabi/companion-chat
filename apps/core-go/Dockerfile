@@ -14,6 +14,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctli
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-migrate-go ./cmd/migrate
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-cutover-go ./cmd/cutover
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-setup-token-go ./cmd/setup-token
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/fluctlight-persona-backfill-go ./cmd/persona-backfill
 
 FROM ${REGISTRY_PREFIX}alpine:3.22
 
@@ -26,6 +27,7 @@ COPY --from=build /out/fluctlight-worker-go /usr/local/bin/fluctlight-worker-go
 COPY --from=build /out/fluctlight-migrate-go /usr/local/bin/fluctlight-migrate-go
 COPY --from=build /out/fluctlight-cutover-go /usr/local/bin/fluctlight-cutover-go
 COPY --from=build /out/fluctlight-setup-token-go /usr/local/bin/fluctlight-setup-token-go
+COPY --from=build /out/fluctlight-persona-backfill-go /usr/local/bin/fluctlight-persona-backfill-go
 
 USER fluctlight
 EXPOSE 8080

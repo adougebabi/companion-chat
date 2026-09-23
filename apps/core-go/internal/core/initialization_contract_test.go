@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 func TestInitializationProviderErrorsDistinguishTimeoutAndCancellation(t *testing.T) {
@@ -687,5 +689,57 @@ func TestNormalizeInitializationProfilesKeepsKnownFieldsAndMovesUnknowns(t *test
 	profile := mapValue(profiles[0])
 	if stringValue(profile["id"]) != "warm" || len(arrayValue(profile["output_preferences"])) != 1 || stringValue(mapValue(profile["extensions"])["unclassified"]) != "保留" {
 		t.Fatalf("profile normalization = %#v", profile)
+	}
+}
+
+func TestInitializationSchemaAllowsExtendedFieldsAndStringTypes(t *testing.T) {
+	schema := initializationResponseSchema()
+	candidate := map[string]any{
+		"schema_version": 2,
+		"core_persona": map[string]any{
+			"schema_version": 1,
+			"identity": map[string]any{
+				"name": "摇光", "age": "24岁", "gender": "female",
+				"mbti": "INFJ",
+			},
+			"personality": map[string]any{
+				"openness":         0.8,
+				"attachment_style": "secure",
+			},
+			"behavioral_policy": map[string]any{
+				"response_style": "warm",
+			},
+			"life_profile": map[string]any{
+				"appearance": map[string]any{"description": "清秀"},
+			},
+			"personality_system": map[string]any{
+				"mode":              "single",
+				"active_profile_id": "default",
+				"profiles": []any{
+					map[string]any{"id": "default", "name": "默认"},
+				},
+			},
+		},
+		"developing_self": map[string]any{
+			"claims": []any{},
+		},
+		"initial_goals":      []any{},
+		"initial_intentions": []any{},
+		"initial_relationships": []any{
+			map[string]any{
+				"target_actor_id": "actor_user",
+				"role":            "朋友",
+			},
+		},
+	}
+	if err := capabilitycontract.ValidateCapabilitySchemaValue(candidate, schema); err != nil {
+		t.Fatalf("ValidateCapabilitySchemaValue rejected candidate with relaxed fields: %v", err)
+	}
+	prepared, err := prepareInitializationResponse(candidate)
+	if err != nil {
+		t.Fatalf("prepareInitializationResponse failed: %v", err)
+	}
+	if prepared == nil {
+		t.Fatal("expected prepared foundation to be non-nil")
 	}
 }
