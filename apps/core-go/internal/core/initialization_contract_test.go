@@ -744,3 +744,95 @@ func TestInitializationSchemaAllowsExtendedFieldsAndStringTypes(t *testing.T) {
 		t.Fatal("expected prepared foundation to be non-nil")
 	}
 }
+
+func TestInitializationDefensiveNormalizationHandlesUnusualModelOutputs(t *testing.T) {
+	candidate := map[string]any{
+		"schema_version": 2,
+		"core_persona": map[string]any{
+			"schema_version": 1,
+			"name":           "stray_name",
+			"description":    "stray_description",
+			"identity": map[string]any{
+				"name":     "测试角色",
+				"timezone": "Asia/Beijing",
+			},
+			"personality": map[string]any{},
+			"behavioral_policy": map[string]any{},
+			"life_profile": map[string]any{},
+			"personality_system": map[string]any{
+				"mode": "multiple",
+				"profiles": []any{
+					map[string]any{"name": "主日常人格"},
+					map[string]any{"name": "夜间人格"},
+				},
+				"takeover_rules": []any{
+					map[string]any{"condition": "夜深时触发", "target_profile_id": "profile_2"},
+				},
+			},
+		},
+		"developing_self": map[string]any{
+			"claims": []any{
+				map[string]any{
+					"category":      "interest",
+					"claim":         "喜欢摄影",
+					"confidence":    0.8,
+					"extra_tag":     "photography",
+					"evidence_refs": []any{"对话记录", ""},
+				},
+			},
+		},
+		"initial_relationships": []any{
+			map[string]any{
+				"role":  "好友",
+				"trend": "良好",
+			},
+		},
+		"initial_goals": []any{
+			map[string]any{"description": "完成一次画展"},
+		},
+		"initial_intentions": []any{
+			map[string]any{"action": "挑选画作", "goal_index": 0},
+		},
+		"extensions": map[string]any{},
+	}
+
+	prepared, err := prepareInitializationResponse(candidate)
+	if err != nil {
+		t.Fatalf("prepareInitializationResponse failed on unusual model outputs: %v", err)
+	}
+	if prepared == nil {
+		t.Fatal("expected prepared foundation to be non-nil")
+	}
+	// Verify timezone was normalized
+	persona := mapValue(prepared["core_persona"])
+	identity := mapValue(persona["identity"])
+	if stringValue(identity["timezone"]) != "Asia/Shanghai" {
+		t.Fatalf("expected Asia/Shanghai timezone, got %v", identity["timezone"])
+	}
+	// Verify stray keys on persona were moved to extensions
+	extensions := mapValue(prepared["extensions"])
+	if extensions["core_persona.name"] != "stray_name" {
+		t.Fatalf("expected core_persona.name in extensions, got %v", extensions)
+	}
+	// Verify profile IDs were generated
+	system := mapValue(persona["personality_system"])
+	profiles := arrayValue(system["profiles"])
+	if len(profiles) != 2 || stringValue(mapValue(profiles[0])["id"]) == "" {
+		t.Fatalf("expected 2 profiles with non-empty IDs, got %v", profiles)
+	}
+	// Verify takeover rules were normalized
+	takeoverRules := arrayValue(system["takeover_rules"])
+	if len(takeoverRules) != 1 {
+		t.Fatalf("expected 1 takeover rule, got %v", takeoverRules)
+	}
+	rule := mapValue(takeoverRules[0])
+	if stringValue(rule["kind"]) != "turn_takeover" || stringValue(rule["version"]) != "turn-takeover.v1" {
+		t.Fatalf("expected turn_takeover kind and version, got %v", rule)
+	}
+	// Verify relationship target_actor_id was filled
+	rels := arrayValue(prepared["initial_relationships"])
+	if len(rels) != 1 || stringValue(mapValue(rels[0])["target_actor_id"]) == "" {
+		t.Fatalf("expected relationship target_actor_id to be populated, got %v", rels)
+	}
+}
+

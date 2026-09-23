@@ -953,7 +953,14 @@ function creationAnalysisFailureMessage(error: unknown): string {
 function creationActivationFailureMessage(error: unknown): string {
   if (!(error instanceof BrowserApiError)) return "Fluctlight 激活服务暂时不可用。";
   if (error.code === "unauthenticated") return "登录会话已失效，请重新登录后再激活。";
-  if (error.code === "activation_persona_invalid" || error.code === "activation_foundation_invalid") return "预览中的 Persona 分层结构无效。";
+  if (error.code === "activation_persona_invalid" || error.code === "activation_foundation_invalid") {
+    const validationError = error.details?.validation_error as Record<string, unknown> | undefined;
+    if (validationError && (validationError.path || validationError.type)) {
+      const parts = [validationError.path, validationError.type].filter(Boolean);
+      return `预览中的 Persona 分层结构无效（${parts.join(" · ")}）。`;
+    }
+    return "预览中的 Persona 分层结构无效。";
+  }
   if (error.code === "activation_analysis_required") return "当前预览缺少分析身份，请重新分析后再激活。";
   if (error.code === "activation_analysis_invalid") return "当前预览的分析身份无效，请重新分析后再激活。";
   if (error.code === "activation_analysis_stale") return "当前预览已被更新的分析取代，请使用最新预览激活。";

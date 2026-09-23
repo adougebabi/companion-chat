@@ -476,7 +476,7 @@ func parseScheduleTime(value string) (time.Time, error) {
 func canonicalTimezone(value string) string {
 	normalized := strings.TrimSpace(value)
 	switch strings.ToLower(normalized) {
-	case "utc+8", "utc+08:00", "gmt+8", "gmt+08:00", "china standard time", "cst":
+	case "utc+8", "utc+08:00", "utc+8:00", "gmt+8", "gmt+08:00", "gmt+8:00", "china standard time", "cst", "asia/beijing", "beijing", "shanghai":
 		return "Asia/Shanghai"
 	case "utc", "gmt", "z":
 		return "UTC"

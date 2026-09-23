@@ -988,7 +988,14 @@ func normalizeInitializationResponse(value map[string]any) map[string]any {
 			}
 		}
 	}
-	normalizePersonalityProfiles(mapValue(persona["personality_system"]))
+	knownCorePersona := map[string]struct{}{"schema_version": {}, "identity": {}, "personality": {}, "behavioral_policy": {}, "life_profile": {}, "personality_system": {}, "extensions": {}}
+	for key, raw := range persona {
+		if _, ok := knownCorePersona[key]; !ok {
+			extensions["core_persona."+key] = raw
+			delete(persona, key)
+		}
+	}
+	normalizePersonalityProfiles(mapValue(persona["personality_system"]), extensions)
 	result["extensions"] = extensions
 	return result
 }
@@ -1005,7 +1012,8 @@ func normalizeInitializationAliases(result map[string]any) {
 	}
 	goals, goalsReady := result["initial_goals"].([]any)
 	goalIndexes := make(map[string]int, len(goals))
-	for index, raw := range goals {
+	validGoals := make([]any, 0, len(goals))
+	for _, raw := range goals {
 		goal := mapValue(raw)
 		if stringValue(goal["description"]) == "" {
 			goal["description"] = firstInitializationString(goal["content"], goal["text"], goal["desired_outcome"], goal["goal"])
@@ -1018,11 +1026,19 @@ func normalizeInitializationAliases(result map[string]any) {
 			delete(goal, "associated_profile")
 			delete(goal, "profile")
 		}
+		if strings.TrimSpace(stringValue(goal["description"])) == "" {
+			continue
+		}
 		if id := stringValue(goal["id"]); id != "" {
-			goalIndexes[id] = index
+			goalIndexes[id] = len(validGoals)
 		}
 		goal["importance"] = initializationUnitValue(goal["importance"], 0.5, true)
 		goal["urgency"] = initializationUnitValue(goal["urgency"], 0.5, true)
+		validGoals = append(validGoals, goal)
+	}
+	if goalsReady {
+		result["initial_goals"] = validGoals
+		goals = validGoals
 	}
 	if intentions, ok := result["initial_intentions"].([]any); ok && goalsReady {
 		normalized := make([]any, 0, len(intentions))
@@ -1070,6 +1086,9 @@ func normalizeInitializationAliases(result map[string]any) {
 		relationship := mapValue(raw)
 		if stringValue(relationship["target_actor_id"]) == "" {
 			relationship["target_actor_id"] = firstInitializationString(relationship["target"], relationship["actor"], relationship["actor_id"])
+		}
+		if strings.TrimSpace(stringValue(relationship["target_actor_id"])) == "" {
+			relationship["target_actor_id"] = "owner"
 		}
 		if profileID := firstInitializationString(relationship["profile_id"], relationship["associated_profile"], relationship["profile"]); profileID != "" {
 			relationship["profile_id"] = profileID
@@ -1144,18 +1163,28 @@ func firstInitializationString(values ...any) string {
 func normalizeInitializationClaims(developingSelf map[string]any) {
 	claims := arrayValue(developingSelf["claims"])
 	normalized := make([]any, 0, len(claims))
+	allowedKeys := map[string]struct{}{"category": {}, "claim": {}, "value": {}, "confidence": {}, "evidence_refs": {}, "provenance": {}, "status": {}}
 	for _, raw := range claims {
 		claim := mapValue(raw)
-		if len(claim) == 0 || !validateDevelopingSelfCategory(stringValue(claim["category"])) || stringValue(claim["claim"]) == "" {
+		if len(claim) == 0 || !validateDevelopingSelfCategory(stringValue(claim["category"])) || strings.TrimSpace(stringValue(claim["claim"])) == "" {
 			continue
 		}
-		if _, exists := claim["value"]; !exists {
+		for key := range claim {
+			if _, ok := allowedKeys[key]; !ok {
+				delete(claim, key)
+			}
+		}
+		if claim["value"] == nil {
 			claim["value"] = map[string]any{}
 		}
 		claim["confidence"] = initializationUnitValue(claim["confidence"], 0.5, false)
-		if _, exists := claim["evidence_refs"]; !exists {
-			claim["evidence_refs"] = []any{}
+		cleanRefs := make([]any, 0)
+		for _, ref := range arrayValue(claim["evidence_refs"]) {
+			if text := strings.TrimSpace(stringValue(ref)); text != "" {
+				cleanRefs = append(cleanRefs, text)
+			}
 		}
+		claim["evidence_refs"] = cleanRefs
 		if provenance, exists := claim["provenance"].(map[string]any); !exists || stringValue(provenance["source"]) == "" {
 			claim["provenance"] = map[string]any{"source": "owner_defined"}
 		}
@@ -1186,6 +1215,9 @@ func normalizeInitializationPersonaStructure(persona map[string]any) {
 					identity[key] = defaults[key]
 				}
 			}
+		}
+		if tz := stringValue(identity["timezone"]); tz != "" {
+			identity["timezone"] = canonicalTimezone(tz)
 		}
 	}
 	for key, defaults := range map[string]map[string]any{
@@ -1247,56 +1279,152 @@ func normalizeInitializationPersonaStructure(persona map[string]any) {
 			system[key] = defaults[key]
 		}
 	}
-	if strings.TrimSpace(stringValue(system["mode"])) == "" {
-		if len(profiles) > 1 {
-			system["mode"] = "multiple"
-		} else {
-			system["mode"] = "single"
-		}
+	if len(profiles) > 1 {
+		system["mode"] = "multiple"
+	} else {
+		system["mode"] = "single"
 	}
 	if strings.TrimSpace(stringValue(system["active_profile_id"])) == "" {
 		system["active_profile_id"] = "default"
 	}
 }
 
-func normalizePersonalityProfiles(system map[string]any) {
+func normalizePersonalityProfiles(system map[string]any, extensions map[string]any) {
 	profiles := arrayValue(system["profiles"])
+	seenIDs := map[string]struct{}{}
+	if len(profiles) > 0 {
+		known := map[string]struct{}{
+			"id": {}, "name": {}, "identity": {}, "personality": {}, "behavioral_policy": {},
+			"emotional_state": {}, "voice": {}, "body_language": {}, "behavior_state_machine": {},
+			"behavior_loops": {}, "scenario_behavior": {}, "secrets": {}, "intimacy_progression": {},
+			"output_preferences": {}, "fears": {}, "desires": {}, "extensions": {},
+		}
+		for index, raw := range profiles {
+			profile := mapValue(raw)
+			if len(profile) == 0 {
+				continue
+			}
+			id := strings.TrimSpace(stringValue(profile["id"]))
+			if id == "" {
+				id = fmt.Sprintf("profile_%d", index+1)
+			}
+			if _, exists := seenIDs[id]; exists {
+				id = fmt.Sprintf("%s_%d", id, index+1)
+			}
+			seenIDs[id] = struct{}{}
+			profile["id"] = id
+
+			profExt := mapValue(profile["extensions"])
+			if len(profExt) == 0 {
+				profExt = map[string]any{}
+			}
+			for key, value := range profile {
+				if _, ok := known[key]; !ok {
+					profExt[key] = value
+					delete(profile, key)
+				}
+			}
+			for key, value := range map[string]any{
+				"name": "", "identity": map[string]any{}, "personality": map[string]any{}, "behavioral_policy": map[string]any{},
+				"emotional_state": map[string]any{}, "voice": map[string]any{}, "body_language": map[string]any{}, "behavior_state_machine": map[string]any{},
+				"behavior_loops": map[string]any{}, "scenario_behavior": map[string]any{}, "secrets": map[string]any{}, "intimacy_progression": map[string]any{},
+				"output_preferences": []any{}, "fears": []any{}, "desires": []any{},
+			} {
+				if _, exists := profile[key]; !exists {
+					profile[key] = value
+				}
+			}
+			profile["extensions"] = profExt
+		}
+	}
+	if len(profiles) > 1 {
+		system["mode"] = "multiple"
+	} else {
+		system["mode"] = "single"
+	}
+	active := stringValue(system["active_profile_id"])
 	if len(profiles) == 0 {
+		system["active_profile_id"] = "default"
+	} else if active != "default" {
+		if _, exists := seenIDs[active]; !exists {
+			system["active_profile_id"] = stringValue(mapValue(profiles[0])["id"])
+		}
+	}
+	normalizeInitializationTakeoverRules(system, seenIDs, extensions)
+}
+
+func normalizeInitializationTakeoverRules(system map[string]any, declaredProfiles map[string]struct{}, extensions map[string]any) {
+	rawRules, exists := system["takeover_rules"]
+	if !exists || rawRules == nil {
+		system["takeover_rules"] = []any{}
 		return
 	}
-	known := map[string]struct{}{
-		"id": {}, "name": {}, "identity": {}, "personality": {}, "behavioral_policy": {},
-		"emotional_state": {}, "voice": {}, "body_language": {}, "behavior_state_machine": {},
-		"behavior_loops": {}, "scenario_behavior": {}, "secrets": {}, "intimacy_progression": {},
-		"output_preferences": {}, "fears": {}, "desires": {}, "extensions": {},
+	rulesList, ok := rawRules.([]any)
+	if !ok {
+		system["takeover_rules"] = []any{}
+		return
 	}
-	for _, raw := range profiles {
-		profile := mapValue(raw)
-		if len(profile) == 0 {
+	if len(declaredProfiles) < 2 {
+		if len(rulesList) > 0 && extensions != nil {
+			extensions["unmatched_takeover_rules"] = rulesList
+		}
+		system["takeover_rules"] = []any{}
+		return
+	}
+	normalized := make([]any, 0, len(rulesList))
+	seenRuleIDs := map[string]struct{}{}
+	for index, raw := range rulesList {
+		rule := mapValue(raw)
+		if len(rule) == 0 {
 			continue
 		}
-		extensions := mapValue(profile["extensions"])
-		if len(extensions) == 0 {
-			extensions = map[string]any{}
+		id := strings.TrimSpace(stringValue(rule["id"]))
+		if id == "" {
+			id = fmt.Sprintf("takeover_rule_%d", index+1)
 		}
-		for key, value := range profile {
-			if _, ok := known[key]; !ok {
-				extensions[key] = value
-				delete(profile, key)
+		if _, exists := seenRuleIDs[id]; exists {
+			id = fmt.Sprintf("%s_%d", id, index+1)
+		}
+		seenRuleIDs[id] = struct{}{}
+		rule["id"] = id
+		rule["kind"] = "turn_takeover"
+		rule["version"] = "turn-takeover.v1"
+
+		condition := strings.TrimSpace(stringValue(rule["condition"]))
+		if condition == "" {
+			condition = firstInitializationString(rule["trigger"], rule["when"], rule["description"])
+			if condition == "" {
+				condition = "default_takeover_condition"
 			}
 		}
-		for key, value := range map[string]any{
-			"name": "", "identity": map[string]any{}, "personality": map[string]any{}, "behavioral_policy": map[string]any{},
-			"emotional_state": map[string]any{}, "voice": map[string]any{}, "body_language": map[string]any{}, "behavior_state_machine": map[string]any{},
-			"behavior_loops": map[string]any{}, "scenario_behavior": map[string]any{}, "secrets": map[string]any{}, "intimacy_progression": map[string]any{},
-			"output_preferences": []any{}, "fears": []any{}, "desires": []any{},
-		} {
-			if _, exists := profile[key]; !exists {
-				profile[key] = value
+		rule["condition"] = condition
+
+		target := strings.TrimSpace(stringValue(rule["target_profile_id"]))
+		if target == "" {
+			target = firstInitializationString(rule["target"], rule["target_profile"], rule["to_profile"])
+		}
+		if _, exists := declaredProfiles[target]; !exists {
+			for pid := range declaredProfiles {
+				target = pid
+				break
 			}
 		}
-		profile["extensions"] = extensions
+		rule["target_profile_id"] = target
+
+		if source, present := rule["source_profile_id"]; present && source != nil {
+			sourceID := strings.TrimSpace(stringValue(source))
+			if _, exists := declaredProfiles[sourceID]; !exists {
+				delete(rule, "source_profile_id")
+			}
+		}
+		if enabled, present := rule["enabled"]; present {
+			if _, isBool := enabled.(bool); !isBool {
+				rule["enabled"] = true
+			}
+		}
+		normalized = append(normalized, rule)
 	}
+	system["takeover_rules"] = normalized
 }
 
 // Providers sometimes group goals/intentions by horizon instead of emitting

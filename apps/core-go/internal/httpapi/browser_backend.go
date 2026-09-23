@@ -407,19 +407,38 @@ func browserBackendError(err error, fallback string) error {
 	}
 	status := http.StatusBadGateway
 	code := fallback
-	switch {
-	case errors.Is(err, core.ErrUnauthorized):
-		status, code = http.StatusUnauthorized, "unauthenticated"
-	case errors.Is(err, core.ErrNotFound):
-		status, code = http.StatusNotFound, "not_found"
-	case errors.Is(err, core.ErrConflict):
-		status, code = http.StatusConflict, "conflict"
-	case errors.Is(err, context.Canceled):
-		status, code = http.StatusRequestTimeout, "request_cancelled"
-	case errors.Is(err, context.DeadlineExceeded):
-		status, code = http.StatusGatewayTimeout, "request_timeout"
+	var details map[string]any
+
+	var detailed interface{ PublicDetails() map[string]any }
+	if errors.As(err, &detailed) {
+		status = http.StatusUnprocessableEntity
+		details = detailed.PublicDetails()
+		if fallback != "" {
+			code = fallback
+		}
+	} else {
+		switch {
+		case errors.Is(err, core.ErrActivationAnalysisRequired):
+			status, code = http.StatusUnprocessableEntity, "activation_analysis_required"
+		case errors.Is(err, core.ErrActivationAnalysisInvalid):
+			status, code = http.StatusUnprocessableEntity, "activation_analysis_invalid"
+		case errors.Is(err, core.ErrActivationAnalysisStale):
+			status, code = http.StatusConflict, "activation_analysis_stale"
+		case errors.Is(err, core.ErrActivationAnalysisConflict):
+			status, code = http.StatusConflict, "activation_analysis_conflict"
+		case errors.Is(err, core.ErrUnauthorized):
+			status, code = http.StatusUnauthorized, "unauthenticated"
+		case errors.Is(err, core.ErrNotFound):
+			status, code = http.StatusNotFound, "not_found"
+		case errors.Is(err, core.ErrConflict):
+			status, code = http.StatusConflict, "conflict"
+		case errors.Is(err, context.Canceled):
+			status, code = http.StatusRequestTimeout, "request_cancelled"
+		case errors.Is(err, context.DeadlineExceeded):
+			status, code = http.StatusGatewayTimeout, "request_timeout"
+		}
 	}
-	return &browser.CoreError{Status: status, Code: code, Message: err.Error()}
+	return &browser.CoreError{Status: status, Code: code, Message: err.Error(), Details: details}
 }
 
 func objectBody(value any) map[string]any {
