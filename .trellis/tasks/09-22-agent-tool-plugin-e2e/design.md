@@ -38,7 +38,7 @@ source fact 可为实际业务证据，不能要求必须存在一次认知轮�
 工具执行拥有完整局部业务事务：命令幂等/领域写入/结果/outbox 同事务，提交后才返回已完成。需要 Provider 的 schedule/media prepare 在事务外执行，apply 再做 CAS，不持锁等待模型或媒体。
 
 - 回复/动态：提取复用现有发布服务，消息/Moment 行和必要 outbox 由 Tool 提交；外层只传递已提交事件，不再次发布最终 assistant 候选。无显式 reply Tool 的自然最终回复由 Agent 的输出适配调用同一正式发布服务一次，不让外层执行工具协议。
-- 媒体：保留现有 durable intent/MediaWorkflow/ComfyUI 及对象存储；直接 Tool 自己处理合法目标并受理，真实任务 ID 与产物状态可追踪。既有异步受理能力明确 accepted，完成验证跟踪同任务最终资产；不把同步承诺批量改为提交任务。
+- 媒体：保留现有 durable intent/MediaWorkflow/ComfyUI 及对象存储；直接 Tool 自己处理合法目标并受理，真实任务 ID 与产物状态可追踪。既有异步受理能力明确 accepted，完成验证跟踪同任务最终资产；不把同步承诺批量改为提交任务。媒体质量非通过时，第一次持久化完整、受限的检查反馈并重跑正式 Media Prompt Agent，再提交第二个真实 ComfyUI job；第二候选即使再次 non-pass 也持久化其真实质量 verdict、标记为 `retry_accepted` 并完成对象上传与发布，不启动第三个质量重试。此单次修正属于媒体业务流程，不是全局 Tool 调用上限。
 - scene/presence/affect/memory/active memory/capability request：复用领域 reducer/lifecycle，在工具拥有的短事务中提交，保留业务授权、CAS、有效证据及 outbox。
 - persona switch/takeover：提取现有领域变更与审计，工具返回实际已应用/拒绝结果；判定 prompt 仍归对应 Agent，不让模型直接控制数值/权限。
 - visual identity：初始化解除 wake_up_ 门禁；生成、真实看图、评审和保存通过正式 Agent 与业务工具闭环。复用 visualIdentityImageContent 当前真实图片路径及 canonical CAS；Temporal 继续管理 durable intent/重启恢复，不再作为模型续接的第二实现。
