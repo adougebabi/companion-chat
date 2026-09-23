@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
 	"strings"
@@ -150,10 +151,16 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 		input.RuntimeFacts = append(input.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Priority: priority, Content: map[string]any{"kind": key, "value": value}, SourceRefs: []string{"runtime:" + key}})
 	}
 	for _, item := range compactActiveMemoriesForSurface(active, surface, projection.ReferenceIndex) {
-		input.ActiveCandidates = append(input.ActiveCandidates, PromptFragment{Kind: PromptFragmentActiveMemory, Priority: int(numberOrZero(item["importance"]) * 100), Content: item, SourceRefs: promptItemSourceRefs(item, "active")})
+		cleaned := mapValue(cleanPromptValue(item))
+		if len(cleaned) > 0 {
+			input.ActiveCandidates = append(input.ActiveCandidates, PromptFragment{Kind: PromptFragmentActiveMemory, Priority: int(numberOrZero(cleaned["importance"]) * 100), Content: cleaned, SourceRefs: promptItemSourceRefs(cleaned, "active")})
+		}
 	}
 	for _, item := range compactMemoriesForProfileForSurface(projection.Memories, stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"]), surface, projection.ReferenceIndex) {
-		input.RetrievedMemories = append(input.RetrievedMemories, PromptFragment{Kind: PromptFragmentRetrievedMemory, Priority: int(numberOrZero(item["importance"]) * 100), Content: item, SourceRefs: promptItemSourceRefs(item, "memory")})
+		cleaned := mapValue(cleanPromptValue(item))
+		if len(cleaned) > 0 {
+			input.RetrievedMemories = append(input.RetrievedMemories, PromptFragment{Kind: PromptFragmentRetrievedMemory, Priority: int(numberOrZero(cleaned["importance"]) * 100), Content: cleaned, SourceRefs: promptItemSourceRefs(cleaned, "memory")})
+		}
 	}
 	if providerContextSurfaceAllowsSummaries(surface) {
 		for _, item := range summaries {
@@ -355,6 +362,61 @@ func compactCognitionContext(projection ContextProjection) map[string]any {
 	return cleaned
 }
 
+func surfaceAllowsEntityRef(surface ProviderContextSurface, kind ContextReferenceKind) bool {
+	if surface == ProviderContextSurfaceConversationMain || surface == ProviderContextSurfaceTakeoverReply {
+		return kind == ContextReferenceMemory || kind == ContextReferenceActiveMemory
+	}
+	return true
+}
+
+func cleanPromptValue(v any) any {
+	switch typed := v.(type) {
+	case float64:
+		return math.Round(typed*100) / 100
+	case float32:
+		return float32(math.Round(float64(typed)*100) / 100)
+	case map[string]any:
+		result := make(map[string]any, len(typed))
+		for k, val := range typed {
+			cleaned := cleanPromptValue(val)
+			if cleaned != nil && cleaned != "" {
+				result[k] = cleaned
+			}
+		}
+		if len(result) == 0 {
+			return nil
+		}
+		return result
+	case []any:
+		result := make([]any, 0, len(typed))
+		for _, item := range typed {
+			cleaned := cleanPromptValue(item)
+			if cleaned != nil && cleaned != "" {
+				result = append(result, cleaned)
+			}
+		}
+		if len(result) == 0 {
+			return nil
+		}
+		return result
+	case []map[string]any:
+		result := make([]map[string]any, 0, len(typed))
+		for _, item := range typed {
+			if cleaned := cleanPromptValue(item); cleaned != nil {
+				if m, ok := cleaned.(map[string]any); ok && len(m) > 0 {
+					result = append(result, m)
+				}
+			}
+		}
+		if len(result) == 0 {
+			return nil
+		}
+		return result
+	default:
+		return v
+	}
+}
+
 // compactCognitionContextForSurface converts the broad, replay-safe
 // compaction into the much smaller object that is allowed to become Runtime
 // Facts. Keeping this as a second step is intentional: capability snapshots
@@ -379,7 +441,7 @@ func compactCognitionContextForSurface(projection ContextProjection, surface Pro
 		}
 	}
 
-	if state := compactCurrentStateForSurface(projection); len(state) > 0 {
+	if state := compactCurrentStateForSurface(projection, surface); len(state) > 0 {
 		compact["current_state"] = state
 	} else {
 		delete(compact, "current_state")
@@ -394,17 +456,17 @@ func compactCognitionContextForSurface(projection ContextProjection, surface Pro
 	} else {
 		delete(compact, "current_speaker")
 	}
-	if values := compactDevelopingSelfForSurface(projection.DevelopingSelf, projection.ReferenceIndex); len(values) > 0 {
+	if values := compactDevelopingSelfForSurface(projection.DevelopingSelf, projection.ReferenceIndex, surface); len(values) > 0 {
 		compact["developing_self"] = values
 	} else {
 		delete(compact, "developing_self")
 	}
-	if values := compactRelationshipsForSurface(projection.Relationships, projection.Actors, projection.ReferenceIndex); len(values) > 0 {
+	if values := compactRelationshipsForSurface(projection.Relationships, projection.Actors, projection.ReferenceIndex, surface); len(values) > 0 {
 		compact["relationships"] = values
 	} else {
 		delete(compact, "relationships")
 	}
-	if schedule := compactScheduleForSurface(projection.Schedule, projection.ReferenceIndex); len(schedule) > 0 {
+	if schedule := compactScheduleForSurface(projection.Schedule, projection.ReferenceIndex, surface); len(schedule) > 0 {
 		compact["schedule"] = schedule
 	} else {
 		delete(compact, "schedule")
@@ -415,12 +477,12 @@ func compactCognitionContextForSurface(projection ContextProjection, surface Pro
 		delete(compact, "visual_identity")
 	}
 	activeProfileID := stringValue(mapValue(projection.PersonalityRuntime)["active_profile_id"])
-	if goals := compactProviderGoalsForSurface(filterActiveProfileRows(projection.Goals, activeProfileID), projection.Actors, projection.ReferenceIndex); len(goals) > 0 {
+	if goals := compactProviderGoalsForSurface(filterActiveProfileRows(projection.Goals, activeProfileID), projection.Actors, projection.ReferenceIndex, surface); len(goals) > 0 {
 		compact["goals"] = goals
 	} else {
 		delete(compact, "goals")
 	}
-	if intentions := compactProviderIntentionsForSurface(filterActiveProfileRows(projection.Intentions, activeProfileID), projection.ReferenceIndex); len(intentions) > 0 {
+	if intentions := compactProviderIntentionsForSurface(filterActiveProfileRows(projection.Intentions, activeProfileID), projection.ReferenceIndex, surface); len(intentions) > 0 {
 		compact["intentions"] = intentions
 	} else {
 		delete(compact, "intentions")
@@ -429,6 +491,10 @@ func compactCognitionContextForSurface(projection ContextProjection, surface Pro
 		compact["recent_outcomes"] = outcomes
 	} else {
 		delete(compact, "recent_outcomes")
+	}
+	cleaned := cleanPromptValue(compact)
+	if m, ok := cleaned.(map[string]any); ok && len(m) > 0 {
+		return m
 	}
 	return compact
 }
@@ -470,14 +536,14 @@ func compactActorForSurface(value map[string]any) map[string]any {
 	return result
 }
 
-func compactCurrentStateForSurface(projection ContextProjection) map[string]any {
+func compactCurrentStateForSurface(projection ContextProjection, surface ProviderContextSurface) map[string]any {
 	base := compactCurrentState(projection)
 	data := mapValue(base["data"])
 	resultData := map[string]any{}
 	if inner := compactInnerStateForSurface(mapValue(data["inner_state"])); len(inner) > 0 {
 		resultData["inner_state"] = inner
 	}
-	if life := compactLifeContextForSurface(mapValue(data["life_context"]), projection.ReferenceIndex); len(life) > 0 {
+	if life := compactLifeContextForSurface(mapValue(data["life_context"]), projection.ReferenceIndex, surface); len(life) > 0 {
 		resultData["life_context"] = life
 	}
 	if len(resultData) == 0 {
@@ -528,19 +594,21 @@ func compactCurrentDrivesForSurface(value any) []map[string]any {
 
 var providerLifeContextRevisionPattern = regexp.MustCompile(`^life_ctx_[a-f0-9]{32}$`)
 
-func compactLifeContextForSurface(value map[string]any, index ContextReferenceIndex) map[string]any {
+func compactLifeContextForSurface(value map[string]any, index ContextReferenceIndex, surface ProviderContextSurface) map[string]any {
 	result := map[string]any{}
 	// Life Context is the authority boundary for scene/schedule decisions. Keep
 	// only Core-issued opaque references and the bounded revision token needed by
 	// Prepare/CAS validation; raw event/schedule/presence IDs never cross this
 	// surface.
-	for _, key := range []string{"ref", "event_ref", "schedule_ref", "schedule_item_ref", "presence_ref"} {
-		if ref := providerSafeContextRef(value[key], index); ref != "" {
-			result[key] = ref
+	if surfaceAllowsEntityRef(surface, ContextReferenceLifeContext) {
+		for _, key := range []string{"ref", "event_ref", "schedule_ref", "schedule_item_ref", "presence_ref"} {
+			if ref := providerSafeContextRef(value[key], index); ref != "" {
+				result[key] = ref
+			}
 		}
-	}
-	if revision := strings.TrimSpace(stringValue(value["context_revision"])); providerLifeContextRevisionPattern.MatchString(revision) {
-		result["context_revision"] = revision
+		if revision := strings.TrimSpace(stringValue(value["context_revision"])); providerLifeContextRevisionPattern.MatchString(revision) {
+			result["context_revision"] = revision
+		}
 	}
 	for _, key := range []string{"source", "authority_status", "scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at"} {
 		if raw, ok := value[key]; ok && raw != nil && raw != "" {
@@ -549,8 +617,10 @@ func compactLifeContextForSurface(value map[string]any, index ContextReferenceIn
 	}
 	if presence := mapValue(value["presence"]); len(presence) > 0 {
 		compact := map[string]any{}
-		if ref := providerSafeContextRef(presence["ref"], index); ref != "" {
-			compact["ref"] = ref
+		if surfaceAllowsEntityRef(surface, ContextReferencePresence) {
+			if ref := providerSafeContextRef(presence["ref"], index); ref != "" {
+				compact["ref"] = ref
+			}
 		}
 		for _, key := range []string{"current_task", "user_presence", "effective_at", "expires_at"} {
 			if raw, ok := presence[key]; ok && raw != nil && raw != "" {
@@ -564,7 +634,7 @@ func compactLifeContextForSurface(value map[string]any, index ContextReferenceIn
 	return result
 }
 
-func compactDevelopingSelfForSurface(values []map[string]any, index ContextReferenceIndex) []map[string]any {
+func compactDevelopingSelfForSurface(values []map[string]any, index ContextReferenceIndex, surface ProviderContextSurface) []map[string]any {
 	result := make([]map[string]any, 0, len(values))
 	for _, value := range values {
 		item := map[string]any{}
@@ -576,8 +646,10 @@ func compactDevelopingSelfForSurface(values []map[string]any, index ContextRefer
 				item[key] = raw
 			}
 		}
-		if ref := providerSafeContextRef(value["ref"], index); ref != "" {
-			item["ref"] = ref
+		if surfaceAllowsEntityRef(surface, ContextReferenceDevelopingSelf) {
+			if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+				item["ref"] = ref
+			}
 		}
 		if len(item) > 0 {
 			result = append(result, item)
@@ -586,7 +658,7 @@ func compactDevelopingSelfForSurface(values []map[string]any, index ContextRefer
 	return result
 }
 
-func compactRelationshipsForSurface(values []map[string]any, actors []map[string]any, index ContextReferenceIndex) []map[string]any {
+func compactRelationshipsForSurface(values []map[string]any, actors []map[string]any, index ContextReferenceIndex, surface ProviderContextSurface) []map[string]any {
 	result := make([]map[string]any, 0, len(values))
 	for _, value := range values {
 		item := map[string]any{}
@@ -595,8 +667,10 @@ func compactRelationshipsForSurface(values []map[string]any, actors []map[string
 				item[key] = stripProviderContextMetadata(raw)
 			}
 		}
-		if ref := providerSafeContextRef(value["ref"], index); ref != "" {
-			item["ref"] = ref
+		if surfaceAllowsEntityRef(surface, ContextReferenceRelationship) {
+			if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+				item["ref"] = ref
+			}
 		}
 		if actor := compactActorForSurface(actorRefForID(actors, stringValue(value["target_actor_id"]))); len(actor) > 0 {
 			item["target_actor"] = actor
@@ -608,7 +682,7 @@ func compactRelationshipsForSurface(values []map[string]any, actors []map[string
 	return result
 }
 
-func compactProviderGoalsForSurface(values []map[string]any, actors []map[string]any, index ContextReferenceIndex) []map[string]any {
+func compactProviderGoalsForSurface(values []map[string]any, actors []map[string]any, index ContextReferenceIndex, surface ProviderContextSurface) []map[string]any {
 	base := compactProviderGoalsForActors(values, actors)
 	result := make([]map[string]any, 0, len(base))
 	for _, value := range base {
@@ -618,8 +692,10 @@ func compactProviderGoalsForSurface(values []map[string]any, actors []map[string
 				item[key] = raw
 			}
 		}
-		if ref := providerSafeContextRef(value["ref"], index); ref != "" {
-			item["ref"] = ref
+		if surfaceAllowsEntityRef(surface, ContextReferenceGoal) {
+			if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+				item["ref"] = ref
+			}
 		}
 		if actor := compactActorForSurface(mapValue(value["target_actor"])); len(actor) > 0 {
 			item["target_actor"] = actor
@@ -631,7 +707,7 @@ func compactProviderGoalsForSurface(values []map[string]any, actors []map[string
 	return result
 }
 
-func compactProviderIntentionsForSurface(values []map[string]any, index ContextReferenceIndex) []map[string]any {
+func compactProviderIntentionsForSurface(values []map[string]any, index ContextReferenceIndex, surface ProviderContextSurface) []map[string]any {
 	base := compactProviderIntentions(values)
 	result := make([]map[string]any, 0, len(base))
 	for _, value := range base {
@@ -647,11 +723,13 @@ func compactProviderIntentionsForSurface(values []map[string]any, index ContextR
 		if trigger := compactTriggerForSurface(value["trigger"]); trigger != nil {
 			item["trigger"] = trigger
 		}
-		if ref := providerSafeContextRef(value["ref"], index); ref != "" {
-			item["ref"] = ref
-		}
-		if goalRef := providerSafeContextRef(value["goal_ref"], index); goalRef != "" {
-			item["goal_ref"] = goalRef
+		if surfaceAllowsEntityRef(surface, ContextReferenceIntention) {
+			if ref := providerSafeContextRef(value["ref"], index); ref != "" {
+				item["ref"] = ref
+			}
+			if goalRef := providerSafeContextRef(value["goal_ref"], index); goalRef != "" {
+				item["goal_ref"] = goalRef
+			}
 		}
 		if len(item) > 0 {
 			result = append(result, item)
@@ -688,11 +766,16 @@ func compactRecentActionOutcomesForSurface(values []map[string]any) []map[string
 	result := make([]map[string]any, 0, len(base))
 	for _, value := range base {
 		item := map[string]any{}
-		for _, key := range []string{"capability_name", "status", "success_boundary", "error_code", "observed"} {
+		for _, key := range []string{"capability_name", "status", "error_code", "observed"} {
 			if raw, ok := value[key]; ok && raw != nil && raw != "" {
 				if key == "observed" {
 					if observed := providerSafeOutcomeSignal(mapValue(raw), []string{"status", "type", "label", "intensity", "target_kind", "delivery_status", "reason_code"}); len(observed) > 0 {
-						item[key] = observed
+						if stringValue(observed["status"]) == stringValue(item["status"]) {
+							delete(observed, "status")
+						}
+						if len(observed) > 0 {
+							item[key] = observed
+						}
 					}
 					continue
 				}
@@ -706,7 +789,7 @@ func compactRecentActionOutcomesForSurface(values []map[string]any) []map[string
 	return result
 }
 
-func compactScheduleForSurface(value map[string]any, index ContextReferenceIndex) map[string]any {
+func compactScheduleForSurface(value map[string]any, index ContextReferenceIndex, surface ProviderContextSurface) map[string]any {
 	base := compactScheduleForProvider(value)
 	if len(base) == 0 {
 		return nil
@@ -714,35 +797,39 @@ func compactScheduleForSurface(value map[string]any, index ContextReferenceIndex
 	result := map[string]any{}
 	for _, key := range []string{"local_date", "timezone", "completed_before", "reschedule_policy", "current_item", "upcoming_items"} {
 		if raw, ok := base[key]; ok && raw != nil && raw != "" {
-			result[key] = compactScheduleValueForSurface(raw, index)
+			result[key] = compactScheduleValueForSurface(raw, index, surface)
 		}
 	}
 	if items := arrayValue(base["items"]); len(items) > 0 {
-		result["items"] = compactScheduleValueForSurface(items, index)
+		result["items"] = compactScheduleValueForSurface(items, index, surface)
 	}
-	if ref := providerSafeContextRef(base["ref"], index); ref != "" {
-		result["ref"] = ref
+	if surfaceAllowsEntityRef(surface, ContextReferenceSchedule) {
+		if ref := providerSafeContextRef(base["ref"], index); ref != "" {
+			result["ref"] = ref
+		}
 	}
 	return result
 }
 
-func compactScheduleValueForSurface(value any, index ContextReferenceIndex) any {
+func compactScheduleValueForSurface(value any, index ContextReferenceIndex, surface ProviderContextSurface) any {
 	switch typed := value.(type) {
 	case map[string]any:
 		result := map[string]any{}
 		for _, key := range []string{"start_at", "end_at", "activity", "scene", "location", "item_type", "status", "priority", "flexibility", "interruption_cost", "current_item", "upcoming_items", "items"} {
 			if raw, ok := typed[key]; ok && raw != nil && raw != "" {
-				result[key] = compactScheduleValueForSurface(raw, index)
+				result[key] = compactScheduleValueForSurface(raw, index, surface)
 			}
 		}
-		if ref := providerSafeContextRef(typed["ref"], index); ref != "" {
-			result["ref"] = ref
+		if surfaceAllowsEntityRef(surface, ContextReferenceScheduleItem) {
+			if ref := providerSafeContextRef(typed["ref"], index); ref != "" {
+				result["ref"] = ref
+			}
 		}
 		return result
 	case []any:
 		result := make([]any, 0, len(typed))
 		for _, raw := range typed {
-			if compact := compactScheduleValueForSurface(raw, index); len(mapValue(compact)) > 0 {
+			if compact := compactScheduleValueForSurface(raw, index, surface); len(mapValue(compact)) > 0 {
 				result = append(result, compact)
 			}
 		}
