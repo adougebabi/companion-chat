@@ -756,9 +756,9 @@ func TestInitializationDefensiveNormalizationHandlesUnusualModelOutputs(t *testi
 				"name":     "测试角色",
 				"timezone": "Asia/Beijing",
 			},
-			"personality": map[string]any{},
+			"personality":       map[string]any{},
 			"behavioral_policy": map[string]any{},
-			"life_profile": map[string]any{},
+			"life_profile":      map[string]any{},
 			"personality_system": map[string]any{
 				"mode": "multiple",
 				"profiles": []any{
@@ -835,4 +835,3 @@ func TestInitializationDefensiveNormalizationHandlesUnusualModelOutputs(t *testi
 		t.Fatalf("expected relationship target_actor_id to be populated, got %v", rels)
 	}
 }
-
