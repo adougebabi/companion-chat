@@ -59,7 +59,7 @@ type WorkingMemory struct {
 }
 
 func DefaultWorkingMemoryPolicy() WorkingMemoryPolicy {
-	return WorkingMemoryPolicy{RuntimeFactTokens: 6144, ActiveTokens: 2048, RecentTokens: 8192, RetrievedTokens: 3072, SummaryTokens: 2048}
+	return WorkingMemoryPolicy{RuntimeFactTokens: 6144, ActiveTokens: 2048, RecentTokens: 1500, RetrievedTokens: 3072, SummaryTokens: 2048}
 }
 
 func ResolveWorkingMemory(input WorkingMemoryInput, policy WorkingMemoryPolicy) (WorkingMemory, error) {

@@ -249,6 +249,9 @@ func recentPromptFragments(projection ContextProjection) []PromptFragment {
 		}
 		result = append(result, PromptFragment{Kind: PromptFragmentRecentMessage, Priority: index, Content: map[string]any{"role": role, "content": content}, SourceRefs: []string{ref}, GroupKey: groupKey})
 	}
+	if len(result) > 8 {
+		result = result[len(result)-8:]
+	}
 	return result
 }
 

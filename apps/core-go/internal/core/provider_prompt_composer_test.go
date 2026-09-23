@@ -444,3 +444,24 @@ func TestFilterCorePersonaStripsDialogueExamplesWhileKeepingLore(t *testing.T) {
 		}
 	}
 }
+
+func TestSinglePersonalityProtocolOmitsEvidenceRefsRuleAndFiltersPersonaTools(t *testing.T) {
+	singlePersona := map[string]any{
+		"shared_identity": map[string]any{"identity": map[string]any{"name": "测试角色"}},
+	}
+	rendered := renderProviderSystem(nil, singlePersona, nil, "cognitive_assessment")
+	if strings.Contains(rendered, "引用边界") || strings.Contains(rendered, "evidence_refs 只能逐字使用") {
+		t.Fatalf("single personality protocol contains evidence_refs rule: %s", rendered)
+	}
+
+	defs := []CapabilityDefinition{
+		{Name: "conversation.reply"},
+		{Name: "persona.switch"},
+		{Name: "persona.takeover"},
+		{Name: "memory.recall"},
+	}
+	filtered := filterPersonaActionCapabilities(defs)
+	if len(filtered) != 2 || filtered[0].Name != "conversation.reply" || filtered[1].Name != "memory.recall" {
+		t.Fatalf("filterPersonaActionCapabilities = %#v", filtered)
+	}
+}

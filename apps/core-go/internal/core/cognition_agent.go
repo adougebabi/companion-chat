@@ -79,6 +79,9 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	}
 
 	definitions := capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceConversation)
+	if !isMultiPersonalityProjection(projection) {
+		definitions = filterPersonaActionCapabilities(definitions)
+	}
 	schema := cognitiveTurnResponseSchema()
 	assembly, projection, err := a.assembleProjectionPromptForSurface(
 		ctx,
@@ -123,4 +126,24 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		Completion: run.Completion, Projection: projection,
 		Diagnostics: assembly.Diagnostics, Trace: run.Trace,
 	}, nil
+}
+
+func isMultiPersonalityProjection(projection ContextProjection) bool {
+	corePersona := corePersonaData(projection.CorePersona)
+	system := mapValue(corePersona["personality_system"])
+	if len(system) == 0 {
+		system = mapValue(projection.PersonalitySystem)
+	}
+	return isMultiPersonalitySystem(system)
+}
+
+func filterPersonaActionCapabilities(definitions []CapabilityDefinition) []CapabilityDefinition {
+	filtered := make([]CapabilityDefinition, 0, len(definitions))
+	for _, def := range definitions {
+		if def.Name == personaSwitchCapabilityName || def.Name == personaTakeoverCapabilityName {
+			continue
+		}
+		filtered = append(filtered, def)
+	}
+	return filtered
 }

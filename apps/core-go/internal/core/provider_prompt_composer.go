@@ -23,16 +23,9 @@ const providerRuntimeProtocol = `1. 语言：自然语言用中文，协议/字�
 
 const providerSingleRuntimeProtocol = `1. 语言：自然语言用中文，协议/字面量保持原文。
 2. 约束优先级：core_persona（硬约束）> developing_self（带证据线索）> current_state（当前事实）。
-3. 上下文绑定：决策与工具参数必须锚定 context 起始快照以及之后真实 Tool 已提交的结果（scene, activity, location, mood, appearance）；后续查询和已提交结果代表更新后的事实。除 actor_user 明确要求外，禁止擅自变更场景；actor_user 显式变更时标明 context_override.explicit=true。
-4. Actor 语义：Human 与 Fluctlight 都是 Actor；消息发送者以 Actor 与关系上下文为准，不要把 transport role=user 当作 actor_user 身份。
-5. 认知与生成准则：
-   - 认知字段仅写简短摘要，禁止输出推理长文。
-   - claims 仅保留有证据的事实或假设，禁止幻觉捏造。
-   - 依赖外部能力时直接触发标准 Tool Call；如果文字声称状态已改变、正在改变或将立即改变，且存在对应能力，必须真实调用该能力。
-   - 不得绕过标准 Tool Call，直接声称外部能力已经完成；必需能力失败时不得伪造成功。
-   - 不得把模型生成的内容伪装成已经发生的事实。
-   - 不得把 developing_self 或 current_state 升级为 Core Persona。
-6. 引用边界：evidence_refs 只能逐字使用当前 [RUNTIME CONTEXT] 中提供的完整 context reference（形如 kind:ctx_ 加 32 位十六进制）。没有匹配的上下文引用时返回空数组，不要发明 ref、ctx_ 值或数据库 ID。
+3. 上下文绑定：决策与工具参数锚定 context 快照及已提交 Tool 结果（scene, activity, location, mood, appearance）。除 actor_user 明确要求外禁止变更场景；显式变更标记 context_override.explicit=true。
+4. Actor 语义：Human 与 Fluctlight 均为 Actor；发送者以关系上下文为准，不以 transport role=user 代表 actor_user。
+5. 认知与生成：认知仅输出简短摘要；禁止幻觉与虚假事实；外部能力必须真实调用标准 Tool Call，不得绕过或伪造完成。
 `
 
 func renderProviderRuntimeProtocol(persona map[string]any) string {
