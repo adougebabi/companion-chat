@@ -161,6 +161,33 @@ func TestMediaWorkflowContinuesOneQualityRetry(t *testing.T) {
 	}
 }
 
+func TestMediaWorkflowPublishesSecondCandidateAfterQualityFailure(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	attempts := 0
+	env.OnActivity(ProcessMediaActivity, mock.Anything, mock.Anything).Return(func(context.Context, Input) (map[string]any, error) {
+		attempts++
+		if attempts == 1 {
+			return map[string]any{"status": "quality_retry", "quality_verdict": "reject", "quality_retry_count": 1}, nil
+		}
+		return map[string]any{"status": "completed", "quality_verdict": "retry_accepted", "quality_check_verdict": "reject", "asset_id": "asset-second-candidate"}, nil
+	})
+	env.ExecuteWorkflow(MediaWorkflow, Input{IntentID: "media-quality-second-accepted"})
+	if err := env.GetWorkflowError(); err != nil {
+		t.Fatalf("second quality failure should complete with the second candidate: %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("activity attempts = %d, want exactly 2", attempts)
+	}
+	var result map[string]any
+	if err := env.GetWorkflowResult(&result); err != nil {
+		t.Fatal(err)
+	}
+	if result["status"] != "completed" || result["quality_verdict"] != "retry_accepted" || result["quality_check_verdict"] != "reject" || result["asset_id"] != "asset-second-candidate" {
+		t.Fatalf("workflow result = %#v", result)
+	}
+}
+
 func TestMediaWorkflowStopsAfterOneQualityRetry(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	env := suite.NewTestWorkflowEnvironment()

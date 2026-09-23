@@ -413,6 +413,7 @@ func TestMediaIntentSchemaIncludesQualityGateState(t *testing.T) {
 		"provider_prompt text",
 		"quality_retry_count integer",
 		"quality_retry_guidance text",
+		"quality_retry_feedback jsonb NOT NULL DEFAULT '{}'::jsonb",
 		"quality_verdict varchar(16)",
 		"quality_candidate_sha256 varchar(128)",
 		"quality_checked_at timestamptz",

@@ -26,6 +26,7 @@ type mediaIntent struct {
 	ID, Owner, Prompt, ProviderPrompt, ProviderRequestID, ProviderJobID, WorkflowID string
 	Kind, MimeType, Status, QualityRetryGuidance, QualityVerdict                    string
 	QualityCandidateSHA                                                             string
+	QualityRetryFeedback                                                            map[string]any
 	QualityRetryCount                                                               int
 	ConversationID, MessageID, MomentID                                             *string
 }
@@ -214,29 +215,31 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (map[stri
 			intent.QualityCandidateSHA = candidateSHA
 		} else {
 			a.recordDiagnosticEvent(ctx, "media.quality.acceptance", "info", intent.Owner, "media:"+intent.ID, intent.ProviderRequestID, mediaQualityDiagnostic(quality, "", candidateSHA, intent.QualityRetryCount))
-			switch quality.Verdict {
+			switch mediaQualityDisposition(intent.QualityRetryCount, quality.Verdict) {
 			case mediaQualityVerdictPass:
 				if err := a.persistMediaQualityVerdict(ctx, intent.ID, providerJobID, quality.Verdict, candidateSHA); err != nil {
 					return nil, err
 				}
 				intent.QualityVerdict = quality.Verdict
 				intent.QualityCandidateSHA = candidateSHA
-			case mediaQualityVerdictRetry:
-				if intent.QualityRetryCount >= 1 {
-					if err := a.rejectMediaQuality(ctx, intent.ID, providerJobID, candidateSHA); err != nil {
-						return nil, err
-					}
-					return map[string]any{"intent_id": intent.ID, "status": "failed", "quality_verdict": mediaQualityVerdictReject}, nil
-				}
-				if err := a.prepareMediaQualityRetry(ctx, intent.ID, providerJobID, quality.RetryGuidance, candidateSHA); err != nil {
+			case mediaQualityActionRetry:
+				feedback := mediaQualityRetryFeedback(quality)
+				if err := a.prepareMediaQualityRetry(ctx, intent.ID, providerJobID, quality.RetryGuidance, feedback, candidateSHA); err != nil {
 					return nil, err
 				}
 				return map[string]any{"intent_id": intent.ID, "status": "quality_retry", "quality_retry_count": intent.QualityRetryCount + 1}, nil
-			case mediaQualityVerdictReject:
-				if err := a.rejectMediaQuality(ctx, intent.ID, providerJobID, candidateSHA); err != nil {
+			case mediaQualityActionAcceptAfterRetry:
+				actualVerdict := quality.Verdict
+				if err := a.acceptMediaQualityAfterRetry(ctx, intent.ID, providerJobID, candidateSHA); err != nil {
 					return nil, err
 				}
-				return map[string]any{"intent_id": intent.ID, "status": "failed", "quality_verdict": mediaQualityVerdictReject}, nil
+				finalDiagnostic := mediaQualityDiagnostic(quality, "", candidateSHA, intent.QualityRetryCount)
+				finalDiagnostic["actual_verdict"] = actualVerdict
+				finalDiagnostic["delivery_verdict"] = mediaQualityVerdictRetryAccepted
+				a.recordDiagnosticEvent(ctx, "media.quality.accepted_after_retry", "warn", intent.Owner, "media:"+intent.ID, intent.ProviderRequestID, finalDiagnostic)
+				quality.Verdict = mediaQualityVerdictRetryAccepted
+				intent.QualityVerdict = mediaQualityVerdictRetryAccepted
+				intent.QualityCandidateSHA = candidateSHA
 			default:
 				return nil, errors.New("media quality verdict invalid")
 			}
@@ -373,9 +376,15 @@ func recordMediaHeartbeat(ctx context.Context, details any) {
 
 func (a *App) readMediaIntent(ctx context.Context, intentID string) (mediaIntent, error) {
 	var i mediaIntent
-	err := a.DB.Pool().QueryRow(ctx, `SELECT id,owner_fluctlight_id,prompt,COALESCE(provider_prompt,''),provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,quality_retry_count,COALESCE(quality_retry_guidance,''),COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),conversation_id,message_id,moment_id FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderPrompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.QualityRetryCount, &i.QualityRetryGuidance, &i.QualityVerdict, &i.QualityCandidateSHA, &i.ConversationID, &i.MessageID, &i.MomentID)
+	var qualityRetryFeedback []byte
+	err := a.DB.Pool().QueryRow(ctx, `SELECT id,owner_fluctlight_id,prompt,COALESCE(provider_prompt,''),provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,quality_retry_count,COALESCE(quality_retry_guidance,''),COALESCE(quality_retry_feedback,'{}'::jsonb),COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),conversation_id,message_id,moment_id FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderPrompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.QualityRetryCount, &i.QualityRetryGuidance, &qualityRetryFeedback, &i.QualityVerdict, &i.QualityCandidateSHA, &i.ConversationID, &i.MessageID, &i.MomentID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return i, ErrNotFound
+	}
+	if err == nil && len(qualityRetryFeedback) > 0 {
+		if decodeErr := json.Unmarshal(qualityRetryFeedback, &i.QualityRetryFeedback); decodeErr != nil {
+			return i, decodeErr
+		}
 	}
 	return i, err
 }

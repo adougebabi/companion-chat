@@ -70,7 +70,7 @@ type MediaPromptTaskInput struct {
 
 func (a *App) RunMediaPromptTask(ctx context.Context, input MediaPromptTaskInput) (string, error) {
 	messages := []map[string]any{
-		{"role": "system", "content": mediaPromptInstruction},
+		{"role": "system", "content": mediaPromptSystemInstruction(input.Intent)},
 		{"role": "user", "content": mediaPromptInput(input.Intent)},
 	}
 	messages = addVisualIdentityMediaPromptInstruction("media_prompt", messages)

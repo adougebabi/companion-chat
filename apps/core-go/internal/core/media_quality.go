@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	mediaQualityVerdictPass   = "pass"
-	mediaQualityVerdictRetry  = "retry"
-	mediaQualityVerdictReject = "reject"
-	mediaQualityVerdictSkip   = "skipped"
+	mediaQualityVerdictPass          = "pass"
+	mediaQualityVerdictRetry         = "retry"
+	mediaQualityVerdictReject        = "reject"
+	mediaQualityVerdictSkip          = "skipped"
+	mediaQualityVerdictRetryAccepted = "retry_accepted"
 
 	mediaQualitySchemaVersion = 1
 	mediaQualityMaxViolations = 8
@@ -23,6 +24,11 @@ const (
 	mediaQualityMaxDetail     = 512
 	mediaQualityMaxGuidance   = 1200
 	mediaQualityMaxImageBytes = 16 << 20
+)
+
+const (
+	mediaQualityActionRetry            = "retry"
+	mediaQualityActionAcceptAfterRetry = "accept_after_retry"
 )
 
 type mediaQualityViolation struct {
@@ -175,16 +181,63 @@ func mediaQualityDiagnostic(result mediaQualityAcceptance, reason string, candid
 	return payload
 }
 
+func mediaQualityDisposition(retryCount int, verdict string) string {
+	switch verdict {
+	case mediaQualityVerdictPass:
+		return mediaQualityVerdictPass
+	case mediaQualityVerdictRetry, mediaQualityVerdictReject:
+		if retryCount > 0 {
+			return mediaQualityActionAcceptAfterRetry
+		}
+		return mediaQualityActionRetry
+	default:
+		return "invalid"
+	}
+}
+
+func mediaQualityRetryFeedback(result mediaQualityAcceptance) map[string]any {
+	violations := make([]any, 0, len(result.Violations))
+	for _, violation := range result.Violations {
+		violations = append(violations, map[string]any{
+			"code": violation.Code, "severity": violation.Severity, "detail": violation.Detail,
+		})
+	}
+	observedFacts := make(map[string]any, len(result.ObservedFacts))
+	for field, observed := range result.ObservedFacts {
+		observedFacts[field] = observed
+	}
+	return map[string]any{
+		"schema_version": result.SchemaVersion,
+		"verdict":        result.Verdict,
+		"violations":     violations,
+		"observed_facts": observedFacts,
+		"retry_guidance": result.RetryGuidance,
+	}
+}
+
+const mediaPromptRetryInstruction = `上一张图片未通过质量检查。结合 quality_feedback 中的 verdict、violations、observed_facts 和 retry_guidance，针对具体偏差优化 previous_provider_prompt。必须保留 frozen_media_concept 中的全部明确事实，只修正检查指出的问题；不得新增人物、场景、动作或其他冻结概念之外的事实。`
+
+func mediaPromptSystemInstruction(intent mediaIntent) string {
+	if intent.QualityRetryCount == 0 {
+		return mediaPromptInstruction
+	}
+	return mediaPromptInstruction + "\n\n" + mediaPromptRetryInstruction
+}
+
 func mediaPromptInput(intent mediaIntent) string {
 	if intent.QualityRetryCount == 0 || strings.TrimSpace(intent.QualityRetryGuidance) == "" {
-		return compactMediaConceptForProvider(intent.Prompt)
+		if intent.QualityRetryCount == 0 {
+			return compactMediaConceptForProvider(intent.Prompt)
+		}
+	}
+	feedback := cloneMap(intent.QualityRetryFeedback)
+	if len(feedback) == 0 {
+		feedback = map[string]any{"retry_guidance": intent.QualityRetryGuidance}
 	}
 	return jsonString(map[string]any{
 		"frozen_media_concept":     compactMediaConceptForProvider(intent.Prompt),
 		"previous_provider_prompt": intent.ProviderPrompt,
-		"quality_feedback": map[string]any{
-			"retry_guidance": intent.QualityRetryGuidance,
-		},
+		"quality_feedback":         feedback,
 	})
 }
 
@@ -210,8 +263,8 @@ func (a *App) persistMediaQualityVerdict(ctx context.Context, intentID, provider
 	return errors.New("media quality verdict cannot be persisted")
 }
 
-func (a *App) prepareMediaQualityRetry(ctx context.Context, intentID, providerJobID, guidance, candidateSHA string) error {
-	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET quality_retry_count=quality_retry_count+1,quality_retry_guidance=$2,quality_verdict='retry',quality_candidate_sha256=$3,quality_checked_at=now(),provider_job_id=NULL,status='pending',revision=revision+1 WHERE id=$1 AND provider_job_id=$4 AND status='running' AND quality_retry_count=0`, intentID, guidance, candidateSHA, providerJobID)
+func (a *App) prepareMediaQualityRetry(ctx context.Context, intentID, providerJobID, guidance string, feedback map[string]any, candidateSHA string) error {
+	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET quality_retry_count=quality_retry_count+1,quality_retry_guidance=$2,quality_retry_feedback=$3::jsonb,quality_verdict='retry',quality_candidate_sha256=$4,quality_checked_at=now(),provider_job_id=NULL,status='pending',revision=revision+1 WHERE id=$1 AND provider_job_id=$5 AND status='running' AND quality_retry_count=0`, intentID, guidance, jsonBytes(feedback), candidateSHA, providerJobID)
 	if err != nil {
 		return err
 	}
@@ -227,6 +280,25 @@ func (a *App) prepareMediaQualityRetry(ctx context.Context, intentID, providerJo
 		return nil
 	}
 	return errors.New("media quality retry cannot be prepared")
+}
+
+func (a *App) acceptMediaQualityAfterRetry(ctx context.Context, intentID, providerJobID, candidateSHA string) error {
+	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET quality_verdict=$2,quality_candidate_sha256=$3,quality_checked_at=now(),revision=revision+1 WHERE id=$1 AND provider_job_id=$4 AND status='running' AND quality_retry_count>=1`, intentID, mediaQualityVerdictRetryAccepted, candidateSHA, providerJobID)
+	if err != nil {
+		return err
+	}
+	if command.RowsAffected() == 1 {
+		return nil
+	}
+	var status, verdict, storedCandidate, currentJob string
+	var retryCount int
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,quality_retry_count,COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),COALESCE(provider_job_id,'') FROM public.media_intents WHERE id=$1`, intentID).Scan(&status, &retryCount, &verdict, &storedCandidate, &currentJob); err != nil {
+		return err
+	}
+	if status == "running" && retryCount >= 1 && verdict == mediaQualityVerdictRetryAccepted && storedCandidate == candidateSHA && currentJob == providerJobID {
+		return nil
+	}
+	return errors.New("media quality result cannot be accepted after retry")
 }
 
 func (a *App) rejectMediaQuality(ctx context.Context, intentID, providerJobID, candidateSHA string) error {

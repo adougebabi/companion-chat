@@ -154,12 +154,94 @@ func TestMediaPromptInputCarriesOnlyFrozenRetryFeedback(t *testing.T) {
 		ProviderPrompt:       "A previous library portrait",
 		QualityRetryCount:    1,
 		QualityRetryGuidance: "Keep the phone out of frame and preserve the library.",
+		QualityRetryFeedback: map[string]any{
+			"verdict":        "reject",
+			"violations":     []any{map[string]any{"code": "capture_mismatch", "severity": "hard", "detail": "phone visible"}},
+			"observed_facts": map[string]any{"capture_matches": false},
+			"retry_guidance": "Keep the phone out of frame and preserve the library.",
+		},
 	})
-	if !strings.Contains(input, "frozen_media_concept") || !strings.Contains(input, "quality_feedback") || !strings.Contains(input, "Keep the phone out of frame") {
+	if !strings.Contains(input, "frozen_media_concept") || !strings.Contains(input, "quality_feedback") || !strings.Contains(input, "capture_mismatch") || !strings.Contains(input, "observed_facts") || !strings.Contains(input, "Keep the phone out of frame") {
 		t.Fatalf("retry input lost frozen feedback: %s", input)
 	}
 	if !strings.Contains(input, "A previous library portrait") {
 		t.Fatalf("retry input lost prior provider prompt: %s", input)
+	}
+}
+
+func TestMediaPromptRetryInstructionUsesQualityFeedbackWithoutChangingFrozenFacts(t *testing.T) {
+	initial := mediaPromptSystemInstruction(mediaIntent{})
+	retry := mediaPromptSystemInstruction(mediaIntent{QualityRetryCount: 1})
+	if strings.Contains(initial, "上一张图片未通过质量检查") {
+		t.Fatalf("initial prompt unexpectedly contains retry instruction: %s", initial)
+	}
+	for _, required := range []string{"quality_feedback", "violations", "observed_facts", "retry_guidance", "frozen_media_concept", "不得新增人物"} {
+		if !strings.Contains(retry, required) {
+			t.Errorf("retry prompt instruction missing %q: %s", required, retry)
+		}
+	}
+}
+
+func TestMediaQualityDispositionRetriesEveryFirstNonPassAndAcceptsSecond(t *testing.T) {
+	cases := []struct {
+		verdict string
+		count   int
+		want    string
+	}{
+		{verdict: mediaQualityVerdictPass, count: 0, want: mediaQualityVerdictPass},
+		{verdict: mediaQualityVerdictPass, count: 1, want: mediaQualityVerdictPass},
+		{verdict: mediaQualityVerdictRetry, count: 0, want: mediaQualityActionRetry},
+		{verdict: mediaQualityVerdictReject, count: 0, want: mediaQualityActionRetry},
+		{verdict: mediaQualityVerdictRetry, count: 1, want: mediaQualityActionAcceptAfterRetry},
+		{verdict: mediaQualityVerdictReject, count: 1, want: mediaQualityActionAcceptAfterRetry},
+	}
+	for _, testCase := range cases {
+		if got := mediaQualityDisposition(testCase.count, testCase.verdict); got != testCase.want {
+			t.Errorf("mediaQualityDisposition(%d, %q) = %q, want %q", testCase.count, testCase.verdict, got, testCase.want)
+		}
+	}
+}
+
+func TestMediaQualityRetryPersistsStructuredFeedbackAndAcceptsSecondCandidate(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	intentID := "media-quality-retry-structured"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,provider_job_id,workflow_id,status,quality_retry_count) VALUES($1,'owner-1','image','image/png','{"scene":"library"}','request-1','job-first','workflow-1','running',0)`, intentID); err != nil {
+		t.Fatal(err)
+	}
+	app := &App{DB: repository}
+	quality := mediaQualityAcceptance{
+		SchemaVersion: mediaQualitySchemaVersion,
+		Verdict:       mediaQualityVerdictReject,
+		Violations:    []mediaQualityViolation{{Code: "capture_mismatch", Severity: "hard", Detail: "phone visible"}},
+		ObservedFacts: map[string]bool{"subject_matches": true, "appearance_matches": true, "scene_matches": true, "capture_matches": false, "framing_matches": true},
+	}
+	if err := app.prepareMediaQualityRetry(ctx, intentID, "job-first", "", mediaQualityRetryFeedback(quality), "sha-first"); err != nil {
+		t.Fatalf("prepareMediaQualityRetry() error = %v", err)
+	}
+	intent, err := app.readMediaIntent(ctx, intentID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if intent.QualityRetryCount != 1 || intent.QualityVerdict != mediaQualityVerdictRetry || stringValue(mapValue(intent.QualityRetryFeedback)["verdict"]) != mediaQualityVerdictReject {
+		t.Fatalf("retry intent = %#v", intent)
+	}
+	violations, ok := mapValue(intent.QualityRetryFeedback)["violations"].([]any)
+	if !ok || len(violations) != 1 || stringValue(mapValue(violations[0])["code"]) != "capture_mismatch" {
+		t.Fatalf("persisted violations = %#v", mapValue(intent.QualityRetryFeedback)["violations"])
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.media_intents SET provider_job_id='job-second',status='running' WHERE id=$1`, intentID); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.acceptMediaQualityAfterRetry(ctx, intentID, "job-second", "sha-second"); err != nil {
+		t.Fatalf("acceptMediaQualityAfterRetry() error = %v", err)
+	}
+	var verdict, candidateSHA, providerJobID, status string
+	var retryCount int
+	if err := repository.Pool().QueryRow(ctx, `SELECT quality_verdict,COALESCE(quality_candidate_sha256,''),COALESCE(provider_job_id,''),status,quality_retry_count FROM public.media_intents WHERE id=$1`, intentID).Scan(&verdict, &candidateSHA, &providerJobID, &status, &retryCount); err != nil {
+		t.Fatal(err)
+	}
+	if verdict != mediaQualityVerdictRetryAccepted || candidateSHA != "sha-second" || providerJobID != "job-second" || status != "running" || retryCount != 1 {
+		t.Fatalf("accepted second candidate = verdict:%q sha:%q job:%q status:%q retries:%d", verdict, candidateSHA, providerJobID, status, retryCount)
 	}
 }
 
