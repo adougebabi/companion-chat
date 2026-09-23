@@ -729,6 +729,7 @@ func TestInitializationSchemaAllowsExtendedFieldsAndStringTypes(t *testing.T) {
 			map[string]any{
 				"target_actor_id": "actor_user",
 				"role":            "朋友",
+				"trend":           "良好",
 			},
 		},
 	}

@@ -481,7 +481,7 @@ func initializationResponseSchema() map[string]any {
 		"profile_id":      stringSchema(),
 		"importance":      unitNumberSchema(),
 		"urgency":         unitNumberSchema(),
-		"scope":           enumStringSchema("general", "relationship"),
+		"scope":           stringSchema(),
 		"target_actor_id": stringSchema(),
 	}, []string{"description"}, true)
 	intention := objectSchema(map[string]any{
@@ -495,7 +495,7 @@ func initializationResponseSchema() map[string]any {
 		"profile_id":            stringSchema(),
 		"role":                  map[string]any{"anyOf": []any{openObjectSchema(), stringSchema(), map[string]any{"type": "null"}}},
 		"metrics":               openObjectSchema(),
-		"trend":                 enumStringSchema("improving", "stable", "declining"),
+		"trend":                 stringSchema(),
 		"summary":               stringSchema(),
 		"emotional_association": openObjectSchema(),
 		"evidence_refs":         arraySchema(stringSchema()),
@@ -535,13 +535,13 @@ func initializationResponseSchema() map[string]any {
 		"extensions":             openObjectSchema(),
 	}, nil, true)
 	claim := objectSchema(map[string]any{
-		"category":      enumStringSchema("preference", "habit", "sensitivity", "emotion_pattern", "self_perception", "capability", "interest"),
+		"category":      stringSchema(),
 		"claim":         stringSchema(),
 		"value":         anyJSONSchema(),
 		"confidence":    unitNumberSchema(),
 		"evidence_refs": arraySchema(stringSchema()),
 		"provenance":    openObjectSchema(),
-		"status":        enumStringSchema("active", "uncertain"),
+		"status":        stringSchema(),
 	}, []string{"category", "claim"}, false)
 	corePersona := objectSchema(map[string]any{
 		"schema_version":     integerSchema(),

@@ -458,9 +458,11 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 					p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "adk_final_output_missing")
 					return ProviderCompletion{}, err
 				}
-				if err := capabilitycontract.ValidateCapabilitySchemaValue(parsedStructured, structuredSchema); err != nil {
-					p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "adk_final_output_invalid")
-					return ProviderCompletion{}, fmt.Errorf("adk_final_output_invalid: %w", err)
+				if role != "initialization" {
+					if err := capabilitycontract.ValidateCapabilitySchemaValue(parsedStructured, structuredSchema); err != nil {
+						p.recordBoundaryFailure(ctx, adkEnabled, assignment, role, correlationID, messages, "adk_final_output_invalid")
+						return ProviderCompletion{}, fmt.Errorf("adk_final_output_invalid: %w", err)
+					}
 				}
 				completion.Structured = parsedStructured
 			} else if content == "" {
